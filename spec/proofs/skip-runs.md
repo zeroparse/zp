@@ -1,6 +1,6 @@
 # Skip Runs
 
-Arata Furukawa · Last revised 2026-11-01
+Arata Furukawa · Last revised 2026-11-02
 
 This proof covers the records of [skip runs](../runtime/parsing.md#skip-runs):
 that a reused record gives what the rest of the walk would have given
@@ -179,3 +179,7 @@ The cost of the walks therefore follows: the element is evaluated at each
 position at most twice, plus $c_{\min} + 1$ times per walk, and each walk is
 started by an evaluation of the skip expression that the parse pays for in any
 case.
+
+[Lemma 9](linear-cost.md#lemma-9-reused-skips) of the Linear Cost proof uses
+this bound for the sites of reused skips, whose expressions cost a constant,
+to count such a skip as no scanning source.

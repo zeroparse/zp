@@ -89,25 +89,33 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
 		{
-			Name: "E8 recovery skips", Family: "E8",
+			Name: "E8 recovery skips", Family: "E8", Positive: true,
 			Source: "rule main = (x / \"a\")* $$\nrule x = (y #recover(skip=[a]+)) \"c\"\nrule y = \"b\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
+			// An iteration of the skip consumes one or two characters; the walks still share their
+			// runs, whose iterations each examine a constant amount of the input.
+			Name: "E8 recovery skips of two characters", Family: "E8", Positive: true,
+			Source: "rule main = (x / \"a\")* $$\nrule x = (y #recover(skip=(\"aa\" / \"a\")+)) \"c\"\nrule y = \"b\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		{
 			// Each walk starts one position before the one before it and runs to the end.
-			Name: "E8 nested recovery skips", Family: "E8",
+			Name: "E8 nested recovery skips", Family: "E8", Positive: true,
 			Source: "rule main = (s \"!\" / [a(]*) $$\nrule s = (\"(\" s \")\") #recover(skip=[a(]+)\n",
 			Input:  func(n int) string { return rep("(", n) + "a" },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		{
 			// The walks alternate between the two runs of "a": one from each position of the first
 			// and one from the start of the second.
-			Name: "E8 recovery skips in alternating regions", Family: "E8",
+			Name: "E8 recovery skips in alternating regions", Family: "E8", Positive: true,
 			Source: "rule main = (p / \"a\" / \"b\")* $$\nrule p = x \"b\" x \"z\"\nrule x = \"c\" #recover(skip=[a]+)\n",
 			Input:  func(n int) string { return rep("a", n) + "b" + rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		{
 			Name: "E6 right recursion, safe", Family: "E6", Positive: true,

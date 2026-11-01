@@ -119,6 +119,7 @@ type wctx struct {
 	cont                *cont
 	mayStart, mustStart bool
 	repeated            string
+	skipSites           bool // inside a skip expression whose unbounded repetitions are reused skip-run sites
 	open                []*unit
 	inNot               bool
 	seqs                []seqFrame // the sequences around the expression, for bindings
@@ -252,7 +253,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 		if e.Max == 0 {
 			return
 		}
-		if e.Max < 0 {
+		if e.Max < 0 && !c.skipSites {
 			k.addSource(c, exprPos(e), "the repetition "+k.show(e))
 			k.srcExprs[e] = true
 		}
@@ -327,12 +328,18 @@ func (k *classifier) walkLookahead(e, body grammar.Expr, c wctx, not bool) {
 }
 
 func (k *classifier) walkRecovery(e, base, skip grammar.Expr, c wctx) {
-	k.addSource(c, exprPos(e), "the skip expression "+k.show(skip)+" of #recover")
-	k.srcExprs[e] = true
+	shared := reused(skip)
+	if !shared {
+		k.addSource(c, exprPos(e), "the skip expression "+k.show(skip)+" of #recover")
+		k.srcExprs[e] = true
+	}
 	u := k.newUnit(unitRecover, c, e, []*cont{{items: []grammar.Expr{base}}},
 		[]contSpec{{paths: []*cont{c.cont.then(skip)}, what: "the skip expression " + k.show(skip)}})
 	k.leftUnit(u, c, base)
 	k.walk(base, c.push(u))
+	if shared {
+		c.skipSites = true
+	}
 	k.walk(skip, c)
 }
 
@@ -1324,11 +1331,13 @@ func (k *classifier) checkGrowth() {
 			case *grammar.InlineAction:
 				return visit(e.Expr)
 			case *grammar.Recovery:
-				report(k.sourceAt(r.Name, e, "the skip expression "+k.show(e.Skip)+" of #recover"))
+				if !reused(e.Skip) {
+					report(k.sourceAt(r.Name, e, "the skip expression "+k.show(e.Skip)+" of #recover"))
+				}
 				visit(e.Expr)
 				return k.nullable(e)
 			case *grammar.Attributed:
-				if skip := recoverSkip(e); skip != nil {
+				if skip := recoverSkip(e); skip != nil && !reused(skip) {
 					report(k.sourceAt(r.Name, e, "the skip expression "+k.show(skip)+" of #recover"))
 				}
 				visit(e.Expr)

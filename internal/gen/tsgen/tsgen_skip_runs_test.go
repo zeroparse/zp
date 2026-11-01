@@ -164,8 +164,8 @@ func TestSkipRunsTSLinear(t *testing.T) {
 		}
 		sources, inputs, names = append(sources, c.Source), append(inputs, in), append(names, c.Name)
 	}
-	if len(sources) != 3 {
-		t.Fatalf("%d E8 controls, want 3", len(sources))
+	if len(sources) != 4 {
+		t.Fatalf("%d E8 controls, want 4", len(sources))
 	}
 	for _, g := range gentest.SkipRunGrammars {
 		if g.Name == "nested recovery" {

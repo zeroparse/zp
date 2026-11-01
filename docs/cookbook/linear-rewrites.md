@@ -128,9 +128,10 @@ rule y = "b"
 | `skip-fast.zp` | 4,504 | 9,112 | 18,304 |
 
 **What changes.** Nothing: the skip matches the same text, so the tree, the errors and the extent of the recovery
-are the same. The linter still reports polynomial (n^2) for `skip-fast.zp`, because the classification does not count
-the records that make the walks linear, so the measurement above is what shows the difference. The repetition must have
-no upper bound and no `#cut`, and neither it nor the rules it calls may read a variable or contain a `#recover`.
+are the same. The linter reports polynomial (n^2) for `skip.zp` and linear for `skip-fast.zp`. The repetition must have
+no upper bound and no `#cut` that applies to the repetition, and neither it nor the rules it calls may read a variable or contain a `#recover`. The
+linter counts the skip as linear only when it calls no rule and has no predicate, and each iteration of its
+repetition examines at most a constant amount of the input, as a character class does.
 
 ## A Left-Recursive Rule or an Operators Rule Called Again and Again
 

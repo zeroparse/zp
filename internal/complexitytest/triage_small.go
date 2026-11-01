@@ -114,8 +114,8 @@ func triageSmall() []TriageGroup {
 
 		// minilang
 		{Grammar: "minilang", ID: "recover", Rules: []string{"stmt", "if"}, Pattern: `.`,
-			Shape:  "the #recover base of stmt against its skip, and else? against what follows it through that skip",
-			Assign: "F98", Order: Linear, Families: []TriageFamily{
+			Shape:  "the #recover base of stmt, and else?, abandoned inside a block that the skip stops before, so the next statements parse the block again through the memoized stmt",
+			Assign: "F100", Order: Linear, Families: []TriageFamily{
 				{Name: "long junk lines", Build: list("", "x = a b c d e f g h;", "\n", ""), Sizes: doubling(500, 3), Lenient: true, Order: Linear},
 				{Name: "else followed by junk", Build: list("", "if a { x = 1; } else junk junk;", "\n", ""), Sizes: doubling(500, 3), Lenient: true, Order: Linear},
 				{Name: "nested blocks with junk", Build: nest("{ x x ", "y;", "}"), Sizes: doubling(200, 3), Lenient: true, Order: Linear},

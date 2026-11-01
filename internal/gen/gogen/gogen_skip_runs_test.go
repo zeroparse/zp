@@ -348,7 +348,7 @@ func testSkipRunsGeneratedLinear(t *testing.T) {
 			controls = append(controls, c)
 		}
 	}
-	if len(controls) != 3 || !strings.Contains(controls[1].Name, "nested") {
+	if len(controls) != 4 || !strings.Contains(controls[2].Name, "nested") {
 		t.Fatalf("unexpected E8 controls %v", controls)
 	}
 	sizes := []int{200, 400, 800}

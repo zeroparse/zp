@@ -137,9 +137,10 @@ Per construct:
 | Variable environment | multiplies memo keys by the number of distinct environments at a position | equality of the environment | per environment |
 
 **Spans** are what makes local cost unbounded. A construct whose local cost grows with its span is called a **scanning
-construct**: an unbounded repetition, `Scan`, a left-recursion leader, an Operators Rule, a recovery skip, and a lookahead
-whose body contains one. A parse is linear when no input position is covered by the spans of more than a constant
-number of evaluations of each scanning construct, and the number of environments per position is bounded.
+construct**: an unbounded repetition, `Scan`, a left-recursion leader, an Operators Rule, a recovery skip whose walks are
+not shared, and a lookahead whose body contains one. A parse is linear when no input position is covered by the spans
+of more than a constant number of evaluations of each scanning construct, and the number of environments per position
+is bounded.
 
 ### Conditions for Linearity
 
@@ -450,8 +451,14 @@ The groups are addressed by these mechanisms:
   positive lookahead, so that their sizes add up to the input. The accumulator of a bounded fold is taken to hold what any number of steps can add, not at most the bound:
   a fold over `#repeat(,1)` that adds the value of the rule's own recursion on each step is reported exponential,
   though it runs at most once and holds that value once, which condition 4 classes polynomial.
-- **Recovery-skip refinement of the classifier.** A `#recover` skip is not a scanning source once repetition-run reuse
-  records the ends of skips per position.
+- **Recovery-skip refinement of the classifier.** A `#recover` skip whose unbounded repetitions are skip-run sites, with
+  elements that examine a constant amount of the input, and which calls no rule and has no predicate, is not a
+  scanning source: the walks of its sites evaluate their elements a number of times linear in the input plus a
+  constant per walk ([Lemma 9](../../../spec/proofs/linear-cost.md#lemma-9-reused-skips)), whatever the width of an
+  iteration. A skip that calls a rule stays a source, since a called rule can examine any amount of the input. The
+  nested recovery `s = ("(" s ")") #recover(skip=[a(]+)` is then linear. minilang stays unknown: when a statement
+  fails inside a block, its skip stops before the `{`, and the next statements parse the block again, which only the
+  memoized `stmt` keeps linear.
 - **Constant-cost text in the cost model.** The cost model guarantees that the text of a node costs a constant in a
   whole-input parse and a Document, and that a string comparison costs at most its shorter operand, so the classifier
   does not count a text as a copy. The text of a recursive capture, as in Python's f-string replacement fields, is
@@ -491,7 +498,7 @@ The groups are addressed by these mechanisms:
 | cel | string-tokens | 2 | token-scan refinement | 1 | 1.04 | n |
 | outline | nested | 2 | open | 1 | 0.97 | n |
 | outline | blank-lines | 2 | token-scan refinement | 2 | 1.00 | n |
-| minilang | recover | 2 | recovery-skip refinement | 3 | 1.01 | n |
+| minilang | recover | 2 | open | 3 | 1.01 | n |
 | golang | nested | 166 | open | 12 | 1.01 | n |
 | golang | comments | 16 | token-scan refinement | 7 | 1.01 | n |
 | golang | identifiers | 1 | token-scan refinement | 2 | 1.00 | n |

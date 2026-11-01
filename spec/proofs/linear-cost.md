@@ -10,7 +10,7 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 7 and 8 are proved, and the theorem is proved from the others.
+Lemmas 1, 2, 7, 8 and 9 are proved, and the theorem is proved from the others.
 Lemmas 3 to 6 are given as outlines: each states its claim, the conditions it uses,
 and the steps that its proof must still make precise, listed under
 [Open Steps](#open-steps) with the step that the theorem needs besides them.
@@ -48,7 +48,8 @@ number of lookaheads that enclose a terminal, which rule calls do not bound.
 **activation** of a scanning source is one unit of its work that evaluates a
 fixed part of the grammar once: an iteration of a repetition without an upper
 bound, an operator that an Operators Rule applies, or an evaluation of the
-skip expression of a `#recover`. The growth of a cycle and the copying
+skip expression of a `#recover` that is not a
+[reused skip](../runtime/parsing.md#skip-runs). The growth of a cycle and the copying
 operations, the other scanning sources, make no calls of their own beyond the
 body evaluations of the growth.
 
@@ -57,19 +58,22 @@ the cost of the steps that it makes outside the calls it makes and outside its
 scanning sources, and a **scanned cost**, the cost of the steps of its
 scanning sources outside the calls they make. Each call is counted once, in
 the evaluation that makes it, as a body evaluation of the callee, the steps of
-a growth, or the reuse of an entry. Every unit of $C$ belongs to exactly one
-of these: the local or scanned cost of one body evaluation, or one call.
+a growth, or the reuse of an entry. The iterations, lookups and records of the
+walks of the sites of reused skips are counted apart, as their **walk cost**.
+Every unit of $C$ belongs to exactly one of these: the local or scanned cost of
+one body evaluation, one call, or the walk cost.
 
 ## Lemma 1 (Local Cost)
 
 The local cost of one body evaluation is at most a constant $c_0$ times
 $L + 1$.
 
-*Proof.* Outside its scanning sources, a body contains no repetition without
-an upper bound, no `#recover` skip, no operators of an Operators Rule, and no
-copying operation whose operand is unbounded in size other than the value of a
-variable ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
-the definition of a scanning source). The body is a finite expression, and
+*Proof.* Outside its scanning sources and the sites of its reused skips, a
+body contains no repetition without an upper bound, no `#recover` skip that
+is not reused, no operators of an Operators Rule, and no copying operation
+whose operand is unbounded in size other than the value of a variable
+([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
+the definition of a scanning source); a reused skip calls no rule. The body is a finite expression, and
 each of its parts is evaluated at most as many times as the product of the
 upper bounds of the repetitions that enclose it, a constant. Each such
 evaluation outside a call costs a constant, except a copy of the value of a
@@ -118,10 +122,12 @@ with the activations of their scanning sources, is at most a constant times
 $K(L + 1)\hat{n}$.
 
 For the walks of a [skip-run site](../runtime/parsing.md#skip-runs) in the
-skip expression of a `#recover`, the [Skip Runs proof](skip-runs.md#lemma-2-cost)
-bounds the evaluations of the element by $2(n + 1)$ plus a constant for each
-walk, and each walk is one activation of the skip expression. That lemma is
-the case of this one for skip-run sites.
+skip expression of a `#recover` that is not reused, the
+[Skip Runs proof](skip-runs.md#lemma-2-cost) bounds the evaluations of the
+element by $2(n + 1)$ plus a constant for each walk, and each walk is one
+activation of the skip expression. That lemma is the case of this one for
+skip-run sites. A reused skip is no scanning source, and Lemma 9 bounds its
+walks.
 
 The proof charges each step of a scanning source to a slot of the input that
 it examines, or to the iteration or operator that makes it, and shows that
@@ -442,6 +448,63 @@ before it: a test after the binding, or after a call that follows it, has not
 been evaluated when the binding reads $v$, so it filters nothing that the
 binding reads.
 
+## Lemma 9 (Reused Skips)
+
+The walk cost is at most a constant times $\hat{n}$ plus a constant times the
+number of evaluations of the skip expressions of reused skips, which is at most
+a constant times the number of body evaluations, growth steps included, plus
+the number of activations.
+
+*Proof.* Fix a site $\sigma$ of a reused skip and a lookahead state $\lambda$.
+The expression of $\sigma$ has no repetition without an upper bound, no rule
+call, no predicate, no `#recover` and no Operators Rule, so it is a finite
+expression of terminals, character classes, `.`, lookaheads, choices,
+options, sequences and bounded repetitions. Each of its evaluations makes a
+constant number of steps, examines a constant amount of the input, however
+many characters it consumes, and builds no value, since a skip expression has
+no captures. The expectations that it can record are among a constant number
+of terminals. By [Lemma 2](skip-runs.md#lemma-2-cost) of the Skip Runs proof,
+in a parse with $W_{\sigma\lambda}$ walks of $(\sigma, \lambda)$ the
+expression is evaluated at most $2(n + 1) + W_{\sigma\lambda}(c_{\min} + 1)$
+times, at most $n + 1 + W_{\sigma\lambda}(c_{\min} + 1)$ slots are looked up,
+and at most $n + 1 + W_{\sigma\lambda} c_{\min}$ records are stored. A lookup
+costs 1, and storing or reusing a record costs a constant plus the charges of
+its expectations, which are a constant by the above. Marking a slot is free
+([Skip Runs](../runtime/parsing.md#skip-runs)). The walks of
+$(\sigma, \lambda)$ therefore cost at most $c_1 (\hat{n} + W_{\sigma\lambda})$,
+and there are a constant number of sites, each with two lookahead states.
+
+Outside its sites, a reused skip is a finite expression without calls, so an
+evaluation of it costs a constant, which is local cost as in Lemma 1, and
+starts a constant number of walks: each walk is an evaluation of a site, and
+each part of the skip outside the sites is evaluated at most as many times as
+the product of the upper bounds of the bounded repetitions that enclose it. So
+$\sum_{\sigma\lambda} W_{\sigma\lambda} \le c_2 E$, where $E$ is the number of
+evaluations of the skip expressions of reused skips. The parser evaluates a
+skip expression only after the base of its `#recover` fails, once for each
+evaluation of the `#recover` expression. That expression is a part of a body
+outside the scanning sources, evaluated a constant number of times in each
+body evaluation by the argument of Lemma 1, or a part of a scanning source,
+evaluated a constant number of times in each of its activations. So $E$ is at
+most a constant times the body evaluations and activations, which Lemmas 3 to
+5 and open step 7 bound. $\square$
+
+Removing a reused skip from the scanning sources changes which units are
+committing: a unit whose only scanning source was such a skip has none, though
+its skip can examine input up to the end. No step of a reused skip is charged
+to a slot in Lemma 4; this lemma pays for every walk, whichever unit abandons
+it and however often its skip is evaluated again. A continuation that examines
+again the input that the skip examined charges its own steps as before, and
+the slots that the skip examined carry no earlier charge from it. Slots last
+one parse: a [Document](../runtime/documents.md) parse starts without them,
+which leaves the bound of each parse unchanged. In a
+[stream](../runtime/streaming.md) the records bound the walks, and this lemma
+gives no linear bound for a stream parse of a grammar with `#recover`, which
+[Classification](../runtime/parsing.md#classification) places outside the
+classes. A parse with missing-token
+insertion keeps no slots, and is outside the classes, as
+[Classification](../runtime/parsing.md#classification) states.
+
 ## Theorem (Linear Cost)
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
@@ -457,8 +520,9 @@ Lemmas 3 and 5 bound by a constant times $K \hat{n}$ plus the evaluations of
 rules that are not memoized. Open step 7 bounds those by a constant times
 $K \hat{n}$ plus the activations. By Lemma 2 the calls are at most a constant
 times the body evaluations plus the activations, which Lemmas 4 and 5 bound.
-The scanned cost is bounded by Lemmas 4 and 5 and the values by Lemma 6. Each
-bound is a constant times $K (L + 1) \hat{n}$. $\square$
+The scanned cost is bounded by Lemmas 4 and 5, the walk cost by Lemma 9, and
+the values by Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$.
+$\square$
 
 The classifier reports the two classes only when the conditions hold, and it
 over-approximates where it cannot decide them

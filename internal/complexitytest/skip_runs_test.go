@@ -18,8 +18,8 @@ func skipRunControls(t *testing.T) []Control {
 			cs = append(cs, c)
 		}
 	}
-	if len(cs) != 3 {
-		t.Fatalf("%d E8 controls, want 3", len(cs))
+	if len(cs) != 4 {
+		t.Fatalf("%d E8 controls, want 4", len(cs))
 	}
 	return cs
 }

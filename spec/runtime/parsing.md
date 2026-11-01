@@ -511,9 +511,23 @@ recorded, plus, per walk, at most the minimum number of iterations, the last
 iteration of a walk that ends plain, and one lookup; the
 [proof](../proofs/skip-runs.md) gives the bound. The slots of a site take a
 bit for each position between the first and the last position its walks
-visit, and a record for each position that recording walks visit. The
-[classification](#classification) does not count records: it reports a grammar
-whose only repeated cost is a skip run as it would without them.
+visit, and a record for each position that recording walks visit.
+
+A skip expression is a **reused skip** when every repetition without an upper
+bound written in it, other than inside another such repetition, is a site
+whose expression examines at most a constant amount of the input, and the skip
+expression calls no rule and contains no predicate, `#recover` or Operators
+Rule. The expression of such a site has no repetition without an upper bound
+and none of those either; it may consume any constant number of characters in
+an iteration, as `[^;\n]` and `("ab" / "a")` do. A reused skip costs a
+constant in each of its evaluations outside its sites, and the walks of its
+sites evaluate their expressions a number of times linear in the input plus a
+constant per walk, whatever the number and order of the walks, so the
+[classification](#classification) does not count it as a scanning source
+([Lemma 9](../proofs/linear-cost.md#lemma-9-reused-skips)). A skip that calls
+a rule stays a scanning source, because a called rule can examine any amount
+of the input in one iteration, and so does a repetition in a rule that a skip
+calls, which is not a site.
 
 ### Classes of Growth
 
@@ -588,7 +602,8 @@ The conditions below use these terms.
   step of the growth evaluates again, and the first step of a growing unit and
   condition 3 are checked with the leaders as the rules that grow.
 - A **scanning source** is one of the following: a repetition without an upper
-  bound, the skip expression of a `#recover`, the growth of a left-recursion
+  bound, the skip expression of a `#recover` that is not a
+  [reused skip](#skip-runs), the growth of a left-recursion
   cycle at every call of a rule of the cycle other than a left call, the
   operators that an Operators Rule applies, and a copying operation with an
   operand, other than the value of a variable, that is not bounded in size by
@@ -955,8 +970,12 @@ the second class is at most proportional to K · n². A caller that needs a cost
 proportional to n needs the class Linear.
 
 The first two classes are guarantees under the memoization that
-[Evaluations of Rules](#evaluations-of-rules) describes; an implementation
-that memoizes fewer rules, as one can for testing, is outside them. The
+[Evaluations of Rules](#evaluations-of-rules) describes and the skip runs that
+[Skip Runs](#skip-runs) describes; an implementation or a parse that keeps
+fewer of either, as one can for testing and as a parse with missing-token
+insertion does, is outside them. A [stream](streaming.md) parse of a grammar
+with `#recover` is also outside them: it can cost more than a constant times n
+even when the skip of each recovery is constant. The
 classifier reports them only when the
 conditions of [Conditions for Linear Cost](#conditions-for-linear-cost) hold,
 and it over-approximates where it cannot be exact. It assumes that every
