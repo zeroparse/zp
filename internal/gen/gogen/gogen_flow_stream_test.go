@@ -85,7 +85,7 @@ func testFlowStreamBodyIsBatchBody(t *testing.T) {
 				}
 				cur = c.Name + "/" + form.name
 				before := flowN
-				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true, BudgetControls: form.controls, Observability: form.observe})
+				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true, LimitControls: form.controls, Observability: form.observe})
 				if err != nil {
 					if strings.Contains(err.Error(), "needs a #stream repetition") {
 						t.Skip("the #stream of the grammar is not at the top of the start rule")
@@ -198,7 +198,7 @@ func testGeneratedFlowStreamMatchesEngine(t *testing.T) {
 	for _, form := range streamForms {
 		t.Run(form.name, func(t *testing.T) {
 			before := taken
-			testGeneratedStreams(t, goBin, cases, gen.GenOptions{BudgetControls: form.controls, Observability: form.observe})
+			testGeneratedStreams(t, goBin, cases, gen.GenOptions{LimitControls: form.controls, Observability: form.observe})
 			if taken == before {
 				t.Errorf("no stream body is printed from Flow IR")
 			}
@@ -308,7 +308,7 @@ func runStreamProbes(t *testing.T, cases []gentest.Case, form struct {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		i := len(kept)
-		o := gen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: "main", Stream: true, SourceInfo: true, BudgetControls: form.controls, Observability: form.observe}
+		o := gen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: "main", Stream: true, SourceInfo: true, LimitControls: form.controls, Observability: form.observe}
 		code, err := gentest.GenerateCode(t, g, o)
 		if err != nil {
 			if strings.Contains(err.Error(), "needs a #stream repetition") {

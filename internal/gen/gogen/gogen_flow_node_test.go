@@ -95,7 +95,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				o := gen.GenOptions{Package: "x", Module: "example.com/x", Runtime: gen.RuntimeImport, Recognize: true, BudgetControls: form.controls, Observability: form.observe, Document: form.document}
+				o := gen.GenOptions{Package: "x", Module: "example.com/x", Runtime: gen.RuntimeImport, Recognize: true, LimitControls: form.controls, Observability: form.observe, Document: form.document}
 				taken, framed, operators := 0, 0, 0
 				gh := &gogen.Hooks{}
 				gentest.SetGenHooks(t, gh)

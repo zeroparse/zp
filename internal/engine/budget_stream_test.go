@@ -253,12 +253,12 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
-		for _, kind := range []limits.LimitKind{limits.LimitBudget, limits.LimitBudget} {
+		for _, kind := range []limits.LimitKind{limits.LimitCompute, limits.LimitCompute} {
 			o := base
-			if kind == limits.LimitBudget {
-				o.Limits.Budget = 16
+			if kind == limits.LimitCompute {
+				o.Limits.Compute = 16
 			} else {
-				o.Limits.Budget = 1
+				o.Limits.Compute = 1
 			}
 			count := 0
 			var saved TraceEvent
@@ -335,7 +335,7 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 		}
 		want := append([]int(nil), source...)
 		n := copy(want, want[shift:])
-		c := core.NewBudgetControl(nil, limits.Limits{Budget: uint64(n)})
+		c := core.NewBudgetControl(nil, limits.Limits{Compute: uint64(n)})
 		if got := core.CopyStreamPrefix(c, source, source[shift:]); got != n || !reflect.DeepEqual(source, want) || c.Used != uint64(n) {
 			t.Fatalf("shift=%d result differs", shift)
 		}
@@ -344,7 +344,7 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 	for i := range v {
 		v[i] = i
 	}
-	c := core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+	c := core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 	got := catchStreamPanic(func() { core.CopyStreamPrefix(c, v, v[1:]) })
 	f, ok := got.(core.Fatal)
 	if !ok || !errors.Is(f.Err, limits.ErrLimit) || c.Used != 128 || v[128] != 128 {
@@ -357,14 +357,14 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 	// The frame scan and suffix clear are separately counted; neither touches
 	// a Node already delivered to the caller.
 	node := value.Ptr(value.Data{Text: "delivered"})
-	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, limits.Limits{Budget: 1})}, FrameSlab: make([]core.Frame, 258)}
+	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1})}, FrameSlab: make([]core.Frame, 258)}
 	p.Frame = &p.FrameSlab[0]
 	p.FrameSlab[1].Vals = []*value.Node{node}
 	got := catchStreamPanic(func() { p.ResetStreamFrames() })
 	if _, ok := got.(core.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || value.D(node).Text != "delivered" {
 		t.Fatalf("frame interruption=%v", got)
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 258})
+	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 258})
 	p.ResetStreamFrames()
 	if len(p.FrameSlab) != 1 || p.Control.Used != 258 || value.D(node).Text != "delivered" {
 		t.Fatal("frame retry changed ownership or count")
@@ -380,7 +380,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			a.Next = b
 			memo.Slots[0] = a
 			memo.Slots[1] = growing
-			p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, limits.Limits{Budget: 2})}, Memo: memo}
+			p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 2})}, Memo: memo}
 			pos := 129
 			if all {
 				pos = 260
@@ -401,7 +401,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			keep.Node = node
 			fresh.Slots[200] = keep
 			p.Memo = fresh
-			p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 2000})
+			p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 2000})
 			p.PruneStreamMemo(pos)
 			if fresh.Base != pos || seed.Node != node || value.D(node).Text != "delivered" || len(fresh.Slots) != max(260-pos, 0) {
 				t.Fatal("prune ownership/base differs")
@@ -417,7 +417,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
-		o.Limits.Budget = 1 << 20
+		o.Limits.Compute = 1 << 20
 		var saved TraceEvent
 		o.Trace = func(e TraceEvent) {
 			if core.TraceParser(saved) == nil {
@@ -460,11 +460,11 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 					lineSteps = min(p.Pos-1, p.Loaded()) - p.Base
 				}
 			}
-			controller.Limits.Budget = controller.Used + uint64(lineSteps+copyCount+frames+128)
+			controller.Limits.Compute = controller.Used + uint64(lineSteps+copyCount+frames+128)
 			return nil
 		}, o)
 		var we *limits.LimitError
-		if !errors.As(err, &we) || we.Kind != limits.LimitBudget || we.Requested != 1 || we.Used != controller.Limits.Budget || count != 1 {
+		if !errors.As(err, &we) || we.Kind != limits.LimitCompute || we.Requested != 1 || we.Used != controller.Limits.Compute || count != 1 {
 			t.Fatalf("normal commit interruption error=%v emits=%d", err, count)
 		}
 		assertTraceParserDetached(t, core.TraceParser(saved), false)
@@ -555,7 +555,7 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 			restore := corruptVMLiteral(t, prog)
 			defer restore()
 			var saved TraceEvent
-			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*value.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: limits.Limits{Budget: 1 << 20}, Trace: func(e TraceEvent) {
+			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*value.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: limits.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 				if core.TraceParser(saved) == nil {
 					saved = e
 				}
@@ -589,7 +589,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 			go func() {
 				<-start
 				o := base
-				o.Limits = limits.Limits{Budget: 100000}
+				o.Limits = limits.Limits{Compute: 100000}
 				if i == 0 {
 					o.Context = ctx
 				}

@@ -25,7 +25,7 @@ _ = stats
 `Edit(start, end, replacement)` replaces the half-open range in the unit selected at construction. It rejects
 invalid ranges and positions inside a UTF-8 character in `Bytes` mode without changing the text. `Text()` returns
 the exact current input. Construction options become defaults for later `Parse` calls; per-call options can change
-depth, context and budget limits, but cannot change the unit. An interruption during execution discards memo history so a
+depth, context and compute limits, but cannot change the unit. An interruption during execution discards memo history so a
 later call can retry. `Document` is single-goroutine, and results can share nodes with later parses. Call
 `tree.Clone()` if an earlier tree must remain detached from the Document. It copies Node graphs, including Node
 values in `[]any` and `[]*Node` fields, while preserving cycles and repeated references to the same slice view.

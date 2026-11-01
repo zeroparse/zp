@@ -110,7 +110,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 			if err != nil {
 				t.Fatal(err)
 			}
-			limits := limits.Limits{Budget: 1 << 30}
+			limits := limits.Limits{Compute: 1 << 30}
 			declared := checked.Typed.Fields["S"][0].T.String() // as the value checker resolves it
 			for _, in := range gentest.ResultCheckInputs() {
 				value := gentest.FieldCheckValues[in[:1]]
@@ -135,7 +135,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 				var want string
 				for _, unit := range []PositionUnit{CodePoints, Bytes} {
 					for _, run := range runs {
-						if run.o.Limits.Budget != 0 && !core.BudgetControlsEnabled {
+						if run.o.Limits.Compute != 0 && !core.BudgetControlsEnabled {
 							continue // the reference build has no limits
 						}
 						o := run.o
@@ -243,7 +243,7 @@ func TestOperatorResultChecks(t *testing.T) {
 		if got := strings.Contains(want, "cannot cast "); got != rejected {
 			t.Errorf("%q: %s", in, want)
 		}
-		limits := limits.Limits{Budget: 1 << 30}
+		limits := limits.Limits{Compute: 1 << 30}
 		for _, run := range []struct {
 			name string
 			prog *Program
@@ -257,7 +257,7 @@ func TestOperatorResultChecks(t *testing.T) {
 			{"loaded iterative", loaded, ParseOptions{Backend: BytecodeIterative}},
 			{"limited loaded bytecode", loaded, ParseOptions{Backend: Bytecode, Limits: limits}},
 		} {
-			if run.o.Limits.Budget != 0 && !core.BudgetControlsEnabled {
+			if run.o.Limits.Compute != 0 && !core.BudgetControlsEnabled {
 				continue // the reference build has no limits
 			}
 			if got := resultWith(run.prog, in, run.o); got != want {

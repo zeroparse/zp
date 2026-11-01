@@ -36,7 +36,7 @@ var tsPublicRuntime = strings.Fields(`
 	TraceKind TraceEvent Profile ProfileLocation SkipReasonCount RuleProfile ProfileSnapshot`)
 
 // tsPublicControls lists the runtime declarations of the budget controls that parser.ts re-exports
-// only with -budget-controls.
+// only with -limits.
 var tsPublicControls = strings.Fields(`CancellationSignal ParseInterruptionKind ParseInterruptionError Unlimited`)
 
 // TsRuntimeText returns the source of runtime.ts: the runtime, the invocation budget controls and the
@@ -143,12 +143,12 @@ func tsFiles(opts gen.GenOptions, body, types string) []gen.GeneratedFile {
 	parser.WriteString("\n// The names of the runtime that users of the parser need.\n")
 	var values, typs []string
 	public := slices.Clone(tsPublicRuntime)
-	if opts.BudgetControls {
+	if opts.LimitControls {
 		public = append(public, tsPublicControls...)
 	}
 	for _, name := range public {
 		export := name
-		if name == "ParseOptions" && !opts.BudgetControls {
+		if name == "ParseOptions" && !opts.LimitControls {
 			// Without budget controls the options have no cancellation or limits.
 			export = "PlainParseOptions as ParseOptions"
 			name = "PlainParseOptions"

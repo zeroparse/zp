@@ -76,8 +76,8 @@ func testGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
 	}
 	var limit, typedLimit string
 	if gentest.FixtureBudgetControls(t) {
-		limit = "g.WithLimits(g.Limits{Budget: 1 << 20})"
-		typedLimit = "tg.WithLimits(tg.Limits{Budget: 1 << 20})"
+		limit = "g.WithLimits(g.Limits{Compute: 1 << 20})"
+		typedLimit = "tg.WithLimits(tg.Limits{Compute: 1 << 20})"
 	}
 	main := `package main
 

@@ -38,10 +38,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			o := []gjson.ParseOption{gjson.WithUnit(u)}
 			if c {
 				// The largest finite budget: ^uint64(0) is Unlimited, which runs without a control.
-				o = append(o, gjson.WithLimits(gjson.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gjson.WithLimits(gjson.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gjson.WithLimits(gjson.Limits{Budget: gjson.Unlimited}))
+				o = append(o, gjson.WithLimits(gjson.Limits{Compute: gjson.Unlimited}))
 			}
 			return o
 		}),
@@ -52,10 +52,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gcsv.ParseOption{gcsv.WithUnit(u)}
 			if c {
-				o = append(o, gcsv.WithLimits(gcsv.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gcsv.WithLimits(gcsv.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gcsv.WithLimits(gcsv.Limits{Budget: gcsv.Unlimited}))
+				o = append(o, gcsv.WithLimits(gcsv.Limits{Compute: gcsv.Unlimited}))
 			}
 			return o
 		}),
@@ -66,10 +66,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gxml.ParseOption{gxml.WithUnit(u)}
 			if c {
-				o = append(o, gxml.WithLimits(gxml.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gxml.WithLimits(gxml.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gxml.WithLimits(gxml.Limits{Budget: gxml.Unlimited}))
+				o = append(o, gxml.WithLimits(gxml.Limits{Compute: gxml.Unlimited}))
 			}
 			return o
 		}),
@@ -80,10 +80,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gcalc.ParseOption{gcalc.WithUnit(u)}
 			if c {
-				o = append(o, gcalc.WithLimits(gcalc.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gcalc.WithLimits(gcalc.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gcalc.WithLimits(gcalc.Limits{Budget: gcalc.Unlimited}))
+				o = append(o, gcalc.WithLimits(gcalc.Limits{Compute: gcalc.Unlimited}))
 			}
 			return o
 		}),
@@ -94,10 +94,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gcalclr.ParseOption{gcalclr.WithUnit(u)}
 			if c {
-				o = append(o, gcalclr.WithLimits(gcalclr.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gcalclr.WithLimits(gcalclr.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gcalclr.WithLimits(gcalclr.Limits{Budget: gcalclr.Unlimited}))
+				o = append(o, gcalclr.WithLimits(gcalclr.Limits{Compute: gcalclr.Unlimited}))
 			}
 			return o
 		}),
@@ -108,10 +108,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gminilang.ParseOption{gminilang.WithUnit(u)}
 			if c {
-				o = append(o, gminilang.WithLimits(gminilang.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gminilang.WithLimits(gminilang.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gminilang.WithLimits(gminilang.Limits{Budget: gminilang.Unlimited}))
+				o = append(o, gminilang.WithLimits(gminilang.Limits{Compute: gminilang.Unlimited}))
 			}
 			return o
 		}),
@@ -122,10 +122,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []gminilang.ParseOption{gminilang.WithUnit(u)}
 			if c {
-				o = append(o, gminilang.WithLimits(gminilang.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, gminilang.WithLimits(gminilang.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, gminilang.WithLimits(gminilang.Limits{Budget: gminilang.Unlimited}))
+				o = append(o, gminilang.WithLimits(gminilang.Limits{Compute: gminilang.Unlimited}))
 			}
 			return o
 		}),
@@ -136,10 +136,10 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			o := []goutline.ParseOption{goutline.WithUnit(u)}
 			if c {
-				o = append(o, goutline.WithLimits(goutline.Limits{Budget: ^uint64(0) - 1}))
+				o = append(o, goutline.WithLimits(goutline.Limits{Compute: ^uint64(0) - 1}))
 			} else {
 				// A zero budget selects the default counter; the uncontrolled form needs Unlimited.
-				o = append(o, goutline.WithLimits(goutline.Limits{Budget: goutline.Unlimited}))
+				o = append(o, goutline.WithLimits(goutline.Limits{Compute: goutline.Unlimited}))
 			}
 			return o
 		}),
@@ -193,13 +193,13 @@ func TestControlledFullWorkloads(t *testing.T) {
 				for _, u := range units {
 					t.Run(be.name+"/"+u.name, func(t *testing.T) {
 						// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(zp.Limits{Budget: zp.Unlimited})}
+						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})}
 						plain, plainErr := p.Parse(input, opts...)
 						want := check(plain, plainErr)
 						for _, mode := range []string{"budget", "context", "combined"} {
 							active := append([]zp.ParseOption{}, opts...)
 							if mode != "context" {
-								active = append(active, zp.WithLimits(zp.Limits{Budget: ^uint64(0) - 1}))
+								active = append(active, zp.WithLimits(zp.Limits{Compute: ^uint64(0) - 1}))
 							}
 							if mode != "budget" {
 								ctx, cancel := context.WithCancel(context.Background())
@@ -221,7 +221,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 								t.Fatalf("%s recognition diagnostics differ", mode)
 							}
 						}
-						n, err := p.Parse(input, append(opts, zp.WithLimits(zp.Limits{Budget: 1}))...)
+						n, err := p.Parse(input, append(opts, zp.WithLimits(zp.Limits{Compute: 1}))...)
 						if n != nil || !errors.Is(err, zp.ErrLimit) {
 							t.Fatalf("full-input interruption: %v", err)
 						}

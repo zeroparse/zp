@@ -52,7 +52,7 @@ Revision `8acf9918`, Go 1.27.1, darwin/arm64, closure backend, code points. Each
 - the bytes allocated per parse.
 
 Steps are deterministic for a fixed artifact, input and options
-([Cancellation and budget limits](../../../spec/runtime/parsing.md#cancellation-and-budget-limits)). The ratios therefore
+([Cancellation and budget limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits)). The ratios therefore
 do not depend on timing noise.
 
 | | Grammar | Input family | Steps as n grows | Order |

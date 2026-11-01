@@ -1243,7 +1243,7 @@ func TestParseStreamAST(t *testing.T) {
 	}
 }
 
-// Converting elements is charged to the budget limits like parsing them.
+// Converting elements is charged to the compute limits like parsing them.
 func TestParseStreamASTBudgetControls(t *testing.T) {
 	input := strings.Repeat("a"+strings.Repeat("1", 50)+";", 200)
 	steps := func(f func(limits Limits) error) int {
@@ -1251,7 +1251,7 @@ func TestParseStreamASTBudgetControls(t *testing.T) {
 		for lo < hi {
 			mid := (lo + hi) / 2
 			var limit *LimitError
-			if err := f(Limits{Budget: uint64(mid)}); errors.As(err, &limit) {
+			if err := f(Limits{Compute: uint64(mid)}); errors.As(err, &limit) {
 				lo = mid + 1
 			} else if err != nil {
 				t.Fatal(err)
@@ -1335,7 +1335,7 @@ func TestTraceAndProfile(t *testing.T) {
 func TestBudgetControls(t *testing.T) {
 	var limit *LimitError
 	n := 0
-	err := ParseStream(strings.NewReader(strings.Repeat(input, 1000)), func(*Node) error { n++; return nil }, WithLimits(Limits{Budget: 20000}))
+	err := ParseStream(strings.NewReader(strings.Repeat(input, 1000)), func(*Node) error { n++; return nil }, WithLimits(Limits{Compute: 20000}))
 	if !errors.As(err, &limit) || n == 0 || n >= 3000 {
 		t.Fatal(err, n)
 	}

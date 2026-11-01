@@ -29,14 +29,14 @@ func TestDefaultBudget(t *testing.T) {
 // a stream starts at the floor and follows what the parser demands.
 func TestPrepareOptionsDefault(t *testing.T) {
 	o := prepareOptions(parseOptions{controls: true}, 5000, false)
-	if o.control == nil || o.control.limits.Budget != 5000*1024 {
+	if o.control == nil || o.control.limits.Compute != 5000*1024 {
 		t.Fatalf("default: %+v", o.control)
 	}
-	o = prepareOptions(parseOptions{controls: true, limits: Limits{Budget: Unlimited}}, 5000, false)
+	o = prepareOptions(parseOptions{controls: true, limits: Limits{Compute: Unlimited}}, 5000, false)
 	if o.control != nil {
 		t.Fatal("Unlimited made a control")
 	}
-	o = prepareOptions(parseOptions{limits: Limits{Budget: Unlimited}}, 5000, false)
+	o = prepareOptions(parseOptions{limits: Limits{Compute: Unlimited}}, 5000, false)
 	if o.control != nil {
 		t.Fatal("Unlimited without controls made a control")
 	}
@@ -44,21 +44,21 @@ func TestPrepareOptionsDefault(t *testing.T) {
 	if o.control != nil {
 		t.Fatal("a parser without controls got a default")
 	}
-	o = prepareOptions(parseOptions{controls: true, limits: Limits{Budget: 9}}, 5000, false)
-	if o.control == nil || o.control.limits.Budget != 9 {
+	o = prepareOptions(parseOptions{controls: true, limits: Limits{Compute: 9}}, 5000, false)
+	if o.control == nil || o.control.limits.Compute != 9 {
 		t.Fatalf("explicit: %+v", o.control)
 	}
 	o = prepareOptions(parseOptions{controls: true}, 0, true)
-	if o.control == nil || o.control.limits.Budget != 1<<20 || !o.control.adaptive {
+	if o.control == nil || o.control.limits.Compute != 1<<20 || !o.control.adaptive {
 		t.Fatalf("stream: %+v", o.control)
 	}
 	o.control.demand(3 << 20)
-	if o.control.limits.Budget != 3<<30 {
-		t.Fatalf("grown: %d", o.control.limits.Budget)
+	if o.control.limits.Compute != 3<<30 {
+		t.Fatalf("grown: %d", o.control.limits.Compute)
 	}
 }
 
-// prepareText rejects a text longer than MaxInput before any work, counting code points only when
+// prepareText rejects a text longer than the Input limit before any work, counting code points only when
 // the byte length passes the limit; zero and Unlimited set no bound and need no control.
 func TestPrepareTextMaxInput(t *testing.T) {
 	text := strings.Repeat("é", 10) // 10 code points, 20 bytes
@@ -83,7 +83,7 @@ func TestPrepareTextMaxInput(t *testing.T) {
 		{CodePoints, 0, 0}, {CodePoints, Unlimited, 0}, {CodePoints, 10, 0}, {CodePoints, 9, 10}, {CodePoints, 20, 0},
 		{Bytes, 20, 0}, {Bytes, 19, 20}, {Bytes, 10, 20},
 	} {
-		le := over(parseOptions{unit: tc.unit, limits: Limits{MaxInput: tc.max}, controls: true})
+		le := over(parseOptions{unit: tc.unit, limits: Limits{Input: tc.max}, controls: true})
 		if tc.want == 0 {
 			if le != nil {
 				t.Errorf("unit %d, max %d: %v", tc.unit, tc.max, le)
@@ -95,20 +95,20 @@ func TestPrepareTextMaxInput(t *testing.T) {
 		}
 	}
 	// MaxInput makes no control of its own: with the budget unlimited the batch check is the whole of it.
-	o := prepareText(parseOptions{controls: true, limits: Limits{Budget: Unlimited, MaxInput: 100}}, text)
+	o := prepareText(parseOptions{controls: true, limits: Limits{Compute: Unlimited, Input: 100}}, text)
 	if o.control != nil {
 		t.Fatal("a finite MaxInput made a control")
 	}
 	// A stream keeps the resolved bound for the parser.
-	o = prepareOptions(parseOptions{controls: true, limits: Limits{MaxInput: 100}}, 0, true)
+	o = prepareOptions(parseOptions{controls: true, limits: Limits{Input: 100}}, 0, true)
 	if o.maxInput != 100 {
 		t.Errorf("stream bound %d", o.maxInput)
 	}
-	o = prepareOptions(parseOptions{controls: true, limits: Limits{MaxInput: Unlimited}}, 0, true)
+	o = prepareOptions(parseOptions{controls: true, limits: Limits{Input: Unlimited}}, 0, true)
 	if o.maxInput != 0 {
 		t.Errorf("Unlimited stream bound %d", o.maxInput)
 	}
-	if !(Limits{}).disabled() || !(Limits{Budget: Unlimited, MaxInput: Unlimited}).disabled() || (Limits{MaxInput: 1}).disabled() {
+	if !(Limits{}).disabled() || !(Limits{Compute: Unlimited, Input: Unlimited}).disabled() || (Limits{Input: 1}).disabled() {
 		t.Error("disabled")
 	}
 }

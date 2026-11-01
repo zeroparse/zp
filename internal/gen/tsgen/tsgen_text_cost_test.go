@@ -56,7 +56,7 @@ for (const [name, unit, input] of cases) {
   }
 }
 console.log("ok");
-`, gen.GenOptions{Start: "main", BudgetControls: true})
+`, gen.GenOptions{Start: "main", LimitControls: true})
 	if out != "ok\n" {
 		t.Fatalf("got %q", out)
 	}

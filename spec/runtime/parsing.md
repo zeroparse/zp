@@ -163,7 +163,7 @@ A zero result alone cannot distinguish failure from a successful zero-width rule
 that returns nil; the error does.
 
 `ParsePrefix` accepts position units, backends, recognition, tracing, nesting
-limits, context and budget limits. Stream diagnostic options are rejected, as for
+limits, context and compute limits. Stream diagnostic options are rejected, as for
 `Parse`. A grammar that contains `#missing` is rejected, even if insertion is not
 enabled; a positive `WithMissingTokens` limit is rejected for every grammar. Zero
 keeps strict prefix matching. Options resolve in order. An explicit `$$` sees the
@@ -342,8 +342,8 @@ operand, plus a constant.
 Time is proportional to cost. The memory that a parse allocates is at most
 proportional to its cost plus the input, because each memo entry, node and
 value is built by cost that is counted. The cost of a parse is measured in
-budget units, which differ between backends, and the budget of
-[budget limits](#cancellation-and-budget-limits) caps it.
+compute units, which differ between backends, and the budget of
+[compute limits](#cancellation-and-compute-limits) caps it.
 
 ### Termination
 
@@ -494,7 +494,7 @@ them examined. A [stream](streaming.md) drops the slots of the positions
 before the input it commits. A parse with missing-token insertion keeps no
 slots.
 
-A walk under [budget limits](#cancellation-and-budget-limits) charges these
+A walk under [compute limits](#cancellation-and-compute-limits) charges these
 units in addition to those of its iterations; marking a slot is free:
 
 - in a recording walk, 1 for the lookup before each iteration from the
@@ -1012,8 +1012,8 @@ reason:
 
 ### Bounding Cost
 
-[Budget limits](#cancellation-and-budget-limits) bound the cost of any parse,
-whatever its class. `Budget` is one counter for all of it: it counts the input
+[Compute limits](#cancellation-and-compute-limits) bound the cost of any parse,
+whatever its class. `Compute` is one counter for all of it: it counts the input
 that terminals, repetitions of character classes and lookaheads examine,
 including input examined again, rule calls, repetition iterations, growth
 steps, and the strings and lists that actions and predicates build, in
@@ -1043,9 +1043,9 @@ recursive rule calls`; the default limit is 100,000 (10,000,000 for the iterativ
 bytecode VM), and the Go API changes it with `zp.WithMaxDepth`. Every backend
 reaches the limit at the same nesting of the same input.
 
-## Cancellation and Budget Limits
+## Cancellation and Compute Limits
 
-The reference Go API accepts invocation-local cancellation and a budget limit
+The reference Go API accepts invocation-local cancellation and a compute limit
 through `WithContext` and `WithLimits`; generated Go exposes corresponding
 package-local options.
 These controls are cooperative and backend-local. A zero limit selects the
@@ -1064,12 +1064,12 @@ limits.
 
 | Field | Bounds | Default |
 | --- | --- | --- |
-| `Budget` | the cost of the parse | `max(2^20, 1024 * n)` |
-| `MaxInput` | the length of the input | `Unlimited` |
+| `Compute` | the cost of the parse | `max(2^20, 1024 * n)` |
+| `Input` | the length of the input | `Unlimited` |
 
 Here `n` is the length of the input in the position unit of the parse: bytes
-for `Bytes`, code points for `CodePoints`. `MaxInput` has no finite default
-because the default `Budget` already grows with `n`.
+for `Bytes`, code points for `CodePoints`. `Input` has no finite default
+because the default `Compute` already grows with `n`.
 
 Every parse has a budget. A
 parse that has neither a limit nor a context therefore runs controlled. The
@@ -1080,25 +1080,25 @@ default is `Unlimited - 1` at most. One constant disables every field of
 `Limits`, and a field added to `Limits` takes the same zero and `Unlimited`
 meaning.
 
-`MaxInput` bounds the length of the input in the position unit. A batch parse,
+`Input` bounds the length of the input in the position unit. A batch parse,
 a recognition and the creation of a Document compare the length of the input
 with it before any parsing work; a Document does so again at every `Parse`, for
-the text it holds after its edits. An input of exactly `MaxInput` units is
+the text it holds after its edits. An input of exactly `Input` units is
 accepted. A longer input fails with a `LimitError` of kind `LimitInput`: `Limit`
-is `MaxInput`, `Used` is zero and `Requested` is the length of the input. The
+is `Input`, `Used` is zero and `Requested` is the length of the input. The
 check costs O(1), except that `CodePoints` counts the code points of an input
 whose byte length passes the limit. It needs no budget and no context: a
-finite `MaxInput` alone does not make a parse controlled. It is checked before
+finite `Input` alone does not make a parse controlled. It is checked before
 a context is consulted, so an input over the limit fails with `LimitInput` even
-if the context is already canceled. A parser that has no budget controls
-accepts only a zero `MaxInput` and `Unlimited`.
+if the context is already canceled. A parser that has no limit controls
+accepts only a zero `Input` and `Unlimited`.
 
-A stream does not know its length. With a finite `MaxInput`, it fails when the
+A stream does not know its length. With a finite `Input`, it fails when the
 parser asks for a unit beyond the limit and the stream has one, and `Requested`
 is the number of units the parser asked for, or the length of the stream if that
-is shorter. A stream of exactly `MaxInput` units completes. As with the default
+is shorter. A stream of exactly `Input` units completes. As with the default
 budget, the outcome does not depend on how the reader splits the input into
-reads. With `MaxInput` at its default, a stream tracks no length.
+reads. With `Input` at its default, a stream tracks no length.
 
 The default is resolved once per entry point, from the input the entry point
 receives. For a `Document`, `n` is the length of the text at each `Parse`. A
@@ -1106,7 +1106,7 @@ stream does not know `n` up front, so its default is `max(2^20, 1024 * d)`,
 where `d` is the number of units up to the furthest position the parser has
 demanded from the stream so far, and it never shrinks. `d` depends on the input
 and the grammar, not on how the reader splits the input into reads. A parser generated
-without budget controls spends no budget and accepts only a zero limit and
+without limit controls spends no budget and accepts only a zero limit and
 `Unlimited`.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary
@@ -1126,7 +1126,7 @@ published and are discarded. A retry with fresh invocation controls must produce
 the same result as parsing the current text from scratch.
 
 In the Go API, `WithContext(ctx)` supplies the context and
-`WithLimits(Limits{Budget})` the limit. The budget counter adds the
+`WithLimits(Limits{Compute})` the limit. The compute counter adds the
 inspected elements of the input representation and the backend's execution
 steps, one unit each. Charges are not rolled back by backtracking, and their values
 depend on the backend, the position unit and the generated artifact. For a given
@@ -1137,7 +1137,7 @@ change them. A stream also charges one unit for each call to its reader's
 default limit does not. Reading
 input charges the budget counter in proportion to the elements examined, so a
 loop that only scans input, such as a repeated character class, is bounded by
-`Budget`. A cancelled
+`Compute`. A cancelled
 context returns the error of the context (`errors.Is(err, context.Canceled)` or
 `context.DeadlineExceeded`); an exhausted limit returns an error that matches
 `zp.ErrLimit`, and `errors.As` with `*zp.LimitError` gives the

@@ -18,8 +18,8 @@ This document describes the repository layout and architecture, how to run tests
 | `zp.zp` | Typed source grammar and recoverable syntax tree; the generated source-parser integration is [proposed](design/records/054-generated-grammar-source-parser.md). |
 | `internal/syntax/` | Lexer and parser for ZeroParse source code (source → `grammar.Grammar`) |
 | `internal/compile/` | Compiler and static analysis: type checking, call and dependency analysis, the walk of rule bodies that decides their static facts, and the bytecode compiler |
-| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and budget controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `gen` joins the generators to it, and the root package the schema export |
-| `internal/engine/core/` | The part of the parser runtime that every backend shares: the parser state, input, memo table, expectations, values, built-ins of actions, budget controls, tracing and stream state, and the parse options, results and errors that `internal/engine` re-exports. Its package documentation states what a backend provides and what it may use |
+| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and limit controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `gen` joins the generators to it, and the root package the schema export |
+| `internal/engine/core/` | The part of the parser runtime that every backend shares: the parser state, input, memo table, expectations, values, built-ins of actions, limit controls, tracing and stream state, and the parse options, results and errors that `internal/engine` re-exports. Its package documentation states what a backend provides and what it may use |
 | `internal/engine/closure/` | The closure backend: builds a closure graph for each rule body and evaluates actions on the grammar AST |
 | `internal/engine/vm/` | The bytecode backend: the recursive and iterative VMs, which run a compiled module over the same instruction loop |
 | `internal/engine/document/` | The incremental Document: edits and edit batches, reparsing that reuses what the edits did not touch, snapshots, change reports, diagnostics and the node cursor. It parses through a runner that `internal/engine` implements, and `internal/engine` re-exports its types |
@@ -28,7 +28,7 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/schema/` | The export of a checked program's output schema as a `schema.Output` |
 | `internal/value/` | `Node`, the value that parsing produces: kinds, fields, JSON form, traversal and the representation that the engine packages share |
 | `internal/apitest/` | The behavior tests of package `zp`, from outside it: they call its public API, with internal packages only to build values, to mark start rules and to count how often options apply; the root package keeps its source and its documentation examples |
-| `internal/limits/` | Budget limits of a parse invocation, the error of an exhausted limit and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |
+| `internal/limits/` | Compute limits of a parse invocation, the error of an exhausted limit and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |
 | `internal/bytecode/` | The bytecode instruction set and module, its disassembly, the encoding of modules in compiled grammars and the validation of loaded modules |
 | `internal/gen/` | What the Go and TypeScript generators share: generation options, the runtime mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
 | `runtime/` | Runtime package of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/runtime`) |
@@ -87,7 +87,7 @@ counters halve before overflow, and the eager decision remains sticky for that p
 The nesting limit applies to recursive rule calls, and tracing to every rule call. `Document` can reuse memo entries across edits and resume long
 repetitions; stream parsing emits elements and discards input already committed by the grammar.
 Core and generated Go/TypeScript parsing also support invocation-local cancellation and
-a budget limit; streams and Documents use the same interruption
+a compute limit; streams and Documents use the same interruption
 contract. See [design 033](design/records/033-cancellable-parses-and-budgets.md)
 for backend scope, cleanup and measured costs.
 
@@ -171,18 +171,18 @@ go test ./... ./runtime/...
 go test -run '^$' -bench . -benchtime=1x ./...
 ```
 
-The tests that build generated parsers (in `internal/gen/gogen`, `internal/gen/tsgen`, `internal/gen` and `internal/engine`) build them in two forms. A parser generated with budget controls spends budget and accepts the options `WithContext` and `WithLimits`. A parser generated without them is the form that most parsers have, and a different part of the generator prints it. Every test runs the form that it exists to check:
+The tests that build generated parsers (in `internal/gen/gogen`, `internal/gen/tsgen`, `internal/gen` and `internal/engine`) build them in two forms. A parser generated with limit controls spends budget and accepts the options `WithContext` and `WithLimits`. A parser generated without them is the form that most parsers have, and a different part of the generator prints it. Every test runs the form that it exists to check:
 
 | Kind of test | Runs | How |
 |:--|:--|:--|
 | Tests that build fixtures and check their behavior, output or equivalence with the engine | Both forms, as the subtests `controls` and `ordinary` | The test body runs under `gentest.EachMode`, as the test's last statement; the two subtests run in parallel |
 | Tests that pass a control option (`WithContext`, `WithLimits`) | With controls only | `gentest.NeedsBudgetControls` |
-| Tests of output that exists only without budget controls (terminal programs, the Flow IR recognizer and Node rules, choice guards) | Without controls only | `gentest.PinOrdinary` |
+| Tests of output that exists only without limit controls (terminal programs, the Flow IR recognizer and Node rules, choice guards) | Without controls only | `gentest.PinOrdinary` |
 | Tests that do not build fixtures | Not form-specific | |
 
 Each test records its form by name and its subtests inherit it, so tests of either form can run in parallel. A test that builds a fixture without any of these fails the run when it finishes, because it would check one form only. `go test ./...` therefore covers both forms and needs no setting.
 
-`ZP_TEST_ORDINARY` restricts a run to one form: `0` runs everything that builds fixtures with budget controls, and `1` runs it without, skipping the tests that pass a control. Use it to reproduce a failure of one form; it does not widen coverage.
+`ZP_TEST_ORDINARY` restricts a run to one form: `0` runs everything that builds fixtures with limit controls, and `1` runs it without, skipping the tests that pass a control. Use it to reproduce a failure of one form; it does not widen coverage.
 
 The top-level tests of `internal/engine` call `t.Parallel()`. A test stays sequential when it measures heap or time in the test process, changes a process-wide setting such as `debug.SetMaxStack` or `core.MinRecorded`, or shares mutable fixtures with other tests (the generators cached by `coreGenerations`); Go runs every sequential test before it releases the parallel ones, so these run alone. A test that observes or changes the Go generator passes `gogen.Hooks` to the generation, directly or for itself and its subtests with `gentest.SetGenHooks`, instead of setting package state.
 
@@ -195,7 +195,7 @@ The behavior of package `zp` is tested from outside it by `internal/apitest`; th
 inputs, retained results, and error/retry reuse in both position units.
 
 The TypeScript generator's test needs Node.js 22.18 or later (`node`) and, for its type check, `tsc`; it is skipped when they are missing.
-The generated TypeScript has the same two forms, chosen by `-budget-controls`. The TypeScript tests generate the form without budget controls unless the test passes a control option (`signal`, `budget`), which generates with `BudgetControls`. `TestGeneratedTSParsersMatchEngine` compares both forms with the engine, and `tsgen_budget_forms_test.go` checks that the plain form has no charge, no control option and no cancellation export, and that the controlled form accepts the options.
+The generated TypeScript has the same two forms, chosen by `-limits`. The TypeScript tests generate the form without limit controls unless the test passes a control option (`signal`, `budget`), which generates with `BudgetControls`. `TestGeneratedTSParsersMatchEngine` compares both forms with the engine, and `tsgen_budget_forms_test.go` checks that the plain form has no charge, no control option and no cancellation export, and that the controlled form accepts the options.
 TypeScript is printed from the same Flow IR as Go (`internal/gen/tsgen/flow.go`, `internal/gen/tsgen/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that Flow IR does not print fails generation.
 
 `lint` tests every check with positive and negative cases, lints every example grammar against a hand-checked list of findings, and `TestSoundness` checks the certain findings against the engine on random grammars, exhaustively over short inputs (`-soundness=N` for a longer run).

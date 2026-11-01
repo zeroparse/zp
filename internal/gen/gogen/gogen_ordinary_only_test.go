@@ -191,7 +191,7 @@ func TestGeneratedOrdinaryOnlyMatchesControlled(t *testing.T) {
 				t.Fatal(err)
 			}
 			controlled, ordinary := tc.opts, tc.opts
-			controlled.BudgetControls = true
+			controlled.LimitControls = true
 			gentest.OrdinaryOnlyPackage(t, dir, "controlled", tc.src, controlled, tc.program, tc.inputs)
 			gentest.OrdinaryOnlyPackage(t, dir, "ordinary", tc.src, ordinary, tc.program, tc.inputs)
 			gentest.OrdinaryOnlyPackage(t, dir, "mutated", tc.mutated, ordinary, tc.program, tc.inputs)

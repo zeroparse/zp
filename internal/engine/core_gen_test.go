@@ -33,7 +33,7 @@ type coreGenMode struct {
 var coreGenModes = []coreGenMode{
 	{"lean", gen.GenOptions{Types: true, TypedOnly: true}},
 	{"lean observable", gen.GenOptions{Types: true, TypedOnly: true, Observability: true}},
-	{"controlled", gen.GenOptions{Types: true, TypedOnly: true, BudgetControls: true}},
+	{"controlled", gen.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
 	{"lean boxed", gen.GenOptions{Types: true, TypedOnly: true, DisableLiteralTextDispatch: true, BoxedComparisons: true}},
 }
 
@@ -575,7 +575,7 @@ func TestCoreTypedDecisionsFrozen(t *testing.T) {
 	typedGolden.freeze(t, coreGenModes, func(t *testing.T, mode coreGenMode) []*coreGenCase {
 		return coreGenCases(t, mode, nil)
 	}, func(t *testing.T, mode coreGenMode, n *coreDecisionCounts) {
-		lean := !mode.opts.BudgetControls
+		lean := !mode.opts.LimitControls
 		terminals := lean && !mode.opts.Observability
 		if n.guards == 0 || n.scans == 0 || n.scopes == 0 || n.terms == 0 ||
 			(n.terminals > 0) != terminals || (n.classRuns > 0) != lean || (n.guardedClasses > 0) != lean {

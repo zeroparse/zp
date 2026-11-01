@@ -34,7 +34,7 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 		{"completes", gentest.Records, "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 2000), limits.Limits{}, false, 0},
 		{"exceeds the floor", streamScanGrammar, "#records\n" + strings.Repeat("a", 300) + "\n", limits.Limits{}, true, 1 << 20},
 		{"exceeds a grown default", streamScanGrammar, "#records\n" + strings.Repeat("a", 3000) + "\n", limits.Limits{}, true, 3010 * 1024},
-		{"exceeds an explicit limit", gentest.Records, "#records\na=1\nbc=22\n", limits.Limits{Budget: 20}, true, 20},
+		{"exceeds an explicit limit", gentest.Records, "#records\na=1\nbc=22\n", limits.Limits{Compute: 20}, true, 20},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.source)

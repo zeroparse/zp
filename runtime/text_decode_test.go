@@ -14,7 +14,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		p := &Parser{unit: CodePoints}
 		if controlled {
-			p.Control = newBudgetControl(nil, Limits{Budget: 1 << 30})
+			p.Control = newBudgetControl(nil, Limits{Compute: 1 << 30})
 		}
 		p.setSource(source)
 		if p.offs != nil {
@@ -22,7 +22,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 		}
 		if controlled {
 			// The decoding is interruptible and leaves nothing behind.
-			p.Control = newBudgetControl(nil, Limits{Budget: 100})
+			p.Control = newBudgetControl(nil, Limits{Compute: 100})
 			var err error
 			func() {
 				defer func() {
@@ -36,7 +36,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 			if !errors.As(err, &le) || p.offs != nil || p.decoded {
 				t.Fatalf("decoding interruption: %v", err)
 			}
-			p.Control = newBudgetControl(nil, Limits{Budget: 1 << 30})
+			p.Control = newBudgetControl(nil, Limits{Compute: 1 << 30})
 		}
 		if got := p.Text(0, 2000); got != want {
 			t.Fatalf("controlled=%t: text differs", controlled)

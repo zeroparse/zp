@@ -2,7 +2,7 @@
 // classifies the growth. The cost is the budget spend of a parse, which is deterministic for a
 // grammar, an input and a backend.
 //
-// Steps reads the spend of an ordinary parse by bisection over Limits.Budget. StepsTraced reads
+// Steps reads the spend of an ordinary parse by bisection over Limits.Compute. StepsTraced reads
 // it from the counter of a traced parse and is cheaper, but a traced parse spends a little more
 // than an untraced one (1 to 9% in the tests; the cause is not investigated), so it is only an
 // upper estimate; the suites use Steps.
@@ -59,9 +59,9 @@ type Cost struct {
 // parses reports whether the parse of input finishes within budget, with or without a syntax
 // error. It returns the error of a parse that finished; an exhausted budget is not one.
 func parses(p *zp.Parser, input string, b zp.Backend, budget uint64) (bool, error) {
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Budget: budget}))
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: budget}))
 	var le *zp.LimitError
-	if errors.As(err, &le) && le.Kind == zp.LimitBudget {
+	if errors.As(err, &le) && le.Kind == zp.LimitCompute {
 		return false, nil
 	}
 	return true, err
@@ -137,14 +137,14 @@ func steps(p *zp.Parser, input string, b zp.Backend, cap, tolDiv uint64) (Cost, 
 func StepsTraced(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
 	var used uint64
 	seen := false
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Budget: cap}),
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: cap}),
 		zp.WithTrace(func(e zp.TraceEvent) {
 			if c := core.TraceParser(e).Control; c != nil {
 				used, seen = c.Used, true
 			}
 		}))
 	var le *zp.LimitError
-	if errors.As(err, &le) && le.Kind == zp.LimitBudget {
+	if errors.As(err, &le) && le.Kind == zp.LimitCompute {
 		return Cost{Steps: cap, Capped: true}, nil
 	}
 	if err != nil {

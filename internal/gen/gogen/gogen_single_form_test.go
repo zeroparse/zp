@@ -120,7 +120,7 @@ func TestGeneratedRuleBodiesHaveOneFormNegativeControls(t *testing.T) {
 		t.Fatal(err)
 	}
 	gen := func(controls, document bool) []byte {
-		files, err := gentest.Generate(t, g, gen.GenOptions{Package: "ordinaryfixture", Module: "example.com/generated", Runtime: gen.RuntimeImport, Types: true, Document: document, Recognize: true, Start: "main", BudgetControls: controls})
+		files, err := gentest.Generate(t, g, gen.GenOptions{Package: "ordinaryfixture", Module: "example.com/generated", Runtime: gen.RuntimeImport, Types: true, Document: document, Recognize: true, Start: "main", LimitControls: controls})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -74,7 +74,7 @@ const generatedGoGraphConsumer = `package PACKAGE
 import zprt "zeroparse.dev/zp/runtime"
 import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT
-func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Budget:limit})};p.X_setGrammar(zpGrammar);return p}
+func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})};p.X_setGrammar(zpGrammar);return p}
 func graphFatal(f func())(err error){defer func(){if x:=recover();x!=nil{v,ok:=x.(zprt.X_fatal);if !ok{panic(x)};err=v.X_err}}();f();return nil}
 func requireGraphLimit(t *testing.T,p *zprt.Parser,f func()){
  t.Helper();err:=graphFatal(f)
@@ -91,13 +91,13 @@ func TestGraphFields(t *testing.T){
  for _,typed:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};node:=&Node{RawFields:fs}
   requireGraphLimit(t,p,func(){if typed{(&zprt.TActCtx{P:tp}).Member(tn,"absent-field-with-distinct-length")}else{(&zprt.ActCtx{P:p}).Member(node,"absent-field-with-distinct-length")}})
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
   var got any;if typed{got=(&zprt.TActCtx{P:tp}).Member(tn,"field299")}else{got=(&zprt.ActCtx{P:p}).Member(node,"field299")}
   if got!=299{t.Fatal("field read changed",got)}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:32})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:32})
   requireGraphLimit(t,p,func(){if typed{tp.X_setValueField(tn,"field299",nodes[0])}else{p.X_setValueField(&fs,"field299",nodes[0])}})
   if typed && tn.X_fields[299].X_val!=299 || !typed && fs[299].Value!=299{t.Fatal("failed setter changed value")}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
   if typed{tp.X_setValueField(tn,"field299",nodes[0]);if len(tn.X_fields)!=300 || tn.X_fields[299].X_val!=nodes[0]{t.Fatal("typed replacement")};tn.X_fields[299].X_val=299}else{p.X_setValueField(&fs,"field299",nodes[0]);if len(fs)!=300 || fs[299].Value!=nodes[0]{t.Fatal("Node replacement")};fs[299].Value=299}
  }
 }
@@ -108,12 +108,12 @@ func TestGraphListsAndOwnership(t *testing.T){
    p:=graphParser(129);tp:=&zprt.TParser{Parser:p};var result any
    requireGraphLimit(t,p,func(){if typed{c:=&zprt.TActCtx{P:tp};if spanOnly{result=c.X_listNode(values)}else{result=c.NewList(values)}}else{c:=&zprt.ActCtx{P:p};if spanOnly{result=c.X_listNode(nodes)}else{result=c.NewList(nodes)}}})
    if result!=nil{t.Fatal("partial list returned")}
-   p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
+   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
    if typed{n:=(&zprt.TActCtx{P:tp}).NewList(values).(*zprt.TSeq);if n.Start!=3 || n.End!=303 || len(n.Kids)!=300{t.Fatal("typed list spans")};n.Kids[0]=nil;if values[0]==nil{t.Fatal("typed list aliases source")}}else{n:=(&zprt.ActCtx{P:p}).NewList(nodes);if n.RawStart!=3 || n.RawEnd!=303 || len(n.RawChildren)!=300{t.Fatal("Node list spans")};n.RawChildren[0]=nil;if nodes[0]==nil{t.Fatal("Node list aliases source")}}
   }
   p:=graphParser(129);tp:=&zprt.TParser{Parser:p}
   requireGraphLimit(t,p,func(){if typed{tp.KidStack=append([]any(nil),values...);tp.Kids(0)}else{p.KidStack=append([]*Node(nil),nodes...);p.Kids(0)}})
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
   if typed{tp.KidStack=append([]any(nil),values...);got:=tp.Kids(0);if len(got)!=300{t.Fatal("typed kids")};got[0]=nil;if values[0]==nil{t.Fatal("typed children alias")}}else{p.KidStack=append([]*Node(nil),nodes...);got:=p.Kids(0);if len(got)!=300{t.Fatal("Node kids")};got[0]=nil;if nodes[0]==nil{t.Fatal("Node children alias")}}
  }
 }
@@ -124,8 +124,8 @@ func TestGraphCaptureUndoAndCleanup(t *testing.T){
   for i:=0;i<300;i++{f.Vals[i]=changed;tf.Vals[i]=changed;p.Trail=append(p.Trail,zprt.X_undo{X_f:f,X_slot:i,X_old:n});tp.Trail=append(tp.Trail,zprt.X_tundo{X_f:tf,X_slot:i,X_old:n})}
   requireGraphLimit(t,p,func(){if typed{tp.Reset(zprt.Mark{})}else{p.Reset(zprt.Mark{})}})
   if typed && len(tp.Trail)!=300 || !typed && len(p.Trail)!=300{t.Fatal("fatal lost undo records")}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
-  if typed{tp.Reset(zprt.Mark{});for _,v:=range tf.Vals{if v!=n{t.Fatal("typed undo retry")}};if len(tp.Trail)!=0{t.Fatal("typed trail retained")};tp.Trail=append(tp.Trail,zprt.X_tundo{X_f:tf,X_old:n});tp.Control=zprt.X_newBudgetControl(nil,Limits{Budget:1});tp.X_recycle();for _,v:=range tp.Trail[:cap(tp.Trail)]{if v.X_f!=nil || v.X_old!=nil{t.Fatal("typed cleanup blocked")}}}else{p.Reset(zprt.Mark{});for _,v:=range f.Vals{if v!=n{t.Fatal("Node undo retry")}};if len(p.Trail)!=0{t.Fatal("Node trail retained")};p.Trail=append(p.Trail,zprt.X_undo{X_f:f,X_old:n});p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:1});p.X_release();for _,v:=range p.Trail[:cap(p.Trail)]{if v.X_f!=nil || v.X_old!=nil{t.Fatal("Node cleanup blocked")}}}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
+  if typed{tp.Reset(zprt.Mark{});for _,v:=range tf.Vals{if v!=n{t.Fatal("typed undo retry")}};if len(tp.Trail)!=0{t.Fatal("typed trail retained")};tp.Trail=append(tp.Trail,zprt.X_tundo{X_f:tf,X_old:n});tp.Control=zprt.X_newBudgetControl(nil,Limits{Compute:1});tp.X_recycle();for _,v:=range tp.Trail[:cap(tp.Trail)]{if v.X_f!=nil || v.X_old!=nil{t.Fatal("typed cleanup blocked")}}}else{p.Reset(zprt.Mark{});for _,v:=range f.Vals{if v!=n{t.Fatal("Node undo retry")}};if len(p.Trail)!=0{t.Fatal("Node trail retained")};p.Trail=append(p.Trail,zprt.X_undo{X_f:f,X_old:n});p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:1});p.X_release();for _,v:=range p.Trail[:cap(p.Trail)]{if v.X_f!=nil || v.X_old!=nil{t.Fatal("Node cleanup blocked")}}}
  }
 }
 func TestTypedFieldMaterialization(t *testing.T){
@@ -135,7 +135,7 @@ func TestTypedFieldMaterialization(t *testing.T){
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};var result any
   requireGraphLimit(t,p,func(){result=(&zprt.TActCtx{P:tp}).Member(bag,name)})
   if result!=nil{t.Fatal("partial field published")}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
   got:=(&zprt.TActCtx{P:tp}).Member(bag,name).(*zprt.TSeq);ordinary,_:=bag.TField(name)
   want:=ordinary.(*zprt.TSeq)
   if !reflect.DeepEqual(got,want) || got.Start!=3 || got.End!=303{t.Fatal("field materialization changed",name)}
@@ -153,7 +153,7 @@ func TestGraphFoldOrderAndBudget(t *testing.T){
   f:=func(acc,item any)any{visits++;return item}
   requireGraphLimit(t,p,func(){if typed{(&zprt.TActCtx{P:tp}).Fold("foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{(&zprt.ActCtx{P:p}).Fold("foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}})
   if visits!=32{t.Fatal("fold advanced past budget",visits)}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:100000});visits=0
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});visits=0
   var got any;if typed{got=(&zprt.TActCtx{P:tp}).Fold("foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{got=(&zprt.ActCtx{P:p}).Fold("foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}
   index:=299;if right{index=0};want:=any(nodes[index]);if typed{want=values[index]};if visits!=300 || got!=want{t.Fatal("fold order changed",visits)}
  }}
@@ -164,7 +164,7 @@ func TestGraphPublicLimitsAndRetainedResults(t *testing.T){
  before:=fmt.Sprintf("%#v",baseline.Items[0]);tree,err:=Parse(input);if err!=nil{t.Fatal(err)};treeBefore:=tree.String()
  for _,unit:=range []PositionUnit{Bytes,CodePoints}{
   for _,ast:=range []bool{false,true}{
-   call:=func(n uint64)(any,error){opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Budget:n})};if ast{return ParseAST(input,opts...)};return Parse(input,opts...)}
+   call:=func(n uint64)(any,error){opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:n})};if ast{return ParseAST(input,opts...)};return Parse(input,opts...)}
    lo,hi:=uint64(1),uint64(1000000)
    for lo<hi{mid:=lo+(hi-lo)/2;v,e:=call(mid);if errors.Is(e,ErrLimit){if !reflect.ValueOf(v).IsZero(){t.Fatal("partial public result")};lo=mid+1}else if e==nil{hi=mid}else{t.Fatal("unexpected public error",e)}}
    if _,e:=call(lo);e!=nil{t.Fatal("exact limit",e)}
@@ -184,7 +184,7 @@ func TestGraphCaptureAttachment(t *testing.T){
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};var result any
   requireGraphLimit(t,p,func(){if typed{result=tp.AttachCaptures(nil,names,values,3,303)}else{result=p.AttachCaptures(nil,names,&zprt.CaptureFrame{Vals:nodes},3,303)}})
   if result!=nil{t.Fatal("partial capture node published")}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Budget:10000000})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:10000000})
   if typed{n:=tp.AttachCaptures(nil,names,values,3,303).(*zprt.TSeq);if len(n.X_fields)!=299 || n.X_fields[0].X_val!=values[299] || n.X_fields[1].X_name!=names[1]{t.Fatal("typed capture order/replacement")}}else{n:=p.AttachCaptures(nil,names,&zprt.CaptureFrame{Vals:nodes},3,303);if len(n.RawFields)!=299 || n.RawFields[0].Value!=nodes[299] || n.RawFields[1].Name!=names[1]{t.Fatal("Node capture order/replacement")}}
  }
 }
@@ -211,7 +211,7 @@ func TestGraphOperatorsRuleSnapshots(t *testing.T){
 
 func TestDirectCaptureRollback(t *testing.T){
  input:="a"+strings.Repeat("ab",150)+"a"
-TYPED_RULE_CHECK call:=func(limit uint64)(*Bag,error){var opts []ParseOption;opts=append(opts,WithLimits(Limits{Budget:limit}));v,e:=ParseRuleAST("rollback",input,opts...);if e!=nil{return nil,e};n,ok:=v.(*Bag);if !ok{t.Fatalf("rollback output %T",v)};return n,nil}
+TYPED_RULE_CHECK call:=func(limit uint64)(*Bag,error){var opts []ParseOption;opts=append(opts,WithLimits(Limits{Compute:limit}));v,e:=ParseRuleAST("rollback",input,opts...);if e!=nil{return nil,e};n,ok:=v.(*Bag);if !ok{t.Fatalf("rollback output %T",v)};return n,nil}
  got,err:=call(1000000);if err!=nil || got==nil || len(got.Items)!=2 || len(got.Nested)!=1 || len(got.Nested[0])!=150 || got.Items[0].Start!=0 || got.Items[1].Start!=301{t.Fatal("partial repeat rollback changed output",got,err)}
  lo,hi:=uint64(1),uint64(1000000)
  for lo<hi{mid:=lo+(hi-lo)/2;n,e:=call(mid);if errors.Is(e,ErrLimit){if n!=nil{t.Fatal("partial rollback output")};lo=mid+1}else if e==nil{hi=mid}else{t.Fatal(e)}}

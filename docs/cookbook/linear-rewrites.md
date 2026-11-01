@@ -20,7 +20,7 @@ rewrite that keeps the result.
 | [Self-growing values](#self-growing-values) | exponential | Count instead of doubling | No rewrite keeps the value |
 
 Every input in the sections is the character the section names, repeated `n` times, except where it says otherwise. The
-cost is the number of steps that [budget limits](../../spec/runtime/parsing.md#cancellation-and-budget-limits) count,
+cost is the number of steps that [compute limits](../../spec/runtime/parsing.md#cancellation-and-compute-limits) count,
 measured on the closure backend; the bytecode backends and generated Go parsers give the same orders. The steps do not
 depend on the machine.
 

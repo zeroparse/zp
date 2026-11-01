@@ -21,7 +21,7 @@ func wantInputLimit(t *testing.T, what string, err error, limit, length uint64) 
 	}
 }
 
-// Limits.MaxInput bounds the input of every public entry point in the position unit: zero and
+// Limits.Input bounds the input of every public entry point in the position unit: zero and
 // Unlimited set no bound, and an input over it fails with LimitInput and its length.
 func TestMaxInputPublic(t *testing.T) {
 	p, err := zp.CompileSource(`@start
@@ -41,7 +41,7 @@ rule line = [a-z]+ "\n"`, "main")
 		n    uint64
 	}{{zp.CodePoints, 3}, {zp.Bytes, 6}} {
 		with := func(max uint64) []zp.ParseOption {
-			return []zp.ParseOption{zp.WithUnit(c.unit), zp.WithLimits(zp.Limits{MaxInput: max})}
+			return []zp.ParseOption{zp.WithUnit(c.unit), zp.WithLimits(zp.Limits{Input: max})}
 		}
 		for _, max := range []uint64{0, zp.Unlimited, c.n} {
 			if _, err := p.Parse(text, with(max)...); err != nil {

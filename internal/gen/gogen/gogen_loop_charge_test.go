@@ -206,7 +206,7 @@ func Need(n int) uint64 {
 	lo, hi := uint64(1), uint64(1)<<40
 	for lo < hi {
 		mid := (lo + hi) / 2
-		if _, err := Parse(in, WithLimits(Limits{Budget: mid})); err == nil {
+		if _, err := Parse(in, WithLimits(Limits{Compute: mid})); err == nil {
 			hi = mid
 		} else {
 			lo = mid + 1
@@ -216,7 +216,7 @@ func Need(n int) uint64 {
 }
 
 func Limited(n int, max uint64) string {
-	_, err := Parse(strings.Repeat("a", n), WithLimits(Limits{Budget: max}))
+	_, err := Parse(strings.Repeat("a", n), WithLimits(Limits{Compute: max}))
 	switch {
 	case err == nil:
 		return "ok"

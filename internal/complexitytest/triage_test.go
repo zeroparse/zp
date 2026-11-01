@@ -163,7 +163,7 @@ func TestTriageTable(t *testing.T) {
 const triageCap = 4_000_000_000
 
 // TestTriageMeasure measures every family of the triage table on every backend and, with
-// ZP_TRIAGE_GO set, on a Go parser generated with budget controls. It prints one Markdown row
+// ZP_TRIAGE_GO set, on a Go parser generated with limit controls. It prints one Markdown row
 // per family and backend: the input lengths, the costs, the growth exponents of the cost against
 // the length and the order read from them. It runs only when ZP_TRIAGE is set to a regular
 // expression that selects grammar/group/family names ("." for all), because it takes minutes:
@@ -269,9 +269,9 @@ type cost struct {
 }
 
 func parses(s string, budget uint64) (bool, error) {
-	_, err := p.Parse(s, p.WithLimits(p.Limits{Budget: budget}))
+	_, err := p.Parse(s, p.WithLimits(p.Limits{Compute: budget}))
 	var le *rt.LimitError
-	if errors.As(err, &le) && le.Kind == rt.LimitBudget {
+	if errors.As(err, &le) && le.Kind == rt.LimitCompute {
 		return false, nil
 	}
 	return true, err
@@ -331,7 +331,7 @@ func main() {
 }
 `
 
-// generatedSteps measures inputs on a Go parser generated with budget controls for the grammar
+// generatedSteps measures inputs on a Go parser generated with limit controls for the grammar
 // at path, building the driver program once per grammar; top owns the program.
 func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenient bool) []Cost {
 	t.Helper()
@@ -345,7 +345,7 @@ func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenie
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := gen.Go{Module: "triage/p", Runtime: gen.RuntimeImport, BudgetControls: true}.Generate(g, "")
+		files, err := gen.Go{Module: "triage/p", Runtime: gen.RuntimeImport, LimitControls: true}.Generate(g, "")
 		if err != nil {
 			t.Fatal(err)
 		}

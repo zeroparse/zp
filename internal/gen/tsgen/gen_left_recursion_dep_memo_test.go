@@ -155,7 +155,7 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		}
 		write(fmt.Sprintf("g%d.ts", i), code)
 		fmt.Fprintf(&main, "import * as g%d from \"./g%[1]d.ts\";\n", i)
-		code, err = gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", BudgetControls: true})
+		code, err = gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", LimitControls: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Name, err)
 		}

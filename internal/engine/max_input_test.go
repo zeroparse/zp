@@ -17,7 +17,7 @@ import (
 
 const maxInputGrammar = `rule main = [a-zé]* $$`
 
-// maxInputVariants runs run for every backend, with MaxInput and the default budget.
+// maxInputVariants runs run for every backend, with an Input limit and the default compute limit.
 func maxInputVariants(t *testing.T, run func(t *testing.T, o ParseOptions)) {
 	t.Helper()
 	budgetStreamVariants(t, run)
@@ -38,8 +38,8 @@ func wantInputLimit(t *testing.T, err error, limit, length uint64) {
 	}
 }
 
-// A batch parse of an input longer than MaxInput fails before any work, with the length of the
-// input in the position unit. The input of exactly MaxInput units parses.
+// A batch parse of an input longer than the Input limit fails before any work, with the length of the
+// input in the position unit. The input of exactly Input units parses.
 func TestMaxInputBatch(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, maxInputGrammar)
@@ -53,7 +53,7 @@ func TestMaxInputBatch(t *testing.T) {
 			max  uint64
 			fail bool
 		}{{0, false}, {limits.Unlimited, false}, {units, false}, {units + 1, false}, {units - 1, true}, {1, true}} {
-			o.Limits = limits.Limits{MaxInput: c.max}
+			o.Limits = limits.Limits{Input: c.max}
 			_, err := prog.ParseWith("main", text, o)
 			if c.fail {
 				wantInputLimit(t, err, c.max, units)
@@ -62,7 +62,7 @@ func TestMaxInputBatch(t *testing.T) {
 			}
 		}
 		// The check does not depend on the budget and does not need one.
-		o.Limits = limits.Limits{MaxInput: 1, Budget: limits.Unlimited}
+		o.Limits = limits.Limits{Input: 1, Compute: limits.Unlimited}
 		_, err := prog.ParseWith("main", text, o)
 		wantInputLimit(t, err, 1, units)
 		// Recognition and a prefix parse apply the same limit.
@@ -82,12 +82,12 @@ func TestMaxInputBeforeParsing(t *testing.T) {
 	prog := mustCompile(t, `rule main = [a-z]* $$`)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := prog.ParseWith("main", "abc", ParseOptions{Context: ctx, Limits: limits.Limits{MaxInput: 2}})
+	_, err := prog.ParseWith("main", "abc", ParseOptions{Context: ctx, Limits: limits.Limits{Input: 2}})
 	wantInputLimit(t, err, 2, 3)
 }
 
-// A stream fails when the parser needs a unit beyond MaxInput and the stream has one, whatever the
-// chunk size of the reader. A stream of exactly MaxInput units completes.
+// A stream fails when the parser needs a unit beyond the Input limit and the stream has one, whatever the
+// chunk size of the reader. A stream of exactly Input units completes.
 func TestMaxInputStream(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
@@ -95,7 +95,7 @@ func TestMaxInputStream(t *testing.T) {
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
 		n := uint64(len(text)) // ASCII: units equal bytes
 		run := func(max uint64, size int) (string, error) {
-			o.Limits = limits.Limits{MaxInput: max}
+			o.Limits = limits.Limits{Input: max}
 			var out []string
 			r := &budgetStreamReader{chunks: chunks(text, size)}
 			err := prog.ParseStreamWith("main", r, func(v *value.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
@@ -139,7 +139,7 @@ func TestMaxInputDocument(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, maxInputGrammar)
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
-		o.Limits = limits.Limits{MaxInput: 5}
+		o.Limits = limits.Limits{Input: 5}
 		if _, err := prog.NewDocumentWith("main", "abcdef", o); err == nil {
 			t.Fatal("a text over the limit created a Document")
 		} else {

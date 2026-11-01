@@ -72,7 +72,7 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 				var before, after runtime.MemStats
 				runtime.GC()
 				runtime.ReadMemStats(&before)
-				if _, err := p.Parse(in, zp.WithBackend(b), zp.WithLimits(zp.Limits{Budget: zp.Unlimited})); err != nil {
+				if _, err := p.Parse(in, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})); err != nil {
 					t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 				}
 				runtime.ReadMemStats(&after)

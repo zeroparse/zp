@@ -790,7 +790,7 @@ type runStep struct {
 // context, where another leader grows, memoizes its steps (GrowNext); the body is evaluated
 // repeatedly, and the result at the point where the match stops growing is adopted.
 func (p *Parser) GrowBegin(key MemoKey, bit uint64, cycle int) GrowState {
-	// One budget unit before each evaluation of the body, the seed's included; it is charged before
+	// One compute unit before each evaluation of the body, the seed's included; it is charged before
 	// the memo changes, so that a parse stopped by the budget publishes nothing.
 	p.Spend()
 	g := GrowState{Key: key, start: p.Pos, Rec: len(p.Recovered), missing: p.missingMark(), gi: len(p.Gamma)}

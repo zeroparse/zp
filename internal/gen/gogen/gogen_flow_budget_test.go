@@ -27,7 +27,7 @@ import (
 // totals in testdata/budget.golden, so that a change of the charges shows up as a reviewed diff.
 
 // budgetProbe is the consumer of one generated parser. For each input it prints, per entry (Parse and
-// Recognize), the least budget limit that does not fail, a digest of the
+// Recognize), the least compute limit that does not fail, a digest of the
 // outcomes at the limits around it and at a spread of lower ones, and the number of polls of the
 // context of an unlimited run.
 const budgetProbeMain = `package main
@@ -45,8 +45,8 @@ import (
 IMPORTS)
 
 type probe struct {
-	// run returns whether the run failed with a budget limit, its error text ("" for success) and what is
-	// wrong with the error as a budget limit error ("" if nothing).
+	// run returns whether the run failed with a compute limit, its error text ("" for success) and what is
+	// wrong with the error as a compute limit error ("" if nothing).
 	run func(s string, limit func(*uint64), ctx context.Context) (limited bool, msg, bad string)
 }
 
@@ -63,9 +63,9 @@ func (c *countCtx) Value(key any) any                 { return nil }
 var probes = []struct{ parse, recognize probe }{
 PROBES}
 
-// shape returns what is wrong with err as the error of a run limited to budget units, "" if nothing. A
-// budget limit error has the type LimitError of the generated package, found by reflection because every
-// package has a copy of the runtime; its kind must be the budget limit and the reservation that failed
+// shape returns what is wrong with err as the error of a run limited to compute units, "" if nothing. A
+// compute limit error has the type LimitError of the generated package, found by reflection because every
+// package has a copy of the runtime; its kind must be the compute limit and the reservation that failed
 // must have gone past it.
 func shape(err error, spend uint64) string {
 	if err == nil || !strings.Contains(err.Error(), "limit exceeded") {
@@ -79,11 +79,11 @@ func shape(err error, spend uint64) string {
 		v = v.Elem()
 		kind, limit, used, req := v.FieldByName("Kind").Uint(), v.FieldByName("Limit").Uint(), v.FieldByName("Used").Uint(), v.FieldByName("Requested").Uint()
 		if kind != 0 || limit != spend || used > limit || used+req <= limit || req == 0 {
-			return fmt.Sprintf("malformed budget limit error: kind %d limit %d used %d requested %d", kind, limit, used, req)
+			return fmt.Sprintf("malformed compute limit error: kind %d limit %d used %d requested %d", kind, limit, used, req)
 		}
 		return ""
 	}
-	return "not a budget limit error: " + err.Error()
+	return "not a compute limit error: " + err.Error()
 }
 
 func at(p probe, s string, n uint64) (bool, string, string) {
@@ -91,7 +91,7 @@ func at(p probe, s string, n uint64) (bool, string, string) {
 }
 
 func report(p probe, s string) string {
-	// The least limit that does not fail with a budget limit: the failure is monotone in the limit.
+	// The least limit that does not fail with a compute limit: the failure is monotone in the limit.
 	lo, hi := uint64(1), uint64(1)
 	for {
 		if limited, _, _ := at(p, s, hi); !limited {
@@ -111,7 +111,7 @@ func report(p probe, s string) string {
 		}
 	}
 	total := lo
-	// A limit below the total fails, in the way a budget limit error is shaped; a limit at the total
+	// A limit below the total fails, in the way a compute limit error is shaped; a limit at the total
 	// does not, whatever the pooled parsers hold.
 	points := map[uint64]bool{total: true}
 	for n := uint64(1); n <= 8 && n < total; n++ {
@@ -175,22 +175,22 @@ func budgetProbeSources(pkg string, n int) string {
 		fmt.Fprintf(&imports, "\t%s%d \"wprobe/%s%d\"\n", pkg, i, pkg, i)
 		fmt.Fprintf(&probes, `	{parse: probe{run: func(s string, limit func(*uint64), ctx context.Context) (bool, string, string) {
 		var l %[1]s%[2]d.Limits
-		limit(&l.Budget)
+		limit(&l.Compute)
 		opts := []%[1]s%[2]d.ParseOption{%[1]s%[2]d.WithLimits(l)}
 		if ctx != nil {
 			opts = append(opts, %[1]s%[2]d.WithContext(ctx))
 		}
 		_, err := %[1]s%[2]d.Parse(s, opts...)
-		return errors.Is(err, %[1]s%[2]d.ErrLimit), fmt.Sprint(err), shape(err, l.Budget)
+		return errors.Is(err, %[1]s%[2]d.ErrLimit), fmt.Sprint(err), shape(err, l.Compute)
 	}}, recognize: probe{run: func(s string, limit func(*uint64), ctx context.Context) (bool, string, string) {
 		var l %[1]s%[2]d.Limits
-		limit(&l.Budget)
+		limit(&l.Compute)
 		opts := []%[1]s%[2]d.ParseOption{%[1]s%[2]d.WithLimits(l)}
 		if ctx != nil {
 			opts = append(opts, %[1]s%[2]d.WithContext(ctx))
 		}
 		err := %[1]s%[2]d.Recognize(s, opts...)
-		return errors.Is(err, %[1]s%[2]d.ErrLimit), fmt.Sprint(err), shape(err, l.Budget)
+		return errors.Is(err, %[1]s%[2]d.ErrLimit), fmt.Sprint(err), shape(err, l.Compute)
 	}}},
 `, pkg, i)
 	}
@@ -299,11 +299,11 @@ var budgetGoldenFile = gentest.GoldenFile{
 // TestFlowNodeBudgetInvariants checks, for the parsers of the generated corpus with budget controls built with
 // the rules printed from Flow IR, the invariants every build keeps whichever way it spends budget:
 //
-//   - a limit below the total fails with a budget limit error whose reservation went
+//   - a limit below the total fails with a compute limit error whose reservation went
 //     past the limit, and the least limit that does not fail succeeds (the bad counts of the reports);
-//   - the context is polled every 256 budget units, as the runtime does, so the polls of a run number at
+//   - the context is polled every 256 compute units, as the runtime does, so the polls of a run number at
 //     least spend/256 (less a slack of two);
-//   - a run that parses the whole input without error charged at least one budget unit for each character;
+//   - a run that parses the whole input without error charged at least one compute unit for each character;
 //   - the totals equal those of testdata/budget.golden.
 //
 // The engine's spend is not an oracle for the spend of a generated parser: for the same grammar

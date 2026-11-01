@@ -71,7 +71,7 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 func TestDocumentChangesComparisonUsesCumulativeBudget(t *testing.T) {
 	leaf := value.Ptr(value.Data{Kind: value.KindOf("Leaf", "leaf"), Terminal: true, Text: strings.Repeat("x", 8192)})
 	a, b := changeGraphSnapshot(t, leaf), changeGraphSnapshot(t, leaf.Clone())
-	control := core.NewBudgetControl(nil, limits.Limits{Budget: 8192})
+	control := core.NewBudgetControl(nil, limits.Limits{Compute: 8192})
 	control.Charge(4096) // Budget already spent by parsing/capture in this invocation.
 	p := &core.Parser{Control: control}
 	if err := catchFatal(t, func() { equalChangeSnapshotsControlled(p, a, b) }); !errors.Is(err, limits.ErrLimit) {

@@ -76,7 +76,7 @@ func TestTypedDocumentConversionBudget(t *testing.T) {
  // The Node parse can reuse its result, while typed conversion must still be
  // charged to the same invocation controller and abandon interrupted work.
  if _, err := d.Parse(); err != nil { t.Fatal(err) }
- if v, err := d.ParseAST(WithLimits(Limits{Budget: 1})); v != nil || !errors.Is(err, ErrLimit) { t.Fatalf("conversion budget: %v %v", v, err) }
+ if v, err := d.ParseAST(WithLimits(Limits{Compute: 1})); v != nil || !errors.Is(err, ErrLimit) { t.Fatalf("conversion budget: %v %v", v, err) }
  if v, err := d.ParseAST(); v == nil || v.First == nil || err != nil { t.Fatalf("retry after conversion interruption: %v", err) }
 }
 `,

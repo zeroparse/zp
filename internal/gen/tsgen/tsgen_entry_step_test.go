@@ -32,7 +32,7 @@ proto.spend = function (this: unknown, n?: number): void {
 const r = p.parseWithOptions("a+a+a", { unit: p.CodePoints, budget: 100000 });
 if (r.error !== null) throw new Error("parse failed");
 console.log((by.get("callBody") ?? 0) > 0 ? by.get("invokePlainBody") ?? 0 : "no call charged");
-`, gen.GenOptions{Start: "main", BudgetControls: true})
+`, gen.GenOptions{Start: "main", LimitControls: true})
 	if out != "0\n" {
 		t.Fatalf("the plain evaluation of a rule body charged %q steps under a call that charged its entry", out)
 	}

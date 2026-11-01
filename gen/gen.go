@@ -104,13 +104,13 @@ type Go struct {
 	// Observability emits rule tracing and profiling for batch parsers and Documents, including
 	// their typed entry points. Collection is selected per invocation.
 	Observability bool
-	// BudgetControls generates the budget-controlled form of the parser, which supports cancellation
-	// and the budget limit and re-exports the options WithContext and WithLimits.
+	// LimitControls generates the limit-controlled form of the parser, which supports cancellation
+	// and the compute limit and re-exports the options WithContext and WithLimits.
 	// Without it the generated parser is smaller and faster to build, and a parse that passes a
 	// control option returns an error. The controlled form is the only form of the parser: a
 	// parse that sets no limit runs it too, and is slower than with a parser generated without
-	// budget controls.
-	BudgetControls bool
+	// limit controls.
+	LimitControls bool
 	// Recognize also generates a function Recognize, which checks the input against the start
 	// rule without building a tree, like a parse with zp.RecognizeOnly.
 	Recognize bool
@@ -154,7 +154,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		DefaultValue:   c.DefaultValue,
 		SourceInfo:     c.SourceInfo,
 		Observability:  c.Observability,
-		BudgetControls: c.BudgetControls,
+		LimitControls:  c.LimitControls,
 		Expectations:   c.Expectations,
 		Recognize:      c.Recognize,
 		MaxDepth:       c.MaxDepth,
@@ -201,12 +201,12 @@ type TypeScript struct {
 	// Observability emits rule tracing and profiling for batch parsing, including the typed entry
 	// points. Collection is selected per invocation.
 	Observability bool
-	// BudgetControls generates the budget-controlled form of the parser, which supports the signal
+	// LimitControls generates the limit-controlled form of the parser, which supports the signal
 	// and budget options. Without it the generated parser is smaller, and a parse
 	// that passes a control option returns an error. The controlled form is the only form of the
 	// parser: a parse that sets no limit runs it too, and is slower than with a parser generated
-	// without budget controls.
-	BudgetControls bool
+	// without limit controls.
+	LimitControls bool
 	// Recognize also generates recognize, which checks the input against the start rule without
 	// building a tree, like a parse with zp.RecognizeOnly.
 	Recognize bool
@@ -232,17 +232,17 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		return nil, err
 	}
 	return tsgen.Generate(g, compileForGenerator, gen.GenOptions{
-		Start:          start,
-		Runtime:        runtime,
-		RuntimeModule:  c.RuntimeModule,
-		Types:          c.Types,
-		DefaultValue:   c.DefaultValue,
-		SourceInfo:     c.SourceInfo,
-		Observability:  c.Observability,
-		BudgetControls: c.BudgetControls,
-		Expectations:   c.Expectations,
-		Recognize:      c.Recognize,
-		MaxDepth:       c.MaxDepth,
+		Start:         start,
+		Runtime:       runtime,
+		RuntimeModule: c.RuntimeModule,
+		Types:         c.Types,
+		DefaultValue:  c.DefaultValue,
+		SourceInfo:    c.SourceInfo,
+		Observability: c.Observability,
+		LimitControls: c.LimitControls,
+		Expectations:  c.Expectations,
+		Recognize:     c.Recognize,
+		MaxDepth:      c.MaxDepth,
 	})
 }
 

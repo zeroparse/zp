@@ -22,7 +22,7 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 	if err := core.CheckInput(lim, text, o.Unit); err != nil {
 		return nil, nil, nil, err
 	}
-	if o.Context == nil && lim.Budget == 0 {
+	if o.Context == nil && lim.Compute == 0 {
 		if o.Recognize {
 			if _, err := prog.preflightRule(o.Backend, start, stream); err != nil {
 				return nil, nil, nil, err

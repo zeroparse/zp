@@ -24,7 +24,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 		t.Run(fmt.Sprint("budgeted=", budgeted), func(t *testing.T) {
 			rng := rand.New(rand.NewSource(1))
 			table := NewMemoTable()
-			p := memoStorageParser(table, limits.Limits{Budget: 1 << 40})
+			p := memoStorageParser(table, limits.Limits{Compute: 1 << 40})
 			if !budgeted {
 				p.Control = nil
 			}
@@ -98,7 +98,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 func TestMemoIndexLookupCost(t *testing.T) {
 	cost := func(entries int) uint64 {
 		table := NewMemoTable()
-		p := memoStorageParser(table, limits.Limits{Budget: 1 << 40})
+		p := memoStorageParser(table, limits.Limits{Compute: 1 << 40})
 		for i := 0; i < entries; i++ {
 			p.MemoPut(MemoKey{Rule: 1, Pos: 0, Env: []any{i}}, table.Alloc())
 		}
@@ -128,7 +128,7 @@ func envKey(env []any) string {
 func TestMemoIndexBudgetedPrune(t *testing.T) {
 	for _, budgeted := range []bool{false, true} {
 		table := NewMemoTable()
-		p := memoStorageParser(table, limits.Limits{Budget: 1 << 40})
+		p := memoStorageParser(table, limits.Limits{Compute: 1 << 40})
 		if !budgeted {
 			p.Control = nil
 		}
@@ -154,7 +154,7 @@ func TestMemoIndexBudgetedPrune(t *testing.T) {
 // TestMemoIndexStreamCommit checks that the commits of a controlled stream keep the number of
 // retained indexes bounded by the positions not yet pruned.
 func TestMemoIndexStreamCommit(t *testing.T) {
-	c := NewBudgetControl(nil, limits.Limits{Budget: 1 << 40})
+	c := NewBudgetControl(nil, limits.Limits{Compute: 1 << 40})
 	p := NewControlledStreamParser(&SharedProgram{}, strings.NewReader(strings.Repeat("a", 6000)), CodePoints, c)
 	for pos := 0; pos < 5000; pos++ {
 		for i := 0; i < 40; i++ {

@@ -35,7 +35,7 @@ import (
 
 // Options selects the forms the lowering writes.
 type Options struct {
-	// Budget charges one budget unit on each loop iteration and for each character a Peek reads;
+	// Budget charges one compute unit on each loop iteration and for each character a Peek reads;
 	// the method that holds a rule's body charges its entry.
 	Budget bool
 	// Recovers reports that the module can append recovered errors (Recovers), so backtracking

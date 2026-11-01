@@ -170,7 +170,7 @@ The output is exactly what the engine prints for the same grammar and input.
 ## The `zp gen` Command
 
 ```bash
-zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-expectations] [-observability] [-budget-controls] [-default-value] [-nodoc] [-max-depth <n>]
+zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-expectations] [-observability] [-limits] [-default-value] [-nodoc] [-max-depth <n>]
 ```
 
 | Flag | Default | Meaning |
@@ -188,7 +188,7 @@ zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|impor
 | `-stream` | off | Also generate the Go Node `ParseStream` (see [streams](generated-streams.md)); the start rule must have a `#stream` repetition; with `-types` it also generates `ParseStreamAST`, and it cannot be combined with `-lang ts` |
 | `-typed-only` | off | Go only; needs `-types`. Generate only the typed entry points: `ParseAST` and `ParseRuleAST`, without `Parse`, `ParseRule` and `Recognize` and without the code that builds untyped `*Node` values, which about halves the source of a large grammar. It cannot be combined with `-recognize`, `-document`, `-stream` or `-lang ts`. Entry points that convert the Node of their rule keep the unexported Node rule functions they run |
 | `-recognize` | off | Also generate `Recognize`, which checks input without building a tree (see [recognition](generated-go-api.md#recognition--recognize)) |
-| `-budget-controls` | off | Generate the budget-controlled form of the parser, which supports `WithContext` and `WithLimits` and exports them from the package; in TypeScript it supports the `signal` and `budget` options (see [TypeScript](typescript.md#cancellation-and-budget-limits)). Without it the Go parser holds the ordinary form of its functions and nothing that spends budget, which makes `parser.go` 15% to 50% smaller (the plain `parser.go` is 0.50 to 0.85 of the controlled one for the grammars of `testdata/grammars/`; larger grammars save more), and a parse that passes a control option returns an error (see [cancellation and budget limits](generated-go-api.md#cancellation-and-budget-limits)). A parser has one form: with the option it is the controlled one, and a parse that sets no limit runs the same code (a few inline tests of the control take the unmetered path), so generate two parsers if you need the faster plain form as well. A TypeScript parser generated without the option emits no code that spends budget and sets no control, and its options type and exports have no cancellation or limits. With `-document` and without the option, the Document form has no charges |
+| `-limits` | off | Generate the limit-controlled form of the parser, which supports `WithContext` and `WithLimits` and exports them from the package; in TypeScript it supports the `signal` and `budget` options (see [TypeScript](typescript.md#cancellation-and-compute-limits)). Without it the Go parser holds the ordinary form of its functions and nothing that spends budget, which makes `parser.go` 15% to 50% smaller (the plain `parser.go` is 0.50 to 0.85 of the controlled one for the grammars of `testdata/grammars/`; larger grammars save more), and a parse that passes a control option returns an error (see [cancellation and compute limits](generated-go-api.md#cancellation-and-compute-limits)). A parser has one form: with the option it is the controlled one, and a parse that sets no limit runs the same code (a few inline tests of the control take the unmetered path), so generate two parsers if you need the faster plain form as well. A TypeScript parser generated without the option emits no code that spends budget and sets no control, and its options type and exports have no cancellation or limits. With `-document` and without the option, the Document form has no charges |
 | `-expectations` | off | Let a parse record what a syntax error expects: the expected list and the messages of `@error` (see [recording expectations](error-messages.md#recording-expectations)). The parser gets the table of expectation descriptions and the parse option `WithExpectations()`; a parse records only when it passes the option, and otherwise a syntax error has the farthest position, an empty `Expected` list, no `Messages` and the message `syntax error`. Without the flag the parser has no table and no option. A `Document` fixes the choice when it is created. It covers every entry point, including typed values, `Document` and streaming, and TypeScript (`{ expectations: true }`) |
 | `-observability` | off | Emit opt-in tracing and profiling for Go or TypeScript parsers; combines with `-types`, `-recognize`, and Go `-document` and `-stream` (see [generated parser tracing and profiling](debugging.md#generated-go-node-and-typed-traces)) |
 | `-max-depth` | `0` | Default nested recursive rule-call limit in the generated parser; zero selects 100,000, a positive value overrides it, and negatives fail generation |
@@ -282,7 +282,7 @@ for _, f := range files { // parser.go, api.go, types/types.go with Types, and i
 }
 ```
 
-The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `BudgetControls` is `-budget-controls`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
+The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `BudgetControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
 
 `zp gen` is a thin wrapper around `gen.Go` (and `gen.TypeScript` with `-lang ts`, whose `Generate` returns the files too); both implement `gen.Generator`. Because a grammar built with the `grammar` package (see the
 [Running Parsers](running-parsers.md#from-go-values-programmatic-grammars)) is just an AST, it can be generated from, too.
@@ -318,9 +318,9 @@ machinery, which the generated code only has when you ask for it:
   forms). Without `-stream`, `#stream` is an ordinary repetition. TypeScript has neither streams nor documents.
 - `ParseRule` replaces `WithStart` for another start rule, and `WithUnit` and `WithMaxDepth` work as in the engine;
   `-max-depth` sets the generated default.
-- Cancellation and budget limits are `WithContext` and `WithLimits` in the engine and in generated Go with `-budget-controls`, and the
-  `signal` and `budget` options in TypeScript with `-budget-controls`; see
-  [Cancellation and Budget Limits](cancellation-and-limits.md) and the
+- Cancellation and compute limits are `WithContext` and `WithLimits` in the engine and in generated Go with `-limits`, and the
+  `signal` and `budget` options in TypeScript with `-limits`; see
+  [Cancellation and Compute Limits](cancellation-and-limits.md) and the
   [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support).
 - There is no choice of backend, because the generated code is a backend of its own, and no `Parser.Grammar()`, saving
   or loading, because the grammar is gone at run time.
@@ -496,7 +496,7 @@ thin, and unit-test it with the engine and the generated parser alike.
 
 ## Related Topics
 
-- [The Generated Go API](generated-go-api.md): `Parse`, recognition, call options, cancellation and budget limits.
+- [The Generated Go API](generated-go-api.md): `Parse`, recognition, call options, cancellation and compute limits.
 - [Typed Values in Generated Go](generated-typed-values.md), [Incremental Documents in Generated Go](generated-documents.md)
   and [Streams in Generated Go](generated-streams.md): the packages that `-types`, `-document` and `-stream` add.
 - [Generated TypeScript Parsers](typescript.md): the same generator for TypeScript.

@@ -129,7 +129,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 				}
 				// The first record is emitted (its emission needs a few units
 				// after this event); the next record's reservations must fail.
-				core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used + 4
+				core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 4
 			}
 		}))
 	})
@@ -148,7 +148,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 
 func streamControlRetentionOptions(o ParseOptions, ctx context.Context, trace func(TraceEvent)) ParseOptions {
 	o.Context = ctx
-	o.Limits = limits.Limits{Budget: 1 << 30}
+	o.Limits = limits.Limits{Compute: 1 << 30}
 	o.Trace = trace
 	return o
 }

@@ -15,7 +15,7 @@ import (
 )
 
 // Compare the public parse result and exported diagnostic records with and
-// without a generous budget limit. Fixtures are drawn from attrs_test.go,
+// without a generous compute limit. Fixtures are drawn from attrs_test.go,
 // internal/gen/gogen/gogen_flowrule_recovery_test.go, and trace_lr_test.go.
 func TestBudgetDiagnosticPublicParity(t *testing.T) {
 	t.Parallel()
@@ -172,7 +172,7 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 								}
 								want := marshal(t, wantNode, wantErr)
 								limited := base
-								limited.Limits = limits.Limits{Budget: 1 << 50}
+								limited.Limits = limits.Limits{Compute: 1 << 50}
 								gotNode, gotErr := prog.ParseWith("main", input, limited)
 								got := marshal(t, gotNode, gotErr)
 								if !bytes.Equal(got, want) {

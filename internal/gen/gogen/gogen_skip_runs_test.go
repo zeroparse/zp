@@ -232,7 +232,7 @@ func skipRunSpends(t *testing.T, goBin string, controls []complexitytest.Control
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		files, err := gentest.Generate(t, g, gen.GenOptions{Module: "skiplin/" + pkg, Package: pkg, Start: "main", Runtime: gen.RuntimeEmbed, BudgetControls: true})
+		files, err := gentest.Generate(t, g, gen.GenOptions{Module: "skiplin/" + pkg, Package: pkg, Start: "main", Runtime: gen.RuntimeEmbed, LimitControls: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -256,7 +256,7 @@ func skipRunSpends(t *testing.T, goBin string, controls []complexitytest.Control
 		}
 		fmt.Fprintf(&imports, "\t%q\n", "skiplin/"+pkg)
 		fmt.Fprintf(&entries, `	{%#v, func(s string, budget uint64) (bool, string) {
-		n, err := %[2]s.Parse(s, %[2]s.WithLimits(%[2]s.Limits{Budget: budget}))
+		n, err := %[2]s.Parse(s, %[2]s.WithLimits(%[2]s.Limits{Compute: budget}))
 		j, _ := json.Marshal(n)
 		return errors.Is(err, %[2]s.ErrLimit), string(j) + " " + fmt.Sprint(err)
 	}},

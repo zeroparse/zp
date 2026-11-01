@@ -1,6 +1,6 @@
 // Package core is the part of the parse runtime that every backend of the engine shares: the
 // parser state (Parser), its input, memo table, expectation record, capture frames, values,
-// budget limits, tracing and stream state, and the protocol by which rules are called and grown.
+// compute limits, tracing and stream state, and the protocol by which rules are called and grown.
 // It also declares the parse options, results, errors and trace events that the engine re-exports.
 //
 // # Backends

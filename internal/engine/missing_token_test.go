@@ -59,7 +59,7 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 			o := ParseOptions{Expectations: true, Unit: unit, MissingTokens: 8}
 			if controlled {
 				o.Context = context.Background()
-				o.Limits.Budget = 1 << 20
+				o.Limits.Compute = 1 << 20
 			}
 			prog := mustCompile(t, `rule main = "é" ";" #missing $$`)
 			n, errs := requireInsertions(t, prog, "é", o, 1)
@@ -203,7 +203,7 @@ func TestMissingTokensLeftRecursion(t *testing.T) {
 		o := ParseOptions{Expectations: true, MissingTokens: 64}
 		if controlled {
 			o.Context = context.Background()
-			o.Limits.Budget = 1 << 20
+			o.Limits.Compute = 1 << 20
 		}
 		for _, recognize := range []bool{false, true} {
 			o.Recognize = recognize

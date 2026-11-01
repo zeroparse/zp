@@ -35,7 +35,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const retry=p.parseWithOptions(input,{unit,budget:0});check(retry.node===null&&retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh line diagnostic retry");
 }
 `
-	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 }
 
 func TestGeneratedTSBudgetControlDiagnosticMessage(t *testing.T) {
@@ -53,7 +53,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const retry=p.parseWithOptions("x",{unit,budget:0});check(retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh custom diagnostic retry");
 }
 `
-	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 }
 
 func TestGeneratedTSBudgetControlDiagnosticSort(t *testing.T) {
@@ -79,7 +79,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  check(p.parseWithOptions("",{unit,budget:0}).error instanceof p.SyntaxError,"fresh sorted diagnostic retry");
 }
 `
-	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 }
 
 func TestGeneratedTSBudgetControlRecoveredMessage(t *testing.T) {
@@ -101,7 +101,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const retry=p.parseWithOptions("!",{unit,budget:0});check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.message===ordinary.error.message&&retained.message===ordinary.error.errors[0]!.message,"retained recovery and fresh retry");
 }
 `
-	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 }
 
 func TestGeneratedTSBudgetControlDiagnosticParity(t *testing.T) {
@@ -122,7 +122,7 @@ for(const unit of [p.CodePoints,p.Bytes])for(const rule of ["main","custom"]) {
  if(rule==="custom")check(stable(active.error.messages)===stable(["one","two"]),"custom messages preserve choice order");
 }
 `
-			runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+			runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 		})
 	}
 }
@@ -169,7 +169,7 @@ for (const [name, run] of routes) {
   if (hi < 512) fail(name + " needs only " + hi + " for 512 characters");
 }
 console.log("ok");
-`, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true})
+`, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true})
 	if out != "ok\n" {
 		t.Fatalf("got %q", out)
 	}

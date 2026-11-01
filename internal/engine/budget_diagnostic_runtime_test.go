@@ -49,7 +49,7 @@ func TestBudgetDiagnosticBatchFailureAndTraceAccessor(t *testing.T) {
 						var observed *core.Parser
 						var c *core.BudgetControl
 						var at uint64
-						n, err := active.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: limits.Limits{Budget: 1 << 50}, Trace: func(e TraceEvent) {
+						n, err := active.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: limits.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
 							observed = core.TraceParser(e)
 							if e.Kind == TraceEnter && e.Rule == "fallback" {
 								fallback++
@@ -64,14 +64,14 @@ func TestBudgetDiagnosticBatchFailureAndTraceAccessor(t *testing.T) {
 										c.Ctx = newPollingContext(1)
 										c.SinceCheck = 0
 									} else {
-										c.Limits.Budget = at + 1
+										c.Limits.Compute = at + 1
 									}
 									_ = e.Failure()
 									accessorReturned = true
 								} else {
 									// More than every possible merge collision and descriptor visit;
 									// long-string sorting must perform the eventual interruption.
-									c.Limits.Budget = at + 4096
+									c.Limits.Compute = at + 4096
 								}
 							}
 						}})
@@ -122,14 +122,14 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 			for _, recognize := range []bool{false, true} {
 				armed, fallback := false, 0
 				var observed *core.Parser
-				n, err := prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: limits.Limits{Budget: 1 << 50}, Trace: func(e TraceEvent) {
+				n, err := prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: limits.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
 					observed = core.TraceParser(e)
 					if e.Kind == TraceEnter && e.Rule == "fallback" {
 						fallback++
 					}
 					if !armed && e.Kind == TraceExit && e.Rule == "bad" {
 						armed = true
-						core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used + 256
+						core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 256
 					}
 				}})
 				if !armed || n != nil || observed.Scratch != nil || observed.Control != nil {
@@ -145,7 +145,7 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 				}
 				if !recognize {
 					armed, fallback = false, 0
-					n, err = prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Limits: limits.Limits{Budget: 1 << 50}, Trace: func(e TraceEvent) {
+					n, err = prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Limits: limits.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
 						observed = core.TraceParser(e)
 						if e.Kind == TraceEnter && e.Rule == "fallback" {
 							fallback++

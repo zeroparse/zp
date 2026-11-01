@@ -93,7 +93,7 @@ func TestTerminalProgramGeneration(t *testing.T) {
 		}
 		// Parsers with budget controls or Documents keep the straight-line code, which charges
 		// budget for each expression.
-		for _, opts := range []gen.GenOptions{{BudgetControls: true}, {Document: true}} {
+		for _, opts := range []gen.GenOptions{{LimitControls: true}, {Document: true}} {
 			opts.Package, opts.Module, opts.Start, opts.Types, opts.Runtime = "terminal", "example.com/generated", "main", true, gen.RuntimeImport
 			files, err := gentest.Generate(t, g, opts)
 			if err != nil {
@@ -138,7 +138,7 @@ func TestTerminalProgramEligibility(t *testing.T) {
 		{"too few leaves", "rule main = -" + choice15 + " $$\n", gen.GenOptions{}, false},
 		{"no choice", "rule main = -(" + seq16 + ") $$\n", gen.GenOptions{}, false},
 		{"observability", "rule main = -" + choice16 + " $$\n", gen.GenOptions{Observability: true}, false},
-		{"budget controls", "rule main = -" + choice16 + " $$\n", gen.GenOptions{BudgetControls: true}, false},
+		{"budget controls", "rule main = -" + choice16 + " $$\n", gen.GenOptions{LimitControls: true}, false},
 		{"document", "rule main = -" + choice16 + " $$\n", gen.GenOptions{Document: true}, false},
 		{"disabled", "rule main = -" + choice16 + " $$\n", gen.GenOptions{DisableTerminalPrograms: true}, false},
 		// The typed body of a left-recursive rule is a frame body, which keeps straight-line code.
@@ -205,13 +205,13 @@ func TestDepthChecks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, opts := range []gen.GenOptions{{TypedOnly: true}, {BudgetControls: true}} {
+		for _, opts := range []gen.GenOptions{{TypedOnly: true}, {LimitControls: true}} {
 			opts.Package, opts.Module, opts.Start, opts.Types, opts.Runtime = "terminal", "example.com/generated", "main", true, gen.RuntimeImport
 			files, err := gentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			sources[fmt.Sprintf("%s %+v", c.Name, opts.BudgetControls)] = string(gentest.MergeGenerated(files))
+			sources[fmt.Sprintf("%s %+v", c.Name, opts.LimitControls)] = string(gentest.MergeGenerated(files))
 		}
 	}
 	other := regexp.MustCompile(`\.Depth\s*(\+=|=[^=])|\.MaxDepth\s*(\+\+|--|\+=|-=|=[^=])`)

@@ -38,7 +38,7 @@ if (limitOf(p.parseWithOptions(wide, { unit: p.CodePoints }).error) !== 2000 * 1
 if (limitOf(p.parseWithOptions(new TextEncoder().encode(wide), { unit: p.CodePoints }).error) !== 2000 * 1024) fail("code points of bytes");
 if (p.Unlimited !== Number.MAX_SAFE_INTEGER) fail("Unlimited");
 console.log("ok");
-`, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true})
+`, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true})
 	if out != "ok\n" {
 		t.Fatalf("got %q", out)
 	}
@@ -58,7 +58,7 @@ const options = { budget: Number.MAX_SAFE_INTEGER } as p.ParseOptions;
 const r = p.parseWithOptions("a".repeat(100), options);
 if (r.error !== null || r.node === null) throw new Error("unlimited parse failed: " + r.error);
 console.log("ok");
-`, gen.GenOptions{Start: "main", BudgetControls: controls, Types: true, Recognize: true})
+`, gen.GenOptions{Start: "main", LimitControls: controls, Types: true, Recognize: true})
 		if out != "ok\n" {
 			t.Fatalf("controls=%v: got %q", controls, out)
 		}
@@ -105,7 +105,7 @@ const first = p.parseWithOptions(text, { signal: cancelled, maxInput: 1 }).error
 if (!(first instanceof p.ParseInterruptionError) || first.kind !== "input-limit") fail("input limit comes before the signal: " + first);
 if (p.parseWithOptions("abc", { maxInput: -1 }).error === null) fail("negative maxInput");
 console.log("ok");
-`, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true})
+`, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true})
 	if out != "ok\n" {
 		t.Fatalf("got %q", out)
 	}
@@ -114,8 +114,8 @@ const options = { maxInput: 3 } as p.ParseOptions;
 const r = p.parseWithOptions("abc", options);
 console.log(r.error === null ? "accepted" : String(r.error));
 console.log(p.parseWithOptions("abc", { maxInput: p.Unlimited } as p.ParseOptions).error === null ? "ok" : "unlimited rejected");
-`, gen.GenOptions{Start: "main", BudgetControls: false, Types: true, Recognize: true})
-	if want := "Error: this parser was generated without budget controls (generate with -budget-controls to use signal, budget and maxInput)\nok\n"; out != want {
+`, gen.GenOptions{Start: "main", LimitControls: false, Types: true, Recognize: true})
+	if want := "Error: this parser was generated without limit controls (generate with -limits to use signal, budget and maxInput)\nok\n"; out != want {
 		t.Fatalf("without budget controls: got %q", out)
 	}
 }

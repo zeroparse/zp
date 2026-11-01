@@ -13,7 +13,7 @@ import (
 func leastBudget(t *testing.T, prog *Program, input string, o ParseOptions) uint64 {
 	t.Helper()
 	fits := func(b uint64) bool {
-		o.Limits = limits.Limits{Budget: b}
+		o.Limits = limits.Limits{Compute: b}
 		_, err := prog.ParseWith("main", input, o)
 		return err == nil
 	}

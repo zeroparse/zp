@@ -160,7 +160,7 @@ rule child = "a"`)
 			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = childProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Budget: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = childProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = core.TraceParser(e)
 						ctx.control, ctx.armed = core.TraceParser(e).Control, true
@@ -183,7 +183,7 @@ rule child = "a"`)
 			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = plainProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Budget: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = plainProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = core.TraceParser(e)
 						ctx.control, ctx.armed = core.TraceParser(e).Control, true
@@ -210,7 +210,7 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Budget: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceExit && e.Rule == "main" {
 						observed = core.TraceParser(e)
 						ctx.control, ctx.armed = core.TraceParser(e).Control, true
@@ -230,16 +230,16 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			var node *value.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
-				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Budget: 1 << 20}, Trace: func(e TraceEvent) {
+				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: limits.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
 						observed = core.TraceParser(e)
 						ctx.control = core.TraceParser(e).Control
 						ctx.armed = true
-						ctx.control.Limits.Budget = ctx.control.Used
+						ctx.control.Limits.Compute = ctx.control.Used
 					}
 				}})
 			})
-			if got != token || node != nil || returnedErr != nil || ctx.calls != 2 || ctx.control == nil || ctx.atPanic != ctx.control.Used || ctx.atPanic != ctx.control.Limits.Budget {
+			if got != token || node != nil || returnedErr != nil || ctx.calls != 2 || ctx.control == nil || ctx.atPanic != ctx.control.Used || ctx.atPanic != ctx.control.Limits.Compute {
 				t.Fatalf("panic=%#v node=%v error=%v Err calls=%d control=%v, want context panic on rejected reservation", got, node, returnedErr, ctx.calls, ctx.control)
 			}
 			budgetContextAssertCleanup(t, observed)
@@ -272,7 +272,7 @@ func TestBudgetContextErrPanicIdentityAtCountedBudgetAndRetry(t *testing.T) {
 					var node *value.Node
 					var returnedErr error
 					got := budgetContextRecover(func() {
-						node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Context: ctx, Limits: limits.Limits{Budget: 1 << 30}, Trace: func(e TraceEvent) {
+						node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Context: ctx, Limits: limits.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
 							if e.Kind == TraceEnter && e.Rule == "main" {
 								observed = core.TraceParser(e)
 								ctx.control, ctx.armed = core.TraceParser(e).Control, true
@@ -329,7 +329,7 @@ func TestBudgetContextErrPanicIdentityLoadedASTOmittedProgram(t *testing.T) {
 				var node *value.Node
 				var returnedErr error
 				got := budgetContextRecover(func() {
-					node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Context: ctx, Limits: limits.Limits{Budget: 1 << 30}, Trace: func(e TraceEvent) {
+					node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Context: ctx, Limits: limits.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
 							observed = core.TraceParser(e)
 							ctx.control, ctx.armed = core.TraceParser(e).Control, true

@@ -246,7 +246,7 @@ position. The memo holds only results that read no growing seed, so a lookup is 
 keys, the specified entry attributes, which entry a lookup returns, the storage charge. *Target*: slot arrays or maps,
 chaining, slab allocation and free lists, entry layout and packing. *Conformance*: random sequences of stores, lookups
 and prunes compared with a reference model; storage charges that do not depend on storage left by an earlier parse, as
-[Cancellation and Budget Limits](../../../spec/runtime/parsing.md#cancellation-and-budget-limits) requires.
+[Cancellation and Budget Limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits) requires.
 
 **Left-recursion contexts** (`ctx.enter`, `ctx.allows`, `ctx.active`, `ctx.lookup`, `ctx.replay`, `ctx.push`,
 `ctx.pop`, `ctx.keep`, `ctx.done`; `grow.begin`, `grow.next`, `grow.step`, `grow.end`). The dependency memo of
@@ -341,7 +341,7 @@ step, per loop iteration, per Operators Rule application — is shared and exact
 operation pays for work whose size depends on the operation's data: scanning an expectation record, growing the memo,
 inspecting input. The specification already lets budget counts depend on the backend and the generated artifact as
 long as they are deterministic ([Cancellation and Budget
-Limits](../../../spec/runtime/parsing.md#cancellation-and-budget-limits)), and the targets already differ here:
+Limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits)), and the targets already differ here:
 generated Go charges an expectation scan only after its membership filter matches, TypeScript charges every element
 it scans. An operation's cost contract is therefore a deterministic count per target within a declared bound
 ([Decisions](#decisions)).

@@ -1130,7 +1130,7 @@ export type PlainParseOptions = Omit<ParseOptions, "signal" | "budget" | "maxInp
 // controls resolves to the default budget of the input, and Unlimited resolves to no budget limit (zero).
 export function resolveOptions(g: Grammar, options: ParseOptions | undefined, input: string | Uint8Array): ResolvedParseOptions | Error {
   if (!g.controlled && (options?.signal != null || ((options?.budget ?? 0) !== 0 && options?.budget !== Unlimited) || ((options?.maxInput ?? 0) !== 0 && options?.maxInput !== Unlimited))) {
-    return new Error("this parser was generated without budget controls (generate with -budget-controls to use signal, budget and maxInput)");
+    return new Error("this parser was generated without limit controls (generate with -limits to use signal, budget and maxInput)");
   }
   if (!g.observable && (options?.profile != null || options?.trace != null || options?.traceRules !== undefined || options?.traceMaxDepth !== undefined)) {
     return new Error("trace and profile options are only supported by a parser generated with observability");

@@ -134,18 +134,18 @@ type ParseOption func(*engine.ParseOptions)
 // Limits bounds one parse invocation. A zero limit selects the default of that limit, and
 // Unlimited disables it.
 //
-// Budget bounds the cumulative spend of the parse: every input unit
+// Compute bounds the cumulative cost of the parse: every input unit
 // inspected, every rule call and loop iteration, and every unit of value
 // construction adds to one counter. The default is the larger of 2^20 and 1024
 // units for each unit of input in the position unit of the parse. Counts depend
 // on backend, input unit and version.
 //
-// MaxInput bounds the length of the input in the position unit of the parse. Its default is
+// Input bounds the length of the input in the position unit of the parse. Its default is
 // Unlimited. A longer input fails before any work with a LimitError of kind LimitInput; a stream
 // fails when the parser reaches a unit beyond the limit.
 type Limits = limits.Limits
 
-// Unlimited is the value of a limit that disables it: Limits{Budget: zp.Unlimited}.
+// Unlimited is the value of a limit that disables it: Limits{Compute: zp.Unlimited}.
 const Unlimited = limits.Unlimited
 
 // LimitError describes a reservation that would exceed a limit.
@@ -155,9 +155,9 @@ type LimitError = limits.LimitError
 type LimitKind = limits.LimitKind
 
 const (
-	// LimitBudget is the kind of an exhausted Budget.
-	LimitBudget = limits.LimitBudget
-	// LimitInput is the kind of an input longer than MaxInput.
+	// LimitCompute is the kind of an exhausted Compute limit.
+	LimitCompute = limits.LimitCompute
+	// LimitInput is the kind of an input longer than the Input limit.
 	LimitInput = limits.LimitInput
 )
 
@@ -398,7 +398,7 @@ type SnapshotField = engine.SnapshotField
 type SnapshotCaptureError = engine.SnapshotCaptureError
 
 // Snapshot parses and freezes this revision using construction defaults plus
-// opts. Cancellation and budget limits cover parsing, text, tree and diagnostics;
+// opts. Cancellation and compute limits cover parsing, text, tree and diagnostics;
 // interruption returns nil. Ordinary syntax errors retain the failed version.
 func (d *Document) Snapshot(opts ...ParseOption) (*Snapshot, error) {
 	o := d.doc.ParseDefaults()
@@ -434,7 +434,7 @@ func (d *Document) Text() string { return d.doc.Text() }
 func (d *Document) Edit(start, end int, text string) error { return d.doc.Edit(start, end, text) }
 
 // Parse parses the current text. opts apply once over construction defaults and
-// may change context, budget limits, depth and trace, but not unit, effective backend
+// may change context, compute limits, depth and trace, but not unit, effective backend
 // or recognition mode. Overrides do not change future defaults. Pre-execution
 // interruption preserves caches and statistics; execution or publication
 // interruption discards reusable state while preserving text for retry.

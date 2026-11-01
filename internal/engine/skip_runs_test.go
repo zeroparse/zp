@@ -134,7 +134,7 @@ func TestSkipRunsNegativeControls(t *testing.T) {
 }
 
 // TestSkipRunsBudgetAbort checks that a parse stopped by the budget in the middle of a walk leaves
-// no partial records behind: at every budget, a parse either fails with the budget limit or gives
+// no partial records behind: at every budget, a parse either fails with the compute limit or gives
 // the result of the unlimited parse, and an unlimited parse after each stopped one does too. The
 // nested family stops in recording walks at most budgets.
 func TestSkipRunsBudgetAbort(t *testing.T) {
@@ -153,7 +153,7 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 		want := skipDump(t, n, err)
 		stopped := 0
 		for budget := uint64(1); ; budget++ {
-			o := ParseOptions{Backend: b, Expectations: true, Limits: limits.Limits{Budget: budget}}
+			o := ParseOptions{Backend: b, Expectations: true, Limits: limits.Limits{Compute: budget}}
 			n, err := prog.ParseWith("main", in, o)
 			if errors.Is(err, limits.ErrLimit) {
 				stopped++

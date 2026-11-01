@@ -57,7 +57,7 @@ A parse has two limits and one separate option:
 The same three controls exist in generated Go (package-local `WithLimits`, `WithMaxDepth`) and generated TypeScript
 (the `budget`, `maxInput` and `maxDepth` options, `ParseInterruptionError` with kinds `"budget-limit"` and
 `"input-limit"`), and on the command line (`-budget`, `-max-input`, `-max-depth`). The budget is described in
-[record 033](033-cancellable-parses-and-budgets.md) and the [parsing specification](../../../spec/runtime/parsing.md#cancellation-and-budget-limits).
+[record 033](033-cancellable-parses-and-budgets.md) and the [parsing specification](../../../spec/runtime/parsing.md#cancellation-and-compute-limits).
 
 The depth limit is a limit in every sense except its API: it bounds a resource (the call stack), it aborts the parse
 as a run-time error, and it has a default. A caller cannot match it with `errors.Is(err, ErrLimit)`, and it takes an

@@ -71,7 +71,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 				for _, recognize := range []bool{false, true} {
 					for _, text := range []string{input, "", tc.text, "x"} {
 						for limit := uint64(0); limit <= 80; limit++ {
-							for _, limits := range []limits.Limits{{Budget: limit}, {Budget: limit}} {
+							for _, limits := range []limits.Limits{{Compute: limit}, {Compute: limit}} {
 								opts := ParseOptions{Unit: unit, Recognize: recognize, Limits: limits}
 								a, ae := shared.ParseWith("main", text, opts)
 								b, be := reference.ParseWith("main", text, opts)

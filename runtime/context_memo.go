@@ -878,7 +878,7 @@ func (g *growState) growKey() growKey { return growKey{g.rule, g.min} }
 // the body is evaluated repeatedly, and the result at the point where the match stops growing is
 // adopted.
 func (p *Parser) growBegin(r *Rule, min int) growState {
-	// One budget unit before each evaluation of the body, the seed's included.
+	// One compute unit before each evaluation of the body, the seed's included.
 	p.Spend()
 	g := growState{rule: int32(r.Id), min: int32(min), start: p.Pos, rec: len(p.Recovered), gi: len(p.gamma)}
 	g.gp = p.gammaAt(p.Pos, r.Cycle)

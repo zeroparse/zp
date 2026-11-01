@@ -49,7 +49,7 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 					continue
 				}
 				_, err = gentest.Generate(t, g, gen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Runtime: gen.RuntimeImport,
-					Types: true, TypedOnly: true, KeepNodes: true, BudgetControls: form.controls})
+					Types: true, TypedOnly: true, KeepNodes: true, LimitControls: form.controls})
 				if err != nil {
 					t.Fatalf("%s: %v", c.Name, err)
 				}
@@ -142,7 +142,7 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 			gh.OperatorsRoute = func(table string, r *compile.Rule) { taken++ }
 			var pkgs []string
 			for i, c := range gentest.TypedOnlyConverted {
-				base := gen.GenOptions{Types: true, BudgetControls: form.controls}
+				base := gen.GenOptions{Types: true, LimitControls: form.controls}
 				full, flowOnly, mutated := fmt.Sprintf("full%d", i), fmt.Sprintf("flow%d", i), fmt.Sprintf("mut%d", i)
 				before := taken
 				only := base

@@ -32,8 +32,8 @@ Budget-control behavior and its generated-Go cost are described in
 [optimization record 096](optimizations/096-specialize-generated-go-method-helpers.md).
 The snapshot measures active controls on JSON and XML (`BudgetControlModes`, `ControlledParse`); the ordinary parsing
 benchmarks run with the controls inactive. Relative to the inactive mode on the three interpreters in both position
-units, a cancelable context takes 1.45–1.68× the time, finite budget limits 1.54–1.79× and both together 1.54–1.79×, with
-the same allocation counts. Generated Go with finite budget limits takes 1.30–1.47× its ordinary `Parse` time and
+units, a cancelable context takes 1.45–1.68× the time, finite compute limits 1.54–1.79× and both together 1.54–1.79×, with
+the same allocation counts. Generated Go with finite compute limits takes 1.30–1.47× its ordinary `Parse` time and
 1.47–1.61× its ordinary (CodePoints) `ParseAST` time. Neither this snapshot nor these records imply deployed behavior.
 
 **Backends.** Across all eight parsing workloads, generated Go Node parsing takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes. Recursive VM parsing takes 1.14–1.32× closure time in CodePoints and 1.13–1.35× in Bytes. Iterative VM parsing takes 1.33–1.76× closure time in CodePoints and 1.35–1.76× in Bytes. The slowest relative case is iterative Operators Rule arithmetic at 1.76× closure in both units. Closure remains the default (see the [Choosing a Backend](guide/backends.md)); the VMs serve loaded compiled grammars (a `.zpc` file holds one bytecode module of one mode and loads on the bytecode backends only) and, iteratively, deep nesting.
@@ -257,7 +257,7 @@ entry points that [benchmarks.md](benchmarks.md) reports, captured by `go run ./
 workloads that `TestGeneratedTSTypedWorkloads` and `TestGeneratedTSTypedSharedDAG` write when
 `ZP_TS_TYPED_DIR` is set, and `bench/ts-literal.mjs` for literal matching. Compare two generators by
 alternating them in each round, run at least six rounds, and compare medians and ranges. The form without
-`-budget-controls` is the default, so compare it with the controlled form separately. Results are in
+`-limits` is the default, so compare it with the controlled form separately. Results are in
 [record 122](optimizations/122-typescript-from-flow-ir.md).
 
 ## Mechanism Catalog

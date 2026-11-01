@@ -107,7 +107,7 @@ The ratio of the median time of a parse to that of a parser generated without
 budget controls, over seven paired rounds on the benchmark inputs (JSON, XML,
 YAML and CSV grammars of `testdata/grammars/`, Go 1.27.1, Apple M3 Max, `-trimpath`, run
 under the benchmark lock). (b) passes no option; (c) passes
-`Limits{Budget: 2^64-1}`.
+`Limits{Compute: 2^64-1}`.
 
 | Entry | Grammar | (b) no options | (c) with a limit |
 |:--|:--|--:|--:|

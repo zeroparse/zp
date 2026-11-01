@@ -29,7 +29,7 @@ rule main Text = t:([a]* #atomic) => Text{Text: text($t)}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}
+	opts := gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}
 	code, err := gentest.GenerateTSBundle(g, opts)
 	if err != nil {
 		t.Fatal(err)

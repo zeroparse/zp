@@ -26,7 +26,7 @@ of the aim is stated with its status today:
 | Selectable optimization profiles | One fixed set of optimizations | Generation profiles for speed, memory and size ([design record 063](design/records/063-configurable-optimization-pass-pipeline.md), accepted, not implemented) |
 | Every use | Batch trees, typed values, recognition, recovery, `Document` and streaming, with per-target gaps ([What One Grammar Gives You](why-zeroparse.md#what-one-grammar-gives-you)); a language server for `.zp` sources | Editor-grade tooling for the languages users define ([Editor-Grade Parsing](#editor-grade-parsing)) |
 | The best measured speed in each | Generated Go is slower than Go's hand-written standard-library parsers on every comparable workload (1.1–5.4× for typed values, 1.6–6.8× for trees); no cross-tool benchmark yet | The targets of [Performance Leadership](#performance-leadership), first for the targets and uses that exist, then for each new one |
-| Safe by default | A nesting cap only | Budget limits on by default, in generated parsers too; optional input-length and memory caps ([Predictable Cost and Safety](#predictable-cost-and-safety)) |
+| Safe by default | A nesting cap only | Compute limits on by default, in generated parsers too; optional input-length and memory caps ([Predictable Cost and Safety](#predictable-cost-and-safety)) |
 
 **Positioning.** The reason to choose ZeroParse is breadth under one contract. One PEG-based grammar yields typed values,
 recognition, incremental documents and bounded streams, in every target that supports them. Every backend returns the
@@ -65,7 +65,7 @@ not narrow what ZeroParse is for.
 
 | Segment | What they need | Incumbents | Switching cost | ZeroParse today |
 |:--|:--|:--|:--|:--|
-| Go teams that own a DSL, configuration, query or policy language | Typed values, good errors, bounded cost, plain `go build` | Hand-written parsers, goyacc, pigeon, pointlander/peg, participle, ANTLR Go runtime; embedding CEL (cel-go) or Expr where an expression language fits | Low to medium: a grammar rewrite per language | Partial fit: typed generated Go, declared recovery, a default depth cap, stdlib only. Budget limits must be generated in and enabled (1.30–1.47× slower on generated Go); no memory or input-size cap; no grammar classifier |
+| Go teams that own a DSL, configuration, query or policy language | Typed values, good errors, bounded cost, plain `go build` | Hand-written parsers, goyacc, pigeon, pointlander/peg, participle, ANTLR Go runtime; embedding CEL (cel-go) or Expr where an expression language fits | Low to medium: a grammar rewrite per language | Partial fit: typed generated Go, declared recovery, a default depth cap, stdlib only. Compute limits must be generated in and enabled (1.30–1.47× slower on generated Go); no memory or input-size cap; no grammar classifier |
 | Go developer tools for a custom language (linters, formatters, servers) | Incremental trees that tolerate errors, in pure Go | tree-sitter through cgo, gotreesitter, gpeg, hand-written | Medium: tree-sitter grammars and queries are reusable assets | Partial: engine `Document` and declared recovery ship. A `Document` has no `#missing`, so an unclosed construct with no `#recover` path yields no tree. There is no language server for user grammars and no UTF-16 position map |
 | The same parser in a Go backend and in TypeScript | Identical results on both sides | ANTLR (Go, JavaScript and TypeScript targets), tree-sitter (Go binding or gotreesitter, plus `web-tree-sitter`), two hand-written parsers | Medium | Partial: generated TypeScript has no `Document` or streaming, positions are not UTF-16, and nesting is limited by Node's stack |
 | Stream and log processing of grammar-defined record formats | Bounded memory, throughput | Hand-written scanners, format-specific decoders | Low | Partial: memory is bounded; CSV streaming is 11.5× slower than `encoding/csv` |
@@ -89,7 +89,7 @@ Checked against tree-sitter 0.27.1 and gotreesitter 0.56.0.
   - The runtime returns a tree for every input and reports changed ranges. `tree-sitter fuzz` checks every grammar
     under random edits and undo.
   - gotreesitter runs 206 of these grammars in pure Go. It adds typed query code generation (`cmd/tsquery`), UTF-16
-    coordinates and a WebAssembly runtime. Its deterministic budget limits (iterations, stack depth, nodes) are on by
+    coordinates and a WebAssembly runtime. Its deterministic compute limits (iterations, stack depth, nodes) are on by
     default with thresholds derived from the input, and an edited incremental parse stops where a fresh parse would.
     A per-parse memory budget and a process-heap ceiling are also on by default; a timeout and a cancellation flag
     are available.
@@ -101,7 +101,7 @@ Checked against tree-sitter 0.27.1 and gotreesitter 0.56.0.
 - **Can replace.** A tree-sitter grammar written only to parse one language a Go team owns, where typed values and
   generated TypeScript matter more than queries and an editor corpus.
 - **Loses today.** It loses on the corpus, queries, highlighting and editor distribution. It also loses on a tree for
-  every input with no recovery annotations, changed ranges, UTF-16 positions, and budget limits and a memory budget on
+  every input with no recovery annotations, changed ranges, UTF-16 positions, and compute limits and a memory budget on
   by default. All of these are available in pure Go through gotreesitter, so cgo alone is not an argument for ZeroParse.
   No speed comparison exists.
 - **Counter-move.** gotreesitter's v1 design plan requires incremental results to equal fresh parses; meeting it would
@@ -118,7 +118,7 @@ Checked against ANTLR 4.13.2 and the Go runtime 4.13.1.
   then resynchronization). Direct left recursion with precedence by alternative order is supported.
 - **Difference.** ZeroParse is incremental and streams, its value actions do not depend on the target, and it needs no Java
   toolchain. ALL(*) is O(n⁴) in theory (Parr, Harwell and Fisher, Theorem 6.3), and ZeroParse states no polynomial bound
-  either. ZeroParse's difference is its stated cost model and its budget limits, not a better bound.
+  either. ZeroParse's difference is its stated cost model and its compute limits, not a better bound.
 - **Can replace.** ANTLR in Go services where the Java build step or the lack of incremental parsing hurts. Two user
   reports describe Go-target speed and memory problems (issues 1901 and 3279, from 2017 and 2021), but they predate
   the 4.13 Go runtime module and are not evidence about it.
@@ -171,7 +171,7 @@ commit `d601f967`.
     application is logarithmic. The paper reports reparses of about 1 ms for a Java highlighting grammar on 1–100 MB
     inputs (AMD Ryzen 5 1600, Go 1.16); this was not re-measured on the checked commit, whose VM was rewritten. gpeg
     runs any grammar incrementally and reuses results where patterns are marked for memoization. It builds untyped
-    captures, has no left recursion, uses hand-written recovery patterns and has no depth or budget limits. Its equality
+    captures, has no left recursion, uses hand-written recovery patterns and has no depth or compute limits. Its equality
     test against a fresh parse is disabled at the checked commit.
   - ZeroParse has typed output, left recursion that is not experimental, the Operators Rule, `#recover`, streaming, limits,
     and a fresh-parse equality contract that it states and tests.
@@ -257,7 +257,7 @@ What the incumbents do better today, and what ZeroParse's documents must not obs
 - tree-sitter: a tree for every input (ERROR and MISSING nodes); changed ranges; persistent trees with structural
   sharing; included ranges for embedded languages; `tree-sitter fuzz`
   for every grammar author; UTF-16 input; one grammar natively and in the browser.
-- gotreesitter: 206 grammars in pure Go; typed query code generation; deterministic budget limits and a per-parse
+- gotreesitter: 206 grammars in pure Go; typed query code generation; deterministic compute limits and a per-parse
   memory budget, both on by default; a timeout and cancellation; UTF-16; injections; a Wasm runtime.
 - Lezer: step-wise `PartialParse` with `stopAt`; `parseMixed` for nested languages; compact buffer-backed trees.
 - ANTLR: automatic grammar-independent recovery; direct left recursion with precedence; grammars-v4; pure-Go and
@@ -332,10 +332,10 @@ they are not gates, and the release does not wait for them.
   API) and the unstable ones (`.zpc`, bytecode, JSON forms);
 - the Go version that generated code needs, documented: Go 1.27.1, the same as the module, with the effect of
   `go get -tool` on a consumer module ([Go Versions](releasing.md#go-versions));
-- budget limits on by default: `zp gen` generates parsers with budget controls by default (what `-budget-controls` turns
+- compute limits on by default: `zp gen` generates parsers with limit controls by default (what `-limits` turns
   on today), one fixed budget proportional to the input length (c·n with a large constant), and a lint warning for
   grammars outside the specification's sufficient conditions for linear cost; at whatever overhead the limits have
-  then, plus a budget limit flag in `zp parse` and [SECURITY.md](../SECURITY.md) updated to these defaults; published
+  then, plus a compute limit flag in `zp parse` and [SECURITY.md](../SECURITY.md) updated to these defaults; published
   performance figures are measured with the limits on; reducing the overhead follows in the Performance track, and the
   release does not wait for the complexity classifier;
 - one budget in place of two counters;
@@ -344,7 +344,7 @@ they are not gates, and the release does not wait for them.
 - README and site claims that match this document's limits (tagline, untrusted input, tested runtimes);
 - the **wedge benchmark**: the same DSL-sized grammars (a calculator, a filter language, JSON) in ZeroParse, pigeon,
   participle and the ANTLR Go runtime. It reports time on short and long inputs, allocations, generated code size,
-  binary-size delta and budget limit overhead, with every loss published. This is the first credibility work and the
+  binary-size delta and compute limit overhead, with every loss published. This is the first credibility work and the
   cheapest one;
 - a minimal launch with the tag: an announcement, a Go forum post, and a benchmark page with the wedge results and the
   playground link. The metric clocks start on the launch date.
@@ -355,8 +355,8 @@ condition.
 | Track | Next items | Later |
 |:--|:--|:--|
 | Credibility (the gate) | The wedge benchmark; then the full cross-tool harness on Apple silicon and Linux x86-64; recovery quality on two languages | Recovery quality on more languages |
-| Performance | The budget limit overhead first, then the targets below by impact; a `jsontext` baseline | Generation profiles once the pass pipeline exists |
-| Safety | Default budget limits; the budget limit flag; `SECURITY.md`; optional input-length and memory caps; regression suites with step ratios | The complexity classifier (research, not on the critical path to release) |
+| Performance | The compute limit overhead first, then the targets below by impact; a `jsontext` baseline | Generation profiles once the pass pipeline exists |
+| Safety | Default compute limits; the compute limit flag; `SECURITY.md`; optional input-length and memory caps; regression suites with step ratios | The complexity classifier (research, not on the critical path to release) |
 | Editor | A language server for one user grammar; a public position map with UTF-16; tree-producing recovery in a `Document` | Semantic tokens through the server; an action-free concrete tree; text query syntax and standalone highlighting output |
 | TypeScript parity | UTF-16 positions | `Document` and streaming in generated TypeScript |
 | Adoption | `llms.txt` and a compact grammar reference; pigeon and participle migration recipes; a contributor guide | A pigeon grammar converter |
@@ -408,7 +408,7 @@ have no maintained same-source control, so their contribution cannot be re-measu
 | Generated `Recognize` time ÷ `json.Valid` (JSON) | 8.05× |
 | Streaming, closure backend ÷ `encoding/csv` read loop (50,000 records) | 11.5× |
 | Typed `ParseAST` allocated bytes ÷ standard library (JSON, XML) | 1.18×, 1.25× |
-| Generated Go with finite budget limits ÷ without (`Parse`; JSON and XML, generated with `-budget-controls`) | 1.30–1.47× |
+| Generated Go with finite compute limits ÷ without (`Parse`; JSON and XML, generated with `-limits`) | 1.30–1.47× |
 | Engine backends with a context or limits active ÷ inactive | 1.45–1.79× |
 | Allocations per parse: generated `Recognize`; typed `ParseAST` ÷ standard library (JSON, CSV, XML) | 0 on JSON, CSV and Operators Rule arithmetic, 74–1,700 on the other workloads; 260, 184, 263 against 53 k, 10 k, 80 k |
 | Generated TypeScript `parse` ÷ generated Go `Parse` (seven workloads) | 2.43–4.00× |
@@ -425,7 +425,7 @@ leadership, not a comparison with the fastest Go parsers. The JSON rows move to 
 exists.
 
 **Targets.** Ratios are measured with the repository suite on the same machine and revision, in the default
-configuration. From the first release, generated parsers have budget controls by default and published figures are
+configuration. From the first release, generated parsers have limit controls by default and published figures are
 measured with the limits on, so every speed row includes their cost. The standard-library parsers do
 different work (`encoding/json` builds no positions, `encoding/xml` returns tokens, `encoding/csv` returns records,
 `go/parser` builds a positioned Go syntax tree), so each row names the output class it compares; typed values and
@@ -434,12 +434,12 @@ Credibility milestone report; "long-term" is the leadership goal. A value marked
 measured prototype, or it conflicts with what the outputs differ in; it becomes a commitment once a prototype is
 measured. The unmarked values are commitments.
 
-**First item: the budget limit overhead.** With limits on by default, their overhead multiplies every other speed row,
+**First item: the compute limit overhead.** With limits on by default, their overhead multiplies every other speed row,
 so cutting it comes first in the Performance track.
 
 | Measure (output class) | Credibility | Long-term | Mechanisms |
 |:--|:--|:--|:--|
-| Budget limit overhead, generated Go `Parse` and `ParseAST`, limits on ÷ off | ≤ 1.15×; ≤ 1.05× (stretch) | ≤ 1.05×; ≤ 1.02× (stretch) | One budget; charging input by position change at rewinds and rule exits instead of per unit read; one charge per straight-line block; context polls only on recursive cycles and loop back-edges |
+| Compute limit overhead, generated Go `Parse` and `ParseAST`, limits on ÷ off | ≤ 1.15×; ≤ 1.05× (stretch) | ≤ 1.05×; ≤ 1.02× (stretch) | One budget; charging input by position change at rewinds and rule exits instead of per unit read; one charge per straight-line block; context polls only on recursive cycles and loop back-edges |
 | Typed `ParseAST` ÷ standard library, JSON and XML (typed values with spans) | < 1.0× | < 1.0× | Statically typed generated Go; byte positions; smaller string nodes |
 | Typed `ParseAST` ÷ standard library, JSON and XML (typed values without spans, byte positions) | ≤ 1.0× | ≤ 0.6× (stretch) | The above; an option to generate values without spans |
 | Typed `ParseAST` ÷ standard library, CSV (without spans) and arithmetic (with spans, against `go/parser`'s positioned AST) | ≤ 2.0× | ≤ 1.0× | Byte-search scans for character runs; cross-rule optimization; statically typed generated Go |
@@ -532,31 +532,31 @@ for untrusted input; the goals below make it so.
   - The specification defines cost, the expressions that repeat it, classes of growth and sufficient conditions for
     linear cost ([Time and Memory](../spec/runtime/parsing.md#time-and-memory)).
   - The nesting depth is capped by default.
-  - The budget limit (`Budget`) and context cancellation are opt-in. Generated parsers carry them only
-    when generated with `-budget-controls`. They cost 1.30–1.47× on generated Go `Parse` and 1.45–1.79× on the engine
+  - The compute limit (`Compute`) and context cancellation are opt-in. Generated parsers carry them only
+    when generated with `-limits`. They cost 1.30–1.47× on generated Go `Parse` and 1.45–1.79× on the engine
     backends.
-  - For a given artifact, input and options, the counts are deterministic. With `Budget` set, a parse stops once
+  - For a given artifact, input and options, the counts are deterministic. With `Compute` set, a parse stops once
     its spent budget exceeds it, whatever its class of growth.
   - Cancellation follows the caller's clock, and a blocked reader or callback cannot be interrupted.
-  - There is no memory or input-size limit. Budget limits do not bound memory, and the specification has a grammar with
+  - There is no memory or input-size limit. Compute limits do not bound memory, and the specification has a grammar with
     a linear number of evaluations and exponential value size.
-  - `zp parse` has no budget limit flag. [SECURITY.md](../SECURITY.md) states what a parse bounds today and what the
+  - `zp parse` has no compute limit flag. [SECURITY.md](../SECURITY.md) states what a parse bounds today and what the
     caller must bound.
-- **Goal: budget limits on by default.** Every parse gets a budget proportional to the input length (c·n). At the
+- **Goal: compute limits on by default.** Every parse gets a budget proportional to the input length (c·n). At the
   release, c is one fixed, large constant, calibrated on the repository grammars and ready-made parsers so that
   ordinary grammars stay well below it, and a lint warns about grammars outside the specification's sufficient
   conditions for linear cost. An unlimited parse has to be requested explicitly. The complexity classifier of the
   research track can later refine c per grammar; the release does not wait for it. Generated parsers are included:
-  from the first release, `zp gen` generates them with budget controls by default, as `-budget-controls` does today,
+  from the first release, `zp gen` generates them with limit controls by default, as `-limits` does today,
   and published performance figures are measured with the limits on. The default ships at the overhead the limits
   have then; the overhead target follows separately.
 - **Goal: one place for production limits.** Optional caps on input length and on estimated memory (memo entries and
-  result trees) fail with the same kind of error as the budget limit.
+  result trees) fail with the same kind of error as the compute limit.
 - **Other goals.**
   - A lint for self-growing variables.
   - A regression suite that asserts step ratios at n, 2n, 4n and 8n.
   - One budget.
-  - A budget limit flag in `zp parse`.
+  - A compute limit flag in `zp parse`.
 - **Research track.** A sound classifier labels each start rule as linear, linear given an environment bound,
   unknown, polynomial of degree k or exponential, with a witness, through `zp lint -classify`
   ([design record 064](design/records/064-grammar-complexity.md)). Making it precise on the ready-made parsers is
@@ -595,7 +595,7 @@ for untrusted input; the goals below make it so.
 |:--|:--|:--|:--|
 | Users can depend on a version | Tagged v0.x release; compatibility policy naming stable and unstable surfaces | No tag | Release |
 | Generated code states its requirements | Minimum Go version documented; `go get -tool` effect on consumers stated | Documented in [Releasing](releasing.md#go-versions): Go 1.27.1 for ZeroParse and generated code; `go get -tool` raises a consumer's `go` line to 1.27.1 | Release |
-| Untrusted input is bounded by default | Default budget (one fixed c·n budget, and a lint warning for grammars outside the sufficient conditions for linear cost); budget controls generated by default; `SECURITY.md`; budget limit flag in `zp parse` | Limits opt-in, and in generated parsers only with `-budget-controls`; `SECURITY.md` states today's policy; no flag | Release |
+| Untrusted input is bounded by default | Default budget (one fixed c·n budget, and a lint warning for grammars outside the sufficient conditions for linear cost); limit controls generated by default; `SECURITY.md`; compute limit flag in `zp parse` | Limits opt-in, and in generated parsers only with `-limits`; `SECURITY.md` states today's policy; no flag | Release |
 | Limits are simple | One budget across Go API, engine, generated Go and TypeScript | Two counters | Release |
 | Errors are readable | Long expected lists capped or grouped, with a test on a large grammar | Full lists | Release |
 | Public claims match measurements | README and site claims match this document's limits (tagline, untrusted input, tested runtimes) and [Benchmark Results](benchmarks.md) | The README's figures, tagline, runtime list and untrusted-input statement match; site pages not audited | Release |

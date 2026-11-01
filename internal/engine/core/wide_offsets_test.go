@@ -32,7 +32,7 @@ func TestTextOfSourceBeyondInt32Offsets(t *testing.T) {
 	}
 	if BudgetControlsEnabled {
 		makers = append(makers, maker{"controlled", func(s string) *Input {
-			c := NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
+			c := NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
 			in := NewControlledTextInput(s, CodePoints, true, nil, c)
 			return &in
 		}})

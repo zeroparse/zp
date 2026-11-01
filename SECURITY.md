@@ -3,7 +3,7 @@
 ZeroParse parses input that a program often does not control. This page says how to report a vulnerability, what counts as
 one, what happens after a report, and what a parse bounds today and what the caller must bound.
 
-ZeroParse is not safe by default for untrusted input yet. Only the nesting limit is on by default; budget limits are opt-in,
+ZeroParse is not safe by default for untrusted input yet. Only the nesting limit is on by default; compute limits are opt-in,
 and nothing limits input length or memory. The [resource policy](#resource-policy) below says what to set.
 
 ## Reporting a Vulnerability
@@ -38,7 +38,7 @@ parser generated with `-runtime import` uses the module `zeroparse.dev/zp/runtim
 
 ## What Counts as a Vulnerability
 
-- **Resource use beyond an enabled limit.** A parse that keeps running after its spent budget exceeds the budget limits
+- **Resource use beyond an enabled limit.** A parse that keeps running after its spent budget exceeds the compute limits
   that were set, or that nests recursive rule calls past the nesting limit without the nesting error, on any backend or
   generated parser that supports the limit.
 - **A crash or panic on any input.** A panic from ZeroParse's code that escapes a parse, a fatal Go runtime error such as a
@@ -56,13 +56,13 @@ parser generated with `-runtime import` uses the module `zeroparse.dev/zp/runtim
 
 These behaviors are documented, so they are limits of ZeroParse today, not vulnerabilities:
 
-- Unbounded time or memory when the limits are off. Budget limits are opt-in, and no limit exists for input length or
+- Unbounded time or memory when the limits are off. Compute limits are opt-in, and no limit exists for input length or
   memory.
-- Memory use within the budget limits that were set. Budget limits are not a memory limit: their counters are not bytes,
+- Memory use within the compute limits that were set. Compute limits are not a memory limit: their counters are not bytes,
   and their units differ between backends. The memory a parse allocates is at most proportional to its spent budget
-  plus the input ([Time and Memory](spec/runtime/parsing.md#time-and-memory)), so `Budget` bounds memory only
+  plus the input ([Time and Memory](spec/runtime/parsing.md#time-and-memory)), so `Compute` bounds memory only
   indirectly.
-- Slow parses of a grammar whose cost grows faster than the input, when no budget limit is set.
+- Slow parses of a grammar whose cost grows faster than the input, when no compute limit is set.
 - The time and memory that parsing with a grammar uses, including a grammar from an untrusted source: a grammar can do
   exponential cost by design. Parse with an untrusted grammar under the same limits as untrusted input.
 - A fatal stack overflow after raising the nesting limit beyond what the Go stack holds, on the closure backend or the
@@ -83,13 +83,13 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
   and the TypeScript `maxDepth` option change it. On Node.js's default stack, generated TypeScript reaches a few
   hundred to a few thousand nested recursive rule calls and then returns an error
   ([TypeScript](docs/guide/typescript.md#deep-nesting-and-the-javascript-stack)).
-- **Budget, opt-in.** With `zp.WithLimits(zp.Limits{Budget: ...})` set,
+- **Budget, opt-in.** With `zp.WithLimits(zp.Limits{Compute: ...})` set,
   a parse stops once its spent budget exceeds the limit, whatever the grammar's class of growth, and `zp.WithContext` adds
   cancellation and deadlines. A zero limit is unlimited. Generated parsers offer these options only when generated
-  with `-budget-controls` (TypeScript: `signal` and `budget`); this is planned to become the default
+  with `-limits` (TypeScript: `signal` and `budget`); this is planned to become the default
   at the first release ([Default Limits](#default-limits)). For a given artifact, input and options, the counts are
-  the same on every run. `zp parse` has no budget limit flag
-  ([Cancellation and Budget Limits](docs/guide/cancellation-and-limits.md)).
+  the same on every run. `zp parse` has no compute limit flag
+  ([Cancellation and Compute Limits](docs/guide/cancellation-and-limits.md)).
 - **Stream memory, by working set.** A `ParseStream` parse releases the input, the memo entries and each element as it
   goes, so its memory is bounded by the working set (the largest element, the memo entries of the last few elements
   and your callback's own state), not by the input length. It keeps the list of recovered errors until the end unless
@@ -98,7 +98,7 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
 ### What the Caller Must Bound
 
 - **Input length.** Nothing limits it. A whole parse of a 27 MiB CSV file peaked at about 1.0 GB.
-- **Memory.** No memory limit exists, and budget limits bound memory only indirectly, through the budget spent building it.
+- **Memory.** No memory limit exists, and compute limits bound memory only indirectly, through the budget spent building it.
 - **The size of one stream element.** Nothing limits it, and one element that spans the input defeats streaming.
 - **Open `Document`s.** A `Document` keeps its text and memo table between parses: at 100,000 lines (1.9 MiB of
   text), a `Document` with its tree holds about 151 MiB
@@ -112,14 +112,14 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
 ZeroParse does not promise linear time. Memoization bounds how often a rule body runs at one position, but some grammars do
 quadratic, cubic or exponential cost, and with such a grammar, input chosen by an attacker can reach the worst case.
 The specification defines the classes of growth, with examples, and sufficient conditions for linear cost
-([Time and Memory](spec/runtime/parsing.md#time-and-memory)). No tool classifies a grammar yet, so set budget limits
+([Time and Memory](spec/runtime/parsing.md#time-and-memory)). No tool classifies a grammar yet, so set compute limits
 for any grammar that parses untrusted input.
 
 ### Parsing Untrusted Input
 
-1. Set `Budget`. It is one counter for the input a parse inspects, its rule calls and loop iterations, and the
+1. Set `Compute`. It is one counter for the input a parse inspects, its rule calls and loop iterations, and the
    values it builds, so it bounds a loop that only scans input and a value that grows without reading input alike.
-   Generate parsers with `-budget-controls`.
+   Generate parsers with `-limits`.
 2. Set a context deadline.
 3. Limit the input length before parsing, and for a stream, the length the reader delivers.
 4. Keep the default nesting limit or lower it. For input that nests deeply, use the iterative VM instead of raising
@@ -129,8 +129,8 @@ for any grammar that parses untrusted input.
 
 ### Default Limits
 
-- **Today.** Budget limits are opt-in, and generated parsers carry them only when generated with `-budget-controls`.
-- **Planned for the first release.** `zp gen` generates parsers with budget controls by default, as `-budget-controls`
+- **Today.** Compute limits are opt-in, and generated parsers carry them only when generated with `-limits`.
+- **Planned for the first release.** `zp gen` generates parsers with limit controls by default, as `-limits`
   does today. Every parse gets one fixed budget proportional to the input length (c·n with a large constant), and
   an unlimited parse has to be requested explicitly. A lint warns about grammars outside the specification's
   sufficient conditions for linear cost.

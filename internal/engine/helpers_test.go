@@ -196,7 +196,7 @@ func checkBackends(t *testing.T, prog *Program, start, input string) {
 		checkRecognize(t, prog, start, input, u, err1)
 		// The default budget runs the controlled form; Unlimited runs the uncontrolled one, which must
 		// give the same result on inputs within the default.
-		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: limits.Limits{Budget: limits.Unlimited}}); !errors.Is(err1, limits.ErrLimit) {
+		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: limits.Limits{Compute: limits.Unlimited}}); !errors.Is(err1, limits.ErrLimit) {
 			if got := gentest.ResultJSON(n0, err0); got != want {
 				t.Errorf("input %q (unit %v): Unlimited differs from the default budget\n default   %s\n unlimited %s", input, u, want, got)
 			}

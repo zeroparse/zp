@@ -77,13 +77,13 @@ func TestTestCommandUpdateRequiresBackendAndPreservesOutcome(t *testing.T) {
 func TestWriteFixtureTextShowsRuntimeError(t *testing.T) {
 	var out bytes.Buffer
 	report := fixture.Report{Cases: []fixture.CaseResult{{
-		Name: "broken", Backend: "closure", Actual: fixture.Actual{Error: "budget limit exceeded"},
+		Name: "broken", Backend: "closure", Actual: fixture.Actual{Error: "compute limit exceeded"},
 		Mismatch: []fixture.Mismatch{{Field: "runtimeError", Expected: "<none>", Actual: "<present>"}},
 	}}}
 	if err := writeFixtureText(&out, report); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "runtime error: budget limit exceeded") {
+	if !strings.Contains(out.String(), "runtime error: compute limit exceeded") {
 		t.Fatalf("text report omitted runtime diagnostic: %s", out.String())
 	}
 }

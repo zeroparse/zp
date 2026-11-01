@@ -942,7 +942,7 @@ type grammar struct {
 	// Observable reports that the parser was generated with observability: only then do the
 	// trace and profile options take effect, so only then does ResolveOptions accept them.
 	Observable bool
-	// NoBudgetControls reports that the parser was generated without budget controls, so that a parse
+	// NoBudgetControls reports that the parser was generated without limit controls, so that a parse
 	// asking for them fails.
 	NoBudgetControls bool
 	// MaxDepth is the default maximum nesting of recursive rule calls.
@@ -1098,9 +1098,9 @@ type parseOptions struct {
 	// expectations selects the recording of expectations; ResolveOptions rejects it for a parser
 	// generated without them (WithExpectations, grammar.Expectations).
 	expectations bool
-	// maxInput is the resolved MaxInput of a stream, in units; zero sets no bound.
+	// maxInput is the resolved Input limit of a stream, in units; zero sets no bound.
 	maxInput int
-	// controls is set when the parser was generated with budget controls, which alone can apply the
+	// controls is set when the parser was generated with limit controls, which alone can apply the
 	// default budget.
 	controls bool
 	// observe selects the observation of the parse (trace.go).
@@ -1132,7 +1132,7 @@ func WithMaxDepth(n int) ParseOption { return func(o *parseOptions) { o.maxDepth
 func WithContext(ctx context.Context) ParseOption { return func(o *parseOptions) { o.context = ctx } }
 
 // WithLimits bounds cumulative examined input and execution steps.
-// Zero leaves a counter unlimited; counters are never rolled back.
+// A zero limit selects its default and Unlimited disables it; counters are never rolled back.
 func WithLimits(limits Limits) ParseOption {
 	return func(o *parseOptions) { o.limits = limits }
 }
@@ -1155,7 +1155,7 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 		o.maxDepth = g.maxDepth
 	}
 	if g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without budget controls (generate with -budget-controls to use WithContext and WithLimits)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and WithLimits)")
 	}
 	if o.expectations && !g.Expectations {
 		return o, fmt.Errorf("this parser was generated without expectations (generate with -expectations to use WithExpectations)")
@@ -1192,25 +1192,25 @@ func (o *parseOptions) validateDiagnostics() error {
 
 // prepareOptions is called after fixed option and rule-name validation. n is the length of the
 // input in units of the position unit; a stream, whose length is not known, passes stream instead.
-// A zero Budget selects the default budget of n (or the floor, growing with the input read, for a
-// stream) in a parser generated with budget controls, and Unlimited disables the budget.
+// A zero Compute selects the default budget of n (or the floor, growing with the input read, for a
+// stream) in a parser generated with limit controls, and Unlimited disables the budget.
 // The resolved state can be shared with a result converter without new counters.
 func prepareOptions(o parseOptions, n uint64, stream bool) parseOptions {
 	if !o.prepared {
 		o.prepared = true
 		l, adaptive := o.limits, false
 		// A limit beyond math.MaxInt bounds no stream.
-		if l.MaxInput != 0 && l.MaxInput != Unlimited && l.MaxInput <= math.MaxInt {
-			o.maxInput = int(l.MaxInput)
+		if l.Input != 0 && l.Input != Unlimited && l.Input <= math.MaxInt {
+			o.maxInput = int(l.Input)
 		}
-		l.MaxInput = 0 // checked on entry, or by the stream; it needs no control
+		l.Input = 0 // checked on entry, or by the stream; it needs no control
 		switch {
-		case l.Budget == Unlimited:
-			l.Budget = 0
-		case l.Budget == 0 && o.controls && stream:
-			l.Budget, adaptive = defaultBudgetFloor, true
-		case l.Budget == 0 && o.controls:
-			l.Budget = defaultBudget(n)
+		case l.Compute == Unlimited:
+			l.Compute = 0
+		case l.Compute == 0 && o.controls && stream:
+			l.Compute, adaptive = defaultBudgetFloor, true
+		case l.Compute == 0 && o.controls:
+			l.Compute = defaultBudget(n)
 		}
 		if o.context != nil || l != (Limits{}) {
 			o.control = newBudgetControl(o.context, l)
@@ -1224,11 +1224,11 @@ func prepareOptions(o parseOptions, n uint64, stream bool) parseOptions {
 }
 
 // prepareText is prepareOptions for the input text of a batch parse or a Document. It rejects a text
-// longer than MaxInput before any work: O(1), unless the byte length passes the limit in CodePoints,
+// longer than the Input limit before any work: O(1), unless the byte length passes the limit in CodePoints,
 // where the count of code points decides.
 func prepareText(o parseOptions, text string) parseOptions {
 	if !o.prepared {
-		if max := o.limits.MaxInput; max != 0 && max != Unlimited {
+		if max := o.limits.Input; max != 0 && max != Unlimited {
 			n := uint64(len(text))
 			if n > max && o.unit == CodePoints {
 				n = uint64(utf8.RuneCountInString(text))
@@ -2492,7 +2492,7 @@ func (p *Parser) ExpectBudget(pos int, id ExpID) {
 	p.exp = append(p.exp, id)
 }
 
-// ExpectOrdinary is expect in an ordinary parse: one without budget controls and outside a
+// ExpectOrdinary is expect in an ordinary parse: one without limit controls and outside a
 // Document (p.Control == nil && p.Document == nil). The generated rule bodies have a branch for
 // such parses that calls the Ordinary forms of the runtime helpers, which leave out the budget
 // charges and the Document's record of the examined input.

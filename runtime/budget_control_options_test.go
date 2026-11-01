@@ -60,7 +60,7 @@ func TestBudgetControlExistsForContextWithoutLimits(t *testing.T) {
 }
 
 func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
-	c := newBudgetControl(nil, Limits{Budget: 1 << 20})
+	c := newBudgetControl(nil, Limits{Compute: 1 << 20})
 	if c == nil {
 		t.Fatal("a limit made no control")
 	}
@@ -86,8 +86,8 @@ func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
 func TestBudgetTakeAndClassChargeUnitByUnit(t *testing.T) {
 	// Take charges n units; where the grant ends inside n it charges the way n steps do.
 	for _, limit := range []uint64{1, 5, 9, 10, 11} {
-		a := newBudgetControl(nil, Limits{Budget: limit})
-		b := newBudgetControl(nil, Limits{Budget: limit})
+		a := newBudgetControl(nil, Limits{Compute: limit})
+		b := newBudgetControl(nil, Limits{Compute: limit})
 		var ea, eb error
 		run := func(f func()) (err error) {
 			defer func() {
@@ -123,7 +123,7 @@ func TestBudgetClassCharge(t *testing.T) {
 					break
 				}
 			}
-			p := &Parser{Control: newBudgetControl(nil, Limits{Budget: 100})}
+			p := &Parser{Control: newBudgetControl(nil, Limits{Compute: 100})}
 			if got := p.RejectBudgetClass(ch, cls); got != wantReject {
 				t.Fatalf("negated %v %U: reject %v, want %v", negated, ch, got, wantReject)
 			}
@@ -187,13 +187,13 @@ func TestSetControlledSourceChargesOneUnitPerByte(t *testing.T) {
 					wantCtx = &pollCounter{Context: context.Background(), done: make(chan struct{})}
 					gotCtx = &pollCounter{Context: context.Background(), done: make(chan struct{})}
 				}
-				want := newBudgetControl(wantCtx, Limits{Budget: limit})
+				want := newBudgetControl(wantCtx, Limits{Compute: limit})
 				if want == nil {
 					want = &BudgetControl{}
 					want.refill()
 				}
 				wantErr := referenceSourceCharge(want, s)
-				got := newBudgetControl(gotCtx, Limits{Budget: limit})
+				got := newBudgetControl(gotCtx, Limits{Compute: limit})
 				if got == nil {
 					got = &BudgetControl{}
 					got.refill()
@@ -230,7 +230,7 @@ func TestSetControlledSourceChargesOneUnitPerByte(t *testing.T) {
 // units used, with the error of a fatal interruption.
 func pollsOf(limit uint64, f func(*BudgetControl)) (polls int, used uint64, err error) {
 	ctx := &pollCounter{Context: context.Background(), done: make(chan struct{})}
-	c := newBudgetControl(ctx, Limits{Budget: limit})
+	c := newBudgetControl(ctx, Limits{Compute: limit})
 	defer func() {
 		if x := recover(); x != nil {
 			err = x.(fatal).err

@@ -185,7 +185,7 @@ func TestDocumentDiagnosticPublicationBudget(t *testing.T) {
 		t.Fatalf("initial evaluations: %d", calls)
 	}
 	limited := normal
-	limited.limits = Limits{Budget: 64}
+	limited.limits = Limits{Compute: 64}
 	if out, err := d.parse(limited); out != nil || !errors.Is(err, ErrLimit) {
 		t.Fatalf("diagnostic budget: %v %v", out, err)
 	}
@@ -291,7 +291,7 @@ func TestDocumentLimitInsideCallThenParseEqualsFresh(t *testing.T) {
 			t.Fatal(err)
 		}
 		limited := o
-		limited.limits = Limits{Budget: budget}
+		limited.limits = Limits{Compute: budget}
 		if _, err := d.parse(limited); err == nil {
 			break
 		} else if !errors.Is(err, ErrLimit) {

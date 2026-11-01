@@ -111,10 +111,10 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	}
 	newGen := func(live *tsLive) (*Generator, error) {
 		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing || !opts.EnableTSLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
-		tsg.NoBudget = !opts.BudgetControls
+		tsg.NoBudget = !opts.LimitControls
 		tsg.execHook = h.ExecRoute
 		tsg.optionsType = "ParseOptions"
-		if !opts.BudgetControls {
+		if !opts.LimitControls {
 			tsg.optionsType = "PlainParseOptions"
 		}
 		tsg.Desc(compile.FixedDescs[0]) // the fixed expectations come first
@@ -154,7 +154,7 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	}
 
 	var out strings.Builder
-	fmt.Fprintf(&out, "const G = mkGrammar(%d, %v, %v, %v);\n\n", gen.GeneratedMaxDepth(opts), gen.UseSparseMemo(opts, prog, rec), opts.Observability, opts.BudgetControls)
+	fmt.Fprintf(&out, "const G = mkGrammar(%d, %v, %v, %v);\n\n", gen.GeneratedMaxDepth(opts), gen.UseSparseMemo(opts, prog, rec), opts.Observability, opts.LimitControls)
 	fmt.Fprintf(&out, "/**\n * Parses the whole input with the rule %s. unit selects the position unit (CodePoints by default).\n", start.Name)
 	out.WriteString(" * A string is parsed as its UTF-8 encoding would be (lone surrogates as U+FFFD), and bytes are\n")
 	out.WriteString(" * decoded as UTF-8 (invalid sequences as U+FFFD, one per byte). If the parse recovered from errors\n")
@@ -162,11 +162,11 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	// With budget controls every parse is controlled: the entry points without options use the default
 	// budget of the input, as parseWithOptions does with no budget.
 	parseBody, ruleBody := fmt.Sprintf("run(G, R%d, nseen, input, unit)", start.ID), "run(G, r, nseen, input, unit)"
-	if opts.BudgetControls {
+	if opts.LimitControls {
 		parseBody, ruleBody = "parseWithOptions(input, { unit: unit ?? CodePoints })", "parseRuleWithOptions(name, input, { unit: unit ?? CodePoints })"
 	}
 	fmt.Fprintf(&out, "export function parse(input: string | Uint8Array, unit?: Unit): ParseResult {\n  return %s;\n}\n\n", parseBody)
-	if opts.BudgetControls {
+	if opts.LimitControls {
 		fmt.Fprintf(&out, `/** Parses the whole input with the start rule name, a rule marked @start; "" selects the default start rule. */
 export function parseRule(name: string, input: string | Uint8Array, unit?: Unit): ParseResult {
   return %s;
@@ -188,7 +188,7 @@ export function parseRule(name: string, input: string | Uint8Array, unit?: Unit)
 		out.WriteString(" * error parse would return (SyntaxErrors for errors recovered with #recover), or null. Actions needed by\n")
 		out.WriteString(" * predicates are evaluated and can report runtime errors; other actions are skipped.\n */\n")
 		recBody := fmt.Sprintf("run(G, Q%d, recNseen, input, unit).error", rec.ByName[start.Name].ID)
-		if opts.BudgetControls {
+		if opts.LimitControls {
 			recBody = "recognizeWithOptions(input, { unit: unit ?? CodePoints })"
 		}
 		fmt.Fprintf(&out, "export function recognize(input: string | Uint8Array, unit?: Unit): Error | null {\n  return %s;\n}\n\n", recBody)

@@ -124,18 +124,18 @@ func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error { return 
 func WithContext(ctx context.Context) ParseOption { return rt.WithContext(ctx) }
 
 // WithLimits bounds cumulative examined input and execution steps.
-// Zero leaves a counter unlimited; counters are never rolled back.
+// A zero limit selects its default and Unlimited disables it; counters are never rolled back.
 func WithLimits(limits Limits) ParseOption { return rt.WithLimits(limits) }
 
 // Limits bounds one parse invocation. A zero limit selects the default of that limit, and
 // Unlimited disables it.
 //
-// Budget bounds the cumulative spend of the parse: every input unit
+// Compute bounds the cumulative cost of the parse: every input unit
 // inspected, every rule call and loop iteration, and every unit of value
 // construction adds to one counter, so a bound on it bounds scanning,
 // recursion and value building alike.
 //
-// MaxInput bounds the length of the input in the position unit of the parse. The default is
+// Input bounds the length of the input in the position unit of the parse. The default is
 // Unlimited: the default budget already grows with the input. A longer input fails before any
 // work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
 // the limit.
@@ -146,7 +146,7 @@ type LimitKind = rt.LimitKind
 
 // LimitError reports a reservation that would exceed a limit. Used is the
 // counter value before the rejected reservation; Requested is the complete
-// atomic reservation that could not be made. For LimitInput, Limit is MaxInput, Used is zero and
+// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
 // Requested is the length of the input in the position unit; for a stream it is the number of
 // units the parser had asked for, or the length of the stream if that is shorter.
 type LimitError = rt.LimitError
@@ -154,10 +154,10 @@ type LimitError = rt.LimitError
 // ErrLimit is matched by errors.Is for any LimitError.
 var ErrLimit = rt.ErrLimit
 
-// LimitBudget is the kind of an exhausted Budget.
-const LimitBudget = rt.LimitBudget
+// LimitCompute is the kind of an exhausted Compute limit.
+const LimitCompute = rt.LimitCompute
 
-// LimitInput is the kind of an input longer than MaxInput.
+// LimitInput is the kind of an input longer than the Input limit.
 const LimitInput = rt.LimitInput
 
 // Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and

@@ -41,7 +41,7 @@ func TestBudgetMemoPutSlotGrowthIsAtomic(t *testing.T) {
 	oldHeader := table.Slots
 	oldPointers := slotPointers(oldHeader)
 	newEntry := &MemoEntry{Node: value.Ptr(value.Data{Text: "published after retry"})}
-	p := memoStorageParser(table, limits.Limits{Budget: 130})
+	p := memoStorageParser(table, limits.Limits{Compute: 130})
 	key := MemoKey{Rule: 7, Pos: 511}
 
 	err := catchFatal(t, func() { p.MemoPut(key, newEntry) })
@@ -56,7 +56,7 @@ func TestBudgetMemoPutSlotGrowthIsAtomic(t *testing.T) {
 		t.Fatalf("failed growth mutated candidate entry: %#v", newEntry)
 	}
 
-	p.Control = NewBudgetControl(nil, limits.Limits{Budget: 10_000})
+	p.Control = NewBudgetControl(nil, limits.Limits{Compute: 10_000})
 	p.MemoPut(key, newEntry)
 	if len(table.Slots) != 512 {
 		t.Fatalf("retry slot length = %d, want 512", len(table.Slots))
@@ -79,7 +79,7 @@ func TestBudgetMemoSeenGrowthCopyAndRetry(t *testing.T) {
 	table := seedSeenTable(512, 512)
 	old := append([]uint64(nil), table.Seen...)
 	oldSlice := table.Seen
-	p := memoStorageParser(table, limits.Limits{Budget: 130})
+	p := memoStorageParser(table, limits.Limits{Compute: 130})
 	err := catchFatal(t, func() { p.memoFirstCall(512*64, 0) })
 	if !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("seen allocation growth error = %v, want ErrLimit", err)
@@ -94,7 +94,7 @@ func TestBudgetMemoSeenGrowthCopyAndRetry(t *testing.T) {
 		t.Fatalf("failed seen growth initialized adaptive counters: %#v", table.Calls)
 	}
 
-	p.Control = NewBudgetControl(nil, limits.Limits{Budget: 10_000})
+	p.Control = NewBudgetControl(nil, limits.Limits{Compute: 10_000})
 	if deferred := p.memoFirstCall(512*64, 0); !deferred {
 		t.Fatal("first call after seen growth was not deferred")
 	}
@@ -111,7 +111,7 @@ func TestBudgetMemoSeenSpareCapacityClearInterruption(t *testing.T) {
 	}
 	old := append([]uint64(nil), table.Seen...)
 	oldHeader := table.Seen
-	p := memoStorageParser(table, limits.Limits{Budget: 130})
+	p := memoStorageParser(table, limits.Limits{Compute: 130})
 	err := catchFatal(t, func() { p.memoFirstCall(512*64, 0) })
 	if !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("seen spare-capacity clear error = %v, want ErrLimit", err)
@@ -136,7 +136,7 @@ func TestBudgetMemoSeenSpareCapacityClearInterruption(t *testing.T) {
 		t.Fatalf("failed clear initialized adaptive counters: %#v", table.Calls)
 	}
 
-	p.Control = NewBudgetControl(nil, limits.Limits{Budget: 10_000})
+	p.Control = NewBudgetControl(nil, limits.Limits{Compute: 10_000})
 	if deferred := p.memoFirstCall(512*64, 0); !deferred {
 		t.Fatal("first call after spare-capacity retry was not deferred")
 	}
@@ -175,7 +175,7 @@ func compareFirstCallParity(t *testing.T, seed *MemoTable, calls [][2]int) {
 	t.Helper()
 	want := cloneSeenTable(seed)
 	got := cloneSeenTable(seed)
-	p := memoStorageParser(got, limits.Limits{Budget: 100_000})
+	p := memoStorageParser(got, limits.Limits{Compute: 100_000})
 	for i, call := range calls {
 		expected := want.firstCall(call[0], call[1])
 		actual := p.memoFirstCall(call[0], call[1])

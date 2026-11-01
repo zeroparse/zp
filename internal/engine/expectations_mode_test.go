@@ -176,10 +176,10 @@ func TestLongExpectedLists(t *testing.T) {
 		{"r!;", eleven, `1:2: syntax error: expected end of line, "a", "b", "c", "d", "e", "f", "g", "h", [0-9], ... and 1 more`},
 	} {
 		for _, b := range expectationBackends {
-			// A budget limit sorts and formats under budget controls, with the same result.
+			// A compute limit sorts and formats under budget controls, with the same result.
 			ls := []limits.Limits{{}}
 			if core.BudgetControlsEnabled {
-				ls = append(ls, limits.Limits{Budget: 1 << 50})
+				ls = append(ls, limits.Limits{Compute: 1 << 50})
 			}
 			for _, l := range ls {
 				n, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Expectations: true, Limits: l})

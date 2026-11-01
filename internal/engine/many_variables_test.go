@@ -33,7 +33,7 @@ func TestManyVariables(t *testing.T) {
 	prog := mustCompile(t, manyVariablesGrammar(280))
 	var l limits.Limits
 	if core.BudgetControlsEnabled {
-		l.Budget = 1 << 40
+		l.Compute = 1 << 40
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		n, err := prog.ParseWith("main", "a", ParseOptions{Backend: backend, Limits: l})
@@ -51,14 +51,14 @@ func minBudget(t testing.TB, prog *Program, backend Backend, input string) uint6
 	t.Helper()
 	lo, hi := uint64(1), uint64(1)
 	for {
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: limits.Limits{Budget: hi}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: limits.Limits{Compute: hi}}); err == nil {
 			break
 		}
 		lo, hi = hi, hi*2
 	}
 	for lo < hi {
 		mid := (lo + hi) / 2
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: limits.Limits{Budget: mid}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: limits.Limits{Compute: mid}}); err == nil {
 			hi = mid
 		} else {
 			lo = mid + 1
@@ -73,7 +73,7 @@ func TestManyVariablesBudget(t *testing.T) {
 	}
 	prog := mustCompile(t, manyVariablesGrammar(280))
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		t.Logf("%s: %d budget units", backend, minBudget(t, prog, backend, "a"))
+		t.Logf("%s: %d compute units", backend, minBudget(t, prog, backend, "a"))
 	}
 }
 
@@ -93,7 +93,7 @@ func BenchmarkManyVariables(b *testing.B) {
 				opts := ParseOptions{Backend: backend}
 				if controlled {
 					name = fmt.Sprintf("%d/%s/controlled", n, backend)
-					opts.Limits = limits.Limits{Budget: 1 << 40}
+					opts.Limits = limits.Limits{Compute: 1 << 40}
 				}
 				b.Run(name, func(b *testing.B) {
 					b.ReportAllocs()

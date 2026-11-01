@@ -61,7 +61,7 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 					continue
 				}
 				for _, stream := range []bool{false, true} {
-					if _, err := gentest.Generate(t, g, gen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Runtime: gen.RuntimeImport, Recognize: true, Stream: stream, BudgetControls: controls}); err != nil && (!stream || strings.Contains(err.Error(), "Flow IR does not print")) {
+					if _, err := gentest.Generate(t, g, gen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Runtime: gen.RuntimeImport, Recognize: true, Stream: stream, LimitControls: controls}); err != nil && (!stream || strings.Contains(err.Error(), "Flow IR does not print")) {
 						t.Fatalf("%s: %v", c.Name, err)
 					}
 				}

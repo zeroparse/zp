@@ -571,5 +571,5 @@ func orRoot(path string) string {
 // budgetExhausted reports whether err is an exhausted budget.
 func budgetExhausted(err error) bool {
 	var l *zp.LimitError
-	return errors.As(err, &l) && l.Kind == zp.LimitBudget
+	return errors.As(err, &l) && l.Kind == zp.LimitCompute
 }

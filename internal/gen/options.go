@@ -17,11 +17,11 @@ type GenOptions struct {
 	// siblings): no Parse, ParseRule or Recognize, and no function that builds an untyped Node.
 	// It needs Types and excludes Recognize, Document and Stream.
 	TypedOnly bool
-	// BudgetControls emits the budget-controlled form of the generated functions, which charges
-	// cancellation and the budget limit (WithContext, WithLimits; signal, budget and maxInput
+	// LimitControls emits the limit-controlled form of the generated functions, which charges
+	// cancellation and the compute limit (WithContext, WithLimits; signal, budget and maxInput
 	// in TypeScript), and re-exports those options. Without it the functions have no charges (the ordinary form, or with Document
 	// the form that serves a Document), and a parse with a control option fails with an error.
-	BudgetControls bool
+	LimitControls bool
 	// Expectations makes the generated parser record what a syntax error expects: the expectations
 	// at the farthest failure and the messages of @error. Without it the generated code keeps
 	// no table of expectations, and a syntax error reports the farthest failure position with an

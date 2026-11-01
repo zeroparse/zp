@@ -4,7 +4,7 @@ Arata Furukawa · Last revised 2026-11-02
 
 This proof shows that an interruption of a parse is atomic, and what is the
 same for every run of a backend. An interruption is a
-[cancellation or an exhausted limit](../runtime/parsing.md#cancellation-and-budget-limits).
+[cancellation or an exhausted limit](../runtime/parsing.md#cancellation-and-compute-limits).
 The proof shows that a reservation of budget either happens in full or not at
 all, that no grammar construct absorbs an interruption, that an interrupted
 parse returns no partial value and leaves nothing behind that a later parse
@@ -16,7 +16,7 @@ It covers the reference implementation's three backends (closure, recursive
 bytecode, iterative bytecode) and generated Go, for batch parses, recognition,
 typed parses, [streams](../runtime/streaming.md) and
 [Documents](../runtime/documents.md). Generated TypeScript has its own counter,
-which this proof does not analyze. A parser generated without budget controls
+which this proof does not analyze. A parser generated without limit controls
 has no counter and no checkpoints, and cannot be interrupted; the proof is about
 the parsers that have them.
 
@@ -55,7 +55,7 @@ The proof cites the following, and no other rule about interruptions.
   so its spend depends on how the reader splits the input as well.
 - **(C7) Errors.** A cancelled context returns the error of the context; an
   exhausted limit returns an error that matches `ErrLimit` and carries the
-  limit, the amount used and the amount requested. An input over `MaxInput`
+  limit, the amount used and the amount requested. An input over `Input`
   fails with `LimitInput` before a context is consulted.
 
 The specification does not define the word atomic. This proof uses it for the
@@ -80,13 +80,13 @@ has a control $\mathcal{C}$ with the limit $B$, a context that can be cancelled
 (or none), the counter $u$ of units reserved, and the counter $s$ of units
 reserved since the last observation of the context.
 
-Every parse has a budget. $B$ is the resolved budget: the `Budget` that the
+Every parse has a budget. $B$ is the resolved budget: the `Compute` limit that the
 options give, or the default $\max(2^{20}, 1024\,n)$ for `n` units of input,
 which is resolved once per entry point from the input it receives (and for a
 Document, at each `Parse`, from its current text). `Unlimited` is the largest
 value and disables the budget. An invocation is uncontrolled, and cannot be
 interrupted, only if its budget is `Unlimited` and it has no context, or if the
-parser was generated without budget controls. The proof is about the others.
+parser was generated without limit controls. The proof is about the others.
 A stream does not know `n`, and its default budget is $B_t = \max(2^{20},
 1024\,d_t)$, where $d_t$ is the number of units up to the furthest position
 that the parser has demanded from the stream at the time of the reservation.

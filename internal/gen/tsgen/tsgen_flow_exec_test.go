@@ -43,7 +43,7 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 	}{
 		{"plain", gen.GenOptions{}},
 		{"recognize", gen.GenOptions{Recognize: true}},
-		{"budget", gen.GenOptions{Recognize: true, BudgetControls: true}},
+		{"budget", gen.GenOptions{Recognize: true, LimitControls: true}},
 		{"observe", gen.GenOptions{Observability: true}},
 		{"types", gen.GenOptions{Types: true}},
 		{"default value", gen.GenOptions{DefaultValue: true}},

@@ -16,7 +16,7 @@ const KindStruct NodeKind = 4
 const KindTuple NodeKind = 1
 const KindTupleValue NodeKind = 5
 const KindValue NodeKind = 7
-const LimitBudget LimitKind = 0
+const LimitCompute LimitKind = 0
 const LimitInput LimitKind = 1
 const MsgBit ExpID = 1073741824
 const RuleDocMemo uint8 = 8
@@ -394,7 +394,7 @@ type FieldType struct{Kind byte; Name string; Elem *FieldType; Alts []*FieldType
 type Fields []NodeField
 type LimitError struct{Kind LimitKind; Limit uint64; Used uint64; Requested uint64}
 type LimitKind uint8
-type Limits struct{Budget uint64; MaxInput uint64}
+type Limits struct{Compute uint64; Input uint64}
 type Mark struct{Pos int; Trail int}
 type Node struct{RawKind *nodeKind; RawStart int32; RawEnd int32; RawText string; RawChildren []*Node; RawFields Fields; RawFresh bool; RawTerminal bool}
 type NodeField struct{Name string; Value any}

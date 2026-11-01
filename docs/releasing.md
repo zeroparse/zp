@@ -127,7 +127,7 @@ In the commands below, `vX.Y.Z` is the version being released and the module pat
    workflow. While workflows are paused, this run is a precondition of the release.
 6. Check the figures in the README and in [Why ZeroParse](why-zeroparse.md) against the current
    [benchmark report](benchmarks.md); rerun the benchmarks only if the report is older than the changes it describes.
-   From the first release, `zp gen` generates parsers with budget controls by default (today `-budget-controls` turns
+   From the first release, `zp gen` generates parsers with limit controls by default (today `-limits` turns
    them on), and published performance figures are measured with the limits on.
 7. Update the resource policy of [SECURITY.md](../SECURITY.md) to the defaults that this release ships.
 8. Write the release notes ([Announcing Changes](#announcing-changes)).

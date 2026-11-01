@@ -299,7 +299,7 @@ func (c *snapshotContext) Err() error {
 }
 
 // SnapshotWith parses and freezes the current text with fully resolved options.
-// Cancellation and budget limits cover both phases; interruption returns nil.
+// Cancellation and compute limits cover both phases; interruption returns nil.
 func (d *Document) SnapshotWith(o core.ParseOptions) (*Snapshot, error) {
 	return d.snapshotWith(o, nil)
 }

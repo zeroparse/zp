@@ -65,7 +65,7 @@ func leastBudget(t *testing.T, parse func(budget uint64) error) uint64 {
 	finishes := func(budget uint64) bool {
 		err := parse(budget)
 		var le *zprt.LimitError
-		if errors.As(err, &le) && le.Kind == zprt.LimitBudget {
+		if errors.As(err, &le) && le.Kind == zprt.LimitCompute {
 			return false
 		}
 		if err != nil {
@@ -107,9 +107,9 @@ func TestTextCostIsConstant(t *testing.T) {
 						if derr != nil {
 							t.Fatal(derr)
 						}
-						n, err = d.Parse(WithLimits(Limits{Budget: budget}))
+						n, err = d.Parse(WithLimits(Limits{Compute: budget}))
 					} else {
-						n, err = Parse(text, WithUnit(in.unit), WithLimits(Limits{Budget: budget}))
+						n, err = Parse(text, WithUnit(in.unit), WithLimits(Limits{Compute: budget}))
 					}
 					if want := strings.ToValidUTF8(text, "�"); err == nil && n.Value() != any(want) {
 						t.Fatalf("value %v, want %q", n, want)

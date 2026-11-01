@@ -20,7 +20,7 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("copy interruption = %v", err)
 	}
@@ -75,7 +75,7 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 		t.Run(run.name, func(t *testing.T) {
 			p := &core.Parser{}
 			p.SetVars(values)
-			p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+			p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, limits.ErrLimit) {
 				t.Fatalf("walk interruption = %v", err)
 			}
@@ -93,7 +93,7 @@ func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	for i := range p.Created {
 		p.Created[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("tracking cleanup interruption = %v", err)
 	}

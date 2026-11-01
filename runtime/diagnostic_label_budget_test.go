@@ -10,7 +10,7 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 	for i := range ids {
 		ids[i] = ExpID(i + 1)
 	}
-	p := &Parser{Control: newBudgetControl(nil, Limits{Budget: 64})}
+	p := &Parser{Control: newBudgetControl(nil, Limits{Compute: 64})}
 	var got error
 	func() {
 		defer func() {
@@ -25,7 +25,7 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 		RenamedExpected(p, ids, 999)
 	}()
 	if !errors.Is(got, ErrLimit) {
-		t.Fatalf("rename budget limit = %v, want ErrLimit", got)
+		t.Fatalf("rename compute limit = %v, want ErrLimit", got)
 	}
 	if p.Control.budgetUsed() != 64 {
 		t.Fatalf("rename steps = %d, want 64", p.Control.budgetUsed())

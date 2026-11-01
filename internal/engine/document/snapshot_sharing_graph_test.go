@@ -27,11 +27,11 @@ func TestSnapshotSharedStringComparisonRespectsBudgetLimit(t *testing.T) {
 		{"field value", snapshotRecord{fields: value.Fields{{Name: "x", Value: long}}}, snapshotRecord{fields: value.Fields{{Name: "x", Value: strings.Clone(long)}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Budget: 1024})}
+			p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1024})}
 			err := catchFatal(t, func() { sameSnapshotRecord(p, &snapshotGraph{}, &tc.a, &snapshotGraph{}, &tc.b) })
 			var limit *limits.LimitError
-			if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget {
-				t.Fatal("string comparison escaped budget limit", err)
+			if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+				t.Fatal("string comparison escaped compute limit", err)
 			}
 		})
 	}
@@ -52,11 +52,11 @@ func TestSnapshotChildRunCopyRespectsBudgetLimit(t *testing.T) {
 	changed[512] = 9999
 	next := snapshotRecord{children: changed}
 	graph := snapshotGraph{nodes: []snapshotRecord{old}}
-	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Budget: 1170})}
+	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1170})}
 	err := catchFatal(t, func() { shareSnapshotChildren(p, &graph, &graph.nodes[0], &next) })
 	var limit *limits.LimitError
-	if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget {
-		t.Fatal("copy escaped budget limit", err)
+	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+		t.Fatal("copy escaped compute limit", err)
 	}
 	if next.childChunked || len(next.children) != 1025 || next.children[512] != 9999 {
 		t.Fatal("interrupted copy changed the source record")

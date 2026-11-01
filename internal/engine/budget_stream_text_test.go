@@ -41,15 +41,15 @@ func TestBudgetStreamTextByteSnapshotBoundaries(t *testing.T) {
 			if size >= 64 {
 				used = min(size, core.StreamTextChunk)
 			}
-			in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: uint64(used - 1)})
+			in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: uint64(used - 1)})
 			before := in.StreamText
 			var val string
 			err := catchFatal(t, func() { val = in.Text(0, end) })
 			var limit *limits.LimitError
-			if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget || val != "" || !reflect.DeepEqual(in.StreamText, before) {
+			if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute || val != "" || !reflect.DeepEqual(in.StreamText, before) {
 				t.Fatalf("materialization error=%v value=%q", err, val)
 			}
-			in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: uint64(used)})
+			in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: uint64(used)})
 			if got := in.Text(0, end); got != text[:end] || in.Control.Used != uint64(used) {
 				t.Fatalf("exact materialization got=%q spent=%d", got, in.Control.Used)
 			}
@@ -75,7 +75,7 @@ func TestBudgetStreamTextFallbackAndNoReadAhead(t *testing.T) {
 				in := core.Input{Unit: u, Reader: bufio.NewReader(r)}
 				in.Fill(size)
 				reads := r.calls
-				in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 20})
+				in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 20})
 				if in.Text(0, size) != strings.Repeat("x", size) || r.calls != reads {
 					t.Fatal("controlled text read ahead or changed text")
 				}
@@ -113,7 +113,7 @@ func TestBudgetStreamTextCodePointPublication(t *testing.T) {
 			case "last-offset":
 				limit = 5*size - 1
 			}
-			in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: limit})
+			in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: limit})
 			before := append([]int32(nil), old.Offsets...)
 			err := catchFatal(t, func() { _ = in.Text(0, 8) })
 			if !errors.Is(err, limits.ErrLimit) || !reflect.DeepEqual(in.StreamText, old) || !reflect.DeepEqual(old.Offsets, before) {
@@ -125,7 +125,7 @@ func TestBudgetStreamTextCodePointPublication(t *testing.T) {
 	// Detached sizing and encoding each visit 1024 runes at two units per rune
 	// (the rune is read and the text is built). The offset decoder reserves
 	// the bytes of each character it decodes, one for an ASCII character.
-	in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 5 * size})
+	in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 5 * size})
 	if got := in.Text(0, 5); got != "aaaaa" || in.Control.Used != 5*size || in.StreamText.End != size {
 		t.Fatalf("exact spent=%d text=%q", in.Control.Used, got)
 	}
@@ -134,7 +134,7 @@ func TestBudgetStreamTextCodePointPublication(t *testing.T) {
 		t.Fatal("cached code-point offsets were rebuilt")
 	}
 	oneShort := budgetStreamTextInput(CodePoints, text)
-	oneShort.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 5*size - 1})
+	oneShort.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 5*size - 1})
 	if err := catchFatal(t, func() { _ = oneShort.Text(0, 5) }); !errors.Is(err, limits.ErrLimit) || oneShort.StreamText.Source != "" {
 		t.Fatalf("one-short error=%v", err)
 	}
@@ -148,7 +148,7 @@ func TestBudgetStreamTextMalformedAndRetainedCache(t *testing.T) {
 	for _, u := range []PositionUnit{Bytes, CodePoints} {
 		in := budgetStreamTextInput(u, strings.Repeat("aé😀\xff\xc0z", 500))
 		in.Base = int(^uint(0)>>1) - in.Loaded() - 10
-		in.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
+		in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
 		first := in.Text(in.Base+1, in.Base+10)
 		var want string
 		if u == Bytes {
@@ -214,7 +214,7 @@ rule row = (!"\n" .)+ #atomic "\n"`)
 			t.Run(phase, func(t *testing.T) {
 				text := strings.Repeat("aé😀\xff", 350) + "\n" + strings.Repeat("b", 100) + "\n"
 				o := base
-				o.Limits.Budget = 1 << 30
+				o.Limits.Compute = 1 << 30
 				var saved TraceEvent
 				var previous core.StreamTextSnapshot
 				armed := false
@@ -233,7 +233,7 @@ rule row = (!"\n" .)+ #atomic "\n"`)
 						previous = p.StreamText
 						armed = true
 						if phase == "budget" {
-							p.Control.Limits.Budget = p.Control.Used + 1
+							p.Control.Limits.Compute = p.Control.Used + 1
 						} else {
 							cancel()
 							p.Control.Ctx = ctx

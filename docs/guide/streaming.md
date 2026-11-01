@@ -571,16 +571,16 @@ number that does not grow with the input.
 ## Cancelling a Stream
 
 Pass `zp.WithContext(ctx)` to interrupt engine execution cooperatively, or
-`zp.WithLimits(zp.Limits{Budget: ...})` to bound
+`zp.WithLimits(zp.Limits{Compute: ...})` to bound
 one invocation. A zero budget selects the default, which is `max(2^20, 1024 * d)` for the furthest position `d` that the parser has
-asked the stream for, however the reader chunks the input; `zp.Unlimited` disables the limit. `Limits.MaxInput` bounds the length of the stream: with a finite value the stream fails with `zp.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. Budget counts depend on the backend,
+asked the stream for, however the reader chunks the input; `zp.Unlimited` disables the limit. `Limits.Input` bounds the length of the stream: with a finite value the stream fails with `zp.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. Budget counts depend on the backend,
 position unit and implementation; reused or copied storage also consumes budget.
 Exhaustion matches `zp.ErrLimit` through `errors.Is`.
 Text materialization also consumes budget, including building a cached stream
 snapshot and its CodePoints position table. Reading an already cached substring
 requires no additional materialization work; snapshot creation never reads ahead.
 
-Each underlying reader call consumes one budget unit before entering the reader,
+Each underlying reader call consumes one compute unit before entering the reader,
 including empty reads, EOF and retries for incomplete characters. When no work
 remains, that next call is prevented. Bytes consumed by read-ahead do not count
 as examined input until the engine examines them.
@@ -592,9 +592,9 @@ that same call, including a reader returning data together with an error.
 Elements already passed to emit remain caller-owned, including when cancellation
 is observed after emit succeeds. Restarting requires replaying the input yourself;
 the current reader offset is not a continuation token. Buffered read-ahead means
-a budget limit does not cap bytes consumed from the reader.
+a compute limit does not cap bytes consumed from the reader.
 
-First-use backend preparation is synchronous and outside budget limits. A context
+First-use backend preparation is synchronous and outside compute limits. A context
 cancelled before a valid call prevents that preparation; cancellation during it
 is observed after preparation finishes. Compilation through `CompileSource`
 remains separate from the parse invocation.

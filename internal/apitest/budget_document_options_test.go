@@ -70,7 +70,7 @@ rule main = "a" $$`, "main")
 	}
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 		ctx, cancel := context.WithCancel(context.Background())
-		d, err := p.NewDocument("a", zp.WithBackend(backend), zp.WithContext(ctx), zp.WithLimits(zp.Limits{Budget: 10000}))
+		d, err := p.NewDocument("a", zp.WithBackend(backend), zp.WithContext(ctx), zp.WithLimits(zp.Limits{Compute: 10000}))
 		if err != nil {
 			t.Fatal(err)
 		}

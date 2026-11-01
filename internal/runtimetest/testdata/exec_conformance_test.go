@@ -35,7 +35,7 @@ func newRTMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
 		if limit == 0 {
 			limit = Unlimited
 		}
-		p.Control = newBudgetControl(nil, Limits{Budget: limit})
+		p.Control = newBudgetControl(nil, Limits{Compute: limit})
 	}
 	if m.metered {
 		return meteredRT{m}

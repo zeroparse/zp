@@ -18,7 +18,7 @@ func TestBudgetDocumentPieceLineTableRetry(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		o.Limits.Budget = 100
+		o.Limits.Compute = 100
 		if _, err = d.ParseWith(o); !errors.Is(err, limits.ErrLimit) {
 			t.Fatalf("line table interruption: %v", err)
 		}
@@ -37,7 +37,7 @@ func TestBudgetDocumentPieceLiteralRetry(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		o.Limits.Budget = 100
+		o.Limits.Compute = 100
 		if _, err = d.ParseWith(o); !errors.Is(err, limits.ErrLimit) {
 			t.Fatalf("piece literal bypassed the limit: %v", err)
 		}

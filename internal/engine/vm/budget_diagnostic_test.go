@@ -129,10 +129,10 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 					completed = assertReplay
 				}
 				if mode == "complete" {
-					p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: steps})
+					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: steps})
 				} else if mode == "budget" {
 					// Less than the copy itself, so failure cannot be at a later put.
-					p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 319})
+					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 319})
 				} else {
 					p.Control = core.NewBudgetControl(newPollingContext(1), limits.Limits{})
 				}

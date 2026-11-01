@@ -110,7 +110,7 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 		o.maxDepth = d.State.root.g.maxDepth
 	}
 	if d.State.root.g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without budget controls (generate with -budget-controls to use WithContext and WithLimits)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and WithLimits)")
 	}
 	if err := o.validateDiagnostics(); err != nil {
 		return o, err
@@ -334,7 +334,7 @@ func (d *documentState) parse(o parseOptions) (*Node, error) {
 }
 
 // DocumentParseConverted keeps Node parsing and final typed conversion inside
-// the same budget-controlled invocation and memo cleanup boundary.
+// the same limit-controlled invocation and memo cleanup boundary.
 //
 // DocumentParseConverted is for generated parsers; not a stable API.
 func DocumentParseConverted[T any](d *documentState, o parseOptions, convert func(*Node, *BudgetControl, error) T) (res T, err error) {

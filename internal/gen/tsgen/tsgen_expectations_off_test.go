@@ -45,7 +45,7 @@ for (const s of ["xy", "xz", "z", "(ab)", "(a", "ab;1x;cd;", "ab;cd;", ""]) {
 				if ask {
 					options = "{ expectations: true }"
 				}
-				out := gentest.RunTSGrammarScriptRaw(t, g, strings.Replace(script, "OPTIONS", options, 1), gen.GenOptions{Start: "main", Expectations: available, BudgetControls: controls})
+				out := gentest.RunTSGrammarScriptRaw(t, g, strings.Replace(script, "OPTIONS", options, 1), gen.GenOptions{Start: "main", Expectations: available, LimitControls: controls})
 				return strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 			}
 			off, avail, on := run(false, false), run(true, false), run(true, true)

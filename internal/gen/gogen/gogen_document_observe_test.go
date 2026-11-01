@@ -137,10 +137,10 @@ func TestDocumentCalls(t *testing.T){
   if err:=d.Edit(start,end,source[len(source)-size:]);err!=nil{t.Fatal(err)};if err:=ref.Edit(start,end,source[len(source)-size:]);err!=nil{t.Fatal(err)}
   run(false);if PLAIN&&d.Stats().Reused==0{t.Fatal("unchanged prefix not reused")};run(true)
   for _,text:=range []string{"\x00",source}{n:=utf8.RuneCountInString(d.Text());if unit==Bytes{n=len(d.Text())};if err:=d.Edit(0,n,text);err!=nil{t.Fatal(err)};if err:=ref.Edit(0,n,text);err!=nil{t.Fatal(err)};run(false);run(true)}
-  var warmProfile zprt.Profile;var warmEvents []zprt.TraceEvent;parse(d,zprt.WithProfile(&warmProfile),zprt.WithTrace(func(e zprt.TraceEvent){warmEvents=append(warmEvents,e)}),WithLimits(Limits{Budget:100000}));eventStats(t,d,&warmProfile,warmEvents)
+  var warmProfile zprt.Profile;var warmEvents []zprt.TraceEvent;parse(d,zprt.WithProfile(&warmProfile),zprt.WithTrace(func(e zprt.TraceEvent){warmEvents=append(warmEvents,e)}),WithLimits(Limits{Compute:100000}));eventStats(t,d,&warmProfile,warmEvents)
   for _,marker:=range []any{new(int),zprt.X_fatal{errors.New("private fatal")},zprt.X_evalError{"private eval"},zprt.X_contextPanic{new(int)},zprt.X_tracePanic{new(int)}}{
   for _,controlled:=range []bool{false,true}{for _,kind:=range []zprt.TraceKind{zprt.TraceEnter,zprt.TraceExit}{
-   var interrupted zprt.Profile;opts:=[]ParseOption{zprt.WithProfile(&interrupted),zprt.WithTrace(func(e zprt.TraceEvent){if e.Kind==kind{panic(marker)}})};if controlled{opts=append(opts,WithLimits(Limits{Budget:100000}))}
+   var interrupted zprt.Profile;opts:=[]ParseOption{zprt.WithProfile(&interrupted),zprt.WithTrace(func(e zprt.TraceEvent){if e.Kind==kind{panic(marker)}})};if controlled{opts=append(opts,WithLimits(Limits{Compute:100000}))}
    func(){defer func(){if recover()!=marker{t.Fatal("callback panic changed")}}();parse(d,opts...);t.Fatal("callback did not panic")}();a:=interrupted.Snapshot();if a.Entered!=1||kind==zprt.TraceEnter&&a.Calls!=0||kind==zprt.TraceExit&&a.Calls!=1{t.Fatal("aborted counters",a)};released(t)
    var retry zprt.Profile;var events []zprt.TraceEvent;parse(d,zprt.WithProfile(&retry),zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}));eventStats(t,d,&retry,events);if events[len(events)-1].Memo{t.Fatal("panic retained root memo",events)}
   }}}
@@ -149,7 +149,7 @@ func TestDocumentCalls(t *testing.T){
   before:=d.Stats();ctx,cancel=context.WithCancel(context.Background());cancel();parse(d,WithContext(ctx),zprt.WithTrace(func(zprt.TraceEvent){t.Fatal("pre-canceled event")}));if d.Stats()!=before{t.Fatal("pre-admission canceled invocation changed stats")}
   released(t)
   length:=utf8.RuneCountInString(d.Text());if unit==Bytes{length=len(d.Text())};if err:=d.Edit(0,length,d.Text());err!=nil{t.Fatal(err)}
-  v,err=parse(d,WithLimits(Limits{Budget:1}),zprt.WithTrace(func(zprt.TraceEvent){}));var interrupted *LimitError;if v!=nil&&!reflect.ValueOf(v).IsZero()||!errors.As(err,&interrupted)||interrupted.Kind!=LimitBudget{t.Fatal("budget result",v,err)};released(t)
+  v,err=parse(d,WithLimits(Limits{Compute:1}),zprt.WithTrace(func(zprt.TraceEvent){}));var interrupted *LimitError;if v!=nil&&!reflect.ValueOf(v).IsZero()||!errors.As(err,&interrupted)||interrupted.Kind!=LimitCompute{t.Fatal("budget result",v,err)};released(t)
   retry=zprt.Profile{};events=nil;parse(d,zprt.WithProfile(&retry),zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}));eventStats(t,d,&retry,events);if events[len(events)-1].Memo{t.Fatal("budget interruption retained root memo",events)};released(t)
  }}
  if checkedFrontiers==0{t.Fatal("no memo frontier checked")}
@@ -197,7 +197,7 @@ func TestDocumentReentryRejected(t *testing.T){
   if err:=d.Edit(0,0,"");err!=nil{t.Fatal("edit after parse",err)}
   func(){defer func(){recover()}();parse(d,zprt.WithTrace(func(zprt.TraceEvent){panic("stop")}))}()
   if _,err:=parse(d);errors.Is(err,ErrDocumentBusy){t.Fatal("callback panic left the Document busy")}
-  if err:=d.Edit(0,0,"");err!=nil{t.Fatal(err)};parse(d,WithLimits(Limits{Budget:1}))
+  if err:=d.Edit(0,0,"");err!=nil{t.Fatal(err)};parse(d,WithLimits(Limits{Compute:1}))
   if _,err:=parse(d);errors.Is(err,ErrDocumentBusy){t.Fatal("budget interruption left the Document busy")}
   }
  }

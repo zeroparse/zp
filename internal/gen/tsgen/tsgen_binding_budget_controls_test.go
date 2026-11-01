@@ -83,7 +83,7 @@ for(const unit of [p.CodePoints,p.Bytes])for(const input of ["z",new Uint8Array(
 			} else if !tt.isolated {
 				consumer += `const stop=p.recognizeWithOptions("z",{budget:128});check(stop instanceof p.ParseInterruptionError&&stop.kind==="budget-limit","predicate-dependent recognition counts binding spend");`
 			}
-			runTypedTSFixture(t, tt.src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+			runTypedTSFixture(t, tt.src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 		})
 	}
 
@@ -108,6 +108,6 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  check(p.parseASTWithOptions("z",{unit,budget:0}).value?.N===1,"fresh caller environment after interruption");
 }
 `
-		runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", BudgetControls: true, Types: true, Recognize: true}, "")
+		runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 	})
 }

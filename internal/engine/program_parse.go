@@ -291,7 +291,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 	control.Check()
 	p := core.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
 	// A limit beyond math.MaxInt bounds no stream.
-	if lim := o.Limits.MaxInput; lim != 0 && lim != limits.Unlimited && lim <= math.MaxInt {
+	if lim := o.Limits.Input; lim != 0 && lim != limits.Unlimited && lim <= math.MaxInt {
 		p.Input.MaxInput = int(lim)
 	}
 	defer p.ReleaseTraceReferences() // after error recovery, including rethrown panics

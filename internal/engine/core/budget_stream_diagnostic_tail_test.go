@@ -20,13 +20,13 @@ func filledStreamDiagnosticTail(limit int) StreamDiagnosticTail {
 
 func TestBudgetStreamDiagnosticTailResultCopy(t *testing.T) {
 	tail := filledStreamDiagnosticTail(300) // the ring wraps, so result must copy
-	p := &Parser{Input: Input{Control: NewBudgetControl(nil, limits.Limits{Budget: 128})}}
+	p := &Parser{Input: Input{Control: NewBudgetControl(nil, limits.Limits{Compute: 128})}}
 	err := catchFatal(t, func() { _ = tail.Result(p) })
 	var limit *limits.LimitError
-	if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget || p.Control.Used != 128 {
+	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute || p.Control.Used != 128 {
 		t.Fatalf("result copy limit: err=%v used=%d", err, p.Control.Used)
 	}
-	p.Control = NewBudgetControl(nil, limits.Limits{Budget: 300})
+	p.Control = NewBudgetControl(nil, limits.Limits{Compute: 300})
 	got, ok := tail.Result(p).(*TruncatedSyntaxErrors)
 	if !ok || len(got.Errors) != 300 || got.Errors[0].Pos != 1 || got.Errors[299].Pos != 300 || p.Control.Used != 300 {
 		t.Fatalf("result retry: result=%v used=%d", got, p.Control.Used)

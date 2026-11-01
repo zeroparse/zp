@@ -15,16 +15,16 @@ func TestLimitFlagParsing(t *testing.T) {
 		err  bool
 	}{
 		{nil, zp.Limits{}, false},
-		{[]string{"-budget", "0"}, zp.Limits{}, false},
-		{[]string{"-budget", "5000", "-max-input", "7"}, zp.Limits{Budget: 5000, MaxInput: 7}, false},
-		{[]string{"-budget", "unlimited"}, zp.Limits{Budget: zp.Unlimited}, false},
-		{[]string{"-max-input", "Unlimited"}, zp.Limits{MaxInput: zp.Unlimited}, false},
-		{[]string{"-budget", "UNLIMITED", "-max-input", "unlimited"}, zp.Limits{Budget: zp.Unlimited, MaxInput: zp.Unlimited}, false},
-		{[]string{"-budget", "18446744073709551615"}, zp.Limits{Budget: zp.Unlimited}, false},
-		{[]string{"-budget", "-1"}, zp.Limits{}, true},
-		{[]string{"-budget", "1.5"}, zp.Limits{}, true},
+		{[]string{"-max-compute", "0"}, zp.Limits{}, false},
+		{[]string{"-max-compute", "5000", "-max-input", "7"}, zp.Limits{Compute: 5000, Input: 7}, false},
+		{[]string{"-max-compute", "unlimited"}, zp.Limits{Compute: zp.Unlimited}, false},
+		{[]string{"-max-input", "Unlimited"}, zp.Limits{Input: zp.Unlimited}, false},
+		{[]string{"-max-compute", "UNLIMITED", "-max-input", "unlimited"}, zp.Limits{Compute: zp.Unlimited, Input: zp.Unlimited}, false},
+		{[]string{"-max-compute", "18446744073709551615"}, zp.Limits{Compute: zp.Unlimited}, false},
+		{[]string{"-max-compute", "-1"}, zp.Limits{}, true},
+		{[]string{"-max-compute", "1.5"}, zp.Limits{}, true},
 		{[]string{"-max-input", "many"}, zp.Limits{}, true},
-		{[]string{"-budget", "18446744073709551616"}, zp.Limits{}, true},
+		{[]string{"-max-compute", "18446744073709551616"}, zp.Limits{}, true},
 	} {
 		fs := flag.NewFlagSet("t", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)

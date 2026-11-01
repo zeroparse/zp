@@ -34,11 +34,11 @@ func TestBudgetDiagnosticRecoveryTextMatchesNative(t *testing.T) {
 				parts, _ = expectedShown(e.Expected)
 			}
 			steps := uint64(len(want) + 2*len(parts))
-			p := diagnosticParser(limits.Limits{Budget: steps})
+			p := diagnosticParser(limits.Limits{Compute: steps})
 			if got := p.RecoveryErrorText(e); got != want || p.Control.Used != steps {
 				t.Fatalf("controlled text=%q, steps=%d; native=%q, steps=%d", got, p.Control.Used, want, steps)
 			}
-			p = diagnosticParser(limits.Limits{Budget: steps - 1})
+			p = diagnosticParser(limits.Limits{Compute: steps - 1})
 			if err := catchFatal(t, func() { _ = p.RecoveryErrorText(e) }); !errors.Is(err, limits.ErrLimit) {
 				t.Fatalf("one-short recovery formatting: %v", err)
 			}
@@ -50,14 +50,14 @@ func TestBudgetDiagnosticRecoveryTextCancellationAndOwnership(t *testing.T) {
 	for _, messages := range [][]string{make([]string, 320), {strings.Repeat("invalid\xff", 120)}} {
 		e := &SyntaxError{Line: 7, Col: 11, Messages: messages, Expected: []string{"ignored"}}
 		before := append([]string(nil), e.Messages...)
-		p := diagnosticParser(limits.Limits{Budget: 1 << 50})
+		p := diagnosticParser(limits.Limits{Compute: 1 << 50})
 		retained := p.RecoveryErrorText(e)
 		p.Control = NewBudgetControl(newPollingContext(1), limits.Limits{})
 		var got string
 		if err := catchFatal(t, func() { got = p.RecoveryErrorText(e) }); !errors.Is(err, context.Canceled) || got != "" {
 			t.Fatalf("format cancellation: err=%v partial=%q", err, got)
 		}
-		p.Control = NewBudgetControl(nil, limits.Limits{Budget: 1 << 50})
+		p.Control = NewBudgetControl(nil, limits.Limits{Compute: 1 << 50})
 		if retry := p.RecoveryErrorText(&SyntaxError{Line: 1, Col: 2, Messages: []string{"other"}}); retry != "1:2: other" {
 			t.Fatal("formatter retry differs")
 		}
@@ -90,7 +90,7 @@ func TestBudgetDiagnosticSortParityAndMoves(t *testing.T) {
 		}
 		want := append([]string(nil), values...)
 		sortExpectedEntries(want)
-		p := diagnosticParser(limits.Limits{Budget: 1 << 50})
+		p := diagnosticParser(limits.Limits{Compute: 1 << 50})
 		p.sortExpected(values)
 		if !slices.Equal(values, want) {
 			t.Fatalf("sort length%d differs from native", n)
@@ -98,7 +98,7 @@ func TestBudgetDiagnosticSortParityAndMoves(t *testing.T) {
 	}
 	// Empty-string comparisons consume no byte spend, so these budgets/cancellation
 	// isolate movement rather than failing in the comparator.
-	p := diagnosticParser(limits.Limits{Budget: 128})
+	p := diagnosticParser(limits.Limits{Compute: 128})
 	if err := catchFatal(t, func() { p.sortExpected(make([]string, 320)) }); !errors.Is(err, limits.ErrLimit) || p.Control.Used != 128 {
 		t.Fatalf("sort moves: err=%v steps=%d", err, p.Control.Used)
 	}

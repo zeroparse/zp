@@ -196,7 +196,7 @@ matches or an error.
   because the parser was compiled without source information, matches
   `query.ErrNoSourceInfo`.
 - `query.WithContext(ctx)` supplies a context; cancellation returns the error of
-  the context. `query.WithLimits(zp.Limits{Budget: n})` bounds
+  the context. `query.WithLimits(zp.Limits{Compute: n})` bounds
   traversal, matching, path copies and result construction; exhaustion matches
   `zp.ErrLimit`. Zero limits are unlimited. A query inspects no source text, so
   its budget counts only traversal and result construction. The count is abstract
@@ -215,7 +215,7 @@ matches or an error.
 | Cycle on the active path during evaluation | `query.ErrCycle` |
 | Rule constraint on a result without source information | `query.ErrNoSourceInfo` |
 | Cancelled context | The error of the context |
-| Exhausted budget limit | `zp.ErrLimit` |
+| Exhausted compute limit | `zp.ErrLimit` |
 
 ## Compatibility and Support
 

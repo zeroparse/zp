@@ -23,7 +23,7 @@ const (
 	defaultBudgetPerUnit = 1024
 )
 
-// defaultBudget returns the budget of a parse whose Budget is zero, for an input of n units of the
+// defaultBudget returns the budget of a parse whose Compute is zero, for an input of n units of the
 // position unit of the parse.
 func defaultBudget(n uint64) uint64 {
 	if n > math.MaxUint64/defaultBudgetPerUnit {
@@ -45,23 +45,23 @@ func inputUnits(s string, unit PositionUnit) uint64 {
 // Limits bounds one parse invocation. A zero limit selects the default of that limit, and
 // Unlimited disables it.
 //
-// Budget bounds the cumulative spend of the parse: every input unit
+// Compute bounds the cumulative cost of the parse: every input unit
 // inspected, every rule call and loop iteration, and every unit of value
 // construction adds to one counter, so a bound on it bounds scanning,
 // recursion and value building alike.
 //
-// MaxInput bounds the length of the input in the position unit of the parse. The default is
+// Input bounds the length of the input in the position unit of the parse. The default is
 // Unlimited: the default budget already grows with the input. A longer input fails before any
 // work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
 // the limit.
 type Limits struct {
-	Budget   uint64
-	MaxInput uint64
+	Compute uint64
+	Input   uint64
 }
 
 // disabled reports whether l selects no limit: every field is zero or Unlimited.
 func (l Limits) disabled() bool {
-	return (l.Budget == 0 || l.Budget == Unlimited) && (l.MaxInput == 0 || l.MaxInput == Unlimited)
+	return (l.Compute == 0 || l.Compute == Unlimited) && (l.Input == 0 || l.Input == Unlimited)
 }
 
 // ErrLimit is matched by errors.Is for any LimitError.
@@ -71,15 +71,15 @@ var ErrLimit = errors.New("parse limit exceeded")
 type LimitKind uint8
 
 const (
-	// LimitBudget is the kind of an exhausted Budget.
-	LimitBudget LimitKind = iota
-	// LimitInput is the kind of an input longer than MaxInput.
+	// LimitCompute is the kind of an exhausted Compute limit.
+	LimitCompute LimitKind = iota
+	// LimitInput is the kind of an input longer than the Input limit.
 	LimitInput
 )
 
 // LimitError reports a reservation that would exceed a limit. Used is the
 // counter value before the rejected reservation; Requested is the complete
-// atomic reservation that could not be made. For LimitInput, Limit is MaxInput, Used is zero and
+// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
 // Requested is the length of the input in the position unit; for a stream it is the number of
 // units the parser had asked for, or the length of the stream if that is shorter.
 type LimitError struct {
@@ -96,7 +96,7 @@ func (e *LimitError) Error() string {
 	if e.Kind == LimitInput {
 		return fmt.Sprintf("parse input limit exceeded: limit %d, length %d", e.Limit, e.Requested)
 	}
-	return fmt.Sprintf("parse budget limit exceeded: limit %d, used %d, requested %d", e.Limit, e.Used, e.Requested)
+	return fmt.Sprintf("parse compute limit exceeded: limit %d, used %d, requested %d", e.Limit, e.Used, e.Requested)
 }
 
 // Is reports whether target is the limit sentinel.
@@ -138,9 +138,9 @@ func (c *BudgetControl) demand(n int) {
 	if c == nil || !c.adaptive || n <= 0 {
 		return
 	}
-	if b := defaultBudget(uint64(n)); b > c.limits.Budget {
+	if b := defaultBudget(uint64(n)); b > c.limits.Compute {
 		c.settle()
-		c.limits.Budget = b
+		c.limits.Compute = b
 		c.refill()
 	}
 }
@@ -153,7 +153,7 @@ func newBudgetControl(ctx context.Context, limits Limits) *BudgetControl {
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil // it can never be canceled
 	}
-	if ctx == nil && limits.Budget == 0 {
+	if ctx == nil && limits.Compute == 0 {
 		return nil
 	}
 	c := &BudgetControl{ctx: ctx, limits: limits}
@@ -161,7 +161,7 @@ func newBudgetControl(ctx context.Context, limits Limits) *BudgetControl {
 	return c
 }
 
-// budgetUsed returns the budget units reserved so far.
+// budgetUsed returns the compute units reserved so far.
 func (c *BudgetControl) budgetUsed() uint64 { return c.base + (c.grant - c.room) }
 
 // settle moves what the fast path of charge reserved into the base and the
@@ -179,7 +179,7 @@ func (c *BudgetControl) refill() {
 	if c.ctx == nil {
 		interval, c.sinceCheck = unpolledGrant, 0
 	}
-	c.grant = budgetRoom(c.base, c.sinceCheck, c.limits.Budget, interval)
+	c.grant = budgetRoom(c.base, c.sinceCheck, c.limits.Compute, interval)
 	c.room = c.grant
 }
 
@@ -238,7 +238,7 @@ func (c *BudgetControl) Check() {
 	c.refill()
 }
 
-// Charge atomically reserves n budget units. Cancellation wins when it is
+// Charge atomically reserves n compute units. Cancellation wins when it is
 // observed at a poll or when the reservation would fail. A failed reservation
 // leaves the counter unchanged. It is safe on a nil receiver.
 func (c *BudgetControl) Charge(n uint64) {
@@ -291,7 +291,7 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 	}
 	c.settle()
 
-	exceeded := exceedsLimit(c.base, n, c.limits.Budget)
+	exceeded := exceedsLimit(c.base, n, c.limits.Compute)
 	poll := c.ctx != nil && reachesInterval(c.sinceCheck, n, budgetCheckInterval)
 
 	// Check on each poll boundary and on a failed reservation so an already
@@ -307,7 +307,7 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 	if exceeded {
 		c.interrupted = true
 		panic(fatal{err: &LimitError{
-			Kind: LimitBudget, Limit: c.limits.Budget,
+			Kind: LimitCompute, Limit: c.limits.Compute,
 			Used: c.base, Requested: n,
 		}})
 	}

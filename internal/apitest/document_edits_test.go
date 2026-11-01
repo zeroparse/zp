@@ -29,8 +29,8 @@ func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
 			if d.Version() != base {
 				t.Fatal("cancellation advanced text version")
 			}
-			if n, err := d.Parse(zp.WithLimits(zp.Limits{Budget: 1})); n != nil || !errors.Is(err, zp.ErrLimit) {
-				t.Fatal("budget limit", n, err)
+			if n, err := d.Parse(zp.WithLimits(zp.Limits{Compute: 1})); n != nil || !errors.Is(err, zp.ErrLimit) {
+				t.Fatal("compute limit", n, err)
 			}
 			if d.Version() != base {
 				t.Fatal("execution interruption advanced text version")

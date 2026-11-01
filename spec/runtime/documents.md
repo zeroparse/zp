@@ -78,12 +78,12 @@ completed by an insertion at the end of the text. In `CodePoints`, invalid bytes
 have already been replaced with U+FFFD, and editing the normalized text does not
 reassemble the original bytes.
 
-`Edit` and `EditBatch` are outside parse budget limits.
+`Edit` and `EditBatch` are outside parse compute limits.
 
 ### Parsing
 
 `doc.Parse(opts...)` parses the current text using the construction defaults
-overridden by the options of the call. Context, budget limits, maximum depth and
+overridden by the options of the call. Context, compute limits, maximum depth and
 tracing MAY vary per call; the unit, backend, start rule and non-recognition mode
 MUST NOT, and an option that tries to change them is an error. Counters reset on
 each call. Results and errors are those of `Parser.Parse`, including recovered
@@ -131,7 +131,7 @@ A normally returned parse outcome produces a snapshot, including an ordinary
 syntax error and a recovered error. For an ordinary syntax failure the snapshot
 keeps the text and version, has a zero root as `Document.Parse` does, and exposes
 a defensive copy of the `SyntaxError`. A recovered outcome keeps its root and
-`SyntaxErrors`. Cancellation or an exhausted budget limit during parsing or
+`SyntaxErrors`. Cancellation or an exhausted compute limit during parsing or
 freezing returns a nil snapshot and a fatal interruption error, which grammar
 choice, predicates and recovery cannot absorb. No partial graph, text or
 diagnostics are published. If execution began, reusable execution state is
@@ -139,7 +139,7 @@ cleared before retry; completed input tables MAY remain and partial tables are
 discarded. An error before execution keeps existing caches and statistics.
 Cleanup is not charged. A trace callback panic propagates unchanged after
 cleanup. Snapshot accessors and `Materialize` run after capture and do not
-inherit its context or budget limits.
+inherit its context or compute limits.
 
 | Accessor | Meaning |
 |:--|:--|
@@ -222,7 +222,7 @@ Unknown non-syntax diagnostic types count as changed. Source text and parse
 statistics are not part of output equality.
 
 With tracking enabled, both `Parse` and `Snapshot` capture and compare, using the
-invocation's cumulative context and budget limits. A cancellation or budget limit
+invocation's cumulative context and compute limits. A cancellation or compute limit
 interruption returns nil and emits `OutputUnavailable`, which clears comparison
 continuity: the next successful capture reports `OutputMayHaveChanged`. Completed
 syntax failures stay comparable. Unsupported captures also report unavailable.
@@ -243,8 +243,8 @@ edit: edits that follow an outcome are not part of it.
 | `Edit` range outside the text, or inside a character in `Bytes` | Error; text and version unchanged |
 | `EditBatch` with a foreign or stale version, unordered or overlapping edits, repeated starts or invalid ranges | The whole batch is rejected |
 | Parse option that changes unit, backend, start rule or mode | Error before execution; caches and statistics kept |
-| Cancellation or budget limit during `Parse` | Error and no result; execution state cleared |
-| Cancellation or budget limit during `Snapshot` | Nil snapshot and a fatal error |
+| Cancellation or compute limit during `Parse` | Error and no result; execution state cleared |
+| Cancellation or compute limit during `Snapshot` | Nil snapshot and a fatal error |
 | Unsupported field value type while freezing | Nil snapshot and `*SnapshotCaptureError` |
 | `EnableChanges` twice | Error |
 | Stream diagnostic options (`WithDiagnosticCallback`, `WithDiagnosticLimit`) | Rejected |

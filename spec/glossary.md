@@ -19,7 +19,7 @@ definition and the place where the term is defined.
 | concrete syntax tree (CST) | The tree of nodes that Rule Expressions produce when no action is involved: string nodes, tuples for sequences and lists for repetitions. See [Values and the concrete syntax tree](language/parser-expressions.md#values-and-the-concrete-syntax-tree). |
 | contextual word | A grammar word interpreted as syntax only in a Declaration Statement or Operators Rule position; the same spelling may be an identifier elsewhere. See [Contextual Words](language/lexical.md#contextual-words). |
 | Core IR | The intermediate representation of a checked grammar, whose nodes make their effects explicit. See [ZeroParse Core IR Specification](core-ir/README.md). |
-| cost | What a parse spends: the rule bodies evaluated, the input examined, the iterations and operators applied and the size of the values built. Time is proportional to it, and the budget caps it, in budget units. See [Time and Memory](runtime/parsing.md#time-and-memory). |
+| cost | What a parse spends: the rule bodies evaluated, the input examined, the iterations and operators applied and the size of the values built. Time is proportional to it, and the budget caps it, in compute units. See [Time and Memory](runtime/parsing.md#time-and-memory). |
 | cut | `#cut`: commits the enclosing choice to the current alternative. See [Cut](language/parser-expressions.md#cut). |
 | Declaration Statement | A Type Declaration Statement or Rule Declaration Statement in a `.zp` file. See [Grammar Files](language/grammar-files.md#structure). |
 | discard | `-a`: matches `a` and has no value. See [Discard](language/parser-expressions.md#discard). |

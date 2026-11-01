@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 )
 
-// A parser generated without budget controls holds no code that spends budget or reads a control, does not
+// A parser generated without limit controls holds no code that spends budget or reads a control, does not
 // export the control options, and fails a parse that passes them instead of ignoring them.
 func TestGeneratedWithoutBudgetControls(t *testing.T) {
 	t.Parallel()
@@ -28,7 +28,7 @@ rule num = [0-9]+ ("." [0-9]+)?
 		t.Fatal(err)
 	}
 	gen := func(budgetControls bool, document ...bool) string {
-		files, err := gentest.Generate(t, g, gen.GenOptions{Package: "wc", Module: "wc", Start: "main", Runtime: gen.RuntimeImport, Types: true, Recognize: true, BudgetControls: budgetControls, Document: len(document) > 0})
+		files, err := gentest.Generate(t, g, gen.GenOptions{Package: "wc", Module: "wc", Start: "main", Runtime: gen.RuntimeImport, Types: true, Recognize: true, LimitControls: budgetControls, Document: len(document) > 0})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,43 +37,43 @@ rule num = [0-9]+ ("." [0-9]+)?
 	with, without := gen(true), gen(false)
 	for _, want := range []string{"p.Spend()", "p.Control.Take(", "func WithLimits", "func WithContext"} {
 		if !strings.Contains(with, want) {
-			t.Errorf("with budget controls: missing %q", want)
+			t.Errorf("with limit controls: missing %q", want)
 		}
 		if strings.Contains(without, want) {
-			t.Errorf("without budget controls: found %q", want)
+			t.Errorf("without limit controls: found %q", want)
 		}
 	}
-	for _, bad := range []string{"p.Control", "BudgetClass", "LimitBudget"} {
+	for _, bad := range []string{"p.Control", "BudgetClass", "LimitCompute"} {
 		if strings.Contains(without, bad) {
-			t.Errorf("without budget controls: found %q", bad)
+			t.Errorf("without limit controls: found %q", bad)
 		}
 	}
-	// The helpers with an Ordinary form belong to the form without budget controls and Documents only.
-	for name, text := range map[string]string{"with budget controls": with, "Document with budget controls": gen(true, true)} {
+	// The helpers with an Ordinary form belong to the form without limit controls and Documents only.
+	for name, text := range map[string]string{"with limit controls": with, "Document with limit controls": gen(true, true)} {
 		if strings.Contains(text, "Ordinary(") {
 			t.Errorf("%s: a call of an Ordinary helper", name)
 		}
 	}
 	if len(without) >= len(with) {
-		t.Errorf("parser without budget controls is %d bytes, with %d: want smaller", len(without), len(with))
+		t.Errorf("parser without limit controls is %d bytes, with %d: want smaller", len(without), len(with))
 	}
 	// With a Document the parser has the form that serves a Document, which has neither budget charges
 	// nor control reads when the parser has no controls.
 	documentWith, documentWithout := gen(true, true), gen(false, true)
-	for _, bad := range []string{"p.Control", ".Spend()", ".SpendRead(", "BudgetClass", "LimitBudget"} {
+	for _, bad := range []string{"p.Control", ".Spend()", ".SpendRead(", "BudgetClass", "LimitCompute"} {
 		if strings.Contains(documentWithout, bad) {
-			t.Errorf("a Document parser without budget controls has %q", bad)
+			t.Errorf("a Document parser without limit controls has %q", bad)
 		}
 		if !strings.Contains(documentWith, bad) && bad != "BudgetClass" {
-			t.Errorf("a Document parser with budget controls lacks %q: the check is void", bad)
+			t.Errorf("a Document parser with limit controls lacks %q: the check is void", bad)
 		}
 	}
 	if !strings.Contains(documentWithout, "p.Document == nil") {
-		t.Error("a Document parser without budget controls has no in-place read guard")
+		t.Error("a Document parser without limit controls has no in-place read guard")
 	}
 	t.Logf("sizes: with controls %d, without %d; with Document: with controls %d, without %d", len(with), len(without), len(documentWith), len(documentWithout))
 	if len(documentWithout) >= len(documentWith) {
-		t.Errorf("Document parser without budget controls is %d bytes, with %d", len(documentWithout), len(documentWith))
+		t.Errorf("Document parser without limit controls is %d bytes, with %d", len(documentWithout), len(documentWith))
 	}
 	tests := `package wc
 import("strings";"testing";"context";zprt "zeroparse.dev/zp/runtime")
@@ -84,7 +84,7 @@ func TestOptions(t *testing.T) {
  if _,err:=ParseAST("abc 12.5 x"); err!=nil {t.Fatal(err)}
  // A zero Limits and a nil context set no control, so they are accepted.
  if _,err:=Parse("abc",zprt.WithLimits(zprt.Limits{}),zprt.WithContext(nil)); err!=nil {t.Fatal(err)}
- for name,opt:=range map[string]zprt.ParseOption{"limits":zprt.WithLimits(zprt.Limits{Budget:1}),"context":zprt.WithContext(context.Background())} {
+ for name,opt:=range map[string]zprt.ParseOption{"limits":zprt.WithLimits(zprt.Limits{Compute:1}),"context":zprt.WithContext(context.Background())} {
   for entry,call:=range map[string]func() error{
    "Parse":func() error {_,err:=Parse("abc",opt);return err},
    "Recognize":func() error {return Recognize("abc",opt)},
@@ -92,7 +92,7 @@ func TestOptions(t *testing.T) {
    "ParseRule":func() error {_,err:=ParseRule("word","abc",opt);return err},
   } {
    err:=call()
-   if err==nil || !strings.Contains(err.Error(),"without budget controls") {t.Errorf("%s %s: got %v",entry,name,err)}
+   if err==nil || !strings.Contains(err.Error(),"without limit controls") {t.Errorf("%s %s: got %v",entry,name,err)}
   }
  }
 }

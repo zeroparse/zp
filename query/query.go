@@ -234,7 +234,7 @@ func (p *Pattern) usesRule() bool {
 	return false
 }
 
-// budget charges the spend of one evaluation against its budget limits, checking its
+// budget charges the spend of one evaluation against its compute limits, checking its
 // context for cancellation.
 type budget struct {
 	ctx    context.Context
@@ -248,8 +248,8 @@ func (b *budget) charge(n uint64) error {
 			return err
 		}
 	}
-	if limits.ExceedsLimit(b.used, n, b.limits.Budget) {
-		return &limits.LimitError{Kind: limits.LimitBudget, Limit: b.limits.Budget, Used: b.used, Requested: n}
+	if limits.ExceedsLimit(b.used, n, b.limits.Compute) {
+		return &limits.LimitError{Kind: limits.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
 	}
 	b.used = limits.SaturatingAdd(b.used, n)
 	return nil
@@ -260,7 +260,7 @@ func (b *budget) charge(n uint64) error {
 // index, then a node's captures that are not elements, by name, and the fields of a struct by
 // name. Every node, struct, tuple, list and error value is a candidate. Results borrow graph
 // values; callers must keep the graph stable. Structural matching inspects no source text and
-// therefore charges no input. Cancellation, budget limit exhaustion and cycles (ErrCycle)
+// therefore charges no input. Cancellation, compute limit exhaustion and cycles (ErrCycle)
 // return an error without partial results. A query with a rule constraint reports
 // ErrNoSourceInfo when the graph has nodes but none records a rule.
 func (q *Query) Matches(root *zp.Node, opts ...Option) ([]Match, error) {

@@ -419,8 +419,8 @@ func apiNames(opts gen.GenOptions) []string {
 	if opts.Expectations {
 		names = append(names, "WithExpectations")
 	}
-	if opts.BudgetControls {
-		names = append(names, "WithContext", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitBudget", "LimitInput", "Unlimited")
+	if opts.LimitControls {
+		names = append(names, "WithContext", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitCompute", "LimitInput", "Unlimited")
 	}
 	if opts.Observability {
 		names = append(names, "TraceKind", "TraceEnter", "TraceExit", "TraceSkipped", "TraceEvent", "WithTrace", "WithTraceFilter", "WithTraceMaxDepth",

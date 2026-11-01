@@ -28,7 +28,7 @@ The printer keeps the text small and the functions few:
   dominated recovery time. The error of a failed parse keeps its stack.
 
 Budget charges follow the budget model of the IR: one at rule entry and one per loop iteration, printed only
-with `-budget-controls`.
+with `-limits`.
 
 ## Scope and State
 
@@ -43,8 +43,8 @@ None. The generated parsers are compared with the engine oracle over the corpus 
 
 Record 122 measures the printer against the grammar-tree printer it replaced, in six rotated rounds
 on Node 24. The old printer always spends budget, so its output is the controlled form; the comparison
-below sets it against the new default form, without budget controls, and the like-for-like comparison with
-`-budget-controls` is in the record.
+below sets it against the new default form, without limit controls, and the like-for-like comparison with
+`-limits` is in the record.
 
 - Speed: parse and recognition of JSON, CSV and XML are 17% to 46% faster (parse 0.83x, 0.83x and 0.68x,
   recognition 0.70x, 0.61x and 0.54x).

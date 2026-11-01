@@ -25,7 +25,7 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 			restore := corruptVMLiteral(t, prog)
 			var observed *core.Parser
 			n, err := prog.ParseWith("main", "z", ParseOptions{
-				Backend: backend, Limits: limits.Limits{Budget: 1 << 20},
+				Backend: backend, Limits: limits.Limits{Compute: 1 << 20},
 				Trace: func(e TraceEvent) { observed = core.TraceParser(e) },
 			})
 			if n != nil || err == nil || !strings.HasPrefix(err.Error(), "invalid bytecode: ") {
@@ -73,7 +73,7 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 							return
 						}
 						observed = core.TraceParser(e)
-						core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used + 1
+						core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 1
 						ctx.fn = func() error {
 							// The accessor's own reservation may poll the context.
 							ctx.fn = nil
@@ -86,7 +86,7 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 					},
 				})
 				var limit *limits.LimitError
-				if n != nil || !accessorEntered || !errors.As(err, &limit) || limit.Kind != limits.LimitBudget {
+				if n != nil || !accessorEntered || !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
 					t.Fatalf("context accessor node=%v entered=%v error=%v", n, accessorEntered, err)
 				}
 				if observed == nil || observed.Scratch != nil || observed.Control != nil {

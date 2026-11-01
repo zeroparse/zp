@@ -40,7 +40,7 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 					if pieces := d.Input().Pieces; pieces == nil || len(pieces.Parts) < 3 {
 						t.Fatal("the edit left the document in one piece")
 					}
-					o.Limits.Budget = budget
+					o.Limits.Compute = budget
 					n, err := d.ParseWith(o)
 					if err == nil && n.Value() != any(text[:depth]+"é"+text[depth+1:]) {
 						t.Fatalf("value %v", n)

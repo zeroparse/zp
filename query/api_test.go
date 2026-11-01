@@ -135,7 +135,7 @@ func TestPublicStructuralQuerySharedEdgesAndLimits(t *testing.T) {
 	if partial, err := q.Matches(root, query.WithContext(ctx)); partial != nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled query: %+v, %v", partial, err)
 	}
-	if partial, err := q.Matches(root, query.WithLimits(zp.Limits{Budget: 1})); partial != nil || !errors.Is(err, zp.ErrLimit) {
+	if partial, err := q.Matches(root, query.WithLimits(zp.Limits{Compute: 1})); partial != nil || !errors.Is(err, zp.ErrLimit) {
 		t.Fatalf("limited query: %+v, %v", partial, err)
 	}
 	var kids []*zp.Node

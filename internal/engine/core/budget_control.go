@@ -29,24 +29,24 @@ type BudgetControl struct {
 }
 
 // ResolveLimits returns the limits a parse runs under for an input of n units of its position
-// unit: a zero Budget selects the default (limits.DefaultBudget), and Unlimited disables the
+// unit: a zero Compute selects the default (limits.DefaultBudget), and Unlimited disables the
 // budget, which the result leaves zero. A stream does not know n: its default starts at the floor
 // and grows with the furthest position the parser demands (BudgetControl.Demand), which adaptive reports. The reference
 // build has no controls to charge, so no default applies there.
 func ResolveLimits(l limits.Limits, n uint64, stream bool) (resolved limits.Limits, adaptive bool) {
-	if l.MaxInput == limits.Unlimited {
-		l.MaxInput = 0 // the default of MaxInput is Unlimited
+	if l.Input == limits.Unlimited {
+		l.Input = 0 // the default of Input is Unlimited
 	}
-	switch l.Budget {
+	switch l.Compute {
 	case limits.Unlimited:
-		l.Budget = 0
+		l.Compute = 0
 	case 0:
 		switch {
 		case !BudgetControlsEnabled:
 		case stream:
-			l.Budget, adaptive = limits.DefaultBudgetFloor, true
+			l.Compute, adaptive = limits.DefaultBudgetFloor, true
 		default:
-			l.Budget = limits.DefaultBudget(n)
+			l.Compute = limits.DefaultBudget(n)
 		}
 	}
 	return l, adaptive
@@ -60,8 +60,8 @@ func (c *BudgetControl) Demand(n int) {
 	if c == nil || !c.Adaptive || n <= 0 {
 		return
 	}
-	if b := limits.DefaultBudget(uint64(n)); b > c.Limits.Budget {
-		c.Limits.Budget = b
+	if b := limits.DefaultBudget(uint64(n)); b > c.Limits.Compute {
+		c.Limits.Compute = b
 	}
 }
 
@@ -72,7 +72,7 @@ func NewBudgetControl(ctx context.Context, limits limits.Limits) *BudgetControl 
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil
 	}
-	if ctx == nil && limits.Budget == 0 {
+	if ctx == nil && limits.Compute == 0 {
 		return nil
 	}
 	return &BudgetControl{Ctx: ctx, Limits: limits}
@@ -108,7 +108,7 @@ func (c *BudgetControl) Check() {
 	c.SinceCheck = 0
 }
 
-// Charge atomically reserves n budget units. Cancellation wins when it is
+// Charge atomically reserves n compute units. Cancellation wins when it is
 // observed at a poll or when the reservation would fail. A failed reservation
 // leaves the counter unchanged. It is safe on a nil receiver.
 func (c *BudgetControl) Charge(n uint64) {
@@ -116,7 +116,7 @@ func (c *BudgetControl) Charge(n uint64) {
 		return
 	}
 
-	exceeded := limits.ExceedsLimit(c.Used, n, c.Limits.Budget)
+	exceeded := limits.ExceedsLimit(c.Used, n, c.Limits.Compute)
 	poll := limits.ReachesInterval(c.SinceCheck, n, BudgetCheckInterval)
 
 	// Check on each poll boundary and on a failed reservation so an already
@@ -130,7 +130,7 @@ func (c *BudgetControl) Charge(n uint64) {
 	}
 	if exceeded {
 		panic(Fatal{Err: &limits.LimitError{
-			Kind: limits.LimitBudget, Limit: c.Limits.Budget,
+			Kind: limits.LimitCompute, Limit: c.Limits.Compute,
 			Used: c.Used, Requested: n,
 		}})
 	}
@@ -156,33 +156,33 @@ func InputUnits(s string, unit PositionUnit) uint64 {
 // ErrNoControls is returned in the reference build when a context or a finite limit is requested.
 var ErrNoControls = errors.New("budget controls are unavailable in the reference build")
 
-// CheckInput rejects an input of s that is longer than the resolved MaxInput of l, in the position
+// CheckInput rejects an input of s that is longer than the resolved Input limit of l, in the position
 // unit. The check is O(1) unless the byte length passes the limit in CodePoints, where the exact
 // count decides: the byte length bounds the count from above.
 func CheckInput(l limits.Limits, s string, unit PositionUnit) error {
-	if l.MaxInput == 0 {
+	if l.Input == 0 {
 		return nil
 	}
 	if !BudgetControlsEnabled {
 		return ErrNoControls
 	}
 	n := uint64(len(s))
-	if n > l.MaxInput && unit == CodePoints {
+	if n > l.Input && unit == CodePoints {
 		n = uint64(utf8.RuneCountInString(s))
 	}
 	return CheckInputUnits(l, n)
 }
 
-// CheckInputUnits rejects an input of n units that is longer than the resolved MaxInput of l.
+// CheckInputUnits rejects an input of n units that is longer than the resolved Input limit of l.
 func CheckInputUnits(l limits.Limits, n uint64) error {
-	if l.MaxInput == 0 {
+	if l.Input == 0 {
 		return nil
 	}
 	if !BudgetControlsEnabled {
 		return ErrNoControls
 	}
-	if n > l.MaxInput {
-		return &limits.LimitError{Kind: limits.LimitInput, Limit: l.MaxInput, Requested: n}
+	if n > l.Input {
+		return &limits.LimitError{Kind: limits.LimitInput, Limit: l.Input, Requested: n}
 	}
 	return nil
 }

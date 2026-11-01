@@ -20,7 +20,7 @@ func limitOf(t *testing.T, err error) uint64 {
 	t.Helper()
 	var le *limits.LimitError
 	if !errors.As(err, &le) {
-		t.Fatalf("want a budget limit error, got %v", err)
+		t.Fatalf("want a compute limit error, got %v", err)
 	}
 	return le.Limit
 }
@@ -47,14 +47,14 @@ func TestBudgetDefault(t *testing.T) {
 				if got := limitOf(t, err); got != c.want {
 					t.Fatalf("default limit %d, want %d", got, c.want)
 				}
-				_, err = prog.ParseWith("main", c.input, ParseOptions{Backend: b, Unit: c.unit, Limits: limits.Limits{Budget: 1000}})
+				_, err = prog.ParseWith("main", c.input, ParseOptions{Backend: b, Unit: c.unit, Limits: limits.Limits{Compute: 1000}})
 				if got := limitOf(t, err); got != 1000 {
 					t.Fatalf("explicit limit %d, want 1000", got)
 				}
 			})
 		}
 		t.Run(b.String()+"/unlimited", func(t *testing.T) {
-			if _, err := prog.ParseWith("main", strings.Repeat("a", 300), ParseOptions{Backend: b, Limits: limits.Limits{Budget: limits.Unlimited}}); err != nil {
+			if _, err := prog.ParseWith("main", strings.Repeat("a", 300), ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited}}); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -67,7 +67,7 @@ func TestBudgetDefault(t *testing.T) {
 			if got := limitOf(t, err); got != 1<<20 {
 				t.Fatalf("document default limit %d", got)
 			}
-			if _, err := d.ParseWith(ParseOptions{Backend: b, Limits: limits.Limits{Budget: limits.Unlimited}}); err != nil {
+			if _, err := d.ParseWith(ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited}}); err != nil {
 				t.Fatal(err)
 			}
 		})

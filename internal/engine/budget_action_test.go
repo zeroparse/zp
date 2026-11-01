@@ -34,7 +34,7 @@ func TestBudgetActionStringHelperParity(t *testing.T) {
 	right := strings.Repeat("prefix-", 2048) + "b" + string([]byte{0x00})
 
 	for _, unit := range []PositionUnit{Bytes, CodePoints} {
-		p := actionBudgetParser(nil, limits.Limits{Budget: 1 << 40}, unit)
+		p := actionBudgetParser(nil, limits.Limits{Compute: 1 << 40}, unit)
 		wantLen := len(malformed)
 		if unit == CodePoints {
 			wantLen = utf8.RuneCountInString(malformed)
@@ -70,19 +70,19 @@ func TestBudgetActionStringHelperParity(t *testing.T) {
 func TestBudgetActionStringHelpersChargeLongBudget(t *testing.T) {
 	t.Parallel()
 	long := strings.Repeat("a", 8192)
-	p := actionBudgetParser(nil, limits.Limits{Budget: 256}, CodePoints)
+	p := actionBudgetParser(nil, limits.Limits{Compute: 256}, CodePoints)
 	if err := catchFatal(t, func() { p.CompareText(long+"x", long+"y") }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("long equal-prefix comparison error = %v, want ErrLimit", err)
 	}
 
-	p = actionBudgetParser(nil, limits.Limits{Budget: 128}, Bytes)
+	p = actionBudgetParser(nil, limits.Limits{Compute: 128}, Bytes)
 	if err := catchFatal(t, func() {
 		_, _ = p.ValueBinary("+", long, long)
 	}); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("long string concatenation error = %v, want ErrLimit", err)
 	}
 
-	p = actionBudgetParser(nil, limits.Limits{Budget: 128}, CodePoints)
+	p = actionBudgetParser(nil, limits.Limits{Compute: 128}, CodePoints)
 	if err := catchFatal(t, func() { p.ValueTextLen(long) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("long rune length error = %v, want ErrLimit", err)
 	}
@@ -163,7 +163,7 @@ rule items = [a-z] #atomic*`)
 						n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 							if !armed && e.Kind == TraceExit && e.Rule == "items" {
 								armed = true
-								core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+								core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 							}
 						}})
 						if !armed || n != nil || !errors.Is(err, limits.ErrLimit) {
@@ -226,7 +226,7 @@ rule items = [a-z]* #atomic`)
 				armContext := func(e TraceEvent, armed *bool) {
 					if !*armed && e.Kind == TraceExit && e.Rule == "items" {
 						*armed = true
-						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Budget: 128})
+						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
 					}
 				}
 				armed := false
@@ -239,7 +239,7 @@ rule items = [a-z]* #atomic`)
 				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "items" {
 						armed = true
-						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Budget: 256})
+						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 256})
 					}
 				}})
 				if !armed || n != nil || !errors.Is(err, limits.ErrLimit) {

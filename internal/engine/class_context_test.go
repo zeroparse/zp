@@ -95,8 +95,8 @@ func TestClassConstructionContextFacts(t *testing.T) {
 					for _, active := range []bool{false, true} {
 						p, q := &core.Parser{}, &core.Parser{}
 						if active {
-							p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
-							q.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
+							p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+							q.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
 						}
 						expected := false
 						for _, rg := range rs {
@@ -160,7 +160,7 @@ func TestClassConstructionCompileContextParity(t *testing.T) {
 							// including its directly compiled recognition-only graph.
 							opts := ParseOptions{Unit: unit, Recognize: recognize}
 							if active {
-								opts.Limits = limits.Limits{Budget: 1 << 30}
+								opts.Limits = limits.Limits{Compute: 1 << 30}
 							}
 							x, xe := a.ParseWith("main", s, opts)
 							y, ye := b.ParseWith("main", s, opts)

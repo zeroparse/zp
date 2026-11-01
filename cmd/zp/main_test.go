@@ -421,19 +421,19 @@ func TestGenTypeScriptBudgetControls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	controlledDir, err := runGenTS(t, "-g", g, "-budget-controls")
+	controlledDir, err := runGenTS(t, "-g", g, "-limits")
 	if err != nil {
-		t.Fatalf("-lang ts -budget-controls: %v", err)
+		t.Fatalf("-lang ts -limits: %v", err)
 	}
 	plain, controlled := readTS(t, plainDir, "parser.ts"), readTS(t, controlledDir, "parser.ts")
 	if strings.Contains(plain, "budget") || strings.Contains(plain, "CancellationSignal") || !strings.Contains(plain, "PlainParseOptions") {
-		t.Error("a parser generated without -budget-controls has budget controls")
+		t.Error("a parser generated without -limits has limit controls")
 	}
 	if !strings.Contains(controlled, "CancellationSignal") || strings.Contains(controlled, "PlainParseOptions") {
-		t.Error("a parser generated with -budget-controls has no budget controls")
+		t.Error("a parser generated with -limits has no limit controls")
 	}
-	if _, err := runGenTS(t, "-runtime", "only", "-budget-controls"); err == nil || !strings.Contains(err.Error(), "-budget-controls cannot be combined with -runtime only") {
-		t.Errorf("-runtime only -budget-controls: %v", err)
+	if _, err := runGenTS(t, "-runtime", "only", "-limits"); err == nil || !strings.Contains(err.Error(), "-limits cannot be combined with -runtime only") {
+		t.Errorf("-runtime only -limits: %v", err)
 	}
 }
 

@@ -37,7 +37,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 			rng := rand.New(rand.NewSource(1))
 			p := &Parser{}
 			if k.budgeted {
-				p.Control = newBudgetControl(nil, Limits{Budget: 1 << 40})
+				p.Control = newBudgetControl(nil, Limits{Compute: 1 << 40})
 			}
 			tp := &TParser{Parser: p}
 			var table *memoTable = &p.memo

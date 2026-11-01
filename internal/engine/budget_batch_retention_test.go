@@ -77,7 +77,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 								}
 							}}
 							if active {
-								opts.Limits = limits.Limits{Budget: 1 << 30}
+								opts.Limits = limits.Limits{Compute: 1 << 30}
 							}
 							n, err := prog.ParseWith("main", input, opts)
 							return n, err, retained
@@ -188,7 +188,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 							opts.Context, cancel = context.WithCancel(context.Background())
 							defer cancel()
 						case "steps":
-							opts.Limits = limits.Limits{Budget: 1 << 30}
+							opts.Limits = limits.Limits{Compute: 1 << 30}
 						default:
 							at := 1
 							if cause == "publication-panic" {
@@ -207,7 +207,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								case "cancel":
 									cancel()
 								case "steps":
-									core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used
+									core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used
 								case "context-panic":
 									panicCtx.armed = true
 								}
@@ -228,7 +228,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 							}
 						case "steps":
 							var limit *limits.LimitError
-							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != limits.LimitBudget {
+							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != limits.LimitCompute {
 								t.Fatalf("panic=%v err=%v", got, returnedErr)
 							}
 						default:

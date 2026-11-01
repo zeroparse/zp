@@ -42,7 +42,7 @@ func TestGeneratedNoStepChargesInTypedCode(t *testing.T) {
 				t.Errorf("%+v: a parser without budget controls charges steps", opts)
 			}
 		}
-		if out := generated(gen.GenOptions{Types: true, Document: true, BudgetControls: true}); !strings.Contains(out, ".Spend()") {
+		if out := generated(gen.GenOptions{Types: true, Document: true, LimitControls: true}); !strings.Contains(out, ".Spend()") {
 			t.Error("a controlled parser does not charge steps: the check is void")
 		}
 	}
@@ -51,7 +51,7 @@ func TestGeneratedNoStepChargesInTypedCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.Generate(t, g, gen.GenOptions{Package: "p", Module: "example.com/p", Start: "main", Runtime: gen.RuntimeImport, Types: true, BudgetControls: true})
+	files, err := gentest.Generate(t, g, gen.GenOptions{Package: "p", Module: "example.com/p", Start: "main", Runtime: gen.RuntimeImport, Types: true, LimitControls: true})
 	if err != nil {
 		t.Fatal(err)
 	}

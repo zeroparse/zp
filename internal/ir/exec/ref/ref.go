@@ -19,7 +19,7 @@ import (
 type Config struct {
 	// Rules is the number of rules whose memoization is deferred (component seen).
 	Rules int
-	// Limit is the budget limit, 0 for none.
+	// Limit is the compute limit, 0 for none.
 	Limit uint64
 	// MaxDepth is the nesting limit.
 	MaxDepth int64
@@ -164,7 +164,7 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }
 
-// Exceeds reports whether charging n units would exceed the budget limit.
+// Exceeds reports whether charging n units would exceed the compute limit.
 func (m *Model) Exceeds(n uint64) bool {
 	l := m.cfg.Limit
 	return l != 0 && (m.used > l || n > l-m.used)

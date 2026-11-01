@@ -90,11 +90,11 @@ func TestSnapshotPositionOverlayBudgetAndRetry(t *testing.T) {
 	for i := range next.nodes {
 		next.nodes[i] = snapshotRecord{start: 3, end: 5, gen: 1}
 	}
-	p := &parser{control: newBudgetControl(nil, limits.Limits{Budget: 264})}
+	p := &parser{control: newBudgetControl(nil, limits.Limits{Compute: 264})}
 	err := catchFatal(t, func() { shareSnapshotGraph(p, &previous, next) })
 	var limit *limits.LimitError
-	if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget || limit.Requested != 3 {
-		t.Fatal("overlay metadata copy escaped budget limit", err)
+	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute || limit.Requested != 3 {
+		t.Fatal("overlay metadata copy escaped compute limit", err)
 	}
 	if previous.positions != nil || next.positions != nil || previous.nodes[0].start != 0 || next.nodes[0].start != 3 {
 		t.Fatal("interrupted copy changed the input graphs")

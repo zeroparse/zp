@@ -7,7 +7,7 @@ import (
 	rt "zeroparse.dev/zp/runtime"
 )
 
-// Parse parses the whole input with the rule main. Options select position units, depth, cancellation and budget limits.
+// Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
 func Parse(input string, opts ...rt.ParseOption) (*rt.Node, error) {
 	return rt.RunParse(rules[0], input, opts)

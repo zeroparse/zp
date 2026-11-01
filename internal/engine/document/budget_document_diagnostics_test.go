@@ -63,7 +63,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 					}
 				}
 				o := base
-				o.Limits.Budget = 1 << 20
+				o.Limits.Compute = 1 << 20
 				if mode != "budget" {
 					o.Context = ctx
 				}
@@ -71,7 +71,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 					if e.Kind == TraceExit && e.Rule == "main" {
 						observed, exitSteps = core.TraceParser(e), core.TraceParser(e).Control.Used
 						if mode == "budget" {
-							core.TraceParser(e).Control.Limits.Budget = exitSteps + 64
+							core.TraceParser(e).Control.Limits.Compute = exitSteps + 64
 						}
 					}
 				}

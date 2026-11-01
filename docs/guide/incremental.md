@@ -92,7 +92,7 @@ on the earlier decoding, including a prefix completed by an insertion at EOF. In
 have already been replaced with U+FFFD; editing that normalized text does not reassemble the original bytes.
 
 A `Document` is not safe for concurrent use; a `Parser` is, so use one `Document` per goroutine and share the `Parser`.
-Several `Edit` calls can precede one `Parse`. Each successful `Edit` advances `Version` once, including a no-op; parsing does not. Both `Edit` and `EditBatch` are outside parse-budget limits.
+Several `Edit` calls can precede one `Parse`. Each successful `Edit` advances `Version` once, including a no-op; parsing does not. Both `Edit` and `EditBatch` are outside parse-compute limits.
 
 Use `EditBatch` when one editor transaction contains several replacements. All ranges are measured in the unchanged base text, not adjusted after earlier edits in the batch. Starts must be strictly increasing and ranges nonoverlapping; insertions at the same position are rejected. A failed batch changes nothing. A successful nonempty batch advances the version once, clears reusable parse state, and leaves parsing to the next `Parse` call. It preserves the existing `Node` behavior: previously returned Nodes are not moved until a later parse. Cache reset means batches do not promise the reuse cost of a sequence of `Edit` calls.
 
@@ -123,7 +123,7 @@ the last `Stats` intact. Once parse execution starts, an interruption clears
 the whole memo and repetition caches because completed entries can depend on
 unfinished left-recursion seeds. Fully completed input tables may remain; partial
 line or offset tables are never published and are discarded. The text and
-options stay available for retry or editing. A fresh context and budget can
+options stay available for retry or editing. A fresh context and limits can
 retry the parse; ordinary syntax errors and recovered errors are completed
 outcomes and keep their reusable caches. Trace panics still propagate after
 cleanup.
@@ -144,7 +144,7 @@ Document advances, capture them together:
 ```go
 snapshot, err := doc.Snapshot(zp.WithContext(ctx), zp.WithLimits(limits))
 if snapshot == nil {
-    return err // cancellation or a budget limit publishes no partial snapshot
+    return err // cancellation or a compute limit publishes no partial snapshot
 }
 
 text := snapshot.Text()
@@ -158,10 +158,10 @@ if root.Valid() {
 
 A normal syntax failure still returns a Snapshot with its text and version, a
 zero root, and the copied syntax error. A recovered parse keeps its root and
-recovered errors. Cancellation or budget limit exhaustion during parsing or
-capture returns a nil Snapshot. The same invocation budget covers parsing,
+recovered errors. Cancellation or compute limit exhaustion during parsing or
+capture returns a nil Snapshot. The same invocation limits cover parsing,
 copying text, freezing the graph, and copying diagnostics. Snapshot getters and
-`Materialize` run after capture and have no inherited controller or budget limit.
+`Materialize` run after capture and have no inherited controller or compute limit.
 
 `SnapshotNode` is a read-only handle. Its zero value represents a nil Node;
 `ChildCount` includes nil child slots. `Field(name)` returns both a value and a

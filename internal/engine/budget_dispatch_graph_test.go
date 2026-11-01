@@ -42,7 +42,7 @@ rule expr = #operators {
 			for i := 0; i < 6; i++ {
 				opts := ParseOptions{Unit: unit}
 				if i%2 == 1 {
-					opts.Limits = limits.Limits{Budget: 1000000}
+					opts.Limits = limits.Limits{Compute: 1000000}
 				}
 				got, err := d.ParseWith(opts)
 				if err != nil {
@@ -53,7 +53,7 @@ rule expr = #operators {
 					t.Fatalf("iteration %d: cached/fresh mismatch: %v", i, err)
 				}
 				// A cached tree must not bypass admission on the other dispatch graph.
-				blocked, err := d.ParseWith(ParseOptions{Unit: unit, Limits: limits.Limits{Budget: 1}})
+				blocked, err := d.ParseWith(ParseOptions{Unit: unit, Limits: limits.Limits{Compute: 1}})
 				if blocked != nil || !errors.Is(err, limits.ErrLimit) {
 					t.Fatalf("iteration %d: cached result bypassed budget: %v", i, err)
 				}
@@ -74,7 +74,7 @@ func TestBudgetClosureDispatchMetersZeroWidthExpressions(t *testing.T) {
 	prog := mustCompile(t, "rule a = ^\n"+"rule main = "+strings.Repeat("a ", 64)+"$$")
 	straight := mustCompile(t, "rule main = "+strings.Repeat("^ ", 64)+"$$")
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
-		opts := ParseOptions{Unit: unit, Recognize: true, Limits: limits.Limits{Budget: 16}}
+		opts := ParseOptions{Unit: unit, Recognize: true, Limits: limits.Limits{Compute: 16}}
 		n, err := prog.ParseWith("main", "", opts)
 		if n != nil || !errors.Is(err, limits.ErrLimit) {
 			t.Fatalf("zero-width calls bypassed budget: node=%v error=%v", n, err)

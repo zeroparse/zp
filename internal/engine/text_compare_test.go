@@ -14,7 +14,7 @@ import (
 func TestTextFieldComparisons(t *testing.T) {
 	t.Parallel()
 	prog := compileBare(t, gentest.TextCompareGrammar, compile.Options{})
-	limits := limits.Limits{Budget: 1 << 40}
+	limits := limits.Limits{Compute: 1 << 40}
 	for _, controlled := range []bool{false, true} {
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
 			for _, input := range gentest.TextCompareInputs {
@@ -38,7 +38,7 @@ func TestTextFieldComparisons(t *testing.T) {
 // the result.
 func parseSteps(t *testing.T, prog *Program, backend Backend, unit PositionUnit, input string) (uint64, string) {
 	t.Helper()
-	o := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Budget: 1 << 40}}
+	o := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Compute: 1 << 40}}
 	active, _, control, err := prog.admitParse("main", o, false, input)
 	if err != nil {
 		t.Fatal(err)

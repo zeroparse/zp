@@ -110,7 +110,7 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	// The mutated runtimes have no budget controls.
+	// The mutated runtimes have no limit controls.
 	gentest.PinOrdinary(t)
 	cases := depMemoGenCases(t, 120)
 	for _, flags := range []string{"-mod=mod -trimpath", core.TagFlags("-mod=mod -trimpath")} {
@@ -203,7 +203,7 @@ func main() {
 // TestGeneratedLeftRecursionDependencyMemoLinear checks that the Parse and ParseAST of generated Go
 // parsers of gentest.DependencyMemoShapes evaluate a number of calls linear in the length of the
 // input: doubling the input at most a little more than doubles the evaluations. They also parse an
-// input of length 10,000; with budget controls, within the default budget, which grows linearly with
+// input of length 10,000; with limit controls, within the default budget, which grows linearly with
 // the input and counts work that evaluations do not show, such as the scan of the jumps recorded
 // for a seed.
 func TestGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// TestGeneratedRuleEntryCharge checks, on the checked-in parsers generated with budget controls, that every
+// TestGeneratedRuleEntryCharge checks, on the checked-in parsers generated with limit controls, that every
 // matcher function of the Node and typed tables (rule bodies, framed bodies, flat-rule methods and the
 // lines and skips of Operators Rules) begins with one Spend and has no other Spend before its first
 // loop; a typed wrapper u<N> or i<N> that only saves and restores state around a call of another matcher
@@ -38,7 +38,7 @@ func TestGeneratedRuleEntryCharge(t *testing.T) {
 		}
 	}
 	if len(paths) == 0 {
-		t.Fatal("no checked-in parser with budget controls found")
+		t.Fatal("no checked-in parser with limit controls found")
 	}
 	for _, path := range paths {
 		f, err := goparser.ParseFile(token.NewFileSet(), path, nil, 0)

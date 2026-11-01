@@ -15,9 +15,9 @@ func TestFragmentCursorFallbackInterruption(t *testing.T) {
 	source := strings.Repeat("😀\xff", 1000) + "tail"
 	in := NewTextInput(source, CodePoints, false)
 	// Endpoint conversion itself must cooperate even after matching succeeded.
-	in.Control = NewBudgetControl(nil, limits.Limits{Budget: 8})
+	in.Control = NewBudgetControl(nil, limits.Limits{Compute: 8})
 	if err := catchFatal(t, func() { in.PrefixByteOffset(source, 2000) }); !errors.Is(err, limits.ErrLimit) {
-		t.Fatalf("fallback budget limit: %v", err)
+		t.Fatalf("fallback compute limit: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	in.Control = NewBudgetControl(ctx, limits.Limits{})

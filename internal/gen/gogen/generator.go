@@ -165,7 +165,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.BudgetControls, Ordinary: !opts.BudgetControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch, disableTerminalPrograms: opts.DisableTerminalPrograms, DisableGuardedClasses: opts.DisableGuardedClasses, BoxedComparisons: opts.BoxedComparisons, disableTypedObjectSlabs: opts.DisableTypedObjectSlabs, disableTypedListSlabs: opts.DisableTypedListSlabs, disableTypedOutputBootstrap: opts.DisableTypedOutputBootstrap, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
+	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch, disableTerminalPrograms: opts.DisableTerminalPrograms, DisableGuardedClasses: opts.DisableGuardedClasses, BoxedComparisons: opts.BoxedComparisons, disableTypedObjectSlabs: opts.DisableTypedObjectSlabs, disableTypedListSlabs: opts.DisableTypedListSlabs, disableTypedOutputBootstrap: opts.DisableTypedOutputBootstrap, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
 	if live != nil {
 		goGen.SeedDescs()
 		for _, d := range live.descs[len(goGen.Descs):] {
@@ -240,7 +240,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 	if opts.Observability {
 		goGen.Init.WriteString("\tzpGrammar.Observable = true\n")
 	}
-	if !opts.BudgetControls {
+	if !opts.LimitControls {
 		goGen.Init.WriteString("\tzpGrammar.NoBudgetControls = true\n")
 	}
 	if prog.RecordsSourceInfo {
@@ -264,7 +264,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 	}
 	out.WriteString("// --- Generated code ---\n\n")
 	if !opts.TypedOnly {
-		fmt.Fprintf(&out, "// Parse parses the whole input with the rule %s. Options select position units, depth, cancellation and budget limits.\n", start.Name)
+		fmt.Fprintf(&out, "// Parse parses the whole input with the rule %s. Options select position units, depth, cancellation and compute limits.\n", start.Name)
 		out.WriteString("// If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.\n")
 		fmt.Fprintf(&out, "func Parse(input string, opts ...ParseOption) (*Node, error) { return RunParse(rules[%d], input, opts) }\n\n", start.ID)
 	}

@@ -76,7 +76,7 @@ rule leaf Leaf = d:[0-9]+ => Leaf{N: len($d)}
 		t.Errorf("fields out of order do not keep the order written:\n%s", src)
 	}
 	// Negative control: with budget controls the steps are charged.
-	files, err = gentest.Generate(t, g, gen.GenOptions{Package: "p", Start: "main", Runtime: gen.RuntimeImport, Types: true, Module: "example.com/p", BudgetControls: true})
+	files, err = gentest.Generate(t, g, gen.GenOptions{Package: "p", Start: "main", Runtime: gen.RuntimeImport, Types: true, Module: "example.com/p", LimitControls: true})
 	if err != nil {
 		t.Fatal(err)
 	}

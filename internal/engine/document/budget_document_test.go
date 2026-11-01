@@ -44,7 +44,7 @@ rule item = "a"`)
 					cancel()
 				}
 				if phase == "steps" {
-					o.Limits.Budget = 1
+					o.Limits.Compute = 1
 				}
 				if phase == "enter" || phase == "exit" {
 					o.Trace = func(e TraceEvent) {
@@ -96,12 +96,12 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			case "canceled":
 				o.Context = ctx
 			case "input":
-				o.Limits.Budget = 1
+				o.Limits.Compute = 1
 			case "steps":
 				if core.DocumentPieceInput && base.Unit == Bytes {
 					continue
 				}
-				o.Limits.Budget = 1
+				o.Limits.Compute = 1
 			}
 			text := "é💡abc"
 			if phase == "steps" {
@@ -119,7 +119,7 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			}
 		}
 		o := base
-		o.Limits = limits.Limits{Budget: 100000}
+		o.Limits = limits.Limits{Compute: 100000}
 		d, err := prog.NewDocumentWith("main", "é💡abc", o)
 		if err != nil || d == nil {
 			t.Fatalf("fresh construction: %v", err)

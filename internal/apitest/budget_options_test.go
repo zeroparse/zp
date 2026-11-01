@@ -20,7 +20,7 @@ rule main = "abc" $$`, "main")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	n, err := p.Parse("abc", zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Budget: 1}), zp.WithLimits(zp.Limits{}))
+	n, err := p.Parse("abc", zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Compute: 1}), zp.WithLimits(zp.Limits{}))
 	if n == nil || err != nil {
 		t.Fatalf("last option did not win: node=%v err=%v", n, err)
 	}
@@ -42,7 +42,7 @@ rule main = "a"* #stream $$`, "main")
 	cancel()
 	options, emits := 0, 0
 	err = p.ParseStream(strings.NewReader("aaa"), func(*zp.Node) error { emits++; return nil },
-		zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Budget: 1}), zp.WithLimits(zp.Limits{}),
+		zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Compute: 1}), zp.WithLimits(zp.Limits{}),
 		func(o *engine.ParseOptions) { options++ })
 	if err != nil || emits != 3 || options != 1 {
 		t.Fatalf("error=%v emits=%d options=%d", err, emits, options)

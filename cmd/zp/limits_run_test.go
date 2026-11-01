@@ -32,7 +32,7 @@ func wantLimit(t *testing.T, what string, err error, kind zp.LimitKind, message 
 	}
 }
 
-// parse, trace, profile and explain apply -budget and -max-input to their parse: a small budget
+// parse, trace, profile and explain apply -max-compute and -max-input to their parse: a small budget
 // interrupts it, a short -max-input rejects the input, and unlimited and zero run it.
 func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 	g := writeFile(t, "limits.zp", limitsGrammar)
@@ -42,16 +42,16 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 			args := func(extra ...string) []string {
 				return append([]string{cmd, "-g", g, "-i", input}, extra...)
 			}
-			for _, ok := range [][]string{nil, {"-budget", "0"}, {"-budget", "unlimited"}, {"-max-input", "unlimited"}, {"-max-input", "26"}, {"-budget", "1000", "-max-input", "100"}} {
+			for _, ok := range [][]string{nil, {"-max-compute", "0"}, {"-max-compute", "unlimited"}, {"-max-input", "unlimited"}, {"-max-input", "26"}, {"-max-compute", "1000", "-max-input", "100"}} {
 				if _, err := runCLI(t, "", args(ok...)...); err != nil {
 					t.Errorf("%v: %v", ok, err)
 				}
 			}
 			if cmd == "profile" {
 				// profile reports the result of the parse in its output, whatever it is, and succeeds.
-				out, err := runCLI(t, "", args("-budget", "5")...)
-				if err != nil || !strings.Contains(out, "result: parse budget limit exceeded: limit 5") {
-					t.Errorf("-budget 5: error %v\n%s", err, out)
+				out, err := runCLI(t, "", args("-max-compute", "5")...)
+				if err != nil || !strings.Contains(out, "result: parse compute limit exceeded: limit 5") {
+					t.Errorf("-max-compute 5: error %v\n%s", err, out)
 				}
 				out, err = runCLI(t, input, cmd, "-g", g, "-max-input", "3")
 				if err != nil || !strings.Contains(out, "result: parse input limit exceeded: limit 3, length 26") {
@@ -59,8 +59,8 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 				}
 				return
 			}
-			_, err := runCLI(t, "", args("-budget", "5")...)
-			wantLimit(t, "-budget 5", err, zp.LimitBudget, "parse budget limit exceeded: limit 5")
+			_, err := runCLI(t, "", args("-max-compute", "5")...)
+			wantLimit(t, "-max-compute 5", err, zp.LimitCompute, "parse compute limit exceeded: limit 5")
 			_, err = runCLI(t, "", args("-max-input", "25")...)
 			wantLimit(t, "-max-input 25", err, zp.LimitInput, "parse input limit exceeded: limit 25, length 26")
 			// The input comes from standard input without -i, and the limit applies to it too.
@@ -86,8 +86,8 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 func TestCommandsRejectMalformedLimits(t *testing.T) {
 	g := writeFile(t, "limits.zp", limitsGrammar)
 	for _, cmd := range []string{"parse", "trace", "profile", "explain"} {
-		_, err := runCLI(t, "", cmd, "-g", g, "-i", "a", "-budget", "lots")
-		if err == nil || !strings.Contains(err.Error(), "-budget") {
+		_, err := runCLI(t, "", cmd, "-g", g, "-i", "a", "-max-compute", "lots")
+		if err == nil || !strings.Contains(err.Error(), "-max-compute") {
 			t.Errorf("%s: error %v", cmd, err)
 		}
 	}
@@ -107,7 +107,7 @@ func TestTestCommandAppliesLimits(t *testing.T) {
 		err := testCmd(append([]string{"-f", suite}, args...), &out)
 		return out.String(), err
 	}
-	if out, err := run("-budget", "unlimited", "-max-input", "26"); err != nil || !strings.Contains(out, "all fixtures passed") {
+	if out, err := run("-max-compute", "unlimited", "-max-input", "26"); err != nil || !strings.Contains(out, "all fixtures passed") {
 		t.Fatalf("within the limits: %v\n%s", err, out)
 	}
 	// A limit error is the runtime error of the case, and the suite fails.
@@ -115,22 +115,22 @@ func TestTestCommandAppliesLimits(t *testing.T) {
 	if err == nil || !strings.Contains(out, "runtime error: parse input limit exceeded: limit 25, length 26") {
 		t.Errorf("-max-input: error %v\n%s", err, out)
 	}
-	out, err = run("-budget", "5")
-	if err == nil || !strings.Contains(out, "runtime error: parse budget limit exceeded: limit 5") {
-		t.Errorf("-budget: error %v\n%s", err, out)
+	out, err = run("-max-compute", "5")
+	if err == nil || !strings.Contains(out, "runtime error: parse compute limit exceeded: limit 5") {
+		t.Errorf("-max-compute: error %v\n%s", err, out)
 	}
 }
 
 func TestEditFuzzAppliesLimits(t *testing.T) {
 	g := writeFile(t, "limits.zp", limitsGrammar)
 	base := []string{"edit-fuzz", "-g", g, "-backend", "closure", "-unit", "codepoints", "-sequences", "2", "-operations", "4"}
-	if out, err := runCLI(t, "", append(base, "-budget", "unlimited", "-max-input", "unlimited")...); err != nil || !strings.Contains(out, "ok closure/codepoints") {
+	if out, err := runCLI(t, "", append(base, "-max-compute", "unlimited", "-max-input", "unlimited")...); err != nil || !strings.Contains(out, "ok closure/codepoints") {
 		t.Fatalf("unlimited: %v\n%s", err, out)
 	}
 	// A budget of one cannot parse any initial text of the sequences.
-	_, err := runCLI(t, "", append(base, "-budget", "1")...)
-	if err == nil || !strings.Contains(err.Error(), "parse budget limit exceeded") {
-		t.Errorf("-budget: error %v", err)
+	_, err := runCLI(t, "", append(base, "-max-compute", "1")...)
+	if err == nil || !strings.Contains(err.Error(), "parse compute limit exceeded") {
+		t.Errorf("-max-compute: error %v", err)
 	}
 	_, err = runCLI(t, "", append(base, "-max-input", "1")...)
 	if err == nil || !strings.Contains(err.Error(), "parse input limit exceeded") {
@@ -152,7 +152,7 @@ func TestEditFuzzReplayAppliesLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out, err := runCLI(t, "", "edit-fuzz", "-g", g, "-replay", path, "-budget", "unlimited", "-max-input", "3"); err != nil || !strings.Contains(out, "ok "+path) {
+	if out, err := runCLI(t, "", "edit-fuzz", "-g", g, "-replay", path, "-max-compute", "unlimited", "-max-input", "3"); err != nil || !strings.Contains(out, "ok "+path) {
 		t.Fatalf("at the limit: %v\n%s", err, out)
 	}
 	_, err = runCLI(t, "", "edit-fuzz", "-g", g, "-replay", path, "-max-input", "2")

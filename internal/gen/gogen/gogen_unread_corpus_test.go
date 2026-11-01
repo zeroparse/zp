@@ -89,7 +89,7 @@ func TestGeneratedLocalVariables(t *testing.T) {
 		blank bool // the form has no blank lines inside functions
 	}{
 		{"ordinary", gen.GenOptions{Types: true}, true},
-		{"budget controls", gen.GenOptions{Types: true, BudgetControls: true}, false},
+		{"budget controls", gen.GenOptions{Types: true, LimitControls: true}, false},
 		{"document", gen.GenOptions{Types: true, Document: true}, false},
 		{"nodes", gen.GenOptions{}, true},
 		{"typed only", gen.GenOptions{Types: true, TypedOnly: true}, true},

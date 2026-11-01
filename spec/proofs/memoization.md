@@ -126,7 +126,7 @@ invariant reduced to outcomes, dropping (I2). The cases of the theorem derive
 outcomes only from outcomes, so (I1), and with it the theorem, holds unchanged.
 
 **Scope.** The proof covers a parse that no limit stops: no
-[nesting limit](../runtime/parsing.md#limits), cancellation, budget limit or
+[nesting limit](../runtime/parsing.md#limits), cancellation, compute limit or
 `MissingTokenLimitError`. A call answered from an entry does not nest, so
 whether a parse reaches the nesting limit can depend on memoization, as
 [Memoization](../runtime/parsing.md#memoization) states. It covers parses

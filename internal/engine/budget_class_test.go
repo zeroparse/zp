@@ -41,13 +41,13 @@ func budgetClassBudgetOptions(backend Backend, unit PositionUnit, allowance uint
 	return ParseOptions{
 		Backend: backend,
 		Unit:    unit,
-		Limits:  limits.Limits{Budget: 1 << 30},
+		Limits:  limits.Limits{Compute: 1 << 30},
 		Trace: func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
 				if observed != nil {
 					*observed = core.TraceParser(e)
 				}
-				core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used + allowance
+				core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + allowance
 			}
 		},
 	}
@@ -58,10 +58,10 @@ func requireClassBudgetLimit(t *testing.T, p *Program, input string, backend Bac
 	var observed *core.Parser
 	n, err := p.ParseWith("main", input, budgetClassBudgetOptions(backend, unit, 32, &observed))
 	if n != nil || !errors.Is(err, limits.ErrLimit) {
-		t.Fatalf("%v/%v input %q: node=%v err type=%T, want fatal budget limit error", backend, unit, input, n, err)
+		t.Fatalf("%v/%v input %q: node=%v err type=%T, want fatal compute limit error", backend, unit, input, n, err)
 	}
 	var limit *limits.LimitError
-	if !errors.As(err, &limit) || limit.Kind != limits.LimitBudget {
+	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
 		t.Fatalf("%v/%v input %q: error=%T %v, want spend LimitError", backend, unit, input, err, err)
 	}
 	if limit.Requested != 1 || limit.Used != limit.Limit {
@@ -117,7 +117,7 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 				opts := ParseOptions{
 					Backend: backend,
 					Unit:    unit,
-					Limits:  limits.Limits{Budget: 1 << 30},
+					Limits:  limits.Limits{Compute: 1 << 30},
 					Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
 							observed, control = core.TraceParser(e), core.TraceParser(e).Control
@@ -201,7 +201,7 @@ func TestBudgetClassFastPathParity(t *testing.T) {
 					base, baseErr := p.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit})
 					controlled, controlledErr := p.ParseWith("main", tc.input, ParseOptions{
 						Backend: backend, Unit: unit,
-						Limits: limits.Limits{Budget: 10000},
+						Limits: limits.Limits{Compute: 10000},
 					})
 					if !reflect.DeepEqual(controlled, base) || !reflect.DeepEqual(controlledErr, baseErr) {
 						t.Fatalf("controlled result differs: got %#v/%#v, want %#v/%#v", controlled, controlledErr, base, baseErr)
@@ -269,7 +269,7 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 						var c *core.BudgetControl
 						var start uint64
 						n, err := program.ParseWith("main", tc.input, ParseOptions{
-							Backend: backend, Unit: unit, Limits: limits.Limits{Budget: 1 << 30},
+							Backend: backend, Unit: unit, Limits: limits.Limits{Compute: 1 << 30},
 							Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
 									c = core.TraceParser(e).Control

@@ -206,7 +206,7 @@ func TestInterruptedGrowth(t *testing.T) {
 		limited := 0
 		for steps := uint64(1); ; steps++ {
 			completed, err := interrupt(t, unit, func(context.CancelFunc) []ParseOption {
-				return []ParseOption{WithLimits(Limits{Budget: steps})}
+				return []ParseOption{WithLimits(Limits{Compute: steps})}
 			})
 			if completed {
 				break

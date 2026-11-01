@@ -14,7 +14,7 @@ rule item Item = n:name ","? => Item{Name: text($n)}
 rule name = [a-z]+
 rule fast = "z"`
 
-// The generated TypeScript has two forms: without -budget-controls the rules do not spend budget and the
+// The generated TypeScript has two forms: without -limits the rules do not spend budget and the
 // entry points reject the control options; with it they charge and accept them.
 func TestGeneratedTSBudgetControlForms(t *testing.T) {
 	t.Parallel()
@@ -23,7 +23,7 @@ func TestGeneratedTSBudgetControlForms(t *testing.T) {
 		t.Fatal(err)
 	}
 	generate := func(controls bool) string {
-		files, err := gentest.GenerateTS(g, gen.GenOptions{Start: "main", Types: true, Recognize: true, BudgetControls: controls})
+		files, err := gentest.GenerateTS(g, gen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: controls})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -45,22 +45,22 @@ func TestGeneratedTSBudgetControlForms(t *testing.T) {
 	}
 	for _, charge := range []string{"p.spend(", "c.spend(", "charge("} {
 		if strings.Contains(plain, charge) {
-			t.Errorf("a parser generated without budget controls mentions %q:\n%s", charge, plain)
+			t.Errorf("a parser generated without limit controls mentions %q:\n%s", charge, plain)
 		}
 	}
 	for _, charge := range []string{"p.spend(", "c.spend("} {
 		if !strings.Contains(controlled, charge) {
-			t.Errorf("a parser generated with budget controls has no %q", charge)
+			t.Errorf("a parser generated with limit controls has no %q", charge)
 		}
 	}
 	if strings.Contains(plain, "CancellationSignal") || strings.Contains(plain, "ParseInterruption") {
-		t.Error("a parser generated without budget controls exports the cancellation types")
+		t.Error("a parser generated without limit controls exports the cancellation types")
 	}
 	if !strings.Contains(plain, "PlainParseOptions as ParseOptions") || !strings.Contains(plain, "options?: PlainParseOptions") {
-		t.Error("a parser generated without budget controls has the full options type")
+		t.Error("a parser generated without limit controls has the full options type")
 	}
 	if strings.Contains(controlled, "PlainParseOptions") || !strings.Contains(controlled, "CancellationSignal") || !strings.Contains(controlled, "options?: ParseOptions") {
-		t.Error("a parser generated with budget controls does not have the full options type")
+		t.Error("a parser generated with limit controls does not have the full options type")
 	}
 	if !strings.Contains(plain, "mkGrammar(") || !strings.Contains(plain, ", false);") || !strings.Contains(controlled, ", true);") {
 		t.Error("the grammar does not record whether the parser is controlled")
@@ -83,19 +83,19 @@ for (const unit of [p.CodePoints, p.Bytes]) {
   check(stable(p.parseASTWithOptions(input, o).value) === stable(typed.value), "typed options without controls");
   check(p.parseRuleWithOptions("fast", "z", o).error === null && p.recognizeWithOptions(input, o) === null, "rule and recognizer options");
   // The options type has no control option; a caller that bypasses it still gets an error.
-  // @ts-expect-error The options of a parser without budget controls have no signal.
+  // @ts-expect-error The options of a parser without limit controls have no signal.
   const withSignal = p.parseWithOptions(input, { unit, signal: { aborted: false } });
-  // @ts-expect-error The options of a parser without budget controls have no budget limit.
+  // @ts-expect-error The options of a parser without limit controls have no budget limit.
   const withBudget = p.parseASTWithOptions(input, { unit, budget: 1 });
-  // @ts-expect-error The options of a parser without budget controls have no budget limit.
+  // @ts-expect-error The options of a parser without limit controls have no budget limit.
   const withRecognize = p.recognizeWithOptions(input, { unit, budget: 1 });
   for (const error of [withSignal.error, withBudget.error, withRecognize]) {
-    check(error !== null && error.message.includes("generated without budget controls"), "a control option is rejected");
+    check(error !== null && error.message.includes("generated without limit controls"), "a control option is rejected");
   }
   const rejected = [{ signal: { aborted: false } }, { budget: 1 }] as unknown as p.ParseOptions[];
   for (const options of rejected) {
     for (const error of [p.parseWithOptions(input, options).error, p.parseRuleWithOptions("fast", "z", options).error, p.recognizeWithOptions(input, options), p.parseASTWithOptions(input, options).error]) {
-      check(error !== null && error.message.includes("generated without budget controls"), "a control option is rejected by every entry point: " + JSON.stringify(options));
+      check(error !== null && error.message.includes("generated without limit controls"), "a control option is rejected by every entry point: " + JSON.stringify(options));
     }
   }
   // Zero limits and an absent signal set nothing.
@@ -123,5 +123,5 @@ for (const unit of [p.CodePoints, p.Bytes]) {
   check(p.parse(input, unit).error === null, "a parse after an interruption");
 }
 `
-	runTypedTSFixture(t, tsBudgetFormsGrammar, consumer, gen.GenOptions{Start: "main", Recognize: true, BudgetControls: true}, "")
+	runTypedTSFixture(t, tsBudgetFormsGrammar, consumer, gen.GenOptions{Start: "main", Recognize: true, LimitControls: true}, "")
 }

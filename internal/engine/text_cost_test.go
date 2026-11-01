@@ -85,7 +85,7 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 					t.Fatalf("value %v, %v; want %q", n, err, want)
 				}
 				assertLinearText(t, []int{1024, 2048, 4096}, func(depth int, budget uint64) error {
-					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: limits.Limits{Budget: budget}})
+					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: limits.Limits{Compute: budget}})
 					return err
 				})
 			})
@@ -97,15 +97,15 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	t.Parallel()
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
-	c := core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
+	c := core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
 	in := core.NewControlledTextInput(source, CodePoints, false, nil, c)
 
 	// The decoding is interruptible and leaves nothing behind.
-	c.Limits.Budget = c.Used + 100
+	c.Limits.Compute = c.Used + 100
 	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("decoding interruption: %v", err)
 	}
-	c.Limits.Budget = 1 << 30
+	c.Limits.Compute = 1 << 30
 	if got := in.Text(0, 2000); got != want {
 		t.Fatal("text after an interrupted decoding differs")
 	}
@@ -136,7 +136,7 @@ func TestDocumentPieceTextFlattensOnce(t *testing.T) {
 	for _, unit := range []PositionUnit{Bytes, CodePoints} {
 		pieces := core.NewDocumentPieces(strings.Repeat("é", 8192), unit)
 		pieces.Replace(10, 11, "x\xff")
-		c := core.NewBudgetControl(nil, limits.Limits{Budget: 1 << 30})
+		c := core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
 		in := core.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
 		flat := strings.Repeat("é", 8192)
 		if unit == Bytes {

@@ -59,7 +59,7 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := gentest.GenerateTS(g, gen.GenOptions{Start: "main", BudgetControls: true, Recognize: true})
+		files, err := gentest.GenerateTS(g, gen.GenOptions{Start: "main", LimitControls: true, Recognize: true})
 		if err != nil {
 			t.Fatal(err)
 		}

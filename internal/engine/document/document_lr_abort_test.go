@@ -15,7 +15,7 @@ import (
 )
 
 // TestDocumentLeftRecursionAbortedGrowth interrupts a Document parse while a
-// left-recursive rule is growing, by cancellation, a budget limit or a trace
+// left-recursive rule is growing, by cancellation, a compute limit or a trace
 // panic, after an earlier parse left reusable results. The interrupted parse
 // must leave nothing reusable, and parsing again, before and after further
 // edits, must match a fresh parse.
@@ -65,7 +65,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 						case "cancel":
 							cancel()
 						case "steps":
-							core.TraceParser(e).Control.Limits.Budget = core.TraceParser(e).Control.Used
+							core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used
 						case "panic":
 							panic("interrupt growth")
 						}

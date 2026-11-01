@@ -273,7 +273,7 @@ func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts 
 func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts gen.GenOptions, generate func(testing.TB, *grammar.Grammar, gen.GenOptions) ([]gen.GeneratedFile, error)) string {
 	t.Helper()
 	opts.Runtime = gen.RuntimeImport
-	opts.BudgetControls = FixtureBudgetControls(t)
+	opts.LimitControls = FixtureBudgetControls(t)
 	opts.Package, opts.Module = pkg, root+"/"+pkg
 	opts.KeepComments = true
 	files, err := generate(t, g, opts)
@@ -301,7 +301,7 @@ func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, op
 func GenerateCode(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]byte, error) {
 	opts.Runtime = gen.RuntimeImport
 	opts.KeepComments = true
-	opts.BudgetControls = FixtureBudgetControls(t)
+	opts.LimitControls = FixtureBudgetControls(t)
 	if opts.Module == "" && opts.Types {
 		opts.Module = "example.com/generated"
 	}

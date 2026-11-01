@@ -24,7 +24,7 @@ func BenchmarkControlledParse(b *testing.B) {
 			p := load(b, w.grammar)
 			input := w.input(1)
 			// The largest finite budget: ^uint64(0) is Unlimited, which runs without a control.
-			limits := zp.Limits{Budget: ^uint64(0) - 1}
+			limits := zp.Limits{Compute: ^uint64(0) - 1}
 			for _, backend := range backends {
 				for _, unit := range units {
 					b.Run(backend.name+"/"+unit.name, func(b *testing.B) {
@@ -105,7 +105,7 @@ func TestControlledWorkloads(t *testing.T) {
 		t.Run(w.name, func(t *testing.T) {
 			input := w.input(10)
 			p := load(t, w.grammar)
-			limits := zp.Limits{Budget: ^uint64(0) - 1}
+			limits := zp.Limits{Compute: ^uint64(0) - 1}
 			equal := func(plain, controlled any) {
 				t.Helper()
 				a, err := json.Marshal(plain)
@@ -123,7 +123,7 @@ func TestControlledWorkloads(t *testing.T) {
 			for _, backend := range backends {
 				for _, unit := range units {
 					// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-					opts := []zp.ParseOption{zp.WithBackend(backend.b), zp.WithUnit(unit.u), zp.WithLimits(zp.Limits{Budget: zp.Unlimited})}
+					opts := []zp.ParseOption{zp.WithBackend(backend.b), zp.WithUnit(unit.u), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})}
 					plain, err := p.Parse(input, opts...)
 					if err != nil {
 						t.Fatal(err)
@@ -141,7 +141,7 @@ func TestControlledWorkloads(t *testing.T) {
 					if unit.u == zp.Bytes {
 						selected = gjson.Bytes
 					}
-					plain, err := gjson.Parse(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits{Budget: gjson.Unlimited}))
+					plain, err := gjson.Parse(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits{Compute: gjson.Unlimited}))
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -164,7 +164,7 @@ func TestControlledWorkloads(t *testing.T) {
 					if unit.u == zp.Bytes {
 						selected = gxml.Bytes
 					}
-					plain, err := gxml.Parse(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits{Budget: gxml.Unlimited}))
+					plain, err := gxml.Parse(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits{Compute: gxml.Unlimited}))
 					if err != nil {
 						t.Fatal(err)
 					}

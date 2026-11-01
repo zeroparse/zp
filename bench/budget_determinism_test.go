@@ -26,34 +26,34 @@ func TestGeneratedBudgetErrorsAreDeterministic(t *testing.T) {
 	entries := []entry{
 		{"JSON", map[string]func(string, uint64) string{
 			"Parse": func(in string, b uint64) string {
-				n, err := gjson.Parse(in, gjson.WithLimits(gjson.Limits{Budget: b}))
+				n, err := gjson.Parse(in, gjson.WithLimits(gjson.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
 			"ParseAST": func(in string, b uint64) string {
-				v, err := gjson.ParseAST(in, gjson.WithLimits(gjson.Limits{Budget: b}))
+				v, err := gjson.ParseAST(in, gjson.WithLimits(gjson.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 			"Recognize": func(in string, b uint64) string {
-				return describe(true, gjson.Recognize(in, gjson.WithLimits(gjson.Limits{Budget: b})))
+				return describe(true, gjson.Recognize(in, gjson.WithLimits(gjson.Limits{Compute: b})))
 			},
 		}},
 		{"CSV", map[string]func(string, uint64) string{
 			"Parse": func(in string, b uint64) string {
-				n, err := gcsv.Parse(in, gcsv.WithLimits(gcsv.Limits{Budget: b}))
+				n, err := gcsv.Parse(in, gcsv.WithLimits(gcsv.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
 			"ParseAST": func(in string, b uint64) string {
-				v, err := gcsv.ParseAST(in, gcsv.WithLimits(gcsv.Limits{Budget: b}))
+				v, err := gcsv.ParseAST(in, gcsv.WithLimits(gcsv.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 		}},
 		{"XML", map[string]func(string, uint64) string{
 			"Parse": func(in string, b uint64) string {
-				n, err := gxml.Parse(in, gxml.WithLimits(gxml.Limits{Budget: b}))
+				n, err := gxml.Parse(in, gxml.WithLimits(gxml.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
 			"ParseAST": func(in string, b uint64) string {
-				v, err := gxml.ParseAST(in, gxml.WithLimits(gxml.Limits{Budget: b}))
+				v, err := gxml.ParseAST(in, gxml.WithLimits(gxml.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 		}},

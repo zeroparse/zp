@@ -167,7 +167,7 @@ type Silent struct {
 //
 // Peek reads as the runtime's Peek does, which also charges the budget for the read and, in a
 // Document parse, records how far the parse examined the input. A target that inlines the read of
-// a code point in memory must do the same: charge one budget unit unless the function is
+// a code point in memory must do the same: charge one compute unit unless the function is
 // lowered without budget controls (Options.Budget), and leave Document parses to the runtime's Peek.
 type Peek struct{ Ch, Size, OK *Var }
 

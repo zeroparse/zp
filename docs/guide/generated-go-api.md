@@ -147,10 +147,10 @@ before matching, actions or named-rule lookup. A nil option panics when applied,
 Parser pooling and concurrent calls keep their limits independent. Limits count nested recursive rule calls rather than
 brackets or AST nodes, and raising the limit does not guarantee host-stack capacity.
 
-## Cancellation and Budget Limits
+## Cancellation and Compute Limits
 
-A Go parser generated with `-budget-controls` also accepts invocation-local
-cancellation and budget limits. Use the generated package's options and error
+A Go parser generated with `-limits` also accepts invocation-local
+cancellation and compute limits. Use the generated package's options and error
 types; a package generated without the flag exports none of them, and a parse
 that passes `WithContext` with a context or `WithLimits` with a limit from the
 runtime returns an error saying that the parser was generated without budget
@@ -160,26 +160,26 @@ controls (a nil context, a zero `Limits` and a `Limits` whose fields are `Unlimi
 node, err := pairsparser.Parse(input,
     pairsparser.WithContext(ctx),
     pairsparser.WithLimits(pairsparser.Limits{
-        Budget: 5_000_000,
+        Compute: 5_000_000,
     }))
 ```
 
-A nil context has no deadline or cancellation signal. A zero limit selects its default: a zero `Budget` is
+A nil context has no deadline or cancellation signal. A zero limit selects its default: a zero `Compute` is
 `max(2^20, 1024 * n)` for an input of `n` units, so every parse of a controlled parser has a budget. The generated
-package exports `Unlimited`, which disables a limit; `Limits{Budget: Unlimited}` with no context runs without
-a control. `Limits.MaxInput` bounds the input length in the position unit; its default is `Unlimited`, and a longer input fails
+package exports `Unlimited`, which disables a limit; `Limits{Compute: Unlimited}` with no context runs without
+a control. `Limits.Input` bounds the input length in the position unit; its default is `Unlimited`, and a longer input fails
 before any parsing with a `*LimitError` of kind `LimitInput` (a generated stream fails when the parser reaches a unit beyond it). Options apply once in
 order; the last context and the last complete `Limits` value win. The counter
 resets for every call and remain independent during concurrent parsing. The
 same options work with named rules, recognition, direct typed parsing, and
 Node-to-typed conversion.
 
-`Budget` counts cumulative spend in one counter, one unit each: inspected
+`Compute` counts cumulative spend in one counter, one unit each: inspected
 input elements, including input preparation, repeated scans and text
 extraction, and execution and per-element spend in rule calls, loop iterations,
 actions, memo lookup, graph/list construction, capture rollback, diagnostics
 and typed conversion. A loop that only scans input, such as a repeated
-character class, charges for every element it reads, so `Budget` bounds it.
+character class, charges for every element it reads, so `Compute` bounds it.
 Counts depend on the generated
 artifact and position unit; a limit is not a character count, memory cap, or
 elapsed-time limit. Backtracking never refunds spend. Depth remains a separate

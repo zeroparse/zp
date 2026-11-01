@@ -94,7 +94,7 @@ func TestDefaultBudgetIgnoresChunking(t *testing.T) {
 		{"completes", "#records\n" + strings.Repeat("abc\n", 500), Limits{}, 0},
 		{"exceeds the floor", "#records\n" + strings.Repeat("a", 300) + "\n", Limits{}, 1 << 20},
 		{"exceeds a grown default", "#records\n" + strings.Repeat("a", 3000) + "\n", Limits{}, 3010 * 1024},
-		{"exceeds an explicit limit", "#records\nabc\n", Limits{Budget: 20}, 20},
+		{"exceeds an explicit limit", "#records\nabc\n", Limits{Compute: 20}, 20},
 	}
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
 		for _, c := range cases {
@@ -130,7 +130,7 @@ func TestMaxInputIgnoresChunking(t *testing.T) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
 		for _, max := range []uint64{0, Unlimited, n, n + 1} {
 			for _, size := range []int{1, 7, len(text)} {
-				err := ParseStream(&cleanReader{chunkReader{s: text, size: size}}, func(*Node) error { return nil }, WithUnit(unit), WithLimits(Limits{MaxInput: max}))
+				err := ParseStream(&cleanReader{chunkReader{s: text, size: size}}, func(*Node) error { return nil }, WithUnit(unit), WithLimits(Limits{Input: max}))
 				if err != nil {
 					t.Errorf("%d/MaxInput %d/%d: %v", unit, max, size, err)
 				}
@@ -139,7 +139,7 @@ func TestMaxInputIgnoresChunking(t *testing.T) {
 		var want string
 		for _, size := range []int{1, 7, len(text)} {
 			count := 0
-			err := ParseStream(&cleanReader{chunkReader{s: text, size: size}}, func(*Node) error { count++; return nil }, WithUnit(unit), WithLimits(Limits{MaxInput: n - 1}))
+			err := ParseStream(&cleanReader{chunkReader{s: text, size: size}}, func(*Node) error { count++; return nil }, WithUnit(unit), WithLimits(Limits{Input: n - 1}))
 			var le *LimitError
 			if !errors.As(err, &le) || le.Kind != LimitInput || le.Limit != n-1 || le.Requested != n {
 				t.Fatalf("%d/%d: error %v", unit, size, err)

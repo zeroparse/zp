@@ -87,7 +87,7 @@ func TestTitleCase(t *testing.T) {
 		{"Generating Parsers with `zp gen`", "Generating Parsers With `zp gen`"},
 		{"Labels on Predicate Actions and On `_|_`", "Labels on Predicate Actions and on `_|_`"},
 		{"Why generate", "Why Generate"},
-		{"Cancellation and budget limits", "Cancellation and Budget Limits"},
+		{"Cancellation and compute limits", "Cancellation and Compute Limits"},
 		{"A Larger Example", "A Larger Example"},
 		{"What it is for", "What It Is For"},
 		{"Step: a thing", "Step: A Thing"},

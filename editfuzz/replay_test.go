@@ -377,7 +377,7 @@ func TestExhaustedBudgetComparesNothing(t *testing.T) {
 	for _, b := range backends {
 		for budget := uint64(1); budget <= 4096; budget += 7 {
 			seq := sequence(src, b, zp.CodePoints, initial, edit(0, 0, "let b=3;"), checkpoint)
-			seq.Limits = zp.Limits{Budget: budget}
+			seq.Limits = zp.Limits{Compute: budget}
 			var m *Mismatch
 			if err := Replay([]byte(src), seq); errors.As(err, &m) {
 				t.Fatalf("%v budget %d: %v", b, budget, err)

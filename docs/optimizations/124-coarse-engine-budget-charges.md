@@ -38,7 +38,7 @@ rows:
 | YAML | 8423786 to 6064283 | 9465718 to 6423852 | 10090258 to 6339939 |
 | CSV | 1538442 to 1294989 | 1647622 to 1289991 | 1697636 to 1289991 |
 
-Parse time with `Limits{Budget: ^uint64(0)}` against the same parse without a limit, medians of
+Parse time with `Limits{Compute: ^uint64(0)}` against the same parse without a limit, medians of
 seven interleaved rounds (the parse without a limit moved by at most 2%):
 
 | Input | Closure | Bytecode | Iterative |

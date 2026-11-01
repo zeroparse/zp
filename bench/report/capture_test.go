@@ -181,7 +181,7 @@ func TestParserGenArgsAdaptsGoOptionsToTypeScript(t *testing.T) {
 			t.Errorf("cel args keep %s: %s", bad, got)
 		}
 	}
-	if args, _ := parserGenArgs(root, "json"); !strings.Contains(strings.Join(args, " "), "-recognize -budget-controls") {
+	if args, _ := parserGenArgs(root, "json"); !strings.Contains(strings.Join(args, " "), "-recognize -limits") {
 		t.Errorf("json args: %v", args)
 	}
 	if _, err := parserGenArgs(root, "nonexistent"); err == nil {

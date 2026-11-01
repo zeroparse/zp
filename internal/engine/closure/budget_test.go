@@ -19,7 +19,7 @@ func TestBudgetActionArenaResetInterruption(t *testing.T) {
 	for range 300 {
 		*cm.closures.Alloc() = closure{ctx: &core.EvalCtx{Items: []*value.Node{retained}}}
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Budget: 64})
+	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 64})
 	if err := catchFatal(t, func() { evalTerm(p.UseCtx(core.EvalCtx{P: p}), &grammar.NilLit{}) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("arena reset interruption = %v", err)
 	}
