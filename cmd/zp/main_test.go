@@ -415,7 +415,7 @@ func readTS(t *testing.T, dir string, names ...string) string {
 	return all.String()
 }
 
-func TestGenTypeScriptBudgetControls(t *testing.T) {
+func TestGenTypeScriptLimitControls(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
 	plainDir, err := runGenTS(t, "-g", g)
 	if err != nil {

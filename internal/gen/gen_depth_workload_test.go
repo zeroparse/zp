@@ -173,12 +173,12 @@ if(isMainThread){
  const large=ordinary.repeat(1024);
  const cases=[
   {name:"Legacy",input:ordinary,options:null},{name:"Default",input:ordinary,options:{}},
-  {name:"Zero",input:ordinary,options:{maxDepth:0}},{name:"Equivalent",input:ordinary,options:{maxDepth:100000}},
-  {name:"Override",input:ordinary,options:{maxDepth:600000}},
-  {name:"LargeLegacy",input:large,options:null},{name:"LargeEquivalent",input:large,options:{maxDepth:100000}},
-  {name:"LargeOverride",input:large,options:{maxDepth:600000}},
-  {name:"DeepLegacy",input:deep,options:null},{name:"DeepEquivalent",input:deep,options:{maxDepth:100000}},
-  {name:"DeepOverride",input:deep,options:{maxDepth:600000}},
+  {name:"Zero",input:ordinary,options:{limits:{depth:0}}},{name:"Equivalent",input:ordinary,options:{limits:{depth:100000}}},
+  {name:"Override",input:ordinary,options:{limits:{depth:600000}}},
+  {name:"LargeLegacy",input:large,options:null},{name:"LargeEquivalent",input:large,options:{limits:{depth:100000}}},
+  {name:"LargeOverride",input:large,options:{limits:{depth:600000}}},
+  {name:"DeepLegacy",input:deep,options:null},{name:"DeepEquivalent",input:deep,options:{limits:{depth:100000}}},
+  {name:"DeepOverride",input:deep,options:{limits:{depth:600000}}},
  ];
  const hasOptions=typeof p.parseWithOptions === "function";
  for(const unit of [p.CodePoints,p.Bytes])for(const route of ["Node","Recognize"])for(const c of cases){

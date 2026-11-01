@@ -14,8 +14,8 @@ The examples use a parser `p` compiled as in [Running Parsers](running-parsers.m
 limit selects the default described [below](#the-default-compute-limit); `zp.Unlimited` disables the limit. The counter
 resets for the next call. Generated Go parsers offer the context and a finite `Compute` only when generated with
 `-limits`; see [the generated Go API](generated-go-api.md#cancellation-and-compute-limits). Generated TypeScript parsers
-offer the `signal`, `budget` and `maxInput` options only with `-limits` too; see
-[TypeScript](typescript.md#cancellation-and-compute-limits). In generated Go, `Input` and `Depth` work in every form.
+offer the `signal` option and the `compute` limit only with `-limits` too; see
+[TypeScript](typescript.md#cancellation-and-compute-limits). `Input` and `Depth` work in every form.
 
 `WithLimits` merges field by field: a nonzero field overrides the value of an earlier `WithLimits`, and a zero field
 leaves it unchanged, so `WithLimits(zp.Limits{Input: n})` followed by `WithLimits(zp.Limits{Depth: d})` sets both. The

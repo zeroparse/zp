@@ -126,15 +126,15 @@ const (
   form of each function; with `-document` it is the form that serves a Document, without
   charges. A parser generated with limit controls has the controlled form only, and a parse that
   sets no limit runs it with the [default budget](parsing.md#default-limits). A parser generated
-  without them, given a context or a finite `Compute` or `Input` limit, returns an error
+  without them, given a context or a finite `Compute` limit, returns an error
   that the parser was generated without limit controls; no option is ignored. A nil context,
-  `Compute` and `Input` limits that are zero or `Unlimited`, and any `Depth` set no control and
+  a `Compute` limit that is zero or `Unlimited`, any `Input` and any `Depth` set no control and
   are accepted.
 - `WithContext` and `WithLimits` apply the semantics of
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits) to each
   invocation, with counters that restart for every call. They apply to named rules,
-  recognition, typed parsing and conversion. The last context and the last complete
-  `Limits` win; a nil context means no cancellation; a zero limit selects the
+  recognition, typed parsing and conversion. The last context wins and `WithLimits`
+  merges [field by field](parsing.md#default-limits); a nil context means no cancellation; a zero limit selects the
   [default](parsing.md#default-limits) and `Unlimited` disables it.
   An exhausted limit matches `ErrLimit`, and `errors.As` retrieves a
   `*LimitError` with `Kind` (`LimitCompute` or `LimitInput`), `Limit`, `Used`
@@ -284,14 +284,20 @@ export function parseRuleWithOptions(name: string, input: string | Uint8Array, o
 
 export interface ParseOptions {
   unit?: Unit;
-  maxDepth?: number;
   signal?: CancellationSignal | null;      // with -limits only
-  budget?: number;                        // with -limits only
+  limits?: Limits;
 }
+export interface Limits {
+  compute?: number;                       // with -limits only
+  input?: number;                         // with -limits only
+  depth?: number;
+}
+export const Unlimited: number;           // Number.MAX_SAFE_INTEGER
 export interface ParseResult { node: Node | null; error: Error | null }
 // With -limits:
 export interface CancellationSignal { readonly aborted: boolean; readonly reason?: unknown }
-export type ParseInterruptionKind = "canceled" | "budget-limit";
+// In both forms:
+export type ParseInterruptionKind = "canceled" | "compute-limit" | "input-limit" | "depth-limit";
 export class ParseInterruptionError extends Error {
   readonly kind: ParseInterruptionKind;
   readonly limit: number;
@@ -323,28 +329,32 @@ export function marshal(n: Node | null): string;
   input byte is written as the surrogate that represents it.
 - `marshal` and `toString` write trees of any depth. `JSON.stringify` recurses and
   can exhaust the stack for deep trees.
-- `maxDepth` MUST be a positive safe integer or zero; negative values, fractions, NaN,
-  infinity and unsafe integers return a configuration error in the result before
-  matching. Omitted or zero selects the generated default.
+- `limits.depth` MUST be a positive safe integer or zero; `Unlimited`, negative values,
+  fractions, NaN, infinity and unsafe integers return a configuration error in the result
+  before matching, because rule calls nest on the JavaScript stack. Omitted or zero selects
+  the generated default. A parse that nests more recursive rule calls returns `node` as
+  `null` and `error` as a `ParseInterruptionError` whose `kind` is `"depth-limit"`, with
+  `limit` and `used` the depth limit and `requested` 1, in both forms.
 - A parser generated without `-limits` emits no code that spends budget and sets no control, so a parse charges nothing, and its
-  `ParseOptions` has no `signal`, `budget` or `maxInput`; it does not export
-  `CancellationSignal`, `ParseInterruptionKind` or `ParseInterruptionError`. A call
-  that passes a signal or a finite nonzero limit anyway returns an error in the result, before
+  `ParseOptions` has no `signal` and its `Limits` has no `compute`; it does not
+  export `CancellationSignal`. A call that passes a signal or a finite nonzero compute
+  limit anyway returns an error in the result, before
   matching, that says the parser was generated without limit controls; no option is
-  ignored. An absent or null signal, zero limits and `Unlimited` set no control and are
-  accepted. A parser generated with `-limits` has the controlled form only, and a call
+  ignored. An absent or null signal, a zero or `Unlimited` compute limit, and the input
+  and depth limits set no control and are accepted. A parser generated with `-limits` has the controlled form only, and a call
   that sets no limit runs it with the [default budget](parsing.md#default-limits). The rest of this list describes the controlled form.
 - `signal` is a structural cancellation signal: any object with `aborted` and an optional
-  `reason`, such as an `AbortSignal`. `budget` and `maxInput` MUST be finite
+  `reason`, such as an `AbortSignal`. `limits.compute` and `limits.input` MUST be finite
   nonnegative safe integers; zero selects the [default](parsing.md#default-limits) and
   `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit; other values return a
-  configuration error in the result. A finite `maxInput` bounds the input in the position unit
-  and is checked before any matching; a longer input returns a `ParseInterruptionError` whose
-  `kind` is `"input-limit"`, with `limit` the `maxInput`, `used` zero and `requested` the length
+  configuration error in the result. An unknown option or limit key, such as `limits.memory`,
+  is a configuration error too, in both forms. A finite `limits.input` bounds the input in the
+  position unit and is checked before any matching, in both forms; a longer input returns a `ParseInterruptionError` whose
+  `kind` is `"input-limit"`, with `limit` the input limit, `used` zero and `requested` the length
   of the input. The units of the limits are those of
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits).
 - An interrupted parse returns `node` as `null` and `error` as a `ParseInterruptionError`
-  whose `kind` is `"canceled"`, `"budget-limit"` or `"input-limit"`. For a limit,
+  whose `kind` is `"canceled"`, `"compute-limit"` or `"input-limit"`. For a limit,
   `limit`, `used` and `requested` give the accounting; for cancellation, `cause` is the
   `reason` of the signal. Recovery does not turn an interruption into a partial result,
   and the parser keeps no reference to the signal after the call returns. Typed
@@ -420,8 +430,8 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 | Typed values | `ParseAST`, `ParseRuleAST` with `-types` | `parseAST`, `parseASTWithOptions` with `-types` |
 | Streaming | `ParseStream`, `Iterate` with `-stream` | None; `#stream` is an ordinary repetition |
 | Incremental documents | A subset with `-document` | None |
-| Cancellation and compute limits | `WithContext`, `WithLimits` | `signal`, `budget`; `ParseInterruptionError`; with `-limits` |
-| Nested recursive rule-call limit | `Limits.Depth`, `-max-depth` | `maxDepth`, `-max-depth`; the host stack also bounds nesting |
+| Cancellation and compute limits | `WithContext` and a finite `Compute` with `-limits`; `WithLimits` | `signal` and `limits.compute` with `-limits`; `limits.input`; `ParseInterruptionError` |
+| Nested recursive rule-call limit | `Limits.Depth`, `-max-depth` | `limits.depth`, `-max-depth`; the host stack also bounds nesting |
 | Choice of backend, saved grammar, `Parser.Grammar()` | Not applicable | Not applicable |
 | Tracing and profiling | With `-observability` | With `-observability` (batch parsers) |
 

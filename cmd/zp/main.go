@@ -116,10 +116,11 @@ Commands:
       parsing and Documents, and TypeScript batch parsing, including typed
       entry points.
       -limits generates the limit-controlled form of the parser, which
-      supports WithContext and a finite Compute limit (signal, budget and
-      maxInput in TypeScript); without it WithContext is not exported, the
+      supports WithContext and a finite Compute limit (signal and the compute
+      limit in TypeScript); without it WithContext is not exported, the
       generated code does not spend budget, and a parse that passes a context
-      or a finite Compute fails. The Input and Depth limits work either way. The parser has this one form only: a parse that sets no limit
+      or a finite Compute fails. The Input and Depth limits work either
+      way. The parser has this one form only: a parse that sets no limit
       runs the same code. Generate a second parser without the option to
       have the plain form too.
       -typed-only generates only the typed entry points (ParseAST and its
@@ -833,7 +834,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	stream := fs.Bool("stream", false, "also generate Go ParseStream and Iterate for the start rule's #stream repetition (and their typed forms with -types; incompatible with -lang ts)")
 	observability := fs.Bool("observability", false, "emit opt-in rule tracing and profiling for Go batch/Documents and TypeScript batch parsing, including typed entry points")
 	expectations := fs.Bool("expectations", false, "generate a parser that records what a syntax error expects (the expected list and @error messages); without it the error reports only the farthest failure position")
-	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and a finite Compute limit (signal, budget and maxInput in TypeScript)")
+	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and a finite Compute limit (signal and the compute limit in TypeScript)")
 	typedOnly := fs.Bool("typed-only", false, "generate only the typed entry points (ParseAST and siblings), without Parse, ParseRule and Recognize (needs -types)")
 	recognize := fs.Bool("recognize", false, "also generate Recognize, which checks input without building a tree")
 	maxDepth := fs.Int("max-depth", 0, "generated default nested recursive rule-call limit (0 selects 100000)")

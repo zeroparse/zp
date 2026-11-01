@@ -383,5 +383,5 @@ work between two checkpoints.
 reservation (A3).
 
 **Generated TypeScript.** It has its own counter and the options `signal` and
-`budget`. The parity tests compare it with its inactive route; the proof does
+`limits.compute`. The parity tests compare it with its inactive route; the proof does
 not cover its counter.

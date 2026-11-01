@@ -55,10 +55,10 @@ func TestGeneratedTSBudgetControlBindings(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			limitCheck := `check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="budget-limit","` + tt.name + ` spend exceeds baseline");
- check(p.parseASTWithOptions(input,{unit,budget:limit}).error instanceof p.ParseInterruptionError,"typed routes share binding budget");`
+			limitCheck := `check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","` + tt.name + ` spend exceeds baseline");
+ check(p.parseASTWithOptions(input,{unit,limits:{compute:limit}}).error instanceof p.ParseInterruptionError,"typed routes share binding budget");`
 			if tt.nameFree {
-				limitCheck = `check(stopped.error===null&&p.parseASTWithOptions(input,{unit,budget:limit}).error===null,"` + tt.name + ` costs more than its baseline");`
+				limitCheck = `check(stopped.error===null&&p.parseASTWithOptions(input,{unit,limits:{compute:limit}}).error===null,"` + tt.name + ` costs more than its baseline");`
 			}
 			consumer := `import * as p from "./parser.ts";
 ` + tsTypedAssert + `
@@ -71,17 +71,17 @@ for(const unit of [p.CodePoints,p.Bytes])for(const input of ["z",new Uint8Array(
  const ordinary=p.parse(input,unit),typed=p.parseAST(input,unit);
  const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(ordinary.node)&&stable(converted.value)===stable(typed.value),"binding and environment value parity");
- const baseline=minimum(n=>p.parseRuleWithOptions("` + tt.baseline + `",input,{unit,budget:n}).error===null);
+ const baseline=minimum(n=>p.parseRuleWithOptions("` + tt.baseline + `",input,{unit,limits:{compute:n}}).error===null);
  const limit=baseline+128;
- const stopped=p.parseWithOptions(input,{unit,budget:limit});
+ const stopped=p.parseWithOptions(input,{unit,limits:{compute:limit}});
  ` + limitCheck + `
- check(p.parseASTWithOptions(input,{unit,budget:0}).error===null,"fresh binding retry");
+ check(p.parseASTWithOptions(input,{unit,limits:{compute:0}}).error===null,"fresh binding retry");
 }
 `
 			if !tt.isolated && tt.nameFree {
-				consumer += `const stop=p.recognizeWithOptions("z",{budget:128});check(!(stop instanceof p.ParseInterruptionError),"a long variable name costs no more than a short one");`
+				consumer += `const stop=p.recognizeWithOptions("z",{limits:{compute:128}});check(!(stop instanceof p.ParseInterruptionError),"a long variable name costs no more than a short one");`
 			} else if !tt.isolated {
-				consumer += `const stop=p.recognizeWithOptions("z",{budget:128});check(stop instanceof p.ParseInterruptionError&&stop.kind==="budget-limit","predicate-dependent recognition counts binding spend");`
+				consumer += `const stop=p.recognizeWithOptions("z",{limits:{compute:128}});check(stop instanceof p.ParseInterruptionError&&stop.kind==="compute-limit","predicate-dependent recognition counts binding spend");`
 			}
 			runTypedTSFixture(t, tt.src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
 		})
@@ -105,7 +105,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  let polls=0;const cause={marker:"bindings"};
  const canceled=p.parseWithOptions("z",{unit,signal:{get aborted(){return ++polls>=2},reason:cause}});
  check(canceled.node===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause===cause,"binding cancellation does not publish partial node");
- check(p.parseASTWithOptions("z",{unit,budget:0}).value?.N===1,"fresh caller environment after interruption");
+ check(p.parseASTWithOptions("z",{unit,limits:{compute:0}}).value?.N===1,"fresh caller environment after interruption");
 }
 `
 		runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")

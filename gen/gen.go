@@ -105,9 +105,9 @@ type Go struct {
 	// their typed entry points. Collection is selected per invocation.
 	Observability bool
 	// LimitControls generates the limit-controlled form of the parser, which supports cancellation
-	// and the compute and input limits and re-exports the option WithContext. Without it the
-	// generated parser is smaller and faster to build, and a parse that passes a context or a finite
-	// Compute or Input limit returns an error; Limits.Depth works in both forms. The controlled form is the only form of the parser: a
+	// and the compute limit and re-exports the option WithContext. Without it the generated parser
+	// is smaller and faster to build, and a parse that passes a context or a finite Compute limit
+	// returns an error; Limits.Input and Limits.Depth work in both forms. The controlled form is the only form of the parser: a
 	// parse that sets no limit runs it too, and is slower than with a parser generated without
 	// limit controls.
 	LimitControls bool
@@ -202,8 +202,9 @@ type TypeScript struct {
 	// points. Collection is selected per invocation.
 	Observability bool
 	// LimitControls generates the limit-controlled form of the parser, which supports the signal
-	// and budget options. Without it the generated parser is smaller, and a parse
-	// that passes a control option returns an error. The controlled form is the only form of the
+	// option and the compute limit. Without it the generated parser is smaller, and a parse that
+	// passes a signal or a finite compute limit returns an error; the input and depth limits work in
+	// both forms. The controlled form is the only form of the
 	// parser: a parse that sets no limit runs it too, and is slower than with a parser generated
 	// without limit controls.
 	LimitControls bool
@@ -212,7 +213,7 @@ type TypeScript struct {
 	Recognize bool
 	// MaxDepth is the generated parser's default nested rule-call limit. Zero selects 100,000;
 	// negative values and values that are not exact JavaScript integers fail generation.
-	// Individual invocations may override it.
+	// Individual invocations may override it with limits.depth.
 	MaxDepth int
 }
 

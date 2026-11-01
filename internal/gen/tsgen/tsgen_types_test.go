@@ -119,7 +119,7 @@ check(v.I === -3 && v.Big === 9223372036854775807n && v.M === 9007199254740992n 
 check(v.Raw !== null && !(v.Raw instanceof Node) && (v.Raw as {type?: string}).type === "tuple" && v.Any === v.Raw, "CST types convert to shared TNode values");
 check(v.Items !== v.OpenItems, "list representations stay distinct");
 check(v.start === 0 && v.end === 4 && v.W.end === 2, "code point spans");
-const b = parseASTWithOptions("😀あ!?", {unit: Bytes, maxDepth: 0});
+const b = parseASTWithOptions("😀あ!?", {unit: Bytes, limits: {depth: 0}});
 check(b.value?.end === 9 && b.value.W?.end === 7 && b.error === null, "byte spans/options");
 const before = stable(v);
 for (let i = 0; i < 10; i++) parseAST("z", CodePoints);
@@ -127,11 +127,11 @@ check(stable(v) === before, "retained result ownership");
 check(parse("😀あ!?").node?.field("W") instanceof Node, "legacy Node fields unchanged");
 let units = 0, depths = 0;
 let nested: ReturnType<typeof parseAST> | null = null;
-const o = { get unit() { units++; nested = parseAST("z"); return Bytes; }, get maxDepth() { depths++; return 0; } };
+const o = { get unit() { units++; nested = parseAST("z"); return Bytes; }, limits: { get depth() { depths++; return 0; } } };
 check(parseASTWithOptions("a", o).error === null && units === 1 && depths === 1, "options read once");
 check((nested as ReturnType<typeof parseAST> | null)?.value?.W?.Text === "z", "reentrant getter invocation");
 for (const d of [-1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
-  const bad = parseASTWithOptions("a", {maxDepth:d});
+  const bad = parseASTWithOptions("a", {limits:{depth:d}});
   check(bad.value === null && bad.error?.message.includes("non-negative safe integer"), "invalid depth");
 }
 check(parseAST("1").value === null && parseAST("1").error !== null, "ordinary failure");
@@ -225,7 +225,7 @@ for (const unit of [CodePoints, Bytes]) for (const size of [1, 8, 6000]) {
   let v = r.value, count = 1;
   while (v.type === "Branch") { check(v.Left !== null && v.Left === v.Right, "shared capture stays shared"); v = v.Left; count++; }
   check(v.type === "Leaf" && count === size, "linear graph/deep iterative conversion");
-  check(parseASTWithOptions("x", {maxDepth:0}).error === null, "second invocation");
+  check(parseASTWithOptions("x", {limits:{depth:0}}).error === null, "second invocation");
 }
 check(stable(parseAST("xx").value).includes("Branch"), "small DAG value");
 `
@@ -262,7 +262,7 @@ rule main *U = "" => nil`,
 	runTypedTSFixture(t, `type T = { X node[string] }
 rule main T = x:n #atomic => T{X: $x}
 rule n = "(" n ")" / "x"`, `import {parseAST, parseASTWithOptions} from "./parser.ts";
-`+tsTypedAssert+`check(parseAST("(((x)))").error?.message.includes("nesting too deep"), "generated limit"); check(parseASTWithOptions("(((x)))", {maxDepth:20}).value?.X?.value === "(((x)))", "override"); check(stable(parseASTWithOptions("x", {maxDepth:0}).value).includes("T"), "zero default");`, gen.GenOptions{MaxDepth: 3}, "")
+`+tsTypedAssert+`check(parseAST("(((x)))").error?.message.includes("nesting too deep"), "generated limit"); check(parseASTWithOptions("(((x)))", {limits:{depth:20}}).value?.X?.value === "(((x)))", "override"); check(stable(parseASTWithOptions("x", {limits:{depth:0}}).value).includes("T"), "zero default");`, gen.GenOptions{MaxDepth: 3}, "")
 	for _, scalar := range []string{"int", "string", "bool"} {
 		g, err := parseTest("rule main " + scalar + ` = "" => nil`)
 		if err != nil {
@@ -297,7 +297,7 @@ rule item Good = x:[a-zé😀]+ #atomic ";" => Good{Token: $x}`, "a;1;", strings
 ` + tsTypedAssert + `for (const unit of [CodePoints, Bytes]) for (const input of ` + inputs + `) {
   const r = parseAST(input, unit), n = parse(input, unit);
   check(r.error?.message === n.error?.message && r.value !== null && n.node !== null, "workload parity");
-  check(parseASTWithOptions(input, {unit,maxDepth:0}).error?.message === r.error?.message, "options control");
+  check(parseASTWithOptions(input, {unit,limits:{depth:0}}).error?.message === r.error?.message, "options control");
   if (Array.isArray(r.value)) check(r.value.length === n.node.children.length, "list count");
   else check(stable(r.value).includes('"type":"string"'), "string node value");
 }`

@@ -71,7 +71,7 @@ if (unit !== 0 && unit !== 1) throw new Error("Generated module lacks the expect
 let options;
 if (entryMode === "options") {
   options = {unit};
-  if (args["max-depth"] !== undefined) options.maxDepth = integer("max-depth", 0, 0);
+  if (args["max-depth"] !== undefined) options.limits = { depth: integer("max-depth", 0, 0) };
   Object.freeze(options);
 }
 let invoke;

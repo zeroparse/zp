@@ -32,14 +32,14 @@ const tsTypesSpecifier = "./types.ts"
 // generated from a grammar.
 var tsPublicRuntime = strings.Fields(`
 	Value Unit CodePoints Bytes NodeField NodeJSON Node marshal SyntaxError SyntaxErrors ParseResult
-	ParseOptions
+	ParseOptions Limits ParseInterruptionKind ParseInterruptionError Unlimited
 	TraceKind TraceEvent Profile ProfileLocation SkipReasonCount RuleProfile ProfileSnapshot`)
 
-// tsPublicControls lists the runtime declarations of the budget controls that parser.ts re-exports
+// tsPublicControls lists the runtime declarations of the limit controls that parser.ts re-exports
 // only with -limits.
-var tsPublicControls = strings.Fields(`CancellationSignal ParseInterruptionKind ParseInterruptionError Unlimited`)
+var tsPublicControls = strings.Fields(`CancellationSignal`)
 
-// TsRuntimeText returns the source of runtime.ts: the runtime, the invocation budget controls and the
+// TsRuntimeText returns the source of runtime.ts: the runtime, the invocation limit controls and the
 // observation code, as one module that exports every declaration the generated code uses.
 var TsRuntimeText = sync.OnceValue(func() string {
 	src := tsRuntimeSource
@@ -57,7 +57,7 @@ var TsRuntimeText = sync.OnceValue(func() string {
 	b.WriteString("// the controls of an invocation. It does not depend on a grammar; every parser imports it.\n\n")
 	b.WriteString("/* eslint-disable */\n\n")
 	b.WriteString(src[i+len(tsRuntimeMarker):])
-	b.WriteString("\n// --- Invocation budget controls ---\n")
+	b.WriteString("\n// --- Invocation limit controls ---\n")
 	b.WriteString(tsBudgetSource)
 	b.WriteString("\n// --- Tracing ---\n")
 	b.WriteString(tsTraceSource)
@@ -148,10 +148,10 @@ func tsFiles(opts gen.GenOptions, body, types string) []gen.GeneratedFile {
 	}
 	for _, name := range public {
 		export := name
-		if name == "ParseOptions" && !opts.LimitControls {
-			// Without budget controls the options have no cancellation or limits.
-			export = "PlainParseOptions as ParseOptions"
-			name = "PlainParseOptions"
+		if !opts.LimitControls && (name == "ParseOptions" || name == "Limits") {
+			// Without limit controls the options have no cancellation, and the limits no compute limit.
+			export = "Plain" + name + " as " + name
+			name = "Plain" + name
 		}
 		if exports[name] {
 			typs = append(typs, export)

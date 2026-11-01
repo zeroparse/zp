@@ -1050,7 +1050,19 @@ export function startIn(table: Rule[], defined: readonly string[], starts: reado
   return new Error(`rule ${name} is not a start rule; parsing can begin only at a rule marked @start`);
 }
 
-/** Options for one invocation. Zero maxDepth selects the default of the grammar. */
+/**
+ * The limits of one invocation. A zero limit selects its default and Unlimited disables it.
+ */
+export interface Limits {
+  /** The cost of the parse. Zero selects the default of max(2^20, 1024 times the input length in the position unit). */
+  compute?: number;
+  /** Longest input accepted, in the position unit. Zero and Unlimited, the default, set no bound; a longer input fails before any work with a ParseInterruptionError of kind "input-limit". */
+  input?: number;
+  /** Nesting of recursive rule calls. Zero selects the default of the grammar; a deeper parse fails with a ParseInterruptionError of kind "depth-limit". Unlimited is an error, because rule calls nest on the JavaScript stack. */
+  depth?: number;
+}
+
+/** Options for one invocation. */
 export interface ParseOptions {
   /** Accumulate unfiltered rule metrics; requires host performance.now() and a parser generated with observability. */
   profile?: Profile | null;
@@ -1061,17 +1073,13 @@ export interface ParseOptions {
   /** Start depth is one; nonpositive values leave delivery unlimited. */
   traceMaxDepth?: number;
   unit?: Unit;
-  maxDepth?: number;
   /** Records what a syntax error expects and the messages of @error; requires a parser generated with expectations. Without it an error carries the farthest failure position only. */
   expectations?: boolean;
   signal?: CancellationSignal | null;
-  /** Budget limit. Zero selects the default of max(2^20, 1024 times the input length in the position unit); Unlimited disables the limit. */
-  budget?: number;
-  /** Longest input accepted, in the position unit. Zero and Unlimited, the default, set no bound; a longer input fails before any work with a ParseInterruptionError of kind "input-limit". */
-  maxInput?: number;
+  limits?: Limits;
 }
 
-/** The budget value that disables the budget limit. */
+/** The value of a limit that disables it. */
 export const Unlimited = Number.MAX_SAFE_INTEGER;
 
 const defaultBudgetFloor = 1 << 20;
@@ -1120,17 +1128,37 @@ function defaultBudget(n: number): number {
   return Math.min(Math.max(defaultBudgetFloor, n * defaultBudgetPerUnit), Unlimited - 1);
 }
 
-/**
- * The options of a parser generated without budget controls: those of ParseOptions except the
- * cancellation signal and the budget limits.
- */
-export type PlainParseOptions = Omit<ParseOptions, "signal" | "budget" | "maxInput">;
+/** The limits of a parser generated without limit controls: the input and depth limits. */
+export type PlainLimits = Omit<Limits, "compute">;
 
-// resolveOptions validates options for a parse of input. A zero budget of a parser generated with budget
-// controls resolves to the default budget of the input, and Unlimited resolves to no budget limit (zero).
+/**
+ * The options of a parser generated without limit controls: those of ParseOptions except the
+ * cancellation signal and the compute limit.
+ */
+export type PlainParseOptions = Omit<ParseOptions, "signal" | "limits"> & { limits?: PlainLimits };
+
+// parseOptionKeys and limitKeys are the keys of ParseOptions and Limits.
+const parseOptionKeys = new Set(["unit", "expectations", "signal", "limits", "trace", "traceRules", "traceMaxDepth", "profile"]);
+const limitKeys = new Set(["compute", "input", "depth"]);
+
+// resolveOptions validates options for a parse of input. A zero compute limit of a parser generated with
+// limit controls resolves to the default budget of the input, and Unlimited resolves to no budget (zero).
 export function resolveOptions(g: Grammar, options: ParseOptions | undefined, input: string | Uint8Array): ResolvedParseOptions | Error {
-  if (!g.controlled && (options?.signal != null || ((options?.budget ?? 0) !== 0 && options?.budget !== Unlimited) || ((options?.maxInput ?? 0) !== 0 && options?.maxInput !== Unlimited))) {
-    return new Error("this parser was generated without limit controls (generate with -limits to use signal, budget and maxInput)");
+  // An option that is not one is an error rather than ignored, so that a misspelled limit cannot
+  // leave a parse unbounded. Listing the keys reads no option.
+  if (options != null) {
+    for (const key of Object.keys(options)) {
+      if (!parseOptionKeys.has(key)) return new Error(`unknown parse option: ${key}`);
+    }
+  }
+  const limits = options?.limits;
+  if (limits != null) {
+    for (const key of Object.keys(limits)) {
+      if (!limitKeys.has(key)) return new Error(`unknown limit: ${key}`);
+    }
+  }
+  if (!g.controlled && (options?.signal != null || ((limits?.compute ?? 0) !== 0 && limits?.compute !== Unlimited))) {
+    return new Error("this parser was generated without limit controls (generate with -limits to use signal and the compute limit)");
   }
   if (!g.observable && (options?.profile != null || options?.trace != null || options?.traceRules !== undefined || options?.traceMaxDepth !== undefined)) {
     return new Error("trace and profile options are only supported by a parser generated with observability");
@@ -1148,18 +1176,21 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
   if (!Number.isSafeInteger(traceMaxDepth)) return new Error("trace max depth must be a safe integer");
   const traceRules = Array.from(options?.traceRules ?? []);
   const unit = options?.unit === Bytes ? Bytes : CodePoints;
-  const depth = options?.maxDepth ?? 0;
+  const depth = limits?.depth ?? 0;
   const signal = options?.signal ?? null;
-  const requested = options?.budget ?? 0;
+  const requested = limits?.compute ?? 0;
   if (!Number.isSafeInteger(depth) || depth < 0) {
-    return new Error(`max depth must be a non-negative safe integer: ${depth}`);
+    return new Error(`depth limit must be a non-negative safe integer: ${depth}`);
+  }
+  if (depth === Unlimited) {
+    return new Error("a generated parser does not accept an unlimited depth: it nests rule calls on the JavaScript stack");
   }
   if (!Number.isSafeInteger(requested) || requested < 0) {
-    return new Error(`budget must be a non-negative safe integer: ${requested}`);
+    return new Error(`compute limit must be a non-negative safe integer: ${requested}`);
   }
-  const maxInput = options?.maxInput ?? 0;
+  const maxInput = limits?.input ?? 0;
   if (!Number.isSafeInteger(maxInput) || maxInput < 0) {
-    return new Error(`max input must be a non-negative safe integer: ${maxInput}`);
+    return new Error(`input limit must be a non-negative safe integer: ${maxInput}`);
   }
   if (maxInput !== 0 && maxInput !== Unlimited) {
     const over = inputOverMax(input, unit, maxInput);
@@ -3950,7 +3981,7 @@ export class Parser {
 
   // tooDeep fails the parse for exceeding the nesting limit.
   tooDeep(): never {
-    throw new Fatal(new Error(`nesting too deep: more than ${this.maxDepth} nested recursive rule calls`));
+    throw new Fatal(new ParseInterruptionError("depth-limit", this.maxDepth, this.maxDepth, 1));
   }
 
   // finish makes the rule's value from the value of its body.

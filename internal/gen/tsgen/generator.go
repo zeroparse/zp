@@ -159,8 +159,8 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	out.WriteString(" * A string is parsed as its UTF-8 encoding would be (lone surrogates as U+FFFD), and bytes are\n")
 	out.WriteString(" * decoded as UTF-8 (invalid sequences as U+FFFD, one per byte). If the parse recovered from errors\n")
 	out.WriteString(" * with #recover, the result has both the node and SyntaxErrors.\n */\n")
-	// With budget controls every parse is controlled: the entry points without options use the default
-	// budget of the input, as parseWithOptions does with no budget.
+	// With limit controls every parse is controlled: the entry points without options use the default
+	// compute limit of the input, as parseWithOptions does with no limits.
 	parseBody, ruleBody := fmt.Sprintf("run(G, R%d, nseen, input, unit)", start.ID), "run(G, r, nseen, input, unit)"
 	if opts.LimitControls {
 		parseBody, ruleBody = "parseWithOptions(input, { unit: unit ?? CodePoints })", "parseRuleWithOptions(name, input, { unit: unit ?? CodePoints })"
@@ -434,7 +434,7 @@ type Generator struct {
 	// plainUsed holds the plain rules whose function (plainCall) is called.
 	plainUsed map[*compile.Rule]bool
 	// optionsType is the name of the runtime's options type that the entry points take: ParseOptions
-	// with budget controls, PlainParseOptions without.
+	// with limit controls, PlainParseOptions without.
 	optionsType string
 	// live holds the rules that a parse can enter (reach.go).
 	live     *tsLive
@@ -828,7 +828,7 @@ func tsInt(v int) string {
 }
 
 // term converts a value expression into a TypeScript expression of type Value, charging a step for
-// it with budget controls. locals maps names, such as lambda parameters, to TypeScript expressions.
+// it with limit controls. locals maps names, such as lambda parameters, to TypeScript expressions.
 func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]string) string {
 	if g.NoBudget {
 		return g.termBody(t, s, locals)

@@ -28,11 +28,11 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  check(ordinary.node===null&&ordinary.error instanceof p.SyntaxError&&active.error instanceof p.SyntaxError&&stable(active.error)===stable(ordinary.error)&&active.error.message===ordinary.error.message&&active.error.line===1&&active.error.col===2049,"diagnostic line scan parity");
  // A failure at the start of the input costs at least one unit per character: the preparation of the
  // input and the line scan together; TestGeneratedTSBudgetControlDiagnosticLineScanPerRoute isolates the scan.
- const failing=(text:string)=>minimum(n=>p.parseRuleWithOptions("early",text,{unit,budget:n}).error instanceof p.SyntaxError);
+ const failing=(text:string)=>minimum(n=>p.parseRuleWithOptions("early",text,{unit,limits:{compute:n}}).error instanceof p.SyntaxError);
  check(failing(input)>=failing("z")+input.length-1,"diagnostic line reads consume budget beyond matching");
- const stopped=p.parseRuleWithOptions("early",input,{unit,budget:failing(input)-1}).error;
- check(stopped instanceof p.ParseInterruptionError&&stopped.kind==="budget-limit","the line scan stops one unit short of its budget");
- const retry=p.parseWithOptions(input,{unit,budget:0});check(retry.node===null&&retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh line diagnostic retry");
+ const stopped=p.parseRuleWithOptions("early",input,{unit,limits:{compute:failing(input)-1}}).error;
+ check(stopped instanceof p.ParseInterruptionError&&stopped.kind==="compute-limit","the line scan stops one unit short of its budget");
+ const retry=p.parseWithOptions(input,{unit,limits:{compute:0}});check(retry.node===null&&retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh line diagnostic retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -48,9 +48,9 @@ func TestGeneratedTSBudgetControlDiagnosticMessage(t *testing.T) {
 for(const unit of [p.CodePoints,p.Bytes]) {
  const ordinary=p.parse("x",unit),active=p.parseWithOptions("x",{unit,signal:{aborted:false}});
  check(ordinary.error instanceof p.SyntaxError&&active.error instanceof p.SyntaxError&&active.error.message===ordinary.error.message&&stable(active.error)===stable(ordinary.error),"long custom diagnostic parity");
- const baseline=minimum(n=>p.parseRuleWithOptions("fast","x",{unit,budget:n}).error instanceof p.SyntaxError),limit=baseline+128;
- for(const error of [p.parseWithOptions("x",{unit,budget:limit}).error,p.parseASTWithOptions("x",{unit,budget:limit}).error,p.recognizeWithOptions("x",{unit,budget:limit})])check(error instanceof p.ParseInterruptionError&&error.kind==="budget-limit","custom diagnostic text consumes cumulative spend");
- const retry=p.parseWithOptions("x",{unit,budget:0});check(retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh custom diagnostic retry");
+ const baseline=minimum(n=>p.parseRuleWithOptions("fast","x",{unit,limits:{compute:n}}).error instanceof p.SyntaxError),limit=baseline+128;
+ for(const error of [p.parseWithOptions("x",{unit,limits:{compute:limit}}).error,p.parseASTWithOptions("x",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("x",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","custom diagnostic text consumes cumulative spend");
+ const retry=p.parseWithOptions("x",{unit,limits:{compute:0}});check(retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh custom diagnostic retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -71,12 +71,12 @@ func TestGeneratedTSBudgetControlDiagnosticSort(t *testing.T) {
 for(const unit of [p.CodePoints,p.Bytes]) {
  const ordinary=p.parse("",unit),active=p.parseWithOptions("",{unit,signal:{aborted:false}});
  check(ordinary.error instanceof p.SyntaxError&&active.error instanceof p.SyntaxError&&active.error.expected.length===64&&active.error.message===ordinary.error.message&&stable(active.error)===stable(ordinary.error),"long-prefix expected sorting parity");
- const baseline=minimum(n=>p.parseRuleWithOptions("fast","",{unit,budget:n}).error instanceof p.SyntaxError);
+ const baseline=minimum(n=>p.parseRuleWithOptions("fast","",{unit,limits:{compute:n}}).error instanceof p.SyntaxError);
  // Matching and expected-ID deduplication are shared. Allow the complete
  // expected text and list movement, but not all common-prefix comparisons.
  const limit=baseline+64*2100+128;
- for(const error of [p.parseWithOptions("",{unit,budget:limit}).error,p.parseASTWithOptions("",{unit,budget:limit}).error,p.recognizeWithOptions("",{unit,budget:limit})])check(error instanceof p.ParseInterruptionError&&error.kind==="budget-limit","expected-label comparisons consume spend beyond rendering");
- check(p.parseWithOptions("",{unit,budget:0}).error instanceof p.SyntaxError,"fresh sorted diagnostic retry");
+ for(const error of [p.parseWithOptions("",{unit,limits:{compute:limit}}).error,p.parseASTWithOptions("",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","expected-label comparisons consume spend beyond rendering");
+ check(p.parseWithOptions("",{unit,limits:{compute:0}}).error instanceof p.SyntaxError,"fresh sorted diagnostic retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -95,10 +95,10 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const retained=active.error.errors[0]!;
  // The matching-only difference is tiny. Allow one complete long error
  // message, while retaining the aggregate Error's second copy as spend.
- const baseline=minimum(n=>p.parseRuleWithOptions("fast","!",{unit,budget:n}).error instanceof p.SyntaxErrors),limit=baseline+retained.message.length+128;
- const stopped=p.parseWithOptions("!",{unit,budget:limit});check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="budget-limit","aggregate recovered text consumes spend after individual errors");
- const typed=p.parseASTWithOptions("!",{unit,budget:limit});check(typed.value===null&&typed.error instanceof p.ParseInterruptionError,"interrupted recovery exposes no typed result");
- const retry=p.parseWithOptions("!",{unit,budget:0});check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.message===ordinary.error.message&&retained.message===ordinary.error.errors[0]!.message,"retained recovery and fresh retry");
+ const baseline=minimum(n=>p.parseRuleWithOptions("fast","!",{unit,limits:{compute:n}}).error instanceof p.SyntaxErrors),limit=baseline+retained.message.length+128;
+ const stopped=p.parseWithOptions("!",{unit,limits:{compute:limit}});check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","aggregate recovered text consumes spend after individual errors");
+ const typed=p.parseASTWithOptions("!",{unit,limits:{compute:limit}});check(typed.value===null&&typed.error instanceof p.ParseInterruptionError,"interrupted recovery exposes no typed result");
+ const retry=p.parseWithOptions("!",{unit,limits:{compute:0}});check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.message===ordinary.error.message&&retained.message===ordinary.error.errors[0]!.message,"retained recovery and fresh retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -147,9 +147,9 @@ proto.makeError = function (this: Hooked, ...a: unknown[]) {
   try { return original.apply(this, a); } finally { scanned = (this.control?.budgetUsed ?? 0) - before; }
 };
 const routes: [string, (text: string, n: number) => Error | null][] = [
-  ["parse", (text, n) => p.parseWithOptions(text, { budget: n }).error],
-  ["parseAST", (text, n) => p.parseASTWithOptions(text, { budget: n }).error],
-  ["recognize", (text, n) => p.recognizeWithOptions(text, { budget: n })],
+  ["parse", (text, n) => p.parseWithOptions(text, { limits: { compute: n } }).error],
+  ["parseAST", (text, n) => p.parseASTWithOptions(text, { limits: { compute: n } }).error],
+  ["recognize", (text, n) => p.recognizeWithOptions(text, { limits: { compute: n } })],
 ];
 function fail(why: string): never { throw new Error(why); }
 for (const [name, run] of routes) {
@@ -165,7 +165,7 @@ for (const [name, run] of routes) {
   while (run(input, hi) instanceof p.ParseInterruptionError) { lo = hi; hi *= 2; }
   while (lo + 1 < hi) { const mid = Math.floor((lo + hi) / 2); if (run(input, mid) instanceof p.ParseInterruptionError) lo = mid; else hi = mid; }
   const stopped = run(input, hi - 1);
-  if (!(stopped instanceof p.ParseInterruptionError) || stopped.kind !== "budget-limit") fail(name + " does not stop one unit short of its budget");
+  if (!(stopped instanceof p.ParseInterruptionError) || stopped.kind !== "compute-limit") fail(name + " does not stop one unit short of its budget");
   if (hi < 512) fail(name + " needs only " + hi + " for 512 characters");
 }
 console.log("ok");

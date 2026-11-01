@@ -36,22 +36,22 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const normal=p.parse("z",unit),typed=p.parseAST("z",unit);
  const active=p.parseWithOptions("z",{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions("z",{unit,signal:{aborted:false}});
  check(normal.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(normal.node)&&stable(converted.value)===stable(typed.value),"field construction, lookup and typed conversion parity");
- check(p.parseRuleWithOptions("fast","z",{unit,budget:4096}).error===null,"matching fits before field construction");
- const construction=p.parseRuleWithOptions("item","z",{unit,budget:4096});
- check(construction.node===null&&construction.error instanceof p.ParseInterruptionError&&construction.error.kind==="budget-limit","field construction scans consume budget");
- for(const error of [p.parseWithOptions("z",{unit,budget:4096}).error,p.parseASTWithOptions("z",{unit,budget:4096}).error,p.recognizeWithOptions("z",{unit,budget:4096})])check(error instanceof p.ParseInterruptionError&&error.kind==="budget-limit","field-dependent parse routes consume budget");
- const itemBudget=minimum(n=>p.parseRuleWithOptions("item","z",{unit,budget:n}).error===null);
- const lookup=p.parseWithOptions("z",{unit,budget:itemBudget+128});
- check(lookup.node===null&&lookup.error instanceof p.ParseInterruptionError&&lookup.error.kind==="budget-limit","member lookup charges beyond construction");
- const parseBudget=minimum(n=>p.parseWithOptions("z",{unit,budget:n}).error===null);
- check(p.parseWithOptions("z",{unit,budget:parseBudget+1024}).error===null,"same budget finishes parse");
- const conversion=p.parseASTWithOptions("z",{unit,budget:parseBudget+1024});
- check(conversion.value===null&&conversion.error instanceof p.ParseInterruptionError&&conversion.error.kind==="budget-limit","typed field scans share cumulative spend");
+ check(p.parseRuleWithOptions("fast","z",{unit,limits:{compute:4096}}).error===null,"matching fits before field construction");
+ const construction=p.parseRuleWithOptions("item","z",{unit,limits:{compute:4096}});
+ check(construction.node===null&&construction.error instanceof p.ParseInterruptionError&&construction.error.kind==="compute-limit","field construction scans consume budget");
+ for(const error of [p.parseWithOptions("z",{unit,limits:{compute:4096}}).error,p.parseASTWithOptions("z",{unit,limits:{compute:4096}}).error,p.recognizeWithOptions("z",{unit,limits:{compute:4096}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","field-dependent parse routes consume budget");
+ const itemBudget=minimum(n=>p.parseRuleWithOptions("item","z",{unit,limits:{compute:n}}).error===null);
+ const lookup=p.parseWithOptions("z",{unit,limits:{compute:itemBudget+128}});
+ check(lookup.node===null&&lookup.error instanceof p.ParseInterruptionError&&lookup.error.kind==="compute-limit","member lookup charges beyond construction");
+ const parseBudget=minimum(n=>p.parseWithOptions("z",{unit,limits:{compute:n}}).error===null);
+ check(p.parseWithOptions("z",{unit,limits:{compute:parseBudget+1024}}).error===null,"same budget finishes parse");
+ const conversion=p.parseASTWithOptions("z",{unit,limits:{compute:parseBudget+1024}});
+ check(conversion.value===null&&conversion.error instanceof p.ParseInterruptionError&&conversion.error.kind==="compute-limit","typed field scans share cumulative spend");
  let polls=0;check(p.parseWithOptions("z",{unit,signal:{get aborted(){polls++;return false}}}).error===null,"observe parse checkpoints");
  const cancelAt=polls+1;polls=0;
  const canceled=p.parseASTWithOptions("z",{unit,signal:{get aborted(){return ++polls>=cancelAt},reason:"fields"}});
  check(canceled.value===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause==="fields","typed conversion cancellation exposes no partial value");
- check(p.parseASTWithOptions("z",{unit,budget:0}).error===null,"fresh retry after field interruption");
+ check(p.parseASTWithOptions("z",{unit,limits:{compute:0}}).error===null,"fresh retry after field interruption");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -64,10 +64,10 @@ rule fast = "z" #repeat(48)`
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input="z".repeat(48),ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.error===null&&active.error===null&&stable(active.node)===stable(ordinary.node)&&active.node?.fields.length===48,"capture attachment parity");
- check(p.parseRuleWithOptions("fast",input,{unit,budget:4096}).error===null,"matching-only capture baseline fits");
- const stopped=p.parseWithOptions(input,{unit,budget:4096});
- check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="budget-limit","capture attachment scans charge after matching");
- check(p.parseWithOptions(input,{unit,budget:0}).error===null,"capture attachment fresh retry");
+ check(p.parseRuleWithOptions("fast",input,{unit,limits:{compute:4096}}).error===null,"matching-only capture baseline fits");
+ const stopped=p.parseWithOptions(input,{unit,limits:{compute:4096}});
+ check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","capture attachment scans charge after matching");
+ check(p.parseWithOptions(input,{unit,limits:{compute:0}}).error===null,"capture attachment fresh retry");
 }
 `
 		runTypedTSFixture(t, grammar, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true}, "")

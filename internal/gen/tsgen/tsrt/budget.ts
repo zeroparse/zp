@@ -6,7 +6,7 @@ export interface CancellationSignal {
   readonly reason?: unknown;
 }
 
-export type ParseInterruptionKind = "canceled" | "budget-limit" | "input-limit";
+export type ParseInterruptionKind = "canceled" | "compute-limit" | "input-limit" | "depth-limit";
 
 /** An interrupted invocation returns no partial Node or typed result. */
 export class ParseInterruptionError extends Error {
@@ -16,7 +16,7 @@ export class ParseInterruptionError extends Error {
   readonly requested: number;
 
   constructor(kind: ParseInterruptionKind, limit = 0, used = 0, requested = 0, cause: unknown = undefined) {
-    super(kind === "canceled" ? "parse canceled" : kind === "input-limit" ? `input-limit exceeded: limit ${limit}, length ${requested}` : `${kind} exceeded: limit ${limit}, used ${used}, requested ${requested}`);
+    super(kind === "canceled" ? "parse canceled" : kind === "input-limit" ? `input-limit exceeded: limit ${limit}, length ${requested}` : kind === "depth-limit" ? `nesting too deep: more than ${limit} nested recursive rule calls` : `${kind} exceeded: limit ${limit}, used ${used}, requested ${requested}`);
     this.name = "ParseInterruptionError";
     this.kind = kind;
     this.limit = limit;
@@ -80,7 +80,7 @@ export class BudgetControl {
     }
     if (this.budget !== 0 && n > this.budget - this.budgetUsed) {
       this.check();
-      throw new Fatal(new ParseInterruptionError("budget-limit", this.budget, this.budgetUsed, n));
+      throw new Fatal(new ParseInterruptionError("compute-limit", this.budget, this.budgetUsed, n));
     }
     // Unlimited spend needs no cumulative number that could lose safe-integer precision.
     if (this.budget !== 0) this.budgetUsed += n;

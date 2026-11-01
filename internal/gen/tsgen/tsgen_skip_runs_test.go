@@ -78,7 +78,7 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 		writeTSFiles(t, filepath.Join(dir, fmt.Sprintf("g%d", i)), files)
 		in, _ := json.Marshal(inputs[i])
 		fmt.Fprintf(&imports, "import * as g%d from \"./g%d/parser.ts\";\n", i, i)
-		fmt.Fprintf(&entries, "  { inputs: %s, recognize: (s: string, budget: number) => { const e = g%[2]d.recognizeWithOptions(s, { budget }); return e instanceof g%[2]d.ParseInterruptionError && e.kind === \"budget-limit\"; }, parse: (s: string) => { const r = g%[2]d.parseWithOptions(s, {}); return JSON.stringify(r.node) + \" \" + String(r.error); } },\n", in, i)
+		fmt.Fprintf(&entries, "  { inputs: %s, recognize: (s: string, budget: number) => { const e = g%[2]d.recognizeWithOptions(s, { limits: { compute: budget } }); return e instanceof g%[2]d.ParseInterruptionError && e.kind === \"compute-limit\"; }, parse: (s: string) => { const r = g%[2]d.parseWithOptions(s, {}); return JSON.stringify(r.node) + \" \" + String(r.error); } },\n", in, i)
 	}
 	res, _ := json.Marshal(results)
 	consumer := imports.String() + `

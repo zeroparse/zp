@@ -28,12 +28,12 @@ for(const unit of [p.CodePoints,p.Bytes])for(const input of ["z",new Uint8Array(
  check(ordinary.error===null&&typed.error===null&&typed.value?.Ok===true,"ordinary scalar value");
  const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
  check(active.error===null&&converted.error===null&&stable(active.node)===stable(ordinary.node)&&stable(converted.value)===stable(typed.value),"controlled scalar value parity");
- check(p.parseRuleWithOptions("fast",input,{unit,budget:128}).error===null,"matching-only spend fits");
- for(const error of [p.parseWithOptions(input,{unit,budget:128}).error,p.parseASTWithOptions(input,{unit,budget:128}).error,p.recognizeWithOptions(input,{unit,budget:128})])check(error instanceof p.ParseInterruptionError&&error.kind==="budget-limit","scalar visits consume cumulative step budget");
+ check(p.parseRuleWithOptions("fast",input,{unit,limits:{compute:128}}).error===null,"matching-only spend fits");
+ for(const error of [p.parseWithOptions(input,{unit,limits:{compute:128}}).error,p.parseASTWithOptions(input,{unit,limits:{compute:128}}).error,p.recognizeWithOptions(input,{unit,limits:{compute:128}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","scalar visits consume cumulative step budget");
  let polls=0;const cause={marker:"scalar"};
  const canceled=p.parseWithOptions(input,{unit,signal:{get aborted(){return ++polls>=4},reason:cause}});
  check(canceled.node===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause===cause,"scalar cancellation retains cause and no partial result");
- check(p.parseWithOptions(input,{unit,budget:0}).error===null,"fresh scalar retry");
+ check(p.parseWithOptions(input,{unit,limits:{compute:0}}).error===null,"fresh scalar retry");
 }
 `
 			// Recognition needs the scalar value through the predicate dependency. The
@@ -64,13 +64,13 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const input="a".repeat(1200),normal=p.parse(input,unit),typed=p.parseAST(input,unit);
  const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
  check(normal.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(normal.node)&&stable(converted.value)===stable(typed.value)&&converted.value?.S===input,"source text value parity");
- function fits(n:number):boolean{return p.parseRuleWithOptions("fast",input,{unit,budget:n}).error===null}
+ function fits(n:number):boolean{return p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}}).error===null}
  let lo=0,hi=1;while(!fits(hi)){hi*=2;check(hi<1000000,"finite matching budget")}
  while(lo+1<hi){const mid=Math.floor((lo+hi)/2);if(fits(mid))hi=mid;else lo=mid}
  // The text of the source is a range of the input: it costs a constant, not its length.
- const fitted=p.parseWithOptions(input,{unit,budget:hi+128});
+ const fitted=p.parseWithOptions(input,{unit,limits:{compute:hi+128}});
  check(fitted.error===null&&fitted.node!==null,"source text costs a constant after matching");
- check(p.parseWithOptions(input,{unit,budget:0}).error===null,"source materialization retry");
+ check(p.parseWithOptions(input,{unit,limits:{compute:0}}).error===null,"source materialization retry");
 }
 `
 		runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")

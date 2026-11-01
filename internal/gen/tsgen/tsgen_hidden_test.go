@@ -44,7 +44,7 @@ for (const [name, input] of [["_a", "a"], ["_c", "c"], ["_main_1", "b"]] as cons
   }
 }
 // The options are validated first, as in the Go parser.
-const bad = parseRuleWithOptions("_a", "a", {maxDepth: -1});
+const bad = parseRuleWithOptions("_a", "a", {limits:{depth: -1}});
 if (bad.error === null || bad.error.message.includes("hidden")) fail("options: " + bad.error?.message);
 for (const r of [parseRule("main", "abc"), parseRuleWithOptions("main", "abc")]) {
   if (r.error !== null || r.node === null) fail("main: " + r.error?.message);

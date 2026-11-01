@@ -21,8 +21,8 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 declare const process: { exit(code: number): never };
 function fail(why: string): never { console.log(why); return process.exit(0); }
 const finishes = (input: string | Uint8Array, unit: p.PositionUnit, budget: number): boolean => {
-  const r = p.parseWithOptions(input, { unit, budget });
-  if (r.error instanceof p.ParseInterruptionError && r.error.kind === "budget-limit") return false;
+  const r = p.parseWithOptions(input, { unit, limits: { compute: budget } });
+  if (r.error instanceof p.ParseInterruptionError && r.error.kind === "compute-limit") return false;
   if (r.error !== null) fail("parse: " + r.error);
   return true;
 };

@@ -102,7 +102,7 @@ function makeCase(route:Route,unit:p.Unit,mode:Mode,index:number){
  const signal=new OwnedSignal(mode),input=new Uint8Array(2048).fill(mode==="syntax"?98:97);
  const refs:readonly WeakRef<object>[]=[new WeakRef(signal),new WeakRef(signal.payload),new WeakRef(input)];
  let retained:Result={value:null,error:null},threw=false,panic:unknown;
- try {retained=route(input,{unit,signal,budget:mode==="limit"?32:0})}catch(x){threw=true;panic=x}
+ try {retained=route(input,{unit,signal,limits:{compute:mode==="limit"?32:0}})}catch(x){threw=true;panic=x}
  if(mode==="getter-panic"||mode==="pre-getter-panic")check(threw&&panic===marker&&retained.value===null,"exact getter panic is rethrown");
  else {
   check(!threw,"ordinary route does not throw");
@@ -119,7 +119,7 @@ function makeCase(route:Route,unit:p.Unit,mode:Mode,index:number){
    }
   }
   if(mode==="syntax")check(retained.value===null&&retained.error instanceof p.SyntaxError,"ordinary syntax failure");
-  if(mode==="limit")check(retained.value===null&&retained.error instanceof p.ParseInterruptionError&&retained.error.kind==="budget-limit","budget failure publishes no partial value");
+  if(mode==="limit")check(retained.value===null&&retained.error instanceof p.ParseInterruptionError&&retained.error.kind==="compute-limit","budget failure publishes no partial value");
   if(mode==="canceled"||mode==="pre-canceled")check(retained.value===null&&retained.error instanceof p.ParseInterruptionError&&retained.error.kind==="canceled"&&retained.error.cause===marker,"cancellation retains its reason only");
  }
  // Deliberate strong roots prove the weak references work with these objects.
@@ -151,7 +151,7 @@ for(const unit of [p.CodePoints,p.Bytes])for(const [index,route] of routes.entri
 // release omissions observable; public calls normally keep no controller root.
 const tsControlFinalizerHook = `
 export function retainControlForTest(signal:CancellationSignal,mode:string,arm:()=>void,marker:unknown) {
- const options=resolveOptions(G,{signal,budget:mode==="limit"?1:0},"");
+ const options=resolveOptions(G,{signal,limits:{compute:mode==="limit"?1:0}},"");
  if(options instanceof Error)throw options;
  const held:{control:BudgetControl|null}={control:null};
  const release=BudgetControl.prototype.release;
@@ -194,7 +194,7 @@ function makeCase(mode:Mode){
  else {
   check(!result.threw,"finalizer route returns normally");
   if(mode==="syntax")check(result.retained instanceof p.SyntaxError,"retained syntax error");
-  if(mode==="limit")check(result.retained instanceof p.ParseInterruptionError&&result.retained.kind==="budget-limit","retained budget limit");
+  if(mode==="limit")check(result.retained instanceof p.ParseInterruptionError&&result.retained.kind==="compute-limit","retained budget limit");
   if(mode==="canceled"||mode==="pre-canceled")check(result.retained instanceof p.ParseInterruptionError&&result.retained.kind==="canceled"&&result.retained.cause===marker,"retained cancellation reason");
  }
  // Checking the saved controller after teardown must not consult the signal.

@@ -163,10 +163,15 @@ export function recognize(input: string | Uint8Array, unit?: Unit): Error | null
 
 export interface ParseOptions {
   unit?: Unit;
-  maxDepth?: number;
   signal?: CancellationSignal | null;  // with -limits only
-  budget?: number;                     // with -limits only
+  limits?: Limits;
 }
+export interface Limits {
+  compute?: number;                    // with -limits only
+  input?: number;
+  depth?: number;
+}
+export const Unlimited: number;        // disables the compute and input limits
 export function parseWithOptions(input: string | Uint8Array, options?: ParseOptions): ParseResult;
 export function parseRuleWithOptions(name: string, input: string | Uint8Array, options?: ParseOptions): ParseResult;
 // With -recognize:
@@ -286,7 +291,7 @@ for (const pair of value ?? []) {
   if (p === null) continue;
   console.log(p.type, p.Key, p.Value, p.start, p.end);
 }
-const bytes = parseASTWithOptions("あい=3", { unit: Bytes, maxDepth: 0 });
+const bytes = parseASTWithOptions("あい=3", { unit: Bytes, limits: { depth: 0 } });
 console.log(bytes.value?.[0]?.end);
 ```
 
@@ -302,7 +307,7 @@ returns null value with the original error. Recovery keeps the converted value
 and `SyntaxErrors`; a recovered error in a specific struct field
 converts to null, while a declared node join retains a `RecoveredError` value.
 Check `error`, rather than interpreting null value alone as failure. Options
-are read and validated once; zero `maxDepth` selects the generated default.
+are read and validated once; a zero `limits.depth` selects the generated default.
 
 Converted values are plain objects with readonly fields, lowercase `type`
 discriminators and `start`/`end` spans. Grammar field spelling is unchanged.
@@ -438,7 +443,7 @@ The errors are those of the engine, with the same messages:
 | Syntax error | The input does not match | `SyntaxError`: `pos`, `line`, `col`, `expected`, `messages` |
 | Recovered errors | `#recover` skipped parts of the input | `SyntaxErrors` (and `node` is set) |
 | Runtime error in an action | e.g. `action in main: division by zero` | `Error` |
-| Too deep nesting | more than the configured nested recursive rule-call limit (100,000 by default) | `Error`: `nesting too deep: more than 100000 nested recursive rule calls` |
+| Too deep nesting | more than the configured nested recursive rule-call limit (100,000 by default) | `ParseInterruptionError` of kind `"depth-limit"`: `nesting too deep: more than 100000 nested recursive rule calls` |
 | JavaScript stack exhausted | before the limit, see below | `Error`: `nesting too deep: the JavaScript stack overflowed at N nested recursive rule calls` |
 
 With the grammar `rec.zp` of the Go guide, generated with `-recognize` into the directory `recparser`:
@@ -466,24 +471,25 @@ null
 
 ## Cancellation and Compute Limits
 
-A parser generated with `-limits` accepts `signal` and `budget` in the options-aware entry points to
-stop a parse of input you do not control. Without the option the parser emits no code that spends budget and sets no control, its options type has
-neither, and a call that passes one returns an error. A parser has one form: with the option it is the controlled one, and a
-parse that sets no limit runs the same code, so generate two parsers if you need the plain form as well. `signal` is any object with `aborted` and an optional `reason`, so an `AbortSignal` fits; the limit is a
-nonnegative safe integer. Zero (or omitting it) selects the default of `max(2^20, 1024 * n)` for an input of `n` units
+A parser generated with `-limits` accepts `signal` and the `compute` field of `limits` in the
+options-aware entry points to stop a parse of input you do not control. Without the option the parser emits no code that spends budget and sets no control, its options type has
+neither, and a call that passes a signal or a finite `compute` returns an error. An unknown option or `limits` key is an
+error in both forms. A parser has one form: with the option it is the controlled one, and a
+parse that sets no limit runs the same code, so generate two parsers if you need the plain form as well. `signal` is any object with `aborted` and an optional `reason`, so an `AbortSignal` fits; each limit is a
+nonnegative safe integer. A zero `compute` (or omitting it) selects the default of `max(2^20, 1024 * n)` for an input of `n` units
 (code points, or bytes with `Bytes`), which also applies to `parse` and the other entry points without options; the
-exported `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit. `maxInput` bounds the input in the same unit (default `Unlimited`): a longer input is rejected before parsing with kind `"input-limit"`. An interrupted parse returns no tree and a
+exported `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit. `input` bounds the input in the same unit (default `Unlimited`), with or without `-limits`: a longer input is rejected before parsing with kind `"input-limit"`. An interrupted parse returns no tree and a
 `ParseInterruptionError` whose `kind` says what happened:
 
 ```ts
-const result = parseWithOptions(input, { budget: 5_000_000, signal: AbortSignal.timeout(2000) });
+const result = parseWithOptions(input, { limits: { compute: 5_000_000 }, signal: AbortSignal.timeout(2000) });
 if (result.error instanceof ParseInterruptionError) {
   console.log(result.error.kind, result.error.used);
 }
 ```
 
 A parse is synchronous and does not yield to the event loop, so a timer such as `AbortSignal.timeout` cannot fire during
-the call: use `budget` for a bound that holds, and a signal that is already aborted or a worker
+the call: use the compute limit for a bound that holds, and a signal that is already aborted or a worker
 that you terminate for cancellation. The units of the limits are explained in
 [Cancellation and Compute Limits](../../spec/runtime/parsing.md#cancellation-and-compute-limits).
 
@@ -491,14 +497,17 @@ that you terminate for cancellation. The units of the limits are explained in
 
 The generated parser calls rules recursively, like the generated Go parser, and defaults to the same limit of 100,000 nested
 recursive rule calls. `-max-depth` / `gen.TypeScript.MaxDepth` set a generated default; `parseWithOptions`,
-`parseRuleWithOptions` and `recognizeWithOptions` accept `maxDepth` for one invocation. Omitted or zero selects the
-generated default; a positive safe integer overrides it. Negative values, fractions, NaN, infinity and unsafe
-integers return a configuration error through the normal result, before matching or named-rule lookup. Options are
+`parseRuleWithOptions` and `recognizeWithOptions` accept `limits.depth` for one invocation, with or without `-limits`.
+Omitted or zero selects the generated default; a positive safe integer overrides it. `Unlimited`, negative values,
+fractions, NaN, infinity and unsafe integers return a configuration error through the normal result, before matching
+or named-rule lookup; a generated parser nests rule calls on the JavaScript stack, so its depth always has a limit. A
+parse that exceeds the limit returns a `ParseInterruptionError` of kind `"depth-limit"`, whose `limit` and `used` are
+the limit and `requested` is 1. Options are
 resolved to scalar fields immediately, so later mutation of the caller's object cannot change an in-progress parse.
 The existing `parse`, `parseRule` and `recognize` unit signatures keep their behavior. For example:
 
 ```ts
-const result = parseWithOptions(input, { unit: Bytes, maxDepth: 600_000 });
+const result = parseWithOptions(input, { unit: Bytes, limits: { depth: 600_000 } });
 ```
 
 A larger limit does not guarantee host-stack capacity. A JavaScript stack is far smaller than a goroutine's: Node.js's default stack (about 1 MB) holds some
@@ -542,7 +551,7 @@ The parity tests parse in a worker with a 1 GB stack, so that they also check th
 
 Generated TypeScript supports every feature of the grammar language: Rule Expressions, Operators Rules, left recursion, Predicates and variables, actions, built-in functions, `@error` and
 `#recover`. It adds `parseRule` for another start rule, a `unit` argument for the position unit, `recognize` (with
-`-recognize`) for matching without a tree, and `maxDepth`, and with `-limits` `signal` and `budget`, in the options-aware
+`-recognize`) for matching without a tree, and `limits.input` and `limits.depth`, and with `-limits` `signal` and the compute limit, in the options-aware
 entry points. It has no `#stream` and `ParseStream`, and no `Document`: `#stream` is an ordinary repetition, as in Go.
 Typed values (`-types`) give interfaces and aliases and `parseAST`/`parseASTWithOptions` for the configured start rule,
 while `parse` still returns Nodes. The [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support) has

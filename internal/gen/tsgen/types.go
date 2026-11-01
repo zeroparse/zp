@@ -95,7 +95,7 @@ func (g *Generator) typedTS(start *compile.Rule) (types, parser string, err erro
 	repr := t.recipe(st)
 	stType := qualifyTypes(t.tsType(st))
 	b.WriteString("\n// --- Typed values (zp gen -types) ---\n\n")
-	// With budget controls every parse is controlled, so parseAST takes the path of parseASTWithOptions.
+	// With limit controls every parse is controlled, so parseAST takes the path of parseASTWithOptions.
 	astBody := fmt.Sprintf("astResult<%s>(run(G, R%d, nseen, input, unit), %d)", stType, start.ID, repr)
 	if !g.NoBudget {
 		astBody = "parseASTWithOptions(input, { unit: unit ?? CodePoints })"

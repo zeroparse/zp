@@ -51,6 +51,7 @@ rule n = ("(" n ")" / "é") #recover(skip="?")`, Inputs: []string{"é", "(é)", 
 	dir := t.TempDir()
 	var script strings.Builder
 	script.WriteString(`import assert from "node:assert/strict";
+let depthErrors=0;
 `)
 	for i, c := range fixtures {
 		g, err := parseTest(c.Src)
@@ -88,14 +89,20 @@ rule n = ("(" n ")" / "é") #recover(skip="?")`, Inputs: []string{"é", "(é)", 
  const message = r => r === null ? "" : r.message;
  for(let repeat=0;repeat<3;repeat++) for(const c of rows) {
   for(const input of [c.input,new Uint8Array(Buffer.from(c.input))]) {
-   const options = {unit:c.unit,maxDepth:c.maxDepth};
-   assert.equal(message(m.parseRuleWithOptions(c.name,input,options).error),c.want,JSON.stringify(c));
+   const options = {unit:c.unit,limits:{depth:c.maxDepth}};
+   const ruleError=m.parseRuleWithOptions(c.name,input,options).error;
+   assert.equal(message(ruleError),c.want,JSON.stringify(c));
+   if(c.want.startsWith("nesting too deep: more than ")) {
+    assert.ok(ruleError instanceof m.ParseInterruptionError,JSON.stringify(c));
+    assert.deepEqual([ruleError.kind,ruleError.limit,ruleError.used,ruleError.requested],["depth-limit",c.maxDepth,c.maxDepth,1],JSON.stringify(c));
+    depthErrors++;
+   }
    if(c.name==="main") {
     assert.equal(message(m.parseWithOptions(input,options).error),c.want,JSON.stringify(c));
     assert.equal(message(m.recognizeWithOptions(input,options)),c.want,JSON.stringify(c));
     if(c.maxDepth===4) for(const maxDepth of [undefined,0,4]) {
-     assert.equal(message(m.parseWithOptions(input,{unit:c.unit,maxDepth}).error),c.want);
-     assert.equal(message(m.recognizeWithOptions(input,{unit:c.unit,maxDepth})),c.want);
+     assert.equal(message(m.parseWithOptions(input,{unit:c.unit,limits:{depth:maxDepth}}).error),c.want);
+     assert.equal(message(m.recognizeWithOptions(input,{unit:c.unit,limits:{depth:maxDepth}})),c.want);
      assert.equal(message(m.parse(input,c.unit).error),c.want);
      assert.equal(message(m.recognize(input,c.unit)),c.want);
     }
@@ -103,30 +110,36 @@ rule n = ("(" n ")" / "é") #recover(skip="?")`, Inputs: []string{"é", "(é)", 
   }
  }
  for(const depth of [-1,0.5,NaN,Infinity,-Infinity,Number.MAX_SAFE_INTEGER+1]) {
-  const options={maxDepth:depth};
-  assert.match(m.parseWithOptions("?",options).error.message,/max depth must be a non-negative safe integer/);
-  assert.match(m.parseRuleWithOptions("missing","?",options).error.message,/max depth must be a non-negative safe integer/);
-  assert.match(m.recognizeWithOptions("?",options).message,/max depth must be a non-negative safe integer/);
+  const options={limits:{depth:depth}};
+  assert.match(m.parseWithOptions("?",options).error.message,/depth limit must be a non-negative safe integer/);
+  assert.match(m.parseRuleWithOptions("missing","?",options).error.message,/depth limit must be a non-negative safe integer/);
+  assert.match(m.recognizeWithOptions("?",options).message,/depth limit must be a non-negative safe integer/);
  }
- assert.doesNotMatch(message(m.parseWithOptions("?",{maxDepth:Number.MAX_SAFE_INTEGER}).error),/max depth must/);
- const frozen=Object.freeze({unit:m.Bytes,maxDepth:20});m.parseWithOptions("?",frozen);
+ assert.doesNotMatch(message(m.parseWithOptions("?",{limits:{depth:Number.MAX_SAFE_INTEGER-1}}).error),/depth limit must|unlimited depth/);
+ for(const options of [{limits:{depth:m.Unlimited}},{limits:{depth:m.Unlimited,compute:0}}]) {
+  assert.match(message(m.parseWithOptions("?",options).error),/does not accept an unlimited depth/);
+  assert.match(message(m.recognizeWithOptions("?",options)),/does not accept an unlimited depth/);
+ }
+ const frozen=Object.freeze({unit:m.Bytes,limits:{depth:20}});m.parseWithOptions("?",frozen);
  let units=0,depths=0;
- m.parseWithOptions("?",{get unit(){units++;return m.Bytes},get maxDepth(){depths++;return 20}});
+ m.parseWithOptions("?",{get unit(){units++;return m.Bytes},limits:{get depth(){depths++;return 20}}});
  assert.equal(units,1);assert.equal(depths,1);
 `)
 		if i == 0 {
 			script.WriteString(`
- const options={unit:m.Bytes,maxDepth:20};let calls=0;
- m.installTestAction(()=>{calls++;options.unit=m.CodePoints;options.maxDepth=1});
+ const options={unit:m.Bytes,limits:{depth:20}};let calls=0;
+ m.installTestAction(()=>{calls++;options.unit=m.CodePoints;options.limits.depth=1});
  const result=m.parseWithOptions("((((é))))",options);
  assert.equal(result.error,null);assert.equal(result.node.end,10);assert.equal(calls,1);
- m.recognizeWithOptions("é",{maxDepth:20});assert.equal(calls,1);
- assert.match(m.parseWithOptions("é",{maxDepth:-1}).error.message,/max depth must/);assert.equal(calls,1);
- assert.match(m.parseRuleWithOptions("missing","é",{maxDepth:-1}).error.message,/max depth must/);assert.equal(calls,1);
+ m.recognizeWithOptions("é",{limits:{depth:20}});assert.equal(calls,1);
+ assert.match(m.parseWithOptions("é",{limits:{depth:-1}}).error.message,/depth limit must/);assert.equal(calls,1);
+ assert.match(m.parseRuleWithOptions("missing","é",{limits:{depth:-1}}).error.message,/depth limit must/);assert.equal(calls,1);
 `)
 		}
 		script.WriteString("}\n")
 	}
+	script.WriteString(`assert.ok(depthErrors>0,"no row exceeds the depth limit");
+`)
 	path := filepath.Join(dir, "test.mjs")
 	os.WriteFile(path, []byte(script.String()), 0644)
 	cmd := exec.Command(node, path)
