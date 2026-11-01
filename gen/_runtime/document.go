@@ -103,14 +103,13 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 	for _, opt := range opts {
 		opt(&o)
 	}
-	if o.maxDepth < 0 {
-		return o, fmt.Errorf("max depth must be non-negative: %d", o.maxDepth)
+	depth, err := resolveDepth(o.limits.Depth, d.State.root.g.maxDepth)
+	if err != nil {
+		return o, err
 	}
-	if o.maxDepth == 0 {
-		o.maxDepth = d.State.root.g.maxDepth
-	}
+	o.maxDepth = depth
 	if d.State.root.g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and WithLimits)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute limit)")
 	}
 	if err := o.validateDiagnostics(); err != nil {
 		return o, err

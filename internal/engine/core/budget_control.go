@@ -164,6 +164,7 @@ func CheckInput(l limits.Limits, s string, unit PositionUnit) error {
 		return nil
 	}
 	if !BudgetControlsEnabled {
+		// The reference build exists only for measurement, so it refuses any Input limit too.
 		return ErrNoControls
 	}
 	n := uint64(len(s))
@@ -179,6 +180,7 @@ func CheckInputUnits(l limits.Limits, n uint64) error {
 		return nil
 	}
 	if !BudgetControlsEnabled {
+		// The reference build exists only for measurement, so it refuses any Input limit too.
 		return ErrNoControls
 	}
 	if n > l.Input {

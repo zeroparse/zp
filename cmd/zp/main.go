@@ -2,24 +2,24 @@
 //
 // Usage:
 //
-//	zp parse -g grammar.zp [-s main] [-i input] [-f json|sexpr] [-stream] [-unit u] [-backend b] [-source-info] [-default-value] [-max-compute n] [-max-input n]
-//	zp test -f suite.json [-format text|json] [-backend closure,bytecode] [-equivalence] [-update] [-max-compute n] [-max-input n]
+//	zp parse -g grammar.zp [-s main] [-i input] [-f json|sexpr] [-stream] [-unit u] [-backend b] [-source-info] [-default-value] [-max-compute n] [-max-input n] [-max-depth n]
+//	zp test -f suite.json [-format text|json] [-backend closure,bytecode] [-equivalence] [-update] [-max-compute n] [-max-input n] [-max-depth n]
 //	zp fmt [-w] [-l] [-check] [-syntax] [grammar.zp ...]
 //	zp convert [-to zp|json] [-o output] grammar.zp|grammar.json
 //	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-nodoc] [-max-depth n] [-source-info] [-default-value]
 //	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability]
 //	zp compile -g grammar.zp [-s main] [-mode parse|recognize|document] [-source-info] [-default-value] -o grammar.zpc
-//	zp trace -g grammar.zp [-s main] [-i input] [-max-depth n] [-rule name] [-failures] [-f text|json] [-max-compute n] [-max-input n]
-//	zp profile -g grammar.zp [-s main] [-i input] [-sort column] [-n rows] [-f text|json] [-max-compute n] [-max-input n]
-//	zp explain -g grammar.zp [-s main] [-i input] [-n calls] [-max-compute n] [-max-input n]
+//	zp trace -g grammar.zp [-s main] [-i input] [-show-depth n] [-rule name] [-failures] [-f text|json] [-max-compute n] [-max-input n] [-max-depth n]
+//	zp profile -g grammar.zp [-s main] [-i input] [-sort column] [-n rows] [-f text|json] [-max-compute n] [-max-input n] [-max-depth n]
+//	zp explain -g grammar.zp [-s main] [-i input] [-n calls] [-max-compute n] [-max-input n] [-max-depth n]
 //	zp lint -g grammar.zp [-s main] [-f text|json] [-disable checks] [-strict] [-list]
 //	zp sample -g grammar.zp [-s main] [-n 10] [-seed N] [-max-depth D] [-max-repeat R] [-max-len L] [-budget B]
 //	            [-coverage] [-invalid] [-f lines|json]
 //	zp schema -g grammar.zp [-s main] [-all-rules] [-o schema.json]
 //	zp schema diff [-s main] [-all-rules] [-f text|json] before after
 //	zp edit-fuzz -g grammar.zp [-s main] [-backend names] [-unit names] [-seed N] [-corpus path] [-sequences n]
-//	               [-operations n] [-save-failures dir] [-minimize] [-max-attempts n] [-max-compute n] [-max-input n]
-//	zp edit-fuzz -g grammar.zp -replay sequence.json [-minimize] [-save-failures dir] [-max-compute n] [-max-input n]
+//	               [-operations n] [-save-failures dir] [-minimize] [-max-attempts n] [-max-compute n] [-max-input n] [-max-depth n]
+//	zp edit-fuzz -g grammar.zp -replay sequence.json [-minimize] [-save-failures dir] [-max-compute n] [-max-input n] [-max-depth n]
 //	zp lsp
 package main
 
@@ -48,16 +48,16 @@ Commands:
 
   parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check]
         [-unit codepoints|bytes] [-backend closure|bytecode|bytecode-iterative] [-source-info]
-        [-default-value] [-max-compute <n>] [-max-input <n>]
+        [-default-value] [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Parse the input with a grammar and print the syntax tree. Without -i,
       the input is read from standard input. -source-info also prints the
       rule of each node and the names of captures. -default-value drops
       value actions and declared rule types (predicates still run) and
-      prints the default node tree. -max-compute and -max-input bound the parse:
-      see Limits below.
+      prints the default node tree. -max-compute, -max-input and -max-depth
+      bound the parse: see Limits below.
 
   test -f <suite.json> [-format text|json] [-backend <names>] [-equivalence] [-update]
-       [-max-compute <n>] [-max-input <n>]
+       [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Run a versioned JSON fixture suite. Outcomes distinguish accepted,
       recovered, and rejected parses; selected backend equivalence is reported
       separately. -update refreshes node and location goldens for one backend.
@@ -116,10 +116,10 @@ Commands:
       parsing and Documents, and TypeScript batch parsing, including typed
       entry points.
       -limits generates the limit-controlled form of the parser, which
-      supports WithContext and WithLimits (signal, budget and maxInput in TypeScript);
-      without it those options are not exported, the
-      generated code does not spend budget, and a parse that passes them
-      fails. The parser has this one form only: a parse that sets no limit
+      supports WithContext and a finite Compute limit (signal, budget and
+      maxInput in TypeScript); without it WithContext is not exported, the
+      generated code does not spend budget, and a parse that passes a context
+      or a finite Compute fails. The Input and Depth limits work either way. The parser has this one form only: a parse that sets no limit
       runs the same code. Generate a second parser without the option to
       have the plain form too.
       -typed-only generates only the typed entry points (ParseAST and its
@@ -148,18 +148,19 @@ Commands:
       value actions and declared rule types are dropped (predicates still
       run), so its parses return the default node tree.
 
-  trace -g <grammar> [-s <rule>] [-i <input>] [-max-depth <n>] [-rule <name>]
-        [-failures] [-f text|json] [-unit u] [-backend b] [-max-compute <n>] [-max-input <n>]
+  trace -g <grammar> [-s <rule>] [-i <input>] [-show-depth <n>] [-rule <name>]
+        [-failures] [-f text|json] [-unit u] [-backend b] [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Parse the input and print every rule call as an indented call tree
       with positions, results and memo hits (-f json: one event per line).
+      -show-depth hides calls nested deeper than n below the top call shown.
 
   profile -g <grammar> [-s <rule>] [-i <input>] [-sort <column>] [-n <rows>]
-        [-f text|json] [-unit u] [-backend b] [-max-compute <n>] [-max-input <n>]
+        [-f text|json] [-unit u] [-backend b] [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Parse the input and print the cost of each rule, with hints on where
       the grammar does more work than it needs to.
 
   explain -g <grammar> [-s <rule>] [-i <input>] [-n <calls>] [-unit u] [-backend b]
-          [-max-compute <n>] [-max-input <n>]
+          [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Parse the input and, for a syntax error, print the rule calls that
       recorded what it says was expected, each with the calls it was
       nested in.
@@ -191,9 +192,9 @@ Commands:
 
   edit-fuzz -g <grammar.zp> [-s <rule>] [-backend <names>] [-unit <names>] [-seed <n>]
             [-corpus <path>] [-sequences <n>] [-operations <n>] [-save-failures <dir>]
-            [-minimize] [-max-attempts <n>] [-max-compute <n>] [-max-input <n>]
+            [-minimize] [-max-attempts <n>] [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
   edit-fuzz -g <grammar.zp> -replay <sequence.json> [-minimize] [-save-failures <dir>]
-            [-max-compute <n>] [-max-input <n>]
+            [-max-compute <n>] [-max-input <n>] [-max-depth <n>]
       Apply generated edit, undo and redo sequences to incremental Documents
       and compare each checkpoint with a fresh parse, on every backend and
       unit unless limited. A failing sequence is saved as a JSON file that
@@ -206,13 +207,15 @@ Commands:
       input and output, for editors: diagnostics, formatting, go to
       definition, references, hover, rename and completion.
 
-Limits: parse, test, trace, profile, explain and edit-fuzz take -max-compute and
--max-input. -max-compute bounds the cost of a parse in units; 0, the default,
-selects max(2^20, 1024 times the input length). -max-input bounds the length
-of the input in the position unit; 0, the default, sets no bound. Both also
-take the word unlimited, which disables the limit. A parse that reaches a limit
-prints the message of the limit error and exits with status 1, like any other
-failure.
+Limits: parse, test, trace, profile, explain and edit-fuzz take -max-compute,
+-max-input and -max-depth. -max-compute bounds the cost of a parse in units; 0, the
+default, selects max(2^20, 1024 times the input length). -max-input bounds the
+length of the input in the position unit; 0, the default, sets no bound.
+-max-depth bounds the nesting of recursive rule calls; 0, the default, selects
+100000, or 10000000 for bytecode-iterative. Each also takes the word unlimited,
+which disables the limit; an unlimited depth needs bytecode-iterative. A parse
+that reaches a limit prints the message of the limit error and exits with
+status 1, like any other failure.
 
 A <grammar> is ZeroParse source (.zp), a grammar in JSON (.json), or, for
 parse, trace, profile, explain and compile, a grammar compiled with zp
@@ -830,7 +833,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	stream := fs.Bool("stream", false, "also generate Go ParseStream and Iterate for the start rule's #stream repetition (and their typed forms with -types; incompatible with -lang ts)")
 	observability := fs.Bool("observability", false, "emit opt-in rule tracing and profiling for Go batch/Documents and TypeScript batch parsing, including typed entry points")
 	expectations := fs.Bool("expectations", false, "generate a parser that records what a syntax error expects (the expected list and @error messages); without it the error reports only the farthest failure position")
-	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and WithLimits (signal, budget and maxInput in TypeScript)")
+	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and a finite Compute limit (signal, budget and maxInput in TypeScript)")
 	typedOnly := fs.Bool("typed-only", false, "generate only the typed entry points (ParseAST and siblings), without Parse, ParseRule and Recognize (needs -types)")
 	recognize := fs.Bool("recognize", false, "also generate Recognize, which checks input without building a tree")
 	maxDepth := fs.Int("max-depth", 0, "generated default nested recursive rule-call limit (0 selects 100000)")

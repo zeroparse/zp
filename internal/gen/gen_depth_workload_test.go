@@ -89,7 +89,7 @@ rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
    rec:func(s string)error{return Recognize(s)},
   }
  }
- opts:=[]ParseOption{WithMaxDepth(*limit)}
+ opts:=[]ParseOption{WithLimits(Limits{Depth: uint64(*limit)})}
  if unit==Bytes {opts=append(opts,WithUnit(Bytes))}
  return depthRoutes{
   node:func(s string)(*Node,error){return Parse(s,opts...)},

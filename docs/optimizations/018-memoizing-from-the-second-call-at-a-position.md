@@ -18,7 +18,7 @@
   returned by actions (fixed: action results are final), errors recovered inside and outside lookaheads (fixed:
   such entries are reused only in the same context), node identity across separate calls (`==` on nodes; now
   stated as unspecified in the specification), and the nesting limit near its value (a memo hit does not nest;
-  documented on `WithMaxDepth`).
+  documented on `Limits.Depth`).
 - Effect (min of 6 interleaved runs, Apple M3 Max, code points; time before → after, bytes per parse in
   parentheses):
 

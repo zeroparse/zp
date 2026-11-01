@@ -412,7 +412,8 @@ func apiNames(opts gen.GenOptions) []string {
 	names := []string{
 		"Node", "NodeField", "Fields", "NodeKind", "KindString", "KindTuple", "KindList", "KindError", "KindStruct",
 		"KindTupleValue", "KindListValue", "KindValue", "SyntaxError", "SyntaxErrors", "PositionUnit", "CodePoints", "Bytes",
-		"ParseOption", "WithUnit", "WithMaxDepth",
+		"ParseOption", "WithUnit", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitCompute", "LimitInput",
+		"LimitDepth", "Unlimited",
 		"Cursor", "CycleError", "WalkAction", "WalkContinue", "WalkSkip", "WalkStop", "WalkVisit", "WalkEdge", "WalkEdgeKind",
 		"WalkRoot", "WalkChild", "WalkField", "WalkListElement", "Walk",
 	}
@@ -420,7 +421,7 @@ func apiNames(opts gen.GenOptions) []string {
 		names = append(names, "WithExpectations")
 	}
 	if opts.LimitControls {
-		names = append(names, "WithContext", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitCompute", "LimitInput", "Unlimited")
+		names = append(names, "WithContext")
 	}
 	if opts.Observability {
 		names = append(names, "TraceKind", "TraceEnter", "TraceExit", "TraceSkipped", "TraceEvent", "WithTrace", "WithTraceFilter", "WithTraceMaxDepth",

@@ -25,6 +25,9 @@ func TestLimitFlagParsing(t *testing.T) {
 		{[]string{"-max-compute", "1.5"}, zp.Limits{}, true},
 		{[]string{"-max-input", "many"}, zp.Limits{}, true},
 		{[]string{"-max-compute", "18446744073709551616"}, zp.Limits{}, true},
+		{[]string{"-max-depth", "40", "-max-input", "7"}, zp.Limits{Input: 7, Depth: 40}, false},
+		{[]string{"-max-depth", "unlimited"}, zp.Limits{Depth: zp.Unlimited}, false},
+		{[]string{"-max-depth", "-1"}, zp.Limits{}, true},
 	} {
 		fs := flag.NewFlagSet("t", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)

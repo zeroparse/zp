@@ -304,6 +304,14 @@ func (d *Document) SnapshotWith(o core.ParseOptions) (*Snapshot, error) {
 	return d.snapshotWith(o, nil)
 }
 
+// interruptsSnapshot reports whether err is an exhausted limit of the invocation, which publishes no
+// snapshot. The depth limit is not one: a parse nested too deeply is a run-time error of the parse, which
+// a snapshot records as it records the error of an action.
+func interruptsSnapshot(err error) bool {
+	var le *limits.LimitError
+	return errors.As(err, &le) && le.Kind != limits.LimitDepth
+}
+
 func (d *Document) snapshotWith(o core.ParseOptions, legacy **value.Node) (*Snapshot, error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
@@ -316,7 +324,7 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **value.Node) (*Snap
 	var result *Snapshot
 	output := OutputUnavailable
 	_, err := d.parseWithCapture(o, func(p *core.Parser, root *value.Node, parseErr error) error {
-		if observed != nil && observed.interrupted || errors.Is(parseErr, limits.ErrLimit) {
+		if observed != nil && observed.interrupted || interruptsSnapshot(parseErr) {
 			return parseErr
 		}
 		p.Control.Check()

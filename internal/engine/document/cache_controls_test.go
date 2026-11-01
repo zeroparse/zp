@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/limits"
 
 	. "zeroparse.dev/zp/internal/engine"
 )
@@ -16,7 +17,7 @@ func TestCacheControlsResetPreservesDocument(t *testing.T) {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				prog := mustCompile(t, `rule main = item* $$
 rule item = [a-z]+ "\n"`)
-				options := ParseOptions{Backend: backend, Unit: unit, MaxDepth: 12345}
+				options := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 12345}}
 				text := strings.Repeat("word\n", 40)
 				d, err := prog.NewDocumentWith("main", text, options)
 				if err != nil {

@@ -27,7 +27,7 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error)
 
 type ParseOption = runtime.ParseOption // an alias; the options are internal to the runtime
 func WithUnit(unit PositionUnit) ParseOption
-func WithMaxDepth(n int) ParseOption
+func WithLimits(limits Limits) ParseOption // Limits.Depth in every package; Compute and Input need -limits
 
 type PositionUnit int
 const (
@@ -135,26 +135,27 @@ way ZeroParse has to validate input. The price is a larger file: the second tabl
 
 ```go
 node, err := pairsparser.Parse(input,
-    pairsparser.WithUnit(pairsparser.Bytes), pairsparser.WithMaxDepth(600_000))
+    pairsparser.WithUnit(pairsparser.Bytes), pairsparser.WithLimits(pairsparser.Limits{Depth: 600_000}))
 ```
 
 `Parse`, `ParseRule`, `Recognize` (when generated) and `ParseAST`/`ParseRuleAST` (with `-types`) accept the same functional options.
 With `-typed-only` (`TypedOnly` of `gen.Go`, which needs `-types`) the package has only `ParseAST` and `ParseRuleAST`: `Parse`, `ParseRule`, `Recognize` and the code that builds `*Node` values are not generated, and `-recognize`, `-document` and `-stream` are rejected. When a typed entry point converts the Node of its rule (an action reads a field of a struct, or a result type has no Go type of its own), the generated package keeps the unexported Node rule functions that conversion runs, so the saving is smaller for such a grammar.
-No options preserves CodePoints and the generated depth default, normally 100,000. A positive `WithMaxDepth(n)`
-overrides that default for one invocation, including typed direct parsing and node conversion. Zero resets the
-field to the generated default. Options apply in order; only a negative final limit returns a configuration error,
-before matching, actions or named-rule lookup. A nil option panics when applied, as engine options do.
+No options preserves CodePoints and the generated depth default, normally 100,000. A positive `Limits.Depth`
+overrides that default for one invocation, including typed direct parsing and node conversion. Zero selects the
+generated default. Options apply in order; `Depth: Unlimited` returns a configuration error before matching, actions
+or named-rule lookup, because generated code nests rule calls on the Go stack. A deeper parse fails with a
+`*LimitError` of kind `LimitDepth`. A nil option panics when applied, as engine options do.
 Parser pooling and concurrent calls keep their limits independent. Limits count nested recursive rule calls rather than
 brackets or AST nodes, and raising the limit does not guarantee host-stack capacity.
 
 ## Cancellation and Compute Limits
 
 A Go parser generated with `-limits` also accepts invocation-local
-cancellation and compute limits. Use the generated package's options and error
-types; a package generated without the flag exports none of them, and a parse
-that passes `WithContext` with a context or `WithLimits` with a limit from the
-runtime returns an error saying that the parser was generated without budget
-controls (a nil context, a zero `Limits` and a `Limits` whose fields are `Unlimited` set no control and are accepted):
+cancellation and a compute limit. Use the generated package's options and error
+types; a package generated without the flag exports no `WithContext`, and a parse
+that passes a context or a finite `Compute` limit returns an error saying that the parser was generated
+without limit controls (a nil context and a `Compute` limit that is zero or `Unlimited` set no control
+and are accepted, as are any `Input` and `Depth`, which every parser checks):
 
 ```go
 node, err := pairsparser.Parse(input,
@@ -169,7 +170,8 @@ A nil context has no deadline or cancellation signal. A zero limit selects its d
 package exports `Unlimited`, which disables a limit; `Limits{Compute: Unlimited}` with no context runs without
 a control. `Limits.Input` bounds the input length in the position unit; its default is `Unlimited`, and a longer input fails
 before any parsing with a `*LimitError` of kind `LimitInput` (a generated stream fails when the parser reaches a unit beyond it). Options apply once in
-order; the last context and the last complete `Limits` value win. The counter
+order; the last context wins, and a nonzero field of a later `WithLimits` overrides the same field of an earlier
+one while a zero field leaves it unchanged. The counter
 resets for every call and remain independent during concurrent parsing. The
 same options work with named rules, recognition, direct typed parsing, and
 Node-to-typed conversion.
@@ -182,12 +184,12 @@ and typed conversion. A loop that only scans input, such as a repeated
 character class, charges for every element it reads, so `Compute` bounds it.
 Counts depend on the generated
 artifact and position unit; a limit is not a character count, memory cap, or
-elapsed-time limit. Backtracking never refunds spend. Depth remains a separate
-limit.
+elapsed-time limit. Backtracking never refunds spend. `Depth` bounds nesting
+independently of the other limits and needs no control.
 
 Use `errors.Is(err, context.Canceled)` or `context.DeadlineExceeded` for
 cancellation, and `errors.Is(err, pairsparser.ErrLimit)` for an exhausted
-budget. `errors.As` can retrieve a `*pairsparser.LimitError` with `Kind`,
+limit. `errors.As` can retrieve a `*pairsparser.LimitError` with `Kind`,
 `Limit`, `Used` and `Requested`. Interrupted entry points return their zero
 result; recovery cannot turn an interruption into a successful partial tree.
 Previously returned results stay valid, and a later invocation can retry.

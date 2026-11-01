@@ -23,7 +23,7 @@ rule line = [a-z]+ #atomic "\n"`, "main")
 				t.Fatal(err)
 			}
 			var out bytes.Buffer
-			printer := tracePrinter{w: bufio.NewWriter(&out), json: format == "json", rules: []string{"main"}, maxDepth: 1}
+			printer := tracePrinter{w: bufio.NewWriter(&out), json: format == "json", rules: []string{"main"}, showDepth: 1}
 			var profile zp.Profile
 			active := false
 			doc, err := p.NewDocument(strings.Repeat("ab\n", 32), zp.WithTrace(func(e zp.TraceEvent) {

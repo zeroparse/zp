@@ -457,10 +457,10 @@ Limits to plan for:
 
 - **Nesting.** The generated parsers limit the depth of recursive rule calls to 100,000, so deeply nested input fails with
   `nesting too deep: more than 100000 nested recursive rule calls` instead of exhausting the stack. For JSON that is about 33,000 levels
-  of arrays. Generated `WithMaxDepth` sets a lower or higher ceiling for one invocation; zero keeps the generated
+  of arrays. Generated `Limits.Depth` sets a lower or higher ceiling for one invocation; zero keeps the generated
   default. Ready-made defaults remain 100,000. Raising the limit cannot guarantee host-stack capacity. Use the
   grammar with the engine's `BytecodeIterative` backend for an explicit parsing stack
-  ([Choosing a Backend](backends.md#deep-nesting-and-withmaxdepth)).
+  ([Choosing a Backend](backends.md#deep-nesting-and-the-depth-limit)).
 - **Memory.** A tree holds every node of the document. For input of many megabytes, parse in pieces yourself (a log
   file by lines, a JSON stream by documents), or use the engine's streaming below.
 - **No recovery.** A parse stops at the first syntax error. For an editor, which needs a tree of the text as it is being

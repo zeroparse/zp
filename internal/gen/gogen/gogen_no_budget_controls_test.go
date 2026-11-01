@@ -35,7 +35,7 @@ rule num = [0-9]+ ("." [0-9]+)?
 		return string(gentest.MergeGenerated(files))
 	}
 	with, without := gen(true), gen(false)
-	for _, want := range []string{"p.Spend()", "p.Control.Take(", "func WithLimits", "func WithContext"} {
+	for _, want := range []string{"p.Spend()", "p.Control.Take(", "func WithContext"} {
 		if !strings.Contains(with, want) {
 			t.Errorf("with limit controls: missing %q", want)
 		}
@@ -43,10 +43,14 @@ rule num = [0-9]+ ("." [0-9]+)?
 			t.Errorf("without limit controls: found %q", want)
 		}
 	}
-	for _, bad := range []string{"p.Control", "BudgetClass", "LimitCompute"} {
+	for _, bad := range []string{"p.Control", "BudgetClass"} {
 		if strings.Contains(without, bad) {
 			t.Errorf("without limit controls: found %q", bad)
 		}
+	}
+	// Both forms take the depth limit through WithLimits.
+	if !strings.Contains(with, "func WithLimits") || !strings.Contains(without, "func WithLimits") {
+		t.Error("a form of the parser has no WithLimits")
 	}
 	// The helpers with an Ordinary form belong to the form without limit controls and Documents only.
 	for name, text := range map[string]string{"with limit controls": with, "Document with limit controls": gen(true, true)} {
@@ -60,7 +64,7 @@ rule num = [0-9]+ ("." [0-9]+)?
 	// With a Document the parser has the form that serves a Document, which has neither budget charges
 	// nor control reads when the parser has no controls.
 	documentWith, documentWithout := gen(true, true), gen(false, true)
-	for _, bad := range []string{"p.Control", ".Spend()", ".SpendRead(", "BudgetClass", "LimitCompute"} {
+	for _, bad := range []string{"p.Control", ".Spend()", ".SpendRead(", "BudgetClass"} {
 		if strings.Contains(documentWithout, bad) {
 			t.Errorf("a Document parser without limit controls has %q", bad)
 		}
@@ -76,7 +80,7 @@ rule num = [0-9]+ ("." [0-9]+)?
 		t.Errorf("Document parser without limit controls is %d bytes, with %d", len(documentWithout), len(documentWith))
 	}
 	tests := `package wc
-import("strings";"testing";"context";zprt "zeroparse.dev/zp/runtime")
+import("errors";"strings";"testing";"context";zprt "zeroparse.dev/zp/runtime")
 func TestOptions(t *testing.T) {
  if _,err:=Parse("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if err:=Recognize("abc 12.5 x"); err!=nil {t.Fatal(err)}
@@ -93,6 +97,20 @@ func TestOptions(t *testing.T) {
   } {
    err:=call()
    if err==nil || !strings.Contains(err.Error(),"without limit controls") {t.Errorf("%s %s: got %v",entry,name,err)}
+  }
+ }
+ // A finite Input needs no control: it is checked against the length of the input. A later
+ // WithLimits keeps the fields it leaves zero.
+ for entry,call:=range map[string]func(...zprt.ParseOption) error{
+  "Parse":func(o ...zprt.ParseOption) error {_,err:=Parse("abc 12.5 x",o...);return err},
+  "Recognize":func(o ...zprt.ParseOption) error {return Recognize("abc 12.5 x",o...)},
+  "ParseAST":func(o ...zprt.ParseOption) error {_,err:=ParseAST("abc 12.5 x",o...);return err},
+  "ParseRule":func(o ...zprt.ParseOption) error {_,err:=ParseRule("word","abcdefghij",o...);return err},
+ } {
+  if err:=call(WithLimits(Limits{Input:10}));err!=nil {t.Errorf("%s: an input as long as the limit: %v",entry,err)}
+  for _,opts:=range [][]zprt.ParseOption{{WithLimits(Limits{Input:9})},{WithLimits(Limits{Input:9}),WithLimits(Limits{Depth:50})}} {
+   var le *LimitError
+   if err:=call(opts...);!errors.As(err,&le) || le.Kind!=LimitInput || le.Limit!=9 || le.Requested!=10 {t.Errorf("%s: a longer input: %v",entry,err)}
   }
  }
 }

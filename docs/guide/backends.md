@@ -60,12 +60,12 @@ slower; you pay that for portability (the same bytecode is specified for other r
 [bytecode.md](../../spec/bytecode/README.md)) and, for the iterative VM, for the independence from the Go stack. Do not pick bytecode
 inside a Go program for speed.
 
-### Deep Nesting and `WithMaxDepth`
+### Deep Nesting and the Depth Limit
 
 Recursive grammars (parentheses, nested arrays, nested blocks) use recursive rule calls that nest as deep as the input. The
 closure and recursive bytecode backends use the Go stack for those calls. To keep runaway input from exhausting
 memory, a parse fails with an error once calls of recursive rules nest deeper than a limit: **100,000 by default,
-10,000,000 for `BytecodeIterative`**. `WithMaxDepth(n)` changes it. A rule is recursive when it is on a cycle of the
+10,000,000 for `BytecodeIterative`**. `Limits.Depth` changes it. A rule is recursive when it is on a cycle of the
 call graph, directly or through other rules. Only entries of recursive rules count; a rule that is on no cycle,
 such as `main` below or a helper for whitespace, can sit on the stack only a bounded number of times and does not.
 This is the grammar `rule main = nested $$` with `rule nested = "(" nested ")" / "x"` (one counted call per level
@@ -78,7 +78,7 @@ of parentheses, plus the innermost one):
 | 1,000,000 deep | same error | same error | ok |
 
 ```go
-n, err := p.Parse(input, zp.WithBackend(zp.BytecodeIterative), zp.WithMaxDepth(100))
+n, err := p.Parse(input, zp.WithBackend(zp.BytecodeIterative), zp.WithLimits(zp.Limits{Depth: 100}))
 // nesting too deep: more than 100 nested recursive rule calls
 ```
 
@@ -91,15 +91,17 @@ depth; exceeding the limit aborts the parse and discards its execution state.
 Two things to know:
 
 - Lowering the limit is safe on every backend and bounds active nested calls and Operators Rule frames. Input length and
-  total parsing budget require separate limits. A nesting error is an ordinary `error`, so treat it like any parse failure.
+  total parsing cost have their own limits. A nesting error is a `*zp.LimitError` of kind `zp.LimitDepth`, so treat it like
+  any parse failure.
 - **Raising the limit on the closure and recursive bytecode backends is limited by the Go stack.** Go's goroutine
   stack is capped at 1 GB by default; running past it is not a recoverable error but a fatal `stack overflow` that
   kills the process. In a trial with the grammar above, the closure backend parsed 300,000 levels with
-  `WithMaxDepth(1_000_000)`, but 1,000,000 levels with `WithMaxDepth(2_000_000)` on the recursive bytecode backend
-  crashed. If you need depth beyond the default, use `BytecodeIterative` rather than raising the limit.
+  `Depth: 1_000_000`, but 1,000,000 levels with `Depth: 2_000_000` on the recursive bytecode backend crashed. If you
+  need depth beyond the default, use `BytecodeIterative` rather than raising the limit. Only `BytecodeIterative`
+  accepts `Depth: zp.Unlimited`; the other backends reject it as an option error.
 
 Generated parsers have the same default of 100,000. The `MaxDepth` field of `gen.Go` or `zp gen -max-depth` sets a
-generated default; generated Go `WithMaxDepth` and TypeScript options-aware entry points override it per invocation
+generated default; generated Go `Limits.Depth` and TypeScript options-aware entry points override it per invocation
 (see [code generation](generated-go-api.md#invocation-options) and
 [TypeScript depth options](typescript.md#deep-nesting-and-the-javascript-stack)). Their recursive host stacks still
 bound acceptance even when the configured limit is higher.

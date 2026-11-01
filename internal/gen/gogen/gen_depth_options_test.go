@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 )
 
 // Differentially exercise every rule-call owner, including first-character
@@ -88,8 +89,8 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 				for _, in := range c.Inputs {
 					for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
 						for _, limit := range []int{1, 2, 3, 4, 5, 6, 8, 20} {
-							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, MaxDepth: limit})
-							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, MaxDepth: limit, Recognize: true})
+							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: limits.Limits{Depth: uint64(limit)}})
+							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: limits.Limits{Depth: uint64(limit)}, Recognize: true})
 							fmt.Fprintf(&rows, "{%q,%q,%s,%d,%q,%q},\n", name, in, map[engine.PositionUnit]string{engine.CodePoints: "CodePoints", engine.Bytes: "Bytes"}[unit], limit, fmt.Sprint(err), fmt.Sprint(recErr))
 						}
 					}
@@ -100,7 +101,7 @@ import("fmt";"strings";"sync";"testing";zprt "zeroparse.dev/zp/runtime")
 func TestLimitsAndReuse(t *testing.T) {
  rows:=[]struct{name,input string;unit PositionUnit;limit int;want,recWant string}{` + rows.String() + `}
  for repeat:=0;repeat<3;repeat++ {for _,c:=range rows {
-  opts:=[]ParseOption{WithUnit(c.unit),WithMaxDepth(c.limit)}
+  opts:=[]ParseOption{WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)})}
   _,err:=ParseRule(c.name,c.input,opts...)
   if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("rule %s %q unit %d limit %d got %s want %s",c.name,c.input,c.unit,c.limit,got,c.want)}
   if c.name=="main" {
@@ -111,7 +112,7 @@ func TestLimitsAndReuse(t *testing.T) {
  }}
  for _,c:=range rows {if c.name=="main" && c.limit==20 && c.want=="<nil>" {
   for _,unit:=range []PositionUnit{CodePoints,Bytes,PositionUnit(99)} {
-   opts:=[]ParseOption{WithUnit(Bytes),WithUnit(unit),WithMaxDepth(20)}
+   opts:=[]ParseOption{WithUnit(Bytes),WithUnit(unit),WithLimits(Limits{Depth: 20})}
    n,err:=Parse(c.input,opts...);wantEnd:=len([]rune(c.input));if unit==Bytes {wantEnd=len(c.input)}
    if err!=nil || int(n.RawEnd)!=wantEnd {t.Fatalf("last unit option: %v",err)}
    v,err:=ParseAST(c.input,opts...);if err!=nil || v.End!=wantEnd {t.Fatalf("typed last unit option: %v",err)}
@@ -119,7 +120,7 @@ func TestLimitsAndReuse(t *testing.T) {
  }}
  for _,c:=range rows {if c.name=="main" && c.limit==4 {
   if c.unit==CodePoints { _,err:=Parse(c.input);if fmt.Sprint(err)!=c.want {t.Fatalf("no options: %v",err)} }
-  for _,opts:=range [][]ParseOption{{WithUnit(c.unit)},{WithUnit(c.unit),WithMaxDepth(0)},{WithUnit(c.unit),WithMaxDepth(4)},{WithUnit(c.unit),WithMaxDepth(20),WithMaxDepth(0)},{WithUnit(c.unit),WithMaxDepth(-1),WithMaxDepth(0)}} {
+  for _,opts:=range [][]ParseOption{{WithUnit(c.unit)},{WithUnit(c.unit),WithLimits(Limits{Depth: 0})},{WithUnit(c.unit),WithLimits(Limits{Depth: 4})},{WithUnit(c.unit),WithLimits(Limits{Depth: 20}),WithLimits(Limits{Depth: 4})},{WithUnit(c.unit),WithLimits(Limits{Depth: 4}),WithLimits(Limits{Depth: 0})},{WithUnit(c.unit),WithLimits(Limits{Depth: Unlimited}),WithLimits(Limits{Depth: 4})}} {
    _,err:=Parse(c.input,opts...);if fmt.Sprint(err)!=c.want {t.Fatalf("generated default: %v",err)}
    _,err=ParseAST(c.input,opts...);if fmt.Sprint(err)!=c.want {t.Fatalf("typed generated default: %v",err)}
    if err=Recognize(c.input,opts...);fmt.Sprint(err)!=c.recWant {t.Fatalf("recognize generated default: %v",err)}
@@ -127,22 +128,22 @@ func TestLimitsAndReuse(t *testing.T) {
  }}
  var wg sync.WaitGroup
  for worker:=0;worker<8;worker++ {wg.Go(func(){for _,c:=range rows {if c.name=="main" {
-  _,err:=ParseAST(c.input,WithUnit(c.unit),WithMaxDepth(c.limit));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent AST limit=%d: %v",c.limit,err)}
-  _,err=Parse(c.input,WithUnit(c.unit),WithMaxDepth(c.limit));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent Parse limit=%d: %v",c.limit,err)}
+  _,err:=ParseAST(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent AST limit=%d: %v",c.limit,err)}
+  _,err=Parse(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent Parse limit=%d: %v",c.limit,err)}
  }}})};wg.Wait()
 }
 func TestConfiguration(t *testing.T) {
- bad:=WithMaxDepth(-7)
+ bad:=WithLimits(Limits{Depth: Unlimited})
  for _,parse:=range []func(string,...ParseOption)(*Node,error){Parse,func(s string,o ...ParseOption)(*Node,error){return ParseRule("missing",s,o...)}} {
-  n,err:=parse("?",bad);if n!=nil || err==nil || !strings.Contains(err.Error(),"max depth must be non-negative: -7") {t.Fatalf("config precedence: %v",err)}
+  n,err:=parse("?",bad);if n!=nil || err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatalf("config precedence: %v",err)}
  }
- if _,err:=ParseAST("?",bad);err==nil || !strings.Contains(err.Error(),"max depth") {t.Fatal(err)}
- if err:=Recognize("?",bad);err==nil || !strings.Contains(err.Error(),"max depth") {t.Fatal(err)}
- if _,err:=Parse("?",bad,WithMaxDepth(20));err!=nil && strings.Contains(err.Error(),"max depth") {t.Fatal("validate last effective setting")}
- if _,err:=Parse("?",WithMaxDepth(20),bad);err==nil || !strings.Contains(err.Error(),"max depth") {t.Fatal("last setting not applied")}
- if _,err:=Parse("?",WithMaxDepth(int(^uint(0)>>1)));err!=nil && strings.Contains(err.Error(),"max depth") {t.Fatal("largest native int rejected")}
+ if _,err:=ParseAST("?",bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal(err)}
+ if err:=Recognize("?",bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal(err)}
+ if _,err:=Parse("?",bad,WithLimits(Limits{Depth: 20}));err!=nil && strings.Contains(err.Error(),"unlimited depth") {t.Fatal("validate last effective setting")}
+ if _,err:=Parse("?",WithLimits(Limits{Depth: 20}),bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal("last setting not applied")}
+ if _,err:=Parse("?",WithLimits(Limits{Depth: uint64(int(^uint(0)>>1))}));err!=nil && strings.Contains(err.Error(),"unlimited depth") {t.Fatal("largest native int rejected")}
  called:=0
- option:=func(o *zprt.X_parseOptions){called++;o.X_maxDepth=20;_,err:=Parse("?",WithMaxDepth(1));_ = err}
+ option:=func(o *zprt.X_parseOptions){called++;o.X_limits.Depth=20;_,err:=Parse("?",WithLimits(Limits{Depth: 1}));_ = err}
  Parse("?",option);ParseAST("?",option);Recognize("?",option)
  if called!=3 {t.Fatal("options retained or evaluated more than once")}
  for _,invoke:=range []func(){func(){Parse("?",nil)},func(){ParseRule("missing","?",nil)},func(){ParseAST("?",nil)},func(){Recognize("?",nil)}} {
@@ -175,7 +176,7 @@ func TestGeneratedDepthNameCollisions(t *testing.T) {
 	src := `type ParseOption = { Text string }
 type ParseOption_ = { Text string }
 type WithUnit ~ ParseOption
-type WithMaxDepth = { Item WithUnit }
+type WithLimits = { Item WithUnit }
 rule main WithUnit = t:("é") #atomic => ParseOption{Text: text($t)}`
 	g, err := parseTest(src)
 	if err != nil {
@@ -203,7 +204,7 @@ rule main WithUnit = t:("é") #atomic => ParseOption{Text: text($t)}`
 				typesSource = string(f.Content)
 			}
 		}
-		for _, want := range []string{"type ParseOption struct", "type ParseOption_ struct", "type WithUnit = *ParseOption", "type WithMaxDepth struct"} {
+		for _, want := range []string{"type ParseOption struct", "type ParseOption_ struct", "type WithUnit = *ParseOption", "type WithLimits struct"} {
 			if !strings.Contains(typesSource, want) {
 				t.Errorf("missing %s", want)
 			}
@@ -212,11 +213,11 @@ rule main WithUnit = t:("é") #atomic => ParseOption{Text: text($t)}`
 import("testing";p "collisions/` + name + `";g "collisions/` + name + `/types")
 func TestExports(t *testing.T){
  var fn func(string,...p.ParseOption)(g.WithUnit,error)=p.ParseAST
- opts:=[]p.ParseOption{p.WithUnit(p.Bytes),p.WithMaxDepth(20)}
+ opts:=[]p.ParseOption{p.WithUnit(p.Bytes),p.WithLimits(p.Limits{Depth: 20})}
  value,err:=fn("é",opts...);if err!=nil || value.Text!="é" || value.End!=2{t.Fatal(value,err)}
  var word *g.ParseOption=value
  var other *g.ParseOption_=&g.ParseOption_{}
- var box *g.WithMaxDepth=&g.WithMaxDepth{Item:word}
+ var box *g.WithLimits=&g.WithLimits{Item:word}
  _,_=other,box
 }
 `

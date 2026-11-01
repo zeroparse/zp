@@ -187,7 +187,7 @@ func TestDocumentReentryRejected(t *testing.T){
   d,err:=NewDocument(testInput());if err!=nil{t.Fatal(err)}
   fresh,err:=NewDocument(testInput());if err!=nil{t.Fatal(err)};parse(fresh)
   var inner []error;text:=d.Text()
-  v,gotErr:=parse(d,zprt.WithTrace(func(e zprt.TraceEvent){if e.Kind!=kind||len(inner)!=0{return};for _,again:=range routes{_,err:=again(d);inner=append(inner,err);_,err=again(d,WithMaxDepth(-1));inner=append(inner,err)};inner=append(inner,d.Edit(0,0,"x"))}))
+  v,gotErr:=parse(d,zprt.WithTrace(func(e zprt.TraceEvent){if e.Kind!=kind||len(inner)!=0{return};for _,again:=range routes{_,err:=again(d);inner=append(inner,err);_,err=again(d,WithLimits(Limits{Depth: Unlimited}));inner=append(inner,err)};inner=append(inner,d.Edit(0,0,"x"))}))
   if len(inner)!=2*len(routes)+1{t.Fatal("callback did not run")}
   for _,err:=range inner{if !errors.Is(err,ErrDocumentBusy){t.Fatal("same-Document reentry was not rejected",err)}}
   want,wantErr:=referenceRoutes[i](ref);documentEqual(t,v,want);documentEqual(t,gotErr,wantErr)

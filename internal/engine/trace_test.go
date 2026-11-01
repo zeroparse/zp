@@ -104,7 +104,7 @@ func parseSpend(prog *Program, start, input string, o ParseOptions) (parseBudget
 	}
 	p := core.NewParser(&target.sharedProgram, input, o.Unit, !o.Recognize)
 	p.Expectations = o.Expectations
-	p.MaxDepth = core.DepthLimit(o, o.Backend)
+	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
 	p.SetTrace(o.Trace)
 	n, err := target.Run(p, o.Backend, start)

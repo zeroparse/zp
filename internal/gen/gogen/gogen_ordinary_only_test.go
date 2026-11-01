@@ -75,7 +75,7 @@ func TestTranscript(t *testing.T) {
 			n, err = ParseRule("e", in, WithUnit(unit))
 			fmt.Fprintf(&b, "rule e %q %v: %s\n", in, unit, show(n, err))
 		}
-		n, err := Parse(in, WithMaxDepth(4))
+		n, err := Parse(in, WithLimits(Limits{Depth: 4}))
 		fmt.Fprintf(&b, "depth %q: %s\n", in, show(n, err))
 		var got []string
 		err = ParseStream(strings.NewReader(in), func(n *Node) error { got = append(got, fmt.Sprint(n)); return nil })
@@ -142,7 +142,7 @@ func TestTranscript(t *testing.T) {
 			w, err := ParseRuleAST("sum", in, WithUnit(unit))
 			fmt.Fprintf(&b, "rule sum %q %v: %s\n", in, unit, showAST(w, err))
 		}
-		v, err := ParseAST(in, WithMaxDepth(5))
+		v, err := ParseAST(in, WithLimits(Limits{Depth: 5}))
 		fmt.Fprintf(&b, "depth %q: %s\n", in, showAST(v, err))
 		_, err = ParseRuleAST("nope", in)
 		fmt.Fprintf(&b, "unknown rule: %s\n", errText(err))

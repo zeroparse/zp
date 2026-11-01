@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/tsgen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 )
 
 func TestGeneratedTSDepthOptions(t *testing.T) {
@@ -73,7 +74,7 @@ rule n = ("(" n ")" / "é") #recover(skip="?")`, Inputs: []string{"é", "(é)", 
 			for _, input := range c.Inputs {
 				for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
 					for _, limit := range []int{1, 2, 3, 4, 5, 6, 8, 20} {
-						_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, MaxDepth: limit})
+						_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: limits.Limits{Depth: uint64(limit)}})
 						want := ""
 						if err != nil {
 							want = err.Error()

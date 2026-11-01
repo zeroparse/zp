@@ -93,6 +93,25 @@ func TestCommandsRejectMalformedLimits(t *testing.T) {
 	}
 }
 
+// parse, trace and explain apply -max-depth: a shallow limit stops a nested input with the depth limit
+// error, and an unlimited depth runs on bytecode-iterative but is an option error elsewhere.
+func TestCommandsApplyDepthLimit(t *testing.T) {
+	g := writeFile(t, "nested.zp", "@start\nrule main = x $$\nrule x = \"(\" x \")\" / \"a\"")
+	for _, cmd := range []string{"parse", "trace", "explain"} {
+		_, err := runCLI(t, "", cmd, "-g", g, "-i", "(((a)))", "-max-depth", "2")
+		wantLimit(t, cmd+" -max-depth 2", err, zp.LimitDepth, "nesting too deep: more than 2 nested recursive rule calls")
+		if _, err := runCLI(t, "", cmd, "-g", g, "-i", "(((a)))", "-max-depth", "4"); err != nil {
+			t.Errorf("%s -max-depth 4: %v", cmd, err)
+		}
+		if _, err := runCLI(t, "", cmd, "-g", g, "-i", "(((a)))", "-backend", "bytecode-iterative", "-max-depth", "unlimited"); err != nil {
+			t.Errorf("%s unlimited depth on bytecode-iterative: %v", cmd, err)
+		}
+		if _, err := runCLI(t, "", cmd, "-g", g, "-i", "(a)", "-backend", "closure", "-max-depth", "unlimited"); err == nil || !strings.Contains(err.Error(), "unlimited depth") {
+			t.Errorf("%s unlimited depth on closure: %v", cmd, err)
+		}
+	}
+}
+
 func TestTestCommandAppliesLimits(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "grammar.zp"), []byte(limitsGrammar), 0o644); err != nil {

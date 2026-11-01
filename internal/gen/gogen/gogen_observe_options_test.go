@@ -99,7 +99,7 @@ func TestTraceOptions(t *testing.T) {
 		t.Errorf("a parser without observability reported %d events", events)
 	}
 	// The other options still work.
-	if _, err := Parse("aa", WithMaxDepth(10)); err != nil {
+	if _, err := Parse("aa", WithLimits(Limits{Depth: 10})); err != nil {
 		t.Error(err)
 	}
 }

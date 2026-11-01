@@ -16,19 +16,28 @@ func TestGeneratedTypedOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	generate := func(opts gen.GenOptions) (string, error) {
+	// generate returns the merged code and its size without api.go. Its re-exports of the runtime
+	// (the limits, the options and the errors) are the same in both forms and do not grow with the
+	// grammar, so counting them would measure the fixed surface of the package rather than the code
+	// that typed-only removes, and the ratio would move whenever that surface does.
+	generate := func(opts gen.GenOptions) (text string, size int, err error) {
 		opts.Package, opts.Module, opts.Start, opts.Runtime = "p", "example.com/p", "main", gen.RuntimeImport
 		files, err := gentest.Generate(t, g, opts)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
-		return string(gentest.MergeGenerated(files)), nil
+		for _, f := range files {
+			if f.Path != "api.go" {
+				size += len(f.Content)
+			}
+		}
+		return string(gentest.MergeGenerated(files)), size, nil
 	}
-	only, err := generate(gen.GenOptions{Types: true, TypedOnly: true})
+	only, onlySize, err := generate(gen.GenOptions{Types: true, TypedOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	full, err := generate(gen.GenOptions{Types: true, Recognize: true})
+	full, fullSize, err := generate(gen.GenOptions{Types: true, Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,8 +54,8 @@ func TestGeneratedTypedOnly(t *testing.T) {
 			t.Errorf("a typed-only parser lacks %q", present)
 		}
 	}
-	if len(only)*3 >= len(full)*2 {
-		t.Errorf("the typed-only parser is %d bytes, the full one %d: want under two thirds", len(only), len(full))
+	if onlySize*3 >= fullSize*2 {
+		t.Errorf("the typed-only parser is %d bytes without api.go, the full one %d: want under two thirds", onlySize, fullSize)
 	}
 
 	// The refused combinations, with their messages.
@@ -60,7 +69,7 @@ func TestGeneratedTypedOnly(t *testing.T) {
 		{"document", gen.GenOptions{Types: true, TypedOnly: true, Document: true}, "typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node"},
 		{"stream", gen.GenOptions{Types: true, TypedOnly: true, Stream: true}, "typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node"},
 	} {
-		if _, err := generate(tc.opts); err == nil || err.Error() != tc.want {
+		if _, _, err := generate(tc.opts); err == nil || err.Error() != tc.want {
 			t.Errorf("%s: error %v, want %q", tc.name, err, tc.want)
 		}
 	}

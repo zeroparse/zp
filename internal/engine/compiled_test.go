@@ -15,6 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -243,7 +244,7 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 				// nesting depth limit.
 				for _, b := range []Backend{Default, Bytecode, BytecodeIterative} {
 					for _, mode := range allModes {
-						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, MaxDepth: 1000}))
+						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, Limits: limits.Limits{Depth: 1000}}))
 					}
 				}
 			}
@@ -267,8 +268,8 @@ func FuzzLoadProgram(f *testing.F) {
 		prog, start, err := LoadProgram(data)
 		if err == nil && start != "" {
 			for _, mode := range allModes {
-				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{MaxDepth: 1000}))
-				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Backend: Bytecode, MaxDepth: 1000}))
+				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Limits: limits.Limits{Depth: 1000}}))
+				prog.ParseWith(start, "a=1\n", servedBy(mode, ParseOptions{Backend: Bytecode, Limits: limits.Limits{Depth: 1000}}))
 			}
 		}
 	})

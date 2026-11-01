@@ -86,9 +86,8 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error)
 
 type ParseOption func(*parseOptions)
 func WithUnit(unit PositionUnit) ParseOption
-func WithMaxDepth(n int) ParseOption
+func WithLimits(limits Limits) ParseOption
 func WithContext(ctx context.Context) ParseOption       // with limit controls
-func WithLimits(limits Limits) ParseOption      // with limit controls
 
 type PositionUnit int
 const (
@@ -110,25 +109,27 @@ const (
   [Nodes and Values](nodes.md) and [Parsing](parsing.md#syntax-errors). They are
   different Go types from those of package `zp`; errors are tested with
   `errors.As` against the generated types. Node JSON is identical to the engine's.
-- Options apply in order. A negative final `WithMaxDepth` returns a configuration
-  error before matching, actions or named-rule lookup; zero restores the generated
-  default. A nil option panics when applied. A call with no options uses code
+- Options apply in order. A final `Limits.Depth` of `Unlimited` returns a configuration
+  error before matching, actions or named-rule lookup, because generated code nests rule
+  calls on the host stack; zero selects the generated default. A nil option panics when applied. A call with no options uses code
   points and the generated depth default.
 - A generated parser is safe for concurrent use: each call has its own state.
-- Errors in actions (such as division by zero) and exceeding the nesting limit
-  return plain errors as in the engine. The depth limit counts nested entries of recursive rules
-  ([Limits](parsing.md#limits)); a larger limit does not guarantee stack capacity.
-  The default error is `nesting too deep: more than 100000 nested recursive rule calls`.
-- A Go parser generated with limit controls (`-limits`, `BudgetControls`)
-  exports `WithContext`, `WithLimits`, `Limits`, `LimitKind`,
-  `LimitError`, `ErrLimit`, `LimitCompute`, `LimitInput` and `Unlimited`. A parser
+- Errors in actions (such as division by zero) return plain errors as in the engine, and
+  exceeding the nesting limit returns a `*LimitError` of kind `LimitDepth`. The depth limit
+  counts nested entries of recursive rules ([Limits](parsing.md#limits)); a larger limit does
+  not guarantee stack capacity. The default error is
+  `nesting too deep: more than 100000 nested recursive rule calls`.
+- Every generated Go parser exports `WithLimits`, `Limits`, `LimitKind`, `LimitError`,
+  `ErrLimit`, `LimitCompute`, `LimitInput`, `LimitDepth` and `Unlimited`, and one generated
+  with limit controls (`-limits`, `LimitControls`) also exports `WithContext`. A parser
   generated without them holds no code that spends budget or reads a control: one
   form of each function; with `-document` it is the form that serves a Document, without
   charges. A parser generated with limit controls has the controlled form only, and a parse that
   sets no limit runs it with the [default budget](parsing.md#default-limits). A parser generated
-  without them, given a context or a finite limit from the runtime package, returns an error
+  without them, given a context or a finite `Compute` or `Input` limit, returns an error
   that the parser was generated without limit controls; no option is ignored. A nil context,
-  a zero `Limits` and `Unlimited` set no control and are accepted.
+  `Compute` and `Input` limits that are zero or `Unlimited`, and any `Depth` set no control and
+  are accepted.
 - `WithContext` and `WithLimits` apply the semantics of
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits) to each
   invocation, with counters that restart for every call. They apply to named rules,
@@ -420,7 +421,7 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 | Streaming | `ParseStream`, `Iterate` with `-stream` | None; `#stream` is an ordinary repetition |
 | Incremental documents | A subset with `-document` | None |
 | Cancellation and compute limits | `WithContext`, `WithLimits` | `signal`, `budget`; `ParseInterruptionError`; with `-limits` |
-| Nested recursive rule-call limit | `WithMaxDepth`, `-max-depth` | `maxDepth`, `-max-depth`; the host stack also bounds nesting |
+| Nested recursive rule-call limit | `Limits.Depth`, `-max-depth` | `maxDepth`, `-max-depth`; the host stack also bounds nesting |
 | Choice of backend, saved grammar, `Parser.Grammar()` | Not applicable | Not applicable |
 | Tracing and profiling | With `-observability` | With `-observability` (batch parsers) |
 

@@ -79,7 +79,7 @@ func TestGeneratedDocumentContract(t *testing.T) {
   before := d.Text()
   if err := d.Edit(-1, 0, "x"); err == nil || d.Text() != before { t.Fatal("invalid edit changed document") }
   if _, err := d.Parse(WithUnit(Bytes)); err == nil { t.Fatal("unit change accepted") }
-  if _, err := d.Parse(WithMaxDepth(-1)); err == nil { t.Fatal("negative depth accepted") }
+  if _, err := d.Parse(WithLimits(Limits{Depth: Unlimited})); err == nil { t.Fatal("unlimited depth accepted") }
   canceled, cancel := context.WithCancel(context.Background())
   cancel()
   if _, err := NewDocument("aa", WithContext(canceled)); err == nil { t.Fatal("canceled construction accepted") }

@@ -23,18 +23,18 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 			for _, unit := range []PositionUnit{CodePoints, Bytes} {
 				for _, recognize := range []bool{false, true} {
 					// A compute limit makes the parse take the controlled memo lookups.
-					for _, limits := range []limits.Limits{{}, {Compute: 1 << 40}} {
-						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, MaxDepth: 400, Limits: limits}
+					for _, lim := range []limits.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
+						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: lim}
 						for _, input := range inputs {
 							got := gentest.ResultJSON(prog.ParseWith("main", input, opts))
 							want := gentest.ResultJSON(plain.ParseWith("main", input, opts))
 							if got != want {
-								t.Fatalf("%s/%s recognize=%t DisableMemo=%t limits=%v %q:\n got  %s\n want %s", backend, unit, recognize, options.DisableMemo, limits, input, got, want)
+								t.Fatalf("%s/%s recognize=%t DisableMemo=%t limits=%v %q:\n got  %s\n want %s", backend, unit, recognize, options.DisableMemo, lim, input, got, want)
 							}
 						}
 					}
 				}
-				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, MaxDepth: 400})
+				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 400}})
 				if err != nil {
 					t.Fatal(err)
 				}

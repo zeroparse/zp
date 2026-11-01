@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
+
+	"zeroparse.dev/zp/internal/limits"
 )
 
 func TestDocumentAbortedParse(t *testing.T) {
@@ -29,7 +31,7 @@ rule e = #operators {
 			for _, unit := range []PositionUnit{CodePoints, Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", c.name, backend, unit), func(t *testing.T) {
 					prog := mustCompile(t, c.src)
-					opts := ParseOptions{Backend: backend, Unit: unit, MaxDepth: c.depth}
+					opts := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: uint64(c.depth)}}
 					doc, err := prog.NewDocumentWith("main", c.text, opts)
 					if err != nil {
 						t.Fatal(err)

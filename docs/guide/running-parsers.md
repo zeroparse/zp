@@ -224,7 +224,7 @@ func (p *Parser) Parse(input string, opts ...ParseOption) (*Node, error)
 | `node, nil` | The input matched. |
 | `nil, *zp.SyntaxError` | The input does not match. The error holds the farthest position reached and what was expected there. |
 | `node, zp.SyntaxErrors` | The input matched after recovering from errors with `#recover`. The tree contains `error` values. See [Recovering from Errors](recovery.md). |
-| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or exceeding the [nesting limit](backends.md#deep-nesting-and-withmaxdepth). These are plain errors, not syntax errors, and they are not subject to backtracking. |
+| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or a [limit](cancellation-and-limits.md) such as the [nesting limit](backends.md#deep-nesting-and-the-depth-limit) (a `*zp.LimitError`). These are not syntax errors, and they are not subject to backtracking. |
 
 ```go
 _, err = p.Parse("abc=x")

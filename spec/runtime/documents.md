@@ -83,7 +83,8 @@ reassemble the original bytes.
 ### Parsing
 
 `doc.Parse(opts...)` parses the current text using the construction defaults
-overridden by the options of the call. Context, compute limits, maximum depth and
+overridden by the options of the call; `WithLimits` overrides only the nonzero
+fields it sets ([Default Limits](parsing.md#default-limits)). Context, limits and
 tracing MAY vary per call; the unit, backend, start rule and non-recognition mode
 MUST NOT, and an option that tries to change them is an error. Counters reset on
 each call. Results and errors are those of `Parser.Parse`, including recovered
@@ -131,7 +132,9 @@ A normally returned parse outcome produces a snapshot, including an ordinary
 syntax error and a recovered error. For an ordinary syntax failure the snapshot
 keeps the text and version, has a zero root as `Document.Parse` does, and exposes
 a defensive copy of the `SyntaxError`. A recovered outcome keeps its root and
-`SyntaxErrors`. Cancellation or an exhausted compute limit during parsing or
+`SyntaxErrors`. A parse that nests deeper than the depth limit is a normally returned
+outcome too: the snapshot keeps a copy of its `LimitError` of kind `LimitDepth`.
+Cancellation or an exhausted compute limit during parsing or
 freezing returns a nil snapshot and a fatal interruption error, which grammar
 choice, predicates and recovery cannot absorb. No partial graph, text or
 diagnostics are published. If execution began, reusable execution state is

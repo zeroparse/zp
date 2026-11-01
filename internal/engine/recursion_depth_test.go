@@ -1,10 +1,12 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -28,12 +30,16 @@ rule digit = [0-9]`)
 				if limit < 1 {
 					continue
 				}
-				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, MaxDepth: limit})
+				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: limits.Limits{Depth: uint64(limit)}})
 				if want := n+1 > limit; (err != nil) != want {
 					t.Errorf("%v: %d nested, limit %d: error %v, want an error: %v", b, n, limit, err, want)
 				}
-				if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("nesting too deep: more than %d nested recursive rule calls", limit)) {
+				if err != nil && err.Error() != fmt.Sprintf("nesting too deep: more than %d nested recursive rule calls", limit) {
 					t.Errorf("%v: %d nested, limit %d: error %v", b, n, limit, err)
+				}
+				var le *limits.LimitError
+				if err != nil && (!errors.As(err, &le) || *le != (limits.LimitError{Kind: limits.LimitDepth, Limit: uint64(limit), Used: uint64(limit), Requested: 1})) {
+					t.Errorf("%v: %d nested, limit %d: error %#v, want a LimitDepth error", b, n, limit, err)
 				}
 			}
 		}
@@ -50,7 +56,7 @@ rule c = d
 rule d = [0-9]+`)
 	in := strings.Repeat("12,34;", 500)
 	for _, b := range depthBackends {
-		if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, MaxDepth: 1}); err != nil {
+		if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: limits.Limits{Depth: 1}}); err != nil {
 			t.Errorf("%v: %v", b, err)
 		}
 	}
@@ -72,6 +78,46 @@ rule leaf = "x"`)
 	}
 	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative}); err != nil {
 		t.Errorf("iterative: %v", err)
+	}
+}
+
+// An unlimited depth is accepted by the iterative VM only, whose call stack is on the heap; the
+// backends that nest rule calls on the goroutine stack reject it before parsing, in every entry
+// point, and a Document rejects it at each Parse.
+func TestUnlimitedDepth(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = nest $$
+rule nest = "(" nest ")" / leaf
+rule leaf = "x"`)
+	const n = 2 * DefaultMaxDepthIterative / 1000
+	in := strings.Repeat("(", n) + "x" + strings.Repeat(")", n)
+	unlimited := limits.Limits{Depth: limits.Unlimited}
+	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative, Limits: unlimited}); err != nil {
+		t.Errorf("iterative: %v", err)
+	}
+	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative, Limits: limits.Limits{Depth: n}}); err == nil {
+		t.Error("iterative: a finite depth below the nesting accepted")
+	}
+	for _, b := range []Backend{Default, Closure, Bytecode} {
+		o := ParseOptions{Backend: b, Limits: unlimited}
+		check := func(what string, err error) {
+			t.Helper()
+			if err == nil || !strings.Contains(err.Error(), "unlimited depth needs the bytecode-iterative backend") {
+				t.Errorf("%v %s: error %v, want the option error", b, what, err)
+			}
+		}
+		_, err := prog.ParseWith("main", "x", o)
+		check("ParseWith", err)
+		_, err = prog.ParsePrefixWith("main", "x", o)
+		check("ParsePrefixWith", err)
+		_, err = prog.NewDocumentWith("main", "x", o)
+		check("NewDocumentWith", err)
+		d, err := prog.NewDocumentWith("main", "x", ParseOptions{Backend: b})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = d.ParseWith(o)
+		check("Document.ParseWith", err)
 	}
 }
 

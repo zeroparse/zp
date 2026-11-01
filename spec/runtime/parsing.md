@@ -1038,10 +1038,13 @@ The operand of a prefix operator and the right operand of an infix operator of
 an Operators Rule nest like entries of recursive rules, and so does the entry of
 an Operators Rule; chains of left-associative operators do not nest. When the
 limit is exceeded, the parse fails with a run-time error and no value. In the
-reference implementation the error is `nesting too deep: more than N nested
-recursive rule calls`; the default limit is 100,000 (10,000,000 for the iterative
-bytecode VM), and the Go API changes it with `zp.WithMaxDepth`. Every backend
-reaches the limit at the same nesting of the same input.
+reference implementation the error is a `LimitError` of kind `LimitDepth`, whose
+message is `nesting too deep: more than N nested recursive rule calls`; the default
+limit is 100,000 (10,000,000 for the iterative bytecode VM), and the Go API changes
+it with `Limits.Depth`. `Unlimited` disables the limit on the iterative bytecode VM
+only, whose call stack is on the heap; on a backend that nests rule calls on the
+host stack it is an option error. Every backend reaches the limit at the same
+nesting of the same input.
 
 ## Cancellation and Compute Limits
 
@@ -1060,16 +1063,24 @@ limits.
 
 ### Default Limits
 
-`Limits` has two fields, and a zero value selects the default of its field:
+`Limits` has three fields, and a zero value selects the default of its field:
 
 | Field | Bounds | Default |
 | --- | --- | --- |
 | `Compute` | the cost of the parse | `max(2^20, 1024 * n)` |
 | `Input` | the length of the input | `Unlimited` |
+| `Depth` | the nesting of recursive rule calls ([Limits](#limits)) | 100,000; 10,000,000 on the iterative bytecode VM; the generated default |
 
 Here `n` is the length of the input in the position unit of the parse: bytes
 for `Bytes`, code points for `CodePoints`. `Input` has no finite default
 because the default `Compute` already grows with `n`.
+
+`WithLimits` sets the fields field by field. A nonzero field overrides the
+value an earlier `WithLimits` of the same invocation set, and a zero field
+leaves it unchanged; a field that no option sets takes its default. The
+options of a `Document` call apply in the same way over the limits the
+`Document` was constructed with. No value resets a field to its default once
+an option has set it.
 
 Every parse has a budget. A
 parse that has neither a limit nor a context therefore runs controlled. The
@@ -1090,8 +1101,8 @@ check costs O(1), except that `CodePoints` counts the code points of an input
 whose byte length passes the limit. It needs no budget and no context: a
 finite `Input` alone does not make a parse controlled. It is checked before
 a context is consulted, so an input over the limit fails with `LimitInput` even
-if the context is already canceled. A parser that has no limit controls
-accepts only a zero `Input` and `Unlimited`.
+if the context is already canceled. A generated parser checks it whether or
+not it has limit controls.
 
 A stream does not know its length. With a finite `Input`, it fails when the
 parser asks for a unit beyond the limit and the stream has one, and `Requested`
@@ -1106,7 +1117,7 @@ stream does not know `n` up front, so its default is `max(2^20, 1024 * d)`,
 where `d` is the number of units up to the furthest position the parser has
 demanded from the stream so far, and it never shrinks. `d` depends on the input
 and the grammar, not on how the reader splits the input into reads. A parser generated
-without limit controls spends no budget and accepts only a zero limit and
+without limit controls spends no budget and accepts only a zero `Compute` and
 `Unlimited`.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary

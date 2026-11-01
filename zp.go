@@ -143,6 +143,20 @@ type ParseOption func(*engine.ParseOptions)
 // Input bounds the length of the input in the position unit of the parse. Its default is
 // Unlimited. A longer input fails before any work with a LimitError of kind LimitInput; a stream
 // fails when the parser reaches a unit beyond the limit.
+//
+// Depth bounds the nesting of recursive rule calls. Only the entries of rules that are on a cycle
+// of calls (or call themselves) count; a rule outside every cycle adds a bounded, grammar-constant
+// depth to the stack and does not count. The operand of a prefix operator and the right operand of
+// an infix operator of an Operators Rule expression nest like recursive rule calls, and so does the
+// entry of an Operators Rule. The default is 100,000 (10,000,000 for BytecodeIterative). A deeper
+// parse fails with a LimitError of kind LimitDepth. The limit keeps runaway recursion from
+// exhausting the stack or memory. The Closure and Bytecode backends nest recursive rule calls on
+// the goroutine stack, so raising the limit far above the default can exceed Go's maximum stack
+// size, which aborts the program; use BytecodeIterative for deeper nesting. Unlimited is accepted
+// only by BytecodeIterative, whose call stack is on the heap; with another backend it is an option
+// error. A finite Depth above the largest int counts as the largest int. A call answered from the
+// memo does not nest, so whether a parse that comes close to the limit succeeds can depend on
+// memoization.
 type Limits = limits.Limits
 
 // Unlimited is the value of a limit that disables it: Limits{Compute: zp.Unlimited}.
@@ -159,6 +173,8 @@ const (
 	LimitCompute = limits.LimitCompute
 	// LimitInput is the kind of an input longer than the Input limit.
 	LimitInput = limits.LimitInput
+	// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth limit.
+	LimitDepth = limits.LimitDepth
 )
 
 // ErrLimit identifies limit failures through errors.Is.
@@ -169,10 +185,11 @@ func WithContext(ctx context.Context) ParseOption {
 	return func(o *engine.ParseOptions) { o.Context = ctx }
 }
 
-// WithLimits sets the invocation-local limits. A zero limit selects its default and Unlimited
-// disables it.
-func WithLimits(limits Limits) ParseOption {
-	return func(o *engine.ParseOptions) { o.Limits = limits }
+// WithLimits sets the invocation-local limits field by field: a nonzero field overrides the value
+// of an earlier WithLimits, including the construction defaults of a Document, and a zero field
+// leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
+func WithLimits(l Limits) ParseOption {
+	return func(o *engine.ParseOptions) { o.Limits = limits.Merge(o.Limits, l) }
 }
 
 // WithMissingTokens bounds attempted #missing literal insertions in one parse.
@@ -225,20 +242,6 @@ func WithBackend(b Backend) ParseOption {
 // allocates less than a full parse. It cannot be used with ParseStream or Document.
 func RecognizeOnly() ParseOption {
 	return func(o *engine.ParseOptions) { o.Recognize = true }
-}
-
-// WithMaxDepth limits the nesting of recursive rule calls to n; deeper nesting makes the parse fail with an
-// error. Only the entries of rules that are on a cycle of calls (or call themselves) count; a rule outside
-// every cycle adds a bounded, grammar-constant depth to the stack and does not count. The operand of a
-// prefix operator and the right operand of an infix operator of an Operators Rule expression nest like
-// recursive rule calls, and so does the entry of an Operators Rule.
-// The default is 100,000 (10,000,000 for BytecodeIterative). The limit keeps runaway recursion from
-// exhausting the stack or memory. The Closure and Bytecode backends nest recursive rule calls on the goroutine
-// stack, so raising the limit far above the default can exceed Go's maximum stack size, which aborts
-// the program; use BytecodeIterative for deeper nesting. A call answered from the memo does not nest,
-// so whether a parse that comes close to the limit succeeds can depend on memoization.
-func WithMaxDepth(n int) ParseOption {
-	return func(o *engine.ParseOptions) { o.MaxDepth = n }
 }
 
 // TraceEvent describes the start (TraceEnter) or the end (TraceExit) of a rule call. See WithTrace.

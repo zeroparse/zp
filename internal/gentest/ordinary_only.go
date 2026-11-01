@@ -150,7 +150,7 @@ func TestTranscript(t *testing.T) {
 			w, err = ParseRuleAST("a", in, WithUnit(unit))
 			fmt.Fprintf(&b, "rule a %q %v: %s\n", in, unit, showAST(w, err))
 		}
-		v, err := ParseAST(in, WithMaxDepth(5))
+		v, err := ParseAST(in, WithLimits(Limits{Depth: 5}))
 		fmt.Fprintf(&b, "depth %q: %s\n", in, showAST(v, err))
 		_, err = ParseRuleAST("nope", in)
 		fmt.Fprintf(&b, "unknown rule: %s\n", errText(err))

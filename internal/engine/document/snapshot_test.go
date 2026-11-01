@@ -206,7 +206,7 @@ rule x = "(" x ")" / "a"`, "((a))", 1, false},
 			if err != nil {
 				t.Fatal(err)
 			}
-			o.MaxDepth = fixture.depth
+			o.Limits.Depth = uint64(fixture.depth)
 			s, err := d.SnapshotWith(o)
 			if s == nil || err == nil || s.Text() != fixture.text || s.Version() != d.Version() || s.Error() == nil {
 				t.Fatal("snapshot error outcome", s, err)

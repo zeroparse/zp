@@ -72,10 +72,60 @@ type ParseOption = rt.ParseOption
 // WithUnit selects the unit of input positions (CodePoints by default).
 func WithUnit(unit PositionUnit) ParseOption { return rt.WithUnit(unit) }
 
-// WithMaxDepth limits nested recursive rule calls (rules on a cycle of calls). Zero selects the generated default;
-// a negative effective limit returns an error before parsing.
-// A larger limit does not guarantee that the host stack can accommodate it.
-func WithMaxDepth(n int) ParseOption { return rt.WithMaxDepth(n) }
+// WithLimits sets the limits of the invocation field by field: a nonzero field overrides the value
+// of an earlier WithLimits, including the construction defaults of a Document, and a zero field
+// leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
+// Counters are never rolled back.
+func WithLimits(limits Limits) ParseOption { return rt.WithLimits(limits) }
+
+// Limits bounds one parse invocation. A zero limit selects the default of that limit, and
+// Unlimited disables it.
+//
+// Compute bounds the cumulative cost of the parse: every input unit
+// inspected, every rule call and loop iteration, and every unit of value
+// construction adds to one counter, so a bound on it bounds scanning,
+// recursion and value building alike.
+//
+// Input bounds the length of the input in the position unit of the parse. The default is
+// Unlimited: the default budget already grows with the input. A longer input fails before any
+// work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
+// the limit.
+//
+// Depth bounds the nesting of recursive rule calls: the entries of rules on a cycle of calls and
+// the operands of Operators Rules that nest like them. Zero selects the default the parser was
+// generated with. A generated parser nests calls on the goroutine stack, so Unlimited is an option
+// error; a finite Depth above the largest int counts as the largest int. A deeper parse fails with a
+// LimitError of kind LimitDepth.
+type Limits = rt.Limits
+
+// LimitKind identifies the limit that was exhausted.
+type LimitKind = rt.LimitKind
+
+// LimitError reports a reservation that would exceed a limit. Used is the
+// counter value before the rejected reservation; Requested is the complete
+// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
+// Requested is the length of the input in the position unit; for a stream it is the number of
+// units the parser had asked for, or the length of the stream if that is shorter. For LimitDepth,
+// Limit is the resolved Depth limit, Used is the depth reached (the limit) and Requested is one,
+// the nested call that would exceed it.
+type LimitError = rt.LimitError
+
+// ErrLimit is matched by errors.Is for any LimitError.
+var ErrLimit = rt.ErrLimit
+
+// LimitCompute is the kind of an exhausted Compute limit.
+const LimitCompute = rt.LimitCompute
+
+// LimitInput is the kind of an input longer than the Input limit.
+const LimitInput = rt.LimitInput
+
+// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
+// limit.
+const LimitDepth = rt.LimitDepth
+
+// Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
+// takes it, so one constant serves them all.
+const Unlimited = rt.Unlimited
 
 // Cursor filters edge-oriented node visits using spans in Unit. Unit must match
 // the parse that populated Root's positions; it is never inferred or converted.
@@ -122,47 +172,6 @@ func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error { return 
 // WithContext selects cooperative cancellation for one invocation.
 // A nil context is equivalent to context.Background.
 func WithContext(ctx context.Context) ParseOption { return rt.WithContext(ctx) }
-
-// WithLimits bounds cumulative examined input and execution steps.
-// A zero limit selects its default and Unlimited disables it; counters are never rolled back.
-func WithLimits(limits Limits) ParseOption { return rt.WithLimits(limits) }
-
-// Limits bounds one parse invocation. A zero limit selects the default of that limit, and
-// Unlimited disables it.
-//
-// Compute bounds the cumulative cost of the parse: every input unit
-// inspected, every rule call and loop iteration, and every unit of value
-// construction adds to one counter, so a bound on it bounds scanning,
-// recursion and value building alike.
-//
-// Input bounds the length of the input in the position unit of the parse. The default is
-// Unlimited: the default budget already grows with the input. A longer input fails before any
-// work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
-// the limit.
-type Limits = rt.Limits
-
-// LimitKind identifies the limit that was exhausted.
-type LimitKind = rt.LimitKind
-
-// LimitError reports a reservation that would exceed a limit. Used is the
-// counter value before the rejected reservation; Requested is the complete
-// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
-// Requested is the length of the input in the position unit; for a stream it is the number of
-// units the parser had asked for, or the length of the stream if that is shorter.
-type LimitError = rt.LimitError
-
-// ErrLimit is matched by errors.Is for any LimitError.
-var ErrLimit = rt.ErrLimit
-
-// LimitCompute is the kind of an exhausted Compute limit.
-const LimitCompute = rt.LimitCompute
-
-// LimitInput is the kind of an input longer than the Input limit.
-const LimitInput = rt.LimitInput
-
-// Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
-// takes it, so one constant serves them all.
-const Unlimited = rt.Unlimited
 
 // StreamIterator returns the committed elements of a stream one at a time. It is single-owner: Next
 // and Close must not overlap, including from callbacks. Close releases the parser state but never

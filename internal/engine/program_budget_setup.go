@@ -18,6 +18,9 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 	if err := prog.admitMissing(o, stream); err != nil {
 		return nil, nil, nil, err
 	}
+	if _, err := core.DepthLimit(o, prog.backend(o.Backend)); err != nil {
+		return nil, nil, nil, err
+	}
 	lim, adaptive := core.ResolveLimits(o.Limits, core.InputUnits(text, o.Unit), stream)
 	if err := core.CheckInput(lim, text, o.Unit); err != nil {
 		return nil, nil, nil, err

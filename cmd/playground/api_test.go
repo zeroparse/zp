@@ -261,7 +261,7 @@ func TestBadRequests(t *testing.T) {
 }
 
 func TestDepthLimits(t *testing.T) {
-	defer func(d, td int) { maxDepth, maxTreeDepth = d, td }(maxDepth, maxTreeDepth)
+	defer func(d uint64, td int) { maxDepth, maxTreeDepth = d, td }(maxDepth, maxTreeDepth)
 	maxDepth, maxTreeDepth = 50, 30
 	src := `@start
 rule main = value $$

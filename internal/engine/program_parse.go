@@ -52,7 +52,7 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *value.No
 	p := core.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = core.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
-	p.MaxDepth = core.DepthLimit(o, o.Backend)
+	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.DeferMemo = true
 	p.ContextMemoOff = o.ContextMemoOff
@@ -296,7 +296,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 	}
 	defer p.ReleaseTraceReferences() // after error recovery, including rethrown panics
 	control.Check()
-	p.MaxDepth = core.DepthLimit(o, o.Backend)
+	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.Emit, p.StreamID = emit, rule.ID
 	p.Diagnostic = o.DiagnosticCallback

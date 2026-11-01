@@ -150,14 +150,14 @@ func counted(calls *int,opt p.ParseOption)p.ParseOption {
 }
 func TestNamedOptionsAndErrors(t *testing.T) {
  calls:=0
- v,err:=p.ParseRuleAST("missing","",counted(&calls,p.WithMaxDepth(-1)))
- if v!=nil||err==nil||!strings.Contains(err.Error(),"max depth")||calls!=1 {t.Fatalf("precedence or option replay: %v %v %d",v,err,calls)}
+ v,err:=p.ParseRuleAST("missing","",counted(&calls,p.WithLimits(p.Limits{Depth: p.Unlimited})))
+ if v!=nil||err==nil||!strings.Contains(err.Error(),"unlimited depth")||calls!=1 {t.Fatalf("precedence or option replay: %v %v %d",v,err,calls)}
  calls=0;v,err=p.ParseRuleAST("structure","é",counted(&calls,p.WithUnit(p.Bytes)));if err!=nil||v.(*g.S).T.End!=2||calls!=1 {t.Fatal(v,err,calls)}
  v,err=p.ParseRuleAST("missing","");if v!=nil||fmt.Sprint(err)!="rule missing is not defined" {t.Fatal(v,err)}
- for _,opts:=range [][]p.ParseOption{nil,{p.WithMaxDepth(0)},{p.WithMaxDepth(32)},{p.WithMaxDepth(64)}} {
+ for _,opts:=range [][]p.ParseOption{nil,{p.WithLimits(p.Limits{Depth: 0})},{p.WithLimits(p.Limits{Depth: 32})},{p.WithLimits(p.Limits{Depth: 64})}} {
   if _,err:=p.ParseRuleAST("recursive",strings.Repeat("(",5)+"é"+strings.Repeat(")",5),opts...);err!=nil {t.Fatal(err)}
  }
- if _,err:=p.ParseRuleAST("recursive","((é))",p.WithMaxDepth(1));err==nil||!strings.Contains(err.Error(),"nesting too deep") {t.Fatal(err)}
+ if _,err:=p.ParseRuleAST("recursive","((é))",p.WithLimits(p.Limits{Depth: 1}));err==nil||!strings.Contains(err.Error(),"nesting too deep") {t.Fatal(err)}
  if v,err:=p.ParseRuleAST("abort","");!reflect.DeepEqual(v,(*g.Values)(nil))||err==nil||!strings.Contains(err.Error(),"action in") {t.Fatal(v,err)}
  for _,name:=range []string{"recoverStruct","recoverTerminal","recoverUnion","recoverList","recoveryElements"} {
   v,err:=p.ParseRuleAST(name,"?");if _,ok:=err.(p.SyntaxErrors);!ok {t.Fatalf("%s: %v",name,err)}

@@ -60,7 +60,7 @@ func TestPrepareOptionsDefault(t *testing.T) {
 
 // prepareText rejects a text longer than the Input limit before any work, counting code points only when
 // the byte length passes the limit; zero and Unlimited set no bound and need no control.
-func TestPrepareTextMaxInput(t *testing.T) {
+func TestPrepareTextInput(t *testing.T) {
 	text := strings.Repeat("é", 10) // 10 code points, 20 bytes
 	over := func(o parseOptions) (le *LimitError) {
 		defer func() {
@@ -94,10 +94,10 @@ func TestPrepareTextMaxInput(t *testing.T) {
 			t.Errorf("unit %d, max %d: %+v, want length %d", tc.unit, tc.max, le, tc.want)
 		}
 	}
-	// MaxInput makes no control of its own: with the budget unlimited the batch check is the whole of it.
+	// Input makes no control of its own: with the budget unlimited the batch check is the whole of it.
 	o := prepareText(parseOptions{controls: true, limits: Limits{Compute: Unlimited, Input: 100}}, text)
 	if o.control != nil {
-		t.Fatal("a finite MaxInput made a control")
+		t.Fatal("a finite Input made a control")
 	}
 	// A stream keeps the resolved bound for the parser.
 	o = prepareOptions(parseOptions{controls: true, limits: Limits{Input: 100}}, 0, true)
@@ -108,7 +108,8 @@ func TestPrepareTextMaxInput(t *testing.T) {
 	if o.maxInput != 0 {
 		t.Errorf("Unlimited stream bound %d", o.maxInput)
 	}
-	if !(Limits{}).disabled() || !(Limits{Compute: Unlimited, Input: Unlimited}).disabled() || (Limits{Input: 1}).disabled() {
+	// Only a finite Compute needs a control: Input and Depth are checked without one.
+	if !(Limits{}).disabled() || !(Limits{Compute: Unlimited, Input: Unlimited}).disabled() || !(Limits{Input: 1, Depth: 1}).disabled() || (Limits{Compute: 1}).disabled() {
 		t.Error("disabled")
 	}
 }

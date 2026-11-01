@@ -138,6 +138,10 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 			}
 		}
 	}()
+	depth, err := core.DepthLimit(o, d.back)
+	if err != nil {
+		return nil, err
+	}
 	lim, _ := core.ResolveLimits(o.Limits, uint64(d.in.Loaded()), false)
 	if err := core.CheckInputUnits(lim, uint64(d.in.Loaded())); err != nil {
 		return nil, err
@@ -160,7 +164,7 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 	} else {
 		runs = map[core.RunKey]*core.RunRecord{}
 	}
-	p = &core.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: core.DepthLimit(o, d.back), Gen: gen, Edits: d.edits, Expectations: o.Expectations,
+	p = &core.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
 		Runs: runs, LastRuns: lastRuns, KidStack: d.kids}
 	p.Control = c
 	p.SetTrace(o.Trace)

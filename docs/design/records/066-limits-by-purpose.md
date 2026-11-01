@@ -190,6 +190,12 @@ cap would add a failure mode without adding a guarantee that callers who do not 
 `Unlimited` convention and the single `Unlimited` constant remain: one constant disables every field, and a field
 added later takes the same meaning.
 
+`WithLimits` merges field by field. A nonzero field overrides the value an earlier `WithLimits` of the same call set,
+and a zero field leaves it unchanged, so `WithLimits(Limits{Input: n})` followed by `WithLimits(Limits{Depth: d})`
+sets both. The options of a `Document` call apply in the same way over the limits the `Document` was constructed with.
+A field that no option sets takes its default. No value resets a field to its default once an option has set it
+([decision 12](#decisions)).
+
 A parse runs controlled when compute or memory is finite or a context is given; that is unchanged for compute. A
 finite `Memory` alone makes the parse controlled. `Input` alone does not, because it is checked once on entry. `Depth`
 is checked on every backend and in every generated form, controlled or not, as today.
@@ -233,15 +239,16 @@ type LimitKind uint8
 
 const (
     LimitCompute LimitKind = iota
-    LimitMemory
     LimitInput
     LimitDepth
+    LimitMemory // with the memory measure
 )
 
 type LimitError struct{ Kind LimitKind; Limit, Used, Requested uint64 }
 ```
 
-`WithMaxDepth` is removed: `Limits.Depth` replaces it. For `LimitDepth`, `Limit` is the resolved depth, `Used` the
+The kinds are numbered in the order in which they land: `LimitMemory` takes the next value when the memory measure
+lands, and the values of the earlier kinds do not change. `WithMaxDepth` is removed: `Limits.Depth` replaces it. For `LimitDepth`, `Limit` is the resolved depth, `Used` the
 depth reached and `Requested` one. For `LimitMemory`, `Used` is the counter at the poll that failed, and `Requested`
 is zero, because memory is checked at polls rather than reserved. A generated parser without limit controls accepts zero
 and `Unlimited` for `Compute` and `Memory` and rejects a finite value, as it rejects a finite budget today. It accepts
@@ -277,8 +284,10 @@ Go.
 
 ### Command Line
 
-The commands that run a parse (`parse`, `trace`, `profile`, playground) take `-max-compute`, `-max-memory`,
-`-max-input` and `-max-depth`. Each accepts a number, `0` for the default, or `unlimited`. `zp sample -budget` and
+The commands that run a parse (`parse`, `test`, `trace`, `profile`, `explain` and `edit-fuzz`) take `-max-compute`,
+`-max-memory`, `-max-input` and `-max-depth`. Each accepts a number, `0` for the default, or `unlimited`. `zp trace`
+names its filter of the calls it shows `-show-depth`, so that `-max-depth` means the same in every command. The
+playground exposes the depth limit only, as its `maxDepth` field. `zp sample -budget` and
 `zp sample -max-depth` bound input generation, not a parse. They keep their names and are documented as unrelated.
 
 ### Static Bounds and the Classifier Default
@@ -419,7 +428,9 @@ The implementation adds the sites the prototype left out:
 - Documents: retained bytes count against the cap; a cap below the retained bytes drops history and parses; the result
   equals a fresh parse.
 - Streams: a long stream with a small window completes under a cap smaller than its total allocation.
-- The no-controls form rejects finite compute and memory; its only change is the counter additions in the refills.
+- The no-controls form rejects finite compute and memory and accepts any input and depth limit; its only change is the
+  counter additions in the refills.
+- Two `WithLimits` options, and a `Document`'s construction limits with the limits of a call, merge field by field.
 
 ## Performance and Results
 
@@ -613,6 +624,12 @@ the prototype leaves out, in particular the decoded input, at 8 bytes per input 
     Node parsing and 6 % on typed parsing because of the poll. The counter can pass the cap by one poll interval's
     allocation. A 4,096-unit interval for memory alone is reconsidered if a workload shows that cost. Reserving before
     each allocation was rejected because the call breaks inlining.
+12. **`WithLimits` merges field by field.** A nonzero field overrides an earlier value and a zero field leaves it
+    unchanged, across the options of one call and over a `Document`'s construction limits. Options that set
+    different measures therefore compose, and a `Document` call can change one measure without restating the others.
+    Replacing the whole `Limits` with the last option was rejected because a later option that sets one measure would
+    silently reset the others to their defaults. A sentinel that resets a field to its default was rejected as an
+    extra value with no use that a fresh option list does not serve.
 
 ## Limitations and Open Questions
 

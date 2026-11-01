@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -1296,7 +1297,7 @@ func (p *Parser) StreamsIn(id int, rec bool) bool {
 
 //go:noinline
 func (p *Parser) tooDeep() {
-	p.Fail("nesting too deep: more than %d nested recursive rule calls", p.MaxDepth)
+	panic(Fatal{Err: &limits.LimitError{Kind: limits.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
 }
 
 // SyntaxError reports that the input did not match the grammar.

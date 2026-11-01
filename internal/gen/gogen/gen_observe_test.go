@@ -130,9 +130,9 @@ func TestRejectionAndDepthParity(t *testing.T){
  for _,input:=range []string{"", INPUT+"?"}{
   for _,unit:=range []PositionUnit{CodePoints,Bytes}{
    for _,depth:=range []int{1,100}{
-    opts:=[]ParseOption{WithUnit(unit),WithMaxDepth(depth)}
+    opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Depth: uint64(depth)})}
     refUnit:=reference.CodePoints;if unit==Bytes{refUnit=reference.Bytes}
-    want,werr:=reference.Parse(input,reference.WithUnit(refUnit),reference.WithMaxDepth(depth))
+    want,werr:=reference.Parse(input,reference.WithUnit(refUnit),reference.WithLimits(reference.Limits{Depth: uint64(depth)}))
     var events []zprt.TraceEvent
     got,gerr:=Parse(input,append(opts,zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}))...)
     a,_:=json.Marshal(want);b,_:=json.Marshal(got)

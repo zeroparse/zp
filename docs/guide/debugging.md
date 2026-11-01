@@ -184,10 +184,10 @@ Other marks on a result:
 
 Traces grow quickly, so narrow them down:
 
-- `-max-depth n` hides calls nested deeper than `n`:
+- `-show-depth n` hides calls nested deeper than `n`:
 
   ```bash
-  zp trace -g config.zp -max-depth 2 < small.txt
+  zp trace -g config.zp -show-depth 2 < small.txt
   ```
 
   ```text
@@ -202,10 +202,10 @@ Traces grow quickly, so narrow them down:
   ```
 
 - `-rule name` shows only the calls of that rule and the calls nested in them; repeat it or separate names with
-  commas. With `-rule`, `-max-depth` counts from the rule's calls:
+  commas. With `-rule`, `-show-depth` counts from the rule's calls:
 
   ```bash
-  zp trace -g config.zp -rule stmt -max-depth 2 -i 'a.b.c(1);'
+  zp trace -g config.zp -rule stmt -show-depth 2 -i 'a.b.c(1);'
   ```
 
   ```text
@@ -243,7 +243,7 @@ For tools, `-f json` prints one JSON object per event and line. Enter events hav
 looked at), `reusedElements` when nonzero, and, with `-failures`, `failure`:
 
 ```bash
-zp trace -g config.zp -f json -rule call -max-depth 1 -failures < bad.txt
+zp trace -g config.zp -f json -rule call -show-depth 1 -failures < bad.txt
 ```
 
 ```text

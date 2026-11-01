@@ -316,9 +316,9 @@ machinery, which the generated code only has when you ask for it:
 
 - `-stream`, `-document` and `-recognize` add `ParseStream`, `Document` and `Recognize` (and `-types` their typed
   forms). Without `-stream`, `#stream` is an ordinary repetition. TypeScript has neither streams nor documents.
-- `ParseRule` replaces `WithStart` for another start rule, and `WithUnit` and `WithMaxDepth` work as in the engine;
-  `-max-depth` sets the generated default.
-- Cancellation and compute limits are `WithContext` and `WithLimits` in the engine and in generated Go with `-limits`, and the
+- `ParseRule` replaces `WithStart` for another start rule, and `WithUnit` and `Limits.Depth` work as in the engine,
+  except that `Depth: Unlimited` is an error; `-max-depth` sets the generated default.
+- Cancellation and compute and input limits are `WithContext` and `WithLimits` in the engine and in generated Go with `-limits`, and the
   `signal` and `budget` options in TypeScript with `-limits`; see
   [Cancellation and Compute Limits](cancellation-and-limits.md) and the
   [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support).
@@ -332,11 +332,11 @@ The [specification](../../spec/runtime/generated-parsers.md#compatibility-and-su
 Notes:
 
 - **Depth.** Generated code uses the Go stack for rule calls and fails with
-  `nesting too deep: more than 100000 nested recursive rule calls` at the default limit. `WithMaxDepth` changes the limit for one
+  `nesting too deep: more than 100000 nested recursive rule calls` at the default limit. `Limits.Depth` changes the limit for one
   invocation, and `-max-depth` changes the generated default. With the nested-parentheses grammar
   `rule nested = "(" nested ")" / "x"`, 50,000 levels parse and 200,000 levels fail with that error. If you must accept
-  deeper nesting beyond the host stack, the engine's `BytecodeIterative` backend with `WithMaxDepth` is the tool
-  ([Choosing a Backend](backends.md#deep-nesting-and-withmaxdepth)).
+  deeper nesting beyond the host stack, the engine's `BytecodeIterative` backend with `Limits.Depth` is the tool
+  ([Choosing a Backend](backends.md#deep-nesting-and-the-depth-limit)).
 - **Memory.** Generated parsers memoize in the same way as the engine, so memory still grows with the input. For input
   larger than memory, generate `ParseStream` with `-stream` or use the engine's `ParseStream`.
 - Using a stream grammar with the generator is fine: `Parse` treats the `#stream` pragma as an ordinary repetition, so

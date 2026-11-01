@@ -1122,19 +1122,16 @@ func WithUnit(unit PositionUnit) ParseOption { return func(o *parseOptions) { o.
 // option through the runtime returns an error.
 func WithExpectations() ParseOption { return func(o *parseOptions) { o.expectations = true } }
 
-// WithMaxDepth limits nested recursive rule calls (rules on a cycle of calls). Zero selects the generated default;
-// a negative effective limit returns an error before parsing.
-// A larger limit does not guarantee that the host stack can accommodate it.
-func WithMaxDepth(n int) ParseOption { return func(o *parseOptions) { o.maxDepth = n } }
-
 // WithContext selects cooperative cancellation for one invocation.
 // A nil context is equivalent to context.Background.
 func WithContext(ctx context.Context) ParseOption { return func(o *parseOptions) { o.context = ctx } }
 
-// WithLimits bounds cumulative examined input and execution steps.
-// A zero limit selects its default and Unlimited disables it; counters are never rolled back.
+// WithLimits sets the limits of the invocation field by field: a nonzero field overrides the value
+// of an earlier WithLimits, including the construction defaults of a Document, and a zero field
+// leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
+// Counters are never rolled back.
 func WithLimits(limits Limits) ParseOption {
-	return func(o *parseOptions) { o.limits = limits }
+	return func(o *parseOptions) { o.limits = mergeLimits(o.limits, limits) }
 }
 
 // ResolveOptions applies opts to the defaults of grammar g.
@@ -1144,18 +1141,17 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 	if len(opts) == 0 {
 		return parseOptions{maxDepth: g.maxDepth, controls: !g.NoBudgetControls}, nil
 	}
-	o := parseOptions{maxDepth: g.maxDepth, controls: !g.NoBudgetControls}
+	o := parseOptions{controls: !g.NoBudgetControls}
 	for _, opt := range opts {
 		opt(&o)
 	}
-	if o.maxDepth < 0 {
-		return o, fmt.Errorf("max depth must be non-negative: %d", o.maxDepth)
+	depth, err := resolveDepth(o.limits.Depth, g.maxDepth)
+	if err != nil {
+		return o, err
 	}
-	if o.maxDepth == 0 {
-		o.maxDepth = g.maxDepth
-	}
+	o.maxDepth = depth
 	if g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and WithLimits)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute limit)")
 	}
 	if o.expectations && !g.Expectations {
 		return o, fmt.Errorf("this parser was generated without expectations (generate with -expectations to use WithExpectations)")
@@ -1167,6 +1163,20 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 		return o, err
 	}
 	return o, nil
+}
+
+// resolveDepth returns the nesting limit that a Depth limit selects: the generated default def for
+// zero. A generated parser nests rule calls on the goroutine stack, so Unlimited is an error.
+func resolveDepth(depth uint64, def int) (int, error) {
+	switch {
+	case depth == 0:
+		return def, nil
+	case depth == Unlimited:
+		return 0, fmt.Errorf("a generated parser does not accept an unlimited depth: it nests rule calls on the goroutine stack")
+	case depth > math.MaxInt:
+		return math.MaxInt, nil
+	}
+	return int(depth), nil
 }
 
 // validateObservation accepts the trace and profile options only for a parser generated with
@@ -2756,7 +2766,7 @@ func (p *Parser) evaluating() {
 
 // TooDeep fails the parse for exceeding the nesting limit.
 func (p *Parser) TooDeep() {
-	panic(fatal{fmt.Errorf("nesting too deep: more than %d nested recursive rule calls", p.MaxDepth)})
+	panic(fatal{err: &LimitError{Kind: LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
 }
 
 // Enter counts one more nested entry of a recursive rule and fails the parse beyond the nesting

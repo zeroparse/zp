@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -124,7 +125,7 @@ rule a = "x" #recover(skip=a) / "y"`, options)
 				err := p.ParseStreamWith("main", strings.NewReader("y\ny\n"), func(*value.Node) error {
 					count++
 					return nil
-				}, ParseOptions{Backend: backend, Unit: unit, MaxDepth: 20})
+				}, ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 20}})
 				if err != nil || count != 2 {
 					t.Errorf("%s/%s memo disabled=%v: %d elements, %v", backend, unit, options.DisableMemo, count, err)
 				}
@@ -139,7 +140,7 @@ func TestLeftRecursionInRecoverySkip(t *testing.T) {
 rule a = "x" #recover(skip=a) / "y"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
-			n, err := p.ParseWith("main", "y", ParseOptions{Backend: backend, Unit: unit, MaxDepth: 20})
+			n, err := p.ParseWith("main", "y", ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 20}})
 			if err != nil || n.String() != `"y"@a` {
 				t.Errorf("%s/%s: got %v, %v; want y without a recursion-limit failure", backend, unit, n, err)
 			}

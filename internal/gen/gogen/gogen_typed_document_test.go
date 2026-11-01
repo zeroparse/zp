@@ -63,7 +63,7 @@ func TestTypedDocumentResultAndOwnership(t *testing.T) {
   _, err = d.ParseAST(func(o *zprt.X_parseOptions) { invocationCalls++; o.X_unit = unit })
   if err != nil || invocationCalls != 1 { t.Fatalf("invocation option: %v, calls %d", err, invocationCalls) }
   if _, err := d.ParseAST(WithUnit(PositionUnit(1-int(unit)))); err == nil { t.Fatal("unit change accepted") }
-  if _, err := d.ParseAST(WithMaxDepth(-1)); err == nil { t.Fatal("negative depth accepted") }
+  if _, err := d.ParseAST(WithLimits(Limits{Depth: Unlimited})); err == nil { t.Fatal("unlimited depth accepted") }
   cancelled, cancel := context.WithCancel(context.Background()); cancel()
   if v, err := d.ParseAST(WithContext(cancelled)); v != nil || !errors.Is(err, context.Canceled) { t.Fatalf("cancellation: %v %v", v, err) }
   if v, err := d.ParseAST(); v == nil || err != nil { t.Fatalf("retry: %v", err) }
@@ -323,7 +323,7 @@ func TestCollision(t *testing.T) {
  var typed *types.ErrDocumentBusy = got
  if err != nil || typed.Text != "a" { t.Fatal(got, err) }
  var inner error
- d.ParseAST(zprt.WithTrace(func(zprt.TraceEvent) { if inner == nil { _, inner = d.ParseAST(WithMaxDepth(-1)) } }))
+ d.ParseAST(zprt.WithTrace(func(zprt.TraceEvent) { if inner == nil { _, inner = d.ParseAST(WithLimits(Limits{Depth: Unlimited})) } }))
  if !errors.Is(inner, ErrDocumentBusy) { t.Fatal("busy Document checked options first", inner) }
 }
 `,

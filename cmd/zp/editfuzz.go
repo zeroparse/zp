@@ -52,7 +52,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 		var ignored []string
 		fs.Visit(func(f *flag.Flag) {
 			switch f.Name {
-			case "g", "replay", "minimize", "max-attempts", "save-failures", "max-compute", "max-input":
+			case "g", "replay", "minimize", "max-attempts", "save-failures", "max-compute", "max-input", "max-depth":
 			default:
 				ignored = append(ignored, "-"+f.Name)
 			}

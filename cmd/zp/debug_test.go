@@ -36,7 +36,7 @@ main -> failed (at 2:3: expected [0-9])
 		t.Errorf("got\n%s\nwant\n%s", out, want)
 	}
 
-	// -rule shows the calls of the rule (and those nested in them) at the top level; -max-depth
+	// -rule shows the calls of the rule (and those nested in them) at the top level; -show-depth
 	// hides deeper calls.
 	out, err = runCLI(t, "a=1;b=22", "trace", "-g", g, "-rule", "value,ws", "-backend", "bytecode")
 	want = `ws 1:1 -> matched 1:1-1:1 ""
@@ -48,7 +48,7 @@ ws 1:9 -> matched 1:9-1:9 ""
 	if err != nil || out != want {
 		t.Errorf("-rule: got %v\n%s\nwant\n%s", err, out, want)
 	}
-	out, err = runCLI(t, "a=1;b=22", "trace", "-g", g, "-max-depth", "2", "-unit", "bytes")
+	out, err = runCLI(t, "a=1;b=22", "trace", "-g", g, "-show-depth", "2", "-unit", "bytes")
 	want = `main 1:1
   ws 1:1 -> matched 1:1-1:1 ""
   pair 1:1 -> matched 1:1-1:5 "a=1;"
@@ -57,7 +57,7 @@ ws 1:9 -> matched 1:9-1:9 ""
 main -> matched 1:1-1:9 "a=1;b=22"
 `
 	if err != nil || out != want {
-		t.Errorf("-max-depth: got %v\n%s\nwant\n%s", err, out, want)
+		t.Errorf("-show-depth: got %v\n%s\nwant\n%s", err, out, want)
 	}
 
 	// JSON: one event per line

@@ -120,7 +120,7 @@ func TestMaxInput(t *testing.T){
 func TestValidationAndOptions(t *testing.T){
  ctx,cancel:=context.WithCancel(context.Background());cancel()
  for _,r:=range routes(){
-  _,err:=r.call("?",WithContext(ctx),WithMaxDepth(-1));if err==nil || !strings.Contains(err.Error(),"max depth"){t.Fatalf("configuration precedence: %v",err)}
+  _,err:=r.call("?",WithContext(ctx),WithLimits(Limits{Depth: Unlimited}));if err==nil || !strings.Contains(err.Error(),"unlimited depth"){t.Fatalf("configuration precedence: %v",err)}
   sentinel:=new(int)
   func(){defer func(){if got:=recover();got!=sentinel{t.Fatalf("option panic %v",got)}}();r.call("?",func(*zprt.X_parseOptions){panic(sentinel)})}()
  }
@@ -514,7 +514,7 @@ func TestLegacyAndInterruptedNil(t *testing.T){
   got,err=ParseRuleAST("main",input)
   if got!=nil || (err==nil)!=(input==""){t.Fatalf("named zero result changed: %T %v %v",got,got,err)}
  }
- got,err:=ParseAST("",WithMaxDepth(-1))
+ got,err:=ParseAST("",WithLimits(Limits{Depth: Unlimited}))
  if err==nil || got!=nil{t.Fatalf("ordinary option error mapping: %T %v %v",got,got,err)}
  ctx,cancel:=context.WithCancel(context.Background());cancel()
  owned:=errors.New("caller-owned context interruption")
@@ -540,9 +540,9 @@ func TestGeneratedGoConfiguredNilOrdinaryErrors(t *testing.T) {
 	}
 	for _, tc := range []struct{ name, source, input, option string }{
 		{"action", `type A = { N int }
-rule main _ = "x" => A{N: 1 / 0}`, "x", "WithMaxDepth(100000)"},
+rule main _ = "x" => A{N: 1 / 0}`, "x", "Depth: 100000"},
 		{"depth", `rule main _ = recurse
-rule recurse = "a" recurse?`, "aa", "WithMaxDepth(1)"},
+rule recurse = "a" recurse?`, "aa", "Depth: 1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := parseTest(tc.source)
@@ -573,8 +573,8 @@ const generatedGoOrdinaryNilErrorConsumer = `package ordinarynil
 import("context";"testing")
 func TestOrdinaryNilMapping(t *testing.T){
  for _,unit:=range []PositionUnit{CodePoints,Bytes}{
-  for _,extra:=range [][]ParseOption{nil,{WithContext(context.Background())},{WithLimits(Limits{Compute: 1000000})}}{
-   opts:=append([]ParseOption{WithUnit(unit),OPTION},extra...)
+  for _,extra:=range [][]ParseOption{nil,{WithContext(context.Background())},{WithLimits(Limits{Compute: 1000000, OPTION})}}{
+   opts:=append([]ParseOption{WithUnit(unit),WithLimits(Limits{OPTION})},extra...)
    got,err:=ParseAST(INPUT,opts...)
    if err==nil || got!=nil{t.Fatalf("ordinary error returned a value: %T %v %v",got,got,err)}
   }

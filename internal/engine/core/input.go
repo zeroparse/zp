@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"unicode/utf8"
 
@@ -37,7 +38,8 @@ type ParseOptions struct {
 	MissingTokens int
 	// Context cooperatively interrupts this invocation. Nil means no cancellation.
 	Context context.Context
-	// Limits optionally bound cumulative input inspections and execution steps.
+	// Limits bound the cost of the parse, the length of its input and the nesting of its recursive
+	// rule calls (DepthLimit).
 	Limits limits.Limits
 	// Unit is the position unit. Matching is done per code point regardless of the unit.
 	Unit PositionUnit
@@ -48,10 +50,6 @@ type ParseOptions struct {
 	// errors in actions are not reported. Values of captures referenced by predicates are still
 	// built.
 	Recognize bool
-	// MaxDepth is the limit on rule call nesting depth; the parse fails when it is exceeded. Zero
-	// means the default (DefaultMaxDepthIterative for the iterative model, DefaultMaxDepth
-	// otherwise).
-	MaxDepth int
 	// Trace, if not nil, receives an event at the start and at the end of every rule call (see
 	// TraceEvent). Tracing does not change the result of the parse.
 	Trace func(TraceEvent)
@@ -84,15 +82,22 @@ const (
 	DefaultMaxDepthIterative = limits.DefaultMaxDepthIterative
 )
 
-// DepthLimit returns the rule call nesting limit that the options set for backend b.
-func DepthLimit(o ParseOptions, b Backend) int {
-	switch {
-	case o.MaxDepth > 0:
-		return o.MaxDepth
+// DepthLimit returns the rule call nesting limit that the options set for backend b: the Depth
+// limit, or the default of b for zero. Unlimited is accepted only by BytecodeIterative, whose call
+// stack is on the heap; the other backends nest calls on the goroutine stack, which would
+// overflow first.
+func DepthLimit(o ParseOptions, b Backend) (int, error) {
+	switch d := o.Limits.Depth; {
+	case d == limits.Unlimited && b != BytecodeIterative:
+		return 0, fmt.Errorf("an unlimited depth needs the bytecode-iterative backend: %s nests rule calls on the goroutine stack", b)
+	case d == limits.Unlimited || d > math.MaxInt:
+		return math.MaxInt, nil
+	case d > 0:
+		return int(d), nil
 	case b == BytecodeIterative:
-		return DefaultMaxDepthIterative
+		return DefaultMaxDepthIterative, nil
 	}
-	return DefaultMaxDepth
+	return DefaultMaxDepth, nil
 }
 
 // Input is the parser's input. Positions are in Unit, and the start of in or bs is at position

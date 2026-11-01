@@ -14,6 +14,7 @@ func TestLimitError(t *testing.T) {
 		{nil, "parse limit exceeded"},
 		{&LimitError{Kind: LimitCompute, Limit: 5, Used: 4, Requested: 2}, "parse compute limit exceeded: limit 5, used 4, requested 2"},
 		{&LimitError{Kind: LimitInput, Limit: 5, Requested: 9}, "parse input limit exceeded: limit 5, length 9"},
+		{&LimitError{Kind: LimitDepth, Limit: 7, Used: 7, Requested: 1}, "nesting too deep: more than 7 nested recursive rule calls"},
 	} {
 		if got := tc.err.Error(); got != tc.want {
 			t.Errorf("Error() = %q, want %q", got, tc.want)
@@ -25,6 +26,20 @@ func TestLimitError(t *testing.T) {
 	}
 	if errors.Is(err, errors.New("parse limit exceeded")) {
 		t.Error("LimitError matched an unrelated error with the same text")
+	}
+}
+
+// A later WithLimits overrides the nonzero fields only.
+func TestMerge(t *testing.T) {
+	for _, tc := range []struct{ l, o, want Limits }{
+		{Limits{}, Limits{}, Limits{}},
+		{Limits{Compute: 1, Input: 2, Depth: 3}, Limits{}, Limits{Compute: 1, Input: 2, Depth: 3}},
+		{Limits{Compute: 1, Input: 2}, Limits{Depth: 3}, Limits{Compute: 1, Input: 2, Depth: 3}},
+		{Limits{Compute: 1, Input: 2, Depth: 3}, Limits{Input: Unlimited, Depth: 9}, Limits{Compute: 1, Input: Unlimited, Depth: 9}},
+	} {
+		if got := Merge(tc.l, tc.o); got != tc.want {
+			t.Errorf("Merge(%+v, %+v) = %+v, want %+v", tc.l, tc.o, got, tc.want)
+		}
 	}
 }
 

@@ -20,7 +20,7 @@ import (
 //     and fails (certainly fails on such inputs) are under-approximations.
 //   - prefix (a string that every match begins with) is an under-approximation.
 //
-// None of them account for the nesting limit (WithMaxDepth), which can make any rule call fail.
+// None of them account for the nesting limit (Limits.Depth), which can make any rule call fail.
 type analysis struct {
 	control *lintControl
 	g       *grammar.Grammar

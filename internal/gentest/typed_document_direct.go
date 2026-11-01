@@ -171,7 +171,7 @@ func TestControlsAndInvalidOptions(t *testing.T){
   if before.Evaluated!=0||before.Reused!=1{t.Fatal("root was not warm",before)}
   unchanged:=func(){t.Helper();if d.X_typedMemo!=old||d.Stats()!=before{t.Fatal("pre-admission failure changed cache or stats",d.Stats())}}
   reused:=func(){t.Helper();assertDirect(t,d,unit);if d.Stats()!=before{t.Fatal("valid cache was not reused after pre-admission failure",d.Stats())}}
-  if _,err:=d.ParseAST(WithMaxDepth(-1));err==nil{t.Fatal("invalid depth accepted")};unchanged();reused()
+  if _,err:=d.ParseAST(WithLimits(Limits{Depth: Unlimited}));err==nil{t.Fatal("invalid depth accepted")};unchanged();reused()
   if _,err:=d.ParseAST(WithUnit(PositionUnit(1-int(unit))));err==nil{t.Fatal("unit change accepted")};unchanged();reused()
   if err:=d.Edit(-1,0,"");err==nil{t.Fatal("invalid edit accepted")};unchanged();reused()
   ctx,cancel:=context.WithCancel(context.Background());cancel()

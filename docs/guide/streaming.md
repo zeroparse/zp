@@ -270,7 +270,7 @@ The rules that matter when you write a grammar, in short:
 - An element that can match nothing is delivered once and then ends the repetition. Without a guard like the `!$$` in
   [alpha-parsers/csv](../../testdata/grammars/csv/csv.zp), a record rule whose fields and line end can all match nothing delivers
   one extra empty record at the end of the input.
-- `WithUnit`, `WithBackend` and `WithMaxDepth` work; `RecognizeOnly` is an error. After an element only the one
+- `WithUnit`, `WithBackend` and `Limits.Depth` work; `RecognizeOnly` is an error. After an element only the one
   character before it is kept, so `^` still works at the start of the next element.
 - A `Parser` can run many `ParseStream` calls at once.
 

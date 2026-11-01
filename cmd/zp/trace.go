@@ -15,7 +15,7 @@ import (
 func traceCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	f := newDebugFlags("trace")
 	format := f.fs.String("f", "text", "output format: text (an indented call tree) or json (one event per line)")
-	maxDepth := f.fs.Int("max-depth", 0, "show calls nested at most this deep, counting from the top call shown (1), which is the start rule or a call of a -rule rule; 0 shows all")
+	showDepth := f.fs.Int("show-depth", 0, "show calls nested at most this deep, counting from the top call shown (1), which is the start rule or a call of a -rule rule; 0 shows all")
 	var rules stringsFlag
 	f.fs.Var(&rules, "rule", "show only the calls of this rule and the calls nested in them (repeatable, or comma-separated)")
 	failures := f.fs.Bool("failures", false, "show what was expected where each failed call failed")
@@ -27,7 +27,7 @@ func traceCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 		return fmt.Errorf("unknown format %q", *format)
 	}
 	w := bufio.NewWriter(stdout)
-	t := &tracePrinter{w: w, json: *format == "json", maxDepth: *maxDepth, rules: rules, failures: *failures}
+	t := &tracePrinter{w: w, json: *format == "json", showDepth: *showDepth, rules: rules, failures: *failures}
 	_, perr := p.Parse(src, append(opts, zp.WithTrace(t.event))...)
 	t.flush()
 	if err := w.Flush(); err != nil {
@@ -42,11 +42,11 @@ func traceCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 // tracePrinter prints trace events. In text, a call that shows no nested calls takes one line;
 // otherwise its start and its end take a line each, around the nested calls.
 type tracePrinter struct {
-	w        *bufio.Writer
-	json     bool
-	maxDepth int
-	rules    []string
-	failures bool
+	w         *bufio.Writer
+	json      bool
+	showDepth int
+	rules     []string
+	failures  bool
 	// root is the depth of the call of one of rules being shown (0 if none is in progress, or
 	// if rules is empty).
 	root int
@@ -73,7 +73,7 @@ func (t *tracePrinter) depth(e zp.TraceEvent) int {
 			t.root = 0
 		}
 	}
-	if t.maxDepth > 0 && d > t.maxDepth {
+	if t.showDepth > 0 && d > t.showDepth {
 		return 0
 	}
 	return d

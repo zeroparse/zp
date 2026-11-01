@@ -1148,8 +1148,8 @@ func TestDiagnosticOptionsAreStreamOnly(t *testing.T) {
 	if _, err := Iterate(r, zprt.WithDiagnosticLimit(-1)); err == nil {
 		t.Error("Iterate accepted a negative limit")
 	}
-	if _, err := IterateAST(r, WithMaxDepth(-1)); err == nil {
-		t.Error("IterateAST accepted a negative depth")
+	if _, err := IterateAST(r, WithLimits(Limits{Depth: Unlimited})); err == nil {
+		t.Error("IterateAST accepted an unlimited depth")
 	}
 	if read {
 		t.Error("invalid options read the input")
@@ -1352,8 +1352,8 @@ func TestBudgetControls(t *testing.T) {
 	if err != failed {
 		t.Fatal(err)
 	}
-	if err := ParseStream(strings.NewReader(input), nil, WithMaxDepth(-1)); err == nil {
-		t.Fatal("negative depth accepted")
+	if err := ParseStream(strings.NewReader(input), nil, WithLimits(Limits{Depth: Unlimited})); err == nil {
+		t.Fatal("unlimited depth accepted")
 	}
 }
 

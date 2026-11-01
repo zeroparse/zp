@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -105,7 +106,7 @@ rule x = #operators {
 	const depth = 3 * DefaultMaxDepth
 	for _, in := range []string{strings.Repeat("-", depth) + "x", strings.Repeat("x^", depth) + "x"} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b, MaxDepth: DefaultMaxDepth}); err == nil || !strings.Contains(err.Error(), "nesting too deep") {
+			if _, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b, Limits: limits.Limits{Depth: uint64(DefaultMaxDepth)}}); err == nil || !strings.Contains(err.Error(), "nesting too deep") {
 				t.Errorf("%v, input %.10q...: got %v, want a nesting error", b, in, err)
 			}
 		}
@@ -148,7 +149,7 @@ rule e = #operators {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				for _, unit := range []PositionUnit{CodePoints, Bytes} {
 					for _, recognize := range []bool{false, true} {
-						opts := ParseOptions{Expectations: true, Backend: backend, Unit: unit, MaxDepth: tc.depth, Recognize: recognize}
+						opts := ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: limits.Limits{Depth: uint64(tc.depth)}, Recognize: recognize}
 						n, err := prog.ParseWith("main", tc.input, opts)
 						if (err == nil) != tc.ok {
 							t.Errorf("memo disabled %v, %s/%s, recognize %v depth %d input %.20q: %v, %v", disableMemo, backend, unit, recognize, tc.depth, tc.input, n, err)
@@ -186,7 +187,7 @@ rule e = #operators {
 				err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(*value.Node) error {
 					count++
 					return nil
-				}, ParseOptions{Expectations: true, Backend: backend, Unit: unit, MaxDepth: 2})
+				}, ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 2}})
 				if count != tc.count || (err == nil) != tc.ok {
 					t.Errorf("%s/%s input %.20q: emitted %d, err %v; want %d, success %v", backend, unit, tc.input, count, err, tc.count, tc.ok)
 				}

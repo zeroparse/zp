@@ -18,8 +18,8 @@ type GenOptions struct {
 	// It needs Types and excludes Recognize, Document and Stream.
 	TypedOnly bool
 	// LimitControls emits the limit-controlled form of the generated functions, which charges
-	// cancellation and the compute limit (WithContext, WithLimits; signal, budget and maxInput
-	// in TypeScript), and re-exports those options. Without it the functions have no charges (the ordinary form, or with Document
+	// cancellation and the compute limit (WithContext and Limits.Compute; signal, budget and
+	// maxInput in TypeScript), and re-exports WithContext. Without it the functions have no charges (the ordinary form, or with Document
 	// the form that serves a Document), and a parse with a control option fails with an error.
 	LimitControls bool
 	// Expectations makes the generated parser record what a syntax error expects: the expectations

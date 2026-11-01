@@ -105,7 +105,7 @@ func TestTranscript(t *testing.T) {
 			w, err := ParseRuleAST("main", in, WithUnit(unit))
 			fmt.Fprintf(&b, "rule main %q %v: %s\n", in, unit, show(w, err))
 		}
-		v, err := ParseAST(in, WithMaxDepth(3))
+		v, err := ParseAST(in, WithLimits(Limits{Depth: 3}))
 		fmt.Fprintf(&b, "depth %q: %s\n", in, show(v, err))
 	}
 	if err := os.WriteFile(filepath.Join(os.Getenv("TRANSCRIPT_DIR"), "PKG.txt"), []byte(b.String()), 0o644); err != nil {

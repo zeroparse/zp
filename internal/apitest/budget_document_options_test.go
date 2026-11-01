@@ -24,7 +24,7 @@ rule inner = "(" inner ")" / "a"`, "main")
 		t.Run(backend.String(), func(t *testing.T) {
 			constructCalls, parseCalls := 0, 0
 			var order []string
-			d, err := p.NewDocument("((a))", zp.WithBackend(backend), zp.WithMaxDepth(1),
+			d, err := p.NewDocument("((a))", zp.WithBackend(backend), zp.WithLimits(zp.Limits{Depth: 1}),
 				func(o *engine.ParseOptions) { constructCalls++ },
 				zp.WithTrace(func(e zp.TraceEvent) {
 					if e.Rule == "main" && e.Kind == zp.TraceEnter {
@@ -38,7 +38,7 @@ rule inner = "(" inner ")" / "a"`, "main")
 				t.Fatalf("default depth: node=%v error=%v", n, err)
 			}
 			order = nil
-			n, err := d.Parse(zp.WithMaxDepth(20), func(o *engine.ParseOptions) { parseCalls++ },
+			n, err := d.Parse(zp.WithLimits(zp.Limits{Depth: 20}), func(o *engine.ParseOptions) { parseCalls++ },
 				zp.WithTrace(func(e zp.TraceEvent) {
 					if e.Rule == "main" && e.Kind == zp.TraceEnter {
 						order = append(order, "invocation")
@@ -91,5 +91,64 @@ rule main = "a" $$`, "main")
 		if !errors.Is(err, context.Canceled) || first != 1 || second != 0 {
 			t.Fatalf("%s callbacks: error=%v first=%d second=%d", backend, err, first, second)
 		}
+	}
+}
+
+// WithLimits merges field by field: a later option overrides the nonzero fields of an earlier one,
+// for the options of one Parse and for the call options over the construction defaults of a
+// Document.
+func TestLimitsMergeAcrossOptions(t *testing.T) {
+	p, err := zp.CompileSource(`@start
+rule main = inner $$
+
+rule inner = "(" inner ")" / "a"`, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kind := func(err error) zp.LimitKind {
+		t.Helper()
+		var le *zp.LimitError
+		if !errors.As(err, &le) {
+			t.Fatalf("not a LimitError: %v", err)
+		}
+		return le.Kind
+	}
+	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
+		t.Run(backend.String(), func(t *testing.T) {
+			b := zp.WithBackend(backend)
+			if _, err := p.Parse("((a))", b, zp.WithLimits(zp.Limits{Input: 3}), zp.WithLimits(zp.Limits{Depth: 20})); kind(err) != zp.LimitInput {
+				t.Fatalf("a later Depth dropped the Input: %v", err)
+			}
+			if _, err := p.Parse("((a))", b, zp.WithLimits(zp.Limits{Depth: 1}), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})); kind(err) != zp.LimitDepth {
+				t.Fatalf("a later Compute dropped the Depth: %v", err)
+			}
+			if n, err := p.Parse("((a))", b, zp.WithLimits(zp.Limits{Depth: 1}), zp.WithLimits(zp.Limits{Depth: 20})); n == nil || err != nil {
+				t.Fatalf("a later Depth did not override: %v", err)
+			}
+			doc := func(l zp.Limits) *zp.Document {
+				t.Helper()
+				d, err := p.NewDocument("((a))", b, zp.WithLimits(l))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := d.Edit(0, 5, "(((a)))"); err != nil {
+					t.Fatal(err)
+				}
+				return d
+			}
+			if _, err := doc(zp.Limits{Input: 5}).Parse(zp.WithLimits(zp.Limits{Depth: 20})); kind(err) != zp.LimitInput {
+				t.Fatalf("a call Depth dropped the default Input: %v", err)
+			}
+			d := doc(zp.Limits{Compute: 20, Input: 5}) // enough to construct, too little to parse
+			if _, err := d.Parse(zp.WithLimits(zp.Limits{Input: zp.Unlimited, Depth: 20})); kind(err) != zp.LimitCompute {
+				t.Fatalf("a call Input dropped the default Compute: %v", err)
+			}
+			if n, err := d.Parse(zp.WithLimits(zp.Limits{Compute: zp.Unlimited, Input: zp.Unlimited})); n == nil || err != nil {
+				t.Fatalf("call limits did not override the defaults: %v", err)
+			}
+			if _, err := d.Parse(zp.WithLimits(zp.Limits{Compute: zp.Unlimited})); kind(err) != zp.LimitInput {
+				t.Fatalf("a call changed the default Input: %v", err)
+			}
+		})
 	}
 }

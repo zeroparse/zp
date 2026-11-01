@@ -17,8 +17,8 @@ bytecode, iterative bytecode) and generated Go, for batch parses, recognition,
 typed parses, [streams](../runtime/streaming.md) and
 [Documents](../runtime/documents.md). Generated TypeScript has its own counter,
 which this proof does not analyze. A parser generated without limit controls
-has no counter and no checkpoints, and cannot be interrupted; the proof is about
-the parsers that have them.
+has no counter and no checkpoints: only the input and depth limits, which it
+checks without them, can stop it. The proof is about the parsers that have them.
 
 ## Definitions From the Specification
 
