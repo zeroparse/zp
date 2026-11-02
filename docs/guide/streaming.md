@@ -263,6 +263,10 @@ The rules that matter when you write a grammar, in short:
   elements already delivered.
 - `#recover` cannot wrap the `#stream` repetition, because rewinding could reach input that is already discarded. Put
   recovery inside each repeated element or its rule.
+- A rule with `#stream` cannot be on a left-recursion cycle, such as `rule main = main? item* #stream` or
+  `rule main = item* #stream` with `rule item = "a" / main`. Growing the left recursion parses the rule body again
+  from the same position, which would deliver elements again. Left recursion inside an element, such as an
+  `e = e "+" t / t` that `item` calls, is fine.
 - An element that can match nothing is delivered once and then ends the repetition. Without a guard like the `!$$` in
   [alpha-parsers/csv](../../testdata/grammars/csv/csv.zp), a record rule whose fields and line end can all match nothing delivers
   one extra empty record at the end of the input.

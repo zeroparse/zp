@@ -115,9 +115,9 @@ func testFlowStreamBodyIsBatchBody(t *testing.T) {
 		t.Fatal("no stream body is printed from Flow IR: the test exercises nothing")
 	}
 	t.Logf("%d stream bodies from Flow IR", flowN)
-	// Every start rule prints from Flow IR (otherwise the generation fails): a left-recursion leader and a body
-	// with a recovery use the framed body of any other rule, and the stream repetition delivers the elements.
-	for _, want := range []string{"left recursive start", "left recursive start choice", "indirect leader start", "mutual leader start", "recovery in the start rule", "stream element recovery"} {
+	// Every start rule prints from Flow IR (otherwise the generation fails): a body with a recovery uses the
+	// framed body of any other rule, and the stream repetition delivers the elements.
+	for _, want := range []string{"recovery in the start rule", "stream element recovery"} {
 		if !slices.ContainsFunc(flowed, func(f string) bool { return strings.HasPrefix(f, want+"/") }) {
 			t.Errorf("the start rule of %q is expected to print from Flow IR, but did not", want)
 		}

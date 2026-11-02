@@ -55,3 +55,33 @@ rule other = "b"`)
 		t.Fatalf("typed output without streams: %v", err)
 	}
 }
+
+// TestGenerateStreamLeftRecursionRejected checks that generation reports the compile error of a
+// #stream rule on a left-recursion cycle for every target, with or without stream entry points.
+func TestGenerateStreamLeftRecursionRejected(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testGenerateStreamLeftRecursionRejected)
+}
+
+func testGenerateStreamLeftRecursionRejected(t *testing.T) {
+	const want = "#stream cannot be used in rule main, which is on a left-recursion cycle"
+	g, err := parseTest("rule main = item* #stream\nrule item = \"a\" \"\\n\" / main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, generate := range map[string]func() error{
+		"Go": func() error {
+			_, err := gentest.GenerateCode(t, g, gen.GenOptions{Start: "main", Package: "test"})
+			return err
+		},
+		"Go stream": func() error {
+			_, err := gentest.GenerateCode(t, g, gen.GenOptions{Start: "main", Package: "test", Stream: true})
+			return err
+		},
+		"TS": func() error { _, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main"}); return err },
+	} {
+		if err := generate(); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s generation: %v", name, err)
+		}
+	}
+}

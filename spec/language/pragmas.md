@@ -146,7 +146,9 @@ errors from branches later backtracked are never reported.
 
 Therefore a rule body contains at most one `#stream`, on the complete body, a
 top-level sequence element, or the expression captured by such an element.
-`#recover` cannot wrap the same repetition in either order. In an ordinary
+`#recover` cannot wrap the same repetition in either order, and a rule on a
+left-recursion cycle cannot have `#stream`, because growing the cycle would
+evaluate delivered elements again. In an ordinary
 parse, `#stream` has no effect. A stream parse with no `#stream` on its start
 rule is an error. The entry points, placement rules, errors and options of stream
 parsing are defined in [Streaming](../runtime/streaming.md).

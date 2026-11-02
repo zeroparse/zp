@@ -133,22 +133,6 @@ rule header = "#head\n" #atomic`)
 	}
 }
 
-func TestStreamPrefixLeftRecursiveRoot(t *testing.T) {
-	t.Parallel()
-	prog := mustCompile(t, `rule main = h:(main "a" / "a" #atomic) "x"* #stream {text($h) != ""}`)
-	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
-			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
-				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader("aa"), func(*value.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
-				if err != nil || count != 0 {
-					t.Fatalf("LR root capture lost: count=%d, %v", count, err)
-				}
-			})
-		}
-	}
-}
-
 func TestStreamPrefixLeftRecursiveCaptureSurvivesCommit(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = h:head #atomic "x"* #stream {text($h) == "aa"} $$

@@ -248,3 +248,56 @@ func TestStreamCompileErrors(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 }
+
+// TestStreamLeftRecursionRejected checks that a rule with #stream cannot be on a left-recursion
+// cycle: growing the cycle evaluates the rule body again from the same position, which would
+// deliver elements again or retract them.
+func TestStreamLeftRecursionRejected(t *testing.T) {
+	t.Parallel()
+	const want = "#stream cannot be used in rule main, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered"
+	for _, src := range []string{
+		// The cycle passes through the elements.
+		"rule main = item* #stream\nrule item = \"a\" \"\\n\" / main",
+		// Direct left recursion before the repetition.
+		"rule main = main? item* #stream\nrule item = \"a\" \"\\n\"",
+		"rule main = (main \"b\")? item* #stream\nrule item = \"a\" \"\\n\"",
+		// The stream rule is a member of the cycle, and another rule leads it.
+		"rule l = main \"b\" / \"c\"\nrule main = item* #stream\nrule item = \"a\" / l",
+		// A capture of the repetition.
+		"rule main = items:item* #stream\nrule item = \"a\" / main \"b\"",
+		// A left-recursive head that a predicate after the repetition reads.
+		`rule main = h:(main "a" / "a" #atomic) "x"* #stream {text($h) != ""}`,
+	} {
+		if got := compileError(t, src); !strings.HasSuffix(got, want) || strings.Contains(got, "\n") {
+			t.Errorf("%s:\ngot  %s\nwant %s", src, got, want)
+		}
+	}
+}
+
+// TestStreamOutsideLeftRecursion checks the accepted near misses of
+// TestStreamLeftRecursionRejected: a stream rule that recurses only after consuming input, and a
+// stream rule outside the cycles it calls or that call it, deliver each element once on every
+// backend.
+func TestStreamOutsideLeftRecursion(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		src, in string
+		want    int
+	}{
+		// Recursion that is not left recursion.
+		{"rule main = item* #stream\nrule item = \"(\" main \")\" / \"a\"", "a(aa)a", 3},
+		// Left recursion inside each element.
+		{"rule main = item* #stream\nrule item = e \";\"\nrule e = e \"+\" \"n\" / \"n\"", "n+n;n;n+n+n;", 3},
+		// A left-recursion cycle that calls the stream rule after consuming input.
+		{"rule e = e \"+\" t / t\nrule t = \"(\" main \")\" / \"n\"\nrule main = item* #stream\nrule item = e \";\"", "n+n;(n;n+n;)+n;", 2},
+	} {
+		prog := mustCompile(t, tc.src)
+		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			got := 0
+			err := prog.ParseStreamWith("main", strings.NewReader(tc.in), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend})
+			if err != nil || got != tc.want {
+				t.Errorf("%s on %v: %d elements, %v; want %d", tc.src, backend, got, err, tc.want)
+			}
+		}
+	}
+}

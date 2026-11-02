@@ -54,6 +54,10 @@ func TestDiagnostics(t *testing.T) {
 			"undefined type", "@start\nrule main Nope = \"a\"",
 			[]Diagnostic{{Range: rng(1, 10, 1, 14), Message: "undefined type Nope"}},
 		},
+		{
+			"stream on left recursion", "@start\nrule main = main? \"a\"* #stream",
+			[]Diagnostic{{Range: rng(1, 23, 1, 24), Message: "#stream cannot be used in rule main, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered"}},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			uri := "file:///" + strings.ReplaceAll(tc.name, " ", "_") + ".zp"

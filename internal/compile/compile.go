@@ -955,7 +955,8 @@ func IsStream(e grammar.Expr) bool {
 }
 
 // checkStream checks that #stream appears only at the top level of a rule body (the body itself
-// or an element of a sequence) and reports whether it is present.
+// or an element of a sequence) of a rule outside every left-recursion cycle and reports whether it
+// is present.
 func (c *Compiler) checkStream(body grammar.Expr) bool {
 	control := c.Control
 	top := StreamTops(body)
@@ -975,6 +976,10 @@ func (c *Compiler) checkStream(body grammar.Expr) bool {
 			c.errorf(a.Attrs[0].Diagnostic(), "#stream is only allowed at the top level of a rule body")
 		} else if n > 1 {
 			c.errorf(a.Attrs[0].Diagnostic(), "a rule body can have only one #stream")
+		} else if c.rule != nil && c.rule.Cycle != 0 {
+			// Growing a left-recursion cycle evaluates the bodies of its rules again from the same
+			// position, which would deliver the elements a stream has already handed over.
+			c.errorf(a.Attrs[0].Diagnostic(), "#stream cannot be used in rule %s, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered", c.rule.Name)
 		}
 	}, control)
 	return n > 0

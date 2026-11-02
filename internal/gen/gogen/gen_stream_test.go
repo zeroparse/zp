@@ -260,25 +260,59 @@ rule stmt = (word ";") #recover(skip=[^;]* ";")
 rule word = [a-z]+ #atomic`, Inputs: []string{"ab;1;cd;", "1;ab", "ab;;", ";"}},
 	{Name: "recovery in the start rule", Src: `rule main = (word ";" #recover(skip=[^;]* ";"))* #stream $$
 rule word = [a-z]+ #atomic`, Inputs: []string{"ab;1;cd;", "1;ab", "ab;;", ";"}},
-	// Each growth of the start rule allocates its capture frame again.
-	// A leader that grows through an optional prefix of itself before the streamed elements, with a mandatory end.
-	{Name: "left recursive start choice", Src: `rule main = (main "+")? item* #stream "."
-rule item = q:[a-z] #atomic`, Inputs: []string{"ab.", "ab.+c.", "ab.+c.+d.", ".", "+", "ab", "ab.+", ""}},
-	// An indirect cycle and mutual leaders through the start rule, whose elements stream after the cycle.
-	{Name: "indirect leader start", Src: `rule main = (a "y")? item* #stream "."
-rule a = main "x" / "n"
-rule item = q:[a-z] #atomic`, Inputs: []string{"ab.", "nxy.", "ab.xyab.", "ab.xy", "n", "", "ab.x"}},
-	{Name: "mutual leader start", Src: `rule main = (a "w")? item* #stream "."
-rule a = main "x" / a "v" / "n"
-rule item = q:[a-z] #atomic`, Inputs: []string{"nw.", "nvw.", "nvvw.", "ab.xwc.", "nwab.xvw.", "nwab", "nv", "w.", ""}},
-	// Cuts and recovery in streamed elements and in a leader start rule.
+	// Cuts and recovery in streamed elements.
 	{Name: "stream element with a cut and recovery", Src: `rule main = stmt* #stream $$
 rule stmt = ("(" #cut word ")") #recover(skip=[^)]* ")") / word ";"
 rule word = [a-z]+ #atomic`, Inputs: []string{"(ab)cd;", "(1)ab;", "(ab", "(1", "cd;(ab)", ";", ""}},
+}
+
+// streamLeftRecursiveStarts are stream start rules on a left-recursion cycle. Growing the cycle would
+// evaluate the start rule again after elements were delivered, so the compiler rejects them.
+var streamLeftRecursiveStarts = []gentest.Case{
+	// A leader that grows through an optional prefix of itself before the streamed elements, with a mandatory end.
+	{Name: "left recursive start choice", Src: `rule main = (main "+")? item* #stream "."
+rule item = q:[a-z] #atomic`},
+	// An indirect cycle and mutual leaders through the start rule, whose elements stream after the cycle.
+	{Name: "indirect leader start", Src: `rule main = (a "y")? item* #stream "."
+rule a = main "x" / "n"
+rule item = q:[a-z] #atomic`},
+	{Name: "mutual leader start", Src: `rule main = (a "w")? item* #stream "."
+rule a = main "x" / a "v" / "n"
+rule item = q:[a-z] #atomic`},
+	// Recovery in the elements of a leader start rule.
 	{Name: "leader start rule with recovery", Src: `rule main = (main "+")? item* #stream "."
-rule item = ([a-z] ";") #recover(skip=[^;.]* ";")`, Inputs: []string{"a;b;.", "a;b;.+c;.", "ab;.", "1;.", "a;.+", "a;.+1;.", ""}},
+rule item = ([a-z] ";") #recover(skip=[^;.]* ";")`},
 	{Name: "left recursive start", Src: `rule main = a:(main "x")? b:item* #stream c:"."?
-rule item = q:[a-z] #atomic`, Inputs: []string{"ab.", "a", "", "ab.x"}},
+rule item = q:[a-z] #atomic`},
+}
+
+// TestStreamLeftRecursiveStartRejected checks that Go and TypeScript generation, with or without stream
+// entry points, report the compile error of a stream start rule on a left-recursion cycle.
+func TestStreamLeftRecursiveStartRejected(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	const want = "#stream cannot be used in rule main, which is on a left-recursion cycle"
+	for _, c := range streamLeftRecursiveStarts {
+		g, err := parseTest(c.Src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name, generate := range map[string]func() error{
+			"Go": func() error {
+				_, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "p", Start: "main"})
+				return err
+			},
+			"Go stream": func() error {
+				_, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "p", Start: "main", Stream: true})
+				return err
+			},
+			"TS": func() error { _, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main"}); return err },
+		} {
+			if err := generate(); err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("%s: %s generation: %v, want %q", c.Name, name, err, want)
+			}
+		}
+	}
 }
 
 // TestGeneratedStreamMatchesEngine compares generated ParseStream with the

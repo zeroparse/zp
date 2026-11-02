@@ -28,6 +28,7 @@ the `#stream` repetition of the start rule.
 | Placement | `#stream` MUST annotate a repetition (`*`, `+` or `#repeat(n,m)`) that is the body of a rule, an item of the body's top-level sequence, or the expression captured by such an item (`items:record* #stream`); groups and attributes other than `#recover` and `#missing` around the body, an item or a capture do not change what is top level |
 | Arguments | `#stream` takes none |
 | Multiplicity | A rule body has at most one `#stream` |
+| Left recursion | A rule with `#stream` MUST NOT be on a left-recursion cycle. Growing a cycle evaluates the bodies of its rules again from the position where the growth started, which would deliver elements again after `emit` has seen them. Left recursion that the stream rule calls, such as inside an element, or that calls the stream rule after consuming input, is allowed: `rule main = item* #stream; rule item = "a" / main` is rejected, while `rule main = item* #stream; rule item = e ";"; rule e = e "+" "n" / "n"` is accepted |
 | Streaming rule | Only the start rule of the parse, at call depth 1, streams. In every other call of a rule that contains `#stream`, the repetition is an ordinary repetition |
 | Suffix | After the repetition ends, the rest of the start rule MUST match as in an ordinary parse |
 | Finite bounds | `#repeat(n,m)` delivers at most `m` elements and fails if fewer than `n` match. `#repeat(0)` executes no elements. Input beyond the maximum is left for the suffix: `"a" #repeat(1,2) #stream "a" $$` accepts `aaa` and delivers two elements. A later suffix or minimum failure does not retract elements already delivered |
@@ -118,6 +119,7 @@ than one, and the order in which they are reported is not specified.
 
 - `#stream is only allowed at the top level of a rule body`
 - `a rule body can have only one #stream`
+- `#stream cannot be used in rule NAME, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered`
 - `#recover cannot wrap a #stream repetition; recover inside each element instead`
 - `#stream must be attached to a repetition (*, +, or #repeat(...))`
 - `#stream takes no arguments`. Source text cannot express this case, because
