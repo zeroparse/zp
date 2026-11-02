@@ -361,7 +361,7 @@ func Controls() []Control {
 			Name: "Fold inside a map over the same list", Family: "bounded lambda",
 			Source: "rule main = b:\"y\"* => map($b, (y) => foldl(\"\", $b, (s, l) => s + text(l)))\n",
 			Input:  func(n int) string { return rep("y", n) },
-			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassPoly,
+			Sizes:  double(40), ShortSizes: double(40), Order: Poly(3), Class: ClassPoly,
 		},
 		// Elements that capture the rest of the input in a lookahead overlap, so a fold over the
 		// capture of each element runs over up to n elements for each of n elements.
