@@ -106,7 +106,7 @@ element. No construct of the language looks further back.
 | Option | Effect in a stream parse |
 |:--|:--|
 | `WithUnit`, `WithBackend`, `Limits.Depth` | Apply |
-| `WithContext`, `WithLimits` | Apply to the whole stream invocation, including diagnostic callbacks and the budget spent copying a bounded tail. A zero `Compute` selects the [default budget of a stream](parsing.md#default-limits): `max(2^20, 1024 * d)` for the furthest demanded position `d`, which does not depend on how the reader chunks the input; `Unlimited` disables it. A finite `Input` fails the stream with `LimitInput` when the parser asks for a unit beyond it and the stream has one |
+| `WithContext`, `WithLimits` | Apply to the whole stream invocation, including diagnostic callbacks and the budget spent copying a bounded tail. A zero `Compute` selects the [default budget of a stream](parsing.md#default-limits): `max(2^20, 1024 * d)` for the furthest demanded position `d`, which does not depend on how the reader chunks the input; `Unlimited` disables it. A finite `Input` fails the stream with `LimitInput` when the parser asks for a unit beyond it and the stream has one. A finite `Memory` bounds the window of the stream, as [Memory](#memory) describes |
 | `RecognizeOnly` | An error |
 | `WithDiagnosticCallback`, `WithDiagnosticLimit` | Stream-only; see [Recovered errors](#recovered-errors) |
 
@@ -176,6 +176,18 @@ grow with the number of elements delivered. Recovered errors are retained until 
 end of the input unless a [diagnostic limit](#recovered-errors) is set. An action
 that returns `nil` delivers `nil` to the caller. Variable values, active rollback
 points and memoization keys keep their own data alive.
+
+The [memory limit](parsing.md#memory-limit) of a stream follows the same window.
+When an element is delivered, the count returns the storage of the nodes, lists,
+copied text, concatenated strings, variable environments and memo keys built
+since the previous element, and the memo slots the stream releases; it keeps
+counting the input buffer, the memo entries and the working stacks the stream
+holds. A finite `Memory` therefore bounds the largest window, not the length of
+the stream, with one exception: recovered errors. Without a diagnostic limit
+they are retained for the result, so the count grows with every recovered error
+of the stream, whether or not a diagnostic callback receives them. With a
+diagnostic limit of `n`, an element's recovered errors are returned when it is
+delivered, and the count holds only the `n` errors of the retained tail.
 
 ## Compatibility and Support
 

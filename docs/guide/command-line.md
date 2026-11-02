@@ -46,7 +46,7 @@ rule ws = [ \t\n]*
 ```bash
 zp parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check]
            [-unit codepoints|bytes] [-backend closure|bytecode|bytecode-iterative] [-source-info] [-default-value]
-           [-max-compute <n|unlimited>] [-max-input <n|unlimited>] [-max-depth <n|unlimited>]
+           [-max-compute <n|unlimited>] [-max-memory <n|unlimited>] [-max-input <n|unlimited>] [-max-depth <n|unlimited>]
 ```
 
 | Flag | Default | Meaning |
@@ -62,6 +62,7 @@ zp parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check
 | `-default-value` | off | Drop value actions and declared rule types, so the parse returns the default node tree; predicates still run (see [Default Values](../../spec/language/actions.md#default-values)) |
 | `-stream` | off | Print each `#stream` element as soon as it matches, one per line (see [streaming.md](streaming.md)) |
 | `-max-compute` | `0` | `Limits.Compute`: the cost a parse may spend, in compute units. `0` selects the default and `unlimited` disables the limit |
+| `-max-memory` | `0` | `Limits.Memory`: the bytes of storage a parse may take into use. `0` and `unlimited` disable the limit |
 | `-max-input` | `0` | `Limits.Input`: the longest input accepted, in the position unit. `0` and `unlimited` accept any length |
 | `-max-depth` | `0` | `Limits.Depth`: the deepest nesting of recursive rule calls. `0` selects the backend's default (100,000; 10,000,000 for `bytecode-iterative`), and `unlimited`, accepted only with `bytecode-iterative`, disables the limit |
 
@@ -360,7 +361,7 @@ zp trace -g <grammar> [-s <rule>] [-i <input>] [-show-depth <n>] [-rule <name>] 
 zp profile -g <grammar> [-s <rule>] [-i <input>] [-sort <column>] [-n <rows>] [-f text|json]
 ```
 
-Debugging tools; all three also take `-unit`, `-backend`, `-max-compute`, `-max-input` and `-max-depth` (as in `parse`), and all read the input from standard input without `-i`. The `-show-depth` of `trace` selects the calls it shows; `-max-depth` is the depth limit of the parse.
+Debugging tools; all three also take `-unit`, `-backend`, `-max-compute`, `-max-memory`, `-max-input` and `-max-depth` (as in `parse`), and all read the input from standard input without `-i`. The `-show-depth` of `trace` selects the calls it shows; `-max-depth` is the depth limit of the parse.
 `explain` shows which rule calls recorded what a syntax error says was expected, `trace` prints every rule call of a
 parse as an indented tree, and `profile` prints the cost of each rule with hints. In Go, the same information comes
 from `zp.WithTrace` and `zp.WithProfile`. A parse that reaches a limit ends the trace or profile at that point; `profile` prints the limit error as its `result`. See [debugging.md](debugging.md).

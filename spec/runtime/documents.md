@@ -103,6 +103,17 @@ its generated `CloneAST` returns an independent copy (see
 the same invocation controls. If publication is interrupted, no result is returned and reusable
 execution state is cleared for retry.
 
+Under a finite [memory limit](parsing.md#memory-limit), the count of a `Parse`
+starts at the bytes the document retains from earlier parses: its memo table,
+its repetition records and edits, and the stacks it keeps. If they alone exceed
+`Memory`, the document drops them before parsing, as `ResetHistory` does, and the
+parse runs from scratch. Retained bytes within `Memory` are kept, so a parse
+that reuses them can exceed the limit where a parse from scratch would not; that
+interruption clears them, and the next parse starts without them. The retained
+bytes are counted as the memory limit counts storage, not as `EstimatedBytes`
+estimates it. A generated document counts its memo table, and a typed generated
+document an estimate of its retained memo slots and entries.
+
 ### Statistics
 
 | Operation | Behavior |
@@ -134,7 +145,7 @@ keeps the text and version, has a zero root as `Document.Parse` does, and expose
 a defensive copy of the `SyntaxError`. A recovered outcome keeps its root and
 `SyntaxErrors`. A parse that nests deeper than the depth limit is a normally returned
 outcome too: the snapshot keeps a copy of its `LimitError` of kind `LimitDepth`.
-Cancellation or an exhausted compute limit during parsing or
+Cancellation or an exhausted compute or memory limit during parsing or
 freezing returns a nil snapshot and a fatal interruption error, which grammar
 choice, predicates and recovery cannot absorb. No partial graph, text or
 diagnostics are published. If execution began, reusable execution state is
@@ -246,8 +257,8 @@ edit: edits that follow an outcome are not part of it.
 | `Edit` range outside the text, or inside a character in `Bytes` | Error; text and version unchanged |
 | `EditBatch` with a foreign or stale version, unordered or overlapping edits, repeated starts or invalid ranges | The whole batch is rejected |
 | Parse option that changes unit, backend, start rule or mode | Error before execution; caches and statistics kept |
-| Cancellation or compute limit during `Parse` | Error and no result; execution state cleared |
-| Cancellation or compute limit during `Snapshot` | Nil snapshot and a fatal error |
+| Cancellation, or a compute or memory limit, during `Parse` | Error and no result; execution state cleared |
+| Cancellation, or a compute or memory limit, during `Snapshot` | Nil snapshot and a fatal error |
 | Unsupported field value type while freezing | Nil snapshot and `*SnapshotCaptureError` |
 | `EnableChanges` twice | Error |
 | Stream diagnostic options (`WithDiagnosticCallback`, `WithDiagnosticLimit`) | Rejected |

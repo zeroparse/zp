@@ -152,10 +152,10 @@ brackets or AST nodes, and raising the limit does not guarantee host-stack capac
 ## Cancellation and Compute Limits
 
 A Go parser generated with `-limits` also accepts invocation-local
-cancellation and a compute limit. Use the generated package's options and error
+cancellation and compute and memory limits. Use the generated package's options and error
 types; a package generated without the flag exports no `WithContext`, and a parse
-that passes a context or a finite `Compute` limit returns an error saying that the parser was generated
-without limit controls (a nil context and a `Compute` limit that is zero or `Unlimited` set no control
+that passes a context or a finite `Compute` or `Memory` limit returns an error saying that the parser was generated
+without limit controls (a nil context and `Compute` and `Memory` limits that are zero or `Unlimited` set no control
 and are accepted, as are any `Input` and `Depth`, which every parser checks):
 
 ```go
@@ -170,7 +170,10 @@ A nil context has no deadline or cancellation signal. A zero limit selects its d
 `max(2^20, 1024 * n)` for an input of `n` units, so every parse of a controlled parser has a budget. The generated
 package exports `Unlimited`, which disables a limit; `Limits{Compute: Unlimited}` with no context runs without
 a control. `Limits.Input` bounds the input length in the position unit; its default is `Unlimited`, and a longer input fails
-before any parsing with a `*LimitError` of kind `LimitInput` (a generated stream fails when the parser reaches a unit beyond it). Options apply once in
+before any parsing with a `*LimitError` of kind `LimitInput` (a generated stream fails when the parser reaches a unit beyond it).
+`Limits.Memory` bounds the bytes of storage the parse takes into use, typed values included, and fails the parse with
+kind `LimitMemory`; its default is `Unlimited`, and it works as in the engine
+([Bounding Memory](cancellation-and-limits.md#bounding-memory)). Options apply once in
 order; the last context wins, and a nonzero field of a later `WithLimits` overrides the same field of an earlier
 one while a zero field leaves it unchanged. The counter
 resets for every call and remain independent during concurrent parsing. The
@@ -184,7 +187,7 @@ actions, memo lookup, graph/list construction, capture rollback, diagnostics
 and typed conversion. A loop that only scans input, such as a repeated
 character class, charges for every element it reads, so `Compute` bounds it.
 Counts depend on the generated
-artifact and position unit; a limit is not a character count, memory cap, or
+artifact and position unit; a compute limit is not a character count, memory cap, or
 elapsed-time limit. Backtracking never refunds spend. `Depth` bounds nesting
 independently of the other limits and needs no control.
 

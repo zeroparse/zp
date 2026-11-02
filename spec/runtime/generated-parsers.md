@@ -120,16 +120,16 @@ const (
   not guarantee stack capacity. The default error is
   `nesting too deep: more than 100000 nested recursive rule calls`.
 - Every generated Go parser exports `WithLimits`, `Limits`, `LimitKind`, `LimitError`,
-  `ErrLimit`, `LimitCompute`, `LimitInput`, `LimitDepth` and `Unlimited`, and one generated
+  `ErrLimit`, `LimitCompute`, `LimitInput`, `LimitDepth`, `LimitMemory` and `Unlimited`, and one generated
   with limit controls (`-limits`, `LimitControls`) also exports `WithContext`. A parser
   generated without them holds no code that spends budget or reads a control: one
   form of each function; with `-document` it is the form that serves a Document, without
   charges. A parser generated with limit controls has the controlled form only, and a parse that
   sets no limit runs it with the [default budget](parsing.md#default-limits). A parser generated
-  without them, given a context or a finite `Compute` limit, returns an error
+  without them, given a context or a finite `Compute` or `Memory` limit, returns an error
   that the parser was generated without limit controls; no option is ignored. A nil context,
-  a `Compute` limit that is zero or `Unlimited`, any `Input` and any `Depth` set no control and
-  are accepted.
+  `Compute` and `Memory` limits that are zero or `Unlimited`, any `Input` and any `Depth` set
+  no control and are accepted.
 - `WithContext` and `WithLimits` apply the semantics of
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits) to each
   invocation, with counters that restart for every call. They apply to named rules,
@@ -137,8 +137,9 @@ const (
   merges [field by field](parsing.md#default-limits); a nil context means no cancellation; a zero limit selects the
   [default](parsing.md#default-limits) and `Unlimited` disables it.
   An exhausted limit matches `ErrLimit`, and `errors.As` retrieves a
-  `*LimitError` with `Kind` (`LimitCompute` or `LimitInput`), `Limit`, `Used`
-  and `Requested`. An input longer than `Input` fails with `LimitInput` before any
+  `*LimitError` with `Kind` (`LimitCompute`, `LimitInput` or `LimitMemory`), `Limit`, `Used`
+  and `Requested`. A finite `Memory` bounds the storage of the parse as the
+  [memory limit](parsing.md#memory-limit) defines; the typed values of `-types` count too. An input longer than `Input` fails with `LimitInput` before any
   matching, in every entry point, and a generated stream fails when the parser reaches a
   unit beyond it. An interrupted entry point returns its zero result, and
   recovery does not turn an interruption into a successful partial tree.

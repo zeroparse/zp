@@ -463,7 +463,10 @@ What a stream parse releases as it goes:
 
 What it holds: the element being matched (an element is matched in memory, so the largest element bounds the working
 set, and one huge element, such as a whole document wrapped in a single rule, defeats streaming), the memo entries of
-the last few elements, your callback's own state, and the list of recovered errors.
+the last few elements, your callback's own state, and the list of recovered errors. The recovered errors grow with
+the stream unless `WithDiagnosticLimit` keeps only the latest ones; a diagnostic callback alone does not release them.
+They count against `Limits.Memory` too, so a stream that recovers from errors and runs under a memory limit should
+set a diagnostic limit.
 
 The effect on a real input, a 27 MiB CSV file with 1,000,000 records (Apple silicon, Go 1.27.1, with the grammar of
 [alpha-parsers/csv](../../testdata/grammars/csv/csv.zp) and a callback that sums a column): `ParseStream` finished in about 1.4 seconds
@@ -573,7 +576,7 @@ number that does not grow with the input.
 Pass `zp.WithContext(ctx)` to interrupt engine execution cooperatively, or
 `zp.WithLimits(zp.Limits{Compute: ...})` to bound
 one invocation. A zero budget selects the default, which is `max(2^20, 1024 * d)` for the furthest position `d` that the parser has
-asked the stream for, however the reader chunks the input; `zp.Unlimited` disables the limit. `Limits.Input` bounds the length of the stream: with a finite value the stream fails with `zp.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. Budget counts depend on the backend,
+asked the stream for, however the reader chunks the input; `zp.Unlimited` disables the limit. `Limits.Input` bounds the length of the stream: with a finite value the stream fails with `zp.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. `Limits.Memory` bounds the bytes the stream holds at once, not its length: delivering an element returns what was built for it ([Bounding Memory](cancellation-and-limits.md#bounding-memory)). Budget counts depend on the backend,
 position unit and implementation; reused or copied storage also consumes budget.
 Exhaustion matches `zp.ErrLimit` through `errors.Is`.
 Text materialization also consumes budget, including building a cached stream

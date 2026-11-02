@@ -1,6 +1,6 @@
 # 066. Limits Chosen by Purpose
 
-- **Status**: Accepted
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-11-01
 
@@ -34,10 +34,11 @@ time the parse may take. This record adds a **memory** measure that is charged o
 allocated. It also moves the depth limit, which today is a separate option with its own error, into the same
 configuration. The configuration and its error are renamed once, together. The memory measure is one addition to a
 parser-local counter where a storage chunk is refilled, and the cap is checked in the compute slow path. A finite cap
-makes that slow path run every 256 units, as a cancelable context does. A prototype in the generated Go runtime shows no
-measurable cost on the benchmark grammars with memory unlimited (0.97 to 1.02 times the base). With a finite cap,
-parses take up to 1.03 times the base for Node results and 1.06 for typed results, and the cost comes from the poll
-interval, not from counting.
+makes that slow path run every 256 units, as a cancelable context does. The engine and generated Go implement it; on
+the benchmark grammars with memory unlimited, generated parses take 0.99 to 1.01 times the base and engine parses
+0.90 to 1.01. With a finite cap, generated Node parses take up to 1.04 times the base, typed parses up to 1.08 and the
+generated stream 1.13; the cost comes from the poll and the check, not from counting
+([Performance and Results](#performance-and-results)).
 
 This record revises decision 4 of [record 064](064-grammar-complexity.md), "Memory has no bound beyond cost", for the
 reasons in [Why Compute Does Not Suffice](#why-compute-does-not-suffice).
@@ -136,24 +137,37 @@ invocation and never refunded. Guarantee: the parse performs at most `Compute` u
 is charged, it also bounds allocation by k · `Compute` with the k of [the table above](#why-compute-does-not-suffice).
 Its slow path also observes cancellation and, with a finite memory cap, checks memory.
 
-**Memory**. Bytes of parser-owned storage. They are added to the counter when the storage is taken into use, and
-subtracted when the parser releases storage at a point it controls:
+**Memory**. Bytes of parser-owned storage: the element count of each buffer the parser takes into use, times the
+size of its element type. They are counted when the storage is taken into use, and returned when the parser releases
+storage at a point it controls:
 
-- *Charged*: every chunk a slab or arena takes into use for the parse (nodes, child lists, field lists, capture frames,
-  memo entries, typed-value slabs and `tarena` chunks), allocations that bypass a slab (lists longer than a quarter of
-  a chunk), growth of the memo slot array and first-call bit sets, the decoded input in `CodePoints` (rune array and
-  offset table), the bytes of strings and lists that actions build, the growth of working stacks (`KidStack`, the
-  iterative VM's call stack), and a stream's input buffer.
-- *Returned*: a stream's commit, for the input it discards, the memo entries it retires (in practice they are reused
-  from the free list without a new charge), and the node chunks of elements already delivered. A Document's history
-  reset returns its caches.
+- *Counted*: every chunk a slab or arena takes into use for the parse (nodes, child lists, field lists, capture frames,
+  memo entries, typed values and `tarena` chunks), allocations that bypass a slab (lists longer than a quarter of
+  a chunk), the memo slot array, first-call bit sets and the hash indexes of long memo chains, the decoded input in
+  `CodePoints` (rune array and offset table) and the line table, the strings that actions concatenate and the text
+  copied out of the input, the working stacks (`KidStack`, the trail, the expectation arena, the iterative VM's call
+  stack) by their capacity, a stream's buffers, the records of left recursion and context memoization (growths,
+  dependency frames, lookahead records, seed reads, context tables), the skip-run tables, the missing-token state,
+  the variable environments a rebind copies, the syntax errors the parse builds, and a Document parse's maps of moved
+  nodes and shifts. A map counts the size of its keys and values.
+- *Returned*: a stream's commit, for the storage it no longer holds: the nodes, lists, copied text, concatenated
+  strings, variable environments, memo keys and memo error lists of the elements it delivered, the memo slots it
+  prunes, and, with a diagnostic limit, the recovered errors it hands to the diagnostic tail. Storage the stream keeps
+  across commits stays counted: the environment in use, the retained tail, and, without a diagnostic limit, every
+  recovered error, which the stream keeps for its result. A Document's history reset drops its caches, so a later
+  parse does not count them.
+- *Not counted*: the caller's input string, which `Input` bounds; the compiled program and the state every parse of
+  it shares, such as the initial variable environment, which belong to the grammar rather than to a parse; values
+  once they are handed to the caller, such as the typed elements a stream passes to its callback; trace output, which
+  goes to the caller's function; and what the allocator adds beyond the logical size (size classes, map groups and
+  load factor), which depends on the Go release and on allocation history, not on the parse.
 - *Not returned*: storage abandoned by backtracking. It is garbage, but only the collector knows when it is released,
   and returning it would put a charge on every failure path, the hottest paths of a PEG parse.
 
 Guarantee: at every point of the parse, the bytes the parser holds for it are at most the counter. The parse fails at
 the first poll at which the counter exceeds `Memory`, so the counter passes the cap by at most what the parse
 allocates between two polls. That is one chunk per slab plus at most 256 compute units' worth of allocation: tens of
-kilobytes, or one list larger than a chunk. The caller's input string is not charged: `Input` bounds it.
+kilobytes, or one list larger than a chunk.
 
 Unlike compute, memory is not reserved before the allocation. A reservation needs a call in the refill branch, and a
 call there pushes the inlined allocators over Go's inlining budget. The first prototype did that, and its Node parses
@@ -206,20 +220,32 @@ interval of a cancelable context, but without calling the context.
 
 ### Documents
 
-The memory counter of a `Document` parse starts at the bytes the Document already retains: the memo entries,
-repetition records and input pieces that [`CacheStats.EstimatedBytes`](035-incremental-cache-controls.md) reports.
-A finite `Memory` is therefore a bound on the Document's footprint after the parse, not only on what the parse adds.
+The memory counter of a `Document` parse starts at the bytes the Document retains, counted as the parse counts
+storage: in the engine, the memo table, the repetition records and edits, and the child and backend stacks it keeps;
+in a generated Document, its memo table; in a typed generated Document, an estimate of its memo slots and retained
+entries. [`CacheStats.EstimatedBytes`](035-incremental-cache-controls.md) is a different estimate and is not used. A
+finite `Memory` is therefore a bound on the Document's footprint after the parse, not only on what the parse adds.
 If the retained bytes alone exceed the cap when `Parse` begins, the Document drops its history, as `ResetHistory`
-does, and parses from scratch under the cap. It fails only if that fresh parse exceeds the cap. Caches are an
-optimization, and dropping them before failing keeps the cap from turning a reusable Document into a permanently
-failing one. Compute and the other measures keep their per-`Parse` meaning.
+does, and parses from scratch under the cap. Caches are an optimization, and dropping them before failing keeps the
+cap from turning a reusable Document into a permanently failing one. Compute and the other measures keep their
+per-`Parse` meaning.
+
+The rule is not monotonic. Retained bytes within the cap are kept, and a parse that reuses them counts them plus
+what it adds, so it can exceed a cap that a parse from scratch would meet. The parse then fails, and the interruption
+clears the caches as every interruption of a Document parse does, so the next parse runs from scratch. Predicting the
+bytes a reusing parse adds would need a dry run; retrying from scratch inside the failed call would double its work
+and hide the failure. One failed parse is the price of keeping caches that usually pay for themselves.
 
 ### Streams
 
 A stream charges its input buffer and returns it at each commit, and memo entries retired at a commit are reused from
 the free list without a new charge. A finite `Memory` therefore bounds the stream's window: the uncommitted input,
 the memo entries and nodes since the last commit, and the diagnostics it retains. It does not bound the stream's
-length. Compute keeps its adaptive default, which follows the furthest demanded position. `Input` keeps its stream
+length, except through recovered errors: a stream keeps them for its result, so without a diagnostic limit
+(`WithDiagnosticLimit`) the count grows by every recovered error, whether or not a diagnostic callback receives
+them. With a limit of `n`, the count holds the `n` errors of the tail. `ParseStreamAST` converts each element to a
+typed value with its own typed state, which is handed to the callback and not attached to the stream's control, so
+typed elements, struct values included, are not counted after delivery either. Compute keeps its adaptive default, which follows the furthest demanded position. `Input` keeps its stream
 meaning.
 
 ### Go API
@@ -260,11 +286,13 @@ any `Input` and `Depth`.
 Memory charges add no per-site cost (see below), so a separate generation flag for memory would buy nothing.
 [Decision 7](#decisions) records why measures are not selected at generation time, as optimization profiles are.
 
-The typed-value slabs are generated per grammar (`tslabs` in `parser.go`). Their refill functions get the same
-one-line addition as the runtime's slabs. The runtime allocators are shared by both forms, so a parser generated
-without limit controls also executes one addition per chunk refill, about one per 256 objects. No control reads that
-counter. This form was not benchmarked, and the argument that the cost is negligible rests on the `off` arm, which
-executes the same additions.
+The typed-value slabs are generated per grammar (`tslabs` in `parser.go`). Their chunks (`Chunk[T]`) count the
+elements they allocate, and the generated `MemoryBytes` method of `tslabs` sums them for the check. Some runtime
+allocators are shared by both forms (`Nodes`, `fields`, `NewTerminal` and `NewBranch`), so a parser generated without
+limit controls also executes their additions, about one per 256 objects. No control reads that counter. The node and
+match allocators of the ordinary form (`NewNodeOrdinary`, `NewMatchOrdinary`) carry none. This form was not
+benchmarked; the argument that the cost is negligible rests on the base and `head` comparison, which executes the
+same additions.
 
 ### TypeScript
 
@@ -343,62 +371,129 @@ Documents. `Limits`, `WithLimits`, `LimitError`, `LimitKind`, `ErrLimit` and `Un
    parser, Document cache drop, stream window bound.
 3. Add memory in TypeScript, once its per-object charge is measured.
 
-## Prototype Charge Sites
+## Charge Sites
 
-The measurement prototype is not committed. It charged memory at the following sites, and an implementation follows
-the same placement. Each site is one addition to a counter, inside the branch that refills a chunk:
+Memory is counted in four ways. Each keeps the allocators inlined and puts no work on a path that a parse without a
+finite `Memory` runs, except for additions in refill branches, in the insertions of a few tables, in the memo slot
+growth of `MemoTable.Put` and the generated `memoTable.put`, and in the diagnostic tail of a stream.
 
-- `runtime/runtime.go`:
-  - the four node slab refills (`NewNode`, `NewNodeOrdinary`, `NewTerminalOrdinary`, `NewBranchOrdinary`; 256 × 104
-    bytes);
-  - `Nodes(n)`: the pointer slab refill (1,024 × 8 bytes) and the large-list path (n × 8);
-  - `fields(n)`: the slab refill (256 × 32 bytes) and the large-list path (n × 32);
-  - `memoTable.alloc`, on taking a chunk (256 × 128 bytes, charged whether the chunk is new or kept from an earlier
-    parse), into a counter of the memo table;
-  - `memoTable.put`, on extending the slot array by its logical length, not its capacity ((pos + 1 − len) × 8).
-  - The counters are `Parser.memUsed` and `memoTable.memBytes`. Both are fields, not pointers, so the addition has no
-    nil check.
-- `runtime/budget.go`:
-  - `BudgetControl` gains the cap and pointers to the two counters, attached at parse start.
-  - `chargeSlow` fails with the memory kind when their sum exceeds the cap.
-  - `refill` keeps the 256-unit poll interval when the cap is finite, even without a context.
-- Parse start (the batch entry in `runtime.go`, `stream.go`, `document.go`): attach the counters, reset them, and, with a
-  finite cap, start with empty node, pointer and field slabs.
+**Refill counters.** An addition to a parser field (`Parser.memUsed` in generated Go, `Parser.MemUsed` in the engine),
+inside the branch that takes a new chunk or allocates a list too large for one:
 
-Inlining costs, from `go build -gcflags=-m=2`, of the allocators that must stay inlined:
+- generated Go (`runtime/runtime.go`, `runtime/typed.go`): the node slab refills of `NewNode`, `NewTerminalOrdinary`
+  and `NewBranchOrdinary` (256 × 104 bytes); `Nodes(n)`, its pointer slab refill (1,024 × 8 bytes) and its large-list
+  path (n × 8); `fields(n)`, its slab refill (256 × 32 bytes) and its large-list path (n × 32); the capture frame slab;
+  and the typed match slab of `NewMatch`;
+- the engine (`internal/engine/core/alloc.go`, `memo.go`, `runtime.go`): the pointer, field and frame slabs and
+  their large-list paths, the expectation arena, and, in `MemoTable.MemBytes`, the memo slot array by its logical
+  length and the first-call tables and pages;
+- both: the run of a left-recursive growth and its observed lookaheads, when they grow.
 
-| Function | Before | With the counter addition |
+**Table counters.** Tables that grow an element at a time keep a byte counter beside their data, added where an
+element is inserted, because summing them at each check would cost time proportional to their size:
+
+- the context tables, per table (`ctxTable.bytes`): heads, sets, result slots with their dependencies, values and
+  expectations, canonical seeds, and recorded jumps;
+- the hash indexes of long memo chains (`MemoTable.IndexBytes`, `memoTable.indexBytes` and the typed parser's
+  `memoIndexBytes`), added when an index is built or takes a new position, and recomputed when a stream prunes it;
+- the expectations of skip-run records (`skipSlots.expBytes`) and the seeds of missing-token insertion.
+
+`NewNodeOrdinary` and `NewMatchOrdinary` carry no addition: only a parser generated without limit controls calls them,
+and it rejects a finite `Memory`. `NewTerminal` and `NewBranch` call the ordinary helpers, so those keep it.
+
+**State-derived counts.** Storage whose allocator already records how much it has taken is measured from that record
+when the limit is checked, and costs nothing between checks:
+
+- memo entry chunks, from the chunk index that `memoTable.alloc` keeps (`used` × 256 × 128 bytes), and the engine's
+  node chunks, from `NodeChunks`, and first-call bit set, from its length;
+- the capture scratch of generated Go, from its frame count, slot chunk index and large frames;
+- the typed arenas (`tarena`), from their chunk index, offset and an element count of large allocations, and the
+  typed-value chunks (`Chunk[T]`), from an element count that the generated `tslabs` sums in `MemoryBytes`;
+- the decoded input and a stream's buffers by their length, and the working stacks (`KidStack`, the trail, the
+  expectation stacks and arena, the left-recursion and lookahead records, the line table, the iterative VM's call
+  stack) by their capacity;
+- the context-memo working state (dependency frames, dependencies, lookahead records, the observation guard, the
+  seed-read log, the kept seed results and the list of context tables) by capacity, and the context tables by their
+  counters;
+- the skip-run tables, their position marks by capacity and their records by count;
+- the missing-token path by capacity and its installed sites and seeds by count;
+- a Document parse's maps of moved empty nodes and of shifts per generation, by their length times the size of a key
+  and a value: an estimate that leaves out the map's own overhead, as the other maps do;
+- the stream's line-start table by capacity, and the diagnostic tail by its pointer list and a byte counter of the
+  errors it holds;
+- the environment in use, as one node per level.
+
+**Controlled-path charges.** Storage that grows on a path the controlled form has to itself is charged there:
+
+- the strings that actions concatenate, next to their compute charge (`concat` in generated Go, `ValueBinary` in the
+  engine);
+- text copied out of the input, and the offsets of a stream snapshot;
+- the variable environments that a rebind copies (a node and its values per level), the memo keys of a memoized
+  call with variables, and the error lists of memo entries, into a counter of values that a stream returns at the
+  same split as its node chunks;
+- the syntax errors with their expectation and message lists, into a counter of errors that a stream returns at a
+  commit that hands its recovered errors to the diagnostic tail;
+- in generated Go, the memo slot array and first-call tables, through `memoPutControlled` and
+  `controlledFirstCallPrepare`, and the typed memo slots.
+
+Two additions sit outside refill branches and run on every parse: the memo slot array's growth in `MemoTable.Put`
+and in the generated `memoTable.put`, an addition when an insertion extends the slots. Deriving the slot bytes from
+the slot array's length at the check instead, and leaving the generated stream's text charge to parses with a control,
+was measured as an alternative: it made the closure backend's `inactive` rows 0.7 to 1.7 % slower than the base,
+while the additions are neutral ([Performance and Results](#performance-and-results)).
+
+Working stacks and action values are counted only on the controlled path, because the ordinary path never runs with a
+finite `Memory`. A finite `Memory` makes the parse controlled: the engine creates a control for it, and a parser
+generated without limit controls rejects it. A count on the ordinary path would therefore never be read, and charging
+the stacks on growth would add a test to every append on the hottest paths of a parse.
+
+With a finite `Memory`, a parse starts with empty node, pointer, field and frame slabs, empty working stacks, and an
+empty first-call directory, and the memo table's count is read whole. A pooled parser therefore counts the same as a
+fresh one. With `Memory` unlimited, a pooled parser keeps its leftover chunks and stacks as before.
+
+A stream's commit returns the bytes of the elements it delivered: it resets the refill counter and the counter of
+values when it splits its chunks, keeping the text snapshot in use counted, resets the counter of errors when a
+diagnostic limit hands the recovered errors to the tail, keeps the node chunks of the prefix and the current
+expectation arena charged once, and returns the memo slots and index positions it prunes. When the engine's stream
+starts, the bytes its prefix took (the refill counter and the node chunks) move to `MemKept`, and the chunks the
+backend keeps for the stream are moved back out of it, so they are counted once.
+
+The smallest `Memory` that a stream passes is the peak of a sum of counts that rise and fall with different periods:
+the refill counter falls at each split, the values at each split and each new text snapshot, the buffers at each
+compaction. A longer stream meets more of their phases, so its peak can be higher than a short stream's until every
+combination has occurred, by at most the largest swing of one count. On the records stream of the tests, the engine's
+closure backend peaks at 84,090 bytes for 2,000 records and 84,107 for 40,000; the bytecode backends at 95,588 and
+100,731, where the 5,131 bytes of a text snapshot meet the peak of the refill counter, and 100,731 again for 200,000
+records. The tests bound the growth from 2,000 to 40,000 records at 1.2.
+
+Inlining costs, from `go build -gcflags=-m=2`, of the allocators that must stay inlined. The inlining test of
+`internal/runtimetest` and the engine's inline guard check them:
+
+| Function | Base | With the counts |
 |:--|--:|--:|
-| `NewNodeOrdinary` | 43 | 47 |
+| `NewNodeOrdinary` (generated Go) | 43 | 43 |
 | `NewTerminalOrdinary` | 58 | 62 |
 | `NewBranchOrdinary` | 56 | 60 |
 | `Nodes` | 43 | 54 |
 | `fields` | 37 | 48 |
-| `memoTable.alloc` | 76 | 80 |
+| `memoTable.alloc` | 76 | 76 |
+| `tarena.slice` (shape instantiation) | 75 | 79 |
+| generated `Alloc`, `AllocSlice` (concrete instantiation, JSON) | 63, 64 | 63, 64 |
+| engine `NewNode` | 77 | 77 |
+| engine `Nodes` | 62 | 73 |
+| engine `fields` | 57 | 68 |
+| engine `MemoTable.Alloc` | 77 | 77 |
+| engine `MemoTable.MarkSeen` | 69 | 69 |
 
-Two call forms were tried before the counter form, and both broke inlining. A reservation call in the refill branch
-and an out-of-line refill function each put `NewNodeOrdinary`, `Nodes` and `memoTable.alloc` over the limit of 80, at
-costs of 87 to 103. A checked addition with a nil test (cost 23 per site) put `Nodes`, `fields`, `NewTerminalOrdinary`
-and `NewBranchOrdinary` over it.
+The memo chunks are counted from the existing index rather than by an addition, which keeps `memoTable.alloc` at 76,
+under the limit of 80; the engine's node chunks and first-call bit set are likewise counted from `NodeChunks` and the
+length of the set. The typed arenas and value chunks count elements, not bytes: a byte counter multiplies by the
+element size, which changed which instantiations inline. Instantiations that did not inline before still do not.
 
-`memoTable.alloc` is at the limit of 80. An implementation must keep it inlined, for example by moving the chunk
-refill out of line. The test suite checks the inlining.
-
-The engine prototype (`internal/engine/core/alloc.go`: node, pointer and field slab refills and the large-list path)
-used the first form, a call to a charge function in the refill branch, and made `NewNode`, `Nodes` and `fields` lose
-inlining. Its closure-backend arm still showed no difference beyond noise, because the closure backend's per-node
-work dominates. An implementation uses the counter form there too.
-
-The implementation adds the sites the prototype left out:
-
-- capture frame scratch chunks;
-- first-call bit sets and pages;
-- decoded input;
-- action strings and lists, next to the existing `spendValue` charges, in the controlled path only;
-- working-stack growth;
-- typed `tarena` chunks and the generated `tslabs` refills;
-- the engine memo slab;
-- stream buffers and their returns.
+Two call forms were tried first, and both broke inlining. A reservation call in the refill branch and an out-of-line
+refill function each put `NewNodeOrdinary`, `Nodes` and `memoTable.alloc` over the limit of 80, at costs of 87 to
+103. A checked addition with a nil test (cost 23 per site) put `Nodes`, `fields`, `NewTerminalOrdinary` and
+`NewBranchOrdinary` over it.
 
 ## Alternatives Considered
 
@@ -420,13 +515,16 @@ The implementation adds the sites the prototype left out:
 ## Testing
 
 - Threshold tests per measure and site. For compute, input and depth, a cap equal to the final counter succeeds, one
-  less fails with the right kind before the work, and `Used` and `Requested` are exact. For memory, a smaller cap
-  fails within one poll interval.
+  less fails with the right kind before the work, and `Used` and `Requested` are exact. For memory, the parse is
+  checked again at its end, so a cap equal to the final count succeeds and one less fails with `Used` equal to the
+  count, on each engine backend and for each generated entry point (`Parse`, `ParseAST`, `Document.Parse`,
+  `Document.ParseAST`), in both position units.
 - Determinism: the same parse twice on a pooled parser, and once on a fresh one, charges the same memory.
 - Parity: every backend and generated Go fails the same input at the same kind for compute-independent caps (input,
   depth). Memory, like compute, is per backend.
 - Documents: retained bytes count against the cap; a cap below the retained bytes drops history and parses; the result
-  equals a fresh parse.
+  equals a fresh parse. Retained bytes equal to the cap stay, the parse that reuses them fails, and the next parse
+  runs from scratch.
 - Streams: a long stream with a small window completes under a cap smaller than its total allocation.
 - The no-controls form rejects finite compute and memory and accepts any input and depth limit; its only change is the
   counter additions in the refills.
@@ -434,9 +532,131 @@ The implementation adds the sites the prototype left out:
 
 ## Performance and Results
 
-All runs: Go 1.27.1, Apple M3 Max, darwin/arm64, `GOMAXPROCS=16`, through the shared benchmark lock, at commit
-`a601cd9e` with a prototype applied. Three test binaries ran in interleaved rounds, each benchmark once per binary per
-round:
+### Implementation
+
+Go 1.27.1, Apple M3 Max, darwin/arm64, `GOMAXPROCS=16`, through the shared benchmark lock. Three test binaries of
+the benchmark module ran in ten interleaved rounds, each benchmark once per binary per round, at a benchmark time of
+500 ms:
+
+- `base`, the commit the implementation starts from (`09c3fed9`);
+- `head`, the implementation, with memory unlimited, the default;
+- `on`, the implementation with `Memory` defaulting to `Unlimited − 1` wherever limit controls exist, so that every
+  parse with a control counts and checks memory at each poll and its cap is never reached.
+
+The benchmarks are `BenchmarkParse`, `BenchmarkControlledParse`, `BenchmarkIncremental`, `BenchmarkIncrementalLong`,
+`BenchmarkStream` and `BenchmarkBudgetControlModes`, on the engine's closure, bytecode and iterative backends and on
+generated Go. All but the `inactive` mode of `BenchmarkBudgetControlModes` run with the default compute budget, so
+the control is active; the `inactive` mode has no control and runs the ordinary path. Ratios are of medians, by
+group; the range is that of the per-benchmark ratios of medians. The rows for the standard library parsers, which
+the change does not touch, are left out.
+
+| Benchmarks | Rows | `head` / base, geomean | `head` / base, range | `on` / base, geomean | `on` / base, range |
+|:--|--:|--:|--:|--:|--:|
+| `Parse`, engine | 48 | 0.980 | 0.963–0.999 | 0.980 | 0.965–0.997 |
+| `Parse`, generated Node | 16 | 0.999 | 0.992–1.006 | 1.013 | 0.999–1.036 |
+| `Parse`, generated typed | 8 | 1.001 | 0.992–1.008 | 1.029 | 1.008–1.079 |
+| `ControlledParse`, engine | 12 | 0.980 | 0.971–0.994 | 0.980 | 0.971–0.994 |
+| `ControlledParse`, generated Node | 4 | 1.002 | 0.992–1.010 | 1.020 | 1.000–1.039 |
+| `ControlledParse`, generated typed | 4 | 0.991 | 0.990–0.994 | 1.035 | 1.008–1.067 |
+| `Incremental`, engine | 6 | 0.964 | 0.942–0.987 | 0.970 | 0.950–0.989 |
+| `Incremental`, generated | 2 | 1.002 | 1.001–1.004 | 1.002 | 1.001–1.002 |
+| `IncrementalLong`, engine | 3 | 0.900 | 0.893–0.904 | 0.906 | 0.897–0.910 |
+| `IncrementalLong`, generated | 1 | 1.005 | | 1.027 | |
+| `Stream`, engine | 3 | 0.978 | 0.972–0.988 | 1.043 | 1.036–1.053 |
+| `Stream`, generated | 1 | 1.014 | | 1.127 | |
+| `BudgetControlModes`, `inactive` | 12 | 0.997 | 0.984–1.013 | 1.163 | 1.129–1.198 |
+| `BudgetControlModes`, `context` | 12 | 0.982 | 0.973–0.998 | 0.983 | 0.976–0.999 |
+| `BudgetControlModes`, `budget` | 12 | 0.978 | 0.966–0.992 | 0.979 | 0.969–0.992 |
+| `BudgetControlModes`, `combined` | 12 | 0.978 | 0.969–0.991 | 0.980 | 0.972–0.992 |
+
+Over all rows, `benchstat` gives a geomean of −1.60 % for `head` and +0.23 % for `on`.
+
+With memory unlimited, generated parses are unchanged: every group's geomean is within 0.991 to 1.014. Engine parses
+with a control take 0.90 to 0.99 times the base, because a compute reservation now hands its poll and failure work to
+an out-of-line function and is smaller than before. Three rows changed with significance in a focused rerun of 15
+interleaved rounds of `base` and `head`:
+
+| Benchmark | `head` / base, ten rounds | `head` / base, focused rerun |
+|:--|--:|--:|
+| `Stream/generated` | 1.014 | 1.010 (p = 0.003) |
+| `BudgetControlModes/JSON/closure/codepoints/inactive` | 1.013 | 1.011, 1.014 (p < 0.001) |
+| `BudgetControlModes/XML/closure/codepoints/inactive` | 1.012 | 1.019, 1.015 (p < 0.001) |
+
+The closure rows ran twice, the second time beside a build that moves the parser's memory counters to the end of its
+struct; that build was as slow, so field layout is not the cause. The same rows in `Bytes`, and on the other two
+backends, are within 0.984 to 1.003. Neither the closure package's inlining decisions nor the CPU profiles of the
+three rows show a function that changed: the ordinary path of the engine runs only the refill additions, and the
+generated stream's added work is one addition per copied text and two stores per commit. These differences of 1 to
+2 % are not attributed.
+
+The counting of the parser's remaining tables (expectation arena, context tables, memo hash indexes, skip-run and
+missing-token records, environments and syntax errors) was measured on the three rows above and the four `Parse`
+rows that share their backends, in 15 interleaved rounds against the commit it starts from (`eb9025fe`), together
+with the alternative that derives the slot bytes at the check (see [Charge Sites](#charge-sites)). Ratios are of
+medians, with `benchstat`'s p-value where it reports a change:
+
+| Benchmark | additions / base | derived slots / base |
+|:--|--:|--:|
+| `Stream/generated` | ~ (p = 0.23) | ~ (p = 0.49) |
+| `BudgetControlModes/JSON/closure/codepoints/inactive` | ~ (p = 0.25) | ~ (p = 0.29) |
+| `BudgetControlModes/JSON/closure/bytes/inactive` | ~ (p = 0.81) | 1.0074 (p = 0.009) |
+| `BudgetControlModes/XML/closure/codepoints/inactive` | ~ (p = 0.17) | 1.0073 (p = 0.026) |
+| `BudgetControlModes/XML/closure/bytes/inactive` | ~ (p = 0.29) | 1.0165 (p < 0.001) |
+| `Parse/JSON/closure/codepoints` | ~ (p = 0.65) | 0.9947 (p = 0.005) |
+| `Parse/JSON/generated/codepoints` | ~ (p = 0.33) | ~ (p = 0.94) |
+| `Parse/XML/closure/codepoints` | 0.9928 (p = 0.045) | ~ (p = 0.07) |
+| `Parse/XML/generated/codepoints` | ~ (p = 0.35) | ~ (p = 0.09) |
+| geomean | 1.0012 | 1.0035 |
+
+The additions are kept.
+
+Returning the values and recovered errors of a stream at its commits keeps the error lists of memo entries on an
+inlined fast path for the common case of no errors. It was measured in 20 interleaved rounds of three builds: the
+base (`2ea0866f`), the implementation before these returns (`before`), and with them (`after`):
+
+| Benchmark | `before` / base | `after` / base | `after` / `before` |
+|:--|--:|--:|--:|
+| `Stream/closure` | 1.0076 | 0.9956 | 0.9881 |
+| `Stream/generated` | ~ (p = 0.06) | 1.0125 | 1.0080 (p = 0.010) |
+| `BudgetControlModes/JSON/closure/codepoints/inactive` | 1.0139 | ~ (p = 0.34) | 0.9875 |
+| `BudgetControlModes/JSON/closure/bytes/inactive` | 1.0085 | ~ (p = 0.36) | 0.9937 |
+| `BudgetControlModes/XML/closure/codepoints/inactive` | 1.0136 | 1.0034 | 0.9898 |
+| `BudgetControlModes/XML/closure/bytes/inactive` | 1.0127 | 1.0047 | 0.9921 |
+| geomean | 1.0101 | 1.0032 | 0.9932 |
+
+The generated stream's 0.8 % was profiled against the base: six interleaved runs of 5 s each per build, with CPU
+profiles merged per build. The medians differ by 0.5 %. No sample falls on a counter addition (`chargeValueBytes` is
+inlined into `streamCopy` and `streamText`, and its lines take under 10 ms of 37 s), and `heldBytes` and `memoryUsed`
+do not run with memory unlimited. The difference sits in code that did not change: the loop that fills the offsets of
+a text snapshot (120 ms against 270 ms of flat time on the same line), the string conversion in `streamCopy`, and the
+runtime's `madvise` and `kevent`, which move by more than 1 s each between the two profiles in opposite directions.
+It is attributed to code layout and to the collector and the operating system, not to the counts.
+
+With a finite cap (`on`), a parse that already had a control pays for the poll every 256 units and the count at each
+poll. Outside streams the engine takes the same time as with memory unlimited (group geomeans within 0.007 of
+`head`), because its control already reaches the slow path every 256 units. Generated Node parses take up to 1.036 times the base and typed parses up to 1.079, both
+on XML, as the prototype measured. Streams cost more (engine 1.036 to 1.053, generated 1.127), because a stream's
+count also sums its buffers and stacks at each poll. The `inactive` rows show the price of a finite `Memory` on a
+parse that would otherwise have no control: it makes the parse controlled, and it then costs what a parse with a
+compute budget costs (1.13 to 1.20 times the base, against the `budget` rows' 1.18 to 1.23 times the `inactive` base).
+Allocated bytes per operation rise by up to 12 % (generated typed CSV), because a pooled parser with a finite `Memory`
+starts its chunks and stacks empty.
+
+Two regressions with memory unlimited were found by these runs and fixed before the numbers above:
+
+- The memory check made the slow path of the engine's `BudgetControl.Charge` larger, and inline it slowed every
+  reservation of a controlled engine parse by about 2 %. The slow path moved to `chargeSlow`, out of line, which
+  reduced the inlining cost of `Charge` from 201 to 158 and gives the 0.90 to 0.99 above.
+- Polling for a finite memory limit without a context made the generated runtime's `BudgetControl.refill` test two
+  fields and lose inlining, and the generated stream, whose default budget refills as it reads, took about 5 % longer.
+  The control now keeps one `polled` flag, set when a context or a finite memory limit asks for polls, and `refill`
+  inlines again.
+
+### Prototype
+
+Two prototypes in the generated Go runtime chose the form of the count. They ran on the same machine and toolchain, at
+commit `a601cd9e` with the prototype applied, as three test binaries in interleaved rounds, each benchmark once per
+binary per round:
 
 - `base`, the commit itself;
 - `off`, the prototype with memory unlimited;
@@ -453,7 +673,7 @@ The benchmarks are:
 All of them run with the default compute budget, so the control is active and every memory site is reached. Ratios
 are of medians. The paired range is the smallest and largest per-round ratio.
 
-### Counter form (the design)
+#### Counter Form
 
 Six rounds, each benchmark invocation started only once the one-minute load average was below 6. An earlier attempt
 of this run, during which other work loaded the machine to a load average above 50, was discarded.
@@ -499,13 +719,13 @@ longer interval for memory alone, such as 4,096 units, would cut that cost. The 
 4,096 units of allocation, about 512 KiB at the worst site. [Decision 11](#decisions) keeps 256 units. Allocated bytes
 per operation do not change in any arm.
 
-The engine was not re-measured in the counter form.
+The prototype did not measure the engine in the counter form; the implementation did ([above](#implementation)).
 
-### Call form (first prototype)
+#### Call Form
 
 The first prototype reserved memory by calling a charge function in each refill branch. That made the runtime
 allocators and the engine's `NewNode`, `Nodes` and `fields` lose inlining
-([Prototype Charge Sites](#prototype-charge-sites)). Six rounds:
+([Charge Sites](#charge-sites)). Six rounds:
 
 | Benchmark | Base (ms) | `off` / base | `on` / base | `on` / base, paired range | B/op `on` / base |
 |:--|--:|--:|--:|--:|--:|
@@ -561,7 +781,7 @@ There, with the control at 0.999 to 1.000, Node parsing took 1.009 to 1.021 time
 The cost was the same whether memory was counted or not, so it came from the lost inlining, not from the charge. That
 result led to the counter form. The closure-backend arm stayed within 0.992 to 1.016 even with lost inlining.
 
-### Charged memory and compute
+#### Charged Memory and Compute
 
 Charged memory against compute spent, for the generated Node parsers on the benchmark inputs, from the counter-form
 prototype's counters at the end of a Bytes parse. Charged / allocated compares the charged bytes with the bytes a
@@ -600,10 +820,12 @@ the prototype leaves out, in particular the decoded input, at 8 bytes per input 
    that fails for grammars that build large values. A default derived from compute was rejected because it adds no
    guarantee.
 5. **A Document's memory counter starts at the bytes it retains.** If they already exceed the cap, the Document drops
-   its history and parses from scratch, and fails only if that parse exceeds the cap. The cap bounds the footprint,
-   which is what an editor needs, and a Document never becomes permanently failing. A per-`Parse` cap on new
-   allocation was rejected because it does not bound the footprint. Failing without dropping the history was rejected
-   because the Document would stay failing until the caller reset it.
+   its history and parses from scratch. Retained bytes within the cap are kept, so a reusing parse can fail where a
+   fresh one would not; its interruption clears the caches, and the next parse runs from scratch. The cap bounds the
+   footprint, which is what an editor needs, and a Document never becomes permanently failing. A per-`Parse` cap on
+   new allocation was rejected because it does not bound the footprint. Failing without dropping the history was
+   rejected because the Document would stay failing until the caller reset it. Retrying from scratch inside the failed
+   call was rejected because it doubles the work of the call and hides the failure.
 6. **`Depth: Unlimited` is accepted only on the iterative VM.** That is the only backend whose call stack is on the
    heap, where memory bounds it. On other backends it is an option error, because a Go stack overflow cannot be
    recovered. This is the one exception to the rule that `Unlimited` disables every field. Accepting it everywhere
@@ -620,8 +842,9 @@ the prototype leaves out, in particular the decoded input, at 8 bytes per input 
 10. **There are no presets by purpose.** The fields are the selection. A preset would fix numbers that depend on the
     caller's hardware and load.
 11. **Memory is counted by an addition and checked at the compute poll.** A finite cap sets the poll interval to 256
-    units. Counting is free with memory unlimited, and the allocators stay inlined. A finite cap costs up to 3 % on
-    Node parsing and 6 % on typed parsing because of the poll. The counter can pass the cap by one poll interval's
+    units. Counting is free with memory unlimited, and the allocators stay inlined. A finite cap costs up to 4 % on
+    generated Node parsing, 8 % on typed parsing and 13 % on the generated stream, because of the poll and the count
+    at each poll, and nothing measurable on engine parses outside streams. The counter can pass the cap by one poll interval's
     allocation. A 4,096-unit interval for memory alone is reconsidered if a workload shows that cost. Reserving before
     each allocation was rejected because the call breaks inlining.
 12. **`WithLimits` merges field by field.** A nonzero field overrides an earlier value and a zero field leaves it
@@ -636,9 +859,12 @@ the prototype leaves out, in particular the decoded input, at 8 bytes per input 
 - Memory is an estimate from the sizes of the parser's own types. It excludes the Go allocator's size classes and
   headers and any storage the collector has not yet freed, so process memory can exceed it by the allocator's
   overhead and by garbage awaiting collection.
+- Values that actions build are counted only as concatenated strings and, in generated Go with `-types`, typed values.
+  Lists, records and other values built by Node actions are bounded by compute only.
 - Memory charged by chunk can exceed the bytes in use by up to one chunk per slab. The cap is enforced at polls, so the
   counter can pass it by what one poll interval allocates.
 - The counts differ between backends and position units, as compute counts do.
 - TypeScript memory charging is not measured.
-- The engine arm charges node, pointer and field slabs only, in the first (call) form. The counter form, its memo slab
-  and its frame chunks are not measured there.
+- With memory unlimited, the closure backend's ordinary `CodePoints` parses and the generated stream take 1 to 2 %
+  longer than without the memory measure, and the profiles attribute it to no function
+  ([Implementation](#implementation)).

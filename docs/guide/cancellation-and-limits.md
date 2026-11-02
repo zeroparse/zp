@@ -12,8 +12,8 @@ The examples use a parser `p` compiled as in [Running Parsers](running-parsers.m
 
 `Parse` accepts per-invocation `WithContext` and `WithLimits` options. A zero
 limit selects the default described [below](#the-default-compute-limit); `zp.Unlimited` disables the limit. The counter
-resets for the next call. Generated Go parsers offer the context and a finite `Compute` only when generated with
-`-limits`; see [the generated Go API](generated-go-api.md#cancellation-and-compute-limits). Generated TypeScript parsers
+resets for the next call. Generated Go parsers offer the context and a finite `Compute` or `Memory` only when
+generated with `-limits`; see [the generated Go API](generated-go-api.md#cancellation-and-compute-limits). Generated TypeScript parsers
 offer the `signal` option and the `compute` limit only with `-limits` too; see
 [TypeScript](typescript.md#cancellation-and-compute-limits). `Input` and `Depth` work in every form.
 
@@ -45,7 +45,8 @@ case node != nil:
 time nor a memory limit, and backtracking never refunds it. Scanning input, such as a repeated character class,
 charges it in proportion to the elements examined, so one limit bounds the cost of large input, rule calls and
 values that grow. The memory a parse allocates, long values included, is at most proportional to the budget it
-spends plus the input, so a smaller budget also bounds memory; there is no separate memory limit. An interruption is fatal to the parse and `#recover` cannot consume it,
+spends plus the input, so a smaller budget also bounds memory; [`Memory`](#bounding-memory) bounds it in bytes
+without cutting the time a parse may take. An interruption is fatal to the parse and `#recover` cannot consume it,
 so a batch parse returns no partial result. Cancellation is cooperative: a parser cannot preempt a blocked reader or
 a callback of yours. The exact rules are in
 [Cancellation and Compute Limits](../../spec/runtime/parsing.md#cancellation-and-compute-limits); the
@@ -90,6 +91,33 @@ stream fails when the parser asks for a unit beyond the limit and the stream has
 input, and the error reports the number of units the parser asked for. A finite `Input` needs no budget: with
 `Compute: zp.Unlimited` and no context the parse still runs without a control.
 
+## Bounding Memory
+
+`Limits.Memory` bounds, in bytes, the storage a parse takes into use: nodes and their lists, memo entries and
+their indexes, typed values, the decoded input, the working stacks, the parser's bookkeeping tables, and the strings
+that actions concatenate. Its default is
+`zp.Unlimited`, because the default compute limit already bounds memory in proportion to the work. Set it when you
+want a bound in bytes that does not also cut the time a parse may take:
+
+```go
+node, err := p.Parse(input, zp.WithLimits(zp.Limits{Memory: 64 << 20}))
+var le *zp.LimitError
+if errors.As(err, &le) && le.Kind == zp.LimitMemory {
+    // le.Limit is the Memory limit and le.Used is the count when the parse stopped.
+}
+```
+
+The count is checked every 256 compute units, so a parse can pass the limit by what it allocates in that interval
+before it fails; a parse whose final count is at most the limit succeeds. It counts the parser's own buffers from the
+sizes of their elements, not the bytes the Go allocator hands out, and it does not count your input string, which
+`Input` bounds. A finite `Memory` makes the parse controlled, like a finite `Compute`, so a parser generated without
+`-limits` rejects it. A stream returns what it has delivered, so its count follows the largest element and the
+working set around it, not the length of the stream, except for recovered errors, which it keeps for the result
+unless `WithDiagnosticLimit` keeps only the latest ones ([Streaming](streaming.md#memory)). A `Document` counts the caches it keeps from earlier parses:
+when they alone pass the limit it drops them and parses from scratch, and when a parse that reuses them passes the
+limit, the next parse starts without them. Counts differ between backends and position units, as compute counts do,
+but they are the same on every run of the same parse.
+
 ## Bounding the Nesting Depth
 
 `Limits.Depth` bounds the nesting of recursive rule calls. Unlike the other limits it is always on: zero selects
@@ -111,7 +139,8 @@ Bytecode backends and generated parsers nest rule calls on the goroutine stack a
 ## Limits on the Command Line
 
 The `zp` commands that run a parse (`parse`, `test`, `trace`, `profile`, `explain` and `edit-fuzz`) take `-max-compute`,
-`-max-input` and `-max-depth`, which set `Limits.Compute`, `Limits.Input` and `Limits.Depth`. Each takes a number, `0`
+`-max-memory`, `-max-input` and `-max-depth`, which set `Limits.Compute`, `Limits.Memory`, `Limits.Input` and
+`Limits.Depth`. Each takes a number, `0`
 for the default, or `unlimited`:
 
 ```bash
@@ -120,7 +149,7 @@ zp parse -g grammar.zp -max-compute unlimited -max-input 1048576 -i "$input"
 
 A parse that reaches a limit prints the `*zp.LimitError` message and exits with status 1. `zp test` reports it as
 the runtime error of the case. A saved `edit-fuzz` sequence does not record the limits, so `edit-fuzz -replay` takes
-`-max-compute`, `-max-input` and `-max-depth` again. A `Document` reuses earlier work and spends less than a fresh parse, so `edit-fuzz`
+`-max-compute`, `-max-memory`, `-max-input` and `-max-depth` again. A `Document` reuses earlier work and spends less than a fresh parse, so `edit-fuzz`
 compares nothing at a check where either parse exhausts its budget.
 
 ## Related Topics

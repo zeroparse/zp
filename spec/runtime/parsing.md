@@ -343,7 +343,8 @@ Time is proportional to cost. The memory that a parse allocates is at most
 proportional to its cost plus the input, because each memo entry, node and
 value is built by cost that is counted. The cost of a parse is measured in
 compute units, which differ between backends, and the budget of
-[compute limits](#cancellation-and-compute-limits) caps it.
+[compute limits](#cancellation-and-compute-limits) caps it. The
+[memory limit](#memory-limit) caps the storage a parse takes into use in bytes.
 
 ### Termination
 
@@ -1135,23 +1136,26 @@ it. The budget counter is monotonic for one invocation and resets on the next
 call. A reservation is checked before the corresponding work begins; if it
 exceeds the remaining allowance, that work is not performed. Decoding is the
 one exception: a reservation may follow the decode of at most one character (at
-most 4 bytes) and must precede storing or using that character. Counts are
-implementation-specific and are not elapsed-time, memory, or buffered-input
-limits.
+most 4 bytes) and must precede storing or using that character. Compute counts
+are implementation-specific and are not elapsed-time, memory, or buffered-input
+limits; the [memory limit](#memory-limit) counts bytes.
 
 ### Default Limits
 
-`Limits` has three fields, and a zero value selects the default of its field:
+`Limits` has four fields, and a zero value selects the default of its field:
 
 | Field | Bounds | Default |
 | --- | --- | --- |
 | `Compute` | the cost of the parse | `max(2^20, 1024 * n)` |
+| `Memory` | the storage the parse takes into use, in bytes ([Memory Limit](#memory-limit)) | `Unlimited` |
 | `Input` | the length of the input | `Unlimited` |
 | `Depth` | the nesting of recursive rule calls ([Limits](#limits)) | 100,000; 10,000,000 on the iterative bytecode VM; the generated default |
 
 Here `n` is the length of the input in the position unit of the parse: bytes
 for `Bytes`, code points for `CodePoints`. `Input` has no finite default
-because the default `Compute` already grows with `n`.
+because the default `Compute` already grows with `n`, and `Memory` has none
+because the memory a parse allocates is at most proportional to its cost
+plus the input ([Time and Memory](#time-and-memory)).
 
 `WithLimits` sets the fields field by field. A nonzero field overrides the
 value an earlier `WithLimits` of the same invocation set, and a zero field
@@ -1163,8 +1167,8 @@ an option has set it.
 Every parse has a budget. A
 parse that has neither a limit nor a context therefore runs controlled. The
 value `Unlimited` (the largest `uint64` in Go, `Number.MAX_SAFE_INTEGER` in
-TypeScript) disables the budget; with no context either, the parse runs
-without a control. `LimitError.Limit` reports the resolved limit, and the
+TypeScript) disables the budget; with no context and no finite `Memory`
+either, the parse runs without a control. `LimitError.Limit` reports the resolved limit, and the
 default is `Unlimited - 1` at most. One constant disables every field of
 `Limits`, and a field added to `Limits` takes the same zero and `Unlimited`
 meaning.
@@ -1232,6 +1236,52 @@ context returns the error of the context (`errors.Is(err, context.Canceled)` or
 `zp.ErrLimit`, and `errors.As` with `*zp.LimitError` gives the
 details. Stream parses and documents are specified in [Streaming](streaming.md)
 and [Incremental Documents](documents.md).
+
+### Memory Limit
+
+`Memory` bounds the storage a parse takes into use, in bytes. The count is
+the element count of each buffer the parser takes into use times the size of
+its element type, and for a map the size of its keys and values: node, list,
+field and capture chunks, memo entries, slots, first-call sets and hash
+indexes, typed values, the decoded input and its line table, a stream's
+buffers, the working stacks by their capacity, the records of left recursion,
+context memoization, skipped runs, missing-token insertion and Document
+reuse, the variable environments and syntax errors the parse builds, and the
+strings that actions concatenate and the text they copy out of the input. Not
+counted are the caller's input string, which `Input` bounds; the compiled
+grammar and other state shared by every parse of it; values handed to the
+caller, such as the elements a stream delivers, after they are handed over;
+trace and observation output, which goes to the caller's sink; and what the
+allocator adds beyond the logical size, such as size-class rounding and map
+overhead. Storage abandoned by backtracking is not returned; a stream
+returns the storage of the elements it has delivered, so the count of a stream
+bounds its window, not its length. Recovered errors are the exception: a stream
+retains them for its result unless a diagnostic limit keeps only the latest
+ones, so without one they grow the count of a stream
+([Streaming](streaming.md#memory)). Counts depend on the backend, the position
+unit and the generated artifact, and for a given artifact, input and options
+they are the same on every run, whatever an earlier parse left in a reused
+parser.
+
+A finite `Memory` makes a parse controlled, and the control then polls every
+256 compute units even without a context. At a poll, the context is
+consulted first, then the memory count, then the compute counter; the context
+and the memory count are checked again at the end of the parse. A count above `Memory` fails the parse with a `LimitError` of kind
+`LimitMemory`, message `parse memory limit exceeded: limit N, used M`, whose
+`Limit` is `Memory`, `Used` the count, and `Requested` zero: memory is checked
+at polls, not reserved before an allocation, so the count can pass `Memory` by
+what the parse allocates between two polls. A parse whose final count is at
+most `Memory` succeeds.
+
+A `Document` parse counts the caches the Document retains from earlier parses
+from its start. If they alone exceed `Memory`, the Document drops them before
+the parse, as `ResetHistory` does, and parses from scratch. Retained caches
+within `Memory` are kept, so a parse that reuses them can fail where a parse
+from scratch would fit; the interruption clears them, and the next parse starts
+without them.
+
+The reference engine and generated Go have the memory limit; generated
+TypeScript has no `memory` limit.
 
 ## Modes
 
