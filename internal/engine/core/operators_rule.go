@@ -84,7 +84,7 @@ func (p *Parser) Longest(ops []*OperatorsRuleOp) (best OperatorsRuleAttempt, cut
 		}
 		if ok && (best.Op == nil || p.Pos > best.End) {
 			best = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: m0.Pos, End: p.Pos, Env: p.Env, Cut: cut,
-				Errs: AppendSpend(p, []*SyntaxError(nil), p.Recovered[m0.Recovered:]), missing: p.MissingEvents(m0.missing)}
+				Errs: p.copyErrors(p.Recovered[m0.Recovered:]), missing: p.MissingEvents(m0.missing)}
 		}
 		if !ok && cut {
 			cutFailed = true

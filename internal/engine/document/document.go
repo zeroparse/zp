@@ -151,6 +151,11 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 		return nil, core.ErrNoControls
 	}
 	c.Check()
+	if lim.Memory != 0 && d.retainedBytes() > lim.Memory {
+		// The caches alone pass the limit: drop them and parse from scratch, rather than fail
+		// every later parse of the Document.
+		d.ResetHistory()
+	}
 	active, setupErr := d.runner.PrepareRun(d.back, c)
 	if setupErr != nil {
 		return nil, setupErr
@@ -167,6 +172,10 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 	p = &core.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
 		Runs: runs, LastRuns: lastRuns, KidStack: d.kids}
 	p.Control = c
+	if c != nil && lim.Memory != 0 {
+		c.Mem = d.historyBytes()
+		c.AttachMemory(p)
+	}
 	p.SetTrace(o.Trace)
 	c.Check()
 	if reuseDocumentVMValues && d.machine != nil {

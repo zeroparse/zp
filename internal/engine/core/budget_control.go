@@ -26,6 +26,21 @@ type BudgetControl struct {
 	// Adaptive is set for a stream whose budget is the default: the budget follows the furthest
 	// position the parser has demanded from the stream (Demand).
 	Adaptive bool
+
+	// Mem is the memory, in bytes, charged to the control itself: the bytes of the history a
+	// Document retains outside its memo table when its parse starts. The memory check adds values,
+	// errs and the counters of the parser attached by AttachMemory (MemoryUsed).
+	Mem uint64
+	// values counts the storage of the values the parse builds on the controlled path: text
+	// copied out of the input, concatenated strings, rebound environments, memo keys and the error
+	// lists of memo entries. It belongs to the nodes and memo entries built since, so a stream
+	// returns it with their chunks (Parser.splitChunks).
+	values uint64
+	// errs counts the syntax errors the parse builds. A stream returns it at a commit that
+	// releases the recovered errors to the diagnostic tail (Parser.Commit), which counts those it
+	// keeps; otherwise the errors stay held to the end of the parse.
+	errs uint64
+	memP *Parser
 }
 
 // ResolveLimits returns the limits a parse runs under for an input of n units of its position
@@ -36,6 +51,9 @@ type BudgetControl struct {
 func ResolveLimits(l limits.Limits, n uint64, stream bool) (resolved limits.Limits, adaptive bool) {
 	if l.Input == limits.Unlimited {
 		l.Input = 0 // the default of Input is Unlimited
+	}
+	if l.Memory == limits.Unlimited {
+		l.Memory = 0 // the default of Memory is Unlimited
 	}
 	switch l.Compute {
 	case limits.Unlimited:
@@ -65,14 +83,14 @@ func (c *BudgetControl) Demand(n int) {
 	}
 }
 
-// NewBudgetControl returns nil when neither cancellation nor a finite budget is
-// active. A nil context is equivalent to context.Background. A context that can never be
+// NewBudgetControl returns nil when neither cancellation nor a finite compute budget or memory
+// limit is active. A nil context is equivalent to context.Background. A context that can never be
 // canceled (Done is nil) is never polled.
 func NewBudgetControl(ctx context.Context, limits limits.Limits) *BudgetControl {
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil
 	}
-	if ctx == nil && limits.Compute == 0 {
+	if ctx == nil && limits.Compute == 0 && limits.Memory == 0 {
 		return nil
 	}
 	return &BudgetControl{Ctx: ctx, Limits: limits}
@@ -96,16 +114,21 @@ func contextErr(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// Check observes cancellation at an explicit engine checkpoint. It is safe on
-// a nil receiver.
+// Check observes cancellation, then the memory limit, at an explicit engine checkpoint. It is safe
+// on a nil receiver.
 func (c *BudgetControl) Check() {
-	if c == nil || c.Ctx == nil {
+	if c == nil {
 		return
 	}
-	if err := contextErr(c.Ctx); err != nil {
-		panic(Fatal{Err: err})
+	if c.Ctx != nil {
+		if err := contextErr(c.Ctx); err != nil {
+			panic(Fatal{Err: err})
+		}
+		c.SinceCheck = 0
 	}
-	c.SinceCheck = 0
+	if c.Limits.Memory != 0 {
+		c.checkMemory()
+	}
 }
 
 // Charge atomically reserves n compute units. Cancellation wins when it is
@@ -118,15 +141,26 @@ func (c *BudgetControl) Charge(n uint64) {
 
 	exceeded := limits.ExceedsLimit(c.Used, n, c.Limits.Compute)
 	poll := limits.ReachesInterval(c.SinceCheck, n, BudgetCheckInterval)
-
-	// Check on each poll boundary and on a failed reservation so an already
-	// canceled invocation wins over a simultaneously exhausted budget.
 	if poll || exceeded {
-		if c.Ctx != nil {
-			if err := contextErr(c.Ctx); err != nil {
-				panic(Fatal{Err: err})
-			}
+		c.chargeSlow(n, poll, exceeded)
+		return
+	}
+	c.Used = limits.SaturatingAdd(c.Used, n)
+	c.SinceCheck = limits.SaturatingAdd(c.SinceCheck, n)
+}
+
+// chargeSlow is Charge on a poll boundary or a failed reservation, kept out of line so that the
+// reservation every step makes stays small. It checks cancellation first, so that an already
+// canceled invocation wins over a simultaneously exhausted budget, then, at a poll, the memory
+// limit.
+func (c *BudgetControl) chargeSlow(n uint64, poll, exceeded bool) {
+	if c.Ctx != nil {
+		if err := contextErr(c.Ctx); err != nil {
+			panic(Fatal{Err: err})
 		}
+	}
+	if poll && c.Limits.Memory != 0 {
+		c.checkMemory()
 	}
 	if exceeded {
 		panic(Fatal{Err: &limits.LimitError{
@@ -134,13 +168,9 @@ func (c *BudgetControl) Charge(n uint64) {
 			Used: c.Used, Requested: n,
 		}})
 	}
-
+	// Not exceeded, so the reservation reached a poll boundary.
 	c.Used = limits.SaturatingAdd(c.Used, n)
-	if poll {
-		c.SinceCheck = 0
-		return
-	}
-	c.SinceCheck = limits.SaturatingAdd(c.SinceCheck, n)
+	c.SinceCheck = 0
 }
 
 // InputUnits returns the length of s in units of the position unit. Below the size at which the

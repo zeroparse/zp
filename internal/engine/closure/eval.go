@@ -2,6 +2,7 @@ package closure
 
 import (
 	"fmt"
+	"unsafe"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -44,6 +45,13 @@ func (cm *Machine) Keep(int, bool) { cm.Release() }
 func (cm *Machine) Release() { *cm = Machine{} }
 
 func (cm *Machine) RetainedBytes() uint64 { return 0 }
+
+func (cm *Machine) StackBytes() uint64 {
+	return uint64(cap(cm.names))*uint64(unsafe.Sizeof("")) +
+		uint64(len(cm.closures.Chunks))*uint64(unsafe.Sizeof([64]closure{})) +
+		uint64(len(cm.lctxs.Chunks))*uint64(unsafe.Sizeof([64]core.EvalCtx{})) +
+		uint64(len(cm.locals.Chunks))*uint64(unsafe.Sizeof([64]core.Local{}))
+}
 
 // closure is a lambda of the closure backend: its body is evaluated as an AST.
 type closure struct {

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"unsafe"
 
 	"zeroparse.dev/zp/internal/value"
 )
@@ -31,6 +32,8 @@ type MissingTokenState struct {
 	installed       map[MissingTokenSite]bool
 	Seeds           map[*MemoEntry][]MissingTokenEvent // no slice added to every ordinary memo entry
 	label           ExpID                              // outermost enclosing @error, or zero
+	// seedBytes counts the events of the seeds recorded, for the memory limit.
+	seedBytes uint64
 }
 
 func (p *Parser) missingMark() int {
@@ -105,6 +108,7 @@ func (p *Parser) RecordMissingSeed(e *MemoEntry, mark int) {
 		p.Missing.Seeds = make(map[*MemoEntry][]MissingTokenEvent)
 	}
 	p.Missing.Seeds[e] = events
+	p.Missing.seedBytes += uint64(cap(events)) * uint64(unsafe.Sizeof(MissingTokenEvent{}))
 }
 
 // ReplayMissing restores a chosen seed/candidate. Repeated events already on

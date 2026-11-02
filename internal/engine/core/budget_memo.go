@@ -37,6 +37,7 @@ func (p *Parser) bindControlled(slot int, val any) {
 	}
 	// Saved environments are immutable; only publish a completed path.
 	p.Env = p.Env.Set(slot, p.envLevels, val)
+	p.ChargeValueBytes(int(uint64(p.envLevels+1) * envNodeBytes))
 }
 
 func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
@@ -113,6 +114,9 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	slots := t.Slots
 	if i >= len(slots) {
 		p.growthSpend(len(slots), i+1)
+		// The slot array is charged by its length, not its capacity, so the count does not
+		// depend on the capacity an earlier parse left.
+		t.MemBytes += uint64(i+1-len(slots)) * memoSlotBytes
 		if i < cap(slots) {
 			slots = slots[:i+1]
 		} else {
@@ -164,7 +168,9 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	e.Rule, e.Min, e.Pos, e.Env = int32(k.Rule), int32(k.Min), k.Pos, k.Env
 	e.missingSilent = k.MissingSilent
 	if ix != nil {
+		n := len(ix)
 		ix[ixSlot] = e
+		t.IndexBytes += uint64(len(ix)-n) * memoIndexEntryBytes
 	}
 	if replaced != nil {
 		e.Next = replaced.Next
@@ -190,7 +196,7 @@ func (p *Parser) memoFirstCall(pos, r int) bool {
 		if w >= len(t.Seen) {
 			n := len(t.Seen) + max(w+1-len(t.Seen), len(t.Seen), 64)
 			// The new words are the spend, whether they come from spare capacity or an allocation.
-			p.chargeValues(n - len(t.Seen))
+			p.chargeValueBytes(n - len(t.Seen))
 			seen := t.Seen
 			if n <= cap(seen) {
 				seen = seen[:n]

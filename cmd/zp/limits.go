@@ -1,6 +1,6 @@
 package main
 
-// The -max-compute, -max-input and -max-depth flags of the commands that run a parse.
+// The -max-compute, -max-memory, -max-input and -max-depth flags of the commands that run a parse.
 
 import (
 	"flag"
@@ -40,19 +40,20 @@ func (v *limitValue) Set(s string) error {
 
 // limitFlags are the flags that bound a parse.
 type limitFlags struct {
-	compute, maxInput, depth limitValue
+	compute, memory, maxInput, depth limitValue
 }
 
 // register adds the limit flags to fs.
 func (l *limitFlags) register(fs *flag.FlagSet) {
 	fs.Var(&l.compute, "max-compute", "limit on the cost of the parse: a number of units, 0 for the default of max(2^20, 1024 times the input length), or unlimited")
+	fs.Var(&l.memory, "max-memory", "limit on the bytes of storage the parser holds for the parse: a number, 0 or unlimited for no bound")
 	fs.Var(&l.maxInput, "max-input", "longest input accepted, in the position unit: a number, 0 or unlimited for no bound")
 	fs.Var(&l.depth, "max-depth", "limit on the nesting of recursive rule calls: a number, 0 for the backend's default (100000; 10000000 for bytecode-iterative), or unlimited (bytecode-iterative only)")
 }
 
 // limits returns the limits the flags select.
 func (l *limitFlags) limits() zp.Limits {
-	return zp.Limits{Compute: uint64(l.compute), Input: uint64(l.maxInput), Depth: uint64(l.depth)}
+	return zp.Limits{Compute: uint64(l.compute), Memory: uint64(l.memory), Input: uint64(l.maxInput), Depth: uint64(l.depth)}
 }
 
 // option returns the parse option that applies the limits.

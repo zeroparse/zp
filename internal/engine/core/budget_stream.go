@@ -77,6 +77,9 @@ func (p *Parser) PruneStreamMemo(pos int) {
 			e = next
 		}
 	}
+	// The slots of the pruned positions are returned; the entries go to the free list, whose
+	// reuse is not charged again.
+	t.MemBytes -= min(t.MemBytes, uint64(min(k, len(t.Slots)))*memoSlotBytes)
 	if k >= len(t.Slots) {
 		ClearSpend(p, t.Slots)
 		t.Slots = t.Slots[:0]
@@ -90,7 +93,7 @@ func (p *Parser) PruneStreamMemo(pos int) {
 	for at := range t.Index {
 		p.Spend()
 		if at < pos {
-			delete(t.Index, at)
+			t.dropIndex(at)
 		}
 	}
 	t.Base = pos

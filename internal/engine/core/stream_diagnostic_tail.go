@@ -48,9 +48,12 @@ type StreamDiagnosticTail struct {
 	Dropped         uint64
 	truncated       bool
 	countsSaturated bool
+	// bytes counts the errors in Errors (syntaxErrorSize), for the memory limit.
+	bytes uint64
 }
 
 func (t *StreamDiagnosticTail) Add(e *SyntaxError) {
+	t.bytes += syntaxErrorSize(e)
 	if t.Total == math.MaxUint64 {
 		t.countsSaturated = true
 	} else {
@@ -66,6 +69,7 @@ func (t *StreamDiagnosticTail) Add(e *SyntaxError) {
 	} else {
 		t.Dropped++
 	}
+	t.bytes -= syntaxErrorSize(t.Errors[t.head])
 	t.Errors[t.head] = e
 	t.head++
 	if t.head == t.Limit {

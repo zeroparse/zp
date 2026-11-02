@@ -95,7 +95,19 @@ func (t *MemoTable) indexAt(pos int, head *MemoEntry, charge func(*MemoEntry)) m
 		t.Index = make(map[int]memoIndex)
 	}
 	t.Index[pos] = ix
+	t.IndexBytes += indexBytes(ix)
 	return ix
+}
+
+// indexBytes returns the bytes that the index ix and its place in MemoTable.Index take.
+func indexBytes(ix memoIndex) uint64 {
+	return uint64(len(ix)+1) * memoIndexEntryBytes
+}
+
+// dropIndex drops the index of pos.
+func (t *MemoTable) dropIndex(pos int) {
+	t.IndexBytes -= min(t.IndexBytes, indexBytes(t.Index[pos]))
+	delete(t.Index, pos)
 }
 
 // reindex makes the index of pos, if it has one, hold e where it held x, which

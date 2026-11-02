@@ -28,12 +28,12 @@ func (p *Parser) SpendValue(n int) {
 // follows the charge and is not charged again.
 func (p *Parser) growthSpend(oldLen, newLen int) {
 	if oldLen > 0 && bits.Len(uint(newLen)) > bits.Len(uint(oldLen)) {
-		p.chargeValues(oldLen)
+		p.chargeValueBytes(oldLen)
 	}
 }
 
-// chargeValues charges n values in chunks, so that a limit or cancellation is seen between them.
-func (p *Parser) chargeValues(n int) {
+// chargeValueBytes charges n values in chunks, so that a limit or cancellation is seen between them.
+func (p *Parser) chargeValueBytes(n int) {
 	for n > 0 {
 		c := min(spendValueChunk, n)
 		p.SpendValue(c)
@@ -144,6 +144,7 @@ func (p *Parser) ValueBinary(op string, l, r any) (any, error) {
 		switch op {
 		case "+":
 			var out strings.Builder
+			p.ChargeValueBytes(len(ls) + len(rs))
 			out.Grow(len(ls) + len(rs))
 			for _, s := range [...]string{ls, rs} {
 				for off := 0; off < len(s); {

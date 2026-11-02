@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"unsafe"
+
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/engine/core"
@@ -206,30 +208,33 @@ type framePool struct {
 	operatorsRules []*operatorsRuleFrame
 }
 
-// reuse pops a frame from a free list, or allocates one.
-func reuse[T any](list *[]*T) *T {
+// reuse pops a frame from a free list, or allocates one. A new frame is charged to the memory
+// counter mem with two slots of the iterative stack, which bounds the stack's capacity: every
+// frame on the stack is distinct, and appending at most doubles the capacity it needs.
+func reuse[T any](mem *uint64, list *[]*T) *T {
 	if n := len(*list); n > 0 {
 		f := (*list)[n-1]
 		*list = (*list)[:n-1]
 		return f
 	}
+	*mem += uint64(unsafe.Sizeof(*new(T))) + 2*uint64(unsafe.Sizeof(iframe(nil)))
 	return new(T)
 }
 
 func (mc *ivmMachine) skipFrame(pr *core.OperatorsRule) *skipFrame {
-	f := reuse(&mc.pool.skips)
+	f := reuse(&mc.p.MemKept, &mc.pool.skips)
 	*f = skipFrame{pr: pr}
 	return f
 }
 
 func (mc *ivmMachine) longestFrame(ops []*core.OperatorsRuleOp) *longestFrame {
-	f := reuse(&mc.pool.longests)
+	f := reuse(&mc.p.MemKept, &mc.pool.longests)
 	*f = longestFrame{ops: ops}
 	return f
 }
 
 func (mc *ivmMachine) nudFrame(r *core.Rule) *nudFrame {
-	f := reuse(&mc.pool.nuds)
+	f := reuse(&mc.p.MemKept, &mc.pool.nuds)
 	*f = nudFrame{r: r}
 	return f
 }
@@ -238,7 +243,7 @@ func (mc *ivmMachine) operatorsRuleFrame(r *core.Rule, min int) *operatorsRuleFr
 	p := mc.p
 	p.Spend()
 	p.Enter()
-	f := reuse(&mc.pool.operatorsRules)
+	f := reuse(&mc.p.MemKept, &mc.pool.operatorsRules)
 	*f = operatorsRuleFrame{r: r, min: min}
 	return f
 }
@@ -250,6 +255,7 @@ func (mc *ivmMachine) bodyFrame(entry int, r *core.Rule, min int, block bool) *b
 		mc.pool.bodies = mc.pool.bodies[:n-1]
 	} else {
 		f = &bodyFrame{}
+		mc.p.MemKept += uint64(unsafe.Sizeof(bodyFrame{})) + 2*uint64(unsafe.Sizeof(iframe(nil)))
 	}
 	*f = bodyFrame{b: mc.newBody(entry, r, min), block: block}
 	return f
@@ -264,6 +270,7 @@ func (mc *ivmMachine) callFrame(r *core.Rule, min int, memoized bool) *callFrame
 		mc.pool.calls = mc.pool.calls[:n-1]
 	} else {
 		f = &callFrame{}
+		mc.p.MemKept += uint64(unsafe.Sizeof(callFrame{})) + 2*uint64(unsafe.Sizeof(iframe(nil)))
 	}
 	*f = callFrame{r: r, min: min, memoized: memoized}
 	return f

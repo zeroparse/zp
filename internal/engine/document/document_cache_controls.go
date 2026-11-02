@@ -31,6 +31,30 @@ func (d *Document) ResetHistory() {
 	d.previousSnapshot = weak.Pointer[snapshotGraph]{}
 }
 
+// historyBytes returns the bytes of the repetition records and edits the Document retains, as a
+// parse under a memory limit counts them. The memo table, the child stack and the backend's stacks
+// are counted by the parse itself (core.BudgetControl.MemoryUsed).
+func (d *Document) historyBytes() uint64 {
+	var n uint64
+	for _, run := range d.runs {
+		n += uint64(unsafe.Sizeof(core.RunRecord{})) + uint64(cap(run.Elems))*uint64(unsafe.Sizeof(core.RunElem{}))
+	}
+	return n + uint64(cap(d.edits))*uint64(unsafe.Sizeof(core.DocEdit{}))
+}
+
+// retainedBytes returns the bytes a parse under a memory limit starts with: the history, the memo
+// table's count, and the kept child and backend stacks.
+func (d *Document) retainedBytes() uint64 {
+	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*value.Node)(nil)))
+	if d.memo != nil {
+		n += d.memo.ChargedBytes()
+	}
+	if d.machine != nil {
+		n += d.machine.StackBytes()
+	}
+	return n
+}
+
 // CacheStats returns a point-in-time estimate of cache-owned retained buffers.
 // It does not measure process heap usage or bytes returned to the OS.
 func (d *Document) CacheStats() CacheStats {

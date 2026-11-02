@@ -377,7 +377,13 @@ func machineOf(p *core.Parser) *Machine {
 	return mc
 }
 
-func (mc *Machine) SplitChunks() { mc.funcSlab = nil }
+// SplitChunks keeps the position chunk, so its bytes stay charged.
+func (mc *Machine) SplitChunks() {
+	mc.funcSlab = nil
+	if len(mc.posSlab) > 0 {
+		mc.p.MemUsed += core.PtrChunk * uint64(unsafe.Sizeof(0))
+	}
+}
 
 func (mc *Machine) ClearInactive() { core.ClearSpend(mc.p, mc.vals[len(mc.vals):cap(mc.vals)]) }
 
@@ -414,6 +420,12 @@ func (mc *Machine) RetainedBytes() uint64 {
 	return uint64(cap(mc.vals)) * uint64(unsafe.Sizeof(any(nil)))
 }
 
+func (mc *Machine) StackBytes() uint64 {
+	return mc.RetainedBytes() + uint64(cap(mc.ents))*uint64(unsafe.Sizeof(vmEntry{})) +
+		uint64(cap(mc.labs))*uint64(unsafe.Sizeof(labState{})) + uint64(cap(mc.reps))*uint64(unsafe.Sizeof(repState{})) +
+		uint64(cap(mc.lists))*uint64(unsafe.Sizeof(0)) + uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*core.RunState)(nil)))
+}
+
 // NewMachine returns VM state that holds vals as its value stack, as a Document keeps it between
 // parses.
 func NewMachine(vals []any) *Machine { return &Machine{vals: vals} }
@@ -433,6 +445,7 @@ func (mc *Machine) newFunc(f vmFunc) *vmFunc {
 			return n
 		}
 		mc.funcSlab = make([]vmFunc, core.NodeChunk/4)
+		mc.p.MemUsed += core.NodeChunk / 4 * uint64(unsafe.Sizeof(vmFunc{}))
 	}
 	n := &mc.funcSlab[0]
 	mc.funcSlab = mc.funcSlab[1:]
@@ -1386,6 +1399,7 @@ func (vm *Program) isStreamRepeat(ip int) bool {
 func (mc *Machine) newPos(pos int) *int {
 	if len(mc.posSlab) == 0 {
 		mc.posSlab = make([]int, core.PtrChunk)
+		mc.p.MemUsed += core.PtrChunk * uint64(unsafe.Sizeof(0))
 	}
 	n := &mc.posSlab[0]
 	mc.posSlab = mc.posSlab[1:]

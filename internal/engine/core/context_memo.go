@@ -189,6 +189,9 @@ type ctxTable struct {
 	heads map[ctxHeadKey]*[]*ctxSet
 	jumps map[jumpKey][]jumpRec
 	canon map[canonKey]canonRec
+	// bytes counts the storage the table has taken, for the memory limit (heldBytes). It goes with
+	// the table when the table is dropped.
+	bytes uint64
 }
 
 // keptSeedResult is a result that read a seed, kept for CtxKeepSeedResults.
@@ -426,7 +429,7 @@ func (p *Parser) table(pos, gp int, create bool) *ctxTable {
 	if !create {
 		return nil
 	}
-	t := &ctxTable{pos: pos, depth: gp, heads: map[ctxHeadKey]*[]*ctxSet{}}
+	t := &ctxTable{pos: pos, depth: gp, heads: map[ctxHeadKey]*[]*ctxSet{}, bytes: ctxTableBytes}
 	p.ctxs = append(p.ctxs, t)
 	return t
 }
@@ -616,6 +619,7 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	if sets == nil {
 		sets = new([]*ctxSet)
 		t.heads[h] = sets
+		t.bytes += ctxHeadBytes
 	}
 	var set *ctxSet
 	for _, s := range *sets {
@@ -628,8 +632,10 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	if set == nil {
 		set = &ctxSet{seeds: seeds, obs: obs, vals: map[valsKey]*ctxSlot{}}
 		*sets = append(*sets, set)
+		t.bytes += ctxSetBytes + uint64(len(seeds))*growKeyBytes + uint64(len(obs))*4
 	}
 	slot.deps = ds
+	t.bytes += ctxSlotBytes + uint64(len(ds))*sdepBytes + uint64(len(slot.env))*anyBytes + uint64(len(slot.exp))*expIDBytes
 	link := set.vals[k]
 	for x := link; x != nil; x = x.next {
 		p.Spend()
@@ -764,6 +770,9 @@ func (p *Parser) canonicalSeed(pos, gp int, g growKey, e *MemoEntry) (*MemoEntry
 		if (p.ContextMemoUnexamined || c.e.Examined == e.Examined && c.e.From == e.From) && len(c.e.Errs) == 0 && nodesEqual(p, c.e.Node, e.Node, &budget) {
 			return c.e, c.id
 		}
+	}
+	if _, ok := t.canon[ck]; !ok {
+		t.bytes += canonBytes
 	}
 	t.canon[ck] = canonRec{e: e, id: id}
 	return e, id

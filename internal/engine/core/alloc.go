@@ -21,11 +21,24 @@ const (
 func (p *Parser) splitChunks() {
 	if len(p.NodeSlab) < NodeChunk/8 || p.NodeChunks >= 2 {
 		p.NodeSlab, p.PtrSlab, p.fieldSlab = nil, nil, nil
+		// The chunks let go of hold the elements delivered so far: their bytes are returned,
+		// except those of the chunks kept (the expectation chunk in use and the frame scratch
+		// here, the backend's in SplitChunks).
+		p.MemUsed = uint64(cap(p.Arena)) * expIDBytes
+		if p.Control != nil {
+			// The text snapshot in use stays held; the values before it were delivered.
+			p.Control.values = 0
+			if StreamTextSnapshots && p.StreamText.Source != "" {
+				p.Control.values = uint64(len(p.StreamText.Source)) + uint64(cap(p.StreamText.Offsets))*4
+			}
+		}
 		if p.Backend != nil {
 			p.Backend.SplitChunks()
 		}
 		if !StreamFrameScratch {
 			p.FrameSlab = nil
+		} else {
+			p.MemUsed += uint64(cap(p.FrameSlab)) * frameBytes
 		}
 		p.NodeChunks = 0
 	}
@@ -66,6 +79,7 @@ func (p *Parser) Nodes(n int) []*value.Node {
 		return []*value.Node{}
 	}
 	if n > PtrChunk/4 {
+		p.MemUsed += uint64(n) * ptrBytes
 		return make([]*value.Node, n)
 	}
 	if len(p.PtrSlab) < n {
@@ -73,6 +87,7 @@ func (p *Parser) Nodes(n int) []*value.Node {
 			return make([]*value.Node, n)
 		}
 		p.PtrSlab = make([]*value.Node, PtrChunk)
+		p.MemUsed += PtrChunk * ptrBytes
 	}
 	s := p.PtrSlab[:n:n]
 	p.PtrSlab = p.PtrSlab[n:]
@@ -98,6 +113,7 @@ func (p *Parser) DropKids(base int) {
 // beyond n reallocates, so neighbouring lists in the chunk are never overwritten.
 func (p *Parser) fields(n int) value.Fields {
 	if n > NodeChunk/4 {
+		p.MemUsed += uint64(n) * fieldBytes
 		return make(value.Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
@@ -105,6 +121,7 @@ func (p *Parser) fields(n int) value.Fields {
 			return make(value.Fields, 0, n)
 		}
 		p.fieldSlab = make([]value.NodeField, NodeChunk)
+		p.MemUsed += NodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]
 	p.fieldSlab = p.fieldSlab[n:]
@@ -133,6 +150,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 				return &Frame{Vals: make([]*value.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, 0, NodeChunk)
+			p.MemUsed += NodeChunk * frameBytes
 		}
 		p.FrameSlab = p.FrameSlab[:len(p.FrameSlab)+1]
 		f = &p.FrameSlab[len(p.FrameSlab)-1]
@@ -142,6 +160,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 				return &Frame{Vals: make([]*value.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, NodeChunk)
+			p.MemUsed += NodeChunk * frameBytes
 		}
 		f = &p.FrameSlab[0]
 		p.FrameSlab = p.FrameSlab[1:]
@@ -206,9 +225,15 @@ func (a *Arena[T]) reset(n int) {
 // StartStreamChunks separates live prefix values from element storage.
 // Only the top-level frame remains active at a stream repetition boundary.
 func (p *Parser) StartStreamChunks() {
+	// The chunks of the prefix stay live for the whole stream: keep them charged once NodeChunks
+	// and MemUsed no longer count them. The backend charges again the chunks it keeps
+	// (SplitChunks), which then move from the prefix's count to MemUsed.
+	p.MemKept += uint64(max(p.NodeChunks, 0))*NodeChunk*nodeBytes + p.MemUsed
+	p.MemUsed = 0
 	p.NodeSlab, p.PtrSlab, p.fieldSlab = nil, nil, nil
 	if p.Backend != nil {
 		p.Backend.SplitChunks()
+		p.MemKept -= min(p.MemKept, p.MemUsed)
 	}
 	p.NodeChunks = 0
 	if StreamFrameScratch {

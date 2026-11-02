@@ -182,6 +182,11 @@ type Parser struct {
 	skip       skipWalk
 	// Scratch holds the pooled buffers the parser uses (AcquirePooledParser), or nil.
 	Scratch *scratch
+	// MemUsed counts the bytes of the chunks the parse has taken (budget_memory.go), apart from
+	// node chunks, which NodeChunks counts. A stream returns those of the elements it has
+	// delivered when it splits its chunks. MemKept counts what a stream keeps across its commits:
+	// the node chunks of its prefix and the iterative VM's frames.
+	MemUsed, MemKept uint64
 	// NodeChunks counts the node chunks allocated since the last splitChunks.
 	// A negative count tracks the exact-size prefix budget before #stream.
 	NodeChunks int
@@ -212,6 +217,9 @@ type BackendState interface {
 	Release()
 	// RetainedBytes estimates the memory of the buffers the state keeps.
 	RetainedBytes() uint64
+	// StackBytes returns the bytes of the stacks the state holds, by their capacity, for the
+	// memory limit.
+	StackBytes() uint64
 }
 
 type MemoKey struct {
@@ -415,6 +423,7 @@ func (p *Parser) Keep(ids []ExpID) []ExpID {
 	if cap(p.Arena)-len(p.Arena) < len(ids) {
 		// Allocate per chunk (an older chunk stays alive only while slices into it remain).
 		p.Arena = make([]ExpID, 0, max(1024, len(ids)))
+		p.MemUsed += uint64(cap(p.Arena)) * expIDBytes
 	}
 	off := len(p.Arena)
 	p.Arena = AppendSpend(p, p.Arena, ids)
@@ -535,6 +544,7 @@ func (p *Parser) memoEnv(r *Rule) []any {
 	if p.Env == p.initEnv && r.InitVals != nil && (!BudgetControlsEnabled || p.Control == nil) {
 		return r.InitVals
 	}
+	p.ChargeValueBytes(len(r.VarSlots) * int(anyBytes))
 	return p.EnvValues(r.VarSlots)
 }
 
@@ -696,7 +706,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 		}
 		e = p.entry(st.ctx)
 		*e = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: p.Hw, From: p.lw, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen,
-			Positional: r.Positional, Errs: AppendSpend(p, []*SyntaxError(nil), p.Recovered[st.Rec:])}
+			Positional: r.Positional, Errs: p.copyErrors(p.Recovered[st.Rec:])}
 	}
 	far, inner := p.Unisolate(st.exp)
 	e.Far, e.Expected = far, p.Keep(inner)
@@ -871,7 +881,7 @@ func (p *Parser) GrowStep(g *GrowState, v *value.Node, ok bool) {
 			// Only this growth holds its replaced seed.
 			p.Memo.Retire(old)
 		}
-		*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: AppendSpend(p, []*SyntaxError(nil), p.Recovered[g.Rec:])}
+		*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.copyErrors(p.Recovered[g.Rec:])}
 		if p.Missing != nil {
 			p.RecordMissingSeed(g.Best, g.missing)
 		}
@@ -894,7 +904,7 @@ func (p *Parser) GrowStep(g *GrowState, v *value.Node, ok bool) {
 	res := new(MemoEntry)
 	*res = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: examined, From: from, Growing: true, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen}
 	if ok {
-		res.Errs = AppendSpend(p, []*SyntaxError(nil), p.Recovered[g.Rec:])
+		res.Errs = p.copyErrors(p.Recovered[g.Rec:])
 	} else {
 		res.End = g.start
 	}
@@ -928,7 +938,9 @@ func (p *Parser) advance(g *GrowState, res *MemoEntry, rid uint64, st runStep) b
 	}
 	if grew && !other && len(res.Errs) == 0 {
 		st.deps = obs
+		c := cap(g.run)
 		g.run = append(g.run, st)
+		p.MemUsed += uint64(cap(g.run)-c)*runStepBytes + uint64(cap(obs))*sdepBytes
 	} else {
 		p.recordJumps(g)
 	}
@@ -976,6 +988,7 @@ func (p *Parser) recordJumps(g *GrowState) {
 		k := jumpKey{g: g.growKey(), present: g.present, seed: s.seed}
 		if !p.jumpShadowed(t.jumps[k], &acc) {
 			t.jumps[k] = append(t.jumps[k], acc)
+			t.bytes += jumpBytes + uint64(len(acc.deps))*sdepBytes + uint64(len(acc.exp))*expIDBytes
 		}
 	}
 	g.run = g.run[:0]
@@ -1357,6 +1370,7 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *SyntaxError {
 		}
 	}
 	p.sortExpected(e.Expected)
+	p.chargeError(e)
 	e.Line, e.Col = p.lineCol(pos)
 	return e
 }

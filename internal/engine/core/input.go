@@ -772,6 +772,11 @@ func (p *Parser) Commit(pos int) {
 			p.Recovered = nil
 		}
 		p.Diagnosed = 0
+		if BudgetControlsEnabled && p.Control != nil {
+			// With a diagnostic limit, the errors are now held by the tail, which counts
+			// those it keeps; without one, Recovered keeps them and errs keeps counting them.
+			p.Control.errs = 0
+		}
 	}
 }
 

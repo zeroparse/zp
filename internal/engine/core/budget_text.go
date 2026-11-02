@@ -17,6 +17,7 @@ func (in *Input) detachedText(start, end int) string {
 			n := min(4096, len(src)-off)
 			in.Control.Charge(uint64(n))
 			if off == 0 {
+				in.Control.chargeValueBytes(len(src))
 				out.Grow(len(src))
 			}
 			out.Write(src[off : off+n])
@@ -38,6 +39,7 @@ func (in *Input) detachedText(start, end int) string {
 		}
 		off += n
 	}
+	in.Control.chargeValueBytes(size)
 	out.Grow(size)
 	for off := 0; off < len(src); {
 		n := min(128, len(src)-off)

@@ -140,6 +140,18 @@ type ParseOption func(*engine.ParseOptions)
 // units for each unit of input in the position unit of the parse. Counts depend
 // on backend, input unit and version.
 //
+// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child
+// and field lists, memo entries and capture frames, the decoded input, the read buffer of a stream,
+// the working stacks, and the strings that actions build. Storage is counted, by its logical
+// capacity, when the parser takes it into use; a stream returns what its commits let go of, and
+// storage dropped by backtracking is not returned. The input string and anything a callback keeps
+// are not counted. The default is Unlimited, and a finite Memory makes the parse controlled, as a
+// finite Compute does. The count is checked at the compute polls, every 256 units, and at the end
+// of the parse, so a parse can pass the limit by what it allocates between two polls before it
+// fails with a LimitError of kind LimitMemory. A Document's count starts at the bytes it retains
+// from earlier parses; when those alone exceed the limit, the Document drops its history first,
+// as ResetHistory does. Counts depend on backend, input unit and version.
+//
 // Input bounds the length of the input in the position unit of the parse. Its default is
 // Unlimited. A longer input fails before any work with a LimitError of kind LimitInput; a stream
 // fails when the parser reaches a unit beyond the limit.
@@ -175,6 +187,8 @@ const (
 	LimitInput = limits.LimitInput
 	// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth limit.
 	LimitDepth = limits.LimitDepth
+	// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
+	LimitMemory = limits.LimitMemory
 )
 
 // ErrLimit identifies limit failures through errors.Is.

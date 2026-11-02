@@ -32,8 +32,9 @@ func wantLimit(t *testing.T, what string, err error, kind zp.LimitKind, message 
 	}
 }
 
-// parse, trace, profile and explain apply -max-compute and -max-input to their parse: a small budget
-// interrupts it, a short -max-input rejects the input, and unlimited and zero run it.
+// parse, trace, profile and explain apply -max-compute, -max-memory and -max-input to their parse: a
+// small budget or memory limit interrupts it, a short -max-input rejects the input, and unlimited and
+// zero run it.
 func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 	g := writeFile(t, "limits.zp", limitsGrammar)
 	const input = "abcdefghijklmnopqrstuvwxyz"
@@ -42,7 +43,7 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 			args := func(extra ...string) []string {
 				return append([]string{cmd, "-g", g, "-i", input}, extra...)
 			}
-			for _, ok := range [][]string{nil, {"-max-compute", "0"}, {"-max-compute", "unlimited"}, {"-max-input", "unlimited"}, {"-max-input", "26"}, {"-max-compute", "1000", "-max-input", "100"}} {
+			for _, ok := range [][]string{nil, {"-max-compute", "0"}, {"-max-compute", "unlimited"}, {"-max-input", "unlimited"}, {"-max-input", "26"}, {"-max-compute", "1000", "-max-input", "100"}, {"-max-memory", "0"}, {"-max-memory", "unlimited"}, {"-max-memory", "100000000"}} {
 				if _, err := runCLI(t, "", args(ok...)...); err != nil {
 					t.Errorf("%v: %v", ok, err)
 				}
@@ -53,6 +54,10 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 				if err != nil || !strings.Contains(out, "result: parse compute limit exceeded: limit 5") {
 					t.Errorf("-max-compute 5: error %v\n%s", err, out)
 				}
+				out, err = runCLI(t, "", args("-max-memory", "5")...)
+				if err != nil || !strings.Contains(out, "result: parse memory limit exceeded: limit 5") {
+					t.Errorf("-max-memory 5: error %v\n%s", err, out)
+				}
 				out, err = runCLI(t, input, cmd, "-g", g, "-max-input", "3")
 				if err != nil || !strings.Contains(out, "result: parse input limit exceeded: limit 3, length 26") {
 					t.Errorf("-max-input 3: error %v\n%s", err, out)
@@ -61,6 +66,8 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 			}
 			_, err := runCLI(t, "", args("-max-compute", "5")...)
 			wantLimit(t, "-max-compute 5", err, zp.LimitCompute, "parse compute limit exceeded: limit 5")
+			_, err = runCLI(t, "", args("-max-memory", "5")...)
+			wantLimit(t, "-max-memory 5", err, zp.LimitMemory, "parse memory limit exceeded: limit 5")
 			_, err = runCLI(t, "", args("-max-input", "25")...)
 			wantLimit(t, "-max-input 25", err, zp.LimitInput, "parse input limit exceeded: limit 25, length 26")
 			// The input comes from standard input without -i, and the limit applies to it too.

@@ -52,6 +52,7 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *value.No
 	p := core.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = core.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
+	control.AttachMemory(p)
 	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.DeferMemo = true
@@ -290,6 +291,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 	}
 	control.Check()
 	p := core.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
+	control.AttachMemory(p)
 	// A limit beyond math.MaxInt bounds no stream.
 	if lim := o.Limits.Input; lim != 0 && lim != limits.Unlimited && lim <= math.MaxInt {
 		p.Input.MaxInput = int(lim)

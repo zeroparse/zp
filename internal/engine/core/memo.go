@@ -1,6 +1,9 @@
 package core
 
-import "slices"
+import (
+	"slices"
+	"unsafe"
+)
 
 // MemoTable is the memo table ((rule, position, binding level) → result). It keeps a linked
 // list of entries per position. Positions are offsets from the start of the input; entries at
@@ -31,9 +34,14 @@ type MemoTable struct {
 	// Calls counts, per rule number, the calls and the repeated calls at a position; once repeats
 	// are frequent, the rule is memoized on the first call (eager).
 	Calls []SeenCalls
+	// MemBytes counts the bytes of the slots and first-call tables the table has taken into use
+	// (budget_memory.go, ChargedBytes). Reset clears it.
+	MemBytes uint64
 	// Index holds the hash index of each position whose chain has more entries
 	// than a lookup walks (memoScan), by position. Splice drops all of them.
 	Index map[int]memoIndex
+	// IndexBytes counts the bytes of the indexes in Index, for the memory limit (ChargedBytes).
+	IndexBytes uint64
 }
 
 // SeenRulePages caches the last visited page beside its directory. Most calls
@@ -55,6 +63,7 @@ type SeenCalls struct {
 func (t *MemoTable) firstCall(pos, r int) bool {
 	if t.Calls == nil {
 		t.Calls = make([]SeenCalls, t.Stride)
+		t.MemBytes += uint64(t.Stride) * uint64(unsafe.Sizeof(SeenCalls{}))
 	}
 	c := &t.Calls[r]
 	if c.Eager {
@@ -137,6 +146,7 @@ func markSeenPage(page *[16]uint64, pos int) bool {
 func (t *MemoTable) sparsePage(pos, r int) *[16]uint64 {
 	if len(t.Pages) != t.Stride {
 		t.Pages = make([]SeenRulePages, t.Stride)
+		t.MemBytes += uint64(t.Stride) * uint64(unsafe.Sizeof(SeenRulePages{}))
 	}
 	dir := &t.Pages[r]
 	at := pos >> 10
@@ -144,6 +154,7 @@ func (t *MemoTable) sparsePage(pos, r int) *[16]uint64 {
 	if page == nil || dir.at != at {
 		pages := dir.Pages
 		if at >= len(pages) {
+			t.MemBytes += uint64(at+1-len(pages)) * uint64(unsafe.Sizeof((*[16]uint64)(nil)))
 			if at < cap(pages) {
 				pages = pages[:at+1]
 			} else {
@@ -156,6 +167,7 @@ func (t *MemoTable) sparsePage(pos, r int) *[16]uint64 {
 		page = pages[at]
 		if page == nil {
 			page = t.BitPages.Alloc()
+			t.MemBytes += uint64(unsafe.Sizeof(*page))
 			pages[at] = page
 		}
 		dir.Last, dir.at = page, at
@@ -201,6 +213,9 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 		i += t.GapLen
 	}
 	if i >= len(t.Slots) {
+		// The slot array is charged by its length, not its capacity, so the count does not
+		// depend on the capacity an earlier parse left.
+		t.MemBytes += uint64(i+1-len(t.Slots)) * memoSlotBytes
 		if i < cap(t.Slots) {
 			t.Slots = t.Slots[:i+1]
 		} else {
@@ -234,6 +249,9 @@ func (t *MemoTable) Put(k MemoKey, e *MemoEntry) {
 		h, _ := memoKeyHash(e.Rule, e.Min, e.missingSilent, e.Env)
 		slot, x := ix.probe(h, same)
 		ix[slot] = e
+		if x == nil {
+			t.IndexBytes += memoIndexEntryBytes
+		}
 		if x != nil {
 			link = &t.Slots[i]
 			for *link != x {
@@ -277,6 +295,16 @@ func (t *MemoTable) Alloc() *MemoEntry {
 	e := &t.slab[0]
 	t.slab = t.slab[1:]
 	return e
+}
+
+// ChargedBytes returns the memory count of the table: the chunks in use, whether kept from an
+// earlier parse or new, so that the count does not depend on what an earlier parse left, the
+// first-call bit set by its length, the slots and first-call tables it has taken (MemBytes), and
+// the hash indexes of long chains (IndexBytes).
+// The chunks and the bit set are counted from the state that Alloc and MarkSeen already keep, so
+// that both stay inlinable.
+func (t *MemoTable) ChargedBytes() uint64 {
+	return t.MemBytes + t.IndexBytes + uint64(t.used)*256*memoBytes + uint64(len(t.Seen))*8
 }
 
 // Retire releases all result references and makes an unlinked entry reusable.
@@ -335,6 +363,7 @@ func (t *MemoTable) Prune(pos int) {
 			e = next
 		}
 	}
+	t.MemBytes -= min(t.MemBytes, uint64(min(k, len(t.Slots)))*memoSlotBytes)
 	if k >= len(t.Slots) {
 		clear(t.Slots)
 		t.Slots = t.Slots[:0]
@@ -346,7 +375,7 @@ func (t *MemoTable) Prune(pos int) {
 	}
 	for p := range t.Index {
 		if p < pos {
-			delete(t.Index, p)
+			t.dropIndex(p)
 		}
 	}
 	t.Base = pos
@@ -358,7 +387,7 @@ func (t *MemoTable) Prune(pos int) {
 // advance reports whether each is still valid (one at start kept as it was, or one at end shifted
 // by delta). Only tables without pruning (base 0) are spliced.
 func (t *MemoTable) Splice(start, end, delta int, advance func(e *MemoEntry) bool) {
-	t.Index = nil // entries move to other positions
+	t.Index, t.IndexBytes = nil, 0 // entries move to other positions
 	// Detach the entries at [start, end] and keep the valid ones.
 	var stay *MemoEntry
 	for pos := start; pos <= end; pos++ {
@@ -382,6 +411,7 @@ func (t *MemoTable) Splice(start, end, delta int, advance func(e *MemoEntry) boo
 	}
 	// Move the gap to start, take [start, end) into it, and give the new positions from it.
 	if end+t.GapLen >= len(t.Slots) { // room for position end, where an entry kept at start may go
+		t.MemBytes += uint64(end+t.GapLen+1-len(t.Slots)) * memoSlotBytes
 		t.Slots = append(t.Slots, make([]*MemoEntry, end+t.GapLen+1-len(t.Slots))...)
 	}
 	switch {
@@ -398,6 +428,7 @@ func (t *MemoTable) Splice(start, end, delta int, advance func(e *MemoEntry) boo
 	if n > t.GapLen {
 		// Widen the gap, with room for later insertions.
 		more := n - t.GapLen + max(1024, len(t.Slots)/16)
+		t.MemBytes += uint64(more) * memoSlotBytes
 		grown := make([]*MemoEntry, len(t.Slots)+more)
 		copy(grown, t.Slots[:t.Gap])
 		copy(grown[t.Gap+t.GapLen+more:], t.Slots[t.Gap+t.GapLen:])

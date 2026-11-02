@@ -17,6 +17,7 @@ func (in *Input) controlledSnapshotText(start, end int) string {
 	}
 	// Reusing the previous cache's offset backing array could expose partial
 	// writes after interruption; active snapshots use separate parser storage.
+	in.Control.chargeValueBytes(4 * (candidate.End - candidate.Base + 1))
 	candidate.Offsets = make([]int32, candidate.End-candidate.Base+1)
 	i := 0
 	for off := 0; off < len(candidate.Source); {

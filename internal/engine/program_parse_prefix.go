@@ -48,6 +48,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 	p := core.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = core.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
+	control.AttachMemory(p)
 	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.DeferMemo = true

@@ -69,6 +69,8 @@ type skipSlots struct {
 	floor int
 	// kept is the number of records after dropped ones were last removed.
 	kept int
+	// expBytes counts the expectations of the records stored, for the memory limit.
+	expBytes uint64
 }
 
 // marked reports whether the slot of pos is not fresh. s may be nil, with every slot fresh.
@@ -114,6 +116,7 @@ func (s *skipSlots) put(pos int, r skipRecord) {
 			s.recs = make(map[int]skipRecord)
 		}
 		s.recs[pos] = r
+		s.expBytes += uint64(len(r.exp)) * expIDBytes
 	}
 }
 
