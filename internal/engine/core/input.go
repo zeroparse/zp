@@ -142,6 +142,17 @@ type Input struct {
 	StreamText StreamTextSnapshot
 	// Only Documents use pieces. Batch and stream inputs retain their slices.
 	Pieces *documentPieces
+	// streamLines indexes the lines of a stream buffer for lineCol; it is made by the first error
+	// of a stream parse, and is nil for every other input.
+	streamLines *streamLines
+}
+
+// streamLines holds the positions after each newline in [Base, scanned) of a stream buffer, in
+// ascending order, and scanned, the position up to which lineCol has scanned. Discard drops the
+// entries up to the new base.
+type streamLines struct {
+	starts  []int
+	scanned int
 }
 
 // offsLimit is the largest source whose offset table holds int32 offsets; a variable so that
@@ -616,24 +627,32 @@ func (in *Input) lineCol(pos int) (int, int) {
 		i, _ := slices.BinarySearch(in.Lines, pos+1)
 		return i, pos - in.Lines[i-1] + 1
 	}
-	line, col := in.BaseLine, in.BaseCol
-	n := in.Loaded()
-	for i := in.Base; i < pos && i < n; i++ {
+	// A stream buffer: scan each unit once, whatever the order of the queries, and look the
+	// position up in the line starts found so far.
+	pos = max(min(pos, in.Loaded()), in.Base)
+	if in.streamLines == nil {
+		in.streamLines = &streamLines{}
+	}
+	sl := in.streamLines
+	sl.scanned = max(sl.scanned, in.Base)
+	for ; sl.scanned < pos; sl.scanned++ {
 		in.spendRead(1)
 		var nl bool
 		if in.Unit == Bytes {
-			nl = in.Bs[i-in.Base] == '\n'
+			nl = in.Bs[sl.scanned-in.Base] == '\n'
 		} else {
-			nl = in.In[i-in.Base] == '\n'
+			nl = in.In[sl.scanned-in.Base] == '\n'
 		}
 		if nl {
-			line++
-			col = 1
-		} else {
-			col++
+			sl.starts = append(sl.starts, sl.scanned+1)
 		}
 	}
-	return line, col
+	// k is the number of line starts at or before pos.
+	k, _ := slices.BinarySearch(sl.starts, pos+1)
+	if k == 0 {
+		return in.BaseLine, in.BaseCol + pos - in.Base
+	}
+	return in.BaseLine + k, pos - sl.starts[k-1] + 1
 }
 
 // buildLines builds the table of the positions where lines start.
@@ -698,6 +717,11 @@ func (in *Input) Discard(keep int) {
 		return
 	}
 	in.BaseLine, in.BaseCol = in.lineCol(keep)
+	// Drop the line starts up to the new base; lineCol has scanned up to keep (or the end).
+	if sl := in.streamLines; sl != nil {
+		k, _ := slices.BinarySearch(sl.starts, keep+1)
+		sl.starts = sl.starts[:copy(sl.starts, sl.starts[k:])]
+	}
 	if in.Unit == Bytes {
 		in.Bs = in.Bs[:CopyStreamPrefix(in.Control, in.Bs, in.Bs[n:])]
 	} else {

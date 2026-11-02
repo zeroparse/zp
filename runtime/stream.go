@@ -7,6 +7,7 @@ import (
 	"io"
 	"iter"
 	"math"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -51,6 +52,10 @@ type streamInput struct {
 	// lines holds the line starts once the whole input is loaded and
 	// nothing was discarded.
 	lines []int
+	// nlStarts holds the positions after each newline in [base, nlScanned) of the buffer, in
+	// ascending order; nlScanned is the position up to which streamLineCol has scanned.
+	nlStarts  []int
+	nlScanned int
 }
 
 const streamTextChunk = 1024
@@ -467,6 +472,9 @@ func (p *Parser) streamDiscard(keep int) {
 		return
 	}
 	s.baseLine, s.baseCol = p.streamLineCol(keep)
+	// Drop the line starts up to the new base; streamLineCol has scanned up to keep.
+	k, _ := slices.BinarySearch(s.nlStarts, keep+1)
+	s.nlStarts = s.nlStarts[:copy(s.nlStarts, s.nlStarts[k:])]
 	if p.unit == Bytes {
 		p.SpendRead(uint64(len(s.bs) - n))
 		s.bs = s.bs[:copy(s.bs, s.bs[n:])]
@@ -744,24 +752,28 @@ func (p *Parser) streamLineCol(pos int) (int, int) {
 		}
 		return lo, pos - s.lines[lo-1] + 1
 	}
-	line, col := s.baseLine, s.baseCol
-	n := s.loaded()
-	for i := s.base; i < pos && i < n; i++ {
+	// A stream buffer: scan each unit once, whatever the order of the queries, and look the
+	// position up in the line starts found so far.
+	pos = max(min(pos, s.loaded()), s.base)
+	s.nlScanned = max(s.nlScanned, s.base)
+	for ; s.nlScanned < pos; s.nlScanned++ {
 		p.SpendRead(1)
 		var nl bool
 		if p.unit == Bytes {
-			nl = s.bs[i-s.base] == '\n'
+			nl = s.bs[s.nlScanned-s.base] == '\n'
 		} else {
-			nl = s.in[i-s.base] == '\n'
+			nl = s.in[s.nlScanned-s.base] == '\n'
 		}
 		if nl {
-			line++
-			col = 1
-		} else {
-			col++
+			s.nlStarts = append(s.nlStarts, s.nlScanned+1)
 		}
 	}
-	return line, col
+	// k is the number of line starts at or before pos.
+	k, _ := slices.BinarySearch(s.nlStarts, pos+1)
+	if k == 0 {
+		return s.baseLine, s.baseCol + pos - s.base
+	}
+	return s.baseLine + k, pos - s.nlStarts[k-1] + 1
 }
 
 // NewStreamIterator returns the iterator over the elements pull yields.

@@ -41,12 +41,11 @@ func streamSteps(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint64 
 	return hi
 }
 
-// TestStreamRecoverControl records that a stream parse of a grammar with #recover is
-// super-linear in measurement even when the skip of each recovery is constant, as the
-// classification in parsing.md states. The batch parse of the same grammar is linear. A runtime
-// that makes the stream parse linear fails this test, and the control then moves to the linear
-// set with the E8 controls.
-func TestStreamRecoverControl(t *testing.T) {
+// TestStreamRecoverLinear checks that a stream parse of a grammar with #recover is linear when the
+// skip of each recovery is constant, as the batch parse of the same grammar is. Each recovery
+// finds the line and column of its error in the buffer of the stream, which costs the units
+// that no earlier error scanned, not the size of the buffer.
+func TestStreamRecoverLinear(t *testing.T) {
 	t.Parallel()
 	const src = "rule main = (x / \"a\")* #stream $$\nrule x = (y #recover(skip=\"a\")) \"c\"\nrule y = \"b\"\n"
 	p, err := Compile(src)
@@ -54,8 +53,6 @@ func TestStreamRecoverControl(t *testing.T) {
 		t.Fatal(err)
 	}
 	skipWithoutBudget(t)
-	// The slopes approach 2 slowly because of the linear part of the cost: smaller sizes
-	// measure below the threshold of the order.
 	sizes := double(1000)
 	for _, b := range Backends {
 		var s Series
@@ -63,8 +60,8 @@ func TestStreamRecoverControl(t *testing.T) {
 		for _, n := range sizes {
 			s.Costs = append(s.Costs, Cost{Steps: streamSteps(t, p, rep("a", n), b)})
 		}
-		if got := Classify(s); got != Poly(2) {
-			t.Errorf("%s: %v (slopes %.2f) classified %v, want %v", BackendName(b), s.Costs, s.Slopes(), got, Poly(2))
+		if got := Classify(s); got != Linear {
+			t.Errorf("%s: %v (slopes %.2f) classified %v, want %v", BackendName(b), s.Costs, s.Slopes(), got, Linear)
 		}
 		t.Logf("%s: steps %v slopes %.2f", BackendName(b), s.Costs, s.Slopes())
 	}
