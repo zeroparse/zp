@@ -270,7 +270,7 @@ func TestClassifyComplexity(t *testing.T) {
 		{"Boolean toggled before a call", "var b bool\nrule main = r $$\nrule r = x:\"#\" {b := !b && len($x) > 0} r / \"y\" {b}\n", ClassLinear, 0},
 		{"counter divided by zero", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1 / v} r / \"y\" {v >= 0}\n", ClassLinear, 0},
 		{"rebinding after the left call", "var k int\nrule main = e $$\nrule e = e \"x\" {k := k + 1} / \"x\" {k >= 0}\n", ClassLinearEnv, 0},
-		{"non-leader cycle members", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, 0},
+		{"non-leader cycle members", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassLinear, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)
@@ -351,11 +351,19 @@ func TestClassifyMemoizedMembers(t *testing.T) {
 		{"growth started by a member, restarted after it", "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n", ClassUnknown, ""},
 		{"growth started by a member through a member", "rule main = a $$\nrule a = c sp [^!]* \"!\" / \"(\" c sp / \"n\"\nrule b = a\nrule c = b\nrule sp = \"+\"\n", ClassUnknown, ""},
 		{"growth started by a member from the start rule", "rule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n", ClassUnknown, ""},
-		{"E2", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, "later alternative a"},
+		// The last alternative of c enters the growth where the first two began, and they
+		// evaluate their scanning sources only inside calls that the memo answers.
+		{"E2", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassLinear, ""},
+		{"E2 through a memoized rule off the cycle", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" d \")\" \"y\" / \"(\" d \")\" \"z\" / a\nrule d = c\n", ClassLinear, ""},
+		// A body of the cycle scans at a position that is the same in each step, so the paths
+		// that enter the growth stay in the comparison.
+		{"E2 with a scan at a fixed position of the cycle", "rule main = c $$\nrule a = c \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, "later alternative a"},
+		{"E2 through a memoized call that reads a variable", "var v string\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" d \")\" \"y\" / \"(\" d \")\" \"z\" / a\nrule d = c {len(v) >= 0}\n", ClassUnknown, "later alternative a"},
+		{"E2 with a scanning source after the growth", "rule main = c [a-z]* $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, "later alternative a"},
+		// Each step evaluates [a-z]* after "(" again.
+		{"growth restarting a scan at a fixed position", "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n", ClassPoly, ""},
 		{"E2 with diverging variables", "var v string\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" {v := v + \"0\"} c \")\" \"y\" / \"(\" {v := v + \"1\"} c \")\" \"z\" / a {len(v) >= 0}\n", ClassExp, ""},
-		// The growth from the call of c in main no longer stops the classifier, but the first
-		// alternative of c is still compared with the last, which enters the growth.
-		{"member alternatives before its left call", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"[\" c \"]\" / a\n", ClassUnknown, "later alternative a"},
+		{"member alternatives before its left call", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"[\" c \"]\" / a\n", ClassLinear, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)

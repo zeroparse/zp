@@ -1129,7 +1129,7 @@ func (k *classifier) checkUnits() {
 		if !k.unitFailsAfterSource(u) {
 			continue
 		}
-		if ok, what := k.committing(u.self, u.conts, 0); !ok {
+		if ok, what := k.committing(u.self, k.withoutReentry(u), 0); !ok {
 			u.nc, u.witness = true, what
 		}
 	}

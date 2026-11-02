@@ -33,18 +33,10 @@ type Control struct {
 	// Positive marks a control that is linear and guards against a classifier or runtime that
 	// reports growth where there is none.
 	Positive bool
-	// BecomesLinear marks a negative control that the memoization of left-recursion cycle members
-	// makes linear in measurement, while its class stays one without a claim of linear cost; see
-	// Controls.
-	BecomesLinear bool
 }
 
 // Cap is the budget that stops an exponential control. It keeps the exponential cases short.
 const Cap = 20_000_000
-
-// becomesLinearLanded switches the controls marked BecomesLinear to their linear order: the
-// runtime memoizes left-recursion cycle members.
-const becomesLinearLanded = true
 
 // parens is the input of E2 and E3: n open parentheses, "n", then n closing ones, each followed
 // by "z".
@@ -54,11 +46,9 @@ func double(n int) []int { return []int{n, 2 * n, 4 * n} }
 
 // Controls returns the controls table. The negative controls record growth that the engine has
 // today: when a planned change makes one linear, its entry moves to the linear set by hand. The
-// negative E2 control is linear in measurement through the becomesLinearLanded switch, with a
-// class that claims no linear cost; the negative E8 controls (repeated, nested and alternating
-// walks) are linear in measurement through the records of skip runs, with classes that claim no
-// linear cost either; E1, E7 and E9 move when repetition runs are
-// reused in batch parses; E6 and E10 stay quadratic. The rebinding variants of E6 are positive
+// negative E8 controls (repeated, nested and alternating walks) are linear in measurement through
+// the records of skip runs, with classes that claim no linear cost; E1, E7 and E9 move when
+// repetition runs are reused in batch parses; E6 and E10 stay quadratic. The rebinding variants of E6 are positive
 // controls: a binding after the left call adds no growth, and the restart in E6 is the negative
 // control. Each source is a grammar from the measured families of the
 // grammar complexity design record; "main" is the start rule.
@@ -236,10 +226,13 @@ func Controls() []Control {
 			Source: "rule main = c $$\nrule a = \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n",
 			Input:  parens, Sizes: double(64), ShortSizes: double(32), Order: Linear, Class: ClassLinear,
 		},
+		// The cycle members are memoized outside the growths at their positions, and the last
+		// alternative of c enters the growth where the first two began, which they examine only
+		// inside the memoized call of c.
 		{
-			Name: "E2 non-leader cycle members", Family: "E2", BecomesLinear: true,
+			Name: "E2 non-leader cycle members", Family: "E2", Positive: true,
 			Source: "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n",
-			Input:  parens, Sizes: double(4), ShortSizes: double(3), Order: Exp, Capped: true, Class: ClassUnknown,
+			Input:  parens, Sizes: double(64), ShortSizes: double(32), Order: Linear, Class: ClassLinear,
 		},
 		// c is a member of the cycle led by a, called by s where the cycle does not grow, so its
 		// result is memoized there and the second alternative of s reuses it after the shared
@@ -328,6 +321,15 @@ func Controls() []Control {
 			Source: "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n",
 			Input:  func(n int) string { return rep("(", n) + "n" + rep("+", n) },
 			Sizes:  double(100), ShortSizes: double(50), Order: Poly(2), Class: ClassUnknown,
+		},
+		// The last alternative of c enters the growth where the first began, and each step of
+		// the growth evaluates the first again: its repetition after "(" scans the same input in
+		// every step.
+		{
+			Name: "Growth restarting a scan at a fixed position", Family: "growth steps",
+			Source: "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n",
+			Input:  func(n int) string { return "(" + rep("z", n) + "?" + rep("+", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
 		// A literal that both alternatives begin with puts the memoized call after it at the same
 		// position in both, so the second alternative reuses its result.
@@ -539,17 +541,5 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassExp,
 		},
 	}
-	cs = append(cs, rewriteControls()...)
-	for i := range cs {
-		if cs[i].BecomesLinear && becomesLinearLanded {
-			// The growth becomes linear, but the classifier counts cycle members as not memoized,
-			// since they are memoized only outside the growths they read: its class stays the one
-			// it reports, which claims no linear cost, so the control is not positive.
-			cs[i].Order, cs[i].Capped = Linear, false
-			// A series of a linear control needs sizes where fixed cost no longer dominates: the
-			// slopes of the E2 positive control are 0.98 and 0.99 from 64 and 0.97 and 0.98 from 32.
-			cs[i].Sizes, cs[i].ShortSizes = double(64), double(32)
-		}
-	}
-	return cs
+	return append(cs, rewriteControls()...)
 }

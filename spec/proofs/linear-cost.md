@@ -167,6 +167,11 @@ committing, which gives the following cases, one lemma each.
 4. *Words that exclude.* The continuation fails, or stops examining, before the
    end of the word with which the unit began, which the unit examined at most
    once more, with the character after it.
+5. *Paths that enter the growth again.* A path of a later alternative that
+   [enters the growth again](../runtime/parsing.md#conditions-for-linear-cost)
+   examines nothing that the alternative examined before its call of a
+   leader, and makes only local cost after it; Lemma 5 counts the steps that
+   the call starts.
 
 A unit that fails only before its sources examined input gives back no more
 input than its parts before the sources examined, which Lemma 1 bounds. A unit
@@ -221,6 +226,43 @@ condition 2 checks as any other unit. In the first step of a leader R, every
 left call of R reads the failed seed and fails without examining input, so only
 the paths of a unit of R that evaluate something else first can examine input in
 that step.
+
+A path of a later alternative that enters the growth again calls a leader R
+of the cycle at the position $q$ where the failed alternative A started,
+before it examines input. Two cases bound the call.
+
+- *A growth of the cycle is in progress there.* At $q$, the call reads the
+  growing result and makes no further call, by (G1) as used in
+  [Lemma 1 of the left-recursion proof](left-recursion.md#lemma-1-chains-at-one-position),
+  so it costs a constant. By
+  [Lemma 2 of the memoization proof](memoization.md#lemma-2-reading-an-open-growth)
+  only a call at $q$ of a rule of the cycle reads that growth, and this call
+  is one.
+- *No growth of the cycle is in progress there.* If the growth of R at $q$
+  has ended, the memo answers the call with its result, which read no growth
+  open at the start of the call
+  ([Lemma 3 of the memoization proof](memoization.md#lemma-3-answering-from-a-sound-entry)),
+  at a constant cost. Otherwise the call starts that growth. R is memoized,
+  so the growth happens once for each position, level and combination of the
+  values of the variables that R reads (Lemma 3), and it takes at most two
+  more steps than the length it consumes
+  ([Lemma 2 of the left-recursion proof](left-recursion.md#lemma-2-steps-of-a-growth)):
+  these are the steps that this lemma counts for every growth. Growths that
+  start at many positions, each over a long remainder, are not bounded here:
+  each starts at a call of a rule of the cycle that is not a left call, which
+  is a scanning source, so condition 2 checks the unit that contains it.
+
+Each step evaluates the bodies of the cycle at $q$ again, A among them when
+its rule is reached. A makes no left call of the cycle and evaluates its
+scanning sources only inside calls that are memoized at the call and read no
+variable. The bodies of the cycle evaluate every scanning source in the same
+way, at the positions that are the same in each step, before a left call of a
+leader that they always evaluate. So from the second step on, the memo answers
+those calls, and a step evaluates A again at a constant cost. What follows the
+call of R contains no scanning source up to the end of the parse, so its cost
+is local cost of the body evaluations that it continues, which Lemma 1 counts.
+Leaving these paths out of condition 2 therefore adds a constant for each
+evaluation of A, beyond the steps that are counted here.
 
 A leader R called at $p$ in a step of the growth of another leader S of its
 cycle grows there in the context of that growth. A step of R from a result

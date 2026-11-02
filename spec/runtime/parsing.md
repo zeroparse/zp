@@ -783,6 +783,27 @@ The conditions below use these terms.
   excluded at the start of a unit that begins with `"let" !idchar`, and a
   continuation `"=" !"="` at the start of an operator part `"=="` with its
   right operand.
+- A path of a later alternative of an alternative of a rule of a
+  left-recursion cycle **enters the growth again** when it reaches a left call
+  of a leader of the cycle before it examines the input, directly or through
+  left calls of other rules of the cycle, as the last alternative `a` does in
+  `c = "(" c ")" "y" / "(" c ")" "z" / a` with `a = c "+" / "n"`. The call of
+  the leader examines nothing that the alternative examined: while a growth of
+  the cycle is in progress at the position, it reads the growing result, and
+  otherwise the memo answers it after the growth there has ended, or it starts
+  that growth, once for each position. Each step of that growth evaluates the
+  bodies of the cycle again at the position, the alternative included. The
+  alternative is committing for such a path when all of the following hold:
+  the alternative makes no left call of the cycle and evaluates its scanning
+  sources only inside calls that are memoized at the call and read no
+  variable; the bodies of the rules of the cycle evaluate in the same way
+  every scanning source that they can evaluate before a left call of a leader
+  that they always evaluate, at positions that are the same in each step; and
+  what follows the call of the leader, through every call of a rule whose body
+  it ends, up to the end of the parse, contains no scanning source. The steps
+  after the first then find those calls in the memo, and what follows the
+  call examines a bounded amount of the input. Otherwise the path is compared
+  as any other.
 
 A grammar's cost from a start rule is at most proportional to n, times a
 constant that depends only on the grammar, when every rule that the start rule

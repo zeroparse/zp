@@ -212,8 +212,11 @@ type classifier struct {
 	// starters are the rules of cycles, other than leaders, whose left calls of leaders can start
 	// growths (startsGrowth); computed after the walk.
 	starters map[string]bool
-	vars     map[string][]string
-	varType  map[string]string
+	// fixed records, by cycle, whether the bodies of the cycle evaluate every scanning source at a
+	// position that is the same in each step of a growth inside a memoized call (fixedMemoized).
+	fixed   map[int]bool
+	vars    map[string][]string
+	varType map[string]string
 
 	nullRule    map[string]bool
 	firstRule   map[string]charset

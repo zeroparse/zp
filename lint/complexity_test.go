@@ -50,7 +50,7 @@ func TestSuperLinear(t *testing.T) {
 	// unknown has no witness.
 	for _, src := range []string{
 		"rule main = (a / \"a\")* $$\nrule a = \"a\" \"c\"\n",
-		"rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n",
+		"rule main = c $$\nrule a = c \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n",
 	} {
 		if got, _ := lintSource(t, src, options{Classify: true}); len(got) != 0 {
 			t.Errorf("%q: got %q", src, got)

@@ -181,14 +181,14 @@ func TestLintClassify(t *testing.T) {
 	if want := linear + ": the cost from start rule main is linear\n"; out != want || err != nil {
 		t.Errorf("linear: got %q %v, want %q", out, err, want)
 	}
-	unknown := writeFile(t, "u.zp", "@start\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n")
+	unknown := writeFile(t, "u.zp", "@start\nrule main = c $$\nrule a = c \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n")
 	out, err = runCLI(t, "", "lint", "-g", unknown, "-classify")
 	if err != nil || !strings.HasPrefix(out, unknown+": the cost from start rule main is unknown\n\treason: ") || strings.Contains(out, "[super-linear]") {
 		t.Errorf("unknown: %v\n%s", err, out)
 	}
 	// Of more reasons, the first three are shown.
-	more := writeFile(t, "m.zp", "@start\nrule main = c d $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n"+
-		"rule b = d \"+\" / \"n\"\nrule d = \"(\" d \")\" \"y\" / \"(\" d \")\" \"z\" / b\n")
+	more := writeFile(t, "m.zp", "@start\nrule main = c d $$\nrule a = c \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n"+
+		"rule b = d \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule d = \"(\" d \")\" \"y\" / \"(\" d \")\" \"z\" / b\n")
 	out, err = runCLI(t, "", "lint", "-g", more, "-classify")
 	if err != nil || strings.Count(out, "\treason: ") != 3 || !regexp.MustCompile(`\n\t\.\.\. and \d+ more\n$`).MatchString(out) {
 		t.Errorf("more reasons: %v\n%s", err, out)
