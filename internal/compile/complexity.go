@@ -205,8 +205,15 @@ type classifier struct {
 	scc       map[string]int // the strongly connected component of the call graph
 	recursive map[string]bool
 	memo      map[string]bool
-	vars      map[string][]string
-	varType   map[string]string
+	// members are the rules of left-recursion cycles, other than leaders, that are memoized at a
+	// call outside the growths of their cycle at its position; outside are those calls.
+	members map[string]bool
+	outside map[*grammar.Ref]bool
+	// starters are the rules of cycles, other than leaders, whose left calls of leaders can start
+	// growths (startsGrowth); computed after the walk.
+	starters map[string]bool
+	vars     map[string][]string
+	varType  map[string]string
 
 	nullRule    map[string]bool
 	firstRule   map[string]charset
@@ -246,7 +253,8 @@ func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, c
 	}
 	k.an = AnalyzeControlled(rules, control)
 	k.vars = ruleVariablesControlled(rules, control)
-	k.memo = memoizedRules(rules, k.an, control)
+	k.memo, k.members = memoizedRules(rules, k.an, control)
+	k.outside = map[*grammar.Ref]bool{}
 	for _, r := range rules {
 		k.calls[r.Name] = allCallsControlled(r.Expr, nil, control)
 	}
@@ -271,14 +279,15 @@ func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, c
 // rule that
 // contains #missing, directly or through its callees, is not memoized when missing tokens are
 // enabled, so it counts as not memoized unless it is a leader.
-func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *Control) map[string]bool {
+func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *Control) (out, members map[string]bool) {
 	transient := transientRules(rules, control)
 	missing := missingRules(rules, control)
-	out := map[string]bool{}
+	out, members = map[string]bool{}, map[string]bool{}
 	for _, r := range rules {
 		out[r.Name] = an.leaders[r.Name] || !an.cyclic[r.Name] && !transient[r.Name] && !missing[r.Name]
+		members[r.Name] = an.cyclic[r.Name] && !an.leaders[r.Name] && !transient[r.Name] && !missing[r.Name]
 	}
-	return out
+	return out, members
 }
 
 // missingRules returns the rules that contain #missing, directly or through their callees.
@@ -336,7 +345,13 @@ func (k *classifier) reachable(from string) map[string]bool {
 // shareable reports whether a call of the rule is answered alike in a unit and its continuation:
 // the rule reads no variable and is memoized or calls no rule.
 func (k *classifier) shareable(r *grammar.Ref) bool {
-	return r.Level != rhsLevel && len(k.vars[r.Name]) == 0 && (k.memo[r.Name] || len(k.calls[r.Name]) == 0)
+	return r.Level != rhsLevel && len(k.vars[r.Name]) == 0 && (k.memoAt(r) || len(k.calls[r.Name]) == 0)
+}
+
+// memoAt reports whether the memo answers the call r: the rule is memoized, or it is a member of a
+// cycle that is memoized and the call is outside the growths of its cycle at its position.
+func (k *classifier) memoAt(r *grammar.Ref) bool {
+	return k.memo[r.Name] || k.members[r.Name] && k.outside[r]
 }
 
 // sameCycle reports whether a and b are rules of one left-recursion cycle.

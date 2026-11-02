@@ -106,6 +106,10 @@ of that section is accounted for elsewhere:
 
 - a rule that is not memoized is evaluated once for each of its calls, which
   open step 7 bounds;
+- a rule of a cycle other than a leader, called by a call that is not a left
+  call, is outside every growth of its cycle at its position, so its result
+  read no growing result and the memo answers the next such call at the
+  position: these evaluations are within the bound above;
 - a call of a rule of a cycle in the context of growths at its position that
   finds no result computed with the same growing results and the same outcomes
   of the lookaheads it observed is evaluated again; such calls are a constant
@@ -144,8 +148,20 @@ committing, which gives the following cases, one lemma each.
    shared calls.
 2. *Shared calls.* A call that the unit and a continuation both evaluate first
    has the same result in both, by the [memoization theorem](memoization.md#theorem-memoization-never-changes-the-result)
-   when the rule is memoized, or by repeating only its own scan when it calls
-   no rule, so the continuation pays for it at most what the unit paid.
+   when the rule is memoized at both calls, or by repeating only its own scan
+   when it calls no rule, so the continuation pays for it at most what the
+   unit paid. A rule of a cycle other than a leader is memoized at a call that
+   is not a left call: a growth of its cycle at the position of the call that
+   was in progress would be evaluating, at that position, every rule from the
+   growing leader to the caller, so each of them would have a left call of the
+   next and lie on the cycle, and the call would be a left call. The call has
+   no growth in its context, its result reads no growing result, and the memo
+   stores it and answers the other call
+   ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)).
+   A literal that is not empty, with the same case sensitivity, that every path
+   of both begins with is shared too: both consume the same characters or both
+   fail where they begin, so what follows it starts at the same position in
+   both, and the continuation pays for it no more than the unit paid.
 3. *No source after the shared calls.* The input that the unit examines beyond
    its shared calls is bounded by Lemma 1.
 4. *Words that exclude.* The continuation fails, or stops examining, before the
@@ -188,6 +204,23 @@ the growth ends. With that continuation the cases of Lemma 4 apply to the
 failed unit as to any other: what the parser evaluates next, in this step or
 the next, includes everything that can examine again the input that the unit
 examined.
+
+A growth can also start at a call of a rule M of the cycle other than a
+leader that is not a left call: M's body reaches a leader through left calls,
+and that leader grows at the position. When the growth ends, the parser
+continues in M's body after the call of the leader and then after the call of
+M, so condition 2 checks the growing units against those paths. The same holds
+for what follows the growth at the end of any body of the cycle that a step
+completes: the call of the leader in M's body, or in the body of a rule that
+M reaches through left calls, is a seed read in the steps of other growths but
+the start of this one, so the end of the leader's body continues after it as
+after any call that starts a growth. Outside the steps, the call of M evaluates
+M's growing units once more, and those of the rules that it reaches through left
+calls, after the leader has grown, as alternatives that are not growing, which
+condition 2 checks as any other unit. In the first step of a leader R, every
+left call of R reads the failed seed and fails without examining input, so only
+the paths of a unit of R that evaluate something else first can examine input in
+that step.
 
 A leader R called at $p$ in a step of the growth of another leader S of its
 cycle grows there in the context of that growth. A step of R from a result

@@ -241,6 +241,15 @@ func Controls() []Control {
 			Source: "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n",
 			Input:  parens, Sizes: double(4), ShortSizes: double(3), Order: Exp, Capped: true, Class: ClassUnknown,
 		},
+		// c is a member of the cycle led by a, called by s where the cycle does not grow, so its
+		// result is memoized there and the second alternative of s reuses it after the shared
+		// literal; the growth that the call starts continues after the call.
+		{
+			Name: "E2 cycle member called outside its growth", Family: "E2", Positive: true,
+			Source: "rule main = s $$\nrule s = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\"\nrule a = c \"+\" / \"n\" / \"[\" s \"]\"\nrule c = a\n",
+			Input:  func(n int) string { return rep("([", n) + "(n)z" + rep("])z", n) },
+			Sizes:  double(64), ShortSizes: double(32), Order: Linear, Class: ClassLinear,
+		},
 		{
 			Name: "E3 environments, safe", Family: "E3", Positive: true,
 			Source: "var v string\nrule main = r $$\nrule r = \"(\" {v := \"0\"} r \")\" \"y\" / \"(\" {v := \"1\"} r \")\" \"z\" / \"n\" {len(v) >= 0}\n",
@@ -296,6 +305,37 @@ func Controls() []Control {
 			Source: "rule main = a $$\nrule a = c sp [^!]* \"!\" / c sp / \"n\"\nrule c = a\nrule sp = \"+\"\n",
 			Input:  func(n int) string { return "n" + rep("+", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// The same restart when the two alternatives share a literal instead of a call.
+		{
+			Name: "Growing unit restarted by the next step after a shared literal", Family: "growth steps",
+			Source: "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / c \"+\" / \"n\"\nrule c = a\n",
+			Input:  func(n int) string { return "n" + rep("+", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// The call of c after "(" is not a left call, so the left call of the leader in c starts
+		// a growth there, and the parser continues after it with "+" when the growth ends: the
+		// growing unit is restarted by what follows the growth, though c = a reads the seed in
+		// the steps of other growths.
+		{
+			Name: "Growing unit restarted after a growth that a member starts", Family: "growth steps",
+			Source: "rule main = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = main\n",
+			Input:  func(n int) string { return rep("(", n) + "n" + rep("+", n) },
+			Sizes:  double(100), ShortSizes: double(50), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Growing unit restarted after a growth that a member starts, to the end", Family: "growth steps",
+			Source: "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n",
+			Input:  func(n int) string { return rep("(", n) + "n" + rep("+", n) },
+			Sizes:  double(100), ShortSizes: double(50), Order: Poly(2), Class: ClassUnknown,
+		},
+		// A literal that both alternatives begin with puts the memoized call after it at the same
+		// position in both, so the second alternative reuses its result.
+		{
+			Name: "Memoized call shared after a literal", Family: "shared literals", Positive: true,
+			Source: "rule main = x $$\nrule x = \"(\" y \")\" \"a\" / \"(\" y \")\" \"b\" / \"n\"\nrule y = \"z\"+ / x\n",
+			Input:  func(n int) string { return rep("(", n) + "z" + rep(")b", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		// The rule that starts the right recursion comes before the rule whose action copies the
 		// tail, so the classifier needs the captures of a rule that it walks later.

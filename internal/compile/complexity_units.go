@@ -352,6 +352,11 @@ func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
 	}
 	k.sites = append(k.sites, &site{caller: c.rule, callee: e.Name, ref: e, cont: c.cont, mayStart: c.mayStart,
 		mustStart: c.mustStart, repeated: c.repeated, seqs: c.seqs, units: c.open})
+	// A growth of the callee's cycle at the position of the call encloses the evaluation of the
+	// caller, so the caller is on the cycle and the call is a left call of its body.
+	if !k.sameCycle(c.rule, e.Name) || !c.mayStart {
+		k.outside[e] = true
+	}
 	if k.an.cyclic[e.Name] && (!k.sameCycle(c.rule, e.Name) || !c.mustStart) {
 		k.addSource(c, exprPos(e), "the growth of the left-recursive rule "+e.Name+" at a new position")
 		k.srcExprs[e] = true
@@ -736,14 +741,15 @@ func (k *classifier) followSets(keep func(*site) bool) map[string]charset {
 // keepFor returns the call sites through which a continuation of a unit continues at the end of
 // a rule body: every site, or, after a growth, the sites other than the seed reads of the cycle.
 // A call of a leader of the cycle at the position where it grows reads the seed and is part of the
-// growth; after the growth the parser continues after the call that started it.
+// growth; after the growth the parser continues after the call that started it, which is such a
+// call in the body of a rule of the cycle other than a leader that starts growths (startsGrowth).
 func (k *classifier) keepFor(cycle int, growth bool) func(*site) bool {
 	if !growth {
 		return nil
 	}
 	return func(s *site) bool {
 		return !(k.an.cyclic[s.caller] && k.an.cycle[s.caller] == cycle && k.an.leaders[s.callee] &&
-			k.an.cycle[s.callee] == cycle && s.mustStart)
+			k.an.cycle[s.callee] == cycle && s.mustStart) || k.startsGrowth(s.caller)
 	}
 }
 
@@ -767,6 +773,7 @@ func (k *classifier) followFor(cycle int, growth bool) func(string) charset {
 // a lead that is done examines nothing more.
 type lead struct {
 	call *grammar.Ref
+	lit  *grammar.Literal
 	rest *cont
 	done bool
 }
@@ -858,7 +865,11 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 				return
 			case *grammar.Literal:
 				if e.Value != "" {
-					out = append(out, lead{})
+					if only == nil {
+						out = append(out, lead{lit: e, rest: rest})
+					} else {
+						out = append(out, lead{})
+					}
 					return
 				}
 				p = rest
@@ -1007,7 +1018,7 @@ func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visi
 func (k *classifier) strip(u, c []*cont, keep func(*site) bool) ([]*cont, []*cont) {
 	for range 16 {
 		lu, lc := k.leads(u, nil, nil, nil), k.leads(c, keep, nil, nil)
-		if commonCall(lu, lc) == nil {
+		if !commonLead(lu, lc) {
 			lu, lc = k.deepLeads(u, c, keep)
 			if lu == nil {
 				return u, c
@@ -1035,32 +1046,39 @@ func (k *classifier) deepLeads(u, c []*cont, keep func(*site) bool) ([]lead, []l
 	slices.Sort(both)
 	for _, n := range both {
 		lu, lc := k.leads(u, nil, &n, nil), k.leads(c, keep, &n, nil)
-		if commonCall(lu, lc) != nil {
+		if commonLead(lu, lc) {
 			return lu, lc
 		}
 	}
 	return nil, nil
 }
 
-func commonCall(a, b []lead) *grammar.Ref {
-	var call *grammar.Ref
+// commonLead reports whether every lead of a and b that examines input is the same shared call,
+// or the same literal, and both have one.
+func commonLead(a, b []lead) bool {
+	var first *lead
 	seen := [2]bool{}
 	for i, ls := range [2][]lead{a, b} {
-		for _, l := range ls {
+		for j := range ls {
+			l := &ls[j]
 			if l.done {
 				continue
 			}
-			if l.call == nil || call != nil && (l.call.Name != call.Name || l.call.Level != call.Level) {
-				return nil
+			if l.call == nil && l.lit == nil || first != nil && !sameLead(first, l) {
+				return false
 			}
-			call = l.call
+			first = l
 			seen[i] = true
 		}
 	}
-	if !seen[0] || !seen[1] {
-		return nil
+	return seen[0] && seen[1]
+}
+
+func sameLead(a, b *lead) bool {
+	if a.call != nil || b.call != nil {
+		return a.call != nil && b.call != nil && a.call.Name == b.call.Name && a.call.Level == b.call.Level
 	}
-	return call
+	return a.lit.Value == b.lit.Value && a.lit.IgnoreCase == b.lit.IgnoreCase
 }
 
 func rests(ls []lead) []*cont {
@@ -1120,10 +1138,12 @@ func (k *classifier) checkUnits() {
 // --- Growth ---
 
 // leftPaths follows the alternative alt of a rule of the cycle through the calls of rules of the
-// cycle to the left calls of leaders, and returns what follows those calls. firstStep reports a
-// path on which the alternative evaluates something other than a left call first, so that the
-// first step of the growth can continue the unit.
-func (k *classifier) leftPaths(start *cont, cycle int) (paths []*cont, firstStep bool, ok bool) {
+// cycle to the left calls of leaders, and returns what follows those calls. first are the paths on
+// which the alternative evaluates something other than a left call first, from that point, so
+// that the first step of the growth can continue the unit. With grower set, the alternative is
+// one of the leader grower: in the first step of its growth its own left calls read the failed
+// seed and end their paths, while a left call of another leader can match and is a path of first.
+func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, first []*cont, ok bool) {
 	ok = true
 	budget := leadBudget
 	var visit func(p *cont, depth int)
@@ -1149,7 +1169,7 @@ func (k *classifier) leftPaths(start *cont, cycle int) (paths []*cont, firstStep
 				p = rest.then(e.Expr)
 			case *grammar.Seq:
 				if len(e.Items) == 0 {
-					firstStep = true
+					first = append(first, rest)
 					return
 				}
 				p = rest.then(e.Items...)
@@ -1160,11 +1180,14 @@ func (k *classifier) leftPaths(start *cont, cycle int) (paths []*cont, firstStep
 				return
 			case *grammar.Ref:
 				if !k.an.cyclic[e.Name] || k.an.cycle[e.Name] != cycle || e.Level != "" {
-					firstStep = true
+					first = append(first, p)
 					return
 				}
 				if k.an.leaders[e.Name] {
 					paths = append(paths, rest)
+					if grower != "" && e.Name != grower {
+						first = append(first, p)
+					}
 					return
 				}
 				if depth > len(k.rules) {
@@ -1174,20 +1197,24 @@ func (k *classifier) leftPaths(start *cont, cycle int) (paths []*cont, firstStep
 				p = rest.then(k.byName[e.Name].Expr)
 				depth++
 			default:
-				firstStep = true
+				first = append(first, p)
 				return
 			}
 		}
 	}
 	visit(start, 0)
-	return paths, firstStep, ok
+	return paths, first, ok
 }
 
 // checkGrowingUnit checks a growing unit. In each step of a growth after the first its left call
 // reads the seed, and it examines the input from the end of the seed; its continuations are the
 // later growing alternatives and what follows the calls that start the growth.
 func (k *classifier) checkGrowingUnit(u *unit) {
-	self, firstStep, ok := k.leftPaths(u.self[0], u.cycle)
+	grower := ""
+	if k.an.leaders[u.rule] {
+		grower = u.rule
+	}
+	self, first, ok := k.leftPaths(u.self[0], u.cycle, grower)
 	if !ok {
 		k.reason(u.rule, u.pos, "the growing alternative at %s contains %s, and the classifier cannot follow its left calls",
 			at(u.rule, u.pos), u.src)
@@ -1198,7 +1225,7 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 		if f := k.firstEvaluated(later); f == nil || !k.sameCycle(u.rule, f.Name) || f.Level != "" {
 			continue
 		}
-		paths, _, ok := k.leftPaths(u.after.then(later), u.cycle)
+		paths, _, ok := k.leftPaths(u.after.then(later), u.cycle, "")
 		if !ok {
 			k.reason(u.rule, u.pos, "the growing alternative at %s contains %s, and the classifier cannot follow its left calls",
 				at(u.rule, u.pos), u.src)
@@ -1221,11 +1248,49 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 		u.nc, u.witness = true, what
 		return
 	}
-	if firstStep {
+	// The unit of a leader is evaluated only in steps of its growth; in the first step the paths
+	// through its own left calls fail at them. The unit of another rule of the cycle is evaluated
+	// in the steps of the growths that reach it, and, when the rule is called where its cycle does
+	// not grow, as an alternative that is not growing, after the leaders that it calls have grown.
+	switch {
+	case grower != "" && len(first) > 0:
+		if ok, what := k.committing(first, u.conts, 0); !ok {
+			u.nc, u.witness = true, what
+		}
+	case grower == "" && (len(first) > 0 || k.startsGrowth(u.rule)):
 		if ok, what := k.committing(u.self, u.conts, 0); !ok {
 			u.nc, u.witness = true, what
 		}
 	}
+}
+
+// startsGrowth reports whether the rule, a rule of a left-recursion cycle other than a leader, can
+// be evaluated where its cycle does not grow: when a call that is not a left call evaluates it, or
+// it is the start rule, or a left call evaluates it in the body of such a rule. Its left calls of
+// leaders then start the growths, and the parser continues after them when the growths end.
+func (k *classifier) startsGrowth(rule string) bool {
+	if k.starters == nil {
+		k.starters = map[string]bool{}
+		var add func(r string)
+		add = func(r string) {
+			if k.starters[r] || !k.an.cyclic[r] || k.an.leaders[r] {
+				return
+			}
+			k.starters[r] = true
+			for _, s := range k.sites {
+				if s.caller == r && s.mayStart && k.sameCycle(r, s.callee) {
+					add(s.callee)
+				}
+			}
+		}
+		add(k.start)
+		for _, s := range k.sites {
+			if k.outside[s.ref] {
+				add(s.callee)
+			}
+		}
+	}
+	return k.starters[rule]
 }
 
 // growthStarts returns what follows the calls that start a growth of the cycle: the calls of its
@@ -1234,7 +1299,11 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 	var out []contSpec
 	if k.an.cyclic[k.start] && k.an.cycle[k.start] == cycle && !k.an.leaders[k.start] {
-		return nil, false
+		paths, ok := k.memberStarts(k.start, &cont{end: endRule, rule: k.start}, cycle)
+		if !ok {
+			return nil, false
+		}
+		out = append(out, contSpec{paths: paths, growth: true, what: "what follows the start of the parse"})
 	}
 	for _, s := range k.sites {
 		if !k.an.cyclic[s.callee] || k.an.cycle[s.callee] != cycle {
@@ -1243,13 +1312,110 @@ func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 		if k.sameCycle(s.caller, s.callee) && s.mustStart {
 			continue
 		}
+		paths := []*cont{s.cont}
 		if !k.an.leaders[s.callee] {
-			return nil, false
+			var ok bool
+			if paths, ok = k.memberStarts(s.callee, s.cont, cycle); !ok {
+				return nil, false
+			}
 		}
-		out = append(out, contSpec{paths: []*cont{s.cont}, growth: true,
+		out = append(out, contSpec{paths: paths, growth: true,
 			what: fmt.Sprintf("what follows the call %s at %s", s.callee, at(s.caller, exprPos(s.ref)))})
 	}
 	return out, true
+}
+
+// memberStarts follows the body of the member rule, called where its cycle does not grow, through
+// the left calls of members of the cycle to the left calls of leaders, which start the growths,
+// and returns what follows those calls, continued by after. It fails when a left call of the cycle
+// is in an expression that it does not follow.
+func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []*cont, ok bool) {
+	ok = true
+	budget := leadBudget
+	inCycle := func(e grammar.Expr) bool {
+		for _, n := range k.an.leftCalls(e, nil) {
+			if k.an.cyclic[n] && k.an.cycle[n] == cycle {
+				return true
+			}
+		}
+		return false
+	}
+	var visit func(p *cont, depth int)
+	visit = func(p *cont, depth int) {
+		for ok {
+			k.control.poll()
+			budget--
+			if budget < 0 || depth > len(k.rules) {
+				ok = false
+				return
+			}
+			if len(p.items) == 0 {
+				if p.next == nil || p.next == after {
+					return
+				}
+				p = p.next
+				continue
+			}
+			rest := p.rest()
+			switch e := p.items[0].(type) {
+			case *grammar.Group:
+				p = rest.then(e.Expr)
+			case *grammar.Capture:
+				p = rest.then(e.Expr)
+			case *grammar.Discard:
+				p = rest.then(e.Expr)
+			case *grammar.Atomic:
+				p = rest.then(e.Expr)
+			case *grammar.Stream:
+				p = rest.then(e.Expr)
+			case *grammar.InlineAction:
+				p = rest.then(e.Expr)
+			case *grammar.Seq:
+				p = rest.then(e.Items...)
+			case *grammar.Choice:
+				for _, alt := range e.Alts {
+					visit(rest.then(alt), depth)
+				}
+				return
+			case *grammar.Optional:
+				visit(rest.then(e.Expr), depth)
+				p = rest
+			case *grammar.Ref:
+				if k.an.cyclic[e.Name] && k.an.cycle[e.Name] == cycle {
+					if e.Level != "" {
+						ok = false
+						return
+					}
+					if k.an.leaders[e.Name] {
+						paths = append(paths, rest)
+						return
+					}
+					p = rest.then(k.byName[e.Name].Expr)
+					depth++
+					continue
+				}
+				if inCycle(e) {
+					ok = false
+					return
+				}
+				if !k.nullable(e) {
+					return
+				}
+				p = rest
+			default:
+				if inCycle(e) {
+					ok = false
+					return
+				}
+				if !k.nullable(e) {
+					return
+				}
+				p = rest
+			}
+		}
+	}
+	visit(&cont{items: []grammar.Expr{k.byName[rule].Expr}, next: after}, 0)
+	return paths, ok
 }
 
 // checkGrowth checks condition 3: no scanning source is evaluated at the position where a
@@ -1281,7 +1447,7 @@ func (k *classifier) checkGrowth() {
 				if k.an.cyclic[e.Name] && k.an.cycle[e.Name] == cycle {
 					return k.nullable(e)
 				}
-				if !k.memo[e.Name] {
+				if !k.memoAt(e) {
 					if s := k.ruleSrc[e.Name]; s != nil {
 						report(s)
 					}

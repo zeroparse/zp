@@ -1,4 +1,4 @@
-# duckdb: polynomial (degree 4), 19 witnesses, 675 reasons
+# duckdb: polynomial (degree 4), 19 witnesses, 672 reasons
 
 ## operator-tails (15) -> O75
 524:15 pm_end: the cost can grow as n^2: after the lookahead at 532:19 in rule op_eq fails, what follows the lookahead &pm_end can start again inside the input that the repetition (!cut [+\-])* at 524:15 in rule pm_end examined; this repeats in the recursion of rule set_clause_one
@@ -23,7 +23,7 @@
 498:42 dq_tag: the cost can grow as n^4: after the lookahead at 496:66 in rule dollar_string fails, what follows the lookahead !dq_close can start again inside the input that the repetition [a-zA-Z_0-9\u{80}-\u{10ffff}]* at 498:42 in rule dq_tag examined; it is evaluated again inside an iteration of the repetition at 496:57 in rule dollar_string; it is evaluated again inside the alternative at 1727:33 in rule zone_value; this repeats in the repetition (-ws -";" -ws (-";" -ws)* s:statement)* at 1808:51 in rule main
 499:49 bit_string: the cost can grow as n^2: after an iteration of the repetition at 499:40 in rule bit_string fails, what follows the repetition (sq_cont [^']* "'")* can start again inside the input that the repetition [^']* at 499:49 in rule bit_string examined; this repeats in the recursion of rule primary_other
 
-## nested (675) -> F100
+## nested (672) -> F100
 454:90 ws: an iteration of the repetition at 454:90 in rule ws is not committing against what follows the repetition (comment [\t\n\u{c}\r \u{a0}\u{2000}-..., and units that are not committing are nested in it without bound through a recursion of rule calls
 456:27 block_comment: an iteration of the repetition at 456:27 in rule block_comment is not committing against what follows the repetition (block_comment / !"*/" .)*, and units that are not committing are nested in it without bound through a recursion of rule calls
 456:28 block_comment: the alternative at 456:28 in rule block_comment is not committing against the later alternative !"*/" . at 456:44 in rule block_comment, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -162,12 +162,9 @@
 867:67 interval_const: the option at 867:67 in rule interval_const is not committing against what follows the option (ws u:interval_unit)?, and units that are not committing are nested in it without bound through a recursion of rule calls
 868:36 interval_unit: the alternative at 868:36 in rule interval_unit is not committing against the later alternative interval_field at 868:50 in rule interval_unit, and units that are not committing are nested in it without bound through a recursion of rule calls
 882:5 special_call: the alternative at 882:5 in rule special_call is not committing against the later alternative sc_collation at 883:148 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
-882:31 special_call: the alternative at 882:31 in rule special_call is not committing against the later alternative sc_extract_empty at 882:44 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
-882:76 special_call: the alternative at 882:76 in rule special_call is not committing against the later alternative sc_position_empty at 882:90 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 883:7 special_call: the alternative at 883:7 in rule special_call is not committing against the later alternative sc_substring_for_from at 883:27 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 883:27 special_call: the alternative at 883:27 in rule special_call is not committing against the later alternative sc_substring_for at 883:51 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 883:51 special_call: the alternative at 883:51 in rule special_call is not committing against the later alternative sc_substring_list at 883:70 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
-883:70 special_call: the alternative at 883:70 in rule special_call is not committing against the later alternative sc_substring_empty at 883:90 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 883:111 special_call: the alternative at 883:111 in rule special_call is not committing against the later alternative sc_trim_chars at 883:122 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 883:122 special_call: the alternative at 883:122 in rule special_call is not committing against the later alternative sc_trim at 883:138 in rule special_call, and units that are not committing are nested in it without bound through a recursion of rule calls
 908:84 sc_trim: the alternative at 908:84 in rule sc_trim is not committing against the later alternative expr_list_opt_comma at 908:96 in rule sc_trim, and units that are not committing are nested in it without bound through a recursion of rule calls

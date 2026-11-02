@@ -1,4 +1,4 @@
-# xml: polynomial (degree 3), 5 witnesses, 9 reasons
+# xml: polynomial (degree 2), 5 witnesses, 9 reasons
 
 ## ws-option (4) -> F97
 75:19 main: the option at 75:19 in rule main contains the repetition [ \t\r\n]* at 254:11 in rule ws and is not committing against what follows the option xml_decl?
@@ -18,7 +18,7 @@
 ## name-scan (4) -> F97
 246:5 name: the cost can grow as n^2: after an iteration of the repetition at 165:29 in rule attlist_decl fails, what follows the repetition (-s d:att_def)* can start again inside the input that the repetition [a-zA-Z0-9_:.\-·À-ÖØ-öø-ͽͿ-\u... at 246:5 in rule name examined; this repeats in the repetition (-ws d:decl)* at 121:22 in rule int_subset
 246:5 name: the cost can grow as n^2: after an iteration of the repetition at 210:19 in rule element fails, what follows the repetition (-s a:attribute)* can start again inside the input that the repetition [a-zA-Z0-9_:.\-·À-ÖØ-öø-ͽͿ-\u... at 246:5 in rule name examined; this repeats in the recursion of rule element
-246:5 name: the cost can grow as n^3: after the option at 189:59 in rule ge_decl fails, what follows the option (s "NDATA" s nd:name)? can start again inside the input that the repetition [a-zA-Z0-9_:.\-·À-ÖØ-öø-ͽͿ-\u... at 246:5 in rule name examined; it is evaluated again inside the alternative at 187:31 in rule entity_decl; this repeats in the repetition (-ws d:decl)* at 121:22 in rule int_subset
+246:5 name: the cost can grow as n^2: after the option at 189:59 in rule ge_decl fails, what follows the option (s "NDATA" s nd:name)? can start again inside the input that the repetition [a-zA-Z0-9_:.\-·À-ÖØ-öø-ͽͿ-\u... at 246:5 in rule name examined; this repeats in the repetition (-ws d:decl)* at 121:22 in rule int_subset
 253:10 s: the cost can grow as n^2: after the option at 203:62 in rule public_notation fails, what follows the option (s l:system_literal)? can start again inside the input that the repetition [ \t\r\n]+ at 253:10 in rule s examined; this repeats in the repetition (-ws d:decl)* at 121:22 in rule int_subset
 
 ## mixed (1) -> F97

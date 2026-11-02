@@ -1,4 +1,4 @@
-# golang: polynomial (degree 8), 24 witnesses, 166 reasons
+# golang: polynomial (degree 8), 24 witnesses, 165 reasons
 
 ## comments (16) -> F97
 672:119 sp: the cost can grow as n^5: after the lookahead at 672:112 in rule sp fails, what follows the lookahead !("/*" (!"*/" [^\n])* "\n") can start again inside the input that the repetition (!"*/" [^\n])* at 672:119 in rule sp examined; it is evaluated again inside an iteration of the repetition at 672:11 in rule sp; it is evaluated again inside the lookahead at 555:29 in rule goPrimary; it is evaluated again inside the operator part at 555:17 in rule goPrimary; this repeats in the recursion of rule goPrimary
@@ -32,7 +32,7 @@
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:26 in rule imagLit fails, the later alternative hexFloat "i" at 750:45 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 758:30 hexDigits: the cost can grow as n^3: after the alternative at 750:45 in rule imagLit fails, the later alternative imagInt "i" at 750:60 in rule imagLit can start again inside the input that the repetition ("_"? [0-9a-fA-F])* at 758:30 in rule hexDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 
-## nested (166) -> F100
+## nested (165) -> F100
 129:43 constDecl: the alternative at 129:43 in rule constDecl is not committing against the later alternative constOne at 129:56 in rule constDecl, and units that are not committing are nested in it without bound through a recursion of rule calls
 131:30 constGroup: an iteration of the repetition at 131:30 in rule constGroup is not committing against what follows the repetition (s:constSpec -sp -groupTerm -ws)*, and units that are not committing are nested in it without bound through a recursion of rule calls
 134:43 constSpec: the option at 134:43 in rule constSpec is not committing against what follows the option typeSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -115,7 +115,6 @@
 386:37 simpleStmt: the alternative at 386:37 in rule simpleStmt is not committing against the later alternative exprStmt at 386:61 in rule simpleStmt, and units that are not committing are nested in it without bound through a recursion of rule calls
 386:48 simpleStmt: the alternative at 386:48 in rule simpleStmt is not committing against the later alternative exprStmt at 386:61 in rule simpleStmt, and units that are not committing are nested in it without bound through a recursion of rule calls
 393:25 hsimpleStmt: the alternative at 393:25 in rule hsimpleStmt is not committing against the later alternative hsendStmt at 393:39 in rule hsimpleStmt, and units that are not committing are nested in it without bound through a recursion of rule calls
-403:24 goCall: the alternative at 403:24 in rule goCall is not committing against the later alternative goCallArgs at 403:38 in rule goCall, and units that are not committing are nested in it without bound through a recursion of rule calls
 410:43 returnStmt: the option at 410:43 in rule returnStmt is not committing against what follows the option returnValues?, and units that are not committing are nested in it without bound through a recursion of rule calls
 422:15 ifStmt: the option at 422:15 in rule ifStmt is not committing against what follows the option (i:hsimpleSemi / -";" -ws)?, and units that are not committing are nested in it without bound through a recursion of rule calls
 422:16 ifStmt: the alternative at 422:16 in rule ifStmt is not committing against the later alternative -";" -ws at 422:32 in rule ifStmt, and units that are not committing are nested in it without bound through a recursion of rule calls

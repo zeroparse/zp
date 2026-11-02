@@ -331,6 +331,56 @@ func TestClassifyCarriedGrowth(t *testing.T) {
 	}
 }
 
+// TestClassifyMemoizedMembers checks the members of left-recursion cycles: a member called by a
+// call that is not a left call is memoized at the call and can start a growth, and the leading
+// literals that two alternatives share put the calls after them at the same position. A member
+// that reads a variable whose values diverge is not shared, and E2 stays without a claim, since
+// its last alternative enters the growth that evaluates the earlier ones again.
+func TestClassifyMemoizedMembers(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, src string
+		class     ComplexityClass
+		reason    string // a part of a reason of the class unknown
+	}{
+		{"member called outside its growth", "rule main = s $$\nrule s = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\"\nrule a = c \"+\" / \"n\" / \"[\" s \"]\"\nrule c = a\n", ClassLinear, ""},
+		{"memoized call after a shared literal", "rule main = x $$\nrule x = \"(\" y \")\" \"a\" / \"(\" y \")\" \"b\" / \"n\"\nrule y = \"z\"+ / x\n", ClassLinear, ""},
+		{"growing unit restarted by the next step after a shared literal", "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / c \"+\" / \"n\"\nrule c = a\n", ClassUnknown, "later growing alternative"},
+		// The left call of a in c starts a growth when the call of c after "(" evaluates it, and
+		// what follows that growth, "+", restarts the growing unit; so through b.
+		{"growth started by a member, restarted after it", "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n", ClassUnknown, ""},
+		{"growth started by a member through a member", "rule main = a $$\nrule a = c sp [^!]* \"!\" / \"(\" c sp / \"n\"\nrule b = a\nrule c = b\nrule sp = \"+\"\n", ClassUnknown, ""},
+		{"growth started by a member from the start rule", "rule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n", ClassUnknown, ""},
+		{"E2", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, "later alternative a"},
+		{"E2 with diverging variables", "var v string\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" {v := v + \"0\"} c \")\" \"y\" / \"(\" {v := v + \"1\"} c \")\" \"z\" / a {len(v) >= 0}\n", ClassExp, ""},
+		// The growth from the call of c in main no longer stops the classifier, but the first
+		// alternative of c is still compared with the last, which enters the growth.
+		{"member alternatives before its left call", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"[\" c \"]\" / a\n", ClassUnknown, "later alternative a"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := classifySource(t, tc.src)
+			if c.Class != tc.class {
+				t.Fatalf("class %v, want %v\ncauses %v\nreasons %v", c.Class, tc.class, c.Causes, c.Reasons)
+			}
+			for _, r := range c.Reasons {
+				if strings.Contains(r.Message, "not a leader") {
+					t.Errorf("reason %q refuses a growth from a member", r.Message)
+				}
+			}
+			if tc.reason == "" {
+				return
+			}
+			found := false
+			for _, r := range c.Reasons {
+				found = found || strings.Contains(r.Message, tc.reason)
+			}
+			if !found {
+				t.Errorf("no reason with %q in %v", tc.reason, c.Reasons)
+			}
+		})
+	}
+}
+
 // TestClassifyComplexityDeterministic checks that classifying a grammar again gives the same
 // result, on a grammar whose units have several callees with sources.
 func TestClassifyComplexityDeterministic(t *testing.T) {

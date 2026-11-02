@@ -598,7 +598,17 @@ The conditions below use these terms.
   of another rule of the cycle evaluates its body, unless it reuses a memoized
   result outside a growth at its position (see
   [Evaluations of Rules](#evaluations-of-rules)), and its left calls reach a
-  leader, which grows there. Condition 3 covers what each
+  leader, which grows there. A call that is not a left call is outside every
+  growth of its cycle at its position: such a growth would be evaluating the
+  caller, and every rule that it evaluates on the way from the growing leader
+  to the call, at that position, so all of them would be on the cycle and the
+  call would be a left call. So a call of a rule of the cycle other than a
+  leader that is not a left call is **memoized at the call** unless the rule
+  is not memoized for another reason, as one called from one place is not.
+  The growth that such a call starts at its position ends, after its last
+  step, in the body of the rule that the call evaluates, after the left call
+  of the leader that grew, and the parser continues from there and then after
+  the call. Condition 3 covers what each
   step of the growth evaluates again, and the first step of a growing unit and
   condition 3 are checked with the leaders as the rules that grow.
 - A **scanning source** is one of the following: a repetition without an upper
@@ -641,12 +651,27 @@ The conditions below use these terms.
   through `F` in `E = F "+" X / Y; F = E / M`, the first step can match `M`
   and continue the unit after it, and the unit is also checked as an
   alternative that is not growing: from its start, against the later
-  alternatives of its choice.
+  alternatives of its choice. A body of a leader is evaluated only in the
+  steps of its growth, and in the first step its own left calls read the
+  failed seed, so for a unit of a leader this check follows only the paths
+  that evaluate something other than a left call of that leader first, from
+  there. A unit of another rule of the cycle is checked as an alternative that
+  is not growing also when a call that is not a left call evaluates its rule,
+  directly or through left calls of rules of the cycle other than leaders:
+  that call evaluates the unit once more, outside the steps, where the leader
+  that its left call reaches grows and gives its final result.
 - The **continuations** of a unit are the expressions that the parser can
   evaluate next at the position where the unit started:
   - for a growing unit, the growing units that the same step can evaluate
     after it, which also start at the end of the seed, and what follows the
-    calls that start the growth, at the end of the seed. A later growing unit
+    calls that start the growth, at the end of the seed: a call of a leader of
+    the cycle that is not a left call, followed by what follows it, and a call
+    of another rule of the cycle that is not a left call, followed by what
+    follows the left calls of leaders that its body reaches through left calls
+    of rules of the cycle and then by what follows the call. Such a left call
+    of a leader starts the growth when that call evaluates it, and reads the
+    seed only in the steps of a growth, so at the end of the body of a leader
+    what follows the growth continues after it too. A later growing unit
     that succeeds ends the step with a longer result, which the next step
     reads as the seed, so at the end of a rule body it continues through every
     call of the rule, the reads of the seed included: as in
@@ -686,11 +711,18 @@ The conditions below use these terms.
   anything else that examines the input, directly or as the first thing that
   the bodies of the calls they start with evaluate: a call of the same rule with the
   same level restriction, or with none in both, of a rule that reads no
-  variable and that is memoized or calls no rule, itself included. The call
-  has the same result in both: the memo answers it the second time, or the
-  rule repeats only its own scan, so the continuation pays for it at most what
-  the unit paid. Calls of one rule with different level restrictions, such as
-  `e` and `level(e, hi)`, are different calls with different results. An
+  variable and that is memoized at each of the two calls or calls no rule,
+  itself included. A rule memoized in every parse is memoized at each of its
+  calls, and a rule of a left-recursion cycle other than a leader at a call
+  that is not a left call. The call has the same result in both: the memo
+  answers it the second time, or the rule repeats only its own scan, so the
+  continuation pays for it at most what the unit paid. In the same way the
+  two share a literal that is not empty when every path of both that examines
+  the input begins with it, and the literal has the same case sensitivity in
+  both: both consume it or both fail where they begin, so the calls after it
+  are made at the same position in both. Below, a shared literal counts among
+  the shared calls. Calls of one rule with different level restrictions, such
+  as `e` and `level(e, hi)`, are different calls with different results. An
   Operators Rule evaluates its `skip` before anything else at its start,
   before an operand or a prefix operator part, and continues at the same
   position when the `skip` does not match, so the call that its `skip`
@@ -827,9 +859,9 @@ necessary.
    whether or not they can fail after a source.
 3. **Growth.** No scanning source can be evaluated, outside the left call that
    grows, at the position where a left-recursive rule grows, in its body or in
-   the body of another rule of its cycle, other than inside a call of a
-   memoized rule that is not on the cycle. Each step of the growth evaluates
-   these bodies again at that position.
+   the body of another rule of its cycle, other than inside a call, memoized
+   at the call, of a rule that is not on the cycle. Each step of the growth
+   evaluates these bodies again at that position.
 4. **Copies.** No copying operation copies a string or list whose size can
    include the size of the value of a call on a recursion with the rule that
    performs the operation, nor a fold accumulator: the first parameter of the
