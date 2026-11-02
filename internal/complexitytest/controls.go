@@ -273,6 +273,22 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("x", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// A later growing alternative that succeeds ends a step with a longer result, and the next
+		// step scans again from its end the input that the failed growing unit examined: what
+		// follows it at the end of the rule body includes the next step, so the shared call sp
+		// does not make the unit committing.
+		{
+			Name: "Growing unit restarted by the next step", Family: "growth steps",
+			Source: "rule main = a $$\nrule a = a sp [^!]* \"!\" / a sp / \"n\"\nrule sp = \"+\"\n",
+			Input:  func(n int) string { return "n" + rep("+", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Growing unit restarted by the next step through a member", Family: "growth steps",
+			Source: "rule main = a $$\nrule a = c sp [^!]* \"!\" / c sp / \"n\"\nrule c = a\nrule sp = \"+\"\n",
+			Input:  func(n int) string { return "n" + rep("+", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
 		// The rule that starts the right recursion comes before the rule whose action copies the
 		// tail, so the classifier needs the captures of a rule that it walks later.
 		{

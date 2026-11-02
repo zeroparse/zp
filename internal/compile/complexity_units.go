@@ -1197,7 +1197,10 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 				at(u.rule, u.pos), u.src)
 			return
 		}
-		conts = append(conts, contSpec{paths: paths, growth: true,
+		// A later growing alternative that succeeds ends the step with a longer result, and the
+		// next step reads it as the seed: past the end of the rule body it continues after the
+		// seed reads too, so it reads the FOLLOW sets with them.
+		conts = append(conts, contSpec{paths: paths,
 			what: fmt.Sprintf("the later growing alternative %s at %s", k.show(later), at(u.rule, exprPos(later)))})
 	}
 	starts, ok := k.growthStarts(u.cycle)

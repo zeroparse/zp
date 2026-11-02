@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-01
+Arata Furukawa · Last revised 2026-11-02
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -170,6 +170,18 @@ result is the failure of a growing unit after a scanning source, which
 condition 2 checks. A growth is itself a scanning source at each call of a
 rule of its cycle other than a left call, so its repetition at another
 position is counted by Lemma 4.
+
+After a growing unit fails in a step, a later growing unit of the step can
+succeed. The step then ends with a longer result, and the next step reads it
+as the seed and evaluates the growing units again from its end, which can lie
+inside the input that the failed unit examined. Condition 2 therefore checks
+the failed unit against the later growing unit continued, at the end of the
+rule body, through every call of the rule, the reads of the seed included, and
+not only through the calls that start the growth, which continue only after
+the growth ends. With that continuation the cases of Lemma 4 apply to the
+failed unit as to any other: what the parser evaluates next, in this step or
+the next, includes everything that can examine again the input that the unit
+examined.
 
 A leader R called at $p$ in a step of the growth of another leader S of its
 cycle grows there in the context of that growth. A step of R from a result

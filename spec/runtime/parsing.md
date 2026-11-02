@@ -631,7 +631,12 @@ The conditions below use these terms.
   evaluate next at the position where the unit started:
   - for a growing unit, the growing units that the same step can evaluate
     after it, which also start at the end of the seed, and what follows the
-    calls that start the growth, at the end of the seed. What the step
+    calls that start the growth, at the end of the seed. A later growing unit
+    that succeeds ends the step with a longer result, which the next step
+    reads as the seed, so at the end of a rule body it continues through every
+    call of the rule, the reads of the seed included: as in
+    `A = A S [^!]* "!" / A S / "n"`, the next step can scan again, from the
+    end of the new seed, the input that the unit examined. What the step
     evaluates after the unit fails runs at the position where the rule grows,
     and condition 3 covers its cost. When the left call fails in the first
     step, that evaluation is the one of the first step after the same failure,

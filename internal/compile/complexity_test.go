@@ -107,6 +107,11 @@ func TestClassifyComplexity(t *testing.T) {
 		{"unit failing before its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\"\n", ClassLinear, 0},
 		{"unit failing after its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\" [^\"]* \"!\")* \"\\\"\"\n", ClassPoly, 2},
 		// The operands overlap, but their only source is the shared skip ws.
+		// A later growing alternative that succeeds is followed by the next step, which scans
+		// again from the end of its result what the failed growing unit examined, so the shared
+		// call sp does not make the unit committing.
+		{"growing unit restarted by the next step", "rule main = a $$\nrule a = a sp [^!]* \"!\" / a sp / \"n\"\nrule sp = \"+\"\n", ClassUnknown, 0},
+		{"growing unit restarted by the next step through a member", "rule main = a $$\nrule a = c sp [^!]* \"!\" / c sp / \"n\"\nrule c = a\nrule sp = \"+\"\n", ClassUnknown, 0},
 		{"source inside a shared call", "rule main = e $$\nrule e = #operators {\n    skip ws\n    operand \"true\"\n    operand [a-z]+\n    level { infix left \"+\" }\n}\nrule ws = [ \\t]*\n", ClassLinear, 0},
 		// A list built from the elements of a repetition costs its number of elements.
 		{"list of a repetition", "rule main = l $$\nrule l = \"[\" ms:m? \"]\" => concat($ms)\nrule m = f:v rs:(\",\" x:v)* => concat(list($f), map($rs, (r) => r.$x))\nrule v = \"x\" / l\n", ClassLinear, 0},
