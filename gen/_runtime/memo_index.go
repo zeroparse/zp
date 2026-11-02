@@ -75,7 +75,7 @@ func (ix memoIndex[E]) probe(h uint64, match func(*E) bool) (slot uint64, e *E) 
 // indexAt returns the index of the chain at pos that starts at head, building it
 // when the position has none yet. key returns the hash of an entry, and may
 // charge for it.
-func indexAt[E any](all *map[int]memoIndex[E], pos int, head *E, next func(*E) *E, key func(*E) uint64) memoIndex[E] {
+func indexAt[E any](all *map[int]memoIndex[E], bytes *uint64, pos int, head *E, next func(*E) *E, key func(*E) uint64) memoIndex[E] {
 	if ix := (*all)[pos]; ix != nil {
 		return ix
 	}
@@ -88,5 +88,6 @@ func indexAt[E any](all *map[int]memoIndex[E], pos int, head *E, next func(*E) *
 		*all = make(map[int]memoIndex[E])
 	}
 	(*all)[pos] = ix
+	*bytes += uint64(len(ix)+1) * memoIndexEntryBytes
 	return ix
 }

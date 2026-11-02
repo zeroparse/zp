@@ -189,6 +189,9 @@ type ctxTable struct {
 	heads map[ctxHeadKey]*[]*ctxSet
 	jumps map[jumpKey][]jumpRec
 	canon map[canonKey]canonRec
+	// bytes counts the storage the table has taken, for the memory limit (heldBytes). It goes with
+	// the table when the table is dropped.
+	bytes uint64
 }
 
 // lookRec is a lookahead in progress: its site (-1 for one that records nothing) and the Document
@@ -522,7 +525,7 @@ func (p *Parser) table(pos, gp int, create bool) *ctxTable {
 	if !create {
 		return nil
 	}
-	t := &ctxTable{pos: pos, depth: gp, heads: map[ctxHeadKey]*[]*ctxSet{}}
+	t := &ctxTable{pos: pos, depth: gp, heads: map[ctxHeadKey]*[]*ctxSet{}, bytes: ctxTableBytes}
 	p.ctxs = append(p.ctxs, t)
 	return t
 }
@@ -682,6 +685,7 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	if sets == nil {
 		sets = new([]*ctxSet)
 		t.heads[h] = sets
+		t.bytes += ctxHeadBytes
 	}
 	var set *ctxSet
 	for _, s := range *sets {
@@ -694,8 +698,10 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	if set == nil {
 		set = &ctxSet{seeds: seeds, obs: obs, vals: map[valsKey]*ctxSlot{}}
 		*sets = append(*sets, set)
+		t.bytes += ctxSetBytes + uint64(len(seeds))*growKeyBytes + uint64(len(obs))*4
 	}
 	slot.deps = ds
+	t.bytes += ctxSlotBytes + uint64(len(ds))*sdepBytes + uint64(len(slot.env))*anyBytes + uint64(len(slot.exp))*expIDBytes
 	link := set.vals[k]
 	for x := link; x != nil; x = x.next {
 		p.Spend()
@@ -1014,7 +1020,9 @@ func (p *Parser) advance(g *growState, res *ctxResult, rid uint64, st runStep) b
 	}
 	if grew && !other && len(res.errs) == 0 {
 		st.deps = obs
+		c := cap(g.run)
 		g.run = append(g.run, st)
+		p.memUsed += uint64(cap(g.run)-c)*runStepBytes + uint64(cap(obs))*sdepBytes
 	} else {
 		p.recordJumps(g)
 	}
@@ -1073,6 +1081,7 @@ func (p *Parser) recordJumps(g *growState) {
 		k := jumpKey{g: g.growKey(), present: g.present, seed: s.seed}
 		if !p.jumpShadowed(t.jumps[k], &acc) {
 			t.jumps[k] = append(t.jumps[k], acc)
+			t.bytes += jumpBytes + uint64(len(acc.deps))*sdepBytes + uint64(len(acc.exp))*expIDBytes
 		}
 	}
 	g.run = g.run[:0]
@@ -1202,6 +1211,9 @@ func (p *Parser) canonicalSeed(g *growState, e *ctxResult) (*ctxResult, uint64) 
 		if c.e.examined == e.examined && len(c.e.errs) == 0 && p.nodesEqual(c.e.node, e.node, &budget) && p.valuesEqual(reflect.ValueOf(c.e.val), reflect.ValueOf(e.val), &budget) {
 			return c.e, c.id
 		}
+	}
+	if _, ok := t.canon[ck]; !ok {
+		t.bytes += canonBytes
 	}
 	t.canon[ck] = canonRec{e: e, id: id}
 	return e, id

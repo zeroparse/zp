@@ -378,6 +378,10 @@ func (a *tslabs) spend() {
 	}
 }
 
+func (a *tslabs) MemoryBytes() uint64 {
+	return a.tArrayLit.MemoryBytes() + a.tAssign.MemoryBytes() + a.tBinary.MemoryBytes() + a.tBlock.MemoryBytes() + a.tCall.MemoryBytes() + a.tCond.MemoryBytes() + a.tExprStmt.MemoryBytes() + a.tFunc.MemoryBytes() + a.tIf.MemoryBytes() + a.tIndex.MemoryBytes() + a.tLet.MemoryBytes() + a.tMember.MemoryBytes() + a.tProgram.MemoryBytes() + a.tReturn.MemoryBytes() + a.tUnary.MemoryBytes() + a.tWhile.MemoryBytes() + a.tl0Chunk.MemoryBytes() + a.tl1Chunk.MemoryBytes() + a.tl2Chunk.MemoryBytes()
+}
+
 // ParseAST parses the input like Parse and returns the result as typed values. If the parse recovered
 // from errors, the result is returned together with SyntaxErrors; an Error node where a struct
 // type is expected becomes nil.

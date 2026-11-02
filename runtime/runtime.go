@@ -1151,7 +1151,7 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 	}
 	o.maxDepth = depth
 	if g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute limit)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute or Memory limit)")
 	}
 	if o.expectations && !g.Expectations {
 		return o, fmt.Errorf("this parser was generated without expectations (generate with -expectations to use WithExpectations)")
@@ -1214,6 +1214,9 @@ func prepareOptions(o parseOptions, n uint64, stream bool) parseOptions {
 			o.maxInput = int(l.Input)
 		}
 		l.Input = 0 // checked on entry, or by the stream; it needs no control
+		if l.Memory == Unlimited {
+			l.Memory = 0 // the default of Memory is Unlimited
+		}
 		switch {
 		case l.Compute == Unlimited:
 			l.Compute = 0
@@ -1297,6 +1300,7 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *Node, err err
 	p.setGrammar(r.g)
 	p.Expectations = o.expectations
 	p.Control = o.control
+	o.control.attachMemory(p)
 	p.Observation = newObservation(&o.observe)
 	p.MaxDepth = o.maxDepth
 	if o.unit == Bytes {
@@ -1464,6 +1468,9 @@ type Parser struct {
 	skip       skipWalk
 	// Stream is set only by ParseStream: positions then index its buffer.
 	Stream *streamInput
+	// memUsed counts the bytes of the chunks the allocators have taken (budget_memory.go); a
+	// stream's commit returns them. memKept counts those that stay in use for the whole parse.
+	memUsed, memKept uint64
 }
 
 // documentState owns reusable memo entries. The regular Parse path never sets
@@ -1522,6 +1529,11 @@ type memoTable struct {
 	// index holds the hash index of each position whose chain is longer than a lookup walks
 	// (memoScan), by position.
 	index map[int]memoIndex[memoEntry]
+	// indexBytes counts the bytes of index, for the memory limit (chargedBytes).
+	indexBytes uint64
+	// memBytes counts the bytes of the slots and first-call tables the table has taken into use
+	// (chargedBytes).
+	memBytes uint64
 }
 
 // seenRulePages caches the last visited page beside its directory. Most calls
@@ -1766,7 +1778,7 @@ func (t *memoTable) get(rule, pos, min int, env []any) *memoEntry {
 
 // indexAt returns the hash index of the chain at pos, building it on first use.
 func (t *memoTable) indexAt(pos int) memoIndex[memoEntry] {
-	return indexAt(&t.index, pos, t.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
+	return indexAt(&t.index, &t.indexBytes, pos, t.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 		func(e *memoEntry) uint64 { h, _ := memoKeyHash(e.rule, e.min, e.env); return h })
 }
 
@@ -1783,6 +1795,7 @@ func (t *memoTable) reindex(pos int, x, e *memoEntry) {
 // put stores e under the key, replacing an entry with the same key.
 func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry) {
 	if pos >= len(t.slots) {
+		t.memBytes += uint64(pos+1-len(t.slots)) * ptrBytes
 		if pos < cap(t.slots) {
 			t.slots = t.slots[:pos+1]
 		} else {
@@ -1808,6 +1821,9 @@ func (t *memoTable) put(rule, pos, min int, env []any, e *memoEntry) {
 		h, _ := memoKeyHash(e.rule, e.min, env)
 		slot, x := ix.probe(h, same)
 		ix[slot] = e
+		if x == nil {
+			t.indexBytes += memoIndexEntryBytes
+		}
 		if x != nil {
 			link = &t.slots[pos]
 			for *link != x {
@@ -1869,6 +1885,7 @@ func (p *Parser) memoEnv(r *Rule) []any {
 	if p.Env != nil && p.Env == p.g.initEnv && r.initVals != nil && p.Control == nil {
 		return r.initVals
 	}
+	p.chargeValueBytes(len(r.varSlots) * int(anyBytes))
 	return p.envValues(r.varSlots)
 }
 
@@ -1908,6 +1925,7 @@ func (p *Parser) NewNode(v Node) *Node {
 	p.Spend()
 	if len(p.nodeSlab) == 0 {
 		p.nodeSlab = make([]Node, nodeChunk)
+		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
 		}
@@ -1943,6 +1961,7 @@ func (p *Parser) NewTerminal(start int, text string) *Node {
 func (p *Parser) NewTerminalOrdinary(start int, text string) *Node {
 	if len(p.nodeSlab) == 0 {
 		p.nodeSlab = make([]Node, nodeChunk)
+		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
 		}
@@ -1964,6 +1983,7 @@ func (p *Parser) NewBranch(kind *nodeKind, start int, children []*Node) *Node {
 func (p *Parser) NewBranchOrdinary(kind *nodeKind, start int, children []*Node) *Node {
 	if len(p.nodeSlab) == 0 {
 		p.nodeSlab = make([]Node, nodeChunk)
+		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
 		}
@@ -1980,10 +2000,12 @@ func (p *Parser) Nodes(n int) []*Node {
 		return []*Node{}
 	}
 	if n > ptrChunk/4 {
+		p.memUsed += uint64(n) * ptrBytes
 		return make([]*Node, n)
 	}
 	if len(p.ptrSlab) < n {
 		p.ptrSlab = make([]*Node, ptrChunk)
+		p.memUsed += ptrChunk * ptrBytes
 	}
 	s := p.ptrSlab[:n:n]
 	p.ptrSlab = p.ptrSlab[n:]
@@ -1994,10 +2016,12 @@ func (p *Parser) Nodes(n int) []*Node {
 // reallocates, so neighbouring lists in the chunk are never overwritten.
 func (p *Parser) fields(n int) Fields {
 	if n > nodeChunk/4 {
+		p.memUsed += uint64(n) * fieldBytes
 		return make(Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
 		p.fieldSlab = make([]NodeField, nodeChunk)
+		p.memUsed += nodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]
 	p.fieldSlab = p.fieldSlab[n:]
@@ -2028,6 +2052,7 @@ func (p *Parser) NewFrame(n int) *CaptureFrame {
 	}
 	if len(p.frameSlab) == 0 {
 		p.frameSlab = make([]CaptureFrame, nodeChunk)
+		p.memUsed += nodeChunk * frameBytes
 	}
 	f := &p.frameSlab[0]
 	p.frameSlab = p.frameSlab[1:]
@@ -2048,6 +2073,8 @@ type frameScratch struct {
 	frameN  int
 	slotCI  int
 	slotOff int
+	// large counts the bytes of the frames allocated on their own (bytes).
+	large uint64
 }
 
 const frameScratchLimit = 1 << 20 // native words of complete reusable backing
@@ -2055,6 +2082,7 @@ const frameScratchLimit = 1 << 20 // native words of complete reusable backing
 func (a *frameScratch) alloc(n int) *CaptureFrame {
 	if n > ptrChunk/4 {
 		// Large individual scopes are exact allocations, never pooled.
+		a.large += frameBytes + uint64(n)*ptrBytes
 		return &CaptureFrame{Vals: make([]*Node, n)}
 	}
 	ci := a.frameN / nodeChunk
@@ -2097,7 +2125,7 @@ func (a *frameScratch) reset() {
 		*a = frameScratch{}
 		return
 	}
-	a.frameN, a.slotCI, a.slotOff = 0, 0, 0
+	a.frameN, a.slotCI, a.slotOff, a.large = 0, 0, 0, 0
 }
 
 type undo struct {
@@ -2574,6 +2602,7 @@ func (p *Parser) Keep(ids []ExpID) []ExpID {
 	if cap(p.arena)-len(p.arena) < len(ids) {
 		// A new chunk; the previous one lives while slices into it remain.
 		p.arena = make([]ExpID, 0, max(1024, len(ids)))
+		p.memUsed += uint64(cap(p.arena)) * expIDBytes
 	}
 	off := len(p.arena)
 	p.arena = appendSpend(p, p.arena, ids)

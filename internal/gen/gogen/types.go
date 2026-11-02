@@ -1337,6 +1337,25 @@ func (t *TypedGen) typedRuntime(b *strings.Builder) {
 		fmt.Fprintf(b, "\t%sChunk astChunk[%s]\n", l.name, t.goType(l.elem))
 	}
 	b.WriteString("}\n\nfunc (a *tslabs) SetBudgetControl(c *BudgetControl) { a.control = c }\nfunc (a *tslabs) spend() { if a.control != nil { a.control.Charge(1) } }\n\n")
+	// MemoryBytes sums the chunks for the memory limit, which reads it at its checks. The local
+	// chunk helpers of the measurement references do not count, and their values are not charged.
+	if !t.G.chunksInRuntime {
+		return
+	}
+	var chunks []string
+	for _, name := range t.structs {
+		chunks = append(chunks, "a.t"+name+".MemoryBytes()")
+	}
+	for _, name := range remembered {
+		chunks = append(chunks, "a.t"+name+".MemoryBytes()")
+	}
+	for _, l := range t.tlistOrder {
+		chunks = append(chunks, "a."+l.name+"Chunk.MemoryBytes()")
+	}
+	if len(chunks) == 0 {
+		chunks = []string{"0"}
+	}
+	b.WriteString("// MemoryBytes returns the bytes of the typed values allocated from the chunks.\nfunc (a *tslabs) MemoryBytes() uint64 { return " + strings.Join(chunks, " + ") + " }\n\n")
 }
 
 // chunkNames rewrites the names of the local chunk helpers (astChunk, astNew, astSlice) to those of the

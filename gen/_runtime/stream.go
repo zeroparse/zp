@@ -154,6 +154,7 @@ func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*Node, *Budge
 	p.Stream = &streamInput{reader: bufio.NewReader(reader), baseLine: 1, baseCol: 1, Emit: emit, diagnostic: o.diagnostic, start: r.Id}
 	p.Stream.tail.limit = o.diagnosticLimit
 	p.Stream.maxInput = o.maxInput
+	o.control.attachMemory(p)
 	p.Control.Check()
 	_, ok := p.Call(r, 0)
 	p.Control.Check()
@@ -188,6 +189,10 @@ func (p *Parser) StreamStart() {
 	}
 	p.nodeSlab, p.ptrSlab, p.fieldSlab = nil, nil, nil
 	p.Stream.nodeChunks = 0
+	// The chunks of the prefix stay in use for the whole stream; commits return only those taken
+	// since.
+	p.memKept += p.memUsed
+	p.memUsed = 0
 }
 
 // EmitStream passes a committed element of the start rule's #stream
@@ -230,6 +235,17 @@ func (p *Parser) streamCommit(pos int) {
 			p.frameSlab = nil
 		}
 		s.nodeChunks = 0
+		// The chunks let go of hold the elements delivered so far, and so does the text copied
+		// for them: their bytes are returned, except those of the expectation chunk in use and
+		// the frame chunk kept.
+		p.memUsed = uint64(cap(p.arena))*expIDBytes + uint64(cap(p.frameSlab))*frameBytes
+		if p.Control != nil {
+			// The text snapshot in use stays held; the values before it were delivered.
+			p.Control.values = 0
+			if s.text.source != "" {
+				p.Control.values = uint64(len(s.text.source)) + uint64(cap(s.text.offsets))*4
+			}
+		}
 	}
 	if pos-s.pruned >= 1024 {
 		// Completed calls may have shortened the trail before the commit;
@@ -252,6 +268,11 @@ func (p *Parser) streamCommit(pos int) {
 			p.Recovered = nil
 		}
 		s.diagnosed = 0
+		if p.Control != nil {
+			// With a diagnostic limit, the errors are now held by the tail, which counts
+			// those it keeps; without one, Recovered keeps them and errs keeps counting them.
+			p.Control.errs = 0
+		}
 	}
 }
 
@@ -338,9 +359,12 @@ type streamDiagnosticTail struct {
 	dropped         uint64
 	truncated       bool
 	countsSaturated bool
+	// bytes counts the errors in errors (syntaxErrorSize), for the memory limit.
+	bytes uint64
 }
 
 func (t *streamDiagnosticTail) add(e *SyntaxError) {
+	t.bytes += syntaxErrorSize(e)
 	if t.total == math.MaxUint64 {
 		t.countsSaturated = true
 	} else {
@@ -356,6 +380,7 @@ func (t *streamDiagnosticTail) add(e *SyntaxError) {
 	} else {
 		t.dropped++
 	}
+	t.bytes -= syntaxErrorSize(t.errors[t.head])
 	t.errors[t.head] = e
 	t.head++
 	if t.head == t.limit {
@@ -502,6 +527,9 @@ func (p *Parser) pruneStreamMemo(pos int) {
 			e = next
 		}
 	}
+	// The slots of the pruned positions are returned; the entries go to the free list, whose
+	// reuse is not charged again.
+	t.memBytes -= min(t.memBytes, uint64(min(k, len(t.slots)))*ptrBytes)
 	if k >= len(t.slots) {
 		clear(t.slots)
 		t.slots = t.slots[:0]
@@ -512,9 +540,11 @@ func (p *Parser) pruneStreamMemo(pos int) {
 	}
 	if t.index != nil {
 		moved := make(map[int]memoIndex[memoEntry], len(t.index))
+		t.indexBytes = 0
 		for at, ix := range t.index {
 			if at >= k {
 				moved[at-k] = ix
+				t.indexBytes += uint64(len(ix)+1) * memoIndexEntryBytes
 			}
 		}
 		t.index = moved
@@ -692,6 +722,7 @@ func (p *Parser) streamText(start, end int) string {
 		// An interruption while filling must not leave partial offsets in
 		// the snapshot in use, so a controlled parse fills separate storage.
 		snap.offsets = make([]int32, snap.end-snap.base+1)
+		p.chargeValueBytes(4 * len(snap.offsets))
 	} else if n := snap.end - snap.base + 1; cap(c.offsets) >= n {
 		snap.offsets = c.offsets[:n]
 	} else {
@@ -718,12 +749,15 @@ func (p *Parser) streamCopy(start, end int) string {
 		if p.Control != nil {
 			p.Control.Charge(uint64(end - start))
 		}
+		p.chargeValueBytes(end - start)
 		return string(s.bs[start:end])
 	}
 	if p.Control != nil {
 		p.Control.Charge(2 * uint64(end-start))
 	}
-	return string(s.in[start:end])
+	text := string(s.in[start:end])
+	p.chargeValueBytes(len(text))
+	return text
 }
 
 // streamLineCol returns the line and column of pos, counted from base.

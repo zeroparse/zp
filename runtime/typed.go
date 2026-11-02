@@ -633,6 +633,7 @@ func TParseResolved[T any](r *TRule, input string, o parseOptions, ext any, conv
 	}
 	defer func() { p.recycle(); tpool.Put(p) }()
 	p.Control = o.control
+	o.control.attachTypedMemory(p, ext)
 	p.Observation = newObservation(&o.observe)
 	if o.control != nil {
 		if target, ok := ext.(budgetControlSetter); ok {
@@ -747,6 +748,8 @@ type tarena[T any] struct {
 	chunks [][]T
 	ci     int // the chunk in use
 	off    int // the next free element in it
+	// large counts the elements of the slices allocated on their own (bytes).
+	large int
 }
 
 const tchunk = 512
@@ -754,6 +757,7 @@ const tchunk = 512
 // slice returns n zero elements (capacity n).
 func (a *tarena[T]) slice(n int) []T {
 	if n > tchunk/4 {
+		a.large += n
 		return make([]T, n)
 	}
 	if a.ci < len(a.chunks) && a.off+n > len(a.chunks[a.ci]) {
@@ -774,7 +778,7 @@ func (a *tarena[T]) reset() {
 	for i := 0; i <= a.ci && i < len(a.chunks); i++ {
 		clear(a.chunks[i])
 	}
-	a.ci, a.off = 0, 0
+	a.ci, a.off, a.large = 0, 0, 0
 }
 
 // TParser is the parser state of the typed runtime.
@@ -801,6 +805,8 @@ type TParser struct {
 	// memoIndexes are the hash indexes of the positions whose chain is longer than a lookup walks
 	// (memoScan). They belong to one parse: a typed Document keeps its chains, not its indexes.
 	memoIndexes map[int]memoIndex[tmemoEntry]
+	// memoIndexBytes counts the bytes of memoIndexes, for the memory limit.
+	memoIndexBytes uint64
 	// TypedDocument is set only by typed Document parses (TypedDocumentParse).
 	TypedDocument *typedDocumentState
 	free          [8][]*TCaptureFrame // frames freed by FreeFrame, by size
@@ -875,6 +881,7 @@ func (p *TParser) NewMatch(start, end int, text string, fresh bool) *TMatch {
 	p.Spend()
 	if len(p.matches) == 0 {
 		p.matches = make([]TMatch, nodeChunk)
+		p.memUsed += nodeChunk * matchBytes
 	}
 	m := &p.matches[0]
 	p.matches = p.matches[1:]
@@ -987,7 +994,7 @@ func (p *TParser) memoIndexAt(pos int, hash func(*tmemoEntry) uint64) memoIndex[
 	if hash == nil {
 		hash = func(e *tmemoEntry) uint64 { h, _ := memoKeyHash(e.rule, e.min, e.env); return h }
 	}
-	return indexAt(&p.memoIndexes, pos, p.memoSlots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next }, hash)
+	return indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, p.memoSlots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next }, hash)
 }
 
 func (p *TParser) memoGetControlled(rule, pos, min int, key []any) *tmemoEntry {
@@ -1047,6 +1054,9 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, e *tmemoEntry) {
 		h, _ := memoKeyHash(e.rule, e.min, env)
 		slot, x := ix.probe(h, same)
 		ix[slot] = e
+		if x == nil {
+			p.memoIndexBytes += memoIndexEntryBytes
+		}
 		if x != nil {
 			link = &p.memoSlots[pos]
 			for *link != x {
@@ -1066,6 +1076,8 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	slots := p.memoSlots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
+		// The slot array is charged by its length, not its capacity, which a pooled parser keeps.
+		p.memUsed += uint64(pos+1-len(slots)) * ptrBytes
 		if pos < cap(slots) {
 			slots = slots[:pos+1]
 		} else {
@@ -1090,7 +1102,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	var ixSlot uint64
 	if replaced == nil && *link != nil {
 		// A long chain: the index finds the entry to replace.
-		ix = indexAt(&p.memoIndexes, pos, slots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next },
+		ix = indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, slots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next },
 			func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
 		ixSlot, replaced = ix.probe(p.hashMemoKey(int32(rule), int32(min), key), same)
 		if replaced != nil {
@@ -1110,7 +1122,9 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	p.memoSlots = slots
 	e.rule, e.min, e.env = int32(rule), int32(min), key
 	if ix != nil {
+		n := len(ix)
 		ix[ixSlot] = e
+		p.memoIndexBytes += uint64(len(ix)-n) * memoIndexEntryBytes
 	}
 	if replaced != nil {
 		e.next = replaced.next

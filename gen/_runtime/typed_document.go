@@ -58,6 +58,10 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 	}
 	o = prepareText(o, d.State.text)
 	cache, ok := d.typedMemo.(*typedDocumentState)
+	if ok && o.control != nil && o.control.limits.Memory != 0 && cache.retainedBytes() > o.control.limits.Memory {
+		// The retained memo alone exceeds the limit: the parse starts without it.
+		ok = false
+	}
 	if !ok {
 		cache = &typedDocumentState{owner: d.State, meta: make(map[*tmemoEntry]typedDocumentMeta)}
 		d.typedMemo = cache
@@ -71,6 +75,10 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 		}
 	}()
 	p := &TParser{Parser: &Parser{Control: o.control}, TypedDocument: cache, memoSlots: cache.slots}
+	if o.control != nil && o.control.limits.Memory != 0 {
+		o.control.attachTypedMemory(p, a)
+		o.control.mem = cache.retainedBytes()
+	}
 	p.Observation = newObservation(&o.observe)
 	defer p.releaseObservation()
 	// Do not recycle p: memo values and expectations may refer into its arenas.

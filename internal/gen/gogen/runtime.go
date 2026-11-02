@@ -413,7 +413,7 @@ func apiNames(opts gen.GenOptions) []string {
 		"Node", "NodeField", "Fields", "NodeKind", "KindString", "KindTuple", "KindList", "KindError", "KindStruct",
 		"KindTupleValue", "KindListValue", "KindValue", "SyntaxError", "SyntaxErrors", "PositionUnit", "CodePoints", "Bytes",
 		"ParseOption", "WithUnit", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitCompute", "LimitInput",
-		"LimitDepth", "Unlimited",
+		"LimitDepth", "LimitMemory", "Unlimited",
 		"Cursor", "CycleError", "WalkAction", "WalkContinue", "WalkSkip", "WalkStop", "WalkVisit", "WalkEdge", "WalkEdgeKind",
 		"WalkRoot", "WalkChild", "WalkField", "WalkListElement", "Walk",
 	}

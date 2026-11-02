@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+	"unsafe"
 )
 
 // Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
@@ -50,6 +51,18 @@ func inputUnits(s string, unit PositionUnit) uint64 {
 // construction adds to one counter, so a bound on it bounds scanning,
 // recursion and value building alike.
 //
+// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child and
+// field lists, memo entries, capture frames and typed values, the decoded input, the read buffer
+// of a stream, the working stacks, and the strings that actions build. Storage is counted, by its
+// logical capacity, when the parser takes it into use; a stream returns what its commits let go
+// of, and storage dropped by backtracking is not returned. The input string and anything a
+// callback keeps are not counted. The default is Unlimited, and a finite Memory needs limit
+// controls, as a finite Compute does. The count is checked at the compute polls, every 256 units,
+// and at the end of the parse, so a parse can pass the limit by what it allocates between two
+// polls before it fails with a LimitError of kind LimitMemory. A Document's count starts at the
+// bytes of the memo it retains from earlier parses; when those alone exceed the limit, the
+// Document drops them first. Counts depend on the input unit and the version.
+//
 // Input bounds the length of the input in the position unit of the parse. The default is
 // Unlimited: the default budget already grows with the input. A longer input fails before any
 // work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
@@ -62,20 +75,21 @@ func inputUnits(s string, unit PositionUnit) uint64 {
 // LimitError of kind LimitDepth.
 type Limits struct {
 	Compute uint64
+	Memory  uint64
 	Input   uint64
 	Depth   uint64
 }
 
-// disabled reports whether l needs no control: Compute is zero or Unlimited. Input is checked
-// against the length of the input and Depth by the parser, so neither needs one.
+// disabled reports whether l needs no control: Compute and Memory are zero or Unlimited. Input is
+// checked against the length of the input and Depth by the parser, so neither needs one.
 func (l Limits) disabled() bool {
-	return l.Compute == 0 || l.Compute == Unlimited
+	return (l.Compute == 0 || l.Compute == Unlimited) && (l.Memory == 0 || l.Memory == Unlimited)
 }
 
 // mergeLimits returns l with every nonzero field of o in place of the field of l: the limits of a
 // later WithLimits over those of an earlier one. A zero field of o keeps the field of l.
 func mergeLimits(l, o Limits) Limits {
-	return Limits{Compute: nonzero(o.Compute, l.Compute), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
+	return Limits{Compute: nonzero(o.Compute, l.Compute), Memory: nonzero(o.Memory, l.Memory), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
 }
 
 // nonzero returns v, or def if v is zero.
@@ -100,6 +114,8 @@ const (
 	// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
 	// limit.
 	LimitDepth
+	// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
+	LimitMemory
 )
 
 // LimitError reports a reservation that would exceed a limit. Used is the
@@ -108,7 +124,8 @@ const (
 // Requested is the length of the input in the position unit; for a stream it is the number of
 // units the parser had asked for, or the length of the stream if that is shorter. For LimitDepth,
 // Limit is the resolved Depth limit, Used is the depth reached (the limit) and Requested is one,
-// the nested call that would exceed it.
+// the nested call that would exceed it. For LimitMemory, Used is the count of bytes at the check
+// that failed and Requested is zero, since memory is checked at polls rather than reserved.
 type LimitError struct {
 	Kind      LimitKind
 	Limit     uint64
@@ -125,6 +142,8 @@ func (e *LimitError) Error() string {
 		return fmt.Sprintf("parse input limit exceeded: limit %d, length %d", e.Limit, e.Requested)
 	case LimitDepth:
 		return fmt.Sprintf("nesting too deep: more than %d nested recursive rule calls", e.Limit)
+	case LimitMemory:
+		return fmt.Sprintf("parse memory limit exceeded: limit %d, used %d", e.Limit, e.Used)
 	}
 	return fmt.Sprintf("parse compute limit exceeded: limit %d, used %d, requested %d", e.Limit, e.Used, e.Requested)
 }
@@ -154,10 +173,30 @@ type BudgetControl struct {
 
 	sinceCheck  uint64
 	interrupted bool // distinguishes budget interruptions from ordinary parse errors
+	// polled is set when something is observed at the poll interval: a context that can be
+	// canceled, or a finite memory limit.
+	polled bool
 
 	// adaptive is set for a stream whose budget is the default: the budget follows the furthest
 	// position the parser has demanded from the stream (demand).
 	adaptive bool
+
+	// mem is the memory, in bytes, charged to the control itself: the bytes a typed Document
+	// retains from earlier parses. The memory check adds values, errs and the counters of the
+	// parser and the typed state attached by attachMemory (memoryUsed).
+	mem uint64
+	// values counts the storage of the values the parse builds on the controlled path: text copied
+	// out of the input, concatenated strings, rebound environments, memo keys and the error lists
+	// of memo entries. It belongs to the nodes and memo entries built since, so a stream returns it
+	// with their chunks (streamCommit).
+	values uint64
+	// errs counts the syntax errors the parse builds. A stream returns it at a commit that
+	// releases the recovered errors to the diagnostic tail, which counts those it keeps; otherwise
+	// the errors stay held to the end of the parse.
+	errs   uint64
+	memP   *Parser
+	memT   *TParser
+	memExt memoryCounter
 }
 
 // demand raises the default budget of a stream to that of n units, where n is the number of units up
@@ -175,18 +214,18 @@ func (c *BudgetControl) demand(n int) {
 	}
 }
 
-// newBudgetControl returns nil when neither cancellation nor a finite budget is
-// active. Without a cancelable context the control never polls, so a parse with
-// only a budget reaches the slow path of a charge only at its limit. A nil
-// context is equivalent to context.Background.
+// newBudgetControl returns nil when neither cancellation nor a finite budget or memory limit is
+// active. Without a cancelable context or a memory limit the control never polls, so a parse with
+// only a budget reaches the slow path of a charge only at its limit. A nil context is equivalent
+// to context.Background.
 func newBudgetControl(ctx context.Context, limits Limits) *BudgetControl {
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil // it can never be canceled
 	}
-	if ctx == nil && limits.Compute == 0 {
+	if ctx == nil && limits.Compute == 0 && limits.Memory == 0 {
 		return nil
 	}
-	c := &BudgetControl{ctx: ctx, limits: limits}
+	c := &BudgetControl{ctx: ctx, limits: limits, polled: ctx != nil || limits.Memory != 0}
 	c.refill()
 	return c
 }
@@ -206,7 +245,7 @@ func (c *BudgetControl) settle() {
 // refill grants the fast path of charge the room left by the settled counters.
 func (c *BudgetControl) refill() {
 	interval := budgetCheckInterval
-	if c.ctx == nil {
+	if !c.polled {
 		interval, c.sinceCheck = unpolledGrant, 0
 	}
 	c.grant = budgetRoom(c.base, c.sinceCheck, c.limits.Compute, interval)
@@ -253,19 +292,24 @@ func contextErr(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// Check observes cancellation at an explicit engine checkpoint. It is safe on
-// a nil receiver.
+// Check observes cancellation, then the memory limit, at an explicit engine checkpoint. It is safe
+// on a nil receiver.
 func (c *BudgetControl) Check() {
-	if c == nil || c.ctx == nil {
+	if c == nil {
 		return
 	}
-	if err := contextErr(c.ctx); err != nil {
-		c.interrupted = true
-		panic(fatal{err: err})
+	if c.ctx != nil {
+		if err := contextErr(c.ctx); err != nil {
+			c.interrupted = true
+			panic(fatal{err: err})
+		}
+		c.settle()
+		c.sinceCheck = 0
+		c.refill()
 	}
-	c.settle()
-	c.sinceCheck = 0
-	c.refill()
+	if c.limits.Memory != 0 {
+		c.checkMemory()
+	}
 }
 
 // Charge atomically reserves n compute units. Cancellation wins when it is
@@ -322,7 +366,7 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 	c.settle()
 
 	exceeded := exceedsLimit(c.base, n, c.limits.Compute)
-	poll := c.ctx != nil && reachesInterval(c.sinceCheck, n, budgetCheckInterval)
+	poll := c.polled && reachesInterval(c.sinceCheck, n, budgetCheckInterval)
 
 	// Check on each poll boundary and on a failed reservation so an already
 	// canceled invocation wins over a simultaneously exhausted budget.
@@ -332,6 +376,9 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 				c.interrupted = true
 				panic(fatal{err: err})
 			}
+		}
+		if poll && c.limits.Memory != 0 {
+			c.checkMemory()
 		}
 	}
 	if exceeded {
@@ -687,6 +734,7 @@ func (p *Parser) stringBinaryControlled(op string, l, r any) (any, bool) {
 	case "+":
 		var out strings.Builder
 		out.Grow(checkedTextSize(len(ls), len(rs)))
+		p.chargeValueBytes(len(ls) + len(rs))
 		for _, s := range [...]string{ls, rs} {
 			for off := 0; off < len(s); {
 				n := min(spendValueChunk, len(s)-off)
@@ -748,6 +796,7 @@ func (p *Parser) detachedText(start, end int) string {
 	}
 	var out strings.Builder
 	out.Grow(size)
+	p.chargeValueBytes(size)
 	for off := 0; off < len(src); {
 		n := min(spendValueChunk, len(src)-off)
 		p.Control.Charge(2 * uint64(n))
@@ -980,6 +1029,7 @@ func (p *Parser) makeControlledError(pos int, expected []ExpID) *SyntaxError {
 		}
 	}
 	p.sortExpected(e.Expected)
+	p.chargeError(e)
 	if p.Stream != nil {
 		e.Line, e.Col = p.streamLineCol(pos)
 		return e
@@ -1009,7 +1059,23 @@ func (p *Parser) makeControlledError(pos int, expected []ExpID) *SyntaxError {
 	return e
 }
 
-func (p *Parser) copyErrors(dst, src []*SyntaxError) []*SyntaxError { return appendSpend(p, dst, src) }
+// copyErrors appends the recovered errors src to dst. It stays inlinable for the common case of
+// no errors; a new list (nil dst) belongs to a memo entry and its pointers are charged to values
+// (copyErrorsSlow). The errors themselves are charged once, when they are made (errs).
+func (p *Parser) copyErrors(dst, src []*SyntaxError) []*SyntaxError {
+	if len(src) == 0 {
+		return dst
+	}
+	return p.copyErrorsSlow(dst, src)
+}
+
+func (p *Parser) copyErrorsSlow(dst, src []*SyntaxError) []*SyntaxError {
+	out := appendSpend(p, dst, src)
+	if c := p.Control; c != nil && dst == nil {
+		c.values = saturatingAdd(c.values, uint64(cap(out))*ptrBytes)
+	}
+	return out
+}
 
 // rawValueEqual preserves the interface equality of memo keys and bindings.
 // In particular, a typed nil pointer differs from a nil interface. Action
@@ -1048,6 +1114,7 @@ func (p *Parser) bindControlled(slot int, val any) {
 	}
 	// Saved environments are immutable; only publish a completed path.
 	p.Env = p.Env.set(slot, p.envDepth, val)
+	p.chargeValueBytes(int(uint64(p.envDepth+1) * envNodeBytes))
 }
 
 func clearSpend[T any](p *Parser, values []T) {
@@ -1114,7 +1181,7 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any) *memoEntry {
 	if e == nil {
 		return nil
 	}
-	ix := indexAt(&p.memo.index, pos, p.memo.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
+	ix := indexAt(&p.memo.index, &p.memo.indexBytes, pos, p.memo.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 		func(e *memoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
 	_, x := ix.probe(p.hashMemoKey(int32(rule), int32(min), key), func(x *memoEntry) bool {
 		return x.rule == int32(rule) && x.min == int32(min) && p.memoKeyEqual(x.env, key)
@@ -1154,6 +1221,8 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	slots := p.memo.slots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
+		// The slot array is charged by its length, not its capacity, which a pooled parser keeps.
+		p.memo.memBytes += uint64(pos+1-len(slots)) * ptrBytes
 		if pos < cap(slots) {
 			slots = slots[:pos+1]
 		} else {
@@ -1178,7 +1247,7 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	var ixSlot uint64
 	if replaced == nil && *link != nil {
 		// A long chain: the index finds the entry to replace.
-		ix = indexAt(&p.memo.index, pos, slots[pos], func(e *memoEntry) *memoEntry { return e.next },
+		ix = indexAt(&p.memo.index, &p.memo.indexBytes, pos, slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 			func(e *memoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
 		ixSlot, replaced = ix.probe(p.hashMemoKey(int32(rule), int32(min), key), same)
 		if replaced != nil {
@@ -1200,7 +1269,9 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	p.memo.slots = slots
 	e.rule, e.min, e.env = int32(rule), int32(min), key
 	if ix != nil {
+		n := len(ix)
 		ix[ixSlot] = e
+		p.memo.indexBytes += uint64(len(ix)-n) * memoIndexEntryBytes
 	}
 	if replaced != nil {
 		e.next = replaced.next
@@ -1221,17 +1292,20 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 	t := &p.memo
 	if t.calls == nil {
 		t.calls = make([]seenCalls, t.stride)
+		t.memBytes += uint64(t.stride) * uint64(unsafe.Sizeof(seenCalls{}))
 	}
 	if !t.calls[r.Seen].eager && t.sparse {
 		if len(t.pages) != t.stride {
 			// No step of its own: whether the directory table exists is the pooled parser's state.
 			t.pages = make([]seenRulePages, t.stride)
+			t.memBytes += uint64(t.stride) * uint64(unsafe.Sizeof(seenRulePages{}))
 		}
 		dir := &t.pages[r.Seen]
 		at := p.Pos >> 10
 		if at >= len(dir.pages) {
 			// The directory is empty at the start of a parse, so its length is the parse's own.
 			p.growthSpend(len(dir.pages), at+1)
+			t.memBytes += uint64(at+1-len(dir.pages)) * ptrBytes
 			dir.pages = slices.Grow(dir.pages, at+1-len(dir.pages))[:at+1]
 		}
 		if dir.pages[at] == nil {
@@ -1245,6 +1319,7 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 				}
 			}
 			dir.pages[at] = t.bitPages.alloc()
+			t.memBytes += uint64(unsafe.Sizeof(*dir.pages[at]))
 		}
 		dir.last, dir.at = dir.pages[at], at
 	} else if !t.calls[r.Seen].eager {
@@ -1253,6 +1328,7 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 			n := len(t.seen) + max(w+1-len(t.seen), len(t.seen), 64)
 			// The new words are the spend, whether they come from spare capacity or an allocation.
 			p.chargeValues(n - len(t.seen))
+			t.memBytes += uint64(n-len(t.seen)) * 8
 			seen := t.seen
 			if n <= cap(seen) {
 				seen = seen[:n]

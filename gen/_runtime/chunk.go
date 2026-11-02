@@ -9,6 +9,8 @@ type Chunk[T any] struct {
 	free      []T
 	next      int
 	bootstrap uint8
+	// allocated counts the values allocated (MemoryBytes).
+	allocated int
 }
 
 // grow starts small and doubles up to limit. The request is always satisfied.
@@ -21,6 +23,7 @@ func (s *Chunk[T]) grow(n, initial, limit int) {
 		size *= 2
 	}
 	s.free = make([]T, size)
+	s.allocated += size
 	s.next = size * 2
 	if s.next > limit {
 		s.next = limit
@@ -36,6 +39,7 @@ func Alloc[T any](s *Chunk[T]) *T {
 	if len(s.free) == 0 {
 		if s.bootstrap < 3 {
 			s.bootstrap++
+			s.allocated++
 			return new(T)
 		}
 		s.grow(1, 8, 256)
@@ -56,11 +60,13 @@ func AllocSlice[T any](s *Chunk[T], n int) []T {
 		return []T{} // an empty list, not nil
 	}
 	if n > 256 {
+		s.allocated += n
 		return make([]T, n)
 	}
 	if len(s.free) < n {
 		if s.bootstrap == 0 {
 			s.bootstrap = 1
+			s.allocated += n
 			return make([]T, n)
 		}
 		s.grow(n, 64, 1024)

@@ -19,6 +19,7 @@ const KindValue NodeKind = 7
 const LimitCompute LimitKind = 0
 const LimitDepth LimitKind = 2
 const LimitInput LimitKind = 1
+const LimitMemory LimitKind = 3
 const MsgBit ExpID = 1073741824
 const RuleDocMemo uint8 = 8
 const RuleLeader uint8 = 2
@@ -136,6 +137,7 @@ method (*ActCtx) Var(int) any
 method (*BudgetControl) Charge(uint64)
 method (*BudgetControl) Check()
 method (*BudgetControl) Take(uint64) bool
+method (*Chunk) MemoryBytes() uint64
 method (*Class) Has(rune) bool
 method (*CycleError) Error() string
 method (*Document) BeginParse() error
@@ -394,7 +396,7 @@ type FieldType struct{Kind byte; Name string; Elem *FieldType; Alts []*FieldType
 type Fields []NodeField
 type LimitError struct{Kind LimitKind; Limit uint64; Used uint64; Requested uint64}
 type LimitKind uint8
-type Limits struct{Compute uint64; Input uint64; Depth uint64}
+type Limits struct{Compute uint64; Memory uint64; Input uint64; Depth uint64}
 type Mark struct{Pos int; Trail int}
 type Node struct{RawKind *nodeKind; RawStart int32; RawEnd int32; RawText string; RawChildren []*Node; RawFields Fields; RawFresh bool; RawTerminal bool}
 type NodeField struct{Name string; Value any}

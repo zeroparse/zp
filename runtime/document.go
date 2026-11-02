@@ -54,6 +54,7 @@ func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err
 	p := &Parser{unit: o.unit, Control: o.control}
 	p.setGrammar(root.g)
 	p.Expectations = o.expectations
+	o.control.attachMemory(p)
 	if o.unit == CodePoints {
 		p.setSource(text)
 	} else if o.control != nil {
@@ -109,7 +110,7 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 	}
 	o.maxDepth = depth
 	if d.State.root.g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
-		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute limit)")
+		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute or Memory limit)")
 	}
 	if err := o.validateDiagnostics(); err != nil {
 		return o, err
@@ -348,6 +349,10 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 		return res, fmt.Errorf("document start rule is missing")
 	}
 	o = prepareText(o, d.text)
+	if o.control != nil && o.control.limits.Memory != 0 && d.memo.chargedBytes() > o.control.limits.Memory {
+		// The retained memo alone exceeds the limit: the parse starts without it.
+		d.memo = memoTable{}
+	}
 	p := &Parser{unit: d.unit, MaxDepth: o.maxDepth, Control: o.control}
 	p.setGrammar(d.root.g)
 	p.Expectations = o.expectations
@@ -359,6 +364,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 		p.setSource(d.text)
 	}
 	p.Document, p.memo = d, d.memo
+	o.control.attachMemory(p)
 	d.stats = documentStats{}
 	defer func() {
 		if x := recover(); x != nil {

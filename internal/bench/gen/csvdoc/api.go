@@ -86,6 +86,18 @@ func WithLimits(limits Limits) ParseOption { return rt.WithLimits(limits) }
 // construction adds to one counter, so a bound on it bounds scanning,
 // recursion and value building alike.
 //
+// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child and
+// field lists, memo entries, capture frames and typed values, the decoded input, the read buffer
+// of a stream, the working stacks, and the strings that actions build. Storage is counted, by its
+// logical capacity, when the parser takes it into use; a stream returns what its commits let go
+// of, and storage dropped by backtracking is not returned. The input string and anything a
+// callback keeps are not counted. The default is Unlimited, and a finite Memory needs limit
+// controls, as a finite Compute does. The count is checked at the compute polls, every 256 units,
+// and at the end of the parse, so a parse can pass the limit by what it allocates between two
+// polls before it fails with a LimitError of kind LimitMemory. A Document's count starts at the
+// bytes of the memo it retains from earlier parses; when those alone exceed the limit, the
+// Document drops them first. Counts depend on the input unit and the version.
+//
 // Input bounds the length of the input in the position unit of the parse. The default is
 // Unlimited: the default budget already grows with the input. A longer input fails before any
 // work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
@@ -107,7 +119,8 @@ type LimitKind = rt.LimitKind
 // Requested is the length of the input in the position unit; for a stream it is the number of
 // units the parser had asked for, or the length of the stream if that is shorter. For LimitDepth,
 // Limit is the resolved Depth limit, Used is the depth reached (the limit) and Requested is one,
-// the nested call that would exceed it.
+// the nested call that would exceed it. For LimitMemory, Used is the count of bytes at the check
+// that failed and Requested is zero, since memory is checked at polls rather than reserved.
 type LimitError = rt.LimitError
 
 // ErrLimit is matched by errors.Is for any LimitError.
@@ -122,6 +135,9 @@ const LimitInput = rt.LimitInput
 // LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
 // limit.
 const LimitDepth = rt.LimitDepth
+
+// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
+const LimitMemory = rt.LimitMemory
 
 // Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
 // takes it, so one constant serves them all.
