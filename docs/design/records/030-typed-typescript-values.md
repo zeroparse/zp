@@ -108,7 +108,7 @@ Grammar struct fields currently must begin with an uppercase letter
 do not collide with valid fields. Preserve original grammar field spelling.
 Terminal interfaces use their original type-name discriminator and `text`.
 A recovered Error converts to a helper such as `RecoveredError`, containing
-`type:"Error"`, span, text and message. Keep diagnostic `Error` and
+`type:"Error"`, span and message. Keep diagnostic `Error` and
 `SyntaxErrors` classes separate from this value interface.
 
 Mapping details:

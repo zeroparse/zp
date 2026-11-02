@@ -5004,7 +5004,7 @@ L42:
 	}
 	x43 = p.MakeError(x4, x5)
 	p.Recovered = append(p.Recovered, x43)
-	v8 = rt.NewTError(x2.Pos, p.Pos, p.Text(x2.Pos, p.Pos), p.RecoveryErrorText(x43))
+	v8 = rt.NewTError(x2.Pos, p.Pos, p.RecoveryErrorText(x43))
 	goto L7
 L36:
 	p.Reset(x2)

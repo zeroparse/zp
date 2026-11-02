@@ -1026,9 +1026,7 @@ The first two classes are guarantees under the memoization that
 [Evaluations of Rules](#evaluations-of-rules) describes and the skip runs that
 [Skip Runs](#skip-runs) describes; an implementation or a parse that keeps
 fewer of either, as one can for testing and as a parse with missing-token
-insertion does, is outside them. A [stream](streaming.md) parse of a grammar
-with `#recover` is also outside them: it can cost more than a constant times n
-even when the skip of each recovery is constant. The
+insertion does, is outside them. The
 classifier reports them only when the
 conditions of [Conditions for Linear Cost](#conditions-for-linear-cost) hold,
 and it over-approximates where it cannot be exact. It assumes that every

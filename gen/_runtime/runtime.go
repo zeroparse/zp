@@ -3308,7 +3308,7 @@ func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*Node, bool) {
 //
 // NewErrorNode is for generated parsers; not a stable API.
 func (p *Parser) NewErrorNode(start int, e *SyntaxError) *Node {
-	return p.NewNode(Node{RawKind: kindError, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.Text(start, p.Pos), RawFields: Fields{{"message", p.RecoveryErrorText(e)}}, RawFresh: true, RawTerminal: true})
+	return p.NewNode(Node{RawKind: kindError, RawStart: int32(start), RawEnd: int32(p.Pos), RawFields: Fields{{"message", p.RecoveryErrorText(e)}}, RawFresh: true, RawTerminal: true})
 }
 
 // --- Actions and predicates ---

@@ -470,9 +470,9 @@ func main() {
 			`{"Start":13,"End":15,"Text":"zz"}],"Type":"[]types.Node","Err":"<nil>"}`,
 		`{"Value":[` +
 			`{"Start":0,"End":1,"Text":"f"},` +
-			`{"Start":1,"End":6,"Text":"(1,(;","Message":"1:2: syntax error: expected \"[\", [0-9], [a-z]"},` +
+			`{"Start":1,"End":6,"Message":"1:2: syntax error: expected \"[\", [0-9], [a-z]"},` +
 			`{"Start":6,"End":7,"Text":"g"},` +
-			`{"Start":7,"End":10,"Text":"();","Message":"1:8: syntax error: expected \"[\", [0-9], [a-z]"}],"Type":"[]types.Node","Err":"1:2: syntax error: expected \"[\", [0-9], [a-z]\n1:8: syntax error: expected \"[\", [0-9], [a-z]"}`,
+			`{"Start":7,"End":10,"Message":"1:8: syntax error: expected \"[\", [0-9], [a-z]"}],"Type":"[]types.Node","Err":"1:2: syntax error: expected \"[\", [0-9], [a-z]\n1:8: syntax error: expected \"[\", [0-9], [a-z]"}`,
 		`{"Value":[{"Start":0,"End":5,"Fn":{"Start":0,"End":1,"Text":"f"},"Args":[{"Start":2,"End":3,"Text":"a"}],"Span_":{"Start":4,"End":4,"Value":""},"N":1,"Opt":null,"Rows":[[]],"Ok":true}],"Type":"[]types.Node","Err":"<nil>"}`,
 	} {
 		var b strings.Builder

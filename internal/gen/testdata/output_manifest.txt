@@ -76,7 +76,7 @@ csv typed-doc api.go 6da0297128c5e0790aff362ed4a7511786d047849c264efeb9d36a8c078
 csv typed-doc parser.go bb3f4b082998eeae1ba48d00d48f536d2000ca78be6a8efb2c45fb77f37a72ca 26067 1210 42
 csv typed-doc types/types.go 65e769fe2cdebe77dc4356af05af084b11e75c763198e47ec91e9d98817d5191 3978 147 17
 csv typed-stream api.go 7ba09c23121a4bed231d411c6289ee87862881b3377bf3f9aee87d9691d464f2 8960 204 5
-csv typed-stream parser.go c1f83be2e54c93a7313fff027cb26c8627085ac2ae055897b35afa1983685efb 26537 1195 46
+csv typed-stream parser.go 77434eb145def4fdca15bc726ffcc6ff3f0e036742a2c98a6bf398f184f191fe 26520 1195 46
 csv typed-stream types/types.go 65e769fe2cdebe77dc4356af05af084b11e75c763198e47ec91e9d98817d5191 3978 147 17
 csv typed-only-wc api.go 1251754b281cde3516fe3e72969327ca12ca9755649697bbd4288b78cc611ac2 7367 179 4
 csv typed-only-wc parser.go 40ee7fc4d18e452f08e5a4d7429cc5ce10e45bfaa8a0abc87f115cfc3071a863 11686 565 17
@@ -510,7 +510,7 @@ minilang node parser.go 0d247df3682a8ba7f8aca9ed04880fb97fd9794f52401e2b8211c6dd
 minilang node-exp api.go 549a5d9a1588fbfe68b9315d951475239f595a4bb182589f89f63a7085f27125 7367 176 4
 minilang node-exp parser.go 3c6294a188be60675edac167a5840202ff7d117b96917e472c4be518a177f6ee 52437 2301 55
 minilang typed-exp api.go e694c131e5723c741bd78f1f7b81e2f9a6374c11b0278b25ec0d06910546898d 7583 181 4
-minilang typed-exp parser.go 804d9aa3e47b544bc71a488d13d095ffadb380f4c290aa23870a192d75a880cd 109006 4989 151
+minilang typed-exp parser.go 1fa44ba449b62215b7100f99d57d947864bfc417060be3521f6c14793b856da7 108983 4989 151
 minilang typed-exp types/types.go 52fa4387cf549d2bcbc72b1783a7676860609cff0bf900164c704c80bffd500b 18213 711 153
 minilang node-rec api.go 0d60dea4560ac0d26c224149822c6a7c4bbbc9049751b229dd139f8cd35c0cd0 6952 170 3
 minilang node-rec parser.go 59af75a377ba3756e24bd0a33822f28812f3effc218579b9d9fe0574b0bf4899 88200 4094 104
@@ -528,20 +528,20 @@ minilang node-doc-wc api.go 8f9144a33e562a48913799ab79559d83a6ccf5aa94eefcbabfa8
 minilang node-doc-wc parser.go 422c265c1e9a37767c6e2c49745ee15e9a2295737ae28cb22c8c305b6aea510e 56024 2424 52
 minilang node-stream error stream generation needs a #stream repetition at the top level of the start rule main
 minilang typed api.go 5de64dcbd2fb752c82261780fcbea0dd25c8581f6b47d5bf4ff520e6e6345c4a 7168 175 3
-minilang typed parser.go 02020dc12e0bbcebca2e2cdf40ba019f6ab7f5dc78f67c7c7a8c2cfccc2a065a 108349 4987 151
+minilang typed parser.go 359e8392e70988349ff441533ca4a5c3afc8a7688207de988524ad96c3601519 108326 4987 151
 minilang typed types/types.go 52fa4387cf549d2bcbc72b1783a7676860609cff0bf900164c704c80bffd500b 18213 711 153
 minilang typed-only api.go 5de64dcbd2fb752c82261780fcbea0dd25c8581f6b47d5bf4ff520e6e6345c4a 7168 175 3
-minilang typed-only parser.go f6766462c0c52d6e8a6c568b8cdd93e6d68e409d75c1b3abbc41af790070ce14 63313 2879 97
+minilang typed-only parser.go cecf7db12bd7b4039b0217664cc2b7f82961b98089857b11b365aba7ff2b0a99 63290 2879 97
 minilang typed-only types/types.go 52fa4387cf549d2bcbc72b1783a7676860609cff0bf900164c704c80bffd500b 18213 711 153
 minilang typed-rec-wc api.go 12bc4ceeec8815942e1ec181c41b694f36e1950d5b9dfc8010d069dc4ad91643 7372 179 4
-minilang typed-rec-wc parser.go b3ac4aab1e27f3f591b4ddf274a917ff902f19dfee0e78d5a805a1107f5f6a73 155150 7325 200
+minilang typed-rec-wc parser.go 6c88263c74028f0edab7adad6e87492a7753f65c5c97f7d6e448f8d3196dcec6 155127 7325 200
 minilang typed-rec-wc types/types.go 80bb2a974ec31e5e32bd687883fdeef591cd6c3abf3eb2a94145f5171da18c84 18283 716 153
 minilang typed-doc api.go 9ed1215f46cbd736b005051da0a8b35869af57abb21d56e605bb10df87cd9b06 7282 178 3
-minilang typed-doc parser.go b18468bcfa76610003795398f194732cd18b68f132c14593dc0721e8533b04e3 137541 6204 199
+minilang typed-doc parser.go e0ad1af9309cbd14222cec3dab723cfcaf3b5e1057c9f0e79ad471dfcf045b5c 137518 6204 199
 minilang typed-doc types/types.go 52fa4387cf549d2bcbc72b1783a7676860609cff0bf900164c704c80bffd500b 18213 711 153
 minilang typed-stream error stream generation needs a #stream repetition at the top level of the start rule main
 minilang typed-only-wc api.go 12bc4ceeec8815942e1ec181c41b694f36e1950d5b9dfc8010d069dc4ad91643 7372 179 4
-minilang typed-only-wc parser.go bd8240d212c5dac6149466b3731bd5bd78b5d33802989b181382144ff148ecae 67176 3066 97
+minilang typed-only-wc parser.go 9b474977c2e7b6a2c81c8cebf656d806148eb7ab7639bb07f66c17ac5cd2e2e9 67153 3066 97
 minilang typed-only-wc types/types.go 80bb2a974ec31e5e32bd687883fdeef591cd6c3abf3eb2a94145f5171da18c84 18283 716 153
 minilang default-value api.go 0d60dea4560ac0d26c224149822c6a7c4bbbc9049751b229dd139f8cd35c0cd0 6952 170 3
 minilang default-value parser.go 97186b692ef34e647ef1a822c5fc12f94b882c357869dfff1a9feaf071fab1df 55830 2554 61

@@ -794,7 +794,7 @@ func (a *astConv) toError(n *Node) *Error {
 	if v, ok := a.values[n]; ok { return v.(*Error) }
 	msg, _ := a.field(n, "message").(string)
 	v := astNew(&a.error)
-	*v = Error{Span: %[1]s{Start: int(n.RawStart), End: int(n.RawEnd)}, Text: n.RawText, Message: msg}
+	*v = Error{Span: %[1]s{Start: int(n.RawStart), End: int(n.RawEnd)}, Message: msg}
 	a.remember(n, v)
 	return v
 }

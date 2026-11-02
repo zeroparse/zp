@@ -432,7 +432,6 @@ export interface TNode<T> extends Span { readonly type: string; readonly value: 
 export interface StringNode extends TNode<string> { readonly type: "string" }
 export interface RecoveredError extends Span {
   readonly type: "error";
-  readonly text: string;
   readonly message: string;
 }
 export interface TypedParseResult<T> { readonly value: T | null; readonly error: Error | null }
@@ -558,7 +557,7 @@ function astConvert(value: Value, repr: number, control: BudgetControl | null = 
       } else if (v.type === recipe.name) {
         const obj: ASTObject = { type: v.type, start: v.start, end: v.end };
         if (recipe.name === "string") obj["value"] = v.text;
-        else if (recipe.kind !== "struct") obj["text"] = v.text;
+        else if (recipe.kind !== "struct" && recipe.kind !== "error") obj["text"] = v.text;
         if (recipe.kind === "error") {
           const msg = getFieldSpend(v, "message", control);
           obj["message"] = typeof msg === "string" ? msg : "";

@@ -572,11 +572,12 @@ it and however often its skip is evaluated again. A continuation that examines
 again the input that the skip examined charges its own steps as before, and
 the slots that the skip examined carry no earlier charge from it. Slots last
 one parse: a [Document](../runtime/documents.md) parse starts without them,
-which leaves the bound of each parse unchanged. In a
-[stream](../runtime/streaming.md) the records bound the walks, and this lemma
-gives no linear bound for a stream parse of a grammar with `#recover`, which
-[Classification](../runtime/parsing.md#classification) places outside the
-classes. A parse with missing-token
+which leaves the bound of each parse unchanged. A
+[stream](../runtime/streaming.md) parse drops the slots before the committed
+position, which no later walk reaches because a walk only moves forward, so
+the bound holds for it as well. An error value that a recovery builds carries
+its range and message, not the skipped text, so it costs a constant
+whatever the skip. A parse with missing-token
 insertion keeps no slots, and is outside the classes, as
 [Classification](../runtime/parsing.md#classification) states.
 

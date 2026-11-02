@@ -729,7 +729,7 @@ func recoverAttr(m, skip core.Matcher, build bool) core.Matcher {
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: value.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Text: p.Text(m0.Pos, p.Pos), Fields: value.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
+		return p.NewNode(value.Data{Kind: value.ErrorKind, Start: int32(m0.Pos), End: int32(p.Pos), Fields: value.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true}), true
 	}
 }
 

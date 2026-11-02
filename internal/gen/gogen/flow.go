@@ -939,7 +939,7 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.MakeError(%s, %s)", p.expr(x.Far), p.expr(x.Exps))
 	case *flow.ErrorValue:
 		start := p.expr(x.Start)
-		return fmt.Sprintf("NewTError(%s, p.Pos, p.Text(%s, p.Pos), p.RecoveryErrorText(%s))", start, start, p.expr(x.X))
+		return fmt.Sprintf("NewTError(%s, p.Pos, p.RecoveryErrorText(%s))", start, p.expr(x.X))
 	case *flow.NewErrorNode:
 		return fmt.Sprintf("p.NewErrorNode(%s, %s)", p.expr(x.Start), p.expr(x.X))
 	case *flow.FreshNode:

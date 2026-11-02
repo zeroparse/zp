@@ -379,7 +379,8 @@ const (
 	KindTuple
 	// KindList is a node whose value is a list: Len and Elem.
 	KindList
-	// KindError is an error value of recovery: Text is its message.
+	// KindError is an error value of recovery: its range is the skipped input and its Text() is its
+	// message. It stores no text of the range.
 	KindError
 	// KindStruct is a struct built by an action: Type and Field.
 	KindStruct

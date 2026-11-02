@@ -994,7 +994,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.recoveredError(%s, %s)", p.expr(x.Far), p.expr(x.Exps))
 	case *flow.NewErrorNode:
 		start := p.expr(x.Start)
-		return fmt.Sprintf("new Node(\"error\", \"\", %s, p.pos, p.text(%s, p.pos), noNodes, [{ name: \"message\", value: %s!.message }], true, true)", start, start, p.expr(x.X))
+		return fmt.Sprintf("new Node(\"error\", \"\", %s, p.pos, \"\", noNodes, [{ name: \"message\", value: %s!.message }], true, true)", start, p.expr(x.X))
 	case *flow.Text:
 		p.read(x.Start)
 		return fmt.Sprintf("p.text(%s, p.pos)", p.expr(x.Start))

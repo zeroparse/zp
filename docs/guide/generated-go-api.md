@@ -67,7 +67,8 @@ Compared with the engine's API:
   the fields you need.
 - **Fields.** As with the engine, a field value is a `*Node`, `int`, `string`, `bool` or `nil`: assert it to
   `*pairsparser.Node` (as the example does with `Field("Key")`), not to `*zp.Node`.
-- **Errors** carry the same positions and messages. Recovered errors work too.
+- **Errors** carry the same positions and messages. Recovered errors work too, and the error value that a
+  `#recover` produces in a typed result has the range of the skipped input (`Span`) and the `Message`.
   With this grammar, `rec.zp`:
 
   ```zp

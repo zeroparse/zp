@@ -114,7 +114,7 @@ func recoveryInput(mode string, n int) string {
 func errorNodes(v Expr) int {
     switch v := v.(type) {
     case *Error:
-        if v.Text != "?" || v.End <= v.Start || v.Message == "" { panic("invalid error node") }
+        if v.End <= v.Start || v.Message == "" { panic("invalid error node") }
         return 1
     case *Post: return errorNodes(v.X)
     default: return 0

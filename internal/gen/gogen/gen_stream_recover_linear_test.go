@@ -12,17 +12,28 @@ import (
 
 // A generated stream parse recovers in time proportional to the work: the compute that it needs
 // grows linearly with the input when each recovery skips a constant amount, as the batch parse
-// does. Counting the line of every recovered error from the start of the buffer made it grow
+// does, and the same holds when the skip is a run that walks share. Counting the line of every recovered error from the start of the buffer made it grow
 // with the size of the buffer.
 func TestGeneratedStreamRecoverIsLinear(t *testing.T) {
-	t.Parallel()
 	gentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a generated standalone stream consumer")
 	}
-	g, err := parseTest(`rule main = (x / "a")* #stream $$
+	for name, src := range map[string]string{
+		"constant skip": `rule main = (x / "a")* #stream $$
 rule x = (y #recover(skip="a")) "c"
-rule y = "b"`)
+rule y = "b"`,
+		"reused skip": `rule main = (x / "a")* #stream $$
+rule x = (y #recover(skip=[a]+)) "c"
+rule y = "b"`,
+	} {
+		t.Run(name, func(t *testing.T) { testGeneratedStreamRecoverIsLinear(t, src) })
+	}
+}
+
+func testGeneratedStreamRecoverIsLinear(t *testing.T, src string) {
+	t.Parallel()
+	g, err := parseTest(src)
 	if err != nil {
 		t.Fatal(err)
 	}

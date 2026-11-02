@@ -61,7 +61,7 @@ func NewNode(NodeKind, int, int, string, []*Node, string, Fields, any) *Node
 func NewNodeTypeKinds(string) *nodeTypeKinds
 func NewRules[S interface{~struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}}, E interface{~struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}}]([]S, [][]string, []E) []*Rule
 func NewStreamIterator(*StreamPull[*Node]) *StreamIterator
-func NewTError(int, int, string, string) *TError
+func NewTError(int, int, string) *TError
 func NewTRules([]*Rule) []*TRule
 func RenamedExpected(*Parser, []ExpID, ExpID) []ExpID
 func ResolveOptions(*grammar, []ParseOption) (parseOptions, error)
@@ -387,7 +387,7 @@ type CycleError struct{Path []WalkEdge}
 type Document struct{State *documentState}
 type DocumentSliceKey struct{First any; Length int; Capacity int}
 type Env struct{}
-type Error struct{Span; Text string; Message string}
+type Error struct{Span; Message string}
 type ExpID int32
 type ExpMark struct{}
 type FieldType struct{Kind byte; Name string; Elem *FieldType; Alts []*FieldType; Text string}

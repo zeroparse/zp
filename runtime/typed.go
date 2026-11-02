@@ -41,7 +41,6 @@ type TNode[T any] struct {
 // Error is input skipped by error recovery (#recover).
 type Error struct {
 	Span
-	Text    string
 	Message string
 }
 
@@ -105,8 +104,8 @@ type TError struct {
 // NewTError returns a fresh error value for the input range [start, end) that recovery skipped.
 //
 // NewTError is for generated parsers; not a stable API.
-func NewTError(start, end int, text, message string) *TError {
-	return &TError{Error{Span: Span{Start: start, End: end}, Text: text, Message: message}, true}
+func NewTError(start, end int, message string) *TError {
+	return &TError{Error{Span: Span{Start: start, End: end}, Message: message}, true}
 }
 
 // TPub returns the public form of a value: *TNode[string] and *Error for TMatch and TError, a
@@ -267,7 +266,7 @@ func (m *TMatch) TStruct() bool             { return false }
 func (m *TMatch) TFresh() bool              { return m.fresh }
 func (m *TMatch) TSetFresh(f bool)          { m.fresh = f }
 func (e *TError) TName() string             { return "error" }
-func (e *TError) TText() (string, bool)     { return e.Text, true }
+func (e *TError) TText() (string, bool)     { return e.Message, true }
 func (e *TError) TKids() []any              { return nil }
 func (e *TError) TStruct() bool             { return false }
 func (e *TError) TFresh() bool              { return e.fresh }
@@ -1607,7 +1606,7 @@ func (p *TParser) RecoverAttr(m, skip tmatcher, build bool) (any, bool) {
 	if !build {
 		return nil, true
 	}
-	return &TError{Error{Span: Span{m0.Pos, p.Pos}, Text: p.Text(m0.Pos, p.Pos), Message: p.RecoveryErrorText(e)}, true}, true
+	return &TError{Error{Span: Span{m0.Pos, p.Pos}, Message: p.RecoveryErrorText(e)}, true}, true
 }
 
 // --- Actions and predicates ---
