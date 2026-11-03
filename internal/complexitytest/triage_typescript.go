@@ -60,7 +60,7 @@ func triageTypescript() []TriageGroup {
 			}},
 		{Grammar: "typescript", ID: "value-sizes", Rules: []string{"plainOrUnionType", "plainOrIntersectionType"}, Pattern: `from a value whose size the classifier does not bound$`,
 			Shape:  "the folds that build union and intersection types read values of the type recursion, whose size the classifier does not bound because throwStatement captures an expression in a lookahead",
-			Assign: "F107", Order: Linear, Families: []TriageFamily{
+			Assign: "F110", Order: Linear, Families: []TriageFamily{
 				{Name: "long union types", Build: func(n int) string { return "type T = " + list("", "A%d", " | ", "")(n) + ";\n" }, Sizes: doubling(500, 3), Order: Linear},
 				{Name: "long intersection types", Build: func(n int) string { return "type T = " + list("", "A%d", " & ", "")(n) + ";\n" }, Sizes: doubling(500, 3), Order: Linear},
 			}},

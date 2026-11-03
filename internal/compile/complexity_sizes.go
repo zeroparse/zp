@@ -27,8 +27,10 @@ type sizeMemo struct {
 	own    map[string]bool            // the rules whose values are own
 	look   map[string]map[string]bool // the names captured inside a positive lookahead, by rule
 	shapes map[string]growthShape     // the shapes of the values of rules
-	busy   map[string]bool            // the rules whose shapes are being computed
-	hit    bool                       // a computation read the shape of a busy rule
+	busy   map[string]int             // the computation that bounds each rule being computed
+	cur    int                        // the innermost computation, 0 outside any
+	next   int                        // the number of computations started
+	hit    bool                       // the innermost computation read the shape of a busy rule
 }
 
 var (
@@ -46,8 +48,9 @@ var (
 )
 
 // degOf returns the degree in the size of the input of the form x of a value outside a fold: the
-// largest power of n in it, or unknownDeg when it depends on the quantities of an accumulator or
-// of an element, which no fold binds there.
+// largest power of n in it, or unknownDeg when it depends on the quantities of an accumulator,
+// which no fold binds there. A power of Y counts for nothing: outside a fold there is no element
+// of a step, and the forms that read one bound what the element adds by the other terms.
 func degOf(x lin) int {
 	d := 0
 	for m := range x {
@@ -179,10 +182,16 @@ func (k *classifier) ruleShape(name string) growthShape {
 		return s
 	}
 	if m.shapes == nil {
-		m.shapes, m.busy = map[string]growthShape{}, map[string]bool{}
+		m.shapes, m.busy = map[string]growthShape{}, map[string]int{}
 	}
-	if m.busy[name] {
-		// The value of a call on the recursion, which the levels add up.
+	if c := m.busy[name]; c != 0 {
+		// The value of a call on the recursion, which the levels add up. A rule that a computation
+		// reaches and that reaches back to a busy rule is on a recursion with it, so in its SCC and
+		// busy in the same computation, unless its value is own and it never starts one: a busy
+		// rule is only ever read by the innermost computation, which owns the hit.
+		if c != m.cur {
+			panic(fmt.Sprintf("internal error: the shape of rule %s is read outside the computation of its recursion", name))
+		}
 		m.hit = true
 		return growthShape{}
 	}
@@ -195,19 +204,22 @@ func (k *classifier) ruleShape(name string) growthShape {
 			}
 		}
 	}
+	m.next++
+	savedCur, savedHit := m.cur, m.hit
+	m.cur, m.hit = m.next, false
 	for _, n := range members {
-		m.busy[n] = true
+		m.busy[n] = m.cur
 	}
-	savedHit := m.hit
-	m.hit = false
 	level := growthShape{S: lin{}, N: lin{}}
 	shapes := map[string]growthShape{}
 	for _, n := range members {
 		shapes[n] = k.levelShape(k.byName[n])
 		level = level.join(shapes[n])
 	}
+	// The hits of this computation are its own: no rule it reads reaches a rule that an outer
+	// computation holds busy, so restoring the outer hit loses none of them.
 	hit := m.hit
-	m.hit = savedHit
+	m.cur, m.hit = savedCur, savedHit
 	for _, n := range members {
 		delete(m.busy, n)
 	}
@@ -307,11 +319,6 @@ func (w *ownWalk) recUses(t grammar.Term, inLambda bool) bool {
 			if !t.Param && w.recCapture(t.Name) {
 				ok = ok && !inLambda
 				w.rec["$"+t.Name]++
-			}
-		case *grammar.IndexRef:
-			if w.k.recursive[w.rule] {
-				ok = ok && !inLambda
-				w.rec[fmt.Sprintf("$%d", t.Index)]++
 			}
 		case *grammar.Call:
 			fi := 1
@@ -506,8 +513,6 @@ func (w *ownWalk) readsRec(t grammar.Term) bool {
 			if !x.Param && w.recCapture(x.Name) {
 				found = true
 			}
-		case *grammar.IndexRef:
-			found = found || w.k.recursive[w.rule]
 		}
 	})
 	return found
@@ -561,15 +566,6 @@ func (w *ownWalk) term(t grammar.Term, lam *ownLam) {
 		}
 		if w.recCapture(t.Name) {
 			w.rec["$"+t.Name]++
-		}
-	case *grammar.IndexRef:
-		r := k.byName[w.rule]
-		if lam != nil || r == nil || !k.ownExpr(r.Expr, w.rule, w.own) {
-			w.ok = false
-			return
-		}
-		if k.recursive[w.rule] {
-			w.rec[fmt.Sprintf("$%d", t.Index)]++
 		}
 	case *grammar.TermGroup:
 		w.term(t.Term, lam)

@@ -212,9 +212,11 @@ func TestClassifyComplexity(t *testing.T) {
 		// for it, so a value larger than the input raises the degree of what reads it. A value
 		// that is own, at most a constant times the input its match consumes, has degree 1, and
 		// own elements add up to at most the input.
+		// The control of the same name measures n^4 on every backend.
 		{"fold adding a quadratic value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => foldl(\"\", $a, (s, z) => s + text($a))\n", ClassPoly, 4},
 		{"fold adding an own value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => text($a)\n", ClassPoly, 3},
 		{"fold adding a quadratic list of a rule", "rule main = c:sq b:\"y\"* => foldl(list(), $b, (acc, y) => concat(acc, $c))\nrule sq = a:\"x\"* => map($a, (z) => text($a))\n", ClassPoly, 3},
+		// The control of the same name measures n^2, and the one of their own text linear.
 		{"map copying elements that add up to more than the input", "rule main = b:\"y\"* => map(map($b, (q) => text($b)), (y) => y + \"x\")\n", ClassPoly, 2},
 		{"map copying elements of their own text", "rule main = b:\"y\"* => map(map($b, (q) => text(q)), (y) => y + \"x\")\n", ClassLinear, 0},
 		{"map copying elements of a quadratic rule value", "rule main = c:sq => map($c, (y) => y + \"x\")\nrule sq = a:\"x\"* => map($a, (z) => text($a))\n", ClassPoly, 2},
@@ -224,6 +226,7 @@ func TestClassifyComplexity(t *testing.T) {
 		// it, at most once builds an own value, as a left-associative expression does.
 		{"fold adding an own value of a left-associative fold", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + \"+\" + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassPoly, 3},
 		{"fold adding an own value of a left-associative fold over two members", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassPoly, 3},
+		// The control of the same name measures n^3.
 		{"fold from a quadratic initial value", "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text($a)), $b, (acc, y) => filter(acc, (e) => len(e) > 0))\n", ClassPoly, 3},
 		{"fold from an own initial value", "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => filter(acc, (e) => len(e) > 0))\n", ClassPoly, 2},
 		// A rule whose value includes its own recursion twice has no size degree that the

@@ -366,17 +366,10 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 		}
 		// A value bound outside the fold, of the size that the classifier knows for it.
 		return k.outsideShape(t, tc), nil
-	case *grammar.IndexRef:
-		r := k.byName[tc.rule]
-		if r == nil {
-			return unknownShape, nil
-		}
-		return k.exprShape(r.Expr, tc.rule), nil
-	case *grammar.VarRef:
+	case *grammar.VarRef, *grammar.IndexRef:
 		if k.isInt(t, tc) {
 			return zero, nil
 		}
-		// The value of a variable, which the environment bound covers, counts as linear.
 		el := sized(outsideLin)
 		return growthShape{S: outsideLin, N: outsideLin, El: &el}, nil
 	case *grammar.TermGroup:
@@ -496,10 +489,6 @@ func (k *classifier) readsOutside(t grammar.Term, env growthEnv, tc termCtx) lin
 			// A parameter of a lambda inside t is bound to the elements of a list that t reads.
 			if !inEnv && (!x.Param || isParam) {
 				d = max(d, degOf(k.outsideShape(x, tc).S))
-			}
-		case *grammar.IndexRef:
-			if r := k.byName[tc.rule]; r != nil {
-				d = max(d, degOf(k.exprShape(r.Expr, tc.rule).S))
 			}
 		}
 	})

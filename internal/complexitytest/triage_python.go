@@ -70,7 +70,7 @@ func triagePython() []TriageGroup {
 			}},
 		{Grammar: "python", ID: "value-sizes", Except: []string{"try_stmt"}, Pattern: `from a value whose size the classifier does not bound$`,
 			Shape:  "folds over the keyword arguments of a call and the parts of an implicitly joined string that read values of the expression recursion, whose size the classifier does not bound: star_expressions reads its first element again inside a fold over a bounded list, so the recursion is not shown to hold each value once; the measured cost is the accumulator copy of the fold-copies group",
-			Assign: "F107", Order: Poly(2), Families: []TriageFamily{
+			Assign: "F110", Order: Poly(2), Families: []TriageFamily{
 				{Name: "implicitly joined f-strings", Build: func(n int) string { return "x = " + list("", "f'a{b}' 'c'", " ", "")(n) + "\n" }, Sizes: doubling(500, 3), Order: Poly(2)},
 			}},
 		{Grammar: "python", ID: "module-whitespace", Rules: []string{"main", "first_stmts", "module_end"}, Pattern: `contains the repetition`,
