@@ -1,6 +1,6 @@
 # Left-Recursion Growth
 
-Arata Furukawa · Last revised 2026-11-02
+Arata Furukawa · Last revised 2026-11-03
 
 This proof shows that the growth of a left-recursive rule at a position ends,
 after a number of steps that the input it consumes bounds, and that its result
@@ -98,8 +98,9 @@ farthest failure and examined range are kept.
 
 ## Assumptions
 
-The specification states (A1) to (A3) in part, and the reference implementation
-applies (A4) to (A6) without the specification stating them.
+The specification states (A1) to (A3) in part and (A6) in full, and the
+reference implementation applies (A4) and (A5) without the specification
+stating them.
 
 - **(A1) Left calls are complete.** Every call that an evaluation makes at the
   position where the body of its rule started is an edge of $G$. The analysis
@@ -125,10 +126,14 @@ applies (A4) to (A6) without the specification stating them.
   evaluated, or answered from a memoized step, singly: the implementation
   records a step in a run only if its result became the current result.
 - **(A6) A leader always grows.** A rule that is a leader grows at every call,
-  whatever the number of places that call it. The exception of
-  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) for a
-  rule called from at most one place concerns memoization of bodies and does
-  not apply to a leader.
+  whatever the number of places that call it:
+  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) memoizes
+  a leader in every case, and its exception for a rule called from at most
+  one place does not apply to a leader. A memoized leader whose result at the
+  position is not yet in the memo grows there, as
+  [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+  states of a call of a leader. In the reference implementation,
+  `Parser.Memoizes` memoizes a leader whatever `transientRules` marks.
 
 ## Lemma 1 (Chains at One Position)
 

@@ -376,8 +376,10 @@ exceptions.
   [start rule](#start-rule) that its own body calls, directly or through
   rules called from one place, is memoized all the same: a parse can enter
   it without a call, so the place in the grammar is not its only one. A
-  call with a level restriction, `level(e, name)`, is a call of `e`; the
-  parse of a right operand inside an Operators Rule is not a call.
+  leader (see [Conditions for Linear Cost](#conditions-for-linear-cost)) is
+  memoized in every case. A call with a level restriction, `level(e, name)`,
+  is a call of `e`; the parse of a right operand inside an Operators Rule is
+  not a call.
 - While rules grow at a position, a call there of a rule of their
   left-recursion cycle, a leader (see
   [Conditions for Linear Cost](#conditions-for-linear-cost)) or another rule,
@@ -419,6 +421,20 @@ new in each step of that growth, since each step reads another growing result;
 when the steps drop its result and it goes on over the input that later steps
 cover, it covers that input again in each step. Condition 5 of
 [Conditions for Linear Cost](#conditions-for-linear-cost) excludes it.
+
+An ordinary parse without missing-token insertion therefore memoizes every rule
+that it reaches, a rule of a left-recursion cycle outside the contexts of
+growths, except the rules that the first exception of this section leaves out,
+none of which is a leader: a rule that calls no rule, and a rule called from at
+most one place. The one call of a rule of the second kind is in the body of a
+memoized rule or of another rule of that kind, and following those calls ends at
+a memoized rule or at the start rule where the parse begins: when every rule of
+a cycle of calls is called from one place, that place is on the cycle, so a
+parse reaches the cycle only by beginning at a start rule on it, and that start
+rule is memoized. A parse with missing-token insertion also leaves unmemoized
+every rule other than a leader that contains `#missing`, directly or through the
+rules it calls; such a parse is outside the classes of
+[Classification](#classification).
 
 ### Expressions That Repeat Cost
 
