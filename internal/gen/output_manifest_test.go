@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp"
@@ -72,39 +74,69 @@ var manifestModes = []struct {
 // mode and path, and the full text of each output keyed by "grammar/mode/path".
 func manifestOutputs(t *testing.T) ([]string, map[string]string) {
 	t.Helper()
+	type result struct {
+		lines []string
+		texts map[string]string
+		err   error
+	}
+	// Every grammar and mode is generated on its own, concurrently, from a grammar that it parses
+	// itself; the results are joined in the order of the matrix.
+	results := make([]result, len(manifestGrammars)*len(manifestModes))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
+	for gi, g := range manifestGrammars {
+		for mi, m := range manifestModes {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				r := &results[gi*len(manifestModes)+mi]
+				r.texts = map[string]string{}
+				src, err := os.ReadFile(g.path)
+				if err != nil {
+					r.err = err
+					return
+				}
+				gr, err := zp.ParseGrammar(string(src))
+				if err != nil {
+					r.err = fmt.Errorf("%s: %v", g.path, err)
+					return
+				}
+				c := m.config
+				c.Module, c.Runtime = "gentest/"+g.name, gen.RuntimeImport
+				files, err := c.Generate(gr, "")
+				if err != nil {
+					// A combination the generator rejects, such as -stream without a #stream repetition,
+					// is a line of the manifest too, so that a change of rejection fails the test.
+					r.lines = append(r.lines, fmt.Sprintf("%s %s error %s", g.name, m.name, strings.ReplaceAll(err.Error(), "\n", " ")))
+					return
+				}
+				slices.SortFunc(files, func(a, b gen.File) int { return strings.Compare(a.Path, b.Path) })
+				for _, f := range files {
+					sum := sha256.Sum256(f.Content)
+					funcs := 0
+					for _, l := range strings.Split(string(f.Content), "\n") {
+						if strings.HasPrefix(l, "func ") {
+							funcs++
+						}
+					}
+					r.lines = append(r.lines, fmt.Sprintf("%s %s %s %s %d %d %d", g.name, m.name, f.Path, hex.EncodeToString(sum[:]), len(f.Content), strings.Count(string(f.Content), "\n"), funcs))
+					r.texts[g.name+"/"+m.name+"/"+f.Path] = string(f.Content)
+				}
+			}()
+		}
+	}
+	wg.Wait()
 	var lines []string
 	texts := map[string]string{}
-	for _, g := range manifestGrammars {
-		src, err := os.ReadFile(g.path)
-		if err != nil {
-			t.Fatal(err)
+	for _, r := range results {
+		if r.err != nil {
+			t.Fatal(r.err)
 		}
-		gr, err := zp.ParseGrammar(string(src))
-		if err != nil {
-			t.Fatalf("%s: %v", g.path, err)
-		}
-		for _, m := range manifestModes {
-			c := m.config
-			c.Module, c.Runtime = "gentest/"+g.name, gen.RuntimeImport
-			files, err := c.Generate(gr, "")
-			if err != nil {
-				// A combination the generator rejects, such as -stream without a #stream repetition,
-				// is a line of the manifest too, so that a change of rejection fails the test.
-				lines = append(lines, fmt.Sprintf("%s %s error %s", g.name, m.name, strings.ReplaceAll(err.Error(), "\n", " ")))
-				continue
-			}
-			slices.SortFunc(files, func(a, b gen.File) int { return strings.Compare(a.Path, b.Path) })
-			for _, f := range files {
-				sum := sha256.Sum256(f.Content)
-				funcs := 0
-				for _, l := range strings.Split(string(f.Content), "\n") {
-					if strings.HasPrefix(l, "func ") {
-						funcs++
-					}
-				}
-				lines = append(lines, fmt.Sprintf("%s %s %s %s %d %d %d", g.name, m.name, f.Path, hex.EncodeToString(sum[:]), len(f.Content), strings.Count(string(f.Content), "\n"), funcs))
-				texts[g.name+"/"+m.name+"/"+f.Path] = string(f.Content)
-			}
+		lines = append(lines, r.lines...)
+		for k, v := range r.texts {
+			texts[k] = v
 		}
 	}
 	return lines, texts

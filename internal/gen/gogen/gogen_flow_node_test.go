@@ -87,6 +87,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 		{"document", false, false, true}, {"document+controls", true, false, true}} {
 		for _, name := range names {
 			t.Run(name+"/"+form.name, func(t *testing.T) {
+				t.Parallel()
 				src, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "grammars", name, name+".zp"))
 				if err != nil {
 					t.Fatal(err)

@@ -459,6 +459,7 @@ func TestFlowNodeBudgetMutants(t *testing.T) {
 		mutate func([]byte) []byte
 	}{{"drop the first step charge", dropFirstStep}, {"drop the last step charge", dropLastStep}} {
 		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
 			mutated := 0
 			got, problems := budgetTotals(t, "corpus", cases, "main", func(code []byte) []byte {
 				out := m.mutate(code)

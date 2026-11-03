@@ -219,6 +219,7 @@ func TestGeneratedFlowRecognizerNegativeControl(t *testing.T) {
 	}
 	for name := range flowRecognizerMutants {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			cmd := exec.Command(os.Args[0], "-test.run=^TestGeneratedFlowRecognizerMutantChild$", "-test.count=1")
 			cmd.Env = append(os.Environ(), "ZP_FLOW_MUTANT="+name)
 			out, err := cmd.CombinedOutput()

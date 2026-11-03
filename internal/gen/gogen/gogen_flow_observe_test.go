@@ -530,7 +530,8 @@ func TestFlowNodeObservationMutants(t *testing.T) {
 	gentest.PinOrdinary(t)
 	cases := append(gentest.GenCorpus(t), observeShapes...)
 	golden := gentest.ReadGolden(t, observationGolden)
-	changed := func(lines []string) int {
+	changed := func(t *testing.T, lines []string) int {
+		t.Helper()
 		n := 0
 		for k, v := range observationDigests(t, "corpus", cases, lines) {
 			if w, ok := golden[k]; !ok || w != v {
@@ -539,7 +540,7 @@ func TestFlowNodeObservationMutants(t *testing.T) {
 		}
 		return n
 	}
-	if n := changed(runObserveProbes(t, cases, "main", nil, nil)); n != 0 {
+	if n := changed(t, runObserveProbes(t, cases, "main", nil, nil)); n != 0 {
 		t.Fatalf("%d digests of the unmutated build differ from %s", n, observationGolden)
 	}
 	for _, m := range []struct {
@@ -576,7 +577,8 @@ func TestFlowNodeObservationMutants(t *testing.T) {
 		}},
 	} {
 		t.Run(m.name, func(t *testing.T) {
-			if changed(runObserveProbes(t, cases, "main", nil, m.mutate)) == 0 {
+			t.Parallel()
+			if changed(t, runObserveProbes(t, cases, "main", nil, m.mutate)) == 0 {
 				t.Errorf("the mutant %q changes no digest: the events are not compared", m.name)
 			}
 		})
