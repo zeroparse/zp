@@ -97,6 +97,23 @@ func GoldenCaseBefore(key string) string {
 // is logged for each case.
 func (g GoldenFile) Check(t *testing.T, scope string, got map[string]string) {
 	t.Helper()
+	g.check(t, scope, got, false)
+}
+
+// CheckSampled is Check for a run over Representative(cases): in the default tier it compares the
+// entries that the run produced with the golden and does not require an entry for every case of the
+// golden; in the long tier, where every case runs, it is Check. With -update it must run in the long
+// tier, which writes every entry.
+func (g GoldenFile) CheckSampled(t *testing.T, scope string, got map[string]string) {
+	t.Helper()
+	if *UpdateGoldens && !allCases {
+		t.Fatalf("%s: -update rewrites the golden from a sample of the corpus; run it with -tags zp_long", t.Name())
+	}
+	g.check(t, scope, got, !allCases)
+}
+
+func (g GoldenFile) check(t *testing.T, scope string, got map[string]string, partial bool) {
+	t.Helper()
 	if len(got) == 0 {
 		t.Errorf("%s: nothing to compare with %s", t.Name(), g.Path)
 		return
@@ -131,7 +148,7 @@ func (g GoldenFile) Check(t *testing.T, scope string, got map[string]string) {
 		}
 	}
 	for _, k := range sortedKeys(want) {
-		if _, ok := got[k]; !ok && strings.HasPrefix(k, scope) {
+		if _, ok := got[k]; !ok && !partial && strings.HasPrefix(k, scope) {
 			problems = append(problems, fmt.Sprintf("the run produced no entry for %q", k))
 		}
 	}

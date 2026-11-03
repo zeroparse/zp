@@ -129,7 +129,9 @@ var fixtureModes = []struct{ name, value string }{{"controls", "0"}, {"ordinary"
 
 // EachMode runs body once per form of the generated fixtures, as the parallel subtests "controls"
 // and "ordinary", so it must be the caller's last statement. When modeEnv is set in the
-// environment, it runs body once, in that form.
+// environment, it runs body once, in that form. In the default tier (without the zp_long tag) it
+// runs one form per test, the one that the FNV-1a hash of the test name picks, so that the tests
+// as a whole still cover both forms; the long tier runs both forms of every test.
 func EachMode(t *testing.T, body func(t *testing.T)) {
 	t.Helper()
 	if EnvForm != "" {
@@ -137,6 +139,9 @@ func EachMode(t *testing.T, body func(t *testing.T)) {
 		return
 	}
 	for _, m := range fixtureModes {
+		if !allCases && fixtureModes[hashOf(t.Name())%uint32(len(fixtureModes))] != m {
+			continue
+		}
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
 			SetFixtureForm(t, m.value)

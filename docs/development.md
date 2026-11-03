@@ -167,6 +167,8 @@ go test ./... ./runtime/...
 
 The negative controls and mutants that rebuild or rerun the generated corpora many times are in the long tier: files named `*_long_test.go` with `//go:build zp_long`, run once per batch of changes with `go test -tags zp_long ./...`. Each keeps its parity or invariant test, which checks the unmutated behavior, in the default tier. In `internal/gen/gogen` and `internal/gen/tsgen` the long tier holds the dependency-memo controls (`TestGeneratedLeftRecursionDependencyMemoControls`, `TestGeneratedTSLeftRecursionDependencyMemoControls`), the mutants of the Node budget, observation, stream observation and Document tests, the negative control of the Flow recognizer and the rule table limit test.
 
+The tests that run a generator over the whole corpus run a fixed subset of it in the default tier and all of it in the long tier. `gentest.Representative` keeps the first case of every family of the corpus (the part of a case name before its first `:` or `_`) and the cases whose name hashes to a multiple of eight, `gentest.RepresentativeGrammars` and `RepresentativeNames` keep the json, csv, cel and cue grammars of the checked-in ones, `gentest.Sampled` keeps a third of a list of fixtures by name, and `gentest.EachMode` runs the controls form or the ordinary form of a test, picked by the hash of its name. The selection depends on names only, so it does not change between runs, and the count floors of the tests are scaled with `gentest.ScaleFloor`.
+
 `go test ./...` does not run benchmarks, so a change to the language rules can leave a benchmark's grammar invalid without failing the suite. After such a change, run every benchmark once (about 80 s):
 
 ```bash
