@@ -10,15 +10,18 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved, and the theorem is proved from the
-others. Lemmas 4 to 6 are given as outlines: each states its claim, the
-conditions it uses, and the steps that its proof must still make precise, listed
-under [Open Steps](#open-steps). Lemma 4 proves a reduction and leaves the count
-of activations open: the scanned cost comes down to the number of activations, a
-failure after a source passes through the forms that condition 2 checks, and an
-activation is repeated at a position only after an abandoned committing unit or
-a dropped growth step. Lemma 5 proves the bound on the sources that a growth
-step evaluates at fixed offsets after the position where it grows.
+Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved, except the *Size degrees* paragraph
+of Lemma 7, which is an outline (step 7 of [Open Steps](#open-steps)); Lemma 6
+relies on it, since it cites the size degrees of condition 4 for the promise of
+Linear. The theorem is proved from the others. Lemmas 4 to 6 are given as
+outlines: each states its claim, the conditions it uses, and the steps that its
+proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
+proves a reduction and leaves the count of activations open: the scanned cost
+comes down to the number of activations, a failure after a source passes through
+the forms that condition 2 checks, and an activation is repeated at a position
+only after an abandoned committing unit or a dropped growth step. Lemma 5 proves
+the bound on the sources that a growth step evaluates at fixed offsets after the
+position where it grows.
 
 ## Setting
 
@@ -567,11 +570,12 @@ When the [step matrix](../runtime/parsing.md#conditions-for-linear-cost) of
 the fold cannot double the first parameter, the factor $a^m$ shrinks to a
 polynomial. Let $n$ be the size of the input. Each value that the lambda
 reads from outside the fold has size at most a constant times $n^e$, with $e$
-its [size degree](../runtime/parsing.md#conditions-for-linear-cost), as
-shown below; so do the three quantities of the initial value, with degrees
-$e_S$, $e_M$ and $e_N$, and those of the list, which has $m$ elements, at
-most a constant times $n^{l_N}$, of sizes $Y_j$ that add up to at most a
-constant times $n^{l_S}$, each at most a constant times $n^{l_M}$. Let
+its [size degree](../runtime/parsing.md#conditions-for-linear-cost), by the
+outline in *Size degrees* below; so do the three quantities of the initial
+value, with degrees $e_S$, $e_M$ and $e_N$, and those of the list, which has
+$m$ elements, at most a constant times $n^{l_N}$, of sizes $Y_j$ that add up
+to at most a constant times $n^{l_S}$, each at most a constant times
+$n^{l_M}$. Let
 $v_j = (S_j, M_j, N_j)$ be the size, the size of the
 largest element and the number of elements of the first parameter after $j$
 steps, where a list of $N$ elements of sizes $E_i$ has size
@@ -661,43 +665,42 @@ of another, or one whose elements capture in a lookahead or are built by an
 action that is not own, the sizes need not add up to the input, and the
 lambda adds its degree.
 
-*Size degrees.* The proof above does not use what follows, which is an
-outline: it justifies the size degrees that the polynomial degrees read, and
-step 7 of the [Open Steps](#open-steps) lists what it leaves to be made
-precise. An own value has size at most a constant times one more than
-the input that its match consumes, by induction on the matches: a literal is
-a constant; a capture that is not in a positive lookahead holds an own value
-of a part of the match; `+`, `text`, `list`, `concat` and constructors add
-the sizes of their parts and a constant, and a member, an element or a
-`filter` is at most what it is taken from; and a `map` or a fold over an own
-list whose lambda reads nothing unbounded from outside it adds at most a
-constant times the size of each element and a constant for it, the fold
-reading its first parameter at most once. Distinct captures of a match hold
-disjoint parts of the input. Reading a capture several times multiplies its
-size by a constant, which does not compound, since a chain of rules that are
-not on one recursion is at most as long as the grammar; the value of a call
-on a recursion with the rule, read at most once and not as the list of a
-lambda, which would add to each of its elements on every level, adds the
-parts of each level once. A lambda over the captures of a repetition whose
-lambdas read each member of their other parameters at most once, distinct
-members being disjoint parts of a match, holds each part of each element, a
-distinct match, at most once, and with it the values of the calls on the
-recursion in it, so it adds the parts of each level once too; this holds
-for the trees of a recursion whose values are not own as well. The levels
-of a recursion and the elements of a repetition are distinct matches, and
-only a constant number of nested matches can consume no input, since a
-repetition stops at an empty iteration and a call at the same position is a
-left call, whose growth consumes input on each step; so the own values of
-distinct matches add up to at most a constant times $n$. A value built from
-values of size degrees $e_i$ is bounded by the rules of condition 4 above
-with $n^{e_i}$ in their place. The list of a repetition of elements of
-degree $d$ has at most $n + 1$ elements, so its size has degree $d + 1$. For
-a recursion whose values are not own, a value that holds the value of each
-call on the recursion at most once, and not from a positive lookahead, where
-two captures can hold the same value, is a tree whose nodes are distinct
-matches, at most a constant times $n$ of them, each adding at most a
-constant times $n^d$, where $d$ is the degree of what one level adds; so its
-size has degree $d + 1$.
+*Size degrees.* The proof of the claim above does not use what follows, which is
+an outline: it justifies the size degrees that the polynomial degrees of the
+paragraphs after that proof read, and that Lemma 6 cites, and step 7 of the
+[Open Steps](#open-steps) lists what it leaves to be made precise. An own value
+has size at most a constant times one more than the input that its match
+consumes, by induction on the matches: a literal is a constant; a capture that
+is not in a positive lookahead holds an own value of a part of the match; `+`,
+`text`, `list`, `concat` and constructors add the sizes of their parts and a
+constant, and a member, an element or a `filter` is at most what it is taken
+from; and a `map` or a fold over an own list whose lambda reads nothing
+unbounded from outside it adds at most a constant times the size of each element
+and a constant for it, the fold reading its first parameter at most once.
+Distinct captures of a match hold disjoint parts of the input. Reading a capture
+several times multiplies its size by a constant, which does not compound, since
+a chain of rules that are not on one recursion is at most as long as the
+grammar; the value of a call on a recursion with the rule, read at most once and
+not as the list of a lambda, which would add to each of its elements on every
+level, adds the parts of each level once. A lambda over the captures of a
+repetition whose lambdas read each member of their other parameters at most
+once, distinct members being disjoint parts of a match, holds each part of each
+element, a distinct match, at most once, and with it the values of the calls on
+the recursion in it, so it adds the parts of each level once too; this holds for
+the trees of a recursion whose values are not own as well. The levels of a
+recursion and the elements of a repetition are distinct matches, and only a
+constant number of nested matches can consume no input, since a repetition stops
+at an empty iteration and a call at the same position is a left call, whose
+growth consumes input on each step; so the own values of distinct matches add up
+to at most a constant times $n$. A value built from values of size degrees $e_i$
+is bounded by the rules of condition 4 above with $n^{e_i}$ in their place. The
+list of a repetition of elements of degree $d$ has at most $n + 1$ elements, so
+its size has degree $d + 1$. For a recursion whose values are not own, a value
+that holds the value of each call on the recursion at most once, and not from a
+positive lookahead, where two captures can hold the same value, is a tree whose
+nodes are distinct matches, at most a constant times $n$ of them, each adding at
+most a constant times $n^d$, where $d$ is the degree of what one level adds; so
+its size has degree $d + 1$.
 
 The copies of such a call are therefore those of a constant number of copies,
 in the context of the call, of the initial value, the list and the values from
