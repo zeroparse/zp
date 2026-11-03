@@ -112,6 +112,10 @@ func TestClassifyComplexity(t *testing.T) {
 		// call sp does not make the unit committing.
 		{"growing unit restarted by the next step", "rule main = a $$\nrule a = a sp [^!]* \"!\" / a sp / \"n\"\nrule sp = \"+\"\n", ClassUnknown, 0},
 		{"growing unit restarted by the next step through a member", "rule main = a $$\nrule a = c sp [^!]* \"!\" / c sp / \"n\"\nrule c = a\nrule sp = \"+\"\n", ClassUnknown, 0},
+		// The base and the skip share the call b, and what follows the skip, the next iteration,
+		// examines again the input that [ab]* examined, so the base is not committing.
+		{"recovery whose skip shares a call with its base", "rule main = ((b [ab]* \"!\") #recover(skip=b))* $$\nrule b = \"b\"\n", ClassPoly, 2},
+		{"recovery of the last element only", "rule main = (b [ab]* \"!\" #recover(skip=b))* $$\nrule b = \"b\"\n", ClassLinear, 0},
 		{"source inside a shared call", "rule main = e $$\nrule e = #operators {\n    skip ws\n    operand \"true\"\n    operand [a-z]+\n    level { infix left \"+\" }\n}\nrule ws = [ \\t]*\n", ClassLinear, 0},
 		// A list built from the elements of a repetition costs its number of elements.
 		{"list of a repetition", "rule main = l $$\nrule l = \"[\" ms:m? \"]\" => concat($ms)\nrule m = f:v rs:(\",\" x:v)* => concat(list($f), map($rs, (r) => r.$x))\nrule v = \"x\" / l\n", ClassLinear, 0},
