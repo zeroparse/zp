@@ -93,19 +93,20 @@ var recognizerKnownDifferences = []gentest.Case{
 func TestCoreRecognizerDecisionsFrozen(t *testing.T) {
 	t.Parallel()
 	recognizerGolden.freeze(t, recognizerGenModes, func(t *testing.T, mode coreGenMode) []*coreGenCase {
-		var cases []*coreGenCase
-		for _, gc := range recognizerCorpus(t) {
+		corpus := recognizerCorpus(t)
+		built := mapParallel(len(corpus), func(i int) *coreGenCase {
+			gc := corpus[i]
 			gen, ok := coreGenerate(gc.Src, mode.opts)
 			if !ok {
-				continue
+				return nil
 			}
 			if _, err := recognizerOf(gen); err != nil {
-				continue
+				return nil
 			}
 			c, err := coreRecognizeCase(gc.Name, mode.name, gen)
 			if err != nil {
 				t.Errorf("%s: %v", gc.Name, err)
-				continue
+				return nil
 			}
 			for _, known := range recognizerKnownDifferences {
 				if known.Name != gc.Name {
@@ -119,7 +120,13 @@ func TestCoreRecognizerDecisionsFrozen(t *testing.T) {
 					t.Errorf("%s: %d guarded classes, want %d", gc.Name, got, want)
 				}
 			}
-			cases = append(cases, c)
+			return c
+		})
+		var cases []*coreGenCase
+		for _, c := range built {
+			if c != nil {
+				cases = append(cases, c)
+			}
 		}
 		return cases
 	}, func(t *testing.T, mode coreGenMode, n *coreDecisionCounts) {

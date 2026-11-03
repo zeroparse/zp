@@ -212,17 +212,17 @@ func TestLeftRecursionMemberMemoRandom(t *testing.T) {
 	}
 }
 
-// TestLeftRecursionMemberMemoRandomRecovering compares the results with and without a memo of
-// random grammars whose items recover from errors and call an Operators Rule that is a member of a
-// cycle, so that members read leader results reused in one kind of context only.
-func TestLeftRecursionMemberMemoRandomRecovering(t *testing.T) {
-	t.Parallel()
-	seeds := 3000
-	if testing.Short() {
-		seeds = 300
-	}
+// recoveringMemberMemoSeeds is the number of seeds of TestLeftRecursionMemberMemoRandomRecovering;
+// the zp_long tier checks the seeds after them (see left_recursion_member_memo_long_test.go).
+const recoveringMemberMemoSeeds = 300
+
+// checkRecoveringMemberMemo compares the results with and without a memo of the random grammars of
+// the seeds [from, to) whose items recover from errors and call an Operators Rule that is a member
+// of a cycle, so that members read leader results reused in one kind of context only.
+func checkRecoveringMemberMemo(t *testing.T, from, to int64) {
+	t.Helper()
 	compiled, n := 0, 0
-	for s := int64(0); s < int64(seeds); s++ {
+	for s := from; s < to; s++ {
 		c := gentest.RandomRecoveringCycleGrammar(s)
 		g, err := parseTest(c.Src)
 		if err != nil {
@@ -238,7 +238,16 @@ func TestLeftRecursionMemberMemoRandomRecovering(t *testing.T) {
 			}
 		}
 	}
-	if n > 0 || compiled < seeds*9/10 {
+	if n > 0 || int64(compiled) < (to-from)*9/10 {
 		t.Errorf("%d differences in %d grammars", n, compiled)
 	}
+}
+
+// TestLeftRecursionMemberMemoRandomRecovering compares the results with and without a memo of
+// random grammars whose items recover from errors and call an Operators Rule that is a member of a
+// cycle, so that members read leader results reused in one kind of context only. It checks the
+// first recoveringMemberMemoSeeds seeds; the zp_long tier checks the others.
+func TestLeftRecursionMemberMemoRandomRecovering(t *testing.T) {
+	t.Parallel()
+	checkRecoveringMemberMemo(t, 0, recoveringMemberMemoSeeds)
 }

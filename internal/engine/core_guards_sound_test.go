@@ -2,7 +2,9 @@ package engine
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 
@@ -143,7 +145,9 @@ func guardProbes(t *testing.T, src string, cases []*coreGenCase) (*Program, []gu
 		skipped = len(idx) - len(ok)
 		idx = ok
 		if prog, err = build(idx); err != nil {
-			t.Fatalf("probes that compile alone do not compile together: %v", err)
+			// Reported with Errorf, not Fatalf: the grammars are probed on goroutines of their own.
+			t.Errorf("probes that compile alone do not compile together: %v", err)
+			return nil, nil, 0
 		}
 	}
 	var probes []guardProbe
@@ -201,42 +205,55 @@ func TestCoreGuardsAreSound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("probes the corpus with the engine")
 	}
+	var mu sync.Mutex
 	var guarded, skipped, checked, mutantBad, mutantGrammars int
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, runtime.GOMAXPROCS(0))
 	for _, gc := range append(gentest.GenCorpus(t), gentest.GrammarCases(t)...) {
 		if len(gc.Inputs) == 0 {
 			continue
 		}
-		var cases []*coreGenCase
-		if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Types: true, TypedOnly: true}); ok {
-			if c, err := coreTypedCase(gc.Name, "lean", gen, nil); err == nil {
-				cases = append(cases, c)
+		// The grammars are independent: each builds its own generators and probe program.
+		wg.Add(1)
+		slots <- struct{}{}
+		go func() {
+			defer func() { <-slots; wg.Done() }()
+			var cases []*coreGenCase
+			if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Types: true, TypedOnly: true}); ok {
+				if c, err := coreTypedCase(gc.Name, "lean", gen, nil); err == nil {
+					cases = append(cases, c)
+				}
 			}
-		}
-		if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Recognize: true}); ok {
-			if c, err := coreRecognizeCase(gc.Name, "lean", gen); err == nil {
-				cases = append(cases, c)
+			if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Recognize: true}); ok {
+				if c, err := coreRecognizeCase(gc.Name, "lean", gen); err == nil {
+					cases = append(cases, c)
+				}
 			}
-		}
-		if len(cases) == 0 {
-			continue
-		}
-		prog, probes, skip := guardProbes(t, gc.Src, cases)
-		if len(probes) == 0 {
-			continue
-		}
-		guarded += len(probes)
-		skipped += skip
-		inputs := guardProbeInputs(gc.Inputs)
-		bad, n := guardViolations(prog, probes, inputs, nil)
-		checked += n
-		for _, b := range bad {
-			t.Errorf("%s: %s", gc.Name, b)
-		}
-		if bad, _ := guardViolations(prog, probes, inputs, guardNarrowed); len(bad) > 0 {
-			mutantBad += len(bad)
-			mutantGrammars++
-		}
+			if len(cases) == 0 {
+				return
+			}
+			prog, probes, skip := guardProbes(t, gc.Src, cases)
+			if prog == nil || len(probes) == 0 {
+				return
+			}
+			inputs := guardProbeInputs(gc.Inputs)
+			bad, n := guardViolations(prog, probes, inputs, nil)
+			for _, b := range bad {
+				t.Errorf("%s: %s", gc.Name, b)
+			}
+			mutant, _ := guardViolations(prog, probes, inputs, guardNarrowed)
+			mu.Lock()
+			defer mu.Unlock()
+			guarded += len(probes)
+			skipped += skip
+			checked += n
+			if len(mutant) > 0 {
+				mutantBad += len(mutant)
+				mutantGrammars++
+			}
+		}()
 	}
+	wg.Wait()
 	t.Logf("%d guarded alternatives probed, %d not probed (they read the captures around them); %d positions checked with the engine; the narrowing mutant fails %d times in %d grammars", guarded, skipped, checked, mutantBad, mutantGrammars)
 	if guarded < 200 || checked < 5000 {
 		t.Errorf("only %d guarded alternatives and %d positions: the check exercises too little", guarded, checked)

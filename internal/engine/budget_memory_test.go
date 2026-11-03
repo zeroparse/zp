@@ -165,6 +165,7 @@ func TestMemoryLimitStream(t *testing.T) {
 		prog := mustCompile(t, c.grammar)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			t.Run(c.name+"/"+b.String(), func(t *testing.T) {
+				t.Parallel()
 				opts := func(mem uint64) ParseOptions {
 					return ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited, Memory: mem},
 						DiagnosticLimit: c.diagLimit, DiagnosticLimitSet: c.diagLimit > 0}

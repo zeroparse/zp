@@ -162,6 +162,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 			"trace-panic", "emit-panic", "context-panic",
 		} {
 			t.Run(outcome, func(t *testing.T) {
+				t.Parallel()
 				run := runStreamControlRetentionCase(t, prog, outcome, options)
 				switch outcome {
 				case "success":
