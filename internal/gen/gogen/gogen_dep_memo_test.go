@@ -336,7 +336,6 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	main := `package main
 
 import (
-	"bytes"
 	"fmt"
 
 	zprt "zeroparse.dev/zp/runtime"
