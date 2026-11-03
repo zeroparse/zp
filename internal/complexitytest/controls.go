@@ -47,8 +47,9 @@ func double(n int) []int { return []int{n, 2 * n, 4 * n} }
 // Controls returns the controls table. The negative controls record growth that the engine has
 // today: when a planned change makes one linear, its entry moves to the linear set by hand. The
 // negative E8 controls (repeated, nested and alternating walks) are linear in measurement through
-// the records of skip runs, with classes that claim no linear cost; E1, E7 and E9 move when
-// repetition runs are reused in batch parses; E6 and E10 stay quadratic. The rebinding variants of E6 are positive
+// the records of skip runs, with classes that claim no linear cost, and so are E1, E7, E9 and the
+// controls of word exclusion and nested scans whose quadratic cost is a repetition that a failed
+// alternative walks again, through the records of run sites; E6 and E10 stay quadratic. The rebinding variants of E6 are positive
 // controls: a binding after the left call adds no growth, and the restart in E6 is the negative
 // control. Each source is a grammar from the measured families of the
 // grammar complexity design record; "main" is the start rule.
@@ -64,19 +65,19 @@ func Controls() []Control {
 			Name: "E1 repetition after backtracking", Family: "E1",
 			Source: "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "E7 nested scans, degree 3", Family: "E7",
 			Source: "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(50), ShortSizes: double(32), Order: Poly(3), Class: ClassPoly,
+			Sizes:  double(50), ShortSizes: double(32), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "E9 lookahead over scans", Family: "E9",
 			Source: "rule main = (\"a\" !rest)* \"a\"* $$\nrule rest = \"a\"* \"c\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// The lookahead is linear, since w is memoized, but each iteration copies the rest of the
 		// input, which the capture in the lookahead holds.
@@ -204,25 +205,25 @@ func Controls() []Control {
 			Name: "Keyword lookahead reading a variable", Family: "word exclusion",
 			Source: "var v string\nrule main = (s / \" \")* $$\nrule s = kw (\" \" / \"let\")* \"q\" / id\nrule kw = \"let\" !c\nrule c = [a-z]\nrule id = !key c+\nrule key = (\"if\" / \"let\") !c {v != \"\"}\n",
 			Input:  func(n int) string { return rep("let ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Keyword lookahead with a nested lookahead", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = kw (\" \" / \"let\")* \"q\" / id\nrule kw = \"let\" !c\nrule c = [a-z]\nrule id = !key c+\nrule key = (\"if\" / \"let\" !\" \") !c\n",
 			Input:  func(n int) string { return rep("let ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Keyword lookahead under a level restriction", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = kw (\" \" / \"let\")* \"q\" / id\nrule kw = \"let\" !c\nrule c = [a-z]\nrule id = !key c+\nrule key = level(ops, tight) !c\nrule ops = #operators {\n    operand \"le\"\n    level loose { postfix \"t\" }\n    level tight { postfix \"!\" }\n}\n",
 			Input:  func(n int) string { return rep("let ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Keyword lookahead with a shorter earlier keyword", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = kw (\" \" / \"let\")* \"q\" / id\nrule kw = \"let\" !c\nrule c = [a-z]\nrule id = !key c+\nrule key = (\"le\" / \"let\") !c\n",
 			Input:  func(n int) string { return rep("let ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Keyword lookahead with a wider character set", Family: "word exclusion",
@@ -246,13 +247,13 @@ func Controls() []Control {
 			Name: "Literal lookahead that the text does not match", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = \"==\" (\" \" / \"=\")* \"q\" / \"=\" !\"y\" \"=\"\n",
 			Input:  func(n int) string { return rep("== ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Literal lookahead longer than the text", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = \"==\" (\" \" / \"=\")* \"q\" / \"=\" !\"==\" \"=\"\n",
 			Input:  func(n int) string { return rep("== ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Literal longer than the text", Family: "word exclusion",
@@ -396,7 +397,17 @@ func Controls() []Control {
 			Name: "Scan restarted inside a rule called from one place", Family: "nested scans",
 			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n",
 			Input:  func(n int) string { return rep("(", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+		},
+		// Two callers of one repetition: both alternatives call b after the "(" they share, so b
+		// walks from the same position twice, and its iterations begin with "(" as the callers do,
+		// so the next iteration of main walks b again from the next position. The records of b's
+		// repetition serve the second caller and the later walks.
+		{
+			Name: "Scan restarted from two callers", Family: "nested scans",
+			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\" b \")?\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n",
+			Input:  func(n int) string { return rep("(", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// A literal that both alternatives begin with puts the memoized call after it at the same
 		// position in both, so the second alternative reuses its result.

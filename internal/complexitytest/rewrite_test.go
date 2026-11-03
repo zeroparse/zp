@@ -33,15 +33,15 @@ func rank(o Order) int {
 	}
 }
 
-// TestRewritePairs checks that every rewrite of the recipe grows slower than its original, and
-// that a rewrite of a pattern the recipe calls linear measures linear.
+// TestRewritePairs checks that no rewrite of the recipe grows faster than its original, and that
+// every rewrite measures linear. An original that run records make linear measures equal.
 func TestRewritePairs(t *testing.T) {
 	t.Parallel()
 	for _, rw := range Rewrites() {
 		t.Run(rw.Pattern, func(t *testing.T) {
 			orig, repl := controlByName(t, rw.Original), controlByName(t, rw.Rewrite)
-			if rank(repl.Order) >= rank(orig.Order) {
-				t.Errorf("%s grows as %v, not slower than %s as %v", repl.Name, repl.Order, orig.Name, orig.Order)
+			if rank(repl.Order) > rank(orig.Order) {
+				t.Errorf("%s grows as %v, faster than %s as %v", repl.Name, repl.Order, orig.Name, orig.Order)
 			}
 			if repl.Order.Kind != KindLinear {
 				t.Errorf("%s: a rewrite measures linear, got %v", repl.Name, repl.Order)
