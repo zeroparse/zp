@@ -29,6 +29,7 @@ func TestGeneratedTSFullWorkloadParity(t *testing.T) {
 	for _, workload := range workloads {
 		workload := workload
 		t.Run(workload.name, func(t *testing.T) {
+			t.Parallel()
 			source, err := os.ReadFile(workload.grammar)
 			if err != nil {
 				t.Fatal(err)

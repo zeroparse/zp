@@ -3,6 +3,7 @@ package editfuzz
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -72,11 +73,14 @@ func TestFuzzGrammars(t *testing.T) {
 	for gi, src := range testGrammars {
 		for _, b := range backends {
 			for _, u := range units {
-				for _, corpus := range [][][]byte{nil, {[]byte("let a=(1+2)+3;"), []byte("a+a+a"), []byte("wörd! \xff")}} {
-					opts := Options{Start: "main", Backend: b, Unit: u, Seed: uint64(gi), Sequences: sequences, Corpus: corpus}
-					if err := Fuzz([]byte(src), opts); err != nil {
-						t.Errorf("grammar %d %v %v: %v", gi, b, u, err)
-					}
+				for ci, corpus := range [][][]byte{nil, {[]byte("let a=(1+2)+3;"), []byte("a+a+a"), []byte("wörd! \xff")}} {
+					t.Run(fmt.Sprintf("grammar%d/%v/%v/corpus%d", gi, b, u, ci), func(t *testing.T) {
+						t.Parallel()
+						opts := Options{Start: "main", Backend: b, Unit: u, Seed: uint64(gi), Sequences: sequences, Corpus: corpus}
+						if err := Fuzz([]byte(src), opts); err != nil {
+							t.Errorf("grammar %d %v %v: %v", gi, b, u, err)
+						}
+					})
 				}
 			}
 		}

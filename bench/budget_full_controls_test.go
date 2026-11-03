@@ -173,6 +173,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 	probes := fullGeneratedProbes()
 	for _, w := range workloads {
 		t.Run(w.name, func(t *testing.T) {
+			t.Parallel()
 			input := w.input(1)
 			p := load(t, w.grammar)
 			check := func(n any, err error) string {
@@ -192,6 +193,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 			for _, be := range backends {
 				for _, u := range units {
 					t.Run(be.name+"/"+u.name, func(t *testing.T) {
+						t.Parallel()
 						// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
 						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})}
 						plain, plainErr := p.Parse(input, opts...)

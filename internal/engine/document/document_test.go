@@ -302,6 +302,9 @@ rule val = [0-9]+ #atomic / "[" items:([0-9]+ #atomic ",")* "]"`, false},
 // (core/resume.go), with results equal to parsing from scratch.
 func TestDocumentResumesRepetitions(t *testing.T) {
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		t.Run(b.String(), func(t *testing.T) { testDocumentResumesRepetitions(t, b) })
+		t.Run(b.String(), func(t *testing.T) {
+			t.Parallel()
+			testDocumentResumesRepetitions(t, b)
+		})
 	}
 }
