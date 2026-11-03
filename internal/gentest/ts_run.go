@@ -9,7 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 
@@ -380,11 +382,48 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 	}
 }
 
+// TSBundles generates a TypeScript parser for each case with opts, concurrently, for TSOutputs.
+func TSBundles(t *testing.T, cases []Case, opts gen.GenOptions) [][]byte {
+	t.Helper()
+	opts.Start, opts.Recognize = "main", true
+	bundles := make([][]byte, len(cases))
+	errs := make([]error, len(cases))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
+	for i, c := range cases {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			g, err := compiletest.Parse(c.Src)
+			if err == nil {
+				bundles[i], err = GenerateTSBundle(g, opts)
+			}
+			errs[i] = err
+		}()
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("%s: %v", cases[i].Name, err)
+		}
+	}
+	return bundles
+}
+
 // TSParsersOutputs generates a TypeScript parser for each case with opts, changes the source of
 // each with mutate (when not nil), runs them with the Node executable node on the inputs of the
 // case as TSParsersCorpus does, and returns the results, one JSON line per input, unit and form.
 // Negative controls compare the results of a mutated runtime with those of the runtime as it is.
 func TSParsersOutputs(t *testing.T, node string, cases []Case, opts gen.GenOptions, mutate func(string) string) string {
+	t.Helper()
+	return TSOutputs(t, node, cases, TSBundles(t, cases, opts), mutate)
+}
+
+// TSOutputs is TSParsersOutputs for the parsers that TSBundles generated: a negative control that
+// runs many mutations of the same parsers generates them once.
+func TSOutputs(t *testing.T, node string, cases []Case, bundles [][]byte, mutate func(string) string) string {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -400,16 +439,7 @@ func TSParsersOutputs(t *testing.T, node string, cases []Case, opts gen.GenOptio
 	}
 	var inputs [][]input
 	for i, c := range cases {
-		g, err := compiletest.Parse(c.Src)
-		if err != nil {
-			t.Fatalf("%s: %v", c.Name, err)
-		}
-		opts.Start, opts.Recognize = "main", true
-		code, err := GenerateTSBundle(g, opts)
-		if err != nil {
-			t.Fatalf("%s: %v", c.Name, err)
-		}
-		src := string(code)
+		src := string(bundles[i])
 		if mutate != nil {
 			src = mutate(src)
 		}

@@ -108,20 +108,25 @@ func TestGeneratedTSLeftRecursionDependencyMemoControls(t *testing.T) {
 	}
 	cases := depMemoTSCases(t, 120)
 	opts := gen.GenOptions{SourceInfo: true}
-	want := gentest.TSParsersOutputs(t, node, cases, opts, nil)
+	// The parsers are generated once; each mutation of their runtime runs as a parallel subtest.
+	bundles := gentest.TSBundles(t, cases, opts)
+	want := gentest.TSOutputs(t, node, cases, bundles, nil)
 	for name, reps := range depMemoTSMutations {
-		got := gentest.TSParsersOutputs(t, node, cases, opts, func(src string) string {
-			for _, r := range reps {
-				if strings.Count(src, r[0]) != 1 {
-					t.Fatalf("mutation %s: %q is not in the runtime once", name, r[0])
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := gentest.TSOutputs(t, node, cases, bundles, func(src string) string {
+				for _, r := range reps {
+					if strings.Count(src, r[0]) != 1 {
+						t.Fatalf("mutation %s: %q is not in the runtime once", name, r[0])
+					}
+					src = strings.Replace(src, r[0], r[1], 1)
 				}
-				src = strings.Replace(src, r[0], r[1], 1)
+				return src
+			})
+			if got == want {
+				t.Errorf("%s: the mutation went undetected", name)
 			}
-			return src
 		})
-		if got == want {
-			t.Errorf("%s: the mutation went undetected", name)
-		}
 	}
 }
 
