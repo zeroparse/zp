@@ -78,6 +78,11 @@ func resolveStarts(rules []*grammar.RuleDef, control *Control) (starts []string,
 	return starts, def, errs
 }
 
+// startMarked reports whether rd is marked @start, so that a parse may begin at it.
+func startMarked(rd *grammar.RuleDef) bool {
+	return slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !a.Pragma && a.Name == "start" })
+}
+
 // isDefaultArg reports whether the attribute argument is the bare identifier
 // default.
 func isDefaultArg(arg any) bool {

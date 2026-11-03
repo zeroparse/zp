@@ -372,6 +372,9 @@ exceptions.
 - A rule that calls no rule, itself included, or that is called from at most
   one place in the grammar, its own body included, is not memoized in an
   ordinary parse. It is evaluated as often as its calls are evaluated. A
+  [start rule](#start-rule) that its own body calls, directly or through
+  rules called from one place, is memoized all the same: a parse can enter
+  it without a call, so the place in the grammar is not its only one. A
   call with a level restriction, `level(e, name)`, is a call of `e`; the
   parse of a right operand inside an Operators Rule is not a call.
 - While rules grow at a position, a call there of a rule of their

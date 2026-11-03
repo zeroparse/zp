@@ -269,6 +269,19 @@ func TestClassifyComplexity(t *testing.T) {
 		{"counter with 128 values and a bound Boolean", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v < 127} {v := v + 1} {b := true} r / \"y\" {v >= 0 && b}\n", ClassExp, 0},
 		{"Boolean toggled before a call", "var b bool\nrule main = r $$\nrule r = x:\"#\" {b := !b && len($x) > 0} r / \"y\" {b}\n", ClassLinear, 0},
 		{"counter divided by zero", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1 / v} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		// A start rule that its own body calls, directly or through rules called from one place, is
+		// memoized, so a call of it that a body evaluates more than once is answered by the memo.
+		// Only main is marked @start, so the other rules called from one place are not memoized.
+		{"start rule called from one place in a bounded repetition", "@start\nrule main = (\"(\" main \")!\" / \"(\")#repeat(1,2)\n", ClassLinear, 0},
+		{"start rule on a cycle of rules called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")#repeat(1,2)\nrule b = main\n", ClassLinear, 0},
+		{"start rule called from one place in nested bounded repetitions", "@start\nrule main = ((\"(\" main \")!\" / \"(\")#repeat(1,2))#repeat(1,2)\n", ClassLinear, 0},
+		{"start rule called from one place at most once per evaluation", "@start\nrule main = (\"(\" main \")!\" / \"(\") (\"(\" \")!\" / \"(\")?\n", ClassLinear, 0},
+		{"start rule called from one place in a bounded option", "@start\nrule main = (\"(\" main \")!\" / \"(\")#repeat(0,1)\n", ClassLinear, 0},
+		{"rule called from one place by a memoized caller", "@start\nrule top = main $$\nrule main = (\"(\" main \")!\" / \"(\")#repeat(1,2)\n", ClassLinear, 0},
+		{"start rule called from one place in an unbounded repetition", "@start\nrule main = \"(\" main* \")\"\n", ClassLinear, 0},
+		{"start rule called from one place in a repeated group", "@start\nrule main = (\"(\" main \")\")*\n", ClassLinear, 0},
+		{"start rule on a cycle through a repetition", "@start\nrule main = \"(\" b \")\"\nrule b = main*\n", ClassLinear, 0},
+		{"start rule called from one place in a bounded list", "@start\nrule main = \"x\" (\",\" main)#repeat(0,3)\n", ClassLinear, 0},
 		{"rebinding after the left call", "var k int\nrule main = e $$\nrule e = e \"x\" {k := k + 1} / \"x\" {k >= 0}\n", ClassLinearEnv, 0},
 		{"non-leader cycle members", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassLinear, 0},
 	} {

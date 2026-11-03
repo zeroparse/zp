@@ -357,8 +357,8 @@ How to use them:
   with an unprofiled parse.
 - **`repeats` is redundant work.** The engine memoizes most rules from the second call at a position, so a memoized
   rule normally has at most one repeat per position. Rules that call no other rule, and rules called from a single
-  place, are not memoized (see [memoization](memoization.md)): they are evaluated again whenever their caller
-  is. A rule evaluated more than twice at a position is flagged. The fix is usually in the caller: a choice whose
+  place other than a start rule that calls itself, are not memoized (see [memoization](memoization.md)): they are
+  evaluated again whenever their caller is. A rule evaluated more than twice at a position is flagged. The fix is usually in the caller: a choice whose
   alternatives begin alike, as in [Why Is a Parse Slow?](#why-is-a-parse-slow).
 - **`wasted` is backtracking.** Failing is normal (every choice fails before it succeeds), and failing on the first
   character costs one position. A large `wasted`, or a hint about a call that "failed after examining much input",

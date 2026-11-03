@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-02
+Arata Furukawa · Last revised 2026-11-03
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -650,21 +650,14 @@ The outlines leave these steps to be made precise.
    comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
 7. **Rules that are not memoized.** A rule that calls no rule is a leaf of the
    calls and is evaluated once per call, which Lemma 2 counts. A rule called
-   from at most one place is not memoized either, and it can be recursive
-   through the start rule, which is entered without a call: when that place is
-   its own body, as in `main = "a" main "b" / "x"`, or when it lies on a cycle
-   of rules that are each called from one place and that passes through the
-   start rule, as in `main = "a" B / "x"; B = main "b"`. Their calls then form
-   a recursion that Lemma 3 does not bound, so counting their evaluations by
-   their calls, and their calls by Lemma 2, is circular. The step must bound
-   the evaluations of such rules directly. A cycle of calls that consume no
-   input before them is a left recursion. The reference implementation always
-   memoizes its leaders, since a growth keeps its seed in the memo table, but
-   the first exception of
-   [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) does not
-   exempt a leader called from one place, such as the start rule in
-   `main = main "a" / "a"`. Once the specification states that leaders are
-   memoized, each call on such a cycle follows input that a body consumed, and
-   the calls along one chain are at increasing positions. A call inside an unbounded
-   repetition of a body makes a tree of calls instead, which the activations of
-   Lemma 4 must account for.
+   from at most one place is not memoized either, and it is evaluated once for
+   each evaluation of its one call. No cycle of calls that the start rule
+   reaches consists of such rules alone: when every rule of a cycle is called
+   from one place, that place is on the cycle, so the parse reaches the cycle
+   only by beginning at a rule of it, and a start rule on such a cycle is
+   memoized (see
+   [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). The
+   step must count the evaluations of the rules that are not memoized by the
+   evaluations of the rules above them up to a memoized rule. A call inside an
+   unbounded repetition of a body is evaluated once for each iteration, which
+   the activations of Lemma 4 must account for.

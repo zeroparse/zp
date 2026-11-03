@@ -331,6 +331,24 @@ func Controls() []Control {
 			Input:  func(n int) string { return "(" + rep("z", n) + "?" + rep("+", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
+		// The start rule is called only from its own body, but a parse can begin at it, so it is
+		// memoized (Evaluations of Rules): the second iteration of the repetition, which
+		// calls it again at the position where the first iteration of its child called it, reads
+		// the memo. Were the start rule not memoized, the evaluations would grow as the Fibonacci
+		// numbers. The rule t, called from two places, matches the rest of the input once per
+		// position.
+		{
+			Name: "Start rule called from its own body inside a bounded repetition", Family: "single callers", Positive: true,
+			Source: "@start\nrule main = (\"(\" main \")!\" / \"(\")#repeat(1,2) t\nrule t = \"(\" t / \"\"\n",
+			Input:  func(n int) string { return rep("(", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Start rule on a cycle of rules called from one place", Family: "single callers", Positive: true,
+			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\")#repeat(1,2) t\nrule b = main\nrule t = \"(\" t / \"\"\n",
+			Input:  func(n int) string { return rep("(", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
 		// A literal that both alternatives begin with puts the memoized call after it at the same
 		// position in both, so the second alternative reuses its result.
 		{

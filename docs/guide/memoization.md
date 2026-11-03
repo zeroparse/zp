@@ -8,7 +8,8 @@ ZeroParse parses with **packrat memoization**: the result of a rule at an input 
 evaluated at most twice at that position, however much backtracking the grammar does. It is on by default, **automatic, and has no public switch**. The engine decides per rule:
 
 - Rules that call no other rule, and rules referenced only once in the grammar, are not memoized in a normal parse,
-  because their entries could never be reused.
+  because their entries could never be reused. A start rule that calls itself, directly or through rules referenced
+  only once, is memoized all the same, since a parse can also begin at it.
 - Other rules are memoized at a position from their second call there: most rules are called only once per position,
   and an entry that is never reused only costs memory. A rule whose calls do repeat is memoized from the first call
   for the rest of the parse.

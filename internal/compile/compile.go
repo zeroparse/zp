@@ -650,18 +650,37 @@ func (c *Compiler) twinOf(r *Rule) *Rule {
 	return r.Twin
 }
 
+// transientRules returns the rules that ordinary parses do not memoize: those that call no rule,
+// and those called from at most one place, except a start rule on a cycle of calls whose rules are
+// each called from one place. A parse can enter such a start rule without a call, and its body
+// calls it again, so it is memoized; no rule outside the cycle calls a rule of it.
 func transientRules(rules []*grammar.RuleDef, control *Control) map[string]bool {
 	refs := map[string]int{}
+	caller := map[string]string{}
 	for _, rd := range rules {
 		control.poll()
 		for _, name := range allCallsControlled(rd.Expr, nil, control) {
 			refs[name]++
+			caller[name] = rd.Name
 		}
+	}
+	// selfCalled reports whether following the one caller of each rule from name leads back to name.
+	selfCalled := func(name string) bool {
+		seen := map[string]bool{}
+		for r := name; refs[r] == 1 && !seen[r]; r = caller[r] {
+			control.poll()
+			seen[r] = true
+			if caller[r] == name {
+				return true
+			}
+		}
+		return false
 	}
 	out := map[string]bool{}
 	for _, rd := range rules {
 		control.poll()
-		out[rd.Name] = refs[rd.Name] < 2 || len(allCallsControlled(rd.Expr, nil, control)) == 0
+		calls := len(allCallsControlled(rd.Expr, nil, control))
+		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(startMarked(rd) && selfCalled(rd.Name))
 	}
 	return out
 }

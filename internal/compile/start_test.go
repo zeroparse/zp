@@ -56,3 +56,41 @@ func TestStartRuleErrors(t *testing.T) {
 		}
 	}
 }
+
+// TestSelfCalledStartRules checks that a start rule that its own body calls, directly or through
+// rules called from one place, is memoized, while the other rules called from one place, start
+// rules or not, are not.
+func TestSelfCalledStartRules(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		src       string
+		transient []string // the rules not memoized in an ordinary parse
+	}{
+		{"@start\nrule main = \"(\" main \")\" / \"x\"\n", nil},
+		{"@start\nrule main = \"(\" b \")\" / \"x\"\nrule b = main\n", []string{"b"}},
+		{"@start\nrule main = \"(\" b \")\" / \"x\"\n@start(default)\nrule b = main\n", nil},
+		{"@start\nrule main = b\nrule b = c\nrule c = \"x\"\n", []string{"main", "b", "c"}},
+		{"@start(default)\nrule main = b\n@start\nrule b = c\nrule c = \"x\"\n", []string{"main", "b", "c"}},
+		// A rule called from two places is not on a cycle of rules called from one place.
+		{"@start\nrule main = \"(\" b \")\" / \"x\"\nrule b = c\nrule c = main / b\n", []string{"main", "c"}},
+		// The one caller of main is on a cycle that main is not on.
+		{"@start\nrule main = \"a\" z\nrule z = \"b\"\nrule x = main y\nrule y = x\n", []string{"main", "z", "x", "y"}},
+		// A start rule that calls no rule is a leaf of the calls, whatever calls it.
+		{"@start\nrule main = b b\n@start(default)\nrule b = \"x\"\n", []string{"main", "b"}},
+	} {
+		prog, err := compileStarts(t, tc.src)
+		if err != nil {
+			t.Errorf("%q: %v", tc.src, err)
+			continue
+		}
+		var got []string
+		for _, r := range prog.RuleList {
+			if r.Transient {
+				got = append(got, r.Name)
+			}
+		}
+		if !slices.Equal(got, tc.transient) {
+			t.Errorf("%q: transient rules %v, want %v", tc.src, got, tc.transient)
+		}
+	}
+}
