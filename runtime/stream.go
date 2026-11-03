@@ -209,7 +209,12 @@ func (p *Parser) streamDeliver(v *Node) {
 	if v != nil {
 		v.RawFresh = false
 	}
-	if err := p.Stream.Emit(v, p.Control); err != nil {
+	p.streamFail(p.Stream.Emit(v, p.Control))
+}
+
+// streamFail ends the parse with the error err of the stream callback, if there is one.
+func (p *Parser) streamFail(err error) {
+	if err != nil {
 		panic(fatal{err})
 	}
 }
