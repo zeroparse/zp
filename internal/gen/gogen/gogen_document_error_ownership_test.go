@@ -9,7 +9,6 @@ import (
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 func TestGenerateDocumentDiagnosticOwnership(t *testing.T) {
@@ -83,7 +82,7 @@ rule token Token = t:("a;" @error(message="want token")) #atomic => Token{Text: 
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"))
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated diagnostic ownership: %v\n%s", err, out)
 	}

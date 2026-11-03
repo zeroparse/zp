@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 func TestMain(m *testing.M) {
@@ -55,7 +54,7 @@ func TestRuntimeExecConformance(t *testing.T) {
 	}
 	cmd := exec.Command("go", append(args, ".")...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"))
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)

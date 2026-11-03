@@ -14,7 +14,6 @@ import (
 	"zeroparse.dev/zp/gen"
 	igen "zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 func TestMain(m *testing.M) {
@@ -96,7 +95,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 		write("p/go.mod", []byte("module example.com/proto\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp/runtime v0.0.0\n\nreplace zeroparse.dev/zp/runtime => ../rt\n"))
 		cmd := exec.Command("go", "build", "./...")
 		cmd.Dir = filepath.Join(dir, "p")
-		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOWORK=off")
+		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath", "GOWORK=off")
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}

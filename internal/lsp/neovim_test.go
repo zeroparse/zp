@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // TestNeovimClient edits a grammar through Neovim's built-in client, with the synchronous and the
@@ -27,7 +25,7 @@ func TestNeovimClient(t *testing.T) {
 	}
 	zpBin := filepath.Join(t.TempDir(), "zp")
 	build := exec.Command("go", "build", "-o", zpBin, "../../cmd/zp")
-	build.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags(os.Getenv("GOFLAGS")))
+	build.Env = append(os.Environ(), "GOFLAGS="+os.Getenv("GOFLAGS"))
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build zp: %v\n%s", err, out)
 	}

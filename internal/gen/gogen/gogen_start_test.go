@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -130,7 +129,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 			}
 			cmd := exec.Command(goBin, "run", ".")
 			cmd.Dir = dir
-			cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+			cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 			var stderr strings.Builder
 			cmd.Stderr = &stderr
 			out, err := cmd.Output()

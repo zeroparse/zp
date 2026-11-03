@@ -20,7 +20,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -514,7 +513,7 @@ func main() {
 	write("runs.json", string(data))
 	cmd := exec.Command(goBin, "run", ".", "runs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)
@@ -812,7 +811,7 @@ func main() {
 	write("runs.json", string(data))
 	cmd := exec.Command(goBin, "run", ".", "runs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)

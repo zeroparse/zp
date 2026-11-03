@@ -15,7 +15,6 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 func sourceGrammar(t *testing.T) (*zp.Parser, string) {
@@ -482,7 +481,7 @@ func TestSource(t *testing.T){
 	}
 	cmd := exec.Command(goBin, "test", "-count=1", "-timeout=3m", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS="+core.GoFlags(os.Getenv("GOFLAGS")))
+	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS="+os.Getenv("GOFLAGS"))
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatal(fmt.Errorf("generated consumer: %w\n%s", err, output))
 	}

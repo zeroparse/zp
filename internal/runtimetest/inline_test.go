@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // hotInline lists the methods and functions that generated parsers call on their hot paths. A
@@ -55,7 +54,7 @@ func TestHotPathHooksInline(t *testing.T) {
 	}
 	cmd := exec.Command("go", "build", "-gcflags=-m=2", ".")
 	cmd.Dir = filepath.Join(gentest.ModuleRoot(), "runtime")
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags(os.Getenv("GOFLAGS")))
+	cmd.Env = append(os.Environ(), "GOFLAGS="+os.Getenv("GOFLAGS"))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)

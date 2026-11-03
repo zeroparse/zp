@@ -15,7 +15,6 @@ import (
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // depMemoMutations are the changes of the embedded runtime for the negative controls of
@@ -83,7 +82,7 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 		err             error
 	}
 	var runs []*run
-	for _, flags := range []string{"-mod=mod -trimpath", core.TagFlags("-mod=mod -trimpath")} {
+	for _, flags := range []string{"-mod=mod -trimpath"} {
 		runs = append(runs, &run{flags: flags})
 		for name := range depMemoMutations {
 			runs = append(runs, &run{flags: flags, mutation: name})
@@ -246,7 +245,7 @@ func main() {
 	}
 	cmd := exec.Command(goBin, "run", ".")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags(flags), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS="+flags, "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("%v\n%s", err, out)

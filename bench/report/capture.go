@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/bench/inputs"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // tsWorkload is a workload measured on the generated TypeScript parser: the grammar and the input
@@ -261,7 +260,7 @@ func main() {
 		}
 	}
 	out := filepath.Join(dir, "probe")
-	if _, err := execOut(dir, []string{"GOWORK=off", "GOFLAGS=" + core.GoFlags("-mod=mod")}, "go", "build", "-trimpath", "-ldflags=-s -w", "-o", out, "."); err != nil {
+	if _, err := execOut(dir, []string{"GOWORK=off", "GOFLAGS=-mod=mod"}, "go", "build", "-trimpath", "-ldflags=-s -w", "-o", out, "."); err != nil {
 		return 0, err
 	}
 	st, err := os.Stat(out)
@@ -274,7 +273,7 @@ func main() {
 // buildZP builds the zp command of the repository into the work directory.
 func buildZP(root, work string) (string, error) {
 	out := filepath.Join(work, "zp")
-	if _, err := execOut(root, []string{"GOFLAGS=" + core.GoFlags(os.Getenv("GOFLAGS"))}, "go", "build", "-trimpath", "-o", out, "./cmd/zp"); err != nil {
+	if _, err := execOut(root, []string{"GOFLAGS=" + os.Getenv("GOFLAGS")}, "go", "build", "-trimpath", "-o", out, "./cmd/zp"); err != nil {
 		return "", err
 	}
 	return out, nil

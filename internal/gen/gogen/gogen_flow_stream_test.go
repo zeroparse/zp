@@ -19,7 +19,6 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // streamCases are the grammars with a #stream repetition of the generated-code tests, and the checked-in
@@ -333,7 +332,7 @@ func runStreamProbes(t *testing.T, cases []gentest.Case, form struct {
 	write("inputs.json", string(data))
 	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "run", ".", "inputs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()

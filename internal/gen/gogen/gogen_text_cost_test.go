@@ -8,7 +8,6 @@ import (
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // The grammar takes the text of every level of a nesting: the texts sum to the square of the
@@ -44,7 +43,7 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 	}
 	cmd := exec.Command("go", "test", "-count=1", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags(os.Getenv("GOFLAGS")))
+	cmd.Env = append(os.Environ(), "GOFLAGS="+os.Getenv("GOFLAGS"))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated text cost: %v\n%s", err, out)
 	}

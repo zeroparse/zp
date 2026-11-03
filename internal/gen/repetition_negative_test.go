@@ -14,7 +14,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // Generated parsers retain negative maxima directly in their implementation-int
@@ -77,7 +76,7 @@ func main() {
 			}
 			cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "run", ".")
 			cmd.Dir = dir
-			cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+			cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 			out, err := cmd.CombinedOutput()
 			if err != nil || string(out) != want {
 				t.Fatalf("generated Go: %v\ngot %s\nwant %s", err, out, want)

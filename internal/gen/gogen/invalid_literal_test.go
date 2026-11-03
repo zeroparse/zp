@@ -13,7 +13,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // Go string literals preserve invalid bytes; JSON input fixtures would replace
@@ -85,7 +84,7 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 	write("main.go", []byte("package main\nimport(\"encoding/json\";\"fmt\";\n"+imports.String()+")\n"+harness.String()))
 	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "run", ".")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil || string(out) != want.String() {
 		t.Fatalf("generated Go: %v\ngot %s\nwant %s", err, out, want.String())

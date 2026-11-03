@@ -16,7 +16,6 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 var updateTriage = flag.Bool("update-triage", false, "rewrite the cause lists in testdata/triage")
@@ -375,7 +374,7 @@ func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenie
 		out := filepath.Join(dir, "driver")
 		cmd := exec.Command("go", "build", "-o", out, ".")
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags(os.Getenv("GOFLAGS")))
+		cmd.Env = append(os.Environ(), "GOFLAGS="+os.Getenv("GOFLAGS"))
 		if msg, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("go build: %v\n%s", err, msg)
 		}

@@ -12,7 +12,6 @@ import (
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // memberDocumentProgram parses each input with the Documents of generated parsers (Parse and the
@@ -127,7 +126,7 @@ func runMemberDocuments(t *testing.T, cases []gentest.Case, rt string) (map[int]
 	}
 	cmd := exec.Command(goBin, "run", ".", "inputs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+core.GoFlags("-mod=mod -trimpath"), "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)
@@ -189,8 +188,7 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 		"typed_document.go": {"\tcache.slots = p.memoSlots\n", flush + "\tcache.slots = p.memoSlots\n"},
 	}
 	// The results that a call keeps in its context are also put in the memo when the parse ends:
-	// before each ctxKeep of a call, in the hand-written calls (call.go) and in the compositions of
-	// the Exec IR (call_exec.go).
+	// before each ctxKeep of a call, in the compositions of the Exec IR (call_exec.go).
 	keep := func(doc, minExpr, entry, alloc, meta string) string {
 		return "if " + doc + " != nil {\n" +
 			"\t\t\tentry := " + entry + "\n" +
@@ -210,10 +208,6 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 		at, prefix string
 		n          int
 	}{
-		"call.go": {
-			{"p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v,", nodeKeep, 1},
-			{"p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v,", typedKeep("min"), 1},
-		},
 		"call_exec.go": {
 			{"p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v,", nodeKeep, -1},
 			{"p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v,", typedKeep("min"), -1},
