@@ -137,6 +137,23 @@ type seqFrame struct {
 
 func (c wctx) with(cn *cont) wctx { c.cont = cn; return c }
 
+// againOf returns the repetition that stands, in a path, for the iterations of e after one: e
+// again, without a minimum. It is a scanning source when e is one, so a path that has entered an
+// iteration of a scanning repetition still contains the source. Each repetition has one. The
+// walk marks e as a source before it first calls againOf(e), and leads and wordExcludes run after
+// every rule is walked, so the mark is never missed.
+func (k *classifier) againOf(e *grammar.Repeat) *grammar.Repeat {
+	a := k.again[e]
+	if a == nil {
+		a = &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+		k.again[e] = a
+	}
+	if k.srcExprs[e] {
+		k.srcExprs[a] = true
+	}
+	return a
+}
+
 // walkRule walks the body and the action of a reachable rule, collecting call sites, scanning
 // sources, units, bindings and copying operations.
 func (k *classifier) walkRule(r *grammar.RuleDef) {
@@ -260,7 +277,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 		u := k.newUnit(unitIteration, c, e, []*cont{{items: []grammar.Expr{e.Expr}}},
 			[]contSpec{{paths: []*cont{c.cont}, what: "what follows the repetition " + k.show(e)}})
 		k.leftUnit(u, c, e.Expr)
-		again := &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+		again := k.againOf(e)
 		cc := c.push(u).with(c.cont.then(again))
 		cc.mustStart = false
 		cc.inRepeat = true
@@ -887,7 +904,7 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 					p = rest
 					continue
 				}
-				again := &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+				again := k.againOf(e)
 				visit(rest.then(e.Expr, again))
 				if e.Min == 0 {
 					visit(rest)

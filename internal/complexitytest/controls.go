@@ -349,6 +349,16 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("(", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
+		// The alternatives of main share the "(" with which they begin, and the iterations of b
+		// begin with "(" too, so after the first alternative fails at the end, the second consumes
+		// one "(" and the next iteration calls b again one position later: b, called from one place
+		// and not memoized, scans the rest of the input again from each position.
+		{
+			Name: "Scan restarted inside a rule called from one place", Family: "nested scans",
+			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n",
+			Input:  func(n int) string { return rep("(", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
 		// A literal that both alternatives begin with puts the memoized call after it at the same
 		// position in both, so the second alternative reuses its result.
 		{

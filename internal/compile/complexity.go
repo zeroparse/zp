@@ -237,6 +237,7 @@ type classifier struct {
 	srcExprs        map[grammar.Expr]bool // the expressions that are scanning sources
 	failRule        map[string]bool       // rules that can fail after a scanning source examined input
 	srcMemo         map[grammar.Expr]bool
+	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
 	causes, reasons, env []ComplexityCause
@@ -250,7 +251,7 @@ func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, c
 		ruleSrc: map[string]*source{}, follow: map[string]charset{}, growing: map[int]map[string]charset{},
 		captures: map[string]map[string][]grammar.Expr{}, sourceIndex: map[sourceKey]*source{},
 		predicateSource: map[*grammar.Predicate]*source{}, includesMemo: map[sizeKey]bool{},
-		srcExprs: map[grammar.Expr]bool{}, srcMemo: map[grammar.Expr]bool{}}
+		srcExprs: map[grammar.Expr]bool{}, srcMemo: map[grammar.Expr]bool{}, again: map[*grammar.Repeat]*grammar.Repeat{}}
 	for _, r := range rules {
 		k.byName[r.Name] = r
 	}

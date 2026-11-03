@@ -266,7 +266,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) 
 					p = rest
 					continue
 				}
-				again := &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+				again := k.againOf(e)
 				visit(rest.then(e.Expr, again), at)
 				if e.Min == 0 {
 					visit(rest, at)

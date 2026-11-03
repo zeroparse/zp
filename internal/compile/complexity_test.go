@@ -277,6 +277,18 @@ func TestClassifyComplexity(t *testing.T) {
 		{"start rule called from one place in nested bounded repetitions", "@start\nrule main = ((\"(\" main \")!\" / \"(\")#repeat(1,2))#repeat(1,2)\n", ClassLinear, 0},
 		{"start rule called from one place at most once per evaluation", "@start\nrule main = (\"(\" main \")!\" / \"(\") (\"(\" \")!\" / \"(\")?\n", ClassLinear, 0},
 		{"start rule called from one place in a bounded option", "@start\nrule main = (\"(\" main \")!\" / \"(\")#repeat(0,1)\n", ClassLinear, 0},
+		// The literal "(" with which both alternatives of main begin is shared, and so is the "("
+		// with which the iterations of b begin, so the comparison looks inside b, past the start
+		// of its repetition: what remains of the alternative still contains that repetition, and
+		// the later alternative "(" starts again inside the input that it examined.
+		{"scan restarted inside a rule called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		{"scan restarted inside a rule called from one place, without a call after the literal", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		{"scan restarted inside a rule called from one place, through a bounded call", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" (c)#repeat(0,2) \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		// The outer repetition runs at most twice, so the restarted scan does not compound, but
+		// condition 2 does not look at the bound of the outer repetition: the class is loose here.
+		{"scan restarted inside a rule called from one place, under a bounded outer repetition", "@start\nrule main = (\"(\" b \")!\" / \"(\")#repeat(2,2) \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		{"bounded repetition inside a rule called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")#repeat(0,3) $$\nrule c = \"(\" c / \"x\"\n", ClassLinear, 0},
+		{"rule called from one place that begins apart", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = \"x\" (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassLinear, 0},
 		{"rule called from one place by a memoized caller", "@start\nrule top = main $$\nrule main = (\"(\" main \")!\" / \"(\")#repeat(1,2)\n", ClassLinear, 0},
 		{"start rule called from one place in an unbounded repetition", "@start\nrule main = \"(\" main* \")\"\n", ClassLinear, 0},
 		{"start rule called from one place in a repeated group", "@start\nrule main = (\"(\" main \")\")*\n", ClassLinear, 0},

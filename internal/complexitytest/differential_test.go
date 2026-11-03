@@ -194,8 +194,37 @@ func randomStartCycleGrammar(rng *rand.Rand) string {
 	return b.String()
 }
 
-// linearClaims generates count random grammars of randomCostGrammar and count/4 of
-// randomStartCycleGrammar, keeps those that compile, and checks every one that claimsLinear
+// randomNestedScanGrammar returns a random grammar over the alphabet abc of two or three rules,
+// main, r1 and r2, each a repetition of a choice that tries an alternative "a" X "b" before "a".
+// X calls the next rule, mostly, or the rule itself, or, in the last rule, mostly the memoized
+// rule t, plainly, in an option or in a bounded repetition. The inner rules are called from one
+// place, so each iteration of a repetition of their caller evaluates their own repetitions again,
+// from the next position, over the input that the earlier iteration examined, unless the
+// alternatives commit; the "a" with which both alternatives begin makes the comparison look inside
+// the called rule, and an inner rule that ends with $$ fails only after its repetition.
+func randomNestedScanGrammar(rng *rand.Rand) string {
+	pick := func(xs ...string) string { return xs[rng.IntN(len(xs))] }
+	names := []string{"main", "r1", "r2"}[:2+rng.IntN(2)]
+	var b strings.Builder
+	b.WriteString("@start\n")
+	for i, name := range names {
+		callee := pick(name, "t", "t")
+		if i+1 < len(names) {
+			callee = pick(names[i+1], names[i+1], names[i+1], name, "t")
+		}
+		call := pick(callee, callee, callee, "("+callee+")#repeat(0,2)", callee+"?")
+		rep, tail := pick("+", "*", "+", "#repeat(2,2)", "?"), pick(` "a"*`, " $$", "")
+		if i > 0 {
+			rep, tail = pick("*", "+", "*", "#repeat(0,3)", ""), pick(" $$", " $$", "", ` "a"*`)
+		}
+		fmt.Fprintf(&b, "rule %s = (\"a\" %s \"b\" / \"a\")%s%s\n", name, call, rep, tail)
+	}
+	b.WriteString("rule t = \"a\" t / \"c\"\n")
+	return b.String()
+}
+
+// linearClaims generates count random grammars of randomCostGrammar and count/4 each of
+// randomStartCycleGrammar and randomNestedScanGrammar, keeps those that compile, and checks every one that claimsLinear
 // classifies as linear against the measured cost on the input families on the closure and bytecode
 // backends. It returns the number of grammars checked and the failures; it stops at the first
 // failure if firstOnly is set.
@@ -203,14 +232,18 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 	t.Helper()
 	rng := rand.New(rand.NewPCG(3, 5))
 	cycles := rand.New(rand.NewPCG(13, 17))
+	nested := rand.New(rand.NewPCG(19, 23))
 	checked := 0
 	var failures []string
-	for n := range count + count/4 {
+	for n := range count + 2*(count/4) {
 		var src string
-		if n < count {
+		switch {
+		case n < count:
 			src = randomCostGrammar(rng)
-		} else {
+		case n < count+count/4:
 			src = randomStartCycleGrammar(cycles)
+		default:
+			src = randomNestedScanGrammar(nested)
 		}
 		g, err := zp.ParseGrammar(src)
 		if err != nil {
@@ -276,7 +309,7 @@ func TestLinearClaims(t *testing.T) {
 	if min := count / 10; checked < min {
 		t.Errorf("%d grammars classified linear, want at least %d", checked, min)
 	}
-	t.Logf("%d of %d grammars classified linear", checked, count+count/4)
+	t.Logf("%d of %d grammars classified linear", checked, count+2*(count/4))
 }
 
 // TestLinearClaimsNegativeControl checks that TestLinearClaims can fail: with a classifier that
