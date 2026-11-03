@@ -12,27 +12,77 @@ removes that reason for repetitions by **memoizing the repetitions the classifie
 **run site**, records for each `(site, position, environment)` where its iterations ended, so a second activation at
 the same key replays the result instead of rescanning. The mechanism generalizes the skip-run sites of record 064 from
 skip-only loops to ordinary repetitions of value-free elements. Everything that makes the classifier prove Linear today
-stays; a unit whose only unbounded scans are run sites is proved Linear.
+stays; a unit whose only unbounded scans are run sites is proved Linear. Run sites alone are not enough: the stages
+below, run records (A), records for the Operators Rule (B) and a size argument for copying (C), are each necessary
+to make every nested reason Linear.
 
 The record specifies the behaviour as Exec IR operations and engine semantics first. Generated runtimes follow the Exec
 IR; none is edited by hand.
 
 ## Motivation
 
-The nine bundled grammars carry about 1,400 nested reasons. A prototype of the classifier marking, measured without an
+The ten bundled grammars carry 1,400 nested reasons. A prototype of the classifier marking, measured without an
 engine, shows that marking value-free repetitions alone turns about 23% of them into proved Linear (duckdb 672 to 314,
 typescript 266 to 250; the other grammars unchanged). The marked share of repetitions per grammar is cel 41 of 47, cue
 45 of 59, duckdb 42 of 120, golang 83 of 141, python 70 of 143, typescript 45 of 99, xml 29 of 38, yaml 74 of 93,
 minilang 7 of 10 and outline 6 of 7.
 
-The remaining nested reasons come from other scan sources that repetition records do not cover: repetitions whose
-iterations build values (golang 56, cel 6), rules that read variables (python 63), operator loops and right operands of
-Operators Rules, copying operations whose cost is the value size, and left-recursion growth at a new position. Two of
-those widen under this design (values and environments, below); the rest need their own answer and are out of scope.
+Two quadratic controls show the gap. In `main = t a? $$; t = a t "!" / . t / ""; a = x+; x = "x"` the repetition `a` is
+rescanned at every position of `t`; in `S = (A "y" / .)*` with `A` a repetition, the same input is rescanned after each
+abandoned alternative. Memoizing the repetition makes each position cost one scan in total.
 
-Two quadratic controls show the gap. In `main = t a? $$; t = a t "!" / . t / ""; a = x+; x = "x"` the repetition `a`
-is rescanned at every position of `t`; in `S = (A "y" / .)*` with `A` a repetition, the same input is rescanned after
-each abandoned alternative. Memoizing the repetition makes each position cost one scan in total.
+## Stages and evidence
+
+A scanning source keeps a unit nested when the unit can reach it through a recursion of rule calls. The classifier
+reports four kinds of source besides `#recover` skips: unbounded repetitions, Operators Rule operator loops and right
+operands, copying operations, and the growth of a left-recursive rule at a new position. The table drops source kinds
+in a classifier prototype and counts the nested reasons that remain (a count, not a soundness claim: a dropped kind
+is a kind a stage must make sound). "Values and environment" means that repetitions whose elements build values, read
+variables or contain predicates are run sites too.
+
+Starting from "every kind dropped" (2 left), each row puts back one kind as a scanning source:
+
+| Kind put back as a source | Nested reasons left |
+|---|---|
+| none | 2 |
+| left-recursion growth | 2 |
+| operator loops and right operands | 959 |
+| copying operations | 1016 |
+| repetitions whose elements build values | 1015 |
+| repetitions whose elements read variables or contain predicates | 1008 |
+| all repetitions (no run sites at all) | 1400 |
+
+Without stage (A), none of the other kinds changes the count at all (operators, copying or growth dropped alone: no change). With
+value-free run sites only, 1400 falls to 1026 (duckdb 672 to 314, typescript 266 to 250, the others unchanged); with
+values and environments 1016. Run sites with values and environments plus operators plus copying dropped give 2 (the
+two left are explained below); dropping any one of the three leaves 959 to 1016. Left-recursion growth needs nothing: it
+does not move any count.
+
+The per-grammar counts, base to the three stages together, are cel 12, cue 56, duckdb 672, golang 165, python 183,
+typescript 266, xml 4, yaml 38, minilang 2, outline 2 (total 1400) down to 0 everywhere but minilang. The marked share of
+repetitions per grammar with values and environments allowed is cel 47 of 47, golang 123 of 141, xml 38 of 38; with
+value-free elements only: cel 41 of 47, cue 45 of 59, duckdb 42 of 120, golang 83 of 141, python 70 of 143, typescript
+45 of 99, xml 29 of 38, yaml 74 of 93, minilang 7 of 10, outline 6 of 7.
+
+**(A) Run records for repetitions**, with the values and the environment in the key (this record's Design). They carry
+the largest single drop (value-free: 374 of 1400, almost all duckdb) and are required for the rest. Repetitions whose
+element calls a `#recover` rule must be markable too: in minilang `(-ws s:stmt)*` repeats a rule that contains
+`#recover`, and the option `else?` stays nested only through that repetition. With recovery allowed in run sites, the
+all-stages count for minilang is 0. A record then holds the recorded errors of the run and replays them.
+
+**(B) Records for the Operators Rule.** The operator loop of an Operators Rule is a repetition and becomes a run site
+keyed by position and level. The right operand of an operator part that can apply operators is a recursive call at a
+higher level; it needs an operand record keyed by (position, level) holding the operand value, which is a packrat memo
+for operands only.
+
+**(C) Copying is a value-size question, not memoization.** A copying operation costs the size of the value it copies,
+so recording where a scan ended does not help. Of the copying sources in the ten grammars, 268 of 291 copy only own
+values, whose size is bounded by the input their match consumes; 23 (cue 3, python 20) copy variables, fold
+accumulators or values of a call on a recursion. With stages (A) and (B) in place, dropping exactly the own-value
+copies leaves 236 of 1400 nested reasons: cue 56 and python 178, every other grammar 0 (minilang 2, from the
+recovery above). So most of (C) reduces to the size-degree proof of the cost proof, which bounds the copy of an own
+value by the input of its match, and needs no new runtime mechanism. The remaining 23 sources in cue and python need
+the size argument for variables, accumulators and recursive values, which is separate work.
 
 ## Design
 
@@ -164,7 +214,10 @@ produced by the Exec IR lowering once F95 settles the runtime core; no generated
 
 ## Open questions
 
-- The nested reasons that remain after this record (operators, copying operations, left-recursion growth) need their own
-  design; whether to treat Operators Rule loops as run sites with per-level keys is not decided here.
+- Replaying recorded errors in a run record (needed for repetitions that contain `#recover`) is specified here only by
+  intent; its interaction with the error list of a Document and with budget charges needs the engine prototype.
+- The operand record of (B) holds values; whether it shares the persistent-tail representation of (A) is open.
+- The 23 non-own copying sources (cue 3, python 20) need a size argument for variables, accumulators and recursive
+  values; the own-value copies are covered by the size proof.
 - The exact interval-form criteria (class of one character, literal sequence) are fixed by the measurement of the
   engine prototype.
