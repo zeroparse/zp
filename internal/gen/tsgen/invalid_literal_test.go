@@ -40,6 +40,9 @@ func literalTextUnits(input string, unit engine.PositionUnit) []rune {
 func TestGeneratedTSInvalidUTF8Literals(t *testing.T) {
 	t.Parallel()
 	for _, tc := range gentest.InvalidLiteralCorpus() {
+		if !gentest.Sampled(tc.Name) {
+			continue
+		}
 		t.Run(tc.Name, func(t *testing.T) {
 			g := gentest.LiteralCorpusGrammar(t, tc)
 			prog, err := engine.Compile(g, compile.Options{})

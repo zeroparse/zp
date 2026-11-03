@@ -35,6 +35,9 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 	node, _ := exec.LookPath("node")
 	for _, lang := range []string{"json", "typescript"} {
 		t.Run(lang, func(t *testing.T) {
+			if lang == "typescript" {
+				gentest.LongOnly(t, "the TypeScript grammar builds five large standalone controls next to the JSON ones")
+			}
 			src, err := os.ReadFile(filepath.Join("../../testdata/grammars", lang, lang+".zp"))
 			if err != nil {
 				t.Fatal(err)

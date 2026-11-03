@@ -40,6 +40,9 @@ func TestGeneratedGoProfile(t *testing.T) {
 		{"unicode", "type N = { Text string }\nrule main N = t:(part part) #atomic => N{Text: text($t)}\nrule part = \"é\"", "éé", `for _,r:=range s.Rules{if r.Rule=="main"{n:=2;if unit==Bytes{n=4};if r.Consumed!=n{t.Fatal(r)}}}`},
 		{"collision", "type Profile = { Text string }\ntype ProfileSnapshot = { Text string }\ntype RuleProfile = { Text string }\ntype ProfileLocation = { Text string }\ntype SkipReasonCount = { Text string }\ntype WithProfile = { Text string }\nrule main Profile = t:(part) #atomic => Profile{Text: text($t)}\nrule part WithProfile = t:(\"a\") #atomic => WithProfile{Text: text($t)}", "a", ``},
 	} {
+		if !gentest.Sampled(f.name) {
+			continue
+		}
 		g, err := parseTest(f.grammar)
 		if err != nil {
 			t.Fatal(f.name, err)

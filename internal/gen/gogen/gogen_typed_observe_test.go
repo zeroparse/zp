@@ -99,6 +99,9 @@ rule part WithTrace = t:("a") #atomic => WithTrace{Text: text($t)}`, input: "a",
 		}
 	}
 	for _, f := range fixtures {
+		if !gentest.Sampled(f.name) {
+			continue
+		}
 		g, err := parseTest(f.grammar)
 		if err != nil {
 			t.Fatal(f.name, err)

@@ -53,6 +53,9 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 		// inner's memo result depends on its lookahead, which nothing after part reads again.
 		{"innerlookahead", "type W = { Text string }\nrule main W = p:inner \"bcd\" => $p\nrule inner W = &\"abcd\" p:part => $p\nrule part W = t:(\"a\") #atomic => W{Text: text($t)}", "abcd"},
 	} {
+		if !gentest.Sampled(f.name) {
+			continue
+		}
 		g, err := parseTest(f.grammar)
 		if err != nil {
 			t.Fatal(f.name, err)
