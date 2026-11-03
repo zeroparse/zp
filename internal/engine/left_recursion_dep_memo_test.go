@@ -2,7 +2,10 @@ package engine
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -21,8 +24,11 @@ func depMemoGrammars(seeds int) []gentest.Case {
 // context again (ParseOptions.ContextMemoOff), and returns the differences, ignoring an input that
 // exhausts a limit in either. With unexamined, the memo leaves examined ranges out of identities
 // and outcomes (ParseOptions.ContextMemoUnexamined). It returns false if the grammar does not
-// compile.
-func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined bool) ([]string, bool) {
+// compile. It stops at the first difference unless parallel: then it runs every comparison
+// concurrently, because the evaluation without a memo of one input can take minutes (without limit
+// controls, no limit ends it) and the comparisons are independent, and returns the differences in
+// the order of the sequential run.
+func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, parallel bool) ([]string, bool) {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
@@ -32,25 +38,70 @@ func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined bool) ([
 		return nil, false
 	}
 	memo, ref := mustCompile(t, c.Src), mustCompile(t, c.Src, compile.Options{DisableMemo: true})
-	var diffs []string
+	type job struct {
+		in      string
+		backend Backend
+		rec     bool
+	}
+	var jobs []job
 	for _, in := range c.Inputs {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, recognize := range []bool{false, true} {
-				o := ParseOptions{Backend: backend, Recognize: recognize, ContextMemoUnexamined: unexamined}
-				got, err := memo.ParseWith("", in, o)
-				o.ContextMemoUnexamined, o.ContextMemoOff = false, true
-				want, wantErr := ref.ParseWith("", in, o)
-				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
-				if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
-					diffs = append(diffs, fmt.Sprintf("%s %q %s recognize=%v:\n got %s\nwant %s", c.Name, in, backend, recognize, a, b))
-					if len(diffs) >= limit {
-						return diffs, true
-					}
-				}
+				jobs = append(jobs, job{in, backend, recognize})
+			}
+		}
+	}
+	compare := func(j job) string {
+		o := ParseOptions{Backend: j.backend, Recognize: j.rec, ContextMemoUnexamined: unexamined}
+		got, err := memo.ParseWith("", j.in, o)
+		o.ContextMemoUnexamined, o.ContextMemoOff = false, true
+		want, wantErr := ref.ParseWith("", j.in, o)
+		a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+		if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
+			return fmt.Sprintf("%s %q %s recognize=%v:\n got %s\nwant %s", c.Name, j.in, j.backend, j.rec, a, b)
+		}
+		return ""
+	}
+	results := make([]string, len(jobs))
+	if parallel {
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, runtime.GOMAXPROCS(0))
+		for i, j := range jobs {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				results[i] = compare(j)
+			}()
+		}
+		wg.Wait()
+	} else {
+		for i, j := range jobs {
+			if results[i] = compare(j); results[i] != "" && countNonEmpty(results) >= limit {
+				break
+			}
+		}
+	}
+	var diffs []string
+	for _, d := range results {
+		if d != "" {
+			if diffs = append(diffs, d); len(diffs) >= limit {
+				break
 			}
 		}
 	}
 	return diffs, true
+}
+
+func countNonEmpty(s []string) int {
+	n := 0
+	for _, x := range s {
+		if x != "" {
+			n++
+		}
+	}
+	return n
 }
 
 // TestLeftRecursionDependencyMemoRandom compares the results of random grammars with left
@@ -61,21 +112,21 @@ func TestLeftRecursionDependencyMemoRandom(t *testing.T) {
 	if testing.Short() {
 		seeds = 80
 	}
-	compiled, n := 0, 0
-	for _, c := range depMemoGrammars(seeds) {
-		diffs, ok := depMemoDiffers(t, c, 3, false)
+	var compiled, n atomic.Int64
+	gentest.EachParallel(t, depMemoGrammars(seeds), func(t *testing.T, c gentest.Case) {
+		diffs, ok := depMemoDiffers(t, c, 3, false, true)
 		if !ok {
-			continue
+			return
 		}
-		compiled++
+		compiled.Add(1)
 		for _, d := range diffs {
-			if n++; n <= 5 {
+			if n.Add(1) <= 5 {
 				t.Errorf("%s\n%s", c.Src, d)
 			}
 		}
-	}
-	if n > 0 || compiled < seeds*2 {
-		t.Errorf("%d differences in %d grammars", n, compiled)
+	})
+	if n.Load() > 0 || int(compiled.Load()) < seeds*2 {
+		t.Errorf("%d differences in %d grammars", n.Load(), compiled.Load())
 	}
 }
 
@@ -107,7 +158,7 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 			core.ContextMemoMutation = m.mutation
 			defer func() { core.ContextMemoMutation = 0 }()
 			for _, c := range cases {
-				if diffs, _ := depMemoDiffers(t, c, 1, m.unexamined); len(diffs) > 0 {
+				if diffs, _ := depMemoDiffers(t, c, 1, m.unexamined, false); len(diffs) > 0 {
 					return
 				}
 			}

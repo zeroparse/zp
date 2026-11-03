@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -33,30 +35,43 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 		controls bool
 	}{{"ordinary", false}, {"controls", true}} {
 		t.Run(form.name, func(t *testing.T) {
-			taken, framed, operators, generated := 0, 0, 0, 0
+			t.Parallel()
+			var mu sync.Mutex
+			taken, framed, operators := 0, 0, 0
+			var generated atomic.Int64
 			gh := &gogen.Hooks{}
 			gentest.SetGenHooks(t, gh)
 			gh.LeanRoute = func(table string, r *compile.Rule) {
+				mu.Lock()
+				defer mu.Unlock()
 				if table == "rules" {
 					taken++
 				}
 			}
-			gh.FramedRoute = func(table string, r *compile.Rule) { framed++ }
-			gh.OperatorsRoute = func(table string, r *compile.Rule) { operators++ }
-			for _, c := range cases {
+			gh.FramedRoute = func(table string, r *compile.Rule) {
+				mu.Lock()
+				defer mu.Unlock()
+				framed++
+			}
+			gh.OperatorsRoute = func(table string, r *compile.Rule) {
+				mu.Lock()
+				defer mu.Unlock()
+				operators++
+			}
+			gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
 				g, err := parseTest(c.Src)
 				if err != nil {
-					continue
+					return
 				}
 				_, err = gentest.Generate(t, g, gen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Runtime: gen.RuntimeImport,
 					Types: true, TypedOnly: true, KeepNodes: true, LimitControls: form.controls})
 				if err != nil {
 					t.Fatalf("%s: %v", c.Name, err)
 				}
-				generated++
-			}
-			if generated < 10 || taken == 0 || framed == 0 || operators == 0 {
-				t.Errorf("generated %d grammars; %d direct, %d framed and %d Operators Rule lines took the Flow route", generated, taken, framed, operators)
+				generated.Add(1)
+			})
+			if generated.Load() < 10 || taken == 0 || framed == 0 || operators == 0 {
+				t.Errorf("generated %d grammars; %d direct, %d framed and %d Operators Rule lines took the Flow route", generated.Load(), taken, framed, operators)
 			}
 		})
 	}

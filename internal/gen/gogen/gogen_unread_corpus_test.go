@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp/internal/gen"
@@ -96,9 +97,9 @@ func TestGeneratedLocalVariables(t *testing.T) {
 		{"recognize", gen.GenOptions{Types: true, Recognize: true}, true},
 		{"observability", gen.GenOptions{Types: true, Observability: true}, true},
 	}
-	checked := 0
+	var checked atomic.Int64
 	cases := gentest.GenCorpus(t)
-	for _, c := range cases {
+	gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -112,7 +113,7 @@ func TestGeneratedLocalVariables(t *testing.T) {
 				t.Errorf("%s (%s): %v", c.Name, f.name, err)
 				continue
 			}
-			checked++
+			checked.Add(1)
 			for _, e := range localErrors(t, files) {
 				t.Errorf("%s (%s): %s", c.Name, f.name, e)
 			}
@@ -124,9 +125,9 @@ func TestGeneratedLocalVariables(t *testing.T) {
 				}
 			}
 		}
-	}
-	if want := len(cases) * len(forms); checked != want {
-		t.Errorf("checked %d generated packages, want %d", checked, want)
+	})
+	if want := len(cases) * len(forms); int(checked.Load()) != want {
+		t.Errorf("checked %d generated packages, want %d", checked.Load(), want)
 	}
 }
 
@@ -145,8 +146,8 @@ func TestLocalErrorsDetectsUnusedVariable(t *testing.T) {
 // corpus grammar that declares one with an undefined name.
 func TestShakeVarsMutantFailsToCompile(t *testing.T) {
 	t.Parallel()
-	declared, failed := 0, 0
-	for _, c := range gentest.GenCorpus(t) {
+	var declared, failed atomic.Int64
+	gentest.EachParallel(t, gentest.GenCorpus(t), func(t *testing.T, c gentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -154,7 +155,7 @@ func TestShakeVarsMutantFailsToCompile(t *testing.T) {
 		files, err := gentest.Generate(t, g, gen.GenOptions{Types: true, Package: "p", Start: "main", Runtime: gen.RuntimeImport, Module: "example.com/p"})
 		if err != nil {
 			t.Errorf("%s: %v", c.Name, err)
-			continue
+			return
 		}
 		var mutated []gen.GeneratedFile
 		dropped := 0
@@ -173,16 +174,16 @@ func TestShakeVarsMutantFailsToCompile(t *testing.T) {
 			mutated = append(mutated, f)
 		}
 		if dropped == 0 {
-			continue
+			return
 		}
-		declared++
+		declared.Add(1)
 		if len(localErrors(t, mutated)) > 0 {
-			failed++
+			failed.Add(1)
 		} else {
 			t.Errorf("%s: dropping %d shakable variables left code that compiles: the shaking keeps nothing that it needs to keep", c.Name, dropped)
 		}
-	}
-	if declared == 0 || failed != declared {
-		t.Errorf("%d of %d grammars with shakable variables failed to compile after dropping them", failed, declared)
+	})
+	if declared.Load() == 0 || failed.Load() != declared.Load() {
+		t.Errorf("%d of %d grammars with shakable variables failed to compile after dropping them", failed.Load(), declared.Load())
 	}
 }

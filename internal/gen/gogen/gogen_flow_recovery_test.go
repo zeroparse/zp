@@ -3,6 +3,7 @@ package gogen_test
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -39,10 +40,14 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 	cases := append(append(append(gentest.GenCorpus(t), gentest.GrammarCases(t)...), observeShapes...), streamCorpus...)
 	for _, controls := range []bool{false, true} {
 		t.Run(fmt.Sprint("controls=", controls), func(t *testing.T) {
+			t.Parallel()
 			taken := map[string]int{}
+			var mu sync.Mutex
 			gh := &gogen.Hooks{}
 			gentest.SetGenHooks(t, gh)
 			gh.FramedRoute = func(table string, r *compile.Rule) {
+				mu.Lock()
+				defer mu.Unlock()
 				if !hasRecovery(r.BodyExpr()) {
 					return
 				}
@@ -54,18 +59,22 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 					taken[table+" recovery with a leader"]++
 				}
 			}
-			gh.OperatorsRoute = func(table string, r *compile.Rule) { taken[table+" operators line"]++ }
-			for _, c := range cases {
+			gh.OperatorsRoute = func(table string, r *compile.Rule) {
+				mu.Lock()
+				defer mu.Unlock()
+				taken[table+" operators line"]++
+			}
+			gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
 				g, err := parseTest(c.Src)
 				if err != nil {
-					continue
+					return
 				}
 				for _, stream := range []bool{false, true} {
 					if _, err := gentest.Generate(t, g, gen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Runtime: gen.RuntimeImport, Recognize: true, Stream: stream, LimitControls: controls}); err != nil && (!stream || strings.Contains(err.Error(), "Flow IR does not print")) {
 						t.Fatalf("%s: %v", c.Name, err)
 					}
 				}
-			}
+			})
 			for _, table := range []string{"rules", "recRules"} {
 				for _, k := range []string{" recovery", " recovery with a cut", " recovery with a leader", " operators line"} {
 					if taken[table+k] == 0 {
