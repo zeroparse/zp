@@ -34,10 +34,13 @@ with implementation changes; regenerate generated files.
   `internal/compile/`; runtime: `internal/engine/`; generators:
   `internal/gen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
   `alpha-parsers` repository.
-- Use Go 1.27.1. Run `go test -timeout=30m ./... ./runtime/...` for the root module. After
-  engine, generator or runtime changes, run `go generate ./gen ./bench`
-  and `hack/test-alpha-parsers.sh`. For site changes, run `cd site && go test ./...` and the
-  site build/check commands in `docs/site.md`.
+- Use Go 1.27.1. Choose checks by what a change touches. Docs or spec only:
+  `cd site && go test ./...` and the site build/check in `docs/site.md`. Code:
+  `go vet` and the tests of the changed packages and their dependents. Engine,
+  generator or runtime: also `go generate ./gen ./bench` and
+  `hack/test-alpha-parsers.sh`; budget-control code: also the reference build
+  in `docs/development.md`. Run the root `go test -timeout=60m ./... ./runtime/...`
+  once per landing batch, on its final commit.
 - Keep generated benchmark reports/results unedited by hand and align
   `spec/bytecode/README.md` with VM changes.
 - GitHub Actions are temporarily paused: do not trigger, rerun, cancel, poll or
