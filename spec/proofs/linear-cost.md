@@ -13,11 +13,12 @@ one, without changing the others.
 Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved, and the theorem is proved from the
 others. Lemmas 4 to 6 are given as outlines: each states its claim, the
 conditions it uses, and the steps that its proof must still make precise, listed
-under [Open Steps](#open-steps). Lemma 4 proves that the scanned cost comes down
-to the number of activations, which parts of the grammar a failure after a
-source passes through, and where an activation is repeated at a position; Lemma
-5 proves the bound on the sources that a growth step evaluates at fixed offsets
-after the position where it grows.
+under [Open Steps](#open-steps). Lemma 4 proves a reduction and leaves the count
+of activations open: the scanned cost comes down to the number of activations, a
+failure after a source passes through the forms that condition 2 checks, and an
+activation is repeated at a position only after an abandoned committing unit or
+a dropped growth step. Lemma 5 proves the bound on the sources that a growth
+step evaluates at fixed offsets after the position where it grows.
 
 ## Setting
 
@@ -51,11 +52,12 @@ number of lookaheads that enclose a terminal, which rule calls do not bound.
 **Activations.** A growth step is a body evaluation of the leader. An
 **activation** of a scanning source is one unit of its work that evaluates a
 fixed part of the grammar once: an iteration of a repetition without an upper
-bound, an operator that an Operators Rule applies, or an evaluation of the
-skip expression of a `#recover` that is not a
-[reused skip](../runtime/parsing.md#skip-runs). The growth of a cycle and the copying
+bound, an operator that an Operators Rule applies, or an evaluation of the skip
+expression of a `#recover` that is not a [reused
+skip](../runtime/parsing.md#skip-runs). The growth of a cycle and the copying
 operations, the other scanning sources, make no calls of their own beyond the
-body evaluations of the growth.
+body evaluations of the growth. An iteration of a repetition of a character
+class is an activation of its own.
 
 **Local and scanned cost.** An evaluation of a rule body has a **local cost**,
 the cost of the steps that it makes outside the calls it makes and outside its
@@ -184,42 +186,44 @@ that expression. Outside the calls that it makes and the scanning sources
 nested in it, that part is a finite expression, each part of which is
 evaluated at most as many times as the product of the upper bounds of the
 bounded repetitions that enclose it, and each evaluation of a terminal, a
-character class or `.` examines a constant amount of the input; an iteration
-of a repetition of a character class is an activation of its own. The growth
+character class or `.` examines a constant amount of the input. The growth
 of a cycle makes no steps of its own beyond the body evaluations of its steps,
 which Lemma 5 counts. So the claim of this lemma comes down to a bound on the
 number of activations, and the scanned cost of each is a constant.
 
 **Failure after a source.** Condition 2 applies to a unit that can fail after
-one of its scanning sources has examined input, a property of the grammar.
-It covers every evaluation that fails after an activation in it succeeded.
-Let an evaluation $w$ of a unit fail after an activation $\alpha$ inside it
-succeeded, and let $f$ be the evaluation, made after $\alpha$, whose failure
-the evaluations between $f$ and $w$ pass on to $w$. Let $M$ be the innermost
-evaluation that contains both $\alpha$ and $f$. If $M$ is a sequence, $f$ is
-in a later element than $\alpha$. If $M$ is a repetition, $f$ is in a later
-iteration, which a failure makes the repetition fail only when it is
-required. If $M$ is a negative lookahead, its expression contains $\alpha$
-and succeeded, and $M$ itself fails. If $M$ is a choice, a `#recover` or an
-Operators Rule, which tries another part at the same position after one
-fails, the part that contains $\alpha$ failed after $\alpha$, and the same
-argument applies inside it. In each case, inside the unit or in
-the body of a rule that it calls, this is one of the ways in which
-condition 2 lets a unit fail after a source. The classifier checks condition 2
-in `checkUnits`, and the three ways of being committing in `committing`.
+one of its scanning sources has examined input, a property of the grammar. It
+covers every evaluation that fails after an activation in it succeeded. Let an
+evaluation $w$ of a unit fail after an activation $\alpha$ inside it succeeded,
+and let $f$ be the evaluation, made after $\alpha$, whose failure the
+evaluations between $f$ and $w$ pass on to $w$. Let $M$ be the innermost
+evaluation that contains both $\alpha$ and $f$. If $M$ is a sequence, $f$ is in
+a later element than $\alpha$. If $M$ is a repetition, $f$ is in a later
+iteration, which a failure makes the repetition fail only when it is required.
+If $M$ is a negative lookahead, its expression contains $\alpha$ and succeeded,
+and $M$ itself fails. If $M$ is a choice, a `#recover` or an Operators Rule,
+which tries another part at the same position after one fails, the part that
+contains $\alpha$ failed after $\alpha$, and the same argument applies inside
+it. In each case, inside the unit or in the body of a rule that it calls, this
+is one of the ways in which condition 2 lets a unit fail after a source. The
+classifier checks condition 2 in `checkUnits`, and the three ways of being
+committing in `committing`. It decides whether a unit can fail after a source in
+`unitFailsAfterSource`, which refines the answer for alternatives that are not
+growing, iterations and options, and returns true for every other kind of unit.
 
-**Restarts.** An activation **succeeds** when its iteration consumes input,
-its operator applies, or its skip expression consumes input. An evaluation is
-**abandoned** when it fails, when it is the expression of a lookahead, or when
-it is the step of a growth whose result the growth drops. Let $\alpha$ and
-$\alpha'$ be successful activations of one scanning source that start at one
-position $q$, with $\alpha$ evaluated first, and let the innermost evaluation
-$N$ that contains both not be a growth. Then $\alpha'$ is not inside $\alpha$,
-and on the path from $N$ down to $\alpha$ there is a first abandoned
-evaluation $w$ below $N$. Either $w$ is a dropped step of a growth, or $w$ is
-an evaluation of a unit that starts at a position $s \le q$ and is
-committing. From the end of $w$ to the start of $\alpha'$, the parser starts
-no evaluation at a position before the start of $w$.
+**Restarts.** An activation **succeeds** when it consumes input: its iteration,
+its operator part with its right operand, or its skip expression consumes input.
+An operator applied without consuming input does not succeed in this sense. An
+evaluation is **abandoned** when it fails, when it is the expression of a
+lookahead, or when it is the step of a growth whose result the growth drops. Let
+$\alpha$ and $\alpha'$ be successful activations of one scanning source that
+start at one position $q$, with $\alpha$ evaluated first, and let the innermost
+evaluation $N$ that contains both not be a growth. Then $\alpha'$ is not inside
+$\alpha$, and on the path from $N$ down to $\alpha$ there is a first abandoned
+evaluation $w$ below $N$. Either $w$ is a dropped step of a growth, or $w$ is an
+evaluation of a unit that starts at a position $s \le q$ and is committing. From
+the end of $w$ to the start of $\alpha'$, the parser starts no evaluation at a
+position before the start of $w$.
 
 *Proof.* Suppose that $\alpha'$ is inside $\alpha$. Every evaluation from
 $\alpha$ down to $\alpha'$ starts at $q$. The source is in the body of a rule
@@ -265,31 +269,40 @@ sources has examined input. Condition 2 makes it committing. $\square$
 source, and each operator applied is an activation. An operator applied without
 consuming input ends the expression that applies it ([Parsing
 Rules](../language/operators-rule.md#parsing-rules)), so each evaluation of an
-Operators Rule expression has at most one such activation, and the others
-succeed by consuming input. The parser selects an operator at a position by
-trying the operator parts there, and can try them again at the same position
-when an inner level returns there because the operator it selected binds less
-tightly or its right operand fails. Each such return ends an evaluation of a
-unit of the Operators Rule, an operator part with its right operand, or of the
-right operand that a unit contains, so the claims above treat these evaluations
-as those of any other unit: an Operators Rule is a choice of its operator parts
-and `operand` items when one fails and a sequence of its operands and operators
-when they succeed, and its units are checked by condition 2 whether or not they
-can fail after a source. A right operand that can apply an operator contains
-that source at a new position, as a call of a rule of a cycle after input is.
-The `skip` of an Operators Rule is a scanning source unless it is a reused skip,
-and its first call is shared with that of a body that is the Operators Rule, as
-[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-states.
+Operators Rule expression has at most one such activation, its last, which the
+count of activations that do not succeed below covers. Two evaluations of
+Operators Rules in sequence can each end with such an operator at one position,
+and the restarts above, which need consumed input, do not apply to those
+activations. The parser selects an operator at a position by trying the operator
+parts there, and can try them again at the same position when an inner level
+returns there because the operator it selected binds less tightly or its right
+operand fails. Each such return ends an evaluation of a unit of the Operators
+Rule, an operator part with its right operand, or of the right operand that a
+unit contains, so the claims above treat these evaluations as those of any other
+unit: an Operators Rule is a choice of its operator parts and `operand` items
+when one fails and a sequence of its operands and operators when they succeed,
+and its units are checked by condition 2 whether or not they can fail after a
+source. A right operand that can apply an operator contains that source at a new
+position, as a call of a rule of a cycle after input is. The `skip` of an
+Operators Rule is a scanning source unless it is a reused skip, and its first
+call is shared with that of a body that is the Operators Rule, as [Conditions
+for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost) states.
 
-What remains is to count the activations. Each evaluation of a scanning
-source has at most one activation that does not succeed, its last. The proof
-must show that each position starts a constant number of successful
-activations of each source for each combination of the values of variables.
-By the restarts above, a successful activation is repeated at a position only
-after a dropped step of a growth, which Lemma 5 counts, or after a committing
-unit that contains the earlier one is abandoned, and the parser does not
-return before the start of that unit until the repetition. The ways in which
+What remains is to count the activations. Each evaluation of a scanning source
+has at most one activation that does not succeed, its last: an iteration that
+consumes no input ends its repetition, an operator applied without consuming
+input ends the expression that applies it, and an evaluation of a skip
+expression is one activation. The evaluations of a source are made by the body
+evaluations and the activations of the sources that enclose it, a constant
+number of times by each. The sources of a body nest to a depth that is a
+constant of the grammar, so by induction on that depth the activations that do
+not succeed are at most a constant times the body evaluations and the successful
+activations. The proof must show that each position starts a constant number of
+successful activations of each source for each combination of the values of
+variables. By the restarts above, a successful activation is repeated at a
+position only after a dropped step of a growth, which Lemma 5 counts, or after a
+committing unit that contains the earlier one is abandoned, and the parser does
+not return before the start of that unit until the repetition. The ways in which
 a unit is committing give the following cases, one lemma each.
 
 1. *Disjoint first characters.* The continuation does not consume the
@@ -354,39 +367,41 @@ growing unit.
 **Sources at fixed offsets.** Let $u$ be a unit of a body of the cycle that is
 not a growing unit, can fail after one of its scanning sources has examined
 input, and has among its continuations a growing unit $g$ of the leader that
-grows at $p$. Let $y$ be the end, at $p$, of the calls that $u$ and $g$ share.
-In every step of the growth at $p$ except the first, the one whose seed ends
-at $y$ and, when $u$ is committing for $g$ by its words, a constant number of
-others, an evaluation of $u$ at $p$ examines beyond its shared calls at most a
-constant amount of the input.
+grows at $p$, and let $u$ and $g$ share no call. In every step of the growth at
+$p$ except the first, the one whose seed is empty and, when $u$ is committing
+for $g$ by its words, a constant number of others, an evaluation of $u$ at $p$
+examines at most a constant amount of the input.
 
-*Proof.* A call that $u$ makes at $p$ before it examines the input is a left
-call when its rule is on the cycle. It is not a call of a leader, or $u$ would
-be a growing unit, and another rule of the cycle calls a rule and is memoized
-only at a call that is not a left call. So by the definition of sharing the
-shared calls are literals and calls of rules off the cycle, which are memoized
-at both calls or call no rule, and read no variable. They have the same results
-in every step, and end at $y$. As a continuation of $u$, $g$ examines the input
-from $p$ through the seed, so every result of the leader's body at $p$ begins
-with the shared calls, and the seed of every step after the first ends at $y$ or
-later. The seeds of the steps are the results of the steps before them and grow
-longer at each step, so at most one of them ends at $y$. In any other step after
-the first, the seed consumed the character at $y$ on a path of $g$ through the
-seed, after the shared calls, so that character is among the first characters of
-$g$ after the shared calls. By condition 2, $u$ is committing for $g$, in one of
-three ways. If the first characters of $u$ and $g$ after the shared calls are
-disjoint, they do not include that character, so the rest of $u$ cannot consume
+The classifier finds no shared call for such a pair. `committing` removes the
+shared calls with `strip`, which removes a call or literal only when
+`commonLead` finds it first on every path of both, directly or, through
+`deepLeads`, inside the bodies of shareable calls. A path of $g$ begins with a
+left call that reaches a leader of the cycle. `leads` reports the call of the
+leader, which is memoized and so shareable, while $u$ does not begin with that
+call, as it is not a growing unit; and looking through the call, the body of the
+leader reaches the leader again by left calls without examining input, so the
+search ends only when its budget runs out, with a lead that is no call. A pair
+that shares a call under the definition of [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost) is left to step 3 of
+[Open Steps](#open-steps).
+
+*Proof.* As a continuation of $u$, $g$ examines the input from $p$ through the
+seed. The seeds of the steps are the results of the steps before them and grow
+longer at each step, so at most one of them is empty. In any other step after
+the first, the seed consumed the character at $p$ on a path of $g$ through the
+seed, so that character is among the first characters of $g$. By condition 2,
+$u$ is committing for $g$, in one of three ways. If the first characters of $u$
+and $g$ are disjoint, they do not include that character, so $u$ cannot consume
 it, nor can a lookahead that it evaluates before it consumes input, and $u$
-examines only the slot at $y$. If no scanning source of $u$ remains after the
-shared calls, $u$ examines beyond them only what Lemma 1 bounds. If the words of
-$u$ exclude $g$, then $u$ matches its word $w$ at $y$ only in a step whose seed
-ends before the end of $w$, since a path of $g$ through a longer seed would
-reach the end of $w$ on that input; there are at most $|w|$ such steps, and in
-every other step $u$ fails within its word, after examining at most the word and
-the character after it. $\square$
+examines only the slot at $p$. If $u$ has no scanning source, it examines only
+what Lemma 1 bounds. If the words of $u$ exclude $g$, then $u$ matches its word
+$w$ at $p$ only in a step whose seed ends before the end of $w$, since a path of
+$g$ through a longer seed would reach the end of $w$ on that input; there are at
+most $|w|$ such steps, and in every other step $u$ fails within its word, after
+examining at most the word and the character after it. $\square$
 
 So outside a constant number of steps of each growth, such a unit costs a
-constant at $p$ beyond its shared calls, and in those steps it costs what an
+constant at $p$, and in those steps it costs what an
 evaluation of it at $p$ costs, which Lemma 4 charges as for any evaluation of a
 body.
 
@@ -894,7 +909,8 @@ $i < d$, and unfolding the chain gives
 $E(r_0) \le c_2 (1 + E(r_d) + \sum_{0 < i \le d} A_{r_i})$ with
 $c_2 = d \, c_1^d + c_1^d$, a constant. The activations in the sum are those of
 the body evaluations of the rules of the chain above $r_0$, up to the rule
-$r_d$ where it ends, and each is among the activations counted in $A$. $E(r_d)$ is at most $B$ when $r_d$ is memoized, 0 when it is not
+$r_d$ where it ends, and each is among the activations counted in $A$.
+$E(r_d)$ is at most $B$ when $r_d$ is memoized, 0 when it is not
 evaluated, and 1 when it is $S$ called from no place. Summed over the rules,
 the evaluations of the rules that are not memoized and call a rule are at
 most $|\text{rules}| \, c_2 (B + A + 2)$.
@@ -982,12 +998,14 @@ The outlines leave these steps to be made precise.
    memoized by the activations, so the bound of Lemma 4 on the activations must
    not rest on those evaluations, or the argument closes on itself.
 3. **Continuations of growing units.** The claim on sources at fixed offsets in
-   Lemma 5 bounds a unit followed by a growing unit in all but a constant number
-   of steps. The proof must still bound the later alternatives that a step
-   evaluates after a growing unit fails, in the first step and in the step where
-   the growth stops, and the case where the first step of a growth matches a
-   part before the left call, as through `F` in `E = F "+" X / Y; F = E / M`,
-   where the unit is also checked as an alternative that is not growing.
+   Lemma 5 bounds a unit followed by a growing unit with which it shares no
+   call, in all but a constant number of steps. The proof must still bound such
+   a pair when the definition of sharing gives it a shared call, the later
+   alternatives that a step evaluates after a growing unit fails, in the first
+   step and in the step where the growth stops, and the case where the first
+   step of a growth matches a part before the left call, as through `F` in
+   `E = F "+" X / Y; F = E / M`, where the unit is also checked as an
+   alternative that is not growing.
 4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims. The
    proof must still bound how many times the operator parts are tried at one
