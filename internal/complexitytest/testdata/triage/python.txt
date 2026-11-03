@@ -1,4 +1,4 @@
-# python: exponential (degree 0), 147 witnesses, 190 reasons
+# python: exponential (degree 0), 147 witnesses, 199 reasons
 
 ## whitespace (70) -> F97
 254:7 indentation: the cost can grow as n^2: after an iteration of the repetition at 254:6 in rule indentation fails, what follows the repetition ([ \t]* "\u{c}")* can start again inside the input that the repetition [ \t]* at 254:7 in rule indentation examined; this repeats in the recursion of rule indented_block
@@ -155,10 +155,21 @@
 878:50 fjoined: the cost can grow as n^2: concat(acc, x.$p) at 878:50 in rule fjoined copies the fold accumulator acc
 884:52 tstrings: the cost can grow as n^2: concat(acc, x.$p) at 884:52 in rule tstrings copies the fold accumulator acc
 
-## except-star-handlers (3) -> M27
+## except-star-handlers (4) -> M27
+403:6 try_stmt: the steps of foldl(Try{Body: $b, Handlers: map($hs... at 403:6 in rule try_stmt build values from a value whose size the classifier does not bound
 403:148 try_stmt: map($xs, (x) => x.$h) at 403:148 in rule try_stmt copies, for each element, a value from outside its lambda that is not bounded by a constant
 403:179 try_stmt: concat($e) at 403:179 in rule try_stmt copies, for each element, a value from outside its lambda that is not bounded by a constant
 403:202 try_stmt: concat($f) at 403:202 in rule try_stmt copies, for each element, a value from outside its lambda that is not bounded by a constant
+
+## value-sizes (8) -> F107
+441:72 classdef_args: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 441:72 in rule classdef_args build values from a value whose size the classifier does not bound
+441:146 classdef_args: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 441:146 in rule classdef_args build values from a value whose size the classifier does not bound
+701:89 primary_chain: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 701:89 in rule primary_chain build values from a value whose size the classifier does not bound
+701:163 primary_chain: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 701:163 in rule primary_chain build values from a value whose size the classifier does not bound
+846:107 t_primary: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 846:107 in rule t_primary build values from a value whose size the classifier does not bound
+846:181 t_primary: the steps of foldl(list(), $c.$kw1, (acc, x) => co... at 846:181 in rule t_primary build values from a value whose size the classifier does not bound
+878:24 fjoined: the steps of foldl($f, $r, (acc, x) => concat(acc,... at 878:24 in rule fjoined build values from a value whose size the classifier does not bound
+884:26 tstrings: the steps of foldl($f, $r, (acc, x) => concat(acc,... at 884:26 in rule tstrings build values from a value whose size the classifier does not bound
 
 ## module-whitespace (4) -> F97
 204:6 main: an iteration of the repetition at 204:6 in rule main contains the repetition [ \t\u{c}]* at 258:14 in rule blank and is not committing against what follows the repetition blank*

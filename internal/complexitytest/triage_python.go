@@ -62,11 +62,16 @@ func triagePython() []TriageGroup {
 				{Name: "alternating keyword and starred arguments", Build: func(n int) string { return "f(" + list("", "a%d=1, *b", ", ", "")(n) + ")\n" }, Sizes: doubling(500, 3), Order: Poly(2)},
 				{Name: "implicitly joined f-strings", Build: func(n int) string { return "x = " + list("", "f'a{b}' 'c'", " ", "")(n) + "\n" }, Sizes: doubling(500, 3), Order: Poly(2)},
 			}},
-		{Grammar: "python", ID: "except-star-handlers", Rules: []string{"try_stmt"}, Pattern: `copies, for each element`,
-			Shape:  "the action of try_stmt maps the except* handlers inside a fold over the same handlers",
+		{Grammar: "python", ID: "except-star-handlers", Rules: []string{"try_stmt"}, Pattern: `copies, for each element|from a value whose size the classifier does not bound$`,
+			Shape:  "the action of try_stmt maps the except* handlers inside a fold over the same handlers, which also leaves the size of the value of try_stmt unknown",
 			Assign: "M27", Order: Poly(2), Families: []TriageFamily{
 				{Name: "many except* handlers", Build: list("try:\n    pass\n", "except* E:\n    pass\n", "", ""), Sizes: doubling(300, 3), Order: Poly(2)},
 				{Name: "many except handlers", Build: list("try:\n    pass\n", "except E:\n    pass\n", "", ""), Sizes: doubling(300, 3), Order: Linear},
+			}},
+		{Grammar: "python", ID: "value-sizes", Except: []string{"try_stmt"}, Pattern: `from a value whose size the classifier does not bound$`,
+			Shape:  "folds over the keyword arguments of a call and the parts of an implicitly joined string that read values of the expression recursion, whose size the classifier does not bound: star_expressions reads its first element again inside a fold over a bounded list, so the recursion is not shown to hold each value once; the measured cost is the accumulator copy of the fold-copies group",
+			Assign: "F107", Order: Poly(2), Families: []TriageFamily{
+				{Name: "implicitly joined f-strings", Build: func(n int) string { return "x = " + list("", "f'a{b}' 'c'", " ", "")(n) + "\n" }, Sizes: doubling(500, 3), Order: Poly(2)},
 			}},
 		{Grammar: "python", ID: "module-whitespace", Rules: []string{"main", "first_stmts", "module_end"}, Pattern: `contains the repetition`,
 			Shape:  "the blank lines and whitespace at the start and end of a module against the same whitespace after them",

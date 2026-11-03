@@ -27,14 +27,15 @@ const (
 	vars
 )
 
-// mono is a monomial: a product of powers of the variables, of O, the size of a value read from
-// outside the fold, and of Y, the size of the element of the step, whose sum over the steps is at
-// most the size of the list. The degrees assume that O, the initial value and the list are at most
-// linear in the size of the input; a value of a rule that grows faster than the input makes them
-// too low.
+// mono is a monomial: a product of powers of the variables, of n, the size of the input, and of
+// Y, the size of the element of the step, whose sum over the steps is at most the size of the
+// list. A value read from outside the fold has the power of n of its size degree (see
+// complexity_sizes.go), so that the degrees hold whatever the sizes of the initial value, the list
+// and those values.
 type mono struct {
-	x    [vars]int8
-	o, y int8
+	x [vars]int8
+	o int16 // the power of n
+	y int8
 }
 
 var unitMono = mono{}
@@ -50,7 +51,7 @@ func (m mono) mul(n mono) mono {
 	for i := range m.x {
 		m.x[i] += n.x[i]
 	}
-	m.o += n.o
+	m.o = int16(addDeg(int(m.o), int(n.o)))
 	m.y += n.y
 	return m
 }
@@ -363,13 +364,19 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 		if k.isInt(t, tc) {
 			return zero, nil
 		}
-		// A value bound outside the fold.
-		el := sized(outsideLin)
-		return growthShape{S: outsideLin, N: outsideLin, El: &el}, nil
-	case *grammar.VarRef, *grammar.IndexRef:
+		// A value bound outside the fold, of the size that the classifier knows for it.
+		return k.outsideShape(t, tc), nil
+	case *grammar.IndexRef:
+		r := k.byName[tc.rule]
+		if r == nil {
+			return unknownShape, nil
+		}
+		return k.exprShape(r.Expr, tc.rule), nil
+	case *grammar.VarRef:
 		if k.isInt(t, tc) {
 			return zero, nil
 		}
+		// The value of a variable, which the environment bound covers, counts as linear.
 		el := sized(outsideLin)
 		return growthShape{S: outsideLin, N: outsideLin, El: &el}, nil
 	case *grammar.TermGroup:
@@ -424,6 +431,12 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 			return zero, cost
 		case "text":
 			if len(t.Args) == 1 {
+				// The text of a capture of the rule is a range of the input, whatever its value.
+				if r, ok := t.Args[0].(*grammar.CaptureRef); ok && !r.Param {
+					if _, inEnv := env[r.Name]; !inEnv {
+						return sized(outsideLin), outsideLin
+					}
+				}
 				g, c := k.growthOf(t.Args[0], env, tc)
 				return sized(g.S), c.plus(g.S)
 			}
@@ -467,8 +480,30 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 	}
 	// What a term that the forms do not follow reads from outside the fold and from the element
 	// of the step bounds its value.
-	s := constLin(many).plus(outsideLin.times(constLin(many))).plus(stepLin.times(constLin(many)))
+	s := constLin(many).plus(k.readsOutside(t, env, tc).times(constLin(many))).plus(stepLin.times(constLin(many)))
 	return sized(s), s
+}
+
+// readsOutside returns the form of the largest size of a value that t reads from outside env: n
+// to the largest size degree of those values, and at least n.
+func (k *classifier) readsOutside(t grammar.Term, env growthEnv, tc termCtx) lin {
+	d := 1
+	WalkTerm(t, func(x grammar.Term) {
+		switch x := x.(type) {
+		case *grammar.CaptureRef:
+			_, inEnv := env[x.Name]
+			_, isParam := tc.params[x.Name]
+			// A parameter of a lambda inside t is bound to the elements of a list that t reads.
+			if !inEnv && (!x.Param || isParam) {
+				d = max(d, degOf(k.outsideShape(x, tc).S))
+			}
+		case *grammar.IndexRef:
+			if r := k.byName[tc.rule]; r != nil {
+				d = max(d, degOf(k.exprShape(r.Expr, tc.rule).S))
+			}
+		}
+	})
+	return lin{{o: int16(d)}: 1}
 }
 
 // lambdaEnv returns env with the parameters of lam bound to the elements of x.
@@ -538,7 +573,24 @@ func (k *classifier) foldGrowth(initTerm, list grammar.Term, lam *grammar.Lambda
 		if init.grows() || x.grows() {
 			return manyShape, manyLin
 		}
-		return k.growthOf(&grammar.Block{}, env, tc)
+		// A fold of another form over values from outside: its own step matrix bounds it. One
+		// that reads the parameters of the lambdas around it counts as many copies of what it
+		// reads.
+		if readsGrowing(lam.Body, env, lam.Params) {
+			return manyShape, manyLin
+		}
+		any := func(growthShape) bool { return true }
+		if readsParam(initTerm, env, nil, any) || readsParam(list, env, nil, any) || readsParam(lam.Body, env, lam.Params, any) {
+			return k.growthOf(&grammar.Block{}, env, tc)
+		}
+		exp, deg, cd, ok := k.foldDegrees(&grammar.Call{Func: "foldl", Args: []grammar.Term{initTerm, list, lam}}, lam, tc)
+		if !ok {
+			return k.growthOf(&grammar.Block{}, env, tc)
+		}
+		if exp {
+			return unknownShape, lin{{o: unknownDeg}: many}
+		}
+		return degShape(deg), cost.plus(lin{{o: int16(cd)}: many})
 	}
 	var q growthShape
 	var qc lin
@@ -677,12 +729,27 @@ func accVar(m mono) int {
 	return -1
 }
 
+// listDeg holds the degrees in the size of the input of the number of elements, the size and the
+// size of the largest element of the list of a fold.
+type listDeg struct{ n, s, m int }
+
+// steps returns the degree of the sum over the steps of Y to the power y: the number of steps for
+// y = 0, and otherwise the smaller of the y-th power of the sum of the sizes of the elements and
+// the number of steps times the y-th power of the largest element.
+func (l listDeg) steps(y int) int {
+	if y == 0 {
+		return l.n
+	}
+	return min(addDeg(y*l.s, 0), addDeg(l.n, y*l.m))
+}
+
 // growthOrder decides how the quantities of an accumulator can grow over the steps of a fold whose
-// step has the linear forms rows. It reports exp when some cycle of the graph of the quantities,
-// with an edge for each monomial that reads one, has a coefficient other than 1 or a factor of O
-// or Y, or when two cycles share a quantity. Otherwise deg[i] is the degree in the size of the
-// input of the bound on quantity i over all steps (see Lemma 7).
-func growthOrder(rows [3]lin) (exp bool, deg [3]int) {
+// step has the linear forms rows, over a list of degrees l from an initial value of degrees init.
+// It reports exp when some cycle of the graph of the quantities, with an edge for each monomial
+// that reads one, has a coefficient other than 1 or a factor of n or Y, or when two cycles share a
+// quantity. Otherwise deg[i] is the degree in the size of the input of the bound on quantity i
+// over all steps (see Lemma 7).
+func growthOrder(rows [3]lin, l listDeg, init [3]int) (exp bool, deg [3]int) {
 	var reach [3][3]bool
 	for i, r := range rows {
 		for m := range r {
@@ -720,12 +787,12 @@ func growthOrder(rows [3]lin) (exp bool, deg [3]int) {
 		}
 	}
 	// A quantity on no cycle is bounded at each step by what it reads; one on a cycle adds what
-	// it reads from outside its cycle on every step, which the sum over the steps raises by one
-	// degree, or by the degree of Y, whose sum over the steps is at most the input. The initial
-	// value has degree 1.
+	// it reads from outside its cycle on every step, which the sum over the steps raises by the
+	// degree of the number of steps, or of the sum of the powers of Y. Both start from the
+	// initial value.
 	for range 4 {
 		for i, r := range rows {
-			d := 1
+			d := init[i]
 			for m := range r {
 				base := 0
 				if v := accVar(m); v >= 0 {
@@ -735,9 +802,9 @@ func growthOrder(rows [3]lin) (exp bool, deg [3]int) {
 					base = deg[v]
 				}
 				if cyclic[i] {
-					d = max(d, base+int(m.o)+max(int(m.y), 1))
+					d = max(d, addDeg(base+int(m.o), l.steps(int(m.y))))
 				} else {
-					d = max(d, base+int(m.o)+int(m.y))
+					d = max(d, addDeg(base+int(m.o), int(m.y)*l.m))
 				}
 			}
 			deg[i] = d
@@ -754,19 +821,44 @@ func growthOrder(rows [3]lin) (exp bool, deg [3]int) {
 }
 
 // stepsCost returns the degree in the size of the input of the cost of all the steps of a fold
-// whose step costs cost, with the quantities of the accumulator of degrees deg: a term costs the
-// product of its quantities on each step, which the sum over the steps raises by one degree, or
-// by the degree of Y.
-func stepsCost(cost lin, deg [3]int) int {
+// over a list of degrees l whose step costs cost, with the quantities of the accumulator of
+// degrees deg: a term costs the product of its quantities on each step, which the sum over the
+// steps raises by the degree of the number of steps, or of the sum of the powers of Y.
+func stepsCost(cost lin, deg [3]int, l listDeg) int {
 	d := 0
 	for m := range cost {
-		base := 0
+		base := int(m.o)
 		for v := range varE {
-			base += int(m.x[v]) * deg[v]
+			base = addDeg(base, int(m.x[v])*deg[v])
 		}
-		d = max(d, base+int(m.o)+max(int(m.y), 1))
+		d = max(d, addDeg(base, l.steps(int(m.y))))
 	}
 	return d
+}
+
+// foldDegrees returns the growth of the accumulator of the fold call with lambda lam, as
+// growthOrder decides it from the step matrix, the degrees of the list and those of the initial
+// value, and the degree of the cost of all its steps. ok is false when the accumulator is an int
+// or the lambda has no parameter.
+func (k *classifier) foldDegrees(call *grammar.Call, lam *grammar.Lambda, tc termCtx) (exp bool, deg [3]int, cost int, ok bool) {
+	rows, c, ok := k.stepForms(call, lam, tc)
+	if !ok || len(call.Args) < 2 {
+		return false, deg, 0, false
+	}
+	init := shapeDegs(k.valueShape(call.Args[0], tc))
+	ld := shapeDegs(k.valueShape(call.Args[1], tc))
+	// The number of elements of a list that the classifier does not bound by a constant has
+	// degree at least 1, and the size of a list is at least its number of elements.
+	n := ld[2]
+	if !k.sizeOf(call.Args[1], tc, listSize).bounded() {
+		n = max(1, n)
+	}
+	l := listDeg{n: n, s: max(ld[0], n), m: ld[1]}
+	exp, deg = growthOrder(rows, l, init)
+	if exp {
+		return true, deg, 0, true
+	}
+	return false, deg, stepsCost(c, deg, l), true
 }
 
 // doubles reports whether the accumulator of the fold call with lambda lam can grow
@@ -776,7 +868,7 @@ func (k *classifier) doubles(call *grammar.Call, lam *grammar.Lambda, tc termCtx
 	if !ok {
 		return false
 	}
-	exp, _ := growthOrder(rows)
+	exp, _ := growthOrder(rows, listDeg{1, 1, 1}, [3]int{})
 	return exp
 }
 
@@ -785,23 +877,26 @@ func (k *classifier) doubles(call *grammar.Call, lam *grammar.Lambda, tc termCtx
 // them, and a fold over a list that is not bounded whose steps cost a polynomial of degree 3 or more
 // in all, times the evaluations of the lambdas around it.
 func (k *classifier) checkFoldGrowth(call *grammar.Call, lam *grammar.Lambda, tc termCtx) {
-	rows, cost, ok := k.stepForms(call, lam, tc)
+	exp, _, d, ok := k.foldDegrees(call, lam, tc)
 	if !ok {
 		return
 	}
 	pos := termPosOf(call)
-	exp, deg := growthOrder(rows)
 	if exp {
 		k.cause(ClassExp, 0, tc.rule, pos, "%s: the value of the lambda of %s at %s can hold its accumulator %s more than once, which can double it on each step",
 			degreeText(ClassExp, 0), k.showTerm(call), at(tc.rule, pos), lam.Params[0])
 		return
 	}
-	d := stepsCost(cost, deg)
 	if d < 3 || len(call.Args) < 2 || k.sizeOf(call.Args[1], tc, listSize).bounded() {
 		return
 	}
 	// The fold runs once for each evaluation of the lambdas around it.
-	d += k.foldRuns(call.Args[1], tc)
+	d = addDeg(d, k.foldRuns(call.Args[1], tc))
+	if d >= unknownDeg {
+		k.reason(tc.rule, pos, "the steps of %s at %s build values from a value whose size the classifier does not bound",
+			k.showTerm(call), at(tc.rule, pos))
+		return
+	}
 	k.cause(ClassPoly, d, tc.rule, pos, "%s: the steps of %s at %s build values that grow with the steps, the input and its accumulator %s",
 		degreeText(ClassPoly, d), k.showTerm(call), at(tc.rule, pos), lam.Params[0])
 }

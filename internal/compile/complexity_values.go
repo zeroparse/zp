@@ -22,11 +22,13 @@ type termCtx struct {
 	// repeat reports a lambda that runs once for each element of a list whose number of elements
 	// is not bounded by a constant, or such a lambda around it.
 	repeat bool
-	// depth is the number of such lambdas around the term, and elems the parameters of the
-	// innermost lambda around it that are elements of a list that is not bounded, when they are
-	// distinct parts of the input.
-	depth int
-	elems []string
+	// runs is the degree in the size of the input of the number of evaluations of the term
+	// through such lambdas around it, the sum of the degrees of the numbers of elements of their
+	// lists, and inner that of the innermost of them; elems are the parameters of the innermost
+	// lambda around it that are elements of a list that is not bounded, when they are own values,
+	// whose sizes add up to at most the input.
+	runs, inner int
+	elems       []string
 }
 
 type param struct {
@@ -36,6 +38,11 @@ type param struct {
 	runs int
 	int  bool    // known to hold an int
 	elem content // what an element of the list can hold
+	// shape bounds the value of the parameter (see complexity_sizes.go), and sum is the degree in
+	// the size of the input of the sum of the sizes of its values over all the evaluations of the
+	// lambda, for an element of a list that is not bounded.
+	shape growthShape
+	sum   int
 	// elems are the expressions whose values are the elements of the list, when they are known.
 	elems []grammar.Expr
 }
@@ -54,6 +61,9 @@ type content struct {
 	rec       map[string]int // captures that hold a call on a recursion with the rule, with counts
 	acc       map[string]int // fold accumulators, with counts
 	outer     bool           // from outside a lambda that repeats, and unbounded
+	// sum is the largest degree of the sum of the sizes of the elements of a list that is not
+	// bounded, over the evaluations of its lambda, that the value can hold one of.
+	sum int
 }
 
 // bounded reports whether the value is bounded in size by a constant of the grammar.
@@ -65,6 +75,7 @@ func (c *content) add(d content) {
 	c.unbounded = c.unbounded || d.unbounded
 	c.vars = c.vars || d.vars
 	c.outer = c.outer || d.outer
+	c.sum = max(c.sum, d.sum)
 	for n, v := range d.rec {
 		if c.rec == nil {
 			c.rec = map[string]int{}
@@ -81,7 +92,7 @@ func (c *content) add(d content) {
 
 // join returns what either c or d can hold: a part of either, with the larger count.
 func (c content) join(d content) content {
-	j := content{unbounded: c.unbounded || d.unbounded, vars: c.vars || d.vars, outer: c.outer || d.outer}
+	j := content{unbounded: c.unbounded || d.unbounded, vars: c.vars || d.vars, outer: c.outer || d.outer, sum: max(c.sum, d.sum)}
 	j.rec, j.acc = maxCounts(c.rec, d.rec), maxCounts(c.acc, d.acc)
 	return j
 }
@@ -98,7 +109,7 @@ func (c content) atMostTwo() content {
 }
 
 func (c content) equal(d content) bool {
-	return c.unbounded == d.unbounded && c.vars == d.vars && c.outer == d.outer &&
+	return c.unbounded == d.unbounded && c.vars == d.vars && c.outer == d.outer && c.sum == d.sum &&
 		maps.Equal(c.rec, d.rec) && maps.Equal(c.acc, d.acc)
 }
 
@@ -325,6 +336,15 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 		init = k.sizeOf(call.Args[0], tc, textSize).join(k.sizeOf(call.Args[0], tc, listSize)).atMostTwo()
 	}
 	runs := k.foldRuns(listArg, tc)
+	// The sizes that the classifier knows for the list and the accumulator.
+	var listShape, acc growthShape
+	if listArg != nil {
+		listShape = k.valueShape(listArg, tc)
+	}
+	if fold && len(lam.Params) > 0 {
+		acc = k.foldAccShape(call, lam, tc)
+	}
+	ld := shapeDegs(listShape)
 	for j, n := range lam.Params {
 		p := param{}
 		if fold && j == 0 {
@@ -332,8 +352,14 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 			p.runs = runs
 			p.elem = init
 			p.int = len(call.Args) > 0 && k.isInt(call.Args[0], tc)
+			p.shape = acc
 		} else {
 			p.elem, p.elems = elem, elems
+			p.shape = listShape.elem()
+			if !bounded {
+				// The lambda takes each element once in each of its runs.
+				p.sum = addDeg(runs, ld[0])
+			}
 		}
 		params[n] = p
 	}
@@ -341,11 +367,12 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 	tc.repeat = tc.repeat || !bounded
 	tc.elems = nil
 	if !bounded {
-		tc.depth++
+		tc.runs = addDeg(tc.runs, max(1, ld[2]))
+		tc.inner = max(1, ld[2])
 		// The elements of a list of the captures of a repetition are distinct parts of the input
-		// when their values are the input they consume; those of any other list, as one that holds
-		// a capture once for each element of another, need not be.
-		if len(elems) > 0 && k.ownText(elems) {
+		// when their values are own; those of any other list, as one that holds a capture once for
+		// each element of another, need not be.
+		if len(elems) > 0 && k.ownExprs(elems, tc.rule) {
 			tc.elems = lam.Params
 			if fold && len(lam.Params) > 0 {
 				tc.elems = lam.Params[1:]
@@ -378,51 +405,24 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 	return tc
 }
 
-// ownText reports whether the value of a match of each of exprs holds only the input it consumes:
-// no action or Operators Rule builds a value in it, and no capture in a positive lookahead, whose
-// input the match does not consume, is part of it, through the bodies of the rules it calls.
-func (k *classifier) ownText(exprs []grammar.Expr) bool {
-	ok, seen := true, map[string]bool{}
-	var visit func(e grammar.Expr, look bool)
-	visit = func(e grammar.Expr, look bool) {
-		WalkExpr(e, func(x grammar.Expr) {
-			switch x := x.(type) {
-			case *grammar.InlineAction:
-				ok = ok && (x.Action == nil || x.DefaultAction)
-			case *grammar.OperatorsRule:
-				ok = false
-			case *grammar.Capture:
-				ok = ok && !look
-			case *grammar.And:
-				if !look {
-					visit(x.Expr, true)
-				}
-			case *grammar.Ref:
-				r := k.byName[x.Name]
-				// A lookahead discards the node of a rule it calls, so a capture in the body of the
-				// rule never reaches the element, and the body is visited outside the lookahead.
-				if r == nil || seen[x.Name] {
-					return
-				}
-				seen[x.Name] = true
-				ok = ok && (r.Action == nil || r.DefaultAction)
-				visit(r.Expr, false)
-			}
-		})
-	}
+// ownExprs reports whether the value of a match of each of exprs, captured in rule, is own (see
+// complexity_sizes.go).
+func (k *classifier) ownExprs(exprs []grammar.Expr, rule string) bool {
 	for _, e := range exprs {
-		visit(e, false)
+		if !k.ownExpr(e, rule, k.ownRules()) {
+			return false
+		}
 	}
-	return ok
+	return true
 }
 
-// foldRuns returns the number of evaluations, as a power of the size of the input, of a fold over
-// list in the context tc: one for each lambda around it over a list that is not bounded, but one
-// fewer when list reads only elements of the innermost of them, since the sizes of those elements
-// add up to at most the input over its evaluations.
+// foldRuns returns the number of evaluations, as a power of the size of the input, of a call over
+// list in the context tc: the degree of the number of elements of the list of each lambda around
+// it over a list that is not bounded, but without the innermost of them when list reads only its
+// elements and they are own, since their sizes add up to at most the input over its evaluations.
 func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
-	if tc.depth == 0 || list == nil {
-		return tc.depth
+	if tc.runs == 0 || list == nil {
+		return tc.runs
 	}
 	own := len(tc.elems) > 0
 	WalkTerm(list, func(x grammar.Term) {
@@ -435,10 +435,11 @@ func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
 			own = false
 		}
 	})
-	if own {
-		return tc.depth - 1
+	// The list of a run is then built from one element, own, by forms of degree 1 in its size.
+	if own && tc.runs < unknownDeg && maxDeg(shapeDegs(k.valueShape(list, tc))) <= 1 {
+		return tc.runs - tc.inner
 	}
-	return tc.depth
+	return tc.runs
 }
 
 // elemSize describes what the size of an element of the list t can depend on: anything that the
@@ -526,6 +527,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 				c.acc = map[string]int{t.Name: 1}
 			}
 			c.add(p.elem)
+			c.sum = max(c.sum, p.sum)
 			c.unbounded = true
 			return c
 		}
@@ -614,6 +616,7 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 						c.add(content{acc: map[string]int{x.Name: 1}})
 					}
 					c.add(p.elem)
+					c.sum = max(c.sum, p.sum)
 					return
 				}
 				// A value from outside the lambda counts as outer only when it is not bounded.
@@ -843,15 +846,29 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 		}
 		return best, count
 	}
+	if all.sum >= unknownDeg {
+		k.reason(tc.rule, pos, "%s at %s copies, for each element, a value whose size the classifier does not bound",
+			text, at(tc.rule, pos))
+	} else if all.sum >= 2 {
+		// The copies of the elements of a list over the evaluations of the lambda add up to the
+		// sum of their sizes.
+		k.cause(ClassPoly, all.sum, tc.rule, pos, "%s: %s at %s copies elements whose sizes add up to more than the input",
+			degreeText(ClassPoly, all.sum), text, at(tc.rule, pos))
+	}
 	if n, count := worst(all.acc); count > 0 {
 		// The fold copies its accumulator on each of its steps, and runs once for each evaluation
 		// of the lambdas around it.
-		class, degree := ClassPoly, 2+tc.params[n].runs
+		class, degree := ClassPoly, addDeg(2, tc.params[n].runs)
 		if count > 1 {
 			class, degree = ClassExp, 0
 		}
-		k.cause(class, degree, tc.rule, pos, "%s: %s at %s copies the fold accumulator %s%s",
-			degreeText(class, degree), text, at(tc.rule, pos), n, times(count))
+		if class == ClassPoly && degree >= unknownDeg {
+			k.reason(tc.rule, pos, "%s at %s copies the fold accumulator %s in runs whose number the classifier does not bound",
+				text, at(tc.rule, pos), n)
+		} else {
+			k.cause(class, degree, tc.rule, pos, "%s: %s at %s copies the fold accumulator %s%s",
+				degreeText(class, degree), text, at(tc.rule, pos), n, times(count))
+		}
 	} else if n, count := worst(all.rec); count > 0 {
 		class, degree := ClassPoly, 2
 		if count > 1 {

@@ -413,8 +413,9 @@ func Controls() []Control {
 		// factor exponential in the number of steps, which the bound limits but the input reaches.
 		// Duplicating the elements of the accumulator, or padding each and joining them, doubles
 		// it on each step; joining each element once keeps its size, but the inner fold copies its
-		// own accumulator once for each element, which the classifier bounds by an accumulator of
-		// n elements, cubic over n steps, though here it holds one and measures linear.
+		// own accumulator once for each element; the classifier knows that the accumulator keeps
+		// the one element of the initial value, of up to n characters, so it bounds the steps by
+		// n^2, though here that element holds one character and the fold measures linear.
 		{
 			Name: "Fold duplicating and joining elements", Family: "bounded lambda",
 			Source: "rule main = a:\"x\"* b:\"y\"* => foldl(list(text($a)), $b, (acc, y) => foldl(list(), map(acc, (e) => list(e, e)), (s, l) => concat(s, l)))\n",
@@ -472,6 +473,38 @@ func Controls() []Control {
 			Source: "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => map(acc, (e) => e + \"x\"))\n",
 			Input:  func(n int) string { return rep("x", n) + rep("y", n) },
 			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassPoly,
+		},
+		// The value of sq joins its whole text once for each of its n characters, n^2 in all, so
+		// the fold of main that adds it on each of n steps builds an accumulator of n^3 characters
+		// and copies it on every step.
+		{
+			Name: "Fold adding a quadratic value of a rule", Family: "value sizes",
+			Source: "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => foldl(\"\", $a, (s, z) => s + text($a))\n",
+			Input:  func(n int) string { return rep("x", n) + rep("y", n) },
+			Sizes:  double(12), ShortSizes: double(10), Order: Poly(4), Class: ClassPoly,
+		},
+		// The inner map holds the text of the whole list once for each element, so the elements
+		// add up to n^2 characters, which the outer map copies.
+		{
+			Name: "Map copying elements that add up to more than the input", Family: "value sizes",
+			Source: "rule main = b:\"y\"* => map(map($b, (q) => text($b)), (y) => y + \"x\")\n",
+			Input:  func(n int) string { return rep("y", n) },
+			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// The initial value holds the text of $a once for each of its elements, n^2 characters,
+		// which each of n steps measures.
+		{
+			Name: "Fold from a quadratic initial value", Family: "value sizes",
+			Source: "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text($a)), $b, (acc, y) => filter(acc, (e) => len(e) > 0))\n",
+			Input:  func(n int) string { return rep("x", n) + rep("y", n) },
+			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassPoly,
+		},
+		// Elements of their own text add up to the input, so copying each of them is linear.
+		{
+			Name: "Map copying elements of their own text", Family: "value sizes", Positive: true,
+			Source: "rule main = b:\"y\"* => map(map($b, (q) => text(q)), (y) => y + \"x\")\n",
+			Input:  func(n int) string { return rep("y", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
 		},
 		{
 			Name: "Bounded fold doubling an element it keeps", Family: "bounded lambda",

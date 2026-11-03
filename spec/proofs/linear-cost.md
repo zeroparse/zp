@@ -326,8 +326,11 @@ A copy of a value that does not include the value of a call on its own
 recursion, nor a fold accumulator, does not add up over the levels of a
 recursion; when it is unbounded it is a scanning source, which Lemma 4 counts.
 A copy in the lambda of `map`, `filter`, `foldl` or `foldr` over a list that
-is not bounded runs once per element and copies at most a constant from
-outside the lambda; over a bounded list, Lemma 7 makes the copies of the call
+is not bounded runs once per element, copies at most a constant from
+outside the lambda, and copies elements whose sizes add up, over all the
+evaluations of the lambda, to at most a constant times $\hat{n}$, by the
+[size degrees](#lemma-7-lambdas-over-bounded-lists) of condition 4; over a
+bounded list, Lemma 7 makes the copies of the call
 those of a constant number of copies outside the lambda. A copy of the
 value of a variable costs at most $L$. Condition 1 keeps the value of a
 variable from growing from its own earlier value, or, by Lemma 8, keeps it in
@@ -386,17 +389,18 @@ $\square$
 
 When the [step matrix](../runtime/parsing.md#conditions-for-linear-cost) of
 the fold cannot double the first parameter, the factor $a^m$ shrinks to a
-polynomial. Let $n$ be the size of the input. The degrees below assume that
-the initial value, the list and every value that the lambda reads from outside
-the fold have sizes at most a constant times $n$; a value of a rule can be
-larger, as a rule that joins its whole text once for each of its elements
-makes it, and the degrees then fall short of the cost. Let $O \le n$ be the size of such
-a value, $Y_j$ the size of the element of step $j$, with
-$\sum_j Y_j \le n$, and $v_j = (S_j, M_j, N_j)$ the size, the size of the
+polynomial. Let $n$ be the size of the input. Each value that the lambda
+reads from outside the fold has size at most a constant times $n^e$, with $e$
+its [size degree](../runtime/parsing.md#conditions-for-linear-cost), as
+shown below; so do the three quantities of the initial value, with degrees
+$e_S$, $e_M$ and $e_N$, and those of the list, which has $m$ elements, at
+most a constant times $n^{l_N}$, of sizes $Y_j$ that add up to at most a
+constant times $n^{l_S}$, each at most a constant times $n^{l_M}$. Let
+$v_j = (S_j, M_j, N_j)$ be the size, the size of the
 largest element and the number of elements of the first parameter after $j$
 steps, where a list of $N$ elements of sizes $E_i$ has size
 $1 + N + \sum_i E_i$. Each rule of condition 4 bounds a quantity of a value by
-a sum of terms $c \, q \, O^a Y_j^b$, with $c$ a constant and $q$ a quantity
+a sum of terms $c \, q \, n^a Y_j^b$, with $c$ a constant and $q$ a quantity
 of the values that it is built from, or 1: a list, a tuple, `+` and `concat`
 hold their operands, and a concatenation is no larger than the sum of its
 operands; an element taken by an index, which is an int, is at most the
@@ -413,36 +417,41 @@ either of two values, as an element of a list built from several, the larger
 is at most their sum. So each quantity of $v_{j+1}$ is at most such a sum over
 the quantities of $v_j$.
 
-Give each quantity $x$ a degree $d_x$, and the constant 1 the degree 0, in the
+Let $\sigma(0) = l_N$ and $\sigma(b) = \min(b \, l_S, l_N + b \, l_M)$ for
+$b \ge 1$: the sum of $Y_j^b$ over the steps is at most a constant times
+$n^{\sigma(b)}$, since there are $m$ steps, $\sum_j Y_j^b \le (\sum_j Y_j)^b$
+and $\sum_j Y_j^b \le m \max_j Y_j^b$. Give each quantity $x$ a degree $d_x$,
+and the constant 1 the degree 0, in the
 graph with an edge from $x$ to $q$ for each term of $x$ that reads $q$. By the
 condition, each strongly connected component with a cycle is a single cycle
-whose terms have coefficient 1 and no factor $O$ or $Y_j$. For $x$ on no
-cycle, $d_x$ is the largest of 1 and of $d_q + a + b$ over its terms; for a
-component $C$ with a cycle, every member has the largest of 1 and of
-$d_q + a + \max(b, 1)$ over the terms of its members that read outside $C$.
+whose terms have coefficient 1 and no factor $n$ or $Y_j$. For $x$ on no
+cycle, $d_x$ is the largest of 1, $e_x$ and $d_q + a + b \, l_M$ over its
+terms; for a component $C$ with a cycle, every member has the largest of 1,
+the $e_x$ of its members and $d_q + a + \sigma(b)$ over the terms of its
+members that read outside $C$.
 We show by induction on the components, from those with no edges out, that
-$v_j(x) \le c_x n^{d_x}$ for every $j \le m$, with $m \le n$ the number of
-steps. For $x$ on no cycle, $v_0(x) \le n$, and $v_{j+1}(x)$ is a sum of
-terms $c \, q \, O^a Y_j^b \le c \, c_q n^{d_q + a + b}$ over quantities of
+$v_j(x) \le c_x n^{d_x}$ for every $j \le m$. For $x$ on no cycle,
+$v_0(x) \le c \, n^{e_x}$, and $v_{j+1}(x)$ is a sum of terms
+$c \, q \, n^a Y_j^b \le c \, c_q n^{d_q + a + b \, l_M}$ over quantities of
 lower components. For a component $C$ with a cycle, let $u_j$ be the largest
 of $v_j(x)$ over $x \in C$. Each member has one term in $C$, which reads a
 member with coefficient 1, so $u_{j+1} \le u_j + t_j$, where $t_j$ is the sum
-of the other terms, and $u_m \le n + \sum_{j < m} t_j$. A term with $b = 0$
-sums over at most $n$ steps to at most $c \, c_q n^{d_q + a + 1}$; one with
-$b \ge 1$ to at most $c \, c_q n^{d_q + a} \sum_j Y_j^b \le c \, c_q n^{d_q + a + b}$,
-since $\sum_j Y_j^b \le (\sum_j Y_j)^b \le n^b$. Over a bounded list, $m$
+of the other terms, and $u_m \le u_0 + \sum_{j < m} t_j$. A term sums over the
+steps to at most
+$c \, c_q n^{d_q + a} \sum_j Y_j^b \le c' n^{d_q + a + \sigma(b)}$.
+Over a bounded list, $m$
 is a constant, and the same sums over $m$ steps replace the factor $a^m$ of
 the proof above by a polynomial in $m$.
 
 The copying operations of one step cost at most a sum of such terms, each a
-product of quantities of $v_j$ times $O^a Y_j^b$: a string copy costs its
+product of quantities of $v_j$ times $n^a Y_j^b$: a string copy costs its
 characters and a list copy its elements, at most the sizes that condition 4
 bounds, a comparison of values that are not ints and `len` of a string
 examine their operands, and a fold inside the lambda copies its own first parameter on each
 of its steps, at most its number of steps times the size of its value. By the
 same sums, the steps of a fold over a list that is not bounded cost at most a
 constant times $n^d$, where $d$ is the largest of
-$\sum_q d_q + a + \max(b, 1)$ over the terms of the cost. This is the degree
+$\sum_q d_q + a + \sigma(b)$ over the terms of the cost. This is the degree
 that the classifier reports when it is 3 or more; a cost of degree 2 is that
 of a copy of the first parameter in each step, which condition 4 reports with
 degree 2, or of a value read from outside, for which condition 4 fails
@@ -451,27 +460,68 @@ condition, no bound is claimed: the classifier reports the fold exponential,
 which over-approximates it.
 
 A fold inside the lambda of a call over a list that is not bounded runs once
-for each element of that list, at most $n$ times, so each such lambda around
-it multiplies its cost, and the cost of each copy of its first parameter, by
-$n$: the classifier adds one to both degrees for each of them. When the list
-of the fold reads only elements of the innermost of them, those are the
-captures of a repetition, and the value of each holds only the input it
-consumes, the lists of its runs have sizes $\ell_i$ with
-$\sum_i \ell_i \le c \, n$, since the captures are distinct parts of the
-input. The value of an element holds only the input it consumes when no
-action or Operators Rule builds a value in it and no capture in a positive
-lookahead is part of it, through the bodies of the rules it calls: a capture
-in `&(...)` stays in effect over input that the element does not consume, so
-the elements can overlap, and an action can build a value of any size, such as
-that of a string variable that the caller binds, the same for every element. A run takes at most $\ell_i$ steps, and every term of its cost sums
-over the steps, so the run costs at most a constant times $\ell_i n^{d - 1}$:
-a term with $b = 0$ sums over at most $\ell_i$ steps, and one with $b \ge 1$
-to at most $(\sum_j Y_j)^b \le \ell_i n^{b - 1}$. Summed over the runs, the
-cost is at most a constant times $n^d$, so the innermost lambda adds nothing.
-For the elements of any other list, as one that holds a capture once for
-each element of another, or one whose elements capture in a lookahead or are
-built by an action, the sizes need not add up to the input, and the lambda
-adds one.
+for each element of that list, at most a constant times $n^{l}$ times, with
+$l$ the size degree of its number of elements, so each such lambda around it
+multiplies its cost, and the cost of each copy of its first parameter, by
+$n^{l}$: the classifier adds $l$ to both degrees for each of them. When the
+list of the fold reads only elements of the innermost of them, those are own
+captures of a repetition, and the list has size degree 1, the list of each
+run is built from one element by forms of degree 1 in its size, so it has
+size $\ell_i$ at most a constant times one more than the input that the
+element consumes, and $\sum_i \ell_i \le c \, n$, since the captures are
+distinct parts of the input. An element is own only when no capture in a
+positive lookahead is part of it and every action in it builds an own value,
+through the bodies of the rules it calls: a capture in `&(...)` stays in
+effect over input that the element does not consume, so the elements can
+overlap, and an action can build a value larger than its input, such as that
+of a string variable that the caller binds, the same for every element. A
+run takes at most $\ell_i$ steps, and every term of its cost sums over the
+steps, so the run costs at most a constant times $\ell_i n^{d - 1}$: a term
+with $b = 0$ sums over at most $\ell_i$ steps, and one with $b \ge 1$ to at
+most $(\sum_j Y_j)^b \le \ell_i n^{b - 1}$. Summed over the runs, the cost is
+at most a constant times $n^d$, so the innermost lambda adds nothing. For the
+elements of any other list, as one that holds a capture once for each element
+of another, or one whose elements capture in a lookahead or are built by an
+action that is not own, the sizes need not add up to the input, and the
+lambda adds its degree.
+
+*Size degrees.* The proof above does not use what follows, which is an
+outline: it justifies the size degrees that the polynomial degrees read, and
+step 7 of the [Open Steps](#open-steps) lists what it leaves to be made
+precise. An own value has size at most a constant times one more than
+the input that its match consumes, by induction on the matches: a literal is
+a constant; a capture that is not in a positive lookahead holds an own value
+of a part of the match; `+`, `text`, `list`, `concat` and constructors add
+the sizes of their parts and a constant, and a member, an element or a
+`filter` is at most what it is taken from; and a `map` or a fold over an own
+list whose lambda reads nothing unbounded from outside it adds at most a
+constant times the size of each element and a constant for it, the fold
+reading its first parameter at most once. Distinct captures of a match hold
+disjoint parts of the input. Reading a capture several times multiplies its
+size by a constant, which does not compound, since a chain of rules that are
+not on one recursion is at most as long as the grammar; the value of a call
+on a recursion with the rule, read at most once and not as the list of a
+lambda, which would add to each of its elements on every level, adds the
+parts of each level once. A lambda over the captures of a repetition whose
+lambdas read each member of their other parameters at most once, distinct
+members being disjoint parts of a match, holds each part of each element, a
+distinct match, at most once, and with it the values of the calls on the
+recursion in it, so it adds the parts of each level once too; this holds
+for the trees of a recursion whose values are not own as well. The levels
+of a recursion and the elements of a repetition are distinct matches, and
+only a constant number of nested matches can consume no input, since a
+repetition stops at an empty iteration and a call at the same position is a
+left call, whose growth consumes input on each step; so the own values of
+distinct matches add up to at most a constant times $n$. A value built from
+values of size degrees $e_i$ is bounded by the rules of condition 4 above
+with $n^{e_i}$ in their place. The list of a repetition of elements of
+degree $d$ has at most $n + 1$ elements, so its size has degree $d + 1$. For
+a recursion whose values are not own, a value that holds the value of each
+call on the recursion at most once, and not from a positive lookahead, where
+two captures can hold the same value, is a tree whose nodes are distinct
+matches, at most a constant times $n$ of them, each adding at most a
+constant times $n^d$, where $d$ is the degree of what one level adds; so its
+size has degree $d + 1$.
 
 The copies of such a call are therefore those of a constant number of copies,
 in the context of the call, of the initial value, the list and the values from
@@ -784,3 +834,14 @@ The outlines leave these steps to be made precise.
 6. **Variables in Lemma 6.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, and the
    comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
+   Besides, a copy outside the lambdas of a value whose size degree is above
+   1: a string that large was built by copies that cost its length, and a
+   list copies only its number of elements, which the copies or the
+   repetition that built it paid; the step must charge each such copy to that
+   work, which a constant number of actions read.
+7. **Size degrees after Lemma 7.** The induction that bounds an own value
+   by the input its match consumes, over every form of an action and the
+   bodies of the rules it calls, and the bound on the trees of a recursion
+   whose values are not own, which must show that a value holding each call
+   on the recursion once, directly or through a lambda over a repetition,
+   adds each level once.

@@ -234,6 +234,7 @@ type classifier struct {
 	predicateSource map[*grammar.Predicate]*source
 	repeatedRules   map[string]string
 	includesMemo    map[sizeKey]bool
+	sizes           sizeMemo              // the size degrees of the values of rules (complexity_sizes.go)
 	srcExprs        map[grammar.Expr]bool // the expressions that are scanning sources
 	failRule        map[string]bool       // rules that can fail after a scanning source examined input
 	srcMemo         map[grammar.Expr]bool

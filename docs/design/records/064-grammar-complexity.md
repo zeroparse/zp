@@ -438,18 +438,26 @@ The groups are addressed by these mechanisms:
   pads every element and doubles the number of elements on each step; the three quantities can. The matrix doubles
   the accumulator when a cycle of its graph has a coefficient above 1 or a factor of a size, or two cycles share a
   quantity. Otherwise it bounds each quantity by a polynomial in the input, and a value read from outside counts as
-  large as the input on every step, while the elements of the step add up to the input over all steps, so
-  `acc + text($c)` grows quadratically and `acc + text(y)` linearly. The cost of the steps follows from the same
+  large as its size degree allows on every step, while the elements of the step add up to the size of the list over
+  all steps, so `acc + text($c)` grows quadratically and `acc + text(y)` linearly. The cost of the steps follows from
+  the same
   terms, with comparisons and `len` of a string examining their operands, multiplied where a fold inside the lambda
   copies its own accumulator once for each of its elements, and a fold over a list that is not bounded is reported
-  with its degree when that is 3 or more. The degrees take the initial value, the list and the values read from
-  outside to be at most linear in the input; a rule whose value grows faster, as one that joins its whole text once
-  for each of its elements, makes them too low. The matrix is an upper
+  with its degree when that is 3 or more. The size degrees of the initial value, the list and the values read from
+  outside come from what the classifier knows of them: an own value, at most a constant times the input its match
+  consumes, has degree 1, and own values of distinct matches add up to the input; a value built by an action has the
+  degree that the same forms give it from what it reads, through the rules it calls, so a rule that joins its whole
+  text once for each of its elements has a quadratic value, and a fold that adds that value on each step costs
+  n^4; a recursion whose values are not own has one more degree than one level adds when it holds each value of the
+  recursion once, and no known degree otherwise. The same sizes bound the copies of elements in a lambda over a list
+  that is not bounded: `map(map($b, (q) => text($b)), (y) => y + "x")` copies elements that add up to n^2 characters.
+  The matrix is an upper
   bound: a term it does not follow, such as a block, counts as many copies of what it reads, and an exponential class
   may over-approximate. A fold inside lambdas over lists that are not bounded runs once for each of their elements,
-  so each of them adds one to its degrees, except the innermost when the fold runs over its elements and those are
-  captures of a repetition whose values hold only the input they consume, with no action and no capture in a
-  positive lookahead, so that their sizes add up to the input. The accumulator of a bounded fold is taken to hold what any number of steps can add, not at most the bound:
+  so each of them adds the size degree of its number of elements, except the innermost when the fold runs over its
+  elements, those are own captures of a repetition, with no capture in a positive lookahead, and the list has size
+  degree 1, so that their sizes add up to the input. The accumulator of a bounded fold is taken to hold what any
+  number of steps can add, not at most the bound:
   a fold over `#repeat(,1)` that adds the value of the rule's own recursion on each step is reported exponential,
   though it runs at most once and holds that value once, which condition 4 classes polynomial.
 - **Recovery-skip refinement of the classifier.** A `#recover` skip whose unbounded repetitions are skip-run sites, with

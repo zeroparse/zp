@@ -608,6 +608,38 @@ The conditions below use these terms.
   literal costs a constant. Taking the text of a node is not a copying
   operation, since it costs a constant (see [Cost](#cost)); its result has
   the size of the range, which counts where another operation copies it.
+- The **size degree** of a value is the degree, in the size n of the input,
+  of the bound on its size that the classifier knows, where the size of a
+  list is one more than its number of elements plus the sizes of its
+  elements, and a node has the size of its text or of the values of the
+  captures in it, whichever is larger. A value is **own** when its size is at
+  most a constant times one more than the input that its match consumes, so
+  that the own values of distinct matches, such as the elements of a
+  repetition, add up to at most a constant times n. The value of a match is
+  own when no capture in a positive lookahead, which stays in effect over
+  input that the match does not consume, is part of it, and every rule and
+  action in it builds an own value. An action builds an own value from
+  literals, ints, Booleans and own captures that are not in a positive
+  lookahead, by `+`, `text`, `list`, `concat`, `filter`, constructors,
+  members and elements, and by `map` and folds over own lists whose lambdas
+  read nothing from outside them that is not bounded by a constant and read
+  the first parameter of a fold at most once, when it reads a capture that
+  holds a call on a recursion with its rule at most once, and as the list of
+  a lambda only when it is a capture of a repetition, whose elements are
+  distinct matches, and that lambda and every lambda in it read each member
+  of each of their other parameters at most once, where distinct members of
+  an element, such as `x.$a` and `x.$b`, are disjoint parts of its match; the
+  value of a variable is not own. An own value has size degree 1. A capture
+  or a call has the size degree of its value, the list of a repetition one
+  more than its elements unless they are own, and a value built by an action
+  the degree that the forms of condition 4 give it from the size degrees of
+  what it reads. The values of the rules of a recursion that are not own have
+  one more than the degree of what one level of the recursion adds, when each
+  of them holds the value of each call on the recursion at most once: as a
+  capture not made in a positive lookahead that is read once, outside
+  lambdas or as the list of such a lambda over a repetition. Such a value is
+  a tree whose nodes are distinct matches, at most a constant times n of
+  them. Otherwise their size degree is not known.
 - A **left call** is a call of a rule of a left-recursion cycle, in the body
   of a rule of the same cycle, that can run before that body consumes input.
   The rules that grow are the **leaders**, fixed by the grammar: until every
@@ -933,7 +965,15 @@ necessary.
    covers. A copying operation in the lambda of `map`, `filter`, `foldl` or
    `foldr` over a list that is not bounded runs once for each element, as in a
    repetition: it copies nothing from outside the lambda that is not bounded in
-   size by a constant of the grammar. The lambda over a bounded list runs at
+   size by a constant of the grammar, and the elements that it copies add up,
+   over all the evaluations of the lambda, to at most a constant times n. In
+   each evaluation of the call they add up to the size of its list, and the
+   call is evaluated once for each element of the lists of the lambdas around
+   it that are not bounded, except that the elements of the innermost of them
+   add up to at most the input when they are own and the list of the call
+   reads only them; so the degree of the sum is the size degree of the list
+   plus the size degrees of the numbers of elements of those lists, and it is
+   not known when one of them is not. The lambda over a bounded list runs at
    most a constant number of times, so its copying operations are checked as
    copies outside it, in the lambdas around it, and the first parameter of a
    fold over it holds what the initial value and the value of the lambda hold,
@@ -942,9 +982,10 @@ necessary.
    the size, the size of the largest element and the number of elements of
    the value of the lambda each by a sum of terms, each a constant times one
    of the same three quantities of the first parameter, or times none, and
-   times powers of the size of a value read from outside the fold and of the
-   size of the element of the step. The size of a list is one more than its
-   number of elements plus the sizes of its elements. A list, a tuple or a
+   times powers of n and of the size of the element of the step, where a value
+   read from outside the fold counts as n to its size degree. The size of a
+   list is one more than its number of elements plus the sizes of its
+   elements. A list, a tuple or a
    struct adds the quantities of its items, and `+` and `concat` add those of
    their operands; an element taken by `[]` is at most the largest element,
    whatever its index; a member is at most the value it is taken from; a
@@ -972,23 +1013,22 @@ necessary.
    parameter; adding to every element, as `map(acc, (e) => e + "x")` does,
    grows the size by the number of elements on each step; and adding a value
    read from outside, as `acc + text($c)` does, grows it by up to the size of
-   that value on each step. The classifier bounds the cost of one step by such
-   terms as well, where a term may multiply quantities: a comparison of values
+   that value on each step. The quantities start from those of the initial
+   value, by their size degrees; the steps are the elements of the list, and
+   the sizes of their elements add up to the size of the list, by the size
+   degrees of the three quantities of the list. The classifier bounds the
+   cost of one step by such terms as well, where a term may multiply
+   quantities: a comparison of values
    that are not ints and `len` of a string examine their operands, and a fold
    inside the lambda copies its own first parameter on each of its steps. A
    fold inside the lambda of a call over a list that is not bounded runs once
    for each element of that list, so the degree of its cost and of each copy
-   of its first parameter gains one for each such lambda around it, but one
-   fewer when its list reads only elements of the innermost of them and those
-   are the captures of a repetition whose values hold only the input they
-   consume, distinct parts of the input whose sizes add up to at most the
-   input. The value of an element holds only the input it consumes when no
-   action or Operators Rule builds a value in it and no capture in a positive
-   lookahead, which stays in effect over input that the element does not
-   consume, is part of it, through the bodies of the rules it calls. The
-   degrees take the initial value, the list and the values read from outside
-   to be at most linear in the size of the input; a value of a rule that grows
-   faster makes them too low. A copying
+   of its first parameter gains the size degree of the number of elements of
+   each such list around it, but not that of the innermost of them when its
+   list reads only elements of that list and those are own captures of a
+   repetition, distinct parts of the input whose sizes add up to at most the
+   input. A fold over a list that is not bounded that reads a value whose
+   size degree is not known fails this condition. A copying
    operation that copies the value of a variable is linear given an
    environment bound.
 5. **Carried growth.** No leader R grows, at the position where another leader
@@ -1070,10 +1110,16 @@ reason:
   a growth. A fold over a list that is not bounded gives the degree in the size
   of the input of the cost of all its steps, which the step matrix of
   condition 4 bounds, when that is 3 or more: a term of the cost adds the
-  degrees of the quantities that it multiplies, and one more for the sum over
-  the steps. A fold inside lambdas over lists that are not bounded adds one to
-  either degree for each of them, as condition 4 describes, so that
-  `map($b, (y) => foldl("", $b, (s, l) => s + text(l)))` gives 3.
+  degrees of the quantities that it multiplies, the size degrees of the values
+  read from outside, and the degree of the number of steps, or of the sum of
+  the powers of the element, for the sum over the steps. A fold inside
+  lambdas over lists that are not bounded adds to either degree the size
+  degrees of the numbers of elements of those lists, as condition 4
+  describes, so that `map($b, (y) => foldl("", $b, (s, l) => s + text(l)))`
+  gives 3. A copying operation in such a lambda whose copies of elements add
+  up to more than linear size gives the degree of their sum, as condition 4
+  describes, so that `map(map($b, (q) => text($b)), (y) => y + "x")` gives
+  2.
 - **Exponential.** A binding that makes a variable depend on its own earlier
   value, or a copying operation that copies a value of its own recursion, or a
   fold accumulator, more than once, as `s + s` does, or a fold whose step
