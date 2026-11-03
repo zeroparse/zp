@@ -530,7 +530,80 @@ func (b *Builder) SkipRepeat(e *grammar.Repeat, m core.Matcher, skip int) core.M
 	}
 }
 
-func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule) core.Matcher {
+// runRepeat is Repeat for the run site run (compile/run_sites.go): the walks of its iterations
+// record the rest of them from each position and reuse the records (core/skip_runs.go). The
+// iterations have a scope of their own where they capture; build says whether they have values,
+// which the walk gathers in a list.
+func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build bool, run int) core.Matcher {
+	min := e.Min
+	elemValue := scopeValueOf(b.prog, e.Expr)
+	charge := b.charges()
+	return func(p *core.Parser) (*value.Node, bool) {
+		start := p.Pos
+		if build {
+			p.SkipBeginList(run)
+		} else {
+			p.SkipBegin(run)
+		}
+		count := 0
+		for {
+			if charge {
+				p.Spend()
+			}
+			if count >= min && p.SkipHit() {
+				break
+			}
+			p.SkipVisit()
+			m0 := p.Mark()
+			prevCut, prevFrame := p.Cut, p.Frame
+			p.Cut = false
+			var f *core.Frame
+			if ownScope {
+				f = p.NewFrame(len(elemScope.Names))
+				p.Frame = f
+			}
+			v, ok := m(p)
+			p.Cut, p.Frame = prevCut, prevFrame
+			if !ok {
+				p.Reset(m0)
+				break
+			}
+			if build {
+				v = elemValue(p, v, m0.Pos)
+				if ownScope {
+					v = p.AttachCaptures(v, elemScope, f, m0.Pos, p.Pos)
+				}
+				p.SkipValue(v)
+			}
+			count++
+			if p.Pos == m0.Pos {
+				// Stop a repetition that consumes no input.
+				break
+			}
+		}
+		if count < min {
+			p.SkipEndList(start, false, true)
+			return nil, false
+		}
+		v := p.SkipEndList(start, build, true)
+		return v, true
+	}
+}
+
+func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule, run int) core.Matcher {
+	if run != 0 {
+		walk := b.runRepeat(e, m, elemScope, ownScope, build, run)
+		if site == 0 {
+			return walk
+		}
+		rs := &core.RunSite{Id: site, M: m, Scope: elemScope, OwnScope: ownScope, Build: build, Min: e.Min, Max: e.Max, Shiftable: shiftable, Value: scopeValueOf(b.prog, e.Expr)}
+		return func(p *core.Parser) (*value.Node, bool) {
+			if p.Runs != nil && p.Silent == 0 {
+				return p.ResumeRepeat(rs)
+			}
+			return walk(p)
+		}
+	}
 	min, max := e.Min, e.Max
 	elemValue := scopeValueOf(b.prog, e.Expr)
 	var rs *core.RunSite

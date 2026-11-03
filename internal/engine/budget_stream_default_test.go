@@ -13,11 +13,12 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// streamScanGrammar has a record whose cost grows with the cube of its length.
+// streamScanGrammar has a record whose cost grows with the cube of its length. The bound of the repetition in mid
+// keeps it from being a run site, whose records would make it linear.
 const streamScanGrammar = `rule main = ^^ header items:record* #stream $$
 rule header = "#records\n"
 rule record = ^ ([a-z] &mid)* "\n"
-rule mid = ([a-z] &[a-z]*)*`
+rule mid = ([a-z] &[a-z]*) #repeat(0, 1000000)`
 
 // The default budget of a stream follows the furthest position the parser demands, which does not
 // depend on how the reader chunks the input: the same input gives the same result, and the same

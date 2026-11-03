@@ -1,0 +1,234 @@
+package engine
+
+import (
+	"errors"
+	"math/rand"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
+)
+
+// runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
+// expressions whose parse builds no value (the start rule has an action, so the elements' values
+// are not needed), each with the characters of its random inputs. They exercise the parts of what a
+// record holds, as the skip-run grammars do, and nested walks.
+var runSiteGrammars = []struct{ Name, Src, Alphabet string }{
+	{"repetition restarted by an alternative", `rule main = (a "y" / "q" a / [x])* $$ => 1
+rule a = x+ => 1
+rule x = "x"`, "xyqz"},
+	{"recursion over a scan", `rule main = t a? $$ => 1
+rule t = a t "!" / a "?" t / [x!?] t / ""
+rule a = x+ => 1
+rule x = "x"`, "x!z"},
+	{"nested walks", `rule main = (g "y" / g "z" / [abc,])* $$ => 1
+rule g = (w ","?)+ => 1
+rule w = [a-b]+ "c"? => 1`, "abc,yzq"},
+	{"minimum and empty elements", `rule main = (a "!" / [xy])* $$ => 1
+rule a = (x? y?)#repeat(2,) => 1
+rule x = "x"
+rule y = "y"`, "xy!z"},
+	{"lookahead in the element", `rule main = (a "!" / [xy])* $$ => 1
+rule a = (!"xx" x)+ => 1
+rule x = "x" / "y"`, "xy!z"},
+	{"expectations", `rule main = (a "!" / "q" a "?" / [xyz])* $$ => 1
+rule a = (x / "y" z)+ => 1
+rule x = "x"
+rule z = "z"`, "xyz!?qw"},
+	{"silent walks", `rule main = (!(a "!") "x" / a "!" / [,y])* $$ => 1
+rule a = (x ","?)+ => 1
+rule x = "x" "y"?`, "xy,!z"},
+	{"line starts", `rule main = (l "!" / [ab\n])* $$ => 1
+rule l = (^ "a" / x)+ => 1
+rule x = "b" / "\n"`, "ab\n!z"},
+}
+
+// runValueGrammars are grammars whose run sites build values, capture and read variables in their
+// elements, and recover errors in them or in the rules they call; they have no action at the top,
+// so the values of the start rule are the parse trees.
+var runValueGrammars = []struct{ Name, Src, Alphabet string }{
+	{"values of restarted lists", `rule main = (a "y" / "q" a / [x])* $$
+rule a = x+
+rule x = "x"`, "xyqz"},
+	{"nested lists", `rule main = (g "y" / g "z" / [abc,])* $$
+rule g = (w ","?)+
+rule w = [a-b]+ "c"?`, "abc,yzq"},
+	{"minimum and empty elements", `rule main = (a "!" / [xy])* $$
+rule a = (x? y?)#repeat(2,)
+rule x = "x"
+rule y = "y"`, "xy!z"},
+	{"captures in the element", `rule main = (a "!" / "q" a "?" / [xyz])* $$
+rule a = (c:x d:y? => $c)+
+rule x = "x"
+rule y = "y"`, "xyz!?qw"},
+	{"actions in the element", `rule main = (a "!" / [xy])* $$
+rule a = (v:x => $v)+
+rule x = "x" "y"?`, "xy!z"},
+	{"variables in predicates", `var n int
+rule main = (a "!" / "q" a / [xz])* $$
+rule a = ({ n < 3 } x { n := n + 1 })+
+rule x = "x"`, "xz!q"},
+	{"two environments at one position", `var n int
+rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyzwq])* $$
+rule r = a "y" / a "w" / a "z" / a "q"
+rule a = "x" ("x" { n < 3 })*`, "xyzwq!?"},
+	{"walks that merge with others in the middle", `rule main = (r "!" / r "?" / r "w" / [abz])* $$
+rule r = ("ab" / "a" / "b")*`, "abz!?w"},
+	{"bindings that a record restores", `var n int
+rule main = (r "!" / r "?" / r "w" / [xyzwq])* $$
+rule r = ("x" { n := n + 1 })* { n == 3 }`, "xyzwq!?"},
+	{"errors that a record replays", `rule main = (a "?" / "x" a "?" / "x" "x" a "!" / [xz!?])* $$
+rule a = e+
+rule e = ("x" "z") #recover(skip=[x])`, "xz!?"},
+	{"recovery in the element", `rule main = (a "!" / "q" a "?" / [xyz])* $$
+rule a = (x #recover(skip=[y]+))+
+rule x = "x" "z"`, "xzy!?q"},
+	{"recovery in a called rule", `rule main = (l "!" / [abz])* $$
+rule l = (e)+
+rule e = ("a" "b" #recover(skip=[z]+))`, "abz!"},
+	{"lookahead and silent walks", `rule main = (!(a "!") "x" / a "!" / [,y])* $$
+rule a = (x ","?)+
+rule x = "x" "y"?`, "xy,!z"},
+}
+
+// runValueInputs are inputs, besides random ones, that reach what a grammar of runValueGrammars is
+// about: here a walk that a record of another environment would answer wrongly.
+var runValueInputs = map[string][]string{
+	"two environments at one position": {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
+	"bindings that a record restores":  {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
+	"errors that a record replays":     {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
+}
+
+// TestRunSitesMatchPlainRepetitions checks that the repetitions of run sites that build values
+// give the same trees and errors as plain repetitions (a program compiled without run sites) and
+// as walks without records, on every backend.
+func TestRunSitesMatchPlainRepetitions(t *testing.T) {
+	rng := rand.New(rand.NewSource(113))
+	for _, g := range runValueGrammars {
+		prog := mustCompile(t, g.Src)
+		if prog.NumRunSites == 0 {
+			t.Errorf("%s: no run sites", g.Name)
+		}
+		compile.NoRunSites = true
+		plain := mustCompile(t, g.Src)
+		compile.NoRunSites = false
+		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
+				t.Errorf("%s, %s: %d parses differ without records, first:\n%s", g.Name, b, len(diffs), diffs[0])
+			}
+			for _, in := range inputs {
+				for _, exp := range []bool{true, false} {
+					o := ParseOptions{Backend: b, Expectations: exp}
+					n, err := prog.ParseWith("main", in, o)
+					wn, werr := plain.ParseWith("main", in, o)
+					if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
+						t.Fatalf("%s, %s: input %q\n got  %s\n want %s", g.Name, b, in, got, want)
+					}
+				}
+			}
+		}
+	}
+}
+
+// TestRunSitesMatchParsesWithoutRecords checks that the records of run sites change no result:
+// values and syntax errors with their expectations, on every backend. It toggles package state, so
+// it does not run in parallel.
+func TestRunSitesMatchParsesWithoutRecords(t *testing.T) {
+	rng := rand.New(rand.NewSource(112))
+	for _, g := range runSiteGrammars {
+		prog := mustCompile(t, g.Src)
+		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
+				t.Errorf("%s, %s: %d parses differ, first:\n%s", g.Name, b, len(diffs), diffs[0])
+			}
+		}
+	}
+	for _, c := range gentest.GenCorpus(t) {
+		g, err := parseTest(c.Src)
+		if err != nil {
+			t.Fatalf("corpus %s: %v", c.Name, err)
+		}
+		prog, err := Compile(g, compile.Options{SourceInfo: true})
+		if err != nil {
+			t.Fatalf("corpus %s: %v", c.Name, err)
+		}
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			if diffs := skipRunMismatches(t, prog, c.Inputs, b); len(diffs) > 0 {
+				t.Errorf("corpus %s, %s: %d parses differ, first:\n%s", c.Name, b, len(diffs), diffs[0])
+			}
+		}
+	}
+}
+
+// TestRunSitesAreMarked checks that the grammars of TestRunSitesMatchParsesWithoutRecords have run
+// sites, so that the comparison does not pass for want of any.
+func TestRunSitesAreMarked(t *testing.T) {
+	for _, g := range runSiteGrammars {
+		prog := mustCompile(t, g.Src)
+		if n := prog.NumRunSites; n == 0 {
+			t.Errorf("%s: no run sites", g.Name)
+		}
+	}
+}
+
+// TestRunSitesReuseRecords checks that the records of run sites are reused on every backend: a
+// parse that restarts a scan at each position of the input fits a budget that is linear in the
+// input with records, and exceeds it without them.
+func TestRunSitesReuseRecords(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	defer func() { core.SkipRecordsOff = false }()
+	in := strings.Repeat("x", 400) + "z"
+	for _, g := range runSiteGrammars[:2] {
+		prog := mustCompile(t, g.Src)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 200_000}}
+			core.SkipRecordsOff = false
+			if _, err := prog.ParseWith("main", in, o); errors.Is(err, limits.ErrLimit) {
+				t.Errorf("%s, %s: the parse with records exceeds the budget", g.Name, b)
+			}
+			core.SkipRecordsOff = true
+			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, limits.ErrLimit) {
+				t.Errorf("%s, %s: the parse without records fits the budget", g.Name, b)
+			}
+		}
+	}
+}
+
+// TestRunSitesBoundValueControls checks that the controls whose repetitions build values (no
+// action in the grammar), among them one with two callers of a repetition, fit a budget that is
+// linear in the input on every backend, and exceed it with plain repetitions.
+func TestRunSitesBoundValueControls(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	cases := []struct{ Name, Src, Input string }{
+		{"E1", "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", strings.Repeat("a", 1000)},
+		{"E7", "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n", strings.Repeat("a", 100)},
+		{"two callers", "@start\nrule main = (\"(\" b \")!\" / \"(\" b \")?\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", strings.Repeat("(", 1000)},
+	}
+	for _, c := range cases {
+		prog := mustCompile(t, c.Src)
+		compile.NoRunSites = true
+		plain := mustCompile(t, c.Src)
+		compile.NoRunSites = false
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 100 * uint64(len(c.Input))}}
+			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, limits.ErrLimit) {
+				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
+			}
+			// (The closure backend does not charge the iterations of plain loops over literals, so
+			// only the bytecode backends show that the control is quadratic without records; the
+			// controls of internal/complexitytest measure it on all three.)
+			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, limits.ErrLimit) {
+				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
+			}
+		}
+	}
+}

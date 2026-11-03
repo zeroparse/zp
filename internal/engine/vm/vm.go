@@ -514,7 +514,8 @@ type repState struct {
 	scope           int
 	base            int            // bottom of the element values
 	run             *core.RunState // the run being recorded in a Document parse, or nil
-	skip            bool           // a skip-run site (SKIPREPEAT)
+	skip            bool           // a skip-run site (SKIPREPEAT) or a run site whose walk has begun
+	build           bool           // a run site whose walk gathers the element values
 }
 
 func (mc *Machine) save() vmSave {
@@ -811,6 +812,15 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				ip = int(in.A)
 				continue
 			}
+			if in.C > 0 && !rep.skip && rep.count == 0 && rep.run == nil {
+				// The first iteration of a run site that a Document does not resume begins its walk.
+				rep.skip, rep.build = true, in.B == 1
+				if rep.build {
+					p.SkipBeginList(int(in.C))
+				} else {
+					p.SkipBegin(int(in.C))
+				}
+			}
 			if rep.skip {
 				if rep.count >= rep.min && p.SkipHit() {
 					ip = int(in.A)
@@ -857,6 +867,10 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				}
 				p.Frame = e.save.frame
 			}
+			if rep.build {
+				// A run site walk keeps the element values, and lists them when it ends.
+				p.SkipValue(asNodeValue(mc.pop()))
+			}
 			rep.count++
 			if rep.run != nil {
 				var v *value.Node
@@ -891,6 +905,18 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 		case bytecode.OpEndRepeat:
 			rep := mc.reps[len(mc.reps)-1]
 			mc.reps = mc.reps[:len(mc.reps)-1]
+			if rep.build {
+				// The list of a run site that builds values, from the walk's gathered values.
+				ok := rep.count >= rep.min
+				start := *mc.vals[rep.base-1].(*int)
+				list := p.SkipEndList(start, ok, false)
+				if !ok {
+					goto fail
+				}
+				mc.vals = mc.vals[:rep.base-1]
+				mc.push(list)
+				break
+			}
 			if rep.skip {
 				p.SkipEnd()
 			}

@@ -1,6 +1,10 @@
 package core
 
-import "testing"
+import (
+	"testing"
+
+	"zeroparse.dev/zp/internal/value"
+)
 
 // walk runs a walk of site 1 from pos that visits n positions one apart and fails at the next,
 // and stops before its end if abort.
@@ -41,28 +45,28 @@ func TestSkipRunsAbortStoresNothing(t *testing.T) {
 	walkSkip(p, 0, 10, false) // plain: marks 0..9
 	s := p.skipTables[2]
 	for pos := 0; pos <= 10; pos++ {
-		if got := s.get(pos).state; got != plain(pos) {
+		if got := s.get(pos, nil).state; got != plain(pos) {
 			t.Fatalf("after a plain walk, position %d has state %d", pos, got)
 		}
 	}
 	walkSkip(p, 2, 8, true) // recording from 2, stopped at 6
 	for pos := 0; pos <= 10; pos++ {
-		if got := s.get(pos).state; got != plain(pos) {
+		if got := s.get(pos, nil).state; got != plain(pos) {
 			t.Fatalf("after a stopped recording walk, position %d has state %d", pos, got)
 		}
 	}
-	p.skip = skipWalk{} // the stopped parse is gone; a later walk starts clean
+	p.skips, p.skipN = nil, 0 // the stopped parse is gone; a later walk starts clean
 	walkSkip(p, 3, 7, false)
 	for pos := 0; pos <= 10; pos++ {
 		want := uint8(skipVisited)
 		if pos >= 3 {
 			want = skipRecorded
 		}
-		if got := s.get(pos).state; got != want {
+		if got := s.get(pos, nil).state; got != want {
 			t.Fatalf("after a recording walk from 3, position %d has state %d, want %d", pos, got, want)
 		}
-		if want == skipRecorded && s.get(pos).end != 10 {
-			t.Fatalf("position %d records end %d, want 10", pos, s.get(pos).end)
+		if want == skipRecorded && s.get(pos, nil).end != 10 {
+			t.Fatalf("position %d records end %d, want 10", pos, s.get(pos, nil).end)
 		}
 	}
 }
@@ -78,11 +82,69 @@ func TestSkipRunsAbortControl(t *testing.T) {
 	s := p.skipTables[2]
 	recorded := 0
 	for pos := 0; pos <= 10; pos++ {
-		if s.get(pos).state == skipRecorded {
+		if s.get(pos, nil).state == skipRecorded {
 			recorded++
 		}
 	}
 	if recorded == 0 {
 		t.Fatal("a stopped walk that stores records early leaves none")
+	}
+}
+
+// texts returns the texts of the nodes of the elements es.
+func texts(es []*value.Node) string {
+	out := ""
+	for _, e := range es {
+		out += value.D(e).Text
+	}
+	return out
+}
+
+// TestSkipRunsShareElements checks that placing the elements of a walk before a record's suffix
+// leaves what every record holds as it was: in place only before the front of a buffer, and
+// otherwise in a copy.
+func TestSkipRunsShareElements(t *testing.T) {
+	p := &Parser{}
+	el := func(s string) []*value.Node {
+		var ns []*value.Node
+		for _, c := range s {
+			ns = append(ns, p.NewNode(value.Data{Kind: value.MatchKind, Text: string(c)}))
+		}
+		return ns
+	}
+	b0, lo0 := p.placeVals(el("abc"), valSuffix{})
+	whole, mid := valSuffix{b0, lo0}, valSuffix{b0, lo0 + 1}
+	if got := texts(whole.slice()); got != "abc" {
+		t.Fatalf("a walk without a record holds %q", got)
+	}
+	// Elements before a suffix in the middle of a buffer are copied: the buffer holds the rest of
+	// another walk.
+	b1, lo1 := p.placeVals(el("x"), mid)
+	if b1 == b0 {
+		t.Fatalf("elements are written before a suffix that is not at the front of its buffer")
+	}
+	if got := texts(valSuffix{b1, lo1}.slice()); got != "xbc" {
+		t.Fatalf("the copy holds %q, want xbc", got)
+	}
+	if got := texts(whole.slice()) + texts(mid.slice()); got != "abc"+"bc" {
+		t.Fatalf("a copy changed the records of the buffer: %q", got)
+	}
+	// The copy has room before its front, which a walk that reaches the front fills in place
+	// once; a second walk to the same suffix copies.
+	front := valSuffix{b1, lo1}
+	b2, lo2 := p.placeVals(el("y"), front)
+	if b2 != b1 || texts(valSuffix{b2, lo2}.slice()) != "yxbc" {
+		t.Fatalf("a walk reaching the front of a buffer does not use its room: %q", texts(valSuffix{b2, lo2}.slice()))
+	}
+	b3, lo3 := p.placeVals(el("z"), front)
+	if b3 == b1 || texts(valSuffix{b3, lo3}.slice()) != "zxbc" {
+		t.Fatalf("a second walk to the same suffix shares the room: %q", texts(valSuffix{b3, lo3}.slice()))
+	}
+	if got := texts(front.slice()) + texts(valSuffix{b2, lo2}.slice()); got != "xbc"+"yxbc" {
+		t.Fatalf("placing elements changed an earlier suffix: %q", got)
+	}
+	// No elements of its own: the walk takes the suffix as it is.
+	if b, lo := p.placeVals(nil, mid); b != b0 || lo != lo0+1 {
+		t.Fatalf("a walk without elements of its own copies its tail")
 	}
 }

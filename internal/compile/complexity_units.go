@@ -270,7 +270,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 		if e.Max == 0 {
 			return
 		}
-		if e.Max < 0 && !c.skipSites {
+		if e.Max < 0 && !c.skipSites && !k.runSite(e) {
 			k.addSource(c, exprPos(e), "the repetition "+k.show(e))
 			k.srcExprs[e] = true
 		}
@@ -1487,7 +1487,7 @@ func (k *classifier) checkGrowth() {
 				if e.Max == 0 {
 					return true
 				}
-				if e.Max < 0 {
+				if e.Max < 0 && !k.runSite(e) {
 					report(k.sourceAt(r.Name, e, "the repetition "+k.show(e)))
 				}
 				visit(e.Expr)

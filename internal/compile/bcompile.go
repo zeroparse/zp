@@ -534,7 +534,13 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 	}
 	c.repetition(bytecode.OpRepeat, e.Min, e.Max, sc)
 	loop := c.here()
-	iter := c.emit(bytecode.OpIter, 0, 0, 0)
+	run, runBuild := int32(0), int32(0)
+	if !stream {
+		if run = int32(c.prog.RunSite(e)); run != 0 {
+			runBuild = b2i(build)
+		}
+	}
+	iter := c.emit(bytecode.OpIter, 0, runBuild, run)
 	if build {
 		c.scope(e.Expr, elemScope)
 	} else {

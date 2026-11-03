@@ -116,7 +116,12 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return fmt.Sprintf("build=%d", a)
 	case OpAssert:
 		return []string{"begin-input", "end-input", "begin-line", "end-line"}[a]
-	case OpJump, OpChoice, OpCommit, OpIter, OpRecover, OpEndRecover, EAnd, EOr:
+	case OpIter:
+		if c > 0 {
+			return fmt.Sprintf("-> %d run=%d", a, c)
+		}
+		return fmt.Sprintf("-> %d", a)
+	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, EAnd, EOr:
 		return fmt.Sprintf("-> %d", a)
 	case OpSeq:
 		return fmt.Sprintf("n=%d", a)

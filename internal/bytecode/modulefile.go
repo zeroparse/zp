@@ -425,7 +425,13 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		case OpAssert:
 			flag(x.A, 3)
 		case OpFail, OpCut, OpPushPos, OpPushNil, OpEndLabel, OpReturn, OpEnd:
-		case OpJump, OpChoice, OpCommit, OpIter, OpRecover, OpEndRecover:
+		case OpIter:
+			forward(ip, x.A, n)
+			flag(x.B, 1)
+			if x.C < 0 || int(x.C) > n {
+				fail("invalid run site %d", x.C)
+			}
+		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover:
 			forward(ip, x.A, n)
 		case OpLook:
 			flag(x.B, 1)

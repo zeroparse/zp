@@ -549,6 +549,57 @@ a rule stays a scanning source, because a called rule can examine any amount
 of the input in one iteration, and so does a repetition in a rule that a skip
 calls, which is not a site.
 
+### Run Sites
+
+A repetition outside a skip expression walks the same input again each time a
+failed alternative leads back to its start. A **run site** is a repetition
+whose walks keep the records of a skip-run site, with the walks, slots and
+charges described in [Skip Runs](#skip-runs), extended as below. It is a
+repetition for which all of the following hold:
+
+- it has no upper bound and no `#cut` applies to it from its expression, as for
+  a skip-run site, and it does not repeat a single character, which an
+  implementation scans without records;
+- its expression contains no Operators Rule and no `#stream`, `#missing`,
+  `#error` or `#diagnostic`; it may contain captures (which live in one
+  iteration), actions, predicates, variables, `#recover` and calls;
+- every repetition without an upper bound in its expression is a run site or
+  repeats a single character;
+- every rule its expression calls, directly or indirectly, is called without a
+  level, is not in a left-recursion cycle and contains no `#stream`,
+  `#missing`, `#error` or `#diagnostic`.
+
+The result of the rest of a walk from a position is a function of the
+position, the variables and the input: an iteration reads the variables that
+its predicates and the rules it calls read, and the captures of a repetition
+element are visible to the iteration alone. A record is therefore kept for a
+position and the environment (the values of the variables) in which the walk
+started there, and a walk reuses it only in the same environment: a record
+for the same position in another environment is neither used nor replaced, so
+the environments of two walks at a position never share a record. Two
+environments are the same if they are the same object (bindings that leave a
+variable's value alone leave the environment as it is, and equal environments
+that were built separately differ).
+
+Besides what a record of a skip-run site holds, it holds
+- the environment at the end of the rest of the walk, which the parse takes
+  as its own when a walk reuses the record;
+- the elements of the rest of the walk, for a run site whose iterations have
+  values: a walk that reuses the record lists them after its own elements. The
+  list a walk returns and the records of its positions share one sequence of
+  elements, which later lists hold as a suffix; a list that is made from its
+  own elements and a recorded suffix copies the suffix, except where the
+  sequence has room before the suffix that no record uses. The elements of a
+  record are final: no later step of the parse changes them;
+- the errors that the rest of the walk recovered: a walk that reuses the
+  record recovers them again, as a memoized result does.
+
+The walks of run sites nest: the expression of a site can call rules that walk
+sites of their own, and the walks in progress are a stack. Records never
+change the result of a parse, and they last for one parse, as those of skip
+runs do. In a parse of an [incremental document](documents.md) outside a
+lookahead, a run site that the document can resume is resumed as before.
+
 ### Classes of Growth
 
 A grammar's cost as a function of n falls into one of these classes. A class

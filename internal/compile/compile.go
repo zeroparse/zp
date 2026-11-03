@@ -69,6 +69,9 @@ type Program struct {
 	skipSites    map[*grammar.Repeat]int
 	inSite       map[*grammar.Repeat]bool
 	NumSkipSites int
+	// runSites numbers the run sites (run_sites.go) after the skip-run sites, NumRunSites of them.
+	runSites    map[*grammar.Repeat]int
+	NumRunSites int
 }
 
 // Options configures compilation.

@@ -99,6 +99,7 @@ func (prog *Program) markSkipSites(control *Control) {
 		}, control)
 	}
 	prog.inSite = nil
+	prog.markRunSites(control, defs, calls, recursive)
 }
 
 // SkipSite returns the number of the skip-run site e (from 1), or 0 if e is not one.

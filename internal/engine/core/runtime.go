@@ -179,7 +179,10 @@ type Parser struct {
 	// skipTables holds the skip-run records of each site, at 2*site outside lookaheads and
 	// 2*site+1 inside them, and skip is the walk in progress (skip_runs.go).
 	skipTables []*skipSlots
-	skip       skipWalk
+	skips      []skipWalk
+	skipN      int
+	// skipBytes counts the bytes of the element buffers and error lists of the skip-run records.
+	skipBytes uint64
 	// Scratch holds the pooled buffers the parser uses (AcquirePooledParser), or nil.
 	Scratch *scratch
 	// MemUsed counts the bytes of the chunks the parse has taken (budget_memory.go), apart from

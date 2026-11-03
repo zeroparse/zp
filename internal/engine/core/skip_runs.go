@@ -1,5 +1,11 @@
 package core
 
+import (
+	"unsafe"
+
+	"zeroparse.dev/zp/internal/value"
+)
+
 // Skip runs: the records of the walks of skip-run sites (compile/skip_sites.go; see "Skip Runs" in
 // spec/runtime/parsing.md and the proofs in spec/proofs/skip-runs.md).
 //
@@ -49,12 +55,52 @@ const (
 	skipRecorded        // the record holds the rest of a walk from it
 )
 
-// skipRecord is the state of a position and, once recorded, what the rest of a walk from it did.
+// skipRecord is the state of a position and, once recorded, what the rest of a walk from it did:
+// where it ended and with which environment, its farthest failure, the input it examined, the
+// elements it collected (a run site that builds a value) and the errors it recovered.
 type skipRecord struct {
 	end, far       int
 	exp            []ExpID
 	from, examined int
 	state          uint8
+	env            *Env
+	vals           valSuffix
+	errs           *skipErrs
+}
+
+// skipKey is the key of a record: the position and the environment (nil without variables) the walk
+// from the position started in.
+type skipKey struct {
+	pos int
+	env *Env
+}
+
+// valBuf holds the elements that walks collected. A record holds a suffix of a buffer, which is
+// never written once a record refers to it, except below lo: a walk that reaches a record whose
+// suffix starts at lo puts its own elements before it, and shares the rest.
+type valBuf struct {
+	a  []*value.Node
+	lo int
+}
+
+// valSuffix is the elements buf.a[i:], none if buf is nil.
+type valSuffix struct {
+	buf *valBuf
+	i   int
+}
+
+func (s valSuffix) slice() []*value.Node {
+	if s.buf == nil {
+		return nil
+	}
+	return s.buf.a[s.i:len(s.buf.a):len(s.buf.a)]
+}
+
+// skipErrs is the list of the errors that the rest of a walk recovered: the errors of one iteration,
+// then the list of the rest.
+type skipErrs struct {
+	errs []*SyntaxError
+	next *skipErrs
 }
 
 // skipSlots holds the slots of a site: a bit for each position from base on, set when the slot is
@@ -65,7 +111,7 @@ type skipRecord struct {
 type skipSlots struct {
 	base  int
 	marks []uint64
-	recs  map[int]skipRecord
+	recs  map[skipKey]skipRecord
 	floor int
 	// kept is the number of records after dropped ones were last removed.
 	kept int
@@ -82,12 +128,13 @@ func (s *skipSlots) marked(pos int) bool {
 	return i >= 0 && i>>6 < len(s.marks) && s.marks[i>>6]&(1<<(i&63)) != 0
 }
 
-// get returns the slot of pos; a fresh slot is the zero record.
-func (s *skipSlots) get(pos int) skipRecord {
+// get returns the slot of pos for walks that start in the environment env; a fresh slot is the
+// zero record.
+func (s *skipSlots) get(pos int, env *Env) skipRecord {
 	if !s.marked(pos) {
 		return skipRecord{}
 	}
-	if r, ok := s.recs[pos]; ok {
+	if r, ok := s.recs[skipKey{pos, env}]; ok {
 		return r
 	}
 	return skipRecord{state: skipVisited}
@@ -96,7 +143,7 @@ func (s *skipSlots) get(pos int) skipRecord {
 // put sets the slot of pos to r, which is visited or recorded. Room made for bits before base is as
 // large as the bits, so walks that start farther and farther back copy them a logarithmic number of
 // times.
-func (s *skipSlots) put(pos int, r skipRecord) {
+func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
 	switch {
 	case len(s.marks) == 0:
 		s.base = pos &^ 63
@@ -113,9 +160,9 @@ func (s *skipSlots) put(pos int, r skipRecord) {
 	s.marks[i>>6] |= 1 << (i & 63)
 	if r.state == skipRecorded {
 		if s.recs == nil {
-			s.recs = make(map[int]skipRecord)
+			s.recs = make(map[skipKey]skipRecord)
 		}
-		s.recs[pos] = r
+		s.recs[skipKey{pos, env}] = r
 		s.expBytes += uint64(len(r.exp)) * expIDBytes
 	}
 }
@@ -134,7 +181,7 @@ func (s *skipSlots) drop(pos int) {
 		return
 	}
 	for k := range s.recs {
-		if k < pos {
+		if k.pos < pos {
 			delete(s.recs, k)
 		}
 	}
@@ -146,10 +193,16 @@ type skipVisit struct {
 	pos, far       int
 	exp            []ExpID
 	from, examined int
+	// env is the environment the iteration started in, and vi the number of elements collected
+	// before it. e0 is the number of recovered errors before it, and errs the errors it recovered.
+	env    *Env
+	vi, e0 int
+	errs   []*SyntaxError
 }
 
-// skipWalk is the walk in progress. Walks do not nest: a site's element runs no #recover, so no
-// other skip expression.
+// skipWalk is a walk in progress. Walks nest: the element of a run site can call rules that walk
+// sites of their own, so the walks in progress form a stack (Parser.skips), and the innermost
+// one is the one in use.
 type skipWalk struct {
 	on bool
 	// recording reports that the walk records its visits (it met a position that is not fresh).
@@ -160,9 +213,10 @@ type skipWalk struct {
 	slots *skipSlots
 	// prev is the position of the last iteration of a plain walk, if prevOK; the walk marks it
 	// when the iteration has matched.
-	prev   int
-	prevOK bool
-	visits []skipVisit
+	prev    int
+	prevEnv *Env
+	prevOK  bool
+	visits  []skipVisit
 	// open reports that the last visit's iteration is running: its expectations are isolated
 	// from mk, and the examined range from before it is savedHW and savedLW.
 	open             bool
@@ -170,11 +224,33 @@ type skipWalk struct {
 	savedHW, savedLW int
 	hit              skipRecord
 	hitOK            bool
+	// build reports that the walk collects the values of its iterations (vals), whose list the end
+	// of the walk makes. placed reports that the list is placed in buf from lo on, so that the
+	// records share it.
+	build  bool
+	vals   []*value.Node
+	placed bool
+	buf    *valBuf
+	lo     int
 }
 
+// walk returns the walk in use, the innermost one in progress.
+func (p *Parser) walk() *skipWalk { return &p.skips[p.skipN-1] }
+
 // SkipBegin starts a walk of the site at the current position.
-func (p *Parser) SkipBegin(site int) {
-	w := &p.skip
+func (p *Parser) SkipBegin(site int) { p.skipBegin(site, false) }
+
+// SkipBeginList starts a walk of the site, whose iterations have values (SkipValue) that SkipEndList
+// gathers in a list.
+func (p *Parser) SkipBeginList(site int) { p.skipBegin(site, true) }
+
+func (p *Parser) skipBegin(site int, build bool) {
+	if p.skipN == len(p.skips) {
+		p.skips = append(p.skips, skipWalk{})
+	}
+	p.skipN++
+	w := p.walk()
+	w.build, w.placed, w.vals = build, false, w.vals[:0]
 	w.on = !SkipRecordsOff && p.Missing == nil
 	if !w.on {
 		return
@@ -190,9 +266,19 @@ func (p *Parser) SkipBegin(site int) {
 	w.visits, w.recording, w.prevOK, w.open, w.hitOK = w.visits[:0], false, false, false, false
 }
 
+// SkipValue adds the value of the iteration that matched. Nodes in records are shared by the lists
+// that reuse them, so a node that the rule that made it may still change is final from here.
+func (p *Parser) SkipValue(v *value.Node) {
+	w := p.walk()
+	if v != nil {
+		value.D(v).Fresh = false
+	}
+	w.vals = append(w.vals, v)
+}
+
 // skipTable returns the slots of the walk, making them.
 func (p *Parser) skipTable() *skipSlots {
-	w := &p.skip
+	w := p.walk()
 	if w.slots == nil {
 		if w.table >= len(p.skipTables) {
 			p.skipTables = append(p.skipTables, make([]*skipSlots, w.table+1-len(p.skipTables))...)
@@ -205,9 +291,9 @@ func (p *Parser) skipTable() *skipSlots {
 
 // skipMarkPrev marks the position of the last iteration of a plain walk, which matched.
 func (p *Parser) skipMarkPrev() {
-	w := &p.skip
+	w := p.walk()
 	if w.prevOK {
-		p.skipTable().put(w.prev, skipRecord{state: skipVisited})
+		p.skipTable().put(w.prev, w.prevEnv, skipRecord{state: skipVisited})
 		w.prevOK = false
 	}
 }
@@ -215,7 +301,7 @@ func (p *Parser) skipMarkPrev() {
 // skipRecording reports whether the walk records from the current position on, which it starts
 // to at the first position that is not fresh.
 func (p *Parser) skipRecording() bool {
-	w := &p.skip
+	w := p.walk()
 	if !w.recording && w.slots.marked(p.Pos) && SkipRecordMutation != SkipNeverRecord {
 		p.skipMarkPrev()
 		w.recording = true
@@ -227,13 +313,13 @@ func (p *Parser) skipRecording() bool {
 // recording walk, reports whether the current position has a record, which it then reuses. The
 // walk then stops.
 func (p *Parser) SkipHit() bool {
-	w := &p.skip
+	w := p.walk()
 	if !w.on || !p.skipRecording() {
 		return false
 	}
 	p.skipClose()
 	p.Spend()
-	r := w.slots.get(p.Pos)
+	r := w.slots.get(p.Pos, p.Env)
 	if r.state != skipRecorded {
 		return false
 	}
@@ -245,6 +331,10 @@ func (p *Parser) SkipHit() bool {
 	p.lw = Min2(p.lw, r.from)
 	p.MergeExpected(r.far, r.exp)
 	p.Pos = r.end
+	p.Env = r.env
+	for c := r.errs; c != nil; c = c.next {
+		p.Recovered = AppendSpend(p, p.Recovered, c.errs)
+	}
 	w.hit, w.hitOK = r, true
 	return true
 }
@@ -253,17 +343,17 @@ func (p *Parser) SkipHit() bool {
 // the iteration before, which matched, visited; in a recording walk it ends the iteration before
 // and isolates this one.
 func (p *Parser) SkipVisit() {
-	w := &p.skip
+	w := p.walk()
 	if !w.on {
 		return
 	}
 	if !p.skipRecording() {
 		p.skipMarkPrev()
-		w.prev, w.prevOK = p.Pos, true
+		w.prev, w.prevEnv, w.prevOK = p.Pos, p.Env, true
 		return
 	}
 	p.skipClose()
-	w.visits = append(w.visits, skipVisit{pos: p.Pos})
+	w.visits = append(w.visits, skipVisit{pos: p.Pos, env: p.Env, vi: len(w.vals), e0: len(p.Recovered)})
 	w.open, w.savedHW, w.savedLW = true, p.Hw, p.lw
 	p.Hw, p.lw = p.Pos, p.Pos
 	w.mk = p.Isolate(p.Pos)
@@ -272,7 +362,7 @@ func (p *Parser) SkipVisit() {
 // skipClose ends the running iteration, if any: it keeps its expectations and examined range and
 // records them as usual.
 func (p *Parser) skipClose() {
-	w := &p.skip
+	w := p.walk()
 	if !w.open {
 		return
 	}
@@ -282,15 +372,55 @@ func (p *Parser) skipClose() {
 	v.far, v.exp = far, p.Keep(inner)
 	p.MergeExpected(far, inner)
 	v.from, v.examined = p.lw, p.Hw
+	if len(p.Recovered) > v.e0 {
+		v.errs = append([]*SyntaxError(nil), p.Recovered[v.e0:]...)
+		p.skipBytes += uint64(len(v.errs)) * ptrBytes
+	}
 	p.Hw, p.lw = max(w.savedHW, p.Hw), Min2(w.savedLW, p.lw)
 	if SkipRecordMutation == SkipEarlyStore {
-		p.skipTable().put(v.pos, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded})
+		p.skipTable().put(v.pos, v.env, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, env: p.Env})
 	}
 }
 
 // SkipEnd ends the walk and records the rest of it from each position it visited recording.
 func (p *Parser) SkipEnd() {
-	w := &p.skip
+	p.skipEnd()
+	p.walk().vals = p.walk().vals[:0]
+	p.skipN--
+}
+
+// SkipEndList ends a walk begun with SkipBeginList as SkipEnd does, and returns the list node of
+// the values of its iterations for the range from start to the current position, or nil if build
+// is false. The list may share its elements with the lists of other walks. Clearing the gathered
+// values is charged if chargeClear is set, as the closure backend charges clearing its element stack;
+// the bytecode machine pops its elements uncharged.
+func (p *Parser) SkipEndList(start int, build, chargeClear bool) *value.Node {
+	p.skipEnd()
+	w := p.walk()
+	var kids []*value.Node
+	if build {
+		if w.placed {
+			kids = w.buf.a[w.lo:len(w.buf.a):len(w.buf.a)]
+		} else {
+			kids = p.Nodes(len(w.vals))
+			CopySpend(p, kids, w.vals)
+		}
+	}
+	if chargeClear {
+		ClearSpend(p, w.vals)
+	} else {
+		clear(w.vals)
+	}
+	w.vals, w.buf = w.vals[:0], nil
+	p.skipN--
+	if !build {
+		return nil
+	}
+	return p.NewNode(value.Data{Kind: value.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+}
+
+func (p *Parser) skipEnd() {
+	w := p.walk()
 	if !w.on {
 		return
 	}
@@ -301,7 +431,16 @@ func (p *Parser) SkipEnd() {
 		return
 	}
 	vs := w.visits
+	endEnv := p.Env
 	var next skipRecord
+	var tail valSuffix
+	if w.hitOK {
+		endEnv, tail = w.hit.env, w.hit.vals
+	}
+	if w.build && (len(vs) > 0 || w.hitOK) {
+		w.buf, w.lo = p.placeVals(w.vals, tail)
+		w.placed = true
+	}
 	switch {
 	case w.hitOK:
 		next = w.hit
@@ -309,22 +448,69 @@ func (p *Parser) SkipEnd() {
 		// The last iteration failed or matched nothing: the walk ended at its start.
 		v := vs[len(vs)-1]
 		vs = vs[:len(vs)-1]
-		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded}
-		p.skipPut(v.pos, next)
+		next = skipRecord{end: v.pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, env: endEnv}
+		p.skipLink(w, &next, v, nil)
+		p.skipPut(v.pos, v.env, next)
 	}
 	for i := len(vs) - 1; i >= 0; i-- {
 		v := vs[i]
-		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: Min2(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded}
+		r := skipRecord{end: next.end, far: next.far, exp: next.exp, from: Min2(v.from, next.from), examined: max(v.examined, next.examined), state: skipRecorded, env: endEnv}
 		switch {
 		case v.far > next.far:
 			r.far, r.exp = v.far, v.exp
 		case v.far == next.far:
 			r.exp = mergeExp(v.exp, next.exp)
 		}
-		p.skipPut(v.pos, r)
+		p.skipLink(w, &r, v, next.errs)
+		p.skipPut(v.pos, v.env, r)
 		next = r
 	}
 	w.visits = vs[:0]
+}
+
+// skipLink sets the elements and errors of the record r of the visit v: the elements of the walk
+// from the iteration on, and the errors of the iteration before those of the rest, rest.
+func (p *Parser) skipLink(w *skipWalk, r *skipRecord, v skipVisit, rest *skipErrs) {
+	if i := w.lo + v.vi; w.placed && i < len(w.buf.a) {
+		r.vals = valSuffix{w.buf, i} // (an empty suffix keeps nothing alive)
+	}
+	r.errs = rest
+	if len(v.errs) > 0 {
+		r.errs = &skipErrs{errs: v.errs, next: rest}
+		p.skipBytes += uint64(unsafe.Sizeof(skipErrs{}))
+	}
+}
+
+// placeVals returns a buffer and an index in it from which vals, then the elements of tail, are
+// laid out. It writes vals in place before the tail where the buffer has room there that no record
+// refers to, and otherwise copies the tail with room to spare, so that a walk that goes on to
+// reach a record again finds it.
+func (p *Parser) placeVals(vals []*value.Node, tail valSuffix) (*valBuf, int) {
+	n := len(vals)
+	if n == 0 && tail.buf != nil {
+		return tail.buf, tail.i
+	}
+	tl := 0
+	if tail.buf != nil {
+		tl = len(tail.buf.a) - tail.i
+		if tail.i == tail.buf.lo && tail.i >= n {
+			b := tail.buf
+			CopySpend(p, b.a[tail.i-n:tail.i], vals)
+			b.lo = tail.i - n
+			return b, b.lo
+		}
+	}
+	slack := 0
+	if tl > 0 {
+		slack = n + tl
+	}
+	a := make([]*value.Node, slack+n+tl)
+	p.skipBytes += uint64(len(a)) * ptrBytes
+	CopySpend(p, a[slack:], vals)
+	if tl > 0 {
+		CopySpend(p, a[slack+n:], tail.buf.a[tail.i:])
+	}
+	return &valBuf{a: a, lo: slack}, slack
 }
 
 // mergeExp returns the expectations a, then those of b not in a.
@@ -352,9 +538,9 @@ func mergeExp(a, b []ExpID) []ExpID {
 }
 
 // skipPut stores the record r of the position pos in the slots of the walk.
-func (p *Parser) skipPut(pos int, r skipRecord) {
+func (p *Parser) skipPut(pos int, env *Env, r skipRecord) {
 	p.Spend()
-	p.skipTable().put(pos, r)
+	p.skipTable().put(pos, env, r)
 }
 
 // PruneSkipRecords drops the records of the positions before pos, where a stream that committed
