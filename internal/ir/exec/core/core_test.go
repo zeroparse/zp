@@ -24,11 +24,30 @@ func TestGoRuntimeCurrent(t *testing.T) {
 	}
 }
 
+// TestGoStreamCurrent checks that the printed stream compositions in the Go runtime are those the
+// compositions print now.
+func TestGoStreamCurrent(t *testing.T) {
+	want, err := GoStream()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(GoStreamFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core ./gen", GoStreamFile)
+	}
+}
+
 // TestSpecializationsVerify checks that every operation the compositions call is declared,
 // and that the functions verify for every specialization a target prints.
 func TestSpecializationsVerify(t *testing.T) {
 	m := Build()
 	if _, err := GoRuntime(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GoStream(); err != nil {
 		t.Fatal(err)
 	}
 	ms, err := TSMethods()

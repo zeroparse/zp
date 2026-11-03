@@ -45,6 +45,11 @@ component growth
   // what the calls in their contexts depend on, and the tables of the results kept in each context (the
   // dependency memo).
 
+component window
+  // The window of a stream parse: the input read and kept, the callback that receives the
+  // elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
+  // delivered elements held.
+
 register pos int
   // The position of the parse in the input.
 
@@ -745,3 +750,115 @@ transitional op call.body(r Rule, min int) (Value, bool)
   contract:
     // Calls the rule at the binding level min without observation: the call, or the plain invocation,
     // that the target's observed function wraps.
+
+transitional op stream.emits() bool
+  component window
+  reads window
+  features stream
+  cost <= 0
+  contract:
+    // Reports whether the parse delivers the elements of a #stream repetition to a callback.
+
+transitional op stream.start() int
+  component window
+  reads window
+  features stream
+  cost <= 0
+  contract:
+    // Returns the id of the start rule of the stream parse.
+  requires:
+    // The parse delivers elements (stream.emits).
+
+transitional op stream.check()
+  component budget
+  reads budget
+  writes budget
+  features stream
+  noreturn
+  cost <= 0
+  contract:
+    // Observes cancellation and the limits of the parse at a stream boundary, and ends the parse with
+    // the interruption that applies.
+
+transitional op stream.report()
+  component window
+  reads window
+  writes window
+  features stream
+  noreturn
+  cost <= 0
+  contract:
+    // Delivers the recovered errors committed since the last report to the diagnostic callback and the
+    // retained tail. An error of the callback ends the parse with it, before the element is delivered.
+
+transitional op stream.deliver(v Value)
+  component window
+  reads window
+  writes window
+  features stream
+  noreturn
+  cost <= 0
+  contract:
+    // Passes the element v, nil for a value-free repetition, to the callback; v is final from then on.
+    // An error of the callback ends the parse unchanged.
+  requires:
+    // The parse delivers elements.
+
+transitional op stream.discard(keep int)
+  component window
+  reads window
+  writes window
+  features stream
+  cost <= 0
+  contract:
+    // Discards the input before keep, when at least half of the buffer can go; later reads before keep
+    // are not supported. The line and column of the new base are kept.
+
+transitional op stream.release()
+  component window
+  reads window
+  writes window
+  features stream
+  cost <= 0
+  contract:
+    // Releases what the elements committed so far held: the trail, the capture frames and the node
+    // chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
+  requires:
+    // Every call of the delivered elements has returned.
+
+transitional op stream.pruned() int
+  component window
+  reads window
+  features stream
+  cost <= 0
+  contract:
+    // Returns the position up to which the memo and the records of the parse were pruned.
+
+transitional op stream.prune(pos int)
+  component window
+  reads window
+  writes window
+  features stream
+  cost <= 0
+  contract:
+    // Discards the memo entries and the records of the parse before pos, which no later call can look
+    // up, and remembers pos as the pruned position.
+
+transitional op stream.tail() bool
+  component window
+  reads window
+  features stream
+  cost <= 0
+  contract:
+    // Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).
+
+transitional op stream.settleErrors()
+  component window
+  reads window
+  writes window
+  features stream
+  cost <= 0
+  contract:
+    // Forgets the recovered errors before the boundary, which were delivered and collected.
+  requires:
+    // The parse retains the tail (stream.tail).

@@ -15,6 +15,9 @@ const (
 	Obs = "observe"
 	// Growth is the left-recursion growths in progress and the dependency memo of their contexts.
 	Growth = "growth"
+	// Win is the window of a stream parse: the input read and kept, the elements delivered and the
+	// memory the delivered elements held.
+	Win = "window"
 )
 
 // Names of the handle types of the transitional operations.
@@ -54,6 +57,10 @@ Documents and observation, and the work charged per call.`)
 	m.AddComponent(Growth, `The left-recursion growths in progress with their seeds, the frames that record
 what the calls in their contexts depend on, and the tables of the results kept in each context (the
 dependency memo).`)
+
+	m.AddComponent(Win, `The window of a stream parse: the input read and kept, the callback that receives the
+elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
+delivered elements held.`)
 
 	rule := m.AddHandle(Rule, Rules, "A rule's descriptor.")
 	body := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
@@ -294,4 +301,48 @@ with e.`, Requires: `The parse reads a Document, and e has a record (memo.record
 		NoReturn: true,
 		Contract: `Calls the rule at the binding level min without observation: the call, or the plain invocation,
 that the target's observed function wraps.`})
+
+	// The operations of stream delivery and commitment.
+	stream := []string{Stream}
+	add(&exec.Op{Name: "stream.emits", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
+		Features: stream,
+		Contract: `Reports whether the parse delivers the elements of a #stream repetition to a callback.`})
+	add(&exec.Op{Name: "stream.start", Component: Win, Results: []exec.Type{exec.TInt}, Reads: []string{Win},
+		Features: stream, Contract: `Returns the id of the start rule of the stream parse.`,
+		Requires: `The parse delivers elements (stream.emits).`})
+	add(&exec.Op{Name: "stream.check", Component: Bud, Reads: []string{Bud}, Writes: []string{Bud}, Features: stream,
+		NoReturn: true,
+		Contract: `Observes cancellation and the limits of the parse at a stream boundary, and ends the parse with
+the interruption that applies.`})
+	add(&exec.Op{Name: "stream.report", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		NoReturn: true,
+		Contract: `Delivers the recovered errors committed since the last report to the diagnostic callback and the
+retained tail. An error of the callback ends the parse with it, before the element is delivered.`})
+	add(&exec.Op{Name: "stream.deliver", Component: Win, Params: []exec.Param{exec.P("v", value)},
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream, NoReturn: true,
+		Contract: `Passes the element v, nil for a value-free repetition, to the callback; v is final from then on.
+An error of the callback ends the parse unchanged.`,
+		Requires: `The parse delivers elements.`})
+	add(&exec.Op{Name: "stream.discard", Component: Win, Params: []exec.Param{exec.P("keep", exec.TInt)},
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Contract: `Discards the input before keep, when at least half of the buffer can go; later reads before keep
+are not supported. The line and column of the new base are kept.`})
+	add(&exec.Op{Name: "stream.release", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Contract: `Releases what the elements committed so far held: the trail, the capture frames and the node
+chunks that no active call refers to, so that a delivered element is not kept alive through the parser.`,
+		Requires: `Every call of the delivered elements has returned.`})
+	add(&exec.Op{Name: "stream.pruned", Component: Win, Results: []exec.Type{exec.TInt}, Reads: []string{Win},
+		Features: stream,
+		Contract: `Returns the position up to which the memo and the records of the parse were pruned.`})
+	add(&exec.Op{Name: "stream.prune", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Contract: `Discards the memo entries and the records of the parse before pos, which no later call can look
+up, and remembers pos as the pruned position.`})
+	add(&exec.Op{Name: "stream.tail", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
+		Features: stream,
+		Contract: `Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).`})
+	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
+		Features: stream,
+		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected.`,
+		Requires: `The parse retains the tail (stream.tail).`})
 }

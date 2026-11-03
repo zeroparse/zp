@@ -195,29 +195,28 @@ func (p *Parser) StreamStart() {
 	p.memUsed = 0
 }
 
-// EmitStream passes a committed element of the start rule's #stream
-// repetition to the caller and commits the input before end. Elements are
-// final once emitted: a caller error ends the parse unchanged.
-func (p *Parser) EmitStream(v *Node, end int) {
-	p.Control.Check()
+// streamReport delivers the recovered errors committed since the last report; an error of the
+// diagnostic callback ends the parse with it, before the element is delivered.
+func (p *Parser) streamReport() {
 	if err := p.reportRecovered(); err != nil {
-		panic(fatal{err}) // the element is not emitted
+		panic(fatal{err})
 	}
+}
+
+// streamDeliver passes the element v to the callback of the stream parse; v is final from then on,
+// and a callback error ends the parse unchanged.
+func (p *Parser) streamDeliver(v *Node) {
 	if v != nil {
 		v.RawFresh = false
 	}
 	if err := p.Stream.Emit(v, p.Control); err != nil {
 		panic(fatal{err})
 	}
-	p.Control.Check()
-	p.streamCommit(end)
 }
 
-// streamCommit makes it final that the parse never backtracks before pos. The
-// preceding unit is kept for detecting line starts.
-func (p *Parser) streamCommit(pos int) {
+// streamRelease releases what the committed elements held, for streamCommit.
+func (p *Parser) streamRelease() {
 	s := p.Stream
-	p.streamDiscard(pos - 1)
 	p.Trail = p.Trail[:0]
 	// Capture frames are referenced only by active calls, and the elements'
 	// calls have returned, so the frames allocated since the repetition
@@ -247,32 +246,39 @@ func (p *Parser) streamCommit(pos int) {
 			}
 		}
 	}
-	if pos-s.pruned >= 1024 {
-		// Completed calls may have shortened the trail before the commit;
-		// its inactive capacity can still refer to committed elements.
-		clear(p.Trail[:cap(p.Trail)])
-		p.pruneStreamMemo(pos)
-		p.pruneSkipRecords(pos)
-		p.Observation.dropDiscarded(pos)
-		s.pruned = pos
+}
+
+// streamPrune discards the memo entries and the records before pos, which no later call can look up,
+// for streamCommit.
+func (p *Parser) streamPrune(pos int) {
+	s := p.Stream
+	// Completed calls may have shortened the trail before the commit;
+	// its inactive capacity can still refer to committed elements.
+	clear(p.Trail[:cap(p.Trail)])
+	p.pruneStreamMemo(pos)
+	p.pruneSkipRecords(pos)
+	p.Observation.dropDiscarded(pos)
+	s.pruned = pos
+}
+
+// streamSettleErrors forgets the recovered errors before the boundary, for streamCommit.
+func (p *Parser) streamSettleErrors() {
+	s := p.Stream
+	// The recovered errors before the boundary were delivered and
+	// collected, and no active call restores a longer prefix of them:
+	// the start rule's call saved an empty one, and the element marks
+	// are no longer active. Memo entries own copies of their lists.
+	if cap(p.Recovered) <= streamRecoveryScratchMax {
+		clear(p.Recovered[:cap(p.Recovered)])
+		p.Recovered = p.Recovered[:0]
+	} else {
+		p.Recovered = nil
 	}
-	if s.tail.limit > 0 {
-		// The recovered errors before the boundary were delivered and
-		// collected, and no active call restores a longer prefix of them:
-		// the start rule's call saved an empty one, and the element marks
-		// are no longer active. Memo entries own copies of their lists.
-		if cap(p.Recovered) <= streamRecoveryScratchMax {
-			clear(p.Recovered[:cap(p.Recovered)])
-			p.Recovered = p.Recovered[:0]
-		} else {
-			p.Recovered = nil
-		}
-		s.diagnosed = 0
-		if p.Control != nil {
-			// With a diagnostic limit, the errors are now held by the tail, which counts
-			// those it keeps; without one, Recovered keeps them and errs keeps counting them.
-			p.Control.errs = 0
-		}
+	s.diagnosed = 0
+	if p.Control != nil {
+		// With a diagnostic limit, the errors are now held by the tail, which counts
+		// those it keeps; without one, Recovered keeps them and errs keeps counting them.
+		p.Control.errs = 0
 	}
 }
 
@@ -814,12 +820,3 @@ func (p *Parser) streamLineCol(pos int) (int, int) {
 //
 // NewStreamIterator is for generated parsers; not a stable API.
 func NewStreamIterator(pull *StreamPull[*Node]) *StreamIterator { return &StreamIterator{pull} }
-
-// StreamsIn reports whether the #stream repetition of the rule id streams: the parse is a stream
-// parse with a callback, the rule is its start rule, and the rule runs at the top (a recursive
-// rule counts its entries, so its outermost entry is the first; any other rule is entered once).
-//
-// StreamsIn is for generated parsers; not a stable API.
-func (p *Parser) StreamsIn(id int, rec bool) bool {
-	return p.Stream != nil && p.Stream.Emit != nil && p.Stream.start == id && (!rec || p.Depth == 1)
-}

@@ -28,6 +28,9 @@ const (
 	typedDoc
 )
 
+// streamPruneWindow is the number of positions that a stream commits between prunings of the memo.
+const streamPruneWindow = 1024
+
 // Build returns the module of the operations and the compositions, verified.
 func Build() *Module {
 	m := ops.Pilot()
@@ -314,6 +317,44 @@ call after.`
 	})
 	trackedCall.Doc = `tracked is a rule call in an observed or Document parse: the observed call in an observed parse,
 and otherwise the call without observation.`
+
+	// The stream compositions: delivery and commitment.
+	streamCommit := m.AddFunc("streamCommit", []Param{P("pos", TInt)}, nil, []string{ops.Stream}, func(b *Builder) {
+		pos := L("pos")
+		// The preceding unit is kept for detecting line starts.
+		b.Do("stream.discard", Bin("-", pos, Int(1)))
+		b.Do("stream.release")
+		// Pruning scans the memo, so it runs once the committed prefix has grown by a window.
+		b.If(Bin(">=", Bin("-", pos, C("stream.pruned")), Int(streamPruneWindow)), func(b *Builder) {
+			b.Do("stream.prune", pos)
+		})
+		b.If(C("stream.tail"), func(b *Builder) { b.Do("stream.settleErrors") })
+	})
+	streamCommit.Doc = `streamCommit makes it final that the parse never backtracks before pos: the input before pos - 1
+is discarded (the preceding unit stays for detecting line starts), the memory the committed elements
+held is released, and the memo and the records before pos are pruned once at least a window of
+input was committed since the last pruning.`
+	streamEmit := m.AddFunc("streamEmit", []Param{P("v", value), P("end", TInt)}, nil, []string{ops.Stream}, func(b *Builder) {
+		b.Do("stream.check")
+		b.Do("stream.report")
+		b.Do("stream.deliver", L("v"))
+		b.Do("stream.check")
+		b.Do("streamCommit", L("end"))
+	})
+	streamEmit.Doc = `streamEmit passes a committed element v of the start rule's #stream repetition to the caller and
+commits the input before end. The recovered errors committed so far are reported first, so that an
+error of the diagnostic callback ends the parse before the element is delivered. Elements are final
+once emitted: a caller error ends the parse unchanged.`
+	streamsIn := m.AddFunc("streamsIn", []Param{P("id", TInt), P("rec", TBool)}, []Type{TBool}, []string{ops.Stream}, func(b *Builder) {
+		b.Return(And(And(C("stream.emits"), Eq(C("stream.start"), L("id"))),
+			Bin("||", Not(L("rec")), Eq(C("depth.current"), Int(1)))))
+	})
+	streamsIn.Doc = `streamsIn reports whether the #stream repetition of the rule id streams: the parse delivers
+elements, the rule is its start rule, and the rule runs at the top (a recursive rule counts its entries,
+so its outermost entry is the first; any other rule is entered once).
+
+streamsIn is for generated parsers; not a stable API.`
+
 	if err := Verify(m); err != nil {
 		panic(err)
 	}
