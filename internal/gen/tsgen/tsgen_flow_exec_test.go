@@ -11,15 +11,15 @@ import (
 )
 
 // execGenerate generates the TypeScript parser of the grammar source with the options, joined into
-// one text, with the functions printed from Flow IR printed from Exec IR if exec, and returns the
-// number of those functions, or reports false if the generator rejects the grammar.
-func execGenerate(src string, opts gen.GenOptions, exec bool) (string, int, bool) {
+// one text, and returns the number of the functions printed from Exec IR, or reports false if the
+// generator rejects the grammar.
+func execGenerate(src string, opts gen.GenOptions) (string, int, bool) {
 	g, err := parseTest(src)
 	if err != nil {
 		return "", 0, false
 	}
 	n := 0
-	h := &tsgen.Hooks{ExecRoute: exec, Generator: func(x *tsgen.Generator) { n = x.ExecFuncs }}
+	h := &tsgen.Hooks{Generator: func(x *tsgen.Generator) { n = x.ExecFuncs }}
 	files, err := tsgen.GenerateParser(g, compileForGenerator, opts, h)
 	if err != nil {
 		return "", 0, false
@@ -32,9 +32,10 @@ func execGenerate(src string, opts gen.GenOptions, exec bool) (string, int, bool
 	return b.String(), n, true
 }
 
-// TestExecRoutePrintsTheSame checks that every corpus grammar generates the same TypeScript with the
-// functions printed from Flow IR printed from Exec IR, in each mode that changes how they print.
-func TestExecRoutePrintsTheSame(t *testing.T) {
+// TestExecRoutePrintsEveryFunction checks that every corpus grammar generates TypeScript, in each
+// mode that changes how functions print, and that the functions print from Exec IR. The code is
+// pinned by the goldens of the generator tests.
+func TestExecRoutePrintsEveryFunction(t *testing.T) {
 	t.Parallel()
 	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	modes := []struct {
@@ -53,22 +54,14 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 			t.Parallel()
 			compared, routed := 0, 0
 			for _, gc := range cases {
-				want, _, ok := execGenerate(gc.Src, mode.opts, false)
+				_, n, ok := execGenerate(gc.Src, mode.opts)
 				if !ok {
-					continue
-				}
-				got, n, ok := execGenerate(gc.Src, mode.opts, true)
-				if !ok {
-					t.Errorf("%s: rejected from Exec IR", gc.Name)
 					continue
 				}
 				compared++
 				routed += n
-				if got != want {
-					t.Errorf("%s: the code from Exec IR differs:\n%s", gc.Name, firstDiff(want, got))
-				}
 			}
-			t.Logf("compared %d grammars; %d functions printed from Exec IR", compared, routed)
+			t.Logf("generated %d grammars; %d functions printed from Exec IR", compared, routed)
 			if compared < gentest.ScaleFloor(100) {
 				t.Errorf("compared %d grammars", compared)
 			}
@@ -77,29 +70,4 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 			}
 		})
 	}
-}
-
-// firstDiff returns the lines around the first difference of a and b.
-func firstDiff(a, b string) string {
-	al, bl := strings.Split(a, "\n"), strings.Split(b, "\n")
-	i := 0
-	for i < len(al) && i < len(bl) && al[i] == bl[i] {
-		i++
-	}
-	var out strings.Builder
-	for k := max(0, i-8); k < i+8; k++ {
-		x, y := "", ""
-		if k < len(al) {
-			x = al[k]
-		}
-		if k < len(bl) {
-			y = bl[k]
-		}
-		mark := " "
-		if x != y {
-			mark = "!"
-		}
-		fmt.Fprintf(&out, "%s %-60s | %s\n", mark, x, y)
-	}
-	return out.String()
 }

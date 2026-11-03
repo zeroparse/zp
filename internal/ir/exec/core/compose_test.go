@@ -16,8 +16,7 @@ import (
 // the pilot operations (ref.Model) and a model of the transitional ones written from their
 // contracts, with rules whose bodies the tests script. They check the contracts of the compositions
 // (what a call leaves in the parser state, what it charges, which entries it reuses) without a
-// generated parser, so that they hold in a run without the Exec IR switch, and where a generated
-// parser cannot tell (it restores the position after a failed call itself).
+// generated parser, and where a generated parser cannot tell (it restores the position after a failed call itself).
 
 // trule is a rule of the model: its flags and its scripted body, which runs at the position of the
 // machine and returns the value and success of the body.

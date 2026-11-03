@@ -52,9 +52,6 @@ func Generate(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions) ([]gen.Ge
 
 // Hooks change how GenerateParser generates, for tests.
 type Hooks struct {
-	// ExecRoute prints the functions that the Exec IR switch routes through Exec IR that way even
-	// with the switch off (core.Enabled), so that a test compares the code of both routes.
-	ExecRoute bool
 	// Generator, if not nil, is called with the generator once it has generated.
 	Generator func(*Generator)
 }
@@ -112,7 +109,6 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	newGen := func(live *tsLive) (*Generator, error) {
 		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing || !opts.EnableTSLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
-		tsg.execHook = h.ExecRoute
 		tsg.optionsType = "ParseOptions"
 		if !opts.LimitControls {
 			tsg.optionsType = "PlainParseOptions"
@@ -441,8 +437,6 @@ type Generator struct {
 	reachErr error
 	// printed holds, for each table, the rules that the printed code of each rule calls (by ID).
 	printed map[string]map[int][]int
-	// execHook routes the functions of execRoute through Exec IR with the switch off (Hooks).
-	execHook bool
 	// ExecFuncs counts the functions printed from Exec IR (execRoute).
 	ExecFuncs int
 }

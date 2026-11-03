@@ -81,9 +81,6 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// ExecRoute prints the functions that the Exec IR switch routes through Exec IR that way even
-	// with the switch off (core.Enabled), so that a test compares the code of both routes.
-	ExecRoute bool
 }
 
 // GenerateParser generates the files of Generate (other than for RuntimeOnly). It generates twice: the

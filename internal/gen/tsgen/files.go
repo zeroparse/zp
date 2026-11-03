@@ -43,13 +43,11 @@ var tsPublicControls = strings.Fields(`CancellationSignal`)
 // observation code, as one module that exports every declaration the generated code uses.
 var TsRuntimeText = sync.OnceValue(func() string {
 	src := tsRuntimeSource
-	if core.Enabled {
-		ms, err := core.TSMethods()
-		if err != nil {
-			panic(err)
-		}
-		src = substituteMethods(src, ms)
+	ms, err := core.TSMethods()
+	if err != nil {
+		panic(err)
 	}
+	src = substituteMethods(src, ms)
 	i := strings.Index(src, tsRuntimeMarker)
 	var b strings.Builder
 	b.WriteString(TsGeneratedHeader())

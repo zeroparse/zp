@@ -97,11 +97,7 @@ func (g *Generator) flowFunc(f *flow.Func, slots []core.Slot, scope *compile.Sco
 	var body string
 	var vars []string
 	var decls []tsDecl
-	if g.execRoute() {
-		body, vars, decls = g.printTSFlowExec(f)
-	} else {
-		body, vars, decls = g.printTSFlow(f)
-	}
+	body, vars, decls = g.printTSFlowExec(f)
 	var b strings.Builder
 	for _, v := range vars {
 		b.WriteString(v)
@@ -232,88 +228,6 @@ func tsSharedKey(code string, decls []tsDecl) string {
 // tsDecl is a package-level constant of a printed function.
 type tsDecl struct{ name, text string }
 
-// printTSFlow returns the statements of the function f, ending with its return, and the variables
-// the statements declare.
-func (g *Generator) printTSFlow(f *flow.Func) (string, []string, []tsDecl) {
-	parts := map[*flow.Var]*[4]*flow.Var{}
-	var reads map[*flow.Var]bool
-	for i := 0; ; i++ {
-		p := &tsFlowPrinter{g: g, parts: parts, dry: true, reads: reads, next: map[*flow.Var]bool{}, assigned: map[*flow.Var]bool{}, used: map[*flow.Label]bool{}, labels: map[*flow.Label]string{}}
-		p.function(f)
-		if len(p.next) == len(reads) && reads != nil || i > 8 {
-			break
-		}
-		reads = p.next
-	}
-	if reads == nil {
-		reads = map[*flow.Var]bool{}
-	}
-	p := &tsFlowPrinter{g: g, parts: parts, reads: reads, next: map[*flow.Var]bool{}, assigned: map[*flow.Var]bool{}, used: map[*flow.Label]bool{}, labels: map[*flow.Label]string{}}
-	p.function(f)
-	if p.next[f.Start] || p.next[f.Ctx] {
-		panic(tsFlowUnsupported("the start or the context of a value-free rule"))
-	}
-	var vars []string
-	for _, v := range f.Vars {
-		if v.Entry {
-			continue
-		}
-		if v.Type == flow.TypeMark {
-			// A mark of the whole parser state is four variables, declared as far as they are read.
-			if ps := parts[v]; ps != nil {
-				for i, part := range ps {
-					if p.next[part] {
-						vars = append(vars, fmt.Sprintf("  let %s%s = %s;\n", v.Name, tsMarkParts[i], tsMarkZero[i]))
-					}
-				}
-			}
-			continue
-		}
-		if p.next[v] {
-			if typ := tsFlowType(v.Type); typ == "number" || typ == "boolean" {
-				// The initial value gives the type.
-				vars = append(vars, fmt.Sprintf("  let %s = %s;\n", v.Name, tsFlowZero(v.Type)))
-			} else {
-				vars = append(vars, fmt.Sprintf("  let %s: %s = %s;\n", v.Name, typ, tsFlowZero(v.Type)))
-			}
-		}
-	}
-	return p.b.String(), vars, p.decls
-}
-
-func (p *tsFlowPrinter) function(f *flow.Func) {
-	p.stmts(f.Body)
-	publish := func(b *strings.Builder) {
-		if f.Cut != nil {
-			p.next[f.Cut] = true
-			b.WriteString("p.cut = " + f.Cut.Name + ";\n")
-		}
-	}
-	var inner strings.Builder
-	if !p.dead {
-		switch {
-		case f.Frame:
-			p.read(f.Value)
-			publish(&inner)
-			inner.WriteString("return " + p.expr(f.Value) + ";\n")
-		default:
-			inner.WriteString("return null;\n")
-		}
-	}
-	if p.used[f.Fail] {
-		body := p.b.String()
-		p.b.Reset()
-		var fail strings.Builder
-		if f.Frame {
-			publish(&fail)
-		}
-		fail.WriteString("return undefined;\n")
-		fmt.Fprintf(&p.b, "%s: {\n%s%s}\n%s", p.label(f.Fail), indent(body), indent(inner.String()), fail.String())
-	} else {
-		p.b.WriteString(inner.String())
-	}
-}
-
 func (p *tsFlowPrinter) label(l *flow.Label) string {
 	if n, ok := p.labels[l]; ok {
 		return n
@@ -349,58 +263,6 @@ func (p *tsFlowPrinter) read(xs ...flow.Expr) {
 	}
 }
 
-func (p *tsFlowPrinter) stmts(ss []flow.Stmt) {
-	for i := 0; i < len(ss); i++ {
-		if _, step := ss[i].(*flow.Step); step {
-			// Consecutive charges are one.
-			n := 1
-			for i+n < len(ss) {
-				if _, next := ss[i+n].(*flow.Step); !next {
-					break
-				}
-				n++
-			}
-			p.write(tsSpend(n))
-			i += n - 1
-			continue
-		}
-		if i+1 < len(ss) && !p.dead && p.unisolateMerge(ss[i], ss[i+1]) {
-			i++
-			continue
-		}
-		p.stmt(ss[i])
-	}
-}
-
-// unisolateMerge prints the end of an expectation record whose body succeeded, an Unisolate followed
-// by the merge of its expectations into the enclosing record, as one call that merges them in place.
-// The two variables of the Unisolate are written again where the failed body ends the record, before
-// they are read, so skipping their assignment here is not observable. It reports whether it printed.
-func (p *tsFlowPrinter) unisolateMerge(a, b flow.Stmt) bool {
-	set, ok := a.(*flow.Set)
-	if !ok {
-		return false
-	}
-	u, ok := tsUnisolate(set)
-	if !ok {
-		return false
-	}
-	m, ok := b.(*flow.MergeExpected)
-	if !ok {
-		return false
-	}
-	far, _ := set.Dst[0].(*flow.Var)
-	ids, _ := set.Dst[1].(*flow.Var)
-	f, fok := m.Far.(*flow.Use)
-	e, eok := m.Exps.(*flow.Use)
-	if !fok || !eok || far == nil || ids == nil || f.V != far || e.V != ids {
-		return false
-	}
-	p.read(u.Mark)
-	p.write(fmt.Sprintf("p.unisolateMerge(%s);\n", p.expr(u.Mark)))
-	return true
-}
-
 // tsSpend returns the statement that charges n steps.
 func tsSpend(n int) string {
 	if n == 1 {
@@ -430,18 +292,6 @@ func tsFlowPure(x flow.Expr) bool {
 	return false
 }
 
-// scoped prints the statements of a construct with the label l into a buffer of their own and
-// reports whether l was exited to.
-func (p *tsFlowPrinter) scoped(body func()) string {
-	outer := p.b.String()
-	p.b.Reset()
-	body()
-	out := p.b.String()
-	p.b.Reset()
-	p.b.WriteString(outer)
-	return out
-}
-
 func indent(s string) string {
 	if s == "" {
 		return ""
@@ -459,61 +309,6 @@ func indent(s string) string {
 
 func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 	switch s := s.(type) {
-	case *flow.Block:
-		enter := p.dead
-		body := p.scoped(func() { p.stmts(s.Body) })
-		end := p.dead
-		p.dead = enter
-		if p.used[s.Label] {
-			p.write(fmt.Sprintf("%s: {\n%s}\n", p.label(s.Label), indent(body)))
-			p.dead = false
-		} else {
-			p.write(body)
-			p.dead = end
-		}
-	case *flow.Loop:
-		var head string
-		switch {
-		case s.Counter != nil:
-			n := s.Counter.Name
-			p.next[s.Counter] = true
-			head = fmt.Sprintf("for (%s = 0; %s < %d; %s++)", n, n, s.Max, n)
-		case s.While != nil:
-			p.read(s.While)
-			head = "while (" + p.expr(s.While) + ")"
-		default:
-			head = "for (;;)"
-		}
-		enter := p.dead
-		body := p.scoped(func() { p.stmts(s.Body) })
-		label := ""
-		if p.used[s.Label] {
-			label = p.label(s.Label) + ": "
-		}
-		if !enter && !p.dry {
-			p.b.WriteString(label + head + " {\n" + indent(body) + "}\n")
-		}
-		p.dead = enter || (s.While == nil && s.Counter == nil && !p.used[s.Label])
-	case *flow.If:
-		p.ifStmt(s)
-	case *flow.Exit:
-		if p.dead {
-			return
-		}
-		p.used[s.To] = true
-		p.write("break " + p.label(s.To) + ";\n")
-		p.dead = true
-	case *flow.Continue:
-		p.used[s.To] = true
-		p.write("continue " + p.label(s.To) + ";\n")
-		p.dead = true
-	case *flow.Set:
-		p.set(s)
-	case *flow.Inc:
-		// The increment's read of its variable does not keep the variable.
-		if p.isRead(s.V) {
-			p.write(s.V.Name + "++;\n")
-		}
 	case *flow.Step:
 		p.write(tsSpend(1))
 	case *flow.Silent:
@@ -585,8 +380,6 @@ func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 		}
 		p.readVar(p.part(m, 2))
 		p.write(fmt.Sprintf("p.trail.length = %sTrail;\n", m.Name))
-	case *flow.Comment:
-		p.write("// " + s.Text + "\n")
 	case *flow.SkipBegin:
 		p.write(fmt.Sprintf("p.skipBegin(%d);\n", s.Site))
 	case *flow.SkipVisit:
@@ -602,40 +395,6 @@ func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 	default:
 		panic(tsFlowUnsupported(fmt.Sprintf("statement %T", s)))
 	}
-}
-
-func (p *tsFlowPrinter) ifStmt(s *flow.If) {
-	dead := p.dead
-	var init, cond string
-	if call, v, ok := tsTestedCall(s); ok {
-		cond = p.testedCond(call, v)
-	} else {
-		if s.Init != nil {
-			init = p.setText(s.Init, true)
-		}
-		p.read(s.Cond)
-		cond = p.expr(s.Cond)
-	}
-	then := p.scoped(func() { p.stmts(s.Then) })
-	p.dead = dead
-	var els string
-	if len(s.Else) > 0 {
-		els = p.scoped(func() { p.stmts(s.Else) })
-		p.dead = dead
-	}
-	if dead || p.dry {
-		return
-	}
-	p.b.WriteString(init)
-	if els == "" && strings.Count(then, "\n") == 1 {
-		p.b.WriteString("if (" + cond + ") " + then) // one statement
-		return
-	}
-	p.b.WriteString("if (" + cond + ") {\n" + indent(then) + "}")
-	if els != "" {
-		p.b.WriteString(" else {\n" + indent(els) + "}")
-	}
-	p.b.WriteString("\n")
 }
 
 // testedCond returns the condition that the call, which has two results, fails: the call and its

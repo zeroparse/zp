@@ -11,7 +11,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
@@ -19,17 +18,12 @@ import (
 
 // Go rules printed from Exec IR.
 //
-// With the Exec IR switch on (core.Enabled), the rules of every table (the typed table, the Node
+// The rules of every table (the typed table, the Node
 // table and the recognizer, and the stream body), in the ordinary form, with budget controls and
 // with a Document, are lowered from Flow IR to Exec IR (lower.Flow) and
 // printed by the Go backend of Exec IR (execgo.Body), which prints the compositions of the runtime
 // too. The primitives of Flow IR are transitional operations there, which the flow printer prints as
 // it prints them from Flow IR. The printed code is the same as from Flow IR.
-
-// execRoute reports whether the functions of the current table print from Exec IR.
-func (g *Generator) execRoute() bool {
-	return core.Enabled || g.hooks.ExecRoute
-}
 
 // execBody prints the body of the Flow IR function f from Exec IR with the flow printer p, for a
 // function that is printed whatever its body: it checks the variables (execVars) and counts the
@@ -205,11 +199,11 @@ func (p *flowPrinter) execTarget() *execgo.Target {
 // leafStmt returns the text of the primitive statement s as the flow printer writes it at a
 // reachable point, without its final newline.
 func (p *flowPrinter) leafStmt(s flow.Stmt) string {
-	prev, dead := p.b, p.dead
-	p.b, p.dead = strings.Builder{}, false
+	prev := p.b
+	p.b = strings.Builder{}
 	p.stmt(s)
 	text := p.b.String()
-	p.b, p.dead = prev, dead
+	p.b = prev
 	return strings.TrimSuffix(text, "\n")
 }
 

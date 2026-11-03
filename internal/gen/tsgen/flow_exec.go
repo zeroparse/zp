@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/exects"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/pass"
@@ -14,7 +13,7 @@ import (
 
 // Rules printed from Exec IR.
 //
-// With the Exec IR switch on (core.Enabled), the functions printed from Flow IR are lowered to Exec
+// The functions of Flow IR are lowered to Exec
 // IR (lower.Flow) and printed by exects.Body, which prints their structure and decides which
 // assignments stay (pass.DeadStores). The primitives of Flow IR are transitional operations there,
 // which tsFlowPrinter prints as it prints them from Flow IR. Before printing (tsRuns), charges in a
@@ -22,9 +21,6 @@ import (
 // one unisolateMerge, and the test of the call an If's Init makes the If's condition, as the flow
 // printer prints them, so that the locals they no longer read are not declared. The printed code
 // is the same as from Flow IR.
-
-// execRoute reports whether the functions printed from Flow IR print from Exec IR.
-func (g *Generator) execRoute() bool { return core.Enabled || g.execHook }
 
 // tsSpendRun is the immediate operand of a call of tsSpendOp: the number of charges in a row.
 type tsSpendRun struct{ n int }

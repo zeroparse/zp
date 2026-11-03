@@ -2,7 +2,6 @@ package gogen
 
 import (
 	"fmt"
-	"strings"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/flow"
@@ -41,38 +40,7 @@ func (g *Generator) flowRecRule(r *compile.Rule) *flatRule {
 	defer func() { g.Proj = nil }()
 	p := newFlowPrinter(g, false)
 	p.document = f.Document
-	if g.execRoute() {
-		return g.execRecRule(p, f)
-	}
-	p.stmts(f.Body)
-	if p.reads[f.Start] || p.reads[f.Ctx] {
-		return nil
-	}
-	out := &flatRule{fail: p.used[f.Fail], succeed: !p.dead}
-	res := p.vars.Resolve(f.Vars, p.b.String())
-	g.flowVarsErr(res)
-	var unread []string
-	for _, v := range f.Vars {
-		t, ok := untypedGoType(v.Type)
-		if !ok {
-			return nil
-		}
-		out.vars = append(out.vars, dvar{v.Name, t})
-		switch {
-		case res.Dead(v):
-			out.markVar(v.Name, true)
-		case !p.reads[v]:
-			unread = append(unread, v.Name)
-		case !res.Read(v):
-			out.markVar(v.Name, false)
-		}
-	}
-	out.body = res.Body
-	if len(unread) > 0 {
-		out.body = "\t" + strings.Repeat("_, ", len(unread)-1) + "_ = " + strings.Join(unread, ", ") + "\n" + out.body
-	}
-	g.FlowRules++
-	return out
+	return g.execRecRule(p, f)
 }
 
 // untypedGoType returns the Go type of a variable of a Flow IR function printed for the Node

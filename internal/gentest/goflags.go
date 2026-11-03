@@ -26,16 +26,3 @@ func SetGoCache() (remove func()) {
 	os.Setenv("GOCACHE", dir)
 	return func() { os.RemoveAll(dir) }
 }
-
-// WorkspaceGoFlags returns flags without -mod=mod, which SetGoFlags adds for the temporary modules
-// but which the go command rejects in the workspace of the checkout (go.work), where a go command
-// of a test that builds packages of the checkout runs.
-func WorkspaceGoFlags(flags string) string {
-	var out []string
-	for _, f := range strings.Fields(flags) {
-		if f != "-mod=mod" {
-			out = append(out, f)
-		}
-	}
-	return strings.Join(out, " ")
-}

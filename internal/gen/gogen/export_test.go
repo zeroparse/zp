@@ -6,12 +6,10 @@ package gogen
 
 type (
 	Dvar         = dvar
-	FlowVars     = flowVars
 	LiveRules    = liveRules
 	RuleKey      = ruleKey
 	ShakeUnit    = shakeUnit
 	TypesPackage = typesPackage
-	VarStmt      = varStmt
 )
 
 const RuntimeImportPath = runtimeImportPath
@@ -23,7 +21,6 @@ var (
 	FreeIdents         = freeIdents
 	KeptUnits          = keptUnits
 	LoadRuntime        = loadRuntime
-	NewFlowVars        = newFlowVars
 	QualifyRuntime     = qualifyRuntime
 	RuleTableLimits    = ruleTableLimits
 	ShakableVar        = shakableVar

@@ -11,25 +11,19 @@ import (
 )
 
 // execGenerate generates the parser of the grammar source with the options, joined into one text,
-// with the functions that the Exec IR switch routes printed from Exec IR if exec, and returns the
-// number of those functions by table, or reports false if the generator rejects the grammar.
-func execGenerate(src string, opts gen.GenOptions, exec bool) (string, map[string]int, bool) {
-	out, n, _, ok := execGenerateCounted(src, opts, exec)
-	return out, n, ok
-}
-
-// execGenerateCounted is execGenerate that also returns the functions that the generators counted
-// as printed from Exec IR (Generator.ExecFuncs) less the rules and framed functions that they
-// printed (Generator.FlowRules and FlowFrames): zero on the Exec IR route, where every printed
-// function is printed from Exec IR once.
-func execGenerateCounted(src string, opts gen.GenOptions, exec bool) (string, map[string]int, int, bool) {
+// and returns the number of the functions printed from Exec IR by table, the functions that the
+// generators counted as printed from Exec IR (Generator.ExecFuncs) less the rules and framed
+// functions that they printed (Generator.FlowRules and FlowFrames), which is zero because every
+// printed function is printed from Exec IR once, or reports false if the generator rejects the
+// grammar.
+func execGenerate(src string, opts gen.GenOptions) (string, map[string]int, int, bool) {
 	g, err := parseTest(src)
 	if err != nil {
 		return "", nil, 0, false
 	}
 	var last *gogen.Generator
 	var all []*gogen.Generator
-	h := &gogen.Hooks{ExecRoute: exec, Generator: func(x *gogen.Generator) { last = x; all = append(all, x) }}
+	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { last = x; all = append(all, x) }}
 	opts.Module, opts.KeepComments = "example.com/p", true
 	files, err := gogen.GenerateParser(g, compileForGenerator, opts, h)
 	if err != nil {
@@ -51,8 +45,7 @@ func execGenerateCounted(src string, opts gen.GenOptions, exec bool) (string, ma
 	return b.String(), n, extra, true
 }
 
-// execModes are the generator options under which the Exec IR switch routes the rules of the
-// tables (want): the modes of TestFlowPrintsTypedRules, and those of the Node runtime alone, in the
+// execModes are the generator options under which the rules of the tables (want) print from Exec IR: the modes of TestFlowPrintsTypedRules, and those of the Node runtime alone, in the
 // ordinary form and with budget controls, with and without a Document. A stream mode runs the
 // grammars with a #stream repetition (streamCases), too few for counts by table.
 var execModes = func() []execMode {
@@ -98,11 +91,10 @@ type execMode struct {
 	want []string
 }
 
-// TestExecRoutePrintsTheSame checks that every corpus grammar generates the same code with the
-// functions that the Exec IR switch routes printed from Exec IR as from Flow IR, in the modes of
-// execModes, and that the switch routes the rules of each table
-// that the mode prints.
-func TestExecRoutePrintsTheSame(t *testing.T) {
+// TestExecRoutePrintsEveryFunction checks that every corpus grammar generates in the modes of
+// execModes, that every function prints from Exec IR once, and that the rules of each table that the
+// mode prints print from it. The code is pinned by the goldens of the generator tests.
+func TestExecRoutePrintsEveryFunction(t *testing.T) {
 	t.Parallel()
 	corpus := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	streams := streamCases(t)
@@ -120,13 +112,8 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 			}
 			compared, routed := 0, map[string]int{}
 			for _, gc := range cases {
-				want, _, ok := execGenerate(gc.Src, mode.opts, false)
+				_, n, extra, ok := execGenerate(gc.Src, mode.opts)
 				if !ok {
-					continue
-				}
-				got, n, extra, ok := execGenerateCounted(gc.Src, mode.opts, true)
-				if !ok {
-					t.Errorf("%s: rejected from Exec IR", gc.Name)
 					continue
 				}
 				if extra != 0 {
@@ -136,13 +123,10 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 				for table, k := range n {
 					routed[table] += k
 				}
-				if got != want {
-					t.Errorf("%s: the code from Exec IR differs:\n%s", gc.Name, firstDiff(want, got))
-				}
 			}
-			t.Logf("compared %d grammars; functions printed from Exec IR by table: %v", compared, routed)
+			t.Logf("generated %d grammars; functions printed from Exec IR by table: %v", compared, routed)
 			if compared < least {
-				t.Errorf("compared %d grammars", compared)
+				t.Errorf("generated %d grammars", compared)
 			}
 			for _, table := range mode.want {
 				if routed[table] < gentest.ScaleFloor(1000) {

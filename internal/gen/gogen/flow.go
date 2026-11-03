@@ -31,13 +31,6 @@ import (
 // reads is not declared and its assignments are left out (flowVars); one that must stay is assigned to the
 // blank identifier on the first line.
 
-// flowVarsErr records the internal error that resolving the variables of a printed function found.
-func (g *Generator) flowVarsErr(res flowVarsResult) {
-	if res.Err != nil && g.FlowErr == nil {
-		g.FlowErr = res.Err
-	}
-}
-
 // startFlow builds the Core IR of the typed rules for printing them from Flow IR.
 func (g *Generator) startFlow() error {
 	origin := map[core.Node]grammar.Expr{}
@@ -78,31 +71,7 @@ func (g *Generator) flowTypedRule(r *compile.Rule) *flatRule {
 	defer func() { g.Proj = nil }()
 	p := newFlowPrinter(g, false)
 	p.document = f.Document
-	if g.execRoute() {
-		return g.execFlatRule(p, f)
-	}
-	p.stmts(f.Body)
-	res := p.vars.Resolve(f.Vars, p.b.String())
-	g.flowVarsErr(res)
-	out := &flatRule{fail: p.used[f.Fail], succeed: !p.dead, binds: f.Binds, start: res.Read(f.Start), ctx: res.Read(f.Ctx)}
-	var unread []string
-	for _, v := range f.Vars {
-		out.vars = append(out.vars, dvar{v.Name, goType(v.Type)})
-		switch {
-		case res.Dead(v):
-			out.markVar(v.Name, true)
-		case !p.reads[v]:
-			unread = append(unread, v.Name)
-		case !res.Read(v):
-			out.markVar(v.Name, false)
-		}
-	}
-	out.body = res.Body
-	if len(unread) > 0 {
-		out.body = "\t" + strings.Repeat("_, ", len(unread)-1) + "_ = " + strings.Join(unread, ", ") + "\n" + out.body
-	}
-	g.FlowRules++
-	return out
+	return g.execFlatRule(p, f)
 }
 
 // flowFrameBody prints the body of the typed rule r from Flow IR as the matcher of its frame
@@ -222,59 +191,7 @@ func (g *Generator) flowOperatorsRule(r *compile.Rule) *core.OperatorsRule {
 func (g *Generator) flowFramed(f *flow.Func, slots []core.Slot, scope *compile.Scope, comment string, ruleBody bool) string {
 	p := newFlowPrinter(g, true)
 	p.document = f.Document
-	if g.execRoute() {
-		return g.execFramed(p, f, slots, scope, comment, ruleBody)
-	}
-	p.stmts(f.Body)
-	// The function publishes the cut flag of its outermost scope on return.
-	publish := func() {
-		if f.Cut != nil {
-			p.markRead(f.Cut)
-			p.write(fmt.Sprintf("p.Cut = %s\n", f.Cut.Name))
-		}
-	}
-	if !p.dead {
-		publish()
-		p.read(f.Value)
-		p.write(fmt.Sprintf("return %s, true\n", p.expr(f.Value)))
-	}
-	if p.used[f.Fail] {
-		p.b.WriteString("fail" + ":\n")
-		p.dead = false
-		publish()
-		p.write("return nil, false\n")
-	}
-	var b strings.Builder
-	res := p.vars.Resolve(f.Vars, p.b.String())
-	g.flowVarsErr(res)
-	var vars []dvar
-	dead, quiet := map[string]bool{}, map[string]bool{}
-	var unread []string
-	for _, v := range f.Vars {
-		vars = append(vars, dvar{v.Name, p.goType(v.Type)})
-		switch {
-		case res.Dead(v):
-			dead[v.Name] = true
-		case !p.reads[v]:
-			unread = append(unread, v.Name)
-		case !res.Read(v):
-			quiet[v.Name] = true
-		}
-	}
-	b.WriteString(varLinesExcept(vars, dead, quiet))
-	if len(unread) > 0 {
-		fmt.Fprintf(&b, "%s_ = %s\n", strings.Repeat("_, ", len(unread)-1), strings.Join(unread, ", "))
-	}
-	b.WriteString(res.Body)
-	*scope = *compile.NewScope()
-	for _, sl := range slots {
-		scope.Slot(sl.Name)
-	}
-	g.FlowFrames++
-	if ruleBody {
-		return g.bodyMethod(comment, b.String())
-	}
-	return g.Method(comment, b.String())
+	return g.execFramed(p, f, slots, scope, comment, ruleBody)
 }
 
 func goType(t flow.Type) string {
@@ -308,14 +225,6 @@ type flowPrinter struct {
 	// are guarded by p.Document == nil, so that a Document parse reads through the recording primitives.
 	document bool
 	b        strings.Builder
-	// dead reports that the current point is unreachable. used holds the labels exited to from
-	// reachable points, reads the variables read there, and loops the labels of loops.
-	dead  bool
-	used  map[*flow.Label]bool
-	reads map[*flow.Var]bool
-	loops map[*flow.Label]bool
-	// vars holds the assignments of the function that are left out when their variables are unread.
-	vars flowVars
 	// names holds the package variables of the capture names of scopes, declared on first use
 	// unless a DeclareNames statement declares them.
 	names map[*flow.Names]string
@@ -324,12 +233,7 @@ type flowPrinter struct {
 }
 
 func newFlowPrinter(g *Generator, frame bool) *flowPrinter {
-	p := &flowPrinter{g: g, frame: frame, used: map[*flow.Label]bool{}, reads: map[*flow.Var]bool{},
-		loops: map[*flow.Label]bool{}, names: map[*flow.Names]string{}, vars: newFlowVars()}
-	if g != nil {
-		p.vars.mutant, p.vars.mutantUses = g.hooks.FlowVarsMutant, g.hooks.FlowVarsMutantUses
-	}
-	return p
+	return &flowPrinter{g: g, frame: frame, names: map[*flow.Names]string{}}
 }
 
 // scopeNames returns the package variable of the capture names n, naming it on first use.
@@ -370,81 +274,11 @@ func (p *flowPrinter) helper(name string) string {
 	return p.g.helper(name)
 }
 
-// write writes s unless the current point is unreachable.
-func (p *flowPrinter) write(s string) {
-	if !p.dead {
-		p.b.WriteString(s)
-	}
-}
-
-// read records the variables that the expressions read, at a reachable point.
-func (p *flowPrinter) read(xs ...flow.Expr) {
-	if p.dead {
-		return
-	}
-	for _, x := range xs {
-		flow.Uses(x, p.markRead)
-	}
-}
-
-// markRead records that the variable v is read at a reachable point: by the assignment being formed if
-// there is one that is removed when its targets are unread, otherwise for sure.
-func (p *flowPrinter) markRead(v *flow.Var) {
-	p.reads[v] = true
-	p.vars.read(v)
-}
-
-func (p *flowPrinter) stmts(ss []flow.Stmt) {
-	for _, s := range ss {
-		p.stmt(s)
-	}
-}
+// write writes s.
+func (p *flowPrinter) write(s string) { p.b.WriteString(s) }
 
 func (p *flowPrinter) stmt(s flow.Stmt) {
 	switch s := s.(type) {
-	case *flow.Block:
-		p.stmts(s.Body)
-		if p.used[s.Label] {
-			fmt.Fprintf(&p.b, "%s:\n", s.Label.Name)
-			p.dead = false
-		}
-	case *flow.Loop:
-		p.loops[s.Label] = true
-		// The braces of a loop are written whatever the reachability.
-		switch {
-		case s.Counter != nil:
-			n := s.Counter.Name
-			p.markRead(s.Counter) // the header is printed at a dead point as well
-			fmt.Fprintf(&p.b, "for %s = 0; %s < %d; %s++ {\n", n, n, s.Max, n)
-		case s.While != nil:
-			flow.Uses(s.While, p.markRead) // the header is printed at a dead point as well
-			fmt.Fprintf(&p.b, "for %s {\n", p.expr(s.While))
-		default:
-			p.b.WriteString("for {\n")
-		}
-		p.stmts(s.Body)
-		p.b.WriteString("}\n")
-		p.dead = false
-	case *flow.If:
-		p.ifStmt(s, "if ")
-	case *flow.Exit:
-		if p.dead {
-			return
-		}
-		p.used[s.To] = true
-		if p.loops[s.To] {
-			p.b.WriteString("break\n")
-		} else {
-			fmt.Fprintf(&p.b, "goto %s\n", s.To.Name)
-		}
-		p.dead = true
-	case *flow.Continue:
-		p.write("continue\n")
-		p.dead = true
-	case *flow.Set:
-		p.setStmt(s)
-	case *flow.Inc:
-		p.incStmt(s.V)
 	case *flow.Step:
 		p.write("p.Spend()\n")
 	case *flow.Silent:
@@ -459,33 +293,25 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 			}
 			p.write("p.Silent--\n")
 		}
-	case *flow.Peek:
-		p.peekStmt(s)
 	case *flow.Advance:
-		p.read(s.N)
 		if n, ok := s.N.(*flow.Int); ok {
 			p.write(advance(n.N) + "\n")
 		} else {
 			p.write("p.Pos += " + p.expr(s.N) + "\n")
 		}
 	case *flow.Expect:
-		p.read(s.At)
 		if s.Message {
 			p.write(fmt.Sprintf("p.%s(%s, MsgBit|%d)\n", p.expectHelper(), p.expr(s.At), p.desc(s.Exp)))
 		} else {
 			p.write(fmt.Sprintf("p.%s(%s, %s)\n", p.expectHelper(), p.expr(s.At), p.exp(s.Exp)))
 		}
 	case *flow.Restore:
-		p.read(s.Pos, s.Rec)
 		p.write(fmt.Sprintf("p.Restore(%s, %s)\n", p.expr(s.Pos), p.expr(s.Rec)))
 	case *flow.MergeExpected:
-		p.read(s.Far, s.Exps)
 		p.write(fmt.Sprintf("p.MergeExpected(%s, %s)\n", p.expr(s.Far), p.expr(s.Exps)))
 	case *flow.MergeRenamed:
-		p.read(s.Far, s.Exps)
 		p.write(fmt.Sprintf("p.MergeExpected(%s, RenamedExpected(%s, %s, %d))\n", p.expr(s.Far), p.matcher(), p.expr(s.Exps), p.desc(s.Exp)))
 	case *flow.PushKid:
-		p.read(s.X)
 		if p.frame {
 			p.write(fmt.Sprintf("p.KidStack = append(p.KidStack, %s)\n", p.expr(s.X)))
 		} else {
@@ -500,13 +326,10 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	case *flow.SkipEnd:
 		p.write("p.SkipEnd()\n")
 	case *flow.EmitStream:
-		p.read(s.X)
 		p.write(fmt.Sprintf("p.EmitStream(%s, p.Pos)\n", p.expr(s.X)))
 	case *flow.DropKids:
-		p.read(s.Base)
 		p.write(fmt.Sprintf("p.DropKids(%s)\n", p.expr(s.Base)))
 	case *flow.Append:
-		p.read(&flow.Use{V: s.Vals}, s.X)
 		x := p.expr(s.X)
 		if s.Spread && p.untyped() {
 			x = x + ".RawChildren..."
@@ -517,35 +340,25 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	case *flow.SetWhere:
 		p.write(fmt.Sprintf("p.Where = %q\n", s.Name))
 	case *flow.DropCreated:
-		p.read(s.C)
 		p.write(fmt.Sprintf("p.DropCreated(%s.Cbase)\n", p.expr(s.C)))
 	case *flow.Unfresh:
-		p.read(s.X)
 		p.write(fmt.Sprintf("if n := AsTval(%s); n != nil {\nn.TSetFresh(false)\n}\n", p.expr(s.X)))
 	case *flow.Reset:
-		p.read(s.M)
 		p.write(fmt.Sprintf("p.Reset(%s)\n", p.expr(s.M)))
 	case *flow.SetCapture:
-		p.read(s.X)
 		p.write(fmt.Sprintf("p.%s(%d, %s)\n", p.g.helper("SetCapture"), s.Slot, p.expr(s.X)))
 	case *flow.ClearVals:
-		p.read(&flow.Use{V: s.F})
 		p.write(fmt.Sprintf("clear(%s.Vals)\n", s.F.Name))
 	case *flow.DropTrail:
-		p.read(s.M)
 		p.write(fmt.Sprintf("p.DropTrail(%s.Trail)\n", p.expr(s.M)))
 	case *flow.FreeFrame:
-		p.read(&flow.Use{V: s.F})
 		p.write(fmt.Sprintf("p.FreeFrame(%s)\n", s.F.Name))
 	case *flow.AppendError:
-		p.read(s.X)
 		p.write(fmt.Sprintf("p.Recovered = append(p.Recovered, %s)\n", p.expr(s.X)))
 	case *flow.DeclareNames:
 		// Declared whatever the reachability.
 		p.scopeNames(s.N)
 		p.declare(s.N)
-	case *flow.Comment:
-		p.write("// " + s.Text + "\n")
 	case *flow.ObserveSkip:
 		// The alternative's expression begins with the call it skips, if any; a blank line follows
 		// the report, except in the ordinary form, which has none.
@@ -561,124 +374,6 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	}
 }
 
-// ifStmt writes the If s after the keyword kw ("if " or "} else if "). The point after it is
-// reachable if the point before it is.
-func (p *flowPrinter) ifStmt(s *flow.If, kw string) {
-	var head string
-	if s.Init != nil {
-		head = p.set(s.Init) + "; "
-		if !p.dead {
-			for _, d := range s.Init.Dst {
-				if v, ok := d.(*flow.Var); ok {
-					p.vars.Stuck[v] = true
-				}
-			}
-		}
-	}
-	p.read(s.Cond)
-	head += p.expr(s.Cond)
-	dead := p.dead
-	p.write(kw + head + " {\n")
-	p.stmts(s.Then)
-	p.dead = dead
-	if len(s.Else) == 1 {
-		if e, ok := s.Else[0].(*flow.If); ok && e.Else == nil {
-			p.ifStmt(e, "} else if ")
-			return
-		}
-	}
-	if len(s.Else) > 0 {
-		p.write("} else {\n")
-		p.stmts(s.Else)
-		p.dead = dead
-	}
-	p.write("}\n")
-}
-
-// set returns the assignment s, whose reads are certain.
-func (p *flowPrinter) set(s *flow.Set) string {
-	dst, xs := p.setParts(s)
-	if p.pre != "" {
-		panic("flow printer: a conditional assignment of an Eval")
-	}
-	return strings.Join(dst, ", ") + " = " + strings.Join(xs, ", ")
-}
-
-// setParts returns the places and the values of the assignment s, recording the reads of the values.
-func (p *flowPrinter) setParts(s *flow.Set) (dst, xs []string) {
-	dst = make([]string, len(s.Dst))
-	for i, d := range s.Dst {
-		switch d := d.(type) {
-		case *flow.Var:
-			dst[i] = d.Name
-		case flow.Reg:
-			dst[i] = p.expr(&flow.Read{R: d})
-		case *flow.Discard:
-			dst[i] = "_"
-		}
-	}
-	xs = make([]string, len(s.X))
-	for i, x := range s.X {
-		p.read(x)
-		xs[i] = p.expr(x)
-	}
-	return dst, xs
-}
-
-// setStmt writes the assignment s as a statement of a list, which is left out or has the blank
-// identifier for its places if they are variables nothing reads (see flowVars).
-func (p *flowPrinter) setStmt(s *flow.Set) {
-	if p.dead {
-		p.setParts(s)
-		p.pre = ""
-		return
-	}
-	uses := p.vars.begin()
-	dst, xs := p.setParts(s)
-	p.vars.end()
-	// The statements an Eval needs run in a block of their own, so that their temporaries are not
-	// declared across a goto.
-	pre := p.pre
-	p.pre = ""
-	if pre != "" {
-		if len(s.X) != 1 {
-			panic("flow printer: an assignment of an Eval with other values")
-		}
-	}
-	st := &varStmt{Uses: uses, Pure: pre == "" && len(dst) == len(xs) && pureValues(xs)}
-	for i, d := range s.Dst {
-		v, _ := d.(*flow.Var)
-		st.Targets = append(st.Targets, v)
-		if _, isNil := s.X[min(i, len(s.X)-1)].(*flow.Nil); isNil && len(s.Dst) > 1 && len(s.Dst) == len(s.X) && v != nil {
-			p.vars.Pinned[v] = true
-		}
-	}
-	st.Text = func(dead func(*flow.Var) bool) string {
-		out := slices.Clone(dst)
-		for i, v := range st.Targets {
-			if dead(v) {
-				out[i] = "_"
-			}
-		}
-		assign := strings.Join(out, ", ") + " = " + strings.Join(xs, ", ") + "\n"
-		if pre != "" {
-			return "{ " + pre + assign + "}\n"
-		}
-		return assign
-	}
-	p.b.WriteString(p.vars.Add(st))
-}
-
-// incStmt writes the increment of the variable v, which is left out if nothing reads v.
-func (p *flowPrinter) incStmt(v *flow.Var) {
-	if p.dead {
-		return
-	}
-	p.b.WriteString(p.vars.Add(&varStmt{Targets: []*flow.Var{v}, Pure: true, Text: func(func(*flow.Var) bool) string {
-		return v.Name + "++\n"
-	}}))
-}
-
 // expectHelper names the runtime method that records an expectation. A function without a
 // Document records no examined input, so it calls the form that only charges the budget.
 func (p *flowPrinter) expectHelper() string {
@@ -686,25 +381,6 @@ func (p *flowPrinter) expectHelper() string {
 		return "ExpectBudget"
 	}
 	return p.g.helper("Expect")
-}
-
-// peekStmt writes the read of the next character into the variables of s, with the blank identifier
-// for those nothing reads.
-func (p *flowPrinter) peekStmt(s *flow.Peek) {
-	if p.dead {
-		return
-	}
-	st := &varStmt{Targets: []*flow.Var{s.Ch, s.Size, s.OK}}
-	st.Text = func(dead func(*flow.Var) bool) string {
-		name := func(v *flow.Var) string {
-			if v == nil || dead(v) {
-				return "_"
-			}
-			return v.Name
-		}
-		return p.peekText(name(s.Ch), name(s.Size), name(s.OK))
-	}
-	p.b.WriteString(p.vars.Add(st))
 }
 
 // peekText returns the read of the next character into the places ch, size and ok.

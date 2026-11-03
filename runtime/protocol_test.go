@@ -91,18 +91,9 @@ func surfaceDiff(want, got string) string {
 }
 
 // protocolSurface returns the highest protocol version the package declares and its interface, one
-// declaration per line. The files of every build configuration of the package must give the same
-// interface.
+// declaration per line.
 func protocolSurface(t *testing.T) (int, string) {
-	var version int
-	var surface string
-	for i, tags := range [][]string{nil, {"zp_exec"}} {
-		v, s := packageSurface(t, ".", tags)
-		if i > 0 && (v != version || s != surface) {
-			t.Fatalf("the files selected with tags %q declare another interface than the default files:\n%s", tags, surfaceDiff(surface, s))
-		}
-		version, surface = v, s
-	}
+	version, surface := packageSurface(t, ".", nil)
 	if version == 0 {
 		t.Fatal("the package declares no protocol constant")
 	}
