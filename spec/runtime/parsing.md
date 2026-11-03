@@ -743,7 +743,8 @@ The conditions below use these terms.
   - for an iteration, an option or a lookahead, what follows the repetition,
     option or lookahead, through the ends of the enclosing expressions and, at
     the end of a rule body, through every call of the rule;
-  - for the base of a `#recover`, its skip expression;
+  - for the base of a `#recover`, its skip expression, followed by what follows
+    the `#recover`;
   - for a unit of an Operators Rule, the other operator parts and `operand`
     items that the rule can try at the same position, and what follows the
     Operators Rule expression.
