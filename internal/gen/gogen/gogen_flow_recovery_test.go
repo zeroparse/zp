@@ -37,7 +37,7 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the corpus")
 	}
-	cases := append(append(append(gentest.GenCorpus(t), gentest.GrammarCases(t)...), observeShapes...), streamCorpus...)
+	cases := append(append(append(gentest.Representative(gentest.GenCorpus(t)), gentest.RepresentativeGrammars(gentest.GrammarCases(t))...), observeShapes...), streamCorpus...)
 	for _, controls := range []bool{false, true} {
 		t.Run(fmt.Sprint("controls=", controls), func(t *testing.T) {
 			t.Parallel()

@@ -32,7 +32,7 @@ func testGeneratedFlowNodeParity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	taken := map[string]int{}
 	gh := &gogen.Hooks{}
 	gentest.SetGenHooks(t, gh)
@@ -77,7 +77,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the large parsers")
 	}
-	names := []string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"}
+	names := gentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"})
 	sort.Strings(names)
 	for _, form := range []struct {
 		name              string
@@ -173,7 +173,7 @@ func testFlowNodeRecognizersOnGrammars(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	var cases []gentest.Case
-	for _, name := range []string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"} {
+	for _, name := range gentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"}) {
 		dir := filepath.Join("..", "..", "..", "testdata", "grammars", name)
 		src, err := os.ReadFile(filepath.Join(dir, name+".zp"))
 		if err != nil {

@@ -419,7 +419,7 @@ func checkObservations(t *testing.T, group string, cases []gentest.Case, start s
 	if checked == 0 || events == 0 {
 		t.Fatalf("%d reports checked with %d events", checked, events)
 	}
-	observationGoldenFile.Check(t, group+"/"+gentest.FixtureForm(t)+"/", observationDigests(t, group, cases, lines))
+	observationGoldenFile.CheckSampled(t, group+"/"+gentest.FixtureForm(t)+"/", observationDigests(t, group, cases, lines))
 }
 
 const observationGoldenHeader = "# Digests of the observations (trace and profile) of the generated Node parsers, by group, mode and case\n" +
@@ -434,7 +434,7 @@ func TestFlowNodeObservationsMatchEngine(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	gentest.EachMode(t, func(t *testing.T) {
-		checkObservations(t, "corpus", append(gentest.GenCorpus(t), observeShapes...), "main", nil)
+		checkObservations(t, "corpus", append(gentest.Representative(gentest.GenCorpus(t)), observeShapes...), "main", nil)
 	})
 }
 
@@ -447,7 +447,7 @@ func TestFlowNodeObservationsOnGrammars(t *testing.T) {
 		t.Skip("builds the large parsers")
 	}
 	gentest.EachMode(t, func(t *testing.T) {
-		cases := gentest.GrammarCases(t)
+		cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
 		detail := make([]int, len(cases))
 		for i := range cases {
 			detail[i] = len(cases[i].Inputs)

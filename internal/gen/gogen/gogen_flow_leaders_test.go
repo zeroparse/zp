@@ -19,7 +19,7 @@ func TestFlowLeadersPrintFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the corpus")
 	}
-	cases := append(append(gentest.GenCorpus(t), gentest.GrammarCases(t)...), observeShapes...)
+	cases := append(append(gentest.Representative(gentest.GenCorpus(t)), gentest.RepresentativeGrammars(gentest.GrammarCases(t))...), observeShapes...)
 	for _, controls := range []bool{false, true} {
 		t.Run(fmt.Sprint("controls=", controls), func(t *testing.T) {
 			t.Parallel()

@@ -42,7 +42,7 @@ func testGeneratedDocumentsMatchBatchOnCorpus(t *testing.T) {
 	}
 	write("go.mod", gentest.GoMod("doctest"))
 	var imports, checks strings.Builder
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {

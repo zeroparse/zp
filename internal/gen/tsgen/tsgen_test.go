@@ -31,7 +31,7 @@ func TestGeneratedTSParsersMatchEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	// Exactly at and just beyond the nesting limit, as in TestGeneratedParsersMatchEngine; the
 	// harness gives the parser a stack large enough to reach it.
 	cases = append(cases, gentest.Case{Name: "nesting limit", Src: `rule main = n

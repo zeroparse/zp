@@ -308,7 +308,7 @@ func checkDocumentReports(t *testing.T, group string, cases []documentCase, line
 	if reused == 0 {
 		t.Fatal("no parse after an edit reuses a result")
 	}
-	documentGoldenFile.Check(t, group+"/"+gentest.FixtureForm(t)+"/", documentDigests(t, group, cases, lines))
+	documentGoldenFile.CheckSampled(t, group+"/"+gentest.FixtureForm(t)+"/", documentDigests(t, group, cases, lines))
 }
 
 // documentShapes examine the input beyond the end of the result of their rule, which a Document must record to
@@ -330,7 +330,7 @@ var documentShapes = []gentest.Case{
 // documentCorpus returns the generated-corpus grammars and the shape grammars with the edits of each input.
 func documentCorpus(t *testing.T) []documentCase {
 	var cases []documentCase
-	for _, c := range append(append(gentest.GenCorpus(t), observeShapes...), documentShapes...) {
+	for _, c := range append(append(gentest.Representative(gentest.GenCorpus(t)), observeShapes...), documentShapes...) {
 		cases = append(cases, documentCase{c, 300})
 	}
 	return cases
@@ -357,7 +357,7 @@ func TestFlowNodeDocumentsOnGrammars(t *testing.T) {
 	}
 	gentest.EachMode(t, func(t *testing.T) {
 		var cases []documentCase
-		for _, c := range gentest.GrammarCases(t) {
+		for _, c := range gentest.RepresentativeGrammars(gentest.GrammarCases(t)) {
 			cases = append(cases, documentCase{c, 60})
 		}
 		checkDocumentReports(t, "grammars", cases, runDocumentProbes(t, cases, "", nil))

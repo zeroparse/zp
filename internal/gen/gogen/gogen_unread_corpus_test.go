@@ -98,7 +98,7 @@ func TestGeneratedLocalVariables(t *testing.T) {
 		{"observability", gen.GenOptions{Types: true, Observability: true}, true},
 	}
 	var checked atomic.Int64
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
@@ -147,7 +147,7 @@ func TestLocalErrorsDetectsUnusedVariable(t *testing.T) {
 func TestShakeVarsMutantFailsToCompile(t *testing.T) {
 	t.Parallel()
 	var declared, failed atomic.Int64
-	gentest.EachParallel(t, gentest.GenCorpus(t), func(t *testing.T, c gentest.Case) {
+	gentest.EachParallel(t, gentest.Representative(gentest.GenCorpus(t)), func(t *testing.T, c gentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)

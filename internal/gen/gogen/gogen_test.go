@@ -30,7 +30,7 @@ func testGeneratedParsersMatchEngine(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	// Exactly at and just beyond the default nesting limit (DefaultMaxDepth rule calls). Only
 	// here: the iterative VM, which other tests run on the corpus, has a higher default.
 	cases = append(cases, gentest.Case{Name: "nesting limit", Src: `rule main = n

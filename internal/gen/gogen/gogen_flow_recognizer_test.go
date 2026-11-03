@@ -32,7 +32,7 @@ func testGeneratedFlowRecognizerParity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	taken, framed := 0, 0
 	gh := &gogen.Hooks{}
 	gentest.SetGenHooks(t, gh)

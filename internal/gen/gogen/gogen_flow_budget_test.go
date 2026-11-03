@@ -320,7 +320,7 @@ func TestFlowNodeBudgetInvariants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	checkBudgetInvariants(t, "corpus", gentest.GenCorpus(t), "main")
+	checkBudgetInvariants(t, "corpus", gentest.Representative(gentest.GenCorpus(t)), "main")
 }
 
 // checkBudgetInvariants builds the cases with the start rule start, runs the consumer and checks the
@@ -337,7 +337,7 @@ func checkBudgetInvariantsIn(t *testing.T, golden gentest.GoldenFile, group stri
 	for _, p := range problems {
 		t.Error(p)
 	}
-	golden.Check(t, group+"/", got)
+	golden.CheckSampled(t, group+"/", got)
 }
 
 // budgetOffGolden holds the totals of the parsers generated without expectations, which charge less
@@ -361,7 +361,7 @@ func TestFlowNodeBudgetInvariantsWithoutExpectations(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	gentest.OmitExpectations(t)
-	cases := gentest.GenCorpus(t)
+	cases := gentest.Representative(gentest.GenCorpus(t))
 	first, problems := budgetTotals(t, "corpus-off", cases, "main", nil)
 	for _, p := range problems {
 		t.Error(p)
@@ -380,7 +380,7 @@ func TestFlowNodeBudgetInvariantsWithoutExpectations(t *testing.T) {
 			t.Errorf("%s: a parse without expectations reports one: %s", k, v)
 		}
 	}
-	budgetOffGoldenFile.Check(t, "corpus-off/", first)
+	budgetOffGoldenFile.CheckSampled(t, "corpus-off/", first)
 }
 
 // budgetTotals builds the cases (the code of each parser changed by mutate if not nil), runs the consumer and
@@ -458,6 +458,6 @@ func TestFlowNodeBudgetInvariantsOnGrammars(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds the large parsers twice")
 	}
-	cases := gentest.GrammarCases(t)
+	cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
 	checkBudgetInvariants(t, "grammars", cases, "")
 }

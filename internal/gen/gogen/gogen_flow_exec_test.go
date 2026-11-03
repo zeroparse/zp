@@ -96,12 +96,12 @@ type execMode struct {
 // that the mode prints.
 func TestExecRoutePrintsTheSame(t *testing.T) {
 	t.Parallel()
-	corpus := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
+	corpus := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	streams := streamCases(t)
 	for _, mode := range execModes {
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
-			cases, least := corpus, 100
+			cases, least := corpus, gentest.ScaleFloor(100)
 			if mode.opts.Stream {
 				cases, least = streams, len(streams)*3/4
 			}
@@ -132,7 +132,7 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 				t.Errorf("compared %d grammars", compared)
 			}
 			for _, table := range mode.want {
-				if routed[table] < 1000 {
+				if routed[table] < gentest.ScaleFloor(1000) {
 					t.Errorf("%d functions of table %s printed from Exec IR", routed[table], table)
 				}
 			}

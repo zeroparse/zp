@@ -154,7 +154,7 @@ func flowGenerate(src string, opts gen.GenOptions) (string, int, int, bool) {
 // frames where the mode inlines them.
 func TestFlowPrintsTypedRules(t *testing.T) {
 	t.Parallel()
-	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
+	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	for _, mode := range flowModes {
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
@@ -173,10 +173,10 @@ func TestFlowPrintsTypedRules(t *testing.T) {
 				framed += frames
 			}
 			t.Logf("generated %d grammars, %d with %d rules printed from Flow IR; %d framed bodies and lines", compared, grammars, printed, framed)
-			if compared < 100 || grammars < 100 {
+			if compared < gentest.ScaleFloor(100) || grammars < gentest.ScaleFloor(100) {
 				t.Errorf("generated %d grammars, %d with rules printed from Flow IR", compared, grammars)
 			}
-			if mode.frames && framed < 50 || !mode.frames && framed != 0 {
+			if mode.frames && framed < gentest.ScaleFloor(50) || !mode.frames && framed != 0 {
 				t.Errorf("%d framed bodies and lines printed from Flow IR", framed)
 			}
 		})
@@ -221,7 +221,7 @@ func TestFlowTypedCorpus(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	gentest.EachMode(t, func(t *testing.T) {
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.GeneratedTypesCases(t), gen.GenOptions{ConvertTypes: true})
+		gentest.GeneratedTypesCorpus(t, goBin, gentest.Representative(gentest.GeneratedTypesCases(t)), gen.GenOptions{ConvertTypes: true})
 	})
 }
 

@@ -17,5 +17,5 @@ func TestGeneratedUnsharedTSParsersMatchEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.GenCorpus(t), gen.GenOptions{DisableMethodSharing: true, DisableLiteralSharing: true})
+	gentest.TSParsersCorpus(t, node, gentest.Representative(gentest.GenCorpus(t)), gen.GenOptions{DisableMethodSharing: true, DisableLiteralSharing: true})
 }

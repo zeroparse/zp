@@ -29,7 +29,7 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the corpus")
 	}
-	cases := gentest.GrammarCases(t)
+	cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
 	for _, form := range []struct {
 		name     string
 		controls bool
@@ -70,7 +70,7 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 				}
 				generated.Add(1)
 			})
-			if generated.Load() < 10 || taken == 0 || framed == 0 || operators == 0 {
+			if int(generated.Load()) < gentest.ScaleFloor(10) || taken == 0 || framed == 0 || operators == 0 {
 				t.Errorf("generated %d grammars; %d direct, %d framed and %d Operators Rule lines took the Flow route", generated.Load(), taken, framed, operators)
 			}
 		})

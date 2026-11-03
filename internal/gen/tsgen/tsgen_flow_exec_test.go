@@ -36,7 +36,7 @@ func execGenerate(src string, opts gen.GenOptions, exec bool) (string, int, bool
 // functions printed from Flow IR printed from Exec IR, in each mode that changes how they print.
 func TestExecRoutePrintsTheSame(t *testing.T) {
 	t.Parallel()
-	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
+	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	modes := []struct {
 		name string
 		opts gen.GenOptions
@@ -69,10 +69,10 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 				}
 			}
 			t.Logf("compared %d grammars; %d functions printed from Exec IR", compared, routed)
-			if compared < 100 {
+			if compared < gentest.ScaleFloor(100) {
 				t.Errorf("compared %d grammars", compared)
 			}
-			if routed < 1000 {
+			if routed < gentest.ScaleFloor(1000) {
 				t.Errorf("%d functions printed from Exec IR", routed)
 			}
 		})

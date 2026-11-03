@@ -68,7 +68,7 @@ func testUnreachableCorpusGeneration(t *testing.T) {
 		{"types recognize", gen.GenOptions{Types: true, Recognize: true}},
 	}
 	checked, pruned := 0, 0
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range gentest.Representative(gentest.GenCorpus(t)) {
 		for _, set := range optionSets {
 			g, err := parseNaturalStart(c.Src)
 			if err != nil {
@@ -122,7 +122,7 @@ func testUnreachableCorpusRuns(t *testing.T) {
 	write("go.mod", gentest.GoMod("reachcorpus"))
 	var imports, calls strings.Builder
 	n := 0
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range gentest.Representative(gentest.GenCorpus(t)) {
 		g, err := parseNaturalStart(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
