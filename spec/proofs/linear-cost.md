@@ -10,10 +10,10 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 7, 8 and 9 are proved, and the theorem is proved from the others.
-Lemmas 3 to 6 are given as outlines: each states its claim, the conditions it uses,
-and the steps that its proof must still make precise, listed under
-[Open Steps](#open-steps) with the step that the theorem needs besides them.
+Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved, and the theorem is proved from the
+others. Lemmas 4 to 6 are given as outlines: each states its claim, the
+conditions it uses, and the steps that its proof must still make precise,
+listed under [Open Steps](#open-steps).
 
 ## Setting
 
@@ -94,30 +94,65 @@ makes a constant number of calls, again by the argument of Lemma 1. $\square$
 
 ## Lemma 3 (Body Evaluations)
 
-*Outline.* The number of body evaluations, growth steps excluded, is at most a
-constant times $K \hat{n}$ plus the number of calls of rules that are not
-memoized.
+A rule is **memoized** in the parse unless the first exception of
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) leaves it
+out: unless it is a rule other than a leader that calls no rule or that is
+called from at most one place, and is not a start rule that its own body calls
+through rules called from one place. A body evaluation of a rule of a
+left-recursion cycle is **in a context of growths** when a growth of that
+cycle is in progress at its position, as the second exception of that section
+describes. Let $|\text{levels}|$ be the number of binding levels of the
+grammar, counting the absence of a level as one.
 
-The memo evaluates the body of a memoized rule at most twice for each
-position, level and combination of the values of the variables it reads
-([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), which is
-$2 \cdot |\text{rules}| \cdot |\text{levels}| \cdot K \hat{n}$. Each exception
-of that section is accounted for elsewhere:
+The number of body evaluations of memoized rules that are neither growth
+steps nor in a context of growths is at most
+$2 \cdot |\text{rules}| \cdot |\text{levels}| \cdot K \hat{n}$.
 
-- a rule that is not memoized is evaluated once for each of its calls, which
-  open step 7 bounds;
-- a rule of a cycle other than a leader, called by a call that is not a left
-  call, is outside every growth of its cycle at its position, so its result
-  read no growing result and the memo answers the next such call at the
-  position: these evaluations are within the bound above;
-- a call of a rule of a cycle in the context of growths at its position that
-  finds no result computed with the same growing results and the same outcomes
-  of the lookaheads it observed is evaluated again; such calls are a constant
-  number per growth step, which Lemma 5 counts;
-- a result that read the growing result of an open growth is evaluated again
-  in the steps whose growing results differ, which Lemma 5 counts;
-- a leader that grows again at its position, inside another growth there, is
-  counted by Lemma 5, under condition 5.
+*Proof.* By [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules),
+a rule body is evaluated at most twice at a position for each binding level
+and each combination of the values of the variables that the rule reads, with
+three exceptions. The first concerns the rules that are not memoized, which the
+claim leaves out. The second concerns the calls in a context of growths, whose
+evaluations the claim leaves out. The third concerns growing rules, whose body
+evaluations are growth steps; by
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+a call of a leader grows it at the position of the call, so every body
+evaluation of a leader is a growth step, and the claim leaves out all of
+them. A rule on no cycle has no context of growths, since only the growths of
+a rule's own cycle form its context, and the result of a rule of a cycle
+outside every context is memoized like that of any rule. So every body
+evaluation that the claim counts is one of the at most two that the section
+allows for its rule, position, level and combination.
+
+A position is one of the $n + 1$ positions of the input. By the definition of
+$K$ in [Classification](../runtime/parsing.md#classification), the calls at
+one position bind the variables that memoized rules read to at most $K$
+distinct combinations of values. Summing two evaluations over the rules, the
+levels, the positions and at most $K$ combinations at each position gives the
+bound. The bound holds in each parse of a
+[Document](../runtime/documents.md), whose memo entries from earlier parses
+only answer calls, and in a [stream](../runtime/streaming.md), which discards
+memo entries only before the elements it has delivered, where the input is
+gone and no later call is made. $\square$
+
+The evaluations that the claim leaves out are counted elsewhere: those of
+rules that are not memoized by Lemma 10, and the growth steps and the
+evaluations in a context of growths by Lemma 5. In a context of growths, a
+call that finds no result computed with the same growing results and the same
+outcomes of the lookaheads it observed is evaluated again, a result that read
+the growing result of an open growth is evaluated again in the steps whose
+growing results differ, and a leader that grows again at its position inside
+another growth there grows once for each context; Lemma 5 bounds these under
+condition 5.
+
+In the reference implementation, `Parser.Memoizes` in `internal/engine/core`
+decides which calls the memo answers. It memoizes a leader in every parse, and
+a rule that `transientRules` in `internal/compile` marks transient only in a
+Document parse. A parse with missing-token insertion, which is outside the
+classes, memoizes no rule other than a leader that contains `#missing`,
+directly or through the rules it calls. `Parser.FirstCall` defers the memo
+entry of a rule other than a leader to the second call at a position, which
+gives the two evaluations.
 
 ## Lemma 4 (Scanned Cost)
 
@@ -182,9 +217,13 @@ checked as a unit in every case.
 
 ## Lemma 5 (Growth)
 
-*Outline.* Under conditions 2 and 3, the growth steps of all growths, with the
-local and scanned cost of the bodies evaluated in them, cost at most a
-constant times $K(L + 1)\hat{n}$ more than Lemma 4 counts.
+*Outline.* Under conditions 2, 3 and 5, and with the growths at the calls
+that are not left calls counted as scanning sources by Lemma 4, the
+evaluations that Lemma 3 leaves out for memoized rules number at most a
+constant times $K \hat{n}$: the growth steps, and the body evaluations of
+memoized rules in a context of growths, those of a rule of a cycle other than
+a leader outside a growth step included. Their local and scanned cost is at
+most a constant times $K(L + 1)\hat{n}$ more than Lemma 4 counts.
 
 A growth at $p$ takes at most two more steps than the length it consumes
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). By
@@ -244,7 +283,9 @@ before it examines input. Two cases bound the call.
   ([Lemma 3 of the memoization proof](memoization.md#lemma-3-answering-from-a-sound-entry)),
   at a constant cost. Otherwise the call starts that growth. R is memoized,
   so the growth happens once for each position, level and combination of the
-  values of the variables that R reads (Lemma 3), and it takes at most two
+  values of the variables that R reads
+  ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), and it
+  takes at most two
   more steps than the length it consumes
   ([Lemma 2 of the left-recursion proof](left-recursion.md#lemma-2-steps-of-a-growth)):
   these are the steps that this lemma counts for every growth. Growths that
@@ -561,8 +602,8 @@ evaluation of the `#recover` expression. That expression is a part of a body
 outside the scanning sources, evaluated a constant number of times in each
 body evaluation by the argument of Lemma 1, or a part of a scanning source,
 evaluated a constant number of times in each of its activations. So $E$ is at
-most a constant times the body evaluations and activations, which Lemmas 3 to
-5 and open step 7 bound. $\square$
+most a constant times the body evaluations and activations, which Lemmas 3,
+4, 5 and 10 bound. $\square$
 
 Removing a reused skip from the scanning sources changes which units are
 committing: a unit whose only scanning source was such a skip has none, though
@@ -581,6 +622,96 @@ whatever the skip. A parse with missing-token
 insertion keeps no slots, and is outside the classes, as
 [Classification](../runtime/parsing.md#classification) states.
 
+## Lemma 10 (Rules That Are Not Memoized)
+
+Let $B$ be the number of body evaluations of memoized rules, growth steps
+included, and $A$ the number of activations.
+
+The number of body evaluations of rules that are not memoized is at most a
+constant times $B + A + 1$.
+
+The lemma uses none of conditions 1 to 5.
+
+*Proof.* Let $S$ be the start rule where the parse begins, and write $E(r)$
+for the number of body evaluations of a rule $r$.
+
+*One place.* Let a call of $r$ be written at a place $s$ in the body of a rule
+$Q$. The number of evaluations of $s$ is at most $c_1 (E(Q) + A_Q)$, where
+$A_Q$ is the number of activations of the scanning sources of the body
+evaluations of $Q$, growth steps included, and $c_1 \ge 1$ is a constant. This
+is the argument of Lemma 2 for one place: outside the scanning sources of the
+body, $s$ is evaluated at most as many times in one body evaluation as the
+product of the upper bounds of the repetitions that enclose it; inside them,
+at most that many times in one activation of the innermost scanning source
+that encloses it.
+
+*Evaluations by call.* A rule $r$ that is not memoized is no leader, so it
+does not grow, and the memo of an ordinary parse answers no call of it. Each
+call of $r$ therefore evaluates its body at most once; a Document parse, which
+memoizes $r$, evaluates it no more often. Apart from its calls, the body of
+$r$ is evaluated only when the parse begins at $r$: the parse of an operand
+inside an Operators Rule is part of the same call
+([Whole-Rule Action](../language/operators-rule.md#whole-rule-action)), and
+its operators are activations. So $E(r) \le [r = S] + \sum_s N(s)$, where
+$s$ ranges over the places that call $r$, $N(s)$ is the number of evaluations
+of $s$, and $[r = S]$ is 1 if $r = S$ and 0 otherwise.
+
+*Rules called from one place.* Let $r_0$ be a rule that is not memoized and
+that calls a rule, so that it is called from at most one place. Define a
+chain: while $r_i$ is such a rule, is evaluated in the parse, and is called
+from one place, let $r_{i+1}$ be the rule in whose body that place is. The
+chain ends at a rule $r_d$ that is memoized, that is not evaluated, or that is
+called from no place, which is then $S$, since every other evaluation of a rule
+is made by a call. No rule that calls no rule is on the chain beyond $r_0$,
+since each $r_{i+1}$ calls $r_i$.
+
+The chain has no repetition. Suppose $r_i = r_j$ with $i < j$. The rules
+$r_i, \dots, r_{j-1}$ form a cycle of calls $C$ on which every rule is
+evaluated, is not memoized and is called from one place, which is in the body
+of a rule of $C$. If $S$ is not on $C$, consider the first evaluation of a
+rule of $C$ in the parse. It is made by a call, in a body evaluation that
+began before it and is therefore of a rule off $C$, which the one place of the
+rule excludes. So $S$ is on $C$. The parse begins only at a start rule, and
+following the one caller of each rule from $S$ along $C$ returns to $S$, so
+$S$ is a start rule that its own body calls through rules called from one
+place. Such a rule is memoized, while no rule of $C$ is. So the rules of the
+chain are distinct, and $d < |\text{rules}|$: $r_d$ differs from the earlier
+rules because it ends the chain and they do not.
+
+By the two steps above, $E(r_i) \le 1 + c_1 (E(r_{i+1}) + A_{r_{i+1}})$ for
+$i < d$, and unfolding the chain gives
+$E(r_0) \le c_2 (1 + E(r_d) + \sum_{0 < i \le d} A_{r_i})$ with
+$c_2 = d \, c_1^d + c_1^d$, a constant. The activations in the sum are those of
+the body evaluations of the rules of the chain above $r_0$, up to the rule
+$r_d$ where it ends, and each is among the activations counted in $A$. $E(r_d)$ is at most $B$ when $r_d$ is memoized, 0 when it is not
+evaluated, and 1 when it is $S$ called from no place. Summed over the rules,
+the evaluations of the rules that are not memoized and call a rule are at
+most $|\text{rules}| \, c_2 (B + A + 2)$.
+
+*Rules that call no rule.* Every call of a rule that calls no rule is made in
+the body of a rule that calls one, which is memoized or is a rule called from
+one place that is not memoized. By the first two steps, the evaluations of
+such a rule are at most $1 + c_1 \sum_Q (E(Q) + A_Q)$, over the at most
+$|\text{rules}|$ rules $Q$ whose bodies call it, which is a constant times
+$B + A + 1$ by the bound above. $\square$
+
+A rule of a left-recursion cycle other than a leader that is not memoized is
+covered by the same argument: each of its calls, in a context of growths or
+not, evaluates its body at most once, and the growth steps that evaluate its
+one place are in $B$.
+
+In the reference implementation, `transientRules` in `internal/compile` marks
+the rules that are not memoized. It counts the places that call each rule over
+the whole grammar, so a rule that the start rule does not reach can only add
+places and make a rule memoized. It exempts a rule marked `@start`, which
+`startMarked` reports, when following the one caller of each rule from it
+returns to it. Every entry point admits only a rule marked `@start` as the
+rule where a parse begins: `Program.CheckStart` in the engine, for whole,
+stream, prefix and Document parses and for loaded modules,
+`grammar.StartRule` in a generated Go parser, and `startIn` in a generated
+TypeScript parser. `Parser.Memoizes` memoizes a leader whatever
+`transientRules` marks.
+
 ## Theorem (Linear Cost)
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
@@ -589,16 +720,18 @@ for a constant $c$. When no variable holds a string and every binding binds a
 literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
-*Proof, given Lemmas 3 to 6 and open step 7.* Each unit of $C$ is the local
-cost of a body evaluation, the scanned cost of one, or a call. By Lemma 1 the
-local costs add up to $c_0 (L + 1)$ times the number of body evaluations, which
-Lemmas 3 and 5 bound by a constant times $K \hat{n}$ plus the evaluations of
-rules that are not memoized. Open step 7 bounds those by a constant times
-$K \hat{n}$ plus the activations. By Lemma 2 the calls are at most a constant
-times the body evaluations plus the activations, which Lemmas 4 and 5 bound.
-The scanned cost is bounded by Lemmas 4 and 5, the walk cost by Lemma 9, and
-the values by Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$.
-$\square$
+*Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
+evaluation, the scanned cost of one, a call, or the walk cost. By Lemma 1 the
+local costs add up to $c_0 (L + 1)$ times the number of body evaluations. The
+body evaluations of memoized rules are at most a constant times $K (L + 1)
+\hat{n}$: by Lemma 3 outside the growth steps and the contexts of growths, and
+by Lemma 5 for the growth steps and the evaluations in a context of growths. By
+Lemma 10 the body evaluations of the other rules are at most a constant times
+those plus the activations plus one, and Lemmas 4 and 5 bound the activations.
+By Lemma 2 the calls are at most a constant times the body evaluations plus the
+activations. The scanned cost is bounded by Lemmas 4 and 5, the walk cost by
+Lemma 9, and the values by Lemma 6. Each bound is a constant times $K (L + 1)
+\hat{n}$. $\square$
 
 The classifier reports the two classes only when the conditions hold, and it
 over-approximates where it cannot decide them
@@ -629,35 +762,25 @@ The outlines leave these steps to be made precise.
    proof must combine them over the units that enclose one another.
 2. **"A unit that succeeds is not restarted."** A body that contains the unit
    can itself be evaluated again: by the memo, at most twice at a position;
-   when its rule is not memoized, at each of its calls. The proof must show
-   that these evaluations are counted by Lemma 3 and do not multiply the
-   scanned cost beyond a constant.
+   when its rule is not memoized, at each of its calls. Lemmas 3 and 10 count
+   these evaluations; the proof must show that they do not multiply the
+   scanned cost beyond a constant. Lemma 10 bounds the evaluations of the
+   rules that are not memoized by the activations, so the bound of Lemma 4 on
+   the activations must not rest on those evaluations, or the argument closes
+   on itself.
 3. **Continuations of growing units.** The case where the first step of a
    growth matches a part before the left call, as through `F` in
    `E = F "+" X / Y; F = E / M`, and the unit is also checked as an
    alternative that is not growing.
 4. **Operators Rules.** The units of an Operators Rule, its `skip`, and right
    operands that apply operators themselves, in Lemmas 4 and 5.
-5. **Lemma 3 and left recursion.** The proof must bound, in Lemma 5, the
-   evaluations that a context of growths repeats: the calls that find no result
-   with the same growing results and lookahead outcomes, and the growths of
-   leaders inside other growths at their position, whose steps are shared only
-   through equal results. It must show that the comparison of results by
-   structure, which is bounded, loses only reuse, and that condition 5 covers
-   every growth that is new in each step.
+5. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
+   that a context of growths repeats, which Lemma 3 leaves out: the calls
+   that find no result with the same growing results and lookahead outcomes,
+   and the growths of leaders inside other growths at their position, whose
+   steps are shared only through equal results. It must show that the
+   comparison of results by structure, which is bounded, loses only reuse,
+   and that condition 5 covers every growth that is new in each step.
 6. **Variables in Lemma 6.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, and the
    comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
-7. **Rules that are not memoized.** A rule that calls no rule is a leaf of the
-   calls and is evaluated once per call, which Lemma 2 counts. A rule called
-   from at most one place is not memoized either, and it is evaluated once for
-   each evaluation of its one call. No cycle of calls that the start rule
-   reaches consists of such rules alone: when every rule of a cycle is called
-   from one place, that place is on the cycle, so the parse reaches the cycle
-   only by beginning at a rule of it, and a start rule on such a cycle is
-   memoized (see
-   [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). The
-   step must count the evaluations of the rules that are not memoized by the
-   evaluations of the rules above them up to a memoized rule. A call inside an
-   unbounded repetition of a body is evaluated once for each iteration, which
-   the activations of Lemma 4 must account for.
