@@ -39,8 +39,10 @@ with implementation changes; regenerate generated files.
   `go vet` and the tests of the changed packages and their dependents. Engine,
   generator or runtime: also `go generate ./gen ./bench` and
   `hack/test-alpha-parsers.sh`; budget-control code: also the reference build
-  in `docs/development.md`. Run the root `go test -timeout=60m ./... ./runtime/...`
-  once per landing batch, on its final commit.
+  in `docs/development.md`. The default root `go test ./... ./runtime/...` takes
+  minutes; run it on the final commit of each landing batch, and add
+  `-tags zp_long` (the long tier in `docs/development.md`) when the batch touches
+  the engine, generator or runtime. New slow tests go to the long tier.
 - Keep generated benchmark reports/results unedited by hand and align
   `spec/bytecode/README.md` with VM changes.
 - GitHub Actions are temporarily paused: do not trigger, rerun, cancel, poll or
