@@ -39,9 +39,9 @@ const (
 	// QKeyScan is the sum, over the entries stored at the call's position for any rule, of one more
 	// than the number of their key values: what scanning the position and comparing keys inspects.
 	QKeyScan = "key_scan"
-	// QSlotGrowth is the number of positions the memo covers before the call when storing at the
-	// call's position makes that number cross a power of two, and 0 otherwise: the copy that doubling
-	// a position-indexed table stands for.
+	// QSlotGrowth is the number of positions the memo covers from its floor before the call when
+	// storing at the call's position makes that number cross a power of two, and 0 otherwise: the copy
+	// that doubling a position-indexed table stands for.
 	QSlotGrowth = "slot_growth"
 	// QPageIndex is the call's position divided by 1,024.
 	QPageIndex = "page_index"
@@ -53,6 +53,8 @@ const (
 	QSeenIndex = "seen_index"
 	// QN is the argument n of budget.charge.
 	QN = "n"
+	// QPruned is the number of memo entries stored before the call's position argument.
+	QPruned = "pruned"
 )
 
 // Names of handle types.
@@ -106,6 +108,18 @@ and levels are equal and the host's value equality holds for their values.`,
 context, its value and its recovered errors under the key, replacing the entry stored under the same
 key, and returns it. Entries under other keys are unchanged.`,
 		Requires: `end is at least pos.`})
+	m.AddOp(&exec.Op{Name: "memo.prune", Component: Memo, Params: []exec.Param{exec.P("pos", exec.TInt)},
+		Reads: []string{Memo}, Writes: []string{Memo}, Features: []string{Stream}, NoReturn: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}}},
+		Contract: `Removes the entries stored at positions before pos and raises the floor of the memo to pos.
+Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
+entry without keeping it. The removed entries are no longer valid; entries at or after pos are
+unchanged.`,
+		Requires: `pos is at least the floor (memo.floor).`})
+	m.AddOp(&exec.Op{Name: "memo.floor", Component: Memo, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},
+		Features: []string{Stream},
+		Contract: `Returns the floor of the memo: 0 at the start of a parse, then the position of the last
+memo.prune.`})
 	for _, a := range []struct {
 		name string
 		t    exec.Type

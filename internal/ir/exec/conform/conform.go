@@ -83,7 +83,7 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 		return true, nil
 	}
 	p := &pair{model: ref.New(c.Config), impl: s.New(c.Config),
-		refOrd: map[any]int{}, implOrd: map[any]int{}, handles: map[any]*handle{}}
+		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {
 		return &Failure{Impl: s.Name, Case: c.Func.Name, Step: len(p.trace), Trace: p.trace, Msg: msg,
 			Listing: exec.FuncString(c.Func)}
@@ -148,9 +148,16 @@ type pair struct {
 	impl  Impl
 	trace []string
 	// refOrd and implOrd number the handles of each side in the order they first appear; a result
-	// handle must have the same number on both sides.
-	refOrd, implOrd map[any]int
+	// handle must have the same number on both sides. A handle that dies (Model.Dead) loses its
+	// number, so that an implementation may reuse it.
+	refOrd, implOrd ordinals
 	handles         map[any]*handle // by the model's handle
+}
+
+// ordinals numbers handles in the order they first appear.
+type ordinals struct {
+	at   map[any]int
+	next int
 }
 
 // outcome is the result of one side's call.
@@ -178,7 +185,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	for i, a := range args {
 		if h, ok := a.(*handle); ok {
 			refArgs[i], implArgs[i] = h.ref, h.impl
-			shown[i] = fmt.Sprintf("#%d", p.refOrd[h.ref])
+			shown[i] = fmt.Sprintf("#%d", p.refOrd.at[h.ref])
 		} else {
 			refArgs[i], implArgs[i] = a, a
 			shown[i] = fmt.Sprint(a)
@@ -241,7 +248,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 				shown = append(shown, "_")
 				continue
 			}
-			rn, in := ordinal(p.refOrd, w), ordinal(p.implOrd, g)
+			rn, in := p.refOrd.of(w), p.implOrd.of(g)
 			if rn != in {
 				panic(mismatch(fmt.Sprintf("result %d is handle #%d on the model and #%d on the implementation", i, rn, in)))
 			}
@@ -258,21 +265,36 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if len(shown) > 0 {
 		p.trace[len(p.trace)-1] += " -> " + strings.Join(shown, ", ")
 	}
+	if slices.Contains(o.Writes, ops.Memo) {
+		p.forgetDead()
+	}
 	return res
 }
 
-func ordinal(m map[any]int, h any) int {
-	n, ok := m[h]
+// forgetDead drops the numbers of the handles that died.
+func (p *pair) forgetDead() {
+	for r, h := range p.handles {
+		if p.model.Dead(r) {
+			delete(p.refOrd.at, r)
+			delete(p.implOrd.at, h.impl)
+			delete(p.handles, r)
+		}
+	}
+}
+
+func (o *ordinals) of(h any) int {
+	n, ok := o.at[h]
 	if !ok {
-		n = len(m) + 1
-		m[h] = n
+		o.next++
+		n = o.next
+		o.at[h] = n
 	}
 	return n
 }
 
 func (p *pair) wrap(r, i any) *handle {
-	ordinal(p.refOrd, r)
-	ordinal(p.implOrd, i)
+	p.refOrd.of(r)
+	p.implOrd.of(i)
 	h := p.handles[r]
 	if h == nil {
 		h = &handle{ref: r, impl: i}

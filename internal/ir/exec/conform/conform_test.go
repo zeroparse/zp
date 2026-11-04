@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "seen.first", "budget.charge", "budget.used",
-	"depth.enter", "depth.exit", "depth.current"}
+var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "seen.first",
+	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current"}
 
 // modelImpl is the reference model run as an implementation: every case must pass on it.
 type modelImpl struct{ *ref.Model }
@@ -83,6 +83,9 @@ func TestMutantsFail(t *testing.T) {
 			a = append([]any(nil), a...)
 			a[6] = false
 			return m.Call(Module().Op("memo.store"), a)
+		}},
+		"prune removes the entries at its position": {op: "memo.prune", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("memo.prune"), []any{a[0].(int64) + 1})
 		}},
 		"budget charges one unit less": {op: "budget.charge", edit: func(m *ref.Model, a []any) []any {
 			n := a[0].(uint64)

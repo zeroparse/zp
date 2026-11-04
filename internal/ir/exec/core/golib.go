@@ -438,10 +438,12 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.streamDiscard(" + a[0] + ")"
 		case "stream.release":
 			return "p.streamRelease()"
-		case "stream.pruned":
-			return "p.Stream.pruned"
-		case "stream.prune":
-			return "p.streamPrune(" + a[0] + ")"
+		case "memo.floor":
+			return "p.Stream.memoBase"
+		case "memo.prune":
+			return "p.pruneStreamMemo(" + a[0] + ")"
+		case "stream.dropRecords":
+			return "p.streamDropRecords(" + a[0] + ")"
 		case "stream.tail":
 			return "p.Stream.tail.limit > 0"
 		case "stream.settleErrors":

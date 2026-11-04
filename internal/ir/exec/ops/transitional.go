@@ -73,8 +73,6 @@ const (
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
 	// and of those before its argument that it scans for line starts for the first time.
 	QStreamScan = "stream_scan"
-	// QPruned is the number of memo entries stored before the call's position argument.
-	QPruned = "pruned"
 )
 
 // Registers of the parser VM.
@@ -417,13 +415,10 @@ are not supported. The line and column of the new base are kept.`})
 		Contract: `Releases what the elements committed so far held: the trail, the capture frames and the node
 chunks that no active call refers to, so that a delivered element is not kept alive through the parser.`,
 		Requires: `Every call of the delivered elements has returned.`})
-	add(&exec.Op{Name: "stream.pruned", Component: Win, Results: []exec.Type{exec.TInt}, Reads: []string{Win},
-		Features: stream,
-		Contract: `Returns the position up to which the memo and the records of the parse were pruned.`})
-	add(&exec.Op{Name: "stream.prune", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
-		Reads: []string{Win}, Writes: []string{Win}, Features: stream, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}}},
-		Contract: `Discards the memo entries and the records of the parse before pos, which no later call can look
-up, and remembers pos as the pruned position.`})
+	add(&exec.Op{Name: "stream.dropRecords", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Contract: `Discards what the parse keeps about the positions before pos besides the memo, which no later
+call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to.`})
 	add(&exec.Op{Name: "stream.tail", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
 		Features: stream,
 		Contract: `Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).`})

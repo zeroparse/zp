@@ -21,7 +21,7 @@ func Cases() []Case {
 	m := Module()
 	var cs []Case
 	add := func(name string, cfg ref.Config, body func(b *exec.Builder)) {
-		cs = append(cs, Case{Module: m, Func: m.AddFunc(name, nil, nil, []string{"budget"}, body), Config: cfg})
+		cs = append(cs, Case{Module: m, Func: m.AddFunc(name, nil, nil, []string{"budget", "stream"}, body), Config: cfg})
 	}
 	vals := func(id int64) exec.Expr { return exec.C(ValuesOp, exec.Int(id)) }
 	key := func(rule, pos, level, id int64) []exec.Expr {
@@ -71,6 +71,39 @@ func Cases() []Case {
 			b.Assert(exec.And(r[1], exec.Eq(exec.C("memo.end", r[0]), exec.Add(exec.L("pos"), exec.Int(2)))), "every stored position keeps its entry")
 			b.Set("pos", exec.Add(exec.L("pos"), exec.Int(7)))
 		})
+	})
+
+	add("memo_prune", ref.Config{}, func(b *exec.Builder) {
+		b.Assert(exec.Eq(exec.C("memo.floor"), exec.Int(0)), "the floor starts at 0")
+		for _, pos := range []int64{0, 3, 4, 5, 1100} {
+			store(b, fmt.Sprint("p", pos), key(1, pos, 0, 7), true, pos+2)
+		}
+		b.Do("memo.prune", exec.Int(4))
+		b.Assert(exec.Eq(exec.C("memo.floor"), exec.Int(4)), "a prune raises the floor")
+		for _, pos := range []int64{0, 3} {
+			_, f := lookup(b, fmt.Sprint("gone", pos), fmt.Sprint("gf", pos), key(1, pos, 0, 7))
+			b.Assert(exec.Not(f), "entries before the floor are gone")
+		}
+		for _, pos := range []int64{4, 5, 1100} {
+			e, f := lookup(b, fmt.Sprint("kept", pos), fmt.Sprint("kf", pos), key(1, pos, 0, 7))
+			b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e), exec.Int(pos+2))), "entries at or after the floor are unchanged")
+		}
+		store(b, "below", key(1, 2, 0, 7), true, 9)
+		_, f := lookup(b, "belowGot", "bf", key(1, 2, 0, 7))
+		b.Assert(exec.Not(f), "a store before the floor keeps nothing")
+		store(b, "after", key(2, 1200, 0, 7), true, 1200)
+		e, f := lookup(b, "afterGot", "af", key(2, 1200, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(e, exec.L("after"))), "stores after the floor are kept")
+		b.Do("memo.prune", exec.Int(1100))
+		b.Do("memo.prune", exec.Int(1100))
+		e, f = lookup(b, "again", "agf", key(1, 1100, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e), exec.Int(1102))), "a prune at the floor keeps the entries at it")
+		b.Do("memo.prune", exec.Int(5000))
+		_, f = lookup(b, "past", "pf", key(2, 1200, 0, 7))
+		b.Assert(exec.Not(f), "a prune past every entry empties the memo")
+		store(b, "fresh", key(0, 5000, 0, 7), true, 5001)
+		_, f = lookup(b, "freshGot", "ff", key(0, 5000, 0, 7))
+		b.Assert(f, "the memo stores at its floor again")
 	})
 
 	add("seen_first_and_repeat", ref.Config{Rules: 3}, func(b *exec.Builder) {
@@ -144,7 +177,7 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 		ref  *ref.Entry
 	}
 	var entries []entry
-	f := m.AddFunc(name, nil, nil, []string{"budget"}, func(b *exec.Builder) {
+	f := m.AddFunc(name, nil, nil, []string{"budget", "stream"}, func(b *exec.Builder) {
 		pos := func() int64 {
 			if rng.IntN(8) == 0 {
 				return []int64{1023, 1024, 4096, 70000}[rng.IntN(4)]
@@ -185,6 +218,8 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				args, exprs = append(args, e.ref), append(exprs, exec.L(e.name))
 			case "seen.first":
 				intArg(rng.Int64N(int64(max(cfg.Rules, 1))))
+				intArg(pos())
+			case "memo.prune":
 				intArg(pos())
 			case "budget.charge":
 				v := rng.Uint64N(8)

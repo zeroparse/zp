@@ -34,9 +34,9 @@ type streamInput struct {
 	// repetition with the parse's budget control. Nil collects the repetition
 	// as a batch parse does.
 	Emit func(*Node, *BudgetControl) error
-	// memoBase is the position of memo.slots[0]; pruned is the position up to
-	// which memo entries were last discarded.
-	memoBase, pruned int
+	// memoBase is the position of memo.slots[0], the floor of the memo: the
+	// entries before it were discarded.
+	memoBase int
 	// scratch is the capture scratch in use when the #stream repetition
 	// started. Frames allocated after it belong to committed elements and
 	// are reused.
@@ -253,17 +253,14 @@ func (p *Parser) streamRelease() {
 	}
 }
 
-// streamPrune discards the memo entries and the records before pos, which no later call can look up,
-// for streamCommit.
-func (p *Parser) streamPrune(pos int) {
-	s := p.Stream
+// streamDropRecords discards what the parse keeps about the positions before pos besides the memo,
+// which no later call reads, for streamCommit.
+func (p *Parser) streamDropRecords(pos int) {
 	// Completed calls may have shortened the trail before the commit;
 	// its inactive capacity can still refer to committed elements.
 	clear(p.Trail[:cap(p.Trail)])
-	p.pruneStreamMemo(pos)
 	p.pruneSkipRecords(pos)
 	p.Observation.dropDiscarded(pos)
-	s.pruned = pos
 }
 
 // streamSettleErrors forgets the recovered errors before the boundary, for streamCommit.
@@ -521,8 +518,8 @@ func (p *Parser) streamDiscard(keep int) {
 	s.base = keep
 }
 
-// pruneStreamMemo discards the memo entries before pos, which no later call
-// can look up.
+// pruneStreamMemo discards the memo entries before pos and makes pos the floor of the memo, below
+// which lookups find nothing and stores keep nothing (memo.prune).
 func (p *Parser) pruneStreamMemo(pos int) {
 	s, t := p.Stream, &p.memo
 	k := pos - s.memoBase

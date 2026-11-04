@@ -307,11 +307,15 @@ back. *Shared*: when a charge interrupts. *Target*: counter representation and t
 limit is fatal when exceeded; statistics are counters; trace events go to a host sink. *Shared*: when each counts or
 reports. *Target*: the sink. *Conformance*: the limit at its boundary; event sequences of small compositions.
 
-**Stream window** (`stream.commit`, `stream.discard`, `stream.demand`). `commit` makes everything before a position
-final: its input, memo entries and scratch are released, and later reads before it are fatal; `demand` reports the
-position the parse needs, which the default budget of a stream follows ([Streaming](../../../spec/runtime/streaming.md)).
-*Shared*: what a commit releases and finalizes. *Target*: buffers and pruning strategy. *Conformance*: lookups and
-reads below the committed position, scratch after a commit.
+**Stream window** (`stream.discard`, `stream.release`, `stream.dropRecords`, with `memo.prune` and `memo.floor`).
+A commit is the composition `streamCommit`: it makes everything before a position final. `discard` drops the input
+before it, `release` lets go of the scratch and the node memory of the delivered elements, and, once a window of
+input was committed since the floor of the memo, `dropRecords` and `memo.prune` drop the records and the memo
+entries before it. The position the parse needs, which the default budget of a stream follows
+([Streaming](../../../spec/runtime/streaming.md)), is reported by the input reader, a host primitive. *Shared*: what
+a commit releases and finalizes, and when it prunes. *Target*: buffers and the representation of the pruned memo.
+*Conformance*: `memo.prune` and `memo.floor` with the memo operations: lookups and stores below and at the floor,
+entries that a prune removes, and handles of removed entries that an implementation reuses.
 
 **Document reuse** (`doc.validate`, `doc.move`, `doc.resume`, `doc.splice`). `validate` advances a memo entry over
 the edits since its generation and reports whether it is still valid: no edit touched its examined range; `move`
@@ -550,7 +554,10 @@ move to Exec IR at once while mechanisms move one at a time.
    Capture writes and the release of a frame (`frame.set`, `frame.close`) are not declared yet: grammar code reaches
    the runtimes' `SetCapture` and `FreeFrame` through its transitional lowering, and a capture write charges a unit
    in Go and none in TypeScript.
-7. **Stream commitment** (generated Go).
+7. **Stream commitment** (generated Go). The commit is a composition. Pruning the memo is the specified
+   `memo.prune`, under conformance on the generated Go runtime; the floor of the memo is the position of the last
+   prune. Discarding input, releasing the memory of delivered elements, the delivery callbacks and the recovered
+   errors a commit settles stay transitional operations of the window, checked against their charges.
 8. **Document reuse** (generated Go). Provisional tracking becomes the engine's algorithm ([Decisions](#decisions)).
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
    `internal/engine/core`; the closure backend and both VMs run on them.

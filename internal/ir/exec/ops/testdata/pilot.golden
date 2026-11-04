@@ -61,6 +61,30 @@ op memo.store(rule int, pos int, level int, key Values, ok bool, end int, silent
   requires:
     // end is at least pos.
 
+op memo.prune(pos int)
+  component memo
+  reads memo
+  writes memo
+  features stream
+  noreturn
+  cost <= 0 + 1*pruned
+  contract:
+    // Removes the entries stored at positions before pos and raises the floor of the memo to pos.
+    // Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
+    // entry without keeping it. The removed entries are no longer valid; entries at or after pos are
+    // unchanged.
+  requires:
+    // pos is at least the floor (memo.floor).
+
+op memo.floor() int
+  component memo
+  reads memo
+  features stream
+  cost <= 0
+  contract:
+    // Returns the floor of the memo: 0 at the start of a parse, then the position of the last
+    // memo.prune.
+
 op memo.ok(e Entry) bool
   component memo
   reads memo

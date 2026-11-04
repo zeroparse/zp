@@ -32,7 +32,8 @@ type Model struct {
 	// memo
 	entries map[memoKey]*Entry
 	at      map[int64]int // live entries per position
-	covered int64         // positions the memo covers: one more than the largest position stored at
+	covered int64         // one more than the largest position stored at, at least floor
+	floor   int64         // the memo keeps no entries before floor (memo.prune)
 
 	// seen
 	seen  map[[2]int64]bool
@@ -61,6 +62,8 @@ type Entry struct {
 	silent bool
 	value  any
 	errs   any
+	// pruned reports an entry that memo.prune removed: it is no longer valid.
+	pruned bool
 }
 
 type seenCounts struct {
@@ -87,6 +90,10 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	switch o.Name {
 	case "memo.store":
 		return args[5].(int64) >= args[1].(int64) && args[1].(int64) >= 0
+	case "memo.prune":
+		return args[0].(int64) >= m.floor
+	case "memo.ok", "memo.end", "memo.silent", "memo.value", "memo.errs":
+		return !args[0].(*Entry).pruned
 	case "seen.first":
 		r, pos := args[0].(int64), args[1].(int64)
 		return r >= 0 && r < int64(m.cfg.Rules) && pos >= 0
@@ -103,9 +110,10 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		// Every Values of a conformance case is one value.
 		return 2 * int64(m.at[args[1].(int64)])
 	case ops.QSlotGrowth:
-		pos := args[1].(int64)
-		if m.covered > 0 && pos >= m.covered && bits.Len64(uint64(pos+1)) > bits.Len64(uint64(m.covered)) {
-			return m.covered
+		// Positions count from the floor; a store before it keeps nothing.
+		pos, covered := args[1].(int64)-m.floor, m.covered-m.floor
+		if covered > 0 && pos >= covered && bits.Len64(uint64(pos+1)) > bits.Len64(uint64(covered)) {
+			return covered
 		}
 		return 0
 	case ops.QPageIndex:
@@ -116,6 +124,14 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		return (args[1].(int64)*int64(m.cfg.Rules) + args[0].(int64)) / 64
 	case ops.QN:
 		return int64(min(args[0].(uint64), math.MaxInt64))
+	case ops.QPruned:
+		n := 0
+		for at, k := range m.at {
+			if at < args[0].(int64) {
+				n += k
+			}
+		}
+		return int64(n)
 	}
 	panic("ref: unknown quantity " + name)
 }
@@ -128,6 +144,11 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return []any{e, e != nil}
 	case "memo.store":
 		return []any{m.put(&Entry{key: key(args), ok: args[4].(bool), end: args[5].(int64), silent: args[6].(bool), value: args[7], errs: args[8]})}
+	case "memo.prune":
+		m.prune(args[0].(int64))
+		return nil
+	case "memo.floor":
+		return []any{m.floor}
 	case "memo.ok":
 		return []any{args[0].(*Entry).ok}
 	case "memo.end":
@@ -164,6 +185,13 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }
 
+// Dead reports whether the handle h is no longer valid: an entry that memo.prune removed. An
+// implementation may reuse what a dead handle stood for.
+func (m *Model) Dead(h any) bool {
+	e, ok := h.(*Entry)
+	return ok && e.pruned
+}
+
 // Exceeds reports whether charging n units would exceed the compute limit.
 func (m *Model) Exceeds(n uint64) bool {
 	l := m.cfg.Limit
@@ -190,14 +218,30 @@ func (m *Model) charge(n uint64) {
 	}
 }
 
-// put stores e under its key, replacing the entry there.
+// put stores e under its key, replacing the entry there; before the floor it keeps nothing.
 func (m *Model) put(e *Entry) *Entry {
+	if e.key.pos < m.floor {
+		return e
+	}
 	if m.entries[e.key] == nil {
 		m.at[e.key.pos]++
 	}
 	m.entries[e.key] = e
 	m.covered = max(m.covered, e.key.pos+1)
 	return e
+}
+
+// prune removes the entries before pos and makes pos the floor.
+func (m *Model) prune(pos int64) {
+	for k := range m.entries {
+		if k.pos < pos {
+			m.entries[k].pruned = true
+			delete(m.entries, k)
+			delete(m.at, k.pos)
+		}
+	}
+	m.floor = pos
+	m.covered = max(m.covered, pos)
 }
 
 func (m *Model) first(rule, pos int64) bool {

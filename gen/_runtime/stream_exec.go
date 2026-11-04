@@ -25,8 +25,9 @@ func (p *Parser) EmitStream(v *Node, end int) {
 func (p *Parser) streamCommit(pos int) {
 	p.streamDiscard(pos - 1)
 	p.streamRelease()
-	if pos-p.Stream.pruned >= 1024 {
-		p.streamPrune(pos)
+	if pos-p.Stream.memoBase >= 1024 {
+		p.streamDropRecords(pos)
+		p.pruneStreamMemo(pos)
 	}
 	if p.Stream.tail.limit > 0 {
 		p.streamSettleErrors()

@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -13,7 +14,7 @@ import (
 // The generated Go runtime is the first implementation of the parser VM's pilot operations under
 // conformance (design 065). The binding calls the runtime's own functions; where an operation is
 // inline code of a composition, it does what that code does: memo.store allocates an entry and
-// stores it with memoPut as the call does.
+// stores it with memoPut as the call does. A stream parse also provides the pruning of its memo.
 
 type rtMachine struct {
 	p     *Parser
@@ -23,8 +24,11 @@ type rtMachine struct {
 	metered bool
 }
 
-func newRTMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
+func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl {
 	p := &Parser{MaxDepth: int(cfg.MaxDepth)}
+	if stream {
+		p.Stream = &streamInput{}
+	}
 	p.memo.stride, p.memo.sparse = cfg.Rules, sparse
 	m := &rtMachine{p: p, vals: map[int64][]any{}, metered: controlled}
 	for i := range cfg.Rules {
@@ -87,6 +91,11 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{int64(args[0].(*memoEntry).end)}
 	case "memo.silent":
 		return []any{args[0].(*memoEntry).silent}
+	case "memo.prune":
+		p.pruneStreamMemo(i(0))
+		return nil
+	case "memo.floor":
+		return []any{int64(p.Stream.memoBase)}
 	case "seen.first":
 		p.Pos = i(1)
 		return []any{p.FirstCall(m.rules[i(0)])}
@@ -102,21 +111,31 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 var (
 	rtMemoOps   = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "seen.first"}
 	rtBudgetOps = []string{"budget.charge", "budget.used"}
+	rtStreamOps = []string{"memo.prune", "memo.floor"}
 )
 
 func rtSuites() []conform.Suite {
 	var suites []conform.Suite
 	for _, controlled := range []bool{false, true} {
 		for _, sparse := range []bool{false, true} {
-			ops := rtMemoOps
-			if controlled {
-				ops = append(append([]string(nil), rtMemoOps...), rtBudgetOps...)
+			for _, stream := range []bool{false, true} {
+				ops := append([]string(nil), rtMemoOps...)
+				if stream {
+					// Streams memoize on the first call: seen.first is not part of their parse.
+					ops = slices.DeleteFunc(ops, func(o string) bool { return o == "seen.first" })
+				}
+				if controlled {
+					ops = append(ops, rtBudgetOps...)
+				}
+				if stream {
+					ops = append(ops, rtStreamOps...)
+				}
+				suites = append(suites, conform.Suite{
+					Name: fmt.Sprintf("generated Go runtime (controlled=%v, sparse seen=%v, stream=%v)", controlled, sparse, stream),
+					Ops:  ops,
+					New:  func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, sparse, stream) },
+				})
 			}
-			suites = append(suites, conform.Suite{
-				Name: fmt.Sprintf("generated Go runtime (controlled=%v, sparse seen=%v)", controlled, sparse),
-				Ops:  ops,
-				New:  func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, sparse) },
-			})
 		}
 	}
 	return suites
@@ -174,6 +193,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		op         string
 		call       func(m *rtMachine, args []any) []any
 		controlled bool
+		stream     bool
 	}
 	variants := map[string]broken{
 		// memoTable.put that links a new entry behind the chain instead of replacing the entry under
@@ -203,6 +223,18 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			e := m.p.memoGet(int(args[0].(int64)), int(args[1].(int64)), 0, m.vals[args[3].(int64)])
 			return []any{e, e != nil}
 		}},
+		// A prune that shifts the slots by one position too many: the entries at the floor are lost.
+		"prune drops the floor's entries": {op: "memo.prune", stream: true, call: func(m *rtMachine, args []any) []any {
+			pos := int(args[0].(int64))
+			m.p.pruneStreamMemo(pos + 1)
+			m.p.Stream.memoBase = pos
+			return nil
+		}},
+		// A prune that keeps the memo and moves only the floor: entries shift to the wrong positions.
+		"prune moves only the floor": {op: "memo.prune", stream: true, call: func(m *rtMachine, args []any) []any {
+			m.p.Stream.memoBase = int(args[0].(int64))
+			return nil
+		}},
 		// A lookup that charges each entry it passes twice: within the results, beyond the bound.
 		"lookup charges twice": {op: "memo.lookup", controlled: true, call: func(m *rtMachine, args []any) []any {
 			if pos := int(args[1].(int64)); pos < len(m.p.memo.slots) {
@@ -217,11 +249,15 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 	}
 	for name, b := range variants {
 		t.Run(name, func(t *testing.T) {
-			s := conform.Suite{Name: "broken: " + name, Ops: rtMemoOps, New: func(c ref.Config) conform.Impl {
+			ops := rtMemoOps
+			if b.stream {
+				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtStreamOps...)
+			}
+			s := conform.Suite{Name: "broken: " + name, Ops: ops, New: func(c ref.Config) conform.Impl {
 				if b.controlled {
-					return meteredBrokenRT{brokenRT{newRTMachine(c, true, false).(meteredRT).rtMachine, b.op, b.call}}
+					return meteredBrokenRT{brokenRT{newRTMachine(c, true, false, b.stream).(meteredRT).rtMachine, b.op, b.call}}
 				}
-				return brokenRT{newRTMachine(c, false, false).(*rtMachine), b.op, b.call}
+				return brokenRT{newRTMachine(c, false, false, b.stream).(*rtMachine), b.op, b.call}
 			}}
 			fails, _ := conformanceFailures(s, 30, 150)
 			if len(fails) == 0 {

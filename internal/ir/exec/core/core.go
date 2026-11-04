@@ -327,8 +327,9 @@ and otherwise the call without observation.`
 		b.Do("stream.discard", Bin("-", pos, Int(1)))
 		b.Do("stream.release")
 		// Pruning scans the memo, so it runs once the committed prefix has grown by a window.
-		b.If(Bin(">=", Bin("-", pos, C("stream.pruned")), Int(streamPruneWindow)), func(b *Builder) {
-			b.Do("stream.prune", pos)
+		b.If(Bin(">=", Bin("-", pos, C("memo.floor")), Int(streamPruneWindow)), func(b *Builder) {
+			b.Do("stream.dropRecords", pos)
+			b.Do("memo.prune", pos)
 		})
 		b.If(C("stream.tail"), func(b *Builder) { b.Do("stream.settleErrors") })
 	})

@@ -154,6 +154,30 @@ op memo.store(rule int, pos int, level int, key Values, ok bool, end int, silent
   requires:
     // end is at least pos.
 
+op memo.prune(pos int)
+  component memo
+  reads memo
+  writes memo
+  features stream
+  noreturn
+  cost <= 0 + 1*pruned
+  contract:
+    // Removes the entries stored at positions before pos and raises the floor of the memo to pos.
+    // Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
+    // entry without keeping it. The removed entries are no longer valid; entries at or after pos are
+    // unchanged.
+  requires:
+    // pos is at least the floor (memo.floor).
+
+op memo.floor() int
+  component memo
+  reads memo
+  features stream
+  cost <= 0
+  contract:
+    // Returns the floor of the memo: 0 at the start of a parse, then the position of the last
+    // memo.prune.
+
 op memo.ok(e Entry) bool
   component memo
   reads memo
@@ -967,24 +991,15 @@ transitional op stream.release()
   requires:
     // Every call of the delivered elements has returned.
 
-transitional op stream.pruned() int
-  component window
-  reads window
-  features stream
-  cost <= 0
-  contract:
-    // Returns the position up to which the memo and the records of the parse were pruned.
-
-transitional op stream.prune(pos int)
+transitional op stream.dropRecords(pos int)
   component window
   reads window
   writes window
   features stream
-  noreturn
-  cost <= 0 + 1*pruned
+  cost <= 0
   contract:
-    // Discards the memo entries and the records of the parse before pos, which no later call can look
-    // up, and remembers pos as the pruned position.
+    // Discards what the parse keeps about the positions before pos besides the memo, which no later
+    // call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to.
 
 transitional op stream.tail() bool
   component window

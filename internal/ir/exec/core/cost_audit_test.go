@@ -257,9 +257,8 @@ var siteCost = map[string][]string{
 	"Parser.valuesEqual":           {""},
 	"Parser.advance":               {ops.QSteps, ""},
 	// The stream window.
-	"Parser.streamDiscard":   {ops.QStreamScan},
-	"Parser.streamLineCol":   {ops.QStreamScan},
-	"Parser.pruneStreamMemo": {ops.QPruned},
+	"Parser.streamDiscard": {ops.QStreamScan},
+	"Parser.streamLineCol": {ops.QStreamScan},
 
 	// The capture frames.
 	"Parser.undoCaptures":  {ops.QTrail},
