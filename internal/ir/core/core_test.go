@@ -138,6 +138,30 @@ func TestAnalyzeNullableAndEffects(t *testing.T) {
 	}
 }
 
+// TestAnalyzeFailureAfterCut checks that an option and a repetition without a minimum may fail
+// when their body can fail after a cut that commits them, and that a recovery may fail when its
+// body can: its skip then fails or consumes nothing.
+func TestAnalyzeFailureAfterCut(t *testing.T) {
+	loose := func() Node { return seq(lit("a"), &Cut{}, lit("b")) }
+	opt := &Opt{Body: loose()}
+	rep := &Repeat{Min: 0, Max: -1, Body: loose()}
+	held := &Opt{Body: choice(loose(), lit("c"))}
+	rec := &Recover{Body: lit("a"), Skip: &Repeat{Min: 0, Max: -1, Body: lit("b")}}
+	sure := &Recover{Body: &Opt{Body: lit("a")}, Skip: lit("b")}
+	analyzed(t, module(rule(0, "a", seq(opt, rep, held, rec, sure))))
+	for _, c := range []struct {
+		n    Node
+		fail bool
+	}{{opt, true}, {rep, true}, {held, false}, {rec, true}, {sure, false}} {
+		if got := c.n.Attrs().Eff.Set&EffFail != 0; got != c.fail {
+			t.Errorf("%s: may fail %v, want %v", strings.TrimSpace(PrintNode(nil, c.n, false)), got, c.fail)
+		}
+		if c.n.Attrs().Eff.Set&EffCut != 0 {
+			t.Errorf("%s: a cut escapes", strings.TrimSpace(PrintNode(nil, c.n, false)))
+		}
+	}
+}
+
 // TestAnalyzeScopedRepetition checks that a repetition element with captures of its own keeps
 // its captures and lets its bindings through: a rule invocation is the only variable scope.
 func TestAnalyzeScopedRepetition(t *testing.T) {

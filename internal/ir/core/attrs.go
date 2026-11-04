@@ -84,7 +84,11 @@ func (a *analyzer) node(n Node) (bool, Effects) {
 		_, ee := a.node(n.Body)
 		null = true
 		e = ee
-		e.Set &^= EffCut | EffFail
+		// An option fails only when its body fails after a cut that commits it.
+		if ee.Set&EffCut == 0 {
+			e.Set &^= EffFail
+		}
+		e.Set &^= EffCut
 	case *Repeat:
 		nn, ee := a.node(n.Body)
 		null = n.Min == 0 || n.Min == 1 && nn
@@ -94,10 +98,12 @@ func (a *analyzer) node(n Node) (bool, Effects) {
 			// outside a rule call.
 			e = Effects{Set: e.Set &^ EffCapture}
 		}
-		e.Set &^= EffCut
-		if n.Min == 0 {
+		// A repetition without a minimum fails only when an iteration fails after a cut that
+		// commits it.
+		if n.Min == 0 && ee.Set&EffCut == 0 {
 			e.Set &^= EffFail
 		}
+		e.Set &^= EffCut
 	case *Look:
 		_, ee := a.node(n.Body)
 		null = true
@@ -158,10 +164,13 @@ func (a *analyzer) node(n Node) (bool, Effects) {
 		null, e = a.node(n.Body)
 	case *Recover:
 		_, eb := a.node(n.Body)
-		_, es := a.node(n.Skip)
+		nullSkip, es := a.node(n.Skip)
 		null = true
 		e = union(eb, es)
-		e.Set &^= EffFail
+		// A recovery fails when its body fails and its skip fails or consumes nothing.
+		if eb.Set&EffFail == 0 || es.Set&EffFail == 0 && !nullSkip {
+			e.Set &^= EffFail
+		}
 		e.Set |= EffRecover
 	case *Missing:
 		// An insertion can exceed the limit of missing tokens.
