@@ -21,14 +21,16 @@ rule is one symbol, and two uses of it that keep the language unchanged:
 `/` stays the only choice operator, and the language does not change. The guarantee that a grammar is linear comes from
 a declared linear mode, proposed separately, in which a choice that the analysis cannot decide is a compile error that
 names the overlap; this record supplies the analysis that such a mode would run. Whitespace follows a convention, with a
-lint, instead of a trivia declaration. A token layer is not introduced: on the bundled grammars, no overlap that the
-measurements found needs one.
+lint. Whitespace rules need no declaration either: a rule whose shape makes it **trivia** (a greedy repetition that
+depends only on the position) is recognized from its body, and the analysis compares its calls without counting them. A
+token layer is not introduced: on the bundled grammars, no overlap that the measurements found needs one.
 
-On the bundled grammars, counting a call as one symbol decides 61% of the alternatives at k = 1 and 65% within three
-symbols. The nested reasons of the classifier fall from 1428 to 1394; on cel written with trailing whitespace, from 9 to
-4. The grammars with automatic cuts give the same results and messages as the originals on all 446 test inputs. Most of
-the units that stay not committing are options, iterations, lookaheads and operator parts, which a linear mode must also
-cover.
+On the bundled grammars, counting a call as one symbol decides 62% of the alternatives at k = 1 and 68% within three
+symbols. With decided units at k = 3, the nested reasons of the classifier fall from 1443 to 1333, and to 1297 with
+trivia rules of the wide shape; on cel written with trailing whitespace, from 15 to 10. The grammars with automatic cuts
+give the same results and messages as the originals on all 446 test inputs and on 600 mutated inputs. About 40% of the
+units that stay not committing are alternatives; the rest are options, iterations, lookaheads and operator parts, which
+a linear mode must also cover.
 
 ## Motivation
 
@@ -89,21 +91,45 @@ repetition with an upper bound of 1 is an option of its expression. The paths of
 sense: they contain one path for every successful evaluation, and may contain paths that no evaluation follows.
 `#recover`, attributed expressions with an error or a missing value, and Operators Rules are stops. The number of paths
 and their length are bounded (256 paths, 12 symbols), and a call is expanded into the paths of its rule body only as
-deep as the comparison needs, three rule ends through a continuation.
+deep as the comparison needs, at most six rule bodies for one pair of paths.
+
+Two further symbols carry what the comparison of calls that read variables needs (see [Exclusion](#exclusion)): a
+**binding** mark, for an expression that can bind a variable in the scope it runs in, and an **environment** mark,
+before an option, a choice or a repetition that is cheap only where both sides have the same variables.
+
+A **continuation** is what the parser evaluates after a unit: the rest of the body, then what follows each call of the
+rule, through rule ends. At the end of an operand of an Operators Rule it goes on with the operator parts that can
+follow the operand, their right operands, and what follows the rule. At the end of the start rule it reaches the **end
+of the parse**: a whole-input parse checks the end of the input there, which costs a constant, and a prefix parse stops.
+The continuation is followed through at most six rule and operand ends, and through fewer where the paths through six
+would pass the limit on the number of paths; a path cut short at the bound ends with a stop.
 
 ### Exclusion
 
 Two paths p and q from one position **part** at a decisive symbol when the analysis shows that p up to that symbol and q
 cannot both succeed. It walks both from the start:
 
-- **Equal symbols** advance both. Two calls of one rule are equal when the rule reads no variable and is not on a
-  left-recursion cycle: a call inside a growth sees the seed of the growth, so two calls of a rule of a cycle at one
-  position can differ. Equal literals, equal classes, `.` and structurally equal repetitions whose calls are equal in
-  the same sense are equal too; repetitions are greedy, so equal repetitions end alike.
+- **Equal symbols** advance both. Two calls of one rule are equal when the rule is not on a left-recursion cycle, and
+  either reads no variable or is called with the same variables on both sides: a call inside a growth sees the seed of
+  the growth, so two calls of a rule of a cycle at one position can differ. Equal literals, equal classes, `.` and
+  structurally equal repetitions whose calls are equal in the same sense are equal too; repetitions are greedy, so equal
+  repetitions end alike.
+- **Same variables.** Both sides start at one position with the same variables in scope, since a failed alternative,
+  iteration or option undoes its bindings. They keep the same variables until either passes a binding mark: a predicate
+  that binds, a lookahead or a whole repetition that contains a binding, or the end of a rule whose body binds, which
+  the continuation leaves while the unit may have seen the bindings. After a mark, calls of rules that read variables
+  are no longer equal, and an environment mark stops the comparison.
+- **Trivia calls.** Two calls of one trivia rule are passed without counting toward k, and a call of a trivia rule that
+  follows a call of the same rule across symbols that consume nothing is dropped (see [Whitespace](#whitespace)).
 - **Disjoint first characters** decide: when neither symbol can match empty, and no character begins both, they cannot
   both succeed at one position.
 - **Literals** decide when neither is a prefix of the other, and advance by the shorter one otherwise; a literal and a
   class or `.` that matches its first character advance by that character.
+- **Overlapping classes**: two classes, or a class and `.`, that share characters are split into their intersection and
+  the rest of each. Where either matches in its rest the other fails, so where both succeed they consume one character
+  of the intersection and advance together.
+- **The end of the parse** in a continuation decides in strict mode: the continuation examines nothing beyond the
+  symbols that both evaluated alike.
 - **A negative lookahead** `!K` in p decides when the rest of q must match K at that position: q begins with K, or with
   an alternative of K. **A positive lookahead** `&K` in p decides when K and the next symbol of q are disjoint.
   Lookaheads in q decide symmetrically.
@@ -160,8 +186,10 @@ strict form of the analysis decides it against each of its continuations within 
 makes a decision a bound on the input that the continuation examines again:
 
 - Every symbol passed alike is **cheap**: a call answered by the memo, a call of a rule that calls no rule, an
-  expression without a scanning source, or a call of a rule whose body is cheap in all its parts. The continuation
-  examines it again at no more than a constant or what the unit paid.
+  expression without a scanning source, a call of a rule whose body is cheap in all its parts, or a call of a trivia
+  rule memoized per position. The continuation examines it again at no more than a constant or what the unit paid. A
+  call of a rule that reads variables is cheap only where both sides have the same variables, and then when the memo,
+  keyed by those values, answers it or the rule calls no rule.
 - The analysis looks into an option, a choice, a repetition or a lookahead only when all its parts are cheap: a path
   does not show the attempts that fail inside them, which can examine input.
 - A unit whose paths end with every symbol passed alike or cheap is decided too: it examines nothing beyond shared and
@@ -179,6 +207,25 @@ A lint reports a whitespace rule in the first set of a unit or a continuation: a
 whitespace characters or comments, and is called at the start of a rule body or of an Operators Rule skip. The lint
 names the rule that begins with it and suggests the trailing convention.
 
+Whitespace is never skipped implicitly: a parser that skipped it between any two symbols would accept it where the
+grammar does not write it. The calls stay where the grammar writes them, and the analysis compares them through a
+property that the compiler reads off the rule. A rule is **trivia** when:
+
+- its body is a greedy repetition `X*`, so a call always succeeds, and a second call where the first ended matches
+  nothing, since X fails there again;
+- neither it nor a rule that it calls reads a variable, captures, runs an action or a predicate, or contains `#recover`,
+  an attributed expression, a stream, an Operators Rule or a call of a left-recursion cycle, so its result depends only
+  on the position.
+
+Such a rule can be memoized per position on every backend. The analysis then treats a call of it as cheap, passes two
+calls of one trivia rule at one position without counting them toward k, and drops a call that follows a call of the
+same rule across symbols that consume nothing, since it matches nothing there. With leading whitespace, `ws "," ws
+value` against `ws "," ws "]"` then parts at k = 2 instead of reaching the bound at the third `ws`.
+
+The property needs no declaration. A wider shape also has it: an atomic `X*`, and the unrolled form `X* (Y X*)*` in
+which comment rules are often written. After the unrolled form, X fails where its last `X*` stopped, and the outer
+repetition stopped where Y failed or an iteration matched nothing, so a second evaluation matches nothing as well.
+
 ### Linear Mode
 
 A declared linear mode, proposed separately, turns the classification into a guarantee: in that mode a choice that the
@@ -193,10 +240,35 @@ This section argues the two uses against [Lemma 4](../../../spec/proofs/linear-c
 the gaps. The automatic cut needs only the exclusion; the classifier needs the exclusion and the cost bound.
 
 **Determinism of equal symbols.** A parsing expression evaluated at one position with one environment and one memo state
-of growths has one result. Equal calls read no variable and are not calls of rules of a cycle, so their results at one
-position agree; equal literals, classes and `.` examine the same characters; equal repetitions of such symbols iterate
-alike, since they are greedy. Two paths that pass equal symbols from one position are therefore at one position after
-each of them, whether the symbols succeed or fail.
+of growths has one result. Equal calls are not calls of rules of a cycle, and either read no variable or are evaluated
+with one environment, so their results at one position agree; equal literals, classes and `.` examine the same
+characters; equal repetitions of such symbols iterate alike, since they are greedy. Two paths that pass equal symbols
+from one position are therefore at one position after each of them, whether the symbols succeed or fail.
+
+**One environment.** The unit and its continuation start at one position with one environment: the bindings of a failed
+alternative, iteration or option are undone, and a callee's bindings end with its call. Each side changes its
+environment only by evaluating a binding in its own scope, which its paths show as a binding mark (a predicate that
+binds, or a lookahead or a whole repetition that contains one, found without entering callees), or by leaving a rule
+whose body binds, where the caller does not see the bindings that the unit may have seen, which the continuation shows
+as a binding mark at that rule end. Before the first binding mark on either side, the environments are equal, and calls
+of rules that read variables are equal symbols. A rule's paths do not depend on variables, so such a rule can still be
+expanded into the superset of its paths. For the cost bound, the memo is keyed by the values of the variables that a
+rule reads, so with one environment the second call is answered as any other memoized call.
+
+**Overlapping classes.** A class or `.` consumes exactly one character where it succeeds. If the character at the
+position lies outside one of two overlapping classes, that one fails; otherwise both consume it and end at the next
+position.
+
+**Continuations.** The paths of a continuation through an operand end are a superset: after an operand, the parser
+evaluates an operator part that applies after it, its right operand, or what follows the rule. At the end of the start
+rule the parse ends, so a continuation that reaches it examines nothing more there, beyond the constant check of the end
+of the input.
+
+**Trivia calls.** A trivia rule always succeeds and has one result at a position. Two calls of one trivia rule at one
+position end at one position, which keeps the sides together without examining anything that distinguishes them. A call
+that follows a call of the same rule, with nothing consumed between them, starts where the first X* stopped, so X fails
+at once and the call matches nothing; dropping it keeps the set of paths. For the cost bound, the second call costs a
+constant when the rule is memoized per position, which the classifier must then assume.
 
 **Exclusion.** Each decisive case is a statement about two expressions at one position: disjoint first characters cannot
 both be consumed; two literals that are not prefixes of each other cannot both match; a negative lookahead `!K` fails
@@ -228,8 +300,10 @@ shared and cheap symbols examines nothing more, which is case 3.
   a cost bound, and of each decisive case as a lemma, as cases 1 to 5 have.
 - The cost of a lookahead decision: when C fails inside the match of K, it may have examined as much as K examines. The
   prototype requires K to be cheap in all its parts in strict mode; the proof must state that bound.
-- Rules that read variables are never equal symbols. Two calls with one environment have one result, and the memo is
-  keyed by environment, so equality of calls whose arguments are equal is sound in principle but not implemented.
+- Calls of rules that read variables are equal only before a binding mark; equality of calls whose variables are equal
+  after a binding, which needs the values, is not implemented.
+- The trivia argument assumes that trivia rules are memoized per position; the memo does not yet do so for rules that
+  call no rule, and the classifier treats them as memoized only behind a test hook.
 - Calls of left-recursive rules are never equal symbols, and the growth argument of case 5 is not extended.
 - `#recover`, attributed expressions with an error or a missing value, and Operators Rules are stops; operator parts are
   not analyzed.
@@ -240,7 +314,8 @@ shared and cheap symbols examines nothing more, which is case 3.
 
 ## Measurements
 
-The prototype is `internal/compile/autocut.go` on the branch `feat/auto-cut`, reached only from tests.
+The prototype is `internal/compile/autocut.go` and `autocut_trivia.go` on the branch `feat/auto-cut`, reached only
+from tests; trivia rules are enabled by test hooks.
 `TestAutoCutReport` classifies each bundled grammar with the analysis off and on and writes the grammars with automatic
 cuts. Counts are of choices with two or more alternatives in reachable rules, of their alternatives but the last, and of
 the witnesses (w) and nested reasons (r) of the classifier.
@@ -252,44 +327,145 @@ the witnesses (w) and nested reasons (r) of the classifier.
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
 | cel | 42 | 27 | 29 | 29 | 29 | 96 | 73 | 77 | 77 | 77 | 13 |
 | csv | 2 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| cue | 138 | 59 | 63 | 63 | 63 | 318 | 146 | 153 | 154 | 154 | 39 |
-| duckdb | 565 | 341 | 364 | 371 | 399 | 1303 | 826 | 870 | 890 | 930 | 472 |
+| cue | 138 | 61 | 65 | 65 | 69 | 318 | 152 | 159 | 160 | 164 | 39 |
+| duckdb | 565 | 341 | 366 | 385 | 417 | 1303 | 826 | 884 | 947 | 1011 | 472 |
 | golang | 166 | 68 | 74 | 76 | 77 | 350 | 208 | 217 | 221 | 223 | 63 |
-| python | 153 | 71 | 75 | 75 | 75 | 344 | 202 | 214 | 214 | 214 | 60 |
-| typescript | 302 | 162 | 174 | 174 | 174 | 808 | 553 | 571 | 571 | 571 | 96 |
+| python | 153 | 71 | 79 | 81 | 82 | 344 | 203 | 221 | 226 | 227 | 60 |
+| typescript | 302 | 162 | 178 | 182 | 183 | 808 | 557 | 589 | 598 | 601 | 96 |
 | xml | 35 | 27 | 30 | 31 | 33 | 54 | 43 | 46 | 48 | 50 | 8 |
-| yaml | 91 | 24 | 24 | 24 | 24 | 130 | 33 | 33 | 33 | 33 | 10 |
+| yaml | 91 | 24 | 26 | 26 | 26 | 130 | 33 | 37 | 37 | 37 | 11 |
 | minilang | 10 | 8 | 8 | 8 | 8 | 27 | 19 | 19 | 20 | 20 | 0 |
 | outline | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
 | json | 5 | 5 | 5 | 5 | 5 | 9 | 9 | 9 | 9 | 9 | 0 |
-| Total | 1510 | 792 | 846 | 856 | 887 | 3443 | 2112 | 2209 | 2237 | 2281 | 761 |
+| Total | 1510 | 794 | 860 | 888 | 929 | 3443 | 2123 | 2258 | 2343 | 2419 | 762 |
 
-Counting a call as one symbol decides 61% of the alternatives at k = 1 and 65% at k = 3; beyond k = 3 only duckdb and
-xml gain more than a few. The alternatives that stay undecided share an unbounded prefix (two Go declarations that both
-begin with a list of identifiers), separate keywords from identifiers with predicates or variables (TypeScript's
-reserved words), decide inside a callee (an alternative that is one call), or overlap (an integer and a decimal both
-match `123`).
+Counting a call as one symbol decides 62% of the alternatives at k = 1 and 68% at k = 3; beyond k = 3 only duckdb gains
+more than a few. The alternatives that stay undecided share an unbounded prefix (two Go declarations that both begin
+with a list of identifiers), separate keywords from identifiers with predicates (TypeScript's reserved words), decide
+inside a callee (an alternative that is one call), or overlap (an integer and a decimal both match `123`).
 
 **Classifier.** Witnesses (w) and nested reasons (r). Automatic cuts are classified with cut prefixes as units; decided
 units use the strict analysis at k = 2, 3 and 4.
 
 | Grammar | Class | Base | Automatic cuts | Decided k = 2 | k = 3 | k = 4 | Both, k = 3 |
-|:--|:--|:--|:--|--:|--:|--:|:--|
-| cel | polynomial | w8 r12 | w8 r12 | r12 | r12 | r12 | w7 r12 |
-| cue | exponential | w52 r59 | w52 r59 | r59 | r59 | r59 | w51 r59 |
-| duckdb | polynomial | w19 r672 | w19 r663 | r663 | r656 | r647 | w19 r655 |
-| golang | polynomial | w24 r165 | w24 r165 | r155 | r153 | r149 | w24 r153 |
-| python | exponential | w147 r199 | w148 r199 | r199 | r199 | r199 | w147 r199 |
-| typescript | polynomial | w241 r269 | w241 r269 | r266 | r266 | r256 | w241 r266 |
-| xml | polynomial | w5 r9 | w5 r9 | r7 | r7 | r7 | w4 r7 |
-| Total of all twelve | | w533 r1428 | w534 r1419 | r1404 | r1395 | r1372 | w530 r1394 |
+|:--|:--|:--|:--|:--|:--|:--|:--|
+| cel | polynomial | w8 r19 | w8 r19 | w8 r19 | w8 r19 | w8 r19 | w8 r19 |
+| cue | exponential | w54 r59 | w54 r59 | w54 r59 | w53 r59 | w53 r55 | w53 r59 |
+| duckdb | polynomial | w19 r672 | w19 r663 | w19 r650 | w19 r625 | w19 r609 | w19 r624 |
+| golang | polynomial | w24 r165 | w24 r165 | w24 r155 | w24 r153 | w24 r149 | w24 r153 |
+| python | exponential | w147 r199 | w148 r199 | w128 r174 | w128 r168 | w128 r153 | w128 r168 |
+| typescript | polynomial | w241 r269 | w241 r269 | w241 r256 | w241 r253 | w241 r240 | w241 r253 |
+| xml | polynomial | w5 r9 | w5 r9 | w5 r7 | w4 r7 | w4 r7 | w4 r7 |
+| yaml | exponential | w34 r39 | w35 r39 | w34 r37 | w34 r37 | w34 r37 | w35 r37 |
+| Total of all twelve | | w536 r1443 | w538 r1434 | w517 r1369 | w515 r1333 | w515 r1281 | w516 r1332 |
 
-csv, yaml, minilang, outline and json do not change; json is Linear throughout. The class of no grammar changes.
-Automatic cuts alone remove few reasons, because most decided alternatives were committing already by their first
-characters; the cut matters where the decision comes after a shared call. In python one witness moves: an n^4 witness
-becomes n^3 and a new n^2 witness appears, so the count rises by one while the worst degree falls. The units that stay
-not committing are mostly not alternatives: with decided units on, about a third are alternatives of choices, and the
-rest are options, iterations, lookaheads and operator parts.
+csv, minilang, outline and json do not change; json is Linear throughout. The class of no grammar changes. Automatic
+cuts alone remove few reasons, because most decided alternatives were committing already by their first characters; the
+cut matters where the decision comes after a shared call. In python, decided units remove 19 witnesses and 31 reasons,
+which calls of rules that read the indentation, equal under one environment, make possible. With automatic cuts one
+witness moves in python and yaml: a witness of a higher degree becomes one of a lower degree and a new witness appears,
+so the count rises by one while the worst degree falls.
+
+**Blockers.** For each nested reason that decided units at k = 3 leave, the blocker is where the comparison stops: the
+non-strict comparison at k = 8, or the strict condition where only that fails. The columns add the refinements of
+[Exclusion](#exclusion) one at a time: calls under one environment, continuations through operand ends and the end of
+the parse followed through six ends, overlapping classes, and fewer ends where six pass the limit on paths.
+
+| Blocker | Before | Variables | Continuations | Classes | Fewer ends at the limit |
+|:--|--:|--:|--:|--:|--:|
+| Variables | 641 | 4 | 4 | 4 | 4 |
+| Continuation cut short | 351 | 393 | 0 | 0 | 0 |
+| Character overlap | 25 | 26 | 19 | 0 | 0 |
+| Follow bound | 0 | 0 | 73 | 73 | 298 |
+| Path and expansion limits | 177 | 467 | 888 | 900 | 443 |
+| Stop: attributed, Operators Rule | 64 | 134 | 82 | 82 | 188 |
+| Bound k | 29 | 95 | 53 | 53 | 96 |
+| Cost condition | 9 | 52 | 47 | 47 | 75 |
+| One side ends | 15 | 27 | 19 | 25 | 46 |
+| Lookahead unit | 64 | 64 | 64 | 64 | 64 |
+| Other | 35 | 71 | 105 | 106 | 119 |
+| Reasons | 1410 | 1333 | 1354 | 1354 | 1333 |
+| Trailing separators left | 79 | 79 | 79 | 79 | 79 |
+
+Calls under one environment remove almost all the variable blockers, which come mostly from duckdb, TypeScript and
+python, from rules that read variables such as the indentation. Following continuations further removes the
+continuations cut short, but through six ends their paths pass the limit for 513 units, which then lose decisions that
+three ends gave; following fewer ends at the limit gets them back. The units that the refinements open then stop further
+on, so the reasons fall by 77, from 1410 to 1333, while most blockers only move. Overlapping classes decide 4 more
+alternatives in TypeScript.
+
+Of the reasons that stay, 519 (39%) are alternatives of choices, against 572 of 1410 (41%) before; the rest are 368
+options, 200 iterations, 154 operator parts, 64 lookaheads, 11 operands, one base of `#recover` and 16 reasons that are
+not tied to a unit.
+
+What remains, in order of size:
+
+- **Expansion limit** (439): the comparison expands more than six rule bodies for one pair of paths before the sides
+  part: 172 in duckdb, 108 in TypeScript, 76 in golang, 48 in python and the rest in four other grammars.
+- **Follow bound** (298): a continuation reaches more ends than its paths allow to follow, 252 of them in duckdb.
+- **Stops** (188): attributed expressions, Operators Rules and calls of operator levels, which the analysis does not
+  look into.
+- **Bound k** (96): the comparison decides at k = 8 but not within 3.
+- **Cost condition** (75): the non-strict comparison decides, and the strict one meets a part that is not cheap, such
+  as a repetition or a choice that scans.
+- **Lookahead units** (64), and units where one side ends before the other (46).
+
+**Trailing separators.** 79 of the reasons are trailing separators: an iteration `("," ws value)*` or an option
+`("," ws)?` against a continuation that begins with the same separator. Decided units at k = 1 decide none, since they
+pass no symbol alike. At k = 2 and 3 they decide none in the bundled grammars, because each begins its separator with
+whitespace or writes it as two symbols: the comparison passes `ws`, the comma and `ws` before the symbols that part.
+In cel written with trailing whitespace, the separators `"," ws` are decided at k = 3 and not at k = 2, and with one
+rule `comma = "," ws` they are decided at k = 2. Trivia rules remove the difference.
+
+**Trivia.** Trivia rules were measured in two ways: **inferred**, every rule whose shape qualifies, and **listed**,
+only the whitespace and comment rules of each grammar that qualify, chosen by hand. **Wide** accepts the wider shape of
+[Whitespace](#whitespace). The rules found:
+
+| Grammar | Inferred | Whitespace rules that do not qualify |
+|:--|:--|:--|
+| cel | `ws` (wide) | `ws` is the unrolled `X* (Y X*)*` |
+| cue | `sp`, `nlws`, `ws`, `dqbody`, `sqbody` | `comment` is not a repetition |
+| duckdb | `ws` (wide), `e_body` | `ws` is the unrolled form; `comment` and `block_comment` are not repetitions |
+| golang | `idRest` | `ws` and `sp` capture and test characters with predicates |
+| python | none | `ws` reads the indentation variable; `blank`, `comment` and `newline` are not repetitions |
+| typescript | `ws`, `sp`, `templateCharacters`, `rawTemplateCharacters` | |
+| xml | `ws` | `s` is `X+`; `comment` captures |
+| yaml | six string bodies (`nb_double_one_line` and others) | `s_separate_in_line` is `[ \t]+ / ^`; `s_indent` reads the indentation |
+| json, minilang | `ws` | |
+| outline | `spaces` (wide) | `spaces` is an atomic `X*` |
+
+The wide shape also infers string and identifier bodies in json, minilang, cue, typescript and xml. Nested reasons
+and blockers at k = 3, with trivia alone on the analysis before the refinements, and combined with them:
+
+| Blocker | Off | Alone, inferred | Alone, listed | Inferred | Listed | Inferred, wide | Listed, wide |
+|:--|--:|--:|--:|--:|--:|--:|--:|
+| Variables | 4 | 641 | 641 | 4 | 4 | 4 | 4 |
+| Continuation cut short | 0 | 351 | 351 | 0 | 0 | 0 | 0 |
+| Character overlap | 0 | 25 | 25 | 0 | 0 | 0 | 0 |
+| Follow bound | 298 | 0 | 0 | 298 | 298 | 307 | 307 |
+| Path and expansion limits | 443 | 176 | 176 | 441 | 441 | 455 | 455 |
+| Stop: attributed, Operators Rule | 188 | 64 | 64 | 188 | 188 | 184 | 184 |
+| Bound k | 96 | 18 | 18 | 79 | 84 | 65 | 70 |
+| Cost condition | 75 | 11 | 11 | 79 | 79 | 82 | 82 |
+| One side ends | 46 | 15 | 15 | 46 | 46 | 48 | 48 |
+| Lookahead unit | 64 | 64 | 64 | 64 | 64 | 64 | 64 |
+| Other | 119 | 35 | 35 | 116 | 116 | 88 | 88 |
+| Reasons | 1333 | 1400 | 1400 | 1315 | 1320 | 1297 | 1302 |
+| Trailing separators left | 79 | 70 | 70 | 68 | 68 | 56 | 56 |
+
+Inferred trivia removes as much as the listed whitespace rules, and 5 reasons more, from the string bodies of cue and
+TypeScript, so a declaration adds nothing. The trailing separators decided by trivia are the same at k = 2 and k = 3:
+11 in TypeScript with `X*`, and 3 in cel and 9 in duckdb more with the wide shape. The 56 that remain are in python
+(22) and golang (12), whose whitespace rules read a variable or capture, duckdb (18), and yaml and TypeScript (2
+each). In cel written with trailing whitespace, the separators are decided at k = 2 with trivia rules of the wide shape,
+as with the rule `comma`.
+
+**Rescanned calls.** The classifier controls of rescanned calls include ten grammars that rescan a whitespace rule
+`ws = [ ]*` through nested evaluations and are classified polynomial or unknown, with measured growth. In each, `ws` is
+a trivia rule. With trivia rules memoized per position, the classifier finds eight of them linear. The two that stay
+are the right operands of a right-associative operator, unknown, and operator parts that nest through a recursion,
+polynomial, which come from the operator parts and not from `ws`. No other control changes. These are classifications,
+not measurements of a parser that memoizes trivia rules.
 
 **Whitespace.** The cel grammar begins its rules with `ws`. Three scratch variants keep its language: lexemes that
 consume their trailing whitespace instead, the same with one rule per kind of lexeme, and the trailing form with the
@@ -297,22 +473,25 @@ digit rules memoized.
 
 | Variant | Base | Automatic cuts | Decided k = 3 | Both, k = 3 |
 |:--|:--|:--|:--|:--|
-| `cel.zp`, leading whitespace | w8 r12 | w8 r12 | w7 r12 | w7 r12 |
-| Trailing whitespace | w7 r9 | w6 r7 | w7 r6 | w6 r4 |
-| Trailing, one rule per lexeme | w8 r8 | w8 r7 | w8 r5 | w8 r4 |
-| Trailing, memoized digit rules | w9 r9 | w8 r7 | w9 r6 | w8 r4 |
+| `cel.zp`, leading whitespace | w8 r19 | w8 r19 | w8 r19 | w8 r19 |
+| Trailing whitespace | w7 r15 | w6 r13 | w7 r12 | w6 r10 |
+| Trailing, one rule per lexeme | w8 r14 | w8 r13 | w8 r11 | w8 r10 |
+| Trailing, memoized digit rules | w9 r15 | w8 r13 | w9 r12 | w8 r10 |
 
-With leading whitespace the analysis gains nothing on cel: every comparison meets `ws ws` against `ws`. With trailing
-whitespace, the decided units remove the trailing separators and the analysis halves the reasons. The four that remain
-are an overlap of `-` as negation and as the sign of a literal, the `.` selection against the `.` call among the
-operator parts of a postfix level, which the analysis does not look into, and two alternatives against which a message
-type is not decided, because a positive lookahead scans the dotted name before them. Each needs factoring in the
-grammar; a token layer would need the same factoring, since the overlaps are between sequences of lexemes, not inside
-one.
+With leading whitespace the analysis gains nothing on cel: every comparison meets `ws ws` against `ws` in a unit and
+its continuation, and in strict mode the leading `ws` of a separator uses the bound. With trivia rules of the wide
+shape, cel with leading whitespace loses 3 reasons, the trailing separators. With trailing whitespace, the decided units
+remove the trailing separators and the analysis removes a third of the reasons. Those that remain are an overlap of
+`-` as negation and as the sign of a literal, the `.` selection against the `.` call among the operator parts of a
+postfix level, which the analysis does not look into, and alternatives against which a message type is not decided,
+because a positive lookahead scans the dotted name before them. Each needs factoring in the grammar; a token layer
+would need the same factoring, since the overlaps are between sequences of lexemes, not inside one.
 
 **Parity.** Each grammar with automatic cuts against the original, on the test inputs of the grammar, each file whole
 and each line alone: 446 inputs over the twelve grammars and the three cel variants, 208 accepted and 238 rejected, with
-the same exit status, value and messages for every one.
+the same exit status, value and messages for every one. The same holds after each refinement and with trivia rules in
+each variant. On 120 mutated test inputs for each of cel, json, golang, typescript and cue (seed 7), the results are
+identical as well.
 
 ## Alternatives Considered
 
@@ -342,9 +521,19 @@ the same exit status, value and messages for every one.
   ones: a literal that is a prefix of the next alternative's, a repetition in the later alternative, a lookahead whose
   expression the later alternative does not begin with.
 - `TestDecidedUnits` checks a trailing separator classified Linear with decided units, and the same shape with a scan
-  between the separator and the whitespace still unknown.
+  between the separator and the whitespace still unknown; a separator whose whitespace rule reads a variable, decided,
+  and a binding in the rule that the continuation leaves, undecided.
+- `TestDecideAltVariables` checks calls of a rule that reads a variable: equal with no binding in either prefix, and not
+  equal after a binding in the earlier prefix, the later prefix or a called rule.
+- `TestContPathsEnds`, `TestDecidedUnitsOperand` and `TestFollowPaths` check continuations through operator parts, the
+  end of the parse, and the fallback to fewer ends at the limit on paths.
+- `TestDecideAlt` covers overlapping classes, decided after the shared character, and undecided when the rest overlaps.
+- `TestDecideAltTrivia`, `TestDecidedUnitsTrivia`, `TestTriviaCheap`, `TestCollapseTrivia`, `TestTriviaWhy` and
+  `TestTriviaShapeExtended` check the trivia comparison, cost, dropping and shape check, with rules that fail the check
+  (a repetition that must match once, reads a variable or captures) staying ordinary calls.
 - Parity: each grammar with automatic cuts against the original on the test inputs of the grammar, each file whole and
-  each line alone, comparing the exit status, the printed value and the messages.
+  each line alone, comparing the exit status, the printed value and the messages; and on 120 mutated test inputs for
+  each of cel, json, golang, typescript and cue.
 
 ## Limitations and Open Questions
 
@@ -393,7 +582,16 @@ the same exit status, value and messages for every one.
    - By an attribute on the rule.
 
    Recommendation: by shape, with the `skip` of Operators Rules as a seed, and no new attribute.
-6. **Action errors in abandoned alternatives.** An action that raises a run-time error in a later alternative that fails
+6. **The shape of a trivia rule.** Inference finds as much as a hand list of whitespace rules (see the trivia results in
+   [Measurements](#measurements)), so no attribute is needed; the open choice is the shape.
+   - `X*` only: the simplest check; cel, duckdb and outline whitespace do not qualify.
+   - `X*`, atomic `X*` and the unrolled `X* (Y X*)*`: adds the whitespace rules of cel, duckdb and outline and 18 more
+     reasons, at the cost of one more proved shape.
+   - Any body that the analysis proves always succeeds and matches nothing where it ended: the widest, with a fixpoint
+     in the compiler.
+
+   Recommendation: the second, with trivia rules memoized per position on every backend.
+7. **Action errors in abandoned alternatives.** An action that raises a run-time error in a later alternative that fails
    anyway is no longer run under an automatic cut.
    - Accept it as part of the optimization.
    - Do not cut before alternatives whose actions can raise errors.
