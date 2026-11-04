@@ -20,6 +20,26 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 	if v, ok := k.runMemo[e]; ok {
 		return v
 	}
+	if k.base != nil {
+		// The runtime marks the run sites of the grammar, not of the view: a repetition of the view
+		// is one only if it is a run site of the grammar.
+		if k.baseRuns == nil {
+			k.baseRuns = newClassifierOf(k.g, k.base, k.base, k.an, k.start, k.control)
+			k.baseRepeats = map[*grammar.Repeat]bool{}
+			for _, r := range k.base {
+				WalkExpr(r.Expr, func(x grammar.Expr) {
+					if rep, ok := x.(*grammar.Repeat); ok {
+						k.baseRepeats[rep] = true
+					}
+				})
+			}
+		}
+		if k.runMemo == nil {
+			k.runMemo = map[*grammar.Repeat]bool{}
+		}
+		k.runMemo[e] = k.baseRepeats[e] && k.baseRuns.runSite(e)
+		return k.runMemo[e]
+	}
 	k.badRules()
 	if k.runRestart == nil {
 		names := make([]string, len(k.rules))

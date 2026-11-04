@@ -137,7 +137,7 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *Control) 
 	if start == "" {
 		start = prog.DefaultStartRule
 	}
-	k := newClassifier(prog.Grammar, control.rules(prog.Grammar), start, control)
+	k := newViewClassifier(prog.Grammar, control.rules(prog.Grammar), start, control)
 	k.types = prog.ValueRecord()
 	return k, names
 }
@@ -162,7 +162,20 @@ func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*cla
 	if start == "" {
 		_, start, _ = resolveStarts(rules, control)
 	}
-	return newClassifier(g, rules, start, control), names, nil
+	return newViewClassifier(g, rules, start, control), names, nil
+}
+
+// newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start.
+// What the runtime decides by the grammar as it is written stays decided by rules: the
+// left-recursion cycles and their leaders, the memoized rules, the variables that key the memo, and
+// the run sites.
+func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *Control) *classifier {
+	an := AnalyzeControlled(rules, control)
+	memo, _ := memoizedRules(rules, an, control)
+	v := normalizeRules(rules, an, memo, costView, control)
+	k := newClassifierOf(g, v.rules, rules, an, start, control)
+	k.viewText = v.text
+	return k
 }
 
 // written describes the causes as the grammar is written: a cause in the hidden rule of an inline
@@ -255,9 +268,24 @@ type classifier struct {
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
 	causes, reasons, env []ComplexityCause
+
+	// base are the rules of the grammar when rules is a view of them, or nil. baseRuns is the
+	// classifier of base that decides the run sites (runSite), and baseRepeats are the repetitions
+	// of base.
+	base        []*grammar.RuleDef
+	baseRuns    *classifier
+	baseRepeats map[*grammar.Repeat]bool
+	// viewText gives the text of the grammar that an expression of the view stands for.
+	viewText map[grammar.Expr]string
 }
 
 func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *Control) *classifier {
+	return newClassifierOf(g, rules, rules, AnalyzeControlled(rules, control), start, control)
+}
+
+// newClassifierOf returns a classifier of the bodies of rules, which are those of base or a view
+// of them. The analysis an of base, its variables and its memoization stand for the grammar.
+func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Analysis, start string, control *Control) *classifier {
 	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*grammar.RuleDef{},
 		calls: map[string][]string{}, scc: map[string]int{}, recursive: map[string]bool{}, memo: map[string]bool{},
 		varType: map[string]string{}, nullRule: map[string]bool{}, firstRule: map[string]charset{},
@@ -269,9 +297,12 @@ func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, c
 	for _, r := range rules {
 		k.byName[r.Name] = r
 	}
-	k.an = AnalyzeControlled(rules, control)
-	k.vars = ruleVariablesControlled(rules, control)
-	k.memo, k.members = memoizedRules(rules, k.an, control)
+	k.an = an
+	k.vars = ruleVariablesControlled(base, control)
+	k.memo, k.members = memoizedRules(base, k.an, control)
+	if len(base) != len(rules) || !slices.Equal(base, rules) {
+		k.base = base
+	}
 	k.outside = map[*grammar.Ref]bool{}
 	for _, r := range rules {
 		k.calls[r.Name] = allCallsControlled(r.Expr, nil, control)
@@ -468,6 +499,9 @@ func at(rule string, p grammar.Pos) string {
 }
 
 func (k *classifier) show(e grammar.Expr) string {
+	if t, ok := k.viewText[e]; ok {
+		return abbreviate(t)
+	}
 	return abbreviate(grammar.FormatExpr(e))
 }
 

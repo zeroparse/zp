@@ -58,8 +58,13 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
+		// The run sites are those of the grammar, which the classifier reads through its view.
+		rules := k.rules
+		if k.base != nil {
+			rules = k.base
+		}
 		classifier := 0
-		for _, r := range k.rules {
+		for _, r := range rules {
 			WalkExpr(r.Expr, func(x grammar.Expr) {
 				if rep, ok := x.(*grammar.Repeat); ok && !isScan(rep) && k.runSite(rep) {
 					classifier++

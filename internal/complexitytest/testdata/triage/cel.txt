@@ -1,20 +1,22 @@
-# cel: polynomial (degree 4), 8 witnesses, 19 reasons
+# cel: polynomial (degree 3), 10 witnesses, 19 reasons
 
-## number-tokens (3) -> F97
+## number-tokens (5) -> F97
 142:26 int_plain: the cost can grow as n^3: after the alternative at 92:71 in rule primary fails, the later alternative double at 92:83 in rule primary can start again inside the input that the repetition [0-9]+ at 142:26 in rule int_plain examined; it is evaluated again inside the alternative at 92:61 in rule primary; this repeats in the recursion of rule primary
-144:33 double: the cost can grow as n^4: after the alternative at 144:33 in rule double fails, the later alternative [0-9]+ exponent at 144:63 in rule double can start again inside the input that the repetition [0-9]+ at 144:33 in rule double examined; it is evaluated again inside the alternative at 92:174 in rule primary; it is evaluated again inside the alternative at 92:166 in rule primary; this repeats in the recursion of rule primary
+144:33 double: the cost can grow as n^2: after the alternative at 92:131 in rule primary fails, the later alternative message at 92:140 in rule primary can start again inside the input that the repetition [0-9]+ at 144:33 in rule double examined; this repeats in the recursion of rule primary
+144:33 double: the cost can grow as n^2: after the alternative at 92:174 in rule primary fails, the later alternative int at 92:183 in rule primary can start again inside the input that the repetition [0-9]+ at 144:33 in rule double examined; this repeats in the recursion of rule primary
+144:33 double: the cost can grow as n^3: after the alternative at 92:83 in rule primary fails, the later alternative uint at 92:92 in rule primary can start again inside the input that the repetition [0-9]+ at 144:33 in rule double examined; it is evaluated again inside the alternative at 92:61 in rule primary; this repeats in the recursion of rule primary
 146:28 uint: the cost can grow as n^3: after the alternative at 92:92 in rule primary fails, the later alternative int at 92:99 in rule primary can start again inside the input that the repetition [0-9a-fA-F]+ at 146:28 in rule uint examined; it is evaluated again inside the alternative at 92:61 in rule primary; this repeats in the recursion of rule primary
 
 ## string-tokens (2) -> F97
 155:26 raw_body: the cost can grow as n^2: after the alternative at 92:106 in rule primary fails, the later alternative &"." v:(double / message / call / ident) at 92:123 in rule primary can start again inside the input that the repetition (!"\"\"\"" .)* at 155:26 in rule raw_body examined; this repeats in the recursion of rule primary
 155:26 raw_body: the cost can grow as n^2: after the alternative at 92:19 in rule primary fails, the later alternative message at 92:30 in rule primary can start again inside the input that the repetition (!"\"\"\"" .)* at 155:26 in rule raw_body examined; this repeats in the recursion of rule primary
 
-## names (2) -> F97
-123:27 message: the cost can grow as n^2: after the lookahead at 123:5 in rule message fails, what follows the lookahead &(("." ws)? [A-Za-z_] [A-Za-z0-9_]* (... can start again inside the input that the repetition [A-Za-z0-9_]* at 123:27 in rule message examined; this repeats in the recursion of rule message
+## names (1) -> F97
 188:36 name: the cost can grow as n^2: after the operator part at 79:17 in rule member fails, the operator part "." ws f:name_plain ws "(" ws as:args... at 80:17 in rule member can start again inside the input that the repetition [A-Za-z0-9_.\-/ ]+ at 188:36 in rule name examined; this repeats in the recursion of rule member
 
-## space (1) -> O75
-192:11 ws: the cost can grow as n^3: after the lookahead at 103:33 in rule ident_only fails, what follows the lookahead !(ws "(") can start again inside the input that the repetition [ \t\r\n\u{c}]* at 192:11 in rule ws examined; it is evaluated again inside the alternative at 92:40 in rule primary; this repeats in the recursion of rule primary
+## space (2) -> O75
+192:11 ws: the cost can grow as n^3: after an iteration of the repetition at 123:27 in rule message fails, what follows the repetition [A-Za-z0-9_]* (ws "." ws [A-Za-z_] [A... can start again inside the input that the repetition [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n... at 192:11 in rule ws examined; it is evaluated again inside the lookahead at 123:5 in rule message; this repeats in the recursion of rule message
+192:11 ws: the cost can grow as n^3: after the lookahead at 103:33 in rule ident_only fails, what follows the lookahead !(ws "(") can start again inside the input that the repetition [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n... at 192:11 in rule ws examined; it is evaluated again inside the alternative at 92:40 in rule primary; this repeats in the recursion of rule primary
 
 ## nested (19) -> F100
 54:25 expr: the operator part at 54:25 in rule expr is not committing against the operator parts that the enclosing operator parts of expr try again, and units that are not committing are nested in it without bound through a recursion of rule calls
