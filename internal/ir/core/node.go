@@ -168,6 +168,11 @@ type Repeat struct {
 	// Site, if not 0, is the number of the skip-run site the repetition is (compile.SkipSite): its
 	// walks record where the rest of them from each position ends, and reuse the records.
 	Site int
+	// Pre, if not nil, is the value-free separator part of a separated list that runs before every
+	// element but the first, ending with a cut: if it fails, the repetition ends before it, and if
+	// the element then fails, the repetition fails. Trail, if not nil, runs once after the last
+	// element of a repetition that has one, and its failure is no failure (compile.SeparatedForms).
+	Pre, Trail Node
 }
 
 // Look is a lookahead: a silent scope that restores the position.
@@ -337,7 +342,14 @@ func Children(n Node) []Node {
 	case *Opt:
 		return []Node{n.Body}
 	case *Repeat:
-		return []Node{n.Body}
+		xs := []Node{n.Body}
+		if n.Pre != nil {
+			xs = append(xs, n.Pre)
+		}
+		if n.Trail != nil {
+			xs = append(xs, n.Trail)
+		}
+		return xs
 	case *Look:
 		return []Node{n.Body}
 	case *Nest:
@@ -412,6 +424,12 @@ func Rewrite(n Node, f func(Node) Node) Node {
 		x.Body = Rewrite(x.Body, f)
 	case *Repeat:
 		x.Body = Rewrite(x.Body, f)
+		if x.Pre != nil {
+			x.Pre = Rewrite(x.Pre, f)
+		}
+		if x.Trail != nil {
+			x.Trail = Rewrite(x.Trail, f)
+		}
 	case *Look:
 		x.Body = Rewrite(x.Body, f)
 	case *Nest:

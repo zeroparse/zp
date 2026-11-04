@@ -869,6 +869,59 @@ func (l *lowerer) not(n *core.Look, s *scope, fail *flow.Label) flow.Expr {
 	return &flow.Nil{}
 }
 
+// iteration lowers the element of the repetition n, and before it the separator part Pre of a
+// separated list, which an iteration after the first runs; its failure ends the repetition unless
+// a cut has run. It returns the value of the element, the cut flag and the position the element
+// starts at, which is at the iteration's start unless there is a separator.
+func (l *lowerer) iteration(n *core.Repeat, s, es *scope, count *flow.Var, at flow.Expr, build bool, fail *flow.Label) (flow.Expr, *flow.Var, flow.Expr) {
+	if n.Pre == nil {
+		v, cut := l.cutNode(n.Body, es, build, fail)
+		return v, cut, at
+	}
+	prev := l.cut
+	var cut *flow.Var
+	if l.localCuts {
+		cut = l.decl("cut", flow.TypeBool)
+		l.set(cut, &flow.Bool{})
+		l.cut = cut
+	}
+	skip := l.label()
+	l.used[skip] = true
+	bs := l.open(skip)
+	l.emit(&flow.If{Cond: &flow.Cmp{Op: "==", L: use(count), R: &flow.Int{}}, Then: []flow.Stmt{&flow.Exit{To: skip}}})
+	l.node(n.Pre, s, false, fail)
+	l.close(bs)
+	start := l.decl("x", flow.TypeInt)
+	l.set(start, pos)
+	v := l.node(n.Body, es, build, fail)
+	l.cut = prev
+	return v, cut, use(start)
+}
+
+// trail lowers the trailing separator Trail of the separated list n, after its last element, if it
+// has one.
+func (l *lowerer) trail(n *core.Repeat, s *scope, count *flow.Var) {
+	if n.Trail == nil {
+		return
+	}
+	done := l.label()
+	l.used[done] = true
+	bd := l.open(done)
+	l.emit(&flow.If{Cond: &flow.Cmp{Op: "==", L: use(count), R: &flow.Int{}}, Then: []flow.Stmt{&flow.Exit{To: done}}})
+	m := l.mark(s, n.Trail, true)
+	f := l.label()
+	bf := l.open(f)
+	l.node(n.Trail, s, false, f)
+	if l.used[f] {
+		l.exit(done)
+		l.close(bf)
+		l.reset(m)
+	} else {
+		l.close(bf)
+	}
+	l.close(bd)
+}
+
 func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
 	if n.Site != 0 {
 		return l.skipRepeat(n, s, fail)
@@ -896,15 +949,15 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 	}
 	f := l.label()
 	bf := l.open(f)
-	v, cut := l.cutNode(n.Body, es, build, f)
+	v, cut, from := l.iteration(n, s, es, count, use(m.pos), build, f)
 	if build {
 		sv := l.decl("v", flow.TypeValue)
-		l.set(sv, &flow.ScopeValue{Shape: n.Body.Attrs().Shape, X: v, Start: use(m.pos)})
+		l.set(sv, &flow.ScopeValue{Shape: n.Body.Attrs().Shape, X: v, Start: from})
 		v = use(sv)
 	}
 	if own && build {
 		attached := l.decl("v", flow.TypeValue)
-		x := &flow.AttachCaptures{X: v, Names: &flow.Names{List: core.SlotNames(es.slots)}, Start: use(m.pos)}
+		x := &flow.AttachCaptures{X: v, Names: &flow.Names{List: core.SlotNames(es.slots)}, Start: from}
 		x.Vals = l.scopeVals(es)
 		l.set(attached, x)
 		v = use(attached)
@@ -928,6 +981,7 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 		l.close(bf)
 	}
 	l.endLoop()
+	l.trail(n, s, count)
 	if n.Min > 0 {
 		cond := &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}
 		if build {
@@ -1250,10 +1304,10 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 	}
 	f := l.label()
 	bf := l.open(f)
-	v, cut := l.cutNode(n.Body, es, build && field == "", f)
+	v, cut, from := l.iteration(n, s, es, count, m.at(), build && field == "", f)
 	if build && field == "" {
 		sv := l.decl("v", flow.TypeValue)
-		l.set(sv, &flow.ScopeValue{Shape: n.Body.Attrs().Shape, X: v, Start: m.at()})
+		l.set(sv, &flow.ScopeValue{Shape: n.Body.Attrs().Shape, X: v, Start: from})
 		v = use(sv)
 	}
 	if own {
@@ -1263,7 +1317,7 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 				v = &flow.FrameVal{F: frame, Slot: slotOf(es.slots, field)}
 			} else {
 				attached := l.decl("v", flow.TypeValue)
-				l.set(attached, &flow.AttachCaptures{X: v, Names: names, Frame: frame, Start: m.at()})
+				l.set(attached, &flow.AttachCaptures{X: v, Names: names, Frame: frame, Start: from})
 				v = use(attached)
 			}
 		}
@@ -1308,6 +1362,7 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 		l.close(bf)
 	}
 	l.endLoop()
+	l.trail(n, s, count)
 	if n.Min > 0 {
 		cond := &flow.Cmp{Op: "<", L: use(count), R: &flow.Int{N: n.Min}}
 		if build {

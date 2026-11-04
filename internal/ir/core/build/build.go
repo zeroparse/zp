@@ -610,7 +610,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 			n.Attrs().Want, n.Attrs().Shape = true, coreShape(b.prog, e)
 		}
 		return n, nil
-	case "stream":
+	case "stream", "sep":
 		// The innermost attribute applies to the repetition itself (attributed).
 		return b.attributed(e, i-1, s, build)
 	case "missing":
@@ -637,11 +637,28 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 	if field != "" || compile.ElementScoped(e.Expr) {
 		es = b.scope(coreLayout(b.prog, b.cur, b.proj, e.Expr, build && field == "").names, e.Expr)
 	}
-	x, err := b.expr(e.Expr, es, build && field == "")
+	body, pre, trail := e.Expr, grammar.Expr(nil), grammar.Expr(nil)
+	if e.Sep != nil {
+		var msg string
+		if body, pre, trail, msg = compile.SeparatedForms(b.prog, e, nil); msg != "" {
+			return nil, fmt.Errorf("#sep: %s", msg)
+		}
+	}
+	x, err := b.expr(body, es, build && field == "")
 	if err != nil {
 		return nil, err
 	}
 	n.Body = x
+	if pre != nil {
+		if n.Pre, err = b.expr(pre, s, false); err != nil {
+			return nil, err
+		}
+	}
+	if trail != nil {
+		if n.Trail, err = b.expr(trail, s, false); err != nil {
+			return nil, err
+		}
+	}
 	if es != s {
 		n.Scope = es.slots()
 		if n.Scope == nil {

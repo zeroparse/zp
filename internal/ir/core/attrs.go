@@ -89,6 +89,14 @@ func (a *analyzer) node(n Node) (bool, Effects) {
 		nn, ee := a.node(n.Body)
 		null = n.Min == 0 || n.Min == 1 && nn
 		e = ee
+		if n.Pre != nil {
+			_, pe := a.node(n.Pre)
+			e = union(e, pe)
+		}
+		if n.Trail != nil {
+			_, te := a.node(n.Trail)
+			e = union(e, te)
+		}
 		if n.Scope != nil {
 			// The element's captures are its own; its bindings are the rule's, as everywhere
 			// outside a rule call.

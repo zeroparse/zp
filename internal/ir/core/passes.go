@@ -176,7 +176,7 @@ func Scans(m *Module) {
 		}
 		r.Body = Rewrite(r.Body, func(n Node) Node {
 			rep, ok := n.(*Repeat)
-			if !ok || rep.Attrs().Want || rep.Project != "" || rep.Scope != nil || rep.Site != 0 {
+			if !ok || rep.Attrs().Want || rep.Project != "" || rep.Scope != nil || rep.Site != 0 || rep.Pre != nil || rep.Trail != nil {
 				return n
 			}
 			switch body := rep.Body.(type) {

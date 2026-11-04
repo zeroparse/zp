@@ -139,6 +139,12 @@ func (p *printer) node(n Node, d int) {
 		if n.Site != 0 {
 			fmt.Fprintf(&p.b, " site=%d", n.Site)
 		}
+		if n.Pre != nil {
+			p.b.WriteString(" sep")
+		}
+		if n.Trail != nil {
+			p.b.WriteString(" trail")
+		}
 	case *Look:
 		if n.Neg {
 			p.line(d, "not")
