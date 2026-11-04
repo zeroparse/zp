@@ -4,8 +4,9 @@ import "zeroparse.dev/zp/internal/ir/exec"
 
 // streamWindow adds to m the window of a stream parse and its host operations: the input buffer,
 // the memory of delivered elements, the delivery callbacks and cancellation at stream boundaries.
-// Stream commitment composes them with memo.prune; what they do lies outside the parser VM's state,
-// so each is checked against the charges of the target that implements it, not against a model.
+// Stream commitment composes them with memo.prune. Each has a contract and a cost bound but no
+// reference model: its effect lies outside the parser VM's state or is not observable in the
+// parse result, so it is checked against the charges of the target that implements it.
 func streamWindow(m *exec.Module, value exec.Type) {
 	m.AddComponent(Win, `The window of a stream parse: the input read and kept, the callback that receives the
 elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
@@ -40,12 +41,14 @@ An error of the callback ends the parse unchanged.`,
 are not supported. The line and column of the new base are kept.`})
 	host(&exec.Op{Name: "stream.release", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
 		Contract: `Releases what the elements committed so far held: the trail, the capture frames and the node
-chunks that no active call refers to, so that a delivered element is not kept alive through the parser.`,
+chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
+The effect is memory held, which the parse result does not show.`,
 		Requires: `Every call of the delivered elements has returned.`})
 	host(&exec.Op{Name: "stream.dropRecords", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
 		Contract: `Discards what the parse keeps about the positions before pos besides the memo, which no later
-call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to.`})
+call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to. Later
+calls never read them, so the parse result does not show the difference.`})
 	host(&exec.Op{Name: "stream.tail", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
 		Features: stream,
 		Contract: `Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).`})

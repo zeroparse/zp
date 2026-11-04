@@ -167,7 +167,8 @@ op memo.prune(pos int)
     // entry without keeping it. The removed entries are no longer valid; entries at or after pos are
     // unchanged.
   requires:
-    // pos is at least the floor (memo.floor).
+    // pos is at least the floor (memo.floor). The handles of the removed entries are not used
+    // after the prune: an implementation may reuse them for later entries.
 
 op memo.floor() int
   component memo
@@ -988,6 +989,7 @@ host op stream.release()
   contract:
     // Releases what the elements committed so far held: the trail, the capture frames and the node
     // chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
+    // The effect is memory held, which the parse result does not show.
   requires:
     // Every call of the delivered elements has returned.
 
@@ -999,7 +1001,8 @@ host op stream.dropRecords(pos int)
   cost <= 0
   contract:
     // Discards what the parse keeps about the positions before pos besides the memo, which no later
-    // call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to.
+    // call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to. Later
+    // calls never read them, so the parse result does not show the difference.
 
 host op stream.tail() bool
   component window
@@ -1016,8 +1019,8 @@ transitional op stream.settleErrors()
   features stream
   cost <= 0
   contract:
-    // Forgets the recovered errors before the boundary, which were delivered and collected. It stays
-    // transitional until recovery bookkeeping migrates.
+    // Forgets the recovered errors before the boundary, which were delivered and collected. It is
+    // transitional: recovery bookkeeping has no Exec IR form.
   requires:
     // The parse retains the tail (stream.tail).
 

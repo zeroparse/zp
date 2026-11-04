@@ -148,10 +148,11 @@ type Op struct {
 	// Transitional reports an operation that stands for an existing runtime function with its
 	// current behavior and no conformance cases, until its mechanism migrates.
 	Transitional bool
-	// Host reports an operation that a target implements with host facilities outside the parser
-	// VM's state: input buffers, memory, callbacks and cancellation. It has a contract and a cost
-	// bound but no reference model, so no conformance cases; the bound is checked against the
-	// target's charges. An operation is not both Host and Transitional.
+	// Host reports an operation that has a contract and a cost bound but no reference model,
+	// because its effect lies outside the parser VM's state or is not observable in the parse
+	// result: input buffers, memory the parse lets go of, callbacks and cancellation. It has no
+	// conformance cases; the bound is checked against the target's charges. An operation is not
+	// both Host and Transitional.
 	Host bool
 	// Imm describes the immediate operand of the operation, a static datum of the call that is not
 	// a value of Exec IR (a literal, a character class, an expectation, a term of the grammar), or

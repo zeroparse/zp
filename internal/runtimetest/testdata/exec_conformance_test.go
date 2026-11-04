@@ -1,9 +1,11 @@
 package runtime
 
 import (
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -194,6 +196,8 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		call       func(m *rtMachine, args []any) []any
 		controlled bool
 		stream     bool
+		// want is a part of the failure message that names the reason, when the variant has one.
+		want string
 	}
 	variants := map[string]broken{
 		// memoTable.put that links a new entry behind the chain instead of replacing the entry under
@@ -235,6 +239,25 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			m.p.Stream.memoBase = int(args[0].(int64))
 			return nil
 		}},
+		// A prune that frees nothing: the floor stays and every entry is kept.
+		"prune frees nothing": {op: "memo.prune", stream: true, want: "result 0: model 4, implementation 0", call: func(m *rtMachine, args []any) []any {
+			return nil
+		}},
+		// A prune that charges one unit more than the entries it removes: beyond the bound.
+		"prune charges beyond its bound": {op: "memo.prune", stream: true, controlled: true, want: "more than the bound", call: func(m *rtMachine, args []any) []any {
+			m.p.pruneStreamMemo(int(args[0].(int64)))
+			m.p.Spend()
+			return nil
+		}},
+		// A store before the floor that lands on the floor's slot instead of being dropped: a lookup
+		// at the floor finds it.
+		"store below the floor is kept": {op: "memo.store", stream: true, want: "model false, implementation true", call: func(m *rtMachine, args []any) []any {
+			rule, pos, level, env := int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64)), m.vals[args[3].(int64)]
+			e := m.p.memo.alloc()
+			*e = memoEntry{ok: args[4].(bool), end: int(args[5].(int64)), silent: args[6].(bool)}
+			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, e)
+			return []any{e}
+		}},
 		// A lookup that charges each entry it passes twice: within the results, beyond the bound.
 		"lookup charges twice": {op: "memo.lookup", controlled: true, call: func(m *rtMachine, args []any) []any {
 			if pos := int(args[1].(int64)); pos < len(m.p.memo.slots) {
@@ -262,6 +285,13 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			fails, _ := conformanceFailures(s, 30, 150)
 			if len(fails) == 0 {
 				t.Fatal("conformance did not detect the broken operation")
+			}
+			var f *conform.Failure
+			if !errors.As(fails[0], &f) {
+				t.Fatalf("not a conformance failure: %v", fails[0])
+			}
+			if !strings.Contains(f.Msg, b.want) {
+				t.Fatalf("failed for another reason than %q:\n%v", b.want, fails[0])
 			}
 			t.Logf("detected:\n%v", fails[0])
 		})

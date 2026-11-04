@@ -560,9 +560,10 @@ move to Exec IR at once while mechanisms move one at a time.
    `memo.prune`, under conformance on the generated Go runtime; the floor of the memo is the position of the last
    prune. Discarding input, releasing the memory of delivered elements, the records a prune drops besides the memo,
    the delivery callbacks and cancellation at stream boundaries are host operations of the window. The recovered
-   errors a commit settles stay a transitional operation until recovery bookkeeping migrates. On generated Go,
-   `BenchmarkStream` is within noise except `generated`, 1.1% slower in two interleaved runs; padding the window to
-   its former layout keeps the difference, and a CPU profile spreads it over functions the stage does not change
+   errors a commit settles are a transitional operation: recovery bookkeeping has no Exec IR form. On generated Go,
+   `BenchmarkStream` is within noise except `generated`, 1.1% slower in two interleaved runs; a layout experiment
+   that padded the window's fields to the offsets they had before the stage kept the difference, and a CPU profile
+   spreads it over functions the stage does not change
    (`bufio.Reader.ReadRune`, `SpendRead`, `streamPeek`), which points to code placement.
 8. **Document reuse** (generated Go). Provisional tracking becomes the engine's algorithm ([Decisions](#decisions)).
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of

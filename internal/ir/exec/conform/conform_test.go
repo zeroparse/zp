@@ -143,3 +143,86 @@ func TestSkipsMissingOps(t *testing.T) {
 		t.Fatalf("Run = %v, %v; want the memo case skipped", skipped, err)
 	}
 }
+
+// firstFailure returns the first failure of s over the handwritten and randomized cases, or nil.
+func firstFailure(s Suite) *Failure {
+	var f *Failure
+	for _, c := range Cases() {
+		if _, err := Run(s, c); errors.As(err, &f) {
+			return f
+		}
+	}
+	for seed := uint64(0); seed < 200; seed++ {
+		c := Random("random", rand.New(rand.NewPCG(seed, 7)), s.Ops, 100, ref.Config{Rules: 3, Limit: 400, MaxDepth: 5})
+		if _, err := Run(s, c); errors.As(err, &f) {
+			return f
+		}
+	}
+	return nil
+}
+
+// memoKept is an implementation of the memo window that keeps entries the contract drops: the
+// stores before the floor (below), or every store through a memo.prune (all). It also charges
+// extra units in each memo.prune.
+type memoKept struct {
+	modelImpl
+	below, all bool
+	extra      uint64
+	spent      uint64
+	kept       map[[3]int64]any
+}
+
+func (m *memoKept) Used() uint64 { return m.spent }
+
+func (m *memoKept) Call(o *exec.Op, a []any) []any {
+	key := func() [3]int64 { return [3]int64{a[0].(int64), a[1].(int64), a[2].(int64)} }
+	switch o.Name {
+	case "memo.prune":
+		m.spent += m.extra
+	case "memo.store":
+		below := a[1].(int64) < m.Model.Call(Module().Op("memo.floor"), nil)[0].(int64)
+		r := m.Model.Call(o, a)
+		if m.all || m.below && below {
+			m.kept[key()] = r[0]
+		}
+		return r
+	case "memo.lookup":
+		r := m.Model.Call(o, a)
+		if e, ok := m.kept[key()]; ok && !r[1].(bool) && a[1].(int64) < m.Model.Call(Module().Op("memo.floor"), nil)[0].(int64) {
+			return []any{e, true}
+		}
+		return r
+	}
+	return m.Model.Call(o, a)
+}
+
+// TestWindowMutantsFail is the negative control of the memo window contract: a cost beyond the
+// bound, a store below the floor that is kept, and a prune that frees nothing each fail, and for
+// the reason of its own.
+func TestWindowMutantsFail(t *testing.T) {
+	for _, mu := range []struct {
+		name string
+		make func() *memoKept
+		want string
+	}{
+		{"prune charges beyond its bound", func() *memoKept { return &memoKept{extra: 1 << 20} }, "more than the bound"},
+		{"store below the floor is kept", func() *memoKept { return &memoKept{below: true} }, "result 1: model false, implementation true"},
+		{"prune frees no entry", func() *memoKept { return &memoKept{all: true} }, "result 1: model false, implementation true"},
+	} {
+		t.Run(mu.name, func(t *testing.T) {
+			s := Suite{Name: mu.name, Ops: allOps, New: func(c ref.Config) Impl {
+				m := mu.make()
+				m.modelImpl, m.kept = modelImpl{ref.New(c)}, map[[3]int64]any{}
+				return m
+			}}
+			f := firstFailure(s)
+			if f == nil {
+				t.Fatal("no case detected the mutant")
+			}
+			t.Logf("failing case %s, call %d: %s", f.Case, f.Step, f.Msg)
+			if !strings.Contains(f.Msg, mu.want) || mu.want != "more than the bound" && !strings.Contains(f.Trace[len(f.Trace)-1], "memo.lookup") {
+				t.Fatalf("failed for another reason than %q:\n%v", mu.want, f)
+			}
+		})
+	}
+}

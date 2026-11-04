@@ -280,7 +280,8 @@ var runsGrammar = map[string]bool{"rule.invoke": true, "rule.invokePlain": true,
 
 // TestTransitionalAndHostCostsMatchCharges checks the cost declarations of the transitional and host
 // operations against the Go runtime that implements them, through its static calls (calls through interfaces
-// and function values are not followed): an operation that reaches a charge of the budget may end
+// and function values are not followed, so the cost of a host callback such as the delivery of an
+// element is not audited: it is the host's): an operation that reaches a charge of the budget may end
 // the parse (NoReturn) and declares a cost with a quantity for every charge site it reaches
 // (siteCost), and one that reaches none declares no cost. It does not measure the bounds: a
 // transitional or host operation has no reference model to compute its quantities.
@@ -298,6 +299,9 @@ func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 			fns = append(fns, f...)
 		}
 		if !found {
+			if op.Host {
+				t.Errorf("host operation %s has no Go form to audit", op.Name)
+			}
 			continue
 		}
 		sites := chargeSites(pkg, callees, charges, fns)

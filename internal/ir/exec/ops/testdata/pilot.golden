@@ -74,7 +74,8 @@ op memo.prune(pos int)
     // entry without keeping it. The removed entries are no longer valid; entries at or after pos are
     // unchanged.
   requires:
-    // pos is at least the floor (memo.floor).
+    // pos is at least the floor (memo.floor). The handles of the removed entries are not used
+    // after the prune: an implementation may reuse them for later entries.
 
 op memo.floor() int
   component memo

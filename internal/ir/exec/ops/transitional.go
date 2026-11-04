@@ -388,8 +388,8 @@ that the target's observed function wraps.`})
 	streamWindow(m, value)
 	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
 		Features: stream,
-		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected. It stays
-transitional until recovery bookkeeping migrates.`,
+		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected. It is
+transitional: recovery bookkeeping has no Exec IR form.`,
 		Requires: `The parse retains the tail (stream.tail).`})
 
 	framesAndOperators(m, add, rule, value, errs)

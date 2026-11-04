@@ -115,7 +115,8 @@ key, and returns it. Entries under other keys are unchanged.`,
 Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
 entry without keeping it. The removed entries are no longer valid; entries at or after pos are
 unchanged.`,
-		Requires: `pos is at least the floor (memo.floor).`})
+		Requires: `pos is at least the floor (memo.floor). The handles of the removed entries are not used
+after the prune: an implementation may reuse them for later entries.`})
 	m.AddOp(&exec.Op{Name: "memo.floor", Component: Memo, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},
 		Features: []string{Stream},
 		Contract: `Returns the floor of the memo: 0 at the start of a parse, then the position of the last
