@@ -731,6 +731,16 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.steps++
 			continue
 		}
+		// Two classes, or a class and any character, that overlap: split each into the part that
+		// the other matches and the rest. If either matches in its rest, the other fails, so
+		// where both succeed they consume one character of the intersection and end alike.
+		if oneChar(a.e) && oneChar(b.e) {
+			if s.steps+1 >= x.maxK {
+				return x.no("char-bound", a, &b)
+			}
+			s.i, s.j, s.steps = s.i+1, s.j+1, s.steps+1
+			continue
+		}
 		// A literal and a class that contains its first character both consume that character.
 		if rest, ok := litInChar(a.e, b.e); ok {
 			if s.steps+1 >= x.maxK {
@@ -1163,4 +1173,14 @@ func (x excl) no(tag string, a sym, b *sym) (bool, int, int) {
 		exclTrace(tag, a, b)
 	}
 	return false, 0, 0
+}
+
+// oneChar reports whether e matches exactly one character wherever it succeeds: a character class
+// or any character.
+func oneChar(e grammar.Expr) bool {
+	switch e.(type) {
+	case *grammar.CharClass, *grammar.Any:
+		return true
+	}
+	return false
 }

@@ -38,6 +38,9 @@ func TestDecideAlt(t *testing.T) {
 		{"literal against a class", `"ab" x / [a-z] "c" x`, true, 2, 1},
 		{"equal repetitions", `[0-9]+ "." x / [0-9]+ "e" x`, true, 2, 2},
 		{"repetition in the later alternative", `ident "(" x / ident* "." x`, false, 0, 0},
+		{"overlapping classes then literals", `[a-z] "(" x / [a-f0-9] "." x`, true, 2, 2},
+		{"any character against a class", `. "(" x / [0-9] "." x`, true, 2, 2},
+		{"overlapping classes then the same literal", `[a-z] "(" x / [a-f0-9] "(" x`, false, 0, 0},
 	} {
 		src := "rule main = (" + c.main + ") x\n" + rules
 		g, err := syntax.Parse(src)
