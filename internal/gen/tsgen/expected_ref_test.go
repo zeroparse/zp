@@ -11,9 +11,9 @@ import (
 )
 
 // TestTSKeepAndMergeMatchReference runs random sequences of the operations on the expectation
-// record of the TypeScript runtime through the methods printed from Exec IR (keep, mergeExpected)
-// and through the hand-written forms they replaced, kept in the test, in parses that record
-// expectations and parses that do not, with and without budget controls. After each operation it
+// record of the TypeScript runtime through the methods printed from Exec IR (keep, mergeExpected,
+// mergeKept) and through the hand-written forms they replaced, kept in the test, in parses that
+// record expectations and parses that do not, with and without budget controls. After each operation it
 // compares the record (farthest position, base, top and the stack below the top), the set kept
 // last, whether a kept set is the one kept last, and the units charged.
 func TestTSKeepAndMergeMatchReference(t *testing.T) {
@@ -50,8 +50,8 @@ console.log("ok");
 	}
 }
 
-// tsExpectedReference holds the hand-written keep and mergeExpected that the printed methods
-// replaced, and the random comparison. It is appended to a bundle, which declares Parser, G,
+// tsExpectedReference holds the hand-written keep, mergeExpected and mergeKept that the printed
+// methods replaced, and the random comparison. It is appended to a bundle, which declares Parser, G,
 // BudgetControl, noExp, expFar and copyIDsSpend.
 const tsExpectedReference = `
 function refKeep(p: Parser, from: number, to: number): number[] {
@@ -80,6 +80,13 @@ function refMergeExpected(p: Parser, far: number, from: number, to: number): voi
   for (let i = from; i < to; i++) {
     p.spend();
     p.expect(far, p.exp[i]!);
+  }
+}
+
+function refMergeKept(p: Parser, far: number, k: number[]): void {
+  for (let i = 0; i < k.length; i++) {
+    p.spend();
+    p.expect(far, k[i]!);
   }
 }
 
@@ -132,7 +139,7 @@ export function testExpectedReference(): void {
         for (let step = 0; step < 60; step++) {
           const pos = rnd(6);
           const id = rnd(5) === 0 ? expFar : 1 + rnd(90);
-          switch (rnd(7)) {
+          switch (rnd(8)) {
             case 0: case 1:
               a.expect(pos, id);
               b.expect(pos, id);
@@ -185,6 +192,18 @@ export function testExpectedReference(): void {
               a.mergeExpected(pos, a.expTop + 8, a.expTop + 8 + ids.length);
               refMergeExpected(b, pos, b.expTop + 8, b.expTop + 8 + ids.length);
               check(step, "mergeExpected");
+              break;
+            }
+            case 7: {
+              // Merge a kept set, as a memo hit merges the set its entry kept: a set kept from the
+              // current record, or a set of random expectations.
+              const kept = rnd(2) === 0;
+              const ids = [id, 1 + rnd(90), expFar].slice(0, rnd(4));
+              const ka = kept ? a.keep(a.expBase, a.expTop) : ids;
+              const kb = kept ? refKeep(b, b.expBase, b.expTop) : ids.slice();
+              a.mergeKept(pos, ka);
+              refMergeKept(b, pos, kb);
+              check(step, "mergeKept");
               break;
             }
           }
