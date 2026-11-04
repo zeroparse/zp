@@ -10,11 +10,12 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved. Lemma 6 is proved given the count of
-activations of Lemma 4 and the charge of the copies of values that are neither
-own nor values of variables (steps 1 and 6 of [Open Steps](#open-steps)). The
+Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 6 is proved given the
+count of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The
 theorem is proved from the others, so the promise of the class Linear rests on
-step 6 as well as on Lemmas 4 and 5. Lemmas 4 and 5 are given as outlines: each
+Lemmas 4 and 5. [Correspondence](#correspondence) maps the checks of the
+classifier to the conditions and to the lemmas that use them. Lemmas 4 and 5
+are given as outlines: each
 states its claim, the conditions it uses, and the steps that its proof must
 still make precise, listed under [Open Steps](#open-steps). Lemma 4 proves a
 reduction and leaves the count of activations open: the scanned cost comes down
@@ -62,8 +63,8 @@ skip](../runtime/parsing.md#skip-runs). The growth of a cycle and the copying
 operations, the other scanning sources, make no calls of their own beyond the
 body evaluations of the growth. An iteration of a repetition of a character
 class is an activation of its own. A copying operation that is a scanning
-source reads the input of the own span of the evaluation that performs it,
-as Lemma 6 defines it, and each unit of that input is an activation of the
+source reads the input of the own spans of the evaluations that it reads,
+as Lemma 6 defines them, and each unit of that input is an activation of the
 operation.
 
 **Local and scanned cost.** An evaluation of a rule body has a **local cost**,
@@ -169,9 +170,10 @@ gives the two evaluations.
 
 ## Lemma 4 (Scanned Cost)
 
-*Outline.* Under condition 2, the scanned cost of all body evaluations, together
-with the activations of their scanning sources, is at most a constant times
-$K(L + 1)\hat{n}$.
+*Outline.* Under condition 2, the activations of the scanning sources of all
+body evaluations number at most a constant times $K\hat{n}$, and the scanned
+cost of all body evaluations, apart from the copying operations, which Lemma 6
+bounds, is at most a constant times the number of activations.
 
 For the walks of a [skip-run site](../runtime/parsing.md#skip-runs) in the
 skip expression of a `#recover` that is not reused, the
@@ -504,8 +506,7 @@ stops, which happens once per growth.
 
 Under conditions 1, 2 and 4, the size of the values that actions and
 predicates build is at most a constant times $K(L + 1)\hat{n}$, given the
-count of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)) and the
-charge of step 6.
+count of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)).
 
 For a body evaluation $e$ of a rule $R$ whose match succeeds, the **own span**
 of $e$ is the input that its match consumes outside the matches of the calls
@@ -527,80 +528,96 @@ part of the local cost, which Lemma 1 bounds with the factor $L + 1$. What
 remains are the copying operations that are scanning sources. Let one of them
 be in the action or a predicate of $e$.
 
-*Outside lambdas.* By condition 4, the size that the operation copies does
-not include the value of a call on a recursion with $R$, nor a fold
-accumulator, nor a value whose size can come from a capture made in a
-positive lookahead. Its operand is then built from literals, values of variables and
-values of captures and calls of $e$ that hold no call on the recursion, as
-the text of a capture around such a call would; a call of a rule outside the
-recursion does not reach the recursion again, since its rule would be on it.
-So every capture and call that the operand reads is a match inside the
-own span of $e$. Its value need not lie inside its match: `L = &(x:W) => $x`
-consumes nothing and returns the rest of the input, so that `y:L` is an empty
-match whose value is as large as the input after it. Condition 4 excludes
-such a value by its size, whatever the match consumes, and the definition of
-an [own](../runtime/parsing.md#conditions-for-linear-cost) value excludes it
-too, since a capture in a positive lookahead is part of the value of `L`.
-When the value is own, *Size degrees* in Lemma 7 bounds it by a constant
-times one more than its match. The operation
-reads a constant number of such values and of values of variables, so it
-copies at most a constant times $1 + |\text{own span of } e| + L$. A value
-read through a lambda over a bounded list is copied a constant number of
-times, by Lemma 7, so the same bound holds for the copies in such a lambda,
-with a larger constant. A value that is neither own nor the value of a
-variable is the charge of step 6.
+*Outside lambdas.* By condition 4, the size that the operation copies does not
+include the value of a call on a recursion with $R$, nor a fold accumulator, nor
+a value whose size can come from a capture made in a positive lookahead. Its
+operand is then built from literals, values of variables and values of matches
+that hold no call on the recursion: captures and calls of $e$ that hold none, as
+the text of a capture around such a call would, and parts of the values of calls
+on the recursion that hold none, which the operand reaches through members, as
+`$z.$y` reaches the capture `y` of `F` in `E = "(" z:F ")" => text($z.$y) + "!"`
+with `F = y:"b"* E?`. A call of a rule outside the recursion does not reach the
+recursion again, since its rule would be on it. So each match that the operand
+reads lies in the own span of $e$, or in the own span of a body evaluation of a
+rule of the recursion nested in $e$ that a chain of calls on the recursion
+reaches, each call made by the evaluation before it outside its other calls on
+the recursion; the chain is no longer than the members that the operand takes, a
+constant $D$ of the grammar. These evaluations, $e$ included, are the
+**evaluations that the operation reads**, and their own spans its **read
+input**. Let $\rho$ be one more than the size of the read input plus the number
+of iterations of the repetitions of these evaluations, as the list of the
+repetition `es:E*` in a body of the recursion has one element for each call on
+the recursion that it makes. The value of a match need not lie inside it:
+`L = &(x:W) => $x` consumes nothing and returns the rest of the input, so that
+`y:L` is an empty match whose value is as large as the input after it. Condition
+4 excludes such a value by its size, whatever the match consumes, and the
+definition of an [own](../runtime/parsing.md#conditions-for-linear-cost) value
+excludes it too, since a capture in a positive lookahead is part of the value of
+`L`. By *Top sizes* in Lemma 11, the operation copies, of each value that it
+reads other than the value of a variable, at most a constant times $\rho$,
+whether the value is own or not, as an element of a list that `map` builds, or a
+string that a lambda builds. The operation reads a constant number of such
+values and of values of variables, so it copies at most a constant times
+$\rho + L$. A value read through a lambda over a bounded list is copied a
+constant number of times, by Lemma 7, so the same bound holds for the copies in
+such a lambda, with a larger constant.
 
-*Inside lambdas over lists that are not bounded.* By condition 4, such a
-lambda copies nothing from outside it that is not bounded in size by a
-constant, nor its fold accumulator, so each of its copies copies a constant
-or parts of the elements of the lists of the lambdas around it. Over the
-evaluations of the lambda in one evaluation of the action, the elements that
-it copies add up to the size of its list times the numbers of elements of the
-lists of the lambdas around it, by the
-[size degrees](../runtime/parsing.md#conditions-for-linear-cost) that
-condition 4 adds; the condition admits the sum only when it is a size degree
-of at most 1. When the list is own and the lambdas read only its elements,
-those are own captures of a repetition, distinct parts of the input of the
-own span of $e$, and by *Size degrees* the sum is at most a constant times
-$1 + |\text{own span of } e|$. A list built from the values of variables
-adds at most a constant times $L$, and any other list is again the charge of
-step 6. A fold over such a list costs, by the sums after the proof of Lemma 7,
-at most a constant times $n^d$ with $d$ the degree of its cost, which the
-class Linear admits only when it is at most 1; then each term of its cost is
-a constant or the size of the element of the step, since a term that reads a
-quantity of the first parameter has degree at least 2 there, every quantity
-having degree at least 1 and the number of steps of a list that is not
-bounded degree at least 1, so its steps cost at most a constant times one
-more than the size of its list, which is bounded as above.
+*Inside lambdas over lists that are not bounded.* By condition 4, such a lambda
+copies nothing from outside it that is not bounded in size by a constant, nor
+its fold accumulator, so each of its copies copies a constant or parts of the
+elements of the lists of the lambdas around it. Over the evaluations of the
+lambda in one evaluation of the action, the elements that it copies add up to
+the size of its list times the numbers of elements of the lists of the lambdas
+around it, by the [size
+degrees](../runtime/parsing.md#conditions-for-linear-cost) that condition 4
+adds; the condition admits the sum only when it is a size degree of at most 1.
+By *Sizes in the read input* in Lemma 11, the bound of a size degree $d$ holds
+with $\rho$ in place of $n$, for values that read no variable, so the sum is at
+most a constant times $\rho$, whether the list is own or built by `map` or a
+lambda. When the list is own and the lambdas read only its elements, the degree
+leaves out the number of its elements, and those are own captures of a
+repetition, distinct parts of the read input, so the sum is at most a constant
+times $\rho$ as well. A list built from the values of variables adds at most a
+constant times $L$. A fold over such a list costs, by the sums after the proof
+of Lemma 7, at most a constant times $\rho^d$ with $d$ the degree of its cost,
+which the class Linear admits only when it is at most 1; then each term of its
+cost is a constant or the size of the element of the step, since a term that
+reads a quantity of the first parameter has degree at least 2 there, every
+quantity having degree at least 1 and the number of steps of a list that is not
+bounded degree at least 1, so its steps cost at most a constant times one more
+than the size of its list, which is bounded as above.
 
-*Sum.* Each such operation costs, in $e$, at most a constant times
-$1 + |\text{own span of } e| + L$. The term $L + 1$ is paid once for each body
-evaluation and each activation, which Lemmas 3 to 5 and 10 count. The own
-span is the input that the operation examines: the operation is a scanning
-source that reads, once, the input of its own span, and condition 2 treats a
-later alternative that starts inside that input as one that starts inside
-the input of a repetition. Lemma 4
-counts each unit of that input as an activation of the operation, and the
-activations of the copies of one evaluation $e$ cover disjoint input from
-those of the evaluations of the recursion nested in it. An evaluation that
-performs the operation and is then abandoned is evaluated again only as
-Lemma 4 allows for any activation that a failure repeats: condition 2
-classifies a unit that can fail after the copy as it does one that can fail
-after a repetition, so that `(A "q" / "a")*` with `A = x:W => text($x) + "!"`
-is classified polynomial. So the copies cost at most a constant times the
-activations of Lemma 4 plus $L + 1$ times the body evaluations and the
-activations, which is the claim. $\square$
+*Sum.* Each such operation costs, in $e$, at most a constant times $\rho + L$.
+The term $L + 1$ is paid once for each body evaluation and each activation,
+which Lemmas 3 to 5 and 10 count. The iterations in $\rho$ are activations of
+the repetitions of the evaluations that the operation reads, each charged a
+constant. The read input is the input that the operation examines: the operation
+is a scanning source that reads, once, the input of the own spans that it reads,
+and condition 2 treats a later alternative that starts inside that input as one
+that starts inside the input of a repetition. Lemma 4 counts each unit of that
+input as an activation of the operation. The own spans of the evaluations of one
+recursion, one nested in the other, are disjoint, and an evaluation is read by
+the operations of itself and of at most $D$ evaluations of the recursion around
+it, those whose chains reach it, so each unit of the read input and each
+iteration is charged by the copies of at most $D + 1$ evaluations that the parse
+keeps. An evaluation that performs the operation and is then abandoned is
+evaluated again only as Lemma 4 allows for any activation that a failure
+repeats: condition 2 classifies a unit that can fail after the copy as it does
+one that can fail after a repetition, so that `(A "q" / "a")*` with
+`A = x:W => text($x) + "!"` is classified polynomial. So the copies cost at most
+a constant times the activations of Lemma 4 plus $L + 1$ times the body
+evaluations and the activations, which is the claim. $\square$
 
 A unit of input is charged only a constant number of times outside the
 repetitions that a failure makes. The successful matches that hold it and are
 kept in the tree of the parse are nested in one another. Of those of the rules
-of one recursion, only the innermost holds the unit in its own span, and the
-recursions around a unit, each a strongly connected component of the call
-graph, are no more than the components of the grammar. The other evaluations
-whose own spans hold the unit are those that a failure or a lookahead
-abandons, which Lemma 4 counts. A capture in a positive lookahead would break
-this: its value lies outside the own span, so that
-`A = "a" &(x:W) => text($x) + "!"` in `A*` copies the rest of the input at
+of one recursion, only the innermost holds the unit in its own span, it and at
+most $D$ of those around it read it, and the recursions around a unit, each a
+strongly connected component of the call graph, are no more than the components
+of the grammar. The other evaluations whose own spans hold the unit are those
+that a failure or a lookahead abandons, which Lemma 4 counts. A capture in a
+positive lookahead would break this: its value lies outside the own span, so
+that `A = "a" &(x:W) => text($x) + "!"` in `A*` copies the rest of the input at
 each position, the reason why condition 4 excludes it.
 
 A copy of the value of a variable costs at most $L$. Condition 1 keeps the
@@ -1102,6 +1119,120 @@ stream, prefix and Document parses and for loaded modules,
 TypeScript parser. `Parser.Memoizes` memoizes a leader whatever
 `transientRules` marks.
 
+## Lemma 11 (Sizes)
+
+Let the rules that the start rule reaches satisfy conditions 1 and 4. The
+**top size** of a value is the size that a copying operation copies of it:
+the characters of a string, or the number of elements of a list. The
+**components** of a value are the value itself and the components of its
+elements and members. A value is **anchored** when no component of it is the
+value of a variable, and its size cannot come from a capture made in a
+positive lookahead, as condition 4 measures it.
+
+*Top sizes.* Every anchored component of the value of a match $m$, and of a
+value that an action, a predicate or a binding of $m$ builds, has top size at
+most a constant times $|m| + 1$. A copying operation in a body evaluation $e$
+copies, of each anchored value that it reads, at most a constant times the
+$\rho$ of Lemma 6.
+
+*Proof.* A component is a literal, an int or a Boolean, of constant size; a
+node, whose text is the input of a match inside $m$, since a capture in a
+positive lookahead is not anchored; the list of a repetition, with
+one element for each iteration, at most $|m| + 1$ of them, since only the last
+iteration can consume nothing; a component of the value of a call, whose
+match lies inside $m$; or a value that an operation of $m$ builds. Among the
+operations, a list, a tuple and a constructor have a constant number of
+items; `+` and `concat` have a top size that is the sum of those of a constant
+number of operands; `map` and `filter` have at most the number of elements of
+their list; `text` has the top size of its operand; a fold has the value of
+its initial value or of its lambda; and an element or a member is a component
+of the value that it is taken from. So a component that one term builds has
+top size at most a constant $r$ times the largest top size of the
+components that it reads, and the terms of one action nest to a depth that is
+a constant of the grammar, the lambdas over bounded lists repeating them a
+constant number of times by Lemma 7.
+
+Three ways remain in which a top size could grow without a constant bound, and
+condition 4 closes each. A lambda over a list that is not bounded runs once for
+each element, but each run builds its components from the element, from values
+that are not copied, and from constants: by condition 4 it copies nothing from
+outside it that is not bounded by a constant. A fold over a list that is not
+bounded passes its first parameter on from step to step, but no copying
+operation reads it, so the components of the first parameter are components of
+the initial value, of the elements, of values read from outside, or built in one
+step by terms that copy none of them, and their top sizes do not grow from step
+to step. Over a bounded list, a fold may copy its first parameter, and Lemma 7
+bounds it by a constant multiple. A recursion passes the values of its calls up
+from level to level, but no copying operation reads the value of a call on a
+recursion with its rule, nor a part of it that holds such a call. It reads only
+parts of such values that hold none, through members: the value of a capture
+inside the match of the call, which is a node, a list of a repetition, or a
+value of a rule outside the recursion.
+
+Induction on the strongly connected components of the call graph, from those
+that call no other, and within one component on the nesting of matches, then
+gives the claim. Let $C_h$ bound the components of the values of the rules of
+the components below a component $\mathcal{S}$, as $C_h(|m'| + 1)$ for their
+matches $m'$. In an evaluation of a rule of $\mathcal{S}$ with match $m$, a
+copying operation reads components of the captures and calls that hold no call
+on $\mathcal{S}$, of the parts of calls on $\mathcal{S}$ that hold none, and
+constants, each of top size at most $\max(C_h, 1)(|m| + 1)$; the other terms
+build a value of constant top size or pass a component on. So a component that
+the evaluation builds has top size at most $r^{t}\max(C_h, 1)(|m| + 1)$, with
+$t$ the largest depth of the terms, and a component that it passes on from a
+call on $\mathcal{S}$ has the bound of the match of that call, inside $m$, by
+the induction on nesting. The constant does not compound over the levels of the
+recursion, since a level copies no value of the level below.
+
+For the operation in $e$, the matches that its anchored operands read lie in
+the read input of Lemma 6, and their lists of repetitions have as many
+elements as the iterations that $\rho$ counts, so each value that it reads
+has top size at most a constant times $\rho$. $\square$
+
+*Sizes in the read input.* The size degrees of
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+bound the size of a value of size degree $d$ by a constant times $n^d$
+(*Size degrees* in Lemma 7). For an anchored value that a copying operation in
+$e$ reads, the same bound holds with $\rho$ in place of $n$. The proof of
+*Size degrees* starts from values whose bounds it takes from their matches,
+an own value at most a constant times one more than its match, the list of a
+repetition at most one more than its iterations, and a value of another
+recursion at most a constant times $N_{\mathcal{S}}(m')$ for its match $m'$,
+and from values read from outside a lambda or a fold, which it bounds by
+$n$ to their size degrees. For an anchored value that the operation reads,
+these matches lie in the read input, and the values from outside are
+captures of $e$ or parts of them, so each such bound is at most a constant
+times $\rho$ to the same degree, and the rules after the proof of Lemma 7
+combine them as before. A value that is not anchored is excluded: a value of
+a variable has size up to $L$ whatever the match, and a capture in a positive
+lookahead holds input outside it. $\square$
+
+*Values of variables.* Let no evaluation of a binding read a value that is
+built, through bindings, captures and rule values, from an earlier
+evaluation of the same binding. Then $L$ is at most a constant times
+$\hat{n}$.
+
+*Proof.* Every value that a binding binds is built from literals, values of
+matches, and the values of variables that its term reads, which earlier
+evaluations of other bindings, or the initial values, gave. Follow the
+values of variables back through the bindings that built them: by the
+assumption, a chain of such evaluations repeats no binding, so it is no
+longer than the number of bindings of the grammar. By *Top sizes*, with the
+values of variables that a term reads added to its operands, a binding binds
+a value of top size at most a constant times $\hat{n}$ plus a constant
+times the top sizes of the values of variables that it reads, since a match
+consumes at most $n$ and a capture in a positive lookahead at most the rest
+of the input. Induction along the chains gives a bound of a constant times
+$\hat{n}$. $\square$
+
+The assumption is what condition 1 states for a binding whose value can
+reach a later evaluation of the same binding, through the forms that the
+condition lists; that those forms are the only ways in which the value
+reaches it is step 6 of [Open Steps](#open-steps). The theorem does not use
+the bound on $L$: its cost carries the factor $L + 1$, and
+[Classification](../runtime/parsing.md#classification) derives from the
+bound that the second class costs at most a constant times $K \cdot n^2$.
+
 ## Theorem (Linear Cost)
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
@@ -1111,27 +1242,108 @@ literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, and on Lemma 6,
-which is proved given steps 1 and 6 of [Open Steps](#open-steps); so the
-promises of the classes Linear and Linear Given an Environment Bound do too.
+which is proved given step 1 of [Open Steps](#open-steps); so the promises of
+the classes Linear and Linear Given an Environment Bound do too.
 
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
-evaluation, the scanned cost of one, a call, or the walk cost. By Lemma 1 the
-local costs add up to $c_0 (L + 1)$ times the number of body evaluations. The
-body evaluations of memoized rules are at most a constant times $K (L + 1)
-\hat{n}$: by Lemma 3 outside the growth steps and the contexts of growths, and
-by Lemma 5 for the growth steps and the evaluations in a context of growths. By
-Lemma 10 the body evaluations of the other rules are at most a constant times
-those plus the activations plus one, and Lemmas 4 and 5 bound the activations.
-By Lemma 2 the calls are at most a constant times the body evaluations plus the
-activations. The scanned cost is bounded by Lemmas 4 and 5, the walk cost by
-Lemma 9, and the values by Lemma 6. Each bound is a constant times $K (L + 1)
-\hat{n}$. $\square$
+evaluation, the scanned cost of one, a call, or the walk cost. The body
+evaluations of memoized rules are at most a constant times $K \hat{n}$: by
+Lemma 3 outside the growth steps and the contexts of growths, and by Lemma 5
+for the growth steps and the evaluations in a context of growths. By Lemma 4
+the activations are at most a constant times $K \hat{n}$, and by Lemma 10 the
+body evaluations of the other rules are at most a constant times those two
+counts plus one. By Lemma 2 the calls are at most a constant times the body
+evaluations plus the activations. By Lemma 1 each body evaluation has a local
+cost of at most $c_0 (L + 1)$. A call costs a constant and its memo lookup,
+which by [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
+costs in proportion to the size of its key: the number of variables that the
+rule reads, a constant, and the lengths of their string values, each at most
+$L$ by its definition; so each call costs at most a constant times $L + 1$.
+The scanned cost is at most a constant times the activations by Lemma 4, plus
+what Lemma 5 adds, the walk cost is bounded by Lemma 9, and the values by
+Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$. $\square$
 
 The classifier reports the two classes only when the conditions hold, and it
 over-approximates where it cannot decide them
 ([Classification](../runtime/parsing.md#classification)). That it does so is a
 property of its implementation, checked by its tests; this proof covers the
-step from the conditions to the bound.
+step from the conditions to the bound, and [Correspondence](#correspondence)
+names the check that decides each condition.
+
+## Correspondence
+
+The classifier in `internal/compile` decides the conditions, and the lemmas
+use them. Each entry names the functions of a check, the term or condition of
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+that it decides, and the lemmas that use it. `classify` runs the checks in
+the order `checkUnits`, `checkGrowth`, `checkCarriedGrowth`, `checkNesting`
+and `checkValues`, after `collect` has walked the rules, which records the
+scanning sources, the units, the bindings and the copying operations.
+
+- `computeBounded`, `bounded` and `nullable` decide the expressions whose
+  matches are bounded in length and those that can match nothing, which the
+  terms scanning source, bounded list and growing unit read; `computeFirst`
+  and `first` decide the first characters. Lemmas 1, 2, 4, 6 and 11 use the
+  bounds, and Lemma 4 the first characters.
+- `addSource`, `computeRuleSources` and `containsSource` decide the scanning
+  sources and what contains one: Lemmas 1, 2 and 4.
+- `reusedSkip`, `constantInput` and `costly` decide the reused skips of
+  [Skip Runs](../runtime/parsing.md#skip-runs), which are no scanning
+  source: Lemma 9, and Lemma 4 for the units whose only source was such a
+  skip.
+- `memoizedRules` decides the rules that are memoized, and `shareable` and
+  `memoAt` the calls that are shared and those memoized at the call, after
+  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules): Lemmas
+  3 and 10, and the shared calls of Lemma 4.
+- `checkUnits` decides condition 2, with `unitFailsAfterSource` and
+  `failsAfterSource` for a unit that can fail after a source, and
+  `committing` for the term committing, which removes shared calls through
+  `leads` and `commonLead`, compares first characters, excludes by words in
+  `excludedByWord`, and drops the later alternatives after a `#cut` in
+  `cutCommits`: Lemma 4, its failure after a source and the cases of
+  committing.
+- `withoutReentry`, `fixedMemoized`, `memoOnly` and `restBounded` decide the
+  paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
+- `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
+  for growing units, with their continuations: Lemma 5, *Sources at fixed
+  offsets*.
+- `checkGrowth` decides condition 3, and `checkCarriedGrowth`, `dropsResult`,
+  `carryPaths` and `growthGoesOn` condition 5: Lemma 5.
+- `checkValues`, with `selfDependent` and `reaches`, decides condition 1, and
+  `constant` the bindings that bind a value that the input determines, which
+  give the class Linear given an environment bound: Lemma 3 through $K$, and
+  *Values of variables* in Lemma 11. `finiteVars`, `finiteBool` and
+  `finiteInt` decide the variables with finite values: Lemma 8.
+- `walkTerm` finds the copying operations, `mayBeString` and `stringIn` tell
+  a string value from a node for `len`, and `copyOp` and `copied` decide
+  condition 4 for each copy from what `sizeOf`, `sizeOfAny`, `exprSize` and
+  `deepSize` say that it can copy: a call on the recursion, a fold
+  accumulator, a value from outside a lambda over a list that is not bounded,
+  a value of a variable, a capture in a positive lookahead, and the sum of
+  the elements that a lambda copies. `lambdaCtx` decides the bounded lists:
+  Lemmas 6, 7 and 11.
+- `checkFoldGrowth`, `growthOf`, `growthOrder` and `doubles` decide the step
+  matrix of condition 4: Lemma 7, after its proof.
+- `ownRules`, `ownExpr` and `recOnce` decide the own values and the size
+  degrees of the values of recursions, and `valueShape`, `ruleShape` and
+  `levelShape` the size degrees: Lemma 7, *Size degrees*, with Lemmas 6
+  and 11.
+- `lookCaptures`, `looks`, `inLook`, `exprLooks` and `termLooks` decide the
+  values whose size can come from a capture in a positive lookahead, which
+  condition 4 excludes from copies: Lemma 6 and the anchored values of
+  Lemma 11.
+- `checkNesting` and `leaf` give the degrees of the class polynomial and the
+  reasons for the class unknown of
+  [Classification](../runtime/parsing.md#classification). No lemma uses
+  them, since those classes carry no promise.
+
+Every condition and term above has a check. Two parts of the proof have no
+check of their own, and need none: the factors $K$ and $L$, which are
+quantities of a parse that the classes carry rather than conditions, and the
+two evaluations at a position that the memo allows, which `Parser.FirstCall`
+in `internal/engine/core` gives (Lemma 3). The checks that decide no
+condition are `growingBindings` and `canHoldNonEmpty`, which serve the
+`growing-variable` finding of `zp lint` rather than the classification.
 
 ## Adding a Condition
 
@@ -1186,15 +1398,13 @@ The outlines leave these steps to be made precise.
    steps are shared only through equal results. It must show that the
    comparison of results by structure, which is bounded, loses only reuse,
    and that condition 5 covers every growth that is new in each step.
-6. **Variables and other values in Lemma 6.** The bound $L = O(n)$ that
-   [Classification](../runtime/parsing.md#classification) states, and the
-   comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
-   Besides, a copy, outside the lambdas or of the elements of the list of a
-   lambda, of a value that is neither own nor the value of a variable. Such a
-   value can reach a copy in two ways that Lemma 6 does not bound: a list
-   built by `map`, whose elements are values of its lambda rather than parts
-   of the input, and a string built by a lambda, as the steps of a fold or the
-   elements of a `map` join it. A string was built by copies that cost its
-   length, and a list copies only its number of elements, which the copies or
-   the repetition that built it paid; the step must charge each such copy to
-   that work, and show that a constant number of copies read each value.
+6. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
+   [Classification](../runtime/parsing.md#classification) states, which the
+   theorem does not use. *Values of variables* in Lemma 11 proves it given
+   that no evaluation of a binding reads a value built from an earlier
+   evaluation of the same binding. The step must show that condition 1
+   ensures this: that such a value reaches a later evaluation of the binding,
+   through the bindings of other variables, the captures of callers and the
+   values of rules, only through a sequence that holds the binding and a call
+   that can reach its rule again, or a repetition around the binding, as the
+   condition lists.
