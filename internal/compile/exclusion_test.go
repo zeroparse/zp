@@ -1,9 +1,12 @@
 package compile
 
 import (
+	"cmp"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -14,11 +17,11 @@ import (
 
 // TestDecideAlt checks the exclusion analysis on the first choice of rule main.
 func TestDecideAlt(t *testing.T) {
-	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\n"
+	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\n"
 	for _, c := range []struct {
 		name, main string
 		decided    bool
-		k, cut     int
+		k, prefix  int
 	}{
 		{"disjoint first characters", `"a" x / "b" x`, true, 1, 1},
 		{"shared call then literals", `ident "(" x / ident "." x`, true, 2, 2},
@@ -41,6 +44,14 @@ func TestDecideAlt(t *testing.T) {
 		{"overlapping classes then literals", `[a-z] "(" x / [a-f0-9] "." x`, true, 2, 2},
 		{"any character against a class", `. "(" x / [0-9] "." x`, true, 2, 2},
 		{"overlapping classes then the same literal", `[a-z] "(" x / [a-f0-9] "(" x`, false, 0, 0},
+		// A negative lookahead whose body the later alternative matches only through a call: the
+		// match goes on inside the callee from where the symbols before it left off.
+		{"negative lookahead through a callee", `!("x" "y") "x" r / "x" r "q"`, true, 1, 1},
+		{"negative lookahead that a callee does not match", `!("x" "x") "x" r / "x" r "q"`, false, 0, 0},
+		{"negative lookahead decided later", `!("x" "x") "x" "z" / "x" r`, true, 2, 3},
+		{"later negative lookahead through a callee", `"x" r "z" / !("x" "y") "x" "y"`, true, 1, 2},
+		{"later negative lookahead that a callee does not match", `"x" r "z" / !("x" "x") "x" "y"`, false, 0, 0},
+		{"equal literals that ignore case", `"if"i "(" x / "IF"i "." x`, true, 2, 2},
 	} {
 		src := "rule main = (" + c.main + ") x\n" + rules
 		g, err := syntax.Parse(src)
@@ -60,8 +71,8 @@ func TestDecideAlt(t *testing.T) {
 			}
 		})
 		d := k.decideAlt(ch, 0, 3)
-		if d.decided != c.decided || d.decided && (d.k != c.k || d.cut != c.cut) {
-			t.Errorf("%s: decided %v k %d cut %d, want %v k %d cut %d", c.name, d.decided, d.k, d.cut, c.decided, c.k, c.cut)
+		if d.decided != c.decided || d.decided && (d.k != c.k || d.prefix != c.prefix) {
+			t.Errorf("%s: decided %v k %d prefix %d, want %v k %d prefix %d", c.name, d.decided, d.k, d.prefix, c.decided, c.k, c.prefix)
 		}
 	}
 }
@@ -137,23 +148,23 @@ func TestDecidedUnitsTrivia(t *testing.T) {
 	}
 }
 
-// TestTriviaCheap checks that a call of a trivia rule that the memo does not answer is cheap only
-// with the hook: the second call at a position costs a constant once the rule is memoized there.
+// TestTriviaCheap checks that a call of a trivia rule that calls a rule is cheap only where the
+// trivia rules are memoized per position: the second call at a position then costs a memo access.
 func TestTriviaCheap(t *testing.T) {
-	defer func() { triviaOn = false }()
+	defer func() { triviaOn, triviaMemo = false, false }()
 	g, err := syntax.Parse("rule main = ws2 \"x\"\nrule ws2 = (sp)*\nrule sp = \" \"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, on := range []bool{false, true} {
-		triviaOn = on
+		triviaOn, triviaMemo = true, on
 		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		k.classify()
 		if got := newExcl(k, true, 3).cheap(&grammar.Ref{Name: "ws2"}); got != on {
-			t.Errorf("trivia %v: cheap %v", on, got)
+			t.Errorf("memo %v: cheap %v", on, got)
 		}
 	}
 }
@@ -241,7 +252,7 @@ func TestDecideAltVariables(t *testing.T) {
 	for _, c := range []struct {
 		name, main string
 		decided    bool
-		k, cut     int
+		k, prefix  int
 	}{
 		{"equal calls without bindings", `b "(" x1 / b "a(" x1`, true, 2, 2},
 		{"a binding in the earlier prefix", `{x := 1} b "(" x1 / b "a(" x1`, false, 0, 0},
@@ -266,8 +277,8 @@ func TestDecideAltVariables(t *testing.T) {
 			}
 		})
 		d := k.decideAlt(ch, 0, 3)
-		if d.decided != c.decided || d.decided && (d.k != c.k || d.cut != c.cut) {
-			t.Errorf("%s: decided %v k %d cut %d, want %v k %d cut %d", c.name, d.decided, d.k, d.cut, c.decided, c.k, c.cut)
+		if d.decided != c.decided || d.decided && (d.k != c.k || d.prefix != c.prefix) {
+			t.Errorf("%s: decided %v k %d prefix %d, want %v k %d prefix %d", c.name, d.decided, d.k, d.prefix, c.decided, c.k, c.prefix)
 		}
 	}
 }
@@ -308,15 +319,161 @@ func TestDecidedUnits(t *testing.T) {
 	}
 }
 
-// TestAutoCutReport prints the decisions of the analysis and the classification of the bundled
-// grammars with automatic cuts. It runs when ZP_AUTOCUT_REPORT is set; ZP_AUTOCUT_OUT names a
-// directory for the grammars with the cuts, and ZP_AUTOCUT_EXTRA lists further grammar files,
-// separated by commas; ZP_AUTOCUT_ONLY replaces the bundled list.
-func TestAutoCutReport(t *testing.T) {
-	if os.Getenv("ZP_AUTOCUT_REPORT") == "" {
-		t.Skip("ZP_AUTOCUT_REPORT is not set")
+// exclHooks is a setting of the test hooks of the exclusion analysis.
+type exclHooks struct {
+	prefixes, decided       bool
+	k                       int
+	trivia, extended, tvars bool
+}
+
+// set sets the hooks and returns a function that restores the defaults.
+func (h exclHooks) set() func() {
+	cutPrefixesOn, decidedUnitsOn, decidedUnitsK = h.prefixes, h.decided, h.k
+	triviaOn, triviaExtended, triviaVars = h.trivia, h.extended, h.tvars
+	return func() {
+		cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, false, 3
+		triviaOn, triviaExtended, triviaVars = false, false, false
 	}
-	defer func() { cutPrefixesOn, decidedUnitsOn = false, false }()
+}
+
+// exclBlocker returns where the strict analysis at maxK stops for the first pair of paths of the
+// unit and a continuation that it does not decide, or "" when it decides the unit. The stop is the
+// tag of the comparison, with the kind of the symbol for stops and expansions.
+func exclBlocker(k *classifier, u *unit, strict bool, maxK int) string {
+	if u.kind == unitLookahead && strict {
+		return "lookahead unit"
+	}
+	x := newExcl(k, strict, maxK)
+	last := ""
+	exclTrace = func(tag string, a sym, b *sym) {
+		switch tag {
+		case "pstop", "noexpand":
+			tag += ": " + stopKind(k, a)
+		case "qstop":
+			tag += ": " + stopKind(k, *b)
+		}
+		last = tag
+	}
+	defer func() { exclTrace = nil }()
+	var ps [][]sym
+	for _, c := range u.self {
+		p, ok := x.followPaths(c)
+		if !ok {
+			return "path limit"
+		}
+		ps = append(ps, p...)
+	}
+	for _, cs := range k.withoutReentry(u) {
+		for _, c := range cs.paths {
+			qs, ok := x.followPaths(c)
+			if !ok {
+				return "path limit"
+			}
+			for _, p := range ps {
+				for _, q := range qs {
+					last = ""
+					if ok, _, _ := x.excludes(exclState{p: p, q: q}); !ok {
+						return cmp.Or(last, "?")
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// stopKind names the kind of expression of a symbol at which the analysis stops.
+func stopKind(k *classifier, s sym) string {
+	switch e := s.e.(type) {
+	case nil:
+		return "end of continuation"
+	case *grammar.Bottom:
+		switch e {
+		case stopFollow:
+			return "follow bound"
+		case stopLength:
+			return "length bound"
+		}
+		return "bottom"
+	case *grammar.Choice, *grammar.Optional, *grammar.Repeat:
+		return "part that is not cheap"
+	case *grammar.Ref:
+		switch {
+		case e.Level != "":
+			return "operator level call"
+		case k.an.cyclic[e.Name]:
+			return "left-recursive call"
+		}
+		return "call"
+	case *grammar.CharClass, *grammar.Any, *grammar.Literal:
+		return "character"
+	case *grammar.Attributed, *grammar.OperatorsRule, *grammar.Recovery:
+		return "attributed, Operators Rule or #recover"
+	}
+	return fmt.Sprintf("%T", s.e)
+}
+
+// exclStats counts the decisions of the non-strict analysis over the choices of the reachable
+// rules.
+type exclStats struct {
+	choices, alts int    // choices with two or more alternatives, and their alternatives but the last
+	choicesAt     [6]int // choices whose alternatives are all decided within k symbols (index k)
+	altsAt        [6]int // alternatives decided within k symbols
+	overBudget    int    // comparisons left undecided at exclBudget
+}
+
+// exclusionStats decides each alternative of each choice of the reachable rules of g against the
+// later alternatives, within up to five symbols.
+func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
+	k, _, err := prepareClassifier(g, start, nil)
+	if err != nil {
+		return exclStats{}, err
+	}
+	k.computeBounded()
+	k.computeFirst()
+	const most = 5
+	var st exclStats
+	for _, r := range k.rules {
+		if !k.reach[r.Name] {
+			continue
+		}
+		WalkExpr(r.Expr, func(e grammar.Expr) {
+			ch, ok := e.(*grammar.Choice)
+			if !ok || len(ch.Alts) < 2 {
+				return
+			}
+			st.choices++
+			worst := 0
+			for i := range ch.Alts[:len(ch.Alts)-1] {
+				st.alts++
+				d := k.decideAlt(ch, i, most)
+				if !d.decided {
+					worst = most + 1
+					continue
+				}
+				worst = max(worst, d.k)
+				for n := d.k; n <= most; n++ {
+					st.altsAt[n]++
+				}
+			}
+			for n := worst; n <= most; n++ {
+				st.choicesAt[n]++
+			}
+		})
+	}
+	st.overBudget = k.exclOverBudget
+	return st, nil
+}
+
+// TestExclusionReport prints, for the bundled grammars, the choices that the exclusion analysis
+// decides within k symbols, the classification with each setting of its hooks, the trivia rules,
+// and where the strict analysis stops for the units that stay not committing. It runs when
+// ZP_EXCLUSION_REPORT is set; ZP_EXCLUSION_ONLY replaces the list of grammar files, separated by
+// commas. The tables of record 069 come from its output.
+func TestExclusionReport(t *testing.T) {
+	if os.Getenv("ZP_EXCLUSION_REPORT") == "" {
+		t.Skip("ZP_EXCLUSION_REPORT is not set")
+	}
 	files := []string{
 		"testdata/grammars/cel/cel.zp", "testdata/grammars/csv/csv.zp", "testdata/grammars/cue/cue.zp",
 		"testdata/grammars/duckdb/duckdb.zp", "testdata/grammars/golang/golang.zp",
@@ -327,18 +484,25 @@ func TestAutoCutReport(t *testing.T) {
 	for i := range files {
 		files[i] = "../../" + files[i]
 	}
-	if only := os.Getenv("ZP_AUTOCUT_ONLY"); only != "" {
-		files = nil
-		for _, f := range strings.Split(only, ",") {
-			files = append(files, f)
-		}
+	if only := os.Getenv("ZP_EXCLUSION_ONLY"); only != "" {
+		files = strings.Split(only, ",")
 	}
-	if extra := os.Getenv("ZP_AUTOCUT_EXTRA"); extra != "" {
-		files = append(files, strings.Split(extra, ",")...)
+	settings := []struct {
+		name string
+		h    exclHooks
+	}{
+		{"base", exclHooks{k: 3}},
+		{"cut prefixes", exclHooks{prefixes: true, k: 3}},
+		{"decided k=2", exclHooks{decided: true, k: 2}},
+		{"decided k=3", exclHooks{decided: true, k: 3}},
+		{"decided k=4", exclHooks{decided: true, k: 4}},
+		{"k=3, trivia X*", exclHooks{decided: true, k: 3, trivia: true}},
+		{"k=3, trivia wide", exclHooks{decided: true, k: 3, trivia: true, extended: true}},
+		{"k=3, trivia wide with variables", exclHooks{decided: true, k: 3, trivia: true, extended: true, tvars: true}},
 	}
-	out := os.Getenv("ZP_AUTOCUT_OUT")
-	count := func(c *Complexity) string { return fmt.Sprintf("%s w%d r%d", c.Class, len(c.Causes), len(c.Reasons)) }
-	fmt.Println("grammar | choices k<=1..5 | alts k<=1..5 committed cuts | base | cut-prefix units | auto-cut | decided units k=2,3,4 | auto-cut+decided k=3")
+	// The settings whose units that stay not committing are sorted by where the analysis stops.
+	blockers := map[string]bool{"decided k=3": true, "k=3, trivia wide with variables": true}
+	total := map[string]int{}
 	for _, f := range files {
 		src, err := os.ReadFile(f)
 		if err != nil {
@@ -348,49 +512,60 @@ func TestAutoCutReport(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
-		classify := func(g *grammar.Grammar, prefixes, decided bool, n int) *Complexity {
-			cutPrefixesOn, decidedUnitsOn, decidedUnitsK = prefixes, decided, n
-			defer func() { cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, false, 3 }()
-			c, err := ClassifyComplexity(g, "", nil)
-			if err != nil {
-				t.Fatalf("%s: %v", f, err)
-			}
-			return c
-		}
-		base := classify(g, false, false, 3)
-		basePrefix := classify(g, true, false, 3)
-		cut, st, err := AutoCut(g, "", 5)
+		name := strings.TrimSuffix(filepath.Base(f), ".zp")
+		st, err := exclusionStats(g, "")
 		if err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
-		auto := classify(cut, true, false, 3)
-		var decided []*Complexity
-		for n := 2; n <= 4; n++ {
-			decided = append(decided, classify(g, false, true, n))
-		}
-		commit := classify(cut, true, true, 3)
-		name := strings.TrimSuffix(filepath.Base(f), ".zp")
-		fmt.Printf("%s | %d %v | %d %v %d %d | %s | %s | %s | %s, %s, %s | %s\n", name,
-			st.Choices, st.ChoicesAt[1:], st.Alts, st.AltsAt[1:], st.Committed, st.Cuts,
-			count(base), count(basePrefix), count(auto), count(decided[0]), count(decided[1]), count(decided[2]), count(commit))
-		if os.Getenv("ZP_AUTOCUT_VERBOSE") != "" {
-			for _, c := range []struct {
-				what string
-				x    *Complexity
-			}{{"base", base}, {"auto", auto}, {"decided3", decided[1]}, {"commit", commit}} {
-				for _, r := range c.x.Causes {
-					fmt.Printf("  %s w %d:%d %s\n", c.what, r.Pos.Line, r.Pos.Col, r.Message)
-				}
-				for _, r := range c.x.Reasons {
-					fmt.Printf("  %s r %d:%d %s\n", c.what, r.Pos.Line, r.Pos.Col, r.Message)
-				}
-			}
-		}
-		if out != "" {
-			if err := os.WriteFile(filepath.Join(out, name+".zp"), []byte(grammar.Format(cut)), 0o644); err != nil {
+		fmt.Printf("DECISIONS %s choices %d %v alternatives %d %v over budget %d\n",
+			name, st.choices, st.choicesAt[1:], st.alts, st.altsAt[1:], st.overBudget)
+		for _, s := range settings {
+			restore := s.h.set()
+			k, _, err := prepareClassifier(g, "", nil)
+			if err != nil {
 				t.Fatal(err)
 			}
+			c := k.classify()
+			if k.stringLen {
+				if typed, _ := prepareTypedClassifier(g, "", nil); typed != nil {
+					k, c = typed, typed.classify()
+				}
+			}
+			if s.h.trivia {
+				var rules []string
+				for _, r := range k.rules {
+					if k.reach[r.Name] && k.isTrivia(&grammar.Ref{Name: r.Name}) {
+						rules = append(rules, r.Name)
+					}
+				}
+				fmt.Printf("TRIVIA %s %s: %s\n", name, s.name, strings.Join(rules, " "))
+			}
+			fmt.Printf("CLASS %s %s: %s w%d r%d, over budget %d\n", name, s.name, c.Class, len(c.Causes), len(c.Reasons), k.exclOverBudget)
+			total[s.name+" w"] += len(c.Causes)
+			total[s.name+" r"] += len(c.Reasons)
+			if blockers[s.name] {
+				for _, u := range k.units {
+					if !u.nc {
+						continue
+					}
+					why := exclBlocker(k, u, true, s.h.k)
+					// The non-strict analysis tells a cost condition and the bound from an overlap.
+					switch {
+					case why == "lookahead unit":
+					case exclBlocker(k, u, false, s.h.k) == "":
+						why = "cost condition: " + why
+					case exclBlocker(k, u, false, 8) == "":
+						why = "bound k"
+					}
+					total["UNITS "+s.name+" | "+u.kind.String()]++
+					total["BLOCKER "+s.name+" | "+why]++
+				}
+			}
+			restore()
 		}
+	}
+	for _, key := range slices.Sorted(maps.Keys(total)) {
+		fmt.Printf("TOTAL %s %d\n", key, total[key])
 	}
 }
 
@@ -408,6 +583,8 @@ func fmtPath(p []sym) string {
 			b = append(b, "BIND")
 		case symEnv:
 			b = append(b, "ENV")
+		case symUp:
+			b = append(b, "UP")
 		case symNot:
 			b = append(b, "!"+grammar.FormatExpr(s.e))
 		case symAnd:
@@ -424,7 +601,7 @@ func fmtPath(p []sym) string {
 // TestContPathsEnds checks the continuation after the end of an operand of an Operators Rule,
 // which goes on with an operator part or with what follows the rule, and after the end of the
 // start rule, which is the end of the parse.
-// TestFollowPaths checks that a continuation that has more paths through autoCutFollow rule ends
+// TestFollowPaths checks that a continuation that has more paths through exclFollow rule ends
 // than the analysis enumerates is followed through fewer ends instead, with stops where it is cut.
 func TestFollowPaths(t *testing.T) {
 	src := "rule main = r6 $$\nrule r0 = \"a\"\n"
@@ -449,7 +626,7 @@ func TestFollowPaths(t *testing.T) {
 	if !ok {
 		t.Fatal("no paths")
 	}
-	if len(ps) > autoCutPaths {
+	if len(ps) > exclPaths {
 		t.Errorf("%d paths", len(ps))
 	}
 	stops := 0
@@ -515,5 +692,74 @@ func TestDecidedUnitsOperand(t *testing.T) {
 	decidedUnitsOn = true
 	if got := classifySource(t, src).Class; got != ClassLinear {
 		t.Errorf("on: class %v, want %v", got, ClassLinear)
+	}
+}
+
+// comparePaths compares every path of rule p with every path of rule q of src, from one
+// position, and returns whether all pairs part and the tag of the first pair that does not.
+func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string) {
+	t.Helper()
+	g, err := syntax.Parse("rule main = p q\n" + src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.classify()
+	x := newExcl(k, strict, maxK)
+	tag := ""
+	exclTrace = func(s string, _ sym, _ *sym) { tag = s }
+	defer func() { exclTrace = nil }()
+	ps, ok := x.paths(k.byName["p"].Expr, 0)
+	qs, ok2 := x.paths(k.byName["q"].Expr, 0)
+	if !ok || !ok2 {
+		t.Fatal("too many paths")
+	}
+	for _, p := range ps {
+		for _, q := range qs {
+			if ok, _, _ := x.excludes(exclState{p: p, q: q}); !ok {
+				return false, tag
+			}
+		}
+	}
+	return true, ""
+}
+
+// TestStrictConditions checks each condition that the strict analysis adds to the comparison, on
+// a pair that the comparison without it decides: a part that is not cheap stops it, a lookahead
+// whose expression is not cheap is not passed, and an environment mark needs the same variables
+// on both sides.
+func TestStrictConditions(t *testing.T) {
+	const rules = "var v int = 0\nrule w = {v == 1} [ ]+ / [ ]+\nrule id = idc+ semi\nrule idc = [a-z]\nrule semi = \";\" #missing\n"
+	for _, c := range []struct {
+		name, p, q string
+		loose      bool   // decided without the strict conditions
+		strict     bool   // decided with them
+		tag        string // where the strict comparison stops
+	}{
+		{"p ends after shared symbols", `"a"`, `"a" "b"`, false, true, ""},
+		{"an option that scans", `([a-z]* "x")? "c"`, `"1"`, true, false, "pstop"},
+		{"a negative lookahead that scans", `!([a-z]* "x") "c"`, `"d"`, true, false, "pnot-notcheap"},
+		{"a positive lookahead that scans", `&([a-z]* "x") "c"`, `"d"`, true, false, "pand-notcheap"},
+		{"a later negative lookahead that scans", `"c"`, `!([a-z]* "x") "d"`, true, false, "qnot-notcheap"},
+		{"a later positive lookahead that scans", `"c"`, `&([a-z]* "x") "d"`, true, false, "qand-notcheap"},
+		// The memo does not answer id, which calls a rule with #missing.
+		{"a shared call that scans and calls a rule", `id "c"`, `id "d"`, true, false, "same-notcheap"},
+		// w reads v, so the option is cheap only where both sides have the same variables.
+		{"an environment mark after a binding in p", `{v := 1} (w)? "c"`, `"d"`, true, false, "env"},
+		{"an environment mark where q binds next", `(w)? "c"`, `{v := 1} "d"`, true, false, "env"},
+		{"an environment mark in q after its binding", `"d"`, `{v := 1} (w)? "c"`, true, false, "env"},
+		{"an environment mark with the same variables", `(w)? "c"`, `"d"`, true, true, ""},
+	} {
+		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
+		if got, tag := comparePaths(t, src, false, 3); got != c.loose {
+			t.Errorf("%s: loose: decided %v (%s), want %v", c.name, got, tag, c.loose)
+		}
+		got, tag := comparePaths(t, src, true, 3)
+		if got != c.strict || tag != c.tag {
+			t.Errorf("%s: strict: decided %v at %q, want %v at %q", c.name, got, tag, c.strict, c.tag)
+		}
 	}
 }

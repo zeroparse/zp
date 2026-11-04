@@ -6,15 +6,12 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
-// This file is a prototype of the exclusion analysis over symbols. It has two uses, both reached
-// only from tests:
-//
-//   - Automatic cuts: an alternative of an ordered choice after a prefix of which no later
-//     alternative can succeed at the same position takes a #cut after that prefix, which does not
-//     change what the choice matches (AutoCut).
-//   - Committing units: a unit and a continuation that evaluate the same symbols from one
-//     position and then part at a symbol that decides between them restart only those shared
-//     symbols (decidedUnitsOn).
+// This file is a prototype of the exclusion analysis over symbols, reached only from tests. The
+// analysis changes no parser: it shows that a unit and a continuation that evaluate the same
+// symbols from one position part at a symbol that at most one of them can pass. With the strict
+// conditions, the continuation then evaluates again only symbols that are cheap (excl.cheap)
+// before it parts, so the classifier can accept the unit as committing (decidedUnitsOn), and a
+// declared linear mode could treat a choice whose alternatives part this way as decided.
 
 // cutPrefixesOn makes the classifier treat an alternative whose top-level sequence has a #cut
 // after items that can fail as a unit of those items alone: when the alternative fails after the
@@ -29,10 +26,16 @@ var (
 )
 
 const (
-	autoCutPaths  = 256 // the most paths of an expression that the analysis enumerates
-	autoCutInline = 6   // the most rule bodies that the analysis expands for one pair of paths
-	autoCutFollow = 6   // the most rule and operand ends through which a continuation is followed
-	autoCutLen    = 12  // the most symbols of a continuation path
+	exclPaths  = 256 // the most paths of an expression that the analysis enumerates
+	exclInline = 6   // the most rule bodies that the analysis expands for one pair of paths
+	exclFollow = 6   // the most rule and operand ends through which a continuation is followed
+	exclLen    = 12  // the most symbols of a continuation path
+	// exclBudget is the most steps of the comparison for one unit against its continuations, or
+	// for one alternative against the later ones: a step is a symbol examined or a path of an
+	// expansion. The limits above bound the paths and their length, but not the product of the
+	// expansions on both sides, which grows as a power of the number of alternatives. A comparison
+	// that exceeds the budget is undecided.
+	exclBudget = 1 << 16
 )
 
 type symKind uint8
@@ -52,6 +55,11 @@ const (
 	// symEnd is the end of the parse after the start rule: whole-input parsing checks the end of
 	// the input there, which costs a constant, and prefix parsing stops.
 	symEnd
+	// symUp consumes nothing and marks the point where a continuation leaves a rule body through
+	// a call whose evaluations can nest without a bound and end at one position (nestsAt,
+	// nestsOps). Each nested evaluation that ends there evaluates what follows again, so a call
+	// after the mark that the memo does not answer and that scans is not cheap.
+	symUp
 )
 
 // sym is a symbol of a path; item is the index of the top-level item of the alternative that it
@@ -72,29 +80,54 @@ type excl struct {
 	maxK   int
 	// env reports that the unit and the continuation are at a point where they have the same
 	// variables in scope; excludes sets it for the comparison at hand.
-	env    bool
+	env bool
+	// up reports that the continuation has passed a symUp mark (see symUp).
+	up     bool
 	follow int               // the most rule and operand ends through which contPaths follows a continuation
 	cheapR map[cheapKey]int8 // 1 while computed, 2 cheap, 3 not
+	work   *int              // the steps left of exclBudget, shared by the copies of x
 }
 
 type cheapKey struct {
-	rule string
-	env  bool
+	rule    string
+	env, up bool
 }
 
 func newExcl(k *classifier, strict bool, maxK int) excl {
-	return excl{k: k, strict: strict, maxK: maxK, follow: autoCutFollow, cheapR: map[cheapKey]int8{}}
+	work := exclBudget
+	return excl{k: k, strict: strict, maxK: maxK, follow: exclFollow, cheapR: map[cheapKey]int8{}, work: &work}
 }
 
-// cheap reports whether evaluating e again at a position costs no more than a constant or what
-// the first evaluation there cost: a terminal, a call answered alike, an expression without a
-// scanning source, or a call of a rule whose body is cheap in all its parts.
+// spend charges n steps to the budget and reports whether the budget is exhausted. The first time
+// it is, the classifier counts the comparison in exclOverBudget.
+func (x excl) spend(n int) bool {
+	if *x.work <= 0 {
+		return true
+	}
+	*x.work -= n
+	if *x.work <= 0 {
+		x.k.exclOverBudget++
+		return true
+	}
+	return false
+}
+
+// cheap reports whether evaluating e again at a position where the unit evaluated it costs the
+// continuation no more than a constant or than the unit paid for it there, in the sense of the
+// cases of Lemma 4: an expression without a scanning source, which Lemma 1 bounds (case 3); a call
+// that the memo answers, at the cost of a memo access, or a call of a rule that calls no rule,
+// which repeats only its own scan (case 2); or a call of a rule whose body is cheap in all its
+// parts. After a symUp mark, a call that the memo does not answer and that scans is not cheap:
+// the nested evaluations repeat it once each, which no constant bounds.
 func (x excl) cheap(e grammar.Expr) bool {
 	r, ok := e.(*grammar.Ref)
 	if !ok {
 		return !x.k.containsSource(e)
 	}
-	if x.k.shareable(r) || !x.k.containsSource(r) || triviaOn && x.k.isTrivia(r) {
+	if x.up && !x.k.memoAt(r) && x.k.containsSource(r) {
+		return false
+	}
+	if x.k.shareable(r) || !x.k.containsSource(r) {
 		return true
 	}
 	reads := len(x.k.vars[r.Name]) > 0
@@ -110,7 +143,7 @@ func (x excl) cheap(e grammar.Expr) bool {
 	if r.Level != "" || def == nil || x.k.an.cyclic[r.Name] {
 		return false
 	}
-	key := cheapKey{r.Name, x.env}
+	key := cheapKey{r.Name, x.env, x.up}
 	switch x.cheapR[key] {
 	case 1, 3:
 		return false
@@ -144,7 +177,7 @@ func (x excl) cheapAll(e grammar.Expr) bool {
 
 // paths returns the paths of e: sequences of symbols such that every successful evaluation of e
 // evaluates, and succeeds on, the symbols of one of them in order. ok is false when there are more
-// than autoCutPaths of them.
+// than exclPaths of them.
 func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 	one := func(s sym) ([][]sym, bool) { return [][]sym{{s}}, true }
 	if x.strict {
@@ -230,10 +263,10 @@ func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 			}
 			paths = append(paths, ps...)
 		}
-		return paths, len(paths) <= autoCutPaths
+		return paths, len(paths) <= exclPaths
 	case *grammar.Optional:
 		ps, ok := x.paths(e.Expr, item)
-		return append([][]sym{nil}, ps...), ok && len(ps) < autoCutPaths
+		return append([][]sym{nil}, ps...), ok && len(ps) < exclPaths
 	case *grammar.Repeat:
 		if e.Max == 0 {
 			return [][]sym{nil}, true
@@ -268,7 +301,7 @@ func (x excl) repeatPaths(e *grammar.Repeat, item int) ([][]sym, bool) {
 		if e.Min == 0 {
 			ps = append([][]sym{nil}, ps...)
 		}
-		return ps, len(ps) <= autoCutPaths
+		return ps, len(ps) <= exclPaths
 	}
 }
 
@@ -286,7 +319,7 @@ func (x excl) body(s sym) ([][]sym, bool) {
 }
 
 // concatPaths returns every path of ps followed by a path of qs; a path that ends with a stop, or
-// has autoCutLen symbols, is not extended.
+// has exclLen symbols, is not extended.
 func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 	var next [][]sym
 	for _, p := range ps {
@@ -294,7 +327,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 			next = append(next, p)
 			continue
 		}
-		if len(p) >= autoCutLen {
+		if len(p) >= exclLen {
 			next = append(next, append(slices.Clip(p), sym{kind: symStop, e: stopLength}))
 			continue
 		}
@@ -302,7 +335,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 			next = append(next, append(slices.Clip(p), q...))
 		}
 	}
-	return next, len(next) <= autoCutPaths
+	return next, len(next) <= exclPaths
 }
 
 // contPaths returns the paths of a continuation, through the calls of a rule at its end, as far
@@ -343,14 +376,14 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 // Stops that end a continuation that the analysis follows no further, told apart for diagnostics.
 var (
 	stopFollow = &grammar.Bottom{} // more than x.follow rule or operator ends
-	stopLength = &grammar.Bottom{} // autoCutLen symbols
+	stopLength = &grammar.Bottom{} // exclLen symbols
 )
 
 // followPaths returns the paths of the continuation c, followed through as many ends as the
-// limit on the number of paths allows, up to autoCutFollow. Where it follows fewer, the paths
+// limit on the number of paths allows, up to exclFollow. Where it follows fewer, the paths
 // that it cuts short end with a stop.
 func (x excl) followPaths(c *cont) ([][]sym, bool) {
-	for f := autoCutFollow; f >= 0; f-- {
+	for f := exclFollow; f >= 0; f-- {
 		x.follow = f
 		if ps, ok := x.contPaths(c, 0); ok {
 			return ps, true
@@ -374,9 +407,16 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 			after = append(after, []sym{{kind: symStop, e: stopFollow}})
 			continue
 		}
-		ps, ok := x.contPaths(s.cont, depth+1)
+		y, nest := x, x.k.nestsAt(s)
+		y.up = x.up || nest
+		ps, ok := y.contPaths(s.cont, depth+1)
 		if !ok {
 			return nil, false
+		}
+		if nest {
+			for i, p := range ps {
+				ps[i] = append([]sym{{kind: symUp}}, p...)
+			}
 		}
 		if def := x.k.byName[rule]; def != nil && binds(def.Expr) {
 			// The caller does not see the bindings of the rule, which the unit may have seen.
@@ -389,7 +429,7 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 	if len(after) == 0 {
 		after = append(after, []sym{{kind: symStop}})
 	}
-	return after, len(after) <= autoCutPaths
+	return after, len(after) <= exclPaths
 }
 
 // opsEnd returns the paths of what follows the end of an operand of the Operators Rule of rule:
@@ -401,13 +441,20 @@ func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
 	}
 	var after [][]sym
 	ok := true
+	y, nest := x, x.k.nestsOps(rule)
+	y.up = x.up || nest
 	x.k.opsLeads(rule, func(c *cont) {
 		if !ok {
 			return
 		}
 		var ps [][]sym
-		if ps, ok = x.contPaths(c, depth+1); ok {
-			after = append(after, ps...)
+		if ps, ok = y.contPaths(c, depth+1); ok {
+			for _, p := range ps {
+				if nest {
+					p = append([]sym{{kind: symUp}}, p...)
+				}
+				after = append(after, p)
+			}
 		}
 	})
 	if !ok {
@@ -418,7 +465,7 @@ func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
 		return nil, false
 	}
 	after = append(after, ps...)
-	return after, len(after) <= autoCutPaths
+	return after, len(after) <= exclPaths
 }
 
 // inlinable reports whether the analysis may expand a call into the paths of its body: the callee
@@ -572,6 +619,7 @@ type exclState struct {
 	// boundP and boundQ report that p or q passed a symbol that may change the variables in
 	// scope since the position where both start, with the same variables.
 	boundP, boundQ bool
+	upQ            bool // q passed a symUp mark
 }
 
 // zeroBinds reports whether the symbols of p from i up to the first one that consumes input
@@ -593,7 +641,7 @@ func zeroBinds(p []sym, i int) bool {
 func (x excl) nextMatch(q []sym, j int) (int, bool) {
 	for ; j < len(q); j++ {
 		switch q[j].kind {
-		case symSkip, symBind, symEnv:
+		case symSkip, symBind, symEnv, symUp:
 		case symNot, symAnd:
 			if x.strict && !x.cheapAll(q[j].e) {
 				return j, false
@@ -612,7 +660,10 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 	k := x.k
 	for {
 		k.control.poll()
-		x.env = !s.boundP && !s.boundQ
+		if x.spend(1) {
+			return x.no("budget", sym{}, nil)
+		}
+		x.env, x.up = !s.boundP && !s.boundQ, s.upQ
 		if s.i == len(s.p) {
 			// In strict mode every symbol of p was evaluated alike by q or is cheap, so a unit
 			// that ends here examined, beyond what q evaluates alike, no more than a constant.
@@ -625,7 +676,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		switch a.kind {
 		case symStop, symEnd:
 			return x.no("pstop", a, nil)
-		case symSkip:
+		case symSkip, symUp:
 			s.i++
 			continue
 		case symBind:
@@ -677,6 +728,10 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		case symSkip:
 			s.j++
 			continue
+		case symUp:
+			s.upQ = true
+			s.j++
+			continue
 		case symBind:
 			s.boundQ = true
 			s.j++
@@ -706,13 +761,14 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.j++
 			continue
 		}
-		// A call of a trivia rule matches nothing after a call of the same rule.
-		if x.triviaCall(a) {
+		// A call of a trivia rule matches nothing after a call of the same rule. In strict mode the
+		// dropped call must cost a constant (triviaSettles).
+		if x.triviaCall(a) && (!x.strict || x.triviaSettles(a)) {
 			if p := x.collapseTrivia(s.p, s.i); len(p) != len(s.p) {
 				s.p = p
 			}
 		}
-		if x.triviaCall(b) {
+		if x.triviaCall(b) && (!x.strict || x.triviaSettles(b)) {
 			if q := x.collapseTrivia(s.q, s.j); len(q) != len(s.q) {
 				s.q = q
 			}
@@ -720,9 +776,9 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		if x.disjoint(a.e, b.e) {
 			return true, a.item, s.steps + 1
 		}
-		// Two calls of one trivia rule at one position end alike, and in strict mode the second
-		// costs a constant, so they do not count toward the bound.
-		if x.triviaCall(a) && x.sameSym(a.e, b.e) {
+		// Two calls of one trivia rule at one position end alike, so they do not count toward the
+		// bound; in strict mode the second must be cheap, as the memo of a trivia rule makes it.
+		if x.triviaCall(a) && x.sameSym(a.e, b.e) && (!x.strict || x.cheap(a.e)) {
 			s.i, s.j = s.i+1, s.j+1
 			continue
 		}
@@ -750,7 +806,8 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return x.no("lit-bound", a, &b)
 			}
 			// One literal is a prefix of the other: both evaluations are at the end of the shorter
-			// one, and the longer one goes on with its rest.
+			// one, and the longer one goes on with its rest. Literals that are equal up to case
+			// both end after them.
 			switch {
 			case ra != nil:
 				s.p = replaced(s.p, s.i, sym{symMatch, ra, a.item})
@@ -758,6 +815,8 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			case rb != nil:
 				s.q = replaced(s.q, s.j, sym{symMatch, rb, b.item})
 				s.i++
+			default:
+				s.i, s.j = s.i+1, s.j+1
 			}
 			s.steps++
 			continue
@@ -797,7 +856,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.i, s.steps = s.i+1, s.steps+1
 			continue
 		}
-		if s.inline >= autoCutInline {
+		if s.inline >= exclInline {
 			return x.no("inline-limit", a, &b)
 		}
 		// Expand a call or a repetition into its paths; every path must be excluded. The side
@@ -827,6 +886,9 @@ func (x excl) expand(s exclState, side []sym, idx int, set func(*exclState, []sy
 	if !ok {
 		return x.no("noexpand", side[idx], nil)
 	}
+	if x.spend(len(body)) {
+		return x.no("budget", side[idx], nil)
+	}
 	item, n := 0, 0
 	for _, bp := range body {
 		for i := range bp {
@@ -854,7 +916,7 @@ func (x excl) implies(q []sym, body grammar.Expr) bool {
 // impliesAt is implies; end is the index of the last symbol of q that the match of body reads.
 func (x excl) impliesAt(q []sym, body grammar.Expr) (end int, ok bool) {
 	for _, kp := range x.exactPaths(body) {
-		if end, ok := x.matchesExact(q, kp, 0); ok {
+		if end, ok := x.matchesExact(q, 0, kp, 0); ok {
 			return end, true
 		}
 	}
@@ -866,7 +928,7 @@ func (x excl) impliesAt(q []sym, body grammar.Expr) (end int, ok bool) {
 // items are calls, literals, classes and any characters. A path through an option, a repetition
 // or a nested choice can match where the body, which is greedy and ordered, does not.
 func (x excl) exactPaths(body grammar.Expr) [][]grammar.Expr {
-	for range autoCutInline {
+	for range exclInline {
 		def, ok := x.inlinable(ungroup(body))
 		if !ok {
 			break
@@ -912,10 +974,11 @@ func (x excl) exactPaths(body grammar.Expr) [][]grammar.Expr {
 	return out
 }
 
-// matchesExact reports whether every evaluation that succeeds on q matches the exact path kp at its
-// start. In strict mode the symbols that both evaluate are cheap.
-func (x excl) matchesExact(q []sym, kp []grammar.Expr, depth int) (end int, ok bool) {
-	j, m := 0, 0
+// matchesExact reports whether every evaluation that succeeds on q matches the exact path kp at the
+// symbol j of q, where the symbols before j have matched what came before kp. In strict mode the
+// symbols that both evaluate are cheap.
+func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end int, ok bool) {
+	m := 0
 	for m < len(kp) {
 		var ok bool
 		if j, ok = x.nextMatch(q, j); !ok || j == len(q) || q[j].kind != symMatch {
@@ -927,6 +990,8 @@ func (x excl) matchesExact(q []sym, kp []grammar.Expr, depth int) (end int, ok b
 			switch {
 			case z.kind == symBind:
 				y.env = false
+			case z.kind == symUp:
+				y.up = true
 			case z.kind == symEnv && !y.env:
 				return 0, false
 			}
@@ -976,15 +1041,17 @@ func (x excl) matchesExact(q []sym, kp []grammar.Expr, depth int) (end int, ok b
 			continue
 		}
 		// Expand a call or a repetition of q: every path of it must match.
-		if depth >= autoCutInline {
+		if depth >= exclInline {
 			return 0, false
 		}
 		body, ok := x.body(q[j])
-		if !ok {
+		if !ok || x.spend(len(body)) {
 			return 0, false
 		}
+		// The symbols before j have matched kp up to m; each path of the call goes on from j with
+		// the rest.
 		for _, bp := range body {
-			if _, ok := x.matchesExact(replaced(q, j, bp...), kp[m:], depth+1); !ok {
+			if _, ok := x.matchesExact(replaced(q, j, bp...), j, kp[m:], depth+1); !ok {
 				return 0, false
 			}
 		}
@@ -998,8 +1065,10 @@ func (x excl) matchesExact(q []sym, kp []grammar.Expr, depth int) (end int, ok b
 type altDecision struct {
 	decided bool
 	k       int // the most symbols that a decision examines
-	cut     int // the index of the top-level item after which a #cut goes
-	items   int // the number of top-level items of the alternative
+	// prefix is the number of top-level items of the alternative up to the one that holds the
+	// decisive symbol: where they succeed, no later alternative can succeed at that position.
+	prefix int
+	items  int // the number of top-level items of the alternative
 }
 
 // topItems returns the top-level items of an alternative.
@@ -1011,7 +1080,8 @@ func topItems(alt grammar.Expr) []grammar.Expr {
 }
 
 // decideAlt decides whether the alternative i of ch excludes every later alternative after a
-// prefix of its top-level items, examining at most maxK symbols.
+// prefix of its top-level items, examining at most maxK symbols. It is the analysis without the
+// strict conditions: it tells which choices are exclusive, not what a later alternative costs.
 func (k *classifier) decideAlt(ch *grammar.Choice, i, maxK int) altDecision {
 	x := newExcl(k, false, maxK)
 	items := topItems(ch.Alts[i])
@@ -1026,7 +1096,7 @@ func (k *classifier) decideAlt(ch *grammar.Choice, i, maxK int) altDecision {
 			return d
 		}
 	}
-	cut, kk := 0, 0
+	prefix, kk := 0, 0
 	for _, later := range ch.Alts[i+1:] {
 		qs, ok := x.paths(later, 0)
 		if !ok {
@@ -1038,11 +1108,11 @@ func (k *classifier) decideAlt(ch *grammar.Choice, i, maxK int) altDecision {
 				if !ok {
 					return d
 				}
-				cut, kk = max(cut, item+1), max(kk, n)
+				prefix, kk = max(prefix, item+1), max(kk, n)
 			}
 		}
 	}
-	d.decided, d.k, d.cut = true, kk, cut
+	d.decided, d.k, d.prefix = true, kk, prefix
 	return d
 }
 
@@ -1080,102 +1150,6 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 		}
 	}
 	return true
-}
-
-// AutoCutStats counts the decisions of the analysis over the choices of the reachable rules.
-type AutoCutStats struct {
-	Choices, Alts int    // choices with two or more alternatives, and their alternatives but the last
-	ChoicesAt     [6]int // choices whose alternatives are all decided within k symbols (index k)
-	AltsAt        [6]int // alternatives decided within k symbols
-	Cuts          int    // alternatives that get a #cut (the decision ends before the last item)
-	Committed     int    // alternatives that already commit with a #cut
-}
-
-// choiceKey locates an alternative of a choice by the position of the choice.
-type choiceKey struct{ line, col, alt int }
-
-// AutoCut returns g with a #cut inserted after the decisive prefix of every alternative that the
-// analysis decides within maxK symbols, and the counts of the decisions up to 5 symbols. The
-// analysis runs on the grammar that the classifier analyzes (inline actions lowered, attributes
-// normalized); the cuts go into a copy of g at the same positions.
-func AutoCut(g *grammar.Grammar, start string, maxK int) (*grammar.Grammar, AutoCutStats, error) {
-	k, _, err := prepareClassifier(g, start, nil)
-	if err != nil {
-		return nil, AutoCutStats{}, err
-	}
-	k.computeBounded()
-	k.computeFirst()
-	const most = 5
-	var st AutoCutStats
-	cuts := map[choiceKey]altDecision{}
-	dup := map[choiceKey]bool{}
-	for _, r := range k.rules {
-		if !k.reach[r.Name] {
-			continue
-		}
-		WalkExpr(r.Expr, func(e grammar.Expr) {
-			ch, ok := e.(*grammar.Choice)
-			if !ok || len(ch.Alts) < 2 {
-				return
-			}
-			st.Choices++
-			worst := 0
-			for i := range ch.Alts[:len(ch.Alts)-1] {
-				st.Alts++
-				if k.cutCommits(ch.Alts[i]) {
-					st.Committed++
-				}
-				d := k.decideAlt(ch, i, most)
-				if !d.decided {
-					worst = most + 1
-					continue
-				}
-				worst = max(worst, d.k)
-				for n := d.k; n <= most; n++ {
-					st.AltsAt[n]++
-				}
-				if d.k <= maxK && d.cut < d.items && !k.cutCommits(ch.Alts[i]) {
-					p := exprPos(ch)
-					key := choiceKey{p.Line, p.Col, i}
-					if _, seen := cuts[key]; seen {
-						dup[key] = true
-					}
-					cuts[key] = d
-				}
-			}
-			for n := worst; n <= most; n++ {
-				st.ChoicesAt[n]++
-			}
-		})
-	}
-	out := g.Clone()
-	for _, r := range out.Rules() {
-		WalkExpr(r.Expr, func(e grammar.Expr) {
-			ch, ok := e.(*grammar.Choice)
-			if !ok {
-				return
-			}
-			p := exprPos(ch)
-			for i, alt := range ch.Alts {
-				key := choiceKey{p.Line, p.Col, i}
-				d, ok := cuts[key]
-				if !ok || dup[key] {
-					continue
-				}
-				s, ok := ungroup(alt).(*grammar.Seq)
-				if !ok || len(s.Items) != d.items {
-					continue
-				}
-				s.Items = slices.Insert(slices.Clone(s.Items), d.cut, grammar.Expr(&grammar.Cut{}))
-				if len(s.Breaks) >= d.cut {
-					s.Breaks = slices.Insert(slices.Clone(s.Breaks), d.cut, nil)
-				}
-				st.Cuts++
-				delete(cuts, key)
-			}
-		})
-	}
-	return out, st, nil
 }
 
 // binds reports whether evaluating e can bind a variable in the scope that it is evaluated in: e

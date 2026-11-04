@@ -268,6 +268,9 @@ type classifier struct {
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
 	trivia map[string]bool // the trivia rules among the rules asked about (isTrivia)
+	// exclOverBudget counts the comparisons of the exclusion analysis that exceeded exclBudget
+	// and were left undecided.
+	exclOverBudget int
 
 	causes, reasons, env []ComplexityCause
 
