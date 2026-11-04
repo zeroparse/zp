@@ -21,8 +21,13 @@ rewrite that keeps the result.
 
 Every input in the sections is the character the section names, repeated `n` times, except where it says otherwise. The
 cost is the number of steps that [compute limits](../../spec/runtime/parsing.md#cancellation-and-compute-limits) count,
-measured on the closure backend; the bytecode backends and generated Go parsers give the same orders. The steps do not
-depend on the machine.
+measured on the closure backend; the bytecode backends give the same orders. The steps do not depend on the machine.
+
+The closure and bytecode backends keep [run records](../../spec/runtime/parsing.md#run-sites) for a repetition that a
+parse walks again from a position inside an earlier walk, so the first two patterns, which restart such a repetition,
+cost linear steps there even before the rewrite. The linter classifies a grammar from the grammar alone and does not
+count those records, and generated Go parsers keep none, so the class reported and the cost of a generated parser are
+those of the rewrite's original. The rewrites also cost fewer steps on the interpreting backends.
 
 ## A Repetition Restarted After Backtracking
 
@@ -52,7 +57,7 @@ The linter reports `the cost from start rule main is linear`.
 
 | `n` | 100 | 200 | 400 |
 |:--|--:|--:|--:|
-| `scan.zp` | 21,328 | 82,624 | 325,888 |
+| `scan.zp` | 3,078 | 6,178 | 12,378 |
 | `scan-fast.zp` | 616 | 1,216 | 2,416 |
 
 **What changes.** The two grammars accept the same strings of `a` and `c`. The elements of the repetition differ. In
@@ -84,7 +89,7 @@ The linter reports linear.
 
 | `n` | 100 | 200 | 400 |
 |:--|--:|--:|--:|
-| `look.zp` | 10,912 | 41,824 | 163,840 |
+| `look.zp` | 2,078 | 4,178 | 8,378 |
 | `look-fast.zp` | 608 | 1,207 | 2,410 |
 
 **What changes.** Both grammars accept the same strings. In `look.zp` the lookahead decides where the first repetition
@@ -302,7 +307,8 @@ scan-fast.zp: the cost from start rule main is linear
 ## How It Works
 
 - The memo shares the result of a rule at one position. It does not share the cost inside a rule body or between
-  positions, so a scan that runs again from a later position pays again. The rewrites for repetitions, lookaheads and
+  positions, so a scan that runs again from a later position pays again, except where a run record covers it
+  (closure and bytecode backends, repetitions that a parse restarts). The rewrites for repetitions, lookaheads and
   called rules make every position scan at most once.
 - Left recursion and Operators Rules are linear when called once at a position. The growth restarts when the caller
   fails after the rule has grown and tries the same position range again.

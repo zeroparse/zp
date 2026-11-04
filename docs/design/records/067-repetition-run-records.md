@@ -90,24 +90,32 @@ the size argument for variables, accumulators and recursive values, which is sep
 
 The classifier decides, per repetition `e` with no maximum, whether `e` is a **run site**:
 
-- the repetition has no maximum and no escaping cut in its element;
-- every inner unbounded repetition is itself a run site;
-- the element contains no `#recover`, Operators Rule, stream operator or missing-token attribute;
-- the element contains no capture or inline action and no predicate (first version; see Values and environments);
-- every called rule is not left-recursive, does not read variables and contains none of the above.
+- the repetition has no maximum and no escaping cut in its element, and does not repeat a single character (a scan);
+- every inner unbounded repetition is itself a run site or repeats a single character;
+- the element contains no Operators Rule, `#stream`, `#missing`, `#error` or `#diagnostic`; captures, actions,
+  predicates, variables, `#recover` and calls are allowed;
+- every called rule is called without a level, is not left-recursive and contains none of the above;
+- the repetition is restartable: it is in the element of another repetition that iterates, or in a rule such an element
+  calls or that calls itself (directly or indirectly). Any other repetition is reached once by a derivation, so a walk of
+  it starts at each position at most once and no record could be reused.
 
 A marked repetition is no longer a scanning source for `checkNesting` and `checkGrowth`; unmarked ones remain sources.
-Marking is one decision of the classifier and the compiler consumes it, as it does for skip sites. A run site whose
-element is a class or a literal sequence has the **interval** form (below); the others have the **walk** form.
+Marking is one rule that the classifier and the compiler both apply (`restartableRepeats` and the eligibility tests are
+shared in meaning, and a test compares the repetitions they mark on the bundled grammars). The classifier's use of the
+marking stays off until the proofs of the bounds exist, so the classes do not move.
 
 ### Key and stored value
 
-The key is `(site, position, environment)`. A value-free element reads no variables, so the environment is the empty
-tuple in the first version; the key is `(site, position)`. A record stores:
+The key is `(site, position, environment)`: the environment is the object that holds the values of the variables at the
+start of the walk (none without variables), compared by identity. Two separately built environments with equal values
+do not share a record, which only loses a reuse. A record stores:
 
-- the end position of the run, that is the position after the last successful iteration;
+- the end position of the run, that is the position after the last successful iteration, and the environment there;
 - the farthest failure position and the expectation set of the failed iteration that ended the run;
-- the examined range, for Document reuse and the budget.
+- the examined range, for Document reuse and the budget;
+- for an element that builds values, the values of the rest of the run as a **persistent tail** (below);
+- the errors that the rest of the run recovered, as a list shared like the tail, which a hit recovers again as a memoized
+  result does.
 
 A run activation at `p` yields exactly what the plain loop yields from `p`: one successful result at the recorded end,
 and the recorded failure information merged as the plain loop would merge it. This is the exactness lemma of
@@ -121,6 +129,12 @@ record per run, the walk form one record per iteration boundary the walk crossed
 
 The **interval** form is for class runs such as whitespace. Its record is one interval `[start, end)` per run; a lookup
 at any position inside it answers `end` with one comparison, so the per-iteration visit cost of the walk form is not paid.
+
+A site keeps no records until its walks show that they restart. The engine counts a site as **hot** once a walk begins at
+a position that the previous walk of the site passed and walks at least 64 units of input again; until then a walk is the
+plain repetition and the site holds one small entry (the span of its last walk). A restart shorter than 64 units costs a
+constant per walk, so the cost stays linear before the site turns hot, and a site whose walks never overlap, as a list
+that a parse reads once, allocates nothing.
 
 ### Why every nested reason becomes Linear
 
@@ -140,17 +154,15 @@ Proof idea for a lemma in spec/proofs/linear-cost.md.
 
 The proof does not need alignment: it does not bound where activations start, only that repeated ones are free.
 
-### Values and environments (second version)
+### Values and environments
 
 Repetitions whose iterations build values need the record to hold the values. A copied suffix costs O(rest) per hit and
-would break linearity, so the record stores a **persistent tail**: iteration values form a cons chain and a hit shares
-the suffix. This widens marking for golang (83 to 123 of 141), cel (41 to 47 of 47) and xml (29 to 38 of 38) in the
-classifier prototype, but the nested counts do not move, because other scan sources keep those units nested. That is why
-values are a second version, justified once those sources are covered.
+would break linearity, so the record stores a **persistent tail**: the walks of a site write their elements into shared
+buffers, a record holds a suffix of a buffer, and a hit at the start of a walk shares the suffix without copying. A walk
+that reaches a record in the middle of its own elements places them before the suffix when the buffer has room before it,
+and copies the suffix otherwise (O(tail) for that merge). The elements of a record are final.
 
-Variables enter the key: the environment is the tuple of variable values the element reads, and two activations share a
-record only when the tuple is equal. Comparing the tuple costs its size, which is bounded by the grammar. Python's 63
-variable-reading rules become markable with this. Left-recursive and `#recover` callees stay excluded.
+Variables enter the key as the environment. Left-recursive callees stay excluded.
 
 ### Interactions
 
@@ -174,8 +186,8 @@ one per iteration boundary, at the engine's record size.
 is excluded as well, so a seed never sees a record that depends on a grown value. A run site outside any cycle is
 unaffected by seeds.
 
-**`#recover`.** The element of a run site contains no `#recover`, and a callee containing one is excluded. The run is
-therefore a pure function of its key; the error recovery of an outer unit does not interact with its records. Records are
+**`#recover`.** The element of a run site and its callees may contain `#recover`. A record keeps the errors the rest of
+the run recovered, and a hit recovers them again, so the parse's recovered errors are those of the plain walk. Records are
 off when missing-token insertion is on, as the skip-run records are.
 
 ## Exec IR
@@ -199,9 +211,14 @@ produced by the Exec IR lowering once F95 settles the runtime core; no generated
 
 - A record costs memory per iteration boundary in the walk form. The interval form costs one record per run; walk form on
   value-free elements is expected to be the cost driver and is what the measurement must show.
-- Every marked repetition pays a lookup at activation and the walk bookkeeping on its first pass. Repetitions that are
-  never reactivated at the same key pay this for nothing; marking only the repetitions the classifier points at keeps the
-  overhead to those that block a Linear proof.
+- A marked repetition that is walked once from each position pays a test and a store per walk and keeps nothing: the
+  hot test above, and the restartable condition, keep the cost of grammars that gain nothing from records close to
+  that of the engine without run sites. In an interleaved comparison (JSON, CSV, XML, minilang, outline and a grammar with
+  no site, closure and bytecode, parse and recognize) the geometric mean of the time is 1.6% higher and no benchmark is
+  more than 3.5% higher; two copies of the same binary differ by 0.6% on the mean. The allocations of a parse in steady
+  state are the same as without run sites.
+- Records are kept only for the walks of a hot site. A hot site pays a bit per position between its first and last walk,
+  and a record per iteration boundary of the walks that visit a position again.
 - A parse with no marked repetition is unchanged.
 
 ## Alternatives
@@ -214,8 +231,8 @@ produced by the Exec IR lowering once F95 settles the runtime core; no generated
 
 ## Open questions
 
-- Replaying recorded errors in a run record (needed for repetitions that contain `#recover`) is specified here only by
-  intent; its interaction with the error list of a Document and with budget charges needs the engine prototype.
+- A record hit replays the errors of the rest of the run in time proportional to their number; whether that needs a
+  sharper bound depends on grammars that recover often inside a restarted repetition.
 - The operand record of (B) holds values; whether it shares the persistent-tail representation of (A) is open.
 - The 23 non-own copying sources (cue 3, python 20) need a size argument for variables, accumulators and recursive
   values; the own-value copies are covered by the size proof.
