@@ -32,10 +32,10 @@ func execGenerate(src string, opts gen.GenOptions) (string, int, bool) {
 	return b.String(), n, true
 }
 
-// TestExecRoutePrintsEveryFunction checks that every corpus grammar generates TypeScript, in each
+// TestEveryFunctionPrintsFromExecIR checks that every corpus grammar generates TypeScript, in each
 // mode that changes how functions print, and that the functions print from Exec IR. The code is
 // pinned by the goldens of the generator tests.
-func TestExecRoutePrintsEveryFunction(t *testing.T) {
+func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 	t.Parallel()
 	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	modes := []struct {

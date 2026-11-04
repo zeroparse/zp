@@ -444,12 +444,12 @@ TypeScript printer's formatter.
   `memoPut` as the call does.
 - **Mutation controls.** Each operation library has deliberately broken variants — an off-by-one prune, a lookup that
   ignores the binding level, a counter that wraps — that the suite must reject.
-- **Differential tests.** Within a stage the old and new paths ran side by side behind a private switch, as record 062
+- **Differential tests.** Within a stage the old and new paths run side by side behind a private switch, as record 062
   does for its stages. The existing differential tests between the engine, generated Go (node and typed), Documents,
-  streams and TypeScript ran with the switch on and off, on the corpora of record 062: repository grammars with
-  golden files, specification test data, grammar fixture suites, `sample/` inputs and mutated inputs. Results had to be
-  byte-identical as listed in [Goals](#goals). The switch was removed when the default flipped: the Exec IR route is
-  the only one for the stages that have landed, and the generator goldens and fixture suites pin its output.
+  streams and TypeScript run with the switch on and off, on the corpora of record 062: repository grammars with
+  golden files, specification test data, grammar fixture suites, `sample/` inputs and mutated inputs. Results must be
+  byte-identical as listed in [Goals](#goals). The switch is removed when the default flips; from then on the Exec IR
+  route is the only one, and the generator goldens and the fixture suites pin its output.
 - **Negative controls for compositions.** Each migrated composition has broken variants that the differential tests
   must detect, for example: reusing a silent result outside a lookahead; reusing a memo entry where a leader grows that
   did not grow when it was evaluated; keeping a result that read a growing seed in the memo of a Document; omitting the
@@ -639,8 +639,8 @@ instantiations share a GC shape, and does not help TypeScript or the engine.
 ## Risks
 
 - **Grammar code regresses.** Every generated rule body goes through a new backend from the start. The per-stage
-  gates on grammar code, the inlining check and the size report are the guards, and the old printers stayed behind the
-  switch until the default flipped and are removed.
+  gates on grammar code, the inlining check and the size report are the guards, and the old printers stay behind the
+  switch until stage 3.
 - **The boundary erodes.** A policy can slip into an operation because it is faster there, and reappear as per-target
   copies. The rule is checked in review: an operation whose contract mentions a reuse, growth or error choice is too
   coarse.

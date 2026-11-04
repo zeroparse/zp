@@ -35,8 +35,8 @@ func (p *Parser) streamCommit(pos int) {
 
 // StreamsIn reports whether the #stream repetition of the rule id streams: the parse delivers
 // elements, the rule is its start rule, and the rule runs at the top (a recursive rule counts its entries,
-// so its outermost entry is the first; any other rule is entered once).
-// streamsIn is for generated parsers; not a stable API.
+// so its outermost entry is the first; any other rule is entered once). It is for generated parsers and
+// not a stable API.
 //
 // Printed from Exec IR function streamsIn of internal/ir/exec/core, specialized for stream.
 func (p *Parser) StreamsIn(id int, rec bool) bool {

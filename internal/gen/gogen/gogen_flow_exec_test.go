@@ -91,10 +91,10 @@ type execMode struct {
 	want []string
 }
 
-// TestExecRoutePrintsEveryFunction checks that every corpus grammar generates in the modes of
+// TestEveryFunctionPrintsFromExecIR checks that every corpus grammar generates in the modes of
 // execModes, that every function prints from Exec IR once, and that the rules of each table that the
 // mode prints print from it. The code is pinned by the goldens of the generator tests.
-func TestExecRoutePrintsEveryFunction(t *testing.T) {
+func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 	t.Parallel()
 	corpus := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	streams := streamCases(t)

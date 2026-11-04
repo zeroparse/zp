@@ -351,9 +351,8 @@ once emitted: a caller error ends the parse unchanged.`
 	})
 	streamsIn.Doc = `streamsIn reports whether the #stream repetition of the rule id streams: the parse delivers
 elements, the rule is its start rule, and the rule runs at the top (a recursive rule counts its entries,
-so its outermost entry is the first; any other rule is entered once).
-
-streamsIn is for generated parsers; not a stable API.`
+so its outermost entry is the first; any other rule is entered once). It is for generated parsers and
+not a stable API.`
 
 	if err := Verify(m); err != nil {
 		panic(err)

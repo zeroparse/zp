@@ -35,6 +35,22 @@ func testFlowVarsMutantFailsToCompile(t *testing.T) {
 	}
 }
 
+// TestExecVarsCheck checks that a printed body that names a local that is not declared is an
+// internal error, and that one whose names are declared, or that only a selector or a string
+// names, is not.
+func TestExecVarsCheck(t *testing.T) {
+	t.Parallel()
+	if err := gogen.ExecVarsError("x = v3 + 1\n", "v3"); err == nil || !strings.Contains(err.Error(), "v3") {
+		t.Errorf("an undeclared local named by the body: error %v, want one that names v3", err)
+	}
+	if err := gogen.ExecVarsError("x = p.v3 + f(\"v3\")\n", "v3"); err != nil {
+		t.Errorf("a selector and a string: error %v, want none", err)
+	}
+	if err := gogen.ExecVarsError("x = v3 + 1\n"); err != nil {
+		t.Errorf("a declared local: error %v, want none", err)
+	}
+}
+
 func TestFreeIdents(t *testing.T) {
 	t.Parallel()
 	got := strings.Join(gogen.FreeIdents("x = p.v3 + f(\"v4\") // v5\n/* v6 */ y := v7\n"), " ")

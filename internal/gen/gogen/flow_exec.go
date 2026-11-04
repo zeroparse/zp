@@ -44,9 +44,8 @@ func (p *flowPrinter) execPrint(f *flow.Func) (*lower.Lowered, execgo.BodyResult
 	return l, execgo.Body(l.Module, l.Func, p.execTarget(), l.Vars)
 }
 
-// execVars checks the variables of the printed body res of the lowered function l, as flowVarsErr
-// does from Flow IR: a variable that the body names but that is not declared is an internal error
-// (Generator.FlowErr). Hooks.FlowVarsMutant and Hooks.FlowVarsMutantUses instead leave variables
+// execVars checks the variables of the printed body res of the lowered function l: a variable that
+// the body names but that is not declared is an internal error (Generator.FlowErr). Hooks.FlowVarsMutant and Hooks.FlowVarsMutantUses instead leave variables
 // undeclared, without the check.
 func (p *flowPrinter) execVars(l *lower.Lowered, res *execgo.BodyResult) {
 	if p.g.hooks.FlowVarsMutant {
