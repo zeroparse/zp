@@ -355,7 +355,7 @@ func (k *classifier) reachable(from string) map[string]bool {
 // shareable reports whether a call of the rule is answered alike in a unit and its continuation:
 // the rule reads no variable and is memoized or calls no rule.
 func (k *classifier) shareable(r *grammar.Ref) bool {
-	return r.Level != rhsLevel && len(k.vars[r.Name]) == 0 && (k.memoAt(r) || len(k.calls[r.Name]) == 0)
+	return r.Level != rhsLevel && (len(k.vars[r.Name]) == 0 || ResearchVarsShareable) && (k.memoAt(r) || len(k.calls[r.Name]) == 0)
 }
 
 // memoAt reports whether the memo answers the call r: the rule is memoized, or it is a member of a

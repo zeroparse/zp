@@ -12,7 +12,7 @@ import (
 // and so the set of values that finiteVars computes for an int variable. A memoized rule can be
 // evaluated once for each combination of values at a position, so the cap bounds the constant
 // factor of the linear cost that the exemption claims.
-const maxFiniteValues = 128
+var maxFiniteValues = 128
 
 // maxLenOperand caps the length bound of a capture whose length a binding of an int variable reads,
 // and maxOperandCombinations the combinations of such lengths that one binding reads.
@@ -39,6 +39,10 @@ func (k *classifier) finiteVars() map[string]bool {
 			n, ok = finiteBool(v, byVar[v.Name]), true
 		case "int":
 			n, ok = k.finiteInt(v, byVar[v.Name])
+		case "string":
+			if ResearchConstStrings {
+				n, ok = finiteConstString(v, byVar[v.Name])
+			}
 		}
 		if !ok {
 			continue
@@ -136,6 +140,9 @@ func (k *classifier) finiteInt(v *grammar.VarDef, binds []*binding) (int, bool) 
 		for _, b := range binds {
 			for x := range d.inputs(b) {
 				for _, y := range d.apply(b, x) {
+					if r, ok := ResearchVarRange[d.v]; ok && (y < r[0] || y > r[1]) {
+						continue
+					}
 					if !d.set[y] {
 						d.add(y)
 						changed = true
