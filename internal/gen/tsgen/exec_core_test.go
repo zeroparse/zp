@@ -61,3 +61,19 @@ func TestSubstituteMethodsRefusesMalformedRuntime(t *testing.T) {
 		})
 	}
 }
+
+// TestPrintedMethodsHaveNoConstantTest checks that a condition the TypeScript library prints as a
+// constant leaves no test in the printed methods.
+func TestPrintedMethodsHaveNoConstantTest(t *testing.T) {
+	ms, err := core.TSMethods()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range ms {
+		for _, c := range []string{"if (true)", "if (false)"} {
+			if strings.Contains(m.Text, c) {
+				t.Errorf("method %s has %q:\n%s", m.Name, c, m.Text)
+			}
+		}
+	}
+}

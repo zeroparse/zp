@@ -660,13 +660,41 @@ func (p *printer) blockBody(b *exec.Block) {
 	p.stmts(b)
 }
 
+// constCond reports whether the target library prints the condition of s as a constant, and which.
+func (p *printer) constCond(s *exec.If) (value, ok bool) {
+	switch p.expr(s.Cond, 0) {
+	case "true":
+		return true, true
+	case "false":
+		return false, true
+	}
+	return false, false
+}
+
 func (p *printer) ifStmt(s *exec.If, kw string) {
+	if v, ok := p.constCond(s); ok {
+		// One branch stays, with no test.
+		if v {
+			p.blockBody(s.Then)
+		} else if s.Else != nil {
+			p.blockBody(s.Else)
+		}
+		return
+	}
 	p.line("%s (%s) {", kw, p.expr(s.Cond, 0))
 	p.depth++
 	p.blockBody(s.Then)
 	p.depth--
 	if s.Else != nil && len(s.Else.Stmts) == 1 && s.Else.Label == "" {
 		if e, ok := s.Else.Stmts[0].(*exec.If); ok && e.Init == nil {
+			if _, folded := p.constCond(e); folded {
+				p.line("} else {")
+				p.depth++
+				p.blockBody(s.Else)
+				p.depth--
+				p.line("}")
+				return
+			}
 			p.ifStmt(e, "} else if")
 			return
 		}
