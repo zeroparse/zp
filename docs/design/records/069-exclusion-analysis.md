@@ -27,8 +27,8 @@ only on the position and the variables that it reads) is recognized from its bod
 by position. A token layer is not introduced: on the bundled grammars, no overlap that the measurements found needs
 one.
 
-On the bundled grammars, the strict analysis at k = 3 leaves 1320 of the 1443 nested reasons, and 1266 with the wider
-trivia shapes; no grammar changes class. Most of what remains is lookahead units, which the analysis leaves to the
+On the bundled grammars, the strict analysis at k = 3 leaves 1320 of the 1443 nested reasons, and 1266 with trivia
+rules; no grammar changes class. Most of what remains is lookahead units, which the analysis leaves to the
 other cases, and units whose continuations reach parts that are not cheap.
 
 ## Motivation
@@ -229,11 +229,20 @@ Whitespace is never skipped implicitly: a parser that skipped it between any two
 grammar does not write it. The calls stay where the grammar writes them, and the analysis compares them through a
 property that the compiler reads off the rule. A rule is **trivia** when:
 
-- its body is a greedy repetition `X*`, so a call always succeeds, and a second call where the first ended matches
-  nothing, since X fails there again;
-- neither it nor a rule that it calls reads a variable, captures, runs an action or a predicate, or contains `#recover`,
-  an attributed expression, a stream, an Operators Rule or a call of a left-recursion cycle, and its body has no `#cut`
-  of its own, which could commit the repetition, so its result depends only on the position.
+- its body is a greedy repetition `X*`, an atomic `X*`, or the unrolled form `X* (Y X*)*` in which comment rules are
+  often written, where X cannot match empty, so a call always succeeds, and a second call where the first ended matches
+  nothing: X fails where the last `X*` stopped, and the outer repetition of the unrolled form stopped where its
+  iteration failed or matched nothing;
+- neither it nor a rule that it calls runs an action or contains `#recover`, an attributed expression, a stream, an
+  Operators Rule or a call of a left-recursion cycle, its body binds no variable that it reads, and its body has no
+  `#cut` of its own, which could commit the repetition.
+
+These are the conditions of law P2 of the grammar-laws catalog, under which `Z* Z*` matches as `Z*`. Z may read
+variables and capture and test the captures with predicates; it may not bind a variable that it reads, since then
+`w w` and `w` can match differently, as on `ba` for `w = ({v == 0} "b" {v := 1} / {v == 0} "a")*`. The result of a
+call then depends only on the position and the variables that the rule reads. A call of a trivia rule that reads
+variables is compared as any call of a rule that reads variables: equal only where both sides have the same
+variables, cheap only there, and not dropped across a binding.
 
 The analysis passes two calls of one trivia rule at one position without counting them toward k, and drops a call that
 follows a call of the same rule across symbols that consume nothing, since it matches nothing there. With leading
@@ -248,19 +257,9 @@ whitespace, `ws "," ws value` against `ws "," ws "]"` then parts at k = 2 instea
   comment that can be unterminated, the attempt scans as far as the last attempt of the first call did, so the call is
   not dropped in strict mode.
 
-The property needs no declaration. A wider shape also has it: an atomic `X*`, and the unrolled form `X* (Y X*)*` in
-which comment rules are often written, where X cannot match empty. After the unrolled form, X fails where its last `X*`
-stopped, and the outer repetition stopped where its iteration failed or matched nothing, so a second evaluation matches
-nothing as well.
-
-The conditions on variables are stricter than idempotence needs. By law P2 of the grammar-laws catalog, `Z* Z*` matches
-as `Z*` also when Z reads variables that it does not bind and when it captures and tests the captures with predicates;
-it fails when Z binds a variable that it reads, where `w w` and `w` can match differently, as on `ba` for
-`w = ({v == 0} "b" {v := 1} / {v == 0} "a")*`. The wider check admits such rules and rejects a body that binds a
-variable that it reads. A call of such a rule is compared as any call of a rule that reads variables: equal only where
-both sides have the same variables, cheap only there, and not dropped across a binding. A rule `X+` is not idempotent
-but annihilates itself: `s s` with `s = [ \t\r\n]+` fails, so the comparison could decide on it, as on a literal,
-instead of passing it. This is not measured here.
+The property needs no declaration. A rule `X+` is not idempotent but annihilates itself: `s s` with
+`s = [ \t\r\n]+` fails, so the comparison could decide on it, as on a literal, instead of passing it. This is not
+measured here.
 
 ### Linear Mode
 
@@ -361,8 +360,7 @@ it to a comma-separated list of grammar files. The settings are:
 - **base**: the classifier without the analysis;
 - **cut prefixes**: base, with author-written cuts making a unit of the items before them;
 - **k = 2, 3, 4**: decided units with the strict analysis at that bound;
-- **X\***, **wide**, **wide, variables**: k = 3, with trivia rules of the shape `X*`, with the wider shapes, and with
-  the conditions on variables of law P2.
+- **trivia**: k = 3, with the analysis relying on trivia rules.
 
 ### Decisions of the Language-Level Comparison
 
@@ -391,21 +389,21 @@ The comparison exhausted the work budget for one alternative of duckdb and one o
 The class, and the nested reasons under each setting. The number of causes (the units that the reasons name) is in
 parentheses where it differs from base.
 
-| Grammar | Class | base | cut prefixes | k=2 | k=3 | k=4 | X\* | wide | wide, variables |
-|:--|:--|--:|--:|--:|--:|--:|--:|--:|--:|
-| cel | polynomial | 19 | 19 | 19 | 19 | 19 | 19 | 19 | 19 |
-| csv | polynomial | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| cue | exponential | 59 | 59 | 59 | 59 (53) | 55 (53) | 57 (53) | 57 (53) | 55 (53) |
-| duckdb | polynomial | 672 | 672 | 650 | 625 | 609 | 625 | 610 | 610 |
-| golang | polynomial | 165 | 165 | 153 | 151 | 147 | 151 | 151 | 147 |
-| python | exponential | 199 | 199 | 174 (89) | 168 (89) | 153 (89) | 168 (89) | 168 (89) | 153 (89) |
-| typescript | polynomial | 269 | 269 | 245 | 242 | 229 | 226 | 226 | 226 |
-| xml | polynomial | 9 | 9 | 7 | 7 (4) | 7 (4) | 7 (4) | 7 (4) | 7 (4) |
-| yaml | exponential | 39 | 39 | 37 | 37 | 37 | 37 | 37 | 37 |
-| minilang | polynomial | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 |
-| outline | polynomial | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
-| json | linear | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **total** | | 1443 | 1443 | 1356 | 1320 | 1268 | 1302 | 1287 | 1266 |
+| Grammar | Class | base | cut prefixes | k=2 | k=3 | k=4 | trivia |
+|:--|:--|--:|--:|--:|--:|--:|--:|
+| cel | polynomial | 19 | 19 | 19 | 19 | 19 | 19 |
+| csv | polynomial | 0 | 0 | 0 | 0 | 0 | 0 |
+| cue | exponential | 59 | 59 | 59 | 59 (53) | 55 (53) | 55 (53) |
+| duckdb | polynomial | 672 | 672 | 650 | 625 | 609 | 610 |
+| golang | polynomial | 165 | 165 | 153 | 151 | 147 | 147 |
+| python | exponential | 199 | 199 | 174 (89) | 168 (89) | 153 (89) | 153 (89) |
+| typescript | polynomial | 269 | 269 | 245 | 242 | 229 | 226 |
+| xml | polynomial | 9 | 9 | 7 | 7 (4) | 7 (4) | 7 (4) |
+| yaml | exponential | 39 | 39 | 37 | 37 | 37 | 37 |
+| minilang | polynomial | 10 | 10 | 10 | 10 | 10 | 10 |
+| outline | polynomial | 2 | 2 | 2 | 2 | 2 | 2 |
+| json | linear | 0 | 0 | 0 | 0 | 0 | 0 |
+| **total** | | 1443 | 1443 | 1356 | 1320 | 1268 | 1266 |
 
 The causes in base are cel 8, csv 1, cue 54, duckdb 19, golang 24, python 108, typescript 241, xml 5, yaml 34, minilang
 1, outline 2 and json 0, 497 in all, 478 at k = 2 and 476 from k = 3 on. No grammar changes class: each polynomial or
@@ -413,28 +411,29 @@ exponential grammar keeps causes that the analysis does not reach. Cut prefixes 
 The classifier exhausted the work budget for one unit of duckdb from k = 3 on and for five units of typescript from
 k = 2 on.
 
-The trivia rules that each shape finds:
+The trivia rules that the check finds:
 
-| Grammar | X\* | wide | wide, variables |
-|:--|:--|:--|:--|
-| cel | | ws | ws |
-| cue | sp nlws ws dqbody sqbody | adds idchars | adds gs_body ml_body ml_frag |
-| duckdb | e_body | adds ws | as wide |
-| golang | idRest | idRest | adds sp ws blockText dirSegBlock |
-| python | | | ws |
-| typescript | identifierRest templateCharacters rawTemplateCharacters ws sp | as X\* | as X\* |
-| xml | ws | adds comment_text pi_data cdata and the quoted bodies | as wide |
-| yaml | the six one-line scalar bodies | as X\* | as X\* |
-| minilang | ws | adds strchars | as wide |
-| outline | | spaces | spaces |
-| json | ws | adds chars | as wide |
+| Grammar | Trivia rules |
+|:--|:--|
+| cel | ws |
+| csv | |
+| cue | sp nlws ws idchars dqbody sqbody gs_body ml_body ml_frag |
+| duckdb | ws e_body |
+| golang | sp ws blockText dirSegBlock idRest |
+| python | ws |
+| typescript | identifierRest templateCharacters rawTemplateCharacters ws sp |
+| xml | ws, comment_text, pi_data, cdata and the eight quoted bodies |
+| yaml | the six one-line scalar bodies |
+| minilang | strchars ws |
+| outline | spaces |
+| json | chars ws |
 
 ### What Remains
 
 The units that stay not committing at k = 3 without trivia, 2134 in all: 707 alternatives, 511 lookaheads, 431 options,
 286 iterations, 183 operator parts, 15 operands and one base of a `#recover`. Where the strict analysis stops for them:
 
-| Where it stops | k=3 | wide, variables |
+| Where it stops | k=3 | trivia |
 |:--|--:|--:|
 | A lookahead unit, left to the other cases | 511 | 511 |
 | A continuation reaches a part that is not cheap | 569 | 612 |
@@ -449,18 +448,18 @@ The units that stay not committing at k = 3 without trivia, 2134 in all: 707 alt
 | A cost condition alone: the comparison without it decides | 88 | 102 |
 | Other: environment marks, lookaheads that are not cheap, exhausted paths, path and literal bounds, operator level calls, the budget | 37 | 39 |
 
-The wider trivia shapes mostly turn units that reached k into units that stop at a part that is not cheap: the trivia
+Trivia rules mostly turn units that reached k into units that stop at a part that is not cheap: the trivia
 call is passed, and the next difference is one the cost conditions reject. The cost conditions alone block 88 units at
 k = 3. The comparison of the language decides them, but the strict comparison does not.
 
 ### Controls
 
-`TestExclusionControls` classifies every grammar of the linear-cost controls in `internal/complexitytest` under five
-settings: decided units, with trivia, with wide trivia, and both trivia settings with the trivia rules treated as
-memoized. Every positive control stays linear, and no negative control is classified linear without the memo
-assumption. With the memo assumption, eight negative controls are classified linear. Their whitespace rules are
-trivia, and their measured cost of Poly(2) is that of parsers that do not memoize them. This is why the memo assumption
-is a test hook and not part of the classifier.
+`TestExclusionControls` classifies every grammar of the linear-cost controls in `internal/complexitytest` under four
+settings: decided units alone and with trivia, and trivia rules treated as memoized, without and with decided units.
+Every positive control stays linear, and no negative control is classified linear without the memo assumption. With the memo
+assumption, eight negative controls are classified linear. Their whitespace rules are trivia, and their measured cost of
+Poly(2) is that of parsers that do not memoize them. This is why the memo assumption is a test hook and not part of the
+classifier.
 
 ## Alternatives Considered
 
@@ -519,6 +518,13 @@ Each condition that a test checks was disabled in turn, and the test failed each
 - The limits of [Limits](#limits) are constants chosen for the measurements; a compiler that runs the analysis needs
   limits that are part of a contract, and a diagnostic when they are reached.
 - See [Soundness](#soundness) for the gaps of the proof.
+- **Lookahead units.** The strict analysis would decide some lookahead units, such as `!([a-f] id "=") [a-z0-9] id "("`,
+  that the other cases do not. They stay undecided until an argument is written for a continuation that follows a
+  successful lookahead expression; they are 511 of the units that stay not committing at k = 3.
+- **Memo of trivia rules.** The cost argument for a second call of a trivia rule at one position needs a memo per
+  position, which the backends do not build for rules that call no rule, so the classifier does not assume it. Whether
+  memoizing trivia rules per position on every backend pays for its memo entries is an optimization to measure; with it,
+  the classifier could treat those calls as cheap.
 
 ### Questions for the Owner
 
@@ -544,30 +550,6 @@ Each condition that a test checks was disabled in turn, and the test failed each
    - By an attribute on the rule.
 
    Recommendation: by shape, with the `skip` of Operators Rules as a seed, and no new attribute.
-4. **The shape of a trivia rule.** Inference finds the whitespace rules without a declaration (see
-   [Measurements](#measurements)), so no attribute is needed; the open choice is the shape and the conditions.
-   - `X*` only, with no variables or captures: the simplest check.
-   - `X*`, atomic `X*` and the unrolled `X* (Y X*)*`, with the conditions on variables of law P2: adds the whitespace
-     rules of cel, duckdb, outline, golang and python, at the cost of one more proved shape and of comparing calls that
-     read variables.
-   - Any body that the analysis proves always succeeds and matches nothing where it ended: the widest, with a fixpoint
-     in the compiler.
-
-   Recommendation: the second, with trivia rules memoized per position on every backend.
-5. **Memo of trivia rules.** The cost argument for a second call of a trivia rule at one position needs a memo per
-   position, which the backends do not build for rules that call no rule.
-   - Memoize trivia rules per position on every backend: the classifier can then rely on it, at the cost of a memo
-     entry per position where whitespace is called.
-   - Keep the memo as it is: trivia calls are compared by position, but cheap only as other calls are.
-
-   Recommendation: memoize them, once measurements of the memo cost on the bundled grammars support it.
-6. **Lookahead units.** The strict analysis would decide some lookahead units, such as
-   `!([a-f] id "=") [a-z0-9] id "("`, that the other cases do not.
-   - Write the argument for a continuation that follows a successful lookahead expression, and decide lookahead units.
-   - Leave them to the other cases.
-
-   Recommendation: leave them until the argument is written; they are 511 of the units that stay not committing
-   at k = 3.
 
 ## Literature
 
