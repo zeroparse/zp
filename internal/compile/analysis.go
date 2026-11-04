@@ -25,6 +25,9 @@ type Analysis struct {
 	// directly or through callees. Their results may contain position values, so incremental
 	// parsing cannot shift them past an edit.
 	positional map[string]bool
+	// recovering maps each rule whose value can hold an error value of #recover to a rule that has
+	// such a #recover: the rule itself or one that it calls (recoveringRules).
+	recovering map[string]string
 }
 
 // analyze computes the Analysis of rules without a compilation control (AnalyzeControlled).
@@ -76,6 +79,7 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 		}
 	}
 	propagate(rules, calls, a.positional, control)
+	a.recovering = recoveringRules(rules, control)
 
 	// Find left-recursion cycles from the strongly connected components of the left-call graph.
 	order := map[string]int{}
@@ -583,6 +587,77 @@ func findCycle(scc []string, edges map[string][]string, in, leaders map[string]b
 		}
 	}
 	return nil
+}
+
+// recoveringRules returns, for each rule whose value can hold an error value that #recover made,
+// a rule with such a #recover: the rule itself, or a rule that it calls, directly or indirectly.
+// Recoveries and calls inside lookaheads and Operators Rule skips do not count, since their values
+// do not reach the rule's value and their ends discard the recovered errors; nor does #missing,
+// which a lookahead disables.
+func recoveringRules(rules []*grammar.RuleDef, control *Control) map[string]string {
+	witness := map[string]string{}
+	calls := map[string][]string{}
+	for _, r := range rules {
+		control.poll()
+		direct, cs := valueRecovery(r.Expr, control)
+		if direct {
+			witness[r.Name] = r.Name
+		}
+		calls[r.Name] = cs
+	}
+	for changed := true; changed; {
+		control.poll()
+		changed = false
+		for _, r := range rules {
+			control.poll()
+			if witness[r.Name] != "" {
+				continue
+			}
+			for _, c := range calls[r.Name] {
+				if w := witness[c]; w != "" {
+					witness[r.Name] = w
+					changed = true
+					break
+				}
+			}
+		}
+	}
+	return witness
+}
+
+// valueRecovery reports whether e has a #recover outside lookaheads and Operators Rule skips, and
+// returns the rules that it calls outside them (recoveringRules).
+func valueRecovery(e grammar.Expr, control *Control) (bool, []string) {
+	silent := map[grammar.Expr]bool{}
+	mark := func(x grammar.Expr) {
+		walkExprControlled(x, func(y grammar.Expr) { silent[y] = true }, control)
+	}
+	walkExprControlled(e, func(x grammar.Expr) {
+		switch x := x.(type) {
+		case *grammar.And:
+			mark(x.Expr)
+		case *grammar.Not:
+			mark(x.Expr)
+		case *grammar.OperatorsRule:
+			mark(x.Skip)
+		}
+	}, control)
+	found := false
+	var calls []string
+	walkExprControlled(e, func(x grammar.Expr) {
+		if silent[x] {
+			return
+		}
+		switch x := x.(type) {
+		case *grammar.Ref:
+			calls = append(calls, x.Name)
+		case *grammar.Recovery:
+			found = true
+		case *grammar.Attributed:
+			found = found || hasRecover(x.Attrs)
+		}
+	}, control)
+	return found, calls
 }
 
 func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[string]bool, control *Control) {

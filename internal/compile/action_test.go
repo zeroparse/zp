@@ -46,6 +46,13 @@ rule main = v1:"a" => A{X: $v1, X: $v1}`, `duplicate field X`},
 		{`rule main = "a" => len(1, 2)`, `len takes 1 arguments, got 2`},
 		{`rule main = (x:"a") #atomic`, `capture x inside #atomic, -, or ! has no effect`},
 		{`rule main = "a" @nope`, `unknown attribute @nope`},
+		// The end of a positive lookahead discards recovered errors but keeps captures.
+		{`rule main = &(x:("a" #recover(skip="b"))) "a"`, `1:15: capture x inside a positive lookahead can hold an error value of #recover`},
+		{`rule main = &(x:r) "a"
+rule r = "a" #recover(skip="b")`, `1:15: capture x inside a positive lookahead can hold an error value of #recover in rule r`},
+		{`rule main = &(&(x:u)) "a"
+rule u = "b" r
+rule r = "a" #recover(skip="b")`, `1:17: capture x inside a positive lookahead can hold an error value of #recover in rule r, through rule u`},
 		// A repetition element sees only its own captures, whether it has any or not.
 		{`rule main = n:"a" ({$n != nil} "x")* "y"`, `1:21: capture $n is not visible in a repetition element`},
 		{`rule main = n:"a" (m:"x" {$n != nil})* "y"`, `1:27: capture $n is not visible in a repetition element`},

@@ -775,6 +775,49 @@ func (c *Compiler) noCaptures(e grammar.Expr) {
 	}, control)
 }
 
+// noRecoveringCaptures reports, as errors, the captures inside the positive lookahead body e whose
+// values can hold an error value of #recover. The end of the lookahead discards the recovered
+// errors but keeps the captures, and an error value made inside a lookahead has no expected items
+// and no farthest failure, so its position and message would differ from those of the same call
+// outside one, and memoization could not answer both alike.
+func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
+	if c.an == nil {
+		return // a compiled grammar, checked when it was compiled
+	}
+	control := c.Control
+	c.Control.poll()
+	// A nested positive lookahead checks its own captures.
+	nested := map[grammar.Expr]bool{}
+	walkExprControlled(e, func(x grammar.Expr) {
+		if a, ok := x.(*grammar.And); ok {
+			walkExprControlled(a.Expr, func(y grammar.Expr) { nested[y] = true }, control)
+		}
+	}, control)
+	walkExprControlled(e, func(x grammar.Expr) {
+		cp, ok := x.(*grammar.Capture)
+		if !ok || nested[x] {
+			return
+		}
+		direct, calls := valueRecovery(cp.Expr, control)
+		const what = "capture %s inside a positive lookahead can hold an error value of #recover"
+		if direct {
+			c.errorf(cp.Diagnostic(), what, cp.Name)
+			return
+		}
+		for _, name := range calls {
+			switch w := c.an.recovering[name]; w {
+			case "":
+				continue
+			case name:
+				c.errorf(cp.Diagnostic(), what+" in rule %s", cp.Name, name)
+			default:
+				c.errorf(cp.Diagnostic(), what+" in rule %s, through rule %s", cp.Name, w, name)
+			}
+			return
+		}
+	}, control)
+}
+
 // visible reports whether the expression has a value (a CST child).
 func visible(e grammar.Expr) bool {
 	switch e := e.(type) {

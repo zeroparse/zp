@@ -316,6 +316,21 @@ Errors that [`#recover`](pragmas.md#recover) recovers inside a lookahead are
 discarded when the lookahead ends, whether it succeeds or fails, so `&a` and
 `!!a` have the same effect.
 
+A capture inside a positive lookahead MUST NOT capture a value that can hold an
+error value of `#recover`: one of an expression with `#recover`, or a call of a
+rule that has one, directly or through the rules it calls, outside lookaheads
+and the `skip` of an Operators Rule. Inside a lookahead, failures are not
+recorded, so an error value made there has another position and message than
+the same expression gives outside one, while the recovered error itself is
+discarded. Such a capture is a compile-time error. Variable definitions inside
+a positive lookahead have no such restriction, because no action or predicate
+can read an error value.
+
+```zp
+rule main = &(x:item) [a-z]+ => $x  // error: x can hold an error value of #recover in rule item
+rule item = "a" #recover(skip="b")
+```
+
 ## Controlling Construction
 
 ### Atomic

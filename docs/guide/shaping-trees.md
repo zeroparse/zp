@@ -343,6 +343,7 @@ values and runs no actions.
 | Message | Cause and fix |
 |:--|:--|
 | `capture k inside #atomic, -, or ! has no effect` | Captures cannot be made inside atomic, discard or negative lookahead; capture the whole expression or restructure |
+| `capture k inside a positive lookahead can hold an error value of #recover in rule r` | The lookahead discards the errors recovered inside it, so its captures cannot hold their error values; capture outside the lookahead, or move the `#recover` out of what the lookahead captures |
 
 ## Related Topics
 

@@ -580,6 +580,7 @@ zp: 1:6: expected ',' or ']'
 |:--|:--|:--|
 | `#recover` has no effect | `skip` fails at the start of the expression or matches nothing; the expression is not where the failure occurs; or the parse failed in the end so all recovered errors were dropped | Test `skip` on the broken text alone; check that the error is not outside the `#recover`; check for an unclosed construct |
 | Valid input fails after adding `#recover` | `skip` can match the closing token of the enclosing construct | Exclude the closers from `skip` |
+| Errors recovered inside `&(...)`, `!(...)` or an Operators Rule `skip` are not reported | The end of a lookahead or a skip discards them | Recover outside the lookahead; a capture inside `&(...)` cannot hold a recovered value (compile error `capture k inside a positive lookahead can hold an error value of #recover`) |
 | `err != nil`, yet a tree is wanted | The parse recovered; the error is a `zp.SyntaxErrors` | Check for `SyntaxErrors` with `errors.As` before returning |
 
 ## Related Topics

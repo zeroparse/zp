@@ -185,6 +185,7 @@ func (c *Walker[M]) Expr(e grammar.Expr, s *Scope, build bool) M {
 
 	case *grammar.And:
 		// Captures and variable definitions inside a positive lookahead remain valid after it.
+		c.noRecoveringCaptures(e.Expr)
 		return c.Builder.And(c.Expr(e.Expr, s, build && hasCapturesControlled(e.Expr, control)), LookKeepsState(e.Expr))
 
 	case *grammar.Not:
