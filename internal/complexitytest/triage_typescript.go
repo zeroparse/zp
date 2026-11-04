@@ -58,14 +58,14 @@ func triageTypescript() []TriageGroup {
 				{Name: "long tagged templates", Build: tsStmt(func(n int) string { return "tag`" + rep("a$", n) + "${b}`" }), Sizes: doubling(2000, 3), Order: Linear},
 				{Name: "nested tagged templates", Build: tsStmt(nest("tag`a${", "b", "}c`")), Sizes: doubling(300, 3), Order: Linear},
 			}},
-		{Grammar: "typescript", ID: "value-sizes", Rules: []string{"plainOrUnionType", "plainOrIntersectionType"}, Pattern: `(from a value whose size the classifier does not bound|copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound)$`,
-			Shape:  "the folds that build union and intersection types read and copy values of the type recursion, whose size the classifier does not bound and which it takes to hold a capture in a lookahead because throwStatement captures an expression in a lookahead",
+		{Grammar: "typescript", ID: "value-sizes", Rules: []string{"plainOrUnionType", "plainOrIntersectionType"}, Pattern: `from a value whose size the classifier does not bound$`,
+			Shape:  "the folds that build union and intersection types read values of the type recursion, whose size the classifier does not bound because throwStatement captures an expression in a lookahead",
 			Assign: "F110", Order: Linear, Families: []TriageFamily{
 				{Name: "long union types", Build: func(n int) string { return "type T = " + list("", "A%d", " | ", "")(n) + ";\n" }, Sizes: doubling(500, 3), Order: Linear},
 				{Name: "long intersection types", Build: func(n int) string { return "type T = " + list("", "A%d", " & ", "")(n) + ";\n" }, Sizes: doubling(500, 3), Order: Linear},
 			}},
 		{Grammar: "typescript", ID: "jsx-names", Rules: []string{"jsxElement"}, Pattern: `copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound$`,
-			Shape:  "the comparison of the names of the opening and closing tags of a JSX element, which lookaheads capture before the tags consume them",
+			Shape:  "the comparison of the names of the opening and closing tags of a JSX element, which lookaheads capture: a false positive, measured linear, since each tag consumes its name right after the lookahead that captures it, so each name is compared once for each element",
 			Assign: "F113", Order: Linear, Families: []TriageFamily{
 				{Name: "long JSX element names", Build: tsx(func(n int) string { return "x = <" + rep("a", n) + "></" + rep("a", n) + ">;\n" }), Sizes: doubling(1000, 3), Order: Linear},
 				{Name: "many JSX elements with long names", Build: tsx(func(n int) string { return "x = <b>" + rep("<"+rep("a", 40)+"></"+rep("a", 40)+">", n) + "</b>;\n" }), Sizes: doubling(100, 3), Order: Linear},

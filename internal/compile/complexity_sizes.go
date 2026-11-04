@@ -543,7 +543,8 @@ func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
 }
 
 // exprLooks reports whether the value of a match of e in rule can hold a capture in a positive
-// lookahead: e has such a capture, or calls or acts on a value that can hold one.
+// lookahead whose size is not bounded by a constant: e has such a capture, or calls or acts on a
+// value that can hold one.
 func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
 	found := false
 	WalkExpr(e, func(x grammar.Expr) {
@@ -553,7 +554,7 @@ func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
 		switch x := x.(type) {
 		case *grammar.And:
 			WalkExpr(x.Expr, func(y grammar.Expr) {
-				if _, ok := y.(*grammar.Capture); ok {
+				if y, ok := y.(*grammar.Capture); ok && !k.bounded(y.Expr) {
 					found = true
 				}
 			})
@@ -579,11 +580,17 @@ func (k *classifier) termLooks(t grammar.Term, rule string) bool {
 			if x.Param {
 				return
 			}
+			exprs := k.captures[rule][x.Name]
 			if k.lookCaptures(rule)[x.Name] {
-				found = true
-				return
+				for _, e := range exprs {
+					found = found || !k.bounded(e)
+				}
+				if len(exprs) == 0 || found {
+					found = true
+					return
+				}
 			}
-			for _, e := range k.captures[rule][x.Name] {
+			for _, e := range exprs {
 				found = found || k.exprLooks(e, rule)
 			}
 		case *grammar.IndexRef:

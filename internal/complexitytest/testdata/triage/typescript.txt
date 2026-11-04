@@ -1,4 +1,4 @@
-# typescript: polynomial (degree 7), 241 witnesses, 273 reasons
+# typescript: polynomial (degree 7), 241 witnesses, 269 reasons
 
 ## identifiers (239) -> F97
 1853:103 identifierRest: the cost can grow as n^7: after an iteration of the repetition at 1853:38 in rule identifierRest fails, what follows the repetition (&[\\\u{80}-\u{10ffff}] ("\\u" identi... can start again inside the input that the repetition [a-zA-Z0-9$_]* at 1853:103 in rule identifierRest examined; it is evaluated again inside the alternative at 942:6 in rule importSpecifierType; it is evaluated again inside the alternative at 929:7 in rule importSpecifier; it is evaluated again inside an iteration of the repetition at 1925:48 in rule importSpecifierList; it is evaluated again inside the option at 924:16 in rule namedImports; it is evaluated again inside the alternative at 913:6 in rule importDeclaration; this repeats in the recursion of rule importDeclaration
@@ -245,13 +245,9 @@
 1915:120 ws: the cost can grow as n^7: after an iteration of the repetition at 1915:11 in rule ws fails, what follows the repetition (&[ \t\n\r\u{b}\u{c}\u{a0}\u{85}\u{16... can start again inside the input that the repetition [ \t\n\r\u{b}\u{c}\u{a0}\u{85}\u{1680... at 1915:120 in rule ws examined; it is evaluated again inside the alternative at 1036:7 in rule exportModifierFollows; it is evaluated again inside the lookahead at 1028:22 in rule modifier; it is evaluated again inside an iteration of the repetition at 1023:61 in rule modifierList; it is evaluated again inside the option at 1060:31 in rule typeMemberModifiers; it is evaluated again inside the lookahead at 1768:5 in rule typeMemberNotAccessor; this repeats in the recursion of rule typeMemberNotAccessor
 1916:100 sp: the cost can grow as n^7: after an iteration of the repetition at 1916:11 in rule sp fails, what follows the repetition (&[ \t\u{b}\u{c}\u{a0}\u{85}\u{1680}\... can start again inside the input that the repetition [ \t\u{b}\u{c}\u{a0}\u{85}\u{1680}\u{... at 1916:100 in rule sp examined; it is evaluated again inside the alternative at 1035:5 in rule exportModifierFollows; it is evaluated again inside the lookahead at 1028:22 in rule modifier; it is evaluated again inside an iteration of the repetition at 1023:61 in rule modifierList; it is evaluated again inside the option at 1060:31 in rule typeMemberModifiers; it is evaluated again inside the lookahead at 1768:5 in rule typeMemberNotAccessor; this repeats in the recursion of rule typeMemberNotAccessor
 
-## value-sizes (6) -> F110
+## value-sizes (2) -> F110
 1567:6 plainOrUnionType: the steps of foldl($f, $more, (acc, m) => UnionTyp... at 1567:6 in rule plainOrUnionType build values from a value whose size the classifier does not bound
-1567:52 plainOrUnionType: concat(list(acc), map(m.$ts, (x) => x... at 1567:52 in rule plainOrUnionType copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound
-1567:70 plainOrUnionType: map(m.$ts, (x) => x.$t) at 1567:70 in rule plainOrUnionType copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound
 1576:6 plainOrIntersectionType: the steps of foldl($f, $more, (acc, m) => Intersec... at 1576:6 in rule plainOrIntersectionType build values from a value whose size the classifier does not bound
-1576:59 plainOrIntersectionType: concat(list(acc), map(m.$ts, (x) => x... at 1576:59 in rule plainOrIntersectionType copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound
-1576:77 plainOrIntersectionType: map(m.$ts, (x) => x.$t) at 1576:77 in rule plainOrIntersectionType copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound
 
 ## jsx-names (1) -> F113
 1476:76 jsxElement: text($on) == text($cn) at 1476:76 in rule jsxElement copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound

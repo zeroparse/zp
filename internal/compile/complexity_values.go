@@ -45,6 +45,9 @@ type param struct {
 	sum   int
 	// elems are the expressions whose values are the elements of the list, when they are known.
 	elems []grammar.Expr
+	// look is set when the list can be a capture made in a positive lookahead, so that its
+	// elements hold input that the match does not consume.
+	look bool
 }
 
 // binding is a binding of a variable in a predicate.
@@ -358,6 +361,7 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 			p.shape = acc
 		} else {
 			p.elem, p.elems = elem, elems
+			p.look = listArg != nil && k.inLook(listArg, tc)
 			p.shape = listShape.elem()
 			if !bounded {
 				// The lambda takes each element once in each of its runs.
@@ -541,7 +545,9 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		for _, e := range exprs {
 			c.add(k.exprSize(e, tc, mode, "$"+t.Name))
 		}
-		c.look = c.look || k.lookCaptures(tc.rule)[t.Name]
+		// A capture in a lookahead whose size is not bounded holds input that the match does not
+		// consume.
+		c.look = c.look || k.lookCaptures(tc.rule)[t.Name] && c.unbounded
 		c.outer = tc.repeat && c.unbounded
 	case *grammar.IndexRef:
 		c = k.deepSize(k.byName[tc.rule].Expr, tc, fmt.Sprintf("$%d", t.Index))
@@ -558,8 +564,9 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		for _, e := range exprs {
 			c.add(k.exprSize(e, tc, mode, name))
 		}
-		// The member can be a capture in a lookahead of the value it is taken from.
-		c.look = c.look || k.sizeOf(t.X, tc, mode).look
+		// The member can be a capture in a lookahead of the value it is taken from, or a part of
+		// a value captured in one.
+		c.look = c.look || k.inLook(t, tc) && c.unbounded
 		c.outer = tc.repeat && !param && c.unbounded
 	case *grammar.Binary:
 		switch {
@@ -627,13 +634,14 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 				}
 				// A value from outside the lambda counts as outer only when it is not bounded.
 				exprs := k.captures[tc.rule][x.Name]
-				c.look = c.look || k.lookCaptures(tc.rule)[x.Name]
 				if len(exprs) == 0 {
 					outer = true
+					c.look = c.look || k.lookCaptures(tc.rule)[x.Name]
 				}
 				for _, e := range exprs {
 					d := k.deepSize(e, tc, "$"+x.Name)
 					outer = outer || !d.bounded()
+					c.look = c.look || k.lookCaptures(tc.rule)[x.Name] && d.unbounded
 					c.add(d)
 				}
 			case *grammar.IndexRef:
@@ -695,6 +703,49 @@ func (k *classifier) termExprs(t grammar.Term, tc termCtx) (exprs []grammar.Expr
 		return exprs, param, true
 	}
 	return nil, false, false
+}
+
+// inLook reports whether the value of t can be captured in a positive lookahead, or be a part of
+// a value captured in one, so that it holds input that the match does not consume. A capture that
+// a rule returns is the size of that rule, which sizeOf follows.
+func (k *classifier) inLook(t grammar.Term, tc termCtx) bool {
+	switch t := t.(type) {
+	case *grammar.TermGroup:
+		return k.inLook(t.Term, tc)
+	case *grammar.CaptureRef:
+		if p, isParam := tc.params[t.Name]; isParam && (t.Param || tc.lambda) {
+			return p.look
+		}
+		return k.lookCaptures(tc.rule)[t.Name]
+	case *grammar.Member:
+		if k.inLook(t.X, tc) {
+			return true
+		}
+		inner, _, ok := k.termExprs(t.X, tc)
+		if !ok {
+			return k.sizeOfAny(t, tc).look
+		}
+		name := strings.TrimPrefix(t.Name, "$")
+		found := false
+		for _, e := range inner {
+			if r, isRef := unwrapValue(e).(*grammar.Ref); isRef {
+				if d := k.byName[r.Name]; d != nil && d.Action == nil && !isOperators(d.Expr) {
+					e = d.Expr
+				}
+			}
+			WalkExpr(e, func(x grammar.Expr) {
+				if and, isAnd := x.(*grammar.And); isAnd {
+					WalkExpr(and.Expr, func(y grammar.Expr) {
+						if cp, isCap := y.(*grammar.Capture); isCap && cp.Name == name {
+							found = true
+						}
+					})
+				}
+			})
+		}
+		return found
+	}
+	return k.sizeOf(t, tc, listSize).look
 }
 
 // elemExprs returns the expressions whose values are the elements of the list t, or nil when
@@ -765,7 +816,11 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 		if k.byName[x.Name] == nil {
 			return content{}
 		}
-		c := content{unbounded: !k.bounded(e), look: k.looks(x.Name, mode)}
+		// A rule that consumes little can return a capture in a lookahead, which is as large as
+		// the input after it: its value is bounded only when its consumption is and it holds no
+		// such capture.
+		look := k.looks(x.Name, mode)
+		c := content{unbounded: !k.bounded(e) || look, look: look}
 		if k.onRecursion(tc.rule, x.Name) && k.includes(x.Name, mode) {
 			c.rec = map[string]int{name: 1}
 		}
@@ -778,7 +833,8 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 // anything that e matches or calls.
 func (k *classifier) deepSize(e grammar.Expr, tc termCtx, name string) content {
 	k.lookedRules()
-	c := content{unbounded: !k.bounded(e), look: k.exprLooks(e, tc.rule)}
+	look := k.exprLooks(e, tc.rule)
+	c := content{unbounded: !k.bounded(e) || look, look: look}
 	found := false
 	WalkExpr(e, func(x grammar.Expr) {
 		if r, ok := x.(*grammar.Ref); ok && k.byName[r.Name] != nil && k.onRecursion(tc.rule, r.Name) {
