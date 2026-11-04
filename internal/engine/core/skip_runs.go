@@ -46,6 +46,8 @@ const (
 	SkipNoFrom                 // the start of the examined range
 	SkipNeverRecord            // walks stay plain
 	SkipEarlyStore             // records are stored when their iteration ends and never completed
+	SkipIgnoreEnv              // the key leaves out the environment
+	SkipKeepEnv                // a hit leaves the environment as it is, not the end environment of the record
 )
 
 // The states of a slot.
@@ -131,6 +133,9 @@ func (s *skipSlots) marked(pos int) bool {
 // get returns the slot of pos for walks that start in the environment env; a fresh slot is the
 // zero record.
 func (s *skipSlots) get(pos int, env *Env) skipRecord {
+	if SkipRecordMutation == SkipIgnoreEnv {
+		env = nil
+	}
 	if !s.marked(pos) {
 		return skipRecord{}
 	}
@@ -144,6 +149,9 @@ func (s *skipSlots) get(pos int, env *Env) skipRecord {
 // large as the bits, so walks that start farther and farther back copy them a logarithmic number of
 // times.
 func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
+	if SkipRecordMutation == SkipIgnoreEnv {
+		env = nil
+	}
 	switch {
 	case len(s.marks) == 0:
 		s.base = pos &^ 63
@@ -237,20 +245,27 @@ type skipWalk struct {
 // walk returns the walk in use, the innermost one in progress.
 func (p *Parser) walk() *skipWalk { return &p.skips[p.skipN-1] }
 
-// RunHotSpan is the length of input that a walk of a run site may walk again, from a position that
-// the walk before it passed, before the site turns hot. A walk shorter than that neither turns a
-// site hot nor can be walked again that far, so a caller need not pass it to RunWalked.
-const RunHotSpan = 64
+// RunHotSpan is the length of input that a walk of a run site may walk again, below the furthest
+// point that the walks before it reached, before the site turns hot. A walk shorter than that
+// neither turns a site hot nor can walk that far again, so a caller need not pass it to RunWalked.
+// It is a variable only so that tests can run the hot path on short inputs.
+var RunHotSpan = 64
 
-// runCold is the state of a run site (and lookahead state) before it keeps records: the span of its
-// last walk that RunWalked was told of (the engine tells it of walks of RunHotSpan or more). A site
-// turns hot when a walk begins inside that span and walks RunHotSpan or more of it again. Only a
-// hot site pays for records: a run site whose walks never overlap, as in a list parsed once, costs
-// a constant for each walk and allocates nothing, and one whose walks overlap only a little walks
-// at most RunHotSpan again in each, so its cost stays linear.
+// RunHotTurns counts the run sites that turned hot, for tests that check a parse reaches the hot
+// path. A turn happens once for each site and lookahead state of a parse, so it is not a hot path.
+var RunHotTurns int
+
+// runCold is the state of a run site (and lookahead state) before it keeps records: the furthest
+// position that its walks passed, among the walks that RunWalked was told of (the engine tells it of
+// walks of RunHotSpan or more). A site turns hot when a walk begins below that position and walks
+// RunHotSpan or more of the input below it. A walk of a site that is not hot costs its length, and
+// the part of it below the furthest position is under RunHotSpan or the site turns hot, so the walks
+// of a cold site cost in total at most the input length plus RunHotSpan for each walk: linear in the
+// input and the number of walks, however the walks alternate. A site that turns hot pays for records
+// instead, and a run site whose walks never go back, as in a list parsed once, allocates nothing.
 type runCold struct {
-	start, end int
-	seen, hot  bool
+	end int
+	hot bool
 }
 
 func (p *Parser) runIndex(site int) int {
@@ -272,8 +287,8 @@ func (p *Parser) RunHot(site int) bool {
 }
 
 // RunWalked ends the walk of a run site that was not hot, which began at start and ended at the
-// current position. A walk that began at a position that the last walk of the site passed walks
-// input again, and the site turns hot when it walks RunHotSpan of it again.
+// current position. A walk that began below the furthest position that the walks of the site passed
+// walks input again, and the site turns hot when it walks RunHotSpan of it below that position.
 func (p *Parser) RunWalked(site, start int) {
 	if SkipRecordsOff || p.Missing != nil {
 		return
@@ -286,12 +301,11 @@ func (p *Parser) RunWalked(site, start int) {
 		p.runCold = grown
 	}
 	c := &p.runCold[i]
-	if c.seen && start >= c.start && start < c.end {
-		if min(p.Pos, c.end)-start >= RunHotSpan {
-			c.hot = true
-		}
+	if start < c.end && min(p.Pos, c.end)-start >= RunHotSpan {
+		c.hot = true
+		RunHotTurns++
 	}
-	c.start, c.end, c.seen = start, p.Pos, true
+	c.end = max(c.end, p.Pos)
 }
 
 // SkipBegin starts a walk of the site at the current position.
@@ -388,7 +402,9 @@ func (p *Parser) SkipHit() bool {
 	p.lw = Min2(p.lw, r.from)
 	p.MergeExpected(r.far, r.exp)
 	p.Pos = r.end
-	p.Env = r.env
+	if SkipRecordMutation != SkipKeepEnv {
+		p.Env = r.env
+	}
 	for c := r.errs; c != nil; c = c.next {
 		p.Recovered = AppendSpend(p, p.Recovered, c.errs)
 	}

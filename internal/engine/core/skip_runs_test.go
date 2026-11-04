@@ -149,10 +149,10 @@ func TestSkipRunsShareElements(t *testing.T) {
 	}
 }
 
-// TestRunSiteTurnsHotOnRestart checks that a run site keeps no state but the span of its last walk
-// until a walk begins inside that span and walks RunHotSpan of it again, and then turns hot, for the lookahead state of the site
-// separately: nested walks (inner before outer), walks that follow each other and walks apart do
-// not turn it hot.
+// TestRunSiteTurnsHotOnRestart checks that a run site keeps only the furthest position of its walks
+// until a walk begins below it and walks RunHotSpan of the input below it, and then turns hot, for
+// the lookahead state of the site separately. Walks that follow each other, walks apart and walks
+// that go back less than RunHotSpan do not turn it hot, however they alternate.
 func TestRunSiteTurnsHotOnRestart(t *testing.T) {
 	walked := func(p *Parser, site, start, end int) {
 		t.Helper()
@@ -164,35 +164,30 @@ func TestRunSiteTurnsHotOnRestart(t *testing.T) {
 	}
 	p := &Parser{}
 	walked(p, 1, 10, 12) // an inner walk
-	walked(p, 1, 4, 20)  // the outer walk that contains it, begun before it
+	walked(p, 1, 4, 20)  // goes back 8 below 12
 	walked(p, 1, 20, 30) // begins where the last ended
 	walked(p, 1, 40, 40) // empty, apart
 	walked(p, 1, 50, 60)
 	if p.RunHot(1) || len(p.skipTables) != 0 || len(p.skips) != 0 {
-		t.Fatalf("walks that do not overlap keep state: hot %v, tables %d", p.RunHot(1), len(p.skipTables))
+		t.Fatalf("walks that do not go back keep state: hot %v, tables %d", p.RunHot(1), len(p.skipTables))
 	}
 	p.Silent++
-	walked(p, 1, 51, 55) // another state of the site has its own span
-	if p.RunHot(1) {
-		t.Fatal("a walk in a lookahead turned the site hot through the walks outside it")
-	}
+	walked(p, 1, 51, 55) // another state of the site has its own position
 	p.Silent--
-	walked(p, 1, 55, 70)
-	p.Pos = 75
-	p.RunWalked(1, 60) // begins inside the last walk, and walks 15 again
-	if p.RunHot(1) {
-		t.Fatal("a short restart turned the site hot")
+	walked(p, 1, 55, 70) // goes back 5 below 60
+	walked(p, 1, 10, 69) // goes back 59 below 70: less than RunHotSpan
+	// Alternating walks, each of which ends where the next begins: [0,e) then [e,E), then [1,e) and
+	// so on. A walk that begins below the furthest end and walks RunHotSpan below it is hot.
+	q := &Parser{}
+	e, far := 100, 200
+	walked(q, 3, 0, e)
+	walked(q, 3, e, far)
+	q.Pos = e
+	q.RunWalked(3, 1) // walks e-1 below far
+	if !q.RunHot(3) {
+		t.Fatal("a walk back over a span of an earlier walk did not turn the site hot")
 	}
-	p.Pos = 200
-	p.RunWalked(1, 70) // begins inside the last walk (60 to 75), which ends at 75: walks 5 again
-	if p.RunHot(1) {
-		t.Fatal("a restart that walks less than RunHotSpan again turned the site hot")
-	}
-	p.RunWalked(1, 80) // begins after the last walk (70 to 200 now ends at 200); walks 120 again
-	if !p.RunHot(1) {
-		t.Fatal("restarts that walk RunHotSpan again did not turn the site hot")
-	}
-	if p.Silent = 1; p.RunHot(1) {
+	if q.Silent = 1; q.RunHot(3) {
 		t.Fatal("the site turned hot in the lookahead state too")
 	}
 	p.Silent = 0

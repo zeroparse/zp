@@ -93,7 +93,7 @@ A file carries two version numbers after its magic number.
 | Number | Current value | Meaning |
 |:--|--:|:--|
 | Format version | 8 | The layout of the file. A runtime loads only version 8 and refuses any other version |
-| Instruction-set version | 30 | The bytecode of the value model. Every module declares it |
+| Instruction-set version | 31 | The bytecode of the value model. Every module declares it |
 
 - A runtime refuses a file of another format version with
   `unsupported compiled grammar version N (want 8): compile the grammar again`.

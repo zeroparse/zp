@@ -362,7 +362,7 @@ A file carries two version numbers after its magic number:
 | Number | Now | Meaning |
 |:--|--:|:--|
 | Format version | 8 | The layout of the file. A runtime loads version 8 only. |
-| Instruction-set version | 30 | The bytecode of the value model (see the [specification](../../spec/runtime/compiled-grammars.md#versions-and-compatibility)). Every module declares it. |
+| Instruction-set version | 31 | The bytecode of the value model (see the [specification](../../spec/runtime/compiled-grammars.md#versions-and-compatibility)). Every module declares it. |
 
 The consequences:
 

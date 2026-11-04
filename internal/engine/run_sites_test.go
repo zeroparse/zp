@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"math/rand"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -102,10 +103,39 @@ var runValueInputs = map[string][]string{
 	"errors that a record replays":     {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
 }
 
+// hotSpans are the thresholds at which the differential tests of run sites run: the one of the
+// engine, at which the short inputs of the tests stay cold, and short ones, at which sites turn hot
+// in the middle of a parse and the records answer the walks after it.
+var hotSpans = []int{core.RunHotSpan, 2, 1}
+
+// atHotSpans runs f at each of hotSpans, and checks that the sites turn hot at the short ones.
+func atHotSpans(t *testing.T, f func(t *testing.T)) {
+	t.Helper()
+	defer func(n int) { core.RunHotSpan = n }(core.RunHotSpan)
+	for _, span := range hotSpans {
+		core.RunHotSpan = span
+		turns := core.RunHotTurns
+		t.Run("span"+strconv.Itoa(span), f)
+		if span <= 2 && core.RunHotTurns == turns {
+			t.Errorf("no run site turned hot at span %d", span)
+		}
+	}
+}
+
+// assertTurnedHot checks that a run site turned hot since turns, when the threshold is short.
+func assertTurnedHot(t *testing.T, name string, turns int) {
+	t.Helper()
+	if core.RunHotSpan <= 2 && core.RunHotTurns == turns {
+		t.Errorf("%s: no run site turned hot", name)
+	}
+}
+
 // TestRunSitesMatchPlainRepetitions checks that the repetitions of run sites that build values
 // give the same trees and errors as plain repetitions (a program compiled without run sites) and
 // as walks without records, on every backend.
-func TestRunSitesMatchPlainRepetitions(t *testing.T) {
+func TestRunSitesMatchPlainRepetitions(t *testing.T) { atHotSpans(t, runSitesMatchPlainRepetitions) }
+
+func runSitesMatchPlainRepetitions(t *testing.T) {
 	rng := rand.New(rand.NewSource(113))
 	for _, g := range runValueGrammars {
 		prog := mustCompile(t, g.Src)
@@ -116,6 +146,7 @@ func TestRunSitesMatchPlainRepetitions(t *testing.T) {
 		plain := mustCompile(t, g.Src)
 		compile.NoRunSites = false
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		turns := core.RunHotTurns
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ without records, first:\n%s", g.Name, b, len(diffs), diffs[0])
@@ -131,22 +162,27 @@ func TestRunSitesMatchPlainRepetitions(t *testing.T) {
 				}
 			}
 		}
+		assertTurnedHot(t, g.Name, turns)
 	}
 }
 
 // TestRunSitesMatchParsesWithoutRecords checks that the records of run sites change no result:
 // values and syntax errors with their expectations, on every backend. It toggles package state, so
 // it does not run in parallel.
-func TestRunSitesMatchParsesWithoutRecords(t *testing.T) {
+func TestRunSitesMatchParsesWithoutRecords(t *testing.T) { atHotSpans(t, runSitesMatchWithoutRecords) }
+
+func runSitesMatchWithoutRecords(t *testing.T) {
 	rng := rand.New(rand.NewSource(112))
 	for _, g := range runSiteGrammars {
 		prog := mustCompile(t, g.Src)
 		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
+		turns := core.RunHotTurns
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ, first:\n%s", g.Name, b, len(diffs), diffs[0])
 			}
 		}
+		assertTurnedHot(t, g.Name, turns)
 	}
 	for _, c := range gentest.GenCorpus(t) {
 		g, err := parseTest(c.Src)
@@ -250,6 +286,64 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 			// controls of internal/complexitytest measure it on all three.)
 			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, limits.ErrLimit) {
 				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
+			}
+		}
+	}
+}
+
+// TestRunSitesNegativeControls checks that the comparisons of the hot path detect a key without the
+// environment and a hit that leaves the environment as it was, on the inputs that reach them.
+func TestRunSitesNegativeControls(t *testing.T) {
+	defer func(n int) { core.RunHotSpan = n; core.SkipRecordMutation = 0 }(core.RunHotSpan)
+	core.RunHotSpan = 1
+	for _, tc := range []struct {
+		mutation int
+		grammar  string
+	}{
+		{core.SkipIgnoreEnv, "two environments at one position"},
+		{core.SkipKeepEnv, "bindings that a record restores"},
+	} {
+		for _, g := range runValueGrammars {
+			if g.Name != tc.grammar {
+				continue
+			}
+			prog := mustCompile(t, g.Src)
+			core.SkipRecordMutation = tc.mutation
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				if diffs := skipRunMismatches(t, prog, runValueInputs[g.Name], b); len(diffs) == 0 {
+					t.Errorf("mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
+				}
+			}
+			core.SkipRecordMutation = 0
+		}
+	}
+}
+
+// TestRunSitesTurnHotAtTheEngineThreshold checks, at the threshold of the engine, that a site that
+// starts cold and turns hot in the middle of a long parse gives the results of a parse without run
+// sites, with and without values, on every backend.
+func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
+	if core.RunHotSpan != 64 {
+		t.Fatalf("threshold %d", core.RunHotSpan)
+	}
+	in := strings.Repeat("x", 300) + "z" + strings.Repeat("x", 200) + "!"
+	for _, g := range append(runSiteGrammars[:2:2], runValueGrammars[0]) {
+		prog := mustCompile(t, g.Src)
+		compile.NoRunSites = true
+		plain := mustCompile(t, g.Src)
+		compile.NoRunSites = false
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			for _, exp := range []bool{true, false} {
+				o := ParseOptions{Backend: b, Expectations: exp}
+				turns := core.RunHotTurns
+				n, err := prog.ParseWith("main", in, o)
+				wn, werr := plain.ParseWith("main", in, o)
+				if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
+					t.Fatalf("%s, %s: results differ\n got  %s\n want %s", g.Name, b, got, want)
+				}
+				if core.RunHotTurns == turns {
+					t.Errorf("%s, %s: no run site turned hot", g.Name, b)
+				}
 			}
 		}
 	}

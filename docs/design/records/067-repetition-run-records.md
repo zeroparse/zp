@@ -130,11 +130,23 @@ record per run, the walk form one record per iteration boundary the walk crossed
 The **interval** form is for class runs such as whitespace. Its record is one interval `[start, end)` per run; a lookup
 at any position inside it answers `end` with one comparison, so the per-iteration visit cost of the walk form is not paid.
 
-A site keeps no records until its walks show that they restart. The engine counts a site as **hot** once a walk begins at
-a position that the previous walk of the site passed and walks at least 64 units of input again; until then a walk is the
-plain repetition and the site holds one small entry (the span of its last walk). A restart shorter than 64 units costs a
-constant per walk, so the cost stays linear before the site turns hot, and a site whose walks never overlap, as a list
-that a parse reads once, allocates nothing.
+A site keeps no records until its walks show that they restart. The engine keeps, for each site and lookahead state, the
+furthest position that its walks of at least 64 units reached, and the site turns **hot** at the first walk that begins
+below that position and walks at least 64 units below it. Until then a walk is the plain repetition and the site holds one
+small entry. The cold cost is linear in the input and the number of walks: a cold walk costs its length, and the part
+below the furthest position is under 64 units (or the site would be hot), so the walks cost in total at most the new
+input they reach plus 64 per walk, however they alternate between positions. A comparison with the last walk only is not
+enough: two walks that alternate between disjoint spans never overlap the one before them and would stay cold. A site
+whose walks never go back, as a list that a parse reads once, allocates nothing. The test is conservative about gaps: a
+walk that begins in a gap below the furthest position counts as walking input again, which only makes a site hot earlier.
+
+The key of a record is the identity of the environment, so equal environments built separately do not share records. A
+rule that rebinds a variable at each position to the same new value (`{ m := 1 }` after a backtrack) builds a fresh
+environment each time, and its walks stay quadratic even when the site is hot; keying by value, or building equal
+environments once, would lift that, at the price of a hash or a cache on each binding.
+
+A replay does not enter the calls of the recorded walk, so their nesting does not count toward the depth limit, as for
+a call answered from the memo.
 
 ### Why every nested reason becomes Linear
 
@@ -213,10 +225,7 @@ produced by the Exec IR lowering once F95 settles the runtime core; no generated
   value-free elements is expected to be the cost driver and is what the measurement must show.
 - A marked repetition that is walked once from each position pays a test and a store per walk and keeps nothing: the
   hot test above, and the restartable condition, keep the cost of grammars that gain nothing from records close to
-  that of the engine without run sites. In an interleaved comparison (JSON, CSV, XML, minilang, outline and a grammar with
-  no site, closure and bytecode, parse and recognize) the geometric mean of the time is 1.6% higher and no benchmark is
-  more than 3.5% higher; two copies of the same binary differ by 0.6% on the mean. The allocations of a parse in steady
-  state are the same as without run sites.
+  that of the engine without run sites. The measurements are in [Optimization 133](../../optimizations/133-run-records-of-restarted-repetitions.md).
 - Records are kept only for the walks of a hot site. A hot site pays a bit per position between its first and last walk,
   and a record per iteration boundary of the walks that visit a position again.
 - A parse with no marked repetition is unchanged.

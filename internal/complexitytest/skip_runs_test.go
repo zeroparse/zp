@@ -87,3 +87,51 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 		}
 	}
 }
+
+// alternatingWalks are grammars whose repetition w is walked, at each position, from two or three
+// positions whose walks do not overlap the walk before them (the binding of m decides where each
+// walk ends). A site that compared a walk only with the one before it would stay cold; the site
+// must turn hot. The cost is still quadratic: the binding of m is a new environment at each
+// position, and records are keyed by the identity of the environment, so a walk never finds the
+// walk of the position before. The test records both.
+var alternatingWalks = []struct {
+	Name, Source string
+	Input        func(n int) string
+}{
+	{
+		"two walks",
+		"var m int\nrule main = (a / \"x\")* [xyz]* $$\nrule a = { m := 0 } w \"!\" / r { m := 1 } w \"!\"\nrule r = \"x\" r / \"\"\nrule w = (\"x\" / \"y\" { m == 1 })*\n",
+		func(n int) string { return rep("x", n) + rep("y", n) },
+	},
+	{
+		"three walks",
+		"var m int\nrule main = (a / \"x\")* [xyz]* $$\nrule a = { m := 0 } w \"!\" / r { m := 1 } w \"!\" / r s { m := 2 } w \"!\"\nrule r = \"x\" r / \"\"\nrule s = \"y\" s / \"\"\nrule w = (\"x\" / \"y\" { m >= 1 } / \"z\" { m == 2 })*\n",
+		func(n int) string { return rep("x", n) + rep("y", n) + rep("z", n) },
+	},
+}
+
+// TestAlternatingWalksTurnHot checks that the site of alternating walks turns hot on every backend,
+// and that the cost stays quadratic through the environment keys (a negative control: it moves to
+// the linear controls when equal environments share one identity).
+func TestAlternatingWalksTurnHot(t *testing.T) {
+	skipWithoutBudget(t)
+	for _, c := range alternatingWalks {
+		p, err := Compile(c.Source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, b := range Backends {
+			turns := core.RunHotTurns
+			s, err := Measure(p, c.Input, double(100), b, Cap)
+			if err != nil {
+				t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
+			}
+			if core.RunHotTurns == turns {
+				t.Errorf("%s, %s: no run site turned hot", c.Name, BackendName(b))
+			}
+			if got := Classify(s); got != Poly(2) {
+				t.Errorf("%s, %s: %v (slopes %.2f) classified %v, want %v", c.Name, BackendName(b), s.Costs, s.Slopes(), got, Poly(2))
+			}
+		}
+	}
+}

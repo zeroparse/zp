@@ -585,7 +585,11 @@ for the same position in another environment is neither used nor replaced, so
 the environments of two walks at a position never share a record. Two
 environments are the same if they are the same object (bindings that leave a
 variable's value alone leave the environment as it is, and equal environments
-that were built separately differ).
+that were built separately differ). A walk under a freshly rebound but equal
+environment therefore does not reuse the records of a walk under the earlier
+one, and a grammar that rebinds a variable to the same new value at each
+position can cost more than linear in the input even when its sites keep
+records.
 
 Besides what a record of a skip-run site holds, it holds
 - the environment at the end of the rest of the walk, which the parse takes
@@ -601,12 +605,20 @@ Besides what a record of a skip-run site holds, it holds
   record recovers them again, as a memoized result does.
 
 An implementation may keep records only once the walks of a site have shown
-that they restart: a walk that begins at a position that the previous walk of
-the site passed, and walks a constant length of input again. Until then the
-site is an ordinary repetition, for which a walk walks at most that constant
-length again, so the cost of a walk stays a constant outside its iterations.
-A site whose walks never overlap, as a list that a parse reads once, then keeps
-nothing.
+that they restart. One way: the site keeps the furthest position that its
+walks of a minimum length (a constant) reached, and keeps records from the
+first walk that begins below that position and walks at least that constant
+length of input below it. Until then the site is an ordinary repetition. Each
+walk then costs its length, of which the part below the furthest position is
+shorter than the constant, so the walks of the site cost in total at most the
+input length plus the constant for each walk, however the walks alternate
+between positions. A site whose walks never go back, as a list that a parse
+reads once, keeps nothing.
+
+A walk that reuses a record does not enter the calls that the recorded walk
+made, so their nesting does not count toward the [nesting limit](#limits), as
+for a call answered from the memo: whether a parse that comes close to the
+limit succeeds can depend on records.
 
 The walks of run sites nest: the expression of a site can call rules that walk
 sites of their own, and the walks in progress are a stack. Records never
