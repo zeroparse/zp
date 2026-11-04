@@ -267,13 +267,16 @@ contract, because it decides how many bodies run, which `Evaluated` reports. *Sh
 *Target*: dense or sparse pages, word size, counter width. *Conformance*: call sequences over many rules and positions,
 counter saturation, pages created on demand.
 
-**Expectations** (`expect`, `exp.isolate`, `exp.unisolate`, `exp.keep`, `exp.merge`, `exp.rename`, `silent.enter`,
+**Expectations** (`expect`, `exp.isolate`, `exp.unisolate`, `exp.copy`, `exp.rename`, `silent.enter`,
 `silent.exit`). The expectation record is an insertion-ordered set of expectation identifiers at the farthest
 position; `expect` at a position beyond it starts a new set, below it does nothing, and inside a silent scope does
-nothing. `isolate` starts a separate record and `unisolate` ends it, returning its farthest position and set; `keep`
-makes a set that outlives the record; `merge` adds a set at a position. *Shared*: the set algebra and its order, which
-error messages expose. *Target*: membership filters, stack layout, sharing of kept sets. *Conformance*: random
-sequences against the reference model, compared by farthest position and exact order.
+nothing. `isolate` starts a separate record and `unisolate` ends it, returning its farthest position and set; `copy`
+makes a set that outlives the record. Keeping a set, which reuses the set kept last when it holds the same
+expectations, and merging a set at a position are compositions over these operations. `isolate` and `unisolate`
+stay operations: what they save and restore is the layout of the record, which differs by target. *Shared*: the set
+algebra and its order, which error messages expose. *Target*: membership filters, stack layout, where kept sets live
+and how their memory is accounted. *Conformance*: random sequences against the reference model, compared by farthest
+position and exact order.
 
 **Recovery** (`rec.mark`, `rec.rollback`, `rec.since`, `rec.append`, `rec.push`; with `#missing` in the engine,
 `missing.mark`, `missing.reset`, `missing.replay`). An ordered list of recovered errors with marks; `rollback` removes
@@ -326,6 +329,7 @@ The compositions written once in Exec IR are the algorithms that the copies re-i
 - left-recursion growth: the growth from failure, its stop condition and its steps in a context;
 - rule completion: the rule's value, captures and hidden rules spliced into their caller;
 - Document calls: validation, reuse and the examined bound of each result;
+- the expectation record: recording an expectation, keeping a set and merging a set at a position;
 - the Operators Rule loop;
 - stream delivery and commitment points;
 - parse entry: start rule, default budgets and the input limit.
@@ -337,10 +341,11 @@ small state record; a backend that recurses fuses them back into one function.
 ### Cost Contracts
 
 A charge sits either in a composition or inside an operation. A charge in a composition — one per call, per growth
-step, per loop iteration, per Operators Rule application — is shared and exact on every target. A charge inside an
-operation pays for work whose size depends on the operation's data: scanning an expectation record, growing the memo,
-inspecting input. The specification already lets budget counts depend on the backend and the generated artifact as
-long as they are deterministic ([Cancellation and Budget
+step, per loop iteration, per Operators Rule application, per expectation compared or merged — is a `budget.charge`
+of the composition, shared and exact on every target; a form specialized without the budget feature leaves it out.
+A charge inside an operation pays for work whose size depends on the operation's data: scanning an expectation
+record, growing the memo, inspecting input. The specification already lets budget counts depend on the backend and
+the generated artifact as long as they are deterministic ([Cancellation and Budget
 Limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits)), and the targets already differ here:
 generated Go charges an expectation scan only after its membership filter matches, TypeScript charges every element
 it scans. An operation's cost contract is therefore a deterministic count per target within a declared bound
@@ -351,6 +356,9 @@ state before the call that the reference model of the component defines and comp
 entries at the call's position, or the positions a position-indexed memo copies when it doubles. A bound is the worst
 case over the representations a target may choose: deferred memoization is bounded both by the regions a sparse
 record allocates and by the size of a dense record of calls in position order.
+
+An operation that copies a set or a list declares the copy in its bound: `exp.copy` one unit per expectation of the
+set, the recovery operations that keep or record errors again one unit per error.
 
 Charges inside an operation spend the same budget that `budget.charge` and `budget.used` see. The conformance suite
 measures what an implementation charges in each call, checks it against the bound and adds it to the model's budget;
@@ -515,8 +523,11 @@ move to Exec IR at once while mechanisms move one at a time.
 3. **Every mode of grammar code.** Budget controls, observable builds, Document and stream variants print through the
    Exec IR backend over transitional operations; the default flips and the Flow IR printers are removed.
 4. **Expected sets, recovery bookkeeping and the variable environment.**
-5. **Budget charges and mode specialization.** The remaining `…Ordinary`, `…Controlled` and `…Spend` variants become
-   specializations, and the cost contracts are written down.
+5. **Budget charges and mode specialization.** The charges of compositions go through `budget.charge`, so that a
+   form specialized without a budget leaves them out; keeping and merging expectations become compositions on every
+   target, and the operations that copy declare their cost contracts. The other `…Ordinary`, `…Controlled` and
+   `…Spend` variants specialize host primitives — input access, nodes, error text — or belong to the mechanisms of
+   stages 6 and 10, and specialize with them.
 6. **Capture frames and the Operators Rule loop.**
 7. **Stream commitment** (generated Go).
 8. **Document reuse** (generated Go). Provisional tracking becomes the engine's algorithm ([Decisions](#decisions)).
