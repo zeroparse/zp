@@ -1,6 +1,6 @@
 # 068. Separated Lists
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Author**: @ornew
 - **Date**: 2026-11-04
 
@@ -77,7 +77,7 @@ Rejected.
 
 **C. A new operator**: `e % ","` (as in some PEG dialects). It is short, but it adds a precedence level to the
 parser-expression grammar, offers no place for the trailing policy without a second operator, and breaks the rule that
-modifiers of an expression are postfix pragmas. Rejected unless the owner prefers brevity over uniformity.
+modifiers of an expression are postfix pragmas. Rejected.
 
 **D. A repetition modifier**: `e+ sep ","`, as a keyword. It adds a keyword to the language for a single feature and
 still needs a spelling for the policy. Rejected.
@@ -215,9 +215,8 @@ The classifier treats a separated list as a **committing loop** under the follow
 
 When these hold, the iteration unit has no failure that the continuation can restart from: once the separator has
 matched, the iteration either completes or the whole list fails. The list is counted as a **committing unit with
-no restart**, as are the other cases of the cost proof. When a condition does not hold, the list is classified as the
-hand-written form it replaces (a non-committing iteration), so the pragma never makes the classification worse than
-the hand form.
+no restart**, as are the other cases of the cost proof. When a condition does not hold, the compiler rejects the
+pragma.
 
 ### Proof sketch (plugs into Lemma 4)
 
@@ -313,26 +312,17 @@ motivation table become the character-level baseline.
 - **Keeping separators in the value.** A list of `(sep, e)` pairs makes the common case noisy and gives the `-` drop a
   different meaning. Grammars that want separators can write the repetition.
 
-## Owner questions
+## Decisions
 
-1. **Spelling.** A postfix pragma `#sep(s, trailing=...)` (recommended), a new operator `e % s`, or a keyword
-   `sep`. The pragma matches `#repeat` and `#recover`, and carries the policy without new syntax; the operator is shorter
-   but needs a second form for the policy. Recommendation: the pragma.
-2. **Default trailing policy.** `forbidden` (recommended) is the strict reading and the one that commits. `optional` is
-   friendlier to configuration languages but needs the first-set lookahead and rejects elements whose first set is not a
-   character set. Recommendation: `forbidden` as default, and the other two spelled out.
-3. **Semantics of the commit versus the hand form.** The committed list fails where the hand form would stop before the
-   separator. This is the point of the feature, but it changes behaviour for any grammar that relied on the retry. Choices:
-   always commit (recommended; the pragma is explicit and migration is per list), or commit only when the classifier
-   proves the unit's first set disjoint from the continuation (safer, but then the pragma has a meaning that depends on
-   the context). Recommendation: always commit, and reject the pragma when condition 2 fails at compile time.
-4. **Separator in the value.** Dropped (recommended) or optionally kept through a named argument such as `keep=true`.
-   Keeping adds a type form (a list of pairs or a flattened list) that the type system does not have for repetitions.
-   Recommendation: dropped, with no option.
-5. **`trailing=required`.** Include now (recommended; statement blocks need it and it needs no extra mechanism) or
-   defer to a later record. Recommendation: include.
-6. **Streaming.** Allow `#stream` on the list as described, or leave streaming to plain repetitions until there is a
-   use. Recommendation: allow it; the cost is the definition of when an element is final under each policy.
-7. **Multi-token separators.** Allow any expression without captures as the separator (recommended) or restrict to
-   single-token literals and character classes, which makes condition 2 trivial. Recommendation: allow expressions and
-   reject by the first-set test where it cannot be proved.
+1. **Spelling.** The postfix pragma `#sep(s, trailing=...)`. It matches `#repeat` and `#recover` and carries the policy
+   without new syntax.
+2. **Default trailing policy.** `forbidden`. `optional` and `required` are spelled out.
+3. **Commit.** The list always commits after the separator. The compiler rejects the pragma when the commit would be
+   unsound: the element can start with the separator, the element can match the empty input, or, under
+   `trailing=optional`, the first set of the element is not a set of characters.
+4. **Separator in the value.** Dropped. There is no option to keep it; a grammar that needs separators writes the
+   repetition by hand.
+5. **`trailing=required`.** Included.
+6. **Streaming.** `#stream` is allowed on a list that is the top-level repetition of the start rule.
+7. **Separator form.** Any capture-free expression; the pragma is rejected where the first-set test cannot prove the
+   commit sound.
