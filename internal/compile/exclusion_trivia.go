@@ -19,7 +19,7 @@ import (
 //     (triviaWhy). Then the result depends only on the position and on the variables that the
 //     rule reads, and two calls with the same variables end alike (law P2).
 //
-// triviaOn makes the exclusion analysis rely on it: two calls of one trivia rule at one position
+// triviaOn, on by default, makes the exclusion analysis rely on it: two calls of one trivia rule at one position
 // are passed without counting toward the bound, and a call that follows a call of the same
 // trivia rule across symbols that consume nothing is dropped. In strict mode both need a cost
 // bound: the second call at one position is cheap only where the memo answers it, which
@@ -30,7 +30,7 @@ import (
 // triviaOnly, when not nil, limits the trivia rules to the names that it lists. All are test
 // hooks.
 var (
-	triviaOn   bool
+	triviaOn   = true
 	triviaOnly map[string]bool
 	triviaMemo bool
 )

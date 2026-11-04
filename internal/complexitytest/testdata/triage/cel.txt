@@ -15,8 +15,8 @@
 188:36 name: the cost can grow as n^2: after the operator part at 79:17 in rule member fails, the operator part "." ws f:name_plain ws "(" ws as:args... at 80:17 in rule member can start again inside the input that the repetition [A-Za-z0-9_.\-/ ]+ at 188:36 in rule name examined; this repeats in the recursion of rule member
 
 ## space (2) -> O75
+192:11 ws: the cost can grow as n^2: after the lookahead at 103:33 in rule ident_only fails, what follows the lookahead !(ws "(") can start again inside the input that the repetition [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n... at 192:11 in rule ws examined; this repeats in the recursion of rule primary
 192:11 ws: the cost can grow as n^3: after an iteration of the repetition at 123:27 in rule message fails, what follows the repetition [A-Za-z0-9_]* (ws "." ws [A-Za-z_] [A... can start again inside the input that the repetition [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n... at 192:11 in rule ws examined; it is evaluated again inside the lookahead at 123:5 in rule message; this repeats in the recursion of rule message
-192:11 ws: the cost can grow as n^3: after the lookahead at 103:33 in rule ident_only fails, what follows the lookahead !(ws "(") can start again inside the input that the repetition [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n... at 192:11 in rule ws examined; it is evaluated again inside the alternative at 92:40 in rule primary; this repeats in the recursion of rule primary
 
 ## nested (19) -> F100
 54:25 expr: the operator part at 54:25 in rule expr is not committing against the operator parts that the enclosing operator parts of expr try again, and units that are not committing are nested in it without bound through a recursion of rule calls

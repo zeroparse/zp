@@ -46,13 +46,6 @@ func triageSmall() []TriageGroup {
 				}, Sizes: doubling(300, 3), Order: Linear},
 				{Name: "external entities and notations", Build: list("<!DOCTYPE r [", "<!ENTITY e%[1]d SYSTEM \"u\" NDATA n><!NOTATION n%[1]d PUBLIC \"p\">", "\n", "]><r/>"), Sizes: doubling(300, 3), Order: Linear},
 			}},
-		{Grammar: "xml", ID: "mixed", Witness: true, Rules: []string{"mixed"}, Pattern: `examined`,
-			Shape:  "a mixed-content declaration fails at its end and the choice alternative starts again at its parenthesis",
-			Assign: "F97", Order: Linear, Families: []TriageFamily{
-				{Name: "long mixed declarations", Build: func(n int) string {
-					return list("<!DOCTYPE r [", "<!ELEMENT e (#PCDATA"+rep(" | a", 20)+")*>", "\n", "]><r/>")(n)
-				}, Sizes: doubling(200, 3), Order: Linear},
-			}},
 
 		// outline
 		{Grammar: "outline", ID: "blank-lines", Witness: true, Rules: []string{"blank"}, Pattern: `examined`,

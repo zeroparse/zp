@@ -29,8 +29,8 @@ func triagePython() []TriageGroup {
 				{Name: "match statements with nested patterns", Build: list("match x:\n", "    case ( a , [ b , c ] , { 'k' : d } ) :\n        pass\n", "", ""), Sizes: doubling(200, 3), Order: Linear},
 				{Name: "try statements with many handlers and blanks", Build: list("try:\n    pass\n", "except E:\n    pass\n   \n", "", ""), Sizes: doubling(300, 3), Order: Linear},
 			}},
-		{Grammar: "python", ID: "tokens", Witness: true, Rules: []string{"ident", "digitpart", "str_body", "raw_bytes_body", "fesc", "lparam"}, Pattern: `examined`,
-			Shape:  "identifier, number, string and escape scans inside token rules, and the copy of a lambda parameter name, that a later alternative or iteration reads again",
+		{Grammar: "python", ID: "tokens", Witness: true, Rules: []string{"ident", "digitpart", "str_body", "raw_bytes_body", "fesc", "lparam", "from_module", "ftext", "fspec_text"}, Pattern: `examined`,
+			Shape:  "identifier, number, string and escape scans inside token rules, the scans of the dotted name of a from import and of the text of an f-string, and the copy of a lambda parameter name, that a later alternative or iteration reads again",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "long attribute chains", Build: func(n int) string { return "x = " + list("a", ".b", "", "")(n) + "\n" }, Sizes: doubling(1000, 3), Order: Linear},
 				{Name: "long numbers", Build: func(n int) string {
@@ -40,6 +40,8 @@ func triagePython() []TriageGroup {
 					return "x = '" + rep("a", n) + "' '''" + rep("b'c", n) + "'''\ny = rb'" + rep("c", n) + "'\n"
 				}, Sizes: doubling(2000, 3), Order: Linear},
 				{Name: "f-string with named escapes", Build: func(n int) string { return "x = f'" + rep("\\N{DASH}", n) + "'\n" }, Sizes: doubling(500, 3), Order: Linear},
+				{Name: "long names in a from import", Build: func(n int) string { return "from " + rep("a", n) + "." + rep("b", n) + " import c\n" }, Sizes: doubling(1000, 3), Order: Linear},
+				{Name: "long f-string text", Build: func(n int) string { return "x = f'" + rep("a", n) + "{b}" + rep("c", n) + "'\n" }, Sizes: doubling(1000, 3), Order: Linear},
 				{Name: "lambda with many parameters", Build: func(n int) string { return "f = lambda " + list("", "a%d", ", ", "")(n) + ": 0\n" }, Sizes: doubling(500, 3), Order: Linear},
 				{Name: "global names and calls", Build: list("", "global "+rep("abc, ", 10)+"d\nf"+rep("g", 30)+"(x for x in y)\n", "", ""), Sizes: doubling(200, 3), Order: Linear},
 			}},

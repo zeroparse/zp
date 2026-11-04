@@ -27,7 +27,7 @@ only on the position and the variables that it reads) is recognized from its bod
 by position. A token layer is not introduced: on the bundled grammars, no overlap that the measurements found needs
 one.
 
-On the bundled grammars, the strict analysis at k = 3 leaves 1314 of the 1437 nested reasons, and 1260 with trivia
+On the bundled grammars, the strict analysis at k = 3 leaves 1315 of the 1437 nested reasons, and 1261 with trivia
 rules; no grammar changes class. Most of what remains is lookahead units, which the analysis leaves to the
 other cases, and units whose continuations reach parts that are not cheap.
 
@@ -217,7 +217,9 @@ symbol or before it. This is the sense in which a linear mode can treat the choi
 ### Units in the Classifier
 
 The classifier uses the strict analysis as one more way of being committing: a unit that the existing cases do not find
-committing is committing when the strict analysis decides it against each of its continuations within k symbols.
+committing is committing when the strict analysis decides it against each of its continuations within k = 3 symbols,
+with the calls of trivia rules passed as described in [Whitespace](#whitespace). The memo of trivia rules and the cut
+prefixes below are off; they exist as test hooks.
 Lookahead units are left to the existing cases. Their expression is abandoned after it succeeds too, so C follows a
 successful U, and the argument above, written for a U that fails, does not cover that case as stated.
 
@@ -375,7 +377,7 @@ it to a comma-separated list of grammar files. The settings are:
 - **base**: the classifier without the analysis;
 - **cut prefixes**: base, with author-written cuts making a unit of the items before them;
 - **k = 2, 3, 4**: decided units with the strict analysis at that bound;
-- **trivia**: k = 3, with the analysis relying on trivia rules.
+- **trivia**: k = 3, with the analysis relying on trivia rules: the setting of the classifier.
 
 ### Decisions of the Language-Level Comparison
 

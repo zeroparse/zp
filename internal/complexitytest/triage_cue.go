@@ -99,17 +99,6 @@ func triageCue() []TriageGroup {
 					return "\"\"\"\n" + rep(ind+"x\n\n", 8) + ind + "\"\"\""
 				}), Sizes: doubling(1000, 3), Order: Linear},
 			}},
-		{Grammar: "cue", ID: "interpolation-lists", Rules: interpRests, Pattern: nestedPattern,
-			Shape:  "the elements of an interpolation built by a right recursion (dq_rest, sq_rest, gsl_rest, gml_rest) whose action concat(list($e, $m), $t) copies the list of the rest at every level",
-			Assign: "M28", Order: Poly(2), Families: []TriageFamily{
-				{Name: "many interpolations", Build: cueField(func(n int) string {
-					return "\"" + list("", "\\(%d) ", "", "")(n) + "\" + '" + list("", "\\(%d) ", "", "")(n) + "'"
-				}), Sizes: doubling(300, 3), Order: Poly(2)},
-				{Name: "many raw interpolations", Build: cueField(func(n int) string { return "#\"" + list("", "\\#(%d) ", "", "")(n) + "\"#" }), Sizes: doubling(300, 3), Order: Poly(2)},
-				{Name: "many multi-line interpolations", Build: cueField(func(n int) string {
-					return "#\"\"\"\n" + list("", "\tx\\#(%d) "+rep("y", 20), "\n", "\n")(n) + "\t\"\"\"#"
-				}), Sizes: doubling(300, 3), Order: Poly(2)},
-			}},
 		{Grammar: "cue", ID: "interpolation-copies", Witness: true, Pattern: `^the cost can grow as n\^2: concat\(list\([^)]*\), \$t\) at [0-9]+:[0-9]+ in rule [a-z_]+ copies \$t, which holds a call on a recursion with rule [a-z_]+$`,
 			Shape:  "the copies of the list of the rest of an interpolation: concat(list($e, $m), $t) in the right recursion of dq_more, sq_more, gsl_more and gml_more copies it at every level, and the rules that start an interpolation copy it once, which the classifier counts alike because the rest is a value on a cycle of such values; the interpolation-lists families measure them",
 			Assign: "M28", Order: Poly(2)},

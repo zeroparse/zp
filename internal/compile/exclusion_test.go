@@ -19,8 +19,10 @@ import (
 // TestDecideAlt checks the comparison of the exclusion analysis on the first choice of rule main:
 // how it counts symbols across shared prefixes and expands calls. It reads the rules as they are
 // written (prepareBaseClassifier), not their normal view, which inlines the calls that the cases
-// count; the other tests of the analysis read the normal view, as ClassifyComplexity does.
+// count; the other tests of the analysis read the normal view, as ClassifyComplexity does. The
+// trivia rules are off, so that the whitespace calls are counted.
 func TestDecideAlt(t *testing.T) {
+	defer exclOff.set()()
 	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\nrule lr = lr \"+\" \"a\" / \"a\"\n"
 	for _, c := range []struct {
 		name, main string
@@ -89,7 +91,7 @@ func TestDecideAlt(t *testing.T) {
 // repeated calls of a trivia rule before the comparison, so only the written form exercises the
 // passing and dropping.
 func TestDecideAltTrivia(t *testing.T) {
-	defer func() { triviaOn, triviaOnly = false, nil }()
+	defer restoreExclusionDefaults()
 	const rules = "var v int = 0\nrule ident = [a-z]+\nrule x = \"x\"\nrule ws = [ ]*\nrule sp = \" \"\n" +
 		"rule ws2 = (sp / \"\\t\")*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n" +
 		"rule wsb = ({v == 0} \" \" {v := 1} / {v == 0} \"\\t\")*\n"
@@ -144,7 +146,7 @@ func TestDecideAltTrivia(t *testing.T) {
 // the strict analysis passes the calls of ws without counting them, and the call of ws before
 // the closing bracket after the one of the separator matches nothing.
 func TestDecidedUnitsTrivia(t *testing.T) {
-	defer func() { decidedUnitsOn, triviaOn = false, false }()
+	defer restoreExclusionDefaults()
 	src := "rule main = value $$\nrule value = \"[\" ws elems? (ws \",\")? ws \"]\" ws / [a-z]+ ws\n" +
 		"rule elems = value (ws \",\" ws value)*\nrule ws = [ ]*\n"
 	decidedUnitsOn = true
@@ -162,7 +164,7 @@ func TestDecidedUnitsTrivia(t *testing.T) {
 // TestTriviaCheap checks that a call of a trivia rule that calls a rule is cheap only where the
 // trivia rules are memoized per position: the second call at a position then costs a memo access.
 func TestTriviaCheap(t *testing.T) {
-	defer func() { triviaOn, triviaMemo = false, false }()
+	defer restoreExclusionDefaults()
 	g, err := syntax.Parse("rule main = ws2 \"x\"\nrule ws2 = (sp)*\nrule sp = \" \"\n")
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +185,7 @@ func TestTriviaCheap(t *testing.T) {
 // TestCollapseTrivia checks that a call of a trivia rule drops the calls of the same rule that
 // follow it across symbols that consume nothing, and only those.
 func TestCollapseTrivia(t *testing.T) {
-	defer func() { triviaOn = false }()
+	defer restoreExclusionDefaults()
 	triviaOn = true
 	g, err := syntax.Parse("rule main = ws ws2 \"x\"\nrule ws = [ ]*\nrule ws2 = [\\t]*\n")
 	if err != nil {
@@ -208,7 +210,7 @@ func TestCollapseTrivia(t *testing.T) {
 // TestCollapseTriviaBinding checks that a binding between two calls of a trivia rule that reads
 // variables keeps the second call: it starts with other variables, so it can match.
 func TestCollapseTriviaBinding(t *testing.T) {
-	defer func() { triviaOn = false }()
+	defer restoreExclusionDefaults()
 	triviaOn = true
 	g, err := syntax.Parse("var v int = 0\nrule main = wv ws \"x\"\nrule wv = ({v == 0} \" \")*\nrule ws = [ ]*\n")
 	if err != nil {
@@ -402,7 +404,7 @@ func TestDecidedUnitsCost(t *testing.T) {
 // is committing with decidedUnitsOn, and that the analysis does not pass a repetition that the
 // continuation scans again.
 func TestDecidedUnits(t *testing.T) {
-	defer func() { decidedUnitsOn = false }()
+	defer restoreExclusionDefaults()
 	const rest = "rule elems = value (\",\" ws value)*\nrule ws = [ ]*\n"
 	for _, c := range []struct {
 		name, src string
@@ -435,32 +437,36 @@ func TestDecidedUnits(t *testing.T) {
 		{"a scanning first alternative of a later lookahead", "rule main = e\nrule e = \"a\" e \"x\" / !(s / \"a\") \"b\" / \"c\"\n" +
 			"rule s = \"a\" [a-z]* \"!\"\n", ClassUnknown, ClassUnknown},
 	} {
-		decidedUnitsOn = false
+		exclOff.set()
 		if got := classifySource(t, c.src).Class; got != c.off {
 			t.Errorf("%s: off: class %v, want %v", c.name, got, c.off)
 		}
-		decidedUnitsOn = true
+		exclHooks{decided: true, k: 3}.set()
 		if got := classifySource(t, c.src).Class; got != c.on {
 			t.Errorf("%s: on: class %v, want %v", c.name, got, c.on)
 		}
 	}
 }
 
-// exclHooks is a setting of the test hooks of the exclusion analysis.
+// exclHooks is a setting of the test hooks of the exclusion analysis. The zero value, with
+// k = 3 (exclOff), is the explicit base without the analysis; the defaults of the classifier are
+// exclHooks{decided: true, trivia: true, k: 3}.
 type exclHooks struct {
 	prefixes, decided bool
 	k                 int
-	trivia            bool
+	trivia, memo      bool
 }
 
-// set sets the hooks and returns a function that restores the defaults.
+// exclOff is the base setting: no decided units, no trivia rules, no memo of trivia rules, and no
+// cut prefixes.
+var exclOff = exclHooks{k: 3}
+
+// set sets every hook and returns a function that restores the defaults.
 func (h exclHooks) set() func() {
+	restoreExclusionDefaults()
 	cutPrefixesOn, decidedUnitsOn, decidedUnitsK = h.prefixes, h.decided, h.k
-	triviaOn = h.trivia
-	return func() {
-		cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, false, 3
-		triviaOn = false
-	}
+	triviaOn, triviaMemo = h.trivia, h.memo
+	return restoreExclusionDefaults
 }
 
 // exclBlocker returns where the strict analysis at maxK stops for the first pair of paths of the
@@ -618,7 +624,7 @@ func TestExclusionReport(t *testing.T) {
 		name string
 		h    exclHooks
 	}{
-		{"base", exclHooks{k: 3}},
+		{"base", exclOff},
 		{"cut prefixes", exclHooks{prefixes: true, k: 3}},
 		{"decided k=2", exclHooks{decided: true, k: 2}},
 		{"decided k=3", exclHooks{decided: true, k: 3}},
@@ -807,15 +813,15 @@ func TestContPathsEnds(t *testing.T) {
 // TestDecidedUnitsOperand checks a unit at the end of an operand that the strict analysis decides
 // against an operator part: "+" ident against the postfix part "+" "-".
 func TestDecidedUnitsOperand(t *testing.T) {
-	defer func() { decidedUnitsOn = false }()
+	defer restoreExclusionDefaults()
 	src := "rule main = e $$\n" +
 		"rule e = #operators {\n  operand atom\n  operand \"(\" e \")\"\n  level post { postfix \"+\" \"-\" }\n}\n" +
 		"rule atom = ident (\"+\" ident \"x\")?\nrule ident = [a-z]+\n"
-	decidedUnitsOn = false
+	exclOff.set()
 	if got := classifySource(t, src).Class; got != ClassPoly {
 		t.Errorf("off: class %v, want %v", got, ClassPoly)
 	}
-	decidedUnitsOn = true
+	exclHooks{decided: true, k: 3}.set()
 	if got := classifySource(t, src).Class; got != ClassLinear {
 		t.Errorf("on: class %v, want %v", got, ClassLinear)
 	}
@@ -937,7 +943,7 @@ func TestCutPrefixes(t *testing.T) {
 // is linear once the trivia rules are memoized per position, and a rule that is not a trivia rule
 // is not memoized by it.
 func TestTriviaMemo(t *testing.T) {
-	defer func() { triviaMemo = false }()
+	defer restoreExclusionDefaults()
 	const nest = "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\n"
 	for _, c := range []struct {
 		name, ws string
@@ -947,7 +953,7 @@ func TestTriviaMemo(t *testing.T) {
 		{"a repetition that must match once", "rule ws = [ ]+\n", ClassPoly, ClassPoly},
 	} {
 		for _, on := range []bool{false, true} {
-			triviaMemo = on
+			exclHooks{decided: true, k: 3, memo: on}.set()
 			want := c.off
 			if on {
 				want = c.on
@@ -963,7 +969,7 @@ func TestTriviaMemo(t *testing.T) {
 // when the final attempts of the rule cost a constant: a comment that scans can scan an
 // unterminated comment again.
 func TestTriviaSettles(t *testing.T) {
-	defer func() { triviaOn = false }()
+	defer restoreExclusionDefaults()
 	triviaOn = true
 	const rules = "rule sp = [ ]*\nrule cm = ([ ] / \"#\" [^\\n]*)*\n"
 	for _, c := range []struct {

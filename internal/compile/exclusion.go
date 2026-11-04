@@ -6,12 +6,12 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
-// This file is a prototype of the exclusion analysis over symbols, reached only from tests. The
-// analysis changes no parser: it shows that a unit and a continuation that evaluate the same
-// symbols from one position part at a symbol that at most one of them can pass. With the strict
-// conditions, the continuation then evaluates again only symbols that are cheap (excl.cheap)
-// before it parts, so the classifier can accept the unit as committing (decidedUnitsOn), and a
-// declared linear mode could treat a choice whose alternatives part this way as decided.
+// This file is the exclusion analysis over symbols, which the classifier uses as a cost argument:
+// it shows that a unit and a continuation that evaluate the same symbols from one position part at
+// a symbol that at most one of them can pass. With the strict conditions, the continuation then
+// evaluates again only symbols that are cheap (excl.cheap) before it parts, so the classifier
+// accepts the unit as committing (decidedUnitsOn), and a declared linear mode could treat a choice
+// whose alternatives part this way as decided. The analysis changes no parser and inserts no cut.
 
 // cutPrefixesOn makes the classifier treat an alternative whose top-level sequence has a #cut
 // after items that can fail as a unit of those items alone: when the alternative fails after the
@@ -19,9 +19,10 @@ import (
 var cutPrefixesOn bool
 
 // decidedUnitsOn makes the classifier accept as committing a unit that the strict exclusion
-// analysis decides against each continuation within decidedUnitsK symbols.
+// analysis decides against each continuation within decidedUnitsK symbols. It is on by default;
+// the variable is a test hook.
 var (
-	decidedUnitsOn bool
+	decidedUnitsOn = true
 	decidedUnitsK  = 3
 )
 

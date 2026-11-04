@@ -1,7 +1,8 @@
 package compile
 
 // ExclusionHooks is a setting of the test hooks of the exclusion analysis, for the tests of
-// package compile_test.
+// package compile_test. The zero value turns the analysis off: the classifier without decided
+// units, trivia rules or the memo of trivia rules.
 type ExclusionHooks struct {
 	Decided, Trivia, Memo bool
 }
@@ -9,10 +10,15 @@ type ExclusionHooks struct {
 // Set sets the hooks, with decided units at k = 3, and returns a function that restores the
 // defaults. The hooks are package variables, so the tests that set them do not run in parallel.
 func (h ExclusionHooks) Set() func() {
-	decidedUnitsOn, decidedUnitsK = h.Decided, 3
+	restoreExclusionDefaults()
+	decidedUnitsOn = h.Decided
 	triviaOn, triviaMemo = h.Trivia, h.Memo
-	return func() {
-		decidedUnitsOn, decidedUnitsK = false, 3
-		triviaOn, triviaMemo = false, false
-	}
+	return restoreExclusionDefaults
+}
+
+// restoreExclusionDefaults sets the hooks of the exclusion analysis to what the classifier uses:
+// decided units at k = 3 and trivia rules on, the memo of trivia rules and cut prefixes off.
+func restoreExclusionDefaults() {
+	cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, true, 3
+	triviaOn, triviaOnly, triviaMemo = true, nil, false
 }
