@@ -373,22 +373,6 @@ transitional op exp.unisolate(m ExpMark) (int, ExpSet)
     // Ends the record that the isolation m started and restores the one set aside; returns the
     // farthest position of the ended record and its expectations.
 
-transitional op exp.merge(far int, s ExpSet)
-  component expected
-  writes expected
-  noreturn
-  cost <= 0
-  contract:
-    // Adds the expectations of s at far to the record.
-
-transitional op exp.mergeKept(far int, k ExpKept)
-  component expected
-  writes expected
-  noreturn
-  cost <= 0
-  contract:
-    // Adds the kept expectations k at far to the record.
-
 transitional op exp.farthest() int
   component expected
   reads expected

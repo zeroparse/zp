@@ -126,10 +126,6 @@ var tsTarget = &exects.Target{
 			return "noExp"
 		case "exp.last":
 			return "this.lastKept"
-		case "exp.merge":
-			return fmt.Sprintf("this.mergeExpected(%s, %sFrom, %sTo)", a[0], a[1], a[1])
-		case "exp.mergeKept":
-			return fmt.Sprintf("this.mergeKept(%s, %s)", a[0], a[1])
 		case "memo.far", "memo.expected", "memo.ok", "memo.end", "memo.silent", "memo.errs":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "memo.")
 		case "memo.value":

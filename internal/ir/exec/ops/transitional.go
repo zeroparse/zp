@@ -147,12 +147,6 @@ position on failure.`})
 		Writes: []string{Exp},
 		Contract: `Ends the record that the isolation m started and restores the one set aside; returns the
 farthest position of the ended record and its expectations.`})
-	add(&exec.Op{Name: "exp.merge", Component: Exp, Params: []exec.Param{exec.P("far", exec.TInt), exec.P("s", set)},
-		Writes: []string{Exp}, NoReturn: true,
-		Contract: `Adds the expectations of s at far to the record.`})
-	add(&exec.Op{Name: "exp.mergeKept", Component: Exp, Params: []exec.Param{exec.P("far", exec.TInt), exec.P("k", kept)},
-		Writes: []string{Exp}, NoReturn: true,
-		Contract: `Adds the kept expectations k at far to the record.`})
 
 	// The operations of recording one expectation.
 	expArg := []exec.Param{exec.P("id", expID)}

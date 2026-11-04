@@ -209,9 +209,20 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "exp.copy":
 		m.lastKept = slices.Clone(args[0].([]string))
 		return []any{m.lastKept}
-	case "exp.merge", "exp.mergeKept":
-		s, _ := args[1].([]string)
-		m.merge(args[0].(int64), s)
+	// The operations of the record that expect and the merges run, in a parse that records.
+	case "exp.farthest":
+		return []any{m.cur.far}
+	case "exp.recording", "exp.maybe":
+		return []any{true}
+	case "exp.reset":
+		m.cur = record{far: args[0].(int64)}
+		return nil
+	case "exp.count":
+		return []any{int64(len(m.cur.exps))}
+	case "exp.at":
+		return []any{m.cur.exps[args[0].(int64)]}
+	case "exp.add":
+		m.cur.exps = append(m.cur.exps, args[0].(string))
 		return nil
 	case "memo.far":
 		return []any{m.exps[entryOf(args[0])].far}

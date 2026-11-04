@@ -98,7 +98,7 @@ func Build() *Module {
 				b.Do("doc.readEntry", e)
 				b.Do("doc.reused")
 			})
-			b.Do("exp.mergeKept", C("memo.far", e), C("memo.expected", e))
+			b.Do("mergeKept", C("memo.far", e), C("memo.expected", e))
 			b.If(Not(C("memo.ok", e)), func(b *Builder) { b.Return(Null(value), BoolC(false)) })
 			b.SetReg(ops.Pos, C("memo.end", e))
 			b.Do("rec.add", C("memo.errs", e))
@@ -143,7 +143,7 @@ func Build() *Module {
 			})
 		})
 		b.Do("ctx.done", c)
-		b.Do("exp.merge", L("far"), L("inner"))
+		b.Do("mergeExpected", L("far"), L("inner"))
 		b.If(Not(L("ok")), func(b *Builder) { b.SetReg(ops.Pos, L("start")) })
 		ret(b)
 	}

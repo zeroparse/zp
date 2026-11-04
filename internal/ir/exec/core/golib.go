@@ -122,7 +122,9 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
-		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep"}
+		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
+		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
+		"mergeKept": "MergeExpected"}
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	rule := func(r string) string { return r }
 	// step passes the value of a growth step as the node or the typed value of growStep.
@@ -131,7 +133,8 @@ func goTarget(s goSpec) *execgo.Target {
 		t.Recv = "p *TParser"
 		handles[ops.Rule], handles[ops.Value], handles[ops.Entry] = "*TRule", "any", "*tmemoEntry"
 		handles[ops.Body] = "func(*TParser) (any, bool)"
-		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep"}
+		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
+			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
 		rule = func(r string) string { return r + ".Rule" }
 		step = func(v string) string { return "nil, " + v }
@@ -226,8 +229,6 @@ func goTarget(s goSpec) *execgo.Target {
 			return "len(" + a[0] + ")"
 		case "exp.keptAt":
 			return a[0] + "[" + a[1] + "]"
-		case "exp.merge", "exp.mergeKept":
-			return fmt.Sprintf("p.MergeExpected(%s, %s)", a[0], a[1])
 		case "memo.far", "memo.expected", "memo.ok", "memo.end", "memo.silent", "memo.errs":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "memo.")
 		case "memo.value":
