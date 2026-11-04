@@ -896,7 +896,9 @@ The conditions below use these terms.
   for the call once for each level. The same holds when the continuation
   reaches the call there after other calls or literals that the two share, as
   `ws` in `e = "(" e? ("x" ws ")")?`, where each level matches `x` again before
-  it scans the same spaces.
+  it scans the same spaces, and in `e = "(" m e? (m ws ")")?` with a memoized
+  `m`, where the memo answers `m` at each level and `ws` scans the spaces
+  again.
 - A unit is **committing** when, for each of its continuations, the first
   characters of the unit and of the continuation are disjoint after the calls
   that the two share are removed from their starts, one after another, each
