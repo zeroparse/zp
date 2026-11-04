@@ -289,9 +289,14 @@ values of a rule's variables for its memo key, and two keys are equal when the h
 *Shared*: scoping, bounds, key equality. *Target*: list or array, shared keys for the initial environment, history
 compaction. *Conformance*: nested scopes, shadowing, long histories, keys of equal and unequal values.
 
-**Capture frames** (`frame.open`, `frame.set`, `frame.mark`, `frame.reset`, `frame.close`). Slots of a rule body and
-a trail of writes that a backtracking point resets. *Shared*: what a reset restores. *Target*: pooling and scratch
-reuse. *Conformance*: nested frames, resets across repetitions.
+**Capture frames** (`frame.open`, `frame.set`, `frame.mark`, `frame.undo`, `frame.save`, `frame.restore`,
+`frame.close`). Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark is the
+position, the environment, the recovered errors and the length of the trail; what a reset restores from it is the
+composition `reset`, and `frame.undo` undoes the writes of the trail after its length, charging one unit for each.
+`frame.save` and `frame.restore` keep the captures of a line across a reset, as the longest operator match needs.
+*Shared*: what a reset restores. *Target*: the representation of a mark (a struct in Go, four numbers in TypeScript),
+pooling and scratch reuse, and whether opening a frame charges for its slots (TypeScript does, within the bound of
+`frame.open`). *Conformance*: nested frames, resets across repetitions.
 
 **Budget** (`charge`). Adds units to the one work budget, checks the limit and, at intervals the target chooses,
 cancellation through a host primitive; it does not return when the parse is interrupted. Charges are never rolled
@@ -315,10 +320,12 @@ shifts a reused result to its new position through a host primitive on nodes; `r
 stays in the composition. *Shared*: validity and the positions after a move. *Target*: side tables, lazy shifting.
 *Conformance*: edit sequences before, inside and after examined ranges, compared with a parse from scratch.
 
-The Operators Rule loop has no operation of its own beyond a longest-operator match on input
-(`operators.longest`): the loop, binding powers, prefix commitment and the application order are composition, which
-is where all three of its core changes landed. Term evaluation and the value model join in a second wave as host
-primitives ([Decisions](#decisions)).
+The Operators Rule loop has no operation of its own: the longest operator match, the loop, binding powers, prefix
+commitment and the application order are composition, which is where all three of its core changes landed. The
+operations it calls read the rule's descriptors (`opr.led`, `opr.level`, `opr.right` and the others), run the grammar
+code of a line (`opr.match`, `opr.skip`), make the values of lines and applications as host primitives
+(`opr.lineValue`, `opr.build`), and hold a match of an operator (`opr.attempt`). Term evaluation and the value model
+join in a second wave as host primitives ([Decisions](#decisions)).
 
 ### Compositions
 
@@ -341,8 +348,9 @@ small state record; a backend that recurses fuses them back into one function.
 ### Cost Contracts
 
 A charge sits either in a composition or inside an operation. A charge in a composition — one per call, per growth
-step, per loop iteration, per Operators Rule application, per expectation compared or merged — is a `budget.charge`
-of the composition, shared and exact on every target; a form specialized without the budget feature leaves it out.
+step, per loop iteration, per operator or operand line an Operators Rule tries, per expectation compared or merged —
+is a `budget.charge` of the composition, shared and exact on every target; a form specialized without the budget
+feature leaves it out.
 A charge inside an operation pays for work whose size depends on the operation's data: scanning an expectation
 record, growing the memo, inspecting input. The specification already lets budget counts depend on the backend and
 the generated artifact as long as they are deterministic ([Cancellation and Budget
@@ -534,7 +542,14 @@ move to Exec IR at once while mechanisms move one at a time.
    target, and the transitional operations that charge declare their cost contracts. The other `…Ordinary`, `…Controlled` and
    `…Spend` variants specialize host primitives — input access, nodes, error text — or belong to the mechanisms of
    stages 6 and 10, and specialize with them.
-6. **Capture frames and the Operators Rule loop.**
+6. **Capture frames and the Operators Rule loop.** The Operators Rule loop (the parse with its nesting count, the
+   loop of binding powers, the prefix and operand start, the longest operator match and the trivia between them)
+   and the reset to a mark are compositions printed into the Go and TypeScript runtimes. The loop charges one unit
+   per operator or operand line it tries on every target, and nothing of its own per iteration: an iteration pays
+   for the operators it tries.
+   Capture writes and the release of a frame (`frame.set`, `frame.close`) are not declared yet: grammar code reaches
+   the runtimes' `SetCapture` and `FreeFrame` through its transitional lowering, and a capture write charges a unit
+   in Go and none in TypeScript.
 7. **Stream commitment** (generated Go).
 8. **Document reuse** (generated Go). Provisional tracking becomes the engine's algorithm ([Decisions](#decisions)).
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
