@@ -444,7 +444,11 @@ by (R4). `[ \t\r\n]+` is such a body.
 the end of a match of `A` examines at most a constant number of characters
 and its outcome depends only on the position and the variables that `A`
 reads. Rules of the shapes of (P2) and (P3) whose `Z` begins with a single
-character test are settled. `s_indent = s:" "* #atomic {len($s) == n}` is
+character test and contains no repetition or call that scans further are
+settled. A `Z` that scans further is not: in
+`ws = ([ \t] / "/*" (!"*/" .)* "*/")*`, a second call at the end of a match
+that stopped before an unterminated comment scans the comment to the end of
+the input again. `s_indent = s:" "* #atomic {len($s) == n}` is
 settled but not idempotent: the second call matches nothing and succeeds only
 when `n` is 0. `[ \t]+ / ^` is settled: after spaces, both alternatives fail
 at once, and after `^` the call can consume spaces, so `A A` is not `A`.
