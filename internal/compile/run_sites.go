@@ -20,7 +20,9 @@ import "zeroparse.dev/zp/grammar"
 //   - every unbounded repetition in its element is a run site, or repeats a single character;
 //   - it does not repeat a single character itself (a scan walks it);
 //   - every rule its element calls, directly or indirectly, is called without a level, is not
-//     left-recursive (a leader or member of a cycle), and contains none of the above.
+//     left-recursive (a leader or member of a cycle), and contains none of the above;
+//   - it is restartable (restartableRepeats): a repetition that no iteration can reach is walked
+//     from each position at most once, so no walk can reuse another's record.
 
 // NoRunSites disables the marking of run sites when a program is compiled, for tests and
 // measurements that compare parses with and without them.
@@ -44,6 +46,11 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 		}, control)
 	}
 	propagate(defs, calls, bad, control)
+	names := make([]string, len(prog.RuleList))
+	for i, r := range prog.RuleList {
+		names[i] = r.Name
+	}
+	restart := restartableRepeats(names, func(n string) grammar.Expr { return prog.ByName[n].Def.Expr }, calls)
 	memo := map[*grammar.Repeat]bool{}
 	var eligible func(e *grammar.Repeat) bool
 	eligible = func(e *grammar.Repeat) bool {
@@ -76,7 +83,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 		control.poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			rep, ok := x.(*grammar.Repeat)
-			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !eligible(rep) || isScan(rep) {
+			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || isScan(rep) {
 				return
 			}
 			prog.NumRunSites++
@@ -118,3 +125,70 @@ func blocksCallee(x grammar.Expr) bool {
 // RunSite returns the number of the run site e, or 0 if e is not one. Numbers follow those of the
 // skip-run sites, so a site's records share the parser's tables with them.
 func (prog *Program) RunSite(e *grammar.Repeat) int { return prog.runSites[e] }
+
+// restartableRepeats returns the repetitions that an iteration of a repetition can reach: those in
+// the element of another repetition that iterates (its maximum is not 0 or 1), and those in a rule
+// that such an element calls, or that calls itself, directly or indirectly. Every other repetition is reached by a
+// derivation once, from the start rule through sequences, choices and calls, so one walk of it
+// starts at each position at most once per environment, and a record could not be reused.
+func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls map[string][]string) map[*grammar.Repeat]bool {
+	out := map[*grammar.Repeat]bool{}
+	iterated := map[string]bool{}
+	var queue []string
+	mark := func(n string) {
+		if !iterated[n] {
+			iterated[n] = true
+			queue = append(queue, n)
+		}
+	}
+	for _, n := range names {
+		WalkExpr(exprOf(n), func(x grammar.Expr) {
+			r, ok := x.(*grammar.Repeat)
+			if !ok || r.Max == 0 || r.Max == 1 {
+				return
+			}
+			WalkExpr(r.Expr, func(y grammar.Expr) {
+				switch y := y.(type) {
+				case *grammar.Repeat:
+					out[y] = true
+				case *grammar.Ref:
+					mark(y.Name)
+				}
+			})
+		})
+	}
+	// A rule that calls itself, directly or through others, repeats as an iteration does: a right
+	// recursion walks the repetitions in its rules from each position its alternatives advance to.
+	for _, n := range names {
+		seen := map[string]bool{}
+		stack := append([]string(nil), calls[n]...)
+		for len(stack) > 0 && !iterated[n] {
+			c := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if c == n {
+				mark(n)
+			} else if !seen[c] {
+				seen[c] = true
+				stack = append(stack, calls[c]...)
+			}
+		}
+	}
+	for len(queue) > 0 {
+		n := queue[len(queue)-1]
+		queue = queue[:len(queue)-1]
+		for _, c := range calls[n] {
+			mark(c)
+		}
+	}
+	for _, n := range names {
+		if !iterated[n] {
+			continue
+		}
+		WalkExpr(exprOf(n), func(x grammar.Expr) {
+			if r, ok := x.(*grammar.Repeat); ok {
+				out[r] = true
+			}
+		})
+	}
+	return out
+}

@@ -21,6 +21,18 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 		return v
 	}
 	k.badRules()
+	if k.runRestart == nil {
+		names := make([]string, len(k.rules))
+		byName := map[string]grammar.Expr{}
+		for i, r := range k.rules {
+			names[i] = r.Name
+			byName[r.Name] = r.Expr
+		}
+		k.runRestart = restartableRepeats(names, func(n string) grammar.Expr { return byName[n] }, k.calls)
+	}
+	if !k.runRestart[e] {
+		return false
+	}
 	ok := true
 	WalkExpr(e.Expr, func(x grammar.Expr) {
 		if !ok {

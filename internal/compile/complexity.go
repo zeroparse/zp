@@ -234,6 +234,7 @@ type classifier struct {
 	predicateSource map[*grammar.Predicate]*source
 	repeatedRules   map[string]string
 	runMemo         map[*grammar.Repeat]bool
+	runRestart      map[*grammar.Repeat]bool
 	runBad          map[string]bool
 	includesMemo    map[sizeKey]bool
 	sizes           sizeMemo              // the size degrees of the values of rules (complexity_sizes.go)

@@ -176,6 +176,28 @@ func TestRunSitesAreMarked(t *testing.T) {
 	}
 }
 
+// TestRunSitesAreRestartable checks which repetitions are marked: a repetition that no iteration
+// reaches is reached once by a derivation and is not a site, and one in the element of another
+// repetition, in a rule that element calls, or in a rule that calls itself is.
+func TestRunSitesAreRestartable(t *testing.T) {
+	for _, c := range []struct {
+		name, src string
+		sites     int
+	}{
+		{"a list parsed once", "rule main = item* $$\nrule item = \"a\"", 0},
+		{"a list in a called rule", "rule main = list $$\nrule list = \"(\" item* \")\"\nrule item = \"a\"", 0},
+		{"a list in a bounded repetition", "rule main = (\"(\" item* \")\") #repeat(0, 1) $$\nrule item = \"a\"", 0},
+		{"a list in the element of a repetition", "rule main = (\"(\" item* \")\")* $$\nrule item = \"a\"", 1},
+		{"a repetition inside a repetition", "rule main = (item+)* $$\nrule item = \"a\" \"b\"", 1},
+		{"a list in a rule that an iteration calls", "rule main = group* $$\nrule group = \"(\" item* \")\"\nrule item = \"a\"", 1},
+		{"a list in a right recursion", "rule main = t $$\nrule t = \"(\" item* \")\" t / \"\"\nrule item = \"a\"", 1},
+	} {
+		if n := mustCompile(t, c.src).NumRunSites; n != c.sites {
+			t.Errorf("%s: %d run sites, want %d", c.name, n, c.sites)
+		}
+	}
+}
+
 // TestRunSitesReuseRecords checks that the records of run sites are reused on every backend: a
 // parse that restarts a scan at each position of the input fits a budget that is linear in the
 // input with records, and exceeds it without them.
@@ -219,7 +241,7 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 		plain := mustCompile(t, c.Src)
 		compile.NoRunSites = false
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 100 * uint64(len(c.Input))}}
+			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 150 * uint64(len(c.Input))}}
 			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, limits.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
 			}

@@ -516,6 +516,8 @@ type repState struct {
 	run             *core.RunState // the run being recorded in a Document parse, or nil
 	skip            bool           // a skip-run site (SKIPREPEAT) or a run site whose walk has begun
 	build           bool           // a run site whose walk gathers the element values
+	cold            bool           // a run site that is not hot: an ordinary repetition until its end
+	coldStart, site int            // where the walk of a cold run site began, and its number
 }
 
 func (mc *Machine) save() vmSave {
@@ -812,12 +814,17 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				ip = int(in.A)
 				continue
 			}
-			if in.C > 0 && !rep.skip && rep.count == 0 && rep.run == nil {
-				// The first iteration of a run site that a Document does not resume begins its walk.
-				rep.skip, rep.build = true, in.B == 1
-				if rep.build {
+			if in.C > 0 && !rep.skip && !rep.cold && rep.count == 0 && rep.run == nil {
+				// The first iteration of a run site that a Document does not resume begins its walk
+				// if the site is hot, and is an ordinary repetition until it ends if not.
+				switch {
+				case !p.RunHot(int(in.C)):
+					rep.cold, rep.coldStart, rep.site = true, p.Pos, int(in.C)
+				case in.B == 1:
+					rep.skip, rep.build = true, true
 					p.SkipBeginList(int(in.C))
-				} else {
+				default:
+					rep.skip = true
 					p.SkipBegin(int(in.C))
 				}
 			}
@@ -922,6 +929,9 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			if rep.count < rep.min {
 				goto fail
+			}
+			if rep.cold && p.Pos-rep.coldStart >= core.RunHotSpan {
+				p.RunWalked(rep.site, rep.coldStart)
 			}
 			if rep.run != nil {
 				p.FinishRun(rep.run)

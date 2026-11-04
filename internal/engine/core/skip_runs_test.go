@@ -148,3 +148,59 @@ func TestSkipRunsShareElements(t *testing.T) {
 		t.Fatalf("a walk without elements of its own copies its tail")
 	}
 }
+
+// TestRunSiteTurnsHotOnRestart checks that a run site keeps no state but the span of its last walk
+// until a walk begins inside that span and walks RunHotSpan of it again, and then turns hot, for the lookahead state of the site
+// separately: nested walks (inner before outer), walks that follow each other and walks apart do
+// not turn it hot.
+func TestRunSiteTurnsHotOnRestart(t *testing.T) {
+	walked := func(p *Parser, site, start, end int) {
+		t.Helper()
+		if p.RunHot(site) {
+			t.Fatalf("site %d is hot before the walk from %d", site, start)
+		}
+		p.Pos = end
+		p.RunWalked(site, start)
+	}
+	p := &Parser{}
+	walked(p, 1, 10, 12) // an inner walk
+	walked(p, 1, 4, 20)  // the outer walk that contains it, begun before it
+	walked(p, 1, 20, 30) // begins where the last ended
+	walked(p, 1, 40, 40) // empty, apart
+	walked(p, 1, 50, 60)
+	if p.RunHot(1) || len(p.skipTables) != 0 || len(p.skips) != 0 {
+		t.Fatalf("walks that do not overlap keep state: hot %v, tables %d", p.RunHot(1), len(p.skipTables))
+	}
+	p.Silent++
+	walked(p, 1, 51, 55) // another state of the site has its own span
+	if p.RunHot(1) {
+		t.Fatal("a walk in a lookahead turned the site hot through the walks outside it")
+	}
+	p.Silent--
+	walked(p, 1, 55, 70)
+	p.Pos = 75
+	p.RunWalked(1, 60) // begins inside the last walk, and walks 15 again
+	if p.RunHot(1) {
+		t.Fatal("a short restart turned the site hot")
+	}
+	p.Pos = 200
+	p.RunWalked(1, 70) // begins inside the last walk (60 to 75), which ends at 75: walks 5 again
+	if p.RunHot(1) {
+		t.Fatal("a restart that walks less than RunHotSpan again turned the site hot")
+	}
+	p.RunWalked(1, 80) // begins after the last walk (70 to 200 now ends at 200); walks 120 again
+	if !p.RunHot(1) {
+		t.Fatal("restarts that walk RunHotSpan again did not turn the site hot")
+	}
+	if p.Silent = 1; p.RunHot(1) {
+		t.Fatal("the site turned hot in the lookahead state too")
+	}
+	p.Silent = 0
+	p.Missing = &MissingTokenState{}
+	walked(p, 2, 0, 200)
+	p.Pos = 300
+	p.RunWalked(2, 100)
+	if p.RunHot(2) {
+		t.Fatal("a site turned hot with missing-token insertion")
+	}
+}

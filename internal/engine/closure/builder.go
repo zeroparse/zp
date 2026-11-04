@@ -591,18 +591,10 @@ func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compil
 }
 
 func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule, run int) core.Matcher {
+	// A run site walks as a plain repetition until its walks overlap, and keeps records after.
+	var hot core.Matcher
 	if run != 0 {
-		walk := b.runRepeat(e, m, elemScope, ownScope, build, run)
-		if site == 0 {
-			return walk
-		}
-		rs := &core.RunSite{Id: site, M: m, Scope: elemScope, OwnScope: ownScope, Build: build, Min: e.Min, Max: e.Max, Shiftable: shiftable, Value: scopeValueOf(b.prog, e.Expr)}
-		return func(p *core.Parser) (*value.Node, bool) {
-			if p.Runs != nil && p.Silent == 0 {
-				return p.ResumeRepeat(rs)
-			}
-			return walk(p)
-		}
+		hot = b.runRepeat(e, m, elemScope, ownScope, build, run)
 	}
 	min, max := e.Min, e.Max
 	elemValue := scopeValueOf(b.prog, e.Expr)
@@ -615,6 +607,9 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 	return func(p *core.Parser) (*value.Node, bool) {
 		if rs != nil && p.Runs != nil && p.Silent == 0 {
 			return p.ResumeRepeat(rs)
+		}
+		if run != 0 && p.RunHot(run) {
+			return hot(p)
 		}
 		start := p.Pos
 		base := len(p.KidStack) // collect the element values
@@ -677,6 +672,9 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 		if count < min {
 			p.Kids(base)
 			return nil, false
+		}
+		if run != 0 && p.Pos-start >= core.RunHotSpan {
+			p.RunWalked(run, start)
 		}
 		if !build {
 			return nil, true

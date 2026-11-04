@@ -237,6 +237,63 @@ type skipWalk struct {
 // walk returns the walk in use, the innermost one in progress.
 func (p *Parser) walk() *skipWalk { return &p.skips[p.skipN-1] }
 
+// RunHotSpan is the length of input that a walk of a run site may walk again, from a position that
+// the walk before it passed, before the site turns hot. A walk shorter than that neither turns a
+// site hot nor can be walked again that far, so a caller need not pass it to RunWalked.
+const RunHotSpan = 64
+
+// runCold is the state of a run site (and lookahead state) before it keeps records: the span of its
+// last walk that RunWalked was told of (the engine tells it of walks of RunHotSpan or more). A site
+// turns hot when a walk begins inside that span and walks RunHotSpan or more of it again. Only a
+// hot site pays for records: a run site whose walks never overlap, as in a list parsed once, costs
+// a constant for each walk and allocates nothing, and one whose walks overlap only a little walks
+// at most RunHotSpan again in each, so its cost stays linear.
+type runCold struct {
+	start, end int
+	seen, hot  bool
+}
+
+func (p *Parser) runIndex(site int) int {
+	if p.Silent > 0 {
+		return 2*site + 1
+	}
+	return 2 * site
+}
+
+// RunHot reports whether the walks of the run site keep records. A site turns hot only through
+// RunWalked, which does nothing when records are off or the parse inserts missing tokens. A walk of
+// a site that is not hot is an ordinary repetition, whose end the caller passes to RunWalked.
+func (p *Parser) RunHot(site int) bool {
+	i := 2 * site
+	if p.Silent > 0 {
+		i++
+	}
+	return i < len(p.runCold) && p.runCold[i].hot
+}
+
+// RunWalked ends the walk of a run site that was not hot, which began at start and ended at the
+// current position. A walk that began at a position that the last walk of the site passed walks
+// input again, and the site turns hot when it walks RunHotSpan of it again.
+func (p *Parser) RunWalked(site, start int) {
+	if SkipRecordsOff || p.Missing != nil {
+		return
+	}
+	i := p.runIndex(site)
+	if i >= len(p.runCold) {
+		// One table for all the sites: grown to twice the index, it is made once for most programs.
+		grown := make([]runCold, max(16, 2*(i+1)))
+		copy(grown, p.runCold)
+		p.runCold = grown
+	}
+	c := &p.runCold[i]
+	if c.seen && start >= c.start && start < c.end {
+		if min(p.Pos, c.end)-start >= RunHotSpan {
+			c.hot = true
+		}
+	}
+	c.start, c.end, c.seen = start, p.Pos, true
+}
+
 // SkipBegin starts a walk of the site at the current position.
 func (p *Parser) SkipBegin(site int) { p.skipBegin(site, false) }
 

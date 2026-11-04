@@ -567,7 +567,13 @@ repetition for which all of the following hold:
   repeats a single character;
 - every rule its expression calls, directly or indirectly, is called without a
   level, is not in a left-recursion cycle and contains no `#stream`,
-  `#missing`, `#error` or `#diagnostic`.
+  `#missing`, `#error` or `#diagnostic`;
+- it is restartable: it is in the expression of another repetition whose
+  maximum is neither 0 nor 1, or in a rule that such an expression calls,
+  directly or indirectly, or in a rule that calls itself, directly or
+  indirectly. Any other repetition is reached once by a derivation through
+  sequences, alternatives and calls, so a walk of it begins at each position
+  at most once per environment and no walk could reuse the record of another.
 
 The result of the rest of a walk from a position is a function of the
 position, the variables and the input: an iteration reads the variables that
@@ -593,6 +599,14 @@ Besides what a record of a skip-run site holds, it holds
   record are final: no later step of the parse changes them;
 - the errors that the rest of the walk recovered: a walk that reuses the
   record recovers them again, as a memoized result does.
+
+An implementation may keep records only once the walks of a site have shown
+that they restart: a walk that begins at a position that the previous walk of
+the site passed, and walks a constant length of input again. Until then the
+site is an ordinary repetition, for which a walk walks at most that constant
+length again, so the cost of a walk stays a constant outside its iterations.
+A site whose walks never overlap, as a list that a parse reads once, then keeps
+nothing.
 
 The walks of run sites nest: the expression of a site can call rules that walk
 sites of their own, and the walks in progress are a stack. Records never

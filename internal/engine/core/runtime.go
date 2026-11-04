@@ -181,6 +181,8 @@ type Parser struct {
 	skipTables []*skipSlots
 	skips      []skipWalk
 	skipN      int
+	// runCold holds what the walks of each run site did before the site turned hot (skip_runs.go).
+	runCold []runCold
 	// skipBytes counts the bytes of the element buffers and error lists of the skip-run records.
 	skipBytes uint64
 	// Scratch holds the pooled buffers the parser uses (AcquirePooledParser), or nil.

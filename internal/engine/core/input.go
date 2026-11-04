@@ -304,6 +304,7 @@ type scratch struct {
 	bytes []byte
 	memo  MemoTable
 	kids  []*value.Node
+	cold  []runCold
 }
 
 // MaxScratch is the size, in elements, beyond which a buffer is not kept for later parses.
@@ -316,7 +317,7 @@ func AcquirePooledParser(prog *SharedProgram) *Parser {
 	if sc == nil {
 		sc = &scratch{}
 	}
-	p := &Parser{Prog: prog, Memo: &sc.memo, MaxDepth: DefaultMaxDepth, KidStack: sc.kids[:0]}
+	p := &Parser{Prog: prog, Memo: &sc.memo, MaxDepth: DefaultMaxDepth, KidStack: sc.kids[:0], runCold: sc.cold}
 	p.Scratch = sc
 	return p
 }
@@ -343,6 +344,12 @@ func (p *Parser) ReleaseScratch() {
 		sc.kids = p.KidStack[:0]
 	} else {
 		sc.kids = nil
+	}
+	if cap(p.runCold) <= MaxScratch {
+		clear(p.runCold)
+		sc.cold = p.runCold
+	} else {
+		sc.cold = nil
 	}
 	if !sc.memo.Reset() {
 		sc.memo = MemoTable{}
