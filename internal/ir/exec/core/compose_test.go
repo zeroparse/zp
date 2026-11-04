@@ -55,7 +55,7 @@ type machine struct {
 	// docMemo tells whether a Document parse memoizes the rules (rule.docMemo).
 	docMemo bool
 	// docActive tells whether the parse reads a Document (doc.active); examined holds what each
-	// entry records (memo.recordDoc); reused counts the reused entries (doc.reused).
+	// entry records (memo.examine); reused counts the reused entries (doc.reused).
 	docActive, obsActive bool
 	examined             map[*ref.Entry]int64
 	reused               int
@@ -265,10 +265,10 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "doc.touch":
 		m.high = max(m.high, args[0].(int64))
 		return nil
-	case "doc.readEntry":
-		e := entryOf(args[0])
-		m.high = max(m.high, m.examined[e])
-		return nil
+	case "doc.high":
+		return []any{m.high}
+	case "memo.examined":
+		return []any{m.examined[entryOf(args[0])]}
 	case "doc.reused":
 		m.reused++
 		return nil
@@ -282,8 +282,8 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "rule.run":
 		return args[0].(*trule).Call(m)
-	case "memo.recordDoc":
-		m.examined[entryOf(args[0])] = m.high
+	case "memo.examine":
+		m.examined[entryOf(args[0])] = args[1].(int64)
 		return nil
 	case "call.body":
 		r := args[0].(*trule)

@@ -93,7 +93,7 @@ func Build() *Module {
 		b.If(reusable, func(b *Builder) {
 			b.If(F(ops.Observe), func(b *Builder) { b.Do("obs.memoHit") })
 			inDocument(b, doc, func(b *Builder) {
-				b.Do("doc.readEntry", e)
+				b.Do("doc.touch", C("memo.examined", e))
 				b.Do("doc.reused")
 			})
 			b.Do("mergeKept", C("memo.far", e), C("memo.expected", e))
@@ -133,7 +133,7 @@ func Build() *Module {
 				L("v"), C("rec.since", L("rec"))))
 			b.Do("memo.setPresent", entry, c)
 			b.Do("memo.setExpected", entry, L("far"), L("kept"))
-			inDocument(b, doc, func(b *Builder) { b.Do("memo.recordDoc", entry) })
+			inDocument(b, doc, func(b *Builder) { b.Do("memo.examine", entry, C("doc.high")) })
 		}, func(b *Builder) {
 			b.If(Eq(L("store"), C("ctx.storeCtx")), func(b *Builder) {
 				b.Do("ctx.keep", c, r, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent, L("v"),

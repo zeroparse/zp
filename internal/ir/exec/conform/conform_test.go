@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "seen.first",
+var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "memo.examine", "memo.examined", "memo.splice", "seen.first",
 	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current"}
 
 // modelImpl is the reference model run as an implementation: every case must pass on it.
@@ -86,6 +86,9 @@ func TestMutantsFail(t *testing.T) {
 		}},
 		"prune removes the entries at its position": {op: "memo.prune", edit: func(m *ref.Model, a []any) []any {
 			return m.Call(Module().Op("memo.prune"), []any{a[0].(int64) + 1})
+		}},
+		"splice keeps an entry that examined the edit's position": {op: "memo.splice", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("memo.splice"), []any{a[0].(int64) + 1})
 		}},
 		"budget charges one unit less": {op: "budget.charge", edit: func(m *ref.Model, a []any) []any {
 			n := a[0].(uint64)

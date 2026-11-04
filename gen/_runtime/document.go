@@ -12,7 +12,7 @@ import (
 type Document struct {
 	State     *documentState
 	defaults  parseOptions
-	typedMemo interface{ invalidate(int) }
+	typedMemo interface{ splice(start int) }
 	// parsing is set while a parse runs, whose observation callbacks must not
 	// parse or edit the Document again (BeginParse).
 	parsing bool
@@ -80,7 +80,7 @@ func (d *Document) Edit(start, end int, text string) error {
 		return err
 	}
 	if d.typedMemo != nil {
-		d.typedMemo.invalidate(reuse)
+		d.typedMemo.splice(reuse)
 	}
 	return nil
 }
@@ -240,9 +240,10 @@ func (d *documentState) edit(start, end int, replacement string) error {
 	return err
 }
 
-// editReuse applies an edit and returns the position before which memo
-// results remain valid.
-func (d *documentState) editReuse(start, end int, replacement string) (int, error) {
+// editReuse applies an edit to the text and the memo (memo.splice) and returns reuse, the position
+// where the edit starts as the memo sees it: before start when the edit can change how the input
+// before start decodes.
+func (d *documentState) editReuse(start, end int, replacement string) (reuse int, err error) {
 	length := len(d.text)
 	if d.unit != Bytes {
 		length = utf8.RuneCountInString(d.text)
@@ -266,7 +267,7 @@ func (d *documentState) editReuse(start, end int, replacement string) (int, erro
 	// turning invalid bytes, each a separate character, into one character.
 	// Such a sequence has at most UTFMax-1 bytes, each one position in either
 	// unit, so results that examined them are not retained.
-	reuse := start
+	reuse = start
 	for i := 0; i < utf8.UTFMax-1 && i < startByte; i++ {
 		if r, size := utf8.DecodeLastRuneInString(d.text[:startByte-i]); r != utf8.RuneError || size != 1 {
 			break
@@ -274,14 +275,21 @@ func (d *documentState) editReuse(start, end int, replacement string) (int, erro
 		reuse--
 	}
 
-	// Retain only entries wholly before the edit. This intentionally does not
-	// shift suffix entries; that optimization needs shared-node movement and
-	// positional-value invalidation. A retained entry's input and positions
-	// are unchanged, and a future parse can still reuse it.
+	// Build the replacement before changing either text or memo. Invalid UTF-8
+	// bytes are preserved, and a replacement may complete an existing prefix.
+	d.text = d.text[:startByte] + replacement + d.text[endByte:]
+	d.memo.splice(reuse)
+	return reuse, nil
+}
+
+// splice applies an edit of the input at start (memo.splice): it keeps only the entries whose
+// recorded examined end is at most start, at their positions, copied into a new table. This does not
+// shift the entries after the edit; that needs shared-node movement and positional-value invalidation.
+func (t *memoTable) splice(start int) {
 	var kept memoTable
-	for pos := 0; pos < len(d.memo.slots) && pos < reuse; pos++ {
-		for e := d.memo.slots[pos]; e != nil; e = e.next {
-			if e.examined > reuse {
+	for pos := 0; pos < len(t.slots) && pos < start; pos++ {
+		for e := t.slots[pos]; e != nil; e = e.next {
+			if e.examined == 0 || e.examined > start {
 				continue
 			}
 			copyEntry := kept.alloc()
@@ -290,11 +298,7 @@ func (d *documentState) editReuse(start, end int, replacement string) (int, erro
 			kept.put(int(e.rule), pos, int(e.min), e.env, copyEntry)
 		}
 	}
-	// Build the replacement before changing either text or memo. Invalid UTF-8
-	// bytes are preserved, and a replacement may complete an existing prefix.
-	next := d.text[:startByte] + replacement + d.text[endByte:]
-	d.text, d.memo = next, kept
-	return reuse, nil
+	*t = kept
 }
 
 func documentByteOffset(text string, index int) int {

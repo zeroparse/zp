@@ -25,6 +25,10 @@ func referenceInvalidate(d *typedDocumentState, start int) ([][]int32, map[int32
 			meta[out] = m
 		}
 	}
+	// The table ends after the last position that keeps an entry.
+	for len(kept) > 0 && kept[len(kept)-1] == nil {
+		kept = kept[:len(kept)-1]
+	}
 	ids := make([][]int32, len(kept))
 	byID := make(map[int32]typedDocumentMeta)
 	for pos, head := range kept {
@@ -83,10 +87,9 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 		ref := build()
 		wantIDs, wantMeta := referenceInvalidate(ref, start)
 		got := build()
-		got.invalidate(start)
+		got.splice(start)
 		gotIDs, gotMeta, metaLen := inPlaceResult(got)
-		kept := min(start, n)
-		if len(gotIDs) != kept || !reflect.DeepEqual(gotIDs[:kept], wantIDs) {
+		if !reflect.DeepEqual(gotIDs, wantIDs) {
 			t.Fatalf("round %d start %d: chains %v, want %v", round, start, gotIDs, wantIDs)
 		}
 		if !reflect.DeepEqual(gotMeta, wantMeta) {
@@ -95,8 +98,10 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 		if metaLen != len(wantMeta) {
 			t.Fatalf("round %d start %d: %d metadata entries kept, want %d", round, start, metaLen, len(wantMeta))
 		}
-		if cap(got.slots) > kept && got.slots[:cap(got.slots)][kept] != nil {
-			t.Fatalf("round %d start %d: stale chain beyond the kept length", round, start)
+		for pos, head := range got.slots[len(got.slots):min(start+1, n, cap(got.slots))] {
+			if head != nil {
+				t.Fatalf("round %d start %d: stale chain at %d beyond the kept length", round, start, len(got.slots)+pos)
+			}
 		}
 	}
 }

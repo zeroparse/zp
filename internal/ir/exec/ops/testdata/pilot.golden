@@ -86,6 +86,41 @@ op memo.floor() int
     // Returns the floor of the memo: 0 at the start of a parse, then the position of the last
     // memo.prune.
 
+op memo.examine(e Entry, end int)
+  component memo
+  reads memo
+  writes memo
+  features document
+  cost <= 0
+  contract:
+    // Records with entry e that the call which computed it examined the input before end, for
+    // the reuse of e after an edit (memo.splice).
+  requires:
+    // end is greater than the position of e.
+
+op memo.examined(e Entry) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the end that memo.examine recorded with entry e, or 0 if none was recorded.
+
+op memo.splice(start int)
+  component memo
+  reads memo
+  writes memo
+  features document
+  cost <= 0
+  contract:
+    // Applies an edit of the input at start. An entry stays valid only if its examined end was
+    // recorded and is at most start: the edit changed none of the input its call examined. The other entries,
+    // those at or after start included, are removed. The kept entries stay at their positions with their
+    // attributes, but the handles of all entries from before the edit are no longer valid: a target may copy
+    // the kept entries.
+  requires:
+    // start >= 0.
+
 op memo.ok(e Entry) bool
   component memo
   reads memo

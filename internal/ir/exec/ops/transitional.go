@@ -241,9 +241,6 @@ and the memory it takes as the target accounts it.`})
 	add(&exec.Op{Name: "memo.setExpected", Component: Memo, Params: append(entryArg, exec.P("far", exec.TInt), exec.P("k", kept)),
 		Writes:   []string{Memo},
 		Contract: `Records the expectations k at far of the call that computed entry e.`})
-	add(&exec.Op{Name: "memo.recordDoc", Component: Memo, Params: entryArg, Reads: []string{Call}, Writes: []string{Memo},
-		Features: []string{Document}, Contract: `Records with the entry the examined frontier of the current call, for the
-reuse of the entry (doc.readEntry).`})
 	add(&exec.Op{Name: "memo.forgetDoc", Component: Memo, Params: entryArg, Writes: []string{Memo}, Features: []string{Document},
 		Contract: `Forgets the Document record of the entry e, which the call replaces, where the target keeps
 the records beside the entries.`})
@@ -370,10 +367,9 @@ and the call's.`,
 	add(&exec.Op{Name: "doc.touch", Component: Call, Params: []exec.Param{exec.P("end", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
 		Contract: `Extends the examined frontier of the current call to end, if end is past it.`})
-	add(&exec.Op{Name: "doc.readEntry", Component: Call, Params: entryArg, Reads: []string{Call, Memo}, Writes: []string{Call},
-		Features: doc,
-		Contract: `Records that the current call read the entry e: extends its examined frontier to the one recorded
-with e.`, Requires: `The parse reads a Document, and e has a record (memo.recordDoc).`})
+	add(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+		Features: doc, Contract: `Returns the examined frontier of the current call: the end of the input it examined
+so far, exclusive.`, Requires: inDoc})
 	add(&exec.Op{Name: "doc.reused", Component: Call, Writes: []string{Call}, Features: doc,
 		Contract: `Counts a reused memo entry in the statistics of the Document.`, Requires: inDoc})
 	add(&exec.Op{Name: "doc.evaluated", Component: Call, Writes: []string{Call}, Features: doc,

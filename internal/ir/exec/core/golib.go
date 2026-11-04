@@ -375,22 +375,24 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.Document != nil"
 		case "doc.touch":
 			return "p.documentTouch(" + a[0] + ")"
-		case "doc.readEntry":
+		case "doc.high":
+			return "p.docHigh"
+		case "memo.examined":
 			if typed {
-				return fmt.Sprintf("meta := p.TypedDocument.meta[%s]\np.documentTouch(meta.examined)", a[0])
+				return "p.TypedDocument.meta[" + a[0] + "].examined"
 			}
-			return fmt.Sprintf("p.documentTouch(%s.examined)", a[0])
+			return a[0] + ".examined"
 		case "doc.evaluated":
 			return "p.Document.stats.Evaluated++"
 		case "memo.forgetDoc":
 			return "delete(p.TypedDocument.meta, " + a[0] + ")"
 		case "doc.reused":
 			return "p.Document.stats.Reused++"
-		case "memo.recordDoc":
+		case "memo.examine":
 			if typed {
-				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: p.docHigh}"
+				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[1] + "}"
 			}
-			return a[0] + ".examined = p.docHigh"
+			return a[0] + ".examined = " + a[1]
 		case "call.body":
 			return fmt.Sprintf("p.%s(%s, %s)", s.body, a[0], a[1])
 		case "ctx.found":

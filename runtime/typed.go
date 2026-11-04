@@ -1145,11 +1145,11 @@ type typedDocumentMeta struct {
 	examined int
 }
 
-// invalidate drops the memo entries that an edit at start can change, relinking the chains in place.
-// No parse runs during an edit (Document.parsing rejects it), and results hold values, not memo entries
-// or chains, so no TParser or result refers to the chains while they change. Entries whose examined frontier reaches
-// start are dropped, as are all entries from start onward.
-func (d *typedDocumentState) invalidate(start int) {
+// splice applies an edit of the input at start (memo.splice), relinking the chains in place. No parse runs during an edit (Document.parsing rejects
+// it), and results hold values, not memo entries or chains, so no TParser or result refers to the
+// chains while they change. Entries whose examined frontier reaches past start are dropped, as are
+// all entries from start onward, and the table ends after the last position that keeps one.
+func (d *typedDocumentState) splice(start int) {
 	kept := min(start, len(d.slots))
 	for pos := kept; pos < len(d.slots); pos++ {
 		for e := d.slots[pos]; e != nil; e = e.next {
@@ -1168,6 +1168,10 @@ func (d *typedDocumentState) invalidate(start int) {
 			delete(d.meta, e)
 			*link = e.next
 		}
+	}
+	// The table ends after the last position that keeps an entry, as a table built anew does.
+	for kept > 0 && d.slots[kept-1] == nil {
+		kept--
 	}
 	d.slots = d.slots[:kept]
 }

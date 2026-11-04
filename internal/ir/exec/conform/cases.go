@@ -21,7 +21,7 @@ func Cases() []Case {
 	m := Module()
 	var cs []Case
 	add := func(name string, cfg ref.Config, body func(b *exec.Builder)) {
-		cs = append(cs, Case{Module: m, Func: m.AddFunc(name, nil, nil, []string{"budget", "stream"}, body), Config: cfg})
+		cs = append(cs, Case{Module: m, Func: m.AddFunc(name, nil, nil, []string{"budget", "stream", "document"}, body), Config: cfg})
 	}
 	vals := func(id int64) exec.Expr { return exec.C(ValuesOp, exec.Int(id)) }
 	key := func(rule, pos, level, id int64) []exec.Expr {
@@ -106,6 +106,35 @@ func Cases() []Case {
 		b.Assert(f, "the memo stores at its floor again")
 	})
 
+	add("memo_splice", ref.Config{}, func(b *exec.Builder) {
+		// Entries at 0, 2, 3, 4 and 6 that examined the input up to 3, 4, 5, 7 and 9.
+		for _, x := range [][2]int64{{0, 3}, {2, 4}, {3, 5}, {4, 7}, {6, 9}} {
+			e := store(b, fmt.Sprint("s", x[0]), key(1, x[0], 0, 7), true, x[0]+1)
+			b.Do("memo.examine", e, exec.Int(x[1]))
+		}
+		b.Assert(exec.Eq(exec.C("memo.examined", exec.L("s4")), exec.Int(7)), "an entry keeps its examined end")
+		unexamined := store(b, "u", key(2, 1, 0, 7), true, 2)
+		b.Assert(exec.Eq(exec.C("memo.examined", unexamined), exec.Int(0)), "an entry without a record has examined end 0")
+		b.Do("memo.splice", exec.Int(4))
+		for _, x := range [][2]int64{{0, 1}, {2, 3}} {
+			e, f := lookup(b, fmt.Sprint("k", x[0]), fmt.Sprint("kf", x[0]), key(1, x[0], 0, 7))
+			b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e), exec.Int(x[1]))), "an entry that examined only input before the edit stays")
+		}
+		b.Assert(exec.Eq(exec.C("memo.examined", exec.L("k2")), exec.Int(4)), "a kept entry keeps its examined end")
+		for _, pos := range []int64{3, 4, 6} {
+			_, f := lookup(b, fmt.Sprint("d", pos), fmt.Sprint("df", pos), key(1, pos, 0, 7))
+			b.Assert(exec.Not(f), "an entry that examined input at or after the edit is removed")
+		}
+		_, f := lookup(b, "ug", "uf", key(2, 1, 0, 7))
+		b.Assert(exec.Not(f), "an entry without an examined record is removed")
+		b.Do("memo.splice", exec.Int(0))
+		_, f = lookup(b, "z", "zf", key(1, 0, 0, 7))
+		b.Assert(exec.Not(f), "an edit at 0 removes every entry")
+		e := store(b, "again", key(1, 0, 0, 7), true, 1)
+		got, f := lookup(b, "againGot", "af", key(1, 0, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(got, e)), "the memo stores after an edit")
+	})
+
 	add("seen_first_and_repeat", ref.Config{Rules: 3}, func(b *exec.Builder) {
 		b.Assert(exec.C("seen.first", exec.Int(0), exec.Int(10)), "the first call at a position is deferred")
 		b.Assert(exec.C("seen.first", exec.Int(1), exec.Int(10)), "rules are recorded separately")
@@ -177,7 +206,7 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 		ref  *ref.Entry
 	}
 	var entries []entry
-	f := m.AddFunc(name, nil, nil, []string{"budget", "stream"}, func(b *exec.Builder) {
+	f := m.AddFunc(name, nil, nil, []string{"budget", "stream", "document"}, func(b *exec.Builder) {
 		pos := func() int64 {
 			if rng.IntN(8) == 0 {
 				return []int64{1023, 1024, 4096, 70000}[rng.IntN(4)]
@@ -219,8 +248,17 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 			case "seen.first":
 				intArg(rng.Int64N(int64(max(cfg.Rules, 1))))
 				intArg(pos())
-			case "memo.prune":
+			case "memo.prune", "memo.splice":
 				intArg(pos())
+			case "memo.examine", "memo.examined":
+				if len(entries) == 0 {
+					continue
+				}
+				e := entries[rng.IntN(len(entries))]
+				args, exprs = append(args, e.ref), append(exprs, exec.L(e.name))
+				if o.Name == "memo.examine" {
+					intArg(e.ref.Pos() + 1 + rng.Int64N(6))
+				}
 			case "budget.charge":
 				v := rng.Uint64N(8)
 				args, exprs = append(args, v), append(exprs, exec.U64(v))

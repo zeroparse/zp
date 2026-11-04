@@ -736,8 +736,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
-		meta := p.TypedDocument.meta[e]
-		p.documentTouch(meta.examined)
+		p.documentTouch(p.TypedDocument.meta[e].examined)
 		p.Document.stats.Reused++
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {

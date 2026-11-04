@@ -62,9 +62,14 @@ type Entry struct {
 	silent bool
 	value  any
 	errs   any
-	// pruned reports an entry that memo.prune removed: it is no longer valid.
+	// examined is the end recorded by memo.examine, 0 for none.
+	examined int64
+	// pruned reports an entry that memo.prune or memo.splice made invalid.
 	pruned bool
 }
+
+// Pos returns the position of the entry's key.
+func (e *Entry) Pos() int64 { return e.key.pos }
 
 type seenCounts struct {
 	calls, repeats int32
@@ -92,8 +97,13 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return args[5].(int64) >= args[1].(int64) && args[1].(int64) >= 0
 	case "memo.prune":
 		return args[0].(int64) >= m.floor
-	case "memo.ok", "memo.end", "memo.silent", "memo.value", "memo.errs":
+	case "memo.ok", "memo.end", "memo.silent", "memo.value", "memo.errs", "memo.examined":
 		return !args[0].(*Entry).pruned
+	case "memo.examine":
+		e := args[0].(*Entry)
+		return !e.pruned && args[1].(int64) > e.key.pos
+	case "memo.splice":
+		return args[0].(int64) >= 0
 	case "seen.first":
 		r, pos := args[0].(int64), args[1].(int64)
 		return r >= 0 && r < int64(m.cfg.Rules) && pos >= 0
@@ -149,6 +159,14 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "memo.floor":
 		return []any{m.floor}
+	case "memo.examine":
+		args[0].(*Entry).examined = args[1].(int64)
+		return nil
+	case "memo.examined":
+		return []any{args[0].(*Entry).examined}
+	case "memo.splice":
+		m.splice(args[0].(int64))
+		return nil
 	case "memo.ok":
 		return []any{args[0].(*Entry).ok}
 	case "memo.end":
@@ -242,6 +260,21 @@ func (m *Model) prune(pos int64) {
 	}
 	m.floor = pos
 	m.covered = max(m.covered, pos)
+}
+
+// splice keeps the entries whose examined end is recorded and at most start, as copies; every
+// entry from before it is dead.
+func (m *Model) splice(start int64) {
+	old := m.entries
+	m.entries, m.at, m.covered = map[memoKey]*Entry{}, map[int64]int{}, m.floor
+	for _, e := range old {
+		e.pruned = true
+		if e.examined > 0 && e.examined <= start {
+			c := *e
+			c.pruned = false
+			m.put(&c)
+		}
+	}
 }
 
 func (m *Model) first(rule, pos int64) bool {

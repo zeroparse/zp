@@ -121,6 +121,24 @@ after the prune: an implementation may reuse them for later entries.`})
 		Features: []string{Stream},
 		Contract: `Returns the floor of the memo: 0 at the start of a parse, then the position of the last
 memo.prune.`})
+	doc := []string{Document}
+	m.AddOp(&exec.Op{Name: "memo.examine", Component: Memo, Params: []exec.Param{exec.P("e", entry), exec.P("end", exec.TInt)},
+		Reads: []string{Memo}, Writes: []string{Memo}, Features: doc,
+		Contract: `Records with entry e that the call which computed it examined the input before end, for
+the reuse of e after an edit (memo.splice).`,
+		Requires: `end is greater than the position of e.`})
+	m.AddOp(&exec.Op{Name: "memo.examined", Component: Memo, Params: []exec.Param{exec.P("e", entry)},
+		Results: []exec.Type{exec.TInt}, Reads: []string{Memo}, Features: doc,
+		Contract: `Returns the end that memo.examine recorded with entry e, or 0 if none was recorded.`})
+	m.AddOp(&exec.Op{Name: "memo.splice", Component: Memo,
+		Params: []exec.Param{exec.P("start", exec.TInt)},
+		Reads:  []string{Memo}, Writes: []string{Memo}, Features: doc,
+		Contract: `Applies an edit of the input at start. An entry stays valid only if its examined end was
+recorded and is at most start: the edit changed none of the input its call examined. The other entries,
+those at or after start included, are removed. The kept entries stay at their positions with their
+attributes, but the handles of all entries from before the edit are no longer valid: a target may copy
+the kept entries.`,
+		Requires: `start >= 0.`})
 	for _, a := range []struct {
 		name string
 		t    exec.Type

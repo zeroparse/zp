@@ -93,6 +93,15 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{int64(args[0].(*memoEntry).end)}
 	case "memo.silent":
 		return []any{args[0].(*memoEntry).silent}
+	case "memo.examine":
+		args[0].(*memoEntry).examined = i(1)
+		return nil
+	case "memo.examined":
+		return []any{int64(args[0].(*memoEntry).examined)}
+	case "memo.splice":
+		// A Document edit: the Document's memo is the table of its next parse.
+		p.memo.splice(i(0))
+		return nil
 	case "memo.prune":
 		p.pruneStreamMemo(i(0))
 		return nil
@@ -114,33 +123,131 @@ var (
 	rtMemoOps   = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "seen.first"}
 	rtBudgetOps = []string{"budget.charge", "budget.used"}
 	rtStreamOps = []string{"memo.prune", "memo.floor"}
+	rtDocOps    = []string{"memo.examine", "memo.examined", "memo.splice"}
 )
 
 func rtSuites() []conform.Suite {
 	var suites []conform.Suite
 	for _, controlled := range []bool{false, true} {
 		for _, sparse := range []bool{false, true} {
-			for _, stream := range []bool{false, true} {
+			// A parse reads a string, a stream or a Document. Streams and Documents memoize on the
+			// first call: seen.first is not part of their parse.
+			for _, mode := range []string{"string", "stream", "document"} {
 				ops := append([]string(nil), rtMemoOps...)
-				if stream {
-					// Streams memoize on the first call: seen.first is not part of their parse.
-					ops = slices.DeleteFunc(ops, func(o string) bool { return o == "seen.first" })
+				switch mode {
+				case "stream":
+					ops = append(slices.DeleteFunc(ops, func(o string) bool { return o == "seen.first" }), rtStreamOps...)
+				case "document":
+					ops = append(slices.DeleteFunc(ops, func(o string) bool { return o == "seen.first" }), rtDocOps...)
 				}
 				if controlled {
 					ops = append(ops, rtBudgetOps...)
 				}
-				if stream {
-					ops = append(ops, rtStreamOps...)
-				}
 				suites = append(suites, conform.Suite{
-					Name: fmt.Sprintf("generated Go runtime (controlled=%v, sparse seen=%v, stream=%v)", controlled, sparse, stream),
+					Name: fmt.Sprintf("generated Go runtime (controlled=%v, sparse seen=%v, %s)", controlled, sparse, mode),
 					Ops:  ops,
-					New:  func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, sparse, stream) },
+					New:  func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, sparse, mode == "stream") },
 				})
 			}
 		}
 	}
+	for _, controlled := range []bool{false, true} {
+		ops := []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent"}
+		ops = append(ops, rtDocOps...)
+		if controlled {
+			ops = append(ops, rtBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name: fmt.Sprintf("generated Go typed runtime (controlled=%v)", controlled),
+			Ops:  ops,
+			New:  func(c ref.Config) conform.Impl { return newTypedMachine(c, controlled) },
+		})
+	}
 	return suites
+}
+
+// typedMachine binds the memo operations of the typed runtime, with the Document records of a typed
+// Document (typedDocumentState) beside the entries.
+type typedMachine struct {
+	p    *TParser
+	doc  *typedDocumentState
+	vals map[int64][]any
+}
+
+func newTypedMachine(cfg ref.Config, controlled bool) conform.Impl {
+	p := &TParser{Parser: &Parser{MaxDepth: int(cfg.MaxDepth)}}
+	m := &typedMachine{p: p, doc: &typedDocumentState{meta: map[*tmemoEntry]typedDocumentMeta{}}, vals: map[int64][]any{}}
+	if controlled {
+		limit := cfg.Limit
+		if limit == 0 {
+			limit = Unlimited
+		}
+		p.Control = newBudgetControl(nil, Limits{Compute: limit})
+		return meteredTyped{m}
+	}
+	return m
+}
+
+type meteredTyped struct{ *typedMachine }
+
+func (m meteredTyped) Used() uint64 { return m.p.Control.budgetUsed() }
+
+func (m *typedMachine) Values(id int64) any {
+	if m.vals[id] == nil {
+		m.vals[id] = []any{id}
+	}
+	return id
+}
+
+func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
+	defer func() {
+		if x := recover(); x != nil {
+			f, ok := x.(fatal)
+			if !ok {
+				panic(x)
+			}
+			if _, limit := f.err.(*LimitError); limit {
+				panic(exec.Interrupt{Reason: "limit"})
+			}
+			panic(exec.Interrupt{Reason: "nesting"})
+		}
+	}()
+	p := m.p
+	i := func(k int) int { return int(args[k].(int64)) }
+	switch o.Name {
+	case "memo.lookup":
+		e := p.memoGet(i(0), i(1), i(2), m.vals[args[3].(int64)])
+		return []any{e, e != nil}
+	case "memo.store":
+		e := p.memoSlab.one()
+		*e = tmemoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool)}
+		p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], e)
+		return []any{e}
+	case "memo.ok":
+		return []any{args[0].(*tmemoEntry).ok}
+	case "memo.end":
+		return []any{int64(args[0].(*tmemoEntry).end)}
+	case "memo.silent":
+		return []any{args[0].(*tmemoEntry).silent}
+	case "memo.examine":
+		m.doc.meta[args[0].(*tmemoEntry)] = typedDocumentMeta{examined: i(1)}
+		return nil
+	case "memo.examined":
+		return []any{int64(m.doc.meta[args[0].(*tmemoEntry)].examined)}
+	case "memo.splice":
+		// A typed Document edit between parses: the next parse starts from the kept chains, without
+		// the hash indexes of the last.
+		m.doc.slots = p.memoSlots
+		m.doc.splice(i(0))
+		p.memoSlots, p.memoIndexes, p.memoIndexBytes = m.doc.slots, nil, 0
+		return nil
+	case "budget.charge":
+		p.Control.Charge(args[0].(uint64))
+		return nil
+	case "budget.used":
+		return []any{p.Control.budgetUsed()}
+	}
+	panic("typed runtime binding: no operation " + o.Name)
 }
 
 // conformanceFailures runs the handwritten cases and seeds randomized cases of n calls on s, and
@@ -258,6 +365,11 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, e)
 			return []any{e}
 		}},
+		// A splice that keeps the entries whose examined end is the edit's position plus one.
+		"splice keeps an entry that examined the edited unit": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
+			m.p.memo.splice(int(args[0].(int64)) + 1)
+			return nil
+		}},
 		// A lookup that charges each entry it passes twice: within the results, beyond the bound.
 		"lookup charges twice": {op: "memo.lookup", controlled: true, call: func(m *rtMachine, args []any) []any {
 			if pos := int(args[1].(int64)); pos < len(m.p.memo.slots) {
@@ -273,6 +385,9 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 	for name, b := range variants {
 		t.Run(name, func(t *testing.T) {
 			ops := rtMemoOps
+			if strings.HasPrefix(b.op, "memo.splice") {
+				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtDocOps...)
+			}
 			if b.stream {
 				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtStreamOps...)
 			}
