@@ -12,7 +12,8 @@ holds the charging body, and the ordinary body stay in the helper; the controlle
 separate unexported function. This covers `appendSpend`, `copySpend`, `clearSpend`, `growSpend`, the
 typed `memoGet` and `memoPut`, `valueField`, `setValueField`, the typed and node action contexts
 (`And`, `Or`, `Unary`, `Fold`, `ListItems`, `asNode`), `stringBinary`, `compareText`,
-`equalExpected`, `sortExpected` and `evalErrorf`.
+`sortExpected` and `evalErrorf`. `Keep`, which compares an expectation set with the set kept
+last, charges each comparison through `Spend`, whose inlined test of the control does the same.
 
 `FirstCall` runs the ordinary body itself after `controlledFirstCallPrepare`, which does the
 controlled charges and growth, so a controlled parse executes the same steps. The operator
