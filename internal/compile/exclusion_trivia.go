@@ -10,9 +10,9 @@ import (
 
 // Trivia rules are rules whose shape lets the analysis compare their calls by position:
 //
-//   - the body is a greedy repetition X*, an atomic X*, or the unrolled form X* (Y X*)* where X
-//     cannot match empty (triviaParts), so a call always succeeds, and a second call where the
-//     first ended matches nothing, as X fails there again;
+//   - the body is a greedy repetition X* or an atomic X* where X cannot match empty (triviaParts;
+//     the normal view writes the unrolled form X* (Y X*)* as (X / Y)*), so a call always
+//     succeeds, and a second call where the first ended matches nothing, as X fails there again;
 //   - neither the rule nor a rule that it calls runs an action or contains an attributed
 //     expression, a recovery, a stream, an Operators Rule or a call of a left-recursion cycle,
 //     the body binds no variable that the rule reads, and the body has no #cut of its own
@@ -37,30 +37,15 @@ var (
 
 // triviaParts returns the expressions whose attempts a trivia rule with body e makes after its
 // last iteration, or nil when e does not have the shape of a trivia rule: X for a greedy
-// repetition X* or an atomic X*, and X and the iteration (Y X*) of the unrolled form
-// X* (Y X*)*, where X cannot match without consuming input. After the unrolled
-// form, X fails where the last X* stopped, and the outer repetition stopped where its iteration
-// failed or matched nothing, so a second evaluation matches nothing as well.
+// repetition X* or an atomic X*, where X cannot match without consuming input. The unrolled form
+// X* (Y X*)* is the repetition (X / Y)* in the normal view (N11). After the repetition, X fails
+// where the last iteration stopped, so a second evaluation matches nothing as well.
 func (k *classifier) triviaParts(e grammar.Expr) []grammar.Expr {
 	e = triviaUnwrap(e)
-	if star(e) {
-		return []grammar.Expr{e.(*grammar.Repeat).Expr}
-	}
-	s, ok := e.(*grammar.Seq)
-	if !ok || len(s.Items) != 2 || !star(triviaUnwrap(s.Items[0])) {
+	if !star(e) || k.nullable(e.(*grammar.Repeat).Expr) {
 		return nil
 	}
-	first := triviaUnwrap(s.Items[0]).(*grammar.Repeat)
-	r, ok := triviaUnwrap(s.Items[1]).(*grammar.Repeat)
-	if !ok || !star(r) || k.nullable(first.Expr) {
-		return nil
-	}
-	inner, ok := triviaUnwrap(r.Expr).(*grammar.Seq)
-	if !ok || len(inner.Items) < 2 ||
-		grammar.FormatExpr(triviaUnwrap(inner.Items[len(inner.Items)-1])) != grammar.FormatExpr(first) {
-		return nil
-	}
-	return []grammar.Expr{first.Expr, r.Expr}
+	return []grammar.Expr{e.(*grammar.Repeat).Expr}
 }
 
 func star(e grammar.Expr) bool {

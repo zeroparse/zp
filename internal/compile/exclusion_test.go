@@ -16,7 +16,10 @@ import (
 	"zeroparse.dev/zp/internal/syntax"
 )
 
-// TestDecideAlt checks the exclusion analysis on the first choice of rule main.
+// TestDecideAlt checks the comparison of the exclusion analysis on the first choice of rule main:
+// how it counts symbols across shared prefixes and expands calls. It reads the rules as they are
+// written (prepareBaseClassifier), not their normal view, which inlines the calls that the cases
+// count; the other tests of the analysis read the normal view, as ClassifyComplexity does.
 func TestDecideAlt(t *testing.T) {
 	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\nrule lr = lr \"+\" \"a\" / \"a\"\n"
 	for _, c := range []struct {
@@ -82,7 +85,9 @@ func TestDecideAlt(t *testing.T) {
 
 // TestDecideAltTrivia checks that the analysis passes calls of a trivia rule without counting them
 // and drops a call that follows a call of the same trivia rule, and that rules of other shapes stay
-// ordinary calls.
+// ordinary calls. Like TestDecideAlt, it reads the rules as written: the normal view merges the
+// repeated calls of a trivia rule before the comparison, so only the written form exercises the
+// passing and dropping.
 func TestDecideAltTrivia(t *testing.T) {
 	defer func() { triviaOn, triviaOnly = false, nil }()
 	const rules = "var v int = 0\nrule ident = [a-z]+\nrule x = \"x\"\nrule ws = [ ]*\nrule sp = \" \"\n" +
@@ -164,7 +169,7 @@ func TestTriviaCheap(t *testing.T) {
 	}
 	for _, on := range []bool{false, true} {
 		triviaOn, triviaMemo = true, on
-		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,7 +189,7 @@ func TestCollapseTrivia(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +214,7 @@ func TestCollapseTriviaBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +244,7 @@ func TestTriviaWhy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +264,7 @@ func TestTriviaWhyCut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +287,7 @@ func TestTriviaWhyVariables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,19 +299,20 @@ func TestTriviaWhyVariables(t *testing.T) {
 }
 
 // TestTriviaShapeExtended checks the shapes beyond X*: an atomic X* and the unrolled form
-// X* (Y X*)*, but not a form whose last repetition differs from the first.
+// X* (Y X*)*, which the normal view writes as (X / Y)*, but not a form whose last repetition
+// differs from the first.
 func TestTriviaShapeExtended(t *testing.T) {
 	g, err := syntax.Parse("rule main = wsu wsa wsb wsn\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
 		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\nrule wsn = ([ ]?)* (\"#\" ([ ]?)*)*\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The unrolled form needs an X that cannot match empty.
-	for rule, ok := range map[string]bool{"wsu": true, "wsa": true, "wsb": false, "wsn": false} {
+	// The view reads ([ ]?)* as [ ]*, so wsn unrolls as well.
+	for rule, ok := range map[string]bool{"wsu": true, "wsa": true, "wsb": false, "wsn": true} {
 		if got := k.triviaWhy(rule) == ""; got != ok {
 			t.Errorf("%s: trivia %v, want %v", rule, got, ok)
 		}
@@ -334,7 +340,7 @@ func TestDecideAltVariables(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -367,7 +373,7 @@ func TestDecidedUnitsCost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -546,7 +552,7 @@ type exclStats struct {
 // exclusionStats decides each alternative of each choice of the reachable rules of g against the
 // later alternatives, within up to five symbols.
 func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
-	k, _, err := prepareBaseClassifier(g, start, nil)
+	k, _, err := prepareClassifier(g, start, nil)
 	if err != nil {
 		return exclStats{}, err
 	}
@@ -640,7 +646,7 @@ func TestExclusionReport(t *testing.T) {
 			name, st.choices, st.choicesAt[1:], st.alts, st.altsAt[1:], st.overBudget)
 		for _, s := range settings {
 			restore := s.h.set()
-			k, _, err := prepareBaseClassifier(g, "", nil)
+			k, _, err := prepareClassifier(g, "", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -717,11 +723,9 @@ func fmtPath(p []sym) string {
 	return strings.Join(b, " ")
 }
 
-// TestContPathsEnds checks the continuation after the end of an operand of an Operators Rule,
-// which goes on with an operator part or with what follows the rule, and after the end of the
-// start rule, which is the end of the parse.
 // TestFollowPaths checks that a continuation that has more paths through exclFollow rule ends
 // than the analysis enumerates is followed through fewer ends instead, with stops where it is cut.
+// It reads the rules as written, whose calls the normal view would inline.
 func TestFollowPaths(t *testing.T) {
 	src := "rule main = r6 $$\nrule r0 = \"a\"\n"
 	for i := 1; i <= 6; i++ {
@@ -759,6 +763,9 @@ func TestFollowPaths(t *testing.T) {
 	}
 }
 
+// TestContPathsEnds checks the continuation after the end of an operand of an Operators Rule,
+// which goes on with an operator part or with what follows the rule, and after the end of the
+// start rule, which is the end of the parse.
 func TestContPathsEnds(t *testing.T) {
 	const src = "rule main = e $$\n" +
 		"rule e = #operators {\n  operand atom\n  level post { postfix \"+\" \"-\" }\n  level add { infix left \"*\" }\n}\n" +
@@ -767,7 +774,7 @@ func TestContPathsEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(g, "main", nil)
+	k, _, err := prepareClassifier(g, "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -822,7 +829,7 @@ func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -999,7 +1006,7 @@ func TestExclusionBudget(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
