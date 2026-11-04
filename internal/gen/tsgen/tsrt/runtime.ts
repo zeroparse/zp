@@ -2560,27 +2560,10 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
-  // keep copies exp[from:to] for a memo entry or a recovery.
+  // keep returns exp[from:to] as a set that outlives the record. Its text is printed from Exec IR
+  // (internal/ir/exec/core).
   keep(from: number, to: number): number[] {
-    if (from === to) {
-      return noExp;
-    }
-    const last = this.lastKept;
-    if (last.length === to - from) {
-      let same = true;
-      for (let i = 0; i < last.length; i++) {
-        this.spend();
-        if (last[i] !== this.exp[from + i]) {
-          same = false;
-          break;
-        }
-      }
-      if (same) {
-        return last; // the same set often repeats
-      }
-    }
-    this.lastKept = this.control === null ? this.exp.slice(from, to) : copyIDsSpend(this.exp, from, to, this.control);
-    return this.lastKept;
+    throw new Error("the printed method replaces this one");
   }
 
   // mergeExpected records the expectations exp[from:to] at far. They may lie above the current

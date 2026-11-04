@@ -254,6 +254,42 @@ func (p *Parser) MergeExpected(far int, s []ExpID) {
 	}
 }
 
+// Keep returns the expectations of s as a set that outlives the record, for a memo entry, a
+// context or a recovery to keep: the empty set for none, the set kept last when it has the same
+// entries in the same order, and otherwise a copy, which becomes the set kept last. It is for generated
+// parsers and not a stable API.
+//
+// Printed from Exec IR function keep of internal/ir/exec/core, specialized for budget.
+func (p *Parser) Keep(s []ExpID) []ExpID {
+	var i int
+	n := len(s)
+	if n == 0 {
+		return nil
+	}
+	last := p.lastKept
+	if len(last) != n {
+		goto copy
+	}
+	for i = 0; i < n; i++ {
+		p.Spend()
+		if last[i] != s[i] {
+			goto copy
+		}
+	}
+	return last
+copy:
+	if cap(p.arena)-len(p.arena) < len(s) {
+		// A new chunk; the previous one lives while sets in it remain.
+		p.arena = make([]ExpID, 0, max(1024, len(s)))
+		p.memUsed += uint64(cap(p.arena)) * expIDBytes
+	}
+	off := len(p.arena)
+	p.arena = appendSpend(p, p.arena, s)
+	p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
+	k := p.lastKept
+	return k
+}
+
 // callBody calls rule r at binding level min: unmemoized while its memoization is deferred, and
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
 // a left-recursion leader.

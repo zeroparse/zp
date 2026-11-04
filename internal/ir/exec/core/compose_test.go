@@ -41,6 +41,8 @@ type machine struct {
 	// cur is the expectation record; saved holds the records that isolations set aside.
 	cur   record
 	saved []record
+	// lastKept is the set that exp.copy made last.
+	lastKept []string
 	// exps holds the expectations of each entry (memo.setExpected).
 	exps                   map[*ref.Entry]record
 	spends, steps, memoHit int
@@ -195,9 +197,21 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		ended := m.cur
 		m.cur, m.saved = m.saved[len(m.saved)-1], m.saved[:len(m.saved)-1]
 		return []any{ended.far, ended.exps}
-	case "exp.keep":
+	case "exp.setCount", "exp.keptCount":
 		s, _ := args[0].([]string)
-		return []any{slices.Clone(s)}
+		return []any{int64(len(s))}
+	case "exp.setAt", "exp.keptAt":
+		return []any{args[0].([]string)[args[1].(int64)]}
+	case "exp.empty":
+		return []any{[]string(nil)}
+	case "exp.last":
+		return []any{m.lastKept}
+	case "exp.copy":
+		m.lastKept = slices.Clone(args[0].([]string))
+		return []any{m.lastKept}
+	case "exp.spend":
+		m.spends++
+		return nil
 	case "exp.merge", "exp.mergeKept":
 		s, _ := args[1].([]string)
 		m.merge(args[0].(int64), s)

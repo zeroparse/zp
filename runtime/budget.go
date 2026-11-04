@@ -871,28 +871,6 @@ func appendBudgetControlled[T any](p *Parser, dst, src []T) []T {
 	return dst
 }
 
-// equalExpected preserves the native snapshot-identity fast path while charging
-// each comparison under active budget controls. Snapshots are never modified.
-func (p *Parser) equalExpected(a, b []ExpID) bool {
-	if p.Control != nil {
-		return p.equalExpectedControlled(a, b)
-	}
-	return slices.Equal(a, b)
-}
-
-func (p *Parser) equalExpectedControlled(a, b []ExpID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, x := range a {
-		p.Spend()
-		if x != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // sortExpected sorts a newly constructed, parser-owned diagnostic in the order of
 // compareExpected. Comparisons and explicit moves are bounded; allocation and GC
 // remain nonpreemptible.

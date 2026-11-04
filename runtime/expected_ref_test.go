@@ -102,6 +102,101 @@ func (p *Parser) refMergeExpected(far int, ids []ExpID) {
 	}
 }
 
+// refKeep is the hand-written Keep that the composition keep replaced.
+func (p *Parser) refKeep(ids []ExpID) []ExpID {
+	if len(ids) == 0 {
+		return nil
+	}
+	if p.refEqualExpected(ids, p.lastKept) { // the same set often repeats
+		return p.lastKept
+	}
+	if cap(p.arena)-len(p.arena) < len(ids) {
+		// A new chunk; the previous one lives while slices into it remain.
+		p.arena = make([]ExpID, 0, max(1024, len(ids)))
+		p.memUsed += uint64(cap(p.arena)) * expIDBytes
+	}
+	off := len(p.arena)
+	p.arena = appendSpend(p, p.arena, ids)
+	p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
+	return p.lastKept
+}
+
+// refEqualExpected is the comparison of refKeep: it charges each compared entry in a parse with
+// budget controls.
+func (p *Parser) refEqualExpected(a, b []ExpID) bool {
+	if p.Control == nil {
+		return slices.Equal(a, b)
+	}
+	if len(a) != len(b) {
+		return false
+	}
+	for i, x := range a {
+		p.Spend()
+		if x != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TestKeepMatchesReference keeps random sets through the printed composition and through the
+// hand-written form it replaced, with and without budget controls, and checks after each call the
+// set returned, whether it is the set kept last, the arena (its length and the chunk it fills), the
+// memory accounted for its chunks and the units charged. The sets repeat often and some are longer
+// than a chunk of the arena and than a chunk of a charged copy.
+func TestKeepMatchesReference(t *testing.T) {
+	for _, controlled := range []bool{false, true} {
+		rng := rand.New(rand.NewSource(3))
+		for round := 0; round < 200; round++ {
+			newP := func() *Parser {
+				p := &Parser{}
+				if controlled {
+					p.Control = newBudgetControl(nil, Limits{Compute: 1 << 40})
+				}
+				return p
+			}
+			a, b := newP(), newP()
+			var pool [][]ExpID
+			for step := 0; step < 40; step++ {
+				var ids []ExpID
+				switch k := rng.Intn(10); {
+				case k < 4 && len(pool) > 0:
+					ids = slices.Clone(pool[rng.Intn(len(pool))])
+				case k < 5 && len(pool) > 0:
+					// A set that differs from a kept one in its last entry only.
+					ids = slices.Clone(pool[rng.Intn(len(pool))])
+					if len(ids) > 0 {
+						ids[len(ids)-1]++
+					}
+				default:
+					n := rng.Intn(6)
+					if rng.Intn(8) == 0 {
+						n = 100 + rng.Intn(1200)
+					}
+					ids = make([]ExpID, n)
+					for i := range ids {
+						ids[i] = ExpID(1 + rng.Intn(4))
+					}
+					pool = append(pool, ids)
+				}
+				ka, kb := a.Keep(slices.Clone(ids)), b.refKeep(slices.Clone(ids))
+				lastA := len(ka) > 0 && len(a.lastKept) > 0 && &ka[0] == &a.lastKept[0]
+				lastB := len(kb) > 0 && len(b.lastKept) > 0 && &kb[0] == &b.lastKept[0]
+				same := slices.Equal(ka, kb) && (ka == nil) == (kb == nil) && lastA == lastB &&
+					slices.Equal(a.lastKept, b.lastKept) && len(a.arena) == len(b.arena) && cap(a.arena) == cap(b.arena) &&
+					a.memUsed == b.memUsed
+				if controlled {
+					same = same && a.Control.budgetUsed() == b.Control.budgetUsed()
+				}
+				if !same {
+					t.Fatalf("controlled %v round %d step %d keeping %d entries: last %v/%v arena %d,%d/%d,%d memUsed %d/%d",
+						controlled, round, step, len(ids), lastA, lastB, len(a.arena), cap(a.arena), len(b.arena), cap(b.arena), a.memUsed, b.memUsed)
+				}
+			}
+		}
+	}
+}
+
 // TestExpectRecordMatchesReference runs random sequences of the operations on an expectation record
 // through the printed compositions and through the hand-written forms they replaced, in parses that
 // record expectations and parses that do not, with and without budget controls, and checks that
@@ -200,7 +295,7 @@ func TestExpectRecordMatchesReference(t *testing.T) {
 								if fa != fb || !slices.Equal(norm(ia), norm(ib)) {
 									t.Fatalf("Unisolate differs: %d %v / %d %v", fa, ia, fb, ib)
 								}
-								ka, kb := a.Keep(ia), b.Keep(ib)
+								ka, kb := a.Keep(ia), b.refKeep(ib)
 								if !slices.Equal(norm(ka), norm(kb)) {
 									t.Fatalf("Keep differs")
 								}

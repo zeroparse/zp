@@ -150,8 +150,6 @@ position on failure.`})
 		Writes: []string{Exp},
 		Contract: `Ends the record that the isolation m started and restores the one set aside; returns the
 farthest position of the ended record and its expectations.`})
-	add(&exec.Op{Name: "exp.keep", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{kept},
-		Contract: `Returns the expectations of s as a set that outlives the record.`})
 	add(&exec.Op{Name: "exp.merge", Component: Exp, Params: []exec.Param{exec.P("far", exec.TInt), exec.P("s", set)},
 		Writes: []string{Exp}, NoReturn: true,
 		Contract: `Adds the expectations of s at far to the record.`})
@@ -193,6 +191,17 @@ dropped.`})
 	add(&exec.Op{Name: "exp.keptAt", Component: Exp, Params: []exec.Param{exec.P("k", kept), exec.P("i", exec.TInt)},
 		Results: []exec.Type{expID}, Requires: `0 <= i < exp.keptCount(k).`,
 		Contract: `Returns expectation i of k, in the order they were recorded.`})
+	// The operations of keeping a set beyond the record.
+	add(&exec.Op{Name: "exp.empty", Component: Exp, Results: []exec.Type{kept},
+		Contract: `Returns the kept set with no expectations.`})
+	add(&exec.Op{Name: "exp.last", Component: Exp, Results: []exec.Type{kept}, Reads: []string{Exp},
+		Contract: `Returns the set that exp.copy made last in the parse, and the empty set before the first.`})
+	add(&exec.Op{Name: "exp.copy", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{kept},
+		Reads: []string{Exp}, Writes: []string{Exp}, NoReturn: true,
+		Requires: `s has at least one expectation.`,
+		Contract: `Copies the expectations of s, in order, into a set that outlives the record, makes it the set
+that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
+and the memory it takes as the target accounts it.`})
 	add(&exec.Op{Name: "exp.spend", Component: Exp, Features: []string{Budget}, Cost: exec.Cost{Const: 1},
 		Contract: `Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
 a scan of the record compares.`})

@@ -120,7 +120,7 @@ func Build() *Module {
 	finish := func(b *Builder, level Expr, doc docMode) {
 		c := L("c")
 		b.LetN([]string{"far", "inner"}, C("exp.unisolate", L("m")))
-		b.Let("kept", C("exp.keep", L("inner")))
+		b.Let("kept", C("keep", L("inner")))
 		inDocument(b, doc, func(b *Builder) { b.Do("doc.touch", Add(R(ops.Pos), Int(1))) })
 		b.Let("store", C("ctx.pop", c))
 		b.IfElse(Eq(L("store"), C("ctx.storeMemo")), func(b *Builder) {
@@ -434,6 +434,31 @@ parsers and not a stable API.`
 expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
 record. s may alias the stack above the current record: writes only happen below the read position. It
 is for generated parsers and not a stable API.`
+
+	// keep: a set that outlives the record.
+	keep := m.AddFunc("keep", []Param{P("s", THandle(ops.Set))}, []Type{THandle(ops.Kept)}, []string{ops.Budget}, func(b *Builder) {
+		s := L("s")
+		b.Let("n", C("exp.setCount", s))
+		b.If(Eq(L("n"), Int(0)), func(b *Builder) { b.Return(C("exp.empty")) })
+		// The same set often repeats: the set kept last is returned again when it is equal, comparing
+		// entries in order and charging each comparison in a parse with budget controls.
+		b.Let("last", C("exp.last"))
+		b.Block("copy", func(b *Builder) {
+			b.If(Bin("!=", C("exp.keptCount", L("last")), L("n")), func(b *Builder) { b.Exit("copy") })
+			b.Var("i", TInt)
+			b.For("cmp", Assign("i", Int(0)), Lt(L("i"), L("n")), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+				b.If(F(ops.Budget), func(b *Builder) { b.Do("exp.spend") })
+				b.If(Bin("!=", C("exp.keptAt", L("last"), L("i")), C("exp.setAt", s, L("i"))), func(b *Builder) { b.Exit("copy") })
+			})
+			b.Return(L("last"))
+		})
+		b.Let("k", C("exp.copy", s))
+		b.Return(L("k"))
+	})
+	keep.Doc = `keep returns the expectations of s as a set that outlives the record, for a memo entry, a
+context or a recovery to keep: the empty set for none, the set kept last when it has the same
+entries in the same order, and otherwise a copy, which becomes the set kept last. It is for generated
+parsers and not a stable API.`
 
 	if err := Verify(m); err != nil {
 		panic(err)

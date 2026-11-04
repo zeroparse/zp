@@ -44,6 +44,7 @@ var goSpecs = []goSpec{
 	{fn: "expectOrdinary", name: "ExpectOrdinary"},
 	{fn: "expectSlow", name: "expectOrdinarySlow"},
 	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "MergeExpected"},
+	{fn: "keep", on: []string{ops.Budget}, name: "Keep"},
 	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "callBody"},
 	{fn: "callMemo", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "CallMemo"},
 	{fn: "grow", typed: true, on: []string{ops.Typed}, name: "grow"},
@@ -121,7 +122,7 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
-		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected"}
+		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep"}
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	rule := func(r string) string { return r }
 	// step passes the value of a growth step as the node or the typed value of growStep.
@@ -130,7 +131,7 @@ func goTarget(s goSpec) *execgo.Target {
 		t.Recv = "p *TParser"
 		handles[ops.Rule], handles[ops.Value], handles[ops.Entry] = "*TRule", "any", "*tmemoEntry"
 		handles[ops.Body] = "func(*TParser) (any, bool)"
-		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow"}
+		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep"}
 		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
 		rule = func(r string) string { return r + ".Rule" }
 		step = func(v string) string { return "nil, " + v }
@@ -215,8 +216,14 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.Isolate(" + a[0] + ")"
 		case "exp.unisolate":
 			return "p.Unisolate(" + a[0] + ")"
-		case "exp.keep":
-			return "p.Keep(" + a[0] + ")"
+		case "exp.empty":
+			return "nil"
+		case "exp.last":
+			return "p.lastKept"
+		case "exp.keptCount":
+			return "len(" + a[0] + ")"
+		case "exp.keptAt":
+			return a[0] + "[" + a[1] + "]"
 		case "exp.merge", "exp.mergeKept":
 			return fmt.Sprintf("p.MergeExpected(%s, %s)", a[0], a[1])
 		case "memo.far", "memo.expected", "memo.ok", "memo.end", "memo.silent", "memo.errs":
@@ -346,6 +353,17 @@ func goTarget(s goSpec) *execgo.Target {
 				s = fmt.Sprintf("var %s ctxCallState\nvar %s *ctxResult\n", c, seed)
 			}
 			return s + fmt.Sprintf("if %s.Cycle != 0 && len(p.gamma) != 0 {\n%s = p.ctxEnter(&%s, %s, %s)\n}", a[0], seed, c, rule(a[0]), a[1]), true
+		case "exp.copy":
+			// The kept sets fill append-only chunks of the arena.
+			return fmt.Sprintf(`if cap(p.arena)-len(p.arena) < len(%[1]s) {
+// A new chunk; the previous one lives while sets in it remain.
+p.arena = make([]ExpID, 0, max(1024, len(%[1]s)))
+p.memUsed += uint64(cap(p.arena)) * expIDBytes
+}
+off := len(p.arena)
+p.arena = appendSpend(p, p.arena, %[1]s)
+p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
+%[2]s%[3]sp.lastKept`, a[0], dst[0], op), true
 		case "doc.enter":
 			return fmt.Sprintf("%s%sp.docHigh\np.docHigh = %s+1", dst[0], op, a[0]), true
 		case "memo.store":

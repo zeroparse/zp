@@ -381,12 +381,6 @@ transitional op exp.unisolate(m ExpMark) (int, ExpSet)
     // Ends the record that the isolation m started and restores the one set aside; returns the
     // farthest position of the ended record and its expectations.
 
-transitional op exp.keep(s ExpSet) ExpKept
-  component expected
-  cost <= 0
-  contract:
-    // Returns the expectations of s as a set that outlives the record.
-
 transitional op exp.merge(far int, s ExpSet)
   component expected
   writes expected
@@ -500,6 +494,32 @@ transitional op exp.keptAt(k ExpKept, i int) ExpID
     // Returns expectation i of k, in the order they were recorded.
   requires:
     // 0 <= i < exp.keptCount(k).
+
+transitional op exp.empty() ExpKept
+  component expected
+  cost <= 0
+  contract:
+    // Returns the kept set with no expectations.
+
+transitional op exp.last() ExpKept
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Returns the set that exp.copy made last in the parse, and the empty set before the first.
+
+transitional op exp.copy(s ExpSet) ExpKept
+  component expected
+  reads expected
+  writes expected
+  noreturn
+  cost <= 0
+  contract:
+    // Copies the expectations of s, in order, into a set that outlives the record, makes it the set
+    // that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
+    // and the memory it takes as the target accounts it.
+  requires:
+    // s has at least one expectation.
 
 transitional op exp.spend()
   component expected

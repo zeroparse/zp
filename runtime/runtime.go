@@ -2493,25 +2493,6 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 	return far, inner
 }
 
-// Keep copies ids into the append-only arena.
-func (p *Parser) Keep(ids []ExpID) []ExpID {
-	if len(ids) == 0 {
-		return nil
-	}
-	if p.equalExpected(ids, p.lastKept) { // the same set often repeats
-		return p.lastKept
-	}
-	if cap(p.arena)-len(p.arena) < len(ids) {
-		// A new chunk; the previous one lives while slices into it remain.
-		p.arena = make([]ExpID, 0, max(1024, len(ids)))
-		p.memUsed += uint64(cap(p.arena)) * expIDBytes
-	}
-	off := len(p.arena)
-	p.arena = appendSpend(p, p.arena, ids)
-	p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
-	return p.lastKept
-}
-
 func slicesEqual(a, b []ExpID) bool {
 	if len(a) != len(b) {
 		return false

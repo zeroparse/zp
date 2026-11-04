@@ -27,6 +27,7 @@ var tsSpecs = []struct {
 	{fn: "grow", name: "grow"},
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
+	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -51,6 +52,8 @@ func TSMethods() ([]TSMethod, error) {
 var tsTarget = &exects.Target{
 	Source: "internal/ir/exec/core",
 	Packed: ops.Value,
+	// The set of an isolation is the range of the stack of the record that it ended.
+	Range: ops.Set,
 	Handle: func(name string) string {
 		return map[string]string{
 			ops.Rule: "Rule", ops.Value: "R", ops.Entry: "MemoEntry | null", ops.Values: "Value[] | null",
@@ -59,7 +62,7 @@ var tsTarget = &exects.Target{
 		}[name]
 	},
 	FuncName: func(name string) string {
-		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept"}[name]
+		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept", "keep": "keep"}[name]
 	},
 	Reg: func(name string) string {
 		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent"}[name]
@@ -113,8 +116,14 @@ var tsTarget = &exects.Target{
 			return a[0] + "[" + a[1] + "]!"
 		case "exp.spend":
 			return "this.spend()"
-		case "exp.keep":
-			return fmt.Sprintf("this.keep(%sFrom, %sTo)", a[0], a[0])
+		case "exp.setCount":
+			return fmt.Sprintf("%sTo - %sFrom", a[0], a[0])
+		case "exp.setAt":
+			return fmt.Sprintf("this.exp[%sFrom + %s]!", a[0], a[1])
+		case "exp.empty":
+			return "noExp"
+		case "exp.last":
+			return "this.lastKept"
 		case "exp.merge":
 			return fmt.Sprintf("this.mergeExpected(%s, %sFrom, %sTo)", a[0], a[1], a[1])
 		case "exp.mergeKept":
@@ -190,6 +199,8 @@ var tsTarget = &exects.Target{
 				c, seed, a[0], c, seed, c, a[0], a[1]), true
 		case "rec.add":
 			return fmt.Sprintf("for (const x of %s) {\n  this.spend();\n  this.recovered.push(x);\n}", a[0]), true
+		case "exp.copy":
+			return fmt.Sprintf("this.lastKept = this.control === null ? this.exp.slice(%[1]sFrom, %[1]sTo) : copyIDsSpend(this.exp, %[1]sFrom, %[1]sTo, this.control);\n%[2]s = this.lastKept;", a[0], lhs(dst[0])), true
 		case "exp.isolate":
 			m := dst[0]
 			return fmt.Sprintf("const %sFar = this.farthest;\nconst %sBase = this.expBase;\nthis.expBase = this.expTop;\nthis.farthest = %s;", m, m, a[0]), true
