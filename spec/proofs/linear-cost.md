@@ -10,19 +10,19 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved. Lemma 6 is proved given the count
-of activations of Lemma 4 and the charge of the copies of values that are
-neither own nor values of variables (steps 1 and 6 of
-[Open Steps](#open-steps)). The theorem is proved from the others. Lemmas 4
-and 5 are given as outlines: each states its claim, the conditions it uses,
-and the steps that its proof must still make precise, listed under
-[Open Steps](#open-steps). Lemma 4 proves a reduction and leaves the count of
-activations open: the scanned cost comes down to the number of activations, a
-failure after a source passes through the forms that condition 2 checks, and
-an activation is repeated at a position only after an abandoned committing
-unit or a dropped growth step. Lemma 5 proves
-the bound on the sources that a growth step evaluates at fixed offsets after the
-position where it grows.
+Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved. Lemma 6 is proved given the count of
+activations of Lemma 4 and the charge of the copies of values that are neither
+own nor values of variables (steps 1 and 6 of [Open Steps](#open-steps)). The
+theorem is proved from the others, so the promise of the class Linear rests on
+step 6 as well as on Lemmas 4 and 5. Lemmas 4 and 5 are given as outlines: each
+states its claim, the conditions it uses, and the steps that its proof must
+still make precise, listed under [Open Steps](#open-steps). Lemma 4 proves a
+reduction and leaves the count of activations open: the scanned cost comes down
+to the number of activations, a failure after a source passes through the forms
+that condition 2 checks, and an activation is repeated at a position only after
+an abandoned committing unit or a dropped growth step. Lemma 5 proves the bound
+on the sources that a growth step evaluates at fixed offsets after the position
+where it grows.
 
 ## Setting
 
@@ -535,9 +535,14 @@ values of captures and calls of $e$ that hold no call on the recursion, as
 the text of a capture around such a call would; a call of a rule outside the
 recursion does not reach the recursion again, since its rule would be on it.
 So every capture and call that the operand reads is a match inside the
-own span of $e$. When its value is
-[own](../runtime/parsing.md#conditions-for-linear-cost), *Size degrees* in
-Lemma 7 bounds it by a constant times one more than its match. The operation
+own span of $e$. Its value need not lie inside its match: `L = &(x:W) => $x`
+consumes nothing and returns the rest of the input, so that `y:L` is an empty
+match whose value is as large as the input after it. Condition 4 excludes
+such a value by its size, whatever the match consumes, and the definition of
+an [own](../runtime/parsing.md#conditions-for-linear-cost) value excludes it
+too, since a capture in a positive lookahead is part of the value of `L`.
+When the value is own, *Size degrees* in Lemma 7 bounds it by a constant
+times one more than its match. The operation
 reads a constant number of such values and of values of variables, so it
 copies at most a constant times $1 + |\text{own span of } e| + L$. A value
 read through a lambda over a bounded list is copied a constant number of
@@ -797,8 +802,10 @@ $\mathcal{S}$ that it makes, as in Lemma 6. The value of $m$ is built by the
 forms of the definition from literals, ints and Booleans, of constant size,
 from captures of $m$, and from the values of the calls that its body makes:
 
-- A capture that is not in a positive lookahead, and the value of a call, is
-  a match inside $m$; a member and an element are parts of one, and a
+- A capture that is not in a positive lookahead, and a call, is a match inside
+  $m$, and the value of a call is own only when the value of its rule is,
+  which no capture in a positive lookahead is part of, so that no call returns
+  input outside its match; a member and an element are parts of one, and a
   `filter` keeps at most its list. A match of a rule outside $\mathcal{S}$
   lies in the own span, since a call on $\mathcal{S}$ inside it would put its
   rule in $\mathcal{S}$; by the induction its value is at most a constant
@@ -806,10 +813,9 @@ from captures of $m$, and from the values of the calls that its body makes:
   disjoint parts of the input. A capture can be read several times, at most a
   constant number of times by the grammar, which multiplies it by a constant;
   the chain of such readings through rules outside $\mathcal{S}$ is no longer
-  than the grammar, so the constants do not compound. The list of a
-  repetition of such matches has one element for each iteration, at most one
-  more than the input of the repetition, since only the last iteration can
-  consume none.
+  than the grammar, so the constants do not compound. The list of a repetition
+  of such matches has one element for each iteration, at most one more than
+  the input of the repetition, since only the last iteration can consume none.
 - `+`, `text`, `list`, `concat` and constructors add the sizes of their parts
   and a constant. A `map` over an own list whose lambda reads nothing from
   outside it that is not bounded by a constant adds, for each element, at most
@@ -836,8 +842,9 @@ $\alpha_{\mathcal{S}}(|m| + N_{\mathcal{S}}(m))$. Distinct matches that are
 not nested, such as the iterations of a repetition, have disjoint inputs, so
 their own values add up to at most a constant times $\hat{n}$. A capture in a
 positive lookahead is no part of the match, and its input is outside the
-input that the match consumes, so it is excluded; so is the value of a
-variable, whose size $L$ does not depend on the match.
+input that the match consumes, so it is excluded, also when a rule that
+consumes nothing returns it; so is the value of a variable, whose size $L$
+does not depend on the match.
 
 **Size degrees above 1.** A value built from values of size degrees $e_i$ by
 the forms of condition 4 is bounded by the rules after the proof above with
@@ -1103,6 +1110,10 @@ for a constant $c$. When no variable holds a string and every binding binds a
 literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
+The theorem rests on Lemmas 4 and 5, which are outlines, and on Lemma 6,
+which is proved given steps 1 and 6 of [Open Steps](#open-steps); so the
+promises of the classes Linear and Linear Given an Environment Bound do too.
+
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
 evaluation, the scanned cost of one, a call, or the walk cost. By Lemma 1 the
 local costs add up to $c_0 (L + 1)$ times the number of body evaluations. The
@@ -1179,9 +1190,11 @@ The outlines leave these steps to be made precise.
    [Classification](../runtime/parsing.md#classification) states, and the
    comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
    Besides, a copy, outside the lambdas or of the elements of the list of a
-   lambda, of a value that is neither own nor the value of a variable, such as
-   a list built by `map` or a string built by a lambda: a string was built by
-   copies that cost its length, and a list copies only its number of
-   elements, which the copies or the repetition that built it paid; the step
-   must charge each such copy to that work, and show that a constant number of
-   copies read each value.
+   lambda, of a value that is neither own nor the value of a variable. Such a
+   value can reach a copy in two ways that Lemma 6 does not bound: a list
+   built by `map`, whose elements are values of its lambda rather than parts
+   of the input, and a string built by a lambda, as the steps of a fold or the
+   elements of a `map` join it. A string was built by copies that cost its
+   length, and a list copies only its number of elements, which the copies or
+   the repetition that built it paid; the step must charge each such copy to
+   that work, and show that a constant number of copies read each value.
