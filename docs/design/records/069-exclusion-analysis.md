@@ -176,6 +176,14 @@ constant, or no more than the unit paid for it there:
 | A call of a rule that calls no rule, reading no variable or with the same variables | its own scan again, which the unit paid at that position | 2 |
 | A call of a rule whose body is cheap in all its parts | the sum of the above for its parts | 2 and 3 |
 | A call of a rule that reads variables, under the same variables | as above, with the memo keyed by their values | 2 |
+| A lookahead that only C evaluates, or its alternatives before the one that U's match implies (*fresh*) | its first evaluation at the position, a constant: no scanning source of its own, and each call answered by the memo or reaching no scanning source | 2 and 3 |
+
+The last row is not a second evaluation. U does not evaluate a lookahead of C, so there is no first evaluation of it to
+charge to, and a rule that calls no rule but scans, which is cheap in the rows above, costs a scan there. A fresh symbol
+must cost a constant by itself: the memo answers a call at a position after its first evaluation, which Lemma 4
+counts once (case 2), and anything else reaches no scanning source (case 3). In
+`e = "a" e "x" / !s "b" / "c"` with a scanning rule `s` that calls no rule, `!s` is evaluated by the continuation of the
+first alternative and by nothing else, so it is not fresh, and the first alternative is not decided against it.
 
 A call of a rule that calls no rule is not memoized, and its second evaluation repeats its scan. Lemma 4 bounds how
 often such a scan is repeated at one position (*Calls that call no rule*) only where the continuation does not reach
@@ -189,6 +197,10 @@ with every path of C pass the symbols σ_1, ..., σ_m alike, with m < k, and par
 - Up to d, C evaluates σ_1, ..., σ_m again, each from the position where U evaluated it, and pays for each at most a
   constant or what U paid for it there, by the table. The work of C before d is therefore at most m constants plus the
   scans of the shared calls of rules that call no rule, each of which U paid once at the same position.
+- The lookaheads that C evaluates before d, and the alternatives of a negative lookahead that C evaluates before the one
+  that U's match implies, are fresh. In strict mode each costs C a constant by the last row of the table: it has no
+  scanning source of its own, its calls are answered by the memo at a cost that Lemma 4 charges to the first evaluation
+  at that position (case 2), or reach no scanning source (case 3).
 - At d, at most one of U and C passes. If d is a literal, a class or a symbol whose first characters decide, C does not
   consume the character at which they part, which is case 1 of Lemma 4 at the position after the shared symbols. If d
   is a lookahead of U whose expression C must match, C fails within that match, and in strict mode the expression is
@@ -229,10 +241,10 @@ Whitespace is never skipped implicitly: a parser that skipped it between any two
 grammar does not write it. The calls stay where the grammar writes them, and the analysis compares them through a
 property that the compiler reads off the rule. A rule is **trivia** when:
 
-- its body is a greedy repetition `X*`, an atomic `X*`, or the unrolled form `X* (Y X*)*` in which comment rules are
-  often written, where X cannot match empty, so a call always succeeds, and a second call where the first ended matches
-  nothing: X fails where the last `X*` stopped, and the outer repetition of the unrolled form stopped where its
-  iteration failed or matched nothing;
+- its body is a greedy repetition `X*` or an atomic `X*`, where X cannot match empty, so a call always succeeds, and a
+  second call where the first ended matches nothing: X fails where the last iteration stopped. The unrolled form
+  `X* (Y X*)*` in which comment rules are often written is the repetition `(X / Y)*` in the normal view, so it has this
+  shape;
 - neither it nor a rule that it calls runs an action or contains `#recover`, an attributed expression, a stream, an
   Operators Rule or a call of a left-recursion cycle, its body binds no variable that it reads, and its body has no
   `#cut` of its own, which could commit the repetition.
@@ -249,9 +261,10 @@ follows a call of the same rule across symbols that consume nothing, since it ma
 whitespace, `ws "," ws value` against `ws "," ws "]"` then parts at k = 2 instead of reaching the bound at the third
 `ws`. In strict mode each step needs its cost bound:
 
-- **A second call at one position** is cheap only where the memo answers it. A trivia rule can be memoized per position
-  on every backend, but no backend does so yet, and the classifier treats trivia rules as memoized only where the memo
-  is assumed (the measurements say where).
+- **A second call at one position** is cheap by the table where the rule calls no rule: it repeats its own scan, which
+  the unit paid at that position, and no memo is needed. A trivia rule that calls a rule is cheap only where the memo
+  answers it. A trivia rule can be memoized per position on every backend, but no backend does so yet, and the
+  classifier treats such rules as memoized only where the memo is assumed (the measurements say where).
 - **A dropped call** starts where the first one ended, a different position, which the memo does not answer. It makes
   one final, failing attempt of X, which costs a constant when X contains no scanning source. When X scans, such as a
   comment that can be unterminated, the attempt scans as far as the last attempt of the first call did, so the call is
@@ -311,7 +324,7 @@ trivia rule at one position, under the same variables, end at one position, whic
 examining anything that distinguishes them. A call that follows a call of the same rule, with nothing consumed and no
 binding between them, starts where the first X* stopped, in the variables of the first call's caller, so X fails at
 once and the call matches nothing (law P2); dropping it keeps the set of paths. Its cost is the final attempts of X
-(and of the iteration of the unrolled form), which Lemma 1 bounds by a constant when they contain no scanning source.
+which Lemma 1 bounds by a constant when they contain no scanning source.
 
 **Exclusion.** Each decisive case is a statement about two expressions at one position: disjoint first characters cannot
 both be consumed; two literals that are not prefixes of each other cannot both match; a negative lookahead `!K` fails
@@ -336,8 +349,9 @@ cheap lookahead expression, or ends the parse.
   a cost bound, and of each decisive case as a lemma, as cases 1 to 5 have.
 - Lookahead units are not decided: the argument for a continuation that follows a successful lookahead expression is
   not written.
-- The cost of a trivia call assumes a memo per position that no backend builds; the classifier assumes it only behind a
-  test hook, and without it a second call of a trivia rule is cheap only by the other rows of the table.
+- The cost of a second call of a trivia rule that calls a rule assumes a memo per position that no backend builds; the
+  classifier assumes it only behind a test hook, and without it such a call is cheap only by the other rows of the
+  table, as a call of a trivia rule that calls no rule is.
 - Calls of rules that read variables are equal only before a binding mark; equality of calls whose variables are equal
   after a binding, which needs the values, is not implemented.
 - Calls of left-recursive rules are never equal symbols, and the growth argument of case 5 is not extended.
@@ -354,7 +368,8 @@ ZP_EXCLUSION_REPORT=1 go test -count=1 -run 'TestExclusionReport$' -v ./internal
 go test -count=1 -run 'TestExclusionControls$' -v ./internal/compile
 ```
 
-`TestExclusionReport` classifies the bundled grammars under each setting of the test hooks; `ZP_EXCLUSION_ONLY` limits
+`TestExclusionReport` classifies the bundled grammars, in the normal view that the compiler reads, under each setting of
+the test hooks; `ZP_EXCLUSION_ONLY` limits
 it to a comma-separated list of grammar files. The settings are:
 
 - **base**: the classifier without the analysis;
@@ -369,15 +384,15 @@ language. An alternative counts when it parts from every later one; a choice whe
 
 | Grammar | Choices | k=1 | k=2 | k=3 | k=4 | k=5 | Alternatives | k=1 | k=2 | k=3 | k=4 | k=5 |
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| cel | 42 | 27 | 29 | 29 | 29 | 29 | 96 | 73 | 77 | 77 | 77 | 77 |
-| csv | 2 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| cue | 138 | 59 | 63 | 63 | 67 | 67 | 318 | 148 | 155 | 156 | 160 | 160 |
-| duckdb | 565 | 342 | 367 | 386 | 397 | 418 | 1303 | 827 | 885 | 947 | 967 | 1011 |
-| golang | 166 | 68 | 74 | 76 | 76 | 77 | 350 | 208 | 218 | 222 | 222 | 224 |
-| python | 153 | 71 | 79 | 81 | 81 | 82 | 344 | 203 | 221 | 226 | 226 | 227 |
-| typescript | 302 | 173 | 189 | 193 | 194 | 194 | 808 | 568 | 599 | 608 | 611 | 611 |
+| cel | 44 | 30 | 31 | 31 | 31 | 31 | 94 | 72 | 75 | 75 | 75 | 75 |
+| csv | 4 | 2 | 2 | 2 | 2 | 2 | 5 | 2 | 2 | 2 | 2 | 2 |
+| cue | 139 | 62 | 64 | 64 | 68 | 68 | 302 | 151 | 156 | 157 | 161 | 161 |
+| duckdb | 573 | 355 | 376 | 394 | 405 | 426 | 1288 | 828 | 882 | 938 | 958 | 1002 |
+| golang | 172 | 72 | 77 | 79 | 79 | 80 | 344 | 206 | 215 | 219 | 219 | 221 |
+| python | 159 | 76 | 85 | 87 | 87 | 88 | 345 | 206 | 224 | 229 | 229 | 230 |
+| typescript | 306 | 177 | 191 | 195 | 196 | 196 | 804 | 567 | 596 | 605 | 608 | 608 |
 | xml | 35 | 27 | 30 | 31 | 31 | 33 | 54 | 43 | 46 | 48 | 48 | 50 |
-| yaml | 91 | 24 | 26 | 26 | 26 | 26 | 130 | 33 | 37 | 37 | 37 | 37 |
+| yaml | 91 | 24 | 26 | 26 | 26 | 26 | 128 | 32 | 36 | 36 | 36 | 36 |
 | minilang | 10 | 8 | 8 | 8 | 8 | 8 | 27 | 19 | 19 | 20 | 20 | 20 |
 | outline | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
 | json | 5 | 5 | 5 | 5 | 5 | 5 | 9 | 9 | 9 | 9 | 9 | 9 |
@@ -397,16 +412,16 @@ parentheses where it differs from base.
 | duckdb | polynomial | 666 | 666 | 644 | 619 | 603 | 604 |
 | golang | polynomial | 165 | 165 | 153 | 151 | 147 | 147 |
 | python | exponential | 199 | 199 | 174 (88) | 168 (88) | 153 (88) | 153 (88) |
-| typescript | polynomial | 269 | 269 | 245 | 242 | 229 | 226 |
+| typescript | polynomial | 269 | 269 | 246 | 243 | 230 | 227 |
 | xml | polynomial | 9 | 9 | 7 | 7 (4) | 7 (4) | 7 (4) |
 | yaml | exponential | 39 | 39 | 37 | 37 | 37 | 37 |
 | minilang | polynomial | 10 | 10 | 10 | 10 | 10 | 10 |
 | outline | polynomial | 2 | 2 | 2 | 2 | 2 | 2 |
 | json | linear | 0 | 0 | 0 | 0 | 0 | 0 |
-| **total** | | 1437 | 1437 | 1350 | 1314 | 1262 | 1260 |
+| **total** | | 1437 | 1437 | 1351 | 1315 | 1263 | 1261 |
 
-The causes in base are cel 8, csv 1, cue 54, duckdb 19, golang 21, python 107, typescript 239, xml 5, yaml 34, minilang
-1, outline 2 and json 0, 491 in all, 472 at k = 2 and 470 from k = 3 on. No grammar changes class: each polynomial or
+The causes in base are cel 10, csv 1, cue 54, duckdb 19, golang 21, python 107, typescript 239, xml 5, yaml 34, minilang
+1, outline 2 and json 0, 493 in all, 474 at k = 2 and 472 from k = 3 on. No grammar changes class: each polynomial or
 exponential grammar keeps causes that the analysis does not reach. Cut prefixes change nothing on the bundled grammars.
 The classifier exhausted the work budget for one unit of duckdb from k = 3 on and for five units of typescript from
 k = 2 on.
@@ -430,26 +445,26 @@ The trivia rules that the check finds:
 
 ### What Remains
 
-The units that stay not committing at k = 3 without trivia, 2124 in all: 698 alternatives, 510 lookaheads, 431 options,
-286 iterations, 183 operator parts, 15 operands and one base of a `#recover`. Where the strict analysis stops for them:
+The units that stay not committing at k = 3 without trivia, 2125 in all: 697 alternatives, 510 lookaheads, 431 options,
+288 iterations, 183 operator parts, 15 operands and one base of a `#recover`. Where the strict analysis stops for them:
 
 | Where it stops | k=3 | trivia |
 |:--|--:|--:|
 | A lookahead unit, left to the other cases | 510 | 510 |
-| A continuation reaches a part that is not cheap | 566 | 608 |
-| A unit reaches a part that is not cheap | 100 | 105 |
-| A symbol that is not expanded, such as a class or `.` | 368 | 377 |
+| A continuation reaches a part that is not cheap | 566 | 604 |
+| A unit reaches a part that is not cheap | 101 | 106 |
+| A symbol that is not expanded, such as a class or `.` | 351 | 363 |
 | The continuation is cut at the follow bound | 149 | 152 |
 | The paths part only beyond k | 96 | 30 |
 | Equal symbols reach k | 94 | 12 |
 | An equal symbol that is not cheap | 47 | 57 |
 | A stop: an attributed expression, an Operators Rule or `#recover` | 38 | 38 |
 | The inline limit | 30 | 30 |
-| A cost condition alone: the comparison without it decides | 90 | 104 |
-| Other: environment marks, lookaheads that are not cheap, exhausted paths, path and literal bounds, operator level calls, the budget | 36 | 39 |
+| A cost condition alone: the comparison without it decides | 91 | 105 |
+| Other: environment marks, lookaheads that are not cheap, exhausted paths, path and literal bounds, operator level calls, the budget | 52 | 56 |
 
 Trivia rules mostly turn units that reached k into units that stop at a part that is not cheap: the trivia
-call is passed, and the next difference is one the cost conditions reject. The cost conditions alone block 90 units at
+call is passed, and the next difference is one the cost conditions reject. The cost conditions alone block 91 units at
 k = 3. The comparison of the language decides them, but the strict comparison does not.
 
 ### Controls
@@ -493,7 +508,9 @@ In `internal/compile`:
 
 - `TestDecideAlt`, `TestDecideAltVariables`, `TestDecideAltTrivia`: the language-level comparison, for each
   decisive case, lookahead implication through a callee and after a prefix, literals that are equal up to case, calls
-  of rules that read variables and of left-recursive rules, and trivia calls.
+  of rules that read variables and of left-recursive rules, and trivia calls. They read the rules as written, since
+  they test how the comparison counts symbols across shared prefixes, which the normal view would inline; the other
+  tests read the normal view.
 - `TestStrictConditions`: each condition of the strict comparison, with a case that passes and one that the condition
   rejects: the environment mark, bindings at a rule end, parts that are not cheap on either side, lookaheads that are
   not cheap, a call after a nesting end, and a path exhausted in strict mode.
@@ -510,11 +527,12 @@ In `internal/compile`:
 - `TestExclusionControls`: the linear-cost controls, described in [Controls](#controls).
 - `TestExclusionReport`: the measurements, behind `ZP_EXCLUSION_REPORT`.
 
-Each condition that a test checks was disabled in turn, and the test failed each time.
+The controls in `internal/complexitytest` for the fresh symbols are "Scanning lookahead of a later alternative" and
+"Scanning first alternative of a later lookahead", which `TestExclusionControls` classifies with each setting.
 
 ## Limitations and Open Questions
 
-- The measurements are counts of the classifier; they are not soundness claims for the prototype.
+- The measurements are counts of the classifier; they are not soundness claims.
 - The limits of [Limits](#limits) are constants chosen for the measurements; a compiler that runs the analysis needs
   limits that are part of a contract, and a diagnostic when they are reached.
 - See [Soundness](#soundness) for the gaps of the proof.
@@ -522,7 +540,7 @@ Each condition that a test checks was disabled in turn, and the test failed each
   that the other cases do not. They stay undecided until an argument is written for a continuation that follows a
   successful lookahead expression; they are 510 of the units that stay not committing at k = 3.
 - **Memo of trivia rules.** The cost argument for a second call of a trivia rule at one position needs a memo per
-  position, which the backends do not build for rules that call no rule, so the classifier does not assume it. Whether
+  position, which the backends do not build for trivia rules that call a rule, so the classifier does not assume it. Whether
   memoizing trivia rules per position on every backend pays for its memo entries is an optimization to measure; with it,
   the classifier could treat those calls as cheap.
 
