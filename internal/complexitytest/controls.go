@@ -87,6 +87,31 @@ func Controls() []Control {
 			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
 		},
 		{
+			Name: "Copy of a lookahead capture that a rule returns", Family: "lookahead copy",
+			Source: "rule main = a* $$\nrule a string = \"a\" y:look => text($y) + \"!\"\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Copy of the text of a lookahead capture that a rule returns", Family: "lookahead copy",
+			Source: "rule main = a* $$\nrule a string = \"a\" y:look => \"!\" + $y\nrule look string = &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Copies of lookahead captures in the elements of a map", Family: "lookahead copy",
+			Source: "rule main = b $$\nrule b []string = ps:p* => map($ps, (e) => text(e.$y) + \"!\")\nrule p = \"a\" y:look\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		// Each step of the fold copies a capture from outside its lambda, as large as the input.
+		{
+			Name: "Fold copying a capture from outside its lambda", Family: "outer copy",
+			Source: "rule main = b $$\nrule b string = x:as \"|\" ps:c* => foldl(\"\", $ps, (s, e) => text($x) + \"!\")\nrule as = \"a\"*\nrule c = \"b\"\n",
+			Input:  func(n int) string { return rep("a", n) + "|" + rep("b", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
 			Name: "Text of a capture in a lookahead, safe", Family: "lookahead copy", Positive: true,
 			Source: "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n",
 			Input:  func(n int) string { return rep("a", n) },

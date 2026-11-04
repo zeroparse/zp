@@ -120,6 +120,19 @@ func TestClassifyComplexity(t *testing.T) {
 		// repeats over that input; its text alone costs a constant.
 		{"copy of a capture in a lookahead", "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x) + \"!\"\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
 		{"text of a capture in a lookahead", "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n", ClassLinear, 0},
+		// A rule that consumes nothing can return such a capture, as a node or as its text, and
+		// a list can hold it in each element.
+		{"copy of a lookahead capture that a rule returns", "rule main = a* $$\nrule a string = \"a\" y:look => text($y) + \"!\"\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copy of the text of a lookahead capture that a rule returns", "rule main = a* $$\nrule a string = \"a\" y:look => \"!\" + $y\nrule look string = &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copies of lookahead captures in the elements of a map", "rule main = b $$\nrule b []string = ps:p* => map($ps, (e) => text(e.$y) + \"!\")\nrule p = \"a\" y:look\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copies of lookahead captures in the steps of a fold", "rule main = b $$\nrule b string = ps:p* => foldl(\"\", $ps, (s, e) => text(e.$y) + \"!\")\nrule p = \"a\" y:look\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"texts of lookahead captures in the elements of a map", "rule main = b $$\nrule b []string = ps:p* => map($ps, (e) => text(e.$y))\nrule p = \"a\" y:look\nrule look = &(x:w) => $x\nrule w = \"a\" w / \"\"\n", ClassLinear, 0},
+		// A member of a lookahead capture, or a field of a struct built from one, holds the
+		// same input.
+		{"copy of a member of a lookahead capture that a rule returns", "rule main = a* $$\nrule a string = \"a\" y:look => text($y) + \"!\"\nrule look = &(x:p) => $x.$q\nrule p = q:w\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copy of a member of a member of a lookahead capture", "rule main = a* $$\nrule a string = \"a\" y:look => text($y.$x.$q) + \"!\"\nrule look = &(x:p)\nrule p = q:w\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copy of a struct field that holds a lookahead capture", "type S = { F string }\nrule main = a* $$\nrule a string = \"a\" y:look => $y.F + \"!\"\nrule look S = &(x:w) => S{F: text($x)}\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"copy of a bounded lookahead capture", "rule main = a* \"b\" $$\nrule a string = \"a\" y:look => text($y) + \"!\"\nrule look = &(x:\"a\" / \"b\") => $x\n", ClassLinear, 0},
 		{"source inside a shared call", "rule main = e $$\nrule e = #operators {\n    skip ws\n    operand \"true\"\n    operand [a-z]+\n    level { infix left \"+\" }\n}\nrule ws = [ \\t]*\n", ClassLinear, 0},
 		// A list built from the elements of a repetition costs its number of elements.
 		{"list of a repetition", "rule main = l $$\nrule l = \"[\" ms:m? \"]\" => concat($ms)\nrule m = f:v rs:(\",\" x:v)* => concat(list($f), map($rs, (r) => r.$x))\nrule v = \"x\" / l\n", ClassLinear, 0},
