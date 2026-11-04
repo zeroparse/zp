@@ -826,7 +826,12 @@ The conditions below use these terms.
     the `#recover`;
   - for a unit of an Operators Rule, the other operator parts and `operand`
     items that the rule can try at the same position, and what follows the
-    Operators Rule expression.
+    Operators Rule expression. When the Operators Rule **nests**, having a
+    prefix operator part or a right-associative infix one, whose right operand
+    applies operators of its own level, an operand can end where every
+    enclosing operator part ends, and each of them tries the operator parts
+    after an operand again there: for an operator part after an operand, those
+    operator parts are a continuation too.
 - The **first characters** of an expression are the characters with which an
   evaluation of it can examine the input beyond its start position: those it
   can consume first, and those that every lookahead it can evaluate before it
@@ -867,6 +872,18 @@ The conditions below use these terms.
   the first characters there include those of what follows it. A call
   of any other rule is not shared, because evaluating its body again also
   evaluates again the units inside it, at every level of a recursion.
+  A call of a rule that is not memoized at the call and contains a scanning
+  source is not shared either when the continuation reaches it after the end
+  of a rule body, in what follows a call that **nests at one end**, or after
+  an operand of an Operators Rule that nests. A call nests at one end when it
+  is a call of a rule from a rule of its recursion that lies on a cycle of
+  such calls, each followed in its caller by what can match without consuming
+  input, so that the nested evaluations of the cycle can all end where the
+  innermost one ends. Each of them that ends at the position then evaluates
+  the call there again: in `e = "(" e? (ws ")")?` with `ws = [ ]*`, the
+  option at each level fails after `ws` and the option of the level around it
+  evaluates `ws` again over the same spaces, so the continuations together pay
+  for the call once for each level.
 - A unit is **committing** when, for each of its continuations, the first
   characters of the unit and of the continuation are disjoint after the calls
   that the two share are removed from their starts, one after another, each

@@ -18,11 +18,16 @@ proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
 proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
-proves a reduction and leaves the count of activations open: the scanned cost
-comes down to the number of activations, a failure after a source passes through
-the forms that condition 2 checks, and an activation is repeated at a position
-only after an abandoned committing unit or a dropped growth step. Lemma 5 proves
-the bound on the sources that a growth step evaluates at fixed offsets after the
+proves a reduction and bounds the repetitions at one position, and leaves their
+sum open: the scanned cost comes down to the number of activations, a failure
+after a source passes through the forms that condition 2 checks, an activation
+is repeated at a position only after an abandoned committing unit or a dropped
+growth step, at most one successful activation of a source at a position is
+direct in one body evaluation, and every other lies in a re-evaluation of a call
+that a committing unit shares with its continuation, which the memo bounds for a
+memoized rule and the cycles of calls that nest at one end bound for a rule that
+calls no rule when the call is the first that the two share. Lemma 5 proves the
+bound on the sources that a growth step evaluates at fixed offsets after the
 position where it grows.
 
 ## Setting
@@ -291,11 +296,17 @@ unit contains, so the claims above treat these evaluations as those of any other
 unit: an Operators Rule is a choice of its operator parts and `operand` items
 when one fails and a sequence of its operands and operators when they succeed,
 and its units are checked by condition 2 whether or not they can fail after a
-source. A right operand that can apply an operator contains that source at a new
-position, as a call of a rule of a cycle after input is. The `skip` of an
-Operators Rule is a scanning source unless it is a reused skip, and its first
-call is shared with that of a body that is the Operators Rule, as [Conditions
-for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost) states.
+source. When the rule nests, the return of an inner level ends the right operand
+of an enclosing operator part where the inner operand ended, and the enclosing
+level tries the operator parts after an operand there again, so for an operator
+part after an operand those parts are a continuation ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost), the continuations of a
+unit of an Operators Rule). A right operand that can apply an operator contains
+that source at a new position, as a call of a rule of a cycle after input is.
+The `skip` of an Operators Rule is a scanning source unless it is a reused skip,
+and its first call is shared with that of a body that is the Operators Rule, as
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+states.
 
 What remains is to count the activations. Each evaluation of a scanning source
 has at most one activation that does not succeed, its last: an iteration that
@@ -306,34 +317,38 @@ evaluations and the activations of the sources that enclose it, a constant
 number of times by each. The sources of a body nest to a depth that is a
 constant of the grammar, so by induction on that depth the activations that do
 not succeed are at most a constant times the body evaluations and the successful
-activations. The proof must show that each position starts a constant number of
-successful activations of each source for each combination of the values of
-variables. By the restarts above, a successful activation is repeated at a
+activations. It is left to bound the successful activations that start at one
+position. By the restarts above, a successful activation is repeated at a
 position only after a dropped step of a growth, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
 not return before the start of that unit until the repetition. The ways in which
-a unit is committing give the following cases, one lemma each.
+a unit is committing give the following cases.
 
 1. *Disjoint first characters.* The continuation does not consume the
    character at which it and the unit part, so nothing evaluated after the
    failure starts again inside the input that the unit examined beyond its
    shared calls.
 2. *Shared calls.* A call that the unit and a continuation both evaluate first
-   has the same result in both, by the [memoization theorem](memoization.md#theorem-memoization-never-changes-the-result)
-   when the rule is memoized at both calls, or by repeating only its own scan
-   when it calls no rule, so the continuation pays for it at most what the
-   unit paid. A rule of a cycle other than a leader is memoized at a call that
-   is not a left call: a growth of its cycle at the position of the call that
-   was in progress would be evaluating, at that position, every rule from the
+   has the same result in both, by the [memoization
+   theorem](memoization.md#theorem-memoization-never-changes-the-result) when
+   the rule is memoized at both calls, or by repeating only its own scan when it
+   calls no rule, so the continuation pays for it at most what the unit paid. A
+   rule that calls no rule repeats its scan in every continuation that evaluates
+   it again at the position, so a call of it is not shared where the
+   continuation reaches it after leaving a body through a call that nests at one
+   end, and *Calls that call no rule* below bounds its re-evaluations at one
+   position. A rule of a cycle other than a leader is memoized at a call that is
+   not a left call: a growth of its cycle at the position of the call that was
+   in progress would be evaluating, at that position, every rule from the
    growing leader to the caller, so each of them would have a left call of the
-   next and lie on the cycle, and the call would be a left call. The call has
-   no growth in its context, its result reads no growing result, and the memo
-   stores it and answers the other call
-   ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)).
-   A literal that is not empty, with the same case sensitivity, that every path
-   of both begins with is shared too: both consume the same characters or both
-   fail where they begin, so what follows it starts at the same position in
-   both, and the continuation pays for it no more than the unit paid.
+   next and lie on the cycle, and the call would be a left call. The call has no
+   growth in its context, its result reads no growing result, and the memo
+   stores it and answers the other call ([Evaluations of
+   Rules](../runtime/parsing.md#evaluations-of-rules)). A literal that is not
+   empty, with the same case sensitivity, that every path of both begins with is
+   shared too: both consume the same characters or both fail where they begin,
+   so what follows it starts at the same position in both, and the continuation
+   pays for it no more than the unit paid.
 3. *No source after the shared calls.* The input that the unit examines beyond
    its shared calls is bounded by Lemma 1.
 4. *Words that exclude.* The continuation fails, or stops examining, before the
@@ -351,6 +366,141 @@ that succeeds is not restarted by its own continuations, and a failure after
 it is a failure of an enclosing unit, to which the same cases apply. The
 expression of a lookahead is abandoned whether it matches or not, so it is
 checked as a unit in every case.
+
+The claims below turn these cases into bounds at one position. None of them
+uses the [run records](../runtime/parsing.md#run-sites) of the engine: a
+repetition that is a run site counts here as any other scanning source, so the
+bounds hold whether or not a parse keeps the records.
+
+**Direct activations.** An activation of a scanning source $\sigma$ of the
+body of a rule $R$ is **direct** in the body evaluation of $R$ that contains it
+with no call between them. Let $E$ be a body evaluation of $R$ that is not a
+growth step. At most one successful activation of $\sigma$ that is direct in
+$E$ starts at a position $q$, unless a path that enters the growth again leads
+from the abandoned unit to the later one (case 5).
+
+*Proof.* Let $\alpha$ and $\alpha'$ be two, $\alpha$ first. The innermost
+evaluation $N$ that contains both lies in the body of $E$, below every call,
+so it is no growth, and the restarts give the abandoned evaluation $w$ on the
+path from $N$ to $\alpha$, which is no growth step, since no call lies on that
+path. So $w$ is a committing unit that starts at $s \le q$, and no call made
+in $w$ contains $\alpha$. From the end of $w$ until $\alpha'$, the parser
+evaluates continuations of $w$ from $s$ and returns to no position before
+$s$; let $\kappa$ be the one that it evaluates from $s$ the last time before
+$\alpha'$, whose evaluation contains $\alpha'$. Let $t$ be the position where
+the calls that $w$ and $\kappa$ share end in $w$. They end there in $\kappa$
+too: every path of both that examines the input begins with them, each has the
+same result in both (case 2), and each starts at the end of the one before.
+
+Since $\alpha$ is in no call of $w$, it is not in the shared calls, so
+$q \ge t$, and the input from $t$ to the end of $\alpha$ is consumed in $w$
+after the shared calls: the character at $t$ is a first character of $w$ after
+them. In $\kappa$, every path reaches $t$ through the shared calls, and a path
+that the parser evaluates again from a position before $t$ evaluates them
+again, so the parser reaches $q$ only by consuming the character at $t$ after
+them: it is a first character of $\kappa$ after them too. In case 1 this
+contradicts disjointness. Case 3 does not hold, since $\sigma$ is a scanning
+source of $w$ outside the shared calls. In case 4 the path of $w$ that
+contains $\alpha$ matched its word $W$ from $t$, and $\sigma$ follows the word,
+so $q \ge t + |W|$; on that input every path of $\kappa$ fails, examines
+nothing more or meets a known negative lookahead before $t + |W|$, so the
+parser does not reach $q$. Only case 5 remains. $\square$
+
+The claim covers the iterations and skip evaluations of a body and the
+operators that an Operators Rule applies, which are direct in its body
+evaluation, since the parse of an operand is part of the same call. It covers
+a lookahead unit that matched too: the lookahead is abandoned, and the parser
+continues from its start.
+
+**Repeats.** Let $\alpha$ and $\alpha'$ be successful activations of $\sigma$
+at $q$, $\alpha$ first, direct in different body evaluations of $R$, and let
+no dropped step of a growth and no path that enters the growth again lead from
+the abandoned unit to $\alpha'$. With $w$ and $\kappa$ as above, $\alpha$ lies
+in the evaluation $e$ of a call that $w$ and $\kappa$ share, and $\alpha'$ in
+an evaluation $e'$ of the same call at the same position, made by $\kappa$
+after $w$ is abandoned.
+
+*Proof.* If $\alpha$ is in none of the shared calls, the proof above applies:
+$\alpha$ is in $w$ after the shared calls, inside a call of $w$ or not, so the
+character at $t$ is a first character of both, and a call of $w$ after the
+shared calls that contains $\alpha$ contains a scanning source, so case 3 does
+not hold either. So $\alpha$ is in the shared call that starts at $t_{j-1}$ and
+ends at $t_j$, with $t_{j-1} \le q < t_j \le t$. After $w$, the parser
+evaluates what of $\kappa$ starts before $t$ only as the shared calls or as
+expressions of $\kappa$ that begin with them, and $\alpha'$, which consumes the
+character at $q$, is in an evaluation of the $j$-th shared call, the only one
+that covers $q$. $\square$
+
+So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
+in the order in which they start, outside case 5 and dropped steps, are direct
+in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_i$ lies in an
+evaluation $e'_i$ of a call shared by a committing unit $w_i$, made after $w_i$
+is abandoned, and $\alpha_{i-1}$ in the evaluation $e_i$ of the same call at
+the same position inside $w_i$. The pair $(e_i, e'_i)$ is the $i$-th **link**.
+
+**Memoized links.** If the rule of the $i$-th link is memoized at both calls,
+$e_i$ and $e'_i$ are the two body evaluations of the rule at its position and
+level that the memo allows (Lemma 3; the rule reads no variable), and distinct
+links of $\sigma$ at $q$ use distinct rules, positions or levels.
+
+*Proof.* The memo answers a call without evaluating it, and $e'_i$, which
+contains $\alpha_i$, is evaluated, so it is one of the two evaluations, and
+$e_i$, made earlier, is the other. If links $i < k$ used the same rule,
+position and level, then $e_k = e_i$ and $e'_k = e'_i$, so $\alpha_{k-1}$,
+which starts no earlier than $\alpha_i$, would lie in $e_i$, which ended before
+$e'_i$ started. $\square$
+
+**Calls that call no rule.** Let the rule $r$ of the links $i$ to $k$ call no
+rule, read no variable and not be memoized at its calls, and let the shared
+call of each link be the first call that its unit and continuation share. Then
+$k - i$ is at most a constant.
+
+*Proof.* Since $r$ calls no rule, the evaluation of a call of $r$ that
+contains an activation is the innermost call evaluation that contains it, so
+$e_{l+1} = e'_l$ for $i \le l < k$, and every link evaluates $r$ at one
+position $p$. As the shared call is the first, $w_l$ starts examining the
+input at $p$, and $\kappa_l$ reaches $e'_l$ from $p$ without consuming input.
+Call the body evaluations in progress the frames. From the end of $w_l$ to
+$e'_l$, the parser leaves some of the frames that enclose $w_l$, at their ends,
+all at $p$, and then starts frames at $p$ through calls on the way to $e'_l$.
+A frame is left once. When a frame is left at $p$, what follows, in its body,
+the call of the frame inside it that was left before, or that holds $w_l$,
+matched without consuming input, so that call place is followed in its caller
+by what can match without consuming input.
+
+Frames started at $p$ nest, through calls made before input is consumed, at
+most $|\text{rules}|$ deep outside left-recursion cycles, whose growths and
+contexts are Lemma 5's. A link that leaves no frame evaluates $r$ again in a
+frame in progress or one started at $p$ inside it, at a later place of its
+body; by the argument of Lemma 1, and since an iteration that starts at $p$
+either consumes input or ends its repetition, the links between two that leave
+frames are at most a constant. For a link $l$ that leaves frames, let $\pi_l$
+be the call place through which it leaves its last frame $Y_l$ into the frame
+$Z_l$ in which it then reaches $e'_l$. If more links than there are call places
+leave frames, two of them, $l < l'$, have $\pi_l = \pi_{l'}$. The frames from
+$Z_l$ up to $Y_{l'}$ are all left at $p$, and the places through which each
+of them called the one inside it, from $\pi_l$ at $Z_l$ up to the place at
+$Y_{l'}$, lead from the rule of $Y_l$ back to the rule of $Y_{l'}$, which is
+the same rule, the callee of $\pi_l$. So they form a cycle of calls of rules of
+one recursion, each followed in its caller by what can match without consuming
+input, and $\pi_l$ nests at one end. The continuation of $w_l$ reaches $e'_l$
+in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is not
+shared ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)), against the choice of
+the link. $\square$
+
+An Operators Rule that nests repeats in the same way without leaving a frame:
+each enclosing level tries the operator parts after an operand again where the
+inner operand ended, so a call of a rule that calls no rule that is reached
+there is evaluated once for each level, as `ws` is in the calculator on `-`^n
+`1` followed by n spaces. The call is not shared there, so no link passes
+through it, and the levels of an Operators Rule that does not nest are at most
+the number of its binding levels.
+
+These claims bound the links of one source at one position, memoized links by
+the memo and the links of a rule that calls no rule by the cycles of nesting
+calls. They do not yet sum to the bound of this lemma, which is step 1 of
+[Open Steps](#open-steps).
 
 ## Lemma 5 (Growth)
 
@@ -1336,10 +1486,13 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
 - `checkUnits` decides condition 2, with `unitFailsAfterSource` and
   `failsAfterSource` for a unit that can fail after a source, and
   `committing` for the term committing, which removes shared calls through
-  `leads` and `commonLead`, compares first characters, excludes by words in
-  `excludedByWord`, and drops the later alternatives after a `#cut` in
-  `cutCommits`: Lemma 4, its failure after a source and the cases of
-  committing.
+  `leads` and `commonLead`, keeps a call that `rescans` finds the continuation
+  reaching through a call that nests at one end (`nestsAt`) or after an operand
+  of an Operators Rule that nests (`nestsOps`), for which `walkOperators` adds
+  the operator parts that an enclosing level tries again as a continuation,
+  compares first characters, excludes by words in `excludedByWord`, and drops
+  the later alternatives after a `#cut` in `cutCommits`: Lemma 4, its failure
+  after a source, the cases of committing and its claims on links.
 - `withoutReentry`, `fixedMemoized`, `memoOnly` and `restBounded` decide the
   paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
 - `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
@@ -1400,21 +1553,31 @@ A new condition enters the proof in one of two ways.
 The outlines leave these steps to be made precise.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
-   cost to the activations and show that a successful activation is repeated at
-   a position only after a dropped growth step or after an abandoned committing
-   unit that contains it. The proof must still turn each case of committing into
-   a constant bound on the repetitions at one position, and combine the bounds
-   over the units that enclose one another, rule calls, and the two evaluations
-   that the memo allows at a position, where a rule that calls no rule repeats
-   its own scan. The activations include those of the copying operations, the
-   units of the own spans that they read (Lemma 6).
+   cost to the activations, show that the successful activations of a source
+   at a position are direct in distinct body evaluations, and link each to the
+   one before it through a call that a committing unit shares with its
+   continuation. Memoized links use distinct rules, positions and levels, and
+   the links of a rule that calls no rule are bounded when the shared call is
+   the first that the unit and its continuation share. Two parts are open.
+   First, the sum over positions: the second evaluation of a memoized link can
+   hold repeated activations at many positions, so the proof must charge each
+   repeated activation to the one it repeats in the first evaluation and show
+   that the charges do not compound through shared calls nested in shared
+   calls. Second, the links of a rule that calls no rule when the shared call
+   follows other shared calls: the bodies that the continuation leaves can
+   then end after those calls consumed input, so the call places it leaves
+   need not be followed by what matches without consuming input, and whether
+   the chain stays bounded is not shown. The activations include those of the
+   copying operations, the units of the own spans that they read (Lemma 6).
 2. **"A unit that succeeds is not restarted."** A body that contains the unit
    can itself be evaluated again: by the memo, at most twice at a position; when
    its rule is not memoized, at each of its calls. Lemmas 3 and 10 count these
    evaluations; the proof must show that they do not multiply the scanned cost
    beyond a constant. Lemma 10 bounds the evaluations of the rules that are not
    memoized by the activations, so the bound of Lemma 4 on the activations must
-   not rest on those evaluations, or the argument closes on itself.
+   not rest on those evaluations, or the argument closes on itself. The claims
+   of Lemma 4 proved so far do not: they count links by the memo of Lemma 3 and
+   by the call places of the grammar.
 3. **Continuations of growing units.** The claim on sources at fixed offsets in
    Lemma 5 bounds a unit followed by a growing unit with which it shares no
    call, in all but a constant number of steps. The proof must still bound such
@@ -1425,10 +1588,14 @@ The outlines leave these steps to be made precise.
    `E = F "+" X / Y; F = E / M`, where the unit is also checked as an
    alternative that is not growing.
 4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
-   applies and its units among the activations and units of its claims. The
-   proof must still bound how many times the operator parts are tried at one
-   position when inner levels return there, from the cases of committing, as in
-   step 1.
+   applies and its units among the activations and units of its claims, with
+   the operator parts that an enclosing level tries again as a continuation of
+   an operator part after an operand when the rule nests; its claims on direct
+   activations and links cover the operators applied at a position. The tries
+   of operator parts that fail at a position when inner levels return there are
+   at most the number of parts for each level, so their cost is the cost of the
+   units up to their failure, which the claims of step 1 bound with its open
+   parts.
 5. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
    that a context of growths repeats, which Lemma 3 leaves out: the calls
    that find no result with the same growing results and lookahead outcomes,
