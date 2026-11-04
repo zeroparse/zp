@@ -21,6 +21,7 @@ The name is adjacent to `#`, and an argument list is adjacent to its name:
 | `#repeat(n,)` | Repeats at least `n` times |
 | `#repeat(,m)` | Repeats from zero through `m` times |
 | `#repeat(n,m)` | Repeats from `n` through `m` times |
+| `#sep(s)`, `#sep(s, trailing=t)` | Makes a repetition a separated list: elements are separated by `s`, which is dropped from the value; see [`#sep`](#sep) |
 | `#stream` | Hands each element of a repetition to the caller as soon as it matches in a stream parse |
 | `#atomic` | Returns one string node and suppresses construction of the values of the elements inside it |
 | `#ignorecase` | Makes the string literals written in the annotated expression case-insensitive, for ASCII letters; see [`#ignorecase`](#ignorecase) |
@@ -124,6 +125,59 @@ errors recovered earlier are not. When recovery is impossible, the ordinary synt
 error is returned, and its expected items include the first items of the skip
 expression. The Go and command-line results are defined in
 [Parsing](../runtime/parsing.md#syntax-errors).
+
+## `#sep`
+
+`#sep(s)` annotates a repetition and makes it a separated list: a sequence of
+elements with the expression `s` between each two of them. `e+ #sep(",")` matches
+`e ("," e)*`, and `e* #sep(",")` matches that or nothing. The bounds of the
+repetition (`+`, `*`, `#repeat(n,m)`) count elements. The separator is a string
+literal or any parser expression without captures, so it carries its own
+whitespace, as in `#sep(ws "," ws)`. The pragma has no implicit skip. Its
+argument is positional, `#sep(s)` or `#sep(sep=s)`, followed by the optional named
+argument `trailing`.
+
+The value is the list node of the repetition: the values of the elements in
+order. The value of each separator is dropped, as `-s` drops it, and there is no
+option to keep it. The type of the list is the type of the repetition without
+the pragma.
+
+The list commits after each separator. When `s` has matched, the next element MUST
+match, and if it does not, the list fails at the position where the element
+failed. The list does not backtrack to the position before the separator. The
+commit is local to the list: it does not commit an enclosing choice.
+
+`trailing` selects what may follow the last element:
+
+| `trailing` | List | Trailing separator |
+|:--|:--|:--|
+| `"forbidden"` (default) | `e (s e)*` | not accepted: the list fails at the element that is missing after `s` |
+| `"optional"` | `e (s e)* s?` | accepted after at least one element when the input after `s` cannot start an element |
+| `"required"` | `(e s)*` | required after every element, including the last |
+
+With `"optional"` the list decides at each separator by one character of
+lookahead: it continues when the next character can start an element (a member of
+the first set of `e`) and otherwise ends after the separator. A trailing
+separator after zero elements is not accepted. With `"required"` an element that
+matches is committed, so the separator MUST follow it.
+
+The compiler rejects `#sep` with a positioned error unless the commit is sound:
+
+- `#sep` is not on a repetition, the maximum is zero, it appears twice on a
+  repetition, or its argument is unknown or `trailing` is not one of the three
+  strings;
+- the separator is an empty literal or contains a capture;
+- the element or the separator can match the empty input;
+- the first set of the element intersects the first set of the separator, so
+  the list cannot tell an element from a separator by the next character. The
+  first set test is conservative: an element or separator whose first set it
+  cannot prove disjoint is rejected, and the grammar writes the hand form
+  `e (-s e)*` instead.
+
+`#recover(skip=x)` inside the element works as in a repetition. A list may be the
+repetition of `#stream` at the top level of the start rule; each element is
+handed over when the element and the separator after it, or the end of the list,
+have been matched. See [`#stream`](#stream).
 
 ## `#stream`
 

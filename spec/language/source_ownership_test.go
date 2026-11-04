@@ -302,6 +302,7 @@ var ownershipCorpus = []string{
 	"rule a = b // t\n  / c // u\n  / d\n",
 	"rule a = (\n // l\n b // t\n c\n // end\n) // g\n",
 	"rule a = b /* x */ #atomic /* y */ #repeat(2) /* z */ @n /* w */\n",
+	"rule a = b* /* x */ #sep(\",\", /* y */ trailing=\"optional\") /* z */ @n // w\n",
 	"rule a = x:/* l */ b* /* t */\n",
 	"rule a = b => /* l */ f(/* a */ 1 /* b */, /* c */ x /* d */) /* t */\n",
 	"rule a = b => x /* m */ . /* n */ Foo /* o */ + /* p */ y.$z\n",

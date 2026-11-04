@@ -45,6 +45,8 @@ additional constraints are checked outside this source grammar.
 - **Character class ranges.** In `lo-hi`, `hi` MUST NOT be less than `lo`, and a
   class MUST contain at least one item.
 - **Repetition bounds.** In `a #repeat(n,m)`, `m` MUST NOT be less than `n`.
+- **Separated lists.** `#sep` MUST annotate a repetition; semantic analysis rejects it elsewhere
+  (see [`#sep`](pragmas.md#sep)).
 - **Statement boundaries.** Newlines and semicolons separate Declaration Statements,
   Operators Rule items, struct fields and action-block statements. A newline ends a
   statement, and a semicolon ends it only on the same line: `a string // t` followed by a

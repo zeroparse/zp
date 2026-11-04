@@ -108,7 +108,7 @@ The following rules determine the shape of the tree.
 | `label:a` | capture | yes |
 | `{ term }` | [Predicate Action](predicates.md) | no |
 | `@name(...)` | diagnostic/metadata [attribute](attributes.md) | depends on the attribute |
-| `#atomic`, `#repeat(...)`, `#recover(...)`, `#missing`, `#stream`, `#ignorecase` | behavioral/structural pragma | depends on the pragma |
+| `#atomic`, `#repeat(...)`, `#sep(...)`, `#recover(...)`, `#missing`, `#stream`, `#ignorecase` | behavioral/structural pragma | depends on the pragma |
 
 "Consumes input" states whether the expression can advance the input position.
 
@@ -119,7 +119,7 @@ override the order.
 
 | Precedence | Operators | Kind |
 |:--|:--|:--|
-| 1 (tightest) | `*`, `+`, `?`, `#repeat(...)`, `#atomic`, `#recover(...)`, `#missing`, `#stream`, `@name(...)` | postfix |
+| 1 (tightest) | `*`, `+`, `?`, `#repeat(...)`, `#sep(...)`, `#atomic`, `#recover(...)`, `#missing`, `#stream`, `@name(...)` | postfix |
 | 2 | `label:`, `&`, `!`, `-` | prefix |
 | 3 | `a b` | sequence |
 | 4 (loosest) | `a / b` | ordered choice |
@@ -268,6 +268,7 @@ A repetition matches `a` repeatedly.
 | `a #repeat(n,m)` | at least `n` and at most `m` times |
 | `a*` | shorthand for `a #repeat(0,)` |
 | `a+` | shorthand for `a #repeat(1,)` |
+| `a* #sep(s)` | `a` repeated with `s` between iterations; see [`#sep`](pragmas.md#sep) |
 
 Repetition is greedy and does not backtrack: it matches `a` as many times as
 possible (up to the maximum) and fails only if fewer than the minimum matched.

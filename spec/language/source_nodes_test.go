@@ -367,7 +367,13 @@ func (s *shaper) rule(n *zp.Node) {
 
 // bareLayer reports a pragma without arguments, which the source tree records as a layer of its own.
 func bareLayer(n *zp.Node) bool {
-	return n.Type() == "MissingPragma" || n.Type() == "IgnoreCase"
+	return n.Type() == "MissingPragma" || n.Type() == "IgnoreCase" || sepLayer(n)
+}
+
+// sepLayer reports a #sep pragma. Its arguments hold expressions, and like the bare pragmas it
+// completes no attribute node of its own.
+func sepLayer(n *zp.Node) bool {
+	return n.Type() == "Attributed" && fieldNode(fieldNode(n, "Attr"), "Name").Text() == "sep"
 }
 
 // attributed adds the one node that a run of attributes and bare pragmas
@@ -384,6 +390,9 @@ func (s *shaper) attributed(n *zp.Node) {
 	for i := len(layers) - 1; i >= 0; i-- {
 		layer := layers[i]
 		if bareLayer(layer) {
+			if sepLayer(layer) {
+				s.attrValues(fieldNode(layer, "Attr"))
+			}
 			hash := nextToken(s.src, fieldNode(layer, "X").End())
 			events = append(events,
 				sourceast.Event{Start: hash, End: layer.End()},
@@ -392,7 +401,7 @@ func (s *shaper) attributed(n *zp.Node) {
 		}
 		// The suffix loop reads the whole run of attributes before it completes the node.
 		run := layer
-		for ; i > 0 && layers[i-1].Type() == "Attributed"; i-- {
+		for ; i > 0 && layers[i-1].Type() == "Attributed" && !sepLayer(layers[i-1]); i-- {
 			s.attribute(run)
 			run = layers[i-1]
 		}
@@ -407,13 +416,17 @@ func (s *shaper) attribute(layer *zp.Node) {
 }
 
 func (s *shaper) attr(attr *zp.Node) {
+	s.attrValues(attr)
+	s.span("Attribute", attr)
+}
+
+func (s *shaper) attrValues(attr *zp.Node) {
 	for _, v := range listNodes(attr, "Args") {
 		s.attrValue(v)
 	}
 	for _, kw := range listNodes(attr, "KwArgs") {
 		s.attrValue(fieldNode(kw, "Value"))
 	}
-	s.span("Attribute", attr)
 }
 
 // attrValue completes the nodes of an argument. Numbers and keywords are read

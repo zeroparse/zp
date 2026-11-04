@@ -177,9 +177,11 @@ rule rule_expr = #operators {
         postfix "#ignorecase" !ident_char !"("
         postfix "#repeat" !ident_char repeat_args
         postfix "#recover" !ident_char recover_args
+        postfix "#" sep_word !ident_char attr_args
         postfix attr
     }
 }
+rule sep_word = "sep" #atomic
 rule rule_group = (
     "(" {ml := true} -ws (inline_action / rule_expr) -ws
     -")"
@@ -229,7 +231,7 @@ rule attr_trailing_comma = (-ws "," -ws)?
 rule attr_named_tail = -ws "," -ws attr_named_args
 rule attr_slot = !(ident -ws "=") attr_value
 rule attr_named = ident -ws "=" -ws attr_value
-rule attr_value = true_lit / false_lit / nil_lit / signed_int / string / rule_expr
+rule attr_value = true_lit / false_lit / nil_lit / signed_int / rule_expr
 rule signed_int = (("-" -ws)? digit+ #atomic) #atomic
 
 // #ignorecase may follow the block of an Operators Rule on its line, and covers the literals of the
@@ -517,6 +519,8 @@ additional constraints are checked outside this source grammar.
 - **Character class ranges.** In `lo-hi`, `hi` MUST NOT be less than `lo`, and a
   class MUST contain at least one item.
 - **Repetition bounds.** In `a #repeat(n,m)`, `m` MUST NOT be less than `n`.
+- **Separated lists.** `#sep` MUST annotate a repetition; semantic analysis rejects it elsewhere
+  (see [`#sep`](pragmas.md#sep)).
 - **Statement boundaries.** Newlines and semicolons separate Declaration Statements,
   Operators Rule items, struct fields and action-block statements. A newline ends a
   statement, and a semicolon ends it only on the same line: `a string // t` followed by a

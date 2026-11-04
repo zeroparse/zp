@@ -350,9 +350,11 @@ rule rule_expr RuleExpr = #operators {
         postfix "#ignorecase" !ident_char !("(") => IgnoreCase{X: $lhs}
         postfix "#repeat" !ident_char bounds:repeat_args => Repeat{X: $lhs, Min: $bounds.Min, Max: $bounds.Max, Range: $bounds.Range}
         postfix "#recover" !ident_char sync:recover_args => Recover{X: $lhs, Skip: $sync}
+        postfix "#" name:sep_word !ident_char args:attr_args => Attributed{X: $lhs, Attr: Attr{Name: $name, Args: $args.Args, KwArgs: $args.KwArgs}}
         postfix a:attr => Attributed{X: $lhs, Attr: $a}
     }
 }
+rule sep_word Ident = ("sep") #atomic
 rule rule_group RuleGroup = (
     "(" {ml := true} -ws x:(inline_action / rule_expr) -ws
     -(")" @error(message="expected closing parenthesis for rule group"))
@@ -414,7 +416,7 @@ rule attr_slot AttrSlot = !(ident -ws "=") v:attr_value => AttrSlot{Value: $v}
 rule attr_named AttrNamed = (
     name:ident -ws "=" -ws v:(attr_value @error(message="expected attribute argument value"))
 ) => AttrNamed{Name: $name, Value: $v}
-rule attr_value AttrValue = true_lit / false_lit / nil_lit / signed_int / string / rule_expr
+rule attr_value AttrValue = true_lit / false_lit / nil_lit / signed_int / rule_expr
 rule signed_int Int = (("-" -ws)? digit+ #atomic) #atomic
 
 // #ignorecase may follow the block of an Operators Rule on its line, and covers the literals of the
