@@ -242,6 +242,7 @@ type classifier struct {
 	failRule        map[string]bool       // rules that can fail after a scanning source examined input
 	srcMemo         map[grammar.Expr]bool
 	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
+	sepForms        map[*grammar.Repeat]*sepForm         // the separated lists (complexity_sep.go)
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
 	causes, reasons, env []ComplexityCause

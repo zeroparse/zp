@@ -146,6 +146,9 @@ func (k *classifier) againOf(e *grammar.Repeat) *grammar.Repeat {
 	a := k.again[e]
 	if a == nil {
 		a = &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+		if e.Sep != nil {
+			a.Expr = k.sepFormOf(e).tail
+		}
 		k.again[e] = a
 	}
 	if k.srcExprs[e] {
@@ -268,6 +271,10 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 		}
 	case *grammar.Repeat:
 		if e.Max == 0 {
+			return
+		}
+		if e.Sep != nil {
+			k.walkSeparated(e, c)
 			return
 		}
 		if e.Max < 0 && !c.skipSites && !k.runSite(e) {
@@ -905,6 +912,17 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 					continue
 				}
 				again := k.againOf(e)
+				if e.Sep != nil {
+					f := k.sepFormOf(e)
+					visit(rest.then(f.first, again))
+					if e.Min == 0 {
+						visit(rest)
+					}
+					if f.trail != nil {
+						visit(rest.then(f.trail))
+					}
+					return
+				}
 				visit(rest.then(e.Expr, again))
 				if e.Min == 0 {
 					visit(rest)
@@ -1491,6 +1509,9 @@ func (k *classifier) checkGrowth() {
 					report(k.sourceAt(r.Name, e, "the repetition "+k.show(e)))
 				}
 				visit(e.Expr)
+				if e.Sep != nil {
+					visit(e.Sep)
+				}
 				return k.nullable(e)
 			case *grammar.Optional:
 				visit(e.Expr)

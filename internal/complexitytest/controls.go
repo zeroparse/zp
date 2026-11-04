@@ -686,6 +686,41 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("#(", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassExp,
 		},
+		{
+			// The list commits after each separator, so only the separator is retried against what
+			// follows the list: the whitespace and the comma are not scanned again by a continuation.
+			Name: "Separated list, nested, optional trailing separator", Family: "separated list", Positive: true,
+			Source: "rule main = list $$\nrule list = \"[\" ws item* #sep(ws \",\" ws, trailing=\"optional\") ws \"]\"\nrule item = num / list\nrule num = [0-9]+\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("[", n) + "1" + rep("]", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Separated list, flat, optional trailing separator", Family: "separated list", Positive: true,
+			Source: "rule main = list $$\nrule list = \"[\" ws item* #sep(ws \",\" ws, trailing=\"optional\") ws \"]\"\nrule item = num / list\nrule num = [0-9]+\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return "[" + rep("1 , ", n) + "1]" },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Separated list, terminated", Family: "separated list", Positive: true,
+			Source: "rule main = x* #sep(\" \"* \";\", trailing=\"required\") $$\nrule x = [a-z]+\n",
+			Input:  func(n int) string { return rep("ab ;", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Separated list, nested, no trailing separator", Family: "separated list", Positive: true,
+			Source: "rule main = l $$\nrule l = \"(\" i* #sep(\",\") \")\"\nrule i = [a-z]+ / l\n",
+			Input:  func(n int) string { return rep("(a,", n) + "a" + rep(")", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			// What follows the list can begin with the separator's first character, so the retried
+			// separator is not committing against it and the classifier claims no linear cost; the
+			// runtime cost measures linear.
+			Name: "Separated list against a continuation that starts like the separator", Family: "separated list",
+			Source: "rule main = (l \" \"* \";\" / l \" \"*)* $$\nrule l = \"x\"+ #sep(\" \"+ \",\")\n",
+			Input:  func(n int) string { return rep("x   ", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassPoly,
+		},
 	}
 	return append(cs, rewriteControls()...)
 }

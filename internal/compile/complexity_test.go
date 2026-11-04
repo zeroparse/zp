@@ -101,6 +101,13 @@ func TestClassifyComplexity(t *testing.T) {
 		degree    int
 	}{
 		{"committing alternative", "rule main = (a / \"a\")* $$\nrule a = \"a\" \"c\"\n", ClassLinear, 0},
+		// The list commits after each separator, so its iteration is retried only up to the
+		// separator; the hand form retries the whole iteration against the trailing separator.
+		{"hand list with a trailing option", "rule main = list $$\nrule list = \"[\" ws (item (ws \",\" ws item)* (ws \",\")?)? ws \"]\"\nrule item = num / list\nrule num = [0-9]+\nrule ws = [ ]*\n", ClassUnknown, 0},
+		{"separated list with optional trailing", "rule main = list $$\nrule list = \"[\" ws item* #sep(ws \",\" ws, trailing=\"optional\") ws \"]\"\nrule item = num / list\nrule num = [0-9]+\nrule ws = [ ]*\n", ClassLinear, 0},
+		{"separated list, forbidden", "rule main = list $$\nrule list = \"[\" ws item* #sep(ws \",\" ws) ws \"]\"\nrule item = num / list\nrule num = [0-9]+\nrule ws = [ ]*\n", ClassLinear, 0},
+		{"separated list, required", "rule main = x* #sep(\" \"* \";\", trailing=\"required\") $$\nrule x = [a-z]+\n", ClassLinear, 0},
+		{"separated list against a continuation", "rule main = (l \" \"* \";\" / l \" \"*)* $$\nrule l = \"x\"+ #sep(\" \"+ \",\")\n", ClassPoly, 3},
 		{"restarted scan", "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", ClassPoly, 2},
 		{"nested restarted scans", "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n", ClassPoly, 3},
 		// The iteration fails only at "\"\"", before its scan, so it need not be committing.

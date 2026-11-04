@@ -511,6 +511,11 @@ func textLen(e grammar.Expr, k *classifier, seen map[string]bool) (int, bool) {
 	case *grammar.Repeat:
 		if e.Max >= 0 {
 			n, ok := textLen(e.Expr, k, seen)
+			if e.Sep != nil {
+				// A separator follows each element, at most.
+				m, sepOK := textLen(e.Sep, k, seen)
+				return e.Max * (n + m), ok && sepOK
+			}
 			return e.Max * n, ok
 		}
 	case *grammar.Seq:

@@ -77,6 +77,10 @@ func (k *classifier) failsAfterSource(e grammar.Expr) bool {
 		}
 		return false
 	case *grammar.Repeat:
+		if x.Sep != nil && x.Max != 0 {
+			// The list fails after its separator when no element follows, whatever its minimum.
+			return k.containsSource(x.Expr) || k.containsSource(x.Sep) || k.failsAfterSource(x.Expr)
+		}
 		if x.Min == 0 || x.Max == 0 {
 			return false
 		}
@@ -131,6 +135,9 @@ func (k *classifier) unitFailsAfterSource(u *unit) bool {
 		}
 		return k.failsAfterSource(u.expr)
 	case unitIteration:
+		if rep := u.expr.(*grammar.Repeat); rep.Sep != nil {
+			return k.failsAfterSource(k.sepFormOf(rep).retried)
+		}
 		return k.failsAfterSource(u.expr.(*grammar.Repeat).Expr)
 	case unitOption:
 		return k.failsAfterSource(u.expr.(*grammar.Optional).Expr)

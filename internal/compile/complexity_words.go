@@ -267,6 +267,17 @@ func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) 
 					continue
 				}
 				again := k.againOf(e)
+				if e.Sep != nil {
+					f := k.sepFormOf(e)
+					visit(rest.then(f.first, again), at)
+					if e.Min == 0 {
+						visit(rest, at)
+					}
+					if f.trail != nil {
+						visit(rest.then(f.trail), at)
+					}
+					return
+				}
 				visit(rest.then(e.Expr, again), at)
 				if e.Min == 0 {
 					visit(rest, at)
