@@ -225,6 +225,7 @@ type classifier struct {
 
 	sites           []*site
 	nestSites       map[*site]bool // the call sites whose evaluations can nest and end at one position (nestsAt)
+	retried         []retriedPart  // the operator parts after operands (addRetried)
 	units           []*unit
 	local           map[string]*source // the first scanning source in the body or action of a rule
 	ruleSrc         map[string]*source // the first scanning source that a rule contains, through calls
@@ -397,6 +398,7 @@ func (k *classifier) collect() {
 			k.walkRule(r)
 		}
 	}
+	k.addRetried()
 }
 
 func (k *classifier) result() *Complexity {

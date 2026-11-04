@@ -272,6 +272,30 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		{
+			Name: "Operators Rule part shared by nested operands", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" x?\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Operators Rule part shared by operands nested through a rule", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" y?\n    level { postfix ws \"!\" }\n}\nrule y = x\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Operators Rule parts shared by operands of two nested Operators Rules", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" z?\n    level { postfix ws \"!\" }\n}\nrule z = #operators {\n    operand \"b\"\n    operand \"(\" x?\n    level { postfix ws \"?\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Operators Rule memoized part shared by nested operands", Family: "rescanned calls", Positive: true,
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" x?\n    level { postfix ws \"!\" }\n}\nrule ws = sp*\nrule sp = \" \"\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
 			Name: "Operators Rule memoized skip shared by nested prefix operators", Family: "rescanned calls", Positive: true,
 			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = sp*\nrule sp = \" \"\n",
 			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },

@@ -538,13 +538,10 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 					what: fmt.Sprintf("the operand %s at %s", k.show(o.Expr), at(c.rule, exprPos(o.Expr)))})
 			}
 		}
-		if p.op.Kind != grammar.Prefix && k.nestsOps(c.rule) {
-			// An operator part that an enclosing operator part applies to tries the operator parts
-			// again at the same position, once for each level of the nesting.
-			conts = append(conts, contSpec{paths: []*cont{end},
-				what: "the operator parts that the enclosing operator parts of " + c.rule + " try again"})
-		}
 		u := k.newUnit(unitOperator, c, p.op.Expr, []*cont{self}, append(conts, follow))
+		if p.op.Kind != grammar.Prefix {
+			k.retried = append(k.retried, retriedPart{u, c.rule, end})
+		}
 		applies := false
 		switch p.op.Kind {
 		case grammar.Prefix:
@@ -1013,10 +1010,34 @@ func (k *classifier) endsEmpty(c *cont) bool {
 	return true
 }
 
-// nestsOps reports whether the right operands of the Operators Rule of rule nest without a bound
-// that the grammar sets: a prefix operator part, or a right-associative infix one, parses operators
-// of its own level in its right operand, so an operand can end where every enclosing operator part
-// ends.
+// A retriedPart is an operator part after an operand, which each enclosing level of a nesting
+// Operators Rule tries again at the same position.
+type retriedPart struct {
+	u    *unit
+	rule string
+	end  *cont // the end of the Operators Rule, after which the operator parts follow
+}
+
+// addRetried gives each operator part after an operand of a nesting Operators Rule the operator
+// parts that the enclosing levels try again as a continuation. It runs after every rule is
+// walked, since nestsOps reads every call site.
+func (k *classifier) addRetried() {
+	for _, r := range k.retried {
+		if k.nestsOps(r.rule) {
+			// Before what follows the Operators Rule, the last continuation.
+			n := len(r.u.conts) - 1
+			r.u.conts = slices.Insert(r.u.conts, n, contSpec{paths: []*cont{r.end},
+				what: "the operator parts that the enclosing operator parts of " + r.rule + " try again"})
+		}
+	}
+}
+
+// nestsOps reports whether the evaluations of the Operators Rule of rule nest without a bound that
+// the grammar sets and end at one position, so that each enclosing level tries the operator parts
+// after an operand again where the inner ones end: a prefix operator part, or a right-associative
+// infix one, parses operators of its own level in its right operand, and an operand or an
+// operator part that ends with a call that nests at one end (nestsAt), directly or through other
+// rules, parses the rule again at its end.
 func (k *classifier) nestsOps(rule string) bool {
 	pr := k.operators(rule)
 	if pr == nil {
@@ -1027,6 +1048,11 @@ func (k *classifier) nestsOps(rule string) bool {
 			if op.Kind == grammar.Prefix || op.Kind == grammar.Infix && op.Assoc == grammar.AssocRight {
 				return true
 			}
+		}
+	}
+	for _, s := range k.sites {
+		if s.caller == rule && k.nestsAt(s) {
+			return true
 		}
 	}
 	return false

@@ -826,12 +826,15 @@ The conditions below use these terms.
     the `#recover`;
   - for a unit of an Operators Rule, the other operator parts and `operand`
     items that the rule can try at the same position, and what follows the
-    Operators Rule expression. When the Operators Rule **nests**, having a
-    prefix operator part or a right-associative infix one, whose right operand
-    applies operators of its own level, an operand can end where every
-    enclosing operator part ends, and each of them tries the operator parts
-    after an operand again there: for an operator part after an operand, those
-    operator parts are a continuation too.
+    Operators Rule expression. The Operators Rule **nests** when it has a prefix
+    operator part or a right-associative infix one, whose right operand applies
+    operators of its own level, or a call from the rule that nests at one end
+    (below), such as the call of `x` in an operand `"(" x?` of `x`, which parses
+    the rule again at the end of an operand or an operator part. An inner level
+    can then end where every enclosing operator part or operand ends, and each
+    enclosing level tries the operator parts after an operand again there: for
+    an operator part after an operand, those operator parts are a continuation
+    too.
 - The **first characters** of an expression are the characters with which an
   evaluation of it can examine the input beyond its start position: those it
   can consume first, and those that every lookahead it can evaluate before it

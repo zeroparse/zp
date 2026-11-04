@@ -297,16 +297,17 @@ unit: an Operators Rule is a choice of its operator parts and `operand` items
 when one fails and a sequence of its operands and operators when they succeed,
 and its units are checked by condition 2 whether or not they can fail after a
 source. When the rule nests, the return of an inner level ends the right operand
-of an enclosing operator part where the inner operand ended, and the enclosing
-level tries the operator parts after an operand there again, so for an operator
-part after an operand those parts are a continuation ([Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost), the continuations of a
-unit of an Operators Rule). A right operand that can apply an operator contains
-that source at a new position, as a call of a rule of a cycle after input is.
-The `skip` of an Operators Rule is a scanning source unless it is a reused skip,
-and its first call is shared with that of a body that is the Operators Rule, as
-[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-states.
+of an enclosing operator part, or an operand or operator part that ends with a
+call that parses the rule again, where the inner operand ended, and the
+enclosing level tries the operator parts after an operand there again, so for an
+operator part after an operand those parts are a continuation ([Conditions for
+Linear Cost](../runtime/parsing.md#conditions-for-linear-cost), the
+continuations of a unit of an Operators Rule). A right operand that can apply an
+operator contains that source at a new position, as a call of a rule of a cycle
+after input is. The `skip` of an Operators Rule is a scanning source unless it
+is a reused skip, and its first call is shared with that of a body that is the
+Operators Rule, as [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost) states.
 
 What remains is to count the activations. Each evaluation of a scanning source
 has at most one activation that does not succeed, its last: an iteration that
@@ -489,13 +490,18 @@ shared ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)), against the choice of
 the link. $\square$
 
-An Operators Rule that nests repeats in the same way without leaving a frame:
-each enclosing level tries the operator parts after an operand again where the
-inner operand ended, so a call of a rule that calls no rule that is reached
-there is evaluated once for each level, as `ws` is in the calculator on `-`^n
-`1` followed by n spaces. The call is not shared there, so no link passes
-through it, and the levels of an Operators Rule that does not nest are at most
-the number of its binding levels.
+An Operators Rule that nests repeats in the same way: each enclosing level tries
+the operator parts after an operand again where the inner operand ended, so a
+call of a rule that calls no rule that is reached there is evaluated once for
+each level, as `ws` is in the calculator on `-`^n `1` followed by n spaces, and
+in `x` with an operand `"(" x?` and a part `postfix ws "!"` on `(`^n followed by
+n spaces. The call is not shared there, so no link passes through it. When the
+rule does not nest, the levels whose evaluations end at one position are
+bounded: their chain passes through right operands of operator parts, each of a
+higher binding level than the part, so at most the number of binding levels in a
+row, and through calls each followed in its caller by what matched without
+consuming input, which repeat no rule, since a repeated rule closes a cycle of
+such calls, which nests at one end and makes the rule nest.
 
 These claims bound the links of one source at one position, memoized links by
 the memo and the links of a rule that calls no rule by the cycles of nesting
@@ -1484,15 +1490,17 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
   [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules): Lemmas
   3 and 10, and the shared calls of Lemma 4.
 - `checkUnits` decides condition 2, with `unitFailsAfterSource` and
-  `failsAfterSource` for a unit that can fail after a source, and
-  `committing` for the term committing, which removes shared calls through
-  `leads` and `commonLead`, keeps a call that `rescans` finds the continuation
-  reaching through a call that nests at one end (`nestsAt`) or after an operand
-  of an Operators Rule that nests (`nestsOps`), for which `walkOperators` adds
-  the operator parts that an enclosing level tries again as a continuation,
-  compares first characters, excludes by words in `excludedByWord`, and drops
-  the later alternatives after a `#cut` in `cutCommits`: Lemma 4, its failure
-  after a source, the cases of committing and its claims on links.
+  `failsAfterSource` for a unit that can fail after a source, and `committing`
+  for the term committing, which removes shared calls through `leads` and
+  `commonLead`, keeps a call that `rescans` finds the continuation reaching
+  through a call that nests at one end (`nestsAt`) or after an operand of an
+  Operators Rule that nests (`nestsOps`, through its right operands or a call
+  from the rule that nests at one end), for which `addRetried` adds the operator
+  parts that an enclosing level tries again as a continuation of the operator
+  parts that `walkOperators` records, compares first characters, excludes by
+  words in `excludedByWord`, and drops the later alternatives after a `#cut` in
+  `cutCommits`: Lemma 4, its failure after a source, the cases of committing and
+  its claims on links.
 - `withoutReentry`, `fixedMemoized`, `memoOnly` and `restBounded` decide the
   paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
 - `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
@@ -1588,14 +1596,15 @@ The outlines leave these steps to be made precise.
    `E = F "+" X / Y; F = E / M`, where the unit is also checked as an
    alternative that is not growing.
 4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
-   applies and its units among the activations and units of its claims, with
-   the operator parts that an enclosing level tries again as a continuation of
-   an operator part after an operand when the rule nests; its claims on direct
-   activations and links cover the operators applied at a position. The tries
-   of operator parts that fail at a position when inner levels return there are
-   at most the number of parts for each level, so their cost is the cost of the
-   units up to their failure, which the claims of step 1 bound with its open
-   parts.
+   applies and its units among the activations and units of its claims, with the
+   operator parts that an enclosing level tries again as a continuation of an
+   operator part after an operand when the rule nests, through its right
+   operands or through a call that parses the rule again at the end of an
+   operand or an operator part; its claims on direct activations and links cover
+   the operators applied at a position. The tries of operator parts that fail at
+   a position when inner levels return there are at most the number of parts for
+   each level, so their cost is the cost of the units up to their failure, which
+   the claims of step 1 bound with its open parts.
 5. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
    that a context of growths repeats, which Lemma 3 leaves out: the calls
    that find no result with the same growing results and lookahead outcomes,
