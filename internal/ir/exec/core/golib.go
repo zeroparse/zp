@@ -35,7 +35,7 @@ type goSpec struct {
 var goSpecs = []goSpec{
 	// Parser.Call takes the tracked path for observation and Documents, so it neither observes nor
 	// reads a Document itself.
-	{fn: "call", on: []string{ops.Document}, name: "Call"},
+	{fn: "call", on: []string{ops.Document, ops.Budget}, name: "Call"},
 	{fn: "grow", name: "grow"},
 	// The expectation record: the Document form, the form of a parse without a Document, and the
 	// form of an ordinary parse with its slow path.
@@ -45,7 +45,7 @@ var goSpecs = []goSpec{
 	{fn: "expectSlow", name: "expectOrdinarySlow"},
 	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "MergeExpected"},
 	{fn: "keep", on: []string{ops.Budget}, name: "Keep"},
-	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "callBody"},
+	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "callBody"},
 	{fn: "callMemo", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "CallMemo"},
 	{fn: "grow", typed: true, on: []string{ops.Typed}, name: "grow"},
 	// The observed calls and plain invocations of both runtimes, which their callers take in an
@@ -59,10 +59,10 @@ var goSpecs = []goSpec{
 	{fn: "document", on: []string{ops.Document}, name: "callDocument"},
 	{fn: "unmemoized", name: "callUnmemoized"},
 	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo"},
-	{fn: "body", on: []string{ops.Document}, name: "callBody"},
+	{fn: "body", on: []string{ops.Document, ops.Budget}, name: "callBody"},
 	{fn: "tracked", on: []string{ops.Document, ops.Observe}, name: "callTracked"},
 	// The rule call of a Document parse in the typed runtime.
-	{fn: "typedDocument", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "DocumentCall"},
+	{fn: "typedDocument", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "DocumentCall"},
 }
 
 // goStreamSpecs are the functions of the stream mechanism that the compositions replace, in the
@@ -156,8 +156,12 @@ func goTarget(s goSpec) *execgo.Target {
 			return fmt.Sprintf("p.callTracked(%s, %s)", a[0], a[1])
 		case "call.trackBody":
 			return fmt.Sprintf("p.DocumentCall(%s, 0, %s)", a[0], a[1])
-		case "call.spend":
-			return "p.Spend()"
+		case "budget.charge":
+			// Spend is the charge of one unit, small enough to inline.
+			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
+				return "p.Spend()"
+			}
+			return "p.Control.Charge(" + a[0] + ")"
 		case "call.first":
 			return "p.FirstCall(" + rule(a[0]) + ")"
 		case "rule.memo":
@@ -210,8 +214,6 @@ func goTarget(s goSpec) *execgo.Target {
 			return "len(" + a[0] + ")"
 		case "exp.setAt":
 			return a[0] + "[" + a[1] + "]"
-		case "exp.spend":
-			return "p.Spend()"
 		case "exp.isolate":
 			return "p.Isolate(" + a[0] + ")"
 		case "exp.unisolate":

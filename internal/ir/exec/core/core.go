@@ -46,6 +46,10 @@ func Build() *Module {
 	}
 	pair := []Place{{Name: "v"}, {Name: "ok"}}
 	ret := func(b *Builder) { b.Return(L("v"), L("ok")) }
+	// charge charges one unit of the work budget in a form for parses with budget controls.
+	charge := func(b *Builder) {
+		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.charge", U64(1)) })
+	}
 
 	// tracked leaves the call protocol for the target's tracked path.
 	tracked := func(b *Builder, track *Call) {
@@ -172,10 +176,10 @@ func Build() *Module {
 	invoke := func(b *Builder) { b.SetN(pair, C("rule.invoke", r, L("min"))) }
 
 	call := m.AddFunc("call", []Param{P("r", rule), P("min", TInt)}, result,
-		[]string{ops.Document, ops.Observe, ops.Typed}, func(b *Builder) {
+		[]string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, func(b *Builder) {
 			locals(b)
 			tracked(b, C("call.track", r, L("min")))
-			b.Do("call.spend")
+			charge(b)
 			b.Let("start", R(ops.Pos))
 			b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)), unmemoized)
 			reuse(b, L("min"), noDoc)
@@ -270,9 +274,9 @@ start from otherwise.`
 		}, invoke)
 	}
 	typedDocument := m.AddFunc("typedDocument", []Param{P("r", rule), P("min", TInt), P("inv", THandle(ops.Body))}, result,
-		[]string{ops.Document, ops.Observe, ops.Typed}, func(b *Builder) {
+		[]string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, func(b *Builder) {
 			locals(b)
-			b.Do("call.spend")
+			charge(b)
 			b.Let("start", R(ops.Pos))
 			b.Let("oldHigh", C("doc.enter", L("start")))
 			b.Protect(func(b *Builder) {
@@ -300,8 +304,8 @@ in document, the enclosing call's frontier is restored however the call ends.`
 		b.LetN([]string{"v", "ok"}, c)
 		b.Return(L("v"), L("ok"))
 	}
-	body := m.AddFunc("body", []Param{P("r", rule), P("min", TInt)}, result, []string{ops.Document}, func(b *Builder) {
-		b.Do("call.spend")
+	body := m.AddFunc("body", []Param{P("r", rule), P("min", TInt)}, result, []string{ops.Document, ops.Budget}, func(b *Builder) {
+		charge(b)
 		b.If(And(F(ops.Document), C("doc.active")), func(b *Builder) { ret2(b, C("document", r, L("min"))) })
 		b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)), func(b *Builder) {
 			ret2(b, C("unmemoized", r, L("min")))
@@ -371,7 +375,7 @@ not a stable API.`
 		b.If(C("exp.maybe", eid), func(b *Builder) {
 			b.Var("i", TInt)
 			b.For("scan", Assign("i", Int(0)), Lt(L("i"), C("exp.count")), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
-				b.If(F(ops.Budget), func(b *Builder) { b.Do("exp.spend") })
+				charge(b)
 				b.If(Eq(C("exp.at", L("i")), eid), func(b *Builder) { b.Return() })
 			})
 		})
@@ -403,7 +407,7 @@ parsers and not a stable API.`
 		[]string{ops.Document, ops.Budget}, func(b *Builder) {
 			b.Var("i", TInt)
 			b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.keptCount", L("k"))), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
-				b.Do("exp.spend")
+				charge(b)
 				b.Do("expect", L("far"), C("exp.keptAt", L("k"), L("i")))
 			})
 		})
@@ -416,12 +420,12 @@ parsers and not a stable API.`
 			// record expectations holds only the placeholder, which needs no call of expect.
 			b.IfElse(C("exp.recording"), func(b *Builder) {
 				b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.setCount", s)), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
-					b.Do("exp.spend")
+					charge(b)
 					b.Do("expect", far, C("exp.setAt", s, L("i")))
 				})
 			}, func(b *Builder) {
 				b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.setCount", s)), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
-					b.Do("exp.spend")
+					charge(b)
 					b.If(F(ops.Document), func(b *Builder) { b.Do("doc.touch", Add(far, Int(1))) })
 					b.If(Not(Bin("||", silent, Lt(far, C("exp.farthest")))), func(b *Builder) {
 						b.If(Bin(">", far, C("exp.farthest")), func(b *Builder) { b.Do("exp.reset", far) })
@@ -447,7 +451,7 @@ is for generated parsers and not a stable API.`
 			b.If(Bin("!=", C("exp.keptCount", L("last")), L("n")), func(b *Builder) { b.Exit("copy") })
 			b.Var("i", TInt)
 			b.For("cmp", Assign("i", Int(0)), Lt(L("i"), L("n")), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
-				b.If(F(ops.Budget), func(b *Builder) { b.Do("exp.spend") })
+				charge(b)
 				b.If(Bin("!=", C("exp.keptAt", L("last"), L("i")), C("exp.setAt", s, L("i"))), func(b *Builder) { b.Exit("copy") })
 			})
 			b.Return(L("last"))

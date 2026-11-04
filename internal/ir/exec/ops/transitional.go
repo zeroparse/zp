@@ -9,7 +9,7 @@ const (
 	// Exp is the expectation record.
 	Exp = "expected"
 	// Call is the call bookkeeping of the target outside the pilot: the tracked path of Documents and
-	// observation, and the work charged per call.
+	// observation.
 	Call = "call"
 	// Obs is the observation of a parse.
 	Obs = "observe"
@@ -54,7 +54,7 @@ func Transitional(m *exec.Module) {
 	m.AddComponent(Rules, `The rules of the grammar: their descriptors and bodies.`)
 	m.AddComponent(Exp, `The expectation record: the expectations at the farthest position.`)
 	m.AddComponent(Call, `The call bookkeeping of the target outside the call protocol: the tracked path of
-Documents and observation, and the work charged per call.`)
+Documents and observation.`)
 	m.AddComponent(Obs, `The observation of a parse.`)
 	m.AddComponent(Growth, `The left-recursion growths in progress with their seeds, the frames that record
 what the calls in their contexts depend on, and the tables of the results kept in each context (the
@@ -96,9 +96,6 @@ node runtime also in an observed parse.`})
 		Results: result, Writes: append([]string{Call}, regs...), Features: []string{Document}, NoReturn: true,
 		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
 result.`})
-	add(&exec.Op{Name: "call.spend", Component: Call, Writes: []string{Call}, NoReturn: true,
-		Cost:     exec.Cost{Const: 1},
-		Contract: `Charges the work of a rule call: one unit, with the checks of the target's Spend.`})
 	add(&exec.Op{Name: "call.first", Component: Call, Params: ruleArg, Results: []exec.Type{exec.TBool},
 		Reads: []string{Call}, Writes: []string{Call},
 		Contract: `Records a call of the rule at the position and reports whether its memoization is deferred:
@@ -191,6 +188,7 @@ dropped.`})
 	add(&exec.Op{Name: "exp.keptAt", Component: Exp, Params: []exec.Param{exec.P("k", kept), exec.P("i", exec.TInt)},
 		Results: []exec.Type{expID}, Requires: `0 <= i < exp.keptCount(k).`,
 		Contract: `Returns expectation i of k, in the order they were recorded.`})
+
 	// The operations of keeping a set beyond the record.
 	add(&exec.Op{Name: "exp.empty", Component: Exp, Results: []exec.Type{kept},
 		Contract: `Returns the kept set with no expectations.`})
@@ -202,9 +200,6 @@ dropped.`})
 		Contract: `Copies the expectations of s, in order, into a set that outlives the record, makes it the set
 that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
 and the memory it takes as the target accounts it.`})
-	add(&exec.Op{Name: "exp.spend", Component: Exp, Features: []string{Budget}, Cost: exec.Cost{Const: 1},
-		Contract: `Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
-a scan of the record compares.`})
 
 	entryArg := []exec.Param{exec.P("e", entry)}
 	add(&exec.Op{Name: "memo.far", Component: Memo, Params: entryArg, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},

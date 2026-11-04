@@ -148,8 +148,8 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	switch o.Name {
 	case "call.tracked":
 		return []any{false}
-	case "call.spend":
-		m.spends++
+	case "budget.charge":
+		m.spends += int(args[0].(uint64))
 		return nil
 	case "call.first":
 		r := args[0].(*trule)
@@ -209,9 +209,6 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "exp.copy":
 		m.lastKept = slices.Clone(args[0].([]string))
 		return []any{m.lastKept}
-	case "exp.spend":
-		m.spends++
-		return nil
 	case "exp.merge", "exp.mergeKept":
 		s, _ := args[1].([]string)
 		m.merge(args[0].(int64), s)
@@ -397,7 +394,7 @@ func (s *start) UseRegisters(regs map[string]any) {
 // position where it started and drops the errors its body recovered.
 func TestCallFailureRestoresState(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	m := newMachine()
 	r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
 		m.recover("skipped")
@@ -456,7 +453,7 @@ func TestUnmemoized(t *testing.T) {
 // again and moves to its end.
 func TestCallSuccessKeepsErrors(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	m := newMachine()
 	r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
 		m.recover("skipped")
@@ -484,7 +481,7 @@ func TestCallSuccessKeepsErrors(t *testing.T) {
 // recorded nothing past it, and the expectations it recorded otherwise.
 func TestCallExpectationsFromStart(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	for _, c := range []struct {
 		name string
 		exp  bool
@@ -524,7 +521,7 @@ func TestCallExpectationsFromStart(t *testing.T) {
 // one, and one with recovered errors only in the kind of context it was computed in.
 func TestCallReuseContexts(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	for _, c := range []struct {
 		name                string
 		errs                bool
@@ -599,7 +596,7 @@ func TestDocument(t *testing.T) {
 	f := composition(t, mod, "document", ops.Document)
 	checkDocument(t, mod, f)
 	t.Run("typed", func(t *testing.T) {
-		checkDocument(t, mod, composition(t, mod, "typedDocument", ops.Document, ops.Observe, ops.Typed), nil)
+		checkDocument(t, mod, composition(t, mod, "typedDocument", ops.Document, ops.Observe, ops.Typed, ops.Budget), nil)
 	})
 }
 
@@ -752,7 +749,7 @@ func (r *trule) Call(m *machine) []any {
 // read on a reuse, and a call that replaces an entry forgets the entry's record.
 func TestTypedDocument(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "typedDocument", ops.Document, ops.Observe, ops.Typed)
+	f := composition(t, mod, "typedDocument", ops.Document, ops.Observe, ops.Typed, ops.Budget)
 	run := func(m *machine, r *trule, inv any, pos, silent int64) (any, bool) {
 		t.Helper()
 		res, err := exec.Run(mod, f, &start{machine: m, pos: pos, silent: silent}, r, int64(0), inv)
@@ -881,7 +878,7 @@ func (m *machine) lastEntry(t *testing.T) *ref.Entry {
 // one growth step per evaluation, and ends at the longest match with its errors only.
 func TestGrowth(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	m := newMachine()
 	lens := []int64{1, 3, 3}
 	n := 0
@@ -920,7 +917,7 @@ func TestGrowth(t *testing.T) {
 // reuses a memo entry only if the context allows it, and reuses the result kept in the context.
 func TestCallContext(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "call")
+	f := composition(t, mod, "call", ops.Budget)
 	body := func(m *machine) (any, bool) {
 		m.recover("skipped")
 		m.advance(2)

@@ -6,7 +6,7 @@ package runtime
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
 // a left-recursion leader.
 //
-// Printed from Exec IR function call of internal/ir/exec/core, specialized for document.
+// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 	var v *Node
 	var ok bool
@@ -294,7 +294,7 @@ copy:
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
 // a left-recursion leader.
 //
-// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, typed.
+// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, typed, budget.
 func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	var v any
 	var ok bool
@@ -661,7 +661,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 // parse, and otherwise the unmemoized call while the rule's memoization is deferred and the memoized
 // call after.
 //
-// Printed from Exec IR function body of internal/ir/exec/core, specialized for document.
+// Printed from Exec IR function body of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) callBody(r *Rule, min int) (*Node, bool) {
 	p.Spend()
 	if p.Document != nil {
@@ -694,7 +694,7 @@ func (p *Parser) callTracked(r *Rule, min int) (*Node, bool) {
 // memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As
 // in document, the enclosing call's frontier is restored however the call ends.
 //
-// Printed from Exec IR function typedDocument of internal/ir/exec/core, specialized for document, observe, typed.
+// Printed from Exec IR function typedDocument of internal/ir/exec/core, specialized for document, observe, typed, budget.
 func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)) (any, bool) {
 	var v any
 	var ok bool

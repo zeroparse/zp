@@ -35,7 +35,7 @@ component expected
 
 component call
   // The call bookkeeping of the target outside the call protocol: the tracked path of
-  // Documents and observation, and the work charged per call.
+  // Documents and observation.
 
 component observe
   // The observation of a parse.
@@ -247,14 +247,6 @@ transitional op call.trackBody(r Rule, inv Body) (Value, bool)
   contract:
     // Calls the rule through the invocation inv on the target's tracked path and returns its
     // result.
-
-transitional op call.spend()
-  component call
-  writes call
-  noreturn
-  cost <= 1
-  contract:
-    // Charges the work of a rule call: one unit, with the checks of the target's Spend.
 
 transitional op call.first(r Rule) bool
   component call
@@ -520,14 +512,6 @@ transitional op exp.copy(s ExpSet) ExpKept
     // and the memory it takes as the target accounts it.
   requires:
     // s has at least one expectation.
-
-transitional op exp.spend()
-  component expected
-  features budget
-  cost <= 1
-  contract:
-    // Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
-    // a scan of the record compares.
 
 transitional op memo.far(e Entry) int
   component memo

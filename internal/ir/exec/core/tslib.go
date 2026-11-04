@@ -23,7 +23,7 @@ var tsSpecs = []struct {
 	on   []string
 	name string
 }{
-	{fn: "call", on: []string{ops.Observe}, name: "callBody"},
+	{fn: "call", on: []string{ops.Observe, ops.Budget}, name: "callBody"},
 	{fn: "grow", name: "grow"},
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
@@ -70,8 +70,11 @@ var tsTarget = &exects.Target{
 	},
 	Op: func(c *exec.Call, a []string) string {
 		switch c.Callee {
-		case "call.spend":
-			return "this.spend()"
+		case "budget.charge":
+			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
+				return "this.spend()"
+			}
+			return "this.spend(Number(" + a[0] + "))"
 		case "call.first":
 			return "this.firstCall(" + a[0] + ")"
 		case "rule.memo", "rule.leader", "rule.id":
@@ -115,8 +118,6 @@ var tsTarget = &exects.Target{
 			return a[0] + ".length"
 		case "exp.keptAt":
 			return a[0] + "[" + a[1] + "]!"
-		case "exp.spend":
-			return "this.spend()"
 		case "exp.setCount":
 			return fmt.Sprintf("%sTo - %sFrom", a[0], a[0])
 		case "exp.setAt":
