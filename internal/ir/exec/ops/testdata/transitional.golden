@@ -252,6 +252,7 @@ transitional op call.first(r Rule) bool
   component call
   reads call
   writes call
+  noreturn
   cost <= 66 + 1*page_index + 1*pages + 1*seen_index
   contract:
     // Records a call of the rule at the position and reports whether its memoization is deferred:
@@ -317,7 +318,8 @@ transitional op rule.run(inv Body) (Value, bool)
 transitional op env.memoKey(r Rule) Values
   component env
   reads env
-  cost <= 0
+  noreturn
+  cost <= 1 + 1*vars + 1*env_reads
   contract:
     // Returns the values of the variables the rule reads, as its memo key.
 
@@ -543,7 +545,8 @@ transitional op ctx.enter(r Rule, min int) (Ctx, CtxResult)
   component growth
   reads growth, rules
   writes growth
-  cost <= 0
+  noreturn
+  cost <= 1
   contract:
     // Begins a memoized call of the rule at the position: returns its context state and, if the
     // rule is a leader that grows at the position, its current seed, which the call reads (with the
@@ -576,7 +579,7 @@ transitional op ctx.replay(s CtxResult, seed bool)
   reads growth
   writes growth, pos, silent
   noreturn
-  cost <= 0
+  cost <= 0 + 1*merge + 1*errs
   contract:
     // Applies the result s as the call that it records would have: counts a reuse, extends the
     // examined frontier of a Document parse, adds its expectations unless it is a seed, and on success moves
@@ -601,7 +604,8 @@ transitional op ctx.lookup(c Ctx, r Rule, min int, key Values) CtxResult
   component growth
   reads growth
   writes growth
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*table + 1*deps
   contract:
     // Returns the result kept in the context of the call for the rule at the position, the level
     // and the key that holds there: the seeds it read have the same identities, and the lookaheads it
@@ -652,7 +656,7 @@ transitional op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, e
   reads growth, call
   writes growth
   noreturn
-  cost <= 0
+  cost <= 0 + 1*table + 1*deps
   contract:
     // Keeps the result of the call in the table of its context with the dependencies that ctx.pop
     // ended, and the examined frontier of a Document parse.
@@ -662,7 +666,8 @@ transitional op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, e
 transitional op ctx.done(c Ctx)
   component growth
   writes growth
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*deps
   contract:
     // Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.
 
@@ -671,7 +676,7 @@ transitional op grow.begin(r Rule, min int) Grow
   reads growth, rules
   writes growth
   noreturn
-  cost <= 0
+  cost <= 1
   contract:
     // Starts the growth of the leader at the binding level min at the position from a failure,
     // charging one unit: the growth is in a context when other leaders of its cycle grow at the position.
@@ -681,7 +686,7 @@ transitional op grow.next(g Grow) bool
   reads growth
   writes growth, pos, silent
   noreturn
-  cost <= 0
+  cost <= 0 + 1*steps + 1*table + 1*deps + 1*merge + 1*run
   contract:
     // Reports whether the body must be evaluated for the next step of the growth g. In a context
     // it first takes the steps that the memoized steps and jumps of the context give, and starts recording
@@ -692,7 +697,7 @@ transitional op grow.step(g Grow, value Value, ok bool)
   reads growth
   writes growth, pos, silent
   noreturn
-  cost <= 0
+  cost <= 66 + 1*merge + 1*errs + 2*deps + 1*table + 1*run
   contract:
     // Receives the result of a step of the growth g: adopts it as the seed, charging one unit, and
     // returns to the start of the growth if the match grew, and otherwise ends the growth.
@@ -701,7 +706,8 @@ transitional op grow.end(g Grow) CtxResult
   component growth
   reads growth
   writes growth, pos, silent
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*run + 1*errs
   contract:
     // Ends the growth g and returns its last seed: the position moves to its end and its recovered
     // errors replace those recorded since the growth began.
@@ -908,7 +914,8 @@ transitional op stream.discard(keep int)
   reads window
   writes window
   features stream
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*stream_scan
   contract:
     // Discards the input before keep, when at least half of the buffer can go; later reads before keep
     // are not supported. The line and column of the new base are kept.
@@ -938,7 +945,8 @@ transitional op stream.prune(pos int)
   reads window
   writes window
   features stream
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*pruned
   contract:
     // Discards the memo entries and the records of the parse before pos, which no later call can look
     // up, and remembers pos as the pruned position.

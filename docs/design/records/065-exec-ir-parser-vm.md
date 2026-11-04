@@ -358,7 +358,13 @@ case over the representations a target may choose: deferred memoization is bound
 record allocates and by the size of a dense record of calls in position order.
 
 An operation that copies a set or a list declares the copy in its bound: `exp.copy` one unit per expectation of the
-set, the recovery operations that keep or record errors again one unit per error.
+set, the recovery operations that keep or record errors again one unit per error. A transitional operation that
+charges declares a bound too, over quantities that its declaration defines: the left-recursion operations count the
+dependencies they pass on, the work of their context-table lookups, the runs of growth steps they record as jumps and
+what the expectation compositions they run charge. With no reference model, the bound is not measured; a test follows
+the static calls of the Go runtime from each transitional operation and requires a quantity of its bound for every
+charge it can reach, so that a charge added to the runtime is accounted for when it is added. The operations that run
+a rule body declare none: what they charge includes the grammar code they run, which no bound of theirs can state.
 
 Charges inside an operation spend the same budget that `budget.charge` and `budget.used` see. The conformance suite
 measures what an implementation charges in each call, checks it against the bound and adds it to the model's budget;
@@ -525,7 +531,7 @@ move to Exec IR at once while mechanisms move one at a time.
 4. **Expected sets, recovery bookkeeping and the variable environment.**
 5. **Budget charges and mode specialization.** The charges of compositions go through `budget.charge`, so that a
    form specialized without a budget leaves them out; keeping and merging expectations become compositions on every
-   target, and the operations that copy declare their cost contracts. The other `…Ordinary`, `…Controlled` and
+   target, and the transitional operations that charge declare their cost contracts. The other `…Ordinary`, `…Controlled` and
    `…Spend` variants specialize host primitives — input access, nodes, error text — or belong to the mechanisms of
    stages 6 and 10, and specialize with them.
 6. **Capture frames and the Operators Rule loop.**

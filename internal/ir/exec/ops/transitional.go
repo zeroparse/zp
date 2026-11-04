@@ -45,6 +45,36 @@ const (
 	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
 	// recovered after its mark.
 	QErrs = "errs"
+	// QMerge is the units that the compositions over the expectation record (keep, mergeKept,
+	// mergeExpected, and the calls of expect they make) charge for the sets that the call keeps or
+	// merges.
+	QMerge = "merge"
+	// QDeps is the number of dependencies that the call passes to the enclosing evaluation or stores:
+	// those that the frame of the evaluation it ends recorded, and those stored with the results,
+	// steps and jumps it reuses, with the observations they lead to.
+	QDeps = "deps"
+	// QTable is the work of the call's lookups and stores in the context tables at its position: one
+	// for each lookup or store; one for each dependency set of the head it scans, each result under
+	// the values the set selects and each key value those results compare, a string counting two
+	// for each byte compared; and one for each jump it scans for a seed. A lookup that the outcome
+	// of an observation leads to counts again on each path through the observations that outcomes
+	// depend on.
+	QTable = "table"
+	// QRun is, for each step of the run of the growth that the call records as jumps (the steps since
+	// the last step that read another seed): one, one for each jump recorded before from its seed,
+	// and the expectations of its set when its farthest position is that of the steps after it.
+	QRun = "run"
+	// QSteps is the number of memoized steps and jumps that the call takes.
+	QSteps = "steps"
+	// QVars is the number of variables of the rule's memo key.
+	QVars = "vars"
+	// QEnvReads is QVars times one more than the levels of the variable environment.
+	QEnvReads = "env_reads"
+	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
+	// and of those before its argument that it scans for line starts for the first time.
+	QStreamScan = "stream_scan"
+	// QPruned is the number of memo entries stored before the call's position argument.
+	QPruned = "pruned"
 )
 
 // Registers of the parser VM.
@@ -107,7 +137,7 @@ node runtime also in an observed parse.`})
 		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
 result.`})
 	add(&exec.Op{Name: "call.first", Component: Call, Params: ruleArg, Results: []exec.Type{exec.TBool},
-		Reads: []string{Call}, Writes: []string{Call}, Cost: m.Op("seen.first").Cost,
+		Reads: []string{Call}, Writes: []string{Call}, NoReturn: true, Cost: m.Op("seen.first").Cost,
 		Contract: `Records a call of the rule at the position and reports whether its memoization is deferred:
 seen.first for a rule whose memoization the target defers, false for one it memoizes eagerly (in a
 stream, or for a rule without a seen index).`})
@@ -134,6 +164,7 @@ position on failure.`})
 		Writes: append([]string{Rules}, regs...), NoReturn: true,
 		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result.`})
 	add(&exec.Op{Name: "env.memoKey", Component: Env, Params: ruleArg, Results: []exec.Type{values}, Reads: []string{Env},
+		NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QVars}, {Coef: 1, Quantity: QEnvReads}}},
 		Contract: `Returns the values of the variables the rule reads, as its memo key.`})
 
 	recMark := []exec.Param{exec.P("mark", exec.TInt)}
@@ -224,7 +255,7 @@ the records beside the entries.`})
 	ctxArg := exec.P("c", ctx)
 	resArg := []exec.Param{exec.P("s", res)}
 	add(&exec.Op{Name: "ctx.enter", Component: Growth, Params: call, Results: []exec.Type{ctx, res},
-		Reads: []string{Growth, Rules}, Writes: []string{Growth},
+		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1},
 		Contract: `Begins a memoized call of the rule at the position: returns its context state and, if the
 rule is a leader that grows at the position, its current seed, which the call reads (with the
 dependency on its identity); otherwise the null result. The context of a call of a rule of a
@@ -237,7 +268,7 @@ none.`})
 	add(&exec.Op{Name: "ctx.value", Component: Growth, Params: resArg, Results: []exec.Type{value}, Reads: []string{Growth},
 		Contract: `Returns the value of the result s.`})
 	add(&exec.Op{Name: "ctx.replay", Component: Growth, Params: append(resArg, exec.P("seed", exec.TBool)),
-		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
+		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}}},
 		Contract: `Applies the result s as the call that it records would have: counts a reuse, extends the
 examined frontier of a Document parse, adds its expectations unless it is a seed, and on success moves
 the position to its end and records its recovered errors again.`})
@@ -250,6 +281,7 @@ context, and in one only when the leaders growing there are among those that gre
 		Contract: `Reports whether the call with the context state c is in a context.`})
 	add(&exec.Op{Name: "ctx.lookup", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("min", exec.TInt),
 		exec.P("key", values)}, Results: []exec.Type{res}, Reads: []string{Growth}, Writes: []string{Growth},
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}}},
 		Contract: `Returns the result kept in the context of the call for the rule at the position, the level
 and the key that holds there: the seeds it read have the same identities, and the lookaheads it
 observed the same outcomes, in the current context; it records those dependencies for the enclosing
@@ -274,28 +306,31 @@ the context, or another value for nowhere (its context's leaders have no present
 	add(&exec.Op{Name: "ctx.keep", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("pos", exec.TInt),
 		exec.P("min", exec.TInt), exec.P("key", values), exec.P("ok", exec.TBool), exec.P("end", exec.TInt), exec.P("silent", exec.TBool),
 		exec.P("value", value), exec.P("errs", errs), exec.P("far", exec.TInt), exec.P("k", kept)},
-		Reads: []string{Growth, Call}, Writes: []string{Growth}, NoReturn: true,
+		Reads: []string{Growth, Call}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}}},
 		Contract: `Keeps the result of the call in the table of its context with the dependencies that ctx.pop
 ended, and the examined frontier of a Document parse.`,
 		Requires: `The last ctx.pop of c returned ctx.storeCtx.`})
 	add(&exec.Op{Name: "ctx.done", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
 		Contract: `Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.`})
 
 	add(&exec.Op{Name: "grow.begin", Component: Growth, Params: call, Results: []exec.Type{grow},
-		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true,
+		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1},
 		Contract: `Starts the growth of the leader at the binding level min at the position from a failure,
 charging one unit: the growth is in a context when other leaders of its cycle grow at the position.`})
 	add(&exec.Op{Name: "grow.next", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
 		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSteps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}, {Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QRun}}},
 		Contract: `Reports whether the body must be evaluated for the next step of the growth g. In a context
 it first takes the steps that the memoized steps and jumps of the context give, and starts recording
 what the step it reports depends on.`})
 	add(&exec.Op{Name: "grow.step", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value),
 		exec.P("ok", exec.TBool)}, Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
+		Cost: exec.Cost{Const: 66, Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}, {Coef: 2, Quantity: QDeps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QRun}}},
 		Contract: `Receives the result of a step of the growth g: adopts it as the seed, charging one unit, and
 returns to the start of the growth if the match grew, and otherwise ends the growth.`})
 	add(&exec.Op{Name: "grow.end", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{res},
-		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...),
+		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QRun}, {Coef: 1, Quantity: QErrs}}},
 		Contract: `Ends the growth g and returns its last seed: the position moves to its end and its recovered
 errors replace those recorded since the growth began.`})
 
@@ -375,7 +410,7 @@ retained tail. An error of the callback ends the parse with it, before the eleme
 An error of the callback ends the parse unchanged.`,
 		Requires: `The parse delivers elements.`})
 	add(&exec.Op{Name: "stream.discard", Component: Win, Params: []exec.Param{exec.P("keep", exec.TInt)},
-		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QStreamScan}}},
 		Contract: `Discards the input before keep, when at least half of the buffer can go; later reads before keep
 are not supported. The line and column of the new base are kept.`})
 	add(&exec.Op{Name: "stream.release", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
@@ -386,7 +421,7 @@ chunks that no active call refers to, so that a delivered element is not kept al
 		Features: stream,
 		Contract: `Returns the position up to which the memo and the records of the parse were pruned.`})
 	add(&exec.Op{Name: "stream.prune", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
-		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		Reads: []string{Win}, Writes: []string{Win}, Features: stream, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}}},
 		Contract: `Discards the memo entries and the records of the parse before pos, which no later call can look
 up, and remembers pos as the pruned position.`})
 	add(&exec.Op{Name: "stream.tail", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
