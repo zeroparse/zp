@@ -43,6 +43,12 @@ const (
 	symAnd                  // a positive lookahead, which consumes nothing
 	symSkip                 // consumes nothing and tells nothing (predicates, anchors, cuts)
 	symStop                 // an expression that the analysis does not look into
+	// symBind consumes nothing and may change the variables in scope: a binding, an expression
+	// that contains one, or the end of a rule that makes bindings.
+	symBind
+	// symEnv consumes nothing and marks a part that is cheap only when the unit and the
+	// continuation evaluate it with the same variables.
+	symEnv
 )
 
 // sym is a symbol of a path; item is the index of the top-level item of the alternative that it
@@ -61,11 +67,19 @@ type excl struct {
 	k      *classifier
 	strict bool
 	maxK   int
-	cheapR map[string]int8 // 1 while computed, 2 cheap, 3 not
+	// env reports that the unit and the continuation are at a point where they have the same
+	// variables in scope; excludes sets it for the comparison at hand.
+	env    bool
+	cheapR map[cheapKey]int8 // 1 while computed, 2 cheap, 3 not
+}
+
+type cheapKey struct {
+	rule string
+	env  bool
 }
 
 func newExcl(k *classifier, strict bool, maxK int) excl {
-	return excl{k: k, strict: strict, maxK: maxK, cheapR: map[string]int8{}}
+	return excl{k: k, strict: strict, maxK: maxK, cheapR: map[cheapKey]int8{}}
 }
 
 // cheap reports whether evaluating e again at a position costs no more than a constant or what
@@ -79,21 +93,31 @@ func (x excl) cheap(e grammar.Expr) bool {
 	if x.k.shareable(r) || !x.k.containsSource(r) {
 		return true
 	}
-	def := x.k.byName[r.Name]
-	if r.Level != "" || def == nil || len(x.k.vars[r.Name]) > 0 || x.k.an.cyclic[r.Name] {
+	reads := len(x.k.vars[r.Name]) > 0
+	if reads && !x.env {
 		return false
 	}
-	switch x.cheapR[r.Name] {
+	// With the same variables, the memo answers the second call of a rule that reads them as it
+	// answers any other, and a rule that calls no rule repeats only its own scan.
+	if reads && r.Level != rhsLevel && (x.k.memoAt(r) || len(x.k.calls[r.Name]) == 0) {
+		return true
+	}
+	def := x.k.byName[r.Name]
+	if r.Level != "" || def == nil || x.k.an.cyclic[r.Name] {
+		return false
+	}
+	key := cheapKey{r.Name, x.env}
+	switch x.cheapR[key] {
 	case 1, 3:
 		return false
 	case 2:
 		return true
 	}
-	x.cheapR[r.Name] = 1
+	x.cheapR[key] = 1
 	ok = x.cheapAll(def.Expr)
-	x.cheapR[r.Name] = 3
+	x.cheapR[key] = 3
 	if ok {
-		x.cheapR[r.Name] = 2
+		x.cheapR[key] = 2
 	}
 	return ok
 }
@@ -123,20 +147,49 @@ func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 		switch e.(type) {
 		case *grammar.Choice, *grammar.Optional, *grammar.Repeat:
 			if !x.cheapAll(e) {
-				return one(sym{symStop, e, item})
+				y := x
+				y.env = true
+				if !y.cheapAll(e) {
+					return one(sym{symStop, e, item})
+				}
+				// The part is cheap where the variables are the same, which the comparison
+				// checks when it reaches the mark.
+				envSym := []sym{{symEnv, e, item}}
+				ps, ok := x.pathsOf(e, item)
+				for i, p := range ps {
+					ps[i] = append(slices.Clip(envSym), p...)
+				}
+				return ps, ok
 			}
 		}
 	}
+	return x.pathsOf(e, item)
+}
+
+// pathsOf is paths without the check of strict mode on e itself.
+func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
+	one := func(s sym) ([][]sym, bool) { return [][]sym{{s}}, true }
 	switch e := e.(type) {
 	case nil:
 		return [][]sym{nil}, true
 	case *grammar.Ref, *grammar.Literal, *grammar.CharClass, *grammar.Any:
 		return one(sym{symMatch, e, item})
 	case *grammar.Not:
+		if binds(e.Expr) {
+			return [][]sym{{{symNot, e.Expr, item}, {symBind, e, item}}}, true
+		}
 		return one(sym{symNot, e.Expr, item})
 	case *grammar.And:
+		if binds(e.Expr) {
+			return [][]sym{{{symAnd, e.Expr, item}, {symBind, e, item}}}, true
+		}
 		return one(sym{symAnd, e.Expr, item})
-	case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
+	case *grammar.Predicate:
+		if binds(e) {
+			return one(sym{symBind, e, item})
+		}
+		return one(sym{symSkip, e, item})
+	case *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
 		*grammar.BeginLine, *grammar.EndLine:
 		return one(sym{symSkip, e, item})
 	case *grammar.Bottom:
@@ -184,6 +237,9 @@ func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 		if e.Max != 1 {
 			// A repetition is one symbol, which the analysis expands only when it must: two
 			// equal repetitions at one position match alike, as they are greedy.
+			if binds(e) {
+				return [][]sym{{{symMatch, e, item}, {symBind, e, item}}}, true
+			}
 			return one(sym{symMatch, e, item})
 		}
 		return x.repeatPaths(e, item)
@@ -282,6 +338,13 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 				if !ok {
 					return nil, false
 				}
+				if def := x.k.byName[c.rule]; def != nil && binds(def.Expr) {
+					// The caller does not see the bindings of the rule, which the unit may
+					// have seen.
+					for i, p := range ps {
+						ps[i] = append([]sym{{kind: symBind}}, p...)
+					}
+				}
 				after = append(after, ps...)
 			}
 			if sites == 0 || c.rule == x.k.start {
@@ -296,28 +359,32 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 }
 
 // inlinable reports whether the analysis may expand a call into the paths of its body: the callee
-// reads no variable and is not a rule of a left-recursion cycle.
+// is not a rule of a left-recursion cycle. A callee that reads variables can be expanded too: every
+// successful evaluation follows one of the paths of its body, whatever the variables, and the
+// bindings in the body appear on the paths.
 func (x excl) inlinable(e grammar.Expr) (*grammar.RuleDef, bool) {
 	r, ok := e.(*grammar.Ref)
 	if !ok || r.Level != "" {
 		return nil, false
 	}
 	def := x.k.byName[r.Name]
-	if def == nil || x.k.an.cyclic[r.Name] || len(x.k.vars[r.Name]) > 0 {
+	if def == nil || x.k.an.cyclic[r.Name] {
 		return nil, false
 	}
 	return def, true
 }
 
 // sameSym reports whether two symbols at one position succeed alike and end alike: a parsing
-// expression evaluates deterministically, so two calls of one rule that reads no variable, from
-// one position, have one result. Calls of rules of left-recursion cycles are left aside, as a call
+// expression evaluates deterministically, so two calls of one rule from one position, with the same
+// values of the variables that it reads, have one result. A rule that reads variables is equal to
+// itself only where x.env holds. Calls of rules of left-recursion cycles are left aside, as a call
 // inside a growth sees the seed of the growth.
 func (x excl) sameSym(a, b grammar.Expr) bool {
 	switch a := a.(type) {
 	case *grammar.Ref:
 		b, ok := b.(*grammar.Ref)
-		return ok && a.Name == b.Name && a.Level == b.Level && len(x.k.vars[a.Name]) == 0 && !x.k.an.cyclic[a.Name]
+		return ok && a.Name == b.Name && a.Level == b.Level && (x.env || len(x.k.vars[a.Name]) == 0) &&
+			!x.k.an.cyclic[a.Name]
 	case *grammar.Literal:
 		b, ok := b.(*grammar.Literal)
 		return ok && a.Value == b.Value && a.IgnoreCase == b.IgnoreCase
@@ -334,15 +401,15 @@ func (x excl) sameSym(a, b grammar.Expr) bool {
 	return false
 }
 
-// pure reports whether e calls only rules that read no variable and are not rules of
-// left-recursion cycles, and reads no variable itself, so that its result at a position is
+// pure reports whether e calls only rules that are not rules of left-recursion cycles, and read no
+// variable unless x.env holds, and has no predicate itself, so that its result at a position is
 // one.
 func (x excl) pure(e grammar.Expr) bool {
 	ok := true
 	WalkExpr(e, func(y grammar.Expr) {
 		switch y := y.(type) {
 		case *grammar.Ref:
-			if len(x.k.vars[y.Name]) > 0 || x.k.an.cyclic[y.Name] {
+			if !x.env && len(x.k.vars[y.Name]) > 0 || x.k.an.cyclic[y.Name] {
 				ok = false
 			}
 		case *grammar.Predicate, *grammar.Recovery, *grammar.Attributed, *grammar.OperatorsRule, *grammar.Cut:
@@ -436,6 +503,23 @@ type exclState struct {
 	i, j   int
 	steps  int // the symbols passed that both evaluate alike
 	inline int
+	// boundP and boundQ report that p or q passed a symbol that may change the variables in
+	// scope since the position where both start, with the same variables.
+	boundP, boundQ bool
+}
+
+// zeroBinds reports whether the symbols of p from i up to the first one that consumes input
+// include one that may change the variables.
+func zeroBinds(p []sym, i int) bool {
+	for ; i < len(p); i++ {
+		switch p[i].kind {
+		case symBind:
+			return true
+		case symMatch, symStop:
+			return false
+		}
+	}
+	return false
 }
 
 // nextMatch returns the index of the first symbol of q from j that is not a skip or a lookahead,
@@ -443,7 +527,7 @@ type exclState struct {
 func (x excl) nextMatch(q []sym, j int) (int, bool) {
 	for ; j < len(q); j++ {
 		switch q[j].kind {
-		case symSkip:
+		case symSkip, symBind, symEnv:
 		case symNot, symAnd:
 			if x.strict && !x.cheapAll(q[j].e) {
 				return j, false
@@ -462,16 +546,30 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 	k := x.k
 	for {
 		k.control.poll()
+		x.env = !s.boundP && !s.boundQ
 		if s.i == len(s.p) {
 			// In strict mode every symbol of p was evaluated alike by q or is cheap, so a unit
 			// that ends here examined, beyond what q evaluates alike, no more than a constant.
-			return x.strict, 0, s.steps
+			if !x.strict {
+				return x.no("p-exhausted", sym{}, nil)
+			}
+			return true, 0, s.steps
 		}
 		a := s.p[s.i]
 		switch a.kind {
 		case symStop:
-			return false, 0, 0
+			return x.no("pstop", a, nil)
 		case symSkip:
+			s.i++
+			continue
+		case symBind:
+			s.boundP = true
+			s.i++
+			continue
+		case symEnv:
+			if !x.env || zeroBinds(s.q, s.j) {
+				return x.no("env", a, nil)
+			}
 			s.i++
 			continue
 		case symNot:
@@ -479,7 +577,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return true, a.item, s.steps + 1
 			}
 			if x.strict && !x.cheapAll(a.e) {
-				return false, 0, 0
+				return x.no("pnot-notcheap", a, nil)
 			}
 			s.i++
 			continue
@@ -491,19 +589,29 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return true, a.item, s.steps + 1
 			}
 			if x.strict && !x.cheapAll(a.e) {
-				return false, 0, 0
+				return x.no("pand-notcheap", a, nil)
 			}
 			s.i++
 			continue
 		}
 		if s.j == len(s.q) {
-			return false, 0, 0
+			return x.no("q-exhausted", a, nil)
 		}
 		b := s.q[s.j]
 		switch b.kind {
 		case symStop:
-			return false, 0, 0
+			return x.no("qstop", a, &b)
 		case symSkip:
+			s.j++
+			continue
+		case symBind:
+			s.boundQ = true
+			s.j++
+			continue
+		case symEnv:
+			if !x.env {
+				return x.no("env", a, &b)
+			}
 			s.j++
 			continue
 		case symNot:
@@ -511,7 +619,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return true, s.p[s.i+end].item, s.steps + 1
 			}
 			if x.strict && !x.cheapAll(b.e) {
-				return false, 0, 0
+				return x.no("qnot-notcheap", a, &b)
 			}
 			s.j++
 			continue
@@ -520,7 +628,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return true, a.item, s.steps + 1
 			}
 			if x.strict && !x.cheapAll(b.e) {
-				return false, 0, 0
+				return x.no("qand-notcheap", a, &b)
 			}
 			s.j++
 			continue
@@ -530,7 +638,10 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		}
 		if x.sameSym(a.e, b.e) {
 			if s.steps+1 >= x.maxK || x.strict && !x.cheap(a.e) {
-				return false, 0, 0
+				if s.steps+1 >= x.maxK {
+					return x.no("same-bound", a, &b)
+				}
+				return x.no("same-notcheap", a, &b)
 			}
 			s.i, s.j, s.steps = s.i+1, s.j+1, s.steps+1
 			continue
@@ -540,13 +651,13 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		if aLit && bLit {
 			ra, rb, excl, ok := litStep(la, lb)
 			if !ok {
-				return false, 0, 0
+				return x.no("lit-fold", a, &b)
 			}
 			if excl {
 				return true, a.item, s.steps + 1
 			}
 			if s.steps+1 >= x.maxK {
-				return false, 0, 0
+				return x.no("lit-bound", a, &b)
 			}
 			// One literal is a prefix of the other: both evaluations are at the end of the shorter
 			// one, and the longer one goes on with its rest.
@@ -564,7 +675,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		// A literal and a class that contains its first character both consume that character.
 		if rest, ok := litInChar(a.e, b.e); ok {
 			if s.steps+1 >= x.maxK {
-				return false, 0, 0
+				return x.no("char-bound", a, &b)
 			}
 			if rest != nil {
 				s.p = replaced(s.p, s.i, sym{symMatch, rest, a.item})
@@ -576,7 +687,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		}
 		if rest, ok := litInChar(b.e, a.e); ok {
 			if s.steps+1 >= x.maxK {
-				return false, 0, 0
+				return x.no("char-bound", a, &b)
 			}
 			if rest != nil {
 				s.q = replaced(s.q, s.j, sym{symMatch, rest, b.item})
@@ -587,7 +698,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			continue
 		}
 		if s.inline >= autoCutInline {
-			return false, 0, 0
+			return x.no("inline-limit", a, &b)
 		}
 		// Expand a call or a repetition into its paths; every path must be excluded. The side
 		// whose callee reaches the other callee is expanded first.
@@ -614,7 +725,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 func (x excl) expand(s exclState, side []sym, idx int, set func(*exclState, []sym)) (bool, int, int) {
 	body, ok := x.body(side[idx])
 	if !ok {
-		return false, 0, 0
+		return x.no("noexpand", side[idx], nil)
 	}
 	item, n := 0, 0
 	for _, bp := range body {
@@ -711,8 +822,17 @@ func (x excl) matchesExact(q []sym, kp []grammar.Expr, depth int) (end int, ok b
 			return 0, false
 		}
 		a, b := q[j].e, kp[m]
-		if x.sameSym(a, b) {
-			if x.strict && !x.cheap(a) {
+		y := x
+		for _, z := range q[:j] {
+			switch {
+			case z.kind == symBind:
+				y.env = false
+			case z.kind == symEnv && !y.env:
+				return 0, false
+			}
+		}
+		if y.sameSym(a, b) {
+			if y.strict && !y.cheap(a) {
 				return 0, false
 			}
 			j, m = j+1, m+1
@@ -956,4 +1076,32 @@ func AutoCut(g *grammar.Grammar, start string, maxK int) (*grammar.Grammar, Auto
 		})
 	}
 	return out, st, nil
+}
+
+// binds reports whether evaluating e can bind a variable in the scope that it is evaluated in: e
+// contains a binding outside the rules that it calls, whose bindings end with the call.
+func binds(e grammar.Expr) bool {
+	found := false
+	WalkExpr(e, func(y grammar.Expr) {
+		if p, ok := y.(*grammar.Predicate); ok {
+			WalkTerm(p.Term, func(t grammar.Term) {
+				if _, ok := t.(*grammar.Bind); ok {
+					found = true
+				}
+			})
+		}
+	})
+	return found
+}
+
+// exclTrace, when set, receives the reason for each comparison of paths that the analysis does not
+// decide, with the symbols at which it stops. Tests use it to sort undecided units by cause.
+var exclTrace func(tag string, a sym, b *sym)
+
+// no reports an undecided comparison to exclTrace.
+func (x excl) no(tag string, a sym, b *sym) (bool, int, int) {
+	if exclTrace != nil {
+		exclTrace(tag, a, b)
+	}
+	return false, 0, 0
 }

@@ -63,6 +63,46 @@ func TestDecideAlt(t *testing.T) {
 	}
 }
 
+// TestDecideAltVariables checks that calls of a rule that reads a variable are equal symbols only
+// where neither compared prefix binds a variable: the rule b below matches "aa" where x is 1 and
+// "a" elsewhere, so after a binding the two calls of b can end at different positions.
+func TestDecideAltVariables(t *testing.T) {
+	const rules = "var x int = 0\nrule x1 = \"x\"\nrule b = {x == 1} \"aa\" / [a-z]\n" +
+		"rule c = {x := 1} b\n"
+	for _, c := range []struct {
+		name, main string
+		decided    bool
+		k, cut     int
+	}{
+		{"equal calls without bindings", `b "(" x1 / b "a(" x1`, true, 2, 2},
+		{"a binding in the earlier prefix", `{x := 1} b "(" x1 / b "a(" x1`, false, 0, 0},
+		{"a binding in the later prefix", `b "(" x1 / {x := 1} b "a(" x1`, false, 0, 0},
+		{"a binding inside a called rule", `c "(" x1 / b "a(" x1`, false, 0, 0},
+	} {
+		src := "rule main = (" + c.main + ") x1\n" + rules
+		g, err := syntax.Parse(src)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		k.computeBounded()
+		k.computeFirst()
+		var ch *grammar.Choice
+		WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+			if y, ok := x.(*grammar.Choice); ok && ch == nil {
+				ch = y
+			}
+		})
+		d := k.decideAlt(ch, 0, 3)
+		if d.decided != c.decided || d.decided && (d.k != c.k || d.cut != c.cut) {
+			t.Errorf("%s: decided %v k %d cut %d, want %v k %d cut %d", c.name, d.decided, d.k, d.cut, c.decided, c.k, c.cut)
+		}
+	}
+}
+
 // TestDecidedUnits checks that a unit that the strict analysis decides against its continuation
 // is committing with decidedUnitsOn, and that the analysis does not pass a repetition that the
 // continuation scans again.
@@ -77,6 +117,16 @@ func TestDecidedUnits(t *testing.T) {
 			ClassUnknown, ClassLinear},
 		{"trailing separator after a scan", "rule main = value $$\nrule value = \"[\" ws elems? (\",\" [a-z]* ws)? \"]\" ws / [a-z]+ ws\n" +
 			"rule elems = value (\",\" [a-z]* ws value)*\nrule ws = [ ]*\n", ClassUnknown, ClassUnknown},
+		{"separator whitespace that reads a variable", "var x int = 0\nrule main = value $$\n" +
+			"rule value = \"[\" ws elems? (\",\" wsx)? \"]\" ws / [a-z]+ ws\n" +
+			"rule elems = value (\",\" wsx value)*\nrule ws = [ ]*\nrule wsx = {x == 1} [ ]* / [ ]*\n",
+			ClassUnknown, ClassLinear},
+		// The iteration sees the binding of elems, and the continuation after elems does not, so
+		// the calls of wsx in them are not equal.
+		{"a binding in the rule that the continuation leaves", "var x int = 0\nrule main = value $$\n" +
+			"rule value = \"[\" ws elems? (\",\" wsx)? \"]\" ws / [a-z]+ ws\n" +
+			"rule elems = {x := 1} value (\",\" wsx value)*\nrule ws = [ ]*\nrule wsx = {x == 1} [ ]* / [ ]*\n",
+			ClassUnknown, ClassUnknown},
 	} {
 		decidedUnitsOn = false
 		if got := classifySource(t, c.src).Class; got != c.off {
