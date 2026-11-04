@@ -86,7 +86,8 @@ func TestDecideAlt(t *testing.T) {
 func TestDecideAltTrivia(t *testing.T) {
 	defer func() { triviaOn, triviaOnly = false, nil }()
 	const rules = "var v int = 0\nrule ident = [a-z]+\nrule x = \"x\"\nrule ws = [ ]*\nrule sp = \" \"\n" +
-		"rule ws2 = (sp / \"\\t\")*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n"
+		"rule ws2 = (sp / \"\\t\")*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n" +
+		"rule wsb = ({v == 0} \" \" {v := 1} / {v == 0} \"\\t\")*\n"
 	for _, c := range []struct {
 		name, main string
 		only       map[string]bool
@@ -99,8 +100,10 @@ func TestDecideAltTrivia(t *testing.T) {
 		{"a rule that calls a rule", `ident ws2 ws2 "(" x / ident ws2 ws2 "." x`, nil, false, true},
 		{"a rule outside the list", `ident ws ws "(" x / ident ws ws "." x`, map[string]bool{"ws2": true}, false, false},
 		{"a repetition that must match once", `ident wsp wsp "(" x / ident wsp wsp "." x`, nil, false, false},
-		{"a repetition that reads a variable", `ident wsv wsv "(" x / ident wsv wsv "." x`, nil, false, false},
-		{"a repetition that captures", `ident wsc wsc "(" x / ident wsc wsc "." x`, nil, false, false},
+		{"a repetition that reads a variable", `ident wsv wsv "(" x / ident wsv wsv "." x`, nil, false, true},
+		{"a repetition that reads a variable after a binding", `ident {v := 1} wsv wsv "(" x / ident wsv wsv "." x`, nil, false, false},
+		{"a repetition that binds a variable that it reads", `ident wsb wsb "(" x / ident wsb wsb "." x`, nil, false, false},
+		{"a repetition that captures", `ident wsc wsc "(" x / ident wsc wsc "." x`, nil, false, true},
 		{"calls of two trivia rules", `ident ws ws2 "(" x / ident ws2 ws "." x`, nil, false, false},
 	} {
 		g, err := syntax.Parse("rule main = (" + c.main + ") x\n" + rules)
@@ -200,8 +203,8 @@ func TestCollapseTrivia(t *testing.T) {
 // TestCollapseTriviaBinding checks that a binding between two calls of a trivia rule that reads
 // variables keeps the second call: it starts with other variables, so it can match.
 func TestCollapseTriviaBinding(t *testing.T) {
-	defer func() { triviaOn, triviaVars = false, false }()
-	triviaOn, triviaVars = true, true
+	defer func() { triviaOn = false }()
+	triviaOn = true
 	g, err := syntax.Parse("var v int = 0\nrule main = wv ws \"x\"\nrule wv = ({v == 0} \" \")*\nrule ws = [ ]*\n")
 	if err != nil {
 		t.Fatal(err)
@@ -241,15 +244,11 @@ func TestTriviaWhy(t *testing.T) {
 		t.Fatal(err)
 	}
 	for rule, want := range map[string]string{
-		"ws": "", "ws2": "", "wsp": "body is not X*", "wsv": "reads a variable (wsv); predicate (wsv)",
-		"wsc": "capture (wsc)", "wsa": "action (wsa)",
+		"ws": "", "ws2": "", "wsp": "body is not X*", "wsv": "", "wsc": "", "wsa": "action (wsa)", "wsr": "",
 	} {
 		if got := k.triviaWhy(rule); got != want {
 			t.Errorf("%s: %q, want %q", rule, got, want)
 		}
-	}
-	if got := k.triviaWhy("wsr"); !strings.HasPrefix(got, "reads a variable") {
-		t.Errorf("wsr: %q, want a variable read through a call", got)
 	}
 }
 
@@ -272,11 +271,10 @@ func TestTriviaWhyCut(t *testing.T) {
 	}
 }
 
-// TestTriviaWhyVariables checks triviaVars: reads of variables, captures and predicates over them
-// are allowed, and a body that binds a variable that it reads is not, as in the rule wsb, whose
-// iteration over b binds the variable that its iteration over a reads.
+// TestTriviaWhyVariables checks the conditions on variables: reads of variables, captures and
+// predicates over them are allowed, and a body that binds a variable that it reads is not, as in
+// the rule wsb, whose iteration over b binds the variable that its iteration over a reads.
 func TestTriviaWhyVariables(t *testing.T) {
-	defer func() { triviaVars = false }()
 	src := "var v int = 0\nrule main = wsv wsc wsb wsw\nrule wsv = ({v == 0} \" \")*\n" +
 		"rule wsc = (c:[ a] {$c == \" \"})*\nrule wsb = ({v == 0} \"b\" {v := 1} / {v == 0} \"a\")*\n" +
 		"rule wsw = ({w := 1} \" \")*\nvar w int = 0\n"
@@ -284,29 +282,20 @@ func TestTriviaWhyVariables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, vars := range []bool{false, true} {
-		triviaVars = vars
-		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want := map[string]string{"wsv": "", "wsc": "", "wsb": "binds a variable that it reads (wsb)", "wsw": ""}
-		if !vars {
-			want = map[string]string{"wsv": "reads a variable (wsv); predicate (wsv)", "wsc": "capture (wsc); predicate (wsc)",
-				"wsb": "reads a variable (wsb); binds a variable that it reads (wsb); predicate (wsb)", "wsw": "predicate (wsw)"}
-		}
-		for rule, w := range want {
-			if got := k.triviaWhy(rule); got != w {
-				t.Errorf("vars %v: %s: %q, want %q", vars, rule, got, w)
-			}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rule, w := range map[string]string{"wsv": "", "wsc": "", "wsb": "binds a variable that it reads (wsb)", "wsw": ""} {
+		if got := k.triviaWhy(rule); got != w {
+			t.Errorf("%s: %q, want %q", rule, got, w)
 		}
 	}
 }
 
-// TestTriviaShapeExtended checks the shapes that triviaExtended adds: an atomic X* and the
-// unrolled form X* (Y X*)*, but not a form whose last repetition differs from the first.
+// TestTriviaShapeExtended checks the shapes beyond X*: an atomic X* and the unrolled form
+// X* (Y X*)*, but not a form whose last repetition differs from the first.
 func TestTriviaShapeExtended(t *testing.T) {
-	defer func() { triviaExtended = false }()
 	g, err := syntax.Parse("rule main = wsu wsa wsb wsn\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
 		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\nrule wsn = ([ ]?)* (\"#\" ([ ]?)*)*\n")
 	if err != nil {
@@ -316,13 +305,10 @@ func TestTriviaShapeExtended(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, ext := range []bool{false, true} {
-		triviaExtended = ext
-		// The unrolled form needs an X that cannot match empty.
-		for rule, ok := range map[string]bool{"wsu": ext, "wsa": ext, "wsb": false, "wsn": false} {
-			if got := k.triviaWhy(rule) == ""; got != ok {
-				t.Errorf("extended %v: %s: trivia %v, want %v", ext, rule, got, ok)
-			}
+	// The unrolled form needs an X that cannot match empty.
+	for rule, ok := range map[string]bool{"wsu": true, "wsa": true, "wsb": false, "wsn": false} {
+		if got := k.triviaWhy(rule) == ""; got != ok {
+			t.Errorf("%s: trivia %v, want %v", rule, got, ok)
 		}
 	}
 }
@@ -449,18 +435,18 @@ func TestDecidedUnits(t *testing.T) {
 
 // exclHooks is a setting of the test hooks of the exclusion analysis.
 type exclHooks struct {
-	prefixes, decided       bool
-	k                       int
-	trivia, extended, tvars bool
+	prefixes, decided bool
+	k                 int
+	trivia            bool
 }
 
 // set sets the hooks and returns a function that restores the defaults.
 func (h exclHooks) set() func() {
 	cutPrefixesOn, decidedUnitsOn, decidedUnitsK = h.prefixes, h.decided, h.k
-	triviaOn, triviaExtended, triviaVars = h.trivia, h.extended, h.tvars
+	triviaOn = h.trivia
 	return func() {
 		cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, false, 3
-		triviaOn, triviaExtended, triviaVars = false, false, false
+		triviaOn = false
 	}
 }
 
@@ -624,12 +610,10 @@ func TestExclusionReport(t *testing.T) {
 		{"decided k=2", exclHooks{decided: true, k: 2}},
 		{"decided k=3", exclHooks{decided: true, k: 3}},
 		{"decided k=4", exclHooks{decided: true, k: 4}},
-		{"k=3, trivia X*", exclHooks{decided: true, k: 3, trivia: true}},
-		{"k=3, trivia wide", exclHooks{decided: true, k: 3, trivia: true, extended: true}},
-		{"k=3, trivia wide with variables", exclHooks{decided: true, k: 3, trivia: true, extended: true, tvars: true}},
+		{"k=3, trivia", exclHooks{decided: true, k: 3, trivia: true}},
 	}
 	// The settings whose units that stay not committing are sorted by where the analysis stops.
-	blockers := map[string]bool{"decided k=3": true, "k=3, trivia wide with variables": true}
+	blockers := map[string]bool{"decided k=3": true, "k=3, trivia": true}
 	total := map[string]int{}
 	for _, f := range files {
 		src, err := os.ReadFile(f)

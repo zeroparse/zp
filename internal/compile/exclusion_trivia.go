@@ -10,12 +10,14 @@ import (
 
 // Trivia rules are rules whose shape lets the analysis compare their calls by position:
 //
-//   - the body is a greedy repetition X* (through groups), so a call always succeeds, and a
-//     second call where the first ended matches nothing, as X fails there again;
-//   - neither the rule nor a rule that it calls reads a variable, captures, runs an action or a
-//     predicate, or contains an attributed expression, a recovery, a stream, an Operators Rule
-//     or a call of a left-recursion cycle, and the body has no #cut of its own, so the result
-//     depends only on the position.
+//   - the body is a greedy repetition X*, an atomic X*, or the unrolled form X* (Y X*)* where X
+//     cannot match empty (triviaParts), so a call always succeeds, and a second call where the
+//     first ended matches nothing, as X fails there again;
+//   - neither the rule nor a rule that it calls runs an action or contains an attributed
+//     expression, a recovery, a stream, an Operators Rule or a call of a left-recursion cycle,
+//     the body binds no variable that the rule reads, and the body has no #cut of its own
+//     (triviaWhy). Then the result depends only on the position and on the variables that the
+//     rule reads, and two calls with the same variables end alike (law P2).
 //
 // triviaOn makes the exclusion analysis rely on it: two calls of one trivia rule at one position
 // are passed without counting toward the bound, and a call that follows a call of the same
@@ -25,21 +27,18 @@ import (
 // which starts where the first ended and repeats its final, failing attempt of X, only when that
 // attempt contains no scanning source (triviaSettles), so that it costs a constant.
 //
-// triviaOnly, when not nil, limits the trivia rules to the names that it lists. triviaExtended
-// widens the shape (triviaParts), and triviaVars the conditions on variables (triviaWhy). All
-// are test hooks.
+// triviaOnly, when not nil, limits the trivia rules to the names that it lists. All are test
+// hooks.
 var (
-	triviaOn       bool
-	triviaOnly     map[string]bool
-	triviaMemo     bool
-	triviaExtended bool
-	triviaVars     bool
+	triviaOn   bool
+	triviaOnly map[string]bool
+	triviaMemo bool
 )
 
 // triviaParts returns the expressions whose attempts a trivia rule with body e makes after its
 // last iteration, or nil when e does not have the shape of a trivia rule: X for a greedy
-// repetition X*, and with triviaExtended also for an atomic X*, and X and the iteration (Y X*) of
-// the unrolled form X* (Y X*)*, where X cannot match without consuming input. After the unrolled
+// repetition X* or an atomic X*, and X and the iteration (Y X*) of the unrolled form
+// X* (Y X*)*, where X cannot match without consuming input. After the unrolled
 // form, X fails where the last X* stopped, and the outer repetition stopped where its iteration
 // failed or matched nothing, so a second evaluation matches nothing as well.
 func (k *classifier) triviaParts(e grammar.Expr) []grammar.Expr {
@@ -48,7 +47,7 @@ func (k *classifier) triviaParts(e grammar.Expr) []grammar.Expr {
 		return []grammar.Expr{e.(*grammar.Repeat).Expr}
 	}
 	s, ok := e.(*grammar.Seq)
-	if !triviaExtended || !ok || len(s.Items) != 2 || !star(triviaUnwrap(s.Items[0])) {
+	if !ok || len(s.Items) != 2 || !star(triviaUnwrap(s.Items[0])) {
 		return nil
 	}
 	first := triviaUnwrap(s.Items[0]).(*grammar.Repeat)
@@ -75,9 +74,6 @@ func triviaUnwrap(e grammar.Expr) grammar.Expr {
 		case *grammar.Group:
 			e = x.Expr
 		case *grammar.Atomic:
-			if !triviaExtended {
-				return e
-			}
 			e = x.Expr
 		default:
 			return e
@@ -87,19 +83,19 @@ func triviaUnwrap(e grammar.Expr) grammar.Expr {
 
 // triviaWhy returns "" when the rule name is a trivia rule, and otherwise why it is not.
 //
-// With triviaVars, reads of variables, captures and predicates are allowed, and what is
-// rejected instead is a body that binds a variable that the rule reads: then the first call can
-// stop where its own binding makes X fail, and the second call, which starts with the variables
-// of the caller, can go on. The comparison treats calls of a rule that reads variables as equal
-// only where both sides have the same variables, as for any other call.
+// Reads of variables, captures and predicates are allowed. A body that binds a variable that the
+// rule reads is not: then the first call can stop where its own binding makes X fail, and the
+// second call, which starts with the variables of the caller, can go on. The comparison treats
+// calls of a rule that reads variables as equal only where both sides have the same variables,
+// as for any other call.
 func (k *classifier) triviaWhy(name string) string {
 	def := k.byName[name]
 	if def == nil {
 		return "not a rule"
 	}
 	// The first rule, in name order, with each kind of reason; the reasons in a fixed order.
-	order := []string{"reads a variable", "binds a variable that it reads", "action", "left recursion",
-		"capture", "predicate", "#cut", "attributed, recovery, stream or Operators Rule", "operator level call"}
+	order := []string{"binds a variable that it reads", "action", "left recursion", "#cut",
+		"attributed, recovery, stream or Operators Rule", "operator level call"}
 	at := map[string]string{}
 	note := func(why, n string) {
 		if _, ok := at[why]; !ok {
@@ -125,9 +121,6 @@ func (k *classifier) triviaWhy(name string) string {
 	})
 	for _, n := range slices.Sorted(maps.Keys(k.reachable(name))) {
 		d := k.byName[n]
-		if len(k.vars[n]) > 0 && !triviaVars {
-			note("reads a variable", n)
-		}
 		if d.Action != nil {
 			note("action", n)
 		}
@@ -136,16 +129,8 @@ func (k *classifier) triviaWhy(name string) string {
 		}
 		WalkExpr(d.Expr, func(e grammar.Expr) {
 			switch e := e.(type) {
-			case *grammar.Capture:
-				if !triviaVars {
-					note("capture", n)
-				}
 			case *grammar.InlineAction:
 				note("action", n)
-			case *grammar.Predicate:
-				if !triviaVars {
-					note("predicate", n)
-				}
 			case *grammar.Attributed, *grammar.Recovery, *grammar.Stream, *grammar.OperatorsRule:
 				note("attributed, recovery, stream or Operators Rule", n)
 			case *grammar.Ref:

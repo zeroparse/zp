@@ -21,9 +21,8 @@ func TestExclusionControls(t *testing.T) {
 	}{
 		{"decided units", compile.ExclusionHooks{Decided: true}},
 		{"decided units, trivia", compile.ExclusionHooks{Decided: true, Trivia: true}},
-		{"decided units, wide trivia", compile.ExclusionHooks{Decided: true, Trivia: true, Extended: true, Vars: true}},
-		{"memoized trivia", compile.ExclusionHooks{Memo: true, Extended: true, Vars: true}},
-		{"decided units, memoized wide trivia", compile.ExclusionHooks{Decided: true, Trivia: true, Extended: true, Vars: true, Memo: true}},
+		{"memoized trivia", compile.ExclusionHooks{Memo: true}},
+		{"decided units, memoized trivia", compile.ExclusionHooks{Decided: true, Trivia: true, Memo: true}},
 	}
 	for _, c := range complexitytest.Controls() {
 		g, err := zp.ParseGrammar(c.Source)
