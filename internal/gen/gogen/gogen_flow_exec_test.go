@@ -84,6 +84,14 @@ var execModes = func() []execMode {
 	)
 }()
 
+var flowModeNames = func() map[string]bool {
+	m := map[string]bool{}
+	for _, f := range flowModes {
+		m[f.name] = true
+	}
+	return m
+}()
+
 type execMode struct {
 	name string
 	opts gen.GenOptions
@@ -99,6 +107,11 @@ func TestExecRoutePrintsTheSame(t *testing.T) {
 	corpus := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
 	streams := streamCases(t)
 	for _, mode := range execModes {
+		// The modes after the flowModes each add one option to the ordinary route; the default
+		// tier runs a third of those by name.
+		if !gentest.Sampled(mode.name) && !flowModeNames[mode.name] {
+			continue
+		}
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
 			cases, least := corpus, gentest.ScaleFloor(100)

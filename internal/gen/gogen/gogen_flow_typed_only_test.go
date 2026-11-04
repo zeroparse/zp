@@ -142,6 +142,9 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 		name     string
 		controls bool
 	}{{"ordinary", false}, {"controls", true}} {
+		if !gentest.OneForm(t, form.controls) {
+			continue
+		}
 		t.Run(form.name, func(t *testing.T) {
 			dir := t.TempDir()
 			writeGoMod(t, dir)

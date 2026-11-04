@@ -94,8 +94,14 @@ func testOperatorsRuleWholeActionGenerated(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	cases := gentest.OperatorsRuleWholeActionCases
 	t.Run("go", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{}) })
-	t.Run("go source info", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{SourceInfo: true}) })
-	t.Run("typed go", func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, gen.GenOptions{ConvertTypes: true}) })
+	t.Run("go source info", func(t *testing.T) {
+		gentest.SkipUnlessSampled(t)
+		gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{SourceInfo: true})
+	})
+	t.Run("typed go", func(t *testing.T) {
+		gentest.SkipUnlessSampled(t)
+		gentest.GeneratedTypesCorpus(t, goBin, cases, gen.GenOptions{ConvertTypes: true})
+	})
 	t.Run("typescript", func(t *testing.T) {
 		node, err := exec.LookPath("node")
 		if err != nil {

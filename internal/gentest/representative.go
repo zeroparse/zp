@@ -119,3 +119,36 @@ func LongOnly(t testing.TB, why string) {
 func Sampled(name string) bool {
 	return allCases || hashOf(name)%3 == 0
 }
+
+// Long reports whether the long tier (go test -tags zp_long) is running.
+func Long() bool { return allCases }
+
+// SampledShapes returns the dependency-memo shapes that the default tier checks: the ones that
+// Sampled keeps, or all of them in the long tier.
+func SampledShapes() []DependencyMemoShape {
+	var out []DependencyMemoShape
+	for _, s := range DependencyMemoShapes {
+		if Sampled(s.Name) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// SkipUnlessSampled skips the subtest in the default tier unless Sampled keeps its name.
+func SkipUnlessSampled(t testing.TB) {
+	t.Helper()
+	if !Sampled(t.Name()) {
+		t.Skip("long tier only: not in the sampled third")
+	}
+}
+
+// OneForm reports whether a test that loops over the two forms of the generated code (with and
+// without budget controls) runs the form in the default tier: the one that the hash of the test
+// name picks, as EachMode does; the long tier runs both.
+func OneForm(t testing.TB, controls bool) bool {
+	if allCases {
+		return true
+	}
+	return (hashOf(t.Name())%2 == 0) == controls
+}

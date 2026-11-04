@@ -86,6 +86,9 @@ func TestGeneratedTSNoUnusedLocals(t *testing.T) {
 		t.Fatalf("no grammars: %v", err)
 	}
 	for _, path := range paths {
+		if !gentest.Long() && len(gentest.RepresentativeNames([]string{strings.TrimSuffix(filepath.Base(path), ".zp")})) == 0 {
+			continue
+		}
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

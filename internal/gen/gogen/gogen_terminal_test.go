@@ -112,7 +112,16 @@ func TestTerminalProgramGeneration(t *testing.T) {
 func TestTerminalProgramDisabledParity(t *testing.T) {
 	t.Parallel()
 	gentest.PinOrdinary(t)
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), terminalCases(), gen.GenOptions{DisableTerminalPrograms: true}, 0)
+	var cases []gentest.Case
+	for _, c := range terminalCases() {
+		// The 1200-guard choice without a table costs most of the build and is covered by
+		// TestTerminalProgramGeneration with the programs on; the long tier compares it too.
+		if c.Name == "terminal choice without a table" && !gentest.Long() {
+			continue
+		}
+		cases = append(cases, c)
+	}
+	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, gen.GenOptions{DisableTerminalPrograms: true}, 0)
 }
 
 // TestTerminalProgramEligibility pins where the generator lowers a terminal expression: only

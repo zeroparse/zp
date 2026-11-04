@@ -77,7 +77,8 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 	}
 	write("package.json", []byte(`{"type":"module"}`))
 	var main strings.Builder
-	for i, s := range gentest.DependencyMemoShapes {
+	shapes := gentest.SampledShapes()
+	for i, s := range shapes {
 		code, err := gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", Observability: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Name, err)
@@ -98,7 +99,7 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		"  return profile.snapshot().evals;\n" +
 		"};\n" +
 		"const withinBudget = (m, input) => m.parseWithOptions(input, {}).error === null;\n")
-	for i, s := range gentest.DependencyMemoShapes {
+	for i, s := range shapes {
 		fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), withinBudget(c%[1]d, %[4]s));\n", i, strconv.Quote(s.Input(80)), strconv.Quote(s.Input(160)), strconv.Quote(s.Input(10000)))
 	}
 	write("main.mjs", []byte(main.String()))
@@ -111,10 +112,10 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		t.Fatalf("node: %v\n%s", err, out)
 	}
 	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
-	if len(lines) != len(gentest.DependencyMemoShapes) {
-		t.Fatalf("got %d lines, want %d\n%s", len(lines), len(gentest.DependencyMemoShapes), out)
+	if len(lines) != len(shapes) {
+		t.Fatalf("got %d lines, want %d\n%s", len(lines), len(shapes), out)
 	}
-	for i, s := range gentest.DependencyMemoShapes {
+	for i, s := range shapes {
 		var small, large int
 		var long bool
 		if _, err := fmt.Sscan(lines[i], &small, &large, &long); err != nil {

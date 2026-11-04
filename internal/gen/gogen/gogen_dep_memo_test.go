@@ -80,8 +80,9 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	shapes := gentest.SampledShapes()
 	var imports, calls strings.Builder
-	for i, s := range gentest.DependencyMemoShapes {
+	for i, s := range shapes {
 		pkg := fmt.Sprintf("g%d", i)
 		gentest.GeneratePackage(t, dir, pkg, mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", Types: true, Observability: true})
 		fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
@@ -116,10 +117,10 @@ func main() {
 		t.Fatalf("go run: %v\n%s", err, out)
 	}
 	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
-	if len(lines) != len(gentest.DependencyMemoShapes) {
-		t.Fatalf("got %d lines, want %d\n%s", len(lines), len(gentest.DependencyMemoShapes), out)
+	if len(lines) != len(shapes) {
+		t.Fatalf("got %d lines, want %d\n%s", len(lines), len(shapes), out)
 	}
-	for i, s := range gentest.DependencyMemoShapes {
+	for i, s := range shapes {
 		var parse80, ast80, parse160, ast160 int
 		var parseLong, astLong bool
 		if _, err := fmt.Sscan(lines[i], &parse80, &ast80, &parse160, &ast160, &parseLong, &astLong); err != nil {
