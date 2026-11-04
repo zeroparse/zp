@@ -348,3 +348,31 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 		}
 	}
 }
+
+// TestRunSitesDepthLimit checks that a parse with a depth limit fails or succeeds with and without
+// run records on a hot site, on every backend, and gives the same result.
+func TestRunSitesDepthLimit(t *testing.T) {
+	src := "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n"
+	in := strings.Repeat("(", 300)
+	prog := mustCompile(t, src)
+	compile.NoRunSites = true
+	plain := mustCompile(t, src)
+	compile.NoRunSites = false
+	turns := core.RunHotTurns
+	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			o := ParseOptions{Backend: b, Limits: limits.Limits{Depth: uint64(depth)}}
+			n, err := prog.ParseWith("main", in, o)
+			wn, werr := plain.ParseWith("main", in, o)
+			if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
+				t.Errorf("depth %d, %s:\n got  %s\n want %s", depth, b, got, want)
+			}
+			if limited := errors.Is(err, limits.ErrLimit); limited != (depth <= 50) {
+				t.Errorf("depth %d, %s: limit error %v, err %v", depth, b, limited, err)
+			}
+		}
+	}
+	if core.RunHotTurns == turns {
+		t.Error("no run site turned hot")
+	}
+}

@@ -23,7 +23,8 @@ length, of which the part below the furthest position is under 64 units, so the 
 |:--|:--|:--|
 | Closure, bytecode, iterative bytecode | Applied | `RunHot`, `RunWalked` and the `Skip*` walk operations of the engine core |
 | Generated Go and TypeScript | Not applied | The generated runtimes keep no run records; their cost on a restarted repetition is the polynomial order |
-| Documents, streams | Applied | Records last for one parse |
+| Documents | Not applied | Outside a lookahead, a site that the document can resume is resumed as before and keeps no run records; the records of the other parses of a document last for one parse |
+| Streams | Applied | Records last for one parse, and those before a commit are dropped |
 | Missing-token insertion | Not applied | A parse that inserts tokens keeps no records |
 
 ## Reproduction
@@ -63,11 +64,12 @@ modes; Outline turns four sites hot in Recognize and none in Parse, which is whe
 change comes from. The base cannot run `RunSites`: with the default compute limit its parse fails
 (`parse compute limit exceeded: limit 2048000`) on every backend, so the table has no base row for it.
 
-The closure Recognize allocation deltas are the refill of a pooled buffer after a collection (the small table of cold
-sites is pooled with the parser); steady-state allocations per parse through the root API on XML were the same as the
-base (149, 181 and 222 for the three backends) in an earlier measurement, which was not repeated for this round. Two
-copies of the same base binary differed by +0.6% on the geometric mean of the time in an 8-round check of the earlier
-revision.
+The closure Recognize allocation deltas (+8% to +10% on CSV, XML and Minilang) are likely the refill of a pooled
+buffer after a collection (the small table of cold sites is pooled with the parser); I did not verify that. Steady-state
+allocations per parse through the root API on XML (a 1 KiB input, 5 warm-up parses, `testing.AllocsPerRun` over 20)
+were equal to the base at this revision: closure 28 (value) and 16 (recognize), bytecode 42 and 30, iterative 89 and
+71. Two copies of the same base binary differed by +0.6% on the geometric mean of the time in an 8-round check of an
+earlier revision.
 
 ## Correctness and Tradeoffs
 

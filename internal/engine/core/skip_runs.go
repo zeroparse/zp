@@ -248,11 +248,13 @@ func (p *Parser) walk() *skipWalk { return &p.skips[p.skipN-1] }
 // RunHotSpan is the length of input that a walk of a run site may walk again, below the furthest
 // point that the walks before it reached, before the site turns hot. A walk shorter than that
 // neither turns a site hot nor can walk that far again, so a caller need not pass it to RunWalked.
-// It is a variable only so that tests can run the hot path on short inputs.
+// It is a variable and exported only as a hook for tests in other packages, which lower it to run the
+// hot path on short inputs and restore it; nothing else writes it, and it is not an option.
 var RunHotSpan = 64
 
-// RunHotTurns counts the run sites that turned hot, for tests that check a parse reaches the hot
-// path. A turn happens once for each site and lookahead state of a parse, so it is not a hot path.
+// RunHotTurns counts the run sites that turned hot. It is a hook for tests in other packages that
+// check a parse reaches the hot path; nothing reads it in a parse. A turn happens once for each site
+// and lookahead state of a parse, so counting it costs nothing on the hot path.
 var RunHotTurns int
 
 // runCold is the state of a run site (and lookahead state) before it keeps records: the furthest
