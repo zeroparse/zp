@@ -1,7 +1,6 @@
 package compile
 
 import (
-	"fmt"
 	"maps"
 	"reflect"
 	"slices"
@@ -120,8 +119,7 @@ func (t RuleTy) String() string { return t.Name }
 // argument or nil is the optional of the join of the other arguments without their *. A join
 // with a value not known yet (tyAny) is not known either.
 func Vjoin(ts ...Ty) Ty {
-	var alts []Ty
-	seen := map[string]bool{}
+	var leaves []Ty
 	optional, null := false, false
 	var add func(t Ty)
 	add = func(t Ty) {
@@ -141,16 +139,17 @@ func Vjoin(ts ...Ty) Ty {
 				return
 			}
 		}
-		// Rule and type names are separate namespaces, so the key includes the kind of type.
-		key := fmt.Sprintf("%T %s", t, t)
-		if t == nil || t == TyBottom || seen[key] {
+		if t == nil || t == TyBottom {
 			return
 		}
-		seen[key] = true
-		alts = append(alts, t)
+		leaves = append(leaves, t)
 	}
 	for _, t := range ts {
 		add(t)
+	}
+	alts := leaves
+	if len(leaves) > 1 {
+		alts = dedupTys(leaves)
 	}
 	if slices.Contains(alts, Ty(TyAny)) {
 		return TyAny
@@ -174,6 +173,90 @@ func Vjoin(ts ...Ty) Ty {
 		return alts[0]
 	}
 	return JoinTy{alts}
+}
+
+// tyKey identifies a type for the removal of duplicates from a join: two types are the same if
+// they have the same Go type and print the same text. Rule and type names are separate namespaces,
+// so the key includes the kind of type.
+type tyKey struct {
+	kind reflect.Type
+	text string
+}
+
+// dedupTys returns ts without the types that an earlier type equals in its tyKey.
+func dedupTys(ts []Ty) []Ty {
+	seen := make(map[tyKey]struct{}, len(ts))
+	var out []Ty
+	var buf []byte
+	for _, t := range ts {
+		buf = appendTyText(buf[:0], t)
+		k := tyKey{reflect.TypeOf(t), string(buf)}
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, t)
+	}
+	return out
+}
+
+// appendTyText appends t.String() to dst. It prints the composite types without building the text
+// of each part as a string of its own, which dominates the cost of Vjoin on the nested types of
+// an Operators Rule.
+func appendTyText(dst []byte, t Ty) []byte {
+	switch u := t.(type) {
+	case TupleTy:
+		dst = append(dst, '(')
+		for i, e := range u.Elems {
+			if i > 0 {
+				dst = append(dst, ", "...)
+			}
+			dst = appendTyText(dst, e)
+		}
+		if len(u.Elems) == 1 {
+			dst = append(dst, ',')
+		}
+		return append(dst, ')')
+	case NodeTy:
+		switch {
+		case u.Name != "":
+			return append(dst, u.Name...)
+		case u.Value == TyTop && len(u.Caps) == 0:
+			return append(dst, "node[_]"...)
+		case len(u.Caps) == 0:
+			dst = append(dst, "node["...)
+			dst = appendTyText(dst, u.Value)
+			return append(dst, ']')
+		}
+		dst = append(dst, "node["...)
+		dst = appendTyText(dst, u.Value)
+		dst = append(dst, ", "...)
+		dst = append(dst, u.capsText()...)
+		return append(dst, ']')
+	case JoinTy:
+		for i, a := range u.Alts {
+			if i > 0 {
+				dst = append(dst, " | "...)
+			}
+			dst = appendTyText(dst, a)
+		}
+		return dst
+	case OptTy:
+		return appendTyTerm(append(dst, '*'), u.Elem)
+	case ListTy:
+		return appendTyTerm(append(dst, "[]"...), u.Elem)
+	}
+	return append(dst, t.String()...)
+}
+
+// appendTyTerm appends typeTerm(t) to dst.
+func appendTyTerm(dst []byte, t Ty) []byte {
+	if _, ok := t.(JoinTy); ok {
+		dst = append(dst, '(')
+		dst = appendTyText(dst, t)
+		return append(dst, ')')
+	}
+	return appendTyText(dst, t)
 }
 
 // vopt is *t; an optional value of an optional type is not nested, and *_|_ is _|_.
