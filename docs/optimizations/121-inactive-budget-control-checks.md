@@ -16,14 +16,14 @@ typed `memoGet` and `memoPut`, `valueField`, `setValueField`, the typed and node
 last, charges each comparison through `Spend`, whose inlined test of the control does the same.
 
 `FirstCall` runs the ordinary body itself after `controlledFirstCallPrepare`, which does the
-controlled charges and growth, so a controlled parse executes the same steps. The operator
-`apply` of both runtimes replays recovery errors only when there are some (an empty append
-changes nothing), through an out-of-line function, so `apply` inlines.
+controlled charges and growth, so a controlled parse executes the same steps. The Operators
+Rule loop of both runtimes replays the recovered errors of an operator match only when there are
+some (an empty append changes nothing).
 
-In the runtime build only `appendSpend`, `copySpend`, `clearSpend` and the two `apply` functions
-inline; the other helpers lose a call layer or a large frame but stay calls (the typed `memoPut`
-costs 152 and `Parser.memoPut` 81 against a budget of 80 even without the check). Charges,
-cancellation points, limits and results of controlled parses are as in the unsplit helpers.
+In the runtime build only `appendSpend`, `copySpend` and `clearSpend` inline; the other helpers
+lose a call layer or a large frame but stay calls (the typed `memoPut` costs 152 and
+`Parser.memoPut` 81 against a budget of 80 even without the check). Charges, cancellation points,
+limits and results of controlled parses are as in the unsplit helpers.
 
 ## Results
 

@@ -196,10 +196,10 @@ func TestGraphOperatorsRuleSnapshots(t *testing.T){
    p:=graphParser(limit);tp:=&zprt.TParser{Parser:p};var bestNode zprt.X_operatorsRuleAttempt;var bestTyped zprt.X_toperatorsRuleAttempt
    err:=graphFatal(func(){if typed{
     op:=&zprt.TOperatorsRuleOp{Kind:"prefix",Line:&zprt.TOperatorsRuleLine{Scope:names,M:func(p *zprt.TParser)(any,bool){for i,v:=range values{p.Frame.Vals[i]=v};p.Pos=1;return values[0],true}}}
-    bestTyped,_=tp.X_longest([]*zprt.TOperatorsRuleOp{op})
+    bestTyped=tp.X_longest([]*zprt.TOperatorsRuleOp{op})
    }else{
     op:=&zprt.OperatorsRuleOp{Kind:"prefix",Line:&zprt.OperatorsRuleLine{Scope:names,M:func(p *zprt.Parser)(*Node,bool){for i,v:=range nodes{p.Frame.Vals[i]=v};p.Pos=1;return nodes[0],true}}}
-    bestNode,_=p.X_longest([]*zprt.OperatorsRuleOp{op})
+    bestNode=p.X_longest([]*zprt.OperatorsRuleOp{op})
    }})
    if limit<100000{if !errors.Is(err,ErrLimit) || bestNode.X_op!=nil || bestTyped.X_op!=nil{t.Fatal("partial OperatorsRule attempt",limit,err)};if typed{tp.X_recycle()}else{p.X_release()};continue}
    if err!=nil || p.Pos!=0 || p.Frame!=nil || tp.Frame!=nil{t.Fatal("OperatorsRule selection changed state",err)}

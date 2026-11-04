@@ -431,4 +431,6 @@ up, and remembers pos as the pruned position.`})
 		Features: stream,
 		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected.`,
 		Requires: `The parse retains the tail (stream.tail).`})
+
+	framesAndOperators(m, add, rule, value, errs)
 }

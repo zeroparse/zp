@@ -1430,7 +1430,10 @@ type Parser struct {
 	Frame    *CaptureFrame
 	Trail    []undo
 	Cut      bool
-	memo     memoTable
+	// cutFailed reports that a candidate of the last longest failed after a cut. It sits next to
+	// Cut, in the padding after it.
+	cutFailed bool
+	memo      memoTable
 
 	// Silent is positive inside lookaheads, where expectations are not recorded.
 	Silent   int
@@ -2272,14 +2275,6 @@ type Mark struct {
 
 func (p *Parser) Mark() Mark {
 	return Mark{Pos: p.Pos, env: p.Env, Trail: len(p.Trail), recovered: len(p.Recovered)}
-}
-
-func (p *Parser) Reset(m Mark) {
-	p.Pos = m.Pos
-	p.Env = m.env
-	p.Recovered = p.Recovered[:m.recovered]
-	p.undoCaptures(m.Trail)
-	p.Trail = p.Trail[:m.Trail]
 }
 
 func (p *Parser) SetCapture(slot int, v *Node) {
@@ -3811,175 +3806,6 @@ type operatorsRuleAttempt struct {
 	env        *Env
 	cut        bool
 	errs       []*SyntaxError
-}
-
-func (p *Parser) skipTrivia(pr *OperatorsRule) {
-	if pr.Skip == nil {
-		return
-	}
-	m := p.Mark()
-	p.Silent++
-	_, ok := pr.Skip(p)
-	p.Silent--
-	if !ok {
-		p.Reset(m)
-	}
-}
-
-// longest tries every operator and returns the longest match (the first declared among equals);
-// best.Op is nil when none matched. cutFailed reports a candidate that failed after a cut. The
-// attempt is returned by value, so trying operators allocates nothing for lines without captures.
-func (p *Parser) longest(ops []*OperatorsRuleOp) (best operatorsRuleAttempt, cutFailed bool) {
-	m0 := p.Mark()
-	for _, op := range ops {
-		p.Spend()
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(op.Line.Scope))
-		p.Frame, p.Cut = f, false
-		v, ok := op.Line.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok && p.Pos == m0.Pos && op.Kind != "infix" {
-			ok = false // an empty prefix or postfix match could be applied forever
-		}
-		if ok && (best.op == nil || p.Pos > best.end) {
-			best = operatorsRuleAttempt{op: op, frame: f, v: v, start: m0.Pos, end: p.Pos, env: p.Env, cut: cut,
-				errs: p.copyErrors(nil, p.Recovered[m0.recovered:])}
-		}
-		if !ok && cut {
-			cutFailed = true
-		}
-		if len(f.Vals) == 0 {
-			p.Reset(m0)
-			continue
-		}
-		// reset undoes this candidate's captures; restore them. Nothing parses between saving
-		// and restoring, so one buffer per parser suffices.
-		p.saved = appendSpend(p, p.saved[:0], f.Vals)
-		p.Reset(m0)
-		copySpend(p, f.Vals, p.saved)
-	}
-	return best, cutFailed
-}
-
-func (p *Parser) apply(a *operatorsRuleAttempt) {
-	p.Pos, p.Env = a.end, a.env
-	if len(a.errs) != 0 {
-		p.applyErrors(a)
-	}
-}
-
-// applyErrors is the recovery-error replay of apply, kept out of line so that apply inlines.
-//
-//go:noinline
-func (p *Parser) applyErrors(a *operatorsRuleAttempt) {
-	p.Recovered = p.copyErrors(p.Recovered, a.errs)
-}
-
-// OperatorsRuleParse parses an expression with operators that bind tighter than min. Each level of its
-// recursion (the operand of a prefix operator, the right operand of an infix operator) counts
-// against the nesting limit, like the entry of a recursive rule.
-func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*Node, bool) {
-	p.Depth++
-	if p.Depth > p.MaxDepth {
-		p.TooDeep()
-	}
-	v, ok := p.operatorsRuleExpr(r, min)
-	p.Depth--
-	return v, ok
-}
-
-func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
-	pr := r.OperatorsRule
-	lhs, ok := p.operatorsRuleNud(r)
-	if !ok {
-		return nil, false
-	}
-	lastNone := -1
-	for {
-		m0 := p.Mark()
-		p.skipTrivia(pr)
-		a, cutFailed := p.longest(pr.Led)
-		if a.op == nil {
-			p.Reset(m0)
-			if cutFailed {
-				return nil, false
-			}
-			break
-		}
-		if a.op.Level <= min || a.op.Assoc == "none" && a.op.Level == lastNone {
-			p.Reset(m0)
-			break
-		}
-		p.apply(&a)
-		if a.op.Kind == "postfix" {
-			lhs = p.operatorsRuleBuild(r, &a, lhs, nil)
-			lastNone = -1
-			if p.Pos == m0.Pos {
-				break
-			}
-			continue
-		}
-		rmin := a.op.Level
-		if a.op.Assoc == "right" {
-			rmin--
-		}
-		rhs, ok := p.OperatorsRuleParse(r, rmin)
-		if !ok {
-			if a.cut {
-				return nil, false
-			}
-			p.Reset(m0)
-			break
-		}
-		lhs = p.operatorsRuleBuild(r, &a, lhs, rhs)
-		lastNone = -1
-		if a.op.Assoc == "none" {
-			lastNone = a.op.Level
-		}
-		// An application that consumed no input ends the loop, as an empty iteration ends a repetition:
-		// otherwise an operator that can match empty after an operand that can loops forever.
-		if p.Pos == m0.Pos {
-			break
-		}
-	}
-	return lhs, true
-}
-
-func (p *Parser) operatorsRuleNud(r *Rule) (*Node, bool) {
-	pr := r.OperatorsRule
-	p.skipTrivia(pr)
-	m0 := p.Mark()
-	if a, cutFailed := p.longest(pr.Prefix); a.op != nil {
-		p.apply(&a)
-		rhs, ok := p.OperatorsRuleParse(r, a.op.Level)
-		if ok {
-			return p.operatorsRuleBuild(r, &a, nil, rhs), true
-		}
-		if a.cut {
-			return nil, false
-		}
-		p.Reset(m0)
-	} else if cutFailed {
-		return nil, false
-	}
-	for _, o := range pr.Operands {
-		p.Spend()
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(o.Scope))
-		p.Frame, p.Cut = f, false
-		v, ok := o.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok {
-			return p.lineResult(r, o, f, v, m0.Pos), true
-		}
-		p.Reset(m0)
-		if cut {
-			return nil, false
-		}
-	}
-	return nil, false
 }
 
 func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *Node, start int) *Node {

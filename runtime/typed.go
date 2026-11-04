@@ -810,6 +810,9 @@ type TParser struct {
 	// TypedDocument is set only by typed Document parses (TypedDocumentParse).
 	TypedDocument *typedDocumentState
 	free          [8][]*TCaptureFrame // frames freed by FreeFrame, by size
+	// cutFailed reports that a candidate of the last longest failed after a cut. It is last, so
+	// that it moves no other field.
+	cutFailed bool
 }
 
 // TCaptureFrame is for generated parsers; not a stable API.
@@ -838,14 +841,6 @@ type tundo struct {
 
 func (p *TParser) Mark() Mark {
 	return Mark{Pos: p.Pos, env: p.Env, Trail: len(p.Trail), recovered: len(p.Recovered)}
-}
-
-func (p *TParser) Reset(m Mark) {
-	p.Pos = m.Pos
-	p.Env = m.env
-	p.Recovered = p.Recovered[:m.recovered]
-	p.undoCaptures(m.Trail)
-	p.DropTrail(m.Trail)
 }
 
 // DropTrail discards undo history whose effects are already restored or whose
@@ -2206,170 +2201,6 @@ type toperatorsRuleAttempt struct {
 	env        *Env
 	cut        bool
 	errs       []*SyntaxError
-}
-
-func (p *TParser) skipTrivia(pr *TOperatorsRule) {
-	if pr.Skip == nil {
-		return
-	}
-	m := p.Mark()
-	p.Silent++
-	_, ok := pr.Skip(p)
-	p.Silent--
-	if !ok {
-		p.Reset(m)
-	}
-}
-
-func (p *TParser) longest(ops []*TOperatorsRuleOp) (best toperatorsRuleAttempt, cutFailed bool) {
-	m0 := p.Mark()
-	for _, op := range ops {
-		p.Spend()
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(op.Line.Scope))
-		p.Frame, p.Cut = f, false
-		v, ok := op.Line.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok && p.Pos == m0.Pos && op.Kind != "infix" {
-			ok = false
-		}
-		if ok && (best.op == nil || p.Pos > best.end) {
-			best = toperatorsRuleAttempt{op: op, frame: f, v: v, start: m0.Pos, end: p.Pos, env: p.Env, cut: cut,
-				errs: p.copyErrors(nil, p.Recovered[m0.recovered:])}
-		}
-		if !ok && cut {
-			cutFailed = true
-		}
-		if len(f.Vals) == 0 {
-			p.Reset(m0)
-			continue
-		}
-		p.saved = appendSpend(p.Parser, p.saved[:0], f.Vals)
-		p.Reset(m0)
-		copySpend(p.Parser, f.Vals, p.saved)
-	}
-	return best, cutFailed
-}
-
-func (p *TParser) apply(a *toperatorsRuleAttempt) {
-	p.Pos, p.Env = a.end, a.env
-	if len(a.errs) != 0 {
-		p.applyErrors(a)
-	}
-}
-
-// applyErrors is the recovery-error replay of apply, kept out of line so that apply inlines.
-//
-//go:noinline
-func (p *TParser) applyErrors(a *toperatorsRuleAttempt) {
-	p.Recovered = p.copyErrors(p.Recovered, a.errs)
-}
-
-// OperatorsRuleParse is parser.OperatorsRuleParse for typed values.
-func (p *TParser) OperatorsRuleParse(r *TRule, min int) (any, bool) {
-	p.Depth++
-	if p.Depth > p.MaxDepth {
-		p.TooDeep()
-	}
-	v, ok := p.operatorsRuleExpr(r, min)
-	p.Depth--
-	return v, ok
-}
-
-func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
-	pr := r.OperatorsRule
-	lhs, lstart, ok := p.operatorsRuleNud(r)
-	if !ok {
-		return nil, false
-	}
-	lastNone := -1
-	for {
-		m0 := p.Mark()
-		p.skipTrivia(pr)
-		a, cutFailed := p.longest(pr.Led)
-		if a.op == nil {
-			p.Reset(m0)
-			if cutFailed {
-				return nil, false
-			}
-			break
-		}
-		if a.op.Level <= min || a.op.Assoc == "none" && a.op.Level == lastNone {
-			p.Reset(m0)
-			break
-		}
-		p.apply(&a)
-		if a.op.Kind == "postfix" {
-			lhs, lstart = p.operatorsRuleBuild(r, &a, lhs, lstart, nil)
-			lastNone = -1
-			if p.Pos == m0.Pos {
-				break
-			}
-			continue
-		}
-		rmin := a.op.Level
-		if a.op.Assoc == "right" {
-			rmin--
-		}
-		rhs, ok := p.OperatorsRuleParse(r, rmin)
-		if !ok {
-			if a.cut {
-				return nil, false
-			}
-			p.Reset(m0)
-			break
-		}
-		lhs, lstart = p.operatorsRuleBuild(r, &a, lhs, lstart, rhs)
-		lastNone = -1
-		if a.op.Assoc == "none" {
-			lastNone = a.op.Level
-		}
-		if p.Pos == m0.Pos { // as in runtime.go
-			break
-		}
-	}
-	return lhs, true
-}
-
-// operatorsRuleNud parses an operand or a prefix application. Besides its value it returns where
-// the value starts: a value that is not a node has no span of its own, so the start travels
-// beside it, as the range of the box a value other than a node travels in (see Parser.operatorsRuleNud).
-func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
-	pr := r.OperatorsRule
-	p.skipTrivia(pr)
-	m0 := p.Mark()
-	if a, cutFailed := p.longest(pr.Prefix); a.op != nil {
-		p.apply(&a)
-		rhs, ok := p.OperatorsRuleParse(r, a.op.Level)
-		if ok {
-			v, start := p.operatorsRuleBuild(r, &a, nil, 0, rhs)
-			return v, start, true
-		}
-		if a.cut {
-			return nil, 0, false
-		}
-		p.Reset(m0)
-	} else if cutFailed {
-		return nil, 0, false
-	}
-	for _, o := range pr.Operands {
-		p.Spend()
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(o.Scope))
-		p.Frame, p.Cut = f, false
-		v, ok := o.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok {
-			return p.lineResult(r, o, f, v, m0.Pos), m0.Pos, true
-		}
-		p.Reset(m0)
-		if cut {
-			return nil, 0, false
-		}
-	}
-	return nil, 0, false
 }
 
 func (p *TParser) lineResult(r *TRule, l *TOperatorsRuleLine, f *TCaptureFrame, v any, start int) any {

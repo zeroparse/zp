@@ -50,11 +50,22 @@ component window
   // elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
   // delivered elements held.
 
+component frames
+  // The capture frames: the frame that captures write to, the slots of each frame and the
+  // trail of the writes that a reset undoes.
+
+component operators
+  // The bookkeeping of the Operators Rule loop: whether a candidate of the last longest match
+  // failed after a cut.
+
 register pos int
   // The position of the parse in the input.
 
 register silent int
   // The depth of lookaheads, inside which expectations are not recorded.
+
+register cut bool
+  // The cut flag of the scope the parse entered last.
 
 handle Entry of memo
   // A memo entry: the result of a rule call with its outcome and end.
@@ -96,6 +107,30 @@ handle CtxResult of growth
 
 handle Grow of growth
   // The state of the growth of a left-recursion leader.
+
+handle Frame of frames
+  // A capture frame: the slots of the captures of a rule body or a line.
+
+handle Mark of frames
+  // A backtracking point: the position, the variable environment, the
+  // recovered errors and the length of the trail when it was taken.
+
+handle Scope of env
+  // A variable environment, which bindings replace and never change.
+
+handle Operators of rules
+  // The prefix operators of an Operators Rule, or its other operators.
+
+handle Operator of rules
+  // An operator of an Operators Rule: its kind, binding power, associativity and line.
+
+handle Line of rules
+  // A line of an Operators Rule: an operand, or the expression of an operator.
+
+handle Attempt of operators
+  // A match of an operator: the operator, where it started and ended, its value,
+  // the frame of its captures, the environment after it, whether it cut, and the errors it recovered. The
+  // null attempt is no match.
 
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
@@ -969,3 +1004,318 @@ transitional op stream.settleErrors()
     // Forgets the recovered errors before the boundary, which were delivered and collected.
   requires:
     // The parse retains the tail (stream.tail).
+
+transitional op frame.mark() Mark
+  component frames
+  reads frames, env, recovered
+  cost <= 0
+  contract:
+    // Returns a backtracking point at the position.
+
+transitional op frame.markPos(m Mark) int
+  component frames
+  cost <= 0
+  contract:
+    // Returns the position of the backtracking point m.
+
+transitional op frame.markRec(m Mark) int
+  component frames
+  cost <= 0
+  contract:
+    // Returns the number of the errors recovered before the backtracking point m, as rec.mark does.
+
+transitional op frame.markEnv(m Mark) Scope
+  component frames
+  cost <= 0
+  contract:
+    // Returns the variable environment of the backtracking point m.
+
+transitional op frame.markTrail(m Mark) int
+  component frames
+  cost <= 0
+  contract:
+    // Returns the length of the trail at the backtracking point m.
+
+transitional op frame.undo(trail int)
+  component frames
+  reads frames
+  writes frames
+  noreturn
+  cost <= 0 + 1*trail
+  contract:
+    // Undoes the writes of the trail after its first trail writes, in reverse order, charging one unit
+    // for each, and drops them: every slot they wrote has the value it had before.
+  requires:
+    // trail is at most the length of the trail.
+
+transitional op frame.current() Frame
+  component frames
+  reads frames
+  cost <= 0
+  contract:
+    // Returns the frame that captures write to.
+
+transitional op frame.use(f Frame)
+  component frames
+  writes frames
+  cost <= 0
+  contract:
+    // Makes f the frame that captures write to.
+
+transitional op frame.open(n int) Frame
+  component frames
+  writes frames
+  noreturn
+  cost <= 0 + 1*slots
+  contract:
+    // Returns a new frame of n empty slots, which lives until the parse ends. A frame of no slots is
+    // never written, so it may be shared.
+
+transitional op frame.slots(f Frame) int
+  component frames
+  cost <= 0
+  contract:
+    // Returns the number of slots of f.
+
+transitional op frame.save(f Frame)
+  component frames
+  reads frames
+  writes frames
+  noreturn
+  cost <= 0 + 1*slots
+  contract:
+    // Copies the slots of f aside, charging the copy as the target charges copies of values.
+
+transitional op frame.restore(f Frame)
+  component frames
+  reads frames
+  writes frames
+  noreturn
+  cost <= 0 + 1*slots
+  contract:
+    // Copies the slots that the last frame.save set aside back into f, charging the copy as
+    // frame.save does.
+  requires:
+    // The last frame.save copied the slots of f, and nothing parsed since.
+
+transitional op env.save() Scope
+  component env
+  reads env
+  cost <= 0
+  contract:
+    // Returns the variable environment.
+
+transitional op env.restore(s Scope)
+  component env
+  writes env
+  cost <= 0
+  contract:
+    // Makes s the variable environment.
+
+transitional op opr.led(r Rule) Operators
+  component rules
+  cost <= 0
+  contract:
+    // Returns the infix and postfix operators of the Operators Rule r, in declaration order.
+
+transitional op opr.prefix(r Rule) Operators
+  component rules
+  cost <= 0
+  contract:
+    // Returns the prefix operators of the Operators Rule r, in declaration order.
+
+transitional op opr.count(l Operators) int
+  component rules
+  cost <= 0
+  contract:
+    // Returns the number of operators of l.
+
+transitional op opr.at(l Operators, i int) Operator
+  component rules
+  cost <= 0
+  contract:
+    // Returns operator i of l.
+  requires:
+    // 0 <= i < opr.count(l).
+
+transitional op opr.operands(r Rule) int
+  component rules
+  cost <= 0
+  contract:
+    // Returns the number of operand lines of the Operators Rule r.
+
+transitional op opr.operand(r Rule, i int) Line
+  component rules
+  cost <= 0
+  contract:
+    // Returns operand line i of the Operators Rule r, in declaration order.
+  requires:
+    // 0 <= i < opr.operands(r).
+
+transitional op opr.line(op Operator) Line
+  component rules
+  cost <= 0
+  contract:
+    // Returns the line of the operator op.
+
+transitional op opr.level(op Operator) int
+  component rules
+  cost <= 0
+  contract:
+    // Returns the binding power of the operator op: the higher, the tighter it binds.
+
+transitional op opr.infix(op Operator) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the operator op is an infix operator.
+
+transitional op opr.postfix(op Operator) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the operator op is a postfix operator.
+
+transitional op opr.right(op Operator) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the operator op associates to the right.
+
+transitional op opr.nonAssoc(op Operator) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the operator op does not associate.
+
+transitional op opr.scope(l Line) int
+  component rules
+  cost <= 0
+  contract:
+    // Returns the number of capture slots of the line l.
+
+transitional op opr.hasSkip(r Rule) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the Operators Rule r skips trivia between its operands and operators.
+
+transitional op opr.skip(r Rule) bool
+  component rules
+  writes rules, pos, silent, cut
+  noreturn
+  cost <= 0
+  contract:
+    // Runs the trivia expression of the Operators Rule r and reports whether it matched; on failure
+    // the position is unspecified.
+  requires:
+    // opr.hasSkip(r).
+
+transitional op opr.match(l Line) (Value, bool)
+  component rules
+  writes rules, pos, silent, cut
+  noreturn
+  cost <= 0
+  contract:
+    // Runs the expression of the line l in the current frame and returns its value and success; on
+    // failure the position is unspecified. A cut in the expression sets the cut register.
+
+transitional op opr.lineValue(r Rule, l Line, f Frame, v Value, start int) Value
+  component host
+  reads frames
+  writes host
+  noreturn
+  cost <= 0
+  contract:
+    // Returns the value of the operand line l of the rule r that matched from start to the position
+    // with the value v and the captures of f: the line's action, or its shaped value with its captures.
+
+transitional op opr.build(r Rule, a Attempt, lhs Value, rhs Value) Value
+  component host
+  reads operators, frames
+  writes host
+  noreturn
+  cost <= 0
+  contract:
+    // Returns the value of the application of the operator of a to lhs (null for a prefix operator)
+    // and rhs (null for a postfix operator), which ends at the position: the action of the operator's line,
+    // or the node of the tuple (lhs, operator, rhs) with the line's captures.
+
+transitional op opr.buildTyped(r Rule, a Attempt, lhs Value, lstart int, rhs Value) (Value, int)
+  component host
+  reads operators, frames
+  writes host
+  features typed
+  noreturn
+  cost <= 0
+  contract:
+    // Is opr.build for typed values, where lhs, if it is not a node, starts at lstart; it also returns
+    // where the value of the application starts.
+
+transitional op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, errs Errs) Attempt
+  component operators
+  reads env, pos
+  cost <= 0
+  contract:
+    // Returns the match of op from start to the position with the value v, the captures of f, the
+    // variable environment, the cut flag cut and the recovered errors errs.
+
+transitional op opr.found(a Attempt) bool
+  component operators
+  cost <= 0
+  contract:
+    // Reports whether a is a match, not the null attempt.
+
+transitional op opr.op(a Attempt) Operator
+  component operators
+  cost <= 0
+  contract:
+    // Returns the operator of the match a.
+  requires:
+    // opr.found(a).
+
+transitional op opr.end(a Attempt) int
+  component operators
+  cost <= 0
+  contract:
+    // Returns where the match a ended.
+  requires:
+    // opr.found(a).
+
+transitional op opr.cut(a Attempt) bool
+  component operators
+  cost <= 0
+  contract:
+    // Reports whether the match a cut.
+  requires:
+    // opr.found(a).
+
+transitional op opr.env(a Attempt) Scope
+  component operators
+  cost <= 0
+  contract:
+    // Returns the variable environment after the match a.
+  requires:
+    // opr.found(a).
+
+transitional op opr.errs(a Attempt) Errs
+  component operators
+  cost <= 0
+  contract:
+    // Returns the errors that the match a recovered.
+  requires:
+    // opr.found(a).
+
+transitional op opr.setCutFailed(failed bool)
+  component operators
+  writes operators
+  cost <= 0
+  contract:
+    // Records whether a candidate of the longest match failed after a cut.
+
+transitional op opr.cutFailed() bool
+  component operators
+  reads operators
+  cost <= 0
+  contract:
+    // Reports what the last opr.setCutFailed recorded.

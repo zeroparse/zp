@@ -464,6 +464,8 @@ context or a recovery to keep: the empty set for none, the set kept last when it
 entries in the same order, and otherwise a copy, which becomes the set kept last. It is for generated
 parsers and not a stable API.`
 
+	addOperators(m)
+
 	if err := Verify(m); err != nil {
 		panic(err)
 	}
