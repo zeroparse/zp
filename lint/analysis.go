@@ -569,6 +569,10 @@ func (a *analysis) matchPrefix(e grammar.Expr, t string) matchResult {
 			}
 		}
 	case *grammar.Repeat:
+		if e.Sep != nil && e.Max != 1 {
+			// The separator commits, so the list can fail after the elements that match.
+			return matchResult{}
+		}
 		cur := ok(t)
 		for i := range e.Min {
 			control.poll()
@@ -614,7 +618,11 @@ func (a *analysis) matchPrefix(e grammar.Expr, t string) matchResult {
 	case *grammar.Discard:
 		return a.matchPrefix(e.Expr, t)
 	case *grammar.Attributed:
-		// #recover only adds ways to succeed; @error and #stream do not change matching.
+		// #recover only adds ways to succeed; @error and #stream do not change matching. A
+		// separated list can fail after a separator, so no match of it is proved.
+		if hasAttr(e, "sep", control) {
+			return matchResult{}
+		}
 		return a.matchPrefix(e.Expr, t)
 	case *grammar.And:
 		if a.matchPrefix(e.Expr, t).ok {
@@ -811,6 +819,11 @@ func (a *analysis) prefix(e grammar.Expr) prefixResult {
 			return prefixResult{"", e.Max == 0}
 		}
 		p := a.prefix(e.Expr)
+		if e.Sep != nil {
+			// Separators lie between the elements, so only the first element is a prefix.
+			p.exact = p.exact && e.Max == 1
+			return p
+		}
 		if !p.exact {
 			return p
 		}
@@ -822,6 +835,15 @@ func (a *analysis) prefix(e grammar.Expr) prefixResult {
 	case *grammar.Discard:
 		return a.prefix(e.Expr)
 	case *grammar.Attributed:
+		if hasAttr(e, "sep", control) && !hasAttr(e, "recover", control) && !hasAttr(e, "missing", control) {
+			// Only the first element lies in every match of a separated list.
+			p := prefixResult{}
+			if rep, ok := e.Expr.(*grammar.Repeat); ok && rep.Min > 0 {
+				p = a.prefix(rep.Expr)
+			}
+			p.exact = false
+			return p
+		}
 		if !hasAttr(e, "recover", control) && !hasAttr(e, "missing", control) { // recovery invalidates a guaranteed prefix
 			return a.prefix(e.Expr)
 		}
@@ -919,7 +941,8 @@ func same(x, y grammar.Expr, caps bool, control *lintControl) bool {
 		return ok && sameList(x.Alts, y.Alts, caps, control)
 	case *grammar.Repeat:
 		y, ok := y.(*grammar.Repeat)
-		return ok && x.Min == y.Min && x.Max == y.Max && same(x.Expr, y.Expr, caps, control)
+		return ok && x.Min == y.Min && x.Max == y.Max && x.Trailing == y.Trailing && same(x.Expr, y.Expr, caps, control) &&
+			(x.Sep == nil && y.Sep == nil || x.Sep != nil && y.Sep != nil && same(x.Sep, y.Sep, caps, control))
 	case *grammar.Optional:
 		y, ok := y.(*grammar.Optional)
 		return ok && same(x.Expr, y.Expr, caps, control)

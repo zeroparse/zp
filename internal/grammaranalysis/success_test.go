@@ -33,6 +33,8 @@ func TestPolledSuccessFacts(t *testing.T) {
 		{"committed choice", &grammar.Choice{Alts: []grammar.Expr{committed, &grammar.Top{}}}, false, false},
 		{"committed optional", &grammar.Optional{Expr: committed}, false, false},
 		{"empty repeat", &grammar.Repeat{Expr: committed, Max: 0}, true, false},
+		{"separated list", &grammar.Repeat{Expr: &grammar.Top{}, Max: -1, Sep: &grammar.Literal{Value: ","}}, false, false},
+		{"separated list attribute", &grammar.Attributed{Expr: &grammar.Repeat{Expr: &grammar.Top{}, Max: -1}, Attrs: []*grammar.Attribute{{Name: "sep", Pragma: true}}}, false, false},
 		{"larger minimum", &grammar.Repeat{Expr: &grammar.Top{}, Min: 2, Max: 3}, false, false},
 		{"negative failure", &grammar.Not{Expr: &grammar.Bottom{}}, true, false},
 		{"nested negative", &grammar.Not{Expr: &grammar.Not{Expr: &grammar.Top{}}}, true, false},

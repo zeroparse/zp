@@ -39,3 +39,22 @@ func TestSeparatedPragmaDiagnostics(t *testing.T) {
 		t.Errorf("unexpected finding %v", f)
 	}
 }
+
+// TestSeparatedListIsNotAlwaysSuccessful checks that the analyses do not treat a separated list
+// as a plain repetition: the list fails when no element follows a separator, so the alternative
+// after it is reachable, and two lists with different separators are different expressions.
+func TestSeparatedListIsNotAlwaysSuccessful(t *testing.T) {
+	g, err := syntax.Parse("rule main = list / \"1,\" $$\nrule list = num* #sep(\",\")\nrule num = [0-9]+\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings, err := Config{}.Run(context.Background(), starttest.MarkAll(g), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range findings {
+		if f.Check == "shadowed-alternative" || f.Check == "unreachable-alternative" {
+			t.Errorf("unexpected finding %v", f)
+		}
+	}
+}

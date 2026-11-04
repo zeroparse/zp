@@ -84,6 +84,11 @@ func alwaysSucceeds(e grammar.Expr, sure map[string]bool, poll func()) bool {
 		if e.Max == 0 {
 			return e.Min == 0
 		}
+		if e.Sep != nil {
+			// A separated list commits after each separator, so it fails when an element
+			// does not follow one, whatever its minimum.
+			return false
+		}
 		if e.Min == 0 {
 			return !hasLooseCut(e.Expr, poll) || alwaysSucceeds(e.Expr, sure, poll)
 		}
@@ -105,6 +110,14 @@ func alwaysSucceeds(e grammar.Expr, sure map[string]bool, poll func()) bool {
 	case *grammar.Recovery:
 		return alwaysSucceeds(e.Expr, sure, poll)
 	case *grammar.Attributed:
+		for _, at := range e.Attrs {
+			if poll != nil {
+				poll()
+			}
+			if at.Name == "sep" {
+				return false // a separated list commits after each separator
+			}
+		}
 		return alwaysSucceeds(e.Expr, sure, poll)
 	}
 	return false
