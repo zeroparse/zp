@@ -27,7 +27,7 @@ only on the position and the variables that it reads) is recognized from its bod
 by position. A token layer is not introduced: on the bundled grammars, no overlap that the measurements found needs
 one.
 
-On the bundled grammars, the strict analysis at k = 3 leaves 1320 of the 1443 nested reasons, and 1266 with trivia
+On the bundled grammars, the strict analysis at k = 3 leaves 1314 of the 1437 nested reasons, and 1260 with trivia
 rules; no grammar changes class. Most of what remains is lookahead units, which the analysis leaves to the
 other cases, and units whose continuations reach parts that are not cheap.
 
@@ -394,19 +394,19 @@ parentheses where it differs from base.
 | cel | polynomial | 19 | 19 | 19 | 19 | 19 | 19 |
 | csv | polynomial | 0 | 0 | 0 | 0 | 0 | 0 |
 | cue | exponential | 59 | 59 | 59 | 59 (53) | 55 (53) | 55 (53) |
-| duckdb | polynomial | 672 | 672 | 650 | 625 | 609 | 610 |
+| duckdb | polynomial | 666 | 666 | 644 | 619 | 603 | 604 |
 | golang | polynomial | 165 | 165 | 153 | 151 | 147 | 147 |
-| python | exponential | 199 | 199 | 174 (89) | 168 (89) | 153 (89) | 153 (89) |
+| python | exponential | 199 | 199 | 174 (88) | 168 (88) | 153 (88) | 153 (88) |
 | typescript | polynomial | 269 | 269 | 245 | 242 | 229 | 226 |
 | xml | polynomial | 9 | 9 | 7 | 7 (4) | 7 (4) | 7 (4) |
 | yaml | exponential | 39 | 39 | 37 | 37 | 37 | 37 |
 | minilang | polynomial | 10 | 10 | 10 | 10 | 10 | 10 |
 | outline | polynomial | 2 | 2 | 2 | 2 | 2 | 2 |
 | json | linear | 0 | 0 | 0 | 0 | 0 | 0 |
-| **total** | | 1443 | 1443 | 1356 | 1320 | 1268 | 1266 |
+| **total** | | 1437 | 1437 | 1350 | 1314 | 1262 | 1260 |
 
-The causes in base are cel 8, csv 1, cue 54, duckdb 19, golang 24, python 108, typescript 241, xml 5, yaml 34, minilang
-1, outline 2 and json 0, 497 in all, 478 at k = 2 and 476 from k = 3 on. No grammar changes class: each polynomial or
+The causes in base are cel 8, csv 1, cue 54, duckdb 19, golang 21, python 107, typescript 239, xml 5, yaml 34, minilang
+1, outline 2 and json 0, 491 in all, 472 at k = 2 and 470 from k = 3 on. No grammar changes class: each polynomial or
 exponential grammar keeps causes that the analysis does not reach. Cut prefixes change nothing on the bundled grammars.
 The classifier exhausted the work budget for one unit of duckdb from k = 3 on and for five units of typescript from
 k = 2 on.
@@ -430,26 +430,26 @@ The trivia rules that the check finds:
 
 ### What Remains
 
-The units that stay not committing at k = 3 without trivia, 2134 in all: 707 alternatives, 511 lookaheads, 431 options,
+The units that stay not committing at k = 3 without trivia, 2124 in all: 698 alternatives, 510 lookaheads, 431 options,
 286 iterations, 183 operator parts, 15 operands and one base of a `#recover`. Where the strict analysis stops for them:
 
 | Where it stops | k=3 | trivia |
 |:--|--:|--:|
-| A lookahead unit, left to the other cases | 511 | 511 |
-| A continuation reaches a part that is not cheap | 569 | 612 |
-| A unit reaches a part that is not cheap | 103 | 108 |
-| A symbol that is not expanded, such as a class or `.` | 372 | 381 |
+| A lookahead unit, left to the other cases | 510 | 510 |
+| A continuation reaches a part that is not cheap | 566 | 608 |
+| A unit reaches a part that is not cheap | 100 | 105 |
+| A symbol that is not expanded, such as a class or `.` | 368 | 377 |
 | The continuation is cut at the follow bound | 149 | 152 |
 | The paths part only beyond k | 96 | 30 |
 | Equal symbols reach k | 94 | 12 |
 | An equal symbol that is not cheap | 47 | 57 |
 | A stop: an attributed expression, an Operators Rule or `#recover` | 38 | 38 |
 | The inline limit | 30 | 30 |
-| A cost condition alone: the comparison without it decides | 88 | 102 |
-| Other: environment marks, lookaheads that are not cheap, exhausted paths, path and literal bounds, operator level calls, the budget | 37 | 39 |
+| A cost condition alone: the comparison without it decides | 90 | 104 |
+| Other: environment marks, lookaheads that are not cheap, exhausted paths, path and literal bounds, operator level calls, the budget | 36 | 39 |
 
 Trivia rules mostly turn units that reached k into units that stop at a part that is not cheap: the trivia
-call is passed, and the next difference is one the cost conditions reject. The cost conditions alone block 88 units at
+call is passed, and the next difference is one the cost conditions reject. The cost conditions alone block 90 units at
 k = 3. The comparison of the language decides them, but the strict comparison does not.
 
 ### Controls
@@ -520,7 +520,7 @@ Each condition that a test checks was disabled in turn, and the test failed each
 - See [Soundness](#soundness) for the gaps of the proof.
 - **Lookahead units.** The strict analysis would decide some lookahead units, such as `!([a-f] id "=") [a-z0-9] id "("`,
   that the other cases do not. They stay undecided until an argument is written for a continuation that follows a
-  successful lookahead expression; they are 511 of the units that stay not committing at k = 3.
+  successful lookahead expression; they are 510 of the units that stay not committing at k = 3.
 - **Memo of trivia rules.** The cost argument for a second call of a trivia rule at one position needs a memo per
   position, which the backends do not build for rules that call no rule, so the classifier does not assume it. Whether
   memoizing trivia rules per position on every backend pays for its memo entries is an optimization to measure; with it,
