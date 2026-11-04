@@ -31,7 +31,7 @@ var (
 const (
 	autoCutPaths  = 256 // the most paths of an expression that the analysis enumerates
 	autoCutInline = 6   // the most rule bodies that the analysis expands for one pair of paths
-	autoCutFollow = 3   // the most rule ends through which a continuation is followed
+	autoCutFollow = 6   // the most rule and operand ends through which a continuation is followed
 	autoCutLen    = 12  // the most symbols of a continuation path
 )
 
@@ -49,6 +49,9 @@ const (
 	// symEnv consumes nothing and marks a part that is cheap only when the unit and the
 	// continuation evaluate it with the same variables.
 	symEnv
+	// symEnd is the end of the parse after the start rule: whole-input parsing checks the end of
+	// the input there, which costs a constant, and prefix parsing stops.
+	symEnd
 )
 
 // sym is a symbol of a path; item is the index of the top-level item of the alternative that it
@@ -291,7 +294,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 			continue
 		}
 		if len(p) >= autoCutLen {
-			next = append(next, append(slices.Clip(p), sym{kind: symStop}))
+			next = append(next, append(slices.Clip(p), sym{kind: symStop, e: stopLength}))
 			continue
 		}
 		for _, q := range qs {
@@ -305,7 +308,6 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 // as autoCutFollow rule ends. A path that the analysis cuts short ends with a stop.
 func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 	paths := [][]sym{nil}
-	stop := [][]sym{{{kind: symStop}}}
 	for ; c != nil; c = c.next {
 		for _, it := range c.items {
 			ps, ok := x.paths(it, 0)
@@ -319,43 +321,90 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 		if c.next != nil {
 			continue
 		}
+		var after [][]sym
+		var ok bool
 		switch c.end {
 		case endNone:
 			return paths, true
 		case endRule:
-			var after [][]sym
-			sites := 0
-			for _, s := range x.k.sites {
-				if s.callee != c.rule {
-					continue
-				}
-				sites++
-				if depth >= autoCutFollow {
-					after = append(after, stop...)
-					continue
-				}
-				ps, ok := x.contPaths(s.cont, depth+1)
-				if !ok {
-					return nil, false
-				}
-				if def := x.k.byName[c.rule]; def != nil && binds(def.Expr) {
-					// The caller does not see the bindings of the rule, which the unit may
-					// have seen.
-					for i, p := range ps {
-						ps[i] = append([]sym{{kind: symBind}}, p...)
-					}
-				}
-				after = append(after, ps...)
-			}
-			if sites == 0 || c.rule == x.k.start {
-				after = append(after, stop...)
-			}
-			return concatPaths(paths, after)
-		default:
-			return concatPaths(paths, stop)
+			after, ok = x.ruleEnd(c.rule, depth)
+		case endOps:
+			after, ok = x.opsEnd(c.rule, depth)
 		}
+		if !ok {
+			return nil, false
+		}
+		return concatPaths(paths, after)
 	}
 	return paths, true
+}
+
+// Stops that end a continuation that the analysis follows no further, told apart for diagnostics.
+var (
+	stopFollow = &grammar.Bottom{} // more than autoCutFollow rule or operator ends
+	stopLength = &grammar.Bottom{} // autoCutLen symbols
+)
+
+// ruleEnd returns the paths of what follows the end of rule: what follows each of its calls, and
+// for the start rule the end of the parse.
+func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
+	var after [][]sym
+	if rule == x.k.start {
+		after = append(after, []sym{{kind: symEnd}})
+	}
+	for _, s := range x.k.sites {
+		if s.callee != rule {
+			continue
+		}
+		if depth >= autoCutFollow {
+			after = append(after, []sym{{kind: symStop, e: stopFollow}})
+			continue
+		}
+		ps, ok := x.contPaths(s.cont, depth+1)
+		if !ok {
+			return nil, false
+		}
+		if def := x.k.byName[rule]; def != nil && binds(def.Expr) {
+			// The caller does not see the bindings of the rule, which the unit may have seen.
+			for i, p := range ps {
+				ps[i] = append([]sym{{kind: symBind}}, p...)
+			}
+		}
+		after = append(after, ps...)
+	}
+	if len(after) == 0 {
+		after = append(after, []sym{{kind: symStop}})
+	}
+	return after, len(after) <= autoCutPaths
+}
+
+// opsEnd returns the paths of what follows the end of an operand of the Operators Rule of rule:
+// an operator part that applies after it, with its right operand, or the end of the rule. The
+// parts are those that the classifier takes as the continuations of an operand.
+func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
+	if depth >= autoCutFollow {
+		return [][]sym{{{kind: symStop, e: stopFollow}}}, true
+	}
+	var after [][]sym
+	ok := true
+	x.k.opsLeads(rule, func(c *cont) {
+		if !ok {
+			return
+		}
+		var ps [][]sym
+		if ps, ok = x.contPaths(c, depth+1); ok {
+			after = append(after, ps...)
+		}
+	})
+	if !ok {
+		return nil, false
+	}
+	ps, ok := x.ruleEnd(rule, depth)
+	if !ok {
+		return nil, false
+	}
+	after = append(after, ps...)
+	return after, len(after) <= autoCutPaths
 }
 
 // inlinable reports whether the analysis may expand a call into the paths of its body: the callee
@@ -383,7 +432,10 @@ func (x excl) sameSym(a, b grammar.Expr) bool {
 	switch a := a.(type) {
 	case *grammar.Ref:
 		b, ok := b.(*grammar.Ref)
-		return ok && a.Name == b.Name && a.Level == b.Level && (x.env || len(x.k.vars[a.Name]) == 0) &&
+		// A right operand is parsed at the level of its operator, which the reference does not
+		// tell, so two of them are not equal.
+		return ok && a.Name == b.Name && a.Level == b.Level && a.Level != rhsLevel &&
+			(x.env || len(x.k.vars[a.Name]) == 0) &&
 			!x.k.an.cyclic[a.Name]
 	case *grammar.Literal:
 		b, ok := b.(*grammar.Literal)
@@ -557,7 +609,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		}
 		a := s.p[s.i]
 		switch a.kind {
-		case symStop:
+		case symStop, symEnd:
 			return x.no("pstop", a, nil)
 		case symSkip:
 			s.i++
@@ -599,6 +651,13 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		}
 		b := s.q[s.j]
 		switch b.kind {
+		case symEnd:
+			// The continuation ends the parse after the symbols that both evaluate alike, which
+			// in strict mode are cheap, so it examines again no more than what they cost.
+			if x.strict {
+				return true, a.item, s.steps
+			}
+			return x.no("q-end", a, &b)
 		case symStop:
 			return x.no("qstop", a, &b)
 		case symSkip:

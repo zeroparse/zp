@@ -224,3 +224,88 @@ func TestAutoCutReport(t *testing.T) {
 		}
 	}
 }
+
+// fmtPath formats a path for tests: stops as STOP, the end of the parse as END, a mark of
+// changed variables as BIND.
+func fmtPath(p []sym) string {
+	var b []string
+	for _, s := range p {
+		switch s.kind {
+		case symStop:
+			b = append(b, "STOP")
+		case symEnd:
+			b = append(b, "END")
+		case symBind:
+			b = append(b, "BIND")
+		case symEnv:
+			b = append(b, "ENV")
+		case symNot:
+			b = append(b, "!"+grammar.FormatExpr(s.e))
+		case symAnd:
+			b = append(b, "&"+grammar.FormatExpr(s.e))
+		case symSkip:
+			b = append(b, "_")
+		default:
+			b = append(b, grammar.FormatExpr(s.e))
+		}
+	}
+	return strings.Join(b, " ")
+}
+
+// TestContPathsEnds checks the continuation after the end of an operand of an Operators Rule,
+// which goes on with an operator part or with what follows the rule, and after the end of the
+// start rule, which is the end of the parse.
+func TestContPathsEnds(t *testing.T) {
+	const src = "rule main = e $$\n" +
+		"rule e = #operators {\n  operand atom\n  level post { postfix \"+\" \"-\" }\n  level add { infix left \"*\" }\n}\n" +
+		"rule atom = ident (\"+\" ident \"x\")?\nrule ident = [a-z]+\n"
+	g, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(g, "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.collect()
+	x := newExcl(k, true, 3)
+	ps, ok := x.contPaths(&cont{end: endRule, rule: "atom"}, 0)
+	if !ok {
+		t.Fatal("too many paths")
+	}
+	got := map[string]bool{}
+	for _, p := range ps {
+		got[fmtPath(p)] = true
+	}
+	for _, want := range []string{`"+" "-" "+" "-" "+" "-" "+" "-" "+" "-" STOP`, `_ END`} {
+		if !got[want] {
+			t.Errorf("no path %s in %v", want, got)
+		}
+	}
+	var star bool
+	for p := range got {
+		if strings.HasPrefix(p, `"*" `) {
+			star = true
+		}
+	}
+	if !star {
+		t.Errorf("no path with the infix part in %v", got)
+	}
+}
+
+// TestDecidedUnitsOperand checks a unit at the end of an operand that the strict analysis decides
+// against an operator part: "+" ident against the postfix part "+" "-".
+func TestDecidedUnitsOperand(t *testing.T) {
+	defer func() { decidedUnitsOn = false }()
+	src := "rule main = e $$\n" +
+		"rule e = #operators {\n  operand atom\n  operand \"(\" e \")\"\n  level post { postfix \"+\" \"-\" }\n}\n" +
+		"rule atom = ident (\"+\" ident \"x\")?\nrule ident = [a-z]+\n"
+	decidedUnitsOn = false
+	if got := classifySource(t, src).Class; got != ClassPoly {
+		t.Errorf("off: class %v, want %v", got, ClassPoly)
+	}
+	decidedUnitsOn = true
+	if got := classifySource(t, src).Class; got != ClassLinear {
+		t.Errorf("on: class %v, want %v", got, ClassLinear)
+	}
+}
