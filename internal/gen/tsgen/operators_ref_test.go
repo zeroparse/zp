@@ -142,7 +142,9 @@ function refSkipTrivia(p: Parser, pr: OperatorsRule): void {
   p.silent--;
   if (v === undefined) {
     refReset(p, m0pos, m0env, m0trail, m0rec);
+    return;
   }
+  p.recovered.length = m0rec;
 }
 function refLongest(p: Parser, ops: OperatorsRuleOp[]): OperatorsRuleAttempt | null {
   const m0pos = p.pos;

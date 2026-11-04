@@ -87,9 +87,8 @@ evaluating it, under these conditions:
   as a result kept in the same way gives it. Only a lookahead that leaves
   nothing after it but whether its expression matched is observed: a negative
   lookahead, or a positive one whose expression makes no capture and binds no
-  variable outside the rules that it calls, and that matches without
-  recovering from an error. The growths that another lookahead reads count as
-  read by the call. A call that $\mathcal{M}$ answers from what it keeps
+  variable outside the rules that it calls. The growths that another
+  lookahead reads count as read by the call. A call that $\mathcal{M}$ answers from what it keeps
   counts, for the calls around it, as reading the growths that it reads in
   $\mathcal{R}$ there with their current results, those that its observed
   lookaheads read included. It treats a step of a growth, the evaluation of
@@ -281,8 +280,8 @@ $x$ observed has the same outcome and range in both, and nothing else of it
 remains after it: by (A1) its expression records no expected item and no
 farthest failure; a failing expression and a negative lookahead have no other
 effect; and an observed positive lookahead leaves no capture or binding, those
-of the rules that it calls ending with them, and recovers no error when it
-matches. A lookahead that $x$ did not observe is evaluated as part of $x$, and
+of the rules that it calls ending with them, and its end discards the errors
+recovered in it ([Lookahead](../language/parser-expressions.md#lookahead)). A lookahead that $x$ did not observe is evaluated as part of $x$, and
 the growths that it reads are among those that $x$ read. A call at
 $p$ within $x$ that grows a leader of the cycle grows it in both, from the same
 failing seed; its steps read the growths open at the start of $x$ only in the

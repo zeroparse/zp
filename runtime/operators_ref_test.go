@@ -27,7 +27,9 @@ func (p *Parser) refSkipTrivia(pr *OperatorsRule) {
 	p.Silent--
 	if !ok {
 		p.refReset(m)
+		return
 	}
+	p.Recovered = p.Recovered[:m.recovered]
 }
 func (p *Parser) refLongest(ops []*OperatorsRuleOp) (best operatorsRuleAttempt, cutFailed bool) {
 	m0 := p.Mark()

@@ -61,10 +61,13 @@ errors and the captures (undoing the trail) become what they were when m was tak
 		b.SetReg(ops.Silent, Add(R(ops.Silent), Int(1)))
 		b.Let("ok", C("opr.skip", r))
 		b.SetReg(ops.Silent, Bin("-", R(ops.Silent), Int(1)))
-		b.If(Not(L("ok")), func(b *Builder) { b.Do("reset", L("m")) })
+		b.IfElse(Not(L("ok")), func(b *Builder) { b.Do("reset", L("m")) }, func(b *Builder) {
+			b.Do("rec.truncate", C("frame.markRec", L("m")))
+		})
 	})
 	skip.Doc = `skipTrivia skips the trivia of the Operators Rule r, if it has any, in a lookahead: a failed skip
-leaves the parse as it was.`
+leaves the parse as it was, and one that matches discards the errors recovered in it, as a
+lookahead does.`
 
 	longest := m.AddFunc("longest", []Param{P("l", list)}, []Type{attempt}, []string{ops.Budget}, func(b *Builder) {
 		b.Let("m0", C("frame.mark"))

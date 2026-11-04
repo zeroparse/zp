@@ -93,12 +93,13 @@ for(const unit of [p.CodePoints,p.Bytes]) {
 
 func TestGeneratedTSBudgetControlRecoveredMemoReplay(t *testing.T) {
 	t.Parallel()
-	// Prewarm an empty-error memo so slot allocation is common to both routes.
-	src := `rule main = &seed &seed &recovered &recovered &recovered .* #atomic $$
+	// Prewarm an empty-error memo so slot allocation is common to both routes. The lookaheads
+	// store and replay recovered errors that their ends discard; the call after them reports its own.
+	src := `rule main = &seed &seed &recovered &recovered &recovered recovered $$
 
-rule fast = &seed &seed &recovered &recovered .* #atomic $$
+rule fast = &seed &seed &recovered &recovered recovered $$
 
-rule fresh = &seed &seed &recovered &other .* #atomic $$
+rule fresh = &seed &seed &recovered &other recovered $$
 
 rule other = bad #repeat(512)
 
@@ -118,16 +119,16 @@ function minimum(fits:(n:number)=>boolean):number {
 }
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input="a?".repeat(512),ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
- check(ordinary.node!==null&&active.node!==null&&ordinary.error instanceof p.SyntaxErrors&&active.error instanceof p.SyntaxErrors&&active.error.errors.length===1536&&stable(active.node)===stable(ordinary.node)&&active.error.message===ordinary.error.message,"same-silent memo hit preserves recovered errors and output");
- for(let i=0;i<1536;i++)check(active.error.errors[i]?.pos===(i%512)*2,"memo replay preserves error positions and order");
- const freshBudget=minimum(n=>{const r=p.parseRuleWithOptions("fresh",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===1024});
+ check(ordinary.node!==null&&active.node!==null&&ordinary.error instanceof p.SyntaxErrors&&active.error instanceof p.SyntaxErrors&&active.error.errors.length===512&&stable(active.node)===stable(ordinary.node)&&active.error.message===ordinary.error.message,"same-silent memo hit preserves recovered errors and output");
+ for(let i=0;i<512;i++)check(active.error.errors[i]?.pos===i*2+1,"memo replay preserves error positions and order");
+ const freshBudget=minimum(n=>{const r=p.parseRuleWithOptions("fresh",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===512});
  const snapshot=p.parseRuleWithOptions("fast",input,{unit,limits:{compute:freshBudget+128}});
  check(snapshot.node===null&&snapshot.error instanceof p.ParseInterruptionError&&snapshot.error.kind==="compute-limit","recovered memo snapshots consume spend beyond unretained errors");
- const baseline=minimum(n=>{const r=p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===1024});
+ const baseline=minimum(n=>{const r=p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===512});
  const stopped=p.parseWithOptions(input,{unit,limits:{compute:baseline+128}});
  check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","recovered memo payload visits consume budget beyond stored entry");
  const retry=p.parseWithOptions(input,{unit,limits:{compute:0}});
- check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.errors.length===1536,"fresh recovered memo retry");
+ check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.errors.length===512,"fresh recovered memo retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")

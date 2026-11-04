@@ -82,7 +82,9 @@ rule stmt = s:(let / assign / call) #recover(skip=[^;]+ ";") => $s
 
 The skip expression cannot contain captures and must consume input. Recovered
 errors are returned with the resulting node. Backtracking that undoes a
-recovery also removes its error. A recovered expression's type is the join
+recovery also removes its error, and so does the end of a
+[lookahead](parser-expressions.md#lookahead) or of the
+[`skip` of an Operators Rule](operators-rule.md#skip) that the recovery is in. A recovered expression's type is the join
 of its original type and `error`, and an error value is assignable only to a type that admits `error`
 (see [Type System](types.md#assignability)).
 `Parser.Parse` returns a recovered value together with a `SyntaxErrors` error

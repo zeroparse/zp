@@ -102,7 +102,8 @@ func (a *analyzer) node(n Node) (bool, Effects) {
 		_, ee := a.node(n.Body)
 		null = true
 		e = ee
-		e.Set &^= EffConsume | EffExpect | EffCut
+		// The end of a lookahead discards the errors recovered inside it.
+		e.Set &^= EffConsume | EffExpect | EffCut | EffRecover
 		e.Set |= EffFail
 	case *Cut:
 		null = true

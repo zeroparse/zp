@@ -578,8 +578,23 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		if n.Neg {
 			return l.not(n, s, fail)
 		}
+		// The lookahead goes back to its start and discards the errors recovered inside it, and
+		// keeps its captures and bindings.
 		start := l.decl("x", flow.TypeInt)
-		l.set(start, pos)
+		var rec *flow.Var
+		if l.opts.Recovers && n.Body.Attrs().Eff.Set&core.EffRecover != 0 {
+			rec = l.decl("x", flow.TypeInt)
+			l.emit(&flow.Set{Dst: []flow.LValue{start, rec}, X: []flow.Expr{pos, &flow.RecLen{}}})
+		} else {
+			l.set(start, pos)
+		}
+		back := func() {
+			if rec == nil {
+				l.set(flow.RegPos, use(start))
+			} else {
+				l.emit(&flow.Restore{Pos: use(start), Rec: use(rec)})
+			}
+		}
 		l.emit(&flow.Silent{Delta: 1, Site: n.Site})
 		f, done := l.label(), l.label()
 		bd := l.open(done)
@@ -589,12 +604,12 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		l.node(n.Body, s, n.Body.Attrs().Want, f)
 		l.cut = prev
 		l.emit(&flow.Silent{Delta: -1, Site: n.Site, Ok: true})
-		l.set(flow.RegPos, use(start))
+		back()
 		if l.used[f] {
 			l.exit(done)
 			l.close(bf)
 			l.emit(&flow.Silent{Delta: -1, Site: n.Site})
-			l.set(flow.RegPos, use(start))
+			back()
 			l.exit(fail)
 			l.close(bd)
 		} else {

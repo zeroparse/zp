@@ -1991,7 +1991,6 @@ export class Parser {
   popped: Dep[] = [];
   ctxs: CtxTable[] = [];
   looks: number[] = [];
-  lookRecs: number[] = []; // the recovered errors at the start of each lookahead in looks
   foundSet: CtxSet | null = null; // the set of the result that ctxFind last returned
   obsGuard: number[] = [];
   seedSeq = 0;
@@ -3496,12 +3495,10 @@ export class Parser {
     const g = this.gamma.length;
     if (f.pos === this.pos && f.gp < g && this.gamma[g - 1]!.pos === this.pos && this.gamma[g - 1]!.cycle === this.gamma[f.gp]!.cycle) {
       this.looks.push(site);
-      this.lookRecs.push(this.recovered.length);
       this.pushFrame(this.pos, f.gp);
       return;
     }
     this.looks.push(-1);
-    this.lookRecs.push(0);
   }
 
   // lookEnd ends the innermost lookahead, whose expression matched if ok.
@@ -3510,7 +3507,6 @@ export class Parser {
       return;
     }
     const site = this.looks.pop()!;
-    const rec = this.lookRecs.pop()!;
     if (site < 0) {
       return;
     }
@@ -3522,9 +3518,7 @@ export class Parser {
         break;
       }
     }
-    if (!read || (ok && this.recovered.length > rec)) {
-      // Errors recovered in a matching lookahead stay recorded after it, so its outcome does not
-      // summarize it: the seeds it read stay dependencies.
+    if (!read) {
       this.mergeDeps(ds);
       return;
     }

@@ -257,7 +257,10 @@ expectations are recorded, and the methods
 `Error()`, which returns the text above with its position, and `Message()`, which
 returns it without the position. A parse that recovered errors returns the node and
 an error of type `zp.SyntaxErrors`, a list of `*SyntaxError`; `errors.As` tells it
-apart from a fatal `*SyntaxError`, and the node is valid. The command `zp parse`
+apart from a fatal `*SyntaxError`, and the node is valid. The list holds only the
+recoveries that the result keeps: one that backtracking undoes, or that is
+inside a [lookahead](../language/parser-expressions.md#lookahead) or the
+[`skip` of an Operators Rule](../language/operators-rule.md#skip), is not in it. The command `zp parse`
 prints the tree and then each error on its own line, and exits with status 1 in
 both cases. Run-time errors of actions, nesting-limit errors and interruptions are
 other error values, not `SyntaxError`.
@@ -400,9 +403,9 @@ exceptions.
   growth of its context ends, and never enters the memo of a later parse.
   A lookahead counts as observed by its outcome only if nothing else of it
   remains after it: a positive lookahead whose expression makes a capture or
-  binds a variable outside the rules that it calls, or that matches after
-  recovering from errors, is not observed, and the growing results that it
-  read count as read by the result around it.
+  binds a variable outside the rules that it calls is not observed, and the
+  growing results that it read count as read by the result around it. The
+  errors recovered inside a lookahead do not remain after it.
 - A growing rule evaluates its body once for each step of the growth, and the
   number of steps is at most two more than the length of the input it
   consumes. A leader that grows at a position where another growth of its

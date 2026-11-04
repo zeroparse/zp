@@ -73,9 +73,8 @@ rule item = ("a" #atomic ";") #recover(skip=[^;]+ ";")`
 	}
 }
 
-// TestRecoverInLookahead checks that a result with errors recovered outside a lookahead is not
-// reused inside one, or the other way round: errors recovered inside a lookahead carry no
-// expectations, so the reused errors would differ from a parse without memoization.
+// TestRecoverInLookahead checks that the lookahead &p0 discards the error it recovers and that the
+// call of p0 after it, at the same position, reports the error with its expectations.
 func TestRecoverInLookahead(t *testing.T) {
 	t.Parallel()
 	check(t, `rule main = r1 "ab" / r1 _
@@ -85,7 +84,47 @@ rule p0 = #operators {
     operand "(" p0 ")"
     level { postfix "!" ";" #recover(skip=[^;]* ";") }
 }`,
-		ok("a!a;", "error: 1:3: syntax error\n1:3: syntax error: expected \";\""),
+		ok("a!a;", "error: 1:3: syntax error: expected \";\""),
+	)
+}
+
+// TestRecoverDiscardedByLookahead checks that the errors recovered inside a lookahead are
+// discarded when it ends, whether it matches or not, so that &e and !!e agree, and that a call
+// outside the lookahead at the same position reports its own errors.
+func TestRecoverDiscardedByLookahead(t *testing.T) {
+	t.Parallel()
+	const r = "\nrule r = (\"a\" \"b\") #recover(skip=[^qz]+)\nrule t = [a-z]+"
+	for _, look := range []string{"&", "!!"} {
+		check(t, "rule main = "+look+"(r \"q\") t $$"+r,
+			ok("abq", `(["a" "b" "q"]@t)@main`),
+			ok("axq", `(["a" "x" "q"]@t)@main`),
+			ok("aq", `(["a" "q"]@t)@main`),
+			fails("axz", "1:1: syntax error"),
+		)
+	}
+	check(t, "rule main = !(r \"z\") t $$"+r,
+		ok("axq", `(["a" "x" "q"]@t)@main`),
+		fails("axz", "1:1: syntax error"),
+	)
+	check(t, "rule main = &(r \"q\") r \"q\" $$"+r,
+		ok("abq", `(("a" "b")@r "q")@main`),
+		fails("axq", `1:2: syntax error: expected "b"`),
+	)
+}
+
+// TestRecoverDiscardedByOperatorsRuleSkip checks that the errors recovered inside the skip of an
+// Operators Rule are discarded when the skip ends.
+func TestRecoverDiscardedByOperatorsRuleSkip(t *testing.T) {
+	t.Parallel()
+	check(t, `rule main = e $$
+rule e = #operators {
+    skip (" " "!") #recover(skip=[^0-9+]+)
+    operand [0-9]+ #atomic
+    level { infix left "+" }
+}`,
+		ok("1 !+2", `((lhs:"1"@e op:"+" rhs:"2"@e)@e)@main`),
+		ok("1 x+2", `((lhs:"1"@e op:"+" rhs:"2"@e)@e)@main`),
+		ok("1+2", `((lhs:"1"@e op:"+" rhs:"2"@e)@e)@main`),
 	)
 }
 

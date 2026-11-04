@@ -61,7 +61,10 @@ func (p *Parser) skipTrivia(pr *OperatorsRule) {
 	p.Silent--
 	if !ok {
 		p.Reset(m)
+		return
 	}
+	// As at the end of a lookahead, the errors recovered in the skip are discarded.
+	p.DropRecovered(m)
 }
 
 // Longest tries every operator part and returns the longest match (the one declared first on a

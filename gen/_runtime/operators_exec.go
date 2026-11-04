@@ -181,7 +181,8 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 }
 
 // skipTrivia skips the trivia of the Operators Rule r, if it has any, in a lookahead: a failed skip
-// leaves the parse as it was.
+// leaves the parse as it was, and one that matches discards the errors recovered in it, as a
+// lookahead does.
 //
 // Printed from Exec IR function skipTrivia of internal/ir/exec/core.
 func (p *Parser) skipTrivia(r *Rule) {
@@ -194,6 +195,8 @@ func (p *Parser) skipTrivia(r *Rule) {
 	p.Silent = p.Silent - 1
 	if !ok {
 		p.Reset(m)
+	} else {
+		p.Recovered = p.Recovered[:m.recovered]
 	}
 }
 
@@ -390,7 +393,8 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 }
 
 // skipTrivia skips the trivia of the Operators Rule r, if it has any, in a lookahead: a failed skip
-// leaves the parse as it was.
+// leaves the parse as it was, and one that matches discards the errors recovered in it, as a
+// lookahead does.
 //
 // Printed from Exec IR function skipTrivia of internal/ir/exec/core.
 func (p *TParser) skipTrivia(r *TRule) {
@@ -403,6 +407,8 @@ func (p *TParser) skipTrivia(r *TRule) {
 	p.Silent = p.Silent - 1
 	if !ok {
 		p.Reset(m)
+	} else {
+		p.Recovered = p.Recovered[:m.recovered]
 	}
 }
 

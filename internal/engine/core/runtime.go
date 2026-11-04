@@ -342,14 +342,20 @@ func (p *Parser) Mark() Mark {
 }
 
 func (p *Parser) Reset(m Mark) {
+	p.DropRecovered(m)
+	p.Pos = m.Pos
+	p.Env = m.Env
+	p.UndoCaptures(m.Trail)
+	p.Trail = p.Trail[:m.Trail]
+}
+
+// DropRecovered drops the errors recovered and the tokens inserted since m, and keeps the rest of the
+// state.
+func (p *Parser) DropRecovered(m Mark) {
 	if p.MissingLen > m.missing {
 		p.ResetMissing(m.missing)
 	}
-	p.Pos = m.Pos
-	p.Env = m.Env
 	p.Recovered = p.Recovered[:m.Recovered]
-	p.UndoCaptures(m.Trail)
-	p.Trail = p.Trail[:m.Trail]
 }
 
 func (p *Parser) SetCapture(slot int, v *value.Node) {

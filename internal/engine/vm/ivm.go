@@ -389,6 +389,8 @@ func (f *skipFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 	p.Silent--
 	if !res.ok {
 		p.Reset(f.m)
+	} else {
+		p.DropRecovered(f.m) // the errors recovered in the skip (Parser.skipTrivia)
 	}
 	return nil, iresult{ok: true}, true
 }

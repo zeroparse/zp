@@ -309,9 +309,12 @@ rule ident = !"if" [a-z]+
 ```
 
 Captures and variable definitions made inside a positive lookahead remain in
-effect after it; only the input position is restored. A negative lookahead MUST
+effect after it; the input position is restored. A negative lookahead MUST
 NOT contain captures. Failures inside a lookahead are not included in the
 expected items of a [syntax error](../runtime/parsing.md#syntax-errors).
+Errors that [`#recover`](pragmas.md#recover) recovers inside a lookahead are
+discarded when the lookahead ends, whether it succeeds or fails, so `&a` and
+`!!a` have the same effect.
 
 ## Controlling Construction
 

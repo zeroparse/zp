@@ -178,7 +178,7 @@ corpus/0/recovery after a cut	a22bdeaa085100d581fbdd6d
 corpus/0/recovery in a statement list	0bbbed59e4cc7a5336e8a694
 corpus/0/recovery inside a leader body	88187a31f23745b41e8a0cac
 corpus/0/recovery of a leader	6949a951f37e3b016b33dec5
-corpus/0/recovery under a lookahead	3b02b0628cb2ef435f783141
+corpus/0/recovery under a lookahead	18e8d4974cd0ff2c9a25c8e6
 corpus/0/recovery under a negative lookahead	3a9c5b34d795b8e704971ea4
 corpus/0/recovery whose skip fails after consuming	dc4d4b4ae2a7f45c9e64025f
 corpus/0/recovery with a far failing choice	733863d68587ffe99ba714e5
@@ -312,11 +312,11 @@ corpus/0/typed/recovery_error_inside	59053c7b99513363d1344e18
 corpus/0/typed/recovery_error_outside	1061af36a7cbaedaaff9de58
 corpus/0/typed/recovery_failed_skip_rollback	4ccf75d8d4ff1f5a0edc56e0
 corpus/0/typed/recovery_list_errors	bf1d74a6a07d9add48303461
-corpus/0/typed/recovery_lookahead	1bd05d6f72e465233bdd0c8e
+corpus/0/typed/recovery_lookahead	3f77b957f0bf89e9a44cf9ee
 corpus/0/typed/recovery_lr	84e6f7719257dc283ae46c4b
 corpus/0/typed/recovery_negative_lookahead	133cec3ed5de2a31b0bf0cb0
 corpus/0/typed/recovery_nested	e5b2f0ce0dc843ea4969d75c
-corpus/0/typed/recovery_operatorsRule	b1f3ab235a15a4e7d0a67b67
+corpus/0/typed/recovery_operatorsRule	50a959cc3425657c593b6754
 corpus/0/typed/recovery_optional_repetition	c9e07018f5dd2f920f79b118
 corpus/0/typed/recovery_typed_corpus	4e4339dfdfc34134120da331
 corpus/0/typed/recovery_zero_progress	921614c50e315fbed218d87f
@@ -529,7 +529,7 @@ corpus/1/recovery after a cut	a22bdeaa085100d581fbdd6d
 corpus/1/recovery in a statement list	0bbbed59e4cc7a5336e8a694
 corpus/1/recovery inside a leader body	88187a31f23745b41e8a0cac
 corpus/1/recovery of a leader	6949a951f37e3b016b33dec5
-corpus/1/recovery under a lookahead	3b02b0628cb2ef435f783141
+corpus/1/recovery under a lookahead	18e8d4974cd0ff2c9a25c8e6
 corpus/1/recovery under a negative lookahead	fe9e538874eed839512ed743
 corpus/1/recovery whose skip fails after consuming	dc4d4b4ae2a7f45c9e64025f
 corpus/1/recovery with a far failing choice	733863d68587ffe99ba714e5
@@ -663,11 +663,11 @@ corpus/1/typed/recovery_error_inside	59053c7b99513363d1344e18
 corpus/1/typed/recovery_error_outside	1061af36a7cbaedaaff9de58
 corpus/1/typed/recovery_failed_skip_rollback	4ccf75d8d4ff1f5a0edc56e0
 corpus/1/typed/recovery_list_errors	bf1d74a6a07d9add48303461
-corpus/1/typed/recovery_lookahead	1bd05d6f72e465233bdd0c8e
+corpus/1/typed/recovery_lookahead	3f77b957f0bf89e9a44cf9ee
 corpus/1/typed/recovery_lr	84e6f7719257dc283ae46c4b
 corpus/1/typed/recovery_negative_lookahead	133cec3ed5de2a31b0bf0cb0
 corpus/1/typed/recovery_nested	e5b2f0ce0dc843ea4969d75c
-corpus/1/typed/recovery_operatorsRule	b1f3ab235a15a4e7d0a67b67
+corpus/1/typed/recovery_operatorsRule	50a959cc3425657c593b6754
 corpus/1/typed/recovery_optional_repetition	c9e07018f5dd2f920f79b118
 corpus/1/typed/recovery_typed_corpus	4e4339dfdfc34134120da331
 corpus/1/typed/recovery_zero_progress	921614c50e315fbed218d87f

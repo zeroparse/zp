@@ -55,7 +55,6 @@ const (
 	CtxKeepSeedResults            // a Document keeps the results that read a seed for later parses
 	CtxJumpAnySeed                // a jump uses observations whose outcomes read the growing seed
 	CtxStaleReplay                // a reuse replays the seeds its observations read where they were made
-	CtxLookErrors                 // an observation summarizes a lookahead that recovered errors
 	CtxNoReplayObs                // a reuse passes on only the seeds its observations read where they were made
 )
 
@@ -442,12 +441,13 @@ func (p *Parser) dropTable(i int) {
 	}
 }
 
-// lookRec is a lookahead in progress: its site (-1 for one that records nothing) and the examined
-// range from before it.
+// lookRec is a lookahead in progress: its site (-1 for one that records nothing), the examined
+// range from before it, and the recovered errors and inserted tokens at its start, which its end
+// discards.
 type lookRec struct {
-	site   int32
-	hw, lw int
-	rec    int // the recovered errors at its start
+	site         int32
+	hw, lw       int
+	rec, missing int
 }
 
 // The values of an observation other than outcomes (obsOutcome).
@@ -692,19 +692,24 @@ func (p *Parser) LookBegin(site int) {
 		f := &p.frames[n-1]
 		if g := len(p.Gamma); f.pos == p.Pos && f.gp < g && p.Gamma[g-1].key.Pos == p.Pos && p.Gamma[g-1].cycle == p.Gamma[f.gp].cycle {
 			// The examined range of the lookahead is part of its observation.
-			p.looks = append(p.looks, lookRec{site: int32(site), hw: p.Hw, lw: p.lw, rec: len(p.Recovered)})
+			p.looks = append(p.looks, lookRec{site: int32(site), hw: p.Hw, lw: p.lw, rec: len(p.Recovered), missing: p.MissingLen})
 			p.Hw, p.lw = p.Pos, p.Pos
 			p.pushFrame(p.Pos, f.gp)
 			return
 		}
 	}
-	p.looks = append(p.looks, lookRec{site: -1})
+	p.looks = append(p.looks, lookRec{site: -1, rec: len(p.Recovered), missing: p.MissingLen})
 }
 
-// LookEnd ends the innermost lookahead, whose expression matched if ok.
+// LookEnd ends the innermost lookahead, whose expression matched if ok. It discards the errors
+// recovered inside the lookahead, whether it matched or not.
 func (p *Parser) LookEnd(ok bool) {
 	l := p.looks[len(p.looks)-1]
 	p.looks = p.looks[:len(p.looks)-1]
+	if p.MissingLen > l.missing {
+		p.ResetMissing(l.missing)
+	}
+	p.Recovered = p.Recovered[:l.rec]
 	site := l.site
 	if site < 0 {
 		return
@@ -719,9 +724,7 @@ func (p *Parser) LookEnd(ok bool) {
 			break
 		}
 	}
-	// A matching lookahead that recovered errors leaves them after it, so its outcome does not
-	// summarize it: what it read stays a dependency.
-	if !read || ok && len(p.Recovered) > l.rec && ContextMemoMutation != CtxLookErrors {
+	if !read {
 		p.mergeDeps(ds)
 		return
 	}

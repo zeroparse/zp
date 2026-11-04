@@ -91,7 +91,9 @@ The `skip` expression is implicitly inserted, with its result discarded, before
 each operand and before each operator part. It is used for whitespace and
 comments. If `skip` does not match, nothing is skipped. Failures inside `skip`
 are not included in the expected items of a
-[syntax error](../runtime/parsing.md#syntax-errors). `skip` MUST NOT contain captures.
+[syntax error](../runtime/parsing.md#syntax-errors), and errors that
+[`#recover`](pragmas.md#recover) recovers inside `skip` are discarded when it
+ends, as in a [lookahead](parser-expressions.md#lookahead). `skip` MUST NOT contain captures.
 
 `skip` is not inserted inside an operator part or an operand, so an operator
 such as `"?" t:expr ":"` must spell out the whitespace before `":"` (as in

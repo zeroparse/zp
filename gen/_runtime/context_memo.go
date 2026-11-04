@@ -199,7 +199,6 @@ type ctxTable struct {
 type lookRec struct {
 	site int32
 	high int
-	rec  int // the recovered errors at its start
 }
 
 // The values of an observation other than outcomes (obsOutcome).
@@ -791,7 +790,7 @@ func (p *Parser) lookBegin(site int) {
 		f := &p.frames[len(p.frames)-1]
 		if g := len(p.gamma); f.pos == p.Pos && f.gp < g && p.gamma[g-1].pos == p.Pos && p.gamma[g-1].cycle == p.gamma[f.gp].cycle {
 			// The Document frontier of the lookahead is part of its observation.
-			p.looks = append(p.looks, lookRec{site: int32(site), high: p.docHigh, rec: len(p.Recovered)})
+			p.looks = append(p.looks, lookRec{site: int32(site), high: p.docHigh})
 			if p.Document != nil {
 				p.docHigh = p.Pos
 			}
@@ -822,9 +821,7 @@ func (p *Parser) lookEnd(ok bool) {
 			break
 		}
 	}
-	if !read || ok && len(p.Recovered) > l.rec {
-		// Errors recovered in a matching lookahead stay recorded after it, so its outcome does not
-		// summarize it: the seeds it read stay dependencies.
+	if !read {
 		p.mergeDeps(ds)
 		return
 	}
