@@ -2,6 +2,10 @@
 
 Arata Furukawa · Last revised 2026-11-04
 
+**Status:** Draft. The laws are proved as stated, except the law of
+[Free Variables](#free-variables), which is unproved in full, and the
+confluence of the [Normalization](#normalization) is not proved.
+
 This document states the equivalences ("laws") that hold between Rule
 Expressions of ZeroParse grammars, such as `X* X*` and `X*`, and a rewrite
 system that normalizes expressions with them. Each law says exactly which
@@ -339,19 +343,19 @@ while `("a"? / "b")* $$` stops after the empty match of `"a"?` and rejects it.
 ## Lookahead
 
 **Law (K1) Double Negation.** `!!X` $\equiv_O$ `&X` when `X` makes no binding
-outside the rules that it calls and does not match by recovering from an
-error. A positive lookahead keeps its bindings and recovered errors; a
-negative one undoes them. `!!({v := 1}) {v == 1}` fails where
-`&({v := 1}) {v == 1}` matches, and `&("a" #recover(skip=[a-z]))` on `b`
-returns a recovered error that `!!` drops. (`!` admits no capture.)
+outside the rules that it calls. A positive lookahead keeps its bindings and
+a negative one undoes them; both discard the errors recovered inside them
+(V2). `!!({v := 1}) {v == 1}` fails where `&({v := 1}) {v == 1}` matches.
+(`!` admits no capture.)
 
 **Law (K2) Stacked Lookaheads.** `&&X` $\equiv_O$ `&X`, `!&X` $\equiv_O$
 `!X`, `&!X` $\equiv_O$ `!X` and `!!!X` $\equiv_O$ `!X`, without conditions.
 
 **Law (K3) Repeated Lookahead.** `&X &X` $\equiv_E$ `&X`, and `&X X`
-$\equiv_V$ `X`, when `X` makes no binding that `X` reads and does not recover
-from an error: the second evaluation starts in the state after the first,
-which differs only by bindings, and a recovery would append its error twice.
+$\equiv_V$ `X`, when `X` makes no binding that `X` reads: the second
+evaluation starts in the state after the first, which differs only by
+bindings, and the lookahead discards the errors that it recovered (V2), so
+they are appended once.
 `&({v := v + 1} "a") {v := v + 1} "a" {v == 1}` fails where
 `{v := v + 1} "a" {v == 1}` matches.
 
@@ -454,10 +458,15 @@ records nothing. The cut can lower the cost class, since `c` no longer starts
 again inside the input that `a b` examined.
 
 **Law (T2) Harmless Cuts.** A cut that ends an alternative, `a #cut / b`, and a
-cut in the last alternative of a choice, `a / b #cut c`, are $\equiv_O$ the
-same expressions without the cut: nothing can fail after the first, and no
-alternative follows the second. A cut at the start, `#cut a / b`, makes
-`#cut a / b` $\equiv_O$ `a`: `b` is never attempted.
+cut that is loose in the last alternative of a choice, `a / b #cut c` or
+`a / -(b #cut c)`, are $\equiv_O$ the same expressions without the cut:
+nothing can fail after the first, and no alternative follows the second. A
+cut at the start, `#cut a / b`, makes `#cut a / b` $\equiv_O$ `a`: `b` is
+never attempted. A choice of which one alternative is left after the others
+are dropped is replaced by that alternative only without its loose cuts: a
+loose cut left in it would commit the choice, option or repetition around the
+choice instead, as `(-("a" #cut "b") / !"q" "q")* "ac"`, which accepts `ac`,
+and `(-("a" #cut "b"))* "ac"`, which rejects it.
 
 **Law (T3) Cuts Stop at Calls.** A cut in the body of a rule never escapes
 its call ([Cut](../language/parser-expressions.md#cut)), so inlining a rule
@@ -470,9 +479,11 @@ when `e` always succeeds. When `s` cannot consume input, the recovery never
 applies and the expression is $\equiv_V$ `e`; it is not $\equiv_X$, since a
 failure then also expects the first items of `s`.
 
-**Law (V2) Recovery in a Lookahead.** A recovery inside `&X` keeps its error
-after the lookahead; inside `!X` it is undone with everything else. So (K1)
-and (K3) need an `X` that does not match by recovering.
+**Law (V2) Recovery in a Lookahead.** A lookahead, positive or negative,
+discards the errors recovered inside it when it ends: `&X` matches where `X`
+matches by recovering, and appends no recovered error. So the recovered
+errors of a lookahead are never observable, and (K1) and (K3) hold for an `X`
+that recovers.
 
 ## Normalization
 
@@ -491,7 +502,7 @@ cites.
 | N2 | O | Drop the alternatives after one that always succeeds | C3 |
 | N3 | O | Drop an alternative equal to an earlier one, or one that an earlier one subsumes | C1, C5 |
 | N4 | O | Drop `_|_` alternatives without `@error`; replace `_|_ a` by `_|_` | C4, S2 |
-| N5 | O | Canonicalize stacked lookaheads; replace trivial lookaheads | K2, K6 |
+| N5 | O | Canonicalize stacked lookaheads; replace trivial lookaheads | K1, K2, K6 |
 | N6 | O | Drop harmless cuts and recoveries that never fire | T2, V1 |
 | N7 | E | Remove `@error`, `@diagnostic`, `#atomic`, discards and captures that no predicate reads | (values and messages only) |
 | N8 | E | Merge runs of single-character alternatives into one class | C9 |
@@ -546,3 +557,26 @@ to `" "*`. `[ \t\r\n]+` is self-annihilating, not idempotent. A body that is
 `Z*` whose `Z` makes captures and predicates over them, or reads a variable
 that it does not bind, is idempotent by (P2). `[ \t]+ / ^` and
 `s:" "* #atomic {len($s) == n}` are settled (P4) but not idempotent.
+
+**Cost view.** A level E rule preserves what a grammar matches, not what its
+parse costs: dropping or merging an expression drops evaluations that the
+original makes. An analysis of cost may read a view only when the original
+costs at most a constant factor more than the view on every input. The
+classifier reads a view that applies the rules of both levels except N7 and
+N13, under these further conditions.
+
+- A rule removes an evaluation only when the original either never makes it
+  or makes it again in the same state, and only when that evaluation is
+  cheap to make again: it calls only memoized rules outside call cycles, or
+  rules without actions whose bodies are cheap in this sense, and it contains
+  no predicate, inline action, recovery, stream, operator rule or `#missing`.
+  Repeating such an evaluation costs a constant factor.
+- N12 replaces `!X X` by `_|_` only when `X` matches a bounded number of
+  characters without calls, and left-factors a run of alternatives only by
+  its whole shared prefix, only when that prefix is cheap, and never when an
+  alternative has a loose cut.
+- N7 is off because `@error` and `@diagnostic` decide where the parser keeps
+  repetition runs, and N13 is off because inlining changes which rules are
+  memoized. For the same reason the classifier decides memoization, call
+  cycles, variables and repetition runs on the original rules and reads the
+  view only for the shape of each body.
