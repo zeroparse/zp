@@ -18,15 +18,18 @@ proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
 proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
-proves a reduction and bounds the repetitions at one position, and leaves their
-sum open: the scanned cost comes down to the number of activations, a failure
+proves a reduction and bounds the repetitions at one position: the scanned cost comes down to the number of activations, a failure
 after a source passes through the forms that condition 2 checks, an activation
 is repeated at a position only after an abandoned committing unit or a dropped
 growth step, at most one successful activation of a source at a position is
 direct in one body evaluation, and every other lies in a re-evaluation of a call
 that a committing unit shares with its continuation, which the memo bounds for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
-calls no rule when the call is the first that the two share. Lemma 5 proves the
+calls no rule when the call is the first that the two share. It proves the sum
+over the positions for the sources of rules that call a rule or are memoized at
+their calls, by charging the activations of each second evaluation of a
+memoized rule to the first, and leaves it open for the sources of rules that
+call no rule and are not memoized. Lemma 5 proves the
 bound on the sources that a growth step evaluates at fixed offsets after the
 position where it grows.
 
@@ -505,8 +508,92 @@ such calls, which nests at one end and makes the rule nest.
 
 These claims bound the links of one source at one position, memoized links by
 the memo and the links of a rule that calls no rule by the cycles of nesting
-calls. They do not yet sum to the bound of this lemma, which is step 1 of
-[Open Steps](#open-steps).
+calls. The claims below sum them over the positions, by charging the
+activations of each second evaluation of a memoized rule to the first.
+
+**Owners.** An activation is **outside growths** when no growth step and no
+evaluation in a context of growths contains it; the others are Lemma 5's. A
+**memoized evaluation** is a body evaluation of a rule made by a call at which
+the rule is memoized, that is neither a growth step nor in a context of
+growths, or the evaluation where the parse begins. The **owner** of an
+activation outside growths is the innermost memoized evaluation that contains
+it; the evaluation where the parse begins contains every evaluation, so each
+such activation has one. By Lemma 3, the memoized evaluations of a rule at a
+position, with a level and a combination of the values of the variables that
+the rule reads, which form the **key** of their calls as in the [memoization
+proof](memoization.md#setting), are at most two in the parse. The earlier is
+the **first** evaluation of the key and the later, if any, the **second**; the
+evaluation where the parse begins is a first one. In a
+[Document](../runtime/documents.md) parse, an entry from an earlier parse only
+answers calls, so the two evaluations of a key are those of this parse.
+
+**Replays.** Let $M$ be the second evaluation of a key and $M_0$ the first.
+The evaluations that $M$ makes outside the calls of rules memoized at the call
+correspond one to one, in order, to those that $M_0$ makes outside such calls:
+each is an evaluation of the same expression at the same position, with the
+same success and end, and a call of a rule memoized at the call, which either
+evaluates or the memo answers, corresponds to a call with the same key.
+
+*Proof.* By [Lemma 1 of the memoization
+proof](memoization.md#lemma-1-context), the evaluation of a body that reads no
+growth open at its start depends on the input, its position, level and the
+values of the variables that it reads, the calls it makes, and its lookahead
+state, which reaches no decision of the parser. $M$ and $M_0$ are in no context
+of growths, so they read no open growth, and they have the same position, level
+and values. By the [memoization
+theorem](memoization.md#theorem-memoization-never-changes-the-result), each
+call has, whether the memo answers it or not, the success, end and value of the
+reference parse in its state, (I1) of its proof. So the two bodies take the same
+steps, by induction along them: each step starts in the same state in both, an
+expression or a call of a rule that is not memoized at the call is evaluated in
+both in the same way, by the same induction inside its body, and a call of a
+rule memoized at the call has the same outcome in both. $\square$
+
+An activation owned by $M$ lies in $M$ outside the calls of rules memoized at
+the call, so it corresponds to an activation of the same source at the same
+position owned by $M_0$, which succeeds when it does. So the activations outside
+growths are at most twice those owned by first evaluations, and the successful
+ones at most twice the successful ones owned by first evaluations at each
+position. This counts no body evaluation of a rule that is not memoized, so the
+bound does not rest on Lemma 10, which rests on the activations.
+
+**Memoized links lead to second evaluations.** Let the $i$-th link of $\sigma$
+at $q$ be memoized and $\alpha_i$ be outside growths. Then the owner of
+$\alpha_i$ is a second evaluation.
+
+*Proof.* Since $e'_i$ contains $\alpha_i$, it is neither a growth step nor in a
+context of growths, and it is a memoized evaluation, the second of its key,
+with $e_i$ the first (*Memoized links*). Let
+$Y_0 = e'_i, Y_1, \ldots, Y_d$ be the memoized evaluations that contain
+$\alpha_i$, each inside the one before, so that $Y_d$ is its owner. Let $Y_j$ be
+the second evaluation of its key, with first $Y^0_j$. The call that makes
+$Y_{j+1}$ lies in $Y_j$ outside the calls of rules memoized at the call, so by
+the replays a call with the same key lies in $Y^0_j$, made before $Y_j$
+started. The memo keeps an entry until the end of the parse, apart from the
+entries that a stream discards before the elements it has delivered, where no
+later call is made, and it stores the result of a key at its second
+evaluation. If the memo had answered the earlier call, or if that call had made
+the second evaluation, the memo would answer the call of $Y_{j+1}$. So the
+earlier call made the first evaluation of the key, and $Y_{j+1}$ is the
+second. By induction, $Y_d$ is a second evaluation. $\square$
+
+**Activations owned by first evaluations.** Let $\alpha_1, \alpha_2, \ldots$ be
+the successful activations of $\sigma$ at $q$ outside case 5 and dropped steps,
+as above. Every link is memoized at both calls or a call of a rule that calls
+no rule and is not memoized at its calls, a **leaf link**. By the claim above,
+an $\alpha_i$ outside growths owned by a first evaluation is $\alpha_1$ or
+follows a leaf link. The rule $r$ of a leaf link calls no rule, so the body
+evaluation of $R$ that contains $\alpha_{i-1}$, which lies in $e_i$, is $e_i$
+itself, and $r = R$. So when $R$ calls a rule or is memoized at its calls, at
+most one of the $\alpha_i$ outside growths is owned by a first evaluation. By
+the replays, the successful activations of $\sigma$ at $q$ outside growths are
+at most twice those owned by first evaluations, which are this one and those
+that case 5 or a dropped step repeats, which Lemma 5 counts. When $R$ calls no
+rule and is not memoized at its calls, the $\alpha_i$ owned by first
+evaluations are at most one more than the leaf links that lead to one. Bounding
+those leaf links remains part of step 1 of [Open Steps](#open-steps): a leaf
+link can leave a second evaluation through the end of its body and reach the
+call again in the evaluation around it, which can be a first one.
 
 ## Lemma 5 (Growth)
 
@@ -1592,19 +1679,22 @@ The outlines leave these steps to be made precise.
    cost to the activations, show that the successful activations of a source
    at a position are direct in distinct body evaluations, and link each to the
    one before it through a call that a committing unit shares with its
-   continuation. Memoized links use distinct rules, positions and levels, and
-   the links of a rule that calls no rule are bounded when the shared call is
-   the first that the unit and its continuation share. Two parts are open.
-   First, the sum over positions: the second evaluation of a memoized link can
-   hold repeated activations at many positions, so the proof must charge each
-   repeated activation to the one it repeats in the first evaluation and show
-   that the charges do not compound through shared calls nested in shared
-   calls. Second, the links of a rule that calls no rule when the shared call
-   follows other shared calls: the bodies that the continuation leaves can
-   then end after those calls consumed input, so the call places it leaves
-   need not be followed by what matches without consuming input, and whether
-   the chain stays bounded is not shown. The activations include those of the
-   copying operations, the units of the own spans that they read (Lemma 6).
+   continuation. They charge the activations of each second evaluation of a
+   memoized rule to the first, and show that a memoized link leads to an
+   activation owned by a second evaluation, so the sum over the positions is
+   proved for every source in a rule that calls a rule or is memoized at its
+   calls. Two parts are open, both for a source in a rule that calls no rule
+   and is not memoized at its calls. First, the leaf links that lead to an
+   activation owned by a first evaluation: such a link can leave a second
+   evaluation through the end of its body, and the claims bound the leaf links
+   in a row but not those between memoized links. Second, the leaf links when
+   the shared call follows other shared calls: the frames that the
+   continuation leaves are then left at the start of the unit, before the
+   shared calls, or after some of them, so the frames left between two links
+   need not be followed by what matches without consuming input, and the
+   cycle argument of *Calls that call no rule* must be carried over. The
+   activations include those of the copying operations, the units of the own
+   spans that they read (Lemma 6).
 2. **"A unit that succeeds is not restarted."** A body that contains the unit
    can itself be evaluated again: by the memo, at most twice at a position; when
    its rule is not memoized, at each of its calls. Lemmas 3 and 10 count these
@@ -1613,7 +1703,11 @@ The outlines leave these steps to be made precise.
    memoized by the activations, so the bound of Lemma 4 on the activations must
    not rest on those evaluations, or the argument closes on itself. The claims
    of Lemma 4 proved so far do not: they count links by the memo of Lemma 3 and
-   by the call places of the grammar.
+   by the call places of the grammar, and charge the activations of a second
+   evaluation to the first through the memoized evaluations alone. What
+   remains is the activations that do not succeed, which Lemma 4 counts by the
+   body evaluations that evaluate a source, those of rules that are not
+   memoized included.
 3. **Continuations of growing units.** The claim on sources at fixed offsets in
    Lemma 5 bounds a unit followed by a growing unit with which it shares no
    call, in all but a constant number of steps. The proof must still bound such
