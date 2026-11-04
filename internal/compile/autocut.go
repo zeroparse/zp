@@ -73,6 +73,7 @@ type excl struct {
 	// env reports that the unit and the continuation are at a point where they have the same
 	// variables in scope; excludes sets it for the comparison at hand.
 	env    bool
+	follow int               // the most rule and operand ends through which contPaths follows a continuation
 	cheapR map[cheapKey]int8 // 1 while computed, 2 cheap, 3 not
 }
 
@@ -82,7 +83,7 @@ type cheapKey struct {
 }
 
 func newExcl(k *classifier, strict bool, maxK int) excl {
-	return excl{k: k, strict: strict, maxK: maxK, cheapR: map[cheapKey]int8{}}
+	return excl{k: k, strict: strict, maxK: maxK, follow: autoCutFollow, cheapR: map[cheapKey]int8{}}
 }
 
 // cheap reports whether evaluating e again at a position costs no more than a constant or what
@@ -305,7 +306,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 }
 
 // contPaths returns the paths of a continuation, through the calls of a rule at its end, as far
-// as autoCutFollow rule ends. A path that the analysis cuts short ends with a stop.
+// as x.follow rule and operand ends. A path that the analysis cuts short ends with a stop.
 func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 	paths := [][]sym{nil}
 	for ; c != nil; c = c.next {
@@ -341,9 +342,22 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 
 // Stops that end a continuation that the analysis follows no further, told apart for diagnostics.
 var (
-	stopFollow = &grammar.Bottom{} // more than autoCutFollow rule or operator ends
+	stopFollow = &grammar.Bottom{} // more than x.follow rule or operator ends
 	stopLength = &grammar.Bottom{} // autoCutLen symbols
 )
+
+// followPaths returns the paths of the continuation c, followed through as many ends as the
+// limit on the number of paths allows, up to autoCutFollow. Where it follows fewer, the paths
+// that it cuts short end with a stop.
+func (x excl) followPaths(c *cont) ([][]sym, bool) {
+	for f := autoCutFollow; f >= 0; f-- {
+		x.follow = f
+		if ps, ok := x.contPaths(c, 0); ok {
+			return ps, true
+		}
+	}
+	return nil, false
+}
 
 // ruleEnd returns the paths of what follows the end of rule: what follows each of its calls, and
 // for the start rule the end of the parse.
@@ -356,7 +370,7 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 		if s.callee != rule {
 			continue
 		}
-		if depth >= autoCutFollow {
+		if depth >= x.follow {
 			after = append(after, []sym{{kind: symStop, e: stopFollow}})
 			continue
 		}
@@ -382,7 +396,7 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 // an operator part that applies after it, with its right operand, or the end of the rule. The
 // parts are those that the classifier takes as the continuations of an operand.
 func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
-	if depth >= autoCutFollow {
+	if depth >= x.follow {
 		return [][]sym{{{kind: symStop, e: stopFollow}}}, true
 	}
 	var after [][]sym
@@ -1044,7 +1058,7 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 	x := newExcl(k, true, decidedUnitsK)
 	var ps [][]sym
 	for _, c := range u.self {
-		p, ok := x.contPaths(c, 0)
+		p, ok := x.followPaths(c)
 		if !ok {
 			return false
 		}
@@ -1052,7 +1066,7 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 	}
 	for _, cs := range conts {
 		for _, c := range cs.paths {
-			qs, ok := x.contPaths(c, 0)
+			qs, ok := x.followPaths(c)
 			if !ok {
 				return false
 			}

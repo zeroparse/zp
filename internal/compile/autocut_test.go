@@ -424,6 +424,45 @@ func fmtPath(p []sym) string {
 // TestContPathsEnds checks the continuation after the end of an operand of an Operators Rule,
 // which goes on with an operator part or with what follows the rule, and after the end of the
 // start rule, which is the end of the parse.
+// TestFollowPaths checks that a continuation that has more paths through autoCutFollow rule ends
+// than the analysis enumerates is followed through fewer ends instead, with stops where it is cut.
+func TestFollowPaths(t *testing.T) {
+	src := "rule main = r6 $$\nrule r0 = \"a\"\n"
+	for i := 1; i <= 6; i++ {
+		src += fmt.Sprintf("rule r%d = r%d \";\" / r%d \",\" / r%d \".\" / r%d \"!\"\n", i, i-1, i-1, i-1, i-1)
+	}
+	g, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(g, "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.collect()
+	x := newExcl(k, true, 3)
+	c := &cont{end: endRule, rule: "r0"}
+	if _, ok := x.contPaths(c, 0); ok {
+		t.Fatal("the paths through all ends fit the limit")
+	}
+	ps, ok := x.followPaths(c)
+	if !ok {
+		t.Fatal("no paths")
+	}
+	if len(ps) > autoCutPaths {
+		t.Errorf("%d paths", len(ps))
+	}
+	stops := 0
+	for _, p := range ps {
+		if last := p[len(p)-1]; last.kind == symStop && last.e == stopFollow {
+			stops++
+		}
+	}
+	if stops == 0 {
+		t.Errorf("no path ends at the follow bound: %d paths", len(ps))
+	}
+}
+
 func TestContPathsEnds(t *testing.T) {
 	const src = "rule main = e $$\n" +
 		"rule e = #operators {\n  operand atom\n  level post { postfix \"+\" \"-\" }\n  level add { infix left \"*\" }\n}\n" +
