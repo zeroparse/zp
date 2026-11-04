@@ -321,15 +321,19 @@ grammars carry the memo flag of cycle members, and the format may change before 
 
 1. The step-ratio regression suite, with the E-series as negative controls (no behavior change).
 2. Memoizing left-recursion cycle members; E2 moves to the positive set.
-3. Repetition-run reuse in batch parses; E1, E7, E8 and E9 move to the positive set.
+3. Repetition-run reuse in batch parses and streams on the engine backends, under which E1, E7, E8 and E9 measure
+   linear; E8 is a positive control through the recovery-skip refinement, and E1, E7 and E9 stay classified polynomial.
 4. The classifier over the grammar that the compiler runs, and the `growing-variable` and `super-linear` lint checks.
 5. The automatic budget option, after the single budget lands.
 6. The Complexity section of the specification, and corrected comments where the code claims linear time.
 
-Steps 1, 2 and 4 and the specification of step 6 are implemented, and E2 is a positive control. Of step 3, only the
-walks of `#recover` skips are recorded ([Optimization 132](../../optimizations/132-records-of-recovery-skip-walks.md)),
-which makes E8 linear; the other runtime changes and the automatic budget are not implemented, so E1, E7 and E9 remain
-negative controls.
+Steps 1, 2, 3 and 4 and the specification of step 6 are implemented, and E2 is a positive control. The closure and
+bytecode backends keep run records for the walks of `#recover` skips
+([Optimization 132](../../optimizations/132-records-of-recovery-skip-walks.md)) and of restartable repetitions
+([Optimization 133](../../optimizations/133-run-records-of-restarted-repetitions.md)) in batch parses and streams, so
+E1, E7, E8 and E9 measure linear there. Generated parsers keep no run records. The classifier relies on none, so E8 is a
+positive control through the recovery-skip refinement, while E1, E7 and E9 stay classified polynomial. The automatic
+budget is not implemented.
 
 ## Alternatives Considered
 
