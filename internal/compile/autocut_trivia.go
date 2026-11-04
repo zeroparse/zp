@@ -16,8 +16,10 @@ import (
 //     predicate, or contains an attributed expression, a recovery, a stream, an Operators Rule
 //     or a call of a left-recursion cycle, so the result depends only on the position.
 //
-// A trivia rule can therefore be memoized per position on every backend, and with that memo a
-// call of it costs, after the first at a position, a constant.
+// A trivia rule can therefore be memoized per position on every backend. With that memo, a
+// second call at the position of a first costs a constant. A call where a first one ended is a
+// different position: it repeats the final, failing attempt of X of the first call (such as the
+// scan of an unterminated comment), so it costs no more than the first call did, not a constant.
 //
 // triviaOn makes the exclusion analysis rely on it: a call of a trivia rule is cheap, two calls of
 // one trivia rule at one position are passed without counting toward the bound, and a call that
@@ -152,7 +154,8 @@ func (x excl) triviaCall(s sym) bool {
 }
 
 // collapseTrivia drops from p the calls of the trivia rule of p[i] that follow it across symbols
-// that consume nothing: each is evaluated where p[i] ended and matches nothing.
+// that consume nothing: each is evaluated where p[i] ended and matches nothing, at the cost of the
+// final attempt of X in p[i], which p[i] paid.
 func (x excl) collapseTrivia(p []sym, i int) []sym {
 	name := p[i].e.(*grammar.Ref).Name
 	for m := i + 1; m < len(p); m++ {
