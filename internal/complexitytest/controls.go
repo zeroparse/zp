@@ -260,6 +260,24 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
 		{
+			Name: "Scan shared after a literal through the end of a recursion", Family: "rescanned calls",
+			Source: "rule main = e \"x\" ws $$\nrule e = \"(\" e? (\"x\" ws \")\")?\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "x" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Scan shared after a memoized call through the end of a recursion", Family: "rescanned calls",
+			Source: "rule main = e m ws $$\nrule e = \"(\" m e? (m ws \")\")?\nrule m = mx\nrule mx = \"x\"\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(x", n) + "x" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Memoized scan shared after a literal through the end of a recursion", Family: "rescanned calls", Positive: true,
+			Source: "rule main = e \"x\" ws $$\nrule e = \"(\" e? (\"x\" ws ws \")\")?\nrule ws = sp*\nrule sp = \" \"\n",
+			Input:  func(n int) string { return rep("(", n) + "x" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
 			Name: "Operators Rule skip shared by nested prefix operators", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },

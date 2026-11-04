@@ -886,7 +886,10 @@ The conditions below use these terms.
   the call there again: in `e = "(" e? (ws ")")?` with `ws = [ ]*`, the
   option at each level fails after `ws` and the option of the level around it
   evaluates `ws` again over the same spaces, so the continuations together pay
-  for the call once for each level.
+  for the call once for each level. The same holds when the continuation
+  reaches the call there after other calls or literals that the two share, as
+  `ws` in `e = "(" e? ("x" ws ")")?`, where each level matches `x` again before
+  it scans the same spaces.
 - A unit is **committing** when, for each of its continuations, the first
   characters of the unit and of the continuation are disjoint after the calls
   that the two share are removed from their starts, one after another, each
