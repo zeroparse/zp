@@ -292,6 +292,10 @@ const (
 	// elements, ITER reuses the record of the current position and goes to its l. If w is 1, min
 	// is stored in the EINT instruction A of Exprs.
 	OpSkipRepeat
+	// FIRST l: go to l if the repetition has matched no element yet. A separated list runs its
+	// separator, if any, between this instruction and l, and its trailing separator, after the
+	// loop, only after FIRST has not jumped.
+	OpFirst
 )
 
 // Expression instructions
@@ -384,7 +388,7 @@ var opNames = map[Op]string{
 	OpCall: "CALL", OpOperatorsRule: "OPERATORS_RULE", OpPred: "PRED", OpBind: "BIND", OpLabel: "LABEL",
 	OpEndLabel: "ENDLABEL", OpRecover: "RECOVER", OpEndRecover: "ENDRECOVER", OpEndSkip: "ENDSKIP",
 	OpReturn: "RETURN", OpEnd: "END", OpScan: "SCAN", OpGuard: "GUARD",
-	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT",
+	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT", OpFirst: "FIRST",
 	EInt: "EINT", EStr: "ESTR", EBool: "EBOOL", ENil: "ENIL", ECap: "ECAP", EItem: "EITEM",
 	ELocal: "ELOCAL", EVar: "EVAR", EMember: "EMEMBER", ENew: "ENEW", EBin: "EBIN", EUnary: "EUNARY",
 	EAnd: "EAND", EOr: "EOR", EBoolChk: "EBOOLCHK", EFunc: "EFUNC", ECall: "ECALL", ERet: "ERET",
@@ -403,4 +407,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 31
+const ISAVersion = 32

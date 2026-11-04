@@ -807,6 +807,11 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			mc.reps = append(mc.reps, repState{min: min, max: -1, scope: -1, base: len(mc.vals), skip: true})
 			p.SkipBegin(int(in.B))
+		case bytecode.OpFirst:
+			if mc.reps[len(mc.reps)-1].count == 0 {
+				ip = int(in.A)
+				continue
+			}
 		case bytecode.OpIter:
 			p.Spend()
 			rep := &mc.reps[len(mc.reps)-1]

@@ -431,7 +431,7 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			if x.C < 0 || int(x.C) > n {
 				fail("invalid run site %d", x.C)
 			}
-		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover:
+		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, OpFirst:
 			forward(ip, x.A, n)
 		case OpLook:
 			flag(x.B, 1)

@@ -121,7 +121,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 			return fmt.Sprintf("-> %d run=%d", a, c)
 		}
 		return fmt.Sprintf("-> %d", a)
-	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, EAnd, EOr:
+	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, OpFirst, EAnd, EOr:
 		return fmt.Sprintf("-> %d", a)
 	case OpSeq:
 		return fmt.Sprintf("n=%d", a)
