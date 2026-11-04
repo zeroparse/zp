@@ -37,6 +37,16 @@ const (
 	Grow = "Grow"
 )
 
+// Cost quantities of the transitional operations: measures of their arguments and of the state
+// before the call.
+const (
+	// QSet is the number of expectations of the set that the call takes.
+	QSet = "set"
+	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
+	// recovered after its mark.
+	QErrs = "errs"
+)
+
 // Registers of the parser VM.
 const (
 	Pos    = "pos"
@@ -97,7 +107,7 @@ node runtime also in an observed parse.`})
 		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
 result.`})
 	add(&exec.Op{Name: "call.first", Component: Call, Params: ruleArg, Results: []exec.Type{exec.TBool},
-		Reads: []string{Call}, Writes: []string{Call},
+		Reads: []string{Call}, Writes: []string{Call}, Cost: m.Op("seen.first").Cost,
 		Contract: `Records a call of the rule at the position and reports whether its memoization is deferred:
 seen.first for a rule whose memoization the target defers, false for one it memoizes eagerly (in a
 stream, or for a rule without a seen index).`})
@@ -132,11 +142,13 @@ position on failure.`})
 	add(&exec.Op{Name: "rec.truncate", Component: Rec, Params: recMark, Writes: []string{Rec},
 		Contract: `Drops the errors recovered after the mark.`})
 	add(&exec.Op{Name: "rec.since", Component: Rec, Params: recMark, Results: []exec.Type{errs}, Reads: []string{Rec},
-		Writes: []string{Rec}, NoReturn: true,
-		Contract: `Returns a copy of the errors recovered after the mark, charging their copy as the target does.`})
+		Writes: []string{Rec}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
+		Contract: `Returns a copy of the errors recovered after the mark, charging their copy as the target charges
+copies of values.`})
 	add(&exec.Op{Name: "rec.add", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Writes: []string{Rec},
-		NoReturn: true,
-		Contract: `Records the errors again, after the recovered errors, charging as the target does.`})
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
+		Contract: `Records the errors again, after the recovered errors, charging their copy as the target
+charges copies of values.`})
 	add(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether the list of errors is empty.`})
 
@@ -189,7 +201,7 @@ dropped.`})
 	add(&exec.Op{Name: "exp.last", Component: Exp, Results: []exec.Type{kept}, Reads: []string{Exp},
 		Contract: `Returns the set that exp.copy made last in the parse, and the empty set before the first.`})
 	add(&exec.Op{Name: "exp.copy", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{kept},
-		Reads: []string{Exp}, Writes: []string{Exp}, NoReturn: true,
+		Reads: []string{Exp}, Writes: []string{Exp}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSet}}},
 		Requires: `s has at least one expectation.`,
 		Contract: `Copies the expectations of s, in order, into a set that outlives the record, makes it the set
 that exp.copy made last and returns it. The copy is charged as the target charges copies of values,

@@ -252,7 +252,7 @@ transitional op call.first(r Rule) bool
   component call
   reads call
   writes call
-  cost <= 0
+  cost <= 66 + 1*page_index + 1*pages + 1*seen_index
   contract:
     // Records a call of the rule at the position and reports whether its memoization is deferred:
     // seen.first for a rule whose memoization the target defers, false for one it memoizes eagerly (in a
@@ -340,17 +340,19 @@ transitional op rec.since(mark int) Errs
   reads recovered
   writes recovered
   noreturn
-  cost <= 0
+  cost <= 0 + 1*errs
   contract:
-    // Returns a copy of the errors recovered after the mark, charging their copy as the target does.
+    // Returns a copy of the errors recovered after the mark, charging their copy as the target charges
+    // copies of values.
 
 transitional op rec.add(errs Errs)
   component recovered
   writes recovered
   noreturn
-  cost <= 0
+  cost <= 0 + 1*errs
   contract:
-    // Records the errors again, after the recovered errors, charging as the target does.
+    // Records the errors again, after the recovered errors, charging their copy as the target
+    // charges copies of values.
 
 transitional op rec.none(errs Errs) bool
   component recovered
@@ -489,7 +491,7 @@ transitional op exp.copy(s ExpSet) ExpKept
   reads expected
   writes expected
   noreturn
-  cost <= 0
+  cost <= 0 + 1*set
   contract:
     // Copies the expectations of s, in order, into a set that outlives the record, makes it the set
     // that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
