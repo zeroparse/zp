@@ -224,7 +224,17 @@ value` against `ws "," ws "]"` then parts at k = 2 instead of reaching the bound
 
 The property needs no declaration. A wider shape also has it: an atomic `X*`, and the unrolled form `X* (Y X*)*` in
 which comment rules are often written. After the unrolled form, X fails where its last `X*` stopped, and the outer
-repetition stopped where Y failed or an iteration matched nothing, so a second evaluation matches nothing as well.
+repetition stopped where Y failed or an iteration matched nothing, so a second evaluation matches nothing as well; the
+unrolled form matches as `(X / Y)*`, and the atomic `X*` as `X*`.
+
+The check is stricter than idempotence needs. `X* X*` matches as `X*` also when X reads variables that it does not
+bind, and when it captures and tests the captures with predicates; it fails only when X binds a variable that it
+reads, where `w w` and `w` can match differently, as on `ba` for a `w` whose iteration over `b` binds what its
+iteration over `a` reads. A wider check would admit
+golang's `ws` and `sp`, which test captured characters, and python's `ws`, which reads the indentation; a rule that
+reads variables would then compare its calls only where both sides have the same variables, as calls of such rules do
+in [Exclusion](#exclusion). A rule `X+` is not idempotent but annihilates itself: `s s` with `s = [ \t\r\n]+` fails, so
+the comparison could decide on it, as on a literal, instead of passing it. Neither is measured here.
 
 ### Linear Mode
 
@@ -267,8 +277,10 @@ of the input.
 **Trivia calls.** A trivia rule always succeeds and has one result at a position. Two calls of one trivia rule at one
 position end at one position, which keeps the sides together without examining anything that distinguishes them. A call
 that follows a call of the same rule, with nothing consumed between them, starts where the first X* stopped, so X fails
-at once and the call matches nothing; dropping it keeps the set of paths. For the cost bound, the second call costs a
-constant when the rule is memoized per position, which the classifier must then assume.
+at once and the call matches nothing; dropping it keeps the set of paths. For the cost bound, with the rule memoized
+per position, a second call at one position costs a constant. A call where another ended starts at a different
+position and repeats the final, failing attempt of X of the first call, such as the scan of an unterminated comment, so
+it costs no more than what the first call paid; that is the bound that cheap symbols need, not a constant.
 
 **Exclusion.** Each decisive case is a statement about two expressions at one position: disjoint first characters cannot
 both be consumed; two literals that are not prefixes of each other cannot both match; a negative lookahead `!K` fails
