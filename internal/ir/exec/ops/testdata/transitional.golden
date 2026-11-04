@@ -487,6 +487,20 @@ transitional op exp.setAt(s ExpSet, i int) ExpID
   requires:
     // 0 <= i < exp.setCount(s).
 
+transitional op exp.keptCount(k ExpKept) int
+  component expected
+  cost <= 0
+  contract:
+    // Returns the number of expectations of k.
+
+transitional op exp.keptAt(k ExpKept, i int) ExpID
+  component expected
+  cost <= 0
+  contract:
+    // Returns expectation i of k, in the order they were recorded.
+  requires:
+    // 0 <= i < exp.keptCount(k).
+
 transitional op exp.spend()
   component expected
   features budget

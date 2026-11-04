@@ -397,6 +397,15 @@ separate so that the guard of expectOrdinary inlines into the generated code.`
 The generated rule bodies have a branch for such parses that calls the Ordinary forms of the runtime
 helpers, which leave out the budget charges and the Document's record of the examined input.`
 
+	mergeKept := m.AddFunc("mergeKept", []Param{P("far", TInt), P("k", THandle(ops.Kept))}, nil,
+		[]string{ops.Document, ops.Budget}, func(b *Builder) {
+			b.Var("i", TInt)
+			b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.keptCount", L("k"))), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+				b.Do("exp.spend")
+				b.Do("expect", L("far"), C("exp.keptAt", L("k"), L("i")))
+			})
+		})
+	mergeKept.Doc = `mergeKept records the expectations that a memo entry kept at far, as expect does for each of them.`
 	mergeExpected := m.AddFunc("mergeExpected", []Param{P("far", TInt), P("s", THandle(ops.Set))}, nil,
 		[]string{ops.Document, ops.Budget}, func(b *Builder) {
 			far, s := L("far"), L("s")

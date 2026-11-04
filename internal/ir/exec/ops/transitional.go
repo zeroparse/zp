@@ -188,6 +188,11 @@ dropped.`})
 	add(&exec.Op{Name: "exp.setAt", Component: Exp, Params: []exec.Param{exec.P("s", set), exec.P("i", exec.TInt)},
 		Results: []exec.Type{expID}, Requires: `0 <= i < exp.setCount(s).`,
 		Contract: `Returns expectation i of s, in the order they were recorded.`})
+	add(&exec.Op{Name: "exp.keptCount", Component: Exp, Params: []exec.Param{exec.P("k", kept)}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the number of expectations of k.`})
+	add(&exec.Op{Name: "exp.keptAt", Component: Exp, Params: []exec.Param{exec.P("k", kept), exec.P("i", exec.TInt)},
+		Results: []exec.Type{expID}, Requires: `0 <= i < exp.keptCount(k).`,
+		Contract: `Returns expectation i of k, in the order they were recorded.`})
 	add(&exec.Op{Name: "exp.spend", Component: Exp, Features: []string{Budget}, Cost: exec.Cost{Const: 1},
 		Contract: `Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
 a scan of the record compares.`})

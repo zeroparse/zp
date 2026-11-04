@@ -25,6 +25,8 @@ var tsSpecs = []struct {
 }{
 	{fn: "call", on: []string{ops.Observe}, name: "callBody"},
 	{fn: "grow", name: "grow"},
+	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
+	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -52,11 +54,13 @@ var tsTarget = &exects.Target{
 	Handle: func(name string) string {
 		return map[string]string{
 			ops.Rule: "Rule", ops.Value: "R", ops.Entry: "MemoEntry | null", ops.Values: "Value[] | null",
-			ops.Errs: "SyntaxError[]", ops.Kept: "number[]",
+			ops.Errs: "SyntaxError[]", ops.Kept: "number[]", ops.ExpID: "number",
 			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
 		}[name]
 	},
-	FuncName: func(name string) string { return map[string]string{"call": "callBody", "grow": "grow"}[name] },
+	FuncName: func(name string) string {
+		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept"}[name]
+	},
 	Reg: func(name string) string {
 		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent"}[name]
 	},
@@ -85,6 +89,30 @@ var tsTarget = &exects.Target{
 				"copyErrorsSpend(this.recovered, %s, this.recovered.length, this.control)) : noErrs", a[0], a[0], a[0])
 		case "rec.none":
 			return a[0] + ".length === 0"
+		case "exp.farthest":
+			return "this.farthest"
+		case "exp.recording":
+			return "this.expectations"
+		case "exp.reset":
+			return fmt.Sprintf("this.farthest = %s;\nthis.expTop = this.expBase", a[0])
+		case "exp.fresh":
+			return "this.expTop === this.expBase"
+		case "exp.placeholder":
+			return "this.exp[this.expTop++] = expFar"
+		case "exp.maybe":
+			return "true" // the record has no filter of its entries
+		case "exp.count":
+			return "this.expTop - this.expBase"
+		case "exp.at":
+			return "this.exp[this.expBase + " + a[0] + "]!"
+		case "exp.add":
+			return "this.exp[this.expTop++] = " + a[0]
+		case "exp.keptCount":
+			return a[0] + ".length"
+		case "exp.keptAt":
+			return a[0] + "[" + a[1] + "]!"
+		case "exp.spend":
+			return "this.spend()"
 		case "exp.keep":
 			return fmt.Sprintf("this.keep(%sFrom, %sTo)", a[0], a[0])
 		case "exp.merge":

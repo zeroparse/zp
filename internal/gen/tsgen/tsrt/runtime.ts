@@ -2555,26 +2555,9 @@ export class Parser {
     return this.unit === Bytes ? utf8Len(s) : runeCount(s);
   }
 
-  // expect records that id was expected at pos.
+  // expect records that id was expected at pos. Its text is printed from Exec IR (internal/ir/exec/core).
   expect(pos: number, id: number): void {
-    if (this.silent > 0 || pos < this.farthest) {
-      return;
-    }
-    if (pos > this.farthest) {
-      this.farthest = pos;
-      this.expTop = this.expBase;
-    }
-    if (!this.expectations) {
-      if (this.expTop === this.expBase) this.exp[this.expTop++] = expFar;
-      return;
-    }
-    for (let i = this.expBase; i < this.expTop; i++) {
-      this.spend();
-      if (this.exp[i] === id) {
-        return;
-      }
-    }
-    this.exp[this.expTop++] = id;
+    throw new Error("the printed method replaces this one");
   }
 
   // keep copies exp[from:to] for a memo entry or a recovery.
@@ -2660,11 +2643,10 @@ export class Parser {
     return out;
   }
 
+  // mergeKept records the expectations that a memo entry kept at far. Its text is printed from Exec IR
+  // (internal/ir/exec/core).
   mergeKept(far: number, ids: number[]): void {
-    for (const x of ids) {
-      this.spend();
-      this.expect(far, x);
-    }
+    throw new Error("the printed method replaces this one");
   }
 
   // Skip runs, a mirror of the Go runtime's (runtime/skip_runs.go; see "Skip Runs" in
