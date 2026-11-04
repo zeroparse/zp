@@ -61,7 +61,7 @@ func TestDecideAlt(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -112,7 +112,7 @@ func TestDecideAltTrivia(t *testing.T) {
 		}
 		for _, on := range []bool{false, true} {
 			triviaOn, triviaOnly = on, c.only
-			k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+			k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 			if err != nil {
 				t.Fatalf("%s: %v", c.name, err)
 			}
@@ -164,7 +164,7 @@ func TestTriviaCheap(t *testing.T) {
 	}
 	for _, on := range []bool{false, true} {
 		triviaOn, triviaMemo = true, on
-		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,7 +184,7 @@ func TestCollapseTrivia(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestCollapseTriviaBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +239,7 @@ func TestTriviaWhy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestTriviaWhyCut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func TestTriviaWhyVariables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +301,7 @@ func TestTriviaShapeExtended(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +334,7 @@ func TestDecideAltVariables(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -367,7 +367,7 @@ func TestDecidedUnitsCost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -539,7 +539,7 @@ type exclStats struct {
 // exclusionStats decides each alternative of each choice of the reachable rules of g against the
 // later alternatives, within up to five symbols.
 func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
-	k, _, err := prepareClassifier(g, start, nil)
+	k, _, err := prepareBaseClassifier(g, start, nil)
 	if err != nil {
 		return exclStats{}, err
 	}
@@ -633,7 +633,7 @@ func TestExclusionReport(t *testing.T) {
 			name, st.choices, st.choicesAt[1:], st.alts, st.altsAt[1:], st.overBudget)
 		for _, s := range settings {
 			restore := s.h.set()
-			k, _, err := prepareClassifier(g, "", nil)
+			k, _, err := prepareBaseClassifier(g, "", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -724,7 +724,7 @@ func TestFollowPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(g, "main", nil)
+	k, _, err := prepareBaseClassifier(g, "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -760,7 +760,7 @@ func TestContPathsEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(g, "main", nil)
+	k, _, err := prepareBaseClassifier(g, "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -815,7 +815,7 @@ func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -981,7 +981,7 @@ func TestExclusionBudget(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 		if err != nil {
 			t.Fatal(err)
 		}

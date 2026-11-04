@@ -145,6 +145,16 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *Control) 
 // prepareClassifier lowers and normalizes g as the compiler does and returns a classifier of it
 // from start, with the names of the hidden rules of its inline actions.
 func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames, error) {
+	return prepareClassifierWith(g, start, control, newViewClassifier)
+}
+
+// prepareBaseClassifier is prepareClassifier over the rules as they are written, not their normal
+// view. The exclusion analysis reads the rules this way.
+func prepareBaseClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames, error) {
+	return prepareClassifierWith(g, start, control, newClassifier)
+}
+
+func prepareClassifierWith(g *grammar.Grammar, start string, control *Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *Control) *classifier) (*classifier, InlineNames, error) {
 	control.check()
 	names := InlineNames{}
 	if hasInlineAction(g, control) {
@@ -162,7 +172,7 @@ func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*cla
 	if start == "" {
 		_, start, _ = resolveStarts(rules, control)
 	}
-	return newViewClassifier(g, rules, start, control), names, nil
+	return build(g, rules, start, control), names, nil
 }
 
 // newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start.
