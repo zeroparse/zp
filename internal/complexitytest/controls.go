@@ -794,6 +794,20 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("##y", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
+		// A lookahead of a later alternative is evaluated only by that alternative: a scan in it,
+		// even of a rule that calls no rule, runs once at each level of the recursion.
+		{
+			Name: "Scanning lookahead of a later alternative", Family: "rescanned calls",
+			Source: "rule main = (e / \"a\")*\nrule e = \"a\" e \"x\" / !s \"b\" / \"c\"\nrule s = \"a\" [a-z]* \"!\"\n",
+			Input:  func(n int) string { return rep("a", n) + "c" },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Scanning first alternative of a later lookahead", Family: "rescanned calls",
+			Source: "rule main = (e / \"a\")*\nrule e = \"a\" e \"x\" / !(s / \"a\") \"b\" / \"c\"\nrule s = \"a\" [a-z]* \"!\"\n",
+			Input:  func(n int) string { return rep("a", n) + "c" },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
 	}
 	return append(cs, rewriteControls()...)
 }

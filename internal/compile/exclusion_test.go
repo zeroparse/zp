@@ -421,6 +421,13 @@ func TestDecidedUnits(t *testing.T) {
 		// lookahead units are left to the other ways of being committing.
 		{"a lookahead unit", "rule main = (!([a-f] id \"=\") [a-z0-9] id \"(\" / \";\")* $$\nrule id = [a-z]+\n",
 			ClassPoly, ClassPoly},
+		// Only the later alternative evaluates its lookahead, so the scan of s runs at each level
+		// of the recursion (measured in the controls "Scanning lookahead of a later alternative"
+		// and "Scanning first alternative of a later lookahead").
+		{"a scanning lookahead of a later alternative", "rule main = e\nrule e = \"a\" e \"x\" / !s \"b\" / \"c\"\n" +
+			"rule s = \"a\" [a-z]* \"!\"\n", ClassUnknown, ClassUnknown},
+		{"a scanning first alternative of a later lookahead", "rule main = e\nrule e = \"a\" e \"x\" / !(s / \"a\") \"b\" / \"c\"\n" +
+			"rule s = \"a\" [a-z]* \"!\"\n", ClassUnknown, ClassUnknown},
 	} {
 		decidedUnitsOn = false
 		if got := classifySource(t, c.src).Class; got != c.off {
@@ -844,7 +851,8 @@ func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string
 // whose expression is not cheap is not passed, and an environment mark needs the same variables
 // on both sides.
 func TestStrictConditions(t *testing.T) {
-	const rules = "var v int = 0\nrule w = {v == 1} [ ]+ / [ ]+\nrule id = idc+ semi\nrule idc = [a-z]\nrule semi = \";\" #missing\n"
+	const rules = "var v int = 0\nrule w = {v == 1} [ ]+ / [ ]+\nrule id = idc+ semi\nrule idc = [a-z]\nrule semi = \";\" #missing\n" +
+		"rule s = \"a\" [a-z]* \"!\"\n"
 	for _, c := range []struct {
 		name, p, q string
 		loose      bool   // decided without the strict conditions
@@ -864,6 +872,16 @@ func TestStrictConditions(t *testing.T) {
 		{"an environment mark where q binds next", `(w)? "c"`, `{v := 1} "d"`, true, false, "env"},
 		{"an environment mark in q after its binding", `"d"`, `{v := 1} (w)? "c"`, true, false, "env"},
 		{"an environment mark with the same variables", `(w)? "c"`, `"d"`, true, true, ""},
+		// A lookahead of q is evaluated by the continuation alone, so it must cost a constant: s calls
+		// no rule, which makes it cheap to evaluate again where the unit evaluated it, but here the
+		// unit did not.
+		{"a later negative lookahead on a rule that scans", `"c"`, `!s "b"`, true, false, "qnot-notcheap"},
+		{"a later positive lookahead on a rule that scans", `"a" "y"`, `&s "b"`, true, false, "qand-notcheap"},
+		{"a later lookahead whose earlier alternative scans", `"a" "y"`, `!(s / "a") "b"`, true, false, "qnot-notcheap"},
+		{"a positive lookahead against a later one that scans", `&"c" "c"`, `!s "b"`, true, false, "qnot-notcheap"},
+		{"a later lookahead whose earlier alternatives cost a constant", `"a" "y"`, `!("b" / "a") "b"`, true, true, ""},
+		// The match of the lookahead evaluates id again where the unit evaluated it.
+		{"a later lookahead that matches a shared call that is not cheap", `id "("`, `!(id "(") id "."`, true, false, "qnot-notcheap"},
 	} {
 		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
 		if got, tag := comparePaths(t, src, false, 3); got != c.loose {

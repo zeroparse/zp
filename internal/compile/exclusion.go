@@ -159,6 +159,26 @@ func (x excl) cheap(e grammar.Expr) bool {
 	return ok
 }
 
+// freshAll reports whether evaluating e costs a constant where the unit did not evaluate it, as for
+// a lookahead that only the continuation evaluates, or an alternative of it before the one that
+// matches what the unit matched: e has no scanning source of its own, and each call in it is
+// answered by the memo, whose first evaluation at a position Lemma 4 counts once (case 2), or
+// reaches no scanning source (case 3). cheap is weaker: it bounds the second evaluation of a
+// symbol by what the unit paid for the first one at the same position, which a symbol that only the
+// continuation evaluates has no first evaluation to charge to.
+func (x excl) freshAll(e grammar.Expr) bool {
+	ok := true
+	WalkExpr(e, func(y grammar.Expr) {
+		if x.k.srcExprs[y] {
+			ok = false
+		}
+		if r, isRef := y.(*grammar.Ref); isRef && !x.k.memoAt(r) && x.k.containsSource(r) {
+			ok = false
+		}
+	})
+	return ok
+}
+
 // cheapAll reports whether every part of e is cheap: e has no scanning source of its own, and each
 // call in it is cheap. Evaluating e again at a position, or an attempt of it that fails, then costs
 // no more than a constant or what the calls cost the first time.
@@ -637,13 +657,14 @@ func zeroBinds(p []sym, i int) bool {
 }
 
 // nextMatch returns the index of the first symbol of q from j that is not a skip or a lookahead,
-// and whether the lookaheads skipped on the way are cheap in strict mode.
+// and whether the lookaheads skipped on the way cost a constant in strict mode (freshAll): only the
+// continuation evaluates them.
 func (x excl) nextMatch(q []sym, j int) (int, bool) {
 	for ; j < len(q); j++ {
 		switch q[j].kind {
 		case symSkip, symBind, symEnv, symUp:
 		case symNot, symAnd:
-			if x.strict && !x.cheapAll(q[j].e) {
+			if x.strict && !x.freshAll(q[j].e) {
 				return j, false
 			}
 		default:
@@ -743,10 +764,12 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.j++
 			continue
 		case symNot:
-			if end, ok := x.impliesAt(s.p[s.i:], b.e); ok {
+			// The continuation evaluates the lookahead: the alternatives before the one that matches
+			// what the unit matched are its own evaluations, and must cost a constant in strict mode.
+			if end, alt, ok := x.impliesAt(s.p[s.i:], b.e); ok && (!x.strict || x.freshBefore(b.e, alt)) {
 				return true, s.p[s.i+end].item, s.steps + 1
 			}
-			if x.strict && !x.cheapAll(b.e) {
+			if x.strict && !x.freshAll(b.e) {
 				return x.no("qnot-notcheap", a, &b)
 			}
 			s.j++
@@ -755,7 +778,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			if x.disjoint(a.e, b.e) {
 				return true, a.item, s.steps + 1
 			}
-			if x.strict && !x.cheapAll(b.e) {
+			if x.strict && !x.freshAll(b.e) {
 				return x.no("qand-notcheap", a, &b)
 			}
 			s.j++
@@ -909,25 +932,35 @@ func (x excl) expand(s exclState, side []sym, idx int, set func(*exclState, []sy
 // implies reports whether every evaluation that succeeds on q also matches the lookahead body at
 // its start, so that a negative lookahead on the body fails there.
 func (x excl) implies(q []sym, body grammar.Expr) bool {
-	_, ok := x.impliesAt(q, body)
+	_, _, ok := x.impliesAt(q, body)
 	return ok
 }
 
 // impliesAt is implies; end is the index of the last symbol of q that the match of body reads.
-func (x excl) impliesAt(q []sym, body grammar.Expr) (end int, ok bool) {
-	for _, kp := range x.exactPaths(body) {
+func (x excl) impliesAt(q []sym, body grammar.Expr) (end, alt int, ok bool) {
+	paths, alts := x.exactPaths(body)
+	for i, kp := range paths {
 		if end, ok := x.matchesExact(q, 0, kp, 0); ok {
-			return end, true
+			return end, alts[i], true
 		}
 	}
-	return 0, false
+	return 0, 0, false
 }
 
-// exactPaths returns the paths of a lookahead body for which a match of the path is a match of the
-// body: the alternatives of a top-level choice, through calls that make up the whole body, whose
-// items are calls, literals, classes and any characters. A path through an option, a repetition
-// or a nested choice can match where the body, which is greedy and ordered, does not.
-func (x excl) exactPaths(body grammar.Expr) [][]grammar.Expr {
+// freshBefore reports whether the alternatives of the lookahead body before the alternative alt
+// (as exactPaths numbers them) cost a constant (freshAll).
+func (x excl) freshBefore(body grammar.Expr, alt int) bool {
+	for _, e := range x.lookAlts(body)[:alt] {
+		if !x.freshAll(e) {
+			return false
+		}
+	}
+	return true
+}
+
+// lookAlts returns the alternatives of a lookahead body, through calls that make up the whole
+// body.
+func (x excl) lookAlts(body grammar.Expr) []grammar.Expr {
 	for range exclInline {
 		def, ok := x.inlinable(ungroup(body))
 		if !ok {
@@ -935,14 +968,18 @@ func (x excl) exactPaths(body grammar.Expr) [][]grammar.Expr {
 		}
 		body = def.Expr
 	}
-	var alts []grammar.Expr
 	if c, ok := ungroup(body).(*grammar.Choice); ok {
-		alts = c.Alts
-	} else {
-		alts = []grammar.Expr{body}
+		return c.Alts
 	}
-	var out [][]grammar.Expr
-	for _, alt := range alts {
+	return []grammar.Expr{body}
+}
+
+// exactPaths returns the paths of a lookahead body for which a match of the path is a match of the
+// body: the alternatives of a top-level choice, through calls that make up the whole body, whose
+// items are calls, literals, classes and any characters. A path through an option, a repetition
+// or a nested choice can match where the body, which is greedy and ordered, does not.
+func (x excl) exactPaths(body grammar.Expr) (out [][]grammar.Expr, index []int) {
+	for i, alt := range x.lookAlts(body) {
 		var p []grammar.Expr
 		ok := true
 		var add func(e grammar.Expr)
@@ -968,10 +1005,10 @@ func (x excl) exactPaths(body grammar.Expr) [][]grammar.Expr {
 		}
 		add(alt)
 		if ok {
-			out = append(out, p)
+			out, index = append(out, p), append(index, i)
 		}
 	}
-	return out
+	return out, index
 }
 
 // matchesExact reports whether every evaluation that succeeds on q matches the exact path kp at the
