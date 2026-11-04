@@ -428,10 +428,11 @@ The groups are addressed by these mechanisms:
   its context flags `ctx` to 64 or 0 by a choice and then adds 2, which a closure over every value found would repeat
   without end, and its other bindings clear and set bits, adding `len` of the captures `"*"`, `"async"` and
   `list($m)`. The flags take 128 values, and the TypeScript class is the polynomial of its identifier scans. This also
-  covers Python's `isdict`. Python's `lv` has the binding `lv := lv + 8192` in its format spec rule with no guard;
-  the nesting limit is tested in the replacement field that calls the rule, which bounds the field's own binding but
-  not this one. Python's `ind`, CUE's `sv` and YAML's `n` read the lengths of unbounded captures. For TypeScript the
-  profile shows a constant number of evaluations per byte and at most four evaluations of a memoized rule per position
+  covers Python's `isdict`. Python's `lv` counts the format specs around a replacement field with
+  `lv := lv + 8192` in its format spec rule, and the nesting limit is tested in the replacement field that calls the
+  rule, which bounds the field's own binding but not this one; the test `{lv / 8192 <= 3}` after the binding, which
+  never fails, bounds it as well, and the classifier reports K of at most 32080. Python's `ind`, CUE's `sv` and
+  YAML's `n` read the lengths of unbounded captures. For TypeScript the profile shows a constant number of evaluations per byte and at most four evaluations of a memoized rule per position
   at every nesting depth, so no exponential input exists. Memoizing across variable values that a rule does not read
   would lower a constant, not the order. A recursive call that follows consumed input does not bound the values: in
   `main = (r / .)* $$` with `r = "#" {v := v + 1} r / "y" {v >= 0}`, each start reaches every later position with a
@@ -539,7 +540,7 @@ The groups are addressed by these mechanisms:
 | duckdb | nested | 675 | open | 16 | 1.01 | n |
 | duckdb | operator-tails | 15 | repetition-run reuse | 5 | 1.96 | n² |
 | duckdb | strings | 4 | token-scan refinement | 5 | 1.00 | n |
-| python | bounded-variables | 41 | bounded-binding refinement | 5 | 1.01 | n |
+| python | bounded-variables | 2 | bounded-binding refinement | 5 | 1.01 | n |
 | python | except-star-handlers | 3 | grammar rewrite | 2 | 1.91 | n² |
 | python | fold-copies | 16 | in-place fold accumulators | 4 | 2.00 | n² |
 | python | nested | 183 | open | 10 | 1.03 | n |

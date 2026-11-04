@@ -960,8 +960,10 @@ rule tfield Interpolation = (
 rule fdebug = ws "=" ws
 // The conversion character must follow the '!' immediately.
 rule fconv = -ws "!" c:[sra] #atomic !idcont => $c
-// A format spec: literal text (no doubled braces) and replacement fields.
-rule fspec JoinedStr = ":" {lv := lv + 8192} ps:fspec_part* => JoinedStr{Values: $ps.Value}
+// A format spec: literal text (no doubled braces) and replacement fields. The field that calls the
+// rule has at most two format specs around it, so the test after the binding never fails; it bounds
+// the values of `lv` for the classifier.
+rule fspec JoinedStr = ":" {lv := lv + 8192} {lv / 8192 <= 3} ps:fspec_part* => JoinedStr{Values: $ps.Value}
 rule fspec_part StrPart = fspec_raw_text / fspec_text / ffield
 rule fspec_text FStringMiddle = ({lv / 4096 % 2 == 0} ([^'"\\{}\n\r\u{0}]+ / fquote / fesc)+) #atomic
 rule fspec_raw_text FStringRawMiddle = ({lv / 4096 % 2 == 1} ([^'"\\{}\n\r\u{0}]+ / fquote / frawesc)+) #atomic

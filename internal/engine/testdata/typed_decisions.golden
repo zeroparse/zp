@@ -21035,6 +21035,7 @@ term	28	-1	new-in-order
 term	280	-1	capture
 term	281	-1	new-in-order(member(capture))
 term	281	2	binary:+(var const)
+term	281	3	binary:<=(binary:/(var const) const)
 term	283	2	binary:==(binary:%(binary:/(var const) const) const)
 term	284	2	binary:==(binary:%(binary:/(var const) const) const)
 term	29	-1	new-in-order(capture)
@@ -22188,6 +22189,7 @@ term	28	-1	new-in-order
 term	280	-1	capture
 term	281	-1	new-in-order(member(capture))
 term	281	2	binary:+(var const)
+term	281	3	binary:<=(binary:/(var const) const)
 term	283	2	binary:==(binary:%(binary:/(var const) const) const)
 term	284	2	binary:==(binary:%(binary:/(var const) const) const)
 term	29	-1	new-in-order(capture)
@@ -23340,6 +23342,7 @@ term	28	-1	new
 term	280	-1	capture
 term	281	-1	new(member(capture))
 term	281	2	binary:+(var const)
+term	281	3	binary:<=(binary:/(var const) const)
 term	283	2	binary:==(binary:%(binary:/(var const) const) const)
 term	284	2	binary:==(binary:%(binary:/(var const) const) const)
 term	29	-1	new(capture)
