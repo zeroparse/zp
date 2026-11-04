@@ -70,9 +70,9 @@ func TestExampleClassifications(t *testing.T) {
 		class  engine.ComplexityClass
 		degree int
 	}{
-		{"calculator/calc.zp", engine.ClassLinear, 0},
+		{"calculator/calc.zp", engine.ClassUnknown, 0},
 		{"calculator/calc_lr.zp", engine.ClassLinear, 0},
-		{"minilang/minilang.zp", engine.ClassUnknown, 0},
+		{"minilang/minilang.zp", engine.ClassPoly, 2},
 		{"outline/outline.zp", engine.ClassPoly, 3},
 	} {
 		t.Run(tc.file, func(t *testing.T) {

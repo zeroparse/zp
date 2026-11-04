@@ -8,10 +8,14 @@ func cueField(expr func(n int) string) func(n int) string {
 // interpRests are the rules of cue that build the elements of an interpolation.
 var interpRests = []string{"dq_rest", "sq_rest", "gsl_rest", "gml_rest"}
 
+// cueNestedOperators matches the witnesses of the space scans that the operator parts of full_expr
+// read again for each enclosing operator part.
+const cueNestedOperators = `in rule (atom_expr|full_expr) fails`
+
 // triageCue is the triage table of cue.
 func triageCue() []TriageGroup {
 	return []TriageGroup{
-		{Grammar: "cue", ID: "whitespace", Witness: true, Rules: []string{"sp", "nlws", "ws"}, Pattern: `examined`,
+		{Grammar: "cue", ID: "whitespace", Witness: true, Rules: []string{"sp", "nlws", "ws"}, Pattern: `examined`, Exclude: cueNestedOperators,
 			Shape:  "the space and comment scans after a keyword used as a label, an identifier, a comprehension clause or an embedding, read again by the alternative or lookahead that follows",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "keywords as labels before long spaces", Build: list("", "for"+rep(" ", 20)+": 1\nif"+rep(" ", 20)+": 2\nlet"+rep(" ", 20)+": 3\nx%d"+rep(" ", 20)+"?: 4", "\n", "\n"), Sizes: doubling(200, 3), Order: Linear},
@@ -21,6 +25,11 @@ func triageCue() []TriageGroup {
 				{Name: "embeddings with long spaces", Build: func(n int) string { return list("", "x"+rep(" ", 30)+"\n(y)"+rep(" ", 30)+"\n", "", "")(n) }, Sizes: doubling(200, 3), Order: Linear},
 				{Name: "list elements before newlines and commas", Build: cueField(func(n int) string { return "[" + list("", "1"+rep(" ", 10)+"\n"+rep(" ", 10)+",", " ", "")(n) + "2]" }), Sizes: doubling(200, 3), Order: Linear},
 				{Name: "aliases after long comments", Build: list("", "f%d"+rep(" ", 20)+"~ // "+rep("c", 30)+"\n x: 1", "\n", "\n"), Sizes: doubling(200, 3), Order: Linear},
+			}},
+		{Grammar: "cue", ID: "nested-operators", Witness: true, Rules: []string{"sp"}, Pattern: cueNestedOperators,
+			Shape:  "the space before an operator part after an operand nested in prefix operators: each enclosing operator part tries the operator parts, and the lookahead of atom_expr, again at the position where the nested operands end; the scan [ \\t\\r]* repeats one character class, so no record answers it again",
+			Assign: "O75", Order: Poly(2), Families: []TriageFamily{
+				{Name: "nested negations before long spaces", Build: cueField(func(n int) string { return rep("-", n) + "1" + rep(" ", n) }), Sizes: doubling(250, 3), Order: Poly(2)},
 			}},
 		{Grammar: "cue", ID: "definitions", Witness: true, Rules: []string{"hashrest"}, Pattern: `examined`,
 			Shape:  "the name of a definition #name read by the !(sp ident) lookahead of a let keyword or by a selector part that fails, and again by the label, embedding or selector part that follows",

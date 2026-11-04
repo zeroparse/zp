@@ -1,5 +1,18 @@
-# minilang: unknown (degree 0), 0 witnesses, 2 reasons
+# minilang: polynomial (degree 2), 1 witnesses, 10 reasons
 
 ## recover (2) -> F100
 0:0 stmt: the base of the #recover at rule stmt is not committing against the skip expression [^;{}\n]+ ";"?, and units that are not committing are nested in it without bound through a recursion of rule calls
 45:43 if: the option at 45:43 in rule if is not committing against what follows the option else?, and units that are not committing are nested in it without bound through a recursion of rule calls
+
+## nested-operators (1) -> F100
+83:40 ident: the cost can grow as n^2: after the operator part at 77:17 in rule operation fails, the operator parts that the enclosing operator parts of operation try again can start again inside the input that the repetition idchar* at 83:40 in rule ident examined; this repeats in the recursion of rule operation
+
+## nested-operator-parts (8) -> F100
+67:25 operation: the operator part at 67:25 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+68:24 operation: the operator part at 68:24 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+69:24 operation: the operator part at 69:24 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+70:24 operation: the operator part at 70:24 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+71:24 operation: the operator part at 71:24 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+72:24 operation: the operator part at 72:24 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+75:17 operation: the operator part at 75:17 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls
+76:17 operation: the operator part at 76:17 in rule operation is not committing against the operator parts that the enclosing operator parts of operation try again, and units that are not committing are nested in it without bound through a recursion of rule calls

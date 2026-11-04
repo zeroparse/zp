@@ -135,6 +135,9 @@ func TestTriageTable(t *testing.T) {
 		if _, err := regexp.Compile(g.Pattern); err != nil {
 			t.Errorf("%s: %v", key, err)
 		}
+		if _, err := regexp.Compile(g.Exclude); err != nil {
+			t.Errorf("%s: %v", key, err)
+		}
 		if g.Assign == "" || g.Shape == "" {
 			t.Errorf("%s: no assignment or shape", key)
 		}
@@ -209,7 +212,7 @@ func TestTriageMeasure(t *testing.T) {
 				for _, n := range f.Sizes {
 					lengths = append(lengths, len(f.Build(n)))
 				}
-				report := func(backend string, s Series) {
+				report := func(backend string, s Series, want Order) {
 					got := ClassifyLengths(s, lengths)
 					var costs []string
 					for _, c := range s.Costs {
@@ -217,8 +220,8 @@ func TestTriageMeasure(t *testing.T) {
 					}
 					t.Logf("| %s | %s | %s | %s | %d…%d bytes: %s | %.2f | %v |", g.Grammar, g.ID, f.Name, backend,
 						lengths[0], lengths[len(lengths)-1], strings.Join(costs, " → "), s.LengthSlopes(lengths), got)
-					if got != f.Order {
-						t.Errorf("%s: measured %v, recorded %v", backend, got, f.Order)
+					if got != want {
+						t.Errorf("%s: measured %v, recorded %v", backend, got, want)
 					}
 				}
 				for _, b := range Backends {
@@ -230,14 +233,18 @@ func TestTriageMeasure(t *testing.T) {
 						}
 						s.Costs = append(s.Costs, c)
 					}
-					report(BackendName(b), s)
+					report(BackendName(b), s, f.Order)
 				}
 				if withGo {
+					want := f.Order
+					if f.Generated != Unknown {
+						want = f.Generated
+					}
 					var inputs []string
 					for _, n := range f.Sizes {
 						inputs = append(inputs, f.Build(n))
 					}
-					report("generated Go", Series{Sizes: f.Sizes, Costs: generatedSteps(t, top, g.Grammar, paths[g.Grammar], inputs, f.Lenient)})
+					report("generated Go", Series{Sizes: f.Sizes, Costs: generatedSteps(t, top, g.Grammar, paths[g.Grammar], inputs, f.Lenient)}, want)
 				}
 			})
 		}

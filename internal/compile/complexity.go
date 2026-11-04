@@ -224,6 +224,7 @@ type classifier struct {
 	reachFrom   map[string]map[string]bool
 
 	sites           []*site
+	nestSites       map[*site]bool // the call sites whose evaluations can nest and end at one position (nestsAt)
 	units           []*unit
 	local           map[string]*source // the first scanning source in the body or action of a rule
 	ruleSrc         map[string]*source // the first scanning source that a rule contains, through calls

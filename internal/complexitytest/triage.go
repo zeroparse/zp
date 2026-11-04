@@ -30,13 +30,13 @@ var TriageGrammars = []TriageGrammar{
 	{"yaml", "../../testdata/grammars/yaml/yaml.zp"},
 	{"minilang", "../../examples/minilang/minilang.zp"},
 	{"outline", "../../examples/outline/outline.zp"},
+	{"calc", "../../examples/calculator/calc.zp"},
 }
 
 // LinearGrammars are the bundled grammars that the classifier proves Linear; the triage tests
 // check that they stay so.
 var LinearGrammars = []TriageGrammar{
 	{"json", "../../testdata/grammars/json/json.zp"},
-	{"calc", "../../examples/calculator/calc.zp"},
 	{"calc_lr", "../../examples/calculator/calc_lr.zp"},
 }
 
@@ -53,6 +53,9 @@ type TriageGroup struct {
 	Rules []string
 	// Except excludes the causes reported in these rules, which another group holds.
 	Except []string
+	// Exclude, when not empty, is a regular expression that excludes the causes whose message
+	// matches it, which another group holds.
+	Exclude string
 	// Pattern is a regular expression that the message of every cause of the group matches.
 	Pattern string
 	// Shape describes what the causes have in common.
@@ -61,7 +64,7 @@ type TriageGroup struct {
 	Assign string
 	// Families are the adversarial input families derived from the witness paths of the group.
 	Families []TriageFamily
-	// Order is the measured order of the worst family on every backend.
+	// Order is the measured order of the worst family on every backend, generated Go included.
 	Order Order
 	// Budget is the recommended budget for a group whose cost is inherent.
 	Budget string
@@ -79,8 +82,11 @@ type TriageFamily struct {
 	Sizes []int
 	// Lenient accepts inputs that finish with syntax errors.
 	Lenient bool
-	// Order is the measured order of the family on every backend.
+	// Order is the measured order of the family on every backend of the engine.
 	Order Order
+	// Generated, when not Unknown, is the measured order of the family on a generated Go
+	// parser, which differs from Order; otherwise the generated parser measures Order too.
+	Generated Order
 }
 
 // Matches reports whether the cause c, a witness when witness is set, belongs to g.
@@ -92,6 +98,9 @@ func (g *TriageGroup) Matches(c engine.ComplexityCause, witness bool) bool {
 		return false
 	}
 	if contains(g.Except, c.Rule) {
+		return false
+	}
+	if g.Exclude != "" && regexp.MustCompile(g.Exclude).MatchString(c.Message) {
 		return false
 	}
 	return regexp.MustCompile(g.Pattern).MatchString(c.Message)

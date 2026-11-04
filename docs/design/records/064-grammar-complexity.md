@@ -372,7 +372,7 @@ Not yet in place:
 
 ## Classification of the Bundled Grammars
 
-The grammars in `testdata/grammars/` and `examples/`, except json and the two calculators, are classified `Poly`, `Exp` or
+The grammars in `testdata/grammars/` and `examples/`, except json and the left-recursive calculator, are classified `Poly`, `Exp` or
 `Unknown`. The verdicts are upper bounds and the witnesses are paths, not slow inputs, and the corpus inputs are benign,
 so a verdict alone does not tell whether a cause is imprecision of the classifier, a cost that the runtime can remove,
 or a cost inherent in the language. Every cause is therefore sorted by measurement.
@@ -390,8 +390,10 @@ ZP_TRIAGE=. ZP_TRIAGE_GO=1 go test -run TestTriageMeasure -v ./internal/complexi
 The variable is a regular expression over `grammar/group/family`. The test prints one row per family and backend, and
 fails when a measured order differs from the recorded one. The exponent is the logarithm of the cost ratio over the
 logarithm of the input length ratio between consecutive sizes, so families whose length is not proportional to their
-size parameter, such as indentation staircases, are judged against the input length. The four backends agree on the
-order of every family. The table gives the worst exponent of each group over its families and backends.
+size parameter, such as indentation staircases, are judged against the input length. The backends agree on the order of
+every family except minilang's nested operators, which the run records keep linear on the engine backends and which a
+generated Go parser, keeping no such records, runs in n². The table gives the worst exponent of each group over its
+families and backends.
 
 The groups are addressed by these mechanisms:
 
@@ -465,7 +467,7 @@ The groups are addressed by these mechanisms:
   scanning source: the walks of its sites evaluate their elements a number of times linear in the input plus a
   constant per walk ([Lemma 9](../../../spec/proofs/linear-cost.md#lemma-9-reused-skips)), whatever the width of an
   iteration. A skip that calls a rule stays a source, since a called rule can examine any amount of the input. The
-  nested recovery `s = ("(" s ")") #recover(skip=[a(]+)` is then linear. minilang stays unknown: when a statement
+  nested recovery `s = ("(" s ")") #recover(skip=[a(]+)` is then linear. minilang keeps a reason for its recovery: when a statement
   fails inside a block, its skip stops before the `{`, and the next statements parse the block again, which only the
   memoized `stmt` keeps linear.
 - **Constant-cost text in the cost model.** The cost model guarantees that the text of a node costs a constant in a
@@ -476,7 +478,13 @@ The groups are addressed by these mechanisms:
   nested units.
 - **Repetition-run reuse.** duckdb's operator lookahead reads the run of `+` and `-` after an operator character, and a
   prefix operator at each character of the run reads the rest again: `SELECT ` + `+`^n + `1` costs 282k, 1.04M and
-  4.01M steps for 210, 410 and 810 bytes. The later stages of run reuse make this linear.
+  4.01M steps for 210, 410 and 810 bytes. The later stages of run reuse make this linear. The same holds for the
+  operator parts after an operand that prefix operators or a right-associative operator nest: each enclosing operator
+  part tries them again where the nested operands end, and a skip that repeats one character class, which no record
+  answers, scans the same whitespace each time. In the calculator, `-`^n `1` followed by n spaces costs 135k, 520k and
+  2.04M steps for 501, 1001 and 2001 bytes; CEL's `?:` and CUE's prefix operators measure the same. minilang's skip
+  repeats a choice, so it is a run site, and its families measure linear on the engine backends; a generated Go
+  parser keeps no run records for it and measures them n², which the classifier, relying on no records, reports.
 - **In-place fold accumulators.** Python folds that copy their accumulator in each step (`acc + "." + name`,
   `concat(acc, x)`) are quadratic in the list length: a dotted import name of 2k, 4k and 8k bytes costs 2.07M, 8.15M
   and 32.3M steps. Extending the accumulator in place when the old one is dead makes them linear.
@@ -501,13 +509,17 @@ The groups are addressed by these mechanisms:
 | xml | mixed | 1 | token-scan refinement | 1 | 1.00 | n |
 | xml | name-scan | 4 | token-scan refinement | 3 | 1.00 | n |
 | xml | ws-option | 4 | token-scan refinement | 2 | 1.00 | n |
-| cel | nested | 12 | open | 6 | 1.00 | n |
-| cel | names-and-space | 3 | token-scan refinement | 3 | 1.00 | n |
+| cel | nested | 19 | open | 6 | 1.00 | n |
+| cel | names | 2 | token-scan refinement | 2 | 1.00 | n |
+| cel | space | 1 | repetition-run reuse | 2 | 1.81 | n² |
 | cel | number-tokens | 3 | token-scan refinement | 2 | 1.00 | n |
 | cel | string-tokens | 2 | token-scan refinement | 1 | 1.04 | n |
 | outline | nested | 2 | open | 1 | 0.97 | n |
 | outline | blank-lines | 2 | token-scan refinement | 2 | 1.00 | n |
 | minilang | recover | 2 | open | 3 | 1.01 | n |
+| minilang | nested-operators | 1 | open | 2 | 1.99 | n² |
+| minilang | nested-operator-parts | 8 | open | 2 | 1.99 | n² |
+| calc | nested-operators | 3 | repetition-run reuse | 3 | 1.98 | n² |
 | golang | nested | 166 | open | 12 | 1.01 | n |
 | golang | comments | 16 | token-scan refinement | 7 | 1.01 | n |
 | golang | identifiers | 1 | token-scan refinement | 2 | 1.00 | n |
@@ -537,6 +549,7 @@ The groups are addressed by these mechanisms:
 | cue | numbers | 7 | token-scan refinement | 6 | 1.00 | n |
 | cue | raw-strings | 10 | token-scan refinement | 5 | 1.00 | n |
 | cue | whitespace | 13 | token-scan refinement | 5 | 1.00 | n |
+| cue | nested-operators | 2 | repetition-run reuse | 1 | 1.93 | n² |
 | yaml | indentation-bindings | 2 | bounded-binding refinement | 3 | 0.99 | n |
 | yaml | nested | 38 | open | 5 | 1.00 | n |
 | yaml | block-scalars | 3 | token-scan refinement | 3 | 1.00 | n |

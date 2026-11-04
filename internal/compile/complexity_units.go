@@ -538,6 +538,12 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 					what: fmt.Sprintf("the operand %s at %s", k.show(o.Expr), at(c.rule, exprPos(o.Expr)))})
 			}
 		}
+		if p.op.Kind != grammar.Prefix && k.nestsOps(c.rule) {
+			// An operator part that an enclosing operator part applies to tries the operator parts
+			// again at the same position, once for each level of the nesting.
+			conts = append(conts, contSpec{paths: []*cont{end},
+				what: "the operator parts that the enclosing operator parts of " + c.rule + " try again"})
+		}
 		u := k.newUnit(unitOperator, c, p.op.Expr, []*cont{self}, append(conts, follow))
 		applies := false
 		switch p.op.Kind {
@@ -793,6 +799,9 @@ type lead struct {
 	lit  *grammar.Literal
 	rest *cont
 	done bool
+	// up: the path reaches the lead after the end of a rule body, in what follows a call whose
+	// evaluations can nest without a bound and end at one position (nestsAt, nestsOps).
+	up bool
 }
 
 type endKey struct {
@@ -813,9 +822,13 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 	budget := leadBudget
 	var out []lead
 	// ended are the rule ends already followed: the paths after them are the same each time.
-	ended := map[endKey]bool{}
-	var visit func(p *cont)
-	visit = func(p *cont) {
+	type upKey struct {
+		endKey
+		up bool
+	}
+	ended := map[upKey]bool{}
+	var visit func(p *cont, up bool)
+	visit = func(p *cont, up bool) {
 		for {
 			k.control.poll()
 			budget--
@@ -824,7 +837,7 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 				return
 			}
 			if p == nil {
-				out = append(out, lead{done: true})
+				out = append(out, lead{done: true, up: up})
 				return
 			}
 			if len(p.items) == 0 {
@@ -833,7 +846,7 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 					continue
 				}
 				if p.end != endNone {
-					key := endKey{p.end, p.rule}
+					key := upKey{endKey{p.end, p.rule}, up}
 					if ended[key] {
 						return
 					}
@@ -841,12 +854,12 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 				}
 				switch p.end {
 				case endNone:
-					out = append(out, lead{done: true})
+					out = append(out, lead{done: true, up: up})
 				case endOps:
-					k.opsLeads(p.rule, visit)
-					k.endLeads(p.rule, keep, visit)
+					k.opsLeads(p.rule, func(c *cont) { visit(c, k.nestsOps(p.rule)) })
+					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, k.nestsAt(s)) })
 				case endRule:
-					k.endLeads(p.rule, keep, visit)
+					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, k.nestsAt(s)) })
 				}
 				return
 			}
@@ -878,12 +891,12 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 				p = rest
 			case *grammar.EndInput:
 				// At the end of the input nothing more is examined.
-				out = append(out, lead{done: true})
+				out = append(out, lead{done: true, up: up})
 				return
 			case *grammar.Literal:
 				if e.Value != "" {
 					if only == nil {
-						out = append(out, lead{lit: e, rest: rest})
+						out = append(out, lead{lit: e, rest: rest, up: up})
 					} else {
 						out = append(out, lead{})
 					}
@@ -892,12 +905,12 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 				p = rest
 			case *grammar.Choice:
 				for _, alt := range e.Alts {
-					visit(rest.then(alt))
+					visit(rest.then(alt), up)
 				}
 				return
 			case *grammar.Optional:
-				visit(rest.then(e.Expr))
-				visit(rest)
+				visit(rest.then(e.Expr), up)
+				visit(rest, up)
 				return
 			case *grammar.Repeat:
 				if e.Max == 0 {
@@ -905,9 +918,9 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 					continue
 				}
 				again := k.againOf(e)
-				visit(rest.then(e.Expr, again))
+				visit(rest.then(e.Expr, again), up)
 				if e.Min == 0 {
-					visit(rest)
+					visit(rest, up)
 				}
 				return
 			case *grammar.Ref:
@@ -916,14 +929,14 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 					return
 				}
 				if k.shareable(e) && (only == nil || *only == e.Name) {
-					out = append(out, lead{call: e, rest: rest})
+					out = append(out, lead{call: e, rest: rest, up: up})
 					return
 				}
 				if k.shareable(e) && seen != nil {
 					seen[e.Name] = true
 				}
 				if pr := k.operatorsBody(e.Name); pr != nil {
-					k.operatorsLeads(pr, e.Name, visit)
+					k.operatorsLeads(pr, e.Name, func(c *cont) { visit(c, up) })
 					return
 				}
 				p = rest.then(k.byName[e.Name].Expr)
@@ -934,22 +947,89 @@ func (k *classifier) leads(paths []*cont, keep func(*site) bool, only *string, s
 		}
 	}
 	for _, p := range paths {
-		visit(p)
+		visit(p, false)
 	}
 	return out
 }
 
-// endLeads continues a path at the end of the body of rule, after each call of the rule; at the
-// end of the start rule the parse ends.
-func (k *classifier) endLeads(rule string, keep func(*site) bool, visit func(*cont)) {
+// endLeads continues a path at the end of the body of rule, after each call of the rule, with the
+// call site; at the end of the start rule the parse ends, without a site.
+func (k *classifier) endLeads(rule string, keep func(*site) bool, visit func(*cont, *site)) {
 	if rule == k.start {
-		visit(nil)
+		visit(nil, nil)
 	}
 	for _, s := range k.sites {
 		if s.callee == rule && (keep == nil || keep(s)) {
-			visit(s.cont)
+			visit(s.cont, s)
 		}
 	}
+}
+
+// nestsAt reports whether the evaluations of the callee of s can nest without a bound and end at
+// one position: s lies on a cycle of calls each of which is followed, in its caller, by what can
+// match without consuming input, so the nested evaluations of the cycle all end where the
+// innermost one ends.
+func (k *classifier) nestsAt(s *site) bool {
+	if s == nil {
+		return false
+	}
+	if k.nestSites == nil {
+		k.nestSites = map[*site]bool{}
+		next := map[string][]string{}
+		for _, t := range k.sites {
+			if k.recursive[t.callee] && k.scc[t.caller] == k.scc[t.callee] && k.endsEmpty(t.cont) {
+				next[t.caller] = append(next[t.caller], t.callee)
+				k.nestSites[t] = true
+			}
+		}
+		for t := range k.nestSites {
+			// t is on a cycle when its callee reaches its caller.
+			seen := map[string]bool{t.callee: true}
+			work := []string{t.callee}
+			for len(work) > 0 && !seen[t.caller] {
+				r := work[len(work)-1]
+				work = work[:len(work)-1]
+				for _, c := range next[r] {
+					if !seen[c] {
+						seen[c] = true
+						work = append(work, c)
+					}
+				}
+			}
+			k.nestSites[t] = seen[t.caller]
+		}
+	}
+	return k.nestSites[s]
+}
+
+// endsEmpty reports whether the path c can reach its end without consuming input.
+func (k *classifier) endsEmpty(c *cont) bool {
+	for ; c != nil; c = c.next {
+		k.control.poll()
+		if _, null := k.firstItems(c.items); !null {
+			return false
+		}
+	}
+	return true
+}
+
+// nestsOps reports whether the right operands of the Operators Rule of rule nest without a bound
+// that the grammar sets: a prefix operator part, or a right-associative infix one, parses operators
+// of its own level in its right operand, so an operand can end where every enclosing operator part
+// ends.
+func (k *classifier) nestsOps(rule string) bool {
+	pr := k.operators(rule)
+	if pr == nil {
+		return false
+	}
+	for _, l := range pr.Levels {
+		for _, op := range l.Operators {
+			if op.Kind == grammar.Prefix || op.Kind == grammar.Infix && op.Assoc == grammar.AssocRight {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // opsLeads continues a path after an operand of the Operators Rule of rule, with its operator
@@ -1041,9 +1121,27 @@ func (k *classifier) strip(u, c []*cont, keep func(*site) bool) ([]*cont, []*con
 				return u, c
 			}
 		}
+		if k.rescans(lc) {
+			return u, c
+		}
 		u, c = rests(lu), rests(lc)
 	}
 	return u, c
+}
+
+// rescans reports whether the continuation evaluates its shared call again with a cost that
+// nothing bounds: the memo does not answer the call, the rule scans input, and the continuation
+// reaches the call after the end of a rule body, in what follows a call whose evaluations can nest
+// without a bound and end at one position. Each of the nested evaluations that ends at the
+// position of the unit then evaluates the call there again, as the option in
+// e = "(" e? (ws ")")? does, where ws scans the same spaces once for each level.
+func (k *classifier) rescans(lc []lead) bool {
+	for _, l := range lc {
+		if l.call != nil && l.up && !k.memoAt(l.call) && k.ruleSrc[l.call.Name] != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // deepLeads looks for a shareable call that the unit and the continuation both evaluate first,

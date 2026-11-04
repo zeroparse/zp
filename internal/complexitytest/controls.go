@@ -230,6 +230,59 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("y(", n) },
 			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
+		// A call that the memo does not answer costs its scan each time. The continuation of a
+		// failed unit evaluates the shared call again at the same position: a bounded number of
+		// times when it reaches the call within the bodies around the unit, and once for each
+		// level when it reaches it through the end of a recursion, which can nest as deep as the
+		// input.
+		{
+			Name: "Scan shared by the alternatives of nested rules", Family: "rescanned calls", Positive: true,
+			Source: "rule main = b* $$\nrule b = a \"c\" / a \"d\"\nrule a = ws \"a\" / ws \"b\"\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("  bd", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Memoized scan shared through the end of a recursion", Family: "rescanned calls", Positive: true,
+			Source: "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = sp*\nrule sp = \" \"\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Scan shared through the end of a recursion", Family: "rescanned calls",
+			Source: "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Scan shared through the ends of rules around a recursion", Family: "rescanned calls",
+			Source: "rule main = e ws $$\nrule e = \"(\" e? t\nrule t = o\nrule o = (ws \")\")?\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Operators Rule skip shared by nested prefix operators", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Operators Rule part shared by nested right operands", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { infix right ws \"^\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("a^", n) + "a" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Operators Rule memoized skip shared by nested prefix operators", Family: "rescanned calls", Positive: true,
+			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = sp*\nrule sp = \" \"\n",
+			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Operators Rule part shared by left operands", Family: "rescanned calls", Positive: true,
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { infix left ws \"^\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("a^", n) + "a" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
 		{
 			Name: "Keyword excluded by a negative lookahead, safe", Family: "word exclusion", Positive: true,
 			Source: "rule main = (s / \" \")* $$\nrule s = kw (\" \" / \"let\")* \"q\" / id\nrule kw = \"let\" !c\nrule c = [a-z]\nrule id = !key c+\nrule key = (\"if\" / \"let\") !c\n",
