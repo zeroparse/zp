@@ -139,7 +139,7 @@ func Controls() []Control {
 			Name: "Copies of members of the elements of a list of recursive calls for each element", Family: "read input",
 			Source: "rule main = e $$\nrule e [][]string = \"(\" zs:f* \")\" => map($zs, (a) => map($zs, (q) => text(q.$y) + \"!\"))\nrule f = \"<\" y:k* w:e? \">\"\nrule k = \"b\"\n",
 			Input:  func(n int) string { return "(" + rep("<bb>", n) + ")" },
-			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(125), Order: Poly(2), Class: ClassUnknown,
 		},
 		{
 			Name: "Copies of the elements of a list that map builds from a capture", Family: "read input",

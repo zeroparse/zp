@@ -10,20 +10,20 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 6 is proved given the
-count of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The
-theorem is proved from the others, so the promise of the class Linear rests on
-Lemmas 4 and 5. [Correspondence](#correspondence) maps the checks of the
-classifier to the conditions and to the lemmas that use them. Lemmas 4 and 5
-are given as outlines: each
-states its claim, the conditions it uses, and the steps that its proof must
-still make precise, listed under [Open Steps](#open-steps). Lemma 4 proves a
-reduction and leaves the count of activations open: the scanned cost comes down
-to the number of activations, a failure after a source passes through the forms
-that condition 2 checks, and an activation is repeated at a position only after
-an abandoned committing unit or a dropped growth step. Lemma 5 proves the bound
-on the sources that a growth step evaluates at fixed offsets after the position
-where it grows.
+Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 6 is proved given the count
+of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
+proved from the others, so the promise of the class Linear rests on Lemmas 4 and
+5, which are outlines, and on Lemma 6, which is proved given step 1.
+[Correspondence](#correspondence) maps the checks of the classifier to the
+conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
+outlines: each states its claim, the conditions it uses, and the steps that its
+proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
+proves a reduction and leaves the count of activations open: the scanned cost
+comes down to the number of activations, a failure after a source passes through
+the forms that condition 2 checks, and an activation is repeated at a position
+only after an abandoned committing unit or a dropped growth step. Lemma 5 proves
+the bound on the sources that a growth step evaluates at fixed offsets after the
+position where it grows.
 
 ## Setting
 
@@ -573,19 +573,21 @@ degrees](../runtime/parsing.md#conditions-for-linear-cost) that condition 4
 adds; the condition admits the sum only when it is a size degree of at most 1.
 By *Sizes in the read input* in Lemma 11, the bound of a size degree $d$ holds
 with $\rho$ in place of $n$, for values that read no variable, so the sum is at
-most a constant times $\rho$, whether the list is own or built by `map` or a
-lambda. When the list is own and the lambdas read only its elements, the degree
-leaves out the number of its elements, and those are own captures of a
-repetition, distinct parts of the read input, so the sum is at most a constant
-times $\rho$ as well. A list built from the values of variables adds at most a
-constant times $L$. A fold over such a list costs, by the sums after the proof
-of Lemma 7, at most a constant times $\rho^d$ with $d$ the degree of its cost,
-which the class Linear admits only when it is at most 1; then each term of its
-cost is a constant or the size of the element of the step, since a term that
-reads a quantity of the first parameter has degree at least 2 there, every
-quantity having degree at least 1 and the number of steps of a list that is not
-bounded degree at least 1, so its steps cost at most a constant times one more
-than the size of its list, which is bounded as above.
+most a constant times $\rho$ when that degree is at most 1, as the class Linear
+requires, whether the list is own or built by `map` or a lambda; without that
+admission it is not, as in a lambda over a list of calls on the recursion that
+maps the same list again for each element. When the list is own and the lambdas
+read only its elements, the degree leaves out the number of its elements, and
+those are own captures of a repetition, distinct parts of the read input, so the
+sum is at most a constant times $\rho$ as well. A list built from the values of
+variables adds at most a constant times $L$. A fold over such a list costs, by
+the sums after the proof of Lemma 7, at most a constant times $\rho^d$ with $d$
+the degree of its cost, which the class Linear admits only when it is at most 1;
+then each term of its cost is a constant or the size of the element of the step,
+since a term that reads a quantity of the first parameter has degree at least 2
+there, every quantity having degree at least 1 and the number of steps of a list
+that is not bounded degree at least 1, so its steps cost at most a constant
+times one more than the size of its list, which is bounded as above.
 
 *Sum.* Each such operation costs, in $e$, at most a constant times $\rho + L$.
 The term $L + 1$ is paid once for each body evaluation and each activation,
@@ -1158,16 +1160,18 @@ each element, but each run builds its components from the element, from values
 that are not copied, and from constants: by condition 4 it copies nothing from
 outside it that is not bounded by a constant. A fold over a list that is not
 bounded passes its first parameter on from step to step, but no copying
-operation reads it, so the components of the first parameter are components of
-the initial value, of the elements, of values read from outside, or built in one
-step by terms that copy none of them, and their top sizes do not grow from step
-to step. Over a bounded list, a fold may copy its first parameter, and Lemma 7
-bounds it by a constant multiple. A recursion passes the values of its calls up
-from level to level, but no copying operation reads the value of a call on a
-recursion with its rule, nor a part of it that holds such a call. It reads only
-parts of such values that hold none, through members: the value of a capture
-inside the match of the call, which is a node, a list of a repetition, or a
-value of a rule outside the recursion.
+operation copies it, though a term such as `list(s)` may read it, so the
+components of the first parameter are components of the initial value, of the
+elements, of values read from outside, or built in one step by terms that copy
+none of them, and their top sizes do not grow from step to step. Over a bounded
+list, a fold may copy its first parameter, and Lemma 7 bounds it by a constant
+multiple. A recursion passes the values of its calls up from level to level, but
+no copying operation copies the value of a call on a recursion with its rule,
+nor a part of it that holds such a call; other terms, such as `list($w)`, read
+such a value without copying it. A copy reads only parts of such values that
+hold none, through members: the value of a capture inside the match of the call,
+which is a node, a list of a repetition, or a value of a rule outside the
+recursion.
 
 Induction on the strongly connected components of the call graph, from those
 that call no other, and within one component on the nesting of matches, then
@@ -1193,19 +1197,45 @@ has top size at most a constant times $\rho$. $\square$
 [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the size of a value of size degree $d$ by a constant times $n^d$
 (*Size degrees* in Lemma 7). For an anchored value that a copying operation in
-$e$ reads, the same bound holds with $\rho$ in place of $n$. The proof of
-*Size degrees* starts from values whose bounds it takes from their matches,
-an own value at most a constant times one more than its match, the list of a
-repetition at most one more than its iterations, and a value of another
-recursion at most a constant times $N_{\mathcal{S}}(m')$ for its match $m'$,
-and from values read from outside a lambda or a fold, which it bounds by
-$n$ to their size degrees. For an anchored value that the operation reads,
-these matches lie in the read input, and the values from outside are
-captures of $e$ or parts of them, so each such bound is at most a constant
-times $\rho$ to the same degree, and the rules after the proof of Lemma 7
-combine them as before. A value that is not anchored is excluded: a value of
-a variable has size up to $L$ whatever the match, and a capture in a positive
-lookahead holds input outside it. $\square$
+$e$ reads, the same bound holds with $\rho$ in place of $n$.
+
+*Proof.* The claim is a substitution: every inequality of *Size degrees* and of
+the sums after the proof of Lemma 7 stays true when $n$ is replaced by any
+number $X \ge 1$ that bounds each of the quantities for which those proofs use
+$n$, since those proofs use $n$ only as such a bound and combine the bounds by
+sums, products and powers, which are monotone in $X$. We list each use and show
+that $\rho$ bounds it, up to a constant, for an anchored value that the
+operation in $e$ reads.
+
+- *Own values* bounds a value by
+  $\alpha_{\mathcal{S}}(|m| + N_{\mathcal{S}}(m))$ for its match $m$, without
+  $n$, and *Matches nested in one match* bounds $N_{\mathcal{S}}(m)$ by
+  $h(|m| + 1)$. The matches that the value reads lie in the read input, by Lemma
+  6, so each such bound is at most a constant times $\rho$.
+- *Size degrees above 1* bounds the number of elements of the list of a
+  repetition by $\hat{n}$, and the number of matches of a recursion inside a
+  match by $N_{\mathcal{S}}(m) \le h \hat{n}$. For a repetition and a match that
+  the value reads, these are at most the iterations that $\rho$ counts and
+  $h(|m| + 1)$ with $m$ in the read input, so at most a constant times $\rho$.
+  The bound $n^d$ on one level is, by the induction of that proof, the bound of
+  a value of degree $d$ inside the match, so it is at most a constant times
+  $\rho^d$ by the same substitution at the lower degree.
+- The sums after the proof of Lemma 7 use $n$ to the size degree of each value
+  that a lambda or a fold reads from outside it, of the three quantities of the
+  initial value, and of those of the list, from which the number of steps and
+  $\sigma(b)$ come, and to the size degrees of the numbers of elements of the
+  lists of the lambdas around a fold; the factor $n^a$ of a term is that of a
+  value read from outside. Each of these values is a capture of $e$, a part of
+  one, or a value built from them, so by the induction on the forms its
+  quantities are at most a constant times $\rho$ to their degrees.
+- The innermost lambda over own captures of a repetition uses
+  $\sum_i \ell_i \le c\,n$, since the captures are distinct parts of the input.
+  They are distinct parts of the read input, so the sum is at most $c\rho$.
+
+No other use of $n$ occurs in those proofs. A value that is not anchored is
+excluded: a value of a variable has size up to $L$ whatever the match, and a
+capture in a positive lookahead holds input outside it, so for them the bound
+holds only with $n$. $\square$
 
 *Values of variables.* Let no evaluation of a binding read a value that is
 built, through bindings, captures and rule values, from an earlier
@@ -1272,13 +1302,21 @@ names the check that decides each condition.
 
 ## Correspondence
 
-The classifier in `internal/compile` decides the conditions, and the lemmas
-use them. Each entry names the functions of a check, the term or condition of
-[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-that it decides, and the lemmas that use it. `classify` runs the checks in
-the order `checkUnits`, `checkGrowth`, `checkCarriedGrowth`, `checkNesting`
-and `checkValues`, after `collect` has walked the rules, which records the
-scanning sources, the units, the bindings and the copying operations.
+The classifier in `internal/compile` decides the conditions, and the lemmas use
+them. Each entry names the functions that decide a term or condition of
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
+that term or condition, and the lemmas that use it. The list names the deciders,
+not every helper that they call: `collect` and the walks `walkRule`,
+`walkLookahead`, `walkRecovery` and `walkOperators` record the scanning sources,
+the units, the bindings and the copying operations; `sameCycle` and
+`onRecursion` tell the rules of one left-recursion cycle and the calls on a
+recursion; `computeFollow`, `followSets`, `followFor` and `keepFor` give what
+follows a call for the continuations; `consumesNothing` tells the expressions
+that never consume input; `matchesWord` and `wordExcludes` evaluate a word
+against a continuation; and `foldDegrees` gives the degrees of a fold from its
+step matrix. `classify` runs the checks in the order `checkUnits`,
+`checkGrowth`, `checkCarriedGrowth`, `checkNesting` and `checkValues`, after
+`collect`.
 
 - `computeBounded`, `bounded` and `nullable` decide the expressions whose
   matches are bounded in length and those that can match nothing, which the
