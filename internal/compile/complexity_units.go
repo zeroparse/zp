@@ -1025,7 +1025,7 @@ type retriedPart struct {
 // walked, since nestsOps reads every call site.
 func (k *classifier) addRetried() {
 	for _, r := range k.retried {
-		if k.nestsOps(r.rule) {
+		if !DepthBoundResearch && k.nestsOps(r.rule) {
 			// Before what follows the Operators Rule, the last continuation.
 			n := len(r.u.conts) - 1
 			r.u.conts = slices.Insert(r.u.conts, n, contSpec{paths: []*cont{r.end},
@@ -1166,6 +1166,9 @@ func (k *classifier) strip(u, c []*cont, keep func(*site) bool) ([]*cont, []*con
 // position of the unit then evaluates the call there again, as the option in
 // e = "(" e? (ws ")")? does, where ws scans the same spaces once for each level.
 func (k *classifier) rescans(lc []lead) bool {
+	if DepthBoundResearch {
+		return false
+	}
 	for _, l := range lc {
 		if l.call != nil && l.up && !k.memoAt(l.call) && k.ruleSrc[l.call.Name] != nil {
 			return true
