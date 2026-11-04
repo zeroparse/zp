@@ -34,10 +34,14 @@ values such as maps remain shared. `ParseStats` has `Evaluated` and `Reused` fie
 
 ## What Is Kept Between Parses
 
-Both kinds of Document retain memo entries wholly before an edit and discard the suffix, rather than moving suffix
-nodes. The Node Document copies the retained prefix entries during `Edit`, so its cost can grow with document
-length. A typed Document scans the retained prefix and relinks its entries in place, without copying them. The
-generated batch functions remain available. `-document` can be combined with `-types`: eligible
+Both kinds of Document keep the memo results that examined only text before an edit where they are, and move those
+that examined only text after it by the edit's change in length; the others are evaluated again. A result of a rule
+whose actions or predicates read positions (`.Start`, `.End`), or that recovered errors, is not moved. The Node
+Document moves the nodes of a moved result when a parse reuses it, in copies, so a tree returned earlier keeps its
+positions; a result that holds an action value other than nodes and basic values is evaluated again instead. `Edit`
+copies the kept entries into a new table, so its cost grows with document length. A typed Document relinks its
+entries during `Edit` and reuses a moved result only when its value is a basic value, such as a string or a number;
+values that carry a span are evaluated again. The generated batch functions remain available. `-document` can be combined with `-types`: eligible
 grammars use direct typed matching with a private memo and fresh invocation arenas. A typed result is
 read-only and shared, as Node values are: later parses reuse the values of earlier results, so a result can share
 values with the Document and with other results. Modifying a result can change what later parses return, including

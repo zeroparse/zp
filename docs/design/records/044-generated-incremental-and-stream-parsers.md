@@ -251,9 +251,10 @@ nodes move once per edit generation, across fields and children. Completed resul
 are invalid after edits; abort/cancel drops all partial memo/resumption state before retry, while a completed syntax
 failure may keep valid cache entries.
 
-The current Node Document takes a conservative approach: an edit retains only completed memo entries wholly before
-the edit and discards the suffix; it copies retained prefix entries and does not move suffix Nodes. The typed
-Document relinks its retained entries in place instead. Neither resumes repetitions. Any broader reuse must retain the exact
+An edit keeps the completed memo entries that examined only input before it and moves those that examined only input
+after it, except results of rules that read positions and results with recovered errors; the others are dropped.
+The Node Document copies the kept entries and moves the Nodes of a moved result, in copies, when it is reused; the
+typed Document relinks its entries and moves only basic values. Neither resumes repetitions. Any broader reuse must retain the exact
 restrictions for predicates/variable reads, enclosing capture writes, recovered errors, provisional LR seeds and
 positional values on length-changing edits. Every empty successful iteration counts once and stops. Preserve
 repetition finite maxima/minima, cut scope, Operators Rule candidate-local diagnostics, and lookahead expectations.
