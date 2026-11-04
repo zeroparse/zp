@@ -2566,13 +2566,10 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
-  // mergeExpected records the expectations exp[from:to] at far. They may lie above the current
-  // record (writes only happen below the read position).
+  // mergeExpected records the expectations exp[from:to] at far. Its text is printed from Exec IR
+  // (internal/ir/exec/core).
   mergeExpected(far: number, from: number, to: number): void {
-    for (let i = from; i < to; i++) {
-      this.spend();
-      this.expect(far, this.exp[i]!);
-    }
+    throw new Error("the printed method replaces this one");
   }
 
   // isolate begins a separate record of the expectations from the position and returns its mark,

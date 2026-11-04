@@ -27,6 +27,7 @@ var tsSpecs = []struct {
 	{fn: "grow", name: "grow"},
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
+	{fn: "mergeExpected", on: []string{ops.Budget}, name: "mergeExpected"},
 	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
 }
 
@@ -62,7 +63,7 @@ var tsTarget = &exects.Target{
 		}[name]
 	},
 	FuncName: func(name string) string {
-		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept", "keep": "keep"}[name]
+		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept", "mergeExpected": "mergeExpected", "keep": "keep"}[name]
 	},
 	Reg: func(name string) string {
 		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent"}[name]
