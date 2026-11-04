@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-03
+Arata Furukawa · Last revised 2026-11-04
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -10,16 +10,17 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved, except the *Size degrees* paragraph
-of Lemma 7, which is an outline (step 7 of [Open Steps](#open-steps)); Lemma 6
-relies on it, since it cites the size degrees of condition 4 for the promise of
-Linear. The theorem is proved from the others. Lemmas 4 to 6 are given as
-outlines: each states its claim, the conditions it uses, and the steps that its
-proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
-proves a reduction and leaves the count of activations open: the scanned cost
-comes down to the number of activations, a failure after a source passes through
-the forms that condition 2 checks, and an activation is repeated at a position
-only after an abandoned committing unit or a dropped growth step. Lemma 5 proves
+Lemmas 1, 2, 3, 7, 8, 9 and 10 are proved. Lemma 6 is proved given the count
+of activations of Lemma 4 and the charge of the copies of values that are
+neither own nor values of variables (steps 1 and 6 of
+[Open Steps](#open-steps)). The theorem is proved from the others. Lemmas 4
+and 5 are given as outlines: each states its claim, the conditions it uses,
+and the steps that its proof must still make precise, listed under
+[Open Steps](#open-steps). Lemma 4 proves a reduction and leaves the count of
+activations open: the scanned cost comes down to the number of activations, a
+failure after a source passes through the forms that condition 2 checks, and
+an activation is repeated at a position only after an abandoned committing
+unit or a dropped growth step. Lemma 5 proves
 the bound on the sources that a growth step evaluates at fixed offsets after the
 position where it grows.
 
@@ -60,7 +61,10 @@ expression of a `#recover` that is not a [reused
 skip](../runtime/parsing.md#skip-runs). The growth of a cycle and the copying
 operations, the other scanning sources, make no calls of their own beyond the
 body evaluations of the growth. An iteration of a repetition of a character
-class is an activation of its own.
+class is an activation of its own. A copying operation that is a scanning
+source reads the input of the own span of the evaluation that performs it,
+as Lemma 6 defines it, and each unit of that input is an activation of the
+operation.
 
 **Local and scanned cost.** An evaluation of a rule body has a **local cost**,
 the cost of the steps that it makes outside the calls it makes and outside its
@@ -178,8 +182,8 @@ skip-run sites. A reused skip is no scanning source, and Lemma 9 bounds its
 walks.
 
 **Activations carry the scanned cost.** The scanned cost of all body
-evaluations, apart from the copying operations, whose cost is the size of the
-values they build and which Lemma 6 counts, is at most a constant $c_3$ times
+evaluations, apart from the copying operations, which Lemma 6 bounds by their
+activations, is at most a constant $c_3$ times
 the number of activations. A step of a scanning source outside the calls that
 it makes lies in one activation of the innermost scanning source of the body
 that encloses it. An activation evaluates a fixed part of the grammar once:
@@ -498,24 +502,107 @@ stops, which happens once per growth.
 
 ## Lemma 6 (Values and Copies)
 
-*Outline.* Under conditions 1 and 4, the size of the values that actions and
-predicates build is at most a constant times $K(L + 1)\hat{n}$.
+Under conditions 1, 2 and 4, the size of the values that actions and
+predicates build is at most a constant times $K(L + 1)\hat{n}$, given the
+count of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)) and the
+charge of step 6.
 
-A copy of a value that does not include the value of a call on its own
-recursion, nor a fold accumulator, does not add up over the levels of a
-recursion; when it is unbounded it is a scanning source, which Lemma 4 counts.
-A copy in the lambda of `map`, `filter`, `foldl` or `foldr` over a list that
-is not bounded runs once per element, copies at most a constant from
-outside the lambda, and copies elements whose sizes add up, over all the
-evaluations of the lambda, to at most a constant times $\hat{n}$, by the
-[size degrees](#lemma-7-lambdas-over-bounded-lists) of condition 4; over a
-bounded list, Lemma 7 makes the copies of the call
-those of a constant number of copies outside the lambda. A copy of the
-value of a variable costs at most $L$. Condition 1 keeps the value of a
-variable from growing from its own earlier value, or, by Lemma 8, keeps it in
-a set of constant size, so the number of combinations at a position is $K$, a
-constant when every binding is a literal or binds a variable with finite
-values.
+For a body evaluation $e$ of a rule $R$ whose match succeeds, the **own span**
+of $e$ is the input that its match consumes outside the matches of the calls
+that it makes, directly or through other rules, of the rules of a recursion
+with $R$. The own spans of two matches of rules of one recursion, one nested
+in the other, are disjoint, since the inner match is part of a call that the
+outer one makes on the recursion.
+
+*Proof.* By [Cost](../runtime/parsing.md#cost) and the definition of a
+[copying operation](../runtime/parsing.md#conditions-for-linear-cost), an
+operation of an action or a predicate that is not a copying operation builds
+a value of constant size, and a copying operation costs at most a constant
+times the size that it copies or examines, plus a constant; taking the text
+of a node is no copying operation. The operations of constant cost, and the
+copying operations that are no
+[scanning source](../runtime/parsing.md#conditions-for-linear-cost), whose
+operands are bounded in size by a constant or are values of variables, are
+part of the local cost, which Lemma 1 bounds with the factor $L + 1$. What
+remains are the copying operations that are scanning sources. Let one of them
+be in the action or a predicate of $e$.
+
+*Outside lambdas.* By condition 4, the size that the operation copies does
+not include the value of a call on a recursion with $R$, nor a fold
+accumulator, nor a value whose size can come from a capture made in a
+positive lookahead. Its operand is then built from literals, values of variables and
+values of captures and calls of $e$ that hold no call on the recursion, as
+the text of a capture around such a call would; a call of a rule outside the
+recursion does not reach the recursion again, since its rule would be on it.
+So every capture and call that the operand reads is a match inside the
+own span of $e$. When its value is
+[own](../runtime/parsing.md#conditions-for-linear-cost), *Size degrees* in
+Lemma 7 bounds it by a constant times one more than its match. The operation
+reads a constant number of such values and of values of variables, so it
+copies at most a constant times $1 + |\text{own span of } e| + L$. A value
+read through a lambda over a bounded list is copied a constant number of
+times, by Lemma 7, so the same bound holds for the copies in such a lambda,
+with a larger constant. A value that is neither own nor the value of a
+variable is the charge of step 6.
+
+*Inside lambdas over lists that are not bounded.* By condition 4, such a
+lambda copies nothing from outside it that is not bounded in size by a
+constant, nor its fold accumulator, so each of its copies copies a constant
+or parts of the elements of the lists of the lambdas around it. Over the
+evaluations of the lambda in one evaluation of the action, the elements that
+it copies add up to the size of its list times the numbers of elements of the
+lists of the lambdas around it, by the
+[size degrees](../runtime/parsing.md#conditions-for-linear-cost) that
+condition 4 adds; the condition admits the sum only when it is a size degree
+of at most 1. When the list is own and the lambdas read only its elements,
+those are own captures of a repetition, distinct parts of the input of the
+own span of $e$, and by *Size degrees* the sum is at most a constant times
+$1 + |\text{own span of } e|$. A list built from the values of variables
+adds at most a constant times $L$, and any other list is again the charge of
+step 6. A fold over such a list costs, by the sums after the proof of Lemma 7,
+at most a constant times $n^d$ with $d$ the degree of its cost, which the
+class Linear admits only when it is at most 1; then each term of its cost is
+a constant or the size of the element of the step, since a term that reads a
+quantity of the first parameter has degree at least 2 there, every quantity
+having degree at least 1 and the number of steps of a list that is not
+bounded degree at least 1, so its steps cost at most a constant times one
+more than the size of its list, which is bounded as above.
+
+*Sum.* Each such operation costs, in $e$, at most a constant times
+$1 + |\text{own span of } e| + L$. The term $L + 1$ is paid once for each body
+evaluation and each activation, which Lemmas 3 to 5 and 10 count. The own
+span is the input that the operation examines: the operation is a scanning
+source that reads, once, the input of its own span, and condition 2 treats a
+later alternative that starts inside that input as one that starts inside
+the input of a repetition. Lemma 4
+counts each unit of that input as an activation of the operation, and the
+activations of the copies of one evaluation $e$ cover disjoint input from
+those of the evaluations of the recursion nested in it. An evaluation that
+performs the operation and is then abandoned is evaluated again only as
+Lemma 4 allows for any activation that a failure repeats: condition 2
+classifies a unit that can fail after the copy as it does one that can fail
+after a repetition, so that `(A "q" / "a")*` with `A = x:W => text($x) + "!"`
+is classified polynomial. So the copies cost at most a constant times the
+activations of Lemma 4 plus $L + 1$ times the body evaluations and the
+activations, which is the claim. $\square$
+
+A unit of input is charged only a constant number of times outside the
+repetitions that a failure makes. The successful matches that hold it and are
+kept in the tree of the parse are nested in one another. Of those of the rules
+of one recursion, only the innermost holds the unit in its own span, and the
+recursions around a unit, each a strongly connected component of the call
+graph, are no more than the components of the grammar. The other evaluations
+whose own spans hold the unit are those that a failure or a lookahead
+abandons, which Lemma 4 counts. A capture in a positive lookahead would break
+this: its value lies outside the own span, so that
+`A = "a" &(x:W) => text($x) + "!"` in `A*` copies the rest of the input at
+each position, the reason why condition 4 excludes it.
+
+A copy of the value of a variable costs at most $L$. Condition 1 keeps the
+value of a variable from growing from its own earlier value, or, by Lemma 8,
+keeps it in a set of constant size, so the number of combinations at a
+position is $K$, a constant when every binding is a literal or binds a
+variable with finite values.
 
 Taking the text of a node is not a copy: by the
 [Constant-Cost Text proof](constant-cost-text.md#lemma-1-text-is-a-constant-step)
@@ -570,8 +657,8 @@ When the [step matrix](../runtime/parsing.md#conditions-for-linear-cost) of
 the fold cannot double the first parameter, the factor $a^m$ shrinks to a
 polynomial. Let $n$ be the size of the input. Each value that the lambda
 reads from outside the fold has size at most a constant times $n^e$, with $e$
-its [size degree](../runtime/parsing.md#conditions-for-linear-cost), by the
-outline in *Size degrees* below; so do the three quantities of the initial
+its [size degree](../runtime/parsing.md#conditions-for-linear-cost), by
+*Size degrees* below; so do the three quantities of the initial
 value, with degrees $e_S$, $e_M$ and $e_N$, and those of the list, which has
 $m$ elements, at most a constant times $n^{l_N}$, of sizes $Y_j$ that add up
 to at most a constant times $n^{l_S}$, each at most a constant times
@@ -665,42 +752,108 @@ of another, or one whose elements capture in a lookahead or are built by an
 action that is not own, the sizes need not add up to the input, and the
 lambda adds its degree.
 
-*Size degrees.* The proof of the claim above does not use what follows, which is
-an outline: it justifies the size degrees that the polynomial degrees of the
-paragraphs after that proof read, and that Lemma 6 cites, and step 7 of the
-[Open Steps](#open-steps) lists what it leaves to be made precise. An own value
-has size at most a constant times one more than the input that its match
-consumes, by induction on the matches: a literal is a constant; a capture that
-is not in a positive lookahead holds an own value of a part of the match; `+`,
-`text`, `list`, `concat` and constructors add the sizes of their parts and a
-constant, and a member, an element or a `filter` is at most what it is taken
-from; and a `map` or a fold over an own list whose lambda reads nothing
-unbounded from outside it adds at most a constant times the size of each element
-and a constant for it, the fold reading its first parameter at most once.
-Distinct captures of a match hold disjoint parts of the input. Reading a capture
-several times multiplies its size by a constant, which does not compound, since
-a chain of rules that are not on one recursion is at most as long as the
-grammar; the value of a call on a recursion with the rule, read at most once and
-not as the list of a lambda, which would add to each of its elements on every
-level, adds the parts of each level once. A lambda over the captures of a
-repetition whose lambdas read each member of their other parameters at most
-once, distinct members being disjoint parts of a match, holds each part of each
-element, a distinct match, at most once, and with it the values of the calls on
-the recursion in it, so it adds the parts of each level once too; this holds for
-the trees of a recursion whose values are not own as well. The levels of a
-recursion and the elements of a repetition are distinct matches, and only a
-constant number of nested matches can consume no input, since a repetition stops
-at an empty iteration and a call at the same position is a left call, whose
-growth consumes input on each step; so the own values of distinct matches add up
-to at most a constant times $n$. A value built from values of size degrees $e_i$
-is bounded by the rules of condition 4 above with $n^{e_i}$ in their place. The
-list of a repetition of elements of degree $d$ has at most $n + 1$ elements, so
-its size has degree $d + 1$. For a recursion whose values are not own, a value
-that holds the value of each call on the recursion at most once, and not from a
-positive lookahead, where two captures can hold the same value, is a tree whose
-nodes are distinct matches, at most a constant times $n$ of them, each adding at
-most a constant times $n^d$, where $d$ is the degree of what one level adds; so
-its size has degree $d + 1$.
+*Size degrees.* The proof of the claim above does not use what follows, which
+proves the size degrees of
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+that the polynomial degrees of the paragraphs after that proof read, and that
+Lemma 6 cites. Sizes are measured as that definition measures them: a list
+has one more than its number of elements plus the sizes of its elements, and
+a node the size of its text or of the values of the captures in it, whichever
+is larger. For a match $m$, let $|m|$ be the input that it consumes.
+
+**Matches nested in one match.** Let $S$ be a set of rules and $N_S(m)$ the
+number of matches of rules of $S$ in the parse tree of $m$, $m$ included if
+its rule is in $S$. Then $N_S(m) \le h(|m| + 1)$ for a constant $h$. Take the
+tree whose nodes are the matches of rules inside $m$ and the iterations of
+repetitions inside them, each node under the one whose evaluation made it.
+Two nodes are nested or disjoint, so the distinct ranges of the nodes that
+consume input form a laminar family of nonempty intervals of $|m|$
+positions, which has at most $2|m| - 1$ members. Nodes with the same range
+are nested in one another. In a chain of them, each match is a call at the
+position of the match around it before that match consumes input, and
+between two matches of the chain lie at most as many iterations as one body
+nests repetitions. A chain with more matches than there are rules repeats a
+rule, so it contains a cycle of left calls, which passes through a leader of
+its cycle; the leader grows, each step of its growth consumes more input
+than the step before it, and so the leader cannot have the same range as a
+match of its own rule nested in it. So a constant number of nodes share a
+range. A node has a constant number of children that consume no input, since
+the expression that it evaluates once makes a constant number of calls
+outside repetitions, and a repetition stops at an iteration that consumes
+none. The nodes that consume no input nested in such a child have its empty
+range, so they are a constant number too. Together this gives the constant
+$h$.
+
+**Own values.** Let $\mathcal{S}$ be a strongly connected component of the
+call graph, and let every rule of $\mathcal{S}$, and every action in it,
+build an own value as the definition states. We show by induction on the
+components, from those that call no other, that the value of a match $m$ of
+a rule of $\mathcal{S}$ has size at most
+$\alpha_{\mathcal{S}}(|m| + N_{\mathcal{S}}(m))$, for a constant
+$\alpha_{\mathcal{S}}$; by the bound on $N$, this is at most a constant times
+$|m| + 1$. Write the own span of $m$
+for the input that it consumes outside the matches of the calls on
+$\mathcal{S}$ that it makes, as in Lemma 6. The value of $m$ is built by the
+forms of the definition from literals, ints and Booleans, of constant size,
+from captures of $m$, and from the values of the calls that its body makes:
+
+- A capture that is not in a positive lookahead, and the value of a call, is
+  a match inside $m$; a member and an element are parts of one, and a
+  `filter` keeps at most its list. A match of a rule outside $\mathcal{S}$
+  lies in the own span, since a call on $\mathcal{S}$ inside it would put its
+  rule in $\mathcal{S}$; by the induction its value is at most a constant
+  times its input plus one, and distinct captures of one expression hold
+  disjoint parts of the input. A capture can be read several times, at most a
+  constant number of times by the grammar, which multiplies it by a constant;
+  the chain of such readings through rules outside $\mathcal{S}$ is no longer
+  than the grammar, so the constants do not compound. The list of a
+  repetition of such matches has one element for each iteration, at most one
+  more than the input of the repetition, since only the last iteration can
+  consume none.
+- `+`, `text`, `list`, `concat` and constructors add the sizes of their parts
+  and a constant. A `map` over an own list whose lambda reads nothing from
+  outside it that is not bounded by a constant adds, for each element, at most
+  a constant times its size plus a constant, which sum over the elements to at
+  most a constant times the size of the list; a fold over such a list that
+  reads its first parameter at most once adds as much to its initial value.
+- The value of a call on $\mathcal{S}$, read at most once and not as the list
+  of a lambda, which would add to each of its elements on every level, is at
+  most $\alpha_{\mathcal{S}}(|m'| + N_{\mathcal{S}}(m'))$ for that call $m'$
+  by the induction on the depth of the tree. A lambda over the captures of a
+  repetition that reads each member of each of its other parameters at most
+  once, distinct members being disjoint parts of a match, holds each part of
+  each element, a distinct match, at most once, and the calls on
+  $\mathcal{S}$ in it with them, so it adds each of their values at most once
+  as well.
+
+So the value of $m$ is at most a constant $\beta$ times one more than its own
+span, plus the sum of $\alpha_{\mathcal{S}}(|m'| + N_{\mathcal{S}}(m'))$ over
+the calls $m'$ on $\mathcal{S}$ that it holds, which are disjoint matches
+inside $m$. With $\alpha_{\mathcal{S}} \ge \beta$, and since $|m|$ is the own
+span plus the sum of the $|m'|$, and $N_{\mathcal{S}}(m)$ is one plus the sum
+of the $N_{\mathcal{S}}(m')$, the value is at most
+$\alpha_{\mathcal{S}}(|m| + N_{\mathcal{S}}(m))$. Distinct matches that are
+not nested, such as the iterations of a repetition, have disjoint inputs, so
+their own values add up to at most a constant times $\hat{n}$. A capture in a
+positive lookahead is no part of the match, and its input is outside the
+input that the match consumes, so it is excluded; so is the value of a
+variable, whose size $L$ does not depend on the match.
+
+**Size degrees above 1.** A value built from values of size degrees $e_i$ by
+the forms of condition 4 is bounded by the rules after the proof above with
+$n^{e_i}$ in place of the quantities. The list of a repetition of elements of
+degree $d$ has at most $\hat{n}$ elements, so its size has degree $d + 1$.
+Let the rules of $\mathcal{S}$ have values that are not own, and let each of
+them hold the value of each call on $\mathcal{S}$ at most once, as a capture
+not made in a positive lookahead that is read once, outside lambdas or as the
+list of such a lambda over a repetition, and let one level, the value of a
+match apart from the values of the calls on $\mathcal{S}$ that it holds, have
+size at most a constant times $n^d$. The same induction, with $n^d$ in place
+of $\beta$ times one more than the own span, bounds the value of $m$ by a
+constant times $n^d N_{\mathcal{S}}(m)$, which is at most a constant times
+$n^d \hat{n}$; so its size has degree $d + 1$. Two captures in a positive
+lookahead can hold the same match, which the bound on $N$ does not count, and
+are excluded.
 
 The copies of such a call are therefore those of a constant number of copies,
 in the context of the call, of the initial value, the list and the values from
@@ -992,7 +1145,8 @@ The outlines leave these steps to be made precise.
    a constant bound on the repetitions at one position, and combine the bounds
    over the units that enclose one another, rule calls, and the two evaluations
    that the memo allows at a position, where a rule that calls no rule repeats
-   its own scan.
+   its own scan. The activations include those of the copying operations, the
+   units of the own spans that they read (Lemma 6).
 2. **"A unit that succeeds is not restarted."** A body that contains the unit
    can itself be evaluated again: by the memo, at most twice at a position; when
    its rule is not memoized, at each of its calls. Lemmas 3 and 10 count these
@@ -1021,17 +1175,13 @@ The outlines leave these steps to be made precise.
    steps are shared only through equal results. It must show that the
    comparison of results by structure, which is bounded, loses only reuse,
    and that condition 5 covers every growth that is new in each step.
-6. **Variables in Lemma 6.** The bound $L = O(n)$ that
+6. **Variables and other values in Lemma 6.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, and the
    comparisons of memo keys that hold strings, which cost up to $L$ per lookup.
-   Besides, a copy outside the lambdas of a value whose size degree is above
-   1: a string that large was built by copies that cost its length, and a
-   list copies only its number of elements, which the copies or the
-   repetition that built it paid; the step must charge each such copy to that
-   work, which a constant number of actions read.
-7. **Size degrees after Lemma 7.** The induction that bounds an own value
-   by the input its match consumes, over every form of an action and the
-   bodies of the rules it calls, and the bound on the trees of a recursion
-   whose values are not own, which must show that a value holding each call
-   on the recursion once, directly or through a lambda over a repetition,
-   adds each level once.
+   Besides, a copy, outside the lambdas or of the elements of the list of a
+   lambda, of a value that is neither own nor the value of a variable, such as
+   a list built by `map` or a string built by a lambda: a string was built by
+   copies that cost its length, and a list copies only its number of
+   elements, which the copies or the repetition that built it paid; the step
+   must charge each such copy to that work, and show that a constant number of
+   copies read each value.
