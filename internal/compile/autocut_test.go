@@ -1,0 +1,176 @@
+package compile
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/syntax"
+)
+
+// TestDecideAlt checks the exclusion analysis on the first choice of rule main.
+func TestDecideAlt(t *testing.T) {
+	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\n"
+	for _, c := range []struct {
+		name, main string
+		decided    bool
+		k, cut     int
+	}{
+		{"disjoint first characters", `"a" x / "b" x`, true, 1, 1},
+		{"shared call then literals", `ident "(" x / ident "." x`, true, 2, 2},
+		{"shared calls through a rule body", `ident ws "(" x / ident ws "." x`, true, 3, 3},
+		{"beyond the bound", `ident ws ws "(" x / ident ws ws "." x`, false, 0, 0},
+		{"literal prefix of the later one", `"=" . / "==" x`, false, 0, 0},
+		{"literal prefix decided after it", `"=" x / "==" x`, true, 2, 2},
+		{"longer literal first", `"==" x / "=" x`, true, 2, 1},
+		{"negative lookahead against the later alternative", `ident !(ws "(") x / ident ws "(" x`, true, 2, 2},
+		{"negative lookahead against a rule alternative", `!kw ident x / "in" x`, true, 1, 1},
+		{"negative lookahead against a literal that extends it", `!"i" ident x / "if" x`, true, 1, 1},
+		{"later alternative without the lookahead body", `ident !(ws "(") x / ident ws x`, false, 0, 0},
+		{"nullable first item", `ws "a" / ws "b"`, true, 2, 2},
+		{"option in the later alternative", `"a" x / "b"? x`, true, 1, 1},
+		{"option that the alternative can match", `"a" x / "a"? x`, false, 0, 0},
+		{"negative lookahead on a class against a literal", `ident ![.(] x / ident "." x`, true, 2, 2},
+		{"literal against a class", `"ab" x / [a-z] "c" x`, true, 2, 1},
+		{"equal repetitions", `[0-9]+ "." x / [0-9]+ "e" x`, true, 2, 2},
+		{"repetition in the later alternative", `ident "(" x / ident* "." x`, false, 0, 0},
+	} {
+		src := "rule main = (" + c.main + ") x\n" + rules
+		g, err := syntax.Parse(src)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		k.computeBounded()
+		k.computeFirst()
+		var ch *grammar.Choice
+		WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+			if y, ok := x.(*grammar.Choice); ok && ch == nil {
+				ch = y
+			}
+		})
+		d := k.decideAlt(ch, 0, 3)
+		if d.decided != c.decided || d.decided && (d.k != c.k || d.cut != c.cut) {
+			t.Errorf("%s: decided %v k %d cut %d, want %v k %d cut %d", c.name, d.decided, d.k, d.cut, c.decided, c.k, c.cut)
+		}
+	}
+}
+
+// TestDecidedUnits checks that a unit that the strict analysis decides against its continuation
+// is committing with decidedUnitsOn, and that the analysis does not pass a repetition that the
+// continuation scans again.
+func TestDecidedUnits(t *testing.T) {
+	defer func() { decidedUnitsOn = false }()
+	const rest = "rule elems = value (\",\" ws value)*\nrule ws = [ ]*\n"
+	for _, c := range []struct {
+		name, src string
+		off, on   ComplexityClass
+	}{
+		{"trailing separator", "rule main = value $$\nrule value = \"[\" ws elems? (\",\" ws)? \"]\" ws / [a-z]+ ws\n" + rest,
+			ClassUnknown, ClassLinear},
+		{"trailing separator after a scan", "rule main = value $$\nrule value = \"[\" ws elems? (\",\" [a-z]* ws)? \"]\" ws / [a-z]+ ws\n" +
+			"rule elems = value (\",\" [a-z]* ws value)*\nrule ws = [ ]*\n", ClassUnknown, ClassUnknown},
+	} {
+		decidedUnitsOn = false
+		if got := classifySource(t, c.src).Class; got != c.off {
+			t.Errorf("%s: off: class %v, want %v", c.name, got, c.off)
+		}
+		decidedUnitsOn = true
+		if got := classifySource(t, c.src).Class; got != c.on {
+			t.Errorf("%s: on: class %v, want %v", c.name, got, c.on)
+		}
+	}
+}
+
+// TestAutoCutReport prints the decisions of the analysis and the classification of the bundled
+// grammars with automatic cuts. It runs when ZP_AUTOCUT_REPORT is set; ZP_AUTOCUT_OUT names a
+// directory for the grammars with the cuts, and ZP_AUTOCUT_EXTRA lists further grammar files,
+// separated by commas; ZP_AUTOCUT_ONLY replaces the bundled list.
+func TestAutoCutReport(t *testing.T) {
+	if os.Getenv("ZP_AUTOCUT_REPORT") == "" {
+		t.Skip("ZP_AUTOCUT_REPORT is not set")
+	}
+	defer func() { cutPrefixesOn, decidedUnitsOn = false, false }()
+	files := []string{
+		"testdata/grammars/cel/cel.zp", "testdata/grammars/csv/csv.zp", "testdata/grammars/cue/cue.zp",
+		"testdata/grammars/duckdb/duckdb.zp", "testdata/grammars/golang/golang.zp",
+		"testdata/grammars/python/python.zp", "testdata/grammars/typescript/typescript.zp",
+		"testdata/grammars/xml/xml.zp", "testdata/grammars/yaml/yaml.zp", "examples/minilang/minilang.zp",
+		"examples/outline/outline.zp", "testdata/grammars/json/json.zp",
+	}
+	for i := range files {
+		files[i] = "../../" + files[i]
+	}
+	if only := os.Getenv("ZP_AUTOCUT_ONLY"); only != "" {
+		files = nil
+		for _, f := range strings.Split(only, ",") {
+			files = append(files, f)
+		}
+	}
+	if extra := os.Getenv("ZP_AUTOCUT_EXTRA"); extra != "" {
+		files = append(files, strings.Split(extra, ",")...)
+	}
+	out := os.Getenv("ZP_AUTOCUT_OUT")
+	count := func(c *Complexity) string { return fmt.Sprintf("%s w%d r%d", c.Class, len(c.Causes), len(c.Reasons)) }
+	fmt.Println("grammar | choices k<=1..5 | alts k<=1..5 committed cuts | base | cut-prefix units | auto-cut | decided units k=2,3,4 | auto-cut+decided k=3")
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, err := syntax.Parse(string(src))
+		if err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		classify := func(g *grammar.Grammar, prefixes, decided bool, n int) *Complexity {
+			cutPrefixesOn, decidedUnitsOn, decidedUnitsK = prefixes, decided, n
+			defer func() { cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, false, 3 }()
+			c, err := ClassifyComplexity(g, "", nil)
+			if err != nil {
+				t.Fatalf("%s: %v", f, err)
+			}
+			return c
+		}
+		base := classify(g, false, false, 3)
+		basePrefix := classify(g, true, false, 3)
+		cut, st, err := AutoCut(g, "", 5)
+		if err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		auto := classify(cut, true, false, 3)
+		var decided []*Complexity
+		for n := 2; n <= 4; n++ {
+			decided = append(decided, classify(g, false, true, n))
+		}
+		commit := classify(cut, true, true, 3)
+		name := strings.TrimSuffix(filepath.Base(f), ".zp")
+		fmt.Printf("%s | %d %v | %d %v %d %d | %s | %s | %s | %s, %s, %s | %s\n", name,
+			st.Choices, st.ChoicesAt[1:], st.Alts, st.AltsAt[1:], st.Committed, st.Cuts,
+			count(base), count(basePrefix), count(auto), count(decided[0]), count(decided[1]), count(decided[2]), count(commit))
+		if os.Getenv("ZP_AUTOCUT_VERBOSE") != "" {
+			for _, c := range []struct {
+				what string
+				x    *Complexity
+			}{{"base", base}, {"auto", auto}, {"decided3", decided[1]}, {"commit", commit}} {
+				for _, r := range c.x.Causes {
+					fmt.Printf("  %s w %d:%d %s\n", c.what, r.Pos.Line, r.Pos.Col, r.Message)
+				}
+				for _, r := range c.x.Reasons {
+					fmt.Printf("  %s r %d:%d %s\n", c.what, r.Pos.Line, r.Pos.Col, r.Message)
+				}
+			}
+		}
+		if out != "" {
+			if err := os.WriteFile(filepath.Join(out, name+".zp"), []byte(grammar.Format(cut)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}

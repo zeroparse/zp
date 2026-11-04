@@ -255,12 +255,24 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 							what: fmt.Sprintf("the later alternative %s at %s", k.show(later), at(c.rule, exprPos(later)))})
 					}
 				}
-				u := k.newUnit(unitAlt, c, alt, []*cont{{items: []grammar.Expr{alt}}}, conts)
-				u.choice, u.index, u.after = e, i, c.cont
+				growing := false
 				if k.an.cyclic[c.rule] && c.mayStart {
 					if first := k.firstEvaluated(alt); first != nil && k.sameCycle(c.rule, first.Name) && first.Level == "" {
-						u.growing, u.cycle = true, k.an.cycle[c.rule]
+						growing = true
 					}
+				}
+				if s, cut := topCut(alt); cutPrefixesOn && !growing && len(conts) > 0 && cut > 0 {
+					prefix := s.Items[:cut]
+					u := k.newUnit(unitAlt, c, &grammar.Seq{SourceInfo: s.SourceInfo, Items: prefix},
+						[]*cont{{items: prefix}}, conts)
+					u.choice, u.index, u.after = e, i, c.cont
+					k.walkCutSeq(s, c, u, cut)
+					continue
+				}
+				u := k.newUnit(unitAlt, c, alt, []*cont{{items: []grammar.Expr{alt}}}, conts)
+				u.choice, u.index, u.after = e, i, c.cont
+				if growing {
+					u.growing, u.cycle = true, k.an.cycle[c.rule]
 				}
 				cc = c.push(u)
 			}
@@ -377,6 +389,41 @@ func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
 	if k.an.cyclic[e.Name] && (!k.sameCycle(c.rule, e.Name) || !c.mustStart) {
 		k.addSource(c, exprPos(e), "the growth of the left-recursive rule "+e.Name+" at a new position")
 		k.srcExprs[e] = true
+	}
+}
+
+// topCut returns the top-level sequence of an alternative and the index of the first #cut in it,
+// or 0.
+func topCut(alt grammar.Expr) (*grammar.Seq, int) {
+	s, ok := ungroup(alt).(*grammar.Seq)
+	if !ok {
+		return nil, 0
+	}
+	for i, it := range s.Items {
+		if _, ok := it.(*grammar.Cut); ok {
+			return s, i
+		}
+	}
+	return nil, 0
+}
+
+// walkCutSeq walks the top-level sequence of an alternative with a #cut at index cut: the items
+// before the cut are in the unit u, and the items after it are not, as a failure after the cut
+// fails the choice.
+func (k *classifier) walkCutSeq(e *grammar.Seq, c wctx, u *unit, cut int) {
+	may, must := c.mayStart, c.mustStart
+	inside := c.push(u)
+	for i, it := range e.Items {
+		base := c
+		if i < cut {
+			base = inside
+		}
+		cc := base.with(c.cont.then(e.Items[i+1:]...))
+		cc.mayStart, cc.mustStart = may, must
+		cc.seqs = append(c.seqs[:len(c.seqs):len(c.seqs)], seqFrame{e, i})
+		k.walk(it, cc)
+		may = may && k.nullable(it)
+		must = must && k.consumesNothing(it)
 	}
 }
 
@@ -1278,7 +1325,11 @@ func (k *classifier) checkUnits() {
 		if !k.unitFailsAfterSource(u) {
 			continue
 		}
-		if ok, what := k.committing(u.self, k.withoutReentry(u), 0); !ok {
+		conts := k.withoutReentry(u)
+		if ok, what := k.committing(u.self, conts, 0); !ok {
+			if decidedUnitsOn && k.unitDecided(u, conts) {
+				continue
+			}
 			u.nc, u.witness = true, what
 		}
 	}
