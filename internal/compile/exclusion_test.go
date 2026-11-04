@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/starttest"
@@ -17,7 +18,7 @@ import (
 
 // TestDecideAlt checks the exclusion analysis on the first choice of rule main.
 func TestDecideAlt(t *testing.T) {
-	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\n"
+	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\nrule lr = lr \"+\" \"a\" / \"a\"\n"
 	for _, c := range []struct {
 		name, main string
 		decided    bool
@@ -51,6 +52,8 @@ func TestDecideAlt(t *testing.T) {
 		{"negative lookahead decided later", `!("x" "x") "x" "z" / "x" r`, true, 2, 3},
 		{"later negative lookahead through a callee", `"x" r "z" / !("x" "y") "x" "y"`, true, 1, 2},
 		{"later negative lookahead that a callee does not match", `"x" r "z" / !("x" "x") "x" "y"`, false, 0, 0},
+		// Two calls of a rule of a left-recursion cycle at one position can differ inside a growth.
+		{"calls of a left-recursive rule", `lr "(" x / lr "." x`, false, 0, 0},
 		{"equal literals that ignore case", `"if"i "(" x / "IF"i "." x`, true, 2, 2},
 	} {
 		src := "rule main = (" + c.main + ") x\n" + rules
@@ -194,6 +197,36 @@ func TestCollapseTrivia(t *testing.T) {
 	}
 }
 
+// TestCollapseTriviaBinding checks that a binding between two calls of a trivia rule that reads
+// variables keeps the second call: it starts with other variables, so it can match.
+func TestCollapseTriviaBinding(t *testing.T) {
+	defer func() { triviaOn, triviaVars = false, false }()
+	triviaOn, triviaVars = true, true
+	g, err := syntax.Parse("var v int = 0\nrule main = wv ws \"x\"\nrule wv = ({v == 0} \" \")*\nrule ws = [ ]*\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	x := newExcl(k, true, 3)
+	wv, ws := &grammar.Ref{Name: "wv"}, &grammar.Ref{Name: "ws"}
+	for _, c := range []struct {
+		name string
+		p    []sym
+		want int
+	}{
+		{"a rule that reads variables", []sym{{symMatch, wv, 0}, {symBind, nil, 1}, {symMatch, wv, 2}}, 3},
+		{"a rule that reads none", []sym{{symMatch, ws, 0}, {symBind, nil, 1}, {symMatch, ws, 2}}, 2},
+		{"no binding", []sym{{symMatch, wv, 0}, {symSkip, nil, 1}, {symMatch, wv, 2}}, 2},
+	} {
+		if got := x.collapseTrivia(c.p, 0); len(got) != c.want {
+			t.Errorf("%s: collapsed to %s", c.name, fmtPath(got))
+		}
+	}
+}
+
 // TestTriviaWhy checks which rule shapes are trivia rules.
 func TestTriviaWhy(t *testing.T) {
 	src := "var v int = 0\nrule main = ws ws2 wsp wsv wsc wsa wsr\nrule ws = ([ ] / \"#\" (!\"\\n\" .)*)*\n" +
@@ -220,12 +253,62 @@ func TestTriviaWhy(t *testing.T) {
 	}
 }
 
+// TestTriviaWhyCut checks that a #cut of the body of a rule keeps it from being a trivia rule:
+// it can commit the repetition, which then fails.
+func TestTriviaWhyCut(t *testing.T) {
+	g, err := syntax.Parse("rule main = wscut wsin\nrule wscut = (\"#\" #cut [a]*)*\nrule wsin = (in)*\nrule in = \"#\" #cut [a]*\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A cut in a called rule is local to the call, which fails as a whole.
+	for rule, want := range map[string]string{"wscut": "#cut (wscut)", "wsin": ""} {
+		if got := k.triviaWhy(rule); got != want {
+			t.Errorf("%s: %q, want %q", rule, got, want)
+		}
+	}
+}
+
+// TestTriviaWhyVariables checks triviaVars: reads of variables, captures and predicates over them
+// are allowed, and a body that binds a variable that it reads is not, as in the rule wsb, whose
+// iteration over b binds the variable that its iteration over a reads.
+func TestTriviaWhyVariables(t *testing.T) {
+	defer func() { triviaVars = false }()
+	src := "var v int = 0\nrule main = wsv wsc wsb wsw\nrule wsv = ({v == 0} \" \")*\n" +
+		"rule wsc = (c:[ a] {$c == \" \"})*\nrule wsb = ({v == 0} \"b\" {v := 1} / {v == 0} \"a\")*\n" +
+		"rule wsw = ({w := 1} \" \")*\nvar w int = 0\n"
+	g, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, vars := range []bool{false, true} {
+		triviaVars = vars
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := map[string]string{"wsv": "", "wsc": "", "wsb": "binds a variable that it reads (wsb)", "wsw": ""}
+		if !vars {
+			want = map[string]string{"wsv": "reads a variable (wsv); predicate (wsv)", "wsc": "capture (wsc); predicate (wsc)",
+				"wsb": "reads a variable (wsb); binds a variable that it reads (wsb); predicate (wsb)", "wsw": "predicate (wsw)"}
+		}
+		for rule, w := range want {
+			if got := k.triviaWhy(rule); got != w {
+				t.Errorf("vars %v: %s: %q, want %q", vars, rule, got, w)
+			}
+		}
+	}
+}
+
 // TestTriviaShapeExtended checks the shapes that triviaExtended adds: an atomic X* and the
 // unrolled form X* (Y X*)*, but not a form whose last repetition differs from the first.
 func TestTriviaShapeExtended(t *testing.T) {
 	defer func() { triviaExtended = false }()
-	g, err := syntax.Parse("rule main = wsu wsa wsb\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
-		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\n")
+	g, err := syntax.Parse("rule main = wsu wsa wsb wsn\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
+		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\nrule wsn = ([ ]?)* (\"#\" ([ ]?)*)*\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +318,8 @@ func TestTriviaShapeExtended(t *testing.T) {
 	}
 	for _, ext := range []bool{false, true} {
 		triviaExtended = ext
-		for rule, ok := range map[string]bool{"wsu": ext, "wsa": ext, "wsb": false} {
+		// The unrolled form needs an X that cannot match empty.
+		for rule, ok := range map[string]bool{"wsu": ext, "wsa": ext, "wsb": false, "wsn": false} {
 			if got := k.triviaWhy(rule) == ""; got != ok {
 				t.Errorf("extended %v: %s: trivia %v, want %v", ext, rule, got, ok)
 			}
@@ -283,6 +367,45 @@ func TestDecideAltVariables(t *testing.T) {
 	}
 }
 
+// scanSeparator is a trailing separator whose comma is followed by a scan, which a continuation
+// that begins with the same separator would scan again.
+const scanSeparator = "rule main = value $$\nrule value = \"[\" ws elems? (\",\" [a-z]* ws)? \"]\" ws / [a-z]+ ws\n" +
+	"rule elems = value (\",\" [a-z]* ws value)*\nrule ws = [ ]*\n"
+
+// TestDecidedUnitsCost checks the trailing separator after a scan at a bound that the comparison
+// does not reach: the iteration parts from its continuation only past the scan, which the strict
+// analysis does not look into, so the unit stays not committing for the cost condition alone.
+func TestDecidedUnitsCost(t *testing.T) {
+	defer exclHooks{decided: true, k: 8}.set()()
+	g, err := syntax.Parse(scanSeparator)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := k.classify(); c.Class != ClassUnknown {
+		t.Errorf("class %v, want %v", c.Class, ClassUnknown)
+	}
+	var found bool
+	for _, u := range k.units {
+		if !u.nc || u.kind != unitIteration {
+			continue
+		}
+		found = true
+		if loose := exclBlocker(k, u, false, 8); loose != "" {
+			t.Errorf("the comparison without the strict conditions stops at %q", loose)
+		}
+		if strict := exclBlocker(k, u, true, 8); strict != "qstop: part that is not cheap" {
+			t.Errorf("the strict comparison stops at %q", strict)
+		}
+	}
+	if !found {
+		t.Error("no iteration is not committing")
+	}
+}
+
 // TestDecidedUnits checks that a unit that the strict analysis decides against its continuation
 // is committing with decidedUnitsOn, and that the analysis does not pass a repetition that the
 // continuation scans again.
@@ -295,8 +418,9 @@ func TestDecidedUnits(t *testing.T) {
 	}{
 		{"trailing separator", "rule main = value $$\nrule value = \"[\" ws elems? (\",\" ws)? \"]\" ws / [a-z]+ ws\n" + rest,
 			ClassUnknown, ClassLinear},
-		{"trailing separator after a scan", "rule main = value $$\nrule value = \"[\" ws elems? (\",\" [a-z]* ws)? \"]\" ws / [a-z]+ ws\n" +
-			"rule elems = value (\",\" [a-z]* ws value)*\nrule ws = [ ]*\n", ClassUnknown, ClassUnknown},
+		// At k = 3 this stays unknown at the bound as well; TestDecidedUnitsCost checks it where
+		// only the cost conditions decide.
+		{"trailing separator after a scan", scanSeparator, ClassUnknown, ClassUnknown},
 		{"separator whitespace that reads a variable", "var x int = 0\nrule main = value $$\n" +
 			"rule value = \"[\" ws elems? (\",\" wsx)? \"]\" ws / [a-z]+ ws\n" +
 			"rule elems = value (\",\" wsx value)*\nrule ws = [ ]*\nrule wsx = {x == 1} [ ]* / [ ]*\n",
@@ -307,6 +431,10 @@ func TestDecidedUnits(t *testing.T) {
 			"rule value = \"[\" ws elems? (\",\" wsx)? \"]\" ws / [a-z]+ ws\n" +
 			"rule elems = {x := 1} value (\",\" wsx value)*\nrule ws = [ ]*\nrule wsx = {x == 1} [ ]* / [ ]*\n",
 			ClassUnknown, ClassUnknown},
+		// The strict analysis decides the expression of the lookahead against what follows it, but
+		// lookahead units are left to the other ways of being committing.
+		{"a lookahead unit", "rule main = (!([a-f] id \"=\") [a-z0-9] id \"(\" / \";\")* $$\nrule id = [a-z]+\n",
+			ClassPoly, ClassPoly},
 	} {
 		decidedUnitsOn = false
 		if got := classifySource(t, c.src).Class; got != c.off {
@@ -761,5 +889,126 @@ func TestStrictConditions(t *testing.T) {
 		if got != c.strict || tag != c.tag {
 			t.Errorf("%s: strict: decided %v at %q, want %v at %q", c.name, got, tag, c.strict, c.tag)
 		}
+	}
+}
+
+// TestCutPrefixes checks cutPrefixesOn: an alternative with a #cut after items that fail only
+// before a scan is a unit of those items, a prefix that fails after its scan is not committing
+// as before, and a growing alternative keeps the analysis of its growth.
+func TestCutPrefixes(t *testing.T) {
+	for _, c := range []struct {
+		name, src string
+		off, on   ComplexityClass
+	}{
+		{"a scan after the cut", "rule main = r* $$\nrule r = \"a\" #cut [a-z]* \"x\" / \"a\" [a-z]* \"y\"\n",
+			ClassPoly, ClassLinear},
+		{"a scan before the cut", "rule main = (\"a\"* \"c\" #cut \"d\" / \"a\")* $$\n", ClassPoly, ClassPoly},
+		// The recursion after the cut is not inside the unit: a failure there fails the choice.
+		{"a recursion after the cut", "rule main = r $$\nrule r = \"(\" [a-z]* \"a\" #cut r \")\" / \"(\" [a-z]* \"b\" / \"x\"\n",
+			ClassUnknown, ClassPoly},
+		{"a growing alternative", "rule main = e $$\nrule e = e \"+\" [a-z]* #cut \"x\" / \"a\"\n",
+			ClassLinear, ClassLinear},
+	} {
+		for _, on := range []bool{false, true} {
+			restore := exclHooks{prefixes: on, k: 3}.set()
+			got := classifySource(t, c.src).Class
+			restore()
+			want := c.off
+			if on {
+				want = c.on
+			}
+			if got != want {
+				t.Errorf("%s: cut prefixes %v: class %v, want %v", c.name, on, got, want)
+			}
+		}
+	}
+}
+
+// TestTriviaMemo checks triviaMemo: a whitespace rule that a recursion scans again at each level
+// is linear once the trivia rules are memoized per position, and a rule that is not a trivia rule
+// is not memoized by it.
+func TestTriviaMemo(t *testing.T) {
+	defer func() { triviaMemo = false }()
+	const nest = "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\n"
+	for _, c := range []struct {
+		name, ws string
+		off, on  ComplexityClass
+	}{
+		{"a trivia rule", "rule ws = [ ]*\n", ClassPoly, ClassLinear},
+		{"a repetition that must match once", "rule ws = [ ]+\n", ClassPoly, ClassPoly},
+	} {
+		for _, on := range []bool{false, true} {
+			triviaMemo = on
+			want := c.off
+			if on {
+				want = c.on
+			}
+			if got := classifySource(t, nest+c.ws).Class; got != want {
+				t.Errorf("%s: memo %v: class %v, want %v", c.name, on, got, want)
+			}
+		}
+	}
+}
+
+// TestTriviaSettles checks that the strict analysis drops a trivia call where another ended only
+// when the final attempts of the rule cost a constant: a comment that scans can scan an
+// unterminated comment again.
+func TestTriviaSettles(t *testing.T) {
+	defer func() { triviaOn = false }()
+	triviaOn = true
+	const rules = "rule sp = [ ]*\nrule cm = ([ ] / \"#\" [^\\n]*)*\n"
+	for _, c := range []struct {
+		name, p, q    string
+		loose, strict bool
+	}{
+		{"a rule of characters", `sp sp "a"`, `sp " "`, true, true},
+		{"a rule with a scan", `cm cm "a"`, `cm "#"`, true, false},
+	} {
+		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
+		if got, tag := comparePaths(t, src, false, 3); got != c.loose {
+			t.Errorf("%s: loose: decided %v (%s), want %v", c.name, got, tag, c.loose)
+		}
+		if got, tag := comparePaths(t, src, true, 3); got != c.strict {
+			t.Errorf("%s: strict: decided %v (%s), want %v", c.name, got, tag, c.strict)
+		}
+	}
+}
+
+// TestExclusionBudget checks that a comparison whose expansions multiply is undecided at the
+// budget, and counted, while a small instance of the same shape is decided: each rule p_i is a
+// choice of n alternatives that begin with p_(i-1), so the paths of p_5 number n^5.
+func TestExclusionBudget(t *testing.T) {
+	grammarOf := func(n int) string {
+		src := "rule main = (p5 \"q\" / \"a\" \"y\") $$\nrule p0 = \"a\"\n"
+		for i := 1; i <= 5; i++ {
+			var alts []string
+			for j := range n {
+				alts = append(alts, fmt.Sprintf("p%d \"b%c%c\"", i-1, 'a'+j/26, 'a'+j%26))
+			}
+			src += fmt.Sprintf("rule p%d = %s\n", i, strings.Join(alts, " / "))
+		}
+		return src
+	}
+	for _, c := range []struct {
+		n                 int
+		decided, exceeded bool
+	}{{3, true, false}, {40, false, true}} {
+		g, err := syntax.Parse(grammarOf(c.n))
+		if err != nil {
+			t.Fatal(err)
+		}
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k.computeBounded()
+		k.computeFirst()
+		ch := ungroup(ungroup(k.byName["main"].Expr).(*grammar.Seq).Items[0]).(*grammar.Choice)
+		start := time.Now()
+		d := k.decideAlt(ch, 0, 5)
+		if d.decided != c.decided || (k.exclOverBudget > 0) != c.exceeded {
+			t.Errorf("n %d: decided %v, over budget %d", c.n, d.decided, k.exclOverBudget)
+		}
+		t.Logf("n %d: %v", c.n, time.Since(start))
 	}
 }
