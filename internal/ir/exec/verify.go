@@ -122,6 +122,9 @@ func (v *verifier) decls() {
 		if o.Contract == "" && !o.Transitional {
 			v.errorf("%s: no contract", where)
 		}
+		if o.Host && o.Transitional {
+			v.errorf("%s: both host and transitional", where)
+		}
 		for _, t := range o.Cost.Terms {
 			if t.Coef <= 0 || t.Quantity == "" {
 				v.errorf("%s: cost term needs a positive coefficient and a quantity", where)

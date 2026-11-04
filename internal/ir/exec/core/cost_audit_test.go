@@ -222,7 +222,7 @@ func siteName(f *types.Func) string {
 	return f.Name()
 }
 
-// siteCost attributes each charge site that a transitional operation reaches to the quantities of
+// siteCost attributes each charge site that a transitional or host operation reaches to the quantities of
 // its cost declaration that account for it; "" stands for the constant. An operation that reaches a
 // site declares one of the site's quantities. A site that is not listed fails the test, so that a
 // new charge in the runtime is attributed when it is added.
@@ -278,16 +278,16 @@ var runsGrammar = map[string]bool{"rule.invoke": true, "rule.invokePlain": true,
 	// The grammar code of an Operators Rule, and the actions that make the values of its lines.
 	"opr.skip": true, "opr.match": true, "opr.lineValue": true, "opr.build": true, "opr.buildTyped": true}
 
-// TestTransitionalCostsMatchCharges checks the cost declarations of the transitional operations
-// against the Go runtime that implements them, through its static calls (calls through interfaces
+// TestTransitionalAndHostCostsMatchCharges checks the cost declarations of the transitional and host
+// operations against the Go runtime that implements them, through its static calls (calls through interfaces
 // and function values are not followed): an operation that reaches a charge of the budget may end
 // the parse (NoReturn) and declares a cost with a quantity for every charge site it reaches
 // (siteCost), and one that reaches none declares no cost. It does not measure the bounds: a
-// transitional operation has no reference model to compute its quantities.
-func TestTransitionalCostsMatchCharges(t *testing.T) {
+// transitional or host operation has no reference model to compute its quantities.
+func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 	pkg, callees, charges := runtimeCalls(t)
 	for _, op := range Build().Ops {
-		if !op.Transitional || runsGrammar[op.Name] {
+		if !op.Transitional && !op.Host || runsGrammar[op.Name] {
 			continue
 		}
 		found := false

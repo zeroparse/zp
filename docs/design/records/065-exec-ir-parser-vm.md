@@ -373,8 +373,10 @@ An operation that copies a set or a list declares the copy in its bound: `exp.co
 set, the recovery operations that keep or record errors again one unit per error. A transitional operation that
 charges declares a bound too, over quantities that its declaration defines: the left-recursion operations count the
 dependencies they pass on, the work of their context-table lookups, the runs of growth steps they record as jumps and
-what the expectation compositions they run charge. With no reference model, the bound is not measured; a test follows
-the static calls of the Go runtime from each transitional operation and requires a quantity of its bound for every
+what the expectation compositions they run charge. A host operation, which a target implements with host
+facilities outside the parser VM's state (input buffers, memory, callbacks, cancellation), declares a bound in the
+same way. With no reference model, neither bound is measured; a test follows the static calls of the Go runtime from
+each transitional and host operation and requires a quantity of its bound for every
 charge it can reach, so that a charge added to the runtime is accounted for when it is added. The operations that run
 a rule body declare none: what they charge includes the grammar code they run, which no bound of theirs can state.
 
@@ -556,8 +558,12 @@ move to Exec IR at once while mechanisms move one at a time.
    in Go and none in TypeScript.
 7. **Stream commitment** (generated Go). The commit is a composition. Pruning the memo is the specified
    `memo.prune`, under conformance on the generated Go runtime; the floor of the memo is the position of the last
-   prune. Discarding input, releasing the memory of delivered elements, the delivery callbacks and the recovered
-   errors a commit settles stay transitional operations of the window, checked against their charges.
+   prune. Discarding input, releasing the memory of delivered elements, the records a prune drops besides the memo,
+   the delivery callbacks and cancellation at stream boundaries are host operations of the window. The recovered
+   errors a commit settles stay a transitional operation until recovery bookkeeping migrates. On generated Go,
+   `BenchmarkStream` is within noise except `generated`, 1.1% slower in two interleaved runs; padding the window to
+   its former layout keeps the difference, and a CPU profile spreads it over functions the stage does not change
+   (`bufio.Reader.ReadRune`, `SpendRead`, `streamPeek`), which points to code placement.
 8. **Document reuse** (generated Go). Provisional tracking becomes the engine's algorithm ([Decisions](#decisions)).
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
    `internal/engine/core`; the closure backend and both VMs run on them.

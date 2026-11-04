@@ -64,6 +64,9 @@ func TestVerifyRejects(t *testing.T) {
 		{"no contract", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.y", Component: "counter"})
 		}, "no contract"},
+		{"host and transitional", func(m *Module) {
+			m.AddOp(&Op{Name: "counter.h", Component: "counter", Contract: "h", Host: true, Transitional: true})
+		}, "both host and transitional"},
 		{"undeclared handle", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.z", Component: "counter", Results: []Type{THandle("Nope")}, Contract: "z"})
 		}, "undeclared handle type Nope"},
