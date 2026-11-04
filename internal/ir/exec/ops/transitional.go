@@ -142,6 +142,7 @@ stream, or for a rule without a seen index).`})
 		{"rule.leader", "Reports whether the rule leads a left-recursive cycle."},
 		{"rule.plain", "Reports whether the rule has no captures, so that its plain body serves its invocation."},
 		{"rule.docMemo", "Reports whether a Document parse memoizes the rule."},
+		{"rule.positional", "Reports whether the results of the rule may depend on positions, not only on the input they examine."},
 	} {
 		add(&exec.Op{Name: a.name, Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TBool}, Contract: a.doc})
 	}
@@ -352,14 +353,14 @@ an unobserved parse, so that observation does not change reuse.`})
 the call's frontier and true in a Document parse, and false otherwise.`,
 		Requires: `enclosing is the result of the matching doc.examinedBegin.`})
 	add(&exec.Op{Name: "doc.enter", Component: Call, Params: []exec.Param{exec.P("pos", exec.TInt)},
-		Results: []exec.Type{exec.TInt}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
-		Contract: `Begins a rule call at pos in a Document parse: returns the examined frontier of the enclosing
-call, and starts the call's frontier past pos.`})
-	add(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt)},
+		Results: []exec.Type{exec.TInt, exec.TInt}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
+		Contract: `Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
+its end and its start, and starts the call's examined input as [pos, pos+1).`})
+	add(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
 		Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
-		Contract: `Ends a rule call in a Document parse: the enclosing call's frontier becomes the farther of high
-and the call's.`,
-		Requires: `high is the result of the matching doc.enter.`})
+		Contract: `Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
+range that holds [low, high) and the call's.`,
+		Requires: `high and low are the results of the matching doc.enter.`})
 	doc := []string{Document}
 	inDoc := `The parse reads a Document.`
 	add(&exec.Op{Name: "doc.active", Component: Call, Results: []exec.Type{exec.TBool}, Reads: []string{Call}, Features: doc,
@@ -367,6 +368,11 @@ and the call's.`,
 	add(&exec.Op{Name: "doc.touch", Component: Call, Params: []exec.Param{exec.P("end", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
 		Contract: `Extends the examined frontier of the current call to end, if end is past it.`})
+	add(&exec.Op{Name: "doc.touchFrom", Component: Call, Params: []exec.Param{exec.P("from", exec.TInt)}, Reads: []string{Call},
+		Writes: []string{Call}, Features: doc,
+		Contract: `Extends the examined input of the current call back to from, if from is before its start.`})
+	add(&exec.Op{Name: "doc.low", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+		Features: doc, Contract: `Returns the start of the input that the current call examined so far.`, Requires: inDoc})
 	add(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the examined frontier of the current call: the end of the input it examined
 so far, exclusive.`, Requires: inDoc})
@@ -382,6 +388,7 @@ that the target's observed function wraps.`})
 	// The host operations of the stream window, and the settling of its recovered errors.
 	stream := []string{Stream}
 	streamWindow(m, value)
+	documentMove(m)
 	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
 		Features: stream,
 		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected. It is

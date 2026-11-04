@@ -751,10 +751,12 @@ func (p *Parser) reusable(silent bool) bool {
 }
 
 // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
-// would have.
+// would have. A result does not record whether it examined the unit before its position, so in a
+// Document parse that unit counts as examined.
 func (p *Parser) replayCtx(e *ctxResult, seed bool) {
 	p.Observation.memoHit()
 	p.documentTouch(e.examined)
+	p.documentTouchFrom(p.Pos - 1)
 	if p.Document != nil {
 		p.Document.stats.Reused++
 	}
@@ -927,6 +929,7 @@ func (p *Parser) growNext(g *growState) bool {
 			p.replayDeps(g.start, g.gp, g.present, j.deps)
 			p.MergeExpected(j.far, j.exp)
 			p.documentTouch(j.examined)
+			p.documentTouchFrom(g.start - 1)
 			p.setSeed(g, j.end, j.id)
 			continue
 		}
@@ -935,6 +938,7 @@ func (p *Parser) growNext(g *growState) bool {
 			p.replayDeps(g.start, g.gp, g.present, s.deps)
 			p.MergeExpected(s.far, s.exp)
 			p.documentTouch(s.examined)
+			p.documentTouchFrom(g.start - 1)
 			if !p.advance(g, s.e, s.id, runStep{seed: id, far: s.far, exp: s.exp, examined: s.examined, silent: s.silent, deps: s.deps}) {
 				return false
 			}

@@ -188,7 +188,7 @@ func (a *tarena[T]) bytes() uint64 {
 // retainedBytes estimates the bytes a typed Document keeps for later parses: its memo slots and
 // the entries their metadata records.
 func (d *typedDocumentState) retainedBytes() uint64 {
-	return uint64(len(d.slots))*ptrBytes + uint64(len(d.meta))*(uint64(unsafe.Sizeof(tmemoEntry{}))+2*ptrBytes)
+	return uint64(len(d.slots))*ptrBytes + uint64(len(d.meta))*(uint64(unsafe.Sizeof(tmemoEntry{}))+ptrBytes+uint64(unsafe.Sizeof(typedDocumentMeta{})))
 }
 
 // chargeValueBytes charges n bytes of a value that only the controlled path builds

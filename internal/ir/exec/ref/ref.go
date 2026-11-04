@@ -62,14 +62,24 @@ type Entry struct {
 	silent bool
 	value  any
 	errs   any
-	// examined is the end recorded by memo.examine, 0 for none.
-	examined int64
+	// before and examined are the input recorded by memo.examine, examined 0 for none; pinned
+	// reports memo.pin.
+	examined       int64
+	before, pinned bool
 	// pruned reports an entry that memo.prune or memo.splice made invalid.
 	pruned bool
 }
 
 // Pos returns the position of the entry's key.
 func (e *Entry) Pos() int64 { return e.key.pos }
+
+// from returns the start of the input recorded with e.
+func (e *Entry) from() int64 {
+	if e.before {
+		return e.key.pos - 1
+	}
+	return e.key.pos
+}
 
 type seenCounts struct {
 	calls, repeats int32
@@ -97,13 +107,16 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return args[5].(int64) >= args[1].(int64) && args[1].(int64) >= 0
 	case "memo.prune":
 		return args[0].(int64) >= m.floor
-	case "memo.ok", "memo.end", "memo.silent", "memo.value", "memo.errs", "memo.examined":
+	case "memo.ok", "memo.end", "memo.silent", "memo.value", "memo.errs", "memo.examined", "memo.before":
 		return !args[0].(*Entry).pruned
 	case "memo.examine":
 		e := args[0].(*Entry)
-		return !e.pruned && args[1].(int64) > e.key.pos
+		return !e.pruned && args[2].(int64) > e.key.pos
+	case "memo.pin":
+		return !args[0].(*Entry).pruned
 	case "memo.splice":
-		return args[0].(int64) >= 0
+		start, end, delta := args[0].(int64), args[1].(int64), args[2].(int64)
+		return 0 <= start && start <= end && start <= end+delta
 	case "seen.first":
 		r, pos := args[0].(int64), args[1].(int64)
 		return r >= 0 && r < int64(m.cfg.Rules) && pos >= 0
@@ -160,12 +173,18 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	case "memo.floor":
 		return []any{m.floor}
 	case "memo.examine":
-		args[0].(*Entry).examined = args[1].(int64)
+		e := args[0].(*Entry)
+		e.before, e.examined, e.pinned = args[1].(bool), args[2].(int64), false
 		return nil
 	case "memo.examined":
 		return []any{args[0].(*Entry).examined}
+	case "memo.before":
+		return []any{args[0].(*Entry).before}
+	case "memo.pin":
+		args[0].(*Entry).pinned = true
+		return nil
 	case "memo.splice":
-		m.splice(args[0].(int64))
+		m.splice(args[0].(int64), args[1].(int64), args[2].(int64))
 		return nil
 	case "memo.ok":
 		return []any{args[0].(*Entry).ok}
@@ -262,18 +281,27 @@ func (m *Model) prune(pos int64) {
 	m.covered = max(m.covered, pos)
 }
 
-// splice keeps the entries whose examined end is recorded and at most start, as copies; every
-// entry from before it is dead.
-func (m *Model) splice(start int64) {
+// splice applies an edit: it keeps the entries before start, moves the movable entries after end
+// by delta, as copies, and removes the others; every entry from before it is dead.
+func (m *Model) splice(start, end, delta int64) {
 	old := m.entries
 	m.entries, m.at, m.covered = map[memoKey]*Entry{}, map[int64]int{}, m.floor
 	for _, e := range old {
 		e.pruned = true
-		if e.examined > 0 && e.examined <= start {
-			c := *e
-			c.pruned = false
-			m.put(&c)
+		c := *e
+		c.pruned = false
+		switch {
+		case e.examined == 0:
+			continue
+		case e.examined <= start:
+		case e.from() >= end && !e.pinned && e.errs == nil:
+			c.key.pos += delta
+			c.end += delta
+			c.examined += delta
+		default:
+			continue
 		}
+		m.put(&c)
 	}
 }
 

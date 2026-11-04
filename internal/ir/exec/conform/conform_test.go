@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "memo.examine", "memo.examined", "memo.splice", "seen.first",
+var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice", "seen.first",
 	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current"}
 
 // modelImpl is the reference model run as an implementation: every case must pass on it.
@@ -88,7 +88,27 @@ func TestMutantsFail(t *testing.T) {
 			return m.Call(Module().Op("memo.prune"), []any{a[0].(int64) + 1})
 		}},
 		"splice keeps an entry that examined the edit's position": {op: "memo.splice", edit: func(m *ref.Model, a []any) []any {
-			return m.Call(Module().Op("memo.splice"), []any{a[0].(int64) + 1})
+			// The edit starts one unit later and ends where it did.
+			start, end, delta := a[0].(int64)+1, a[1].(int64), a[2].(int64)
+			if start > end || start > end+delta {
+				return m.Call(Module().Op("memo.splice"), a)
+			}
+			return m.Call(Module().Op("memo.splice"), []any{start, end, delta})
+		}},
+		"splice moves an entry that examined the edit's end": {op: "memo.splice", edit: func(m *ref.Model, a []any) []any {
+			// The edit ends one unit earlier and keeps its length.
+			start, end, delta := a[0].(int64), a[1].(int64)-1, a[2].(int64)
+			if start > end || start > end+delta {
+				return m.Call(Module().Op("memo.splice"), a)
+			}
+			return m.Call(Module().Op("memo.splice"), []any{start, end, delta})
+		}},
+		"splice moves entries one unit short": {op: "memo.splice", edit: func(m *ref.Model, a []any) []any {
+			start, end, delta := a[0].(int64), a[1].(int64), a[2].(int64)-1
+			if start > end+delta {
+				return m.Call(Module().Op("memo.splice"), a)
+			}
+			return m.Call(Module().Op("memo.splice"), []any{start, end, delta})
 		}},
 		"budget charges one unit less": {op: "budget.charge", edit: func(m *ref.Model, a []any) []any {
 			n := a[0].(uint64)

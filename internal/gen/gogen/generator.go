@@ -688,6 +688,9 @@ func (g *Generator) rules() {
 			if g.Document && (r.Leader || r.Memo) {
 				flags = append(flags, "RuleDocMemo")
 			}
+			if g.Document && r.Positional {
+				flags = append(flags, "RulePositional")
+			}
 			if r.Splice {
 				flags = append(flags, "RuleSplice")
 			}

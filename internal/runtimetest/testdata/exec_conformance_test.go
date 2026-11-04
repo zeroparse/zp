@@ -94,13 +94,19 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.silent":
 		return []any{args[0].(*memoEntry).silent}
 	case "memo.examine":
-		args[0].(*memoEntry).examined = i(1)
+		e := args[0].(*memoEntry)
+		e.before, e.examined, e.pinned = args[1].(bool), i(2), false
 		return nil
 	case "memo.examined":
 		return []any{int64(args[0].(*memoEntry).examined)}
+	case "memo.before":
+		return []any{args[0].(*memoEntry).before}
+	case "memo.pin":
+		args[0].(*memoEntry).pinned = true
+		return nil
 	case "memo.splice":
 		// A Document edit: the Document's memo is the table of its next parse.
-		p.memo.splice(i(0))
+		p.memo.splice(documentEdit{i(0), i(1), i(2)})
 		return nil
 	case "memo.prune":
 		p.pruneStreamMemo(i(0))
@@ -123,7 +129,7 @@ var (
 	rtMemoOps   = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "seen.first"}
 	rtBudgetOps = []string{"budget.charge", "budget.used"}
 	rtStreamOps = []string{"memo.prune", "memo.floor"}
-	rtDocOps    = []string{"memo.examine", "memo.examined", "memo.splice"}
+	rtDocOps    = []string{"memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
 )
 
 func rtSuites() []conform.Suite {
@@ -230,15 +236,20 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.silent":
 		return []any{args[0].(*tmemoEntry).silent}
 	case "memo.examine":
-		m.doc.meta[args[0].(*tmemoEntry)] = typedDocumentMeta{examined: i(1)}
+		m.doc.meta[args[0].(*tmemoEntry)] = typedDocumentMeta{examined: i(2), before: args[1].(bool)}
 		return nil
 	case "memo.examined":
 		return []any{int64(m.doc.meta[args[0].(*tmemoEntry)].examined)}
+	case "memo.before":
+		return []any{m.doc.meta[args[0].(*tmemoEntry)].before}
+	case "memo.pin":
+		m.doc.pin(args[0].(*tmemoEntry))
+		return nil
 	case "memo.splice":
 		// A typed Document edit between parses: the next parse starts from the kept chains, without
 		// the hash indexes of the last.
 		m.doc.slots = p.memoSlots
-		m.doc.splice(i(0))
+		m.doc.splice(documentEdit{i(0), i(1), i(2)})
 		p.memoSlots, p.memoIndexes, p.memoIndexBytes = m.doc.slots, nil, 0
 		return nil
 	case "budget.charge":
@@ -365,9 +376,30 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, e)
 			return []any{e}
 		}},
-		// A splice that keeps the entries whose examined end is the edit's position plus one.
+		// A splice that keeps the entries whose examined end is the edit's start plus one.
 		"splice keeps an entry that examined the edited unit": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
-			m.p.memo.splice(int(args[0].(int64)) + 1)
+			start, end := int(args[0].(int64))+1, int(args[1].(int64))
+			m.p.memo.splice(documentEdit{start, max(start, end), int(args[2].(int64))})
+			return nil
+		}},
+		// A splice that moves the entries that examined the unit before them at the edit's end.
+		"splice moves an entry that examined the unit before the edit's end": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
+			for _, head := range m.p.memo.slots {
+				for e := head; e != nil; e = e.next {
+					e.before = false
+				}
+			}
+			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
+			return nil
+		}},
+		// A splice that moves pinned entries.
+		"splice moves a pinned entry": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
+			for _, head := range m.p.memo.slots {
+				for e := head; e != nil; e = e.next {
+					e.pinned = false
+				}
+			}
+			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
 			return nil
 		}},
 		// A lookup that charges each entry it passes twice: within the results, beyond the bound.

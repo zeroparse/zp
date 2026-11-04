@@ -12,7 +12,7 @@ import (
 type Document struct {
 	State     *documentState
 	defaults  parseOptions
-	typedMemo interface{ splice(start int) }
+	typedMemo interface{ splice(ed documentEdit) }
 	// parsing is set while a parse runs, whose observation callbacks must not
 	// parse or edit the Document again (BeginParse).
 	parsing bool
@@ -75,12 +75,12 @@ func (d *Document) Edit(start, end int, text string) error {
 	if d.parsing {
 		return DocumentBusy
 	}
-	reuse, err := d.State.editReuse(start, end, text)
+	ed, err := d.State.editReuse(start, end, text)
 	if err != nil {
 		return err
 	}
 	if d.typedMemo != nil {
-		d.typedMemo.splice(reuse)
+		d.typedMemo.splice(ed)
 	}
 	return nil
 }
@@ -240,24 +240,28 @@ func (d *documentState) edit(start, end int, replacement string) error {
 	return err
 }
 
-// editReuse applies an edit to the text and the memo (memo.splice) and returns reuse, the position
-// where the edit starts as the memo sees it: before start when the edit can change how the input
-// before start decodes.
-func (d *documentState) editReuse(start, end int, replacement string) (reuse int, err error) {
+// documentEdit is an edit as the memo sees it (memo.splice): the input [start, end) is replaced
+// with input delta units longer, and the input after end decodes as before.
+type documentEdit struct{ start, end, delta int }
+
+// editReuse applies an edit to the text and the memo (memo.splice) and returns it as the memo sees
+// it: from before start when the edit can change how the input before start decodes, to after end
+// when it can change how the input after end decodes.
+func (d *documentState) editReuse(start, end int, replacement string) (ed documentEdit, err error) {
 	length := len(d.text)
 	if d.unit != Bytes {
 		length = utf8.RuneCountInString(d.text)
 	}
 	if start < 0 || end < start || end > length {
-		return start, fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, length)
+		return documentEdit{}, fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, length)
 	}
 	startByte, endByte := start, end
 	if d.unit == Bytes {
 		if err := documentByteBoundary(d.text, start); err != nil {
-			return start, err
+			return documentEdit{}, err
 		}
 		if err := documentByteBoundary(d.text, end); err != nil {
-			return start, err
+			return documentEdit{}, err
 		}
 	} else {
 		startByte = documentByteOffset(d.text, start)
@@ -267,38 +271,214 @@ func (d *documentState) editReuse(start, end int, replacement string) (reuse int
 	// turning invalid bytes, each a separate character, into one character.
 	// Such a sequence has at most UTFMax-1 bytes, each one position in either
 	// unit, so results that examined them are not retained.
-	reuse = start
+	reuse := start
 	for i := 0; i < utf8.UTFMax-1 && i < startByte; i++ {
 		if r, size := utf8.DecodeLastRuneInString(d.text[:startByte-i]); r != utf8.RuneError || size != 1 {
 			break
 		}
 		reuse--
 	}
+	ed = documentEdit{start: reuse, end: end, delta: len(replacement) - (endByte - startByte)}
+	if d.unit != Bytes {
+		// The replacement can also end with the start of a sequence that the continuation bytes after
+		// end, each a separate character, complete. Past those, the characters are the same.
+		endX := endByte
+		for endX < len(d.text) && endX-endByte < utf8.UTFMax-1 && !utf8.RuneStart(d.text[endX]) {
+			endX++
+		}
+		ed.end = end + endX - endByte
+		reuseByte := startByte - (start - reuse)
+		window := d.text[reuseByte:startByte] + replacement + d.text[endByte:endX]
+		ed.delta = utf8.RuneCountInString(window) - (ed.end - reuse)
+	}
 
 	// Build the replacement before changing either text or memo. Invalid UTF-8
 	// bytes are preserved, and a replacement may complete an existing prefix.
 	d.text = d.text[:startByte] + replacement + d.text[endByte:]
-	d.memo.splice(reuse)
-	return reuse, nil
+	d.memo.splice(ed)
+	return ed, nil
 }
 
-// splice applies an edit of the input at start (memo.splice): it keeps only the entries whose
-// recorded examined end is at most start, at their positions, copied into a new table. This does not
-// shift the entries after the edit; that needs shared-node movement and positional-value invalidation.
-func (t *memoTable) splice(start int) {
+// splice applies an edit to the memo (memo.splice), copying the entries it keeps into a new table:
+// those that examined only input before the edit stay; those that examined only input after it,
+// with no recovered errors and not pinned, move by its delta, with what their values must move
+// recorded in shifts (documentMove); the others are removed.
+func (t *memoTable) splice(ed documentEdit) {
 	var kept memoTable
-	for pos := 0; pos < len(t.slots) && pos < start; pos++ {
+	for pos := range t.slots {
 		for e := t.slots[pos]; e != nil; e = e.next {
-			if e.examined == 0 || e.examined > start {
+			to, from := pos, pos
+			if e.before {
+				from--
+			}
+			switch {
+			case e.examined == 0:
+				continue
+			case e.examined <= ed.start:
+			case from >= ed.end && !e.pinned && len(e.errs) == 0:
+				to = pos + ed.delta
+			default:
 				continue
 			}
-			copyEntry := kept.alloc()
-			*copyEntry = *e
-			copyEntry.next = nil
-			kept.put(int(e.rule), pos, int(e.min), e.env, copyEntry)
+			c := kept.alloc()
+			*c = *e
+			c.next = nil
+			shift := t.shifts[e]
+			if to != pos {
+				c.end += ed.delta
+				c.examined += ed.delta
+				c.far += ed.delta
+				shift += ed.delta
+			}
+			// A result without a node holds no positions.
+			if shift != 0 && c.node != nil {
+				if kept.shifts == nil {
+					kept.shifts = map[*memoEntry]int{}
+				}
+				kept.shifts[c] = shift
+			}
+			kept.put(int(e.rule), to, int(e.min), e.env, c)
 		}
 	}
 	*t = kept
+}
+
+// documentMove moves the nodes of the value of e by the shift that edits gave e (memo.splice), in
+// copies, since the value may be part of a result already returned, and reports whether it could:
+// a value that holds a host value other than a node or a basic value is not moved. A moved node
+// costs one unit, as making it did.
+func (p *Parser) documentMove(e *memoEntry) bool {
+	if len(p.memo.shifts) == 0 {
+		return true
+	}
+	shift, ok := p.memo.shifts[e]
+	if !ok {
+		return true
+	}
+	// The check marks the nodes it visits with the number of the move. A node that it finds marked
+	// occurs in the value more than once; such a value is moved through a map from the nodes to
+	// their copies, so that each is copied once and the copies are shared as the nodes were.
+	p.moves++
+	if p.moves == 0 {
+		p.moves = 1 // a mark of 0 is that of a node no move visited
+	}
+	movable, shared := p.movable(e.node)
+	if !movable {
+		return false
+	}
+	if shared {
+		if p.moved == nil {
+			p.moved = map[*Node]*Node{}
+		}
+		e.node = p.moveShared(e.node, int32(shift))
+		clear(p.moved)
+	} else {
+		e.node = p.moveNode(e.node, int32(shift))
+	}
+	delete(p.memo.shifts, e)
+	return true
+}
+
+// movable reports whether moveNode can move n: its fields and box hold only nodes and basic values;
+// and whether a node occurs in n more than once.
+func (p *Parser) movable(n *Node) (movable, shared bool) {
+	if n == nil {
+		return true, false
+	}
+	if n.moveMark == p.moves {
+		return true, true
+	}
+	n.moveMark = p.moves
+	if !basicValue(n.box) {
+		return false, false
+	}
+	for _, c := range n.RawChildren {
+		ok, sh := p.movable(c)
+		if !ok {
+			return false, false
+		}
+		shared = shared || sh
+	}
+	for _, f := range n.RawFields {
+		if c, ok := f.Value.(*Node); ok {
+			ok, sh := p.movable(c)
+			if !ok {
+				return false, false
+			}
+			shared = shared || sh
+		} else if !basicValue(f.Value) {
+			return false, false
+		}
+	}
+	return true, shared
+}
+
+// basicValue reports whether v holds no positions: nil, a boolean, a number or a string.
+func basicValue(v any) bool {
+	switch v.(type) {
+	case nil, bool, string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr,
+		float32, float64, complex64, complex128:
+		return true
+	}
+	return false
+}
+
+// moveNode returns a copy of the movable node n, in which no node occurs twice, with its positions
+// and those of its descendants moved by shift.
+func (p *Parser) moveNode(n *Node, shift int32) *Node {
+	if n == nil {
+		return nil
+	}
+	c := p.NewNode(*n)
+	c.RawStart += shift
+	c.RawEnd += shift
+	if n.RawChildren != nil {
+		c.RawChildren = p.Nodes(len(n.RawChildren))
+		for i, k := range n.RawChildren {
+			c.RawChildren[i] = p.moveNode(k, shift)
+		}
+	}
+	if n.RawFields != nil {
+		c.RawFields = p.fields(len(n.RawFields))
+		for _, f := range n.RawFields {
+			if k, ok := f.Value.(*Node); ok {
+				f.Value = p.moveNode(k, shift)
+			}
+			c.RawFields = append(c.RawFields, f)
+		}
+	}
+	return c
+}
+
+// moveShared is moveNode for a value that holds a node more than once: moved holds the copies made
+// so far, which it shares.
+func (p *Parser) moveShared(n *Node, shift int32) *Node {
+	if n == nil {
+		return nil
+	}
+	if c := p.moved[n]; c != nil {
+		return c
+	}
+	c := p.NewNode(*n)
+	p.moved[n] = c
+	c.RawStart += shift
+	c.RawEnd += shift
+	if n.RawChildren != nil {
+		c.RawChildren = p.Nodes(len(n.RawChildren))
+		for i, k := range n.RawChildren {
+			c.RawChildren[i] = p.moveShared(k, shift)
+		}
+	}
+	if n.RawFields != nil {
+		c.RawFields = p.fields(len(n.RawFields))
+		for _, f := range n.RawFields {
+			if k, ok := f.Value.(*Node); ok {
+				f.Value = p.moveShared(k, shift)
+			}
+			c.RawFields = append(c.RawFields, f)
+		}
+	}
+	return c
 }
 
 func documentByteOffset(text string, index int) int {

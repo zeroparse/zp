@@ -211,7 +211,9 @@ func (p *Parser) SkipHit() bool {
 		return false
 	}
 	p.Spend()
+	// A record does not tell whether the walk examined the unit before the position.
 	p.documentTouch(r.examined)
+	p.documentTouchFrom(p.Pos - 1)
 	p.MergeExpected(r.far, r.exp)
 	p.Pos = r.end
 	w.hit, w.hitOK = r, true

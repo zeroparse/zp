@@ -107,30 +107,69 @@ func Cases() []Case {
 	})
 
 	add("memo_splice", ref.Config{}, func(b *exec.Builder) {
-		// Entries at 0, 2, 3, 4 and 6 that examined the input up to 3, 4, 5, 7 and 9.
-		for _, x := range [][2]int64{{0, 3}, {2, 4}, {3, 5}, {4, 7}, {6, 9}} {
+		// Entries of rule 1 at 0, 2, 3, 4, 5 and 6, which examined the input up to 3, 4, 5, 7, 8 and 9,
+		// the one at 6 from the unit before it.
+		for _, x := range [][3]int64{{0, 3, 0}, {2, 4, 0}, {3, 5, 0}, {4, 7, 0}, {5, 8, 0}, {6, 9, 1}} {
 			e := store(b, fmt.Sprint("s", x[0]), key(1, x[0], 0, 7), true, x[0]+1)
-			b.Do("memo.examine", e, exec.Int(x[1]))
+			b.Do("memo.examine", e, exec.BoolC(x[2] == 1), exec.Int(x[1]))
 		}
 		b.Assert(exec.Eq(exec.C("memo.examined", exec.L("s4")), exec.Int(7)), "an entry keeps its examined end")
+		b.Assert(exec.And(exec.C("memo.before", exec.L("s6")), exec.Not(exec.C("memo.before", exec.L("s5")))),
+			"an entry keeps whether its examined input starts before it")
 		unexamined := store(b, "u", key(2, 1, 0, 7), true, 2)
 		b.Assert(exec.Eq(exec.C("memo.examined", unexamined), exec.Int(0)), "an entry without a record has examined end 0")
-		b.Do("memo.splice", exec.Int(4))
+		b.Assert(exec.Not(exec.C("memo.before", unexamined)), "an entry without a record does not start before it")
+		// Of rule 2, an entry at 5 that examined the unit before it; of rule 3, a pinned entry at 6.
+		e := store(b, "b5", key(2, 5, 0, 7), true, 6)
+		b.Do("memo.examine", e, exec.BoolC(true), exec.Int(8))
+		e = store(b, "p6", key(3, 6, 0, 7), true, 7)
+		b.Do("memo.examine", e, exec.BoolC(false), exec.Int(9))
+		b.Do("memo.pin", e)
+
+		// Replace [4, 5) with three units.
+		b.Do("memo.splice", exec.Int(4), exec.Int(5), exec.Int(2))
 		for _, x := range [][2]int64{{0, 1}, {2, 3}} {
 			e, f := lookup(b, fmt.Sprint("k", x[0]), fmt.Sprint("kf", x[0]), key(1, x[0], 0, 7))
 			b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e), exec.Int(x[1]))), "an entry that examined only input before the edit stays")
 		}
 		b.Assert(exec.Eq(exec.C("memo.examined", exec.L("k2")), exec.Int(4)), "a kept entry keeps its examined end")
-		for _, pos := range []int64{3, 4, 6} {
+		for _, pos := range []int64{3, 4, 5, 6} {
 			_, f := lookup(b, fmt.Sprint("d", pos), fmt.Sprint("df", pos), key(1, pos, 0, 7))
-			b.Assert(exec.Not(f), "an entry that examined input at or after the edit is removed")
+			b.Assert(exec.Not(f), "an entry that examined the edited input is removed, and one after it moves")
 		}
-		_, f := lookup(b, "ug", "uf", key(2, 1, 0, 7))
+		m7, f := lookup(b, "m7", "m7f", key(1, 7, 0, 7))
+		b.Assert(exec.And(f, exec.And(exec.Eq(exec.C("memo.end", m7), exec.Int(8)), exec.Eq(exec.C("memo.examined", m7), exec.Int(10)))),
+			"an entry that examined only input after the edit moves with it")
+		b.Assert(exec.Not(exec.C("memo.before", m7)), "a moved entry keeps where its examined input starts")
+		m8, f := lookup(b, "m8", "m8f", key(1, 8, 0, 7))
+		b.Assert(exec.And(f, exec.C("memo.before", m8)), "an entry whose examined input starts after the edit moves")
+		for _, pos := range []int64{5, 7} {
+			_, f := lookup(b, fmt.Sprint("q", pos), fmt.Sprint("qf", pos), key(2, pos, 0, 7))
+			b.Assert(exec.Not(f), "an entry that examined the unit before it, at the edit's end, is removed")
+		}
+		for _, pos := range []int64{6, 8} {
+			_, f := lookup(b, fmt.Sprint("r", pos), fmt.Sprint("rf", pos), key(3, pos, 0, 7))
+			b.Assert(exec.Not(f), "a pinned entry is removed")
+		}
+		_, f = lookup(b, "ug", "uf", key(2, 1, 0, 7))
 		b.Assert(exec.Not(f), "an entry without an examined record is removed")
-		b.Do("memo.splice", exec.Int(0))
-		_, f = lookup(b, "z", "zf", key(1, 0, 0, 7))
-		b.Assert(exec.Not(f), "an edit at 0 removes every entry")
-		e := store(b, "again", key(1, 0, 0, 7), true, 1)
+
+		// Delete [0, 2).
+		b.Do("memo.splice", exec.Int(0), exec.Int(2), exec.Int(-2))
+		_, f = lookup(b, "z", "zf", key(1, 2, 0, 7))
+		b.Assert(exec.Not(f), "an entry does not stay at its position when it moves")
+		e, f = lookup(b, "z0", "z0f", key(1, 0, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e), exec.Int(1))), "an entry at the end of a deletion moves to its start")
+		e, f = lookup(b, "z6", "z6f", key(1, 6, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(exec.C("memo.examined", e), exec.Int(9))), "a moved entry moves again")
+
+		// Replace the whole input [0, 20) with one unit.
+		b.Do("memo.splice", exec.Int(0), exec.Int(20), exec.Int(-19))
+		for _, pos := range []int64{0, 5, 6} {
+			_, f := lookup(b, fmt.Sprint("w", pos), fmt.Sprint("wf", pos), key(1, pos, 0, 7))
+			b.Assert(exec.Not(f), "an edit of all the input removes every entry")
+		}
+		e = store(b, "again", key(1, 0, 0, 7), true, 1)
 		got, f := lookup(b, "againGot", "af", key(1, 0, 0, 7))
 		b.Assert(exec.And(f, exec.Eq(got, e)), "the memo stores after an edit")
 	})
@@ -248,15 +287,24 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 			case "seen.first":
 				intArg(rng.Int64N(int64(max(cfg.Rules, 1))))
 				intArg(pos())
-			case "memo.prune", "memo.splice":
+			case "memo.prune":
 				intArg(pos())
-			case "memo.examine", "memo.examined":
+			case "memo.splice":
+				// Replace [start, end) with up to 3 units.
+				start := pos()
+				end := start + rng.Int64N(4)
+				intArg(start)
+				intArg(end)
+				intArg(start - end + rng.Int64N(4))
+			case "memo.examine", "memo.examined", "memo.before", "memo.pin":
 				if len(entries) == 0 {
 					continue
 				}
 				e := entries[rng.IntN(len(entries))]
 				args, exprs = append(args, e.ref), append(exprs, exec.L(e.name))
 				if o.Name == "memo.examine" {
+					before := rng.IntN(3) == 0
+					args, exprs = append(args, before), append(exprs, exec.BoolC(before))
 					intArg(e.ref.Pos() + 1 + rng.Int64N(6))
 				}
 			case "budget.charge":

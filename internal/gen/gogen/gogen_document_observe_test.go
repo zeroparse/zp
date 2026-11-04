@@ -226,7 +226,8 @@ func observedRuntime(t *testing.T) string {
 				"p.Observation = newObservation(&o.observe)\n\tif ProbeHook != nil {\n\t\tProbeHook(p.Observation)\n\t}\n\tdefer p.releaseObservation()", 1)
 		case "call_exec.go":
 			// The printed calls name the stored entry entry and the reused entry e.
-			stores := []string{"entry.examined = p.docHigh\n", "p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh}"}
+			stores := []string{"entry.examined, entry.before, entry.pinned = p.docHigh, p.docLow < start, false\n",
+				"p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, before: p.docLow < start}"}
 			hits := []string{"e.examined", "p.TypedDocument.meta[e].examined"}
 			keep := "FrontierHook(r.Name, start, min, p.docHigh, false); "
 			for _, old := range stores {

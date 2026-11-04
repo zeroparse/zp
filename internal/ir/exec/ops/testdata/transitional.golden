@@ -179,15 +179,17 @@ op memo.floor() int
     // Returns the floor of the memo: 0 at the start of a parse, then the position of the last
     // memo.prune.
 
-op memo.examine(e Entry, end int)
+op memo.examine(e Entry, before bool, end int)
   component memo
   reads memo
   writes memo
   features document
   cost <= 0
   contract:
-    // Records with entry e that the call which computed it examined the input before end, for
-    // the reuse of e after an edit (memo.splice).
+    // Records with entry e the input that the call which computed it examined, for the reuse of e
+    // after an edit (memo.splice): from the position of e, or from the unit before it if before (a call
+    // reads at most that unit before its position, to tell a line start), to end, exclusive. The record
+    // replaces those that memo.examine and memo.pin made before.
   requires:
     // end is greater than the position of e.
 
@@ -197,22 +199,44 @@ op memo.examined(e Entry) int
   features document
   cost <= 0
   contract:
-    // Returns the end that memo.examine recorded with entry e, or 0 if none was recorded.
+    // Returns the end of the input that memo.examine recorded with entry e, or 0 if none was
+    // recorded.
 
-op memo.splice(start int)
+op memo.before(e Entry) bool
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Reports whether the input that memo.examine recorded with entry e starts before its position;
+    // false if none was recorded.
+
+op memo.pin(e Entry)
   component memo
   reads memo
   writes memo
   features document
   cost <= 0
   contract:
-    // Applies an edit of the input at start. An entry stays valid only if its examined end was
-    // recorded and is at most start: the edit changed none of the input its call examined. The other entries,
-    // those at or after start included, are removed. The kept entries stay at their positions with their
-    // attributes, but the handles of all entries from before the edit are no longer valid: a target may copy
-    // the kept entries.
+    // Marks entry e as depending on positions, not only on the input it examined: an edit before
+    // it removes it instead of moving it (memo.splice).
+
+op memo.splice(start int, end int, delta int)
+  component memo
+  reads memo
+  writes memo
+  features document
+  cost <= 0
+  contract:
+    // Applies an edit of the input that replaces [start, end) with input delta units longer. An
+    // entry whose recorded examined input ends at or before start stays where it is. An entry whose recorded
+    // examined input starts at or after end, that is not pinned and has no recovered errors, moves by delta:
+    // it is found at its position plus delta, and its end, its examined input and the farthest position of
+    // its expectations move with it, and its value moves when it is reused (doc.move). Every other entry is
+    // removed. The handles of all entries from
+    // before the edit are no longer valid: a target may copy the entries it keeps.
   requires:
-    // start >= 0.
+    // 0 <= start <= end, and start <= end + delta.
 
 op memo.ok(e Entry) bool
   component memo
@@ -377,6 +401,12 @@ transitional op rule.docMemo(r Rule) bool
   cost <= 0
   contract:
     // Reports whether a Document parse memoizes the rule.
+
+transitional op rule.positional(r Rule) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether the results of the rule may depend on positions, not only on the input they examine.
 
 transitional op rule.id(r Rule) int
   component rules
@@ -861,27 +891,27 @@ transitional op doc.examinedEnd(enclosing int) (int, bool)
   requires:
     // enclosing is the result of the matching doc.examinedBegin.
 
-transitional op doc.enter(pos int) int
+transitional op doc.enter(pos int) (int, int)
   component call
   reads call
   writes call
   features document
   cost <= 0
   contract:
-    // Begins a rule call at pos in a Document parse: returns the examined frontier of the enclosing
-    // call, and starts the call's frontier past pos.
+    // Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
+    // its end and its start, and starts the call's examined input as [pos, pos+1).
 
-transitional op doc.leave(high int)
+transitional op doc.leave(high int, low int)
   component call
   reads call
   writes call
   features document
   cost <= 0
   contract:
-    // Ends a rule call in a Document parse: the enclosing call's frontier becomes the farther of high
-    // and the call's.
+    // Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
+    // range that holds [low, high) and the call's.
   requires:
-    // high is the result of the matching doc.enter.
+    // high and low are the results of the matching doc.enter.
 
 transitional op doc.active() bool
   component call
@@ -899,6 +929,25 @@ transitional op doc.touch(end int)
   cost <= 0
   contract:
     // Extends the examined frontier of the current call to end, if end is past it.
+
+transitional op doc.touchFrom(from int)
+  component call
+  reads call
+  writes call
+  features document
+  cost <= 0
+  contract:
+    // Extends the examined input of the current call back to from, if from is before its start.
+
+transitional op doc.low() int
+  component call
+  reads call
+  features document
+  cost <= 0
+  contract:
+    // Returns the start of the input that the current call examined so far.
+  requires:
+    // The parse reads a Document.
 
 transitional op doc.high() int
   component call
@@ -1035,6 +1084,20 @@ host op stream.tail() bool
   cost <= 0
   contract:
     // Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).
+
+host op doc.move(e Entry) bool
+  component memo
+  reads memo, host
+  writes memo
+  features document
+  noreturn
+  cost <= 0 + 1*moved
+  contract:
+    // Makes the value of entry e valid at the position of e, after memo.splice moved e: moves the
+    // positions in the value by as much as the edits moved e since the value was made, in a copy, since the
+    // value may be part of a result that the parse returned. Returns false, changing nothing, when the
+    // target cannot move the value (a value of the host that is not made of nodes and of basic values);
+    // the call that finds e then evaluates the rule again. Returns true for an entry that no edit moved.
 
 transitional op stream.settleErrors()
   component window

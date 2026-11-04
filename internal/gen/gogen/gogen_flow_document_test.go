@@ -324,6 +324,12 @@ var documentShapes = []gentest.Case{
 		Inputs: []string{"abcd", "ab cdab", "a  "}},
 	{Name: "class lookahead", Src: "rule main = item* $$\nrule item = [a-c] &[0-9] [0-9]+ / [a-c] / [0-9] / \" \"\n",
 		Inputs: []string{"a1 b c2 3", "a b1", "c33a"}},
+	// A line start examines the character before the result, which an edit that ends there changes; a
+	// result that holds a position cannot move with an edit before it.
+	{Name: "line start", Src: "rule main = item* $$\nrule item = ^ \"a\" x / \"a\" y / \"\\n\" / \"b\"\nrule x = \"\"\nrule y = \"\"\n",
+		Inputs: []string{"a\na", "ba\nab\na", "\n\naa"}},
+	{Name: "positions in values", Src: "rule main = item* $$\nrule item = n:[a-c] => $n.Start\n",
+		Inputs: []string{"abc", "aabbcc", "c"}},
 }
 
 // documentCorpus returns the generated-corpus grammars and the shape grammars with the edits of each input.

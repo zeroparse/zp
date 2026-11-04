@@ -297,6 +297,8 @@ func goTarget(s goSpec) *execgo.Target {
 			return "len(" + a[0] + ".Scope) == 0"
 		case "rule.docMemo":
 			return a[0] + ".DocMemo"
+		case "rule.positional":
+			return a[0] + ".Positional"
 		case "rule.id":
 			return a[0] + ".Id"
 		case "rule.invoke":
@@ -368,7 +370,27 @@ func goTarget(s goSpec) *execgo.Target {
 		case "doc.examinedEnd":
 			return "p.ExaminedEnd(" + a[0] + ")"
 		case "doc.leave":
-			return fmt.Sprintf("p.docHigh = max(%s, p.docHigh)", a[0])
+			// The binding level of a call is named min: the low end is lowered without the builtin.
+			return fmt.Sprintf("p.docHigh = max(%s, p.docHigh)\nif %s < p.docLow {\np.docLow = %s\n}", a[0], a[1], a[1])
+		case "doc.touchFrom":
+			return "p.documentTouchFrom(" + a[0] + ")"
+		case "doc.low":
+			return "p.docLow"
+		case "doc.move":
+			if typed {
+				return "p.TypedDocument.move(" + a[0] + ")"
+			}
+			return "p.documentMove(" + a[0] + ")"
+		case "memo.before":
+			if typed {
+				return "p.TypedDocument.meta[" + a[0] + "].before"
+			}
+			return a[0] + ".before"
+		case "memo.pin":
+			if typed {
+				return "p.TypedDocument.pin(" + a[0] + ")"
+			}
+			return a[0] + ".pinned = true"
 		case "obs.active":
 			return "p.Observation != nil"
 		case "doc.active":
@@ -390,9 +412,9 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.Document.stats.Reused++"
 		case "memo.examine":
 			if typed {
-				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[1] + "}"
+				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[2] + ", before: " + a[1] + "}"
 			}
-			return a[0] + ".examined = " + a[1]
+			return fmt.Sprintf("%s.examined, %s.before, %s.pinned = %s, %s, false", a[0], a[0], a[0], a[2], a[1])
 		case "call.body":
 			return fmt.Sprintf("p.%s(%s, %s)", s.body, a[0], a[1])
 		case "ctx.found":
@@ -509,7 +531,7 @@ p.arena = appendSpend(p, p.arena, %[1]s)
 p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
 %[2]s%[3]sp.lastKept`, a[0], dst[0], op), true
 		case "doc.enter":
-			return fmt.Sprintf("%s%sp.docHigh\np.docHigh = %s+1", dst[0], op, a[0]), true
+			return fmt.Sprintf("%s, %s%sp.docHigh, p.docLow\np.docHigh, p.docLow = %s+1, %s", dst[0], dst[1], op, a[0], a[0]), true
 		case "memo.store":
 			e := dst[0]
 			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])

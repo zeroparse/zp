@@ -80,8 +80,8 @@ func Build() *Module {
 	// context of the call. Otherwise it starts
 	// recording the dependencies of the call and isolates its expectations.
 	//
-	// With Document bookkeeping, a call in a Document parse also extends its examined frontier to the
-	// entry's.
+	// With Document bookkeeping, a call in a Document parse reuses an entry that an edit moved once
+	// its value is moved too (doc.move), and extends the input it examined to the entry's.
 	reuse := func(b *Builder, level Expr, doc docMode) {
 		b.Let("env", C("env.memoKey", r))
 		cs := b.LetN([]string{"c", "seed"}, C("ctx.enter", r, level))
@@ -90,10 +90,18 @@ func Build() *Module {
 		b.LetN([]string{"e", "found"}, C("memo.lookup", id, L("start"), level, L("env")))
 		e := L("e")
 		reusable := And(And(L("found"), C("ctx.allows", c, e)), Bin("||", Not(C("memo.silent", e)), silent))
+		// After an edit, an entry is reused once its value is moved to its position.
+		switch doc {
+		case nodeDoc:
+			reusable = And(reusable, Bin("||", Not(C("doc.active")), C("doc.move", e)))
+		case typedDoc:
+			reusable = And(reusable, C("doc.move", e))
+		}
 		b.If(reusable, func(b *Builder) {
 			b.If(F(ops.Observe), func(b *Builder) { b.Do("obs.memoHit") })
 			inDocument(b, doc, func(b *Builder) {
 				b.Do("doc.touch", C("memo.examined", e))
+				b.If(C("memo.before", e), func(b *Builder) { b.Do("doc.touchFrom", Add(L("start"), Int(-1))) })
 				b.Do("doc.reused")
 			})
 			b.Do("mergeKept", C("memo.far", e), C("memo.expected", e))
@@ -116,8 +124,8 @@ func Build() *Module {
 	// dependencies to the enclosing evaluation, keeps the expectations of the call with its result
 	// and returns the result.
 	//
-	// With doc, a call in a Document parse also records with its entry how far it examined the
-	// input. With typed Document bookkeeping, the record of the entry that the call replaces is
+	// With doc, a call in a Document parse also records with its entry the input it examined, and
+	// pins the entry of a rule whose results depend on positions. With typed Document bookkeeping, the record of the entry that the call replaces is
 	// forgotten, so that it does not keep the entry alive.
 	finish := func(b *Builder, level Expr, doc docMode) {
 		c := L("c")
@@ -133,7 +141,10 @@ func Build() *Module {
 				L("v"), C("rec.since", L("rec"))))
 			b.Do("memo.setPresent", entry, c)
 			b.Do("memo.setExpected", entry, L("far"), L("kept"))
-			inDocument(b, doc, func(b *Builder) { b.Do("memo.examine", entry, C("doc.high")) })
+			inDocument(b, doc, func(b *Builder) {
+				b.Do("memo.examine", entry, Bin("<", C("doc.low"), L("start")), C("doc.high"))
+				b.If(C("rule.positional", r), func(b *Builder) { b.Do("memo.pin", entry) })
+			})
 		}, func(b *Builder) {
 			b.If(Eq(L("store"), C("ctx.storeCtx")), func(b *Builder) {
 				b.Do("ctx.keep", c, r, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent, L("v"),
@@ -249,7 +260,7 @@ bookkeeping of how far each call examined the input.`
 
 	document := m.AddFunc("document", []Param{P("r", rule), P("min", TInt)}, result,
 		[]string{ops.Document}, func(b *Builder) {
-			b.Let("oldHigh", C("doc.enter", R(ops.Pos)))
+			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", R(ops.Pos)))
 			b.Protect(func(b *Builder) {
 				b.If(Not(C("rule.docMemo", r)), func(b *Builder) {
 					b.LetN([]string{"v", "ok"}, C("unmemoized", r, L("min")))
@@ -257,10 +268,10 @@ bookkeeping of how far each call examined the input.`
 				})
 				b.LetN([]string{"v", "ok"}, C("memoized", r, L("min")))
 				b.Return(L("v"), L("ok"))
-			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh")) })
+			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh"), L("oldLow")) })
 		})
 	document.Doc = `document is a rule call in a Document parse, which memoizes the rules that the Document reuses
-and records how far each call examined the input. The enclosing call's frontier is restored however
+and records the input each call examined. The enclosing call's examined input is restored however
 the call ends, an interruption included, so that a parse after it starts from the state it would
 start from otherwise.`
 	// run evaluates the body of a typed rule call: through inv, the invocation that a generated call
@@ -276,7 +287,7 @@ start from otherwise.`
 			locals(b)
 			charge(b)
 			b.Let("start", R(ops.Pos))
-			b.Let("oldHigh", C("doc.enter", L("start")))
+			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", L("start")))
 			b.Protect(func(b *Builder) {
 				b.If(Not(C("rule.docMemo", r)), func(b *Builder) {
 					b.Let("rec", C("rec.mark"))
@@ -290,7 +301,7 @@ start from otherwise.`
 				reuse(b, L("min"), typedDoc)
 				evaluate(b, L("min"), run)
 				finish(b, L("min"), typedDoc)
-			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh")) })
+			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh"), L("oldLow")) })
 		})
 	typedDocument.Doc = `typedDocument is a typed rule call in a Document parse, for the rule r at binding level min,
 invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not

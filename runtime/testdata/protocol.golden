@@ -25,6 +25,7 @@ const RuleDocMemo uint8 = 8
 const RuleLeader uint8 = 2
 const RuleMemo uint8 = 1
 const RuleNovalue uint8 = 4
+const RulePositional uint8 = 64
 const RuleRec uint8 = 32
 const RuleSplice uint8 = 16
 const TerminalChoice uint16 = 3
@@ -411,7 +412,7 @@ type PositionUnit int
 type Profile struct{}
 type ProfileLocation struct{Pos int; Level int}
 type ProfileSnapshot struct{Parses int; Entered int; Calls int; Evals int; MemoHits int; Skipped int; Time time.Duration; Rules []RuleProfile}
-type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*Node, bool); Action func(*ActCtx) any; Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
+type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*Node, bool); Action func(*ActCtx) any; Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
 type RuleExtra struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}
 type RuleProfile struct{Rule string; Entered int; Calls int; Evals int; MemoHits int; Matched int; Failed int; Consumed int; Skipped int; SkipReasons []SkipReasonCount; Repeats int; MaxEvals int; MaxEvalsAt ProfileLocation; Examined int; ExaminedKnown bool; Wasted int; WastedKnown bool; Time time.Duration; SelfTime time.Duration}
 type RuleSpec struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}

@@ -122,23 +122,37 @@ after the prune: an implementation may reuse them for later entries.`})
 		Contract: `Returns the floor of the memo: 0 at the start of a parse, then the position of the last
 memo.prune.`})
 	doc := []string{Document}
-	m.AddOp(&exec.Op{Name: "memo.examine", Component: Memo, Params: []exec.Param{exec.P("e", entry), exec.P("end", exec.TInt)},
-		Reads: []string{Memo}, Writes: []string{Memo}, Features: doc,
-		Contract: `Records with entry e that the call which computed it examined the input before end, for
-the reuse of e after an edit (memo.splice).`,
+	m.AddOp(&exec.Op{Name: "memo.examine", Component: Memo,
+		Params: []exec.Param{exec.P("e", entry), exec.P("before", exec.TBool), exec.P("end", exec.TInt)},
+		Reads:  []string{Memo}, Writes: []string{Memo}, Features: doc,
+		Contract: `Records with entry e the input that the call which computed it examined, for the reuse of e
+after an edit (memo.splice): from the position of e, or from the unit before it if before (a call
+reads at most that unit before its position, to tell a line start), to end, exclusive. The record
+replaces those that memo.examine and memo.pin made before.`,
 		Requires: `end is greater than the position of e.`})
 	m.AddOp(&exec.Op{Name: "memo.examined", Component: Memo, Params: []exec.Param{exec.P("e", entry)},
 		Results: []exec.Type{exec.TInt}, Reads: []string{Memo}, Features: doc,
-		Contract: `Returns the end that memo.examine recorded with entry e, or 0 if none was recorded.`})
+		Contract: `Returns the end of the input that memo.examine recorded with entry e, or 0 if none was
+recorded.`})
+	m.AddOp(&exec.Op{Name: "memo.before", Component: Memo, Params: []exec.Param{exec.P("e", entry)},
+		Results: []exec.Type{exec.TBool}, Reads: []string{Memo}, Features: doc,
+		Contract: `Reports whether the input that memo.examine recorded with entry e starts before its position;
+false if none was recorded.`})
+	m.AddOp(&exec.Op{Name: "memo.pin", Component: Memo, Params: []exec.Param{exec.P("e", entry)},
+		Reads: []string{Memo}, Writes: []string{Memo}, Features: doc,
+		Contract: `Marks entry e as depending on positions, not only on the input it examined: an edit before
+it removes it instead of moving it (memo.splice).`})
 	m.AddOp(&exec.Op{Name: "memo.splice", Component: Memo,
-		Params: []exec.Param{exec.P("start", exec.TInt)},
+		Params: []exec.Param{exec.P("start", exec.TInt), exec.P("end", exec.TInt), exec.P("delta", exec.TInt)},
 		Reads:  []string{Memo}, Writes: []string{Memo}, Features: doc,
-		Contract: `Applies an edit of the input at start. An entry stays valid only if its examined end was
-recorded and is at most start: the edit changed none of the input its call examined. The other entries,
-those at or after start included, are removed. The kept entries stay at their positions with their
-attributes, but the handles of all entries from before the edit are no longer valid: a target may copy
-the kept entries.`,
-		Requires: `start >= 0.`})
+		Contract: `Applies an edit of the input that replaces [start, end) with input delta units longer. An
+entry whose recorded examined input ends at or before start stays where it is. An entry whose recorded
+examined input starts at or after end, that is not pinned and has no recovered errors, moves by delta:
+it is found at its position plus delta, and its end, its examined input and the farthest position of
+its expectations move with it, and its value moves when it is reused (doc.move). Every other entry is
+removed. The handles of all entries from
+before the edit are no longer valid: a target may copy the entries it keeps.`,
+		Requires: `0 <= start <= end, and start <= end + delta.`})
 	for _, a := range []struct {
 		name string
 		t    exec.Type

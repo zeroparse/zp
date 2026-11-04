@@ -7,21 +7,34 @@ import (
 	"testing"
 )
 
-// referenceInvalidate is the copying invalidate that the in-place version replaces. It returns the
-// retained chains as rule ids by position, and the metadata of the retained entries by rule id.
-func referenceInvalidate(d *typedDocumentState, start int) ([][]int32, map[int32]typedDocumentMeta) {
-	kept := make([]*tmemoEntry, min(start, len(d.slots)))
-	meta := make(map[*tmemoEntry]typedDocumentMeta, min(len(d.meta), start))
-	for pos, head := range d.slots[:len(kept)] {
+// referenceInvalidate is a copying splice, written from the contract of memo.splice. It returns
+// the retained chains as rule ids by position, and the metadata of the retained entries by rule id.
+func referenceInvalidate(d *typedDocumentState, ed documentEdit) ([][]int32, map[int32]typedDocumentMeta) {
+	kept := make([]*tmemoEntry, len(d.slots)+max(ed.delta, 0))
+	meta := make(map[*tmemoEntry]typedDocumentMeta)
+	for pos, head := range d.slots {
 		for e := head; e != nil; e = e.next {
 			m, complete := d.meta[e]
-			if !complete || m.examined > start {
+			from := pos
+			if m.before {
+				from--
+			}
+			to := pos
+			switch {
+			case !complete:
+				continue
+			case m.examined <= ed.start:
+			case from >= ed.end && !m.pinned && len(e.errs) == 0:
+				to += ed.delta
+				m.examined += ed.delta
+				m.shift += ed.delta
+			default:
 				continue
 			}
 			out := &tmemoEntry{}
 			*out = *e
-			out.next = kept[pos]
-			kept[pos] = out
+			out.next = kept[to]
+			kept[to] = out
 			meta[out] = m
 		}
 	}
@@ -55,10 +68,10 @@ func inPlaceResult(d *typedDocumentState) ([][]int32, map[int32]typedDocumentMet
 	return ids, byID, len(d.meta)
 }
 
-// TestInvalidateMatchesCopyingReference pins the in-place invalidate to the copying version it
-// replaced: the same entries survive at the same positions, with the same metadata, and no metadata
-// is left for an entry that is no longer linked. The copying version reversed each chain; chain order
-// does not affect lookups, which match entries by key, so the order is compared as a set.
+// TestInvalidateMatchesCopyingReference pins the relinking splice to a copying one: the same entries
+// survive at the same positions, with the same metadata, and no metadata is left for an entry that
+// is no longer linked. The copying version reverses each chain; chain order does not affect lookups,
+// which match entries by key, so the order is compared as a set.
 func TestInvalidateMatchesCopyingReference(t *testing.T) {
 	rng := rand.New(rand.NewSource(7))
 	for round := 0; round < 500; round++ {
@@ -74,33 +87,38 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 					id++
 					e.next = d.slots[pos]
 					d.slots[pos] = e
+					if r.Intn(8) == 0 {
+						e.errs = []*SyntaxError{{}}
+					}
 					switch r.Intn(5) {
 					case 0: // incomplete: no metadata
 					default:
-						d.meta[e] = typedDocumentMeta{examined: pos + r.Intn(6)}
+						d.meta[e] = typedDocumentMeta{examined: pos + 1 + r.Intn(6), before: pos > 0 && r.Intn(3) == 0, pinned: r.Intn(6) == 0}
 					}
 				}
 			}
 			return d
 		}
 		start := rng.Intn(n + 3)
+		end := start + rng.Intn(4)
+		ed := documentEdit{start, end, start - end + rng.Intn(4)}
 		ref := build()
-		wantIDs, wantMeta := referenceInvalidate(ref, start)
+		wantIDs, wantMeta := referenceInvalidate(ref, ed)
 		got := build()
-		got.splice(start)
+		got.splice(ed)
 		gotIDs, gotMeta, metaLen := inPlaceResult(got)
 		if !reflect.DeepEqual(gotIDs, wantIDs) {
-			t.Fatalf("round %d start %d: chains %v, want %v", round, start, gotIDs, wantIDs)
+			t.Fatalf("round %d edit %v: chains %v, want %v", round, ed, gotIDs, wantIDs)
 		}
 		if !reflect.DeepEqual(gotMeta, wantMeta) {
-			t.Fatalf("round %d start %d: metadata %v, want %v", round, start, gotMeta, wantMeta)
+			t.Fatalf("round %d edit %v: metadata %v, want %v", round, ed, gotMeta, wantMeta)
 		}
 		if metaLen != len(wantMeta) {
-			t.Fatalf("round %d start %d: %d metadata entries kept, want %d", round, start, metaLen, len(wantMeta))
+			t.Fatalf("round %d edit %v: %d metadata entries kept, want %d", round, ed, metaLen, len(wantMeta))
 		}
-		for pos, head := range got.slots[len(got.slots):min(start+1, n, cap(got.slots))] {
+		for pos, head := range got.slots[len(got.slots):cap(got.slots)] {
 			if head != nil {
-				t.Fatalf("round %d start %d: stale chain at %d beyond the kept length", round, start, len(got.slots)+pos)
+				t.Fatalf("round %d edit %v: stale chain at %d beyond the kept length", round, ed, len(got.slots)+pos)
 			}
 		}
 	}

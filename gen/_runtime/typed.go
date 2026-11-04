@@ -408,6 +408,7 @@ const (
 	RuleDocMemo
 	RuleSplice
 	RuleRec
+	RulePositional
 )
 
 // RuleExtra holds the fields of the Rule with the Id that are rarely set.
@@ -453,6 +454,7 @@ func NewRules[S ~struct {
 		}
 		r.Memo, r.Leader, r.Novalue = s.Flags&RuleMemo != 0, s.Flags&RuleLeader != 0, s.Flags&RuleNovalue != 0
 		r.DocMemo, r.Splice, r.Rec = s.Flags&RuleDocMemo != 0, s.Flags&RuleSplice != 0, s.Flags&RuleRec != 0
+		r.Positional = s.Flags&RulePositional != 0
 		r.Scope, r.Vars = strs[s.Scope], strs[s.Vars]
 	}
 	for _, extra := range extras {
@@ -1142,38 +1144,82 @@ type typedDocumentState struct {
 }
 
 type typedDocumentMeta struct {
-	examined int
+	// examined and before are the input that the call examined (memo.examine), as in memoEntry;
+	// pinned is memo.pin; shift is how far the positions in the value must move (move).
+	examined       int
+	shift          int
+	before, pinned bool
 }
 
-// splice applies an edit of the input at start (memo.splice), relinking the chains in place. No parse runs during an edit (Document.parsing rejects
-// it), and results hold values, not memo entries or chains, so no TParser or result refers to the
-// chains while they change. Entries whose examined frontier reaches past start are dropped, as are
-// all entries from start onward, and the table ends after the last position that keeps one.
-func (d *typedDocumentState) splice(start int) {
-	kept := min(start, len(d.slots))
-	for pos := kept; pos < len(d.slots); pos++ {
-		for e := d.slots[pos]; e != nil; e = e.next {
-			delete(d.meta, e)
-		}
-		d.slots[pos] = nil
-	}
-	for pos := range kept {
-		link := &d.slots[pos]
-		for e := *link; e != nil; e = *link {
-			m, complete := d.meta[e]
-			if complete && m.examined <= start {
-				link = &e.next
+// splice applies an edit to the memo (memo.splice), relinking the chains into a new table. No parse
+// runs during an edit (Document.parsing rejects it), and results hold values, not memo entries or
+// chains, so no TParser or result refers to the chains while they change. Entries that examined
+// only input before the edit stay; those that examined only input after it, with no recovered
+// errors and not pinned, move by its delta, and their values move when reused (move); the others
+// are dropped. The table ends after the last position that keeps an entry, as a table built anew
+// does.
+func (d *typedDocumentState) splice(ed documentEdit) {
+	old := d.slots
+	slots := make([]*tmemoEntry, len(old)+max(ed.delta, 0))
+	tails := make([]*tmemoEntry, len(slots))
+	n := 0
+	for pos, head := range old {
+		for e, next := head, (*tmemoEntry)(nil); e != nil; e = next {
+			next = e.next
+			m := d.meta[e]
+			to, from := pos, pos
+			if m.before {
+				from--
+			}
+			switch {
+			case m.examined == 0: // no record
+				delete(d.meta, e)
+				continue
+			case m.examined <= ed.start:
+			case from >= ed.end && !m.pinned && len(e.errs) == 0:
+				to = pos + ed.delta
+				e.end += ed.delta
+				e.far += ed.delta
+				m.examined += ed.delta
+				m.shift += ed.delta
+				d.meta[e] = m
+			default:
+				delete(d.meta, e)
 				continue
 			}
-			delete(d.meta, e)
-			*link = e.next
+			e.next = nil
+			if tails[to] == nil {
+				slots[to] = e
+			} else {
+				tails[to].next = e
+			}
+			tails[to] = e
+			n = max(n, to+1)
 		}
 	}
-	// The table ends after the last position that keeps an entry, as a table built anew does.
-	for kept > 0 && d.slots[kept-1] == nil {
-		kept--
+	d.slots = slots[:n]
+}
+
+// move makes the value of e valid at its position after edits moved e (memo.splice) and reports
+// whether it could: a value holds positions unless it is a basic value, which needs no move.
+func (d *typedDocumentState) move(e *tmemoEntry) bool {
+	m := d.meta[e]
+	if m.shift == 0 {
+		return true
 	}
-	d.slots = d.slots[:kept]
+	if !basicValue(e.val) {
+		return false
+	}
+	m.shift = 0
+	d.meta[e] = m
+	return true
+}
+
+// pin keeps e from moving with an edit (memo.pin).
+func (d *typedDocumentState) pin(e *tmemoEntry) {
+	m := d.meta[e]
+	m.pinned = true
+	d.meta[e] = m
 }
 
 // --- Rule calls ---

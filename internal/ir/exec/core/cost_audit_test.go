@@ -256,6 +256,8 @@ var siteCost = map[string][]string{
 	"Parser.nodesEqual":            {""},
 	"Parser.valuesEqual":           {""},
 	"Parser.advance":               {ops.QSteps, ""},
+	// The moves of the values of memo entries after Document edits.
+	"Parser.NewNode": {ops.QMoved},
 	// The stream window.
 	"Parser.streamDiscard": {ops.QStreamScan},
 	"Parser.streamLineCol": {ops.QStreamScan},

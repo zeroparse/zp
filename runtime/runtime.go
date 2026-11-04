@@ -41,7 +41,10 @@ type Node struct {
 	RawFresh    bool
 	RawTerminal bool
 	labeled     bool // the captures in Fields are output (source information)
-	box         any  // the value carried by a box
+	// moveMark is the number of the last move after a Document edit that visited the node
+	// (documentMove); it fits in the padding before box.
+	moveMark uint32
+	box      any // the value carried by a box
 }
 
 // Type returns the node's type name: string, tuple, list or error for the kinds of nodes,
@@ -887,6 +890,9 @@ type Rule struct {
 	// DocMemo means Documents memoize the rule, transient or not, as the engine does for a leader
 	// and for a rule marked for memoization.
 	DocMemo bool
+	// Positional means the rule's results may depend on positions (.Start, .End), not only on the
+	// input they examine: an edit of a Document before them removes them instead of moving them.
+	Positional bool
 	// Seen is the rule's index among the memoized rules whose memoization is deferred to the
 	// second call at a position (FirstCall), or -1.
 	Seen          int
@@ -1393,7 +1399,7 @@ type Parser struct {
 	sourceInfo bool
 	// Document is set only by the private incremental runner.
 	Document *documentState
-	docHigh  int // exclusive upper bound examined by the active rule call
+	docHigh  int // exclusive upper bound examined by the active rule call (docLow)
 	// The state of left recursion (context_memo.go): the growths in progress, innermost last; the
 	// frames that record dependencies, and their dependencies; the dependencies of the call that
 	// ctxPop ended; the context tables; the lookaheads in progress; the lookahead sites whose
@@ -1474,6 +1480,13 @@ type Parser struct {
 	// memUsed counts the bytes of the chunks the allocators have taken (budget_memory.go); a
 	// stream's commit returns them. memKept counts those that stay in use for the whole parse.
 	memUsed, memKept uint64
+	// docLow is the start of the input that the active rule call examined, [docLow, docHigh). The
+	// fields that only Documents use come last, away from those of every parse.
+	docLow int
+	// moves numbers the moves of values after Document edits, and moved maps the nodes of a value
+	// that holds a node more than once to their copies (documentMove).
+	moves uint32
+	moved map[*Node]*Node
 }
 
 // documentState owns reusable memo entries. The regular Parse path never sets
@@ -1508,6 +1521,21 @@ func (p *Parser) documentTouch(end int) {
 	}
 }
 
+// documentTouchFrom extends the input that the active rule call examined back to from.
+func (p *Parser) documentTouchFrom(from int) {
+	if p.Document != nil && from < p.docLow {
+		p.docLow = from
+	}
+}
+
+// documentTouchLine records that a line start test at the position examined the unit before it.
+func (p *Parser) documentTouchLine() {
+	if p.Document != nil {
+		p.docHigh = max(p.docHigh, p.Pos)
+		p.docLow = min(p.docLow, p.Pos-1)
+	}
+}
+
 // memoTable maps (rule, position, level) to results. Each position has a chain of entries;
 // entries are allocated in slabs.
 type memoTable struct {
@@ -1529,6 +1557,9 @@ type memoTable struct {
 	calls []seenCalls
 	// free links entries retired by stream memo pruning through next.
 	free *memoEntry
+	// shifts holds, for each entry that an edit of a Document moved (splice), how far the positions in
+	// its value must move (documentMove).
+	shifts map[*memoEntry]int
 	// index holds the hash index of each position whose chain is longer than a lookup walks
 	// (memoScan), by position.
 	index map[int]memoIndex[memoEntry]
@@ -1752,6 +1783,10 @@ type memoEntry struct {
 	// silent means the result was computed inside a lookahead without recording expectations;
 	// outside lookaheads it is computed again.
 	silent bool
+	// before and examined are the input that a Document call examined (memo.examine): from the
+	// entry's position, or from the unit before it if before, to examined; pinned keeps the entry from
+	// moving with an edit (memo.pin).
+	before, pinned bool
 	// present is the set of leaders (Rule.leaderBit) that grew at the position when a result of a
 	// rule of their cycle was evaluated; it is reused only where every leader that grows there is in
 	// the set (ctxCallState.memoAllows).
@@ -3040,7 +3075,7 @@ func (p *Parser) Anchor(ok bool, desc ExpID) (*Node, bool) {
 }
 
 func (p *Parser) AtLineStart() bool {
-	p.documentTouch(p.Pos)
+	p.documentTouchLine()
 	if p.Stream != nil {
 		return p.streamAtLineStart()
 	}
@@ -3107,7 +3142,7 @@ func (p *Parser) AtEndBatchOrdinary() bool {
 }
 
 func (p *Parser) AtLineStartBatch() bool {
-	p.documentTouch(p.Pos)
+	p.documentTouchLine()
 	if p.Pos == 0 {
 		return true
 	}

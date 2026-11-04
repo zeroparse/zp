@@ -531,16 +531,19 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 }
 
 // callDocument is a rule call in a Document parse, which memoizes the rules that the Document reuses
-// and records how far each call examined the input. The enclosing call's frontier is restored however
+// and records the input each call examined. The enclosing call's examined input is restored however
 // the call ends, an interruption included, so that a parse after it starts from the state it would
 // start from otherwise.
 //
 // Printed from Exec IR function document of internal/ir/exec/core, specialized for document.
 func (p *Parser) callDocument(r *Rule, min int) (*Node, bool) {
-	oldHigh := p.docHigh
-	p.docHigh = p.Pos + 1
+	oldHigh, oldLow := p.docHigh, p.docLow
+	p.docHigh, p.docLow = p.Pos+1, p.Pos
 	defer func() {
 		p.docHigh = max(oldHigh, p.docHigh)
+		if oldLow < p.docLow {
+			p.docLow = oldLow
+		}
 	}()
 	if !r.DocMemo {
 		v, ok := p.callUnmemoized(r, min)
@@ -596,10 +599,13 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && (!(p.Document != nil) || p.documentMove(e)) {
 		p.Observation.memoHit()
 		if p.Document != nil {
 			p.documentTouch(e.examined)
+			if e.before {
+				p.documentTouchFrom(start + -1)
+			}
 			p.Document.stats.Reused++
 		}
 		p.MergeExpected(e.far, e.expected)
@@ -644,7 +650,10 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 		if p.Document != nil {
-			entry.examined = p.docHigh
+			entry.examined, entry.before, entry.pinned = p.docHigh, p.docLow < start, false
+			if r.Positional {
+				entry.pinned = true
+			}
 		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
@@ -700,10 +709,13 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	var ok bool
 	p.Spend()
 	start := p.Pos
-	oldHigh := p.docHigh
-	p.docHigh = start + 1
+	oldHigh, oldLow := p.docHigh, p.docLow
+	p.docHigh, p.docLow = start+1, start
 	defer func() {
 		p.docHigh = max(oldHigh, p.docHigh)
+		if oldLow < p.docLow {
+			p.docLow = oldLow
+		}
 	}()
 	if !r.DocMemo {
 		rec := len(p.Recovered)
@@ -734,9 +746,12 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && p.TypedDocument.move(e) {
 		p.Observation.memoHit()
 		p.documentTouch(p.TypedDocument.meta[e].examined)
+		if p.TypedDocument.meta[e].before {
+			p.documentTouchFrom(start + -1)
+		}
 		p.Document.stats.Reused++
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
@@ -785,7 +800,10 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
-		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh}
+		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, before: p.docLow < start}
+		if r.Positional {
+			p.TypedDocument.pin(entry)
+		}
 	} else if store == storeCtx {
 		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
 	}

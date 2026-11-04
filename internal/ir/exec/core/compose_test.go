@@ -52,6 +52,7 @@ type machine struct {
 	// of the active call (doc.examinedBegin, doc.examinedEnd).
 	events []string
 	high   int64
+	low    int64
 	// docMemo tells whether a Document parse memoizes the rules (rule.docMemo).
 	docMemo bool
 	// docActive tells whether the parse reads a Document (doc.active); examined holds what each
@@ -250,11 +251,24 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		m.high = max(args[0].(int64), x)
 		return []any{x, true}
 	case "doc.enter":
-		h := m.high
-		m.high = args[0].(int64) + 1
-		return []any{h}
+		h, l := m.high, m.low
+		m.high, m.low = args[0].(int64)+1, args[0].(int64)
+		return []any{h, l}
 	case "doc.leave":
-		m.high = max(args[0].(int64), m.high)
+		m.high, m.low = max(args[0].(int64), m.high), min(args[1].(int64), m.low)
+		return nil
+	case "doc.touchFrom":
+		m.low = min(m.low, args[0].(int64))
+		return nil
+	case "doc.low":
+		return []any{m.low}
+	case "doc.move":
+		return []any{true}
+	case "rule.positional":
+		return []any{false}
+	case "memo.before":
+		return []any{false}
+	case "memo.pin":
 		return nil
 	case "rule.docMemo":
 		return []any{m.docMemo}
@@ -283,7 +297,7 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "rule.run":
 		return args[0].(*trule).Call(m)
 	case "memo.examine":
-		m.examined[entryOf(args[0])] = args[1].(int64)
+		m.examined[entryOf(args[0])] = args[2].(int64)
 		return nil
 	case "call.body":
 		r := args[0].(*trule)
