@@ -53,13 +53,21 @@ type Target struct {
 	FuncName func(name string) string
 	// Source, if not empty, names the source of printed functions in their first comment line.
 	Source string
-	// Range, if not empty, is the handle type whose values are ranges of a stack of numbers that the
-	// target holds in two numbers named after the local: x of the type is xFrom and xTo. A parameter
-	// of the type prints as the two, and so does a local of the type passed to a function; an
-	// operation receives the local's name and prints the two itself. Only locals and parameters hold
-	// values of the type.
-	Range string
+	// Negate, if not nil, returns the TypeScript negation of a call of an operation that the operator !
+	// applies to, given its printed arguments, as a comparison or an operand, or reports false to
+	// print the operator.
+	Negate func(c *exec.Call, args []string) (string, bool)
+	// Parts maps the handle types whose values the target holds in several locals, named after the
+	// local with the suffix of each part, to their parts: a range of a stack of numbers x is xFrom and
+	// xTo. A parameter of such a type prints as its parts, and so does a local of the type passed to a
+	// function; an operation receives the local's name and prints the parts itself. Only locals and
+	// parameters hold values of the types.
+	Parts map[string][]Part
 }
+
+// Part is a part of a value that a target holds in several locals (Target.Parts): the suffix of the
+// part's local and its TypeScript type.
+type Part struct{ Suffix, Type string }
 
 // Method returns the TypeScript method of the function f of the verified module m, indented for
 // a class body by two spaces. Functions of the module are called as methods of this.
@@ -244,8 +252,12 @@ func (p *printer) fn() error {
 	p.line("// %s.", strings.ToUpper(source[:1])+source[1:])
 	params := make([]string, len(f.Params))
 	for i, x := range f.Params {
-		if p.ranged(x.Type) {
-			params[i] = x.Name + "From: number, " + x.Name + "To: number"
+		if parts := p.parts(x.Type); parts != nil {
+			var ps []string
+			for _, q := range parts {
+				ps = append(ps, x.Name+q.Suffix+": "+q.Type)
+			}
+			params[i] = strings.Join(ps, ", ")
 			continue
 		}
 		params[i] = x.Name + ": " + p.typ(x.Type)
@@ -522,9 +534,12 @@ func (p *printer) lines(s string) {
 	}
 }
 
-// ranged reports whether t is the range type of the target.
-func (p *printer) ranged(t exec.Type) bool {
-	return p.t.Range != "" && t == exec.THandle(p.t.Range)
+// parts returns the parts of the values of t that the target holds in several locals, or nil.
+func (p *printer) parts(t exec.Type) []Part {
+	if t.Kind != exec.KHandle {
+		return nil
+	}
+	return p.t.Parts[t.Handle]
 }
 
 func (p *printer) args(c *exec.Call) []string {
@@ -862,6 +877,11 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 		panic("exects: feature " + x.Name + " in a printed function; specialize it first")
 	case *exec.Unary:
 		if x.Op == "!" {
+			if c, ok := x.X.(*exec.Call); ok && p.t.Negate != nil && p.m.Op(c.Callee) != nil {
+				if s, ok := p.t.Negate(c, p.args(c)); ok {
+					return paren(s, 6, outer)
+				}
+			}
 			if l, ok := x.X.(*exec.Local); ok {
 				if h, ok := p.partner[l.Name]; ok {
 					return paren(h+" === undefined", 6, outer)
@@ -894,17 +914,23 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 			return s
 		}
 		for i, a := range x.Args {
-			if !p.ranged(p.typeOf(a)) {
+			t := p.typeOf(a)
+			parts := p.parts(t)
+			if parts == nil {
 				continue
 			}
 			l, ok := a.(*exec.Local)
 			if !ok {
 				if p.err == nil {
-					p.err = fmt.Errorf("an argument of the range type %s is not a local", p.t.Range)
+					p.err = fmt.Errorf("an argument of the type %s held in parts is not a local", t.Handle)
 				}
 				continue
 			}
-			args[i] = l.Name + "From, " + l.Name + "To"
+			var ps []string
+			for _, q := range parts {
+				ps = append(ps, l.Name+q.Suffix)
+			}
+			args[i] = strings.Join(ps, ", ")
 		}
 		return "this." + p.name(x.Callee) + "(" + strings.Join(args, ", ") + ")"
 	}

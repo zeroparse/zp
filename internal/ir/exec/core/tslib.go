@@ -29,6 +29,13 @@ var tsSpecs = []struct {
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
 	{fn: "mergeExpected", on: []string{ops.Budget}, name: "mergeExpected"},
 	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
+	// The Operators Rule loop and backtracking.
+	{fn: "operatorsParse", on: []string{ops.Budget}, name: "operatorsRuleParse"},
+	{fn: "operatorsExpr", on: []string{ops.Budget}, name: "operatorsRuleExpr"},
+	{fn: "operatorsNud", on: []string{ops.Budget}, name: "operatorsRuleNud"},
+	{fn: "longest", on: []string{ops.Budget}, name: "longest"},
+	{fn: "skipTrivia", name: "skipTrivia"},
+	{fn: "reset", name: "reset"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -53,23 +60,106 @@ func TSMethods() ([]TSMethod, error) {
 var tsTarget = &exects.Target{
 	Source: "internal/ir/exec/core",
 	Packed: ops.Value,
-	// The set of an isolation is the range of the stack of the record that it ended.
-	Range: ops.Set,
+	Parts: map[string][]exects.Part{
+		// The set of an isolation is the range of the stack of the record that it ended.
+		ops.Set: {{Suffix: "From", Type: "number"}, {Suffix: "To", Type: "number"}},
+		// A backtracking point is the position, the environment, the length of the trail and the
+		// number of recovered errors.
+		ops.Backtrack: {{Suffix: "Pos", Type: "number"}, {Suffix: "Env", Type: "Env | null"}, {Suffix: "Trail", Type: "number"},
+			{Suffix: "Rec", Type: "number"}},
+	},
 	Handle: func(name string) string {
 		return map[string]string{
 			ops.Rule: "Rule", ops.Value: "R", ops.Entry: "MemoEntry | null", ops.Values: "Value[] | null",
 			ops.Errs: "SyntaxError[]", ops.Kept: "number[]", ops.ExpID: "number",
 			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
+			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
+			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 		}[name]
 	},
 	FuncName: func(name string) string {
-		return map[string]string{"call": "callBody", "grow": "grow", "expect": "expect", "mergeKept": "mergeKept", "mergeExpected": "mergeExpected", "keep": "keep"}[name]
+		for _, s := range tsSpecs {
+			if s.fn == name {
+				return s.name
+			}
+		}
+		return ""
 	},
 	Reg: func(name string) string {
-		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent"}[name]
+		return map[string]string{ops.Pos: "this.pos", ops.Silent: "this.silent", ops.Cut: "this.cut"}[name]
+	},
+	Negate: func(c *exec.Call, a []string) (string, bool) {
+		switch c.Callee {
+		case "opr.found":
+			return a[0] + " === null", true
+		case "opr.hasSkip":
+			return a[0] + ".operatorsRule!.skip === null", true
+		case "opr.infix":
+			return a[0] + `.kind !== "infix"`, true
+		case "rec.none":
+			return a[0] + ".length !== 0", true
+		}
+		return "", false
 	},
 	Op: func(c *exec.Call, a []string) string {
 		switch c.Callee {
+		case "depth.exit":
+			return "this.depth--"
+		case "frame.markPos", "frame.markEnv", "frame.markTrail", "frame.markRec":
+			return a[0] + strings.TrimPrefix(c.Callee, "frame.mark")
+		case "frame.current":
+			return "this.frame"
+		case "frame.use":
+			return "this.frame = " + a[0]
+		case "frame.open":
+			return "this.newFrame(" + a[0] + ")"
+		case "frame.slots":
+			return a[0] + ".length"
+		case "env.save":
+			return "this.env"
+		case "env.restore":
+			return "this.env = " + a[0]
+		case "opr.led", "opr.prefix":
+			return a[0] + ".operatorsRule!." + strings.TrimPrefix(c.Callee, "opr.")
+		case "opr.count":
+			return a[0] + ".length"
+		case "opr.at":
+			return a[0] + "[" + a[1] + "]!"
+		case "opr.operands":
+			return a[0] + ".operatorsRule!.operands.length"
+		case "opr.operand":
+			return a[0] + ".operatorsRule!.operands[" + a[1] + "]!"
+		case "opr.line", "opr.level":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "opr.")
+		case "opr.infix", "opr.postfix":
+			return fmt.Sprintf("%s.kind === %q", a[0], strings.TrimPrefix(c.Callee, "opr."))
+		case "opr.right":
+			return a[0] + `.assoc === "right"`
+		case "opr.nonAssoc":
+			return a[0] + `.assoc === "none"`
+		case "opr.scope":
+			return a[0] + ".scope.length"
+		case "opr.hasSkip":
+			return a[0] + ".operatorsRule!.skip !== null"
+		case "opr.skip":
+			return a[0] + ".operatorsRule!.skip!(this) !== undefined"
+		case "opr.match":
+			return a[0] + ".m(this)"
+		case "opr.lineValue":
+			return fmt.Sprintf("this.lineResult(%s, %s, %s, %s as Node | null, %s)", a[0], a[1], a[2], a[3], a[4])
+		case "opr.build":
+			return fmt.Sprintf("this.operatorsRuleBuild(%s, %s!, %s as Node | null, %s as Node | null)", a[0], a[1], a[2], a[3])
+		case "opr.attempt":
+			return fmt.Sprintf("{ op: %s, frame: %s, v: %s as Node | null, start: %s, end: this.pos, env: this.env, cut: %s, errs: %s }",
+				a[0], a[1], a[2], a[3], a[4], a[5])
+		case "opr.found":
+			return a[0] + " !== null"
+		case "opr.op", "opr.end", "opr.cut", "opr.env", "opr.errs":
+			return a[0] + "!." + strings.TrimPrefix(c.Callee, "opr.")
+		case "opr.setCutFailed":
+			return "this.cutFailed = " + a[0]
+		case "opr.cutFailed":
+			return "this.cutFailed"
 		case "budget.charge":
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "this.spend()"
@@ -182,6 +272,17 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("%s = newEntry(%s, %s, %s, %s, %s);\nthis.memoPut(%s, %s);", lhs(e), node, ok, end, silent, errs, key(), e)
 		}
 		switch c.Callee {
+		case "depth.enter":
+			return "if (++this.depth > this.maxDepth) {\n  this.tooDeep();\n}", true
+		case "frame.mark":
+			m := dst[0]
+			return fmt.Sprintf("%s %sPos = this.pos;\n%[1]s %[2]sEnv = this.env;\n%[1]s %[2]sTrail = this.trail.length;\n%[1]s %[2]sRec = this.recovered.length;", decl, m), true
+		case "frame.undo":
+			return fmt.Sprintf("for (let t = this.trail.length - 1; t >= %s; t--) {\n  this.spend();\n  const u = this.trail[t]!;\n  u.f[u.slot] = u.old;\n}\nthis.trail.length = %[1]s;", a[0]), true
+		case "frame.save":
+			return fmt.Sprintf("this.saved.length = 0;\nfor (const x of %s) {\n  this.spend();\n  this.saved.push(x);\n}", a[0]), true
+		case "frame.restore":
+			return fmt.Sprintf("for (let t = 0; t < %s.length; t++) {\n  this.spend();\n  %[1]s[t] = this.saved[t]!;\n}", a[0]), true
 		case "memo.lookup":
 			s := fmt.Sprintf("%s = this.memoGet(%s);", lhs(dst[0]), key())
 			if dst[1] != "_" {

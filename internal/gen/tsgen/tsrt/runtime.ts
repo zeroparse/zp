@@ -2492,16 +2492,9 @@ export class Parser {
 
   // reset returns to a mark: the position, variables, recovered errors and captures (undoing the
   // trail) at the time it was taken.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   reset(pos: number, env: Env | null, trail: number, recovered: number): void {
-    this.pos = pos;
-    this.env = env;
-    this.recovered.length = recovered;
-    for (let i = this.trail.length - 1; i >= trail; i--) {
-      this.spend();
-      const u = this.trail[i]!;
-      u.f[u.slot] = u.old;
-    }
-    this.trail.length = trail;
+    throw new Error("the printed method replaces this one");
   }
 
   setCapture(slot: number, v: Node | null): void {
@@ -4256,211 +4249,37 @@ export class Parser {
 
   // --- OperatorsRule expressions ---
 
-  skipTrivia(pr: OperatorsRule): void {
-    if (pr.skip === null) {
-      return;
-    }
-    const m0pos = this.pos;
-    const m0env = this.env;
-    const m0trail = this.trail.length;
-    const m0rec = this.recovered.length;
-    this.silent++;
-    const v = pr.skip(this);
-    this.silent--;
-    if (v === undefined) {
-      this.reset(m0pos, m0env, m0trail, m0rec);
-    }
+  // skipTrivia skips the trivia of an Operators Rule.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  skipTrivia(r: Rule): void {
+    throw new Error("the printed method replaces this one");
   }
 
-  // longest tries every operator and returns the longest match (the first declared among equals),
-  // or null when none matched. cutFailed is set when a candidate failed after a cut.
+  // longest tries every operator of ops and returns the longest match, or null.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   longest(ops: OperatorsRuleOp[]): OperatorsRuleAttempt | null {
-    const m0pos = this.pos;
-    const m0env = this.env;
-    const m0trail = this.trail.length;
-    const m0rec = this.recovered.length;
-    let best: OperatorsRuleAttempt | null = null;
-    let cutFailed = false;
-    for (const op of ops) {
-      this.spend();
-      const prevFrame = this.frame;
-      const prevCut = this.cut;
-      const f = this.newFrame(op.line.scope.length);
-      this.frame = f;
-      this.cut = false;
-      const v = op.line.m(this);
-      let ok = v !== undefined;
-      const cut = this.cut;
-      this.frame = prevFrame;
-      this.cut = prevCut;
-      if (ok && this.pos === m0pos && op.kind !== "infix") {
-        ok = false; // an empty prefix or postfix match could be applied forever
-      }
-      if (ok && (best === null || this.pos > best.end)) {
-        best = {
-          op,
-          frame: f,
-          v: v as Node | null,
-          start: m0pos,
-          end: this.pos,
-          env: this.env,
-          cut,
-          errs: this.recovered.length > m0rec ? (this.control === null ? this.recovered.slice(m0rec) : copyErrorsSpend(this.recovered, m0rec, this.recovered.length, this.control)) : noErrs,
-        };
-      }
-      if (!ok && cut) {
-        cutFailed = true;
-      }
-      if (f.length === 0) {
-        this.reset(m0pos, m0env, m0trail, m0rec);
-        continue;
-      }
-      // reset undoes this candidate's captures; restore them. Nothing parses between saving
-      // and restoring, so one buffer per parser suffices.
-      this.saved.length = 0;
-      for (const x of f) {
-        this.spend();
-        this.saved.push(x);
-      }
-      this.reset(m0pos, m0env, m0trail, m0rec);
-      for (let i = 0; i < f.length; i++) {
-        this.spend();
-        f[i] = this.saved[i]!;
-      }
-    }
-    this.cutFailed = cutFailed;
-    return best;
+    throw new Error("the printed method replaces this one");
   }
 
   // cutFailed reports that a candidate of the last longest failed after a cut.
   cutFailed = false;
 
-  apply(a: OperatorsRuleAttempt): void {
-    this.pos = a.end;
-    this.env = a.env;
-    for (const x of a.errs) {
-      this.spend();
-      this.recovered.push(x);
-    }
-  }
-
-  // operatorsRuleParse parses an expression with operators that bind tighter than min. Each level of its
-  // recursion (the operand of a prefix operator, the right operand of an infix operator) counts
-  // against the nesting limit, like the entry of a recursive rule. The call of the rule charges its entry; the loops
-  // of the expression charge each iteration.
+  // operatorsRuleParse parses an expression with operators that bind tighter than min.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   operatorsRuleParse(r: Rule, min: number): R {
-    if (++this.depth > this.maxDepth) {
-      this.tooDeep();
-    }
-    const v = this.operatorsRuleExpr(r, min);
-    this.depth--;
-    return v;
+    throw new Error("the printed method replaces this one");
   }
 
+  // operatorsRuleExpr parses an operand or a prefix application and the operators after it.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   operatorsRuleExpr(r: Rule, min: number): R {
-    const pr = r.operatorsRule as OperatorsRule;
-    let lhs = this.operatorsRuleNud(r);
-    if (lhs === undefined) {
-      return undefined;
-    }
-    let lastNone = -1;
-    for (;;) {
-      this.spend();
-      const m0pos = this.pos;
-      const m0env = this.env;
-      const m0trail = this.trail.length;
-      const m0rec = this.recovered.length;
-      this.skipTrivia(pr);
-      const a = this.longest(pr.led);
-      if (a === null) {
-        const cutFailed = this.cutFailed;
-        this.reset(m0pos, m0env, m0trail, m0rec);
-        if (cutFailed) {
-          return undefined;
-        }
-        break;
-      }
-      if (a.op.level <= min || (a.op.assoc === "none" && a.op.level === lastNone)) {
-        this.reset(m0pos, m0env, m0trail, m0rec);
-        break;
-      }
-      this.apply(a);
-      if (a.op.kind === "postfix") {
-        lhs = this.operatorsRuleBuild(r, a, lhs, null);
-        lastNone = -1;
-        if (this.pos === m0pos) {
-          break;
-        }
-        continue;
-      }
-      let rmin = a.op.level;
-      if (a.op.assoc === "right") {
-        rmin--;
-      }
-      const rhs = this.operatorsRuleParse(r, rmin);
-      if (rhs === undefined) {
-        if (a.cut) {
-          return undefined;
-        }
-        this.reset(m0pos, m0env, m0trail, m0rec);
-        break;
-      }
-      lhs = this.operatorsRuleBuild(r, a, lhs, rhs);
-      lastNone = -1;
-      if (a.op.assoc === "none") {
-        lastNone = a.op.level;
-      }
-      // An application that consumed no input ends the loop, as an empty iteration ends a
-      // repetition: otherwise an operator that can match empty after an operand that can loops
-      // forever.
-      if (this.pos === m0pos) {
-        break;
-      }
-    }
-    return lhs;
+    throw new Error("the printed method replaces this one");
   }
 
+  // operatorsRuleNud parses an operand or a prefix application.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   operatorsRuleNud(r: Rule): R {
-    const pr = r.operatorsRule as OperatorsRule;
-    this.skipTrivia(pr);
-    const m0pos = this.pos;
-    const m0env = this.env;
-    const m0trail = this.trail.length;
-    const m0rec = this.recovered.length;
-    const a = this.longest(pr.prefix);
-    if (a !== null) {
-      this.apply(a);
-      const rhs = this.operatorsRuleParse(r, a.op.level);
-      if (rhs !== undefined) {
-        return this.operatorsRuleBuild(r, a, null, rhs);
-      }
-      if (a.cut) {
-        return undefined;
-      }
-      this.reset(m0pos, m0env, m0trail, m0rec);
-    } else if (this.cutFailed) {
-      return undefined;
-    }
-    for (const o of pr.operands) {
-      this.spend();
-      const prevFrame = this.frame;
-      const prevCut = this.cut;
-      const f = this.newFrame(o.scope.length);
-      this.frame = f;
-      this.cut = false;
-      const v = o.m(this);
-      const cut = this.cut;
-      this.frame = prevFrame;
-      this.cut = prevCut;
-      if (v !== undefined) {
-        return this.lineResult(r, o, f, v, m0pos);
-      }
-      this.reset(m0pos, m0env, m0trail, m0rec);
-      if (cut) {
-        return undefined;
-      }
-    }
-    return undefined;
+    throw new Error("the printed method replaces this one");
   }
 
   lineResult(r: Rule, l: OperatorsRuleLine, f: Frame, v: Node | null, start: number): Node | null {

@@ -224,7 +224,7 @@ func TestRangeHandles(t *testing.T) {
 		t.Fatal(err)
 	}
 	tg := &Target{
-		Range: "Span",
+		Parts: map[string][]Part{"Span": {{"From", "number"}, {"To", "number"}}},
 		Op: func(c *ir.Call, args []string) string {
 			if c.Callee == "stack.len" {
 				return args[0] + "To - " + args[0] + "From"
@@ -252,7 +252,7 @@ func TestRangeHandles(t *testing.T) {
 			t.Errorf("%s lacks %q:\n%s", name, want, s)
 		}
 	}
-	if _, err := Method(m, m.Func("direct"), tg); err == nil || !strings.Contains(err.Error(), "range type") {
+	if _, err := Method(m, m.Func("direct"), tg); err == nil || !strings.Contains(err.Error(), "held in parts") {
 		t.Errorf("an argument of the range type that is not a local printed: %v", err)
 	}
 }
