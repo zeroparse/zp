@@ -297,6 +297,58 @@ Operators Rule is a scanning source unless it is a reused skip, and its first
 call is shared with that of a body that is the Operators Rule, as [Conditions
 for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost) states.
 
+**Separated lists.** A repetition with [`#sep`](../language/pragmas.md#sep) is a
+committing loop, and the claims above hold for it with the unit cut at its
+commit point. Call the part of an iteration before the commit point its
+**retried part**, and the rest its **committed part**. For `trailing="forbidden"`
+and `"optional"` an iteration after the first is the separator and then the
+element, and its retried part is the separator; for `trailing="required"` an
+iteration is the element and then the separator, and its retried part is the
+element. The first iteration of the first two policies is the element and has no
+separator before it.
+
+*Claim.* Let an iteration $\iota$ of a separated list $L$ fail. If $\iota$ fails
+in its retried part, $\iota$ is an abandoned evaluation after which $L$ goes
+on: it ends its repetition, or fails it when the minimum is not reached, and the
+parser continues at the start of $\iota$. If $\iota$ fails in its committed part,
+$L$ fails with it, at the same position, and nothing evaluates at a position
+before the start of $L$ because of that failure alone.
+
+*Proof.* The compiled iteration places a cut between the separator and the
+element, which is how the language defines the list: a separator that no element
+follows is not part of a list. The compiler accepts `#sep` only when the
+element and the separator are not nullable and their first characters are
+disjoint, so the commit does not turn a parse that the hand form accepts into a
+failure by taking a separator that belongs to the element. A cut in an
+iteration makes the repetition fail when the iteration fails afterwards, so
+$L$ fails. For `"required"` the cut lies between the element and the separator
+for the same reason. Under `"optional"` the iteration holds one lookahead on the
+first characters of the element after the separator; it examines one character,
+which Lemma 1 bounds, and it holds no scanning source. When it fails, $L$ ends
+successfully after the separator, and no evaluation continues before it. $\square$
+
+The claim changes the lemmas above in two places and leaves the rest. In
+*Restarts*, an iteration that fails in its committed part is not the evaluation
+$w$ whose parent goes on, since its parent fails too; $w$ is then $L$ or an
+evaluation above it, and a unit that contains $L$, which can fail after the
+sources of $L$ examined input, is made committing by condition 2 as for any
+repetition. The classifier counts $L$ as failing after a source in
+`failsAfterSource` whatever its minimum, since a list fails after a separator
+even when its minimum is zero. In *Failure after a source*, the unit that the
+iteration forms is its retried part: its input is that of the separator, or of the
+element for `"required"`, and cases 1 to 5 apply to it against the continuation
+of $L$. The committed part is no part of that unit, because no continuation of
+$L$ starts again inside the input it examined: the continuation of $L$ is tried
+only when the retried part fails, and then the committed part has not run.
+`walkSeparated` in the classifier states this: the unit holds the retried part,
+and the committed part is walked outside it, with the same continuation and
+the sources of both counted for the enclosing units. The paths of $L$
+(`sepFormOf`) include the separator and, with `"optional"`, the trailing
+separator, so the cases read the first characters that a continuation of $L$ can
+examine. Every iteration is one activation of the repetition as a source, so the
+counts of activations below are those of a repetition of its element, with
+one more evaluation of the separator per iteration, a constant.
+
 What remains is to count the activations. Each evaluation of a scanning source
 has at most one activation that does not succeed, its last: an iteration that
 consumes no input ends its repetition, an operator applied without consuming
