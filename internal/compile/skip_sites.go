@@ -50,7 +50,7 @@ func (prog *Program) markSkipSites(control *Control) {
 	propagate(defs, calls, recovers, control)
 	propagate(defs, calls, recursive, control)
 	eligible := func(e *grammar.Repeat) bool {
-		if e.Max >= 0 || escapingCut(e.Expr) {
+		if e.Max >= 0 || e.Sep != nil || escapingCut(e.Expr) {
 			return false
 		}
 		ok := true

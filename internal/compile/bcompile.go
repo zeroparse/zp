@@ -522,6 +522,13 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 			return
 		}
 	}
+	body, pre, trail := e.Expr, grammar.Expr(nil), grammar.Expr(nil)
+	if e.Sep != nil {
+		var msg string
+		if body, pre, trail, msg = SeparatedForms(c.prog, e, nil); msg != "" {
+			panic("compile: #sep passed the checks but " + msg) // the walk has reported it
+		}
+	}
 	elemScope := s
 	sc := int32(-1)
 	if ElementScoped(e.Expr) {
@@ -541,10 +548,16 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 		}
 	}
 	iter := c.emit(bytecode.OpIter, 0, runBuild, run)
+	if pre != nil {
+		// The separator and the cut come before every element but the first.
+		first := c.emit(bytecode.OpFirst, 0, 0, 0)
+		c.void(pre, s)
+		c.m.Code[first].A = c.here()
+	}
 	if build {
-		c.scope(e.Expr, elemScope)
+		c.scope(body, elemScope)
 	} else {
-		c.void(e.Expr, elemScope)
+		c.void(body, elemScope)
 	}
 	flag := b2i(build)
 	if stream && build {
@@ -552,6 +565,14 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 	}
 	c.emit(bytecode.OpNext, loop, flag, 0)
 	c.m.Code[iter].A = c.here()
+	if trail != nil {
+		// The trailing separator, after the last element of a list that has one.
+		first := c.emit(bytecode.OpFirst, 0, 0, 0)
+		ch := c.emit(bytecode.OpChoice, 0, 0, 0)
+		c.void(trail, s)
+		end := c.emit(bytecode.OpCommit, 0, 0, 0)
+		c.m.Code[ch].A, c.m.Code[end].A, c.m.Code[first].A = c.here(), c.here(), c.here()
+	}
 	c.emit(bytecode.OpEndRepeat, b2i(build), 0, 0)
 	if sc >= 0 {
 		c.m.Scopes[sc] = c.strs2(elemScope.Names)
@@ -562,8 +583,8 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 // (inner attributes are applied first). What recovers is one element: its value or the error.
 func (c *bcompiler) attrElems(e *grammar.Attributed, i int, s *Scope) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && IsStream(e) {
-			c.repeat(rep, s, true, true)
+		if rep, ok := e.Expr.(*grammar.Repeat); ok && (IsStream(e) || rep.Sep != nil) {
+			c.repeat(rep, s, true, IsStream(e))
 		} else {
 			c.elems(e.Expr, s)
 		}
@@ -627,8 +648,8 @@ func (c *bcompiler) label(a *grammar.Attribute) {
 // are applied first), without its value.
 func (c *bcompiler) attributed(e *grammar.Attributed, i int, s *Scope) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && IsStream(e) {
-			c.repeat(rep, s, false, true)
+		if rep, ok := e.Expr.(*grammar.Repeat); ok && (IsStream(e) || rep.Sep != nil) {
+			c.repeat(rep, s, false, IsStream(e))
 		} else {
 			c.void(e.Expr, s)
 		}

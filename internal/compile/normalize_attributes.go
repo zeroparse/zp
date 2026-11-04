@@ -352,7 +352,7 @@ func (n *attributeNormalizer) expr(expr grammar.Expr) grammar.Expr {
 		for _, source := range e.Attrs {
 			n.control.poll()
 			a := n.attribute(source)
-			pragma := a.Name == "repeat" || a.Name == "atomic" || a.Name == "recover" || a.Name == "stream" || a.Name == "missing" || a.Name == "ignorecase"
+			pragma := a.Name == "repeat" || a.Name == "atomic" || a.Name == "recover" || a.Name == "stream" || a.Name == "missing" || a.Name == "ignorecase" || a.Name == "sep"
 			if pragma && !a.Pragma {
 				n.error(a, "is a pragma; use #"+a.Name)
 				continue
@@ -397,6 +397,15 @@ func (n *attributeNormalizer) expr(expr grammar.Expr) grammar.Expr {
 				}
 			case "recover":
 				a = n.bind(a, "skip")
+			case "sep":
+				var ok bool
+				if a, ok = n.separator(inner, a); !ok {
+					continue
+				}
+			}
+			if a.Name == "sep" {
+				sep, trailing, _ := Separator(&grammar.Attributed{Attrs: []*grammar.Attribute{a}})
+				inner = withSeparator(inner, sep, trailing)
 			}
 			if old, ok := inner.(*grammar.Attributed); ok {
 				copy := *old
@@ -633,6 +642,9 @@ func foldLiterals(e grammar.Expr) grammar.Expr {
 			}
 		}
 		if inner != e.Expr || changed {
+			if sep, trailing, ok := Separator(&grammar.Attributed{Attrs: attrs}); ok && changed {
+				inner = withSeparator(inner, sep, trailing) // the separator the repetition runs is the folded one
+			}
 			copy := *e
 			copy.Expr, copy.Attrs = inner, attrs
 			return &copy
@@ -744,4 +756,134 @@ func foldAttribute(a *grammar.Attribute) *grammar.Attribute {
 		copy.KwArgs = kw
 	}
 	return &copy
+}
+
+// The trailing-separator policies of #sep.
+const (
+	TrailingForbidden = "forbidden"
+	TrailingOptional  = "optional"
+	TrailingRequired  = "required"
+)
+
+// separator checks and binds the arguments of the pragma #sep a on inner: the separator is the
+// keyword argument sep as an expression and the policy trailing one of the policies (forbidden if
+// omitted), both as strings or expressions the normalizer lowers. It reports false after an
+// error.
+func (n *attributeNormalizer) separator(inner grammar.Expr, a *grammar.Attribute) (*grammar.Attribute, bool) {
+	rep, ok := separatedRepeat(inner)
+	if !ok {
+		n.error(a, "applies to a repetition (*, + or #repeat(...))")
+		return a, false
+	}
+	if rep.Max == 0 {
+		n.error(a, "needs a repetition that can match an element")
+		return a, false
+	}
+	if at, ok := inner.(*grammar.Attributed); ok {
+		for _, old := range at.Attrs {
+			if old.Name == "sep" {
+				n.error(a, "may occur only once on a repetition")
+				return a, false
+			}
+		}
+	}
+	for name := range a.KwArgs {
+		if name != "sep" && name != "trailing" {
+			n.error(a, "has no argument "+name)
+			return a, false
+		}
+	}
+	a = n.bind(a, "sep")
+	value, present := a.KwArgs["sep"]
+	if !present {
+		n.error(a, "requires a separator")
+		return a, false
+	}
+	var sep grammar.Expr
+	switch v := value.(type) {
+	case string:
+		sep = &grammar.Literal{SourceInfo: a.SourceInfo, Value: v}
+	case grammar.Expr:
+		sep = v
+	}
+	if sep == nil {
+		n.error(a, "separator must be a string or a parser expression")
+		return a, false
+	}
+	if lit, ok := sep.(*grammar.Literal); ok && lit.Value == "" {
+		n.error(a, "separator must not be empty")
+		return a, false
+	}
+	captured := false
+	WalkExpr(sep, func(e grammar.Expr) {
+		if _, ok := e.(*grammar.Capture); ok {
+			captured = true
+		}
+	})
+	if captured {
+		n.error(a, "separator must not contain captures")
+		return a, false
+	}
+	policy := TrailingForbidden
+	if t, present := a.KwArgs["trailing"]; present {
+		s, ok := t.(string)
+		if !ok || s != TrailingForbidden && s != TrailingOptional && s != TrailingRequired {
+			n.error(a, `trailing must be "forbidden", "optional" or "required"`)
+			return a, false
+		}
+		policy = s
+	}
+	copy := *a
+	copy.Args = nil
+	copy.KwArgs = map[string]any{"sep": sep, "trailing": policy}
+	copy.KeywordOrder = nil
+	return &copy, true
+}
+
+// withSeparator returns e, a repetition with pragmas attached, with the separator and policy set on
+// the repetition.
+func withSeparator(e grammar.Expr, sep grammar.Expr, trailing string) grammar.Expr {
+	switch x := e.(type) {
+	case *grammar.Repeat:
+		copy := *x
+		copy.Sep, copy.Trailing = sep, trailing
+		return &copy
+	case *grammar.Attributed:
+		copy := *x
+		copy.Expr = withSeparator(x.Expr, sep, trailing)
+		return &copy
+	}
+	return e
+}
+
+// separatedRepeat returns the repetition that e is, possibly with pragmas attached.
+func separatedRepeat(e grammar.Expr) (*grammar.Repeat, bool) {
+	for {
+		switch x := e.(type) {
+		case *grammar.Repeat:
+			return x, true
+		case *grammar.Attributed:
+			e = x.Expr
+		default:
+			return nil, false
+		}
+	}
+}
+
+// Separator returns the separator and the trailing-separator policy of the repetition that the
+// normalized expression e is, or false if e has no #sep.
+func Separator(e grammar.Expr) (sep grammar.Expr, trailing string, ok bool) {
+	at, isAttr := e.(*grammar.Attributed)
+	if !isAttr {
+		return nil, "", false
+	}
+	for _, a := range at.Attrs {
+		if a.Name != "sep" {
+			continue
+		}
+		sep, _ = a.KwArgs["sep"].(grammar.Expr)
+		trailing, _ = a.KwArgs["trailing"].(string)
+		return sep, trailing, sep != nil
+	}
+	return nil, "", false
 }

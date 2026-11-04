@@ -50,6 +50,10 @@ type ExprBuilder[M any] interface {
 	// shiftable. run, if not 0, is the number of the run site (run_sites.go) whose walks record the
 	// rest of them, with values where build.
 	Repeat(e *grammar.Repeat, elem M, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, in *Rule, run int) M
+	// SepRepeat matches the separated list e (SeparatedForms): pre, if hasPre, runs before each
+	// element after the first and trail, if hasTrail, once after the last element of a list that
+	// has one. It has no sites; stream passes the elements of a #stream on.
+	SepRepeat(e *grammar.Repeat, elem, pre, trail M, hasPre, hasTrail bool, elemScope *Scope, ownScope, build, stream bool, in *Rule) M
 	// SkipRepeat matches the repetition e of elem, the skip-run site skip (Program.SkipSite),
 	// recording its walks and reusing the records (core/skip_runs.go).
 	SkipRepeat(e *grammar.Repeat, elem M, skip int) M
@@ -284,9 +288,36 @@ func (c *Walker[M]) repeat(e *grammar.Repeat, s *Scope, build, stream bool) M {
 	return c.plainRepeat(e, s, build, stream)
 }
 
+// sepRepeat walks a separated list (SeparatedForms).
+func (c *Walker[M]) sepRepeat(e *grammar.Repeat, s *Scope, build, stream bool) M {
+	body, pre, trail, msg := SeparatedForms(c.Prog, e, c.Control)
+	var none M
+	if msg != "" {
+		c.errorf(e.Diagnostic(), "#sep: %s", msg)
+		return none
+	}
+	elemScope := s
+	if elementScopedControlled(e.Expr, c.Control) {
+		elemScope = NewScope()
+		elemScope.outer = s
+	}
+	m := c.Expr(body, elemScope, build)
+	var preM, trailM M
+	if pre != nil {
+		preM = c.Expr(pre, s, false)
+	}
+	if trail != nil {
+		trailM = c.Expr(trail, s, false)
+	}
+	return c.Builder.SepRepeat(e, m, preM, trailM, pre != nil, trail != nil, elemScope, elemScope != s, build, stream, c.rule)
+}
+
 // plainRepeat walks a repetition that is not a skip-run site.
 func (c *Walker[M]) plainRepeat(e *grammar.Repeat, s *Scope, build, stream bool) M {
 	control := c.Control
+	if e.Sep != nil {
+		return c.sepRepeat(e, s, build, stream)
+	}
 	if !stream {
 		if m, ok := c.scanRepeat(e, build); ok {
 			return m
@@ -340,8 +371,8 @@ func (c *Walker[M]) predicate(e *grammar.Predicate, s *Scope) M {
 // order they are written.
 func (c *Walker[M]) attributed(e *grammar.Attributed, s *Scope, build bool) M {
 	var m M
-	if rep, ok := e.Expr.(*grammar.Repeat); ok && IsStream(e) {
-		m = c.repeat(rep, s, build, true)
+	if rep, ok := e.Expr.(*grammar.Repeat); ok && (IsStream(e) || rep.Sep != nil) {
+		m = c.repeat(rep, s, build, IsStream(e))
 	} else {
 		m = c.Expr(e.Expr, s, build)
 	}
@@ -383,6 +414,8 @@ func (c *Walker[M]) attributed(e *grammar.Attributed, s *Scope, build bool) M {
 			if ok {
 				m = c.Builder.Diagnostic(m, c.desc(name))
 			}
+		case "sep":
+			// The repetition below has taken the separator.
 		case "recover":
 			skipExpr, ok := a.Arg("skip")
 			if !ok {

@@ -10,6 +10,8 @@ func validArg(attr, arg string) bool {
 		return arg == "name"
 	case "recover":
 		return arg == "skip"
+	case "sep":
+		return arg == "sep" || arg == "trailing"
 	}
 	return true
 }

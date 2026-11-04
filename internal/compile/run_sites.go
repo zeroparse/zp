@@ -58,7 +58,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 			return ok
 		}
 		memo[e] = false
-		if e.Max >= 0 || escapingCut(e.Expr) {
+		if e.Max >= 0 || e.Sep != nil || escapingCut(e.Expr) {
 			return false
 		}
 		ok := true

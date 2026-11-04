@@ -18,6 +18,9 @@ import (
 // its types and expectations, and its bytecode module. Every backend and generator reads it; the
 // engine's Program adds what the parser runs.
 type Program struct {
+	// sepChars holds the first characters of the grammar for the separated lists (SeparatedForms),
+	// computed when the first one needs them.
+	sepChars   *classifier
 	HasMissing bool // immutable syntax metadata; bytecode/generation are unsupported
 	// shapeControl is the compilation's cancellation control while the program is being built, so that
 	// the shape analysis of rule bodies (shapeElems) polls it; nil otherwise.

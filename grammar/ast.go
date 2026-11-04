@@ -477,6 +477,14 @@ type Repeat struct {
 	// code. Format writes the bounds in the canonical spelling and the comments
 	// in it; they are layout only.
 	Spelling *RepeatSpelling `json:"-"`
+
+	// Sep and Trailing are the separator and the trailing-separator policy
+	// ("forbidden", "optional" or "required") that normalization takes from
+	// a #sep pragma on the repetition; both are zero in a source tree. The
+	// pragma's argument stays the one place the separator is a child of the
+	// tree, so Sep is not traversed.
+	Sep      Expr   `json:"-"`
+	Trailing string `json:"-"`
 }
 
 // RepeatSpelling is the layout of a #repeat pragma: which of its tokens the

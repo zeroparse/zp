@@ -1542,7 +1542,7 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 		panic(bail{})
 	}
 	name := p.ident().text
-	if (name == "recover" || name == "repeat") && p.is("(") && p.tok().spaceBefore {
+	if (name == "recover" || name == "repeat" || name == "sep") && p.is("(") && p.tok().spaceBefore {
 		p.errorf("pragma arguments must immediately follow '#%s'", name)
 		panic(bail{})
 	}
@@ -1586,6 +1586,22 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 			p.appendAttributeBreak(result, br)
 		}
 		result.Attrs = append(result.Attrs, &grammar.Attribute{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: name, Pragma: true})
+		return result
+	case "sep":
+		if p.boundary() || !p.is("(") {
+			p.errorf("#sep requires a separator argument")
+			panic(bail{})
+		}
+		a := &grammar.Attribute{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: name, Pragma: true}
+		p.attributeArgs(a)
+		result, ok := e.(*grammar.Attributed)
+		if !ok {
+			result = &grammar.Attributed{Expr: e}
+		}
+		if br != nil || result.Breaks != nil {
+			p.appendAttributeBreak(result, br)
+		}
+		result.Attrs = append(result.Attrs, a)
 		return result
 	case "recover":
 		p.expect("(")
@@ -1764,6 +1780,12 @@ func (p *parser) attribute() (sourceResult *grammar.Attribute) {
 	if !p.is("(") || p.tok().spaceBefore {
 		return a
 	}
+	p.attributeArgs(a)
+	return a
+}
+
+// attributeArgs reads the parenthesized arguments of a, which start at the current token "(".
+func (p *parser) attributeArgs(a *grammar.Attribute) {
 	p.next()
 	named := false
 	defer p.restoreBreak()()
@@ -1773,7 +1795,7 @@ func (p *parser) attribute() (sourceResult *grammar.Attribute) {
 	if p.is(")") {
 		list.CloseBreak = p.lineBreak()
 		p.next()
-		return a
+		return
 	}
 	for {
 		var layout *grammar.SourceLayout
@@ -1819,7 +1841,6 @@ func (p *parser) attribute() (sourceResult *grammar.Attribute) {
 	}
 	list.CloseBreak = p.lineBreak()
 	p.expect(")")
-	return a
 }
 
 func (p *parser) attributeValue() any {
@@ -1840,7 +1861,7 @@ func (p *parser) attributeValue() any {
 		return -p.next().num
 	}
 	e := p.choice()
-	if literal, ok := e.(*grammar.Literal); ok {
+	if literal, ok := e.(*grammar.Literal); ok && !literal.IgnoreCase {
 		return literal.Value
 	}
 	return e

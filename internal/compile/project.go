@@ -35,7 +35,7 @@ func ruleProjectionsControlled(prog *Program, r *Rule, control *Control) map[str
 		control.poll()
 		switch e := e.(type) {
 		case *grammar.Capture:
-			if rp, ok := e.Expr.(*grammar.Repeat); ok && hasCapturesControlled(rp.Expr, control) {
+			if rp, ok := e.Expr.(*grammar.Repeat); ok && rp.Sep == nil && hasCapturesControlled(rp.Expr, control) {
 				cands[e.Name] = rp
 				return
 			}

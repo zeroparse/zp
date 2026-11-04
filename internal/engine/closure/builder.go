@@ -683,6 +683,98 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 	}
 }
 
+// SepRepeat matches a separated list (compile.SeparatedForms). It is Repeat with pre before each
+// element after the first and trail after the last: a failure of pre ends the list before the
+// separator, and a cut in pre makes a failing element fail the list.
+func (b *Builder) SepRepeat(e *grammar.Repeat, m, pre, trail core.Matcher, hasPre, hasTrail bool, elemScope *compile.Scope, ownScope, build, stream bool, in *compile.Rule) core.Matcher {
+	min, max := e.Min, e.Max
+	elemValue := scopeValueOf(b.prog, e.Expr)
+	charge := b.charges()
+	inID, inRec := in.ID, in.Rec
+	return func(p *core.Parser) (*value.Node, bool) {
+		start := p.Pos
+		base := len(p.KidStack)
+		if core.StreamPrefixIsolation && stream && p.StreamsIn(inID, inRec) {
+			p.StartStreamChunks()
+		}
+		count := 0
+		for n := 0; max < 0 || n < max; n++ {
+			if charge {
+				p.Spend()
+			}
+			m0 := p.Mark()
+			prevCut, prevFrame := p.Cut, p.Frame
+			p.Cut = false
+			if hasPre && n > 0 {
+				if _, ok := pre(p); !ok {
+					p.Cut = prevCut
+					p.Reset(m0)
+					break
+				}
+			}
+			var f *core.Frame
+			if ownScope {
+				f = p.NewFrame(len(elemScope.Names))
+				p.Frame = f
+			}
+			ep := p.Pos
+			v, ok := m(p)
+			cut := p.Cut
+			p.Cut, p.Frame = prevCut, prevFrame
+			if !ok {
+				p.Reset(m0)
+				if cut {
+					p.Kids(base)
+					return nil, false
+				}
+				break
+			}
+			if build {
+				v = elemValue(p, v, ep)
+				if ownScope {
+					v = p.AttachCaptures(v, elemScope, f, ep, p.Pos)
+				}
+			}
+			count++
+			if stream && p.StreamsIn(inID, inRec) {
+				if v != nil {
+					value.D(v).Fresh = false
+				}
+				if err := p.EmitStream(v); err != nil {
+					panic(core.Fatal{Err: err})
+				}
+				p.Commit(p.Pos)
+				if p.Pos == m0.Pos {
+					break
+				}
+				continue
+			}
+			if build {
+				p.KidStack = append(p.KidStack, v)
+			}
+			if p.Pos == m0.Pos {
+				break
+			}
+		}
+		if count < min {
+			p.Kids(base)
+			return nil, false
+		}
+		if hasTrail && count > 0 {
+			m0 := p.Mark()
+			prevCut := p.Cut
+			if _, ok := trail(p); !ok {
+				p.Reset(m0)
+			}
+			p.Cut = prevCut
+		}
+		if !build {
+			return nil, true
+		}
+		return p.NewNode(value.Data{Kind: value.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+	}
+}
+
 // ProjectRepeat gathers the values of a capture of the elements, which share one capture frame:
 // nothing refers to an element's frame once its value is taken.
 func (b *Builder) ProjectRepeat(e *grammar.Repeat, m core.Matcher, slot, n int) core.Matcher {

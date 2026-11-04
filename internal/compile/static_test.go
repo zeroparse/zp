@@ -92,6 +92,9 @@ func (noExprs) SkipRepeat(e *grammar.Repeat, elem struct{}, skip int) struct{} {
 func (noExprs) Repeat(e *grammar.Repeat, elem struct{}, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, _ *Rule, run int) struct{} {
 	return struct{}{}
 }
+func (noExprs) SepRepeat(e *grammar.Repeat, elem, pre, trail struct{}, hasPre, hasTrail bool, elemScope *Scope, ownScope, build, stream bool, _ *Rule) struct{} {
+	return struct{}{}
+}
 func (noExprs) ProjectRepeat(e *grammar.Repeat, elem struct{}, slot, n int) struct{} {
 	return struct{}{}
 }
