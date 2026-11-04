@@ -639,8 +639,7 @@ func (p *Parser) CallBegin(r *Rule, min int) (st CallState, v *value.Node, ok, h
 		present, known = p.present(gp)
 	}
 	// A result computed inside a lookahead recorded no expectations, so it is not reused outside
-	// one; and errors recovered inside a lookahead carry no expectations either, so a result with
-	// recovered errors is reused only in the same kind of context it was computed in.
+	// one (reusable).
 	e, found := p.MemoGet(key)
 	if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {
 		found = false // an edit since invalidated it
@@ -650,7 +649,7 @@ func (p *Parser) CallBegin(r *Rule, min int) (st CallState, v *value.Node, ok, h
 	if found && ctx && (!known || p.strictCtx() || present&^e.Present != 0) && ContextMemoMutation != CtxIgnorePresent {
 		found = false
 	}
-	if found && (p.Missing == nil || !r.Missing) && p.reusable(e.silent, len(e.Errs)) {
+	if found && (p.Missing == nil || !r.Missing) && p.reusable(e.silent) {
 		p.replayEntry(e)
 		if !e.Ok {
 			return st, nil, false, true
@@ -658,7 +657,7 @@ func (p *Parser) CallBegin(r *Rule, min int) (st CallState, v *value.Node, ok, h
 		return st, e.Node, true, true
 	}
 	if ctx && known && !p.strictCtx() {
-		if s := p.ctxFind(key.Pos, gp, ctxHeadKey{kind: ctxCall, id: int32(key.Rule), min: int32(key.Min), ms: key.MissingSilent, present: present}, key.Env); s != nil && p.reusable(s.e.silent, len(s.e.Errs)) {
+		if s := p.ctxFind(key.Pos, gp, ctxHeadKey{kind: ctxCall, id: int32(key.Rule), min: int32(key.Min), ms: key.MissingSilent, present: present}, key.Env); s != nil && p.reusable(s.e.silent) {
 			p.seedRead(gp)
 			p.replayDeps(key.Pos, gp, present, s.deps)
 			e := s.e
@@ -858,7 +857,7 @@ func (p *Parser) GrowNext(g *GrowState) bool {
 			continue
 		}
 		h := ctxHeadKey{kind: ctxStep, id: int32(g.Key.Rule), min: int32(g.Key.Min), ms: g.Key.MissingSilent, present: g.present}
-		if s := p.ctxFind(g.start, gp, h, nil); s != nil && p.reusable(s.silent, len(s.e.Errs)) {
+		if s := p.ctxFind(g.start, gp, h, nil); s != nil && p.reusable(s.silent) {
 			p.seedRead(gp)
 			p.replayDeps(g.start, gp, g.present, s.deps)
 			p.MergeExpected(s.far, s.exp)

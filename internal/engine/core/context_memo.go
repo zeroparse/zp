@@ -676,10 +676,13 @@ func equalSites(a, b []int32) bool {
 	return true
 }
 
-// reusable reports whether a memoized result evaluated inside a lookahead (silent) or with
-// recovered errors can be used by a call in the current kind of context, as for memo entries.
-func (p *Parser) reusable(silent bool, errs int) bool {
-	return (!silent || p.Silent > 0) && (errs == 0 || silent == (p.Silent > 0))
+// reusable reports whether a memoized result evaluated inside a lookahead (silent) can be used by
+// a call in the current kind of context, as for memo entries: a result computed outside a
+// lookahead answers every call, and one computed inside a lookahead, which recorded no
+// expectations, only calls inside one. The errors that a result recovered differ between the two
+// kinds of context only in messages and positions, and a lookahead discards them at its end.
+func (p *Parser) reusable(silent bool) bool {
+	return !silent || p.Silent > 0
 }
 
 // LookBegin starts a lookahead of the given site. In a context at the current position, the

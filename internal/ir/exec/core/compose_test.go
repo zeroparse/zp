@@ -529,7 +529,8 @@ func TestCallExpectationsFromStart(t *testing.T) {
 }
 
 // TestCallReuseContexts checks which entries a call reuses: one computed in a lookahead only in
-// one, and one with recovered errors only in the kind of context it was computed in.
+// one, and one computed outside a lookahead in both kinds of context, with or without recovered
+// errors.
 func TestCallReuseContexts(t *testing.T) {
 	mod := Build()
 	f := composition(t, mod, "call", ops.Budget)
@@ -542,8 +543,9 @@ func TestCallReuseContexts(t *testing.T) {
 		{"plain entry in a lookahead", false, 0, 1, true},
 		{"silent entry outside", false, 1, 0, false},
 		{"silent entry in a lookahead", false, 1, 1, true},
-		{"entry with errors in a lookahead", true, 0, 1, false},
+		{"entry with errors in a lookahead", true, 0, 1, true},
 		{"silent entry with errors in a lookahead", true, 1, 1, true},
+		{"silent entry with errors outside", true, 1, 0, false},
 		{"entry with errors outside", true, 0, 0, true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -561,6 +563,48 @@ func TestCallReuseContexts(t *testing.T) {
 			callAt(t, mod, m, f, r, 0)
 			if reused := r.runs == 1; reused != c.reused {
 				t.Errorf("reused %v, want %v", reused, c.reused)
+			}
+		})
+	}
+}
+
+// TestCallLookaheadStates checks that calls that alternate between a lookahead and outside one
+// evaluate the rule once if the first is outside a lookahead and twice if it is inside, whether or
+// not its result has recovered errors: the entry computed outside answers the calls in both
+// states, and one computed inside only the calls inside one.
+func TestCallLookaheadStates(t *testing.T) {
+	mod := Build()
+	f := composition(t, mod, "call", ops.Budget)
+	for _, c := range []struct {
+		states string
+		errs   bool
+		runs   int
+	}{
+		{"OIOIOI", true, 1},
+		{"IOIOIO", true, 2},
+		{"OIOIOI", false, 1},
+		{"IOIOIO", false, 2},
+		{"IIII", true, 1},
+		{"OOOO", true, 1},
+	} {
+		t.Run(fmt.Sprint(c.states, c.errs), func(t *testing.T) {
+			m := newMachine()
+			r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+				if c.errs {
+					m.recover("skipped")
+				}
+				m.advance(1)
+				return "v", true
+			}}
+			m.regs = map[string]any{}
+			for _, s := range c.states {
+				m.regs[ops.Silent] = map[rune]int64{'O': 0, 'I': 1}[s]
+				if v, ok := callAt(t, mod, m, f, r, 0); !ok || v != "v" {
+					t.Fatalf("call %c: %v %v", s, v, ok)
+				}
+			}
+			if r.runs != c.runs {
+				t.Errorf("%d evaluations, want %d", r.runs, c.runs)
 			}
 		})
 	}

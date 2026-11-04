@@ -2936,11 +2936,10 @@ export class Parser {
       }
       return seed!.node;
     }
-    // See the engine's callBegin: entries with recovered errors are reused only in the same kind of
-    // context (inside or outside a lookahead) they were computed in.
+    // See the engine's callBegin: an entry computed inside a lookahead answers only calls inside one.
     const e = this.memoGet(r.id, start, min, env);
     const found = e !== null;
-    if (found && memoAllows(c, e.present) && ((!e.silent || this.silent > 0) && ((e.errs.length === 0) || e.silent === this.silent > 0))) {
+    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0)) {
       this.observation?.memoHit();
       this.mergeKept(e.far, e.expected);
       if (!e.ok) {
@@ -3098,7 +3097,7 @@ export class Parser {
       return null;
     }
     const s = this.ctxFind(this.pos, c.gp, headKey(ctxCallKind, rule, min, c.present), c.present, env);
-    if (s === null || !this.reusable(s.e!.silent, s.e!.errs.length)) {
+    if (s === null || !this.reusable(s.e!.silent)) {
       return null;
     }
     this.replayDeps(this.pos, c.gp, c.present, s.deps);
@@ -3460,10 +3459,12 @@ export class Parser {
     set.vals.set(k, slot);
   }
 
-  // reusable reports whether a memoized result evaluated inside a lookahead (silent) or with
-  // recovered errors can be used by a call in the current kind of context, as for memo entries.
-  reusable(silent: boolean, errs: number): boolean {
-    return (!silent || this.silent > 0) && (errs === 0 || silent === this.silent > 0);
+  // reusable reports whether a memoized result evaluated inside a lookahead (silent) can be used
+  // by a call in the current kind of context, as for memo entries: a result computed outside a
+  // lookahead answers every call, and one computed inside a lookahead, which recorded no
+  // expectations, only calls inside one.
+  reusable(silent: boolean): boolean {
+    return !silent || this.silent > 0;
   }
 
   // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
@@ -3576,7 +3577,7 @@ export class Parser {
         continue;
       }
       const s = this.ctxFind(g.start, g.gp, headKey(ctxStepKind, g.rule, g.min, g.present), g.present, null);
-      if (s !== null && this.reusable(s.silent, s.e!.errs.length)) {
+      if (s !== null && this.reusable(s.silent)) {
         this.replayDeps(g.start, g.gp, g.present, s.deps);
         this.mergeKept(s.far, s.exp);
         if (!this.advance(g, s.e!, s.id, { seed: id, far: s.far, exp: s.exp, silent: s.silent, deps: s.deps })) {

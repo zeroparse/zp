@@ -331,8 +331,8 @@ join in a second wave as host primitives ([Decisions](#decisions)).
 
 The compositions written once in Exec IR are the algorithms that the copies re-implemented:
 
-- the call protocol: deferred memoization, memo lookup and the reuse conditions (silent results, recovered errors,
-  the left-recursion context, the missing-token mode), store, restore on failure, nesting and statistics;
+- the call protocol: deferred memoization, memo lookup and the reuse conditions (silent results, the left-recursion
+  context, the missing-token mode), store, restore on failure, nesting and statistics;
 - left-recursion growth: the growth from failure, its stop condition and its steps in a context;
 - rule completion: the rule's value, captures and hidden rules spliced into their caller;
 - Document calls: validation, reuse and the examined bound of each result;

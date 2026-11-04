@@ -75,9 +75,9 @@ func Build() *Module {
 		b.Return(C("ctx.value", s), BoolC(true))
 	}
 	// reuse returns a result that the call at start may reuse: the seed of the rule if it grows at the
-	// position; the entry stored for the call, if the leaders growing at the position allow it and it
-	// was computed in a silent context only in one and with recovered errors only in the kind of
-	// context it was computed in; or the result kept in the context of the call. Otherwise it starts
+	// position; the entry stored for the call, if the leaders growing at the position allow it and,
+	// when it was computed in a silent context, the call is in one too; or the result kept in the
+	// context of the call. Otherwise it starts
 	// recording the dependencies of the call and isolates its expectations.
 	//
 	// With Document bookkeeping, a call in a Document parse also extends its examined frontier to the
@@ -89,9 +89,7 @@ func Build() *Module {
 		b.If(C("ctx.found", cs[1]), func(b *Builder) { replay(b, cs[1], true) })
 		b.LetN([]string{"e", "found"}, C("memo.lookup", id, L("start"), level, L("env")))
 		e := L("e")
-		reusable := And(And(L("found"), C("ctx.allows", c, e)),
-			And(Bin("||", Not(C("memo.silent", e)), silent),
-				Bin("||", C("rec.none", C("memo.errs", e)), Eq(C("memo.silent", e), silent))))
+		reusable := And(And(L("found"), C("ctx.allows", c, e)), Bin("||", Not(C("memo.silent", e)), silent))
 		b.If(reusable, func(b *Builder) {
 			b.If(F(ops.Observe), func(b *Builder) { b.Do("obs.memoHit") })
 			inDocument(b, doc, func(b *Builder) {

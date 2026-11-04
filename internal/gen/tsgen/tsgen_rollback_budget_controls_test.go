@@ -119,7 +119,7 @@ function minimum(fits:(n:number)=>boolean):number {
 }
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input="a?".repeat(512),ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
- check(ordinary.node!==null&&active.node!==null&&ordinary.error instanceof p.SyntaxErrors&&active.error instanceof p.SyntaxErrors&&active.error.errors.length===512&&stable(active.node)===stable(ordinary.node)&&active.error.message===ordinary.error.message,"same-silent memo hit preserves recovered errors and output");
+ check(ordinary.node!==null&&active.node!==null&&ordinary.error instanceof p.SyntaxErrors&&active.error instanceof p.SyntaxErrors&&active.error.errors.length===512&&stable(active.node)===stable(ordinary.node)&&active.error.message===ordinary.error.message,"memo hit across lookahead states preserves recovered errors and output");
  for(let i=0;i<512;i++)check(active.error.errors[i]?.pos===i*2+1,"memo replay preserves error positions and order");
  const freshBudget=minimum(n=>{const r=p.parseRuleWithOptions("fresh",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===512});
  const snapshot=p.parseRuleWithOptions("fast",input,{unit,limits:{compute:freshBudget+128}});

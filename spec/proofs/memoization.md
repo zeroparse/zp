@@ -1,6 +1,6 @@
 # Memoization
 
-Arata Furukawa · Last revised 2026-11-01
+Arata Furukawa · Last revised 2026-11-04
 
 This proof shows that [memoization](../runtime/parsing.md#memoization) never
 changes the result of a parse. A parse that answers calls from the memo returns
@@ -72,8 +72,7 @@ evaluating it, under these conditions:
   leader that grew inside the growth of another leader. An entry records the
   present set $P$ of the call that stored it.
 - **(L) Lookahead state.** An entry stored in state $\lambda$ answers a call in
-  state $\lambda'$ only if $\lambda' = \lambda$, or if $\lambda = 0$,
-  $\lambda' = 1$ and its $\varepsilon$ is empty.
+  state $\lambda'$ only if $\lambda \le \lambda'$.
 - **(C) Contexts.** A call of a rule of a left-recursion cycle with the present
   set $P'$ is answered from an entry with the present set $P$ only if
   $P' \subseteq P$.
@@ -99,6 +98,14 @@ evaluating it, under these conditions:
   that observation, as a result kept in the same way gives it, read no current
   result of $L$, directly or through the lookaheads that it observed. It drops
   what it keeps when the first growth open at $p$ ends.
+
+  **Open gap.** A result of a call that $\mathcal{M}$ computed outside a
+  lookahead also answers a call of the same key inside a lookahead, so a kept
+  result answers a call whose state is at least the state in which it was
+  computed, not only one of the same state. The argument of Lemma 3 and of
+  Lemma 4 below covers a kept result only for a call of the same state; it is
+  not yet extended to these results, and the claim of item 4 of the proof of
+  the theorem rests on that extension for them.
 
 (S) is the last item of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) that
@@ -139,8 +146,8 @@ each walk as evaluated in full in both parses.
 
 ## Assumptions
 
-The proof relies on the following. The specification does not state (A1) and
-(A2); it states (A3), which is cited here.
+The proof relies on the following. The specification does not state (A1); it
+states (A2) and (A3), which are cited here.
 
 - **(A1) Recording in a lookahead.** Inside a lookahead or the `skip` of an
   Operators Rule, an evaluation records neither expected items nor its
@@ -148,8 +155,8 @@ The proof relies on the following. The specification does not state (A1) and
   [Syntax Errors](../runtime/parsing.md#syntax-errors) states this for the
   expected items only. The reference implementation also does not track the
   farthest failure there.
-- **(A2) Reuse across lookahead states.** Condition (L), which the reference
-  implementation applies and the specification does not mention.
+- **(A2) Reuse across lookahead states.** Condition (L), which
+  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) states.
 - **(A3) Comparisons.** `==` and `!=` never compare nodes: they compare two
   `int`, two `string` or two `bool` values, and any value with `nil`, and every
   other comparison is an error
@@ -164,9 +171,11 @@ The proof relies on the following. The specification does not state (A1) and
 In $\mathcal{R}$, let a call read no growth open at its start. Then its $s$,
 its $q$, its run-time error, if any, and its examined range are functions of
 its key $\kappa$, and its outcome is a function $F(\kappa, \lambda)$ of its key
-and lookahead state. For the two lookahead states, $F(\kappa, 0)$ and
-$F(\kappa, 1)$ have recovered errors of the same number, and the same value
-when they have none.
+and lookahead state. The two outcomes $F(\kappa, 0)$ and $F(\kappa, 1)$
+**agree**: they differ at most in their farthest failures and in the errors that
+`#recover` builds, those of $\varepsilon$ and the error values in $v$, so they
+have recovered errors of the same number, and the same value when they have
+none.
 
 *Proof.* By induction on the nesting of evaluations, which is finite
 ([Termination](../runtime/parsing.md#termination)). The evaluation of the body
@@ -206,9 +215,17 @@ declares no field ([Built-In Functions](../language/actions.md#built-in-function
 By (A3), `==` does not compare an error node, so a comparison never reads its
 message either. So $s$, $q$,
 the run-time error and the examined range are the same for both states, each
-`#recover` recovers in both or in neither, and $\varepsilon$ has the same
-length. When $\varepsilon$ is empty, no recovery took place on the path that
-matched, so $v$ holds no error value and is the same. $\square$
+`#recover` recovers in both or in neither, $\varepsilon$ has the same
+length, and $v$ is the same except in its error values. When $\varepsilon$ is
+empty, no recovery took place on the path that matched, so $v$ holds no error
+value and is the same. $\square$
+
+The same argument shows that an evaluation in state $1$ whose parts have
+outcomes that agree with other ones has an outcome that agrees with the one
+that those give, and that an expression that cannot recover, which has no
+`#recover` and calls, directly or through the rules it calls, no rule that has
+one outside lookaheads and the `skip` of an Operators Rule, has an empty $\varepsilon$ and a value without error values,
+so agreeing outcomes of it differ at most in their farthest failures.
 
 ## Lemma 2 (Reading an Open Growth)
 
@@ -228,14 +245,16 @@ so $A$ and $L$ are on one left-recursion cycle. $\square$
 ## Sound Entries
 
 An entry $(\kappa, \lambda) \mapsto (\omega, \rho)$ is **sound** when
-$\omega = F(\kappa, \lambda)$ and $\rho$ contains the examined range that
-Lemma 1 gives for $\kappa$.
+$\omega = F(\kappa, 0)$ if $\lambda = 0$, $\omega$ agrees with $F(\kappa, 1)$
+if $\lambda = 1$, and $\rho$ contains the examined range that Lemma 1 gives
+for $\kappa$.
 
 ## Lemma 3 (Answering From a Sound Entry)
 
 A call of key $\kappa$ in state $\lambda'$ that the conditions allow to be
 answered from a sound entry reads no growth open at its start, and recording
-the entry gives the outcome that the call has in $\mathcal{R}$, and a range
+the entry gives the outcome that the call has in $\mathcal{R}$ if
+$\lambda' = 0$, and one that agrees with it if $\lambda' = 1$, and a range
 that contains the range of the call in $\mathcal{R}$.
 
 *Proof.* Suppose that the call reads a growth open at its start. By Lemma 2
@@ -253,11 +272,10 @@ the call reads no growth open at its start, and by Lemma 1 its outcome in
 $\mathcal{R}$ is $F(\kappa, \lambda')$, with the range that Lemma 1 gives for
 $\kappa$, which $\rho$ contains.
 
-If $\lambda' = \lambda$, the outcome is $\omega$. Otherwise $\lambda = 0$,
-$\lambda' = 1$, and $\varepsilon$ is empty by (L). By Lemma 1,
-$F(\kappa, 1)$ has the $s$, $q$ and $v$ of $\omega$ and an empty
-$\varepsilon$, and by (A1) recording it in state $1$ records no $o$, as
-recording $\omega$ there does not. $\square$
+If $\lambda' = \lambda$, the outcome is $\omega$ if $\lambda = 0$, and
+agrees with $\omega$ if $\lambda = 1$. Otherwise $\lambda = 0$ and
+$\lambda' = 1$ by (L), and by Lemma 1 $\omega = F(\kappa, 0)$ agrees with
+$F(\kappa, 1)$. $\square$
 
 ## Lemma 4 (Answering From a Dependent Result)
 
@@ -304,7 +322,9 @@ completed before it satisfies it:
 
 - **(I1)** The outcome of $x$ in $\mathcal{M}$ is its outcome in $\mathcal{R}$
   when evaluated in the same state: the same position, variables, captures,
-  lookahead state, open growths and current results.
+  lookahead state, open growths and current results. In lookahead state $1$
+  the two outcomes agree (Lemma 1), and so do the captures and current results
+  of the state.
 - **(I2)** The examined range of $x$ in $\mathcal{M}$ contains its examined
   range in $\mathcal{R}$.
 - **(I3)** Every entry in the table is sound.
@@ -321,16 +341,29 @@ following.
 2. *A combinator.* A sequence, choice, repetition, option, lookahead, cut,
    capture or `#recover` combines the outcomes of its parts by the rules of
    [Rule Expressions](../language/parser-expressions.md) and records them in
-   order. Its parts satisfy (I1) and (I2), so it does too.
+   order. Its parts satisfy (I1) and (I2), so it does too: in state $1$ by
+   Lemma 1, since no decision reads an error that `#recover` built. A
+   lookahead or the `skip` of an Operators Rule in state $0$, whose
+   expression is in state $1$, has an outcome equal in both parses. Its
+   expression matches in both or in neither and records no farthest failure
+   (A1). The errors recovered in it are discarded at its end
+   ([Lookahead](../language/parser-expressions.md#lookahead),
+   [`skip`](../language/operators-rule.md#skip)). A variable holds an `int`, a
+   `string` or a `bool`, never an error value
+   ([Variables](../language/predicates.md#variables)). A negative lookahead and
+   a `skip` leave no capture, and a capture inside a positive lookahead
+   captures an expression that cannot recover, so its value is equal in both.
 3. *A call answered with the current result of an open growth.* Both parses
    answer it so. The current result is the outcome of a completed body
    evaluation of the growth (item 5), or the failing seed, so it is the same in
    both parses.
 4. *A call answered from an entry.* By (I3) the entry is sound, so by Lemma 3
    (I1) and (I2) hold for $x$. A call answered from a result that (D) keeps
-   was answered under the conditions of Lemma 4, and that result was the
-   outcome and range of an evaluation of $\mathcal{M}$ that completed before,
-   which satisfies (I1) and (I2); so by Lemma 4 they hold for $x$. Equal
+   in the state of the call was answered under the conditions of Lemma 4, and
+   that result was the outcome and range of an evaluation of $\mathcal{M}$
+   that completed before, which satisfies (I1) and (I2); so by Lemma 4 they
+   hold for $x$. For a result kept in a smaller state, (I1) and (I2) are the
+   open gap stated with (D). Equal
    current results read in both parses are equal by (I1). A step of a growth
    answered in the same way has by Lemma 4 the outcome that evaluating it
    gives. In a run of steps of a growth of $L$ taken at once, from current

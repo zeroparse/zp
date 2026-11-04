@@ -17,6 +17,7 @@ Following common practice, the parser reports **the farthest failure position** 
 - Failures inside a lookahead are not reported, because `x` failing inside `!x` is the expected outcome.
 - Failures inside an Operators Rule `skip` are not reported either, because they would be noise (such as whitespace).
 - When a memoized result is used outside a lookahead but was computed inside one, it is recomputed, because no expectations were recorded for it.
+- Errors that `#recover` recovers inside a lookahead or the `skip` of an Operators Rule are discarded when it ends, and a capture in a positive lookahead cannot hold an error value, so a memoized result computed outside a lookahead is used inside one as it is.
 
 ### `@error`
 

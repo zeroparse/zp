@@ -44,7 +44,7 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && ((len(e.errs) == 0) || e.silent == (p.Silent > 0)) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
 			return nil, false
@@ -332,7 +332,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && ((len(e.errs) == 0) || e.silent == (p.Silent > 0)) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
@@ -410,7 +410,7 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 	}
 	e := p.memoGet(r.Id, start, 0, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && ((len(e.errs) == 0) || e.silent == (p.Silent > 0)) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
@@ -596,7 +596,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && ((len(e.errs) == 0) || e.silent == (p.Silent > 0)) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
 		if p.Document != nil {
 			p.documentTouch(e.examined)
@@ -734,7 +734,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	}
 	e := p.memoGet(r.Id, start, min, env)
 	found := e != nil
-	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && ((len(e.errs) == 0) || e.silent == (p.Silent > 0)) {
+	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
 		meta := p.TypedDocument.meta[e]
 		p.documentTouch(meta.examined)

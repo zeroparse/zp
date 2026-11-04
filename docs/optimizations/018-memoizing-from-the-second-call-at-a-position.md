@@ -16,7 +16,8 @@
   reuse after edits) and streams keep memoizing on the first call.
 - Consequences found in review: results that had depended on which call was memoized changed. Rule labels on nodes
   returned by actions (fixed: action results are final), errors recovered inside and outside lookaheads (fixed:
-  such entries are reused only in the same context), node identity across separate calls (`==` on nodes; now
+  errors recovered inside a lookahead are discarded when it ends and cannot be captured there, so an entry computed
+  outside a lookahead answers calls inside one), node identity across separate calls (`==` on nodes; now
   stated as unspecified in the specification), and the nesting limit near its value (a memo hit does not nest;
   documented on `Limits.Depth`).
 - Effect (min of 6 interleaved runs, Apple M3 Max, code points; time before → after, bytes per parse in

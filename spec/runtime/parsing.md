@@ -369,9 +369,13 @@ No bound that is a polynomial in n holds for every grammar.
 ### Evaluations of Rules
 
 In the reference implementation and the generated parsers, a rule body is
-evaluated at most twice at a position for each binding level and each
-combination of the values of the variables that the rule reads, with these
-exceptions.
+evaluated at most three times at a position for each binding level and each
+combination of the values of the variables that the rule reads, with the
+exceptions below. A first evaluation may leave no result in the memo. A result
+computed inside a lookahead or the `skip` of an Operators Rule answers only the
+calls inside them, and a result computed outside them answers every call, so
+at most one evaluation in each of the two states stores a result. A rule and
+its value-free twin count as two rules. The exceptions are these.
 
 - A rule that calls no rule, itself included, or that is called from at most
   one place in the grammar, its own body included, is not memoized in an

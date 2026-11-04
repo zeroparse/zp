@@ -25,14 +25,15 @@ rule l = "a"
 rule r = l "b" / "c" "d"
 rule l = "a"
 `, Inputs: []string{"abz", "cdz", "abq", "a", "ab", "c", "cd", "cdw", "", "abw"}},
-		// An entry with recovered errors is reused only in the kind of context it was computed in.
+		// An entry with recovered errors computed outside a lookahead answers the calls inside one,
+		// whose end discards the errors; one computed inside answers only the calls inside one.
 		{Name: "recovered errors in and outside a lookahead", Src: `rule main = &(r "q") s / &(r "w") s / r "z" $$
 rule r = (l "b") #recover(skip=[^qwz]+) / "c"
 rule l = "a"
 rule s = "a" / "c" / "x"
 `, Inputs: []string{"abz", "axz", "axq", "axw", "ax", "cz", "x", "", "az", "aqz"}},
 		// The entry of r stored outside a lookahead holds a recovered error; the call in the
-		// lookahead evaluates r again.
+		// lookahead reuses it, and the end of the lookahead discards the error.
 		{Name: "recovered errors reused in a lookahead", Src: `rule main = r "q" / r "w" / &(r "z") s $$
 rule r = (l "b") #recover(skip=[^qwz]+) / "c"
 rule l = "a"
@@ -69,8 +70,15 @@ rule l = "a"
 rule r = (l "b") #recover(skip=[^qwyz]+) / "c" l
 rule l = "a"
 `, Inputs: []string{"xabq", "xaxq", "xabw", "xababw", "xcay", "xaby", "xq", "x", "xab", "xaxy", "xcaz"}},
+		// Calls of r's twin alternate between a lookahead and outside one; the entry with recovered
+		// errors that the first call outside stores answers the later calls in both states.
+		{Name: "recovered errors in alternating lookahead states", Src: `rule main = -r "q" / &(r "w") s / -r "t" / &(r "u") s / r "z" $$
+rule r = (l "b") #recover(skip=[^qwtuz]+) / "c"
+rule l = "a"
+rule s = "a" [a-z]* / "c" [a-z]*
+`, Inputs: []string{"abz", "axz", "axq", "axw", "axu", "ax", "cz", "c", "", "aw", "xz"}},
 	}
-	alphabets := []string{"abcxyzq", "abcdqwz", "abcxqwz", "abcxqwz", "0123+-();.", "0123+x;.", "ab!q", "abx;!q", "xabcqwyz"}
+	alphabets := []string{"abcxyzq", "abcdqwz", "abcxqwz", "abcxqwz", "0123+-();.", "0123+x;.", "ab!q", "abx;!q", "xabcqwyz", "abcxqwtuz"}
 	rng := rand.New(rand.NewSource(65))
 	for i := range cases {
 		letters := strings.Split(alphabets[i], "")

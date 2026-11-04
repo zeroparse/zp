@@ -318,7 +318,7 @@ func (p *Parser) ctxLookup(c *ctxCallState, rule, min int, env []any) *ctxResult
 		return nil
 	}
 	s := p.ctxFind(p.Pos, c.gp, ctxHeadKey{kind: ctxCall, id: int32(rule), min: int32(min), present: c.present}, env)
-	if s == nil || !p.reusable(s.e.silent, len(s.e.errs)) {
+	if s == nil || !p.reusable(s.e.silent) {
 		return nil
 	}
 	p.replayDeps(p.Pos, c.gp, c.present, s.deps)
@@ -741,10 +741,13 @@ func equalSites(a, b []int32) bool {
 	return true
 }
 
-// reusable reports whether a memoized result evaluated inside a lookahead (silent) or with
-// recovered errors can be used by a call in the current kind of context, as for memo entries.
-func (p *Parser) reusable(silent bool, errs int) bool {
-	return (!silent || p.Silent > 0) && (errs == 0 || silent == (p.Silent > 0))
+// reusable reports whether a memoized result evaluated inside a lookahead (silent) can be used by
+// a call in the current kind of context, as for memo entries: a result computed outside a
+// lookahead answers every call, and one computed inside a lookahead, which recorded no
+// expectations, only calls inside one. The errors that a result recovered differ between the two
+// kinds of context only in messages and positions, and a lookahead discards them at its end.
+func (p *Parser) reusable(silent bool) bool {
+	return !silent || p.Silent > 0
 }
 
 // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
@@ -928,7 +931,7 @@ func (p *Parser) growNext(g *growState) bool {
 			continue
 		}
 		h := ctxHeadKey{kind: ctxStep, id: g.rule, min: g.min, present: g.present}
-		if s := p.ctxFind(g.start, g.gp, h, nil); s != nil && p.reusable(s.silent, len(s.e.errs)) {
+		if s := p.ctxFind(g.start, g.gp, h, nil); s != nil && p.reusable(s.silent) {
 			p.replayDeps(g.start, g.gp, g.present, s.deps)
 			p.MergeExpected(s.far, s.exp)
 			p.documentTouch(s.examined)
