@@ -63,7 +63,7 @@ grammars, and giving it a name gives the engine and the error reports the same f
 The language already has three ways to attach behaviour to a parser expression, and they differ in what they can
 express.
 
-**A. A postfix pragma on a repetition** (recommended): `e+ #sep(",")`, `e* #sep(",", trailing=optional)`. Pragmas are
+**A. A postfix pragma on a repetition**: `e+ #sep(",")`, `e* #sep(",", trailing="optional")`. Pragmas are
 postfix modifiers on the immediately preceding expression; `#repeat(n, m)` takes positional bounds and
 `#recover(skip=e)` takes a named argument, so `#sep(s)` with a positional separator and a named `trailing` argument
 matches both. The repetition already says how many elements are allowed (`+`, `*`, `#repeat`), so the pragma only adds
@@ -88,15 +88,15 @@ With A, the forms are:
 |---|---|---|
 | `e* #sep(",")` | zero or more elements separated by `","` | not allowed |
 | `e+ #sep(",")` | one or more elements | not allowed |
-| `e* #sep(",", trailing=optional)` | zero or more | allowed after the last element |
-| `e+ #sep(",", trailing=required)` | one or more | required after every element, including the last |
+| `e* #sep(",", trailing="optional")` | zero or more | allowed after the last element |
+| `e+ #sep(",", trailing="required")` | one or more | required after every element, including the last |
 | `e? #sep(",")` | rejected: a separator needs a repetition | |
 
 Bounds compose: `e #repeat(2, 5) #sep(",")` accepts two to five elements. The separator is any parser expression
 without captures. A multi-token separator such as `ws "," ws` is allowed; the commit point is after the separator
 expression has matched in full.
 
-The `trailing=required` policy is the terminated list (`stmt ";"`) of statement blocks. It is listed with the other two
+The `trailing="required"` policy is the terminated list (`stmt ";"`) of statement blocks. It is listed with the other two
 so that the trailing-separator reasons caused by statement lists are covered; it does not need extra machinery (see
 Compilation).
 
@@ -126,7 +126,7 @@ commit*: the cut is scoped to the list and to the iteration, like a cut in a rep
 the list (no enclosing choice is committed). A choice outside the list still tries its next alternative when the list
 fails, exactly as for a failing mandatory element.
 
-For `trailing=optional` the iteration cannot commit at the separator, since `e` may legitimately be absent. The list
+For `trailing="optional"` the iteration cannot commit at the separator, since `e` may legitimately be absent. The list
 instead decides at the separator whether an element follows by **one token of lookahead on the first set of `e`**:
 
 ```
@@ -142,7 +142,7 @@ ends after it. With this rule the trailing separator is accepted exactly when it
 start an element, which is the common reading ("a comma followed by `)` is trailing"). A grammar that wants a
 different reading (a trailing comma only before `)`) writes the hand form.
 
-For `trailing=required` the list is `(e sep)+` (or `(e sep)*`). An iteration that fails at `e` ends the list; an
+For `trailing="required"` the list is `(e sep)+` (or `(e sep)*`). An iteration that fails at `e` ends the list; an
 iteration that matches `e` and then fails at `sep` fails the list, since a missing terminator is an error and not the
 end of the list. The commit point is after `e`.
 
@@ -157,17 +157,16 @@ empty, and the repetition rule applies to the first only.
   "expected `)` or `,`", because the alternative of ending the list there does not exist.
 - When `sep` fails after an element, the list ends successfully; the farthest failure includes `sep` as an expected
   item as a repetition's stop does today, so a later failure reports `","` among the expectations.
-- With `trailing=optional`, a failure after the separator at a position where the first set matches reports `e`'s
+- With `trailing="optional"`, a failure after the separator at a position where the first set matches reports `e`'s
   failure.
 - `#missing`, `#error`, `#diagnostic` in the element behave as in a repetition.
 
 ### Interaction with other language features
 
-**`skip`.** The skip of the grammar applies between the element and the separator and between the separator and the
-next element, exactly as in the hand-written sequence `e (sep e)*`; the list does not introduce a new place for
-trivia. The commit point is after the separator and before the skip that follows it: the skip runs, then `e` must
-match. The separator expression may include its own `skip` handling; `skip` in an Operators Rule keeps its meaning
-inside an element.
+**Whitespace.** The language has no implicit skip between the tokens of a sequence, and the list does not add one.
+The separator expression carries its own whitespace (`#sep(ws "," ws)`), exactly as in the hand-written sequence
+`e (sep e)*`. The commit point is after the separator expression, including the whitespace it matches, so the element
+must match right there.
 
 **`#recover`.** `#recover(skip=x)` on an element works as in the repetition: a failing element recovers inside the
 element, so the iteration still counts as matched and the list continues. With the commit-after-separator rule,
@@ -184,11 +183,11 @@ that is not the top-level repetition of the start rule cannot stream.
 
 **Documents.** Incremental reparse treats the list as a repetition with a separator: the examined range of each
 iteration covers the separator and the element, and a change inside one element invalidates that iteration and, if the
-change touches the separator or the lookahead token of `trailing=optional`, the next iteration. Run records
+change touches the separator or the lookahead token of `trailing="optional"`, the next iteration. Run records
 (record 067) apply to a list the way they apply to a repetition; the separator is part of the keyed iteration.
 
 **Operators Rules in elements.** An element may be an Operators Rule call (`args = expr* #sep(",")`). The list adds no
-operator semantics, so the element sees its own levels and its `skip`. A comma used as a binary operator at a level
+operator semantics, so the element sees its own levels. A comma used as a binary operator at a level
 inside the element, as in `a, b` of a sequence expression, still lets the element consume the comma; the author sees the
 same ambiguity as with the hand form, and an element that can consume the separator makes the list reject the commit
 guarantee (classifier rule below).
@@ -197,8 +196,8 @@ guarantee (classifier rule below).
 separator and the element would be a different list; it belongs to the element. A list inside `&` or `!` is allowed and
 commits locally. The cut of the list does not leak outside `&` and `!`, as for any cut inside a predicate.
 
-**Cut and atomic.** `#cut` inside the element keeps its meaning. `#atomic` on the list turns off skip between its
-parts; the commit point is unchanged.
+**Cut and atomic.** `#cut` inside the element keeps its meaning. `#atomic` keeps its meaning inside the element and the
+separator; the list adds no skip of its own, so the commit point is unchanged.
 
 ### Classifier rule
 
@@ -241,7 +240,7 @@ Sketch.
 3. *Restart count.* The restart of `C` at `p` after a failed `U` costs the work of `C` at `p`. Under condition 1 and 2,
    `sep` fails at `p` exactly when the character at `p` is not in the first set of `sep`, which is the
    disjoint-first-characters test of the other committing cases and costs a constant per `(unit, position)` pair, so the number of
-   restarts of `C` charged to `U` is one per position at most. Under `trailing=optional`, the lookahead fails
+   restarts of `C` charged to `U` is one per position at most. Under `trailing="optional"`, the lookahead fails
    exactly when the character at `q` is not in the first set of `e`, bounded the same way; the trailing separator is
    then matched and `C` is attempted once at the end of the separator.
 4. *No unit nests.* Because a failure of `e` after `sep` ends the list, the separator cannot be examined twice by
@@ -258,7 +257,7 @@ hand form would accept `a,,b` as `a`, then fail, whereas the commit form fails t
 
 Behavioural difference. The commit changes behaviour for lists whose hand form relies on the retry at the separator:
 `args = e (-"," e)* -","?` accepts a trailing comma through the retry; the committed `forbidden` list rejects it, and
-`trailing=optional` accepts it by lookahead instead. A grammar migrates only where the retry is not used for something
+`trailing="optional"` accepts it by lookahead instead. A grammar migrates only where the retry is not used for something
 else, for example when the continuation of the list starts with a separator.
 
 ### How it removes the reasons in the bundled grammars
@@ -277,9 +276,9 @@ classifier no longer reports the iteration and option. Counts, from the classifi
 | Total | 60 | 18 |
 
 For `typescript` the 12 option reasons are almost all `","?` after type argument and parameter lists, which map to
-`trailing=optional`. In `duckdb` and `python` the iterations are argument lists, select lists and parameter lists, which
+`trailing="optional"`. In `duckdb` and `python` the iterations are argument lists, select lists and parameter lists, which
 map to `forbidden` or `optional` depending on the dialect. In `golang` the statement lists with a mandatory `;` map
-to `trailing=required`. The grammar-by-grammar replacement list is to be done in the stage that adopts the pragma, with
+to `trailing="required"`. The grammar-by-grammar replacement list is to be done in the stage that adopts the pragma, with
 the differential check of the bundled test corpus as the gate. No class changes: the remaining reasons in the same
 rules (operator loops, expression-shaped elements) keep the grammars at their present class.
 
@@ -319,10 +318,10 @@ motivation table become the character-level baseline.
 2. **Default trailing policy.** `forbidden`. `optional` and `required` are spelled out.
 3. **Commit.** The list always commits after the separator. The compiler rejects the pragma when the commit would be
    unsound: the element can start with the separator, the element can match the empty input, or, under
-   `trailing=optional`, the first set of the element is not a set of characters.
+   `trailing="optional"`, the first set of the element is not a set of characters.
 4. **Separator in the value.** Dropped. There is no option to keep it; a grammar that needs separators writes the
    repetition by hand.
-5. **`trailing=required`.** Included.
+5. **`trailing="required"`.** Included.
 6. **Streaming.** `#stream` is allowed on a list that is the top-level repetition of the start rule.
 7. **Separator form.** Any capture-free expression; the pragma is rejected where the first-set test cannot prove the
    commit sound.
