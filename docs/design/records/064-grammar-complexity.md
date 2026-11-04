@@ -391,9 +391,9 @@ The variable is a regular expression over `grammar/group/family`. The test print
 fails when a measured order differs from the recorded one. The exponent is the logarithm of the cost ratio over the
 logarithm of the input length ratio between consecutive sizes, so families whose length is not proportional to their
 size parameter, such as indentation staircases, are judged against the input length. The backends agree on the order of
-every family except minilang's nested operators, which the run records keep linear on the engine backends and which a
-generated Go parser, keeping no such records, runs in n². The table gives the worst exponent of each group over its
-families and backends.
+every family except duckdb's runs of signs and minilang's nested operators, which the run records keep linear on the
+engine backends and which a generated Go parser, keeping no such records, runs in n². The table gives the worst exponent
+of each group over its families and backends.
 
 The groups are addressed by these mechanisms:
 
@@ -463,13 +463,13 @@ The groups are addressed by these mechanisms:
   a fold over `#repeat(,1)` that adds the value of the rule's own recursion on each step is reported exponential,
   though it runs at most once and holds that value once, which condition 4 classes polynomial.
 - **Recovery-skip refinement of the classifier.** A `#recover` skip whose unbounded repetitions are skip-run sites, with
-  elements that examine a constant amount of the input, and which calls no rule and has no predicate, is not a
-  scanning source: the walks of its sites evaluate their elements a number of times linear in the input plus a
-  constant per walk ([Lemma 9](../../../spec/proofs/linear-cost.md#lemma-9-reused-skips)), whatever the width of an
-  iteration. A skip that calls a rule stays a source, since a called rule can examine any amount of the input. The
-  nested recovery `s = ("(" s ")") #recover(skip=[a(]+)` is then linear. minilang keeps a reason for its recovery: when a statement
-  fails inside a block, its skip stops before the `{`, and the next statements parse the block again, which only the
-  memoized `stmt` keeps linear.
+  elements that examine a constant amount of the input, and which calls no rule and has no predicate, is not a scanning
+  source: the walks of its sites evaluate their elements a number of times linear in the input plus a constant per walk
+  ([Lemma 9](../../../spec/proofs/linear-cost.md#lemma-9-reused-skips)), whatever the width of an iteration. A skip that
+  calls a rule stays a source, since a called rule can examine any amount of the input. The nested recovery `s = ("(" s
+  ")") #recover(skip=[a(]+)` is then linear. minilang keeps a reason for its recovery: when a statement fails inside a
+  block, its skip stops before the `{`, and the next statements parse the block again, which only the memoized `stmt`
+  keeps linear.
 - **Constant-cost text in the cost model.** The cost model guarantees that the text of a node costs a constant in a
   whole-input parse and a Document, and that a string comparison costs at most its shorter operand, so the classifier
   does not count a text as a copy. The text of a recursive capture, as in Python's f-string replacement fields, is
@@ -477,14 +477,15 @@ The groups are addressed by these mechanisms:
   dollar-quote tag) is reported as the scan itself, which belongs to the token-scan groups or to the open groups of
   nested units.
 - **Repetition-run reuse.** duckdb's operator lookahead reads the run of `+` and `-` after an operator character, and a
-  prefix operator at each character of the run reads the rest again: `SELECT ` + `+`^n + `1` costs 282k, 1.04M and
-  4.01M steps for 210, 410 and 810 bytes. The later stages of run reuse make this linear. The same holds for the
-  operator parts after an operand that prefix operators or a right-associative operator nest: each enclosing operator
-  part tries them again where the nested operands end, and a skip that repeats one character class, which no record
-  answers, scans the same whitespace each time. In the calculator, `-`^n `1` followed by n spaces costs 135k, 520k and
-  2.04M steps for 501, 1001 and 2001 bytes; CEL's `?:` and CUE's prefix operators measure the same. minilang's skip
-  repeats a choice, so it is a run site, and its families measure linear on the engine backends; a generated Go
-  parser keeps no run records for it and measures them n², which the classifier, relying on no records, reports.
+  prefix operator at each character of the run reads the rest again. The run records make this linear on the engine
+  backends, where `SELECT ` + `+`^n + `1` costs 51.7k, 102k and 203k steps for 210, 410 and 810 bytes; a generated Go
+  parser keeps none and spends 334k, 1.19M and 4.45M. The same repetition arises in the operator parts after an operand
+  that prefix operators or a right-associative operator nest: each enclosing operator part tries them again where the
+  nested operands end, and a skip that repeats one character class, which no record answers, scans the same whitespace
+  each time. In the calculator, `-`^n `1` followed by n spaces costs 135k, 520k and 2.04M steps for 501, 1001 and 2001
+  bytes; CEL's `?:` and CUE's prefix operators measure the same. minilang's skip repeats a choice, so it is a run site,
+  and its families measure linear on the engine backends; a generated Go parser keeps no run records for it and measures
+  them n², which the classifier, relying on no records, reports.
 - **In-place fold accumulators.** Python folds that copy their accumulator in each step (`acc + "." + name`,
   `concat(acc, x)`) are quadratic in the list length: a dotted import name of 2k, 4k and 8k bytes costs 2.07M, 8.15M
   and 32.3M steps. Extending the accumulator in place when the old one is dead makes them linear.
@@ -526,7 +527,7 @@ The groups are addressed by these mechanisms:
 | golang | line-directives | 4 | token-scan refinement | 2 | 1.01 | n |
 | golang | numbers | 3 | token-scan refinement | 2 | 1.00 | n |
 | duckdb | nested | 675 | open | 16 | 1.01 | n |
-| duckdb | operator-tails | 15 | repetition-run reuse | 5 | 2.00 | n² |
+| duckdb | operator-tails | 15 | repetition-run reuse | 5 | 1.96 | n² |
 | duckdb | strings | 4 | token-scan refinement | 5 | 1.00 | n |
 | python | bounded-variables | 41 | bounded-binding refinement | 5 | 1.01 | n |
 | python | except-star-handlers | 3 | grammar rewrite | 2 | 1.91 | n² |

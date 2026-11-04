@@ -11,8 +11,8 @@ func triageDuckdb() []TriageGroup {
 		{Grammar: "duckdb", ID: "operator-tails", Witness: true, Rules: []string{"pm_end", "op_special", "core"}, Pattern: `examined`,
 			Shape:  "the operator lookahead &pm_end, and the op_special and core scans, read the run of + and - that follows an operator character; a prefix operator at each character of a run reads the rest of the run again",
 			Assign: "O75", Order: Poly(2), Families: []TriageFamily{
-				{Name: "a run of prefix plus signs", Build: sel(func(n int) string { return rep("+", n) + "1" }), Sizes: doubling(200, 3), Order: Poly(2)},
-				{Name: "a run of alternating signs", Build: sel(func(n int) string { return rep("+-", n) + "1" }), Sizes: doubling(100, 3), Order: Poly(2)},
+				{Name: "a run of prefix plus signs", Build: sel(func(n int) string { return rep("+", n) + "1" }), Sizes: doubling(200, 3), Order: Linear, Generated: Poly(2)},
+				{Name: "a run of alternating signs", Build: sel(func(n int) string { return rep("+-", n) + "1" }), Sizes: doubling(100, 3), Order: Linear, Generated: Poly(2)},
 				{Name: "prefix signs separated by spaces", Build: sel(func(n int) string { return rep("+ ", n) + "1" }), Sizes: doubling(500, 3), Order: Linear},
 				{Name: "one long generic operator", Build: sel(func(n int) string { return "1 *" + rep("+*", n) + " 2" }), Sizes: doubling(500, 3), Order: Linear},
 				{Name: "many comparisons", Build: sel(list("", "a <= b", " AND ", "")), Sizes: doubling(500, 3), Order: Linear},
