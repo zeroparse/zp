@@ -68,10 +68,12 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
+			// Sizes start above the length of input that a run site may walk again while it is
+			// cold (core.RunHotSpan, 64): below it the walks are plain and the cost is cubic.
 			Name: "E7 nested scans, degree 3", Family: "E7",
 			Source: "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(50), ShortSizes: double(32), Order: Linear, Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "E9 lookahead over scans", Family: "E9",
