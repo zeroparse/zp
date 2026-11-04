@@ -199,3 +199,60 @@ func TestExitsToThroughProtect(t *testing.T) {
 			exitsTo(ss, "out"), exitsTo(ss, "other"))
 	}
 }
+
+// TestRangeHandles checks that a parameter of the range type prints as the two numbers of the range,
+// that a local of the type passed to a function passes both, that an operation receives the local's
+// name, and that an argument of the type that is not a local is refused.
+func TestRangeHandles(t *testing.T) {
+	m := ir.NewModule("ranges")
+	m.AddComponent("stack", "A stack of numbers.")
+	span := m.AddHandle("Span", "stack", "A range of the stack.")
+	m.AddOp(&ir.Op{Name: "stack.top", Component: "stack", Results: []ir.Type{span}, Contract: "The range of the top."})
+	m.AddOp(&ir.Op{Name: "stack.len", Component: "stack", Params: []ir.Param{ir.P("s", span)}, Results: []ir.Type{ir.TInt},
+		Contract: "The length of s."})
+	m.AddFunc("size", []ir.Param{ir.P("s", span)}, []ir.Type{ir.TInt}, nil, func(b *ir.Builder) {
+		b.Return(ir.C("stack.len", ir.L("s")))
+	})
+	m.AddFunc("caller", nil, []ir.Type{ir.TInt}, nil, func(b *ir.Builder) {
+		b.Let("t", ir.C("stack.top"))
+		b.Return(ir.C("size", ir.L("t")))
+	})
+	m.AddFunc("direct", nil, []ir.Type{ir.TInt}, nil, func(b *ir.Builder) {
+		b.Return(ir.C("size", ir.C("stack.top")))
+	})
+	if err := ir.Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	tg := &Target{
+		Range: "Span",
+		Op: func(c *ir.Call, args []string) string {
+			if c.Callee == "stack.len" {
+				return args[0] + "To - " + args[0] + "From"
+			}
+			return "this.top()"
+		},
+		Stmt: func(c *ir.Call, args []string, dst []string, decl string) (string, bool) {
+			if c.Callee != "stack.top" {
+				return "", false
+			}
+			return fmt.Sprintf("%s %sFrom = this.from;\n%[1]s %[2]sTo = this.to;", decl, dst[0]), true
+		},
+		Reg:    func(name string) string { return "this." + name },
+		Handle: func(string) string { return "never" },
+	}
+	for name, want := range map[string]string{
+		"size":   "  size(sFrom: number, sTo: number): number {\n    return sTo - sFrom;\n",
+		"caller": "    const tFrom = this.from;\n    const tTo = this.to;\n    return this.size(tFrom, tTo);\n",
+	} {
+		s, err := Method(m, m.Func(name), tg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(s, want) {
+			t.Errorf("%s lacks %q:\n%s", name, want, s)
+		}
+	}
+	if _, err := Method(m, m.Func("direct"), tg); err == nil || !strings.Contains(err.Error(), "range type") {
+		t.Errorf("an argument of the range type that is not a local printed: %v", err)
+	}
+}

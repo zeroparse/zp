@@ -53,6 +53,12 @@ type Target struct {
 	FuncName func(name string) string
 	// Source, if not empty, names the source of printed functions in their first comment line.
 	Source string
+	// Range, if not empty, is the handle type whose values are ranges of a stack of numbers that the
+	// target holds in two numbers named after the local: x of the type is xFrom and xTo. A parameter
+	// of the type prints as the two, and so does a local of the type passed to a function; an
+	// operation receives the local's name and prints the two itself. Only locals and parameters hold
+	// values of the type.
+	Range string
 }
 
 // Method returns the TypeScript method of the function f of the verified module m, indented for
@@ -238,6 +244,10 @@ func (p *printer) fn() error {
 	p.line("// %s.", strings.ToUpper(source[:1])+source[1:])
 	params := make([]string, len(f.Params))
 	for i, x := range f.Params {
+		if p.ranged(x.Type) {
+			params[i] = x.Name + "From: number, " + x.Name + "To: number"
+			continue
+		}
 		params[i] = x.Name + ": " + p.typ(x.Type)
 	}
 	p.line("%s(%s): %s {", p.name(f.Name), strings.Join(params, ", "), p.resultType())
@@ -510,6 +520,11 @@ func (p *printer) lines(s string) {
 	for _, l := range strings.Split(s, "\n") {
 		p.line("%s", l)
 	}
+}
+
+// ranged reports whether t is the range type of the target.
+func (p *printer) ranged(t exec.Type) bool {
+	return p.t.Range != "" && t == exec.THandle(p.t.Range)
 }
 
 func (p *printer) args(c *exec.Call) []string {
@@ -877,6 +892,19 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 				s = "(" + s + ")"
 			}
 			return s
+		}
+		for i, a := range x.Args {
+			if !p.ranged(p.typeOf(a)) {
+				continue
+			}
+			l, ok := a.(*exec.Local)
+			if !ok {
+				if p.err == nil {
+					p.err = fmt.Errorf("an argument of the range type %s is not a local", p.t.Range)
+				}
+				continue
+			}
+			args[i] = l.Name + "From, " + l.Name + "To"
 		}
 		return "this." + p.name(x.Callee) + "(" + strings.Join(args, ", ") + ")"
 	}
