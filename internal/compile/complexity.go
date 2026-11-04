@@ -79,6 +79,11 @@ type Complexity struct {
 	Reasons []ComplexityCause
 	// Env says why the class is at least linear given an environment bound, or is empty.
 	Env []ComplexityCause
+	// Combinations is the product of the numbers of values of the variables with finite values
+	// (see "Conditions for Linear Cost" in spec/runtime/parsing.md), 1 when there are none. For
+	// the class Linear it bounds K, the number of combinations of the values of the variables
+	// that memoized rules read at one position.
+	Combinations int
 	// Growing are the bindings that the growing-variable check reports.
 	Growing []GrowingBinding
 	// Memoized are the rules that the classifier assumes the memo answers, which are the rules
@@ -196,6 +201,9 @@ type classifier struct {
 	start   string
 	an      *Analysis
 	types   *ValueRecord // the value types of the terms, or nil if they are unknown
+	// combinations is the product of the sizes of the value sets of the variables with finite
+	// values, which checkValues computes.
+	combinations int
 	// stringLen reports that a len counted its operand, without its type, as a string value of
 	// unbounded size.
 	stringLen bool
@@ -402,7 +410,7 @@ func (k *classifier) collect() {
 }
 
 func (k *classifier) result() *Complexity {
-	c := &Complexity{Memoized: k.memo}
+	c := &Complexity{Memoized: k.memo, Combinations: max(k.combinations, 1)}
 	sortCauses := func(cs []ComplexityCause) []ComplexityCause {
 		slices.SortStableFunc(cs, func(a, b ComplexityCause) int {
 			if a.Pos.Line != b.Pos.Line {

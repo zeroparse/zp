@@ -227,6 +227,12 @@ rule r = "(" {v := "0"} r ")" "y" / "(" {v := "1"} r ")" "z" / "n" {len(v) >= 0}
 The linter reports `the cost from start rule main is linear-env`: linear, given a bound on the values the variable
 takes (two here).
 
+When the variable must depend on its earlier value, bound it with a test right after the binding, with only
+predicates between them: in `"(" {d := d + 1} {d <= 3} r ")"` the test rejects a value before any call sees it, so
+`d` takes the values 0 to 3 and the linter reports `linear (K <= 4)` for an `int` variable `d` read at the bottom.
+A test before the binding of the same expression, `{len($x) < 10} {n := len($x)}`, bounds it too. The test changes the
+language when it can fail on an input that the grammar should accept.
+
 | input: `(` `n` times, `n`, then `)z` `n` times | `n` = 4 | `n` = 8 | `n` = 400 |
 |:--|--:|--:|--:|
 | `var.zp` | 3,352 | 1,512,448 | stopped at 20,000,000 |

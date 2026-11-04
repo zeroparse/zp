@@ -760,9 +760,9 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("#ab", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
-		// The product of the numbers of values of the variables with finite values is at most 128:
-		// seven flag bits, or seven bound Booleans beside one never bound, are exempt; a counter
-		// with 130 values, or two with 12 each, are not, though they measure linear.
+		// The product of the numbers of values of the variables with finite values is the bound on
+		// K that the class reports: seven flag bits, seven bound Booleans beside one never bound, a
+		// counter with 130 values, and two with 12 each, are exempt.
 		{
 			Name: "Seven flag bits", Family: "bounded binding",
 			Source: "var ctx int\nrule main = (r / .)* $$\nrule r = \"a\" {ctx := ctx - ctx / 1 % 2 * 1 + 1} r / \"b\" {ctx := ctx - ctx / 2 % 2 * 2 + 2} r / \"c\" {ctx := ctx - ctx / 4 % 2 * 4 + 4} r / \"d\" {ctx := ctx - ctx / 8 % 2 * 8 + 8} r / \"e\" {ctx := ctx - ctx / 16 % 2 * 16 + 16} r / \"f\" {ctx := ctx - ctx / 32 % 2 * 32 + 32} r / \"g\" {ctx := ctx - ctx / 64 % 2 * 64 + 64} r / \"y\" {ctx >= 0}\n",
@@ -779,13 +779,20 @@ func Controls() []Control {
 			Name: "Counter with 130 values", Family: "bounded binding",
 			Source: "var v int\nrule main = (r / .)* $$\nrule r = \"#\" {v < 129} {v := v + 1} r / \"y\" {v >= 0}\n",
 			Input:  func(n int) string { return rep("##y", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassExp,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Two counters with 144 combinations", Family: "bounded binding",
 			Source: "var u int\nvar v int\nrule main = (r / .)* $$\nrule r = \"#\" {u < 11} {u := u + 1} r / \"(\" {v < 11} {v := v + 1} r / \"y\" {u + v >= 0}\n",
 			Input:  func(n int) string { return rep("#(", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassExp,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
+		},
+		// A test right after a binding bounds the values that the binding leaves bound.
+		{
+			Name: "Counter guarded after its binding", Family: "bounded binding",
+			Source: "var v int\nrule main = (r / .)* $$\nrule r = \"#\" {v := v + 1} {v <= 129} r / \"y\" {v >= 0}\n",
+			Input:  func(n int) string { return rep("##y", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 	}
 	return append(cs, rewriteControls()...)

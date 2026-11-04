@@ -181,6 +181,23 @@ func TestLintClassify(t *testing.T) {
 	if want := linear + ": the cost from start rule main is linear\n"; out != want || err != nil {
 		t.Errorf("linear: got %q %v, want %q", out, err, want)
 	}
+	// A linear class with variables with finite values shows the bound on K.
+	counter := writeFile(t, "k.zp", "var v int\n@start\nrule main = r $$\nrule r = \"#\" {v := v + 1} {v <= 3} r / \"y\" {v >= 0}\n")
+	out, err = runCLI(t, "", "lint", "-g", counter, "-classify")
+	if want := counter + ": the cost from start rule main is linear (K <= 4)\n"; out != want || err != nil {
+		t.Errorf("counter: got %q %v, want %q", out, err, want)
+	}
+	out, _ = runCLI(t, "", "lint", "-g", counter, "-classify", "-f", "json")
+	doc = lintOutput{}
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if c := doc.Classification; c == nil || c.Class != "linear" || c.Combinations != 4 {
+		t.Errorf("counter: got %+v\n%s", doc.Classification, out)
+	}
+	if !strings.Contains(out, "\"combinations\": 4") {
+		t.Errorf("counter: no combinations member\n%s", out)
+	}
 	unknown := writeFile(t, "u.zp", "@start\nrule main = c $$\nrule a = c \"+\" / \"n\" / \"<\" [a-z]* \">\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n")
 	out, err = runCLI(t, "", "lint", "-g", unknown, "-classify")
 	if err != nil || !strings.HasPrefix(out, unknown+": the cost from start rule main is unknown\n\treason: ") || strings.Contains(out, "[super-linear]") {

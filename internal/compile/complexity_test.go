@@ -2,6 +2,7 @@ package compile
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -308,16 +309,46 @@ func TestClassifyComplexity(t *testing.T) {
 		// A plain group of a sequence splices its elements into the tuple of the sequence around it.
 		{"counter that reads the length of a spliced tuple", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" (\"a\" \"b\")) {v := v + len($x) / 3} r / \"y\" {v >= 0}\n", ClassExp, 0},
 		{"counter that reads the length of a spliced tuple below its step", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" (\"a\" \"b\")) {v := v + len($x) / 4} r / \"y\" {v >= 0}\n", ClassLinear, 0},
-		// The values of all the variables with finite values combine: their product is at most 128.
+		// The values of all the variables with finite values combine, and the product is the bound
+		// on K that the class reports (see TestComplexityCombinations). One variable has at most
+		// 65536 values.
 		{"counter with 128 values", "var v int\nrule main = r $$\nrule r = \"#\" {v < 127} {v := v + 1} r / \"y\" {v >= 0}\n", ClassLinear, 0},
-		{"counter with 129 values", "var v int\nrule main = r $$\nrule r = \"#\" {v < 128} {v := v + 1} r / \"y\" {v >= 0}\n", ClassExp, 0},
-		{"two counters with 144 combinations", "var u int\nvar v int\nrule main = r $$\nrule r = \"#\" {u < 11} {u := u + 1} r / \"(\" {v < 11} {v := v + 1} r / \"y\" {u + v >= 0}\n", ClassExp, 0},
+		{"counter with 129 values", "var v int\nrule main = r $$\nrule r = \"#\" {v < 128} {v := v + 1} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"two counters with 144 combinations", "var u int\nvar v int\nrule main = r $$\nrule r = \"#\" {u < 11} {u := u + 1} r / \"(\" {v < 11} {v := v + 1} r / \"y\" {u + v >= 0}\n", ClassLinear, 0},
+		{"counter with 65536 values", "var v int\nrule main = r $$\nrule r = \"#\" {v < 65535} {v := v + 1} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"counter with 65537 values", "var v int\nrule main = r $$\nrule r = \"#\" {v < 65536} {v := v + 1} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		// A test right after a binding, with only predicates between them, rejects a value before
+		// any call or later binding sees it, since the failure undoes the binding; so does a test
+		// right before a binding of the expression that it tests.
+		{"counter guarded after its binding", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1} {v <= 3} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"counter guarded in the block of its binding", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1; v <= 3} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"counter guarded after its binding with a label", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1} {v <= 3} @error(\"too deep\") r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"counter guarded after a test of another variable", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v := v + 1} {!b} {v <= 3} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"counter guarded by a test that is not a range", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1} {v / 4 == 0} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length guarded after its binding", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {0 <= v && v <= 9} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length bounded above after its binding", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {v < 10} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length bounded above with a constant expression", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {v <= 2 * 5 - 1} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length guarded before its binding", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {0 <= v + len($x) && v + len($x) <= 9} {v := v + len($x)} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length bounded above before its binding", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {len($x) < 10} {v := len($x)} r / \"y\" {v >= 0}\n", ClassLinear, 0},
+		{"length bounded below only", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {v >= 0} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length bounded only below zero", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v - len($x)} {v <= 0} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		// What is not one of the forms bounds nothing.
+		{"length guarded after a call", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} r {v <= 9} / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded after input", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} \"z\" {v <= 9} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded after a choice of bindings", "var v int\nrule main = r $$\nrule r = x:\"#\"+ ({v := v + len($x)} / {v := 0}) {v <= 9} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded by another variable", "var v int\nvar w int = 9\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {v <= w} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded after another binding of the variable", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} {v := v + 1} {v <= 9} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded by a recovered test", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := v + len($x)} ({v <= 9}) #recover(skip=\"z\") r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded before a binding of another expression", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {len($x) <= 9} {v := v + len($x)} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"length guarded before another binding", "var v int\nvar u int\nrule main = r $$\nrule r = x:\"#\"+ {len($x) <= 9} {u := 1} {v := len($x)} r / \"y\" {v + u >= 0}\n", ClassLinearEnv, 0},
+		// A variable bound only to constants holds one of them.
+		{"string bound to constants", "var s string\nrule main = r $$\nrule r = \"#\" {s := \"a\"} r / \"(\" {s := \"b\" + \"c\"} r / \"y\" {s == \"a\"}\n", ClassLinear, 0},
 		// A bool counts by the values its bindings can give it: one never bound, or bound only to
 		// its initial value, counts one.
 		{"counter with 64 values and two unbound Booleans", "var v int\nvar b bool\nvar c bool = true\nrule main = r $$\nrule r = \"#\" {v < 63} {v := v + 1} {c := true} r / \"y\" {v >= 0 && !b && c}\n", ClassLinear, 0},
 		{"counter with 64 values and a bound Boolean", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v < 63} {v := v + 1} {b := true} r / \"y\" {v >= 0 && b}\n", ClassLinear, 0},
 		{"seven bound Booleans and an unbound one", "var b1 bool\nvar b2 bool\nvar b3 bool\nvar b4 bool\nvar b5 bool\nvar b6 bool\nvar b7 bool\nvar b8 bool\nrule main = (r / .)* $$\nrule r = \"a\" {b1 := true} r / \"b\" {b2 := true} r / \"c\" {b3 := true} r / \"d\" {b4 := true} r / \"e\" {b5 := true} r / \"f\" {b6 := true} r / \"g\" {b7 := true} r / \"y\" {b1 || b2 || b3 || b4 || b5 || b6 || b7 || b8}\n", ClassLinear, 0},
-		{"counter with 128 values and a bound Boolean", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v < 127} {v := v + 1} {b := true} r / \"y\" {v >= 0 && b}\n", ClassExp, 0},
+		{"counter with 128 values and a bound Boolean", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v < 127} {v := v + 1} {b := true} r / \"y\" {v >= 0 && b}\n", ClassLinear, 0},
 		{"Boolean toggled before a call", "var b bool\nrule main = r $$\nrule r = x:\"#\" {b := !b && len($x) > 0} r / \"y\" {b}\n", ClassLinear, 0},
 		{"counter divided by zero", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1 / v} r / \"y\" {v >= 0}\n", ClassLinear, 0},
 		// A start rule that its own body calls, directly or through rules called from one place, is
@@ -561,4 +592,51 @@ func TestAbbreviate(t *testing.T) {
 			t.Errorf("abbreviate(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
+}
+
+// TestComplexityCombinations checks the product of the numbers of values of the variables with
+// finite values, which bounds K for the class Linear, and that a variable without finite values
+// leaves the others as they are.
+func TestComplexityCombinations(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, src string
+		want      int
+		// causes are the variables whose bindings the causes and the environment causes name.
+		causes []string
+	}{
+		{"no variable", "rule main = \"a\" $$\n", 1, nil},
+		{"guarded counter", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1} {v <= 3} r / \"y\" {v >= 0}\n", 4, nil},
+		{"length bounded above", "var v int\nrule main = r $$\nrule r = x:\"#\"+ {v := len($x)} {v < 10} r / \"y\" {v >= 0}\n", 10, nil},
+		{"constant strings and a Boolean", "var s string\nvar b bool\nrule main = r $$\nrule r = \"#\" {s := \"a\"} {b := true} r / \"(\" {s := \"b\"} r / \"y\" {s == \"a\" || b}\n", 6, nil},
+		{"unbounded counter beside a Boolean", "var v int\nvar b bool\nrule main = r $$\nrule r = \"#\" {v := v + 1} {b := true} r / \"y\" {v >= 0 && b}\n", 2, []string{"v"}},
+		// Taken from the smallest set up, w would bring the product to 2^33.
+		{"product past the cap", "var b bool\nvar u int\nvar w int\nrule main = r $$\nrule r = \"#\" {b := true} r / \"(\" {u < 65535} {u := u + 1} r / \"[\" {w < 65535} {w := w + 1} r / \"y\" {b && u + w >= 0}\n", 2 << 16, []string{"w"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := classifySource(t, tc.src)
+			if c.Combinations != tc.want {
+				t.Errorf("combinations %d, want %d", c.Combinations, tc.want)
+			}
+			named := map[string]bool{}
+			for _, x := range slices.Concat(c.Causes, c.Env) {
+				for _, v := range []string{"b", "s", "u", "v", "w"} {
+					if strings.Contains(x.Message, "binding "+v+" :=") {
+						named[v] = true
+					}
+				}
+			}
+			if want := sliceSet(tc.causes); !maps.Equal(named, want) {
+				t.Errorf("causes name the bindings of %v, want %v\ncauses %v\nenv %v", named, want, c.Causes, c.Env)
+			}
+		})
+	}
+}
+
+func sliceSet(xs []string) map[string]bool {
+	out := map[string]bool{}
+	for _, x := range xs {
+		out[x] = true
+	}
+	return out
 }

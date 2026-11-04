@@ -414,22 +414,28 @@ The groups are addressed by these mechanisms:
   `-` before `neg_unary` calls `member` one position later; no condition captures this yet, and the causes stay
   reasons for the class Unknown.
 - **Bounded-binding refinement of the classifier.** A binding that reads its own earlier value is not exponential when
-  its values come from a set bounded by a constant. Condition 1 exempts a variable with finite values: a `bool`, or an
-  `int` whose bindings read only itself, literals and the lengths of captures bounded by a constant, with the values
-  reachable from its initial value forming a finite set, while the product of the value sets of all such variables
-  is at most 128, which keeps the constant of the linear cost small
-  ([Lemma 8](../../../spec/proofs/linear-cost.md#lemma-8-finite-values)). The values that reach a binding are those
-  after the earlier elements of its sequence, so the order matters: TypeScript's start rule sets its context flags
-  `ctx` to 64 or 0 by a choice and then adds 2, which a closure over every value found would repeat without end, and
-  its other bindings clear and set bits, adding `len` of the captures `"*"`, `"async"` and `list($m)`. The flags take
-  128 values, the bound on the product, and the TypeScript class is the polynomial of its identifier scans. This
-  also covers Python's `isdict`. Python's `lv` has an unguarded binding `lv := lv + 8192`, and its `ind`, CUE's `sv`
-  and YAML's `n` read the lengths of unbounded captures. For TypeScript the profile shows a constant number of
-  evaluations per byte and at most four evaluations of a
-  memoized rule per position at every nesting depth, so no exponential input exists. Memoizing across variable values
-  that a rule does not read would lower a constant, not the order. A recursive call that follows consumed input does
-  not bound the values: in `main = (r / .)* $$` with `r = "#" {v := v + 1} r / "y" {v >= 0}`, each start reaches every
-  later position with a different value of `v`, and the cost on n characters `#` is cubic.
+  its values come from a set bounded by a constant. Condition 1 exempts a variable with finite values: a `bool`, a
+  variable bound only to constants, as YAML's context string `c`, or an `int` whose values reachable from its initial
+  value form a finite set, each with at most 65536 values
+  ([Lemma 8](../../../spec/proofs/linear-cost.md#lemma-8-finite-values)). The product of the sizes of the sets is the
+  bound on K that the class Linear reports, so a large constant is visible instead of being refused; the sets are
+  admitted from the smallest up to a product of 2^32, and a variable left out loses only its own exemption. An `int`
+  binding is evaluated when it reads only itself, literals and the lengths of captures bounded by a constant; any other
+  binding is bounded by its **guard**, tests next to it with only predicates between, so that no value that a test
+  rejects reaches a call or a later binding: `{v := e} {lo <= v && v <= hi}` or `{lo <= e && e <= hi} {v := e}`. The
+  language has no declared ranges; a grammar states a range with the predicates it already has. The values that reach
+  a binding are those after the earlier elements of its sequence, so the order matters: TypeScript's start rule sets
+  its context flags `ctx` to 64 or 0 by a choice and then adds 2, which a closure over every value found would repeat
+  without end, and its other bindings clear and set bits, adding `len` of the captures `"*"`, `"async"` and
+  `list($m)`. The flags take 128 values, and the TypeScript class is the polynomial of its identifier scans. This also
+  covers Python's `isdict`. Python's `lv` has the binding `lv := lv + 8192` in its format spec rule with no guard;
+  the nesting limit is tested in the replacement field that calls the rule, which bounds the field's own binding but
+  not this one. Python's `ind`, CUE's `sv` and YAML's `n` read the lengths of unbounded captures. For TypeScript the
+  profile shows a constant number of evaluations per byte and at most four evaluations of a memoized rule per position
+  at every nesting depth, so no exponential input exists. Memoizing across variable values that a rule does not read
+  would lower a constant, not the order. A recursive call that follows consumed input does not bound the values: in
+  `main = (r / .)* $$` with `r = "#" {v := v + 1} r / "y" {v >= 0}`, each start reaches every later position with a
+  different value of `v`, and the cost on n characters `#` is cubic.
 - **Lambdas over bounded lists.** A fold or map over a list with a constant bound on its number of elements runs its
   lambda a constant number of times, so condition 4 checks its copies as copies outside the lambda
   ([Lemma 7](../../../spec/proofs/linear-cost.md#lemma-7-lambdas-over-bounded-lists)). Python's parameter lists and

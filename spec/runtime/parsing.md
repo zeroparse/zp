@@ -978,19 +978,28 @@ necessary.
    A binding after the recursive call binds a value that no later evaluation
    of it sees, because bindings in a called rule are not visible to its
    caller. The variables with **finite values** are exempt from this
-   condition: the `bool` variables and the `int` variables whose values form a
+   condition: the `bool` variables, the `int` variables whose values form a
    finite set, the least set that holds the initial value and, for each of the
-   variable's bindings, the values that the binding binds from the values that
-   can reach it, when the product of the sizes of the value sets of all these
-   variables is at most 128; `string` variables and other `int` variables are
-   not counted. The value set of a `bool` holds its initial value and the
+   variable's bindings, the values that the binding leaves bound from the values
+   that can reach it, and the variables whose initial value and bindings are all
+   constants, such as a `string` bound only to literals, each with at most 65536
+   values. The value set of a `bool` holds its initial value and the
    values that its bindings can bind: a constant binding adds its value, a
    binding that fails to evaluate adds none, and any other adds both, so a
-   `bool` never bound, or bound only to its initial value, counts 1. Past that
-   product, no variable has finite values. Every binding of the variable must read only the variable
-   itself, `int` and `bool` literals, and operands `len($c)` of a capture `c`
-   whose value has a length of at most 256 that the classifier can see: the
-   text of an expression that matches a bounded number of characters, a list
+   `bool` never bound, or bound only to its initial value, counts 1. A variable
+   bound only to constants holds at most one value for each distinct constant.
+   The value sets are taken from the smallest up while the product of their
+   sizes is at most $2^{32}$; a variable whose set would bring the product past
+   that has no finite values. Its bindings are then subject to the condition
+   above: bindings that satisfy it, such as bindings to constants, make the
+   cost linear given an environment bound, while a binding that reads the
+   variable's own earlier value, as a counter `{u := u + 1}` before a
+   recursive call, fails it. No value set depends on another variable, so a
+   variable without finite values leaves the others as they are. A binding of
+   an `int` variable whose values the classifier evaluates reads only the
+   variable itself, `int` and `bool` literals, and operands `len($c)` of a
+   capture `c` whose value has a length of at most 256 that the classifier
+   can see: the text of an expression that matches a bounded number of characters, a list
    or tuple with a bounded number of elements, or the value of a rule whose
    action gives such a value. The tuple of a sequence has one element for each
    item, where a plain group of a sequence splices its own elements into it,
@@ -999,15 +1008,51 @@ necessary.
    comparisons, `&&`, `||`, unary `-` and `!` and parentheses. The binding is
    evaluated at every length of each operand up to its bound, at most 4096
    combinations, and a value whose evaluation is an error, as a division by
-   zero, is not bound; a value beyond $2^{53}$ in magnitude leaves the
-   variable without finite values. The values that **reach** a binding are those of the
+   zero, is not bound; a value beyond $2^{53}$ in magnitude is not one that the
+   classifier evaluates. A binding that reads anything else, or whose value it
+   does not evaluate, binds the values within the bounds of its **guard**, and
+   leaves the variable without finite values when the guard does not bound
+   them.
+
+   The guard of a binding `v := e` is made of the tests that run next to it
+   with only predicates between them, so that nothing between them reads the
+   input or calls a rule. Its **tests after** are the predicates or block
+   statements after the binding, up to the first element that is not a
+   predicate or the next binding of `v`, that read only `v` and literals, as in
+   `{v := e} {lo <= v && v <= hi}` or `{v := e; v <= hi}`. A failed test fails
+   the sequence that holds the binding, and backtracking undoes the binding,
+   so a value that a test rejects reaches no call and no later binding; the
+   binding leaves bound only the values on which every test after it can
+   succeed. Its **tests before** are the predicates or block statements
+   before the binding, back to the first element that is not a predicate or
+   to a binding of any variable, as in `{lo <= e && e <= hi} {v := e}`: they
+   evaluate `e`, written alike, with the same variables and captures as the
+   binding, and every term of the action language is a function of those, so
+   the binding binds only values on which the tests succeed. A predicate with
+   attributes counts as a predicate when all of them are `@` attributes, such
+   as `@error`, which do not change matching; a predicate under a pragma, such
+   as `#recover`, does not, since a recovery can succeed after the test fails.
+   Each test that is a comparison with `<`, `<=`, `>`, `>=` or `==` of `v`, for
+   a test after, or of `e`, for a test before, with a constant `int`
+   expression on either side, or a conjunction with `&&` of such comparisons
+   and other tests, bounds the value on one side or both. A side that no test
+   bounds is bounded by the range of `e`: a literal is its value, `v` ranges
+   over the values that reach the binding, `len` gives at least 0, and unary
+   `-`, and binary `+`, `-` and `*`, combine the ranges of their operands. So
+   `x:"#"+ {v := len($x)} {v < 10}` binds the values 0 to 9, while
+   `{v := v + len($x)} r {v < 10}`, with the call `r` between the binding and
+   the test, `({v := v + len($x)} / {v := 0}) {v < 10}`, where the test is not
+   next to the binding, and `{v := v + len($x)} {v <= w}`, which compares with
+   a variable, bound nothing.
+
+   The values that **reach** a binding are those of the
    set after the earlier elements of the sequences around the binding, from
    the outermost sequence that it is in through groups, options, choices,
    captures, discards and atomic expressions only, and after the earlier
    statements of its predicate block. A binding of the variable applies to the
-   values; a predicate that reads only the variable and literals keeps the
+   values as above; a predicate that reads only the variable and literals keeps the
    values on which it can succeed; a choice or an option joins the values of
-   its paths; a negative lookahead keeps the values before it, since it undoes
+   its paths; `@` attributes change nothing; a negative lookahead keeps the values before it, since it undoes
    its bindings; a call keeps them, since bindings in a called rule are not
    visible to its caller; and any other element that binds the variable, as a
    repetition or a positive lookahead around a binding, can leave any value of
@@ -1016,7 +1061,9 @@ necessary.
    values below 3, while a test after the call `r` filters nothing that the
    binding reads. When every binding is a literal or binds a variable
    with finite values, a constant number of combinations of values occurs at a
-   position. When another binding reads a capture or a variable, the cost is
+   position, at most the product of the sizes of the value sets, which the
+   class Linear reports as its bound on K (see [Classification](#classification)).
+   When another binding reads a capture or a variable, the cost is
    linear given an environment bound.
 2. **Repeated scans.** Every unit that contains a scanning source and can
    fail after one of its scanning sources has examined input is committing. A
@@ -1196,6 +1243,13 @@ variable's value is built from literals, captures and other variables without
 feeding back into itself, so L is at most proportional to n, and the cost of
 the second class is at most proportional to K · n². A caller that needs a cost
 proportional to n needs the class Linear.
+
+In the class Linear, c includes K, and the classification reports a bound on
+it: the product of the sizes of the value sets of the variables with
+[finite values](#conditions-for-linear-cost), 1 when there are none. The bound
+is a constant of the grammar, but a large one shows that the memo can keep that
+many results for one rule at one position: until the input is long enough for
+the parse to reach them all, the cost can grow faster than n.
 
 The first two classes are guarantees under the memoization that
 [Evaluations of Rules](#evaluations-of-rules) describes and the skip runs that

@@ -55,6 +55,7 @@ type binding struct {
 	rule string
 	b    *grammar.Bind
 	c    wctx
+	p    *grammar.Predicate // the predicate that holds the binding
 }
 
 // content describes what a value can hold, for the copying operations that copy it.
@@ -184,7 +185,7 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 			k.walkTerm(s, tc)
 		}
 	case *grammar.Bind:
-		k.binds = append(k.binds, &binding{rule: tc.rule, b: t, c: tc.c})
+		k.binds = append(k.binds, &binding{rule: tc.rule, b: t, c: tc.c, p: tc.pred})
 		k.walkTerm(t.Value, tc)
 	case *grammar.Member:
 		k.walkTerm(t.X, tc)
@@ -1137,14 +1138,19 @@ func (k *classifier) checkValues() {
 	}
 	// A variable whose values lie in a set bounded by a constant adds at most that many
 	// combinations of values at a position, whatever its bindings read.
-	finite := k.finiteVars()
+	d := k.finiteVars()
+	k.combinations = d.product
 	for _, b := range k.binds {
-		if finite[b.b.Name] {
+		if d.finite[b.b.Name] {
 			continue
 		}
 		pos := termPosOf(b.b)
 		text := k.showTerm(b.b)
-		if !constant(b.b.Value) {
+		switch n, capped := d.capped[b.b.Name]; {
+		case capped:
+			k.envCause(b.rule, pos, "the binding %s at %s binds one of %d values of %s, which with the values of the other variables make more than %d combinations",
+				text, at(b.rule, pos), n, b.b.Name, maxCombinations)
+		case !constant(b.b.Value):
 			k.envCause(b.rule, pos, "the binding %s at %s binds a value that the input determines", text, at(b.rule, pos))
 		}
 		if !k.selfDependent(b, deps) {

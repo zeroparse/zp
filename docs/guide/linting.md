@@ -118,7 +118,9 @@ the grammar linear: a failed `A` then gives back one character, and the class li
 `the cost from start rule main is linear`.
 
 The classes are `linear`, `linear-env` (linear given a bound on the values of the variables), `unknown`, `polynomial`
-and `exponential`. Only the first two are promises; the conditions behind them, and what each class means, are in
+and `exponential`. When variables take a bounded set of values, the class `linear` shows the bound on the number of
+their combinations at a position, as in `linear (K <= 4)`: the memo can keep that many results of one rule at one
+position. Only the first two are promises; the conditions behind them, and what each class means, are in
 [Classification](../../spec/runtime/parsing.md#classification). A polynomial or exponential class is an estimate
 with a witness, and can be pessimistic: the input that makes it slow may not exist. The class `unknown` means that
 the linter could not establish linear cost and has no witness of growth either; its first reasons are shown in place

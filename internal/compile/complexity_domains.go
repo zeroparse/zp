@@ -8,11 +8,15 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
-// maxFiniteValues caps the product of the numbers of values of the variables with finite values,
-// and so the set of values that finiteVars computes for an int variable. A memoized rule can be
-// evaluated once for each combination of values at a position, so the cap bounds the constant
-// factor of the linear cost that the exemption claims.
-const maxFiniteValues = 128
+// maxFiniteValues caps the number of values that finiteVars computes for one variable. The
+// classifier evaluates every binding of the variable at each value, so the cap bounds the work of
+// the classification, not the cost of a parse; a variable with more values has no finite values.
+const maxFiniteValues = 1 << 16
+
+// maxCombinations caps the product of the numbers of values of the variables with finite values,
+// which the class Linear reports as its bound on K (see Complexity.Combinations). The cap keeps
+// the product exact in an int; a bound past it would promise nothing that a parse can use.
+const maxCombinations = 1 << 32
 
 // maxLenOperand caps the length bound of a capture whose length a binding of an int variable reads,
 // and maxOperandCombinations the combinations of such lengths that one binding reads.
@@ -21,17 +25,33 @@ const (
 	maxOperandCombinations = 4096
 )
 
+// finiteDomains is what finiteVars finds: the variables with finite values, the product of the
+// sizes of their value sets, and the variables whose value sets are finite but that the cap on the
+// product leaves out.
+type finiteDomains struct {
+	finite  map[string]bool
+	product int
+	capped  map[string]int
+}
+
 // finiteVars returns the variables whose values in every parse lie in a set bounded by a constant
-// of the grammar: every bool variable (see finiteBool), and every int variable whose initial
-// value and bindings reach a finite set (see finiteInt), when the product of the sizes of those
-// sets is at most maxFiniteValues. Past that product, no variable has finite values.
-func (k *classifier) finiteVars() map[string]bool {
+// of the grammar: every bool variable (see finiteBool), every int variable whose initial value and
+// bindings reach a finite set (see finiteInt), and every variable whose initial value and bindings
+// are all constants (see constantValues), each with at most maxFiniteValues values. The value
+// sets are taken from the smallest up while the product of their sizes stays at most
+// maxCombinations; a variable whose set would take it past the cap has no finite values. No value
+// set depends on another variable, so a variable without finite values leaves the others as they
+// are.
+func (k *classifier) finiteVars() finiteDomains {
 	byVar := map[string][]*binding{}
 	for _, b := range k.binds {
 		byVar[b.b.Name] = append(byVar[b.b.Name], b)
 	}
-	out := map[string]bool{}
-	product := 1
+	type sized struct {
+		name string
+		n    int
+	}
+	var sets []sized
 	for _, v := range k.g.Vars() {
 		n, ok := 0, false
 		switch k.varType[v.Name] {
@@ -40,16 +60,43 @@ func (k *classifier) finiteVars() map[string]bool {
 		case "int":
 			n, ok = k.finiteInt(v, byVar[v.Name])
 		}
-		if !ok {
+		if c, isConst := constantValues(v, byVar[v.Name]); isConst && (!ok || c < n) {
+			n, ok = c, true
+		}
+		if ok && n <= maxFiniteValues {
+			sets = append(sets, sized{v.Name, n})
+		}
+	}
+	slices.SortStableFunc(sets, func(a, b sized) int { return a.n - b.n })
+	d := finiteDomains{finite: map[string]bool{}, product: 1, capped: map[string]int{}}
+	for _, s := range sets {
+		if d.product*s.n > maxCombinations {
+			d.capped[s.name] = s.n
 			continue
 		}
-		product *= n
-		if product > maxFiniteValues {
-			return map[string]bool{}
-		}
-		out[v.Name] = true
+		d.product *= s.n
+		d.finite[s.name] = true
 	}
-	return out
+	return d
+}
+
+// constantValues returns a bound on the number of values of the variable v when its initial value
+// and every binding of it are constants, and whether they are: each constant term gives one value,
+// or none when its evaluation is an error, so the distinct terms bound the values.
+func constantValues(v *grammar.VarDef, binds []*binding) (int, bool) {
+	terms := map[string]bool{}
+	if v.Value == nil {
+		terms[""] = true
+	} else {
+		terms[grammar.FormatTerm(ungroupTerm(v.Value))] = true
+	}
+	for _, b := range binds {
+		if !constant(b.b.Value) {
+			return 0, false
+		}
+		terms[grammar.FormatTerm(ungroupTerm(b.b.Value))] = true
+	}
+	return len(terms), true
 }
 
 // finiteBool returns the number of values of the bool variable v: one when no binding of v can
@@ -95,22 +142,26 @@ type lenOperand struct {
 
 // intDomain computes the values of one int variable.
 type intDomain struct {
-	k     *classifier
-	v     string
-	set   valueSet // the values found so far
-	over  bool     // the values exceed maxFiniteValues, or one is not known
-	lens  map[*binding][]lenOperand
-	binds map[*grammar.Bind]*binding
+	k      *classifier
+	v      string
+	set    valueSet // the values found so far
+	base   valueSet // the values of set that the current pass starts from
+	over   bool     // the values exceed maxFiniteValues, or one is not known
+	lens   map[*binding][]lenOperand
+	opaque map[*binding]bool // bindings that read what eval does not know (see lenOperands)
+	guards map[*binding]guard
+	binds  map[*grammar.Bind]*binding
 }
 
 // finiteInt reports whether the values of the int variable v form a set of at most
 // maxFiniteValues values: the least set S that holds the initial value and, for each binding of
-// v, the values that the binding gives from the values that can reach it. Those are the values of
-// S after the earlier elements of the sequences around the binding (see inputs). A binding may
-// read v, literals, and len($c) of a capture c whose value has a length bounded by a constant (see
-// valueLen), which it reads at every length up to the bound. A binding that fails to evaluate,
-// as by a division by zero, binds nothing; one whose value eval does not know leaves the set
-// unbounded.
+// v, the values that the binding leaves bound from the values that can reach it (see outputs).
+// Those are the values of S after the earlier elements of the sequences around the binding (see
+// inputs). A binding may read v, literals, and len($c) of a capture c whose value has a length
+// bounded by a constant (see valueLen), which it reads at every length up to the bound. A binding
+// that fails to evaluate, as by a division by zero, binds nothing. A binding that reads anything
+// else binds the values that its guard bounds (see guardOf); one whose values have no such bound
+// leaves the set unbounded.
 func (k *classifier) finiteInt(v *grammar.VarDef, binds []*binding) (int, bool) {
 	init := 0
 	if v.Value != nil {
@@ -122,45 +173,83 @@ func (k *classifier) finiteInt(v *grammar.VarDef, binds []*binding) (int, bool) 
 		init = x
 	}
 	d := &intDomain{k: k, v: v.Name, set: valueSet{init: true}, lens: map[*binding][]lenOperand{},
-		binds: map[*grammar.Bind]*binding{}}
+		opaque: map[*binding]bool{}, guards: map[*binding]guard{}, binds: map[*grammar.Bind]*binding{}}
 	for _, b := range binds {
 		ops, ok := k.lenOperands(b)
-		if !ok {
-			return 0, false
-		}
-		d.lens[b] = ops
+		d.lens[b], d.opaque[b] = ops, !ok
+		d.guards[b] = guardOf(b)
 		d.binds[b.b] = b
 	}
-	for changed := true; changed && !d.over; {
-		changed = false
+	// Each pass evaluates the bindings only from the values that the previous pass added: what
+	// reaches a binding from a set is the union of what reaches it from each value of the set, so
+	// the earlier values give nothing new.
+	for d.base = d.set; len(d.base) > 0; {
+		added := valueSet{}
 		for _, b := range binds {
-			for x := range d.inputs(b) {
-				for _, y := range d.apply(b, x) {
-					if !d.set[y] {
-						d.add(y)
-						changed = true
+			for y := range d.outputs(b, d.inputs(b)) {
+				if !d.set[y] && !added[y] {
+					if len(d.set)+len(added) == maxFiniteValues {
+						return 0, false
 					}
+					added[y] = true
 				}
-				if d.over {
-					return 0, false
+			}
+			if d.over {
+				return 0, false
+			}
+		}
+		maps.Copy(d.set, added)
+		d.base = added
+	}
+	return len(d.set), true
+}
+
+// outputs returns the values that the binding b leaves bound when its variable holds a value of
+// xs before it: the values that it binds from them and that pass its guard. The values of a
+// binding that eval cannot evaluate are those in the range of its value (see termRange) within
+// the bounds of the guard; past maxFiniteValues of them, or without a bound, the set is
+// unbounded.
+func (d *intDomain) outputs(b *binding, xs valueSet) valueSet {
+	out := valueSet{}
+	if len(xs) == 0 {
+		return out
+	}
+	g := d.guards[b]
+	if !d.opaque[b] {
+		known := true
+		for x := range xs {
+			ys, ok := d.apply(b, x)
+			if !ok {
+				known = false
+				break
+			}
+			for _, y := range ys {
+				if g.passes(d.v, y) {
+					out[y] = true
 				}
 			}
 		}
+		if known {
+			return out
+		}
+		clear(out)
 	}
-	return len(d.set), !d.over
-}
-
-func (d *intDomain) add(y int) {
-	if len(d.set) == maxFiniteValues {
+	r := termRange(b.b.Value, d.v, xs).meet(g.bounds)
+	if r.size() > maxFiniteValues {
 		d.over = true
-		return
+		return nil
 	}
-	d.set[y] = true
+	for y := r.lo; y <= r.hi; y++ {
+		if g.passes(d.v, y) {
+			out[y] = true
+		}
+	}
+	return out
 }
 
 // apply returns the values that the binding b binds when its variable holds x, at every
-// combination of the lengths that it reads.
-func (d *intDomain) apply(b *binding, x int) []int {
+// combination of the lengths that it reads, and whether eval knows them all.
+func (d *intDomain) apply(b *binding, x int) ([]int, bool) {
 	ops := d.lens[b]
 	lens := make([]int, len(ops))
 	var out []int
@@ -174,8 +263,7 @@ func (d *intDomain) apply(b *binding, x int) []int {
 		switch {
 		case res == evalFailed:
 		case res != evalOK || !isInt:
-			d.over = true
-			return nil
+			return nil, false
 		default:
 			out = append(out, y)
 		}
@@ -185,7 +273,7 @@ func (d *intDomain) apply(b *binding, x int) []int {
 			i++
 		}
 		if i == len(ops) {
-			return out
+			return out, true
 		}
 		lens[i]++
 	}
@@ -228,7 +316,7 @@ func (k *classifier) lenOperands(b *binding) ([]lenOperand, bool) {
 // options, choices, captures, discards and atomic expressions only, and after the earlier
 // statements of the block that holds b.
 func (d *intDomain) inputs(b *binding) valueSet {
-	x := d.set
+	x := d.base
 	frames := b.c.seqs[b.c.strictFrom:]
 	for _, f := range frames {
 		for _, it := range f.seq.Items[:f.index] {
@@ -242,7 +330,7 @@ func (d *intDomain) inputs(b *binding) valueSet {
 	stmts, found := blockBefore(f.seq.Items[f.index], b.b)
 	if !found {
 		// b lies deeper in the terms of a predicate than a statement of its block.
-		return d.set
+		return d.base
 	}
 	for _, s := range stmts {
 		x = d.afterTerm(s, x)
@@ -274,9 +362,10 @@ func blockBefore(e grammar.Expr, b *grammar.Bind) ([]grammar.Term, bool) {
 }
 
 // after returns the values that the variable can hold after e matches when it holds a value of x
-// before. A binding applies, a test filters, a choice or an option joins its paths, and a call or
-// a terminal keeps the values, since bindings in a called rule are not visible to its caller. Any
-// other expression that binds the variable can leave it with any value of the set.
+// before. A binding applies, a test filters, a choice or an option joins its paths, @ attributes
+// change nothing, and a call or a terminal keeps the values, since bindings in a called rule are
+// not visible to its caller. Any other expression that binds the variable can leave it with any
+// value of the set.
 func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
 	switch e := e.(type) {
 	case *grammar.Predicate:
@@ -289,6 +378,10 @@ func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
 		return d.after(e.Expr, x)
 	case *grammar.Atomic:
 		return d.after(e.Expr, x)
+	case *grammar.Attributed:
+		if labelsOnly(e) {
+			return d.after(e.Expr, x)
+		}
 	case *grammar.Seq:
 		for _, it := range e.Items {
 			x = d.after(it, x)
@@ -309,7 +402,7 @@ func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
 		return x
 	}
 	if d.bindsVar(e) {
-		return d.set
+		return d.base
 	}
 	return x
 }
@@ -343,15 +436,9 @@ func (d *intDomain) afterTerm(t grammar.Term, x valueSet) valueSet {
 		}
 		b := d.binds[t]
 		if b == nil {
-			return d.set
+			return d.base
 		}
-		out := valueSet{}
-		for v := range x {
-			for _, y := range d.apply(b, v) {
-				out[y] = true
-			}
-		}
-		return out
+		return d.outputs(b, x)
 	}
 	if !readsOnly(t, d.v, nil) {
 		return x

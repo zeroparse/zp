@@ -30,6 +30,9 @@ type lintClassification struct {
 	Class string `json:"class"`
 	// Degree is the degree of a polynomial class.
 	Degree int `json:"degree,omitempty"`
+	// Combinations bounds K for a linear class whose variables with finite values have more than
+	// one combination of values.
+	Combinations int `json:"combinations,omitempty"`
 	// Witnesses are the causes of a polynomial or exponential class.
 	Witnesses []lintCause `json:"witnesses"`
 	// Reasons are the conditions for linear cost that the classifier cannot establish.
@@ -63,7 +66,11 @@ func lintClassificationOf(c *engine.Complexity) *lintClassification {
 		}
 		return out
 	}
-	return &lintClassification{Class: classNames[c.Class], Degree: c.Degree, Witnesses: causes(c.Causes), Reasons: causes(c.Reasons)}
+	out := &lintClassification{Class: classNames[c.Class], Degree: c.Degree, Witnesses: causes(c.Causes), Reasons: causes(c.Reasons)}
+	if c.Class == engine.ClassLinear && c.Combinations > 1 {
+		out.Combinations = c.Combinations
+	}
+	return out
 }
 
 // printClassification prints the class of the cost from start, and the first witnesses and
@@ -72,6 +79,9 @@ func printClassification(w io.Writer, path, start string, c *lintClassification)
 	class := c.Class
 	if c.Degree > 0 {
 		class = fmt.Sprintf("%s (n^%d)", class, c.Degree)
+	}
+	if c.Combinations > 0 {
+		class = fmt.Sprintf("%s (K <= %d)", class, c.Combinations)
 	}
 	fmt.Fprintf(w, "%s: the cost from start rule %s is %s\n", path, start, class)
 	for _, list := range []struct {

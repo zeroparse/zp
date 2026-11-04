@@ -1051,28 +1051,46 @@ the first parameter keeps the constant of the class polynomial in $m$.
 
 Let $v$ be a variable with
 [finite values](../runtime/parsing.md#conditions-for-linear-cost) and $S_v$
-its set of values. The variables with finite values are the `bool` variables
-and the `int` variables whose value sets are finite; `string` variables and
-other `int` variables are not among them. A `bool` has as its set its initial
-value and the values that its bindings can bind: a constant binding adds its
-value, a binding that fails to evaluate adds none, and any other adds both.
-The product of the sizes of the value sets of all variables with finite
-values is at most 128.
-Then $v$ holds a value of $S_v$ at every step of every parse, and the
+its set of values. The variables with finite values are the `bool` variables,
+the `int` variables whose value sets are finite, and the variables whose
+initial value and bindings are all constants, each with at most 65536 values,
+taken from the smallest set up while the product of the sizes of their sets is
+at most $2^{32}$. A `bool` has as its set its initial value and the values that
+its bindings can bind: a constant binding adds its value, a binding that fails
+to evaluate adds none, and any other adds both. Then $v$ holds a value of $S_v$
+at every call and at every evaluation of a binding in every parse, and the
 variables with finite values contribute at most the product of their $|S_v|$,
 a constant, to $K$.
 
 *Proof.* For a `bool`, the initial value is in $S_v$, and every binding of
 $v$ that succeeds binds its constant value, which is in $S_v$, or is one whose
 value is not constant, in which case $S_v$ holds both values; so every value
-that $v$ holds is in $S_v$. For an `int`, by induction on the steps of the
-parse. By
+that $v$ holds is in $S_v$. For a variable bound only to constants, each
+constant term evaluates to one value or is an error and binds nothing, so the
+distinct terms, with the initial value, bound the values that it holds. For an
+`int`, by induction on the steps of the parse. By
 [Variables](../language/predicates.md#variables), the parse starts with $v$
 bound to its initial value, which is in $S_v$, and afterwards a lookup of $v$
 gives the nearest binding of $v$ that has not been undone, or the initial
 value. Bindings made in a called rule are not visible to its caller, and
 backtracking undoes bindings, so every value that a lookup gives is the
 initial value or a value that an evaluation of a binding bound earlier.
+
+The guard of a binding $b$ of $v$ holds the tests next to it with only
+predicates between, which consume no input and call no rule. Let $b$ bind a value $y$ and let
+a test after $b$ fail on $y$: the sequence that holds $b$ and the test fails,
+and backtracking undoes $b$ before anything else is evaluated, so no call and
+no binding reads $y$ from $b$. A pragma such as `#recover` around the test
+could turn the failure into a success that keeps $b$, which is why a test
+under a pragma is not part of a guard; `@` attributes change only diagnostics.
+A test before $b$ that evaluates the value $e$ of $b$, written alike, reads the
+same variables and captures as $b$, since no binding lies between them and
+predicates capture nothing, and every term of the action language is a
+function of the values that it reads, so it evaluates $e$ to the value that
+$b$ binds. So a value that $b$ leaves bound at a call or a binding is one on
+which every test of its guard succeeds, which lies within the bounds of the
+comparisons of the guard. The values bound between $b$ and a test after it
+are read only by predicates, which the claim does not count.
 
 Let a binding $b$ of $v$ be evaluated, and let $x$ be the value of $v$ that
 it reads. We show that $x$ is one of the values that reach $b$, computed from
@@ -1085,45 +1103,54 @@ statements of the block of $b$, have each been evaluated once on this path
 and succeeded, in order, or $b$ would not be evaluated. Each step maps a set
 that holds the value of $v$ before it to a set that holds the value after it:
 
-- a binding of $v$ binds a value that its evaluation gives from the value
-  before it, which the step computes as for $b$ below;
+- a binding of $v$ leaves a value that its evaluation gives from the value
+  before it and that its guard passes, which the step computes as for $b$
+  below;
 - a predicate that reads only $v$ and literals succeeded, so the value passes
   it; the step keeps every value on which its evaluation is true or not known;
 - a choice succeeds through one of its alternatives and an option through its
   expression or by matching nothing, so the value after it is in the union of
-  the values after its paths;
+  the values after its paths, and `@` attributes do not change matching;
 - a negative lookahead undoes its bindings, and a call returns with the
   value before it, since bindings in a called rule are not visible to its
   caller;
 - any other element that binds $v$ leaves a value that $v$ holds at some step
-  of the parse, which is in $S_v$ by the induction hypothesis; an element that
-  does not bind $v$ keeps it.
+  of the parse after a binding and its guard, which is in $S_v$ by the
+  induction hypothesis; an element that does not bind $v$ keeps it.
 
-So $x$ reaches $b$. The binding reads only $v$, literals and operands
-`len($c)`, and the length of the value of each capture $c$ is at most its
-bound, since the value is the text of an expression that matches at most that
-many characters, a list or tuple with at most that many elements, or the
-value of a rule whose action gives such a value. A sequence builds a tuple of
-the values of its items, in which a plain group of a sequence is replaced by
-the elements of its own tuple, so the tuple has at most the number of items
-counted with those groups spliced in; a sequence whose value is that of a
-single item has the bound of that item. The value of $b$ is
-therefore determined by $x$ and lengths within the bounds, by the rules of
-[Operators and Functions](../language/actions.md#operators-and-functions),
-for ints within $2^{53}$ in magnitude, which every backend computes alike:
-it is in $S_v$, which holds the value that $b$ binds from each value that
-reaches it at each combination of lengths, or the evaluation is an error and
-binds nothing.
+So $x$ reaches $b$. When the classifier evaluates $b$, it reads only $v$,
+literals and operands `len($c)`, and the length of the value of each capture
+$c$ is at most its bound, since the value is the text of an expression that
+matches at most that many characters, a list or tuple with at most that many
+elements, or the value of a rule whose action gives such a value. A sequence
+builds a tuple of the values of its items, in which a plain group of a
+sequence is replaced by the elements of its own tuple, so the tuple has at
+most the number of items counted with those groups spliced in; a sequence
+whose value is that of a single item has the bound of that item. The value of
+$b$ is therefore determined by $x$ and lengths within the bounds, by the rules
+of [Operators and Functions](../language/actions.md#operators-and-functions),
+for ints within $2^{53}$ in magnitude, which every backend computes alike, or
+the evaluation is an error and binds nothing. Otherwise the value lies in the
+range of $e$, which holds every value that a literal, $x$, a length, which is
+not negative, and their sums, differences, negations and products can give,
+and it passes the guard only within the bounds of its comparisons. Either
+way, $S_v$ holds every value that $b$ leaves bound from each value that reaches
+it.
 
 The values of the variables that memoized rules read at a position are
 therefore drawn, for the variables with finite values, from the product of
 their sets, so they contribute at most the product of the $|S_v|$ to the
 number of combinations $K$. $\square$
 
-The bound of 128 on the product keeps the constant $K$ small: a memoized
-rule can be evaluated once for each combination of values at a position. The
-bounds of 256 for a length and of 4096 combinations of lengths keep $S_v$
-cheap to compute. The proof needs only that the bounds are finite. The values that reach a binding depend on the order of the elements
+The classification reports the product as its bound on $K$ for the class
+Linear, where every variable that a binding binds has finite values or is
+bound only to constants, and a variable bound only to constants that the cap
+on the product leaves out makes the class Linear Given an Environment Bound.
+The bound of 65536 values of one variable keeps $S_v$ cheap to compute, as do
+the bounds of 256 for a length and of 4096 combinations of lengths; the bound
+of $2^{32}$ on the product keeps it exact, and a larger $K$ would promise
+nothing that a parse can use. The proof needs only that the bounds are
+finite. The values that reach a binding depend on the order of the elements
 before it: a test after the binding, or after a call that follows it, has not
 been evaluated when the binding reads $v$, so it filters nothing that the
 binding reads.
@@ -1511,8 +1538,9 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
 - `checkValues`, with `selfDependent` and `reaches`, decides condition 1, and
   `constant` the bindings that bind a value that the input determines, which
   give the class Linear given an environment bound: Lemma 3 through $K$, and
-  *Values of variables* in Lemma 11. `finiteVars`, `finiteBool` and
-  `finiteInt` decide the variables with finite values: Lemma 8.
+  *Values of variables* in Lemma 11. `finiteVars`, `finiteBool`,
+  `finiteInt` and `constantValues` decide the variables with finite values,
+  and `guardOf` the guards of bindings: Lemma 8.
 - `walkTerm` finds the copying operations, `mayBeString` and `stringIn` tell
   a string value from a node for `len`, and `copyOp` and `copied` decide
   condition 4 for each copy from what `sizeOf`, `sizeOfAny`, `exprSize` and

@@ -49,12 +49,16 @@ linter, identified by a name.
   cost from the start rule, and with it the `super-linear` check, which reports
   nothing otherwise. After the findings, the text output prints
   `file: the cost from start rule main is class`, where the class is `linear`,
-  `linear-env`, `unknown`, `polynomial (n^k)` or `exponential`, followed by
+  `linear (K <= N)` when the bound on K that the classification reports is N
+  greater than 1, `linear-env`, `unknown`, `polynomial (n^k)` or
+  `exponential`, followed by
   the first three witnesses of a polynomial or exponential class and the first
   three reasons for the class unknown, each on a line
   `witness: file:line:col: message` or `reason: file:line:col: message`, and a
   line `... and N more` for those not shown. With `-f json` the document has a
-  member `classification` with `class`, `degree` (for a polynomial class), and
+  member `classification` with `class`, `degree` (for a polynomial class),
+  `combinations` (the bound N on K of a class `linear`, when it is greater
+  than 1), and
   every witness and reason in `witnesses` and `reasons`, each with `line`,
   `col`, `rule` and `message`.
 - `zp lint` exits with status 1 if there is a finding of severity `error`, and
