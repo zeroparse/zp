@@ -383,8 +383,9 @@ not a stable API.`
 		record(b)
 	})
 	expect.Doc = `expect records that id was expected at pos: an expectation before the farthest failure or in a
-lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
-Document parses also extends the examined frontier of the call past pos.`
+lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
+for Document parses also extends the examined frontier of the call past pos; a form without it leaves
+that out. It is for generated parsers and not a stable API.`
 	expectSlow := m.AddFunc("expectSlow", expParams, nil, []string{ops.Budget}, func(b *Builder) { record(b) })
 	expectSlow.Doc = `expectSlow records the expectation of expectOrdinary at or beyond the farthest position. It is
 separate so that the guard of expectOrdinary inlines into the generated code.`
@@ -395,7 +396,8 @@ separate so that the guard of expectOrdinary inlines into the generated code.`
 	})
 	expectOrdinary.Doc = `expectOrdinary is expect in an ordinary parse: one without limit controls and outside a Document.
 The generated rule bodies have a branch for such parses that calls the Ordinary forms of the runtime
-helpers, which leave out the budget charges and the Document's record of the examined input.`
+helpers, which leave out the budget charges and the Document's record of the examined input. It is for generated
+parsers and not a stable API.`
 
 	mergeKept := m.AddFunc("mergeKept", []Param{P("far", TInt), P("k", THandle(ops.Kept))}, nil,
 		[]string{ops.Document, ops.Budget}, func(b *Builder) {
@@ -430,7 +432,8 @@ helpers, which leave out the budget charges and the Document's record of the exa
 		})
 	mergeExpected.Doc = `mergeExpected records the expectations of s at far, as expect does for each of them, so that the
 expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
-record.`
+record. s may alias the stack above the current record: writes only happen below the read position. It
+is for generated parsers and not a stable API.`
 
 	if err := Verify(m); err != nil {
 		panic(err)

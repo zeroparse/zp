@@ -112,8 +112,9 @@ func (p *Parser) grow(r *Rule, min int) (*Node, bool) {
 }
 
 // Expect records that id was expected at pos: an expectation before the farthest failure or in a
-// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
-// Document parses also extends the examined frontier of the call past pos.
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
+// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
+// that out. It is for generated parsers and not a stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) Expect(pos int, id ExpID) {
@@ -146,8 +147,9 @@ func (p *Parser) Expect(pos int, id ExpID) {
 }
 
 // ExpectBudget records that id was expected at pos: an expectation before the farthest failure or in a
-// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
-// Document parses also extends the examined frontier of the call past pos.
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
+// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
+// that out. It is for generated parsers and not a stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
 func (p *Parser) ExpectBudget(pos int, id ExpID) {
@@ -180,7 +182,8 @@ func (p *Parser) ExpectBudget(pos int, id ExpID) {
 
 // ExpectOrdinary is expect in an ordinary parse: one without limit controls and outside a Document.
 // The generated rule bodies have a branch for such parses that calls the Ordinary forms of the runtime
-// helpers, which leave out the budget charges and the Document's record of the examined input.
+// helpers, which leave out the budget charges and the Document's record of the examined input. It is for generated
+// parsers and not a stable API.
 //
 // Printed from Exec IR function expectOrdinary of internal/ir/exec/core.
 func (p *Parser) ExpectOrdinary(pos int, id ExpID) {
@@ -222,7 +225,8 @@ func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
 
 // MergeExpected records the expectations of s at far, as expect does for each of them, so that the
 // expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
-// record.
+// record. s may alias the stack above the current record: writes only happen below the read position. It
+// is for generated parsers and not a stable API.
 //
 // Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) MergeExpected(far int, s []ExpID) {
