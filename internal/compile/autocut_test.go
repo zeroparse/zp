@@ -66,6 +66,172 @@ func TestDecideAlt(t *testing.T) {
 	}
 }
 
+// TestDecideAltTrivia checks that the analysis passes calls of a trivia rule without counting them
+// and drops a call that follows a call of the same trivia rule, and that rules of other shapes stay
+// ordinary calls.
+func TestDecideAltTrivia(t *testing.T) {
+	defer func() { triviaOn, triviaOnly = false, nil }()
+	const rules = "var v int = 0\nrule ident = [a-z]+\nrule x = \"x\"\nrule ws = [ ]*\nrule sp = \" \"\n" +
+		"rule ws2 = (sp / \"\\t\")*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n"
+	for _, c := range []struct {
+		name, main string
+		only       map[string]bool
+		off, on    bool
+	}{
+		{"two calls between the shared prefix and the literals", `ident ws ws "(" x / ident ws ws "." x`, nil, false, true},
+		{"calls around the shared literal", `ws "," ws "(" x / ws "," ws "." x`, nil, false, true},
+		{"a call that the other side does not make", `ident ws ws "(" x / ident ws "." x`, nil, true, true},
+		{"adjacent calls against one call", `ident ws ws "(" x / ident ws "(" "." x`, nil, false, true},
+		{"a rule that calls a rule", `ident ws2 ws2 "(" x / ident ws2 ws2 "." x`, nil, false, true},
+		{"a rule outside the list", `ident ws ws "(" x / ident ws ws "." x`, map[string]bool{"ws2": true}, false, false},
+		{"a repetition that must match once", `ident wsp wsp "(" x / ident wsp wsp "." x`, nil, false, false},
+		{"a repetition that reads a variable", `ident wsv wsv "(" x / ident wsv wsv "." x`, nil, false, false},
+		{"a repetition that captures", `ident wsc wsc "(" x / ident wsc wsc "." x`, nil, false, false},
+		{"calls of two trivia rules", `ident ws ws2 "(" x / ident ws2 ws "." x`, nil, false, false},
+	} {
+		g, err := syntax.Parse("rule main = (" + c.main + ") x\n" + rules)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		for _, on := range []bool{false, true} {
+			triviaOn, triviaOnly = on, c.only
+			k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+			if err != nil {
+				t.Fatalf("%s: %v", c.name, err)
+			}
+			k.computeBounded()
+			k.computeFirst()
+			var ch *grammar.Choice
+			WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+				if y, ok := x.(*grammar.Choice); ok && ch == nil {
+					ch = y
+				}
+			})
+			want := c.off
+			if on {
+				want = c.on
+			}
+			if d := k.decideAlt(ch, 0, 3); d.decided != want {
+				t.Errorf("%s: trivia %v: decided %v (k %d), want %v", c.name, on, d.decided, d.k, want)
+			}
+		}
+	}
+}
+
+// TestDecidedUnitsTrivia checks a trailing separator with whitespace on both sides of the comma:
+// the strict analysis passes the calls of ws without counting them, and the call of ws before
+// the closing bracket after the one of the separator matches nothing.
+func TestDecidedUnitsTrivia(t *testing.T) {
+	defer func() { decidedUnitsOn, triviaOn = false, false }()
+	src := "rule main = value $$\nrule value = \"[\" ws elems? (ws \",\")? ws \"]\" ws / [a-z]+ ws\n" +
+		"rule elems = value (ws \",\" ws value)*\nrule ws = [ ]*\n"
+	decidedUnitsOn = true
+	for _, c := range []struct {
+		on   bool
+		want ComplexityClass
+	}{{false, ClassUnknown}, {true, ClassLinear}} {
+		triviaOn = c.on
+		if got := classifySource(t, src).Class; got != c.want {
+			t.Errorf("trivia %v: class %v, want %v", c.on, got, c.want)
+		}
+	}
+}
+
+// TestTriviaCheap checks that a call of a trivia rule that the memo does not answer is cheap only
+// with the hook: the second call at a position costs a constant once the rule is memoized there.
+func TestTriviaCheap(t *testing.T) {
+	defer func() { triviaOn = false }()
+	g, err := syntax.Parse("rule main = ws2 \"x\"\nrule ws2 = (sp)*\nrule sp = \" \"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, on := range []bool{false, true} {
+		triviaOn = on
+		k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k.classify()
+		if got := newExcl(k, true, 3).cheap(&grammar.Ref{Name: "ws2"}); got != on {
+			t.Errorf("trivia %v: cheap %v", on, got)
+		}
+	}
+}
+
+// TestCollapseTrivia checks that a call of a trivia rule drops the calls of the same rule that
+// follow it across symbols that consume nothing, and only those.
+func TestCollapseTrivia(t *testing.T) {
+	defer func() { triviaOn = false }()
+	triviaOn = true
+	g, err := syntax.Parse("rule main = ws ws2 \"x\"\nrule ws = [ ]*\nrule ws2 = [\\t]*\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	x := newExcl(k, true, 3)
+	ws, ws2, lit := &grammar.Ref{Name: "ws"}, &grammar.Ref{Name: "ws2"}, &grammar.Literal{Value: "x"}
+	p := []sym{{symMatch, ws, 0}, {symSkip, nil, 0}, {symMatch, ws, 1}, {symNot, lit, 1}, {symMatch, ws, 2},
+		{symMatch, ws2, 2}, {symMatch, ws, 3}, {symMatch, lit, 3}, {symMatch, ws, 4}}
+	if got, want := fmtPath(x.collapseTrivia(p, 0)), fmtPath([]sym{p[0], p[1], p[3], p[5], p[6], p[7], p[8]}); got != want {
+		t.Errorf("collapsed %s, want %s", got, want)
+	}
+	if len(p) != 9 || p[2].e != ws || p[2].item != 1 {
+		t.Errorf("the path was changed in place: %s", fmtPath(p))
+	}
+}
+
+// TestTriviaWhy checks which rule shapes are trivia rules.
+func TestTriviaWhy(t *testing.T) {
+	src := "var v int = 0\nrule main = ws ws2 wsp wsv wsc wsa wsr\nrule ws = ([ ] / \"#\" (!\"\\n\" .)*)*\n" +
+		"rule sp = \" \"\nrule ws2 = (sp)*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n" +
+		"rule wsa = [ ]* => 1\nrule wsr = (sp / r)*\nrule r = \"(\" v2 \")\"\nrule v2 = {v == 1} \"a\"\n"
+	g, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rule, want := range map[string]string{
+		"ws": "", "ws2": "", "wsp": "body is not X*", "wsv": "reads a variable (wsv); predicate (wsv)",
+		"wsc": "capture (wsc)", "wsa": "action (wsa)",
+	} {
+		if got := k.triviaWhy(rule); got != want {
+			t.Errorf("%s: %q, want %q", rule, got, want)
+		}
+	}
+	if got := k.triviaWhy("wsr"); !strings.HasPrefix(got, "reads a variable") {
+		t.Errorf("wsr: %q, want a variable read through a call", got)
+	}
+}
+
+// TestTriviaShapeExtended checks the shapes that triviaExtended adds: an atomic X* and the
+// unrolled form X* (Y X*)*, but not a form whose last repetition differs from the first.
+func TestTriviaShapeExtended(t *testing.T) {
+	defer func() { triviaExtended = false }()
+	g, err := syntax.Parse("rule main = wsu wsa wsb\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
+		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ext := range []bool{false, true} {
+		triviaExtended = ext
+		for rule, ok := range map[string]bool{"wsu": ext, "wsa": ext, "wsb": false} {
+			if got := k.triviaWhy(rule) == ""; got != ok {
+				t.Errorf("extended %v: %s: trivia %v, want %v", ext, rule, got, ok)
+			}
+		}
+	}
+}
+
 // TestDecideAltVariables checks that calls of a rule that reads a variable are equal symbols only
 // where neither compared prefix binds a variable: the rule b below matches "aa" where x is 1 and
 // "a" elsewhere, so after a binding the two calls of b can end at different positions.

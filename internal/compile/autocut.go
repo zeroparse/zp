@@ -93,7 +93,7 @@ func (x excl) cheap(e grammar.Expr) bool {
 	if !ok {
 		return !x.k.containsSource(e)
 	}
-	if x.k.shareable(r) || !x.k.containsSource(r) {
+	if x.k.shareable(r) || !x.k.containsSource(r) || triviaOn && x.k.isTrivia(r) {
 		return true
 	}
 	reads := len(x.k.vars[r.Name]) > 0
@@ -692,8 +692,25 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.j++
 			continue
 		}
+		// A call of a trivia rule matches nothing after a call of the same rule.
+		if x.triviaCall(a) {
+			if p := x.collapseTrivia(s.p, s.i); len(p) != len(s.p) {
+				s.p = p
+			}
+		}
+		if x.triviaCall(b) {
+			if q := x.collapseTrivia(s.q, s.j); len(q) != len(s.q) {
+				s.q = q
+			}
+		}
 		if x.disjoint(a.e, b.e) {
 			return true, a.item, s.steps + 1
+		}
+		// Two calls of one trivia rule at one position end alike, and in strict mode the second
+		// costs a constant, so they do not count toward the bound.
+		if x.triviaCall(a) && x.sameSym(a.e, b.e) {
+			s.i, s.j = s.i+1, s.j+1
+			continue
 		}
 		if x.sameSym(a.e, b.e) {
 			if s.steps+1 >= x.maxK || x.strict && !x.cheap(a.e) {

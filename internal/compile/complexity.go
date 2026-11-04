@@ -267,6 +267,8 @@ type classifier struct {
 	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
+	trivia map[string]bool // the trivia rules among the rules asked about (isTrivia)
+
 	causes, reasons, env []ComplexityCause
 
 	// base are the rules of the grammar when rules is a view of them, or nil. baseRuns is the
@@ -318,6 +320,13 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 	k.reach = k.reachable(start)
 	for _, v := range g.Vars() {
 		k.varType[v.Name] = varTypeName(v)
+	}
+	if triviaMemo {
+		for _, r := range rules {
+			if k.isTrivia(&grammar.Ref{Name: r.Name}) {
+				k.memo[r.Name] = true
+			}
+		}
 	}
 	return k
 }
