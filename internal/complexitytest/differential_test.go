@@ -292,7 +292,7 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 func TestLinearClaims(t *testing.T) {
 	t.Parallel()
 	count := *differentialGrammars
-	if testing.Short() {
+	if reduced() {
 		count /= 4
 	}
 	checked, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
@@ -319,7 +319,7 @@ func TestLinearClaimsNegativeControl(t *testing.T) {
 	t.Parallel()
 	skipWithoutBudget(t)
 	count := *differentialGrammars
-	if testing.Short() {
+	if reduced() {
 		count /= 4
 	}
 	_, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {

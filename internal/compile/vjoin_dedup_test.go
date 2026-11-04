@@ -145,8 +145,12 @@ func TestAppendTyTextIsString(t *testing.T) {
 func TestVjoinKeepsTheDuplicatesItRemoved(t *testing.T) {
 	r := rand.New(rand.NewPCG(3, 4))
 	checked, joins := 0, 0
-	for range 30000 {
+	for range 40000 {
+		// Most lists are short; some are long enough for the map of dedupTys.
 		ts := make([]Ty, r.IntN(6))
+		if r.IntN(10) == 0 {
+			ts = make([]Ty, 30+r.IntN(30))
+		}
 		for i := range ts {
 			ts[i] = randomTy(r, 3)
 			if _, ok := safeString(ts[i]); !ok && ts[i] != nil {

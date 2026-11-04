@@ -185,6 +185,55 @@ type tyKey struct {
 
 // dedupTys returns ts without the types that an earlier type equals in its tyKey.
 func dedupTys(ts []Ty) []Ty {
+	if len(ts) > 32 {
+		return dedupTysMap(ts)
+	}
+	// A few types: compare each with the earlier ones of its Go type, printing a type only when
+	// there is one.
+	var out []Ty
+	var kinds [32]reflect.Type
+	var texts [32]string
+	var printed [32]bool
+	var buf []byte
+	text := func(i int, t Ty) string {
+		if !printed[i] {
+			buf = appendTyText(buf[:0], t)
+			texts[i], printed[i] = string(buf), true
+		}
+		return texts[i]
+	}
+	for _, t := range ts {
+		k := reflect.TypeOf(t)
+		dup := false
+		var s string
+		have := false
+		for i, o := range out {
+			if kinds[i] != k {
+				continue
+			}
+			if !have {
+				buf = appendTyText(buf[:0], t)
+				s, have = string(buf), true
+			}
+			if text(i, o) == s {
+				dup = true
+				break
+			}
+		}
+		if dup {
+			continue
+		}
+		kinds[len(out)] = k
+		if have {
+			texts[len(out)], printed[len(out)] = s, true
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// dedupTysMap is dedupTys for many types.
+func dedupTysMap(ts []Ty) []Ty {
 	seen := make(map[tyKey]struct{}, len(ts))
 	var out []Ty
 	var buf []byte

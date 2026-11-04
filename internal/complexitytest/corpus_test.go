@@ -167,7 +167,7 @@ func TestCorpus(t *testing.T) {
 			}
 			skipWithoutBudget(t)
 			sizes := e.sizes
-			if testing.Short() {
+			if reduced() {
 				sizes = e.shortSizes
 			}
 			for _, b := range Backends {

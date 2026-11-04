@@ -24,7 +24,7 @@ func TestControls(t *testing.T) {
 			}
 			skipWithoutBudget(t)
 			sizes := c.Sizes
-			if testing.Short() {
+			if reduced() {
 				sizes = c.ShortSizes
 			}
 			var slopes [][]float64
