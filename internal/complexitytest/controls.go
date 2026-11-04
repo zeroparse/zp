@@ -290,6 +290,12 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
 		{
+			Name: "Operators Rule part shared by operator parts that nest", Family: "rescanned calls",
+			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { postfix \"(\" x? }\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("a(", n) + "a" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
 			Name: "Operators Rule memoized part shared by nested operands", Family: "rescanned calls", Positive: true,
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" x?\n    level { postfix ws \"!\" }\n}\nrule ws = sp*\nrule sp = \" \"\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
