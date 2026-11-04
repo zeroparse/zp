@@ -114,6 +114,39 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("a", n) + "|" + rep("b", n) },
 			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
 		},
+		// A copy reads values that are not own, or parts of the values of calls on its recursion
+		// that hold none: it costs at most the input that it reads, which each match gives to a
+		// constant number of copies (Lemmas 6 and 11 of the linear cost proof).
+		{
+			Name: "Copy of an element of a list that map builds", Family: "read input", Positive: true,
+			Source: "rule main = b $$\nrule b string = m:mm => $m[0] + \"!\"\nrule mm []string = xs:c* => map($xs, (q) => text($xs))\nrule c = \"a\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Copy of a member of the value of a recursive call", Family: "read input", Positive: true,
+			Source: "rule main = e $$\nrule e string = \"(\" z:f \")\" => text($z.$y) + \"!\"\nrule f = y:k* w:e?\nrule k = \"b\"\n",
+			Input:  func(n int) string { return rep("(bb", n) + rep(")", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Copies of members of the elements of a list of recursive calls", Family: "read input", Positive: true,
+			Source: "rule main = e $$\nrule e []string = \"(\" zs:f* \")\" => map($zs, (q) => text(q.$y) + \"!\")\nrule f = \"<\" y:k* w:e? \">\"\nrule k = \"b\"\n",
+			Input:  func(n int) string { return "(" + rep("<bb>", n) + ")" },
+			Sizes:  double(500), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
+		{
+			Name: "Copies of members of the elements of a list of recursive calls for each element", Family: "read input",
+			Source: "rule main = e $$\nrule e [][]string = \"(\" zs:f* \")\" => map($zs, (a) => map($zs, (q) => text(q.$y) + \"!\"))\nrule f = \"<\" y:k* w:e? \">\"\nrule k = \"b\"\n",
+			Input:  func(n int) string { return "(" + rep("<bb>", n) + ")" },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Copies of the elements of a list that map builds from a capture", Family: "read input",
+			Source: "rule main = b $$\nrule b []string = l:mk => map($l, (e) => e + \"!\")\nrule mk []string = ys:k* => map($ys, (q) => text($ys))\nrule k = \"b\"\n",
+			Input:  func(n int) string { return rep("b", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassPoly,
+		},
 		{
 			Name: "Text of a capture in a lookahead, safe", Family: "lookahead copy", Positive: true,
 			Source: "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n",
