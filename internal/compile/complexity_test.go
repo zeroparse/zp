@@ -116,6 +116,10 @@ func TestClassifyComplexity(t *testing.T) {
 		// examines again the input that [ab]* examined, so the base is not committing.
 		{"recovery whose skip shares a call with its base", "rule main = ((b [ab]* \"!\") #recover(skip=b))* $$\nrule b = \"b\"\n", ClassPoly, 2},
 		{"recovery of the last element only", "rule main = (b [ab]* \"!\" #recover(skip=b))* $$\nrule b = \"b\"\n", ClassLinear, 0},
+		// A capture in a lookahead holds the rest of the input at every position, so a copy of it
+		// repeats over that input; its text alone costs a constant.
+		{"copy of a capture in a lookahead", "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x) + \"!\"\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
+		{"text of a capture in a lookahead", "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n", ClassLinear, 0},
 		{"source inside a shared call", "rule main = e $$\nrule e = #operators {\n    skip ws\n    operand \"true\"\n    operand [a-z]+\n    level { infix left \"+\" }\n}\nrule ws = [ \\t]*\n", ClassLinear, 0},
 		// A list built from the elements of a repetition costs its number of elements.
 		{"list of a repetition", "rule main = l $$\nrule l = \"[\" ms:m? \"]\" => concat($ms)\nrule m = f:v rs:(\",\" x:v)* => concat(list($f), map($rs, (r) => r.$x))\nrule v = \"x\" / l\n", ClassLinear, 0},

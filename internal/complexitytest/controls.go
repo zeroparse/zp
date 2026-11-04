@@ -78,6 +78,20 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("a", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
+		// The lookahead is linear, since w is memoized, but each iteration copies the rest of the
+		// input, which the capture in the lookahead holds.
+		{
+			Name: "Copy of a capture in a lookahead", Family: "lookahead copy",
+			Source: "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x) + \"!\"\nrule w = \"a\" w / \"\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Text of a capture in a lookahead, safe", Family: "lookahead copy", Positive: true,
+			Source: "rule main = a* $$\nrule a string = \"a\" &(x:w) => text($x)\nrule w = \"a\" w / \"\"\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(500), ShortSizes: double(250), Order: Linear, Class: ClassLinear,
+		},
 		{
 			Name: "E8 recovery skips", Family: "E8", Positive: true,
 			Source: "rule main = (x / \"a\")* $$\nrule x = (y #recover(skip=[a]+)) \"c\"\nrule y = \"b\"\n",
