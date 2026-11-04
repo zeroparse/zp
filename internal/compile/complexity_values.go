@@ -61,6 +61,7 @@ type content struct {
 	rec       map[string]int // captures that hold a call on a recursion with the rule, with counts
 	acc       map[string]int // fold accumulators, with counts
 	outer     bool           // from outside a lambda that repeats, and unbounded
+	look      bool           // can hold a capture made in a positive lookahead
 	// sum is the largest degree of the sum of the sizes of the elements of a list that is not
 	// bounded, over the evaluations of its lambda, that the value can hold one of.
 	sum int
@@ -75,6 +76,7 @@ func (c *content) add(d content) {
 	c.unbounded = c.unbounded || d.unbounded
 	c.vars = c.vars || d.vars
 	c.outer = c.outer || d.outer
+	c.look = c.look || d.look
 	c.sum = max(c.sum, d.sum)
 	for n, v := range d.rec {
 		if c.rec == nil {
@@ -92,7 +94,8 @@ func (c *content) add(d content) {
 
 // join returns what either c or d can hold: a part of either, with the larger count.
 func (c content) join(d content) content {
-	j := content{unbounded: c.unbounded || d.unbounded, vars: c.vars || d.vars, outer: c.outer || d.outer, sum: max(c.sum, d.sum)}
+	j := content{unbounded: c.unbounded || d.unbounded, vars: c.vars || d.vars, outer: c.outer || d.outer, look: c.look || d.look,
+		sum: max(c.sum, d.sum)}
 	j.rec, j.acc = maxCounts(c.rec, d.rec), maxCounts(c.acc, d.acc)
 	return j
 }
@@ -109,7 +112,7 @@ func (c content) atMostTwo() content {
 }
 
 func (c content) equal(d content) bool {
-	return c.unbounded == d.unbounded && c.vars == d.vars && c.outer == d.outer && c.sum == d.sum &&
+	return c.unbounded == d.unbounded && c.vars == d.vars && c.outer == d.outer && c.look == d.look && c.sum == d.sum &&
 		maps.Equal(c.rec, d.rec) && maps.Equal(c.acc, d.acc)
 }
 
@@ -538,6 +541,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		for _, e := range exprs {
 			c.add(k.exprSize(e, tc, mode, "$"+t.Name))
 		}
+		c.look = c.look || k.lookCaptures(tc.rule)[t.Name]
 		c.outer = tc.repeat && c.unbounded
 	case *grammar.IndexRef:
 		c = k.deepSize(k.byName[tc.rule].Expr, tc, fmt.Sprintf("$%d", t.Index))
@@ -554,6 +558,8 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		for _, e := range exprs {
 			c.add(k.exprSize(e, tc, mode, name))
 		}
+		// The member can be a capture in a lookahead of the value it is taken from.
+		c.look = c.look || k.sizeOf(t.X, tc, mode).look
 		c.outer = tc.repeat && !param && c.unbounded
 	case *grammar.Binary:
 		switch {
@@ -621,6 +627,7 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 				}
 				// A value from outside the lambda counts as outer only when it is not bounded.
 				exprs := k.captures[tc.rule][x.Name]
+				c.look = c.look || k.lookCaptures(tc.rule)[x.Name]
 				if len(exprs) == 0 {
 					outer = true
 				}
@@ -758,7 +765,7 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 		if k.byName[x.Name] == nil {
 			return content{}
 		}
-		c := content{unbounded: !k.bounded(e)}
+		c := content{unbounded: !k.bounded(e), look: k.looks(x.Name, mode)}
 		if k.onRecursion(tc.rule, x.Name) && k.includes(x.Name, mode) {
 			c.rec = map[string]int{name: 1}
 		}
@@ -770,7 +777,8 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 // deepSize describes the size of the value of e without looking at how it is built: it can hold
 // anything that e matches or calls.
 func (k *classifier) deepSize(e grammar.Expr, tc termCtx, name string) content {
-	c := content{unbounded: !k.bounded(e)}
+	k.lookedRules()
+	c := content{unbounded: !k.bounded(e), look: k.exprLooks(e, tc.rule)}
 	found := false
 	WalkExpr(e, func(x grammar.Expr) {
 		if r, ok := x.(*grammar.Ref); ok && k.byName[r.Name] != nil && k.onRecursion(tc.rule, r.Name) {
@@ -883,6 +891,12 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 	}
 	if all.vars {
 		k.envCause(tc.rule, pos, "%s at %s copies the value of a variable", text, at(tc.rule, pos))
+	}
+	// A capture in a positive lookahead holds input that the match does not consume, so its value
+	// can be as large at every position, and a copy of it repeats over that input.
+	if all.look && all.unbounded {
+		k.reason(tc.rule, pos, "%s at %s copies a value that can hold a capture in a positive lookahead, which the input that the match consumes does not bound",
+			text, at(tc.rule, pos))
 	}
 	if all.unbounded || len(all.rec) > 0 || len(all.acc) > 0 {
 		s := &source{rule: tc.rule, pos: pos, what: "the copying operation " + text}

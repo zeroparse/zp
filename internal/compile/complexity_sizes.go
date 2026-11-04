@@ -26,6 +26,8 @@ func addDeg(a, b int) int { return min(a+b, unknownDeg) }
 type sizeMemo struct {
 	own    map[string]bool            // the rules whose values are own
 	look   map[string]map[string]bool // the names captured inside a positive lookahead, by rule
+	looked map[string]bool            // the rules whose values can hold a capture in a lookahead
+	looks  map[sizeKey]bool           // the rules whose sizes, by mode, can come from such a capture
 	shapes map[string]growthShape     // the shapes of the values of rules
 	busy   map[string]int             // the computation that bounds each rule being computed
 	cur    int                        // the innermost computation, 0 outside any
@@ -452,6 +454,145 @@ func (k *classifier) lookCaptures(rule string) map[string]bool {
 	}
 	m.look[rule] = s
 	return s
+}
+
+// lookedRules returns the rules whose values can hold a capture made in a positive lookahead,
+// directly or through the values of the rules and captures that they read: the least such set,
+// computed once.
+func (k *classifier) lookedRules() map[string]bool {
+	m := &k.sizes
+	if m.looked != nil {
+		return m.looked
+	}
+	looked := map[string]bool{}
+	m.looked = looked
+	for changed := true; changed; {
+		changed = false
+		for _, r := range k.rules {
+			if !looked[r.Name] && k.ruleLooks(r) {
+				looked[r.Name] = true
+				changed = true
+			}
+		}
+	}
+	return looked
+}
+
+// looks reports whether the size of the value of rule, measured in mode, can come from a capture
+// made in a positive lookahead, as lookedRules does but by the size that a copy of the value
+// copies: a list built by list(...) has one element for each argument whatever they hold. It is
+// the least such assignment, computed once by iterating sizeOf over the rules.
+func (k *classifier) looks(rule string, mode sizeMode) bool {
+	m := &k.sizes
+	if m.looks == nil {
+		k.lookedRules()
+		m.looks = map[sizeKey]bool{}
+		for changed := true; changed; {
+			changed = false
+			for _, r := range k.rules {
+				for _, md := range []sizeMode{textSize, listSize} {
+					key := sizeKey{r.Name, md}
+					if !m.looks[key] && k.ruleLooksIn(r, md) {
+						m.looks[key] = true
+						changed = true
+					}
+				}
+			}
+		}
+	}
+	return m.looks[sizeKey{rule, mode}]
+}
+
+// ruleLooksIn reports whether the size of the value of r, measured in mode, can come from a
+// capture in a positive lookahead, when the sizes in k.sizes.looks can.
+func (k *classifier) ruleLooksIn(r *grammar.RuleDef, mode sizeMode) bool {
+	tc := termCtx{rule: r.Name}
+	switch {
+	case isOperators(r.Expr):
+		return k.ruleLooks(r)
+	case r.Action != nil:
+		return k.sizeOf(r.Action, tc, mode).look
+	default:
+		return k.exprSize(r.Expr, tc, mode, r.Name).look
+	}
+}
+
+// ruleLooks reports whether the value of r can hold a capture in a positive lookahead, when the
+// rules in lookedRules can.
+func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
+	k.control.poll()
+	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
+		for _, o := range ops.Operands {
+			if k.exprLooks(o.Expr, r.Name) || o.Action != nil && !o.DefaultAction && k.termLooks(o.Action, r.Name) {
+				return true
+			}
+		}
+		for _, l := range ops.Levels {
+			for _, op := range l.Operators {
+				if k.exprLooks(op.Expr, r.Name) || op.Action != nil && !op.DefaultAction && k.termLooks(op.Action, r.Name) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if r.Action != nil && !r.DefaultAction {
+		return k.termLooks(r.Action, r.Name)
+	}
+	return k.exprLooks(r.Expr, r.Name)
+}
+
+// exprLooks reports whether the value of a match of e in rule can hold a capture in a positive
+// lookahead: e has such a capture, or calls or acts on a value that can hold one.
+func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
+	found := false
+	WalkExpr(e, func(x grammar.Expr) {
+		if found {
+			return
+		}
+		switch x := x.(type) {
+		case *grammar.And:
+			WalkExpr(x.Expr, func(y grammar.Expr) {
+				if _, ok := y.(*grammar.Capture); ok {
+					found = true
+				}
+			})
+		case *grammar.Ref:
+			found = k.sizes.looked[x.Name]
+		case *grammar.InlineAction:
+			found = x.Action != nil && !x.DefaultAction && k.termLooks(x.Action, rule)
+		}
+	})
+	return found
+}
+
+// termLooks reports whether the value of the term t in rule can hold a capture in a positive
+// lookahead: it reads one, a capture whose value can hold one, or the matched values by index.
+func (k *classifier) termLooks(t grammar.Term, rule string) bool {
+	found := false
+	WalkTerm(t, func(x grammar.Term) {
+		if found {
+			return
+		}
+		switch x := x.(type) {
+		case *grammar.CaptureRef:
+			if x.Param {
+				return
+			}
+			if k.lookCaptures(rule)[x.Name] {
+				found = true
+				return
+			}
+			for _, e := range k.captures[rule][x.Name] {
+				found = found || k.exprLooks(e, rule)
+			}
+		case *grammar.IndexRef:
+			if r := k.byName[rule]; r != nil {
+				found = k.exprLooks(r.Expr, rule)
+			}
+		}
+	})
+	return found
 }
 
 // ownWalk checks that a term builds an own value. Each part of an own value is at most a constant

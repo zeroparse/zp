@@ -569,6 +569,7 @@ The following grammars have the class shown on the inputs shown.
 | `main = (E "q" / "x")* $$; E = E "x" / "x"` | `x` n times | Degree 2 | `E` grows to the end of the input at every position, and `"q"` then fails |
 | `main = (E "q" / "x")* $$` with `E` an Operators Rule with the operand `"x"` and the infix operator `""` at one left-associative level | `x` n times | Degree 2 | As above, for the operators that `E` applies |
 | `main = ("a" !Rest)* "a"* $$; Rest = "a"* "c"` | `a` n times | Degree 2 | The lookahead scans to the end of the input at every position |
+| `main = A* $$; A = "a" &(x:W) => text($x) + "!"; W = "a" W / ""` | `a` n times | Degree 2 | The lookahead is linear, since `W` is memoized, but each iteration copies the rest of the input, which the capture in the lookahead holds |
 | `main = (X / "a")* $$; X = (Y #recover(skip=[a]+)) "c"; Y = "b"` | `a` n times | Linear | The skip consumes the rest of the input, `"c"` then fails, and the recovery is abandoned, but `[a]+` is a [skip run](#skip-runs): the walk from each later position takes the rest of the walk from its record |
 | `main = (X / "a")* $$; X = (Y #recover(skip=S)) "c"; Y = "b"; S = [a]+` | `a` n times | Degree 2 | As above, but the repetition is in a rule that the skip calls, so it is not a skip run, and each skip walks to the end of the input again |
 | `main = (A / "a")* $$; A = (B / "a")* "c"; B = "a"* "d"` | `a` n times | Degree 3 | A repetition that can restart inside another one that can restart |
@@ -963,7 +964,15 @@ necessary.
    an Operators Rule, are taken to include it. A copy whose size does not include
    such a value does not add up over the levels of the recursion; when it is
    not bounded by a constant, it is a scanning source, which condition 2
-   covers. A copying operation in the lambda of `map`, `filter`, `foldl` or
+   covers. No copying operation copies a value that is not bounded by a
+   constant and whose size can come from a capture made in a positive
+   lookahead, directly, as a member or a positional capture, or through the
+   values of the rules and captures that it reads, measured as above, so that
+   `list($x)` has one element whatever `$x` holds. Such a capture holds input
+   that the match does not consume, so it can be as large at every position:
+   in `A = "a" &(x:W) => text($x) + "!"` each iteration of `A*` copies the
+   rest of the input, and the classification reports the class unknown for it.
+   A copying operation in the lambda of `map`, `filter`, `foldl` or
    `foldr` over a list that is not bounded runs once for each element, as in a
    repetition: it copies nothing from outside the lambda that is not bounded in
    size by a constant of the grammar, and the elements that it copies add up,
