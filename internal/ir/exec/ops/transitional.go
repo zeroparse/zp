@@ -27,6 +27,8 @@ const (
 	Mark = "ExpMark"
 	Set  = "ExpSet"
 	Kept = "ExpKept"
+	// ExpID identifies one expectation: a description the grammar lists, or a message of @error.
+	ExpID = "ExpID"
 	// Ctx is the context state of a memoized call (ctx.enter).
 	Ctx = "Ctx"
 	// Res is a result that a context keeps, a seed included, or the result of a growth.
@@ -66,6 +68,7 @@ delivered elements held.`)
 	body := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
 	mark := m.AddHandle(Mark, Exp, "The record that an isolation set aside.")
 	set := m.AddHandle(Set, Exp, "The expectations an isolation recorded, valid until the next record.")
+	expID := m.AddHandle(ExpID, Exp, "An expectation: the identifier of a description or message of the grammar.")
 	kept := m.AddHandle(Kept, Exp, "Expectations kept beyond the record, as a memo entry keeps them.")
 	ctx := m.AddHandle(Ctx, Growth, `The context state of a memoized call: the growths of its rule's cycle at its
 position, their present set, and whether the call records its dependencies.`)
@@ -155,6 +158,39 @@ farthest position of the ended record and its expectations.`})
 	add(&exec.Op{Name: "exp.mergeKept", Component: Exp, Params: []exec.Param{exec.P("far", exec.TInt), exec.P("k", kept)},
 		Writes: []string{Exp}, NoReturn: true,
 		Contract: `Adds the kept expectations k at far to the record.`})
+
+	// The operations of recording one expectation.
+	expArg := []exec.Param{exec.P("id", expID)}
+	add(&exec.Op{Name: "exp.farthest", Component: Exp, Results: []exec.Type{exec.TInt}, Reads: []string{Exp},
+		Contract: `Returns the farthest position of the current record.`})
+	add(&exec.Op{Name: "exp.recording", Component: Exp, Results: []exec.Type{exec.TBool}, Reads: []string{Exp},
+		Contract: `Reports whether the parse records expectations. A parse that does not keeps one placeholder
+entry in the record of a failure, which stands for the failure at the farthest position and is not an
+expectation.`})
+	add(&exec.Op{Name: "exp.reset", Component: Exp, Params: []exec.Param{exec.P("pos", exec.TInt)}, Writes: []string{Exp},
+		Contract: `Starts the current record anew at pos: the farthest position becomes pos and the entries are
+dropped.`})
+	add(&exec.Op{Name: "exp.fresh", Component: Exp, Results: []exec.Type{exec.TBool}, Reads: []string{Exp},
+		Contract: `Reports whether the current record has no entry.`})
+	add(&exec.Op{Name: "exp.placeholder", Component: Exp, Reads: []string{Exp}, Writes: []string{Exp},
+		Contract: `Adds the placeholder entry to the current record.`})
+	add(&exec.Op{Name: "exp.maybe", Component: Exp, Params: expArg, Results: []exec.Type{exec.TBool}, Reads: []string{Exp},
+		Contract: `Reports whether id may be in the current record: false means it is not; true means it may be.`})
+	add(&exec.Op{Name: "exp.count", Component: Exp, Results: []exec.Type{exec.TInt}, Reads: []string{Exp},
+		Contract: `Returns the number of entries of the current record.`})
+	add(&exec.Op{Name: "exp.at", Component: Exp, Params: []exec.Param{exec.P("i", exec.TInt)}, Results: []exec.Type{expID},
+		Reads: []string{Exp}, Requires: `0 <= i < exp.count.`,
+		Contract: `Returns entry i of the current record, in the order they were added.`})
+	add(&exec.Op{Name: "exp.add", Component: Exp, Params: expArg, Reads: []string{Exp}, Writes: []string{Exp},
+		Contract: `Adds id to the current record, after its other entries.`})
+	add(&exec.Op{Name: "exp.setCount", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the number of expectations of s.`})
+	add(&exec.Op{Name: "exp.setAt", Component: Exp, Params: []exec.Param{exec.P("s", set), exec.P("i", exec.TInt)},
+		Results: []exec.Type{expID}, Requires: `0 <= i < exp.setCount(s).`,
+		Contract: `Returns expectation i of s, in the order they were recorded.`})
+	add(&exec.Op{Name: "exp.spend", Component: Exp, Features: []string{Budget}, Cost: exec.Cost{Const: 1},
+		Contract: `Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
+a scan of the record compares.`})
 
 	entryArg := []exec.Param{exec.P("e", entry)}
 	add(&exec.Op{Name: "memo.far", Component: Memo, Params: entryArg, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},

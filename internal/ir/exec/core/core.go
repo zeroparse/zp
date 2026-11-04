@@ -354,6 +354,75 @@ elements, the rule is its start rule, and the rule runs at the top (a recursive 
 so its outermost entry is the first; any other rule is entered once). It is for generated parsers and
 not a stable API.`
 
+	// The expectation compositions: recording one expectation.
+	expID := THandle(ops.ExpID)
+	expParams := []Param{P("pos", TInt), P("id", expID)}
+	pos, eid := L("pos"), L("id")
+	// record records id at pos, which is not before the farthest position: a position past it starts
+	// the record anew. A parse that does not record expectations keeps only the placeholder, once
+	// per record. Otherwise a scan of the record leaves out an id that is in it, charging each entry
+	// it compares in a parse with budget controls.
+	record := func(b *Builder) {
+		b.If(Bin(">", pos, C("exp.farthest")), func(b *Builder) { b.Do("exp.reset", pos) })
+		b.If(Not(C("exp.recording")), func(b *Builder) {
+			b.If(C("exp.fresh"), func(b *Builder) { b.Do("exp.placeholder") })
+			b.Return()
+		})
+		b.If(C("exp.maybe", eid), func(b *Builder) {
+			b.Var("i", TInt)
+			b.For("scan", Assign("i", Int(0)), Lt(L("i"), C("exp.count")), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+				b.If(F(ops.Budget), func(b *Builder) { b.Do("exp.spend") })
+				b.If(Eq(C("exp.at", L("i")), eid), func(b *Builder) { b.Return() })
+			})
+		})
+		b.Do("exp.add", eid)
+	}
+	expect := m.AddFunc("expect", expParams, nil, []string{ops.Document, ops.Budget}, func(b *Builder) {
+		b.If(F(ops.Document), func(b *Builder) { b.Do("doc.touch", Add(pos, Int(1))) })
+		b.If(Bin("||", silent, Lt(pos, C("exp.farthest"))), func(b *Builder) { b.Return() })
+		record(b)
+	})
+	expect.Doc = `expect records that id was expected at pos: an expectation before the farthest failure or in a
+lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
+Document parses also extends the examined frontier of the call past pos.`
+	expectSlow := m.AddFunc("expectSlow", expParams, nil, []string{ops.Budget}, func(b *Builder) { record(b) })
+	expectSlow.Doc = `expectSlow records the expectation of expectOrdinary at or beyond the farthest position. It is
+separate so that the guard of expectOrdinary inlines into the generated code.`
+	expectSlow.NoInline = true
+	expectOrdinary := m.AddFunc("expectOrdinary", expParams, nil, []string{ops.Budget}, func(b *Builder) {
+		b.If(Bin("||", silent, Lt(pos, C("exp.farthest"))), func(b *Builder) { b.Return() })
+		b.Do("expectSlow", pos, eid)
+	})
+	expectOrdinary.Doc = `expectOrdinary is expect in an ordinary parse: one without limit controls and outside a Document.
+The generated rule bodies have a branch for such parses that calls the Ordinary forms of the runtime
+helpers, which leave out the budget charges and the Document's record of the examined input.`
+
+	mergeExpected := m.AddFunc("mergeExpected", []Param{P("far", TInt), P("s", THandle(ops.Set))}, nil,
+		[]string{ops.Document, ops.Budget}, func(b *Builder) {
+			far, s := L("far"), L("s")
+			b.Var("i", TInt)
+			// Each expectation costs one unit, whether or not the record keeps it. A parse that does not
+			// record expectations holds only the placeholder, which needs no call of expect.
+			b.IfElse(C("exp.recording"), func(b *Builder) {
+				b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.setCount", s)), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+					b.Do("exp.spend")
+					b.Do("expect", far, C("exp.setAt", s, L("i")))
+				})
+			}, func(b *Builder) {
+				b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.setCount", s)), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+					b.Do("exp.spend")
+					b.If(F(ops.Document), func(b *Builder) { b.Do("doc.touch", Add(far, Int(1))) })
+					b.If(Not(Bin("||", silent, Lt(far, C("exp.farthest")))), func(b *Builder) {
+						b.If(Bin(">", far, C("exp.farthest")), func(b *Builder) { b.Do("exp.reset", far) })
+						b.If(C("exp.fresh"), func(b *Builder) { b.Do("exp.placeholder") })
+					})
+				})
+			})
+		})
+	mergeExpected.Doc = `mergeExpected records the expectations of s at far, as expect does for each of them, so that the
+expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
+record.`
+
 	if err := Verify(m); err != nil {
 		panic(err)
 	}

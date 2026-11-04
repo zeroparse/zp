@@ -80,6 +80,9 @@ handle ExpMark of expected
 handle ExpSet of expected
   // The expectations an isolation recorded, valid until the next record.
 
+handle ExpID of expected
+  // An expectation: the identifier of a description or message of the grammar.
+
 handle ExpKept of expected
   // Expectations kept beyond the record, as a memo entry keeps them.
 
@@ -399,6 +402,98 @@ transitional op exp.mergeKept(far int, k ExpKept)
   cost <= 0
   contract:
     // Adds the kept expectations k at far to the record.
+
+transitional op exp.farthest() int
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Returns the farthest position of the current record.
+
+transitional op exp.recording() bool
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Reports whether the parse records expectations. A parse that does not keeps one placeholder
+    // entry in the record of a failure, which stands for the failure at the farthest position and is not an
+    // expectation.
+
+transitional op exp.reset(pos int)
+  component expected
+  writes expected
+  cost <= 0
+  contract:
+    // Starts the current record anew at pos: the farthest position becomes pos and the entries are
+    // dropped.
+
+transitional op exp.fresh() bool
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Reports whether the current record has no entry.
+
+transitional op exp.placeholder()
+  component expected
+  reads expected
+  writes expected
+  cost <= 0
+  contract:
+    // Adds the placeholder entry to the current record.
+
+transitional op exp.maybe(id ExpID) bool
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Reports whether id may be in the current record: false means it is not; true means it may be.
+
+transitional op exp.count() int
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Returns the number of entries of the current record.
+
+transitional op exp.at(i int) ExpID
+  component expected
+  reads expected
+  cost <= 0
+  contract:
+    // Returns entry i of the current record, in the order they were added.
+  requires:
+    // 0 <= i < exp.count.
+
+transitional op exp.add(id ExpID)
+  component expected
+  reads expected
+  writes expected
+  cost <= 0
+  contract:
+    // Adds id to the current record, after its other entries.
+
+transitional op exp.setCount(s ExpSet) int
+  component expected
+  cost <= 0
+  contract:
+    // Returns the number of expectations of s.
+
+transitional op exp.setAt(s ExpSet, i int) ExpID
+  component expected
+  cost <= 0
+  contract:
+    // Returns expectation i of s, in the order they were recorded.
+  requires:
+    // 0 <= i < exp.setCount(s).
+
+transitional op exp.spend()
+  component expected
+  features budget
+  cost <= 1
+  contract:
+    // Charges one unit of the work budget, with the checks of the target's Spend, for each entry that
+    // a scan of the record compares.
 
 transitional op memo.far(e Entry) int
   component memo

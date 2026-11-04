@@ -111,6 +111,145 @@ func (p *Parser) grow(r *Rule, min int) (*Node, bool) {
 	return best.node, best.ok
 }
 
+// Expect records that id was expected at pos: an expectation before the farthest failure or in a
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
+// Document parses also extends the examined frontier of the call past pos.
+//
+// Printed from Exec IR function expect of internal/ir/exec/core, specialized for document, budget.
+func (p *Parser) Expect(pos int, id ExpID) {
+	var i int
+	p.documentTouch(pos + 1)
+	if p.Silent > 0 || pos < p.farthest {
+		return
+	}
+	if pos > p.farthest {
+		p.farthest = pos
+		p.exp = p.exp[:p.expBase]
+		p.expBits = 0
+	}
+	if !p.Expectations {
+		if len(p.exp) == p.expBase {
+			p.exp = append(p.exp, ExpFar)
+		}
+		return
+	}
+	if p.expBits&(uint64(1)<<(uint32(id)*0x9e3779b1>>26)) != 0 {
+		for i = 0; i < (len(p.exp) - p.expBase); i++ {
+			p.Spend()
+			if p.exp[p.expBase+i] == id {
+				return
+			}
+		}
+	}
+	p.expBits |= uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
+	p.exp = append(p.exp, id)
+}
+
+// ExpectBudget records that id was expected at pos: an expectation before the farthest failure or in a
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. The form for
+// Document parses also extends the examined frontier of the call past pos.
+//
+// Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
+func (p *Parser) ExpectBudget(pos int, id ExpID) {
+	var i int
+	if p.Silent > 0 || pos < p.farthest {
+		return
+	}
+	if pos > p.farthest {
+		p.farthest = pos
+		p.exp = p.exp[:p.expBase]
+		p.expBits = 0
+	}
+	if !p.Expectations {
+		if len(p.exp) == p.expBase {
+			p.exp = append(p.exp, ExpFar)
+		}
+		return
+	}
+	if p.expBits&(uint64(1)<<(uint32(id)*0x9e3779b1>>26)) != 0 {
+		for i = 0; i < (len(p.exp) - p.expBase); i++ {
+			p.Spend()
+			if p.exp[p.expBase+i] == id {
+				return
+			}
+		}
+	}
+	p.expBits |= uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
+	p.exp = append(p.exp, id)
+}
+
+// ExpectOrdinary is expect in an ordinary parse: one without limit controls and outside a Document.
+// The generated rule bodies have a branch for such parses that calls the Ordinary forms of the runtime
+// helpers, which leave out the budget charges and the Document's record of the examined input.
+//
+// Printed from Exec IR function expectOrdinary of internal/ir/exec/core.
+func (p *Parser) ExpectOrdinary(pos int, id ExpID) {
+	if p.Silent > 0 || pos < p.farthest {
+		return
+	}
+	p.expectOrdinarySlow(pos, id)
+}
+
+// expectOrdinarySlow records the expectation of expectOrdinary at or beyond the farthest position. It is
+// separate so that the guard of expectOrdinary inlines into the generated code.
+//
+// Printed from Exec IR function expectSlow of internal/ir/exec/core.
+//
+//go:noinline
+func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
+	var i int
+	if pos > p.farthest {
+		p.farthest = pos
+		p.exp = p.exp[:p.expBase]
+		p.expBits = 0
+	}
+	if !p.Expectations {
+		if len(p.exp) == p.expBase {
+			p.exp = append(p.exp, ExpFar)
+		}
+		return
+	}
+	if p.expBits&(uint64(1)<<(uint32(id)*0x9e3779b1>>26)) != 0 {
+		for i = 0; i < (len(p.exp) - p.expBase); i++ {
+			if p.exp[p.expBase+i] == id {
+				return
+			}
+		}
+	}
+	p.expBits |= uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
+	p.exp = append(p.exp, id)
+}
+
+// MergeExpected records the expectations of s at far, as expect does for each of them, so that the
+// expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
+// record.
+//
+// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for document, budget.
+func (p *Parser) MergeExpected(far int, s []ExpID) {
+	var i int
+	if p.Expectations {
+		for i = 0; i < len(s); i++ {
+			p.Spend()
+			p.Expect(far, s[i])
+		}
+	} else {
+		for i = 0; i < len(s); i++ {
+			p.Spend()
+			p.documentTouch(far + 1)
+			if !(p.Silent > 0 || far < p.farthest) {
+				if far > p.farthest {
+					p.farthest = far
+					p.exp = p.exp[:p.expBase]
+					p.expBits = 0
+				}
+				if len(p.exp) == p.expBase {
+					p.exp = append(p.exp, ExpFar)
+				}
+			}
+		}
+	}
+}
+
 // callBody calls rule r at binding level min: unmemoized while its memoization is deferred, and
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
 // a left-recursion leader.

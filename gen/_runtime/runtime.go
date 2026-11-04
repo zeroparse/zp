@@ -2468,104 +2468,6 @@ func (p *Parser) unitLen(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-// Expect records that id was expected at pos.
-func (p *Parser) Expect(pos int, id ExpID) {
-	p.documentTouch(pos + 1)
-	if p.Silent > 0 || pos < p.farthest {
-		return
-	}
-	if pos > p.farthest {
-		p.farthest = pos
-		p.exp = p.exp[:p.expBase]
-		p.expBits = 0
-	}
-	if !p.Expectations {
-		if len(p.exp) == p.expBase {
-			p.exp = append(p.exp, ExpFar)
-		}
-		return
-	}
-	bit := uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	if p.expBits&bit != 0 {
-		for _, e := range p.exp[p.expBase:] {
-			p.Spend()
-			if e == id {
-				return
-			}
-		}
-	}
-	p.expBits |= bit
-	p.exp = append(p.exp, id)
-}
-
-// ExpectBudget is Expect in a parse that has no Document: it charges the budget and leaves out the
-// Document's record of the examined input.
-//
-// ExpectBudget is for generated parsers; not a stable API.
-func (p *Parser) ExpectBudget(pos int, id ExpID) {
-	if p.Silent > 0 || pos < p.farthest {
-		return
-	}
-	if pos > p.farthest {
-		p.farthest = pos
-		p.exp = p.exp[:p.expBase]
-		p.expBits = 0
-	}
-	if !p.Expectations {
-		if len(p.exp) == p.expBase {
-			p.exp = append(p.exp, ExpFar)
-		}
-		return
-	}
-	bit := uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	if p.expBits&bit != 0 {
-		for _, e := range p.exp[p.expBase:] {
-			p.Spend()
-			if e == id {
-				return
-			}
-		}
-	}
-	p.expBits |= bit
-	p.exp = append(p.exp, id)
-}
-
-// ExpectOrdinary is expect in an ordinary parse: one without limit controls and outside a
-// Document (p.Control == nil && p.Document == nil). The generated rule bodies have a branch for
-// such parses that calls the Ordinary forms of the runtime helpers, which leave out the budget
-// charges and the Document's record of the examined input.
-func (p *Parser) ExpectOrdinary(pos int, id ExpID) {
-	if p.Silent > 0 || pos < p.farthest {
-		return
-	}
-	p.expectOrdinarySlow(pos, id)
-}
-
-// expectOrdinarySlow records the expectation of ExpectOrdinary at or beyond the farthest position.
-// It is separate so that the early return of ExpectOrdinary inlines into the generated code.
-//
-//go:noinline
-func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
-	if !p.Expectations {
-		id = ExpFar
-	}
-	if pos > p.farthest {
-		p.farthest = pos
-		p.exp = p.exp[:p.expBase]
-		p.expBits = 0
-	}
-	bit := uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	if p.expBits&bit != 0 {
-		for _, e := range p.exp[p.expBase:] {
-			if e == id {
-				return
-			}
-		}
-	}
-	p.expBits |= bit
-	p.exp = append(p.exp, id)
-}
-
 // ExpMark is the expectation record before isolate.
 //
 // ExpMark is for generated parsers; not a stable API.
@@ -2620,15 +2522,6 @@ func slicesEqual(a, b []ExpID) bool {
 		}
 	}
 	return true
-}
-
-// MergeExpected records the expectations ids at far. ids may alias the stack above the
-// current record (writes only happen below the read position).
-func (p *Parser) MergeExpected(far int, ids []ExpID) {
-	for _, x := range ids {
-		p.Spend()
-		p.Expect(far, x)
-	}
 }
 
 func (p *Parser) Text(start, end int) string {

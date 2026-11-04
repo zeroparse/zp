@@ -110,3 +110,20 @@ func TestVarLines(t *testing.T) {
 		t.Errorf("VarLines\n%s\nwant\n%s", got, want)
 	}
 }
+
+// TestNoInlineDirective checks that a function marked NoInline prints with the directive that keeps
+// the compiler from inlining it, directly above the declaration, and that an unmarked one does not.
+func TestNoInlineDirective(t *testing.T) {
+	m, f := bodyModule(t, nil, note(ir.Int(1)))
+	f.Doc = "f notes one."
+	for _, noInline := range []bool{false, true} {
+		f.NoInline = noInline
+		src, err := Func(m, f, testTarget)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(src, "//go:noinline\nfunc "); got != noInline {
+			t.Errorf("NoInline %v prints\n%s", noInline, src)
+		}
+	}
+}

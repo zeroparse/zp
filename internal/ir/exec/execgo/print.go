@@ -248,6 +248,9 @@ func (p *printer) fn() string {
 		p.w("//\n")
 	}
 	p.w("// %s.\n", strings.ToUpper(source[:1])+source[1:])
+	if f.NoInline {
+		p.w("//go:noinline\n")
+	}
 	p.w("func ")
 	if p.t.Recv != "" {
 		p.w("(%s) ", p.t.Recv)

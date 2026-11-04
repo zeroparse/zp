@@ -37,6 +37,13 @@ var goSpecs = []goSpec{
 	// reads a Document itself.
 	{fn: "call", on: []string{ops.Document}, name: "Call"},
 	{fn: "grow", name: "grow"},
+	// The expectation record: the Document form, the form of a parse without a Document, and the
+	// form of an ordinary parse with its slow path.
+	{fn: "expect", on: []string{ops.Document, ops.Budget}, name: "Expect"},
+	{fn: "expect", on: []string{ops.Budget}, name: "ExpectBudget"},
+	{fn: "expectOrdinary", name: "ExpectOrdinary"},
+	{fn: "expectSlow", name: "expectOrdinarySlow"},
+	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "MergeExpected"},
 	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "callBody"},
 	{fn: "callMemo", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "CallMemo"},
 	{fn: "grow", typed: true, on: []string{ops.Typed}, name: "grow"},
@@ -110,11 +117,11 @@ func goTarget(s goSpec) *execgo.Target {
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
 		ops.Rule: "*Rule", ops.Value: "*Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "[]*SyntaxError",
-		ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
+		ops.ExpID: "ExpID", ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
-		"document": "callDocument", "body": "callBody", "observed": "callObserved"}
+		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected"}
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	rule := func(r string) string { return r }
 	// step passes the value of a growth step as the node or the typed value of growStep.
@@ -180,6 +187,30 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.Recovered = p.copyErrors(p.Recovered, " + a[0] + ")"
 		case "rec.none":
 			return "len(" + a[0] + ") == 0"
+		case "exp.farthest":
+			return "p.farthest"
+		case "exp.recording":
+			return "p.Expectations"
+		case "exp.reset":
+			return fmt.Sprintf("p.farthest = %s\np.exp = p.exp[:p.expBase]\np.expBits = 0", a[0])
+		case "exp.fresh":
+			return "len(p.exp) == p.expBase"
+		case "exp.placeholder":
+			return "p.exp = append(p.exp, ExpFar)"
+		case "exp.maybe":
+			return fmt.Sprintf("p.expBits&(uint64(1)<<(uint32(%s)*0x9e3779b1>>26)) != 0", a[0])
+		case "exp.count":
+			return "len(p.exp) - p.expBase"
+		case "exp.at":
+			return "p.exp[p.expBase+" + a[0] + "]"
+		case "exp.add":
+			return fmt.Sprintf("p.expBits |= uint64(1) << (uint32(%s) * 0x9e3779b1 >> 26)\np.exp = append(p.exp, %[1]s)", a[0])
+		case "exp.setCount":
+			return "len(" + a[0] + ")"
+		case "exp.setAt":
+			return a[0] + "[" + a[1] + "]"
+		case "exp.spend":
+			return "p.Spend()"
 		case "exp.isolate":
 			return "p.Isolate(" + a[0] + ")"
 		case "exp.unisolate":

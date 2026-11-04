@@ -193,6 +193,9 @@ type Func struct {
 	Body     *Block
 	// Doc describes the function; backends print it as the comment of the printed function.
 	Doc string
+	// NoInline asks backends that can to keep the function out of its callers' bodies, so that a
+	// caller's guard stays small enough to inline and the function runs only when the guard fails.
+	NoInline bool
 }
 
 // Stmt is a statement.
