@@ -156,9 +156,11 @@ func (p *Parser) ctxReplay(h ctxHit, seed bool) {
 
 // ctxPop ends recording the dependencies of the evaluation of a call in a context and returns
 // where its result goes: storeMemo for a result that read no seed, storeCtx for one that did, and
-// storeNowhere for a call whose context has no present set.
+// storeNowhere for a call whose context records no dependencies. A result that goes nowhere is
+// dropped: the last result of a leader's growth is not retained.
 func (p *Parser) ctxPop(c *CtxState) int {
 	if !c.framed {
+		p.grown = nil
 		return storeNowhere
 	}
 	_, c.ds = p.popFrame()
