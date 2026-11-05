@@ -138,10 +138,10 @@ op memo.splice(start int, end int, delta int)
     // Applies an edit of the input that replaces [start, end) with input delta units longer. An
     // entry whose recorded examined input ends at or before start stays where it is. An entry whose recorded
     // examined input starts at or after end, that is not pinned and has no recovered errors, moves by delta:
-    // it is found at its position plus delta, and its end, its examined input and the farthest position of
-    // its expectations move with it, and its value moves when it is reused (doc.move). Every other entry is
-    // removed. The handles of all entries from
-    // before the edit are no longer valid: a target may copy the entries it keeps.
+    // it is found at its position plus delta, and its end and its examined input move with it, and its
+    // value moves when it is reused (doc.move). Every other entry is removed. The handles of all entries from
+    // before the edit are no longer valid: a target may copy the entries it keeps. What a target records with
+    // an entry besides these moves with it as that record says (memo.setExpected).
   requires:
     // 0 <= start <= end, and start <= end + delta.
 

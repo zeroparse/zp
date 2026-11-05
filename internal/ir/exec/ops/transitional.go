@@ -241,7 +241,8 @@ and the memory it takes as the target accounts it.`})
 		Contract: `Returns the expectations of entry e.`})
 	add(&exec.Op{Name: "memo.setExpected", Component: Memo, Params: append(entryArg, exec.P("far", exec.TInt), exec.P("k", kept)),
 		Writes:   []string{Memo},
-		Contract: `Records the expectations k at far of the call that computed entry e.`})
+		Contract: `Records the expectations k at far of the call that computed entry e. When memo.splice moves e,
+far moves with it, by the same amount as its end.`})
 	add(&exec.Op{Name: "memo.forgetDoc", Component: Memo, Params: entryArg, Writes: []string{Memo}, Features: []string{Document},
 		Contract: `Forgets the Document record of the entry e, which the call replaces, where the target keeps
 the records beside the entries.`})
