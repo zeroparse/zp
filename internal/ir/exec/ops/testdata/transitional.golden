@@ -58,6 +58,10 @@ component operators
   // The bookkeeping of the Operators Rule loop: whether a candidate of the last longest match
   // failed after a cut.
 
+component suspended
+  // The calls whose rule body runs between the begin and the end of the split call
+  // protocol, each with the state that its begin saved for its end in a record that its caller holds.
+
 register pos int
   // The position of the parse in the input.
 
@@ -132,6 +136,9 @@ handle Attempt of operators
   // the frame of its captures, the environment after it, whether it cut, and the errors it recovered. The
   // null attempt is no match.
 
+handle CallState of suspended
+  // The record of a suspended call, which its caller holds.
+
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
   reads memo
@@ -192,7 +199,7 @@ op memo.examine(e Entry, before bool, end int)
     // reads at most that unit before its position, to tell a line start), to end, exclusive. The record
     // replaces those that memo.examine and memo.pin made before.
   requires:
-    // end is greater than the position of e.
+    // end is at or after the position of e.
 
 op memo.examined(e Entry) int
   component memo
@@ -901,7 +908,9 @@ transitional op doc.enter(pos int) (int, int)
   cost <= 0
   contract:
     // Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
-    // its end and its start, and starts the call's examined input as [pos, pos+1).
+    // its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
+    // whose matches extend the examined input to the end of each unit they read and whose calls do not
+    // extend it past their end, as the empty range at pos.
 
 transitional op doc.leave(high int, low int)
   component call
@@ -1430,3 +1439,166 @@ transitional op opr.cutFailed() bool
   cost <= 0
   contract:
     // Reports what the last opr.setCutFailed recorded.
+
+op call.state() CallState
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Returns a record for the state of a call that the caller holds until the call ends.
+
+op call.save(st CallState, start int, min int, key Values, c Ctx, rec int, m ExpMark)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Saves in st the state that the end of the call needs: its position, its binding level, the
+    // values of its key, its context state, the mark of its recovered errors and the record that its
+    // isolation set aside.
+
+op call.saveExamined(st CallState, high int, low int)
+  component suspended
+  writes suspended
+  features document
+  cost <= 0
+  contract:
+    // Saves in st the examined input of the enclosing call, which doc.enter returned.
+
+op call.saveMissing(st CallState, mark int)
+  component suspended
+  writes suspended
+  features missing
+  cost <= 0
+  contract:
+    // Saves in st the mark of the missing-token record, which missing.mark returned.
+
+op call.start(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the position of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.min(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the binding level of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.key(st CallState) Values
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the values of the key of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.ctx(st CallState) Ctx
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the context state of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.rec(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the mark of the recovered errors of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.mark(st CallState) ExpMark
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the record that the isolation of the call set aside that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.high(st CallState) int
+  component suspended
+  reads suspended
+  features document
+  cost <= 0
+  contract:
+    // Returns the end of the examined input of the enclosing call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.low(st CallState) int
+  component suspended
+  reads suspended
+  features document
+  cost <= 0
+  contract:
+    // Returns the start of the examined input of the enclosing call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.missing(st CallState) int
+  component suspended
+  reads suspended
+  features missing
+  cost <= 0
+  contract:
+    // Returns the mark of the missing-token record that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+transitional op missing.active() bool
+  component recovered
+  reads recovered
+  features missing
+  cost <= 0
+  contract:
+    // Reports whether the parse runs in the missing-token mode.
+
+transitional op missing.recompute(r Rule) bool
+  component recovered
+  reads recovered, rules
+  features missing
+  cost <= 0
+  contract:
+    // Reports whether a result of the rule is evaluated again instead of being reused from the memo:
+    // the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token.
+
+transitional op missing.mark() int
+  component recovered
+  reads recovered
+  features missing
+  cost <= 0
+  contract:
+    // Returns a mark of the missing-token record, for missing.reset.
+
+transitional op missing.reset(mark int)
+  component recovered
+  writes recovered
+  features missing
+  cost <= 0
+  contract:
+    // Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it.
+  requires:
+    // mark is a result of missing.mark at or before every later mark that is still in use.
+
+transitional op missing.replay(e Entry)
+  component recovered
+  writes recovered
+  features missing
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Records again the tokens that the call of entry e inserted and the errors it recovered, as
+    // rec.add does for the errors outside the missing-token mode.
+  requires:
+    // The parse runs in the missing-token mode.

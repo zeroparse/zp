@@ -111,3 +111,20 @@ func asErr(x any) error {
 	err, _ := x.(error)
 	return err
 }
+
+// TestEmptyExaminedRecord checks that a record of an empty examined input at the entry's position,
+// at position 0 too, is a record: an edit after it keeps the entry where it is.
+func TestEmptyExaminedRecord(t *testing.T) {
+	m := New(Config{})
+	k := []any{int64(1), int64(0), int64(0), int64(7)}
+	e := call(m, "memo.store", append(k, true, int64(0), false, nil, nil)...)[0]
+	args := []any{e, false, int64(0)}
+	if !m.Allows(pilot.Op("memo.examine"), args) {
+		t.Fatal("an empty examined input at the entry's position is not allowed")
+	}
+	call(m, "memo.examine", args...)
+	call(m, "memo.splice", int64(2), int64(3), int64(1))
+	if r := call(m, "memo.lookup", k...); !r[1].(bool) {
+		t.Error("an edit after the empty examined input removed the entry")
+	}
+}

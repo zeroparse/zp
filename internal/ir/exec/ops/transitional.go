@@ -356,7 +356,9 @@ the call's frontier and true in a Document parse, and false otherwise.`,
 	add(&exec.Op{Name: "doc.enter", Component: Call, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Results: []exec.Type{exec.TInt, exec.TInt}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
-its end and its start, and starts the call's examined input as [pos, pos+1).`})
+its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
+whose matches extend the examined input to the end of each unit they read and whose calls do not
+extend it past their end, as the empty range at pos.`})
 	add(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
 		Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
@@ -397,4 +399,5 @@ transitional: recovery bookkeeping has no Exec IR form.`,
 		Requires: `The parse retains the tail (stream.tail).`})
 
 	framesAndOperators(m, add, rule, value, errs)
+	splitCall(m, add, rule, values, ctx, mark, entry)
 }

@@ -62,10 +62,10 @@ type Entry struct {
 	silent bool
 	value  any
 	errs   any
-	// before and examined are the input recorded by memo.examine, examined 0 for none; pinned
-	// reports memo.pin.
-	examined       int64
-	before, pinned bool
+	// recorded reports a record of memo.examine; before and examined are the input it recorded, and
+	// pinned reports memo.pin.
+	examined                 int64
+	recorded, before, pinned bool
 	// pruned reports an entry that memo.prune or memo.splice made invalid, or that memo.store replaced.
 	pruned bool
 }
@@ -111,7 +111,7 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return !args[0].(*Entry).pruned
 	case "memo.examine":
 		e := args[0].(*Entry)
-		return !e.pruned && args[2].(int64) > e.key.pos
+		return !e.pruned && args[2].(int64) >= e.key.pos
 	case "memo.pin":
 		return !args[0].(*Entry).pruned
 	case "memo.splice":
@@ -174,7 +174,7 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return []any{m.floor}
 	case "memo.examine":
 		e := args[0].(*Entry)
-		e.before, e.examined, e.pinned = args[1].(bool), args[2].(int64), false
+		e.recorded, e.before, e.examined, e.pinned = true, args[1].(bool), args[2].(int64), false
 		return nil
 	case "memo.examined":
 		return []any{args[0].(*Entry).examined}
@@ -294,7 +294,7 @@ func (m *Model) splice(start, end, delta int64) {
 		c := *e
 		c.pruned = false
 		switch {
-		case e.examined == 0:
+		case !e.recorded:
 			continue
 		case e.examined <= start:
 		case e.from() >= end && !e.pinned && e.errs == nil:

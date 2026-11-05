@@ -130,7 +130,7 @@ memo.prune.`})
 after an edit (memo.splice): from the position of e, or from the unit before it if before (a call
 reads at most that unit before its position, to tell a line start), to end, exclusive. The record
 replaces those that memo.examine and memo.pin made before.`,
-		Requires: `end is greater than the position of e.`})
+		Requires: `end is at or after the position of e.`})
 	m.AddOp(&exec.Op{Name: "memo.examined", Component: Memo, Params: []exec.Param{exec.P("e", entry)},
 		Results: []exec.Type{exec.TInt}, Reads: []string{Memo}, Features: doc,
 		Contract: `Returns the end of the input that memo.examine recorded with entry e, or 0 if none was

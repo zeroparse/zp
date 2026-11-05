@@ -99,6 +99,22 @@ type growth struct {
 	done       bool
 }
 
+// callState is the record of a suspended call in the model (call.state).
+type callState struct {
+	start, min, key, rec, high, low, missing any
+	ctx, mark                                any
+	saved                                    bool
+}
+
+// stateOf returns the record st of a suspended call, which call.save must have filled.
+func stateOf(x any) *callState {
+	st := x.(*callState)
+	if !st.saved {
+		panic(exec.Interrupt{Reason: "the state of a call is read before call.save"})
+	}
+	return st
+}
+
 func resultOf(x any) *result {
 	r, _ := x.(*result)
 	return r
@@ -349,6 +365,44 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		k, _ := args[11].([]string)
 		m.ctx.kept = append(m.ctx.kept, &result{v: args[8], ok: args[5].(bool), end: args[6].(int64), errs: errs, far: args[10].(int64), exps: k})
 		return nil
+	// The record of a suspended call, and the missing-token mode, which no call of the model is in.
+	case "call.state":
+		return []any{&callState{}}
+	case "call.save":
+		st := args[0].(*callState)
+		st.start, st.min, st.key, st.ctx, st.rec, st.mark, st.saved = args[1], args[2], args[3], args[4], args[5], args[6], true
+		return nil
+	case "call.saveExamined":
+		st := args[0].(*callState)
+		st.high, st.low = args[1], args[2]
+		return nil
+	case "call.saveMissing":
+		args[0].(*callState).missing = args[1]
+		return nil
+	case "call.start":
+		return []any{stateOf(args[0]).start}
+	case "call.min":
+		return []any{stateOf(args[0]).min}
+	case "call.key":
+		return []any{stateOf(args[0]).key}
+	case "call.ctx":
+		return []any{stateOf(args[0]).ctx}
+	case "call.rec":
+		return []any{stateOf(args[0]).rec}
+	case "call.mark":
+		return []any{stateOf(args[0]).mark}
+	case "call.high":
+		return []any{stateOf(args[0]).high}
+	case "call.low":
+		return []any{stateOf(args[0]).low}
+	case "call.missing":
+		return []any{stateOf(args[0]).missing}
+	case "missing.active", "missing.recompute":
+		return []any{false}
+	case "missing.mark":
+		return []any{int64(len(m.rec))}
+	case "missing.reset":
+		return nil
 	case "grow.begin":
 		m.steps++
 		return []any{&growth{start: m.pos(), rec: int64(len(m.rec)), best: &result{end: m.pos()}}}
@@ -388,6 +442,26 @@ func composition(t *testing.T, m *exec.Module, fn string, on ...string) *exec.Fu
 	return f
 }
 
+// callForms are the specializations of the rule calls that the tests of the call protocol run: the
+// call of the generated runtimes and the engine's call over its split protocol.
+var callForms = []struct {
+	name, fn string
+	on       []string
+}{
+	{"call", "call", []string{ops.Budget}},
+	{"engine", "engineCall", []string{ops.Document, ops.Missing, ops.Budget}},
+}
+
+// forEachCall runs test for each of callForms with its specialization.
+func forEachCall(t *testing.T, test func(t *testing.T, mod *exec.Module, f *exec.Func)) {
+	for _, c := range callForms {
+		t.Run(c.name, func(t *testing.T) {
+			mod := Build()
+			test(t, mod, composition(t, mod, c.fn, c.on...))
+		})
+	}
+}
+
 // callAt calls the rule r at the position pos with the composition call specialized for on, and
 // returns its value and success.
 func callAt(t *testing.T, mod *exec.Module, m *machine, f *exec.Func, r *trule, pos int64) (any, bool) {
@@ -418,28 +492,28 @@ func (s *start) UseRegisters(regs map[string]any) {
 // TestCallFailureRestoresState checks that a failed call, unmemoized and through the memo, leaves the
 // position where it started and drops the errors its body recovered.
 func TestCallFailureRestoresState(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	m := newMachine()
-	r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
-		m.recover("skipped")
-		m.advance(2)
-		return nil, false
-	}}
-	for i, path := range []string{"unmemoized", "memoized", "reused"} {
-		if _, ok := callAt(t, mod, m, f, r, 3); ok {
-			t.Fatalf("%s call succeeded", path)
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		m := newMachine()
+		r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
+			m.recover("skipped")
+			m.advance(2)
+			return nil, false
+		}}
+		for i, path := range []string{"unmemoized", "memoized", "reused"} {
+			if _, ok := callAt(t, mod, m, f, r, 3); ok {
+				t.Fatalf("%s call succeeded", path)
+			}
+			if m.pos() != 3 || len(m.rec) != 0 {
+				t.Errorf("%s call: position %d, recovered %v; want 3 and none", path, m.pos(), m.rec)
+			}
+			if want := min(i+1, 2); r.runs != want {
+				t.Errorf("%s call: %d evaluations of the body, want %d", path, r.runs, want)
+			}
 		}
-		if m.pos() != 3 || len(m.rec) != 0 {
-			t.Errorf("%s call: position %d, recovered %v; want 3 and none", path, m.pos(), m.rec)
+		if m.spends != 3 {
+			t.Errorf("%d charges for 3 calls", m.spends)
 		}
-		if want := min(i+1, 2); r.runs != want {
-			t.Errorf("%s call: %d evaluations of the body, want %d", path, r.runs, want)
-		}
-	}
-	if m.spends != 3 {
-		t.Errorf("%d charges for 3 calls", m.spends)
-	}
+	})
 }
 
 // TestUnmemoized checks that the unmemoized call of the tracked path evaluates the body each time,
@@ -477,109 +551,109 @@ func TestUnmemoized(t *testing.T) {
 // recovered and the expectations it recorded, and that the call that reuses its entry records them
 // again and moves to its end.
 func TestCallSuccessKeepsErrors(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	m := newMachine()
-	r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
-		m.recover("skipped")
-		m.advance(2)
-		m.expect("x")
-		return "v", true
-	}}
-	for i := range 3 {
-		m.rec, m.cur = nil, record{}
-		v, ok := callAt(t, mod, m, f, r, 3)
-		if !ok || v != "v" || m.pos() != 5 || !slices.Equal(m.rec, []string{"skipped"}) {
-			t.Errorf("call %d: %v %v at %d, recovered %v; want v true at 5 and one error", i, v, ok, m.pos(), m.rec)
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		m := newMachine()
+		r := &trule{id: 1, memo: true, defer_: true, body: func(m *machine) (any, bool) {
+			m.recover("skipped")
+			m.advance(2)
+			m.expect("x")
+			return "v", true
+		}}
+		for i := range 3 {
+			m.rec, m.cur = nil, record{}
+			v, ok := callAt(t, mod, m, f, r, 3)
+			if !ok || v != "v" || m.pos() != 5 || !slices.Equal(m.rec, []string{"skipped"}) {
+				t.Errorf("call %d: %v %v at %d, recovered %v; want v true at 5 and one error", i, v, ok, m.pos(), m.rec)
+			}
+			if m.farthest() != 5 || !slices.Equal(m.expected(), []string{"x"}) {
+				t.Errorf("call %d: the record holds %d %v, want 5 [x]", i, m.farthest(), m.expected())
+			}
 		}
-		if m.farthest() != 5 || !slices.Equal(m.expected(), []string{"x"}) {
-			t.Errorf("call %d: the record holds %d %v, want 5 [x]", i, m.farthest(), m.expected())
+		if r.runs != 2 {
+			t.Errorf("%d evaluations of the body, want 2", r.runs)
 		}
-	}
-	if r.runs != 2 {
-		t.Errorf("%d evaluations of the body, want 2", r.runs)
-	}
+	})
 }
 
 // TestCallExpectationsFromStart checks that a memoized call records its expectations in a record
 // that starts at its position: its entry keeps that position as the farthest one when the body
 // recorded nothing past it, and the expectations it recorded otherwise.
 func TestCallExpectationsFromStart(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	for _, c := range []struct {
-		name string
-		exp  bool
-	}{{"nothing recorded", false}, {"an expectation", true}} {
-		t.Run(c.name, func(t *testing.T) {
-			m := newMachine()
-			r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		for _, c := range []struct {
+			name string
+			exp  bool
+		}{{"nothing recorded", false}, {"an expectation", true}} {
+			t.Run(c.name, func(t *testing.T) {
+				m := newMachine()
+				r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+					if c.exp {
+						m.advance(1)
+						m.expect("x")
+					}
+					return nil, false
+				}}
+				callAt(t, mod, m, f, r, 4)
+				res := m.Model.Call(&exec.Op{Name: "memo.lookup"}, []any{int64(1), int64(4), int64(0), int64(0)})
+				e := res[0].(*ref.Entry)
+				want := record{far: 4}
 				if c.exp {
-					m.advance(1)
-					m.expect("x")
+					want = record{far: 5, exps: []string{"x"}}
 				}
-				return nil, false
-			}}
-			callAt(t, mod, m, f, r, 4)
-			res := m.Model.Call(&exec.Op{Name: "memo.lookup"}, []any{int64(1), int64(4), int64(0), int64(0)})
-			e := res[0].(*ref.Entry)
-			want := record{far: 4}
-			if c.exp {
-				want = record{far: 5, exps: []string{"x"}}
-			}
-			if got := m.exps[e]; got.far != want.far || !slices.Equal(got.exps, want.exps) {
-				t.Errorf("the entry keeps %+v, want %+v", got, want)
-			}
-			// An empty set of expectations leaves the enclosing record as it is.
-			outer := record{}
-			if c.exp {
-				outer = want
-			}
-			if m.farthest() != outer.far || !slices.Equal(m.expected(), outer.exps) {
-				t.Errorf("the record holds %d %v, want %+v", m.farthest(), m.expected(), outer)
-			}
-		})
-	}
+				if got := m.exps[e]; got.far != want.far || !slices.Equal(got.exps, want.exps) {
+					t.Errorf("the entry keeps %+v, want %+v", got, want)
+				}
+				// An empty set of expectations leaves the enclosing record as it is.
+				outer := record{}
+				if c.exp {
+					outer = want
+				}
+				if m.farthest() != outer.far || !slices.Equal(m.expected(), outer.exps) {
+					t.Errorf("the record holds %d %v, want %+v", m.farthest(), m.expected(), outer)
+				}
+			})
+		}
+	})
 }
 
 // TestCallReuseContexts checks which entries a call reuses: one computed in a lookahead only in
 // one, and one computed outside a lookahead in both kinds of context, with or without recovered
 // errors.
 func TestCallReuseContexts(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	for _, c := range []struct {
-		name                string
-		errs                bool
-		storeSilent, silent int64
-		reused              bool
-	}{
-		{"plain entry in a lookahead", false, 0, 1, true},
-		{"silent entry outside", false, 1, 0, false},
-		{"silent entry in a lookahead", false, 1, 1, true},
-		{"entry with errors in a lookahead", true, 0, 1, true},
-		{"silent entry with errors in a lookahead", true, 1, 1, true},
-		{"silent entry with errors outside", true, 1, 0, false},
-		{"entry with errors outside", true, 0, 0, true},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			m := newMachine()
-			r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
-				if c.errs {
-					m.recover("skipped")
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		for _, c := range []struct {
+			name                string
+			errs                bool
+			storeSilent, silent int64
+			reused              bool
+		}{
+			{"plain entry in a lookahead", false, 0, 1, true},
+			{"silent entry outside", false, 1, 0, false},
+			{"silent entry in a lookahead", false, 1, 1, true},
+			{"entry with errors in a lookahead", true, 0, 1, true},
+			{"silent entry with errors in a lookahead", true, 1, 1, true},
+			{"silent entry with errors outside", true, 1, 0, false},
+			{"entry with errors outside", true, 0, 0, true},
+		} {
+			t.Run(c.name, func(t *testing.T) {
+				m := newMachine()
+				r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+					if c.errs {
+						m.recover("skipped")
+					}
+					m.advance(1)
+					return "v", true
+				}}
+				m.regs = map[string]any{ops.Silent: c.storeSilent}
+				callAt(t, mod, m, f, r, 0)
+				m.regs[ops.Silent] = c.silent
+				callAt(t, mod, m, f, r, 0)
+				if reused := r.runs == 1; reused != c.reused {
+					t.Errorf("reused %v, want %v", reused, c.reused)
 				}
-				m.advance(1)
-				return "v", true
-			}}
-			m.regs = map[string]any{ops.Silent: c.storeSilent}
-			callAt(t, mod, m, f, r, 0)
-			m.regs[ops.Silent] = c.silent
-			callAt(t, mod, m, f, r, 0)
-			if reused := r.runs == 1; reused != c.reused {
-				t.Errorf("reused %v, want %v", reused, c.reused)
-			}
-		})
-	}
+			})
+		}
+	})
 }
 
 // TestCallLookaheadStates checks that calls that alternate between a lookahead and outside one
@@ -587,41 +661,41 @@ func TestCallReuseContexts(t *testing.T) {
 // not its result has recovered errors: the entry computed outside answers the calls in both
 // states, and one computed inside only the calls inside one.
 func TestCallLookaheadStates(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	for _, c := range []struct {
-		states string
-		errs   bool
-		runs   int
-	}{
-		{"OIOIOI", true, 1},
-		{"IOIOIO", true, 2},
-		{"OIOIOI", false, 1},
-		{"IOIOIO", false, 2},
-		{"IIII", true, 1},
-		{"OOOO", true, 1},
-	} {
-		t.Run(fmt.Sprint(c.states, c.errs), func(t *testing.T) {
-			m := newMachine()
-			r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
-				if c.errs {
-					m.recover("skipped")
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		for _, c := range []struct {
+			states string
+			errs   bool
+			runs   int
+		}{
+			{"OIOIOI", true, 1},
+			{"IOIOIO", true, 2},
+			{"OIOIOI", false, 1},
+			{"IOIOIO", false, 2},
+			{"IIII", true, 1},
+			{"OOOO", true, 1},
+		} {
+			t.Run(fmt.Sprint(c.states, c.errs), func(t *testing.T) {
+				m := newMachine()
+				r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+					if c.errs {
+						m.recover("skipped")
+					}
+					m.advance(1)
+					return "v", true
+				}}
+				m.regs = map[string]any{}
+				for _, s := range c.states {
+					m.regs[ops.Silent] = map[rune]int64{'O': 0, 'I': 1}[s]
+					if v, ok := callAt(t, mod, m, f, r, 0); !ok || v != "v" {
+						t.Fatalf("call %c: %v %v", s, v, ok)
+					}
 				}
-				m.advance(1)
-				return "v", true
-			}}
-			m.regs = map[string]any{}
-			for _, s := range c.states {
-				m.regs[ops.Silent] = map[rune]int64{'O': 0, 'I': 1}[s]
-				if v, ok := callAt(t, mod, m, f, r, 0); !ok || v != "v" {
-					t.Fatalf("call %c: %v %v", s, v, ok)
+				if r.runs != c.runs {
+					t.Errorf("%d evaluations, want %d", r.runs, c.runs)
 				}
-			}
-			if r.runs != c.runs {
-				t.Errorf("%d evaluations, want %d", r.runs, c.runs)
-			}
-		})
-	}
+			})
+		}
+	})
 }
 
 // TestObserved checks that an observed call reports its beginning and its end to the observation,
@@ -946,38 +1020,38 @@ func (m *machine) lastEntry(t *testing.T) *ref.Entry {
 // TestGrowth checks that a leader's call evaluates its body while the match gets longer, charging
 // one growth step per evaluation, and ends at the longest match with its errors only.
 func TestGrowth(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	m := newMachine()
-	lens := []int64{1, 3, 3}
-	n := 0
-	r := &trule{id: 2, memo: true, leader: true, body: func(m *machine) (any, bool) {
-		if n >= len(lens) {
-			return nil, false
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		m := newMachine()
+		lens := []int64{1, 3, 3}
+		n := 0
+		r := &trule{id: 2, memo: true, leader: true, body: func(m *machine) (any, bool) {
+			if n >= len(lens) {
+				return nil, false
+			}
+			m.recover(fmt.Sprint("e", n))
+			m.advance(lens[n])
+			n++
+			return fmt.Sprint("v", n), true
+		}}
+		v, ok := callAt(t, mod, m, f, r, 2)
+		if !ok || v != "v2" || m.pos() != 5 {
+			t.Errorf("%v %v at %d, want v2 true at 5", v, ok, m.pos())
 		}
-		m.recover(fmt.Sprint("e", n))
-		m.advance(lens[n])
-		n++
-		return fmt.Sprint("v", n), true
-	}}
-	v, ok := callAt(t, mod, m, f, r, 2)
-	if !ok || v != "v2" || m.pos() != 5 {
-		t.Errorf("%v %v at %d, want v2 true at 5", v, ok, m.pos())
-	}
-	if !slices.Equal(m.rec, []string{"e1"}) {
-		t.Errorf("recovered %v, want the errors of the longest match", m.rec)
-	}
-	if r.runs != 3 || m.steps != 3 {
-		t.Errorf("%d evaluations and %d growth steps, want 3 and 3", r.runs, m.steps)
-	}
-	// The call stores the result of the growth in the memo, with its present set, and reuses it.
-	e := m.lastEntry(t)
-	if !m.ctx.present[e] {
-		t.Error("the entry of the growth has no present set")
-	}
-	if v, ok := callAt(t, mod, m, f, r, 2); !ok || v != "v2" || m.pos() != 5 || r.runs != 3 {
-		t.Errorf("the reuse gives %v %v at %d after %d evaluations, want v2 true at 5 after 3", v, ok, m.pos(), r.runs)
-	}
+		if !slices.Equal(m.rec, []string{"e1"}) {
+			t.Errorf("recovered %v, want the errors of the longest match", m.rec)
+		}
+		if r.runs != 3 || m.steps != 3 {
+			t.Errorf("%d evaluations and %d growth steps, want 3 and 3", r.runs, m.steps)
+		}
+		// The call stores the result of the growth in the memo, with its present set, and reuses it.
+		e := m.lastEntry(t)
+		if !m.ctx.present[e] {
+			t.Error("the entry of the growth has no present set")
+		}
+		if v, ok := callAt(t, mod, m, f, r, 2); !ok || v != "v2" || m.pos() != 5 || r.runs != 3 {
+			t.Errorf("the reuse gives %v %v at %d after %d evaluations, want v2 true at 5 after 3", v, ok, m.pos(), r.runs)
+		}
+	})
 }
 
 // TestCallContext checks how a memoized call uses the context of its call: it returns the seed of
@@ -985,72 +1059,101 @@ func TestGrowth(t *testing.T) {
 // where the dependencies of its evaluation send it (the memo, the table of the context or nowhere),
 // reuses a memo entry only if the context allows it, and reuses the result kept in the context.
 func TestCallContext(t *testing.T) {
-	mod := Build()
-	f := composition(t, mod, "call", ops.Budget)
-	body := func(m *machine) (any, bool) {
-		m.recover("skipped")
-		m.advance(2)
-		m.expect("x")
-		return "v", true
-	}
-	t.Run("seed", func(t *testing.T) {
-		m := newMachine()
-		m.ctx.seed = &result{v: "s", ok: true, end: 7, far: 9, exps: []string{"y"}}
-		r := &trule{id: 1, memo: true, leader: true, body: body}
-		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "s" || m.pos() != 7 || r.runs != 0 {
-			t.Errorf("%v %v at %d after %d evaluations, want the seed at 7 without evaluation", v, ok, m.pos(), r.runs)
+	forEachCall(t, func(t *testing.T, mod *exec.Module, f *exec.Func) {
+		body := func(m *machine) (any, bool) {
+			m.recover("skipped")
+			m.advance(2)
+			m.expect("x")
+			return "v", true
 		}
-		if m.farthest() != 0 || !slices.Equal(m.ctx.ops, []string{"enter"}) || m.last != nil {
-			t.Errorf("the read of the seed recorded %d %v, made %v and stored %v", m.farthest(), m.expected(), m.ctx.ops, m.last)
-		}
-	})
-	for _, c := range []struct {
-		name   string
-		store  int64
-		stored bool
-		kept   int
-	}{{"memo", 1, true, 0}, {"context", 2, false, 1}, {"nowhere", 0, false, 0}} {
-		t.Run(c.name, func(t *testing.T) {
+		t.Run("seed", func(t *testing.T) {
 			m := newMachine()
-			m.ctx.active, m.ctx.store = true, c.store
-			r := &trule{id: 1, memo: true, body: body}
-			if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || m.pos() != 5 {
-				t.Fatalf("%v %v at %d", v, ok, m.pos())
+			m.ctx.seed = &result{v: "s", ok: true, end: 7, far: 9, exps: []string{"y"}}
+			r := &trule{id: 1, memo: true, leader: true, body: body}
+			if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "s" || m.pos() != 7 || r.runs != 0 {
+				t.Errorf("%v %v at %d after %d evaluations, want the seed at 7 without evaluation", v, ok, m.pos(), r.runs)
 			}
-			if want := []string{"enter", "lookup", "push", "pop", "done"}; !slices.Equal(m.ctx.ops, want) {
-				t.Errorf("context operations %v, want %v", m.ctx.ops, want)
-			}
-			if (m.last != nil) != c.stored || len(m.ctx.kept) != c.kept {
-				t.Errorf("stored %v and kept %d results, want %v and %d", m.last != nil, len(m.ctx.kept), c.stored, c.kept)
-			}
-			if c.kept == 1 {
-				k := m.ctx.kept[0]
-				if k.v != "v" || !k.ok || k.end != 5 || !slices.Equal(k.errs, []string{"skipped"}) || k.far != 5 || !slices.Equal(k.exps, []string{"x"}) {
-					t.Errorf("kept %+v", *k)
-				}
+			if m.farthest() != 0 || !slices.Equal(m.ctx.ops, []string{"enter"}) || m.last != nil {
+				t.Errorf("the read of the seed recorded %d %v, made %v and stored %v", m.farthest(), m.expected(), m.ctx.ops, m.last)
 			}
 		})
+		for _, c := range []struct {
+			name   string
+			store  int64
+			stored bool
+			kept   int
+		}{{"memo", 1, true, 0}, {"context", 2, false, 1}, {"nowhere", 0, false, 0}} {
+			t.Run(c.name, func(t *testing.T) {
+				m := newMachine()
+				m.ctx.active, m.ctx.store = true, c.store
+				r := &trule{id: 1, memo: true, body: body}
+				if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || m.pos() != 5 {
+					t.Fatalf("%v %v at %d", v, ok, m.pos())
+				}
+				if want := []string{"enter", "lookup", "push", "pop", "done"}; !slices.Equal(m.ctx.ops, want) {
+					t.Errorf("context operations %v, want %v", m.ctx.ops, want)
+				}
+				if (m.last != nil) != c.stored || len(m.ctx.kept) != c.kept {
+					t.Errorf("stored %v and kept %d results, want %v and %d", m.last != nil, len(m.ctx.kept), c.stored, c.kept)
+				}
+				if c.kept == 1 {
+					k := m.ctx.kept[0]
+					if k.v != "v" || !k.ok || k.end != 5 || !slices.Equal(k.errs, []string{"skipped"}) || k.far != 5 || !slices.Equal(k.exps, []string{"x"}) {
+						t.Errorf("kept %+v", *k)
+					}
+				}
+			})
+		}
+		t.Run("denied entry", func(t *testing.T) {
+			m := newMachine()
+			r := &trule{id: 1, memo: true, body: body}
+			callAt(t, mod, m, f, r, 3)
+			m.ctx.deny, m.rec, m.cur = true, nil, record{}
+			callAt(t, mod, m, f, r, 3)
+			if r.runs != 2 {
+				t.Errorf("%d evaluations, want the entry not reused", r.runs)
+			}
+		})
+		t.Run("kept result", func(t *testing.T) {
+			m := newMachine()
+			m.ctx.active = true
+			m.ctx.held = &result{v: "k", ok: true, end: 6, errs: []string{"e"}, far: 6, exps: []string{"z"}}
+			r := &trule{id: 1, memo: true, body: body}
+			if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "k" || m.pos() != 6 || r.runs != 0 {
+				t.Errorf("%v %v at %d after %d evaluations, want the kept result", v, ok, m.pos(), r.runs)
+			}
+			if !slices.Equal(m.rec, []string{"e"}) || m.farthest() != 6 || !slices.Equal(m.expected(), []string{"z"}) || m.memoHit != 1 {
+				t.Errorf("the reuse recorded %v, %d %v and %d hits", m.rec, m.farthest(), m.expected(), m.memoHit)
+			}
+		})
+	})
+}
+
+// TestEngineCallExamined checks the engine's bookkeeping of the examined input: a memoized call
+// records with its entry the input its body examined, the enclosing call's examined input becomes
+// the union of its own and the call's, and a reuse extends it to the entry's, in every parse.
+func TestEngineCallExamined(t *testing.T) {
+	mod := Build()
+	f := composition(t, mod, "engineCall", ops.Document, ops.Missing, ops.Budget)
+	m := newMachine()
+	r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
+		m.advance(2)
+		m.high = max(m.high, 6)
+		return "v", true
+	}}
+	m.high, m.low = 1, 0
+	if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" {
+		t.Fatalf("%v %v", v, ok)
 	}
-	t.Run("denied entry", func(t *testing.T) {
-		m := newMachine()
-		r := &trule{id: 1, memo: true, body: body}
-		callAt(t, mod, m, f, r, 3)
-		m.ctx.deny, m.rec, m.cur = true, nil, record{}
-		callAt(t, mod, m, f, r, 3)
-		if r.runs != 2 {
-			t.Errorf("%d evaluations, want the entry not reused", r.runs)
-		}
-	})
-	t.Run("kept result", func(t *testing.T) {
-		m := newMachine()
-		m.ctx.active = true
-		m.ctx.held = &result{v: "k", ok: true, end: 6, errs: []string{"e"}, far: 6, exps: []string{"z"}}
-		r := &trule{id: 1, memo: true, body: body}
-		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "k" || m.pos() != 6 || r.runs != 0 {
-			t.Errorf("%v %v at %d after %d evaluations, want the kept result", v, ok, m.pos(), r.runs)
-		}
-		if !slices.Equal(m.rec, []string{"e"}) || m.farthest() != 6 || !slices.Equal(m.expected(), []string{"z"}) || m.memoHit != 1 {
-			t.Errorf("the reuse recorded %v, %d %v and %d hits", m.rec, m.farthest(), m.expected(), m.memoHit)
-		}
-	})
+	e := m.lastEntry(t)
+	if m.examined[e] != 6 || m.high != 6 || m.low != 0 {
+		t.Errorf("entry examined %d, enclosing call [%d, %d); want 6 and [0, 6)", m.examined[e], m.low, m.high)
+	}
+	m.high = 1
+	if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || r.runs != 1 {
+		t.Fatalf("the reuse gives %v %v after %d evaluations", v, ok, r.runs)
+	}
+	if m.high != 6 || m.reused != 1 {
+		t.Errorf("the reuse leaves the frontier at %d with %d reuses, want 6 and 1", m.high, m.reused)
+	}
 }

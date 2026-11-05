@@ -99,7 +99,7 @@ op memo.examine(e Entry, before bool, end int)
     // reads at most that unit before its position, to tell a line start), to end, exclusive. The record
     // replaces those that memo.examine and memo.pin made before.
   requires:
-    // end is greater than the position of e.
+    // end is at or after the position of e.
 
 op memo.examined(e Entry) int
   component memo
