@@ -40,6 +40,18 @@ func NewPositions(input string) *Positions {
 	return p
 }
 
+// At returns the position of the rune offset off, which may be the end of the
+// input.
+func (p *Positions) At(off int) grammar.Pos {
+	if off < 0 {
+		off = 0
+	}
+	if off >= len(p.boundaries) {
+		off = len(p.boundaries) - 1
+	}
+	return p.boundaries[off]
+}
+
 // Source converts a syntax span and retains its already-normalized comments.
 // Invalid offsets are rejected instead of producing misleading source data.
 func (p *Positions) Source(m Metadata) (grammar.SourceInfo, error) {
