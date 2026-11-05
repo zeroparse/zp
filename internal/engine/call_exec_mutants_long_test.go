@@ -364,6 +364,124 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 	runPrintedMutants(t, path, mutants)
 }
 
+// TestStreamCommitMutantsFail is the negative control of the tests of the engine's stream commit,
+// which is printed from Exec IR (core/stream_exec.go), and of its implementations of the operations
+// (core/stream_ops.go). The operations of the window are host operations without reference models,
+// so these mutants are what binds them. Each must fail the test named for it; the two backends'
+// calls of the commit are held to their position too.
+func TestStreamCommitMutantsFail(t *testing.T) {
+	const (
+		check  = "\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
+		window = "pos-p.Memo.Base >= 1024"
+		prune  = "\tif " + window + " {\n\t\tp.streamDropRecords(pos)\n\t\tp.PruneStreamMemo(pos)\n\t}\n"
+		settle = "\tif p.DiagnosticTail.Limit > 0 {\n\t\tp.streamSettleErrors()\n\t}\n"
+		depth  = "(!rec || p.Depth == 1)"
+		reuse  = "if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {"
+
+		boundary = "^TestBudgetStreamEmitBoundary$"
+		after    = "^TestBudgetStreamCommitAfterDelivery$"
+		order    = "^TestStreamDiagnosticCallbackReportsAllElementRecoveriesBeforeEmit$"
+		storage  = "^TestStreamStorageCommitReferences$"
+		stack    = "^TestBudgetStreamDiscardAndStackClear$"
+		slide    = "^TestStreamCommitWindow$"
+		records  = "^TestStreamCommitDropsRecordsBeforeItsPosition$"
+		lefts    = "^TestStreamOutsideLeftRecursion$"
+		start    = "^TestStreamStartRuleNeedsNoCount$"
+		scratch  = "^TestStreamDiagnosticTailCommitScratchOwnership$"
+		bounds   = "^TestStreamCommitBoundsTheErrorScratch$"
+	)
+	here, vm, inCore := []string{"."}, []string{"./vm"}, []string{"./core"}
+	runPrintedMutants(t, "core/stream_exec.go", []printedMutant{
+		{"cancellation is not observed before the delivery",
+			[]printedEdit{{check + "\tp.streamReport()\n", "\tp.streamReport()\n"}}, boundary, here},
+		{"the recovered errors are not reported",
+			[]printedEdit{{"\tp.streamReport()\n", ""}}, order, here},
+		{"the recovered errors are reported after their element",
+			[]printedEdit{{"\tp.streamReport()\n\tp.streamDeliver(v)\n", "\tp.streamDeliver(v)\n\tp.streamReport()\n"}}, order, here},
+		{"the element is not delivered",
+			[]printedEdit{{"\tp.streamDeliver(v)\n", ""}}, boundary, here},
+		{"cancellation is not observed after the delivery",
+			[]printedEdit{{"\tp.streamDeliver(v)\n" + check, "\tp.streamDeliver(v)\n"}}, boundary, here},
+		{"a delivered element is not committed",
+			[]printedEdit{{"\tp.Commit(end)\n", ""}}, "^TestParseStreamDiscardsInput$", here},
+		{"the commit passes the end of the element",
+			[]printedEdit{{"\tp.Commit(end)\n", "\tp.Commit(end + 1)\n"}}, after, here},
+		{"the commit stops before the end of the element",
+			[]printedEdit{{"\tp.Commit(end)\n", "\tp.Commit(end - 1)\n"}}, after, here},
+		{"the input before the element is kept",
+			[]printedEdit{{"\tp.Discard(pos - 1)\n", ""}}, "^TestParseStreamDiscardsInput$", here},
+		{"the unit before the element is discarded",
+			[]printedEdit{{"p.Discard(pos - 1)", "p.Discard(pos)"}}, stack, vm},
+		{"two units before the element are kept",
+			[]printedEdit{{"p.Discard(pos - 1)", "p.Discard(pos - 2)"}}, stack, vm},
+		{"what the elements held is not released",
+			[]printedEdit{{"\tp.streamRelease()\n", ""}}, storage, vm},
+		{"the release runs before the discard",
+			[]printedEdit{{"\tp.Discard(pos - 1)\n\tp.streamRelease()\n", "\tp.streamRelease()\n\tp.Discard(pos - 1)\n"}},
+			"^TestStreamCommitDiscardsBeforeItReleases$", here},
+		{"a whole window does not prune", []printedEdit{{window, "pos-p.Memo.Base > 1024"}}, slide, inCore},
+		{"less than a window prunes", []printedEdit{{window, "pos-p.Memo.Base >= 1023"}}, slide, inCore},
+		{"the window ignores the floor", []printedEdit{{window, "pos >= 1024"}}, slide, inCore},
+		{"the records stay", []printedEdit{{"\t\tp.streamDropRecords(pos)\n", ""}}, records, inCore},
+		{"the record at the commit goes", []printedEdit{{"p.streamDropRecords(pos)", "p.streamDropRecords(pos + 1)"}}, records, inCore},
+		{"the record before the commit stays", []printedEdit{{"p.streamDropRecords(pos)", "p.streamDropRecords(pos - 1)"}}, records, inCore},
+		{"the memo is not pruned", []printedEdit{{"\t\tp.PruneStreamMemo(pos)\n", ""}}, slide, inCore},
+		{"the memo loses the commit position", []printedEdit{{"p.PruneStreamMemo(pos)", "p.PruneStreamMemo(pos + 1)"}}, slide, inCore},
+		{"the memo keeps the position before the commit", []printedEdit{{"p.PruneStreamMemo(pos)", "p.PruneStreamMemo(pos - 1)"}}, slide, inCore},
+		{"the commit settles errors without a tail",
+			[]printedEdit{{"if p.DiagnosticTail.Limit > 0 {", "if true {"}}, "^TestStreamElementRecovery$", here},
+		{"the commit never settles errors",
+			[]printedEdit{{"if p.DiagnosticTail.Limit > 0 {", "if false {"}}, scratch, here},
+		{"the errors settle before the pruning",
+			[]printedEdit{{prune + settle, settle + prune}}, "^TestStreamCommitPrunesBeforeItSettles$", here},
+		{"a parse without a callback streams",
+			[]printedEdit{{"(p.Emit != nil) && p.StreamID == id", "p.StreamID == id"}}, "^TestRunSitesMatchParsesWithoutRecords$", here},
+		{"every rule streams", []printedEdit{{"(p.Emit != nil) && p.StreamID == id", "(p.Emit != nil)"}}, start, here},
+		{"a recursive rule streams at any depth", []printedEdit{{depth, "true"}}, lefts, here},
+		{"a recursive rule never streams", []printedEdit{{depth, "!rec"}}, start, here},
+		{"a rule that is entered once counts its depth", []printedEdit{{depth, "p.Depth == 1"}}, after, here},
+		{"a recursive rule streams outside its first entry", []printedEdit{{"p.Depth == 1)", "p.Depth == 0)"}}, start, here},
+	})
+	runPrintedMutants(t, "core/stream_ops.go", []printedMutant{
+		{"an error of the diagnostic callback is ignored",
+			[]printedEdit{{"if err := p.ReportRecovered(); err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}", "_ = p.ReportRecovered()"}},
+			"^TestStreamDiagnosticCallbackWithoutElementReceiverStopsBeforeLaterRead$", here},
+		{"a delivered element stays fresh",
+			[]printedEdit{{"\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n", ""}}, "^TestStreamCommitFreezesDeliveredElements$", here},
+		{"the callback is not marked as the caller's",
+			[]printedEdit{{"\tp.EmitCall = true\n\terr := p.Emit(v)\n", "\terr := p.Emit(v)\n"}}, "^TestStreamCallerPanicIdentity$", here},
+		{"the mark of the callback stays",
+			[]printedEdit{{"\terr := p.Emit(v)\n\tp.EmitCall = false\n", "\terr := p.Emit(v)\n"}}, boundary, here},
+		{"an error of the callback is ignored",
+			[]printedEdit{{"\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n}\n\n// streamRelease", "\t_ = err\n}\n\n// streamRelease"}},
+			"^TestParseStreamEmitError$", here},
+		{"the trail stays", []printedEdit{{"\tp.Trail = p.Trail[:0]\n", ""}}, storage, vm},
+		{"the frames stay", []printedEdit{{"\tif StreamFrameScratch {\n\t\tp.ResetStreamFrames()\n\t}\n", ""}}, after, here},
+		{"the chunks stay", []printedEdit{{"\tp.splitChunks()\n", ""}}, "^TestParseStreamMemoryIsBounded$", here},
+		{"the inactive trail stays",
+			[]printedEdit{{"\tif StreamUndoCleanup {\n\t\tClearSpend(p, p.Trail[:cap(p.Trail)])\n\t}\n", ""}}, storage, vm},
+		{"the inactive stack stays",
+			[]printedEdit{{"\tif StreamStackCleanup && p.Backend != nil {\n\t\tp.Backend.ClearInactive()\n\t}\n", ""}}, storage, vm},
+		{"the skip records stay", []printedEdit{{"\tp.PruneSkipRecords(pos)\n", ""}}, records, inCore},
+		{"a traced parse reuses the scratch", []printedEdit{{reuse, "if cap(p.Recovered) <= streamRecoveryScratchMax {"}}, scratch, here},
+		{"a large scratch is kept", []printedEdit{{reuse, "if p.Tr == nil {"}}, bounds, here},
+		{"the scratch is never reused", []printedEdit{{reuse, "if false {"}}, scratch, here},
+		{"the settled errors stay in the scratch", []printedEdit{{"\t\tClearSpend(p, p.Recovered[:cap(p.Recovered)])\n", ""}}, scratch, here},
+		{"the settled errors stay recorded", []printedEdit{{"\t\tp.Recovered = p.Recovered[:0]\n", ""}}, scratch, here},
+		{"the settled errors of a large scratch stay", []printedEdit{{"\t\tp.Recovered = nil\n", ""}}, scratch, here},
+		{"the count of reported errors stays", []printedEdit{{"\tp.Diagnosed = 0\n", ""}}, "^TestStreamCommitForgetsTheDiagnosedCount$", here},
+		{"the settled errors stay counted", []printedEdit{{"\t\tp.Control.errs = 0\n", ""}}, "^TestMemoryLimitStream$", here},
+	})
+	runPrintedMutants(t, "closure/builder.go", []printedMutant{
+		{"the closure backend commits where the element started",
+			[]printedEdit{{"p.EmitStream(v, p.Pos)", "p.EmitStream(v, m0.Pos)"}}, after, here},
+	})
+	runPrintedMutants(t, "vm/vm.go", []printedMutant{
+		{"the VM commits where the element started",
+			[]printedEdit{{"p.EmitStream(asNodeValue(mc.pop()), p.Pos)", "p.EmitStream(asNodeValue(mc.pop()), e.save.pos)"}}, after, here},
+	})
+}
+
 // A funcEdit replaces the only copy of old in the function fn of the printed file.
 type funcEdit struct{ fn, old, new string }
 
