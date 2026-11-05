@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
+	"unsafe"
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/limits"
@@ -150,6 +152,99 @@ func TestBudgetExpectationKeepSnapshotsAndAtomicCopy(t *testing.T) {
 	rolled := copyParser.Keep(rollover)
 	if len(rolled) != len(rollover) || cap(rolled) != len(rolled) || !reflect.DeepEqual(priorAlias, oldSnapshot) {
 		t.Fatal("arena rollover changed the retained exact-capacity snapshot")
+	}
+}
+
+// The filter of the expectations holds only the current record: a record that starts anew forgets
+// the filter of the last one, and the scan a collision starts ends at the base of the record.
+func TestBudgetExpectationFilterFollowsTheRecord(t *testing.T) {
+	t.Parallel()
+	ids := collidingDiagnosticIDs(2)
+	a, c := ids[0], ids[1]
+	b := core.ExpID(0)
+	for diagnosticHash(b) == diagnosticHash(a) {
+		b++
+	}
+
+	p := diagnosticParser(limits.Limits{Compute: 100})
+	p.Expect(1, a)
+	p.Expect(1, a)
+	if !reflect.DeepEqual(p.Exp, []core.ExpID{a}) {
+		t.Fatalf("a repeated expectation joined the record: %v", p.Exp)
+	}
+	used := p.Control.Used
+	p.Expect(2, b)
+	p.Expect(2, c)
+	if !reflect.DeepEqual(p.Exp, []core.ExpID{b, c}) || p.Control.Used != used {
+		t.Fatalf("a new record scanned for the last one's filter: exp=%v steps=%d, want %d", p.Exp, p.Control.Used, used)
+	}
+
+	inner := diagnosticParser(limits.Limits{Compute: 100})
+	inner.Farthest, inner.Exp, inner.ExpBase, inner.ExpBits = 3, []core.ExpID{a}, 1, 1<<diagnosticHash(a)
+	inner.Expect(3, a)
+	if !reflect.DeepEqual(inner.Exp, []core.ExpID{a, a}) || inner.Control.Used != 0 {
+		t.Fatalf("the scan read the enclosing record: exp=%v steps=%d", inner.Exp, inner.Control.Used)
+	}
+}
+
+// Without expectations a merge carries only the position: one placeholder, under the same rules as
+// the expectations it stands for.
+func TestBudgetMergeExpectedWithoutExpectations(t *testing.T) {
+	t.Parallel()
+	s := []core.ExpID{1, 2}
+	for _, c := range []struct {
+		name         string
+		far, silent  int
+		wantFar      int
+		wantExpected []core.ExpID
+	}{
+		{name: "before the farthest position", far: 4, wantFar: 5},
+		{name: "in a lookahead", far: 6, silent: 1, wantFar: 5},
+		{name: "at the farthest position", far: 5, wantFar: 5, wantExpected: []core.ExpID{core.ExpFar}},
+		{name: "past the farthest position", far: 6, wantFar: 6, wantExpected: []core.ExpID{core.ExpFar}},
+	} {
+		p := diagnosticParser(limits.Limits{Compute: 100})
+		p.Expectations, p.Farthest, p.Silent = false, 5, c.silent
+		p.MergeExpected(c.far, s)
+		if p.Farthest != c.wantFar || !slices.Equal(p.Exp, c.wantExpected) || p.Control.Used != uint64(len(s)) {
+			t.Errorf("%s: far=%d exp=%v steps=%d", c.name, p.Farthest, p.Exp, p.Control.Used)
+		}
+	}
+}
+
+// Kept sets fill chunks of the arena: a set that does not fit the room left starts a chunk, of the
+// size of the set when it is larger than a chunk, and every chunk is charged once.
+func TestBudgetExpectationKeepFillsChunks(t *testing.T) {
+	t.Parallel()
+	const size = uint64(unsafe.Sizeof(core.ExpID(0)))
+	ids := make([]core.ExpID, 3000)
+	for i := range ids {
+		ids[i] = core.ExpID(i)
+	}
+
+	p := diagnosticParser(limits.Limits{Compute: 100_000})
+	first := p.Keep(ids[:1000])
+	if p.MemUsed != 1024*size {
+		t.Fatalf("the first chunk charged %d bytes, want %d", p.MemUsed, 1024*size)
+	}
+	second := p.Keep(ids[1000:1100])
+	if p.MemUsed != 2*1024*size || len(p.Arena) != 100 {
+		t.Fatalf("a set past the room left: charged %d bytes, %d used in the chunk", p.MemUsed, len(p.Arena))
+	}
+	if !slices.Equal(first, ids[:1000]) || !slices.Equal(second, ids[1000:1100]) {
+		t.Fatal("a new chunk changed the kept sets")
+	}
+
+	large := diagnosticParser(limits.Limits{Compute: 100_000})
+	large.Keep(ids[:2000])
+	if large.MemUsed != 2000*size || cap(large.Arena) != 2000 {
+		t.Fatalf("a set larger than a chunk: charged %d bytes, chunk of %d", large.MemUsed, cap(large.Arena))
+	}
+
+	prefix := diagnosticParser(limits.Limits{Compute: 100})
+	prefix.Keep(ids[:3])
+	if got := prefix.Keep(ids[:2]); !slices.Equal(got, ids[:2]) {
+		t.Fatalf("a prefix of the set kept last kept %v", got)
 	}
 }
 

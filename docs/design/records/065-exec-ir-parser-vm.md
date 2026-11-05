@@ -635,6 +635,31 @@ move to Exec IR at once while mechanisms move one at a time.
    each mutant through `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
    0.8% slower, 43 engine rows are faster and 6 slower, and the geomean of all rows is 0.3% faster; on engine
    time-benchmark rows `B/op` rises by at most 0.2% and `allocs/op` does not rise, and the `zp` binary grows by 528 bytes.
+
+   In the second part, the compositions `expect`, `mergeExpected` and `keep` print the engine's `Expect`,
+   `MergeExpected` and `Keep` into the same file, specialized for budget controls. They are specialized without the
+   Document's touch of the unit at an expectation, because the engine's backends record the examined input where
+   they read it. `Isolate` and `Unisolate` stay hand-written, as in the generated runtimes, and the record's
+   operations are transitional and have no conformance cases, so tests of the printed code are what binds them.
+   Results, `Stats` and budget counts do not change. Mutating the printed file shows what the tests pin: a long test
+   builds 30 mutants through `-overlay`, each dropping one guard, reset, charge or copy of the three functions, and
+   each fails a named test. Two more edits are equivalent and left out: without expectations a record holds at most
+   the placeholder and its filter stays empty, so a merge past the farthest position that keeps the record or the
+   filter leaves the same state. In ten interleaved rounds against the hand-written record, no engine `sec/op` row
+   is more than 1.0% slower, 38 engine rows are faster and 10 slower, and the geomean of all rows is 0.3% faster; on
+   engine time-benchmark rows `B/op` rises by at most 0.01% and `allocs/op` does not rise, and the `zp` binary
+   shrinks by 80 bytes.
+
+   The variable environment has no composition on any target, so this part adopts one operation of it, and the
+   engine has that operation from the first part: `env.memoKey`, which reads the values of a rule's variables for
+   its memo key in the call compositions. Exec IR declares two more, both transitional like `env.memoKey`:
+   `env.restore`, which only the Operators Rule compositions call, so the engine implements it with the third part,
+   and `env.save`, which no composition calls. `env.bind`, `env.lookup` and `env.key` of [Operations](#operations)
+   are declared on no target: binding and reading a variable are term evaluation, which reaches each runtime's
+   hand-written code through the transitional lowering of grammar code. On every target the environment's vector,
+   its charges and its reads stay hand-written, and no conformance case covers them. Adoption replaces a hand-written
+   mechanism with what the compositions print, and for the environment they print nothing else, so the engine needs
+   no further change here.
 10. **Term evaluation and the value model**, with value operations as host primitives.
 
 ### Pilot
