@@ -716,6 +716,41 @@ move to Exec IR at once while mechanisms move one at a time.
    `Recognize` rows, whose median swings by up to 55% between rounds, rise by at most 6.6%, and `allocs/op` by at most
    1.2%. The `zp` binary grows by 201 KB, nearly all of it the builders of the split forms, which the generator
    links: their code grows by 78 KB and the engine's by 3.9 KB. Generated parsers are at most 0.8% slower.
+
+   In the fourth part, the compositions `streamEmit`, `streamCommit` and `streamsIn` print the engine's `EmitStream`,
+   `Commit` and `StreamsIn` into `core/stream_exec.go`, specialized for stream, and `core/stream_ops.go` holds the
+   engine's implementations of the operations. Delivery and commit run straight through on every backend, so the
+   iterative VM needs no split form. The backends call `EmitStream`, whose delivery also freezes the element. The
+   floor of the window is the memo's `Base`, so the parser keeps no second copy of it. The report and the delivery run
+   for every element, so the engine's printer writes them in the printed function rather than behind calls: a call for
+   each costs `StreamDiagnosticLimit/bytecode/codepoints/complete` 2.8%, with the profile of the commit itself
+   unchanged, and neither moving the functions nor padding them removes it.
+
+   Charges, results and `Stats` do not change. A differential run compares the hand-written and printed commits over
+   58,729 lines of outcome: five grammars on three backends, both position units, with and without a diagnostic limit,
+   on whole input and on a reader that returns one byte at a time, under the default budget, under a callback that
+   stops, and under Compute limits in steps of 101 or 509 (23,732 points) and Memory limits growing by a quarter
+   (2,321 points) until the parse succeeds; the two sides are identical. The cost declarations gain what the engine's
+   implementations do: the release and the dropped records are charged by the frames and inactive records they visit,
+   settling the errors by its 16 slots, and pruning the memo by the entries it covers as well as those it removes.
+
+   A long test builds 54 mutants through `-overlay`: each drops, reorders or moves one step of the printed functions,
+   of `core/stream_ops.go` or of the backends' calls, and each fails a named test. None is equivalent. The operations
+   of the window are host operations without reference models, so the tests bind their behaviour directly: a delivered
+   element stays final, the diagnosed count is forgotten, the scratch of errors stays bounded, and the order of
+   discard, release, pruning and settling holds.
+
+   In ten interleaved rounds against the hand-written commit, 12 of 135 engine `sec/op` rows are faster and 31 slower,
+   and the geomean of all rows is 0.05% slower. `Stream`, `Incremental`, `IncrementalLong` and `Closure` rows have
+   none above 1%. 21 rows are more than 1% slower, up to `Parse/CSV/bytecode/bytes` at +1.92%. All 21 are `bytes` rows
+   of `Bytecode` or `BytecodeIterative`, 11 of them parses that deliver nothing, and no `codepoints` row is slower.
+   The cause is the placement of `Machine.step`, not its code. The change leaves it 64 bytes shorter and in this build
+   starts it 48 bytes into a 64-byte line. In twelve interleaved rounds of 24 of these rows, the same code padded so
+   that `Machine.step` starts at 0, 16 or 32 bytes has no row above 1% where the unpadded build has 7, and a geomean
+   of -0.04%, -0.05% and -0.19% over them where the unpadded build has +0.48%. The rows are accepted, since the
+   placement follows every function linked before it and does not carry over to another binary. `B/op` rises by at
+   most 0.06% and `allocs/op` by at most 0.02%. The `zp` binary grows by 240 bytes. Generated parsers run the same
+   code as before: their significant changes range from -1.59% to +0.76%.
 10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
     `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 
