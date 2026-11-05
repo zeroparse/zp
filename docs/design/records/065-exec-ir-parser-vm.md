@@ -616,13 +616,19 @@ move to Exec IR at once while mechanisms move one at a time.
    Documents, the missing-token mode and budget controls; `call_ops.go` holds the engine's implementations of the operations they
    call, and the split form keeps its state in a `CallState` that the caller holds. An entry's `From` is the low
    bound of the input its call examined: a call examines from its position, or from the unit before it to tell a
-   line or input start, so `From` is the position or the one before, and edits move both alike. An entry's
-   recovered errors are charged after its expectations and context end rather than before; the total does not
-   change, only the point where a limit interrupts the call. Results, `Stats` and budget counts do not change.
-   Mutating the printed file shows what the tests pin: keeping the recovered errors of a failed call, narrowing
-   either end of an entry's examined range, dropping the lookahead or the context check of reuse, or leaving the
-   caller's examined end as it was each fail named tests, and a long test builds them with each mutant through
-   `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
+   line or input start, so `From` is the position or the one before, and edits move both alike. A call that
+   examines no input records the empty range at its position, which the generated runtimes tell from an entry
+   without a record. An entry's recovered errors are charged after its expectations and context end rather than
+   before, which moves only the point where a limit interrupts the call. A call in a context that records no
+   dependencies, as with missing tokens or without the context memo, sends its result nowhere, as the generated
+   runtimes do, so it allocates no entry and copies no recovered errors: on a left-recursive grammar with
+   recovery, a parse uses 6 compute units less on every backend and up to 48 bytes less memory, which a budget
+   test pins. Results and `Stats` do not change, and neither do the other budget counts. Mutating the printed
+   file shows what the tests pin: keeping the recovered errors of a failed call, narrowing either end of an
+   entry's examined range, dropping the lookahead or the context check of reuse, leaving the caller's examined
+   end as it was, storing a result that goes nowhere or that read a growing seed in the memo, or copying the
+   recovered errors before keeping the expectations each fail named tests, and a long test builds them with
+   each mutant through `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
    0.8% slower, 54 rows are faster and the geomean is 0.3% faster; `B/op` rises by at most 0.2%, `allocs/op` does
    not rise, and the `zp` binary grows by 528 bytes.
 10. **Term evaluation and the value model**, with value operations as host primitives.

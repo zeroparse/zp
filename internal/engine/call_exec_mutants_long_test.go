@@ -26,38 +26,61 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 	}
 	const reuse = "if found && (!c.ctx || p.ctxAllows(&c, e)) && (!e.silent || p.Silent > 0) && "
 	const examine = "entry.Examined, entry.From, entry.Positional = p.Hw, p.lw, false"
+	const route = "\tif store == storeMemo {\n"
+	const copyErrs = "Errs: p.copyErrors(p.Recovered[rec:])}"
+	type edit struct{ old, new string }
 	mutants := []struct {
-		name, old, new string
+		name  string
+		edits []edit
 		// tests is the -run pattern, pkgs the packages, of the tests that detect the mutant.
 		tests string
 		pkgs  []string
 	}{
 		{"a failed call keeps its recovered errors",
-			"if !r.Leader && !ok {\n\t\tp.Recovered = p.Recovered[:rec]\n", "if !r.Leader && !ok {\n",
+			[]edit{{"if !r.Leader && !ok {\n\t\tp.Recovered = p.Recovered[:rec]\n", "if !r.Leader && !ok {\n"}},
 			"^TestDocumentFailedEntriesHoldNoErrors$", []string{"./document"}},
-		{"an entry examines no input beyond its position", examine,
-			"entry.Examined, entry.From, entry.Positional = start, p.lw, false",
+		{"an entry examines no input beyond its position",
+			[]edit{{examine, "entry.Examined, entry.From, entry.Positional = start, p.lw, false"}},
 			"^TestDocumentMatchesFreshParse$", []string{"."}},
-		{"an entry examines nothing before its position", examine,
-			"entry.Examined, entry.From, entry.Positional = p.Hw, start, false",
+		{"an entry examines nothing before its position",
+			[]edit{{examine, "entry.Examined, entry.From, entry.Positional = p.Hw, start, false"}},
 			"^TestDocumentEntriesExamineFromTheirPosition$", []string{"./document"}},
-		{"a call reuses a result evaluated in a lookahead", reuse,
-			"if found && (!c.ctx || p.ctxAllows(&c, e)) && true && ",
+		{"a call reuses a result evaluated in a lookahead",
+			[]edit{{reuse, "if found && (!c.ctx || p.ctxAllows(&c, e)) && true && "}},
 			"^TestMemoLookaheadStateEvaluations$", []string{"."}},
-		{"a call in a context ignores the growths present", reuse,
-			"if found && true && (!e.silent || p.Silent > 0) && ",
+		{"a call in a context ignores the growths present",
+			[]edit{{reuse, "if found && true && (!e.silent || p.Silent > 0) && "}},
 			"^TestLeftRecursionMemberMemoStale$", []string{"."}},
-		{"a call leaves the examined end of its caller", "p.Hw = max(oldHigh, p.Hw)", "p.Hw = oldHigh",
+		{"a call leaves the examined end of its caller",
+			[]edit{{"p.Hw = max(oldHigh, p.Hw)", "p.Hw = oldHigh"}},
 			"^TestDocumentMatchesFreshParse$", []string{"."}},
+		{"a result that goes nowhere is stored in the memo",
+			[]edit{{route, "\tif store != storeCtx {\n"}},
+			"^TestBudgetUnrecordedContextCalls$", []string{"."}},
+		{"a result that read a growing seed is stored in the memo",
+			[]edit{{route, "\tif store != storeNowhere {\n"}},
+			"^TestLeftRecursionMemberMemoStale$", []string{"."}},
+		{"a call copies its recovered errors before it keeps its expectations",
+			[]edit{
+				{"\tfar, inner := p.Unisolate(m)\n\tkept := p.Keep(inner)\n\tstore := storeMemo\n",
+					"\terrs := p.copyErrors(p.Recovered[rec:])\n\tfar, inner := p.Unisolate(m)\n\tkept := p.Keep(inner)\n\tstore := storeMemo\n"},
+				{"Gen: p.Gen, Vgen: p.Gen, " + copyErrs, "Gen: p.Gen, Vgen: p.Gen, Errs: errs}"},
+				{"Positional: r.Positional, " + copyErrs, "Positional: r.Positional, Errs: errs}"},
+			},
+			"^TestBudgetCallEndChargesErrorsAfterExpectations$", []string{"."}},
 	}
 	dir := t.TempDir()
 	for i, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {
-			if n := strings.Count(string(src), m.old); n != 1 {
-				t.Fatalf("core/call_exec.go has %d copies of %q, not one", n, m.old)
+			text := string(src)
+			for _, e := range m.edits {
+				if n := strings.Count(text, e.old); n != 1 {
+					t.Fatalf("core/call_exec.go has %d copies of %q, not one", n, e.old)
+				}
+				text = strings.Replace(text, e.old, e.new, 1)
 			}
 			mutant := filepath.Join(dir, "call_exec_"+string(rune('a'+i))+".go")
-			if err := os.WriteFile(mutant, []byte(strings.Replace(string(src), m.old, m.new, 1)), 0o644); err != nil {
+			if err := os.WriteFile(mutant, []byte(text), 0o644); err != nil {
 				t.Fatal(err)
 			}
 			overlay, err := json.Marshal(map[string]map[string]string{"Replace": {file: mutant}})

@@ -80,3 +80,48 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 		}
 	}
 }
+
+// TestBudgetCallEndChargesErrorsAfterExpectations pins where a limit interrupts the end of a
+// memoized call: the call keeps its expectations (Keep) before it copies its recovered errors into
+// its entry, so a limit that the copy reaches leaves the expectations kept and no entry stored.
+// The total does not depend on the order; the point of the interruption does.
+func TestBudgetCallEndChargesErrorsAfterExpectations(t *testing.T) {
+	t.Parallel()
+	end := func(limit uint64) (err error, kept, stored bool) {
+		p := &core.Parser{Memo: core.NewMemoTable(), MemoAll: true, Expectations: true}
+		r := &core.Rule{}
+		r.ID, r.Memo = 1, true
+		st := &core.CallState{}
+		p.CallBegin(r, 0, st)
+		p.Expect(0, 7)
+		p.Recovered = append(p.Recovered, &core.SyntaxError{}, &core.SyntaxError{}, &core.SyntaxError{})
+		p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: limit})
+		err = catchFatal(t, func() { p.CallEnd(r, st, nil, true) })
+		_, stored = p.Memo.Get(core.MemoKey{Rule: r.ID})
+		return err, len(p.LastKept) == 1, stored
+	}
+	keptOnly := 0
+	for limit := uint64(1); ; limit++ {
+		err, kept, stored := end(limit)
+		if err == nil {
+			if !kept || !stored {
+				t.Fatalf("the call ended under a limit of %d without keeping or storing its result", limit)
+			}
+			break
+		}
+		if !errors.Is(err, limits.ErrLimit) {
+			t.Fatalf("limit %d: %v", limit, err)
+		}
+		if kept && !stored {
+			keptOnly++
+		}
+		if stored && !kept {
+			t.Fatalf("limit %d: the entry was stored before the expectations were kept", limit)
+		}
+	}
+	// Each of the three errors that the call copies is charged after Keep and before the store, and
+	// so is a limit that interrupts the call between them.
+	if keptOnly < 3 {
+		t.Fatalf("%d limits interrupt the call after it keeps its expectations and before it stores its entry, want at least 3", keptOnly)
+	}
+}
