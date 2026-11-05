@@ -671,26 +671,51 @@ move to Exec IR at once while mechanisms move one at a time.
 
    The engine adopts the charges of stage 6, which changes its budget counts on every backend: one unit per operator
    or operand line it tries, and none at the entry of a level or per iteration. A longest match tries every line, so
-   it charges them at once, here and in the generated runtimes: the count does not change, charges are never rolled
-   back, so a limit admits the same parses, and an interruption can only come earlier, by at most the lines of that
-   match. A charge can pass a poll boundary by more than a unit, so a run can poll its context once less. A charge per line cost 1 to 2 points on rows with Operators Rules, because the default budget makes each
-   charge a call. On `BytecodeIterative`, an attempt now copies its errors with the memory charge the recursive forms make.
-   Results and `Stats` do not change, and the frames of the VM keep their sizes.
+   it charges them at once, here and in the generated runtimes. Charges are never rolled back, so a fixed limit
+   admits the same parses and the count does not change. Where the budget grows with demand, as the default budget of
+   a stream does, the bulk charge can exhaust it earlier, by at most the lines of that match less one unit. A charge
+   can pass a poll boundary by more than a unit, so a run can poll its context once less. One charge per line costs
+   1 to 2 points on rows with Operators Rules, because the default budget makes each charge a call.
+
+   On `BytecodeIterative`, an attempt copies its errors with the memory charge that the recursive forms make:
+   `copyErrors` adds exactly 8 bytes per recovered error to the Memory count (a parse that recovers 300 errors counts
+   191,101 bytes before and 193,501 after, and one that recovers 600 counts 355,041 before and 359,841 after), and a
+   Memory limit below the count still stops the parse with the limit error. Results and `Stats` do not change, and
+   the frames of the VM keep their sizes.
 
    Direct tests run the recursive and split forms from one table of lines. Mutating the printed file shows what the
-   tests pin: a long test builds 138 mutants through `-overlay`, each dropping one guard, reset, charge or copy of a
-   function, and each fails the direct tests or a named test. Four more edits are equivalent and left out; the test
-   states why. In ten interleaved rounds against the hand-written loop, 9 engine `sec/op` rows are faster, 37 slower
-   and 11 of the slower more than 1% slower; the geomean of all rows is 0.2% slower. `Closure` rows stay within 1%.
-   On `BytecodeIterative`, `Arith_OperatorsRule` is 2.7% to 3.3% slower, because it tries eight operator lines per
-   operand and each costs a call into a step, and its budget pays for each operand line. `Bytecode` rows up to 2.0%
-   slower include `JSON` and `Arith_LeftRec`, which run no Operators Rule: `Machine.step` moves within its cache line
-   from build to build, and `JSON` moved from 0.6% to 1.4% slower between two builds that differ only in the split
-   forms, so layout accounts for about 0.8 points of these rows, and the rest is not separated from it. On `Parse`
-   rows `B/op` rises by at most 0.01%; `Recognize` rows, whose median swings by up to 55% between rounds, rise by at
-   most 6.6%, and `allocs/op` by at most 1.2%. The `zp` binary grows by 201 KB, nearly all of it the builders of the
-   split forms, which the generator links: their code grows by 78 KB and the engine's by 3.9 KB. Generated parsers
-   are at most 0.8% slower.
+   tests pin: a long test builds mutants through `-overlay`, each dropping one guard, reset, charge or copy of a
+   function, and each fails the direct tests or a named test; two of them charge one unit for a whole match instead
+   of one per line, which a case with three lines in a level detects. Four more edits are equivalent and left out;
+   the test states why. The mutants bind the printed steps; the hand-written driver of the iterative VM that calls
+   them rests on the parity tests between backends.
+
+   In ten interleaved rounds against the hand-written loop, 9 engine `sec/op` rows are faster, 37 slower and 11 of
+   the slower more than 1% slower; the geomean of all rows is 0.2% slower. `Closure` rows stay within 1%. The 11 rows
+   are accepted:
+
+   | Row | `sec/op` |
+   |:--|--:|
+   | `Parse/Arith_OperatorsRule/iterative` (code points, bytes) | +2.7%, +3.3% |
+   | `Recognize/Arith_OperatorsRule/iterative`, `…/bytecode` | +2.7%, +1.4% |
+   | `Recognize/Minilang/bytecode` | +2.0% |
+   | `Recognize/Recovery/bytecode` | +1.9% |
+   | `Incremental/iterative/fresh` | +1.6% |
+   | `Recognize/Arith_LeftRec/bytecode` | +1.5% |
+   | `Parse/JSON/bytecode` (code points, bytes) | +1.4%, +1.1% |
+   | `Parse/Minilang/bytecode/bytes` | +1.1% |
+
+   `Parse/Arith_OperatorsRule/iterative` is slower because the grammar tries eight operator lines per operand and each
+   costs a call into a step: `LongestStep` takes 0.68 s of the profile, about 2.3% net, while the profile of the
+   charge itself falls from 0.93 s to 0.79 s. `Incremental/iterative/fresh` parses the Minilang grammar, whose
+   Operators Rule meets the same call per line, but it is slower than the `Parse/Minilang/iterative` rows (+0.7% and
+   +0.8%) by a margin that this measurement does not explain. `JSON` and `Arith_LeftRec` run no Operators Rule, and
+   `Machine.step` moves within its cache line from build to build: `JSON` moved from 0.6% to 1.4% slower between two
+   builds that differ in the split forms and in a rebase of about 1,200 lines of other changes, so layout is a
+   plausible cause of those rows that is not separated from the rest. On `Parse` rows `B/op` rises by at most 0.01%;
+   `Recognize` rows, whose median swings by up to 55% between rounds, rise by at most 6.6%, and `allocs/op` by at most
+   1.2%. The `zp` binary grows by 201 KB, nearly all of it the builders of the split forms, which the generator
+   links: their code grows by 78 KB and the engine's by 3.9 KB. Generated parsers are at most 0.8% slower.
 10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
     `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 

@@ -140,10 +140,14 @@ them, and its tests check them.
   budget is exceeded, is the same, but the requested amount in a limit error
   is 1 and not $n$.
 - **(A3) Reservation precedes work.** Each unit of work that (C6) counts is
-  covered by a reservation made before it, in the same straight-line code, so
-  that an interruption raised by the reservation precedes the work. Charges may
-  be combined within straight-line code without moving across a
-  publication (A5).
+  covered by a reservation made before it, in the same straight-line code or
+  before a bounded loop that always runs all of its lines, so that an
+  interruption raised by the reservation precedes the work. The number of lines
+  of such a loop depends only on the grammar, so the reservation is a function
+  of the logical state (A6) and the loop has no exit before its last line.
+  Charges may be combined within straight-line code, and the charges of the
+  lines of such a loop may be combined in one reservation before it, without
+  moving across a publication (A5).
   Allocation, runtime growth, garbage collection and the callbacks of the
   caller are outside the budget, as (C4) says for callbacks.
 - **(A4) Reachable recovery.** The only `recover` calls on the path of an
@@ -368,7 +372,8 @@ result and the same error". For a parse that no limit interrupts and that stays
 within the depth limit, every backend therefore gives the same result and the
 same error. (C6) says that the values of the charges depend on the backend and
 on the generated artifact, and generated Go places the charge of a
-straight-line sequence as one reservation. The charge sequences of two
+straight-line sequence, or of the lines of a longest match of operators, as one
+reservation. The charge sequences of two
 backends are therefore different, and a limit that stops a parse on one
 backend can let it finish on another. What the backends share when a limit
 does interrupt is the form of the interruption (this proof), not its point. A
