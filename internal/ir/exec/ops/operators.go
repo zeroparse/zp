@@ -102,8 +102,6 @@ never written, so it may be shared.`})
 		Contract: `Copies the slots that the last frame.save set aside back into f, charging the copy as
 frame.save does.`,
 		Requires: `The last frame.save copied the slots of f, and nothing parsed since.`})
-	add(&exec.Op{Name: "env.save", Component: Env, Results: []exec.Type{scope}, Reads: []string{Env},
-		Contract: `Returns the variable environment.`})
 	add(&exec.Op{Name: "env.restore", Component: Env, Params: []exec.Param{exec.P("s", scope)}, Writes: []string{Env},
 		Contract: `Makes s the variable environment.`})
 

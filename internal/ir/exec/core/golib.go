@@ -218,8 +218,6 @@ func goTarget(s goSpec) *execgo.Target {
 			return fmt.Sprintf("p.saved = appendSpend(%s, p.saved[:0], %s.Vals)", spender, a[0])
 		case "frame.restore":
 			return fmt.Sprintf("copySpend(%s, %s.Vals, p.saved)", spender, a[0])
-		case "env.save":
-			return "p.Env"
 		case "env.restore":
 			return "p.Env = " + a[0]
 		case "opr.led":

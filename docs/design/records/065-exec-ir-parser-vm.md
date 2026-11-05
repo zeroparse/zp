@@ -283,8 +283,8 @@ position and exact order.
 everything after a mark, `since` returns it for a memo entry. *Shared*: order and rollback. *Target*: list growth and
 sharing. *Conformance*: interleaved pushes, marks and rollbacks.
 
-**Variable environment** (`env.bind`, `env.lookup`, `env.save`, `env.restore`, `env.key`). A persistent scope:
-bindings made after a `save` are gone after `restore`; histories are bounded as specified; `env.key` returns the
+**Variable environment** (`env.bind`, `env.lookup`, `env.restore`, `env.key`). A persistent scope: bindings made
+after a mark are gone after `restore` of the environment that the mark holds; histories are bounded as specified; `env.key` returns the
 values of a rule's variables for its memo key, and two keys are equal when the host's value equality says so.
 *Shared*: scoping, bounds, key equality. *Target*: list or array, shared keys for the initial environment, history
 compaction. *Conformance*: nested scopes, shadowing, long histories, keys of equal and unequal values.
@@ -652,15 +652,16 @@ move to Exec IR at once while mechanisms move one at a time.
 
    The variable environment has no composition on any target, so this part adopts one operation of it, and the
    engine has that operation from the first part: `env.memoKey`, which reads the values of a rule's variables for
-   its memo key in the call compositions. Exec IR declares two more, both transitional like `env.memoKey`:
-   `env.restore`, which only the Operators Rule compositions call, so the engine implements it with the third part,
-   and `env.save`, which no composition calls. `env.bind`, `env.lookup` and `env.key` of [Operations](#operations)
-   are declared on no target: binding and reading a variable are term evaluation, which reaches each runtime's
-   hand-written code through the transitional lowering of grammar code. On every target the environment's vector,
+   its memo key in the call compositions. Exec IR declares one more, transitional like `env.memoKey`: `env.restore`,
+   which only the Operators Rule compositions call, so the engine implements it with the third part. `env.bind`,
+   `env.lookup` and `env.key` of [Operations](#operations) are declared on no target and belong to stage 10: binding
+   and reading a variable are term evaluation, which reaches each runtime's hand-written code through the
+   transitional lowering of grammar code. On every target the environment's vector,
    its charges and its reads stay hand-written, and no conformance case covers them. Adoption replaces a hand-written
    mechanism with what the compositions print, and for the environment they print nothing else, so the engine needs
    no further change here.
-10. **Term evaluation and the value model**, with value operations as host primitives.
+10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
+    `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 
 ### Pilot
 

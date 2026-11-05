@@ -115,8 +115,6 @@ var tsTarget = &exects.Target{
 			return "this.newFrame(" + a[0] + ")"
 		case "frame.slots":
 			return a[0] + ".length"
-		case "env.save":
-			return "this.env"
 		case "env.restore":
 			return "this.env = " + a[0]
 		case "opr.led", "opr.prefix":

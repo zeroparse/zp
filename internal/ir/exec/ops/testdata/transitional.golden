@@ -1218,13 +1218,6 @@ transitional op frame.restore(f Frame)
   requires:
     // The last frame.save copied the slots of f, and nothing parsed since.
 
-transitional op env.save() Scope
-  component env
-  reads env
-  cost <= 0
-  contract:
-    // Returns the variable environment.
-
 transitional op env.restore(s Scope)
   component env
   writes env
