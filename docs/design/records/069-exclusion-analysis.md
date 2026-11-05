@@ -527,6 +527,12 @@ In `internal/compile`:
 - `TestExclusionBudget`: a grammar whose comparison grows as a power of the number of alternatives is decided for a
   small number and counted as over the budget for a large one, in milliseconds.
 - `TestExclusionControls`: the linear-cost controls, described in [Controls](#controls).
+- `TestSharedContinuationsFlip`: the grammars of `complexitytest.SharedContinuationGrammars`, a family whose
+  continuations share prefixes, trailing separators, trivia calls and lookaheads, include grammars that the classifier
+  calls linear with decided units and trivia rules on and does not without them. `TestLinearClaims` in
+  `internal/complexitytest` measures those claims on the input families of the family, so it fails when the analysis
+  accepts a unit that costs more: it fails with a continuation lookahead taken as cheap instead of fresh, with trivia
+  calls passed without the cheap condition, and with the nesting mark left out of the cheap condition.
 - `TestExclusionReport`: the measurements, behind `ZP_EXCLUSION_REPORT`.
 
 The controls in `internal/complexitytest` for the fresh symbols are "Scanning lookahead of a later alternative" and

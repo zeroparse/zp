@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/starttest"
 )
 
-var differentialGrammars = flag.Int("differential", 600, "number of random grammars TestLinearClaims generates")
+var differentialGrammars = flag.Int("differential", DefaultDifferentialGrammars, "number of random grammars TestLinearClaims generates")
 
 // differentialCap bounds the budget of one parse of TestLinearClaims. A parse of a linear grammar
 // stays far below it on the inputs of the test.
@@ -223,27 +223,32 @@ func randomNestedScanGrammar(rng *rand.Rand) string {
 	return b.String()
 }
 
-// linearClaims generates count random grammars of randomCostGrammar and count/4 each of
-// randomStartCycleGrammar and randomNestedScanGrammar, keeps those that compile, and checks every one that claimsLinear
+// linearClaims generates count random grammars of randomCostGrammar, count/4 each of
+// randomStartCycleGrammar and randomNestedScanGrammar, and SharedContinuationCount(count) of
+// SharedContinuationGrammars, keeps those that compile, and checks every one that claimsLinear
 // classifies as linear against the measured cost on the input families on the closure and bytecode
-// backends. It returns the number of grammars checked and the failures; it stops at the first
-// failure if firstOnly is set.
-func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) bool, firstOnly bool) (int, []string) {
+// backends (those of SharedContinuationInputs for the last family). It returns the number of
+// grammars checked, the number of them from SharedContinuationGrammars, and the failures; it stops
+// at the first failure if firstOnly is set.
+func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) bool, firstOnly bool) (checked, checkedShared int, failures []string) {
 	t.Helper()
 	rng := rand.New(rand.NewPCG(3, 5))
 	cycles := rand.New(rand.NewPCG(13, 17))
 	nested := rand.New(rand.NewPCG(19, 23))
-	checked := 0
-	var failures []string
-	for n := range count + 2*(count/4) {
+	shared := SharedContinuationGrammars(SharedContinuationCount(count))
+	for n := range count + 2*(count/4) + SharedContinuationCount(count) {
 		var src string
+		inputs := differentialInputs
 		switch {
 		case n < count:
 			src = randomCostGrammar(rng)
 		case n < count+count/4:
 			src = randomStartCycleGrammar(cycles)
-		default:
+		case n < count+2*(count/4):
 			src = randomNestedScanGrammar(nested)
+		default:
+			src = shared[n-count-2*(count/4)]
+			inputs = SharedContinuationInputs
 		}
 		g, err := zp.ParseGrammar(src)
 		if err != nil {
@@ -258,12 +263,15 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 			continue
 		}
 		checked++
+		if n >= count+2*(count/4) {
+			checkedShared++
+		}
 		if !core.BudgetControlsEnabled {
 			continue // the claim is counted, but the reference build cannot measure it
 		}
 	measure:
 		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode} {
-			for i, build := range differentialInputs {
+			for i, build := range inputs {
 				s := Series{Sizes: differentialSizes}
 				for _, size := range differentialSizes {
 					c, err := StepsLenient(p, build(size), backend, differentialCap)
@@ -276,14 +284,14 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 					failures = append(failures, fmt.Sprintf("grammar %d, %v, input %d: steps %v, slopes %.2f\n%s",
 						n, backend, i, s.Costs, s.Slopes(), src))
 					if firstOnly {
-						return checked, failures
+						return checked, checkedShared, failures
 					}
 					break measure
 				}
 			}
 		}
 	}
-	return checked, failures
+	return checked, checkedShared, failures
 }
 
 // TestLinearClaims checks the claims of linear cost of the classifier against measurement: every
@@ -295,7 +303,7 @@ func TestLinearClaims(t *testing.T) {
 	if reduced() {
 		count /= 4
 	}
-	checked, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+	checked, checkedShared, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
 		c, err := engine.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)
@@ -309,7 +317,11 @@ func TestLinearClaims(t *testing.T) {
 	if min := count / 10; checked < min {
 		t.Errorf("%d grammars classified linear, want at least %d", checked, min)
 	}
-	t.Logf("%d of %d grammars classified linear", checked, count+2*(count/4))
+	shared := SharedContinuationCount(count)
+	if min := shared / 10; checkedShared < min {
+		t.Errorf("%d shared continuations classified linear, want at least %d", checkedShared, min)
+	}
+	t.Logf("%d of %d grammars classified linear, %d of the %d shared continuations", checked, count+2*(count/4)+shared, checkedShared, shared)
 }
 
 // TestLinearClaimsNegativeControl checks that TestLinearClaims can fail: with a classifier that
@@ -322,7 +334,7 @@ func TestLinearClaimsNegativeControl(t *testing.T) {
 	if reduced() {
 		count /= 4
 	}
-	_, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+	_, _, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
 		c, err := engine.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)
