@@ -622,15 +622,19 @@ move to Exec IR at once while mechanisms move one at a time.
    before, which moves only the point where a limit interrupts the call. A call in a context that records no
    dependencies, as with missing tokens or without the context memo, sends its result nowhere, as the generated
    runtimes do, so it allocates no entry and copies no recovered errors: on a left-recursive grammar with
-   recovery, a parse uses 6 compute units less on every backend and up to 48 bytes less memory, which a budget
-   test pins. Results and `Stats` do not change, and neither do the other budget counts. Mutating the printed
+   recovery, a call that is not recorded charges 6 fewer compute units and 48 fewer value bytes in the pinned
+   grammar on every backend, which a budget test pins. On `BytecodeIterative`, `callFrame` embeds the larger
+   `CallState` (440 to 464 bytes, charged per new frame), so peak memory grows by 24 bytes per nesting level: about
+   1.4% at depth 5000 for `e = e "+" "a" / "(" e ")" / "a"` (8,688,908 to 8,808,956 bytes), and a Memory limit that
+   passed before can fail there. `Closure` and `Bytecode` do not change. Budget counts depend on the version, so
+   this is acceptable. Results and `Stats` do not change. Mutating the printed
    file shows what the tests pin: keeping the recovered errors of a failed call, narrowing either end of an
    entry's examined range, dropping the lookahead or the context check of reuse, leaving the caller's examined
    end as it was, storing a result that goes nowhere or that read a growing seed in the memo, or copying the
    recovered errors before keeping the expectations each fail named tests, and a long test builds them with
    each mutant through `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
    0.8% slower, 43 engine rows are faster and 6 slower, and the geomean of all rows is 0.3% faster; on engine
-   rows `B/op` rises by at most 0.2% and `allocs/op` does not rise, and the `zp` binary grows by 528 bytes.
+   time-benchmark rows `B/op` rises by at most 0.2% and `allocs/op` does not rise, and the `zp` binary grows by 528 bytes.
 10. **Term evaluation and the value model**, with value operations as host primitives.
 
 ### Pilot
