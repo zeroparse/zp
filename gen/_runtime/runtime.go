@@ -42,7 +42,7 @@ type Node struct {
 	RawTerminal bool
 	labeled     bool // the captures in Fields are output (source information)
 	// moveMark is the number of the last move after a Document edit that visited the node
-	// (documentMove); it fits in the padding before box.
+	// (documentMove), counted by the Document that holds the node; it fits in the padding before box.
 	moveMark uint32
 	box      any // the value carried by a box
 }
@@ -1483,9 +1483,8 @@ type Parser struct {
 	// docLow is the start of the input that the active rule call examined, [docLow, docHigh). The
 	// fields that only Documents use come last, away from those of every parse.
 	docLow int
-	// moves numbers the moves of values after Document edits, and moved maps the nodes of a value
-	// that holds a node more than once to their copies (documentMove).
-	moves uint32
+	// moved maps the nodes of a value that holds a node more than once to their copies
+	// (documentMove).
 	moved map[*Node]*Node
 }
 
@@ -1499,6 +1498,10 @@ type documentState struct {
 	expectations bool
 	memo         memoTable
 	stats        documentStats
+	// moves numbers the moves of values after edits (documentMove) over the life of the memo, not of
+	// a parse: the nodes that the memo keeps carry the number of the last move that visited them from
+	// one parse to the next, so a number is not used twice while the memo holds entries (parse).
+	moves uint32
 }
 
 type documentStats struct {

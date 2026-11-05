@@ -349,3 +349,50 @@ func TestCallDocumentRestoresOnPanic(t *testing.T) {
 		}
 	}
 }
+
+// TestDocumentMoveMarksDoNotCarryAcrossParses checks that a move after an edit does not take the
+// mark that a refused move of an earlier parse left on a node for a visit of its own: the refused
+// value held a host value that cannot be moved, and a second entry shares that node. The numbers of
+// the moves belong to the Document, so each parse numbers its moves after those of the parses before.
+func TestDocumentMoveMarksDoNotCarryAcrossParses(t *testing.T) {
+	shared := &Node{RawKind: RawKindMatch, RawStart: 1, RawEnd: 2, box: []int{1}}
+	first := &Node{RawKind: RawKindList, RawStart: 1, RawEnd: 2, RawChildren: []*Node{shared}}
+	second := &Node{RawKind: RawKindList, RawStart: 1, RawEnd: 2, RawChildren: []*Node{shared}}
+	d := &documentState{}
+	for i, n := range []*Node{first, second} {
+		// Each parse starts its moves anew in a Parser of its own.
+		p := &Parser{Document: d}
+		e := &memoEntry{node: n}
+		p.memo.shifts = map[*memoEntry]int{e: 1}
+		if p.documentMove(e) {
+			t.Fatalf("parse %d: moved a value that holds a host value", i)
+		}
+		if e.node != n || n.RawChildren[0] != shared || shared.RawStart != 1 {
+			t.Fatalf("parse %d: a refused move changed the value", i)
+		}
+	}
+}
+
+// TestDocumentMoveMarksRestartWithAnEmptyMemo checks that a Document whose move numbers near the end
+// of their range parses without its memo, and numbers its moves from 1 again.
+func TestDocumentMoveMarksRestartWithAnEmptyMemo(t *testing.T) {
+	main, _ := documentTestRules()
+	d := testDocumentState(main, "aa", CodePoints)
+	o := parseOptions{unit: CodePoints, maxDepth: defaultMaxDepth}
+	if _, err := d.parse(o); err != nil {
+		t.Fatal(err)
+	}
+	d.moves = moveMarkLimit + 1
+	if err := d.edit(2, 2, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.parse(o); err != nil || d.stats.Reused != 0 || d.moves != 0 {
+		t.Fatalf("parse after the limit: err %v, %d reused, move number %d", err, d.stats.Reused, d.moves)
+	}
+	if err := d.edit(3, 3, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.parse(o); err != nil || d.stats.Reused == 0 {
+		t.Fatalf("the memo of the restarted Document is not reused: err %v, stats %+v", err, d.stats)
+	}
+}

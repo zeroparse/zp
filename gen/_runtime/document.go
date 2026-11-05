@@ -343,6 +343,11 @@ func (t *memoTable) splice(ed documentEdit) {
 	*t = kept
 }
 
+// moveMarkLimit is the number of moves after which a parse starts without the memo of the Document,
+// and numbers the moves from 1 again. A parse moves each entry of the memo at most once, so it makes
+// far fewer moves than the numbers that remain.
+const moveMarkLimit = 1 << 31
+
 // documentMove moves the nodes of the value of e by the shift that edits gave e (memo.splice), in
 // copies, since the value may be part of a result already returned, and reports whether it could:
 // a value that holds a host value other than a node or a basic value is not moved. A moved node
@@ -355,14 +360,14 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 	if !ok {
 		return true
 	}
-	// The check marks the nodes it visits with the number of the move. A node that it finds marked
-	// occurs in the value more than once; such a value is moved through a map from the nodes to
+	// The check marks the nodes it visits with the number of the move, which no earlier move of the
+	// Document had, so that a mark that an earlier move left, in this parse or an earlier one, whether
+	// that move went on or refused, never reads as a visit of this one. A node that the check finds
+	// marked occurs in the value more than once; such a value is moved through a map from the nodes to
 	// their copies, so that each is copied once and the copies are shared as the nodes were.
-	p.moves++
-	if p.moves == 0 {
-		p.moves = 1 // a mark of 0 is that of a node no move visited
-	}
-	movable, shared := p.movable(e.node)
+	d := p.Document
+	d.moves++
+	movable, shared := p.movable(e.node, d.moves)
 	if !movable {
 		return false
 	}
@@ -380,20 +385,20 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 }
 
 // movable reports whether moveNode can move n: its fields and box hold only nodes and basic values;
-// and whether a node occurs in n more than once.
-func (p *Parser) movable(n *Node) (movable, shared bool) {
+// and whether a node occurs in n more than once. It marks the nodes it visits with mark.
+func (p *Parser) movable(n *Node, mark uint32) (movable, shared bool) {
 	if n == nil {
 		return true, false
 	}
-	if n.moveMark == p.moves {
+	if n.moveMark == mark {
 		return true, true
 	}
-	n.moveMark = p.moves
+	n.moveMark = mark
 	if !basicValue(n.box) {
 		return false, false
 	}
 	for _, c := range n.RawChildren {
-		ok, sh := p.movable(c)
+		ok, sh := p.movable(c, mark)
 		if !ok {
 			return false, false
 		}
@@ -401,7 +406,7 @@ func (p *Parser) movable(n *Node) (movable, shared bool) {
 	}
 	for _, f := range n.RawFields {
 		if c, ok := f.Value.(*Node); ok {
-			ok, sh := p.movable(c)
+			ok, sh := p.movable(c, mark)
 			if !ok {
 				return false, false
 			}
@@ -546,6 +551,10 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 		p.bs, p.n = d.text, len(d.text)
 	} else {
 		p.setSource(d.text)
+	}
+	if d.moves > moveMarkLimit {
+		// The marks that the nodes of the memo carry would soon repeat: start without it.
+		d.memo, d.moves = memoTable{}, 0
 	}
 	p.Document, p.memo = d, d.memo
 	o.control.attachMemory(p)
