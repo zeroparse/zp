@@ -14,8 +14,18 @@ func (p *Parser) EmitStream(v *value.Node, end int) {
 	if BudgetControlsEnabled {
 		p.Control.Check()
 	}
-	p.streamReport()
-	p.streamDeliver(v)
+	if p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {
+		p.streamReport()
+	}
+	if v != nil {
+		value.D(v).Fresh = false
+	}
+	p.EmitCall = true
+	err := p.Emit(v)
+	p.EmitCall = false
+	if err != nil {
+		panic(Fatal{Err: err})
+	}
 	if BudgetControlsEnabled {
 		p.Control.Check()
 	}

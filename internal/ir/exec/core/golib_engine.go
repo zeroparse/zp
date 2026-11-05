@@ -149,10 +149,14 @@ func engineTarget() *execgo.Target {
 			return "p.StreamID"
 		case "stream.check":
 			return "if BudgetControlsEnabled {\np.Control.Check()\n}"
+		// The report and the delivery run for every element, so they stay in the printed function: a
+		// call for each costs rows with small elements up to 3% (record 065).
 		case "stream.report":
-			return "p.streamReport()"
+			return "if p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {\np.streamReport()\n}"
 		case "stream.deliver":
-			return "p.streamDeliver(" + a[0] + ")"
+			// EmitCall marks only the callback's execution, so that a later fault of the VM keeps its
+			// attribution.
+			return fmt.Sprintf("if %[1]s != nil {\nvalue.D(%[1]s).Fresh = false\n}\np.EmitCall = true\nerr := p.Emit(%[1]s)\np.EmitCall = false\nif err != nil {\npanic(Fatal{Err: err})\n}", a[0])
 		case "stream.discard":
 			return "p.Discard(" + a[0] + ")"
 		case "stream.release":

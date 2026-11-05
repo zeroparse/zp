@@ -371,12 +371,14 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 // calls of the commit are held to their position too.
 func TestStreamCommitMutantsFail(t *testing.T) {
 	const (
-		check  = "\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
-		window = "pos-p.Memo.Base >= 1024"
-		prune  = "\tif " + window + " {\n\t\tp.streamDropRecords(pos)\n\t\tp.PruneStreamMemo(pos)\n\t}\n"
-		settle = "\tif p.DiagnosticTail.Limit > 0 {\n\t\tp.streamSettleErrors()\n\t}\n"
-		depth  = "(!rec || p.Depth == 1)"
-		reuse  = "if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {"
+		check   = "\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
+		report  = "\tif p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {\n\t\tp.streamReport()\n\t}\n"
+		deliver = "\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n\tp.EmitCall = true\n\terr := p.Emit(v)\n\tp.EmitCall = false\n\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n"
+		window  = "pos-p.Memo.Base >= 1024"
+		prune   = "\tif " + window + " {\n\t\tp.streamDropRecords(pos)\n\t\tp.PruneStreamMemo(pos)\n\t}\n"
+		settle  = "\tif p.DiagnosticTail.Limit > 0 {\n\t\tp.streamSettleErrors()\n\t}\n"
+		depth   = "(!rec || p.Depth == 1)"
+		reuse   = "if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {"
 
 		boundary = "^TestBudgetStreamEmitBoundary$"
 		after    = "^TestBudgetStreamCommitAfterDelivery$"
@@ -393,15 +395,27 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 	here, vm, inCore := []string{"."}, []string{"./vm"}, []string{"./core"}
 	runPrintedMutants(t, "core/stream_exec.go", []printedMutant{
 		{"cancellation is not observed before the delivery",
-			[]printedEdit{{check + "\tp.streamReport()\n", "\tp.streamReport()\n"}}, boundary, here},
+			[]printedEdit{{check + report, report}}, boundary, here},
 		{"the recovered errors are not reported",
-			[]printedEdit{{"\tp.streamReport()\n", ""}}, order, here},
+			[]printedEdit{{report, ""}}, order, here},
+		{"a callback alone gets no report",
+			[]printedEdit{{"if p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {", "if p.DiagnosticTail.Limit > 0 {"}}, order, here},
+		{"a tail alone gets no report",
+			[]printedEdit{{"if p.Diagnostic != nil || p.DiagnosticTail.Limit > 0 {", "if p.Diagnostic != nil {"}}, "^TestStreamCommitFeedsATailWithoutCallback$", here},
 		{"the recovered errors are reported after their element",
-			[]printedEdit{{"\tp.streamReport()\n\tp.streamDeliver(v)\n", "\tp.streamDeliver(v)\n\tp.streamReport()\n"}}, order, here},
+			[]printedEdit{{report + deliver, deliver + report}}, order, here},
 		{"the element is not delivered",
-			[]printedEdit{{"\tp.streamDeliver(v)\n", ""}}, boundary, here},
+			[]printedEdit{{"\terr := p.Emit(v)\n", "\tvar err error\n"}}, boundary, here},
+		{"a delivered element stays fresh",
+			[]printedEdit{{"\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n", ""}}, "^TestStreamCommitFreezesDeliveredElements$", here},
+		{"the callback is not marked as the caller's",
+			[]printedEdit{{"\tp.EmitCall = true\n", ""}}, "^TestStreamCallerPanicIdentity$", here},
+		{"the mark of the callback stays",
+			[]printedEdit{{"\tp.EmitCall = false\n", ""}}, boundary, here},
+		{"an error of the callback is ignored",
+			[]printedEdit{{"\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n", "\t_ = err\n"}}, "^TestParseStreamEmitError$", here},
 		{"cancellation is not observed after the delivery",
-			[]printedEdit{{"\tp.streamDeliver(v)\n" + check, "\tp.streamDeliver(v)\n"}}, boundary, here},
+			[]printedEdit{{deliver + check, deliver}}, boundary, here},
 		{"a delivered element is not committed",
 			[]printedEdit{{"\tp.Commit(end)\n", ""}}, "^TestParseStreamDiscardsInput$", here},
 		{"the commit passes the end of the element",
@@ -446,15 +460,6 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"an error of the diagnostic callback is ignored",
 			[]printedEdit{{"if err := p.ReportRecovered(); err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}", "_ = p.ReportRecovered()"}},
 			"^TestStreamDiagnosticCallbackWithoutElementReceiverStopsBeforeLaterRead$", here},
-		{"a delivered element stays fresh",
-			[]printedEdit{{"\tif v != nil {\n\t\tvalue.D(v).Fresh = false\n\t}\n", ""}}, "^TestStreamCommitFreezesDeliveredElements$", here},
-		{"the callback is not marked as the caller's",
-			[]printedEdit{{"\tp.EmitCall = true\n\terr := p.Emit(v)\n", "\terr := p.Emit(v)\n"}}, "^TestStreamCallerPanicIdentity$", here},
-		{"the mark of the callback stays",
-			[]printedEdit{{"\terr := p.Emit(v)\n\tp.EmitCall = false\n", "\terr := p.Emit(v)\n"}}, boundary, here},
-		{"an error of the callback is ignored",
-			[]printedEdit{{"\tif err != nil {\n\t\tpanic(Fatal{Err: err})\n\t}\n}\n\n// streamRelease", "\t_ = err\n}\n\n// streamRelease"}},
-			"^TestParseStreamEmitError$", here},
 		{"the trail stays", []printedEdit{{"\tp.Trail = p.Trail[:0]\n", ""}}, storage, vm},
 		{"the frames stay", []printedEdit{{"\tif StreamFrameScratch {\n\t\tp.ResetStreamFrames()\n\t}\n", ""}}, after, here},
 		{"the chunks stay", []printedEdit{{"\tp.splitChunks()\n", ""}}, "^TestParseStreamMemoryIsBounded$", here},

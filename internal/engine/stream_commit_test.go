@@ -110,3 +110,24 @@ func TestStreamCommitPrunesBeforeItSettles(t *testing.T) {
 		t.Fatalf("interruption=%v recovered=%v diagnosed=%d floor=%d", got, p.Recovered, p.Diagnosed, memo.Base)
 	}
 }
+
+// A diagnostic limit needs no callback: each commit still moves the committed errors into the tail
+// before it settles them, so that the terminal result counts them all.
+func TestStreamCommitFeedsATailWithoutCallback(t *testing.T) {
+	t.Parallel()
+	p := mustCompile(t, `rule main = item+ #stream $$
+rule item = "ab" #recover(skip=[^a]+)`)
+	const count = 100
+	input := strings.Repeat("abX!", count)
+	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		err := p.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil },
+			ParseOptions{Backend: backend, DiagnosticLimit: 2})
+		var tail *TruncatedSyntaxErrors
+		if !errors.As(err, &tail) || tail.Total != count || tail.Dropped != count-2 || len(tail.Errors) != 2 {
+			t.Fatalf("%v: tail=%+v err=%v", backend, tail, err)
+		}
+		if got, want := tail.Errors[1].Pos, (count-1)*4+2; got != want {
+			t.Fatalf("%v: last error at %d, want %d", backend, got, want)
+		}
+	}
+}

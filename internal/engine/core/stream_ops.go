@@ -1,7 +1,5 @@
 package core
 
-import "zeroparse.dev/zp/internal/value"
-
 // The engine's implementations of the operations of the stream compositions printed in
 // stream_exec.go.
 
@@ -9,21 +7,6 @@ import "zeroparse.dev/zp/internal/value"
 // error of the diagnostic callback ends the parse with it, before the element is delivered.
 func (p *Parser) streamReport() {
 	if err := p.ReportRecovered(); err != nil {
-		panic(Fatal{Err: err})
-	}
-}
-
-// streamDeliver passes the element v to the callback of the stream parse (stream.deliver); v is
-// final from then on, and an error of the callback ends the parse unchanged. EmitCall marks only
-// the callback's execution, so that a later fault of the VM keeps its attribution.
-func (p *Parser) streamDeliver(v *value.Node) {
-	if v != nil {
-		value.D(v).Fresh = false
-	}
-	p.EmitCall = true
-	err := p.Emit(v)
-	p.EmitCall = false
-	if err != nil {
 		panic(Fatal{Err: err})
 	}
 }
