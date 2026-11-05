@@ -154,7 +154,7 @@ func (p *Parser) Longest(l []*OperatorsRuleOp) OperatorsRuleAttempt {
 	var i int
 	m0 := p.Mark()
 	start := m0.Pos
-	p.Control.Charge(uint64(len(l)))
+	p.SpendN(uint64(len(l)))
 	for i = 0; i < len(l); i++ {
 		op := l[i]
 		prevFrame := p.Frame
@@ -256,7 +256,7 @@ func (p *Parser) TriviaEnd(m Mark, ok bool) {
 func (p *Parser) LongestBegin(st *LongestState, l []*OperatorsRuleOp) {
 	st.L = l
 	st.M0 = p.Mark()
-	p.Control.Charge(uint64(len(l)))
+	p.SpendN(uint64(len(l)))
 }
 
 // LongestNext returns the first line of the match st,

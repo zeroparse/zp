@@ -215,7 +215,7 @@ func engineTarget() *execgo.Target {
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "p.Spend()"
 			}
-			return "p.Control.Charge(" + a[0] + ")"
+			return "p.SpendN(" + a[0] + ")"
 		case "call.tracked":
 			return "p.Tr != nil && p.tracing()"
 		case "call.track":

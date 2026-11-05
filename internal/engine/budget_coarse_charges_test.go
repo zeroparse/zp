@@ -59,6 +59,9 @@ func TestBudgetCoarseChargesPerIteration(t *testing.T) {
 			func(k int) string { return strings.Repeat("-", k) + "a" }, [3]uint64{7, 7, 7}, [3]uint64{7, 7, 7}},
 		{"infix", "rule main = expr $$\nrule expr = #operators {\n    operand \"a\"\n    level {\n        infix left \"+\"\n    }\n}",
 			func(k int) string { return "a" + strings.Repeat("+a", k) }, [3]uint64{10, 10, 10}, [3]uint64{10, 10, 10}},
+		// Three lines in one level: the longest match charges all of them at every operator position.
+		{"infix, three lines", "rule main = expr $$\nrule expr = #operators {\n    operand \"a\"\n    level {\n        infix left \"+\"\n        infix left \"-\"\n        infix left \"*\"\n    }\n}",
+			func(k int) string { return "a" + strings.Repeat("+a", k) }, [3]uint64{21, 21, 21}, [3]uint64{21, 21, 21}},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.src)

@@ -263,10 +263,13 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		{"^TestBudgetCoarseChargesPerIteration$", ".", [][]funcEdit{
 			{{"operatorsRuleNud", "\t\tp.Spend()\n", ""}},
 			{{"NudNext", "\tp.Spend()\n", ""}},
-			{{"LongestBegin", "\tp.Control.Charge(uint64(len(l)))\n", ""}},
+			{{"LongestBegin", "\tp.SpendN(uint64(len(l)))\n", ""}},
+			// One unit for the whole match instead of one per line.
+			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
+			{{"LongestBegin", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
 		}},
 		{"^TestBudgetDiagnosticRecoveredCopies$", "./vm", [][]funcEdit{
-			{{"Longest", "\tp.Control.Charge(uint64(len(l)))\n", ""}},
+			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", ""}},
 		}},
 		{"^TestBudgetResetRestoresRepeatedCaptureWritesInReverse$", ".", [][]funcEdit{
 			{{"Reset", "\tp.Trail = p.Trail[:m.Trail]\n", ""}},

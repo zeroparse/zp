@@ -21,8 +21,9 @@ func addOperators(m *Module) {
 		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.charge", U64(1)) })
 	}
 	// chargeLines charges the lines of the longest match over l at once: the match tries every one of
-	// them, and charges are not rolled back, so a limit admits the same parses as one charge per line
-	// at a fraction of the calls.
+	// them, and charges are not rolled back, so a fixed limit admits the same parses as one charge per
+	// line, at a fraction of the calls. A default budget that grows with demand, as a stream's does,
+	// can run out up to the lines of the match less one units earlier.
 	chargeLines := func(b *Builder, l Expr) {
 		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.charge", Conv(TU64, C("opr.count", l))) })
 	}

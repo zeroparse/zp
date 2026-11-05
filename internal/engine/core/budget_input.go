@@ -15,6 +15,13 @@ func (p *Parser) Spend() {
 	}
 }
 
+// SpendN charges n units at once, as n calls of Spend do, behind the same statically removable boundary.
+func (p *Parser) SpendN(n uint64) {
+	if BudgetControlsEnabled && p.Control != nil {
+		p.Control.Charge(n)
+	}
+}
+
 // NewControlledTextInput preserves the ordinary preparation path when inactive.
 // Controlled decoding reserves up to four bytes before each UTF-8 decoder call;
 // preparation counts both the sizing pass and the storage pass. Allocations
