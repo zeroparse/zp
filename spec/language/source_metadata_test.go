@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/spec/language/internal/sourceast"
+	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
 // Package ownership is compared at the public metadata boundary. The adapter

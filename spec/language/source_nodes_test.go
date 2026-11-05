@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/spec/language/internal/sourceast"
+	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
 // The canonical grammar keeps every comment of the source with the gaps between
