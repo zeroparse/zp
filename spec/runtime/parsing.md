@@ -948,6 +948,74 @@ The conditions below use these terms.
   excluded at the start of a unit that begins with `"let" !idchar`, and a
   continuation `"=" !"="` at the start of an operator part `"=="` with its
   right operand.
+  A unit that is not a lookahead is also committing for a continuation that
+  it **decides**. A **path** of an expression is a sequence of symbols, each a
+  call, a literal, a character class, `.` or a lookahead, such that every
+  evaluation of the expression that succeeds succeeds on the symbols of one
+  path in order, each starting where the one before it ended; an expression
+  that is not looked into, such as `#recover` or an Operators Rule, ends the
+  path without deciding anything. The unit decides the continuation when every
+  path of the unit, compared with every path of the continuation from their
+  common start, passes symbols that both evaluate alike and then **parts** at a
+  decisive symbol that at most one of them can pass, within three symbols: the
+  symbols passed alike and the decisive one together. Two symbols are alike
+  when they are calls of one rule that is not on a left-recursion cycle and
+  reads no variable, or reads variables and is called with the same variables
+  on both sides, equal literals, equal character classes or `.`, or calls of
+  one trivia rule (below). A literal that is a prefix of the other, literals
+  that are equal up to case, overlapping character classes, and a literal and
+  a class that contains its first character are passed by the characters that
+  they have in common, each step counting as one symbol; a call that is not
+  alike stands for the paths of the body of its rule, each of which must part.
+  The decisive symbol is one on each side that cannot both match at the
+  position: first characters that are disjoint, two literals of which neither
+  is a prefix of the other, or two character classes with no character in
+  common; a negative lookahead `!K` on one side that the rest of the other side
+  must match, or a positive lookahead `&K` on one side whose expression and the
+  next symbol of the other side are disjoint; or, in the continuation, the end
+  of the parse, which costs a constant. The strict conditions make what the
+  continuation evaluates again bounded:
+  - every symbol passed alike is **cheap**: evaluating it again where the unit
+    evaluated it costs the continuation at most a constant or what the unit
+    paid for it there. An expression without a scanning source is cheap, as is
+    a call that the memo answers, a call of a rule that calls no rule, which
+    repeats only its own scan, and a call of a rule whose body is cheap in all
+    its parts. A call of a rule that reads variables is cheap only where both
+    sides have the same variables, which holds until either side passes a
+    predicate that binds a variable or the end of a rule body that binds. A
+    call that the memo does not answer and that contains a scanning source is
+    not cheap when the continuation reaches it after the end of a rule body,
+    in what follows a call that nests at one end, or after an operand of an
+    Operators Rule that nests;
+  - an option, choice, repetition or lookahead that a path passes is looked
+    into only when all its parts are cheap;
+  - a lookahead that only the continuation evaluates, or an alternative of it
+    before the one that the unit's match implies, costs a constant: it has no
+    scanning source of its own, and each call in it is answered by the memo or
+    reaches no scanning source.
+
+  A **trivia rule** is a rule whose body is a greedy repetition `X*`, atomic or
+  not, where `X` cannot match without consuming input, and that neither it nor
+  a rule that it calls runs an action or contains `#recover`, an attributed
+  expression, a stream, an Operators Rule or a call of a left-recursion cycle,
+  whose body binds no variable that it reads and has no `#cut` of its own. A
+  call of it always succeeds, and the position where it ends depends only on
+  the position where it starts and the variables that it reads, so two calls at
+  one position with the same variables end alike, and they are passed without
+  counting toward the three symbols. A call that follows a call of the same
+  rule across symbols that consume nothing, with no predicate that binds a
+  variable between them when the rule reads variables, starts where the first
+  one ended, where `X` fails again, so it matches nothing and is dropped from
+  the path. The dropped call costs a constant only when `X` has no scanning
+  source, so it is not dropped otherwise.
+
+  After a unit that its continuation decides is abandoned, the continuation
+  evaluates again only cheap symbols before it parts. At the decisive symbol it
+  does not consume the character at which the two part, fails within a cheap
+  lookahead, or ends the parse, and a unit that ends after cheap symbols
+  examined no more than the continuation evaluates again at their costs.
+  Nothing then starts a scanning source again inside the input that the unit
+  examined beyond the cheap symbols that both evaluate alike.
 - A path of a later alternative of an alternative of a rule of a
   left-recursion cycle **enters the growth again** when it reaches a left call
   of a leader of the cycle before it examines the input, directly or through
