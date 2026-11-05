@@ -94,10 +94,11 @@ Of the 22 core commits, 8 touched all four copies, 7 touched three, and 7 touche
 recursion 1, recovery 1, stream 1, rule completion 1, depth 1. 47 of the 79 commits edited both the node and the
 typed Go copy.
 
-The copies also drift where no test observes it. In a Document, the engine moves the results after an edit to their
-new positions, while the generated Go runtime kept only the results before it and evaluated every result after it
-again, so the two reuse different results after the same edit. Both keep a result that read the growing seed of a
-left recursion out of the memo, in the tables of its context, so neither needs to track such results in a Document.
+The copies also drift where no test observes it. In a Document, the engine moves an entry and its nodes in place when
+a parse reuses it, and records and resumes the runs of repetitions; the generated Go runtime applies each edit to the
+memo at once, copies the nodes of a moved result and resumes no repetition, so the two can reuse different results
+after the same edit. Both keep a result that read the growing seed of a left recursion out of the memo, in the tables
+of its context, so neither needs to track such results in a Document.
 
 ### The Mechanisms Are Host-Neutral
 
@@ -323,7 +324,9 @@ the range it replaces and its change in length: an entry that examined only inpu
 examined only input after it moves by the change unless it is pinned or holds recovered errors, and every other
 entry goes. The value of a moved entry moves when the entry is reused, through `doc.move`, a host operation because
 the positions in a value lie outside the parser VM's state; the target may refuse a value it cannot move, and the
-call evaluates the rule again. Which entry is reused stays in the composition. *Shared*: which entries stay, move or
+call evaluates the rule again. The cost of `doc.move` is twice the number of nodes, fields and children it covers
+(`QMoved`): a target checks that a value is movable and then copies it, and charges both passes. Which entry is reused
+stays in the composition. *Shared*: which entries stay, move or
 go, and the positions after a move. *Target*: tables rebuilt or relinked at an edit, side tables of pending moves,
 copying or moving nodes in place. *Conformance*: the memo operations under random edits on both Go runtimes, and the
 Document differential tests, which compare every result after an edit with a parse from scratch.
@@ -579,7 +582,15 @@ move to Exec IR at once while mechanisms move one at a time.
    `Evaluated` falls by 38% and `Reused` rises by 3%, and no case evaluates more. The engine records the edits and
    moves an entry and its nodes in place when it is reused; the generated runtimes apply each edit to the memo at
    once and copy the nodes. The remaining difference is the recording and resumption of repetition runs, which the
-   engine has and the generated runtimes do not.On generated Go, in interleaved
+   engine has and the generated runtimes do not. The node runtime numbers its moves with a counter that lives as long
+   as the Document, so a mark left by an earlier parse never reads as a check of the current one, and it starts again
+   with an empty memo before the counter overflows. The reference model keeps the far position of an expectation
+   record with `memo.setExpected`, not with `memo.splice`, and the random conformance cases generate entries with
+   recovered errors. Mutating the runtime shows what the tests pin: dropping the shared-node path of a move fails
+   the runtime tests of moved values, and so does dropping the line-start touch of a skip run (`SkipHit`). Dropping the touch of the unit before a result that a left-recursion context replays (`replayCtx`,
+   `growNext`) changes only the counts of reuse: a context lasts as long as the first growth of its leader, every
+   result in it was made inside that growth, and its frames already hold what the result read before its position, so
+   the touch is conservative and stays. On generated Go, in interleaved
    runs, `BenchmarkIncremental/generated/document` takes 58% less time and `BenchmarkIncrementalLong/generated` 4%
    less, `BenchmarkStream/generated` is within noise, and the batch parses and recognizers are within 2% each, 0.4%
    slower in geomean.
@@ -648,7 +659,7 @@ These are settled.
    after that.
 6. **Where copies differ in algorithm, the engine's algorithm wins**, after measuring the incremental benchmarks on
    both, with the change of `Stats` stated in the stage's record. For the results after a Document edit, which the
-   engine moves and the generated runtime evaluated again, the specification makes reuse visible only through the
+   generated runtime moves as the engine does, the specification makes reuse visible only through the
    statistics ([Reuse](../../../spec/runtime/documents.md#reuse)), so results do not change.
 7. **Printed code is checked in**, with a drift test, as `gen/_runtime` is today.
 8. **Term evaluation and the value model are a second wave**, with value operations as host primitives. They account

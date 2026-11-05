@@ -105,8 +105,9 @@ returned diagnostic cannot change memoized errors or diagnostics from a later pa
 not detach the Node graph, which may still share nodes with the mutable Document; use `Node.Clone` when needed.
 
 For eligible grammars, `ParseAST` matches typed values directly and reuses a private typed memo separate from the
-Node memo. Each call uses fresh invocation arenas, and only completed entries whose examined frontier remains before
-an edit are retained; provisional and left-recursive entries are discarded. A published typed value is frozen: the
+Node memo. Each call uses fresh invocation arenas. An edit keeps the completed entries that examined only input before
+it and relinks those that examined only input after it, which a parse reuses when their value is a basic value;
+provisional and left-recursive entries are not kept. A published typed value is frozen: the
 parse publishes the value it built, and later parses reuse the same values, so results share values with the
 Document and with earlier results, as Node values do. Results are therefore read-only. Modifying a result, including
 a value reached through a `node[_]` field, can change what later parses return. `CloneAST(value)` returns a copy that
@@ -128,8 +129,8 @@ Other grammars use Node conversion. The direct path preserves per-call ownership
 work. Typed memo entries are separate from Node memo entries, and each invocation uses fresh parser and allocation
 arenas so later parses cannot overwrite values returned earlier.
 
-Edit invalidation keeps only completed typed entries before the edit whose examined frontier also remains before
-it; entries dependent on left-recursion growth, provisional results, or the edited suffix are discarded. Generated
+An edit keeps the completed typed entries that examined only input before it, relinks those that examined only input
+after it, and drops the rest; entries dependent on left-recursion growth and provisional results are not kept. Generated
 wrappers memoize calls that batch generation otherwise optimizes away, while generation without a Document keeps
 the existing batch source path. Publication freezes the typed value without a per-call copy. The generated code writes a value only while it
 builds it, before publication: slices are carved with three-index bounds from chunks, and no later code writes into a
