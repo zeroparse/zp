@@ -753,6 +753,14 @@ func (p *Parser) reusable(silent bool) bool {
 // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
 // would have. A result does not record whether it examined the unit before its position, so in a
 // Document parse that unit counts as examined.
+//
+// The touch of that unit is conservative: no result differs from a parse from scratch without it
+// (a Document that omits it, here and in growNext, differs in its counts of reuse only). A context
+// lasts as long as the first growth of its leader, and every result in it was made inside that
+// growth, in frames that are the leader's own or inside it, whose examined input then holds
+// whatever the result read before its position. The calls that replay a result read a seed of the
+// context, so their results stay in the context too; the memo entry of the leader is the only one
+// that a replay can reach, and it was made by those frames.
 func (p *Parser) replayCtx(e *ctxResult, seed bool) {
 	p.Observation.memoHit()
 	p.documentTouch(e.examined)
@@ -929,7 +937,7 @@ func (p *Parser) growNext(g *growState) bool {
 			p.replayDeps(g.start, g.gp, g.present, j.deps)
 			p.MergeExpected(j.far, j.exp)
 			p.documentTouch(j.examined)
-			p.documentTouchFrom(g.start - 1)
+			p.documentTouchFrom(g.start - 1) // conservative, like the touch of replayCtx
 			p.setSeed(g, j.end, j.id)
 			continue
 		}
@@ -938,7 +946,7 @@ func (p *Parser) growNext(g *growState) bool {
 			p.replayDeps(g.start, g.gp, g.present, s.deps)
 			p.MergeExpected(s.far, s.exp)
 			p.documentTouch(s.examined)
-			p.documentTouchFrom(g.start - 1)
+			p.documentTouchFrom(g.start - 1) // conservative, like the touch of replayCtx
 			if !p.advance(g, s.e, s.id, runStep{seed: id, far: s.far, exp: s.exp, examined: s.examined, silent: s.silent, deps: s.deps}) {
 				return false
 			}
