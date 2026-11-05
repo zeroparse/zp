@@ -660,6 +660,37 @@ move to Exec IR at once while mechanisms move one at a time.
    its charges and its reads stay hand-written, and no conformance case covers them. Adoption replaces a hand-written
    mechanism with what the compositions print, and for the environment they print nothing else, so the engine needs
    no further change here.
+
+   In the third part, the Operators Rule compositions print the engine's loop, longest match, skip of trivia and
+   `Reset` into `core/operators_exec.go`, specialized for budget controls and missing tokens, and the engine gains
+   `env.restore` with them. The iterative VM does not recurse, so the compositions gain split forms: steps between
+   the points where it runs a line, a skip or an expression, built from the same builders as the recursive forms, with
+   their state in records that its frames hold. One step ends a line of a longest match and starts the next, because
+   the VM pays for a call at every line of every match. The engine still skips the loop for a rule without infix or
+   postfix operators.
+
+   The engine adopts the charges of stage 6, which changes its budget counts on every backend: one unit per operator
+   or operand line it tries, and none at the entry of a level or per iteration. A longest match tries every line, so
+   it charges them at once, here and in the generated runtimes: the count does not change, charges are never rolled
+   back, so a limit admits the same parses, and an interruption can only come earlier, by at most the lines of that
+   match. A charge can pass a poll boundary by more than a unit, so a run can poll its context once less. A charge per line cost 1 to 2 points on rows with Operators Rules, because the default budget makes each
+   charge a call. On `BytecodeIterative`, an attempt now copies its errors with the memory charge the recursive forms make.
+   Results and `Stats` do not change, and the frames of the VM keep their sizes.
+
+   Direct tests run the recursive and split forms from one table of lines. Mutating the printed file shows what the
+   tests pin: a long test builds 138 mutants through `-overlay`, each dropping one guard, reset, charge or copy of a
+   function, and each fails the direct tests or a named test. Four more edits are equivalent and left out; the test
+   states why. In ten interleaved rounds against the hand-written loop, 9 engine `sec/op` rows are faster, 37 slower
+   and 11 of the slower more than 1% slower; the geomean of all rows is 0.2% slower. `Closure` rows stay within 1%.
+   On `BytecodeIterative`, `Arith_OperatorsRule` is 2.7% to 3.3% slower, because it tries eight operator lines per
+   operand and each costs a call into a step, and its budget pays for each operand line. `Bytecode` rows up to 2.0%
+   slower include `JSON` and `Arith_LeftRec`, which run no Operators Rule: `Machine.step` moves within its cache line
+   from build to build, and `JSON` moved from 0.6% to 1.4% slower between two builds that differ only in the split
+   forms, so layout accounts for about 0.8 points of these rows, and the rest is not separated from it. On `Parse`
+   rows `B/op` rises by at most 0.01%; `Recognize` rows, whose median swings by up to 55% between rounds, rise by at
+   most 6.6%, and `allocs/op` by at most 1.2%. The `zp` binary grows by 201 KB, nearly all of it the builders of the
+   split forms, which the generator links: their code grows by 78 KB and the engine's by 3.9 KB. Generated parsers
+   are at most 0.8% slower.
 10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
     `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 

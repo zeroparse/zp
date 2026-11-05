@@ -146,6 +146,249 @@ func TestExpectationRecordMutantsFail(t *testing.T) {
 	})
 }
 
+// TestOperatorsLoopMutantsFail is the negative control of the tests of the Operators Rule loop, whose
+// recursive and split forms are printed into core/operators_exec.go. Each row breaks one function of
+// the file; most fail the direct tests of both forms, and the rest fail the test named for them. Four
+// edits are left out because they change nothing. A prefix or a postfix match that consumes nothing
+// is no candidate, so a postfix application always moves past where the iteration started, and the
+// recursive and the split test for no progress after one cannot fire. LongestStep saves the frame
+// and the cut flag of its caller after restoring them from the record, so not saving them again
+// leaves the same values.
+func TestOperatorsLoopMutantsFail(t *testing.T) {
+	const path = "core/operators_exec.go"
+	src, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	groups := []struct {
+		tests, pkg string
+		mutants    [][]funcEdit
+	}{
+		{"^TestOperators", "./core", [][]funcEdit{
+			{{"OperatorsRuleParse", "\tp.Depth--\n", ""}},
+			{{"operatorsRuleExpr", "if !ok {\n\t\treturn nil, false\n\t}\n\tled :=", "if false && !ok {\n\t\treturn nil, false\n\t}\n\tled :="}},
+			{{"operatorsRuleExpr", "if len(led) == 0 {", "if false {"}},
+			{{"operatorsRuleExpr", "level <= min ||", "level < min ||"}},
+			{{"operatorsRuleExpr", "(op.Assoc == grammar.AssocNone) && level == lastNone", "false && level == lastNone"}},
+			{{"operatorsRuleExpr", "\t\tp.Pos = a.End\n", ""}},
+			{{"operatorsRuleExpr", "\t\tp.Env = a.Env\n", ""}},
+			{{"operatorsRuleExpr", "if p.Missing != nil || len(a.Errs) != 0 {", "if len(a.Errs) != 0 {"}},
+			{{"operatorsRuleExpr", "lhs, nil)\n\t\t\tlastNone = -1\n", "lhs, nil)\n"}},
+			{{"operatorsRuleExpr", "\t\t\tcontinue\n\t\t}\n\t\trmin", "\t\t}\n\t\trmin"}},
+			{{"operatorsRuleExpr", "if op.Assoc == grammar.AssocRight {", "if true {"}},
+			{{"operatorsRuleExpr", "\t\t\tp.Reset(m0)\n\t\t\tbreak\n\t\t}\n\t\tlhs = p", "\t\t\tbreak\n\t\t}\n\t\tlhs = p"}},
+			{{"operatorsRuleExpr", "lhs, rhs)\n\t\tlastNone = -1\n", "lhs, rhs)\n"}},
+			{{"operatorsRuleExpr", "\t\t\tlastNone = level\n", ""}},
+			{{"operatorsRuleExpr", "\t\tif p.Pos == start {\n\t\t\tbreak\n\t\t}\n\t}\n\treturn lhs", "\t}\n\treturn lhs"}},
+			{{"ExprStart", "if !ok {", "if false && !ok {"}},
+			{{"ExprStart", "if len(r.OperatorsRule.Led) == 0 {", "if false {"}},
+			{{"ExprLed", "level <= st.Min ||", "level < st.Min ||"}},
+			{{"ExprLed", "(op.Assoc == grammar.AssocNone) && level == st.LastNone", "false"}},
+			{{"ExprLed", "\tp.Pos = st.A.End\n", ""}},
+			{{"ExprLed", "\tp.Env = st.A.Env\n", ""}},
+			{{"ExprLed", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if len(st.A.Errs) != 0 {"}},
+			{{"ExprLed", "st.Lhs, nil)\n\t\tst.LastNone = -1\n", "st.Lhs, nil)\n"}},
+			{{"ExprLed", "if op.Assoc == grammar.AssocRight {", "if true {"}},
+			{{"ExprRhs", "\t\tp.Reset(st.M0)\n\t\treturn true, true\n", "\t\treturn true, true\n"}},
+			{{"ExprRhs", "\t\tst.LastNone = op.Level\n", ""}},
+			{{"ExprRhs", "\tif p.Pos == st.M0.Pos {\n\t\treturn true, true\n\t}\n", ""}},
+			{{"operatorsRuleNud", "\tp.skipTrivia(r)\n", ""}},
+			{{"operatorsRuleNud", "\t\tp.Pos = a.End\n", ""}},
+			{{"operatorsRuleNud", "\t\tp.Env = a.Env\n", ""}},
+			{{"operatorsRuleNud", "if p.Missing != nil || len(a.Errs) != 0 {", "if len(a.Errs) != 0 {"}},
+			{{"operatorsRuleNud", "\t\tp.Cut = false\n", ""}},
+			{{"operatorsRuleNud", "\t\tp.Cut = prevCut\n", "\t\t_ = prevCut\n"}},
+			{{"operatorsRuleNud", "\t\tp.Reset(m0)\n\t\tif cut {", "\t\tif cut {"}},
+			{{"operatorsRuleNud", "\t\tif cut {", "\t\tif cut && false {"}},
+			{{"NudPrefix", "\t\tp.Pos = st.A.End\n", ""}},
+			{{"NudPrefix", "\t\tp.Env = st.A.Env\n", ""}},
+			{{"NudPrefix", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if len(st.A.Errs) != 0 {"}},
+			{{"NudNext", "\tp.Cut = false\n", ""}},
+			{{"NudNext", "\tst.PrevCut = prevCut\n", "\t_ = prevCut\n"}},
+			{{"NudOperand", "\tp.Cut = st.PrevCut\n", ""}},
+			{{"NudOperand", "\tp.Reset(st.M0)\n\tif cut {", "\tif cut {"}},
+			{{"NudOperand", "\tif cut {", "\tif cut && false {"}},
+			{{"Longest", "\t\tp.Cut = false\n", ""}},
+			{{"Longest", "\t\tp.Cut = prevCut\n", "\t\t_ = prevCut\n"}},
+			{{"Longest", "\t\tp.Frame = prevFrame\n", "\t\t_ = prevFrame\n"}},
+			{{"Longest", "\t\tp.Frame = f\n", ""}},
+			{{"Longest", "(op.Kind != grammar.Infix)", "true"}},
+			{{"Longest", "matched := ok && !(p.Pos == start && (op.Kind != grammar.Infix))", "matched := ok"}},
+			{{"Longest", "if !matched && cut {", "if cut {"}},
+			{{"Longest", "if !matched && cut {", "if false && cut {"}},
+			{{"Longest", "Errs: p.copyErrors(p.Recovered[m0.Recovered:])", "Errs: nil"}},
+			{{"Longest", "missing: p.MissingEvents(m0.missing)", "missing: nil"}},
+			{{"Longest", "Env: p.Env,", "Env: m0.Env,"}},
+			{{"Longest", "Cut: cut,", "Cut: false,"}},
+			{{"Longest", "\t\t\tp.Reset(m0)\n\t\t} else {", "\t\t} else {"}},
+			{{"Longest", "\tp.cutFailed = cutFailed\n", "\t_ = cutFailed\n"}},
+			{{"LongestNext", "\t\tp.cutFailed = st.CutFailed\n", ""}},
+			{{"LongestNext", "\tp.Cut = false\n", ""}},
+			{{"LongestNext", "\tst.PrevCut = prevCut\n", "\t_ = prevCut\n"}},
+			{{"LongestNext", "\tst.PrevFrame = prevFrame\n", "\t_ = prevFrame\n"}},
+			{{"LongestNext", "\tp.Frame = f\n", ""}},
+			{{"LongestStep", "\tp.Cut = st.PrevCut\n", ""}},
+			{{"LongestStep", "\tp.Frame = st.PrevFrame\n", ""}},
+			{{"LongestStep", "(op.Kind != grammar.Infix)", "true"}},
+			{{"LongestStep", "matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != grammar.Infix))", "matched := ok"}},
+			{{"LongestStep", "if !matched && cut {", "if cut {"}},
+			{{"LongestStep", "if !matched && cut {", "if false && cut {"}},
+			{{"LongestStep", "Errs: p.copyErrors(p.Recovered[st.M0.Recovered:])", "Errs: nil"}},
+			{{"LongestStep", "missing: p.MissingEvents(st.M0.missing)", "missing: nil"}},
+			{{"LongestStep", "Env: p.Env,", "Env: st.M0.Env,"}},
+			{{"LongestStep", "Cut: cut,", "Cut: false,"}},
+			{{"LongestStep", "\t\tp.Reset(st.M0)\n\t} else {", "\t} else {"}},
+			{{"skipTrivia", "\tp.Silent = p.Silent + 1\n", ""}, {"skipTrivia", "\tp.Silent = p.Silent - 1\n", ""}},
+			{{"skipTrivia", "\t\tp.Reset(m)\n", ""}},
+			{{"skipTrivia", "\t\tif p.Missing != nil {\n\t\t\tp.ResetMissing(m.missing)\n\t\t}\n", ""}},
+			{{"skipTrivia", "\t\tp.Recovered = p.Recovered[:m.Recovered]\n", ""}},
+			{{"TriviaBegin", "\tp.Silent = p.Silent + 1\n", ""}, {"TriviaEnd", "\tp.Silent = p.Silent - 1\n", ""}},
+			{{"TriviaEnd", "\t\tp.Reset(m)\n", ""}},
+			{{"TriviaEnd", "\t\tif p.Missing != nil {\n\t\t\tp.ResetMissing(m.missing)\n\t\t}\n", ""}},
+			{{"TriviaEnd", "\t\tp.Recovered = p.Recovered[:m.Recovered]\n", ""}},
+			{{"Reset", "\tp.Pos = m.Pos\n", ""}},
+			{{"Reset", "\tp.Env = m.Env\n", ""}},
+			{{"Reset", "\tif p.Missing != nil {\n\t\tp.ResetMissing(m.missing)\n\t}\n", ""}},
+			{{"Reset", "\tp.Recovered = p.Recovered[:m.Recovered]\n", ""}},
+			{{"ExprRhs", "st.Lhs, rhs)\n\tst.LastNone = -1\n", "st.Lhs, rhs)\n"}},
+			{{"LongestStep", "\t\tp.cutFailed = st.CutFailed\n", ""}},
+			{{"LongestStep", "\tp.Cut = false\n", ""}},
+			{{"LongestStep", "\tp.Frame = f\n", ""}},
+			{{"LongestStep", "\tst.I = st.I + 1\n", "\tst.I = st.I + 2\n"}},
+		}},
+		{"^TestBackendsMatchOnCorpus$", ".", [][]funcEdit{
+			{{"Longest", "p.Pos > best.End", "p.Pos >= best.End"}},
+			{{"LongestStep", "p.Pos > st.Best.End", "p.Pos >= st.Best.End"}},
+		}},
+		{"^TestBudgetCoarseChargesPerIteration$", ".", [][]funcEdit{
+			{{"operatorsRuleNud", "\t\tp.Spend()\n", ""}},
+			{{"NudNext", "\tp.Spend()\n", ""}},
+			{{"LongestBegin", "\tp.Control.Charge(uint64(len(l)))\n", ""}},
+		}},
+		{"^TestBudgetDiagnosticRecoveredCopies$", "./vm", [][]funcEdit{
+			{{"Longest", "\tp.Control.Charge(uint64(len(l)))\n", ""}},
+		}},
+		{"^TestBudgetResetRestoresRepeatedCaptureWritesInReverse$", ".", [][]funcEdit{
+			{{"Reset", "\tp.Trail = p.Trail[:m.Trail]\n", ""}},
+		}},
+		{"^TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration$", "./vm", [][]funcEdit{
+			{{"Longest", "\t\t\tp.Saved = AppendSpend(p, p.Saved[:0], f.Vals)\n\t\t\tp.Reset(m0)\n\t\t\tCopySpend(p, f.Vals, p.Saved)\n", "\t\t\tp.Reset(m0)\n"}},
+			{{"Longest", "\t\t\tp.Reset(m0)\n\t\t\tCopySpend", "\t\t\tCopySpend"}},
+			{{"LongestStep", "\t\tp.Saved = AppendSpend(p, p.Saved[:0], st.F.Vals)\n\t\tp.Reset(st.M0)\n\t\tCopySpend(p, st.F.Vals, p.Saved)\n", "\t\tp.Reset(st.M0)\n"}},
+			{{"LongestStep", "\t\tp.Reset(st.M0)\n\t\tCopySpend", "\t\tCopySpend"}},
+			{{"Reset", "\tp.UndoCaptures(m.Trail)\n", ""}},
+		}},
+		{"^TestCompiledRecognitionRoundTrip$", ".", [][]funcEdit{
+			{{"ExprLed", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"operatorsRuleNud", "if p.Missing != nil || len(a.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"operatorsRuleNud", "p.OperatorsRuleParse(r, a.Op.Level)", "p.OperatorsRuleParse(r, a.Op.Level-1)"}},
+			{{"NudRhs", "\tif st.A.Cut {\n\t\treturn nil, false, true\n\t}\n", ""}},
+			{{"NudRhs", "\tp.Reset(st.M0)\n", ""}},
+			{{"LongestStep", "((st.Best.Op == nil) || p.Pos > st.Best.End)", "true"}},
+		}},
+		{"^TestDefaultValueOperatorsRule$", ".", [][]funcEdit{
+			{{"operatorsRuleNud", "LineResult(r, o, f, v, start, nil)", "LineResult(r, o, f, v, p.Pos+0*start, nil)"}},
+		}},
+		{"^TestDocumentAbortedParse$", "./document", [][]funcEdit{
+			{{"OperatorsRuleParse", "\tp.Enter()\n", ""}, {"OperatorsRuleParse", "\tp.Depth--\n", ""}},
+		}},
+		{"^TestDocumentEditKeepsMemo$", "./document", [][]funcEdit{
+			{{"operatorsRuleNud", "\t\tp.Frame = f\n", ""}},
+		}},
+		{"^TestDocumentMatchesFreshParse$", ".", [][]funcEdit{
+			{{"operatorsRuleNud", "\t\tp.Frame = prevFrame\n", "\t\t_ = prevFrame\n"}},
+		}},
+		{"^TestDocumentMovesReusedTrees$", ".", [][]funcEdit{
+			{{"NudNext", "\tp.Frame = f\n", ""}},
+			{{"Longest", "Start: start,", "Start: p.Pos,"}},
+			{{"LongestStep", "Start: st.M0.Pos,", "Start: p.Pos,"}},
+		}},
+		{"^TestIgnoreCaseOperatorsRulePragma$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "\t\tp.skipTrivia(r)\n", ""}},
+		}},
+		{"^TestOperatorsRuleActions$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "failed := p.cutFailed\n\t\t\tp.Reset(m0)\n", "failed := p.cutFailed\n"}},
+			{{"ExprLed", "failed := p.cutFailed\n\t\tp.Reset(st.M0)\n", "failed := p.cutFailed\n"}},
+			{{"NudNext", "\tst.PrevFrame = prevFrame\n", "\t_ = prevFrame\n"}},
+		}},
+		{"^TestOperatorsRuleCST$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "\t\t\trmin--\n", ""}},
+		}},
+		{"^TestOperatorsRuleCut$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "\t\t\tif a.Cut {\n\t\t\t\treturn nil, false\n\t\t\t}\n", ""}},
+			{{"ExprRhs", "\t\tif st.A.Cut {\n\t\t\treturn true, false\n\t\t}\n", ""}},
+		}},
+		{"^TestOperatorsRuleJuxtaposition$", ".", [][]funcEdit{
+			{{"ExprLed", "\t\tp.Reset(st.M0)\n\t\treturn true, true, -1\n\t}\n\tp.Pos = st.A.End", "\t\treturn true, true, -1\n\t}\n\tp.Pos = st.A.End"}},
+		}},
+		{"^TestOperatorsRulePositionsWithActions$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "\t\t\tp.Reset(m0)\n\t\t\tbreak\n\t\t}\n\t\tp.Pos = a.End", "\t\t\tbreak\n\t\t}\n\t\tp.Pos = a.End"}},
+		}},
+		{"^TestOperatorsRulePrefixPartCuts$", ".", [][]funcEdit{
+			{{"NudPrefix", "} else if p.cutFailed {", "} else if false {"}},
+			{{"Longest", "((best.Op == nil) || p.Pos > best.End)", "true"}},
+		}},
+		{"^TestOperatorsRuleStreamDepthLimit$", ".", [][]funcEdit{
+			{{"ExprLed", "\t\trmin--\n", ""}},
+		}},
+		{"^TestRuleResultChecks$", ".", [][]funcEdit{
+			{{"NudOperand", "LineResult(r, o, st.F, v, st.M0.Pos, nil)", "LineResult(r, o, st.F, v, p.Pos, nil)"}},
+		}},
+		{"^TestSampleCorpus$", ".", [][]funcEdit{
+			{{"operatorsRuleNud", "\t\tif a.Cut {\n\t\t\treturn nil, false\n\t\t}\n", ""}},
+			{{"operatorsRuleNud", "\t\tp.Reset(m0)\n\t} else if", "\t} else if"}},
+			{{"operatorsRuleNud", "} else if p.cutFailed {", "} else if false {"}},
+			{{"LongestStep", "((st.Best.Op == nil) || p.Pos > st.Best.End)", "(st.Best.Op == nil)"}},
+		}},
+		{"^TestTerminalOperatorsRuleNeedsAction$", ".", [][]funcEdit{
+			{{"NudOperand", "\tp.Frame = st.PrevFrame\n", ""}},
+		}},
+		{"^TestTracesAgreeAcrossBackends$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "if failed {", "if failed && false {"}},
+			{{"operatorsRuleExpr", "if p.Missing != nil || len(a.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"ExprLed", "if failed {", "if failed && false {"}},
+			{{"NudPrefix", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"Longest", "((best.Op == nil) || p.Pos > best.End)", "(best.Op == nil)"}},
+		}},
+	}
+	var mutants []printedMutant
+	for _, g := range groups {
+		for _, edits := range g.mutants {
+			mutants = append(mutants, printedMutant{mutantName(edits),
+				[]printedEdit{{string(src), applyFuncEdits(t, string(src), edits)}}, g.tests, []string{g.pkg}})
+		}
+	}
+	runPrintedMutants(t, path, mutants)
+}
+
+// A funcEdit replaces the only copy of old in the function fn of the printed file.
+type funcEdit struct{ fn, old, new string }
+
+// applyFuncEdits returns the text with the edits made.
+func applyFuncEdits(t *testing.T, text string, edits []funcEdit) string {
+	t.Helper()
+	for _, e := range edits {
+		head := "func (p *Parser) " + e.fn + "("
+		start := strings.Index(text, head)
+		if start < 0 {
+			t.Fatalf("no function %s", e.fn)
+		}
+		length := strings.Index(text[start:], "\n}\n") + 1
+		body := text[start : start+length]
+		if n := strings.Count(body, e.old); n != 1 {
+			t.Fatalf("%s has %d copies of %q, not one", e.fn, n, e.old)
+		}
+		text = text[:start] + strings.Replace(body, e.old, e.new, 1) + text[start+length:]
+	}
+	return text
+}
+
+// mutantName names a mutant after its first edit.
+func mutantName(edits []funcEdit) string {
+	e := edits[0]
+	return fmt.Sprintf("%s %q to %q", e.fn, strings.TrimSpace(e.old), strings.TrimSpace(e.new))
+}
+
 // A printedMutant is one broken variant of the printed file.
 type printedMutant struct {
 	name  string
@@ -172,6 +415,7 @@ func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
 	dir := t.TempDir()
 	for i, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
 			text := string(src)
 			for _, e := range m.edits {
 				if n := strings.Count(text, e.old); n != 1 {
