@@ -1091,13 +1091,16 @@ host op doc.move(e Entry) bool
   writes memo
   features document
   noreturn
-  cost <= 0 + 1*moved
+  cost <= 0 + 2*moved
   contract:
     // Makes the value of entry e valid at the position of e, after memo.splice moved e: moves the
     // positions in the value by as much as the edits moved e since the value was made, in a copy, since the
     // value may be part of a result that the parse returned. Returns false, changing nothing, when the
     // target cannot move the value (a value of the host that is not made of nodes and of basic values);
     // the call that finds e then evaluates the rule again. Returns true for an entry that no edit moved.
+    // The target checks the value before it copies it; each pass charges, for each distinct node it visits,
+    // one unit and one for each child and field, which is what the cost bounds: a refusal charges no more
+    // than the check of the nodes it reached.
 
 transitional op stream.settleErrors()
   component window

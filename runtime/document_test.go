@@ -396,3 +396,41 @@ func TestDocumentMoveMarksRestartWithAnEmptyMemo(t *testing.T) {
 		t.Fatalf("the memo of the restarted Document is not reused: err %v, stats %+v", err, d.stats)
 	}
 }
+
+// TestDocumentMoveChargesTheCheckAndTheCopy checks the units that a move charges: for each distinct
+// node of the value, one and one for each child and field, in the check and again in the copy, and
+// the check alone in a refusal.
+func TestDocumentMoveChargesTheCheckAndTheCopy(t *testing.T) {
+	leaf := func(box any) *Node { return &Node{RawKind: RawKindMatch, RawStart: 1, RawEnd: 2, box: box} }
+	// The size of a root of three children, two distinct leaves of which one is held twice, and a field:
+	// 5 for the root and 1 for each leaf.
+	build := func(box any) *Node {
+		a, b := leaf(nil), leaf(box)
+		return &Node{RawKind: RawKindList, RawStart: 1, RawEnd: 2, RawChildren: []*Node{a, b, a},
+			RawFields: Fields{{Name: "x", Value: "v"}}}
+	}
+	const size = 5 + 2
+	for _, c := range []struct {
+		name string
+		box  any
+		want uint64
+	}{
+		{"moved", nil, 2 * size},
+		// The check charges the root, then the first leaf, then refuses at the second.
+		{"refused", []int{1}, 5 + 1 + 1},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := &Parser{Document: &documentState{}, Control: newBudgetControl(nil, Limits{Compute: Unlimited})}
+			e := &memoEntry{node: build(c.box)}
+			p.memo.shifts = map[*memoEntry]int{e: 1}
+			before := p.Control.budgetUsed()
+			moved := p.documentMove(e)
+			if moved != (c.box == nil) {
+				t.Fatalf("moved = %v", moved)
+			}
+			if used := p.Control.budgetUsed() - before; used != c.want {
+				t.Fatalf("charged %d units, want %d", used, c.want)
+			}
+		})
+	}
+}

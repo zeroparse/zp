@@ -350,8 +350,9 @@ const moveMarkLimit = 1 << 31
 
 // documentMove moves the nodes of the value of e by the shift that edits gave e (memo.splice), in
 // copies, since the value may be part of a result already returned, and reports whether it could:
-// a value that holds a host value other than a node or a basic value is not moved. A moved node
-// costs one unit, as making it did.
+// a value that holds a host value other than a node or a basic value is not moved. The check and the
+// copy each cost, for every distinct node of the value, a unit and one more for each of its children
+// and fields.
 func (p *Parser) documentMove(e *memoEntry) bool {
 	if len(p.memo.shifts) == 0 {
 		return true
@@ -394,6 +395,7 @@ func (p *Parser) movable(n *Node, mark uint32) (movable, shared bool) {
 		return true, true
 	}
 	n.moveMark = mark
+	p.spendValue(1 + len(n.RawChildren) + len(n.RawFields))
 	if !basicValue(n.box) {
 		return false, false
 	}
@@ -435,6 +437,7 @@ func (p *Parser) moveNode(n *Node, shift int32) *Node {
 		return nil
 	}
 	c := p.NewNode(*n)
+	p.spendValue(len(n.RawChildren) + len(n.RawFields))
 	c.RawStart += shift
 	c.RawEnd += shift
 	if n.RawChildren != nil {
@@ -466,6 +469,7 @@ func (p *Parser) moveShared(n *Node, shift int32) *Node {
 	}
 	c := p.NewNode(*n)
 	p.moved[n] = c
+	p.spendValue(len(n.RawChildren) + len(n.RawFields))
 	c.RawStart += shift
 	c.RawEnd += shift
 	if n.RawChildren != nil {
