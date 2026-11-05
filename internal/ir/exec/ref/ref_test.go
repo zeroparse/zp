@@ -40,6 +40,17 @@ func TestMemoModel(t *testing.T) {
 	if got := m.Quantity(ops.QKeyScan, nil, k); got != 4 {
 		t.Fatalf("key scan at 5 = %d, want 4 (two entries of one value)", got)
 	}
+	// A store under the key of e replaces it: e is dead, and an implementation may reuse it.
+	if m.Dead(e) {
+		t.Fatal("a live entry is dead")
+	}
+	e3 := call(m, "memo.store", append(k, false, int64(5), false, nil, nil)...)[0]
+	if !m.Dead(e) || m.Dead(e3) || m.Allows(pilot.Op("memo.ok"), []any{e}) {
+		t.Fatal("the replaced entry is not dead")
+	}
+	if got := m.Quantity(ops.QKeyScan, nil, k); got != 4 {
+		t.Fatalf("key scan at 5 after a replacement = %d, want 4", got)
+	}
 }
 
 func TestSlotGrowth(t *testing.T) {

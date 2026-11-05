@@ -107,7 +107,8 @@ and levels are equal and the host's value equality holds for their values.`,
 		Contract: `Stores a complete entry with the outcome ok, the end, whether it was computed in a silent
 context, its value and its recovered errors under the key, replacing the entry stored under the same
 key, and returns it. Entries under other keys are unchanged.`,
-		Requires: `end is at least pos.`})
+		Requires: `end is at least pos. The handle of the entry that the store replaces is not used after
+it: an implementation may reuse it for a later entry.`})
 	m.AddOp(&exec.Op{Name: "memo.prune", Component: Memo, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Reads: []string{Memo}, Writes: []string{Memo}, Features: []string{Stream}, NoReturn: true,
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}}},

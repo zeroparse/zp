@@ -66,7 +66,7 @@ type Entry struct {
 	// reports memo.pin.
 	examined       int64
 	before, pinned bool
-	// pruned reports an entry that memo.prune or memo.splice made invalid.
+	// pruned reports an entry that memo.prune or memo.splice made invalid, or that memo.store replaced.
 	pruned bool
 }
 
@@ -222,8 +222,8 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }
 
-// Dead reports whether the handle h is no longer valid: an entry that memo.prune removed. An
-// implementation may reuse what a dead handle stood for.
+// Dead reports whether the handle h is no longer valid: an entry that memo.prune or memo.splice
+// removed, or that memo.store replaced. An implementation may reuse what a dead handle stood for.
 func (m *Model) Dead(h any) bool {
 	e, ok := h.(*Entry)
 	return ok && e.pruned
@@ -260,8 +260,11 @@ func (m *Model) put(e *Entry) *Entry {
 	if e.key.pos < m.floor {
 		return e
 	}
-	if m.entries[e.key] == nil {
+	if old := m.entries[e.key]; old == nil {
 		m.at[e.key.pos]++
+	} else if old != e {
+		// The replaced entry is dead: an implementation may reuse it for a later entry.
+		old.pruned = true
 	}
 	m.entries[e.key] = e
 	m.covered = max(m.covered, e.key.pos+1)
