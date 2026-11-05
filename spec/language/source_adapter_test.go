@@ -126,3 +126,47 @@ func compareGrammars(t *testing.T, p *zp.Parser, name, src string) bool {
 	}
 	return true
 }
+
+// frontendRejections are sources that both frontends reject: the hand-written
+// parser is the reference, so the canonical frontend must not accept more.
+var frontendRejections = []string{
+	"rule a = x /... y\n",                // "..." is the default action marker, not three of ".".
+	"rule a = b #recover(skip=a[-z]+)\n", // a class right after a name is an index.
+	"rule a = (b)[a]\n",
+	"rule a = x:y[a]\n",
+	"rule a node = \"x\"\n",
+	"type T = { A node }\n",
+	"rule a = b => 1 + nil(2)\n",
+	"rule a = b => true{}\n",
+}
+
+func TestCanonicalFrontendRejections(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	for _, src := range frontendRejections {
+		if _, err := zp.ParseGrammar(src); err == nil {
+			t.Errorf("%q: the hand-written parser accepts it", src)
+		}
+		if _, err := adaptCanonical(p, src); err == nil {
+			t.Errorf("%q: the canonical frontend accepts it", src)
+		}
+	}
+}
+
+// frontendAgreements are sources that both frontends accept with the same AST,
+// where the grammar could read them differently.
+var frontendAgreements = []string{
+	"rule a = b @foo(\"\"x, k=y)\n", // an attribute argument is a whole expression: a sequence here.
+	"rule a = b @foo(\"x\" / y, \"z\"i)\n",
+	"rule a = b => nil\nrule c = d => true\n",
+	"rule a = \"!\" _|_[0-9] / x\n", // _|_ is a token, not a name
+}
+
+func TestCanonicalFrontendAgreements(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	for _, src := range frontendAgreements {
+		if _, err := zp.ParseGrammar(src); err != nil {
+			t.Errorf("%q: the hand-written parser rejects it: %v", src, err)
+		}
+		compareGrammars(t, p, src, src)
+	}
+}

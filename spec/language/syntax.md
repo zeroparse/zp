@@ -198,7 +198,7 @@ rule begin_input = "^^" #atomic
 rule begin_line = "^" #atomic
 rule end_input = "$$" #atomic
 rule end_line = ("$" !(ident_start / digit)) #atomic
-rule any = "." #atomic
+rule any = ("." !"..") #atomic
 rule cut = ("#cut" !ident_char !"(") #atomic
 rule predicate = action_block
 rule repeat_args = (
@@ -229,7 +229,7 @@ rule attr_trailing_comma = (-ws "," -ws)?
 rule attr_named_tail = -ws "," -ws attr_named_args
 rule attr_slot = !(ident -ws "=") attr_value
 rule attr_named = ident -ws "=" -ws attr_value
-rule attr_value = true_lit / false_lit / nil_lit / signed_int / string / rule_expr
+rule attr_value = true_lit / false_lit / nil_lit / signed_int / rule_expr
 rule signed_int = (("-" -ws)? digit+ #atomic) #atomic
 
 // #ignorecase may follow the block of an Operators Rule on its line, and covers the literals of the
@@ -352,7 +352,7 @@ rule true_lit = ("true" !ident_char) #atomic
 rule false_lit = ("false" !ident_char) #atomic
 rule nil_lit = ("nil" !ident_char) #atomic
 rule capture_ref = ("$" ident #atomic) #atomic
-rule var_name = ident #atomic
+rule var_name = (!(true_lit / false_lit / nil_lit) ident) #atomic
 rule var_ref = (ident !"(") #atomic
 
 // Trivia. Space is discarded before and after each retained comment, keeping

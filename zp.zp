@@ -371,7 +371,7 @@ rule begin_input BeginInput = ("^^") #atomic
 rule begin_line BeginLine = ("^") #atomic
 rule end_input EndInput = ("$$") #atomic
 rule end_line EndLine = ("$" !(ident_start / digit)) #atomic
-rule any Any = (".") #atomic
+rule any Any = ("." !"..") #atomic
 rule cut Cut = ("#cut" !ident_char !"(") #atomic
 rule predicate Predicate = b:action_block => Predicate{Actions: $b.Actions, Comments: $b.Comments}
 
@@ -414,7 +414,7 @@ rule attr_slot AttrSlot = !(ident -ws "=") v:attr_value => AttrSlot{Value: $v}
 rule attr_named AttrNamed = (
     name:ident -ws "=" -ws v:(attr_value @error(message="expected attribute argument value"))
 ) => AttrNamed{Name: $name, Value: $v}
-rule attr_value AttrValue = true_lit / false_lit / nil_lit / signed_int / string / rule_expr
+rule attr_value AttrValue = true_lit / false_lit / nil_lit / signed_int / rule_expr
 rule signed_int Int = (("-" -ws)? digit+ #atomic) #atomic
 
 // #ignorecase may follow the block of an Operators Rule on its line, and covers the literals of the
@@ -565,7 +565,7 @@ rule true_lit True = ("true" !ident_char) #atomic
 rule false_lit False = ("false" !ident_char) #atomic
 rule nil_lit Nil = ("nil" !ident_char) #atomic
 rule capture_ref CaptureRef = ("$" ident #atomic) #atomic
-rule var_name VarRef = (ident) #atomic
+rule var_name VarRef = (!(true_lit / false_lit / nil_lit) ident) #atomic
 rule var_ref VarRef = (ident !"(") #atomic
 
 // Trivia. Space is discarded before and after each retained comment, keeping

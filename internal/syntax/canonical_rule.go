@@ -99,6 +99,9 @@ func (c *canonical) rule(n *value.Node) grammar.Expr {
 		c.span(&e.SourceInfo, n)
 		return e
 	case "CharClass":
+		if c.bracketBefore(n.Start()) {
+			c.errs.add(c.pos.At(n.Start()), "a character class directly after a name, a capture, ')' or ']' is read as an index; write a space before it")
+		}
 		e := c.charClass(n)
 		c.span(&e.SourceInfo, n)
 		return e
@@ -165,6 +168,31 @@ func (c *canonical) rule(n *value.Node) grammar.Expr {
 	}
 	c.fail("unexpected rule expression %s", n.Type())
 	return nil
+}
+
+// bracketBefore reports whether the "[" at off follows the end of a name, a
+// capture or ")" without a space. The hand-written lexer reads it as an index
+// bracket, which a parser expression does not have. A "]" before it ends a
+// character class, so a class may follow it directly.
+func (c *canonical) bracketBefore(off int) bool {
+	if off == 0 {
+		return false
+	}
+	switch r := c.src[off-1]; {
+	case r == ')':
+		return true
+	case isIdentPart(r):
+		start := off
+		for start > 0 && isIdentPart(c.src[start-1]) {
+			start--
+		}
+		if start == off-1 && start >= 2 && c.src[start-1] == '|' && c.src[start-2] == '_' {
+			return false // the token _|_
+		}
+		// A number and the suffix of a string are not names.
+		return !(c.src[start] >= '0' && c.src[start] <= '9') && (start == 0 || c.src[start-1] != '"')
+	}
+	return false
 }
 
 // charClass builds a character class from its source.
