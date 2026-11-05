@@ -478,52 +478,6 @@ type Rule struct {
 // StaticRuleOf returns the compiled rule that r runs.
 func StaticRuleOf(r *Rule) *staticRule { return &r.staticRule }
 
-// Call calls rule r at binding level min.
-// The work is split into CallBegin, GrowBegin/GrowNext/GrowStep/GrowEnd, invoke, and CallEnd, and the
-// iterative VM calls the same functions from its own stack.
-func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
-	p.Spend()
-	if p.Tr != nil {
-		// A traced parse: report the call (tracedCall calls back here with direct set).
-		if !p.Tr.direct {
-			return p.tracedCall(r, min)
-		}
-		p.Tr.direct = false
-	}
-	if !p.Memoizes(r) || p.FirstCall(r) {
-		// A call without memoization. The examined range (hw, lw) only grows, so it need not be saved
-		// and restored, and expectations need not be recorded separately.
-		if len(r.Scope.Names) == 0 {
-			return p.InvokePlain(r, min)
-		}
-		start, rec, missing := p.Pos, len(p.Recovered), p.missingMark()
-		v, ok := p.invoke(r, min)
-		if !ok {
-			p.Pos = start
-			p.Recovered = p.Recovered[:rec]
-			if p.Missing != nil {
-				p.ResetMissing(missing)
-			}
-		}
-		return v, ok
-	}
-	st, v, ok, hit := p.CallBegin(r, min)
-	if hit {
-		return v, ok
-	}
-	if r.Leader {
-		g := p.GrowBegin(st.Key, r.LeaderBit, r.Cycle)
-		for p.GrowNext(&g) {
-			v, ok = p.invoke(r, min)
-			p.GrowStep(&g, v, ok)
-		}
-		v, ok = p.GrowEnd(r, &g)
-	} else {
-		v, ok = p.invoke(r, min)
-	}
-	return p.CallEnd(r, &st, v, ok)
-}
-
 // noVals are the values of variables where no variable is defined (all nil): the memo key of
 // most calls of a rule that reads variables, shared instead of allocated for each call. Memo
 // entries only compare their keys, so nothing writes to it.
@@ -561,7 +515,7 @@ func (p *Parser) memoEnv(r *Rule) []any {
 
 // Memoizes reports whether the results of rule r are memoized.
 func (p *Parser) Memoizes(r *Rule) bool {
-	return r.Leader || r.Memo && (!r.Transient || p.MemoAll) && !(p.Missing != nil && r.Missing)
+	return r.Leader || p.memoized(r)
 }
 
 // FirstCall reports whether this is the first call of the memoized rule r at the current
@@ -578,106 +532,6 @@ func (p *Parser) FirstCall(r *Rule) bool {
 		return false
 	}
 	return p.memoFirstCall(p.Pos, r.Seen)
-}
-
-// CallState is the state saved across a memoized rule call.
-type CallState struct {
-	Key              MemoKey
-	start            int
-	savedHW, savedLW int
-	Rec              int
-	missing          int
-	exp              ExpMark
-	// gp is the index in Gamma of the first growth at the position. ctx reports a call of a rule of
-	// a left-recursion cycle in a context, with the present set present (known); framed reports
-	// that the call records its dependencies.
-	gp         int
-	present    uint64
-	ctx, known bool
-	framed     bool
-	seedReads  int
-}
-
-// CallBegin starts a memoized call (the caller has decided to memoize it: memoizes and not
-// FirstCall). It looks up the memo; if a usable result exists, it sets hit and returns that
-// result. Otherwise it prepares for the call.
-func (p *Parser) CallBegin(r *Rule, min int) (st CallState, v *value.Node, ok, hit bool) {
-	key := MemoKey{Rule: r.ID, Pos: p.Pos, Min: min, MissingSilent: p.Missing != nil && r.Missing && p.Silent > 0}
-	if len(r.Vars) > 0 {
-		key.Env = p.memoEnv(r)
-	}
-	gp := len(p.Gamma)
-	if gp > 0 && r.Cycle != 0 {
-		gp = p.gammaAt(key.Pos, r.Cycle)
-	}
-	if r.Leader && gp < len(p.Gamma) {
-		// A leader that grows here reads its seed, whatever its variable values.
-		if i := p.gammaFind(gp, key.Rule, key.Min, key.MissingSilent); i >= 0 {
-			e := p.Gamma[i].seed
-			p.touch(e.Examined)
-			p.lw = Min2(p.lw, e.From)
-			p.Stats.Reused++
-			p.noteSeedRead(i)
-			if !e.Ok {
-				return st, nil, false, true
-			}
-			p.Pos = e.End
-			if p.Missing == nil {
-				p.Recovered = AppendSpend(p, p.Recovered, e.Errs)
-			} else {
-				p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
-			}
-			return st, e.Node, true, true
-		}
-	}
-	// A call of a rule of a cycle where leaders grow is in a context: its result can depend on
-	// their seeds (see context_memo.go).
-	ctx := gp < len(p.Gamma)
-	var present uint64
-	known := true
-	if ctx {
-		present, known = p.present(gp)
-	}
-	// A result computed inside a lookahead recorded no expectations, so it is not reused outside
-	// one (reusable).
-	e, found := p.MemoGet(key)
-	if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {
-		found = false // an edit since invalidated it
-	}
-	// In a context, a result in the memo table is reused when every leader that grows here grew
-	// when it was evaluated, and did not matter to it.
-	if found && ctx && (!known || p.strictCtx() || present&^e.Present != 0) && ContextMemoMutation != CtxIgnorePresent {
-		found = false
-	}
-	if found && (p.Missing == nil || !r.Missing) && p.reusable(e.silent) {
-		p.replayEntry(e)
-		if !e.Ok {
-			return st, nil, false, true
-		}
-		return st, e.Node, true, true
-	}
-	if ctx && known && !p.strictCtx() {
-		if s := p.ctxFind(key.Pos, gp, ctxHeadKey{kind: ctxCall, id: int32(key.Rule), min: int32(key.Min), ms: key.MissingSilent, present: present}, key.Env); s != nil && p.reusable(s.e.silent) {
-			p.seedRead(gp)
-			p.replayDeps(key.Pos, gp, present, s.deps)
-			e := s.e
-			p.replayEntry(e)
-			if !e.Ok {
-				return st, nil, false, true
-			}
-			return st, e.Node, true, true
-		}
-	}
-	st = CallState{Key: key, start: p.Pos, savedHW: p.Hw, savedLW: p.lw, Rec: len(p.Recovered), missing: p.missingMark(),
-		gp: gp, present: present, ctx: ctx, known: known}
-	if ctx && known && !p.strictCtx() {
-		p.pushFrame(key.Pos, gp)
-		st.framed = true
-	}
-	p.Hw, p.lw = st.start, st.start
-	// A result stored in the memo also includes the expectations recorded in this call.
-	st.exp = p.Isolate(st.start)
-	return st, nil, false, false
 }
 
 // replayEntry applies a reused result as the call that it records would have: its examined
@@ -699,52 +553,6 @@ func (p *Parser) replayEntry(e *MemoEntry) {
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 	}
-}
-
-// CallEnd stores the result of the body (or of growing, for a leader) in the memo and restores
-// the state from before the call.
-func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value.Node, bool) {
-	var e *MemoEntry
-	if r.Leader {
-		e, p.grown = p.grown, nil
-	} else {
-		if !ok {
-			p.Recovered = p.Recovered[:st.Rec]
-			if p.Missing != nil {
-				p.ResetMissing(st.missing)
-			}
-		}
-		e = p.entry(st.ctx)
-		*e = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: p.Hw, From: p.lw, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen,
-			Positional: r.Positional, Errs: p.copyErrors(p.Recovered[st.Rec:])}
-	}
-	far, inner := p.Unisolate(st.exp)
-	e.Far, e.Expected = far, p.Keep(inner)
-	switch {
-	case st.framed:
-		_, ds := p.popFrame()
-		sd, read := p.stored(ds)
-		if read {
-			p.ctxStore(st.Key.Pos, st.gp, ctxHeadKey{kind: ctxCall, id: int32(st.Key.Rule), min: int32(st.Key.Min), ms: st.Key.MissingSilent, present: st.present},
-				sd, &ctxSlot{e: e, env: st.Key.Env})
-			if ContextMemoMutation == CtxKeepSeedResults {
-				p.keptSeedResults = append(p.keptSeedResults, keptSeedResult{st.Key, e})
-			}
-		} else {
-			e.Present = st.present
-			p.MemoPut(st.Key, e)
-		}
-		p.mergeDeps(ds)
-	case !st.ctx:
-		p.MemoPut(st.Key, e)
-	}
-	p.MergeExpected(far, inner)
-	p.Hw = max(st.savedHW, p.Hw)
-	p.lw = Min2(st.savedLW, p.lw)
-	if !ok {
-		p.Pos = st.start
-	}
-	return v, ok
 }
 
 // entry returns a new entry: from the memo table's slabs, or, for an entry made in a context, which

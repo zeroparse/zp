@@ -365,7 +365,7 @@ in document, the enclosing call's frontier is restored however the call ends.`
 		})
 	callBegin.Doc = `callBegin begins a memoized call of rule r at binding level min, with the engine's
 bookkeeping of the input each call examines: it returns hit set with a result that the call reuses,
-and otherwise saves in st what callEnd needs.`
+and otherwise saves in st what the end of the call needs.`
 	callEnd := m.AddFunc("callEnd", []Param{P("r", rule), P("st", THandle(ops.CallState)), P("v", value), P("ok", TBool)},
 		result, engine, func(b *Builder) {
 			b.Let("start", C("call.start", st))
@@ -383,7 +383,7 @@ and otherwise saves in st what callEnd needs.`
 			})
 			finish(b, L("min"), engineDoc)
 		})
-	callEnd.Doc = `callEnd ends the memoized call of rule r whose state callBegin saved in st with the value v
+	callEnd.Doc = `callEnd ends the memoized call of rule r whose state its begin saved in st with the value v
 and success ok of its body, or of the growth of a leader: it records the result where its
 dependencies send it, and restores the state from before the call.`
 	engineCall := m.AddFunc("engineCall", []Param{P("r", rule), P("min", TInt)}, result, engine, func(b *Builder) {
@@ -404,8 +404,8 @@ dependencies send it, and restores the state from before the call.`
 		ret(b)
 	})
 	engineCall.Doc = `engineCall calls rule r at binding level min in the engine: unmemoized while its
-memoization is deferred, and otherwise between callBegin and callEnd, growing the seed of a
-left-recursion leader.`
+memoization is deferred, and otherwise between the begin and the end of the split call protocol,
+growing the seed of a left-recursion leader.`
 
 	// ret2 returns the result of the call c of a function.
 	ret2 := func(b *Builder, c *Call) {

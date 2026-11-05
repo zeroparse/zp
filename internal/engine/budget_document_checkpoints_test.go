@@ -216,14 +216,14 @@ func TestBudgetDocumentStaleMemoCallReplayIsBounded(t *testing.T) {
 	e.Pos = 10 // A shifted slot can retain older value coordinates until replay.
 	before := *e
 	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 4}) // Lookup costs two; only two of three edits fit.
-	if err := catchFatal(t, func() { p.CallBegin(r, 0) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { p.CallBegin(r, 0, &core.CallState{}) }); !errors.Is(err, limits.ErrLimit) {
 		t.Fatalf("stale hit interruption = %v", err)
 	}
 	if !reflect.DeepEqual(*e, before) {
 		t.Fatal("stale hit published partial replay")
 	}
 	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 5})
-	_, _, ok, hit := p.CallBegin(r, 0)
+	_, ok, hit := p.CallBegin(r, 0, &core.CallState{})
 	if !ok || !hit || p.Pos != 21 || e.Vgen != 3 || e.Gen != 3 {
 		t.Fatalf("completed stale hit: ok=%v hit=%v pos=%d entry=%+v", ok, hit, p.Pos, e)
 	}

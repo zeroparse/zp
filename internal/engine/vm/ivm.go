@@ -325,13 +325,12 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			f.start, f.rec = p.Pos, len(p.Recovered)
 			return f.invoke(mc), iresult{}, false
 		}
-		st, v, ok, hit := p.CallBegin(r, f.min)
+		v, ok, hit := p.CallBegin(r, f.min, &f.st)
 		if hit {
 			return nil, iresult{v: v, ok: ok}, true
 		}
-		f.st = st
 		if r.Leader {
-			f.g = p.GrowBegin(st.Key, r.LeaderBit, r.Cycle)
+			f.g = p.GrowBegin(p.GrowKey(r, f.min), r.LeaderBit, r.Cycle)
 			if !p.GrowNext(&f.g) {
 				v, ok = p.GrowEnd(r, &f.g)
 				v, ok = p.CallEnd(r, &f.st, v, ok)

@@ -1,0 +1,187 @@
+package core
+
+// The engine's implementations of the operations of the call protocol that its printed
+// compositions call (call_exec.go, printed from internal/ir/exec/core): the call state, the context
+// state of a memoized call and the results that a context holds.
+
+// KeyVals are the values of a memo key beyond its rule, position and level: the values of the
+// variables the rule reads, and whether the call is in a lookahead that inserts no missing token,
+// which has its own results.
+type KeyVals struct {
+	Env     []any
+	Missing bool
+}
+
+// keyVals returns the values of the memo key of a call of rule r at the position.
+func (p *Parser) keyVals(r *Rule) KeyVals {
+	kv := KeyVals{Missing: p.Missing != nil && r.Missing && p.Silent > 0}
+	if len(r.Vars) > 0 {
+		kv.Env = p.memoEnv(r)
+	}
+	return kv
+}
+
+// GrowKey returns the key of the growth of leader r at binding level min at the position. A growth
+// is told apart by its rule, level and missing-token state: the values of variables do not take
+// part.
+func (p *Parser) GrowKey(r *Rule, min int) MemoKey {
+	return MemoKey{Rule: r.ID, Pos: p.Pos, Min: min, MissingSilent: p.Missing != nil && r.Missing && p.Silent > 0}
+}
+
+// memoized reports whether the results of rule r, which leads no left-recursive cycle, are memoized
+// in the parse (Memoizes).
+func (p *Parser) memoized(r *Rule) bool {
+	return r.Memo && (!r.Transient || p.MemoAll) && !(p.Missing != nil && r.Missing)
+}
+
+// tracing reports whether a call takes the traced path: in a traced parse, except for the call
+// that tracedCall makes back, whose mark it clears.
+func (p *Parser) tracing() bool {
+	if !p.Tr.direct {
+		return true
+	}
+	p.Tr.direct = false
+	return false
+}
+
+// CallState is the state of a memoized call between CallBegin and CallEnd, which its caller holds.
+type CallState struct {
+	start, min int
+	key        KeyVals
+	ctx        CtxState
+	rec        int
+	exp        ExpMark
+	// high and low are the examined range of the enclosing call; missing is the mark of the
+	// missing-token record.
+	high, low int
+	missing   int
+}
+
+// CtxState is the context state of a memoized call (see context_memo.go).
+type CtxState struct {
+	// gp is the index in Gamma of the first growth of the rule's cycle at the position. ctx reports
+	// a call in a context, with the present set present (known); framed reports that the call
+	// records its dependencies.
+	gp         int
+	present    uint64
+	ctx, known bool
+	framed     bool
+	// ds are the dependencies that the call's evaluation recorded, and sd those that a result kept
+	// in its context stores (ctxPop).
+	ds []dep
+	sd []sdep
+}
+
+// Where ctxPop sends the result of a call.
+const (
+	storeNowhere = iota
+	storeMemo
+	storeCtx
+)
+
+// ctxHit is a result that the context of a call holds for it: the seed of the call's rule growing
+// at the position, or a result kept in the table of the context, or the last result of a growth. e
+// is nil for none.
+type ctxHit struct {
+	e    *MemoEntry
+	seed bool
+}
+
+// ctxEnter begins the memoized call of rule r, a rule of a left-recursive cycle, at binding level
+// min at the position, in a parse where leaders grow: it fills c and returns the seed of r if r is
+// a leader that grows here, recording the read of the seed.
+func (p *Parser) ctxEnter(c *CtxState, r *Rule, min int) ctxHit {
+	gp := p.gammaAt(p.Pos, r.Cycle)
+	c.gp = gp
+	if gp == len(p.Gamma) {
+		return ctxHit{}
+	}
+	if r.Leader {
+		// A leader that grows here reads its seed, whatever its variable values.
+		if i := p.gammaFind(gp, r.ID, min, p.Missing != nil && r.Missing && p.Silent > 0); i >= 0 {
+			p.noteSeedRead(i)
+			return ctxHit{e: p.Gamma[i].seed, seed: true}
+		}
+	}
+	c.ctx = true
+	c.present, c.known = p.present(gp)
+	c.framed = c.known && !p.strictCtx()
+	return ctxHit{}
+}
+
+// ctxAllows reports whether the call in a context with the state c may reuse the memo entry e:
+// when every leader that grows here grew when e was evaluated, and did not matter to it.
+func (p *Parser) ctxAllows(c *CtxState, e *MemoEntry) bool {
+	return ContextMemoMutation == CtxIgnorePresent || c.known && !p.strictCtx() && c.present&^e.Present == 0
+}
+
+// ctxLookup returns the result kept in the context of the call of rule r at binding level min with
+// the key values kv at the position, which the call may reuse, and records what it depends on for
+// the enclosing call; otherwise none.
+func (p *Parser) ctxLookup(c *CtxState, r *Rule, min int, kv KeyVals) ctxHit {
+	if !c.framed {
+		return ctxHit{}
+	}
+	h := ctxHeadKey{kind: ctxCall, id: int32(r.ID), min: int32(min), ms: kv.Missing, present: c.present}
+	s := p.ctxFind(p.Pos, c.gp, h, kv.Env)
+	if s == nil || !p.reusable(s.e.silent) {
+		return ctxHit{}
+	}
+	p.seedRead(c.gp)
+	p.replayDeps(p.Pos, c.gp, c.present, s.deps)
+	return ctxHit{e: s.e}
+}
+
+// ctxReplay applies the result h as the call that it records would have; a seed adds no
+// expectations and is never moved.
+func (p *Parser) ctxReplay(h ctxHit, seed bool) {
+	e := h.e
+	if !seed {
+		p.replayEntry(e)
+		return
+	}
+	p.touch(e.Examined)
+	p.lw = Min2(p.lw, e.From)
+	p.Stats.Reused++
+	if !e.Ok {
+		return
+	}
+	p.Pos = e.End
+	if p.Missing == nil {
+		p.Recovered = AppendSpend(p, p.Recovered, e.Errs)
+	} else {
+		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
+	}
+}
+
+// ctxPop ends recording the dependencies of the evaluation of a call in a context and returns
+// where its result goes: storeMemo for a result that read no seed, storeCtx for one that did, and
+// storeNowhere for a call whose context has no present set.
+func (p *Parser) ctxPop(c *CtxState) int {
+	if !c.framed {
+		return storeNowhere
+	}
+	_, c.ds = p.popFrame()
+	sd, read := p.stored(c.ds)
+	if !read {
+		return storeMemo
+	}
+	c.sd = sd
+	return storeCtx
+}
+
+// ctxKeep keeps the entry e of the call of rule r at pos, binding level min and key values kv in
+// the table of its context, with the dependencies that ctxPop ended.
+func (p *Parser) ctxKeep(c *CtxState, r *Rule, pos, min int, kv KeyVals, e *MemoEntry) {
+	p.ctxStore(pos, c.gp, ctxHeadKey{kind: ctxCall, id: int32(r.ID), min: int32(min), ms: kv.Missing, present: c.present},
+		c.sd, &ctxSlot{e: e, env: kv.Env})
+	if ContextMemoMutation == CtxKeepSeedResults {
+		p.keptSeedResults = append(p.keptSeedResults, keptSeedResult{MemoKey{Rule: r.ID, Pos: pos, Min: min, Env: kv.Env, MissingSilent: kv.Missing}, e})
+	}
+}
+
+// growEnd ends the growth g of leader r and returns its last result, which CallEnd stores.
+func (p *Parser) growEnd(r *Rule, g *GrowState) ctxHit {
+	p.GrowEnd(r, g)
+	return ctxHit{e: p.grown}
+}

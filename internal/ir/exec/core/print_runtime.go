@@ -1,7 +1,8 @@
 //go:build ignore
 
 // print_runtime writes the printed compositions of the Go runtime to runtime/call_exec.go,
-// runtime/operators_exec.go and runtime/stream_exec.go. It runs
+// runtime/operators_exec.go and runtime/stream_exec.go, and those of the engine to
+// internal/engine/core/call_exec.go. It runs
 // from go generate in the directory of package core.
 package main
 
@@ -32,6 +33,13 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := os.WriteFile(core.GoStreamFile, []byte(stream), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	engine, err := core.Engine()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineFile, []byte(engine), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }

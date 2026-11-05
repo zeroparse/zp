@@ -53,7 +53,7 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 					steps += 2 // lookup and entry visit, then the controlled replay
 					var ok, hit bool
 					var val *value.Node
-					run = func() { _, val, ok, hit = p.CallBegin(r, 0) }
+					run = func() { val, ok, hit = p.CallBegin(r, 0, &core.CallState{}) }
 					completed = func() {
 						assertReplay()
 						if !ok || !hit || val != retained {
@@ -61,10 +61,13 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 						}
 					}
 				case "memo snapshot":
+					// A call at 0 that begins after the prefix and recovers the records.
+					var st core.CallState
+					p.CallBegin(r, 0, &st)
 					p.Pos = 1
 					p.Recovered = append(p.Recovered, records...)
 					steps += 2 // atomic memo put after the snapshot
-					run = func() { p.CallEnd(r, &core.CallState{Key: key, Rec: 1}, retained, true) }
+					run = func() { p.CallEnd(r, &st, retained, true) }
 					completed = func() { assertSnapshot(p.Memo.Slots[0].Errs) }
 					aborted = func() {
 						if p.Memo.Slots[0] != nil {
