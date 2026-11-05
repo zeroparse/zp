@@ -198,9 +198,9 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 			"\t\t\t\tp.memoPut(rule, start, " + minExpr + ", env, e)\n" + meta +
 			"\t\t\t})\n\t\t}\n\t\t"
 	}
-	nodeKeep := keep("p.Document", "min", "memoEntry{node: v, ok: ok, end: p.Pos, examined: p.docHigh, present: ^uint32(0), errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept}", "p.memo.alloc()", "")
+	nodeKeep := keep("p.Document", "min", "memoEntry{node: v, ok: ok, end: p.Pos, examined: p.docHigh, from: fromPos, present: ^uint32(0), errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept}", "p.memo.alloc()", "")
 	typedKeep := func(minExpr string) string {
-		return keep("p.TypedDocument", minExpr, "tmemoEntry{val: v, ok: ok, end: p.Pos, present: ^uint32(0), errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept}", "p.memoSlab.one()", "\t\t\t\tp.TypedDocument.meta[e] = typedDocumentMeta{examined: examined}\n")
+		return keep("p.TypedDocument", minExpr, "tmemoEntry{val: v, ok: ok, end: p.Pos, present: ^uint32(0), errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept}", "p.memoSlab.one()", "\t\t\t\tp.TypedDocument.meta[e] = typedDocumentMeta{examined: examined, recorded: true}\n")
 	}
 	// Each anchor is the ctxKeep of a call, which the mutation prefixes, and the number of times it
 	// occurs in the file.
