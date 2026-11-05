@@ -68,7 +68,7 @@ op memo.prune(pos int)
   writes memo
   features stream
   noreturn
-  cost <= 0 + 1*pruned
+  cost <= 0 + 1*pruned + 3*covered
   contract:
     // Removes the entries stored at positions before pos and raises the floor of the memo to pos.
     // Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its

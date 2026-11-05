@@ -155,6 +155,8 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 			}
 		}
 		return int64(n)
+	case ops.QCovered:
+		return max(m.covered-m.floor, 0)
 	}
 	panic("ref: unknown quantity " + name)
 }

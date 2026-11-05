@@ -73,6 +73,11 @@ const (
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
 	// and of those before its argument that it scans for line starts for the first time.
 	QStreamScan = "stream_scan"
+	// QStreamFrames is the number of capture frames that the scratch of the stream holds.
+	QStreamFrames = "stream_frames"
+	// QStreamInactive is the capacity of the trail and the inactive capacity of a target's value
+	// stack.
+	QStreamInactive = "stream_inactive"
 )
 
 // Registers of the parser VM.
@@ -393,9 +398,9 @@ that the target's observed function wraps.`})
 	streamWindow(m, value)
 	documentMove(m)
 	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
-		Features: stream,
-		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected. It is
-transitional: recovery bookkeeping has no Exec IR form.`,
+		Features: stream, NoReturn: true, Cost: exec.Cost{Const: 16},
+		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected, keeping at
+most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.`,
 		Requires: `The parse retains the tail (stream.tail).`})
 
 	splitCall(m, add, rule, values, ctx, mark, entry)

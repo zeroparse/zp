@@ -55,6 +55,10 @@ const (
 	QN = "n"
 	// QPruned is the number of memo entries stored before the call's position argument.
 	QPruned = "pruned"
+	// QCovered is the number of positions the memo covers from its floor: the slots that a target
+	// keeps per position pays for when it prunes them, moves the rest and drops the indexes of
+	// crowded positions.
+	QCovered = "covered"
 )
 
 // Names of handle types.
@@ -111,7 +115,7 @@ key, and returns it. Entries under other keys are unchanged.`,
 it: an implementation may reuse it for a later entry.`})
 	m.AddOp(&exec.Op{Name: "memo.prune", Component: Memo, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Reads: []string{Memo}, Writes: []string{Memo}, Features: []string{Stream}, NoReturn: true,
-		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}}},
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QPruned}, {Coef: 3, Quantity: QCovered}}},
 		Contract: `Removes the entries stored at positions before pos and raises the floor of the memo to pos.
 Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
 entry without keeping it. The removed entries are no longer valid; entries at or after pos are

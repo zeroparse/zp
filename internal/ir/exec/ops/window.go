@@ -40,12 +40,14 @@ An error of the callback ends the parse unchanged.`,
 		Contract: `Discards the input before keep, when at least half of the buffer can go; later reads before keep
 are not supported. The line and column of the new base are kept.`})
 	host(&exec.Op{Name: "stream.release", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QStreamFrames}}},
 		Contract: `Releases what the elements committed so far held: the trail, the capture frames and the node
 chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
 The effect is memory held, which the parse result does not show.`,
 		Requires: `Every call of the delivered elements has returned.`})
 	host(&exec.Op{Name: "stream.dropRecords", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QStreamInactive}}},
 		Contract: `Discards what the parse keeps about the positions before pos besides the memo, which no later
 call reads: the records of skips and of the profile, and what the inactive capacity of the trail and of a
 target's value stack refers to. Later calls never read them, so the parse result does not show the

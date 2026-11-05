@@ -177,7 +177,7 @@ op memo.prune(pos int)
   writes memo
   features stream
   noreturn
-  cost <= 0 + 1*pruned
+  cost <= 0 + 1*pruned + 3*covered
   contract:
     // Removes the entries stored at positions before pos and raises the floor of the memo to pos.
     // Below the floor the memo keeps nothing: a lookup there finds no entry, and a store there returns its
@@ -1078,7 +1078,8 @@ host op stream.release()
   reads window
   writes window
   features stream
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*stream_frames
   contract:
     // Releases what the elements committed so far held: the trail, the capture frames and the node
     // chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
@@ -1091,7 +1092,8 @@ host op stream.dropRecords(pos int)
   reads window
   writes window
   features stream
-  cost <= 0
+  noreturn
+  cost <= 0 + 1*stream_inactive
   contract:
     // Discards what the parse keeps about the positions before pos besides the memo, which no later
     // call reads: the records of skips and of the profile, and what the inactive capacity of the trail and of a
@@ -1128,10 +1130,11 @@ transitional op stream.settleErrors()
   reads window
   writes window
   features stream
-  cost <= 0
+  noreturn
+  cost <= 16
   contract:
-    // Forgets the recovered errors before the boundary, which were delivered and collected. It is
-    // transitional: recovery bookkeeping has no Exec IR form.
+    // Forgets the recovered errors before the boundary, which were delivered and collected, keeping at
+    // most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.
   requires:
     // The parse retains the tail (stream.tail).
 
