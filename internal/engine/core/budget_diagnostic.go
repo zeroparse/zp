@@ -2,27 +2,8 @@ package core
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 )
-
-// equalExpected preserves the native snapshot-identity fast path while charging
-// each comparison under active budget controls. Snapshots are never modified.
-func (p *Parser) equalExpected(a, b []ExpID) bool {
-	if !BudgetControlsEnabled || p.Control == nil {
-		return slices.Equal(a, b)
-	}
-	if len(a) != len(b) {
-		return false
-	}
-	for i, x := range a {
-		p.Spend()
-		if x != b[i] {
-			return false
-		}
-	}
-	return true
-}
 
 // sortExpected sorts a newly constructed, parser-owned diagnostic in the order of
 // compareExpected. Comparisons and explicit moves are bounded; allocation and GC

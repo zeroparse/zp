@@ -25,6 +25,11 @@ var engineSpecs = []goSpec{
 	{fn: "callBegin", on: engineOn, name: "CallBegin"},
 	{fn: "callEnd", on: engineOn, name: "CallEnd"},
 	{fn: "grow", name: "grow"},
+	// The engine's backends record the examined input where they read it, so its expectations are
+	// specialized without the Document's touch of the unit at the expectation.
+	{fn: "expect", on: []string{ops.Budget}, name: "Expect"},
+	{fn: "mergeExpected", on: []string{ops.Budget}, name: "MergeExpected"},
+	{fn: "keep", on: []string{ops.Budget}, name: "Keep"},
 }
 
 // Engine returns the Go file of the printed compositions for package core of the engine.
@@ -54,13 +59,13 @@ func engineTarget() *execgo.Target {
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
 		ops.Rule: "*Rule", ops.Value: "*value.Node", ops.Entry: "*MemoEntry", ops.Values: "KeyVals", ops.Errs: "[]*SyntaxError",
-		ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
+		ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID", ops.ExpID: "ExpID",
 		ops.Ctx: "CtxState", ops.Res: "ctxHit", ops.Grow: "GrowState", ops.CallState: "*CallState",
 	}
 	names := map[string]string{"engineCall": "Call", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
-		// The expectation record of the engine is hand-written; a kept set is a slice like the set of
-		// an isolation, so MergeExpected merges both.
-		"mergeKept": "MergeExpected", "mergeExpected": "MergeExpected", "keep": "Keep"}
+		"expect": "Expect", "keep": "Keep",
+		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
+		"mergeKept": "MergeExpected", "mergeExpected": "MergeExpected"}
 	t.Handle = func(name string) string { return handles[name] }
 	t.FuncName = func(name string) string { return names[name] }
 	t.Reg = func(name string) string {
@@ -131,6 +136,32 @@ func engineTarget() *execgo.Target {
 			return "p.Isolate(" + a[0] + ")"
 		case "exp.unisolate":
 			return "p.Unisolate(" + a[0] + ")"
+		case "exp.farthest":
+			return "p.Farthest"
+		case "exp.recording":
+			return "p.Expectations"
+		case "exp.reset":
+			return fmt.Sprintf("p.Farthest = %s\np.Exp = p.Exp[:p.ExpBase]\np.ExpBits = 0", a[0])
+		case "exp.fresh":
+			return "len(p.Exp) == p.ExpBase"
+		case "exp.placeholder":
+			return "p.Exp = append(p.Exp, ExpFar)"
+		case "exp.maybe":
+			return fmt.Sprintf("p.ExpBits&expBit(%s) != 0", a[0])
+		case "exp.count":
+			return "len(p.Exp) - p.ExpBase"
+		case "exp.at":
+			return "p.Exp[p.ExpBase+" + a[0] + "]"
+		case "exp.add":
+			return fmt.Sprintf("p.ExpBits |= expBit(%s)\np.Exp = append(p.Exp, %[1]s)", a[0])
+		case "exp.setCount", "exp.keptCount":
+			return "len(" + a[0] + ")"
+		case "exp.setAt", "exp.keptAt":
+			return a[0] + "[" + a[1] + "]"
+		case "exp.empty":
+			return "nil"
+		case "exp.last":
+			return "p.LastKept"
 		case "memo.far":
 			return a[0] + ".Far"
 		case "memo.expected":
@@ -248,6 +279,17 @@ func engineTarget() *execgo.Target {
 *%[2]s = MemoEntry{Node: %s, Ok: %s, End: %s, silent: %s, Gen: p.Gen, Vgen: p.Gen, Errs: %s}
 }
 p.MemoPut(%s, %[2]s)`, decl, e, a[7], a[4], a[5], a[6], a[8], key(a)), true
+		case "exp.copy":
+			// The kept sets fill append-only chunks of the arena.
+			return fmt.Sprintf(`if cap(p.Arena)-len(p.Arena) < len(%[1]s) {
+// A new chunk; the previous one lives while sets in it remain.
+p.Arena = make([]ExpID, 0, max(1024, len(%[1]s)))
+p.MemUsed += uint64(cap(p.Arena)) * expIDBytes
+}
+off := len(p.Arena)
+p.Arena = AppendSpend(p, p.Arena, %[1]s)
+p.LastKept = p.Arena[off:len(p.Arena):len(p.Arena)]
+%[2]s%[3]sp.LastKept`, a[0], dst[0], op), true
 		case "memo.examine":
 			// The engine records the start of the examined input, the low end that before compares
 			// with the position: a call examines at most the unit before its position, so the start

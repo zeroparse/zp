@@ -202,3 +202,103 @@ func (p *Parser) grow(r *Rule, min int) (*value.Node, bool) {
 	best := p.growEnd(r, &g)
 	return best.e.Node, best.e.Ok
 }
+
+// Expect records that id was expected at pos: an expectation before the farthest failure or in a
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
+// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
+// that out. It is for parser code and not a stable API.
+//
+// Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
+func (p *Parser) Expect(pos int, id ExpID) {
+	var i int
+	if p.Silent > 0 || pos < p.Farthest {
+		return
+	}
+	if pos > p.Farthest {
+		p.Farthest = pos
+		p.Exp = p.Exp[:p.ExpBase]
+		p.ExpBits = 0
+	}
+	if !p.Expectations {
+		if len(p.Exp) == p.ExpBase {
+			p.Exp = append(p.Exp, ExpFar)
+		}
+		return
+	}
+	if p.ExpBits&expBit(id) != 0 {
+		for i = 0; i < (len(p.Exp) - p.ExpBase); i++ {
+			p.Spend()
+			if p.Exp[p.ExpBase+i] == id {
+				return
+			}
+		}
+	}
+	p.ExpBits |= expBit(id)
+	p.Exp = append(p.Exp, id)
+}
+
+// MergeExpected records the expectations of s at far, as expect does for each of them, so that the
+// expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
+// record. s may alias the stack above the current record: writes only happen below the read position. It
+// is for parser code and not a stable API.
+//
+// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for budget.
+func (p *Parser) MergeExpected(far int, s []ExpID) {
+	var i int
+	if p.Expectations {
+		for i = 0; i < len(s); i++ {
+			p.Spend()
+			p.Expect(far, s[i])
+		}
+	} else {
+		for i = 0; i < len(s); i++ {
+			p.Spend()
+			if !(p.Silent > 0 || far < p.Farthest) {
+				if far > p.Farthest {
+					p.Farthest = far
+					p.Exp = p.Exp[:p.ExpBase]
+					p.ExpBits = 0
+				}
+				if len(p.Exp) == p.ExpBase {
+					p.Exp = append(p.Exp, ExpFar)
+				}
+			}
+		}
+	}
+}
+
+// Keep returns the expectations of s as a set that outlives the record, for a memo entry, a
+// context or a recovery to keep: the empty set for none, the set kept last when it has the same
+// entries in the same order, and otherwise a copy, which becomes the set kept last. It is for parser
+// code and not a stable API.
+//
+// Printed from Exec IR function keep of internal/ir/exec/core, specialized for budget.
+func (p *Parser) Keep(s []ExpID) []ExpID {
+	var i int
+	n := len(s)
+	if n == 0 {
+		return nil
+	}
+	last := p.LastKept
+	if len(last) != n {
+		goto copy
+	}
+	for i = 0; i < n; i++ {
+		p.Spend()
+		if last[i] != s[i] {
+			goto copy
+		}
+	}
+	return last
+copy:
+	if cap(p.Arena)-len(p.Arena) < len(s) {
+		// A new chunk; the previous one lives while sets in it remain.
+		p.Arena = make([]ExpID, 0, max(1024, len(s)))
+		p.MemUsed += uint64(cap(p.Arena)) * expIDBytes
+	}
+	off := len(p.Arena)
+	p.Arena = AppendSpend(p, p.Arena, s)
+	p.LastKept = p.Arena[off:len(p.Arena):len(p.Arena)]
+	k := p.LastKept
+	return k
+}

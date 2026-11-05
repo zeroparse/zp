@@ -370,36 +370,6 @@ func (p *Parser) touch(n int) {
 	}
 }
 
-// Expect records that id was expected at position pos.
-func (p *Parser) Expect(pos int, id ExpID) {
-	if p.Silent > 0 || pos < p.Farthest {
-		return
-	}
-	if pos > p.Farthest {
-		p.Farthest = pos
-		p.Exp = p.Exp[:p.ExpBase]
-		p.ExpBits = 0
-	}
-	if !p.Expectations {
-		// The record keeps one placeholder, so that merging it still carries the position.
-		if len(p.Exp) == p.ExpBase {
-			p.Exp = append(p.Exp, ExpFar)
-		}
-		return
-	}
-	bit := uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	if p.ExpBits&bit != 0 {
-		for _, e := range p.Exp[p.ExpBase:] {
-			p.Spend()
-			if e == id {
-				return
-			}
-		}
-	}
-	p.ExpBits |= bit
-	p.Exp = append(p.Exp, id)
-}
-
 // ExpMark is the expectation record before isolate.
 type ExpMark struct {
 	Far, Base int
@@ -421,34 +391,6 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 	p.Exp = p.Exp[:p.ExpBase]
 	p.ExpBase, p.Farthest, p.ExpBits = m.Base, m.Far, m.Bits
 	return far, inner
-}
-
-// Keep copies expectations into the append-only area.
-func (p *Parser) Keep(ids []ExpID) []ExpID {
-	if len(ids) == 0 {
-		return nil
-	}
-	if p.equalExpected(ids, p.LastKept) { // the same sequence of expectations often repeats
-		return p.LastKept
-	}
-	if cap(p.Arena)-len(p.Arena) < len(ids) {
-		// Allocate per chunk (an older chunk stays alive only while slices into it remain).
-		p.Arena = make([]ExpID, 0, max(1024, len(ids)))
-		p.MemUsed += uint64(cap(p.Arena)) * expIDBytes
-	}
-	off := len(p.Arena)
-	p.Arena = AppendSpend(p, p.Arena, ids)
-	p.LastKept = p.Arena[off:len(p.Arena):len(p.Arena)]
-	return p.LastKept
-}
-
-// MergeExpected records the expectations ids at position far. ids may point into the record
-// stack beyond the current record (writes only happen before the position already read).
-func (p *Parser) MergeExpected(far int, ids []ExpID) {
-	for _, x := range ids {
-		p.Spend()
-		p.Expect(far, x)
-	}
 }
 
 // Rule is a rule as the parser runs it: the facts of the compiled rule and the executable parts that

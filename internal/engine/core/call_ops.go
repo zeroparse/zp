@@ -4,6 +4,12 @@ package core
 // compositions call (call_exec.go, printed from internal/ir/exec/core): the call state, the context
 // state of a memoized call and the results that a context holds.
 
+// expBit returns the bit of id in the filter of the expectations of the current record (ExpBits),
+// which exp.maybe reads.
+func expBit(id ExpID) uint64 {
+	return uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
+}
+
 // KeyVals are the values of a memo key beyond its rule, position and level: the values of the
 // variables the rule reads, and whether the call is in a lookahead that inserts no missing token,
 // which has its own results.

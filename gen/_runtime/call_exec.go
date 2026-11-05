@@ -114,7 +114,7 @@ func (p *Parser) grow(r *Rule, min int) (*Node, bool) {
 // Expect records that id was expected at pos: an expectation before the farthest failure or in a
 // lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
 // for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-// that out. It is for generated parsers and not a stable API.
+// that out. It is for parser code and not a stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) Expect(pos int, id ExpID) {
@@ -149,7 +149,7 @@ func (p *Parser) Expect(pos int, id ExpID) {
 // ExpectBudget records that id was expected at pos: an expectation before the farthest failure or in a
 // lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
 // for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-// that out. It is for generated parsers and not a stable API.
+// that out. It is for parser code and not a stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
 func (p *Parser) ExpectBudget(pos int, id ExpID) {
@@ -226,7 +226,7 @@ func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
 // MergeExpected records the expectations of s at far, as expect does for each of them, so that the
 // expectations of a call that a memo entry or a finished isolation kept become those of the enclosing
 // record. s may alias the stack above the current record: writes only happen below the read position. It
-// is for generated parsers and not a stable API.
+// is for parser code and not a stable API.
 //
 // Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) MergeExpected(far int, s []ExpID) {
@@ -256,8 +256,8 @@ func (p *Parser) MergeExpected(far int, s []ExpID) {
 
 // Keep returns the expectations of s as a set that outlives the record, for a memo entry, a
 // context or a recovery to keep: the empty set for none, the set kept last when it has the same
-// entries in the same order, and otherwise a copy, which becomes the set kept last. It is for generated
-// parsers and not a stable API.
+// entries in the same order, and otherwise a copy, which becomes the set kept last. It is for parser
+// code and not a stable API.
 //
 // Printed from Exec IR function keep of internal/ir/exec/core, specialized for budget.
 func (p *Parser) Keep(s []ExpID) []ExpID {
