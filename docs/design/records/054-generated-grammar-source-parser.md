@@ -8,8 +8,10 @@
 
 Provide a typed Go parser for ZeroParse grammar source generated from ZeroParse's own
 complete grammar, while retaining the hand-written source parser as a
-selectable implementation. Differential tests must establish equivalent
-grammar ASTs and diagnostics. Paired measurements determine which parser is
+selectable implementation. The hand-written parser is the reference: the
+generated parser must accept and reject the same sources, build the same
+grammar ASTs and report errors at the same positions. Message text may differ.
+Differential tests establish this. Paired measurements determine which parser is
 the default for source-consuming APIs and commands; no speed advantage is
 assumed.
 
@@ -30,11 +32,13 @@ established.
   generation before building or using ZeroParse.
 - Keep both generated and manual source parsers selectable at source-parsing
   entry points, without mutable global configuration.
-- Compare parser outputs, source metadata and errors before changing defaults.
+- Compare parser outputs, source metadata, acceptance and error positions
+  before changing defaults.
 - Establish and tune the hand-written lexer/parser as a fair reference before
   selecting a default.
 - Select the generated implementation only if it is measurably faster than the
-  tuned manual frontend under equivalent public AST and diagnostic contracts,
+  tuned manual frontend under an equivalent public AST and the same acceptance
+  and error positions,
   without a material supported-workload regression.
 
 ## Non-Goals
@@ -116,14 +120,29 @@ groups, and the adapter assigns a gap's groups to the outermost node that starts
 or ends at its token (`Positions.Claim`), in the order the hand-written parser
 completes nodes. The grammar adds no wrapper node per expression.
 
-This increment is a source-span and ownership contract, not a complete
-public-AST adapter or a parser selection change: the parity test builds the
-public AST's nodes from the canonical tree, and the raw formatter state is not
-constructed. Differential span cases cover aliases, terminals,
+`internal/syntax.FromSourceTree` builds the public `grammar.Grammar` from the
+canonical tree: it decodes literals and character classes, flattens chains,
+resolves lambda parameters, merges attribute runs and applies the checks that
+the grammar does not make. The raw formatter state (`SourceInfo.Layout` and the
+line breaks) is not constructed. The differential tests compare, for every
+repository grammar, documentation example, comment insertion, line-ending
+variant and a seeded set of mutated sources, whether both frontends accept the
+source and, when they do, the JSON form of the AST (fields and source metadata)
+together with the Go type of each node. A parser selection is not part of this
+contract. Differential span cases cover aliases, terminals,
 structs, multiline groups, comments, separators, Unicode and CR/LF/CRLF. The
 existing generated-consumer gate also compares typed type spans with the runtime
-source tree; full diagnostic and formatting parity remain required before the
-proposal can be accepted.
+source tree; error-position parity and formatting parity remain required before
+the proposal can be accepted.
+
+### Diagnostic Contract
+
+The hand-written parser is the reference implementation, because the generated
+parser may not match its performance. The generated parser agrees with it on
+acceptance and on the positions of errors. It does not have to produce the same
+message text, so a diagnostic that the grammar cannot name dynamically needs no
+runtime support. The adapter reports the checks the grammar does not make with
+the reference messages where that is direct.
 
 ### Selection Surface
 
@@ -140,7 +159,7 @@ The generated parser's concrete source-AST shape is checked against the typed
 nodes declared by the root grammar. Its adapter is then checked against the
 public `grammar.Grammar` result expected by source-consuming APIs. The manual
 parser need not construct the generated parser's source AST; compare its
-public-grammar output, diagnostics and source metadata at the shared API
+public-grammar output, error positions and source metadata at the shared API
 boundary. Preserve meaningful public source forms such as explicit `Group`
 nodes, statement `Block` nodes, ordered positional attribute arguments
 including null slots, named arguments, and the unified binary/unary operator
@@ -155,8 +174,8 @@ resumed, first profile and tune its lexer/parser on representative grammar
 sources; do not treat its current implementation as a permanently fixed
 baseline. Then compare it with the generated parser through the same source
 API, including the generated source-AST-to-`grammar.Grammar` adapter. The
-measured operations must produce equivalent public grammar ASTs, source
-metadata and diagnostics. A direct comparison between manual `grammar.Grammar`
+measured operations must produce equivalent public grammar ASTs and source
+metadata, and the same acceptance and error positions. A direct comparison between manual `grammar.Grammar`
 construction and generated concrete-source-AST construction is useful as an
 initial cost observation, but it is not an equivalent-output comparison and
 cannot select a winner.
@@ -208,7 +227,7 @@ without network access or a prior generated artifact outside the repository.
   `grammar.Grammar` result. Preserve `Group`, `Block`, ordered positional
   arguments and null slots, named arguments, and the common operator-node
   representation. Also compare source positions, comments/layout, error
-  counts, error order, locations and messages. A normalized AST may be
+  counts, error order and error positions; message text is not compared. A normalized AST may be
   compared only as a separate semantic check, never as a substitute for these
   source and public-AST checks.
 - Cover valid, malformed and incomplete input; CR/LF/CRLF; nested comments;
@@ -218,7 +237,7 @@ without network access or a prior generated artifact outside the repository.
   names parse but fail at the validation/compile stage, and that whitespace
   between `@` and an attribute name is rejected.
 - Fuzz bounded source strings and grammar mutations, requiring identical
-  accept/reject results and equivalent errors. Preserve stable partial
+  accept/reject results and error positions. Preserve stable partial
   results for editor recovery where supported.
 - Compare formatter parse/format/parse stability and LSP diagnostics and
   source ranges using each parser selection.

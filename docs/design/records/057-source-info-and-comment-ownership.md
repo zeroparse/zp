@@ -272,11 +272,11 @@ tested for every node of the public AST over crafted cases, a comment inserted
 at every offset of grammars with every kind of node, pairs of comments at random offsets and
 every grammar in the repository.
 
-The canonical tree has no public-AST adapter yet: the parity test builds the
-nodes of the public AST (flat sequences, choices, joins and meets, the
-pragma and attribute completions, hidden literals) from the canonical tree and
-passes them to `Claim`, and that construction moves into the adapter with the
-parser selection. Raw formatter state (`SourceInfo.Layout`) is still not
+`internal/syntax.FromSourceTree` builds the public AST from the canonical tree.
+It creates the nodes (flat sequences, choices, joins and meets, the pragma and
+attribute completions, hidden literals) in the order the hand-written parser
+completes them and passes them to `Claim`; the parity tests compare the result
+with the hand-written parser's AST. Raw formatter state (`SourceInfo.Layout`) is still not
 constructed by the canonical grammar. It needs a formatter gate: byte-identical
 output on the existing format corpus and no lost comment. The focused fixtures
 are an oracle for covered boundaries, not a substitute for that gate.
