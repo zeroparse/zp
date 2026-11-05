@@ -116,6 +116,12 @@ func Cases() []Case {
 		b.Assert(exec.Eq(exec.C("memo.examined", exec.L("s4")), exec.Int(7)), "an entry keeps its examined end")
 		b.Assert(exec.And(exec.C("memo.before", exec.L("s6")), exec.Not(exec.C("memo.before", exec.L("s5")))),
 			"an entry keeps whether its examined input starts before it")
+		// Of rule 4, entries with recovered errors, at 0 before the edit and at 6 after it.
+		for _, x := range [][2]int64{{0, 3}, {6, 9}} {
+			e := b.Let(fmt.Sprint("er", x[0]), exec.C("memo.store", append(key(4, x[0], 0, 7), exec.BoolC(true), exec.Int(x[0]+1),
+				exec.BoolC(false), noValue, exec.C(ErrsOp))...))
+			b.Do("memo.examine", e, exec.BoolC(false), exec.Int(x[1]))
+		}
 		unexamined := store(b, "u", key(2, 1, 0, 7), true, 2)
 		b.Assert(exec.Eq(exec.C("memo.examined", unexamined), exec.Int(0)), "an entry without a record has examined end 0")
 		b.Assert(exec.Not(exec.C("memo.before", unexamined)), "an entry without a record does not start before it")
@@ -150,6 +156,12 @@ func Cases() []Case {
 		for _, pos := range []int64{6, 8} {
 			_, f := lookup(b, fmt.Sprint("r", pos), fmt.Sprint("rf", pos), key(3, pos, 0, 7))
 			b.Assert(exec.Not(f), "a pinned entry is removed")
+		}
+		e0, f := lookup(b, "x0", "x0f", key(4, 0, 0, 7))
+		b.Assert(exec.And(f, exec.Eq(exec.C("memo.end", e0), exec.Int(1))), "an entry with recovered errors that examined only input before the edit stays")
+		for _, pos := range []int64{6, 8} {
+			_, f := lookup(b, fmt.Sprint("x", pos), fmt.Sprint("xf", pos), key(4, pos, 0, 7))
+			b.Assert(exec.Not(f), "an entry with recovered errors that examined only input after the edit is removed")
 		}
 		_, f = lookup(b, "ug", "uf", key(2, 1, 0, 7))
 		b.Assert(exec.Not(f), "an entry without an examined record is removed")
@@ -245,6 +257,11 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 		ref  *ref.Entry
 	}
 	var entries []entry
+	// keys are the keys that stores used, and those an edit moved them to: when the case edits the
+	// memo, lookups draw from them, so that an entry that an edit moved is found again. A case that
+	// does not edit draws exactly what it drew before.
+	var keys [][4]int64
+	edits := slices.Contains(opNames, "memo.splice")
 	f := m.AddFunc(name, nil, nil, []string{"budget", "stream", "document"}, func(b *exec.Builder) {
 		pos := func() int64 {
 			if rng.IntN(8) == 0 {
@@ -271,13 +288,25 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 			switch o.Name {
 			case "memo.lookup":
 				keyArgs(true)
+				if edits && len(keys) > 0 && rng.IntN(2) == 0 {
+					k := keys[rng.IntN(len(keys))]
+					args = []any{k[0], k[1], k[2], k[3]}
+					exprs = []exec.Expr{exec.Int(k[0]), exec.Int(k[1]), exec.Int(k[2]), exec.C(ValuesOp, exec.Int(k[3]))}
+				}
 			case "memo.store":
 				keyArgs(true)
 				ok := rng.IntN(2) == 0
 				args, exprs = append(args, ok), append(exprs, exec.BoolC(ok))
 				intArg(args[1].(int64) + rng.Int64N(4))
 				silent := rng.IntN(2) == 0
-				args, exprs = append(args, silent, nil, nil), append(exprs, exec.BoolC(silent), noValue, noErrs)
+				args, exprs = append(args, silent, nil), append(exprs, exec.BoolC(silent), noValue)
+				// An entry with recovered errors is not moved by an edit (memo.splice). One in five has them,
+				// chosen without drawing from rng, so that the cases of the other operations stay as they were.
+				if (int64(len(entries))+args[1].(int64))%5 == 0 {
+					args, exprs = append(args, RecoveredErrors), append(exprs, exec.C(ErrsOp))
+				} else {
+					args, exprs = append(args, nil), append(exprs, noErrs)
+				}
 			case "memo.ok", "memo.end", "memo.silent":
 				if len(entries) == 0 {
 					continue
@@ -316,6 +345,18 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 			}
 			res, stop := mirrorCall(mirror, o, args)
 			calls++
+			switch o.Name {
+			case "memo.store":
+				keys = append(keys, [4]int64{args[0].(int64), args[1].(int64), args[2].(int64), args[3].(int64)})
+			case "memo.splice":
+				end, delta := args[1].(int64), args[2].(int64)
+				for _, k := range slices.Clone(keys) {
+					if to := k[1] + delta; k[1] >= end-1 && to >= 0 {
+						keys = append(keys, [4]int64{k[0], to, k[2], k[3]})
+					}
+				}
+				keys = keys[max(0, len(keys)-48):]
+			}
 			switch {
 			case len(o.Results) > 0 && o.Results[0].Kind == exec.KHandle:
 				name := fmt.Sprintf("e%d", calls)

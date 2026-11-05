@@ -84,7 +84,7 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.store":
 		rule, pos, level, env := key()
 		e := p.memo.alloc()
-		*e = memoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool)}
+		*e = memoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
 		p.memoPut(rule, pos, level, env, e)
 		return []any{e}
 	case "memo.ok":
@@ -130,6 +130,10 @@ var (
 	rtBudgetOps = []string{"budget.charge", "budget.used"}
 	rtStreamOps = []string{"memo.prune", "memo.floor"}
 	rtDocOps    = []string{"memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
+	// rtDocEditOps are the operations of the randomized cases that edit a Document's memo, with
+	// nothing between a store and the edit that follows it that would remove the entry: the cases
+	// then check which entries an edit keeps, moves and removes.
+	rtDocEditOps = []string{"memo.lookup", "memo.store", "memo.end", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
 )
 
 func rtSuites() []conform.Suite {
@@ -157,6 +161,11 @@ func rtSuites() []conform.Suite {
 			}
 		}
 	}
+	suites = append(suites,
+		conform.Suite{Name: "generated Go runtime (document edits)", Ops: rtDocEditOps,
+			New: func(c ref.Config) conform.Impl { return newRTMachine(c, false, false, false) }},
+		conform.Suite{Name: "generated Go typed runtime (document edits)", Ops: rtDocEditOps,
+			New: func(c ref.Config) conform.Impl { return newTypedMachine(c, false) }})
 	for _, controlled := range []bool{false, true} {
 		ops := []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent"}
 		ops = append(ops, rtDocOps...)
@@ -170,6 +179,15 @@ func rtSuites() []conform.Suite {
 		})
 	}
 	return suites
+}
+
+// recoveredErrors returns the errors that an entry of the runtime holds for the recovered errors of
+// an argument of memo.store: none for nil, and one error for the errors that conform.ErrsOp makes.
+func recoveredErrors(arg any) []*SyntaxError {
+	if arg == nil {
+		return nil
+	}
+	return []*SyntaxError{{}}
 }
 
 // typedMachine binds the memo operations of the typed runtime, with the Document records of a typed
@@ -226,7 +244,7 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{e, e != nil}
 	case "memo.store":
 		e := p.memoSlab.one()
-		*e = tmemoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool)}
+		*e = tmemoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
 		p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], e)
 		return []any{e}
 	case "memo.ok":
@@ -392,6 +410,16 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
 			return nil
 		}},
+		// A splice that moves the entries with recovered errors.
+		"splice moves an entry with recovered errors": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
+			for _, head := range m.p.memo.slots {
+				for e := head; e != nil; e = e.next {
+					e.errs = nil
+				}
+			}
+			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
+			return nil
+		}},
 		// A splice that moves pinned entries.
 		"splice moves a pinned entry": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
 			for _, head := range m.p.memo.slots {
@@ -418,7 +446,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ops := rtMemoOps
 			if strings.HasPrefix(b.op, "memo.splice") {
-				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtDocOps...)
+				ops = rtDocEditOps
 			}
 			if b.stream {
 				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtStreamOps...)
@@ -429,7 +457,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 				}
 				return brokenRT{newRTMachine(c, false, false, b.stream).(*rtMachine), b.op, b.call}
 			}}
-			fails, _ := conformanceFailures(s, 30, 150)
+			fails, _ := conformanceFailures(s, 200, 150)
 			if len(fails) == 0 {
 				t.Fatal("conformance did not detect the broken operation")
 			}
@@ -461,3 +489,49 @@ func (b brokenRT) Call(o *exec.Op, args []any) []any {
 type meteredBrokenRT struct{ brokenRT }
 
 func (m meteredBrokenRT) Used() uint64 { return m.p.Control.budgetUsed() }
+
+// TestExecConformanceDetectsBrokenTypedRuntime is the negative control of the typed runtime's
+// Document operations: a splice that moves the entries with recovered errors, and one that moves
+// the pinned entries, must fail conformance.
+func TestExecConformanceDetectsBrokenTypedRuntime(t *testing.T) {
+	variants := map[string]func(m *typedMachine){
+		"splice moves an entry with recovered errors": func(m *typedMachine) {
+			for _, head := range m.p.memoSlots {
+				for e := head; e != nil; e = e.next {
+					e.errs = nil
+				}
+			}
+		},
+		"splice moves a pinned entry": func(m *typedMachine) {
+			for e, meta := range m.doc.meta {
+				meta.pinned = false
+				m.doc.meta[e] = meta
+			}
+		},
+	}
+	for name, unpin := range variants {
+		t.Run(name, func(t *testing.T) {
+			s := conform.Suite{Name: "broken: " + name, Ops: rtDocEditOps, New: func(c ref.Config) conform.Impl {
+				return brokenTyped{newTypedMachine(c, false).(*typedMachine), unpin}
+			}}
+			fails, _ := conformanceFailures(s, 200, 150)
+			if len(fails) == 0 {
+				t.Fatal("conformance did not detect the broken operation")
+			}
+		})
+	}
+}
+
+// brokenTyped runs prepare before each memo.splice of a typed machine.
+type brokenTyped struct {
+	*typedMachine
+	prepare func(m *typedMachine)
+}
+
+func (b brokenTyped) Call(o *exec.Op, args []any) []any {
+	if o.Name == "memo.splice" {
+		b.doc.slots = b.p.memoSlots
+		b.prepare(b.typedMachine)
+	}
+	return b.typedMachine.Call(o, args)
+}

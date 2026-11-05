@@ -59,7 +59,7 @@ func TestRuntimeExecConformance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)
 	}
-	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime"} {
+	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime"} {
 		if !strings.Contains(string(out), "--- PASS: "+name+" ") {
 			t.Errorf("go test did not run %s:\n%s", name, out)
 		}

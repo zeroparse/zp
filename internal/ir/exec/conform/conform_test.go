@@ -3,6 +3,7 @@ package conform
 import (
 	"errors"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -63,9 +64,14 @@ func TestModelPassesItsCases(t *testing.T) {
 	}
 }
 
-// TestMutantsFail is the negative control of the harness: each broken implementation must fail.
-func TestMutantsFail(t *testing.T) {
-	mutants := map[string]mutant{
+// docEditOps are the operations of randomized cases that edit the memo of a Document: with only
+// these, the entries that a case examines survive its edits and are found again, so that the
+// randomized cases themselves check which entries an edit keeps, moves and removes.
+var docEditOps = []string{"memo.lookup", "memo.store", "memo.end", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
+
+// modelMutants are the broken models of the negative control of the harness.
+func modelMutants() map[string]mutant {
+	return map[string]mutant{
 		"lookup ignores the level": {op: "memo.lookup", edit: func(m *ref.Model, a []any) []any {
 			return m.Call(Module().Op("memo.lookup"), []any{a[0], a[1], int64(0), a[3]})
 		}},
@@ -110,6 +116,11 @@ func TestMutantsFail(t *testing.T) {
 			}
 			return m.Call(Module().Op("memo.splice"), []any{start, end, delta})
 		}},
+		"store drops the recovered errors, so that splice moves the entry": {op: "memo.store", edit: func(m *ref.Model, a []any) []any {
+			a = slices.Clone(a)
+			a[8] = nil
+			return m.Call(Module().Op("memo.store"), a)
+		}},
 		"budget charges one unit less": {op: "budget.charge", edit: func(m *ref.Model, a []any) []any {
 			n := a[0].(uint64)
 			if n > 0 {
@@ -118,7 +129,11 @@ func TestMutantsFail(t *testing.T) {
 			return m.Call(Module().Op("budget.charge"), []any{n})
 		}},
 	}
-	for name, mu := range mutants {
+}
+
+// TestMutantsFail is the negative control of the harness: each broken implementation must fail.
+func TestMutantsFail(t *testing.T) {
+	for name, mu := range modelMutants() {
 		t.Run(name, func(t *testing.T) {
 			s := Suite{Name: name, Ops: allOps, New: func(c ref.Config) Impl {
 				mu.modelImpl = modelImpl{ref.New(c)}
@@ -128,6 +143,33 @@ func TestMutantsFail(t *testing.T) {
 				t.Fatal("no case detected the mutant")
 			}
 		})
+	}
+}
+
+// TestRandomCasesFindEditMutants checks that randomized cases alone, without the handwritten ones,
+// notice a broken edit of the memo: the entries that a splice moves, the entries with recovered
+// errors that it must remove, and the edit it applies.
+func TestRandomCasesFindEditMutants(t *testing.T) {
+	for _, name := range []string{
+		"splice keeps an entry that examined the edit's position",
+		"splice moves an entry that examined the edit's end",
+		"splice moves entries one unit short",
+		"store drops the recovered errors, so that splice moves the entry",
+	} {
+		mu := modelMutants()[name]
+		s := Suite{Name: name, Ops: docEditOps, New: func(c ref.Config) Impl {
+			mu.modelImpl = modelImpl{ref.New(c)}
+			return mu
+		}}
+		found := false
+		for seed := uint64(0); seed < 300 && !found; seed++ {
+			c := Random("random", rand.New(rand.NewPCG(seed, 7)), s.Ops, 100, ref.Config{Rules: 3, Limit: 400, MaxDepth: 5})
+			_, err := Run(s, c)
+			found = err != nil
+		}
+		if !found {
+			t.Errorf("no randomized case detected the mutant %q", name)
+		}
 	}
 }
 

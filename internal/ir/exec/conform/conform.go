@@ -44,12 +44,26 @@ type Suite struct {
 // It is not an operation of the parser VM.
 const ValuesOp = "test.values"
 
+// ErrsOp is the operation that conformance cases use to make the recovered errors of an entry that
+// has some. It is not an operation of the parser VM. An implementation sees them as RecoveredErrors
+// in the arguments of memo.store, in place of nil for an entry with none.
+const ErrsOp = "test.errs"
+
+// recoveredErrors is the type of RecoveredErrors.
+type recoveredErrors struct{ _ byte }
+
+// RecoveredErrors is the value of the recovered errors that ErrsOp makes. All entries that have errors
+// share it: the harness compares handles only by identity, and the errors themselves are not examined.
+var RecoveredErrors = &recoveredErrors{}
+
 // Module returns the pilot declarations with ValuesOp, ready for cases.
 func Module() *exec.Module {
 	m := ops.Pilot()
 	m.AddOp(&exec.Op{Name: ValuesOp, Component: ops.Env, Params: []exec.Param{exec.P("id", exec.TInt)},
 		Results:  []exec.Type{exec.THandle(ops.Values)},
 		Contract: "Returns the Values handle of a conformance identifier; equal identifiers are equal values."})
+	m.AddOp(&exec.Op{Name: ErrsOp, Component: ops.Rec, Results: []exec.Type{exec.THandle(ops.Errs)},
+		Contract: "Returns the recovered errors of an entry that recovered some, as RecoveredErrors."})
 	return m
 }
 
@@ -116,7 +130,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	ok := true
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
-		case c.Callee == ValuesOp:
+		case c.Callee == ValuesOp, c.Callee == ErrsOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -196,6 +210,9 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if o.Name == ValuesOp {
 		id := args[0].(int64)
 		return []any{p.wrap(p.model.Values(id), p.impl.Values(id))}
+	}
+	if o.Name == ErrsOp {
+		return []any{p.wrap(RecoveredErrors, RecoveredErrors)}
 	}
 	if !p.model.Allows(o, refArgs) {
 		panic(mismatch("the case breaks the precondition of " + o.Name))
