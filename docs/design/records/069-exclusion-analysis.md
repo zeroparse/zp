@@ -1,6 +1,6 @@
 # 069. Exclusion Analysis of Ordered Choice
 
-- **Status**: Proposed
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-11-04
 
@@ -8,7 +8,7 @@
 
 The linear-cost classifier compares the first characters of a unit with those of its continuations. Many units that it
 cannot prove committing are not slow: two alternatives share a call such as an identifier, and part one or two symbols
-later at a literal. This record proposes an analysis over **symbols** instead of characters, where a call of a rule is
+later at a literal. This record describes an analysis over **symbols** instead of characters, where a call of a rule is
 one symbol, that shows when a unit and a continuation from one position **part**: after the symbols that both evaluate
 alike, they reach a symbol that at most one of them can pass.
 
@@ -26,6 +26,12 @@ Whitespace follows a convention, with a lint. A rule whose shape makes it **triv
 only on the position and the variables that it reads) is recognized from its body, and the analysis compares its calls
 by position. A token layer is not introduced: on the bundled grammars, no overlap that the measurements found needs
 one.
+
+The classifier uses the analysis by default: decided units at k = 3 and trivia rules are on. The argument that the
+classification stays sound with them is a sketch, not yet a proof; [Soundness](#soundness) states it and its gaps, and
+a proof is still to be written. Until then the differential tests, which measure every random grammar that the
+classifier calls linear, with a family whose continuations share prefixes, separators, trivia calls and lookaheads,
+are the evidence for the defaults.
 
 On the bundled grammars, the strict analysis at k = 3 leaves 1315 of the 1437 nested reasons, and 1261 with trivia
 rules; no grammar changes class. Most of what remains is lookahead units, which the analysis leaves to the
