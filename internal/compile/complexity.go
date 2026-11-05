@@ -149,7 +149,10 @@ func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*cla
 }
 
 // prepareBaseClassifier is prepareClassifier over the rules as they are written, not their normal
-// view. The exclusion analysis reads the rules this way.
+// view. The exclusion analysis itself reads the normal view, as ClassifyComplexity does; the tests
+// that check how it compares the alternatives of a choice read the rules as written, since the
+// normal view left-factors alternatives that begin alike (N12) and leaves no shared prefix to
+// compare.
 func prepareBaseClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newClassifier)
 }

@@ -18,9 +18,10 @@ import (
 
 // TestDecideAlt checks the comparison of the exclusion analysis on the first choice of rule main:
 // how it counts symbols across shared prefixes and expands calls. It reads the rules as they are
-// written (prepareBaseClassifier), not their normal view, which inlines the calls that the cases
-// count; the other tests of the analysis read the normal view, as ClassifyComplexity does. The
-// trivia rules are off, so that the whitespace calls are counted.
+// written (prepareBaseClassifier), not their normal view, which left-factors the alternatives of
+// a choice that begin alike (N12) and so leaves no shared prefix to count; the other tests of the
+// analysis read the normal view, as ClassifyComplexity does. The trivia rules are off, so that the
+// whitespace calls are counted.
 func TestDecideAlt(t *testing.T) {
 	defer exclOff.set()()
 	const rules = "rule ident = [a-z]+\nrule ws = [ ]*\nrule x = \"x\"\nrule kw = \"if\" / \"in\"\nrule r = \"y\"\nrule lr = lr \"+\" \"a\" / \"a\"\n"
@@ -87,9 +88,9 @@ func TestDecideAlt(t *testing.T) {
 
 // TestDecideAltTrivia checks that the analysis passes calls of a trivia rule without counting them
 // and drops a call that follows a call of the same trivia rule, and that rules of other shapes stay
-// ordinary calls. Like TestDecideAlt, it reads the rules as written: the normal view merges the
-// repeated calls of a trivia rule before the comparison, so only the written form exercises the
-// passing and dropping.
+// ordinary calls. Like TestDecideAlt, it reads the rules as written: the normal view left-factors
+// the alternatives, which begin with the same calls (N12), so only the written form has the calls
+// that the comparison passes and drops.
 func TestDecideAltTrivia(t *testing.T) {
 	defer restoreExclusionDefaults()
 	const rules = "var v int = 0\nrule ident = [a-z]+\nrule x = \"x\"\nrule ws = [ ]*\nrule sp = \" \"\n" +
@@ -731,7 +732,9 @@ func fmtPath(p []sym) string {
 
 // TestFollowPaths checks that a continuation that has more paths through exclFollow rule ends
 // than the analysis enumerates is followed through fewer ends instead, with stops where it is cut.
-// It reads the rules as written, whose calls the normal view would inline.
+// It reads the rules as written: the normal view left-factors the four alternatives of each rule
+// that begin with the same call (N12), which leaves one call of the rule below instead of four,
+// and the continuation then has no more paths than the analysis enumerates.
 func TestFollowPaths(t *testing.T) {
 	src := "rule main = r6 $$\nrule r0 = \"a\"\n"
 	for i := 1; i <= 6; i++ {

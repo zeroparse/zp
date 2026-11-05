@@ -510,9 +510,10 @@ In `internal/compile`:
 
 - `TestDecideAlt`, `TestDecideAltVariables`, `TestDecideAltTrivia`: the language-level comparison, for each
   decisive case, lookahead implication through a callee and after a prefix, literals that are equal up to case, calls
-  of rules that read variables and of left-recursive rules, and trivia calls. They read the rules as written, since
-  they test how the comparison counts symbols across shared prefixes, which the normal view would inline; the other
-  tests read the normal view.
+  of rules that read variables and of left-recursive rules, and trivia calls. `TestDecideAlt` and `TestDecideAltTrivia`
+  read the rules as written, since they test how the comparison counts symbols across shared prefixes, and the normal
+  view left-factors alternatives that begin alike (N12), which leaves no shared prefix to count. `TestFollowPaths` reads
+  them as written for the same reason. The other tests read the normal view.
 - `TestStrictConditions`: each condition of the strict comparison, with a case that passes and one that the condition
   rejects: the environment mark, bindings at a rule end, parts that are not cheap on either side, lookaheads that are
   not cheap, a call after a nesting end, and a path exhausted in strict mode.
