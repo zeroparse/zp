@@ -595,7 +595,21 @@ move to Exec IR at once while mechanisms move one at a time.
    less, `BenchmarkStream/generated` is within noise, and the batch parses and recognizers are within 2% each, 0.4%
    slower in geomean.
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
-   `internal/engine/core`; the closure backend and both VMs run on them.
+   `internal/engine/core`; the closure backend and both VMs run on them. The iterative VM suspends a call while
+   the rule body runs, so the call protocol also has a split form, a begin and an end composition built from the
+   same builder functions as the recursive call, with its state in a record that the caller holds. The
+   mechanisms that only the engine has keep their meaning and become the engine's implementations of
+   operations: the missing-token mode, the edits that a Document applies to an entry when it is looked up, the
+   moves of nodes in place, the examined input before a position (`From`), the repetition runs and traced calls.
+   The stage has five parts, each accepted on its own:
+   1. the call protocol, deferred memoization and left-recursion growth, with the `missing` feature in the call
+      composition; the dependency memo and the growth steps stay transitional operations, as in the generated
+      runtimes;
+   2. the expectation record and the variable environment;
+   3. the Operators Rule loop, with a split form for the iterative VM;
+   4. stream commitment;
+   5. Document reuse, where the edits that the engine applies when an entry is looked up are its implementation of
+      `memo.splice`, and the repetition runs a host operation of the engine.
 10. **Term evaluation and the value model**, with value operations as host primitives.
 
 ### Pilot
