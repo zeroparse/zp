@@ -2,7 +2,8 @@ package core
 
 // The engine's implementations of the operations of the call protocol that its printed
 // compositions call (call_exec.go, printed from internal/ir/exec/core): the call state, the context
-// state of a memoized call and the results that a context holds.
+// state of a memoized call, the bit of an expectation in the filter of the current record (expBit) and
+// the results that a context holds.
 
 // expBit returns the bit of id in the filter of the expectations of the current record (ExpBits),
 // which exp.maybe reads.
