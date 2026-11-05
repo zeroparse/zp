@@ -19,7 +19,7 @@ func TestStrictHotHelpersInline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
-	for _, name := range []string{"(*Parser).ExprLoop", "(*Parser).NudBegin", "(*Parser).TriviaBegin", "(*Parser).Mark", "(*Parser).NewNode", "(*Parser).Nodes", "(*Parser).fields", "(*MemoTable).Alloc", "(*MemoTable).MarkSeen"} {
+	for _, name := range []string{"(*Parser).ExprLoop", "(*Parser).NudBegin", "(*Parser).TriviaBegin", "(*Parser).Mark", "(*Parser).SpendN", "(*Parser).NewNode", "(*Parser).Nodes", "(*Parser).fields", "(*MemoTable).Alloc", "(*MemoTable).MarkSeen"} {
 		if !strings.Contains(string(out), "can inline "+name+" with cost") {
 			t.Errorf("%s is no longer inlinable", name)
 		}

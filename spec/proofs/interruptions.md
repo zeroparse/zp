@@ -141,13 +141,16 @@ them, and its tests check them.
   is 1 and not $n$.
 - **(A3) Reservation precedes work.** Each unit of work that (C6) counts is
   covered by a reservation made before it, in the same straight-line code or
-  before a bounded loop that always runs all of its lines, so that an
-  interruption raised by the reservation precedes the work. The number of lines
-  of such a loop depends only on the grammar, so the reservation is a function
-  of the logical state (A6) and the loop has no exit before its last line.
-  Charges may be combined within straight-line code, and the charges of the
-  lines of such a loop may be combined in one reservation before it, without
-  moving across a publication (A5).
+  before a bounded loop that runs all of its lines unless it is interrupted, so
+  that an interruption raised by the reservation precedes the work. The number
+  of lines of such a loop depends only on the grammar, so the reservation is a
+  function of the logical state (A6), and the loop has no exit other than an
+  interruption or a fatal error inside a line. The units of the lines that
+  such an exit leaves unperformed stay reserved and counted in the units used,
+  as (C7) permits. Charges may be combined within straight-line code without
+  moving across a publication (A5). The reservation of such a loop only moves
+  earlier, before the loop, so it never comes between the work of a
+  publication and its assignment (A5).
   Allocation, runtime growth, garbage collection and the callbacks of the
   caller are outside the budget, as (C4) says for callbacks.
 - **(A4) Reachable recovery.** The only `recover` calls on the path of an
