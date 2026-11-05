@@ -610,6 +610,21 @@ move to Exec IR at once while mechanisms move one at a time.
    4. stream commitment;
    5. Document reuse, where the edits that the engine applies when an entry is looked up are its implementation of
       `memo.splice`, and the repetition runs a host operation of the engine.
+
+   In the first part, the compositions `engineCall`, `callBegin`, `callEnd` and `grow` print the engine's `Call`,
+   `CallBegin`, `CallEnd` and `grow` into `internal/engine/core/call_exec.go`, the first three specialized for
+   Documents, the missing-token mode and budget controls; `call_ops.go` holds the engine's implementations of the operations they
+   call, and the split form keeps its state in a `CallState` that the caller holds. An entry's `From` is the low
+   bound of the input its call examined: a call examines from its position, or from the unit before it to tell a
+   line or input start, so `From` is the position or the one before, and edits move both alike. An entry's
+   recovered errors are charged after its expectations and context end rather than before; the total does not
+   change, only the point where a limit interrupts the call. Results, `Stats` and budget counts do not change.
+   Mutating the printed file shows what the tests pin: keeping the recovered errors of a failed call, narrowing
+   either end of an entry's examined range, dropping the lookahead or the context check of reuse, or leaving the
+   caller's examined end as it was each fail named tests, and a long test builds them with each mutant through
+   `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
+   0.8% slower, 54 rows are faster and the geomean is 0.3% faster; `B/op` rises by at most 0.2%, `allocs/op` does
+   not rise, and the `zp` binary grows by 528 bytes.
 10. **Term evaluation and the value model**, with value operations as host primitives.
 
 ### Pilot
