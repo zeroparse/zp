@@ -49,4 +49,11 @@ func main() {
 	if err := os.WriteFile(core.EngineOperatorsFile, []byte(engineOperators), 0o644); err != nil {
 		log.Fatal(err)
 	}
+	engineStream, err := core.EngineStream()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineStreamFile, []byte(engineStream), 0o644); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -740,53 +740,6 @@ func (in *Input) Discard(keep int) {
 	}
 }
 
-// Commit makes it final that the parse never backtracks before position pos, and discards the
-// input and memo entries no longer needed. The preceding unit is kept for detecting line starts
-// (^).
-func (p *Parser) Commit(pos int) {
-	p.Discard(pos - 1)
-	p.Trail = p.Trail[:0]
-	if StreamFrameScratch {
-		p.ResetStreamFrames()
-	}
-	p.splitChunks()
-	if pos-p.Pruned >= 1024 {
-		// Completed calls may have shortened these slices before commit.
-		// Clear their inactive capacity along with memo pruning, so a large
-		// element's references do not survive indefinitely in small streams.
-		if StreamUndoCleanup {
-			ClearSpend(p, p.Trail[:cap(p.Trail)])
-		}
-		if StreamStackCleanup && p.Backend != nil {
-			p.Backend.ClearInactive()
-		}
-		p.PruneStreamMemo(pos)
-		p.PruneSkipRecords(pos)
-		p.Pruned = pos
-	}
-	if p.DiagnosticTail.Limit > 0 {
-		// The element boundary is irreversible. Its recovered errors have
-		// already been delivered and collected. Without tracing, callbacks
-		// own defensive copies and memo entries own separate slices, so a
-		// small cleared backing array can serve the next element. A trace
-		// callback may retain Recovered(), and large scratch is released.
-		// The active start-rule call saved an empty recovery prefix;
-		// speculative element marks are no longer active after emission.
-		if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {
-			ClearSpend(p, p.Recovered[:cap(p.Recovered)])
-			p.Recovered = p.Recovered[:0]
-		} else {
-			p.Recovered = nil
-		}
-		p.Diagnosed = 0
-		if BudgetControlsEnabled && p.Control != nil {
-			// With a diagnostic limit, the errors are now held by the tail, which counts
-			// those it keeps; without one, Recovered keeps them and errs keeps counting them.
-			p.Control.errs = 0
-		}
-	}
-}
-
 // Peek returns the character at the current position and its size.
 func (p *Parser) Peek() (rune, int, bool) {
 	r, size, examined, ok := p.Decode(p.Pos)

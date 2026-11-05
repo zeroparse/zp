@@ -47,8 +47,9 @@ The effect is memory held, which the parse result does not show.`,
 	host(&exec.Op{Name: "stream.dropRecords", Component: Win, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Reads: []string{Win}, Writes: []string{Win}, Features: stream,
 		Contract: `Discards what the parse keeps about the positions before pos besides the memo, which no later
-call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to. Later
-calls never read them, so the parse result does not show the difference.`})
+call reads: the records of skips and of the profile, and what the inactive capacity of the trail and of a
+target's value stack refers to. Later calls never read them, so the parse result does not show the
+difference.`})
 	host(&exec.Op{Name: "stream.tail", Component: Win, Results: []exec.Type{exec.TBool}, Reads: []string{Win},
 		Features: stream,
 		Contract: `Reports whether the parse retains the tail of its recovered errors (a diagnostic limit is set).`})

@@ -1,6 +1,6 @@
 # Interruptions
 
-Arata Furukawa · Last revised 2026-11-02
+Arata Furukawa · Last revised 2026-11-06
 
 This proof shows that an interruption of a parse is atomic, and what is the
 same for every run of a backend. An interruption is a
@@ -176,6 +176,11 @@ them, and its tests check them.
   fix, and what it leaves in the memo and in the tables, although complete,
   changes later charges. An interruption by a limit is a function of the
   charges, and does not have this effect.
+  A stream's commit clears the inactive capacity of the trail, of the stack of
+  the bytecode backends and of the scratch of recovered errors, and charges for
+  it. That storage is not reusable across invocations: every stream parse
+  builds its own parser and machine, so the capacity follows from the appends
+  of that parse, on a given build of the backend.
 
 ## Lemma 1 (Atomic Reservation)
 
@@ -253,10 +258,20 @@ context that is already cancelled stops the parse before the callback is
 called, and the element is not delivered. It then calls the callback, and
 checkpoints after it returns. If the second checkpoint interrupts, the element
 has been delivered and stays so (C4), and nothing is delivered after it. A
-callback that returns an error ends the parse with that error. The nodes that
-were delivered are owned by the caller, and the parser's discarding of its own
-state does not change them. A reader that is blocked is not preempted; the
-checkpoint after its return observes the cancellation (C4). $\square$
+callback that returns an error ends the parse with that error. The commit
+follows the second checkpoint and reserves units for the work it does, so a
+reservation of the commit can interrupt the invocation too. The element stays
+delivered, nothing is delivered after it, and the state of a commit cut short
+is the invocation's own, which nothing reads again (Lemma 5). The commit
+demands no input, so the default budget of a stream does not grow between its
+reservations. It evaluates no grammar code, and it publishes no cache (A5),
+because a stream keeps no input cache past the invocation. Every backend of the
+engine runs this sequence from one printed composition, and generated Go prints
+the same composition, so none of them orders these steps differently. The
+nodes that were delivered are owned by the caller, and the parser's discarding
+of its own state does not change them. A reader that is blocked is not
+preempted; the checkpoint after its return observes the cancellation (C4).
+$\square$
 
 The diagnostics of a recovered element can be delivered before the element, so
 an interruption between the two leaves the caller with diagnostics whose

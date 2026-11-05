@@ -888,14 +888,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			if in.B == 2 && p.Emit != nil && b.r != nil && p.StreamsIn(b.r.ID, b.r.Rec) {
 				// Elements of the start rule's #stream are passed on without being retained, and committed.
-				v := asNodeValue(mc.pop())
-				if v != nil {
-					value.D(v).Fresh = false
-				}
-				if err := p.EmitStream(v); err != nil {
-					panic(core.Fatal{Err: err})
-				}
-				p.Commit(p.Pos)
+				p.EmitStream(asNodeValue(mc.pop()), p.Pos)
 				if p.Pos == e.save.pos {
 					ip = int(e.ip)
 					continue

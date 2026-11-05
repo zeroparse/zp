@@ -17,6 +17,9 @@ const EngineFile = "../../../engine/core/call_exec.go"
 // EngineOperatorsFile is the file of the printed Operators Rule compositions of the engine.
 const EngineOperatorsFile = "../../../engine/core/operators_exec.go"
 
+// EngineStreamFile is the file of the printed stream compositions of the engine.
+const EngineStreamFile = "../../../engine/core/stream_exec.go"
+
 // engineOn are the features of the engine's specializations: it keeps the bookkeeping of the
 // examined input in every parse, has the missing-token mode and charges a budget. Its observation
 // (tracing) is a tracked path of its own.
@@ -57,6 +60,15 @@ var engineOperatorSpecs = func() []goSpec {
 var engineOperatorSplit = []string{"triviaBegin", "triviaEnd", "longestBegin", "longestNext", "longestStep", "nudBegin", "nudPrefix",
 	"nudRhs", "nudNext", "nudOperand", "exprStart", "exprLoop", "exprLed", "exprRhs"}
 
+// engineStreamSpecs are the functions of the stream mechanism of the engine. Every backend, the
+// iterative VM among them, delivers and commits an element in straight-line code that runs no rule
+// body, so the compositions need no split form.
+var engineStreamSpecs = []goSpec{
+	{fn: "streamEmit", on: []string{ops.Stream}, name: "EmitStream"},
+	{fn: "streamCommit", on: []string{ops.Stream}, name: "Commit"},
+	{fn: "streamsIn", on: []string{ops.Stream}, name: "StreamsIn"},
+}
+
 // Engine returns the Go file of the printed compositions for package core of the engine.
 func Engine() (string, error) {
 	return engineFile(engineSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
@@ -66,6 +78,11 @@ func Engine() (string, error) {
 // the engine.
 func EngineOperators() (string, error) {
 	return engineFile(engineOperatorSpecs, "import (\n\t\"zeroparse.dev/zp/grammar\"\n\t\"zeroparse.dev/zp/internal/value\"\n)\n")
+}
+
+// EngineStream returns the Go file of the printed stream compositions for package core of the engine.
+func EngineStream() (string, error) {
+	return engineFile(engineStreamSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
 }
 
 // engineFile returns the Go file of the printed functions specs with the imports imports.
@@ -105,7 +122,7 @@ func engineTarget() *execgo.Target {
 		"expect": "Expect", "keep": "Keep",
 		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
 		"mergeKept": "MergeExpected", "mergeExpected": "MergeExpected"}
-	for _, s := range engineOperatorSpecs {
+	for _, s := range append(engineOperatorSpecs, engineStreamSpecs...) {
 		names[s.fn] = s.name
 	}
 	t.Handle = func(name string) string { return handles[name] }
@@ -126,6 +143,32 @@ func engineTarget() *execgo.Target {
 			return a[0] + "." + strings.ToUpper(field[:1]) + field[1:]
 		}
 		switch c.Callee {
+		case "stream.emits":
+			return "p.Emit != nil"
+		case "stream.start":
+			return "p.StreamID"
+		case "stream.check":
+			return "if BudgetControlsEnabled {\np.Control.Check()\n}"
+		case "stream.report":
+			return "p.streamReport()"
+		case "stream.deliver":
+			return "p.streamDeliver(" + a[0] + ")"
+		case "stream.discard":
+			return "p.Discard(" + a[0] + ")"
+		case "stream.release":
+			return "p.streamRelease()"
+		case "stream.dropRecords":
+			return "p.streamDropRecords(" + a[0] + ")"
+		case "stream.tail":
+			return "p.DiagnosticTail.Limit > 0"
+		case "stream.settleErrors":
+			return "p.streamSettleErrors()"
+		case "memo.floor":
+			return "p.Memo.Base"
+		case "memo.prune":
+			return "p.PruneStreamMemo(" + a[0] + ")"
+		case "depth.current":
+			return "p.Depth"
 		case "depth.enter":
 			return "p.Enter()"
 		case "depth.exit":

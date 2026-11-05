@@ -649,13 +649,7 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 			count++
 			if stream && p.StreamsIn(inID, inRec) {
 				// Elements of the start rule's #stream are passed on without being retained, and committed.
-				if v != nil {
-					value.D(v).Fresh = false
-				}
-				if err := p.EmitStream(v); err != nil {
-					panic(core.Fatal{Err: err})
-				}
-				p.Commit(p.Pos)
+				p.EmitStream(v, p.Pos)
 				if p.Pos == m0.Pos {
 					break
 				}

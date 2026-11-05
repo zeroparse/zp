@@ -104,8 +104,6 @@ type Parser struct {
 	// call cycle has depth 0). The parse is aborted when it exceeds MaxDepth.
 	Depth    int
 	MaxDepth int
-	// Pruned is the position at which the memo was last pruned.
-	Pruned int
 	// Created holds the struct nodes built by the action being evaluated (from EvalCtx.Cbase).
 	Created []*value.Node
 	// MemoAll requests memoizing transient rules (rule.transient) too (used by Document).
@@ -1052,13 +1050,6 @@ func (p *Parser) Enter() {
 	if p.Depth > p.MaxDepth {
 		p.tooDeep()
 	}
-}
-
-// StreamsIn reports whether the #stream repetition of the rule id streams: the parse is a stream
-// parse, the rule is its start rule, and the rule runs at the top (a recursive rule counts its
-// entries, so its outermost entry is the first; any other rule is entered once).
-func (p *Parser) StreamsIn(id int, rec bool) bool {
-	return p.Emit != nil && p.StreamID == id && (!rec || p.Depth == 1)
 }
 
 //go:noinline

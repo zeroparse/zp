@@ -29,11 +29,11 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 	machineOf(p).vals = []any{live, dead, dead}
 	machineOf(p).vals = machineOf(p).vals[:1]
 	p.Commit(1023)
-	if len(p.Trail) != 0 || p.Pruned != 0 || machineOf(p).vals[0] != live || root.Vals[0] != live {
+	if len(p.Trail) != 0 || p.Memo.Base != 0 || machineOf(p).vals[0] != live || root.Vals[0] != live {
 		t.Fatal("early commit damaged live state or pruned too soon")
 	}
 	p.Commit(1024)
-	if p.Pruned != 1024 || machineOf(p).vals[0] != live || root.Vals[0] != live {
+	if p.Memo.Base != 1024 || machineOf(p).vals[0] != live || root.Vals[0] != live {
 		t.Fatal("pruning damaged live root or active VM value")
 	}
 	if core.StreamUndoCleanup {

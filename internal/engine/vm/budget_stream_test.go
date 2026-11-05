@@ -40,8 +40,8 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 				}
 			}
 			got := catchStreamPanic(func() { p.Commit(2048) })
-			if _, ok := got.(core.Fatal); !ok || p.Base != 2047 || p.Pruned != 0 || value.D(node).Text != "owned" {
-				t.Fatalf("commit %s interruption=%v base=%d pruned=%d", phase, got, p.Base, p.Pruned)
+			if _, ok := got.(core.Fatal); !ok || p.Base != 2047 || p.Memo.Base != 0 || value.D(node).Text != "owned" {
+				t.Fatalf("commit %s interruption=%v base=%d pruned=%d", phase, got, p.Base, p.Memo.Base)
 			}
 			if phase == "values" && (machineOf(p).vals[0] != node || machineOf(p).vals[:cap(machineOf(p).vals)][129] != node) {
 				t.Fatal("clear crossed reservation or live values")

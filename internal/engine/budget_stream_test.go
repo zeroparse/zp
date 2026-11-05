@@ -436,7 +436,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			controller = p.Control
 			// Force the normal inactive-capacity clear at the next commit.
 			p.Trail = make([]core.Undo, 0, 129)
-			p.Pruned = p.Pos - 1024
+			p.Memo.Base = p.Pos - 1024
 			frames, keep := 0, 0
 			for i := range p.FrameSlab {
 				frames++
@@ -500,15 +500,14 @@ func TestBudgetStreamEmitBoundary(t *testing.T) {
 			if phase == "before" {
 				cancel()
 			}
-			var err error
-			got := catchStreamPanic(func() { err = p.EmitStream(nil) })
+			got := catchStreamPanic(func() { p.EmitStream(nil, 0) })
+			f, ok := got.(core.Fatal)
 			if phase == "error" {
-				if got != nil || err != stop || calls != 1 {
-					t.Fatalf("panic=%v error=%v calls=%d", got, err, calls)
+				if !ok || f.Err != stop || calls != 1 || p.EmitCall {
+					t.Fatalf("panic=%v calls=%d caller flag=%t", got, calls, p.EmitCall)
 				}
 				return
 			}
-			f, ok := got.(core.Fatal)
 			wantCalls := 1
 			if phase == "before" {
 				wantCalls = 0

@@ -1094,8 +1094,9 @@ host op stream.dropRecords(pos int)
   cost <= 0
   contract:
     // Discards what the parse keeps about the positions before pos besides the memo, which no later
-    // call reads: the records of skips and of the profile, and what the trail's inactive capacity refers to. Later
-    // calls never read them, so the parse result does not show the difference.
+    // call reads: the records of skips and of the profile, and what the inactive capacity of the trail and of a
+    // target's value stack refers to. Later calls never read them, so the parse result does not show the
+    // difference.
 
 host op stream.tail() bool
   component window
