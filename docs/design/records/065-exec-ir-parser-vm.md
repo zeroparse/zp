@@ -629,8 +629,8 @@ move to Exec IR at once while mechanisms move one at a time.
    end as it was, storing a result that goes nowhere or that read a growing seed in the memo, or copying the
    recovered errors before keeping the expectations each fail named tests, and a long test builds them with
    each mutant through `-overlay`. In nine interleaved rounds against the hand-written protocol, no engine `sec/op` row is more than
-   0.8% slower, 54 rows are faster and the geomean is 0.3% faster; `B/op` rises by at most 0.2%, `allocs/op` does
-   not rise, and the `zp` binary grows by 528 bytes.
+   0.8% slower, 43 engine rows are faster and 6 slower, and the geomean of all rows is 0.3% faster; on engine
+   rows `B/op` rises by at most 0.2% and `allocs/op` does not rise, and the `zp` binary grows by 528 bytes.
 10. **Term evaluation and the value model**, with value operations as host primitives.
 
 ### Pilot
