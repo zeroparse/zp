@@ -12,8 +12,10 @@ import (
 const DefaultDifferentialGrammars = 600
 
 // SharedContinuationCount is the number of SharedContinuationGrammars that TestLinearClaims
-// measures among count random grammars.
-func SharedContinuationCount(count int) int { return count / 2 }
+// measures among count random grammars: half of count, but never fewer than half of
+// DefaultDifferentialGrammars, so that the reduced default tier, which generates a quarter of the
+// other grammars, still measures all of them.
+func SharedContinuationCount(count int) int { return max(count/2, DefaultDifferentialGrammars/2) }
 
 // SharedContinuationGrammars returns count random grammars with the start rule main, from a fixed
 // seed: the first n of count grammars are the n grammars of a smaller count. They are the grammars
