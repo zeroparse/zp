@@ -139,12 +139,12 @@ func sharedContinuationGrammar(rng *rand.Rand, shape int) string {
 		def("main", pick("(p)* $$", "(p)* ws $$", "p+ $$"))
 		def("p", strings.Join(alts, " / "))
 	case 4:
-		// An Operators Rule whose operands and parts share a skip or a call with what follows. A
-		// level of a prefix operator part alone is left out: with a skip, the classifier calls it
-		// linear, but a parse of "a"^n "c" " "^n costs n^2 steps.
+		// An Operators Rule whose operands and parts share a skip or a call with what follows,
+		// among them a level of a prefix operator part alone, which applies no operator after an
+		// operand, so that a skip is not evaluated again at each level of a chain of prefixes.
 		pair := "prefix \"a\"\n        postfix \"b\""
 		part := pick(pair, pair, pair, pair, pair, pair, pair, pair,
-			"postfix \"b\"", "infix right ws \",\"", "infix left \",\"", "postfix ws \"b\"")
+			"postfix \"b\"", "infix right ws \",\"", "infix left \",\"", "postfix ws \"b\"", "prefix \"a\"")
 		skip := pick("    skip ws\n", "    skip ws\n", "    skip ws\n", "    skip ws\n", "    skip ws\n", "    skip ws\n", "")
 		operand := pick(`"c"`, `"c"`, `"c"`, `"c"`, `"c"`, `"c"`, `"c"`, `"c"`, `"c" / "a" x? "b"`)
 		def("main", pick("x ws $$", "x ws $$", "x ws $$", "x ws $$", "x $$", "(x ws)* $$"))

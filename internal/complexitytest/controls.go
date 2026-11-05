@@ -326,6 +326,15 @@ func Controls() []Control {
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
 		{
+			// A level of a prefix operator alone applies no operator after an operand, so the skip
+			// is not evaluated again at each level of the chain: "a"^n "c" " "^n costs n^2 steps
+			// if it is.
+			Name: "Operators Rule skip after nested prefix operators that no operator follows", Family: "rescanned calls", Positive: true,
+			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"c\"\n    level { prefix \"a\" }\n}\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("a", n) + "c" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		{
 			Name: "Operators Rule part shared by left operands", Family: "rescanned calls", Positive: true,
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { infix left ws \"^\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("a^", n) + "a" + rep(" ", n) },

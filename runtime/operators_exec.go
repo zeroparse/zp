@@ -28,8 +28,11 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 	if !ok {
 		return nil, false
 	}
-	lastNone := -1
 	led := r.OperatorsRule.Led
+	if len(led) == 0 {
+		return lhs, true
+	}
+	lastNone := -1
 	for {
 		m0 := p.Mark()
 		start := m0.Pos
@@ -238,8 +241,11 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 	if !ok {
 		return nil, false
 	}
-	lastNone := -1
 	led := r.OperatorsRule.Led
+	if len(led) == 0 {
+		return lhs, true
+	}
+	lastNone := -1
 	for {
 		m0 := p.Mark()
 		start := m0.Pos

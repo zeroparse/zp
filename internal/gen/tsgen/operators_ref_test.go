@@ -225,6 +225,9 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
   if (lhs === undefined) {
     return undefined;
   }
+  if (pr.led.length === 0) {
+    return lhs;
+  }
   let lastNone = -1;
   for (;;) {
     const m0pos = p.pos;

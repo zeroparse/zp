@@ -562,6 +562,9 @@ func (f *operatorsRuleFrame) next(mc *ivmMachine, vm *Program, res iresult) (ifr
 			if !res.ok {
 				return nil, iresult{}, true
 			}
+			if len(pr.Led) == 0 { // as in Parser.operatorsRuleExpr
+				return nil, iresult{v: res.v, ok: true}, true
+			}
 			f.lhs, f.lastNone = res.v, -1
 			f.state = pLoop
 		case pLoop:

@@ -136,8 +136,11 @@ operator) counts against the nesting limit, like the entry of a recursive rule.`
 				b.LetN([]string{"lhs", "ok"}, C(nudName, r))
 			}
 			b.If(Not(L("ok")), func(b *Builder) { b.Return(Null(value), BoolC(false)) })
-			b.Let("lastNone", Int(-1))
 			b.Let("led", C("opr.led", r))
+			// Without an infix or postfix operator nothing can follow the start: the loop would only
+			// evaluate the skip again at every level of a chain of prefix operators.
+			b.If(Eq(C("opr.count", L("led")), Int(0)), func(b *Builder) { b.Return(L("lhs"), BoolC(true)) })
+			b.Let("lastNone", Int(-1))
 			b.Loop("loop", func(b *Builder) {
 				b.Let("m0", C("frame.mark"))
 				start := b.Let("start", C("frame.markPos", L("m0")))

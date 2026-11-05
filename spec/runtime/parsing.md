@@ -841,7 +841,10 @@ The conditions below use these terms.
     can then end where every enclosing operator part or operand ends, and each
     enclosing level tries the operator parts after an operand again there: for
     an operator part after an operand, those operator parts are a continuation
-    too.
+    too. An Operators Rule without an infix or a postfix operator part tries
+    nothing after an operand or after the application of a prefix operator and
+    evaluates no `skip` there, so a chain of its prefix operators does not
+    evaluate the `skip` again at each level.
 - The **first characters** of an expression are the characters with which an
   evaluation of it can examine the input beyond its start position: those it
   can consume first, and those that every lookahead it can evaluate before it

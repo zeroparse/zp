@@ -142,6 +142,11 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 	if !ok {
 		return nil, false
 	}
+	// Without an infix or postfix operator nothing can follow the start: the loop would only evaluate
+	// the skip again at every level of a chain of prefix operators.
+	if len(pr.Led) == 0 {
+		return lhs, true
+	}
 	lastNone := -1
 	for {
 		p.Spend()

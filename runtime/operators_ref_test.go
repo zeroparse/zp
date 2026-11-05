@@ -87,6 +87,9 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 	if !ok {
 		return nil, false
 	}
+	if len(pr.Led) == 0 {
+		return lhs, true
+	}
 	lastNone := -1
 	for {
 		m0 := p.Mark()
