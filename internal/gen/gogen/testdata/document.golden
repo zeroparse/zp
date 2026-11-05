@@ -128,6 +128,9 @@ corpus/0/len of nodes and strings	78163ff0f0be6831dbdbcdab
 corpus/0/line choice of rules	5f6f256df832b18e4e2a0e87
 corpus/0/line choice with captures and skip	479db67c2dfb7d3bb4ee0028
 corpus/0/line start	8c2ce43c5a80c8f93664d811
+corpus/0/line start in a leader	fd726014a116e7667d4ce417
+corpus/0/line start in a member	d054a8b94229c45e383ad3de
+corpus/0/line start in nested leaders	f62be3ce56d8bc46ce8b50ec
 corpus/0/literal text different captures control	1386b395fd7f744c74081bdf
 corpus/0/literal text missing capture	4e6120568e4ab0df5b96e60d
 corpus/0/literal text mixed control	223146cef972168adb995c4e
@@ -481,6 +484,9 @@ corpus/1/len of nodes and strings	78163ff0f0be6831dbdbcdab
 corpus/1/line choice of rules	5f6f256df832b18e4e2a0e87
 corpus/1/line choice with captures and skip	479db67c2dfb7d3bb4ee0028
 corpus/1/line start	8c2ce43c5a80c8f93664d811
+corpus/1/line start in a leader	fd726014a116e7667d4ce417
+corpus/1/line start in a member	d054a8b94229c45e383ad3de
+corpus/1/line start in nested leaders	f62be3ce56d8bc46ce8b50ec
 corpus/1/literal text different captures control	1386b395fd7f744c74081bdf
 corpus/1/literal text missing capture	4e6120568e4ab0df5b96e60d
 corpus/1/literal text mixed control	223146cef972168adb995c4e

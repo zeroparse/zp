@@ -328,6 +328,17 @@ var documentShapes = []gentest.Case{
 	// result that holds a position cannot move with an edit before it.
 	{Name: "line start", Src: "rule main = item* $$\nrule item = ^ \"a\" x / \"a\" y / \"\\n\" / \"b\"\nrule x = \"\"\nrule y = \"\"\n",
 		Inputs: []string{"a\na", "ba\nab\na", "\n\naa"}},
+	// A line start inside a left recursion: in the seed of an indirect leader, in a member of a cycle,
+	// and in an alternative of a leader that another leader reads. A result that a context replays
+	// was made inside the growth that owns the context, so it needs no line start of its own recorded:
+	// removing the touch of the unit before it (replayCtx, growNext) changes the counts of reuse of
+	// these Documents, not their results.
+	{Name: "line start in a leader", Src: "rule main = item* $$\nrule item = expr \";\" / \";\" / \"\\n\"\nrule expr = add / term\nrule add = expr \"+\" term\nrule term = ^ \"a\" / \"a\"\n",
+		Inputs: []string{"a+a;", "a\na+a;a", "\n\na+a+a;\n"}},
+	{Name: "line start in a member", Src: "rule main = item* $$\nrule item = a \";\" / \";\" / \"\\n\"\nrule a = b \"x\" / \"p\"\nrule b = a \"y\" / ^ \"q\" / \"r\"\n",
+		Inputs: []string{"qxyx;", "p\nqx;qxyx;", "pxyxyx;\nrx;"}},
+	{Name: "line start in nested leaders", Src: "rule main = item* $$\nrule item = s \";\" / \";\" / \"\\n\"\nrule s = s \"q\" / r \"s\" / ^ \"y\" / \"y\"\nrule r = r \"r\" / s \"t\"\n",
+		Inputs: []string{"yts;", "y\nytsqts;", "ytrrs;\nyq;"}},
 	{Name: "positions in values", Src: "rule main = item* $$\nrule item = n:[a-c] => $n.Start\n",
 		Inputs: []string{"abc", "aabbcc", "c"}},
 }
