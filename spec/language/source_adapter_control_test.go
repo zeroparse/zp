@@ -2,6 +2,7 @@ package language_test
 
 import (
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -88,6 +89,103 @@ func mutateLeaves(g *grammar.Grammar, check func(path string)) int {
 	}
 	walk("", reflect.ValueOf(g).Elem())
 	return count
+}
+
+// nodeSwaps are the groups of parser expressions that hold the same fields, so
+// that one can replace another in the AST and the JSON form stays the same.
+var nodeSwaps = [][]reflect.Type{
+	{typeOf[grammar.Optional](), typeOf[grammar.And](), typeOf[grammar.Not](), typeOf[grammar.Atomic](), typeOf[grammar.Stream](), typeOf[grammar.Discard](), typeOf[grammar.Group]()},
+	{typeOf[grammar.Any](), typeOf[grammar.Cut](), typeOf[grammar.Top](), typeOf[grammar.Bottom](), typeOf[grammar.BeginInput](), typeOf[grammar.EndInput](), typeOf[grammar.BeginLine](), typeOf[grammar.EndLine]()},
+}
+
+func typeOf[T any]() reflect.Type { return reflect.TypeFor[T]() }
+
+// swapNodeTypes replaces, one at a time, every parser expression of the AST g
+// that has an alternative in nodeSwaps by each alternative, which keeps the
+// fields the two have in common, and calls check after each replacement. It
+// returns the number of replacements.
+func swapNodeTypes(g *grammar.Grammar, check func(path string)) int {
+	count := 0
+	var walk func(path string, v reflect.Value)
+	walk = func(path string, v reflect.Value) {
+		switch v.Kind() {
+		case reflect.Pointer:
+			if !v.IsNil() {
+				walk(path, v.Elem())
+			}
+		case reflect.Interface:
+			if v.IsNil() {
+				return
+			}
+			old := v.Elem()
+			if old.Kind() == reflect.Pointer {
+				for _, group := range nodeSwaps {
+					if !slices.Contains(group, old.Type().Elem()) {
+						continue
+					}
+					for _, to := range group {
+						if to == old.Type().Elem() {
+							continue
+						}
+						swapped := reflect.New(to)
+						for i := 0; i < to.NumField(); i++ {
+							if f, ok := old.Type().Elem().FieldByName(to.Field(i).Name); ok && f.Type == to.Field(i).Type {
+								swapped.Elem().Field(i).Set(old.Elem().FieldByName(f.Name))
+							}
+						}
+						v.Set(swapped)
+						count++
+						check(path + " " + old.Type().Elem().Name() + " as " + to.Name())
+						v.Set(old)
+					}
+				}
+			}
+			walk(path, old)
+		case reflect.Slice:
+			for i := 0; i < v.Len(); i++ {
+				walk(path+"["+strconv.Itoa(i)+"]", v.Index(i))
+			}
+		case reflect.Map:
+			for _, k := range v.MapKeys() {
+				if elem := v.MapIndex(k); elem.Kind() == reflect.Interface && !elem.IsNil() && elem.Elem().Kind() == reflect.Pointer {
+					walk(path+"."+k.String(), elem.Elem())
+				}
+			}
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				if f := v.Type().Field(i); f.IsExported() && f.Tag.Get("json") != "-" {
+					walk(path+"."+f.Name, v.Field(i))
+				}
+			}
+		}
+	}
+	walk("", reflect.ValueOf(g).Elem())
+	return count
+}
+
+// TestGrammarComparisonSeesNodeTypes swaps the Go type of each node, such as
+// #atomic for #stream, which the JSON form does not name, and requires the
+// comparison to report it.
+func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	total := 0
+	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
+		manual, merr := zp.ParseGrammar(src)
+		g, err := adaptCanonical(p, src)
+		if merr != nil || err != nil {
+			continue
+		}
+		want := grammarJSON(t, manual)
+		total += swapNodeTypes(g, func(path string) {
+			if firstDifference(want, grammarJSON(t, g)) == "" {
+				t.Errorf("%q: the swap of %s is not reported", src, path)
+			}
+		})
+	}
+	if total < 100 {
+		t.Fatalf("only %d nodes were swapped", total)
+	}
+	t.Logf("swapped the type of %d nodes", total)
 }
 
 // TestGrammarComparisonSeesEveryField changes every JSON-visible leaf of the
