@@ -152,8 +152,8 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 	var i int
 	m0 := p.Mark()
 	start := m0.Pos
+	p.Control.Charge(uint64(len(l)))
 	for i = 0; i < len(l); i++ {
-		p.Spend()
 		op := l[i]
 		prevFrame := p.Frame
 		prevCut := p.Cut
@@ -173,11 +173,11 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 		}
 		if len(f.Vals) == 0 {
 			p.Reset(m0)
-			continue
+		} else {
+			p.saved = appendSpend(p, p.saved[:0], f.Vals)
+			p.Reset(m0)
+			copySpend(p, f.Vals, p.saved)
 		}
-		p.saved = appendSpend(p, p.saved[:0], f.Vals)
-		p.Reset(m0)
-		copySpend(p, f.Vals, p.saved)
 	}
 	p.cutFailed = cutFailed
 	return best
@@ -367,8 +367,8 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 	var i int
 	m0 := p.Mark()
 	start := m0.Pos
+	p.Control.Charge(uint64(len(l)))
 	for i = 0; i < len(l); i++ {
-		p.Spend()
 		op := l[i]
 		prevFrame := p.Frame
 		prevCut := p.Cut
@@ -388,11 +388,11 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 		}
 		if len(f.Vals) == 0 {
 			p.Reset(m0)
-			continue
+		} else {
+			p.saved = appendSpend(p.Parser, p.saved[:0], f.Vals)
+			p.Reset(m0)
+			copySpend(p.Parser, f.Vals, p.saved)
 		}
-		p.saved = appendSpend(p.Parser, p.saved[:0], f.Vals)
-		p.Reset(m0)
-		copySpend(p.Parser, f.Vals, p.saved)
 	}
 	p.cutFailed = cutFailed
 	return best

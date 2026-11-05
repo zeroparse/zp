@@ -54,6 +54,17 @@ func TestEngineCurrent(t *testing.T) {
 	if string(got) != want {
 		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineFile)
 	}
+	want, err = EngineOperators()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = os.ReadFile(EngineOperatorsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineOperatorsFile)
+	}
 }
 
 // TestSpecializationsVerify checks that every operation the compositions call is declared,
@@ -67,6 +78,9 @@ func TestSpecializationsVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := Engine(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EngineOperators(); err != nil {
 		t.Fatal(err)
 	}
 	ms, err := TSMethods()

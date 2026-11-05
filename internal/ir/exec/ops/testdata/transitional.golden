@@ -50,6 +50,10 @@ component window
   // elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
   // delivered elements held.
 
+component suspended
+  // The calls whose rule body runs between the begin and the end of the split call
+  // protocol, each with the state that its begin saved for its end in a record that its caller holds.
+
 component frames
   // The capture frames: the frame that captures write to, the slots of each frame and the
   // trail of the writes that a reset undoes.
@@ -57,10 +61,6 @@ component frames
 component operators
   // The bookkeeping of the Operators Rule loop: whether a candidate of the last longest match
   // failed after a cut.
-
-component suspended
-  // The calls whose rule body runs between the begin and the end of the split call
-  // protocol, each with the state that its begin saved for its end in a record that its caller holds.
 
 register pos int
   // The position of the parse in the input.
@@ -112,6 +112,9 @@ handle CtxResult of growth
 handle Grow of growth
   // The state of the growth of a left-recursion leader.
 
+handle CallState of suspended
+  // The record of a suspended call, which its caller holds.
+
 handle Frame of frames
   // A capture frame: the slots of the captures of a rule body or a line.
 
@@ -136,8 +139,14 @@ handle Attempt of operators
   // the frame of its captures, the environment after it, whether it cut, and the errors it recovered. The
   // null attempt is no match.
 
-handle CallState of suspended
-  // The record of a suspended call, which its caller holds.
+handle LongestState of suspended
+  // The record of a suspended longest match.
+
+handle NudState of suspended
+  // The record of the suspended start of an expression.
+
+handle ExprState of suspended
+  // The record of the suspended loop of an expression.
 
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
@@ -1125,6 +1134,169 @@ transitional op stream.settleErrors()
   requires:
     // The parse retains the tail (stream.tail).
 
+op call.state() CallState
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Returns a record for the state of a call that the caller holds until the call ends.
+
+op call.save(st CallState, start int, min int, key Values, c Ctx, rec int, m ExpMark)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Saves in st the state that the end of the call needs: its position, its binding level, the
+    // values of its key, its context state, the mark of its recovered errors and the record that its
+    // isolation set aside.
+
+op call.saveExamined(st CallState, high int, low int)
+  component suspended
+  writes suspended
+  features document
+  cost <= 0
+  contract:
+    // Saves in st the examined input of the enclosing call, which doc.enter returned.
+
+op call.saveMissing(st CallState, mark int)
+  component suspended
+  writes suspended
+  features missing
+  cost <= 0
+  contract:
+    // Saves in st the mark of the missing-token record, which missing.mark returned.
+
+op call.start(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the position of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.min(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the binding level of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.key(st CallState) Values
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the values of the key of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.ctx(st CallState) Ctx
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the context state of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.rec(st CallState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the mark of the recovered errors of the call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.mark(st CallState) ExpMark
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the record that the isolation of the call set aside that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.high(st CallState) int
+  component suspended
+  reads suspended
+  features document
+  cost <= 0
+  contract:
+    // Returns the end of the examined input of the enclosing call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.low(st CallState) int
+  component suspended
+  reads suspended
+  features document
+  cost <= 0
+  contract:
+    // Returns the start of the examined input of the enclosing call that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+op call.missing(st CallState) int
+  component suspended
+  reads suspended
+  features missing
+  cost <= 0
+  contract:
+    // Returns the mark of the missing-token record that st holds.
+  requires:
+    // st holds a call that call.save saved.
+
+transitional op missing.active() bool
+  component recovered
+  reads recovered
+  features missing
+  cost <= 0
+  contract:
+    // Reports whether the parse runs in the missing-token mode.
+
+transitional op missing.recompute(r Rule) bool
+  component recovered
+  reads recovered, rules
+  features missing
+  cost <= 0
+  contract:
+    // Reports whether a result of the rule is evaluated again instead of being reused from the memo:
+    // the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token.
+
+transitional op missing.mark() int
+  component recovered
+  reads recovered
+  features missing
+  cost <= 0
+  contract:
+    // Returns a mark of the missing-token record, for missing.reset.
+
+transitional op missing.reset(mark int)
+  component recovered
+  writes recovered
+  features missing
+  cost <= 0
+  contract:
+    // Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it.
+  requires:
+    // mark is a result of missing.mark at or before every later mark that is still in use.
+
+transitional op missing.replay(e Entry)
+  component recovered
+  writes recovered
+  features missing
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Records again the tokens that the call of entry e inserted and the errors it recovered, as
+    // rec.add does for the errors outside the missing-token mode.
+  requires:
+    // The parse runs in the missing-token mode.
+
 transitional op frame.mark() Mark
   component frames
   reads frames, env, recovered
@@ -1149,6 +1321,13 @@ transitional op frame.markEnv(m Mark) Scope
   cost <= 0
   contract:
     // Returns the variable environment of the backtracking point m.
+
+transitional op frame.markMissing(m Mark) int
+  component frames
+  features missing
+  cost <= 0
+  contract:
+    // Returns the mark of the missing-token record at the backtracking point m, as missing.mark does.
 
 transitional op frame.markTrail(m Mark) int
   component frames
@@ -1373,6 +1552,27 @@ transitional op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, 
     // Returns the match of op from start to the position with the value v, the captures of f, the
     // variable environment, the cut flag cut and the recovered errors errs.
 
+transitional op opr.attemptMissing(op Operator, f Frame, v Value, start int, cut bool, errs Errs, mark int) Attempt
+  component operators
+  reads env, pos, recovered
+  features missing
+  noreturn
+  cost <= 0
+  contract:
+    // Is opr.attempt in a parse that can insert missing tokens: the match also holds a copy of the tokens
+    // inserted after mark.
+
+transitional op opr.replay(a Attempt)
+  component recovered
+  reads operators
+  writes recovered
+  features missing
+  noreturn
+  cost <= 0
+  contract:
+    // Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for
+    // the errors outside the missing-token mode.
+
 transitional op opr.found(a Attempt) bool
   component operators
   cost <= 0
@@ -1433,165 +1633,268 @@ transitional op opr.cutFailed() bool
   contract:
     // Reports what the last opr.setCutFailed recorded.
 
-op call.state() CallState
+transitional op oprLongest.l(st LongestState) Operators
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field l of the record st.
+
+transitional op oprLongest.setL(st LongestState, x Operators)
   component suspended
   writes suspended
   cost <= 0
   contract:
-    // Returns a record for the state of a call that the caller holds until the call ends.
+    // Sets the field l of the record st to x.
 
-op call.save(st CallState, start int, min int, key Values, c Ctx, rec int, m ExpMark)
+transitional op oprLongest.i(st LongestState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field i of the record st.
+
+transitional op oprLongest.setI(st LongestState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
-    // Saves in st the state that the end of the call needs: its position, its binding level, the
-    // values of its key, its context state, the mark of its recovered errors and the record that its
-    // isolation set aside.
+    // Sets the field i of the record st to x.
 
-op call.saveExamined(st CallState, high int, low int)
+transitional op oprLongest.m0(st LongestState) Mark
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field m0 of the record st.
+
+transitional op oprLongest.setM0(st LongestState, x Mark)
   component suspended
   writes suspended
-  features document
   cost <= 0
   contract:
-    // Saves in st the examined input of the enclosing call, which doc.enter returned.
+    // Sets the field m0 of the record st to x.
 
-op call.saveMissing(st CallState, mark int)
+transitional op oprLongest.best(st LongestState) Attempt
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field best of the record st.
+
+transitional op oprLongest.setBest(st LongestState, x Attempt)
   component suspended
   writes suspended
-  features missing
   cost <= 0
   contract:
-    // Saves in st the mark of the missing-token record, which missing.mark returned.
+    // Sets the field best of the record st to x.
 
-op call.start(st CallState) int
+transitional op oprLongest.cutFailed(st LongestState) bool
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the position of the call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field cutFailed of the record st.
 
-op call.min(st CallState) int
+transitional op oprLongest.setCutFailed(st LongestState, x bool)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field cutFailed of the record st to x.
+
+transitional op oprLongest.prevFrame(st LongestState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the binding level of the call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field prevFrame of the record st.
 
-op call.key(st CallState) Values
+transitional op oprLongest.setPrevFrame(st LongestState, x Frame)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field prevFrame of the record st to x.
+
+transitional op oprLongest.prevCut(st LongestState) bool
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the values of the key of the call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field prevCut of the record st.
 
-op call.ctx(st CallState) Ctx
+transitional op oprLongest.setPrevCut(st LongestState, x bool)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field prevCut of the record st to x.
+
+transitional op oprLongest.f(st LongestState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the context state of the call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field f of the record st.
 
-op call.rec(st CallState) int
+transitional op oprLongest.setF(st LongestState, x Frame)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field f of the record st to x.
+
+transitional op oprNud.m0(st NudState) Mark
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the mark of the recovered errors of the call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field m0 of the record st.
 
-op call.mark(st CallState) ExpMark
+transitional op oprNud.setM0(st NudState, x Mark)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field m0 of the record st to x.
+
+transitional op oprNud.a(st NudState) Attempt
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the record that the isolation of the call set aside that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field a of the record st.
 
-op call.high(st CallState) int
+transitional op oprNud.setA(st NudState, x Attempt)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field a of the record st to x.
+
+transitional op oprNud.i(st NudState) int
   component suspended
   reads suspended
-  features document
   cost <= 0
   contract:
-    // Returns the end of the examined input of the enclosing call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field i of the record st.
 
-op call.low(st CallState) int
+transitional op oprNud.setI(st NudState, x int)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field i of the record st to x.
+
+transitional op oprNud.prevFrame(st NudState) Frame
   component suspended
   reads suspended
-  features document
   cost <= 0
   contract:
-    // Returns the start of the examined input of the enclosing call that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field prevFrame of the record st.
 
-op call.missing(st CallState) int
+transitional op oprNud.setPrevFrame(st NudState, x Frame)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field prevFrame of the record st to x.
+
+transitional op oprNud.prevCut(st NudState) bool
   component suspended
   reads suspended
-  features missing
   cost <= 0
   contract:
-    // Returns the mark of the missing-token record that st holds.
-  requires:
-    // st holds a call that call.save saved.
+    // Returns the field prevCut of the record st.
 
-transitional op missing.active() bool
-  component recovered
-  reads recovered
-  features missing
+transitional op oprNud.setPrevCut(st NudState, x bool)
+  component suspended
+  writes suspended
   cost <= 0
   contract:
-    // Reports whether the parse runs in the missing-token mode.
+    // Sets the field prevCut of the record st to x.
 
-transitional op missing.recompute(r Rule) bool
-  component recovered
-  reads recovered, rules
-  features missing
+transitional op oprNud.f(st NudState) Frame
+  component suspended
+  reads suspended
   cost <= 0
   contract:
-    // Reports whether a result of the rule is evaluated again instead of being reused from the memo:
-    // the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token.
+    // Returns the field f of the record st.
 
-transitional op missing.mark() int
-  component recovered
-  reads recovered
-  features missing
+transitional op oprNud.setF(st NudState, x Frame)
+  component suspended
+  writes suspended
   cost <= 0
   contract:
-    // Returns a mark of the missing-token record, for missing.reset.
+    // Sets the field f of the record st to x.
 
-transitional op missing.reset(mark int)
-  component recovered
-  writes recovered
-  features missing
+transitional op oprExpr.min(st ExprState) int
+  component suspended
+  reads suspended
   cost <= 0
   contract:
-    // Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it.
-  requires:
-    // mark is a result of missing.mark at or before every later mark that is still in use.
+    // Returns the field min of the record st.
 
-transitional op missing.replay(e Entry)
-  component recovered
-  writes recovered
-  features missing
-  noreturn
-  cost <= 0 + 1*errs
+transitional op oprExpr.setMin(st ExprState, x int)
+  component suspended
+  writes suspended
+  cost <= 0
   contract:
-    // Records again the tokens that the call of entry e inserted and the errors it recovered, as
-    // rec.add does for the errors outside the missing-token mode.
-  requires:
-    // The parse runs in the missing-token mode.
+    // Sets the field min of the record st to x.
+
+transitional op oprExpr.lhs(st ExprState) Value
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field lhs of the record st.
+
+transitional op oprExpr.setLhs(st ExprState, x Value)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field lhs of the record st to x.
+
+transitional op oprExpr.lastNone(st ExprState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field lastNone of the record st.
+
+transitional op oprExpr.setLastNone(st ExprState, x int)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field lastNone of the record st to x.
+
+transitional op oprExpr.m0(st ExprState) Mark
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field m0 of the record st.
+
+transitional op oprExpr.setM0(st ExprState, x Mark)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field m0 of the record st to x.
+
+transitional op oprExpr.a(st ExprState) Attempt
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field a of the record st.
+
+transitional op oprExpr.setA(st ExprState, x Attempt)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field a of the record st to x.

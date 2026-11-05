@@ -199,6 +199,7 @@ type Parser struct {
 	item       [1]*value.Node // the element list of an action whose body is not a sequence (one)
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
 	Saved      []*value.Node  // captures saved across a reset in longest
+	cutFailed  bool           // a candidate of the last longest match failed after a cut
 }
 
 // BackendState is the state that a backend keeps beside the parser for the parse it runs, such
@@ -339,14 +340,6 @@ type Mark struct {
 
 func (p *Parser) Mark() Mark {
 	return Mark{Pos: p.Pos, Env: p.Env, Trail: len(p.Trail), Recovered: len(p.Recovered), missing: p.MissingLen}
-}
-
-func (p *Parser) Reset(m Mark) {
-	p.DropRecovered(m)
-	p.Pos = m.Pos
-	p.Env = m.Env
-	p.UndoCaptures(m.Trail)
-	p.Trail = p.Trail[:m.Trail]
 }
 
 // DropRecovered drops the errors recovered and the tokens inserted since m, and keeps the rest of the

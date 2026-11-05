@@ -21,7 +21,7 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 	const examine = "entry.Examined, entry.From, entry.Positional = p.Hw, p.lw, false"
 	const route = "\tif store == storeMemo {\n"
 	const copyErrs = "Errs: p.copyErrors(p.Recovered[rec:])}"
-	runPrintedMutants(t, []printedMutant{
+	runPrintedMutants(t, "core/call_exec.go", []printedMutant{
 		{"a failed call keeps its recovered errors",
 			[]printedEdit{{"if !r.Leader && !ok {\n\t\tp.Recovered = p.Recovered[:rec]\n", "if !r.Leader && !ok {\n"}},
 			"^TestDocumentFailedEntriesHoldNoErrors$", []string{"./document"}},
@@ -81,7 +81,7 @@ func TestExpectationRecordMutantsFail(t *testing.T) {
 		chunks = "^TestBudgetExpectationKeepFillsChunks$"
 	)
 	here := []string{"."}
-	runPrintedMutants(t, []printedMutant{
+	runPrintedMutants(t, "core/call_exec.go", []printedMutant{
 		{"an expectation in a lookahead is recorded",
 			[]printedEdit{{dropped, "if pos < p.Farthest {\n\t\treturn"}}, scan, here},
 		{"an expectation before the farthest failure is recorded",
@@ -158,14 +158,14 @@ type printedMutant struct {
 // A printedEdit replaces the only copy of old in the printed file.
 type printedEdit struct{ old, new string }
 
-// runPrintedMutants builds the tests of each mutant with the mutated copy of core/call_exec.go in
-// place of the file, and requires that they fail.
-func runPrintedMutants(t *testing.T, mutants []printedMutant) {
-	src, err := os.ReadFile("core/call_exec.go")
+// runPrintedMutants builds the tests of each mutant with the mutated copy of the printed file path
+// in place of the file, and requires that they fail.
+func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
+	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	file, err := filepath.Abs("core/call_exec.go")
+	file, err := filepath.Abs(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,11 +175,11 @@ func runPrintedMutants(t *testing.T, mutants []printedMutant) {
 			text := string(src)
 			for _, e := range m.edits {
 				if n := strings.Count(text, e.old); n != 1 {
-					t.Fatalf("core/call_exec.go has %d copies of %q, not one", n, e.old)
+					t.Fatalf("%s has %d copies of %q, not one", path, n, e.old)
 				}
 				text = strings.Replace(text, e.old, e.new, 1)
 			}
-			mutant := filepath.Join(dir, fmt.Sprintf("call_exec_%d.go", i))
+			mutant := filepath.Join(dir, fmt.Sprintf("mutant_%d.go", i))
 			if err := os.WriteFile(mutant, []byte(text), 0o644); err != nil {
 				t.Fatal(err)
 			}

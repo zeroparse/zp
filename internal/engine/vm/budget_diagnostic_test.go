@@ -104,16 +104,17 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 					op := &core.OperatorsRuleOp{Kind: grammar.Prefix, Line: &core.OperatorsRuleLine{Scope: &compile.Scope{}}}
 					var best core.OperatorsRuleAttempt
 					if name == "OperatorsRule snapshot" {
+						steps++ // the operator that the match tries
 						op.Line.M = func(p *core.Parser) (*value.Node, bool) {
 							p.Pos = 1
 							p.Recovered = append(p.Recovered, records...)
 							return retained, true
 						}
-						run = func() { best, _ = p.Longest([]*core.OperatorsRuleOp{op}) }
+						run = func() { best = p.Longest([]*core.OperatorsRuleOp{op}) }
 					} else {
 						p.Pos = 1
 						p.Recovered = append(p.Recovered, records...)
-						f := &longestFrame{started: true, ops: []*core.OperatorsRuleOp{op}, m0: core.Mark{Recovered: 1}, f: p.NewFrame(0)}
+						f := &longestFrame{started: true, st: core.LongestState{L: []*core.OperatorsRuleOp{op}, M0: core.Mark{Recovered: 1}, F: p.NewFrame(0)}}
 						run = func() { f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained}); best = ivmMachineOf(p).attempt }
 					}
 					completed = func() {
@@ -128,7 +129,7 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 						}
 					}
 				case "OperatorsRule replay":
-					run = func() { p.Apply(&core.OperatorsRuleAttempt{End: 1, Errs: records}) }
+					run = func() { p.ApplyRecovered(&core.OperatorsRuleAttempt{End: 1, Errs: records}) }
 					completed = assertReplay
 				}
 				if mode == "complete" {

@@ -102,7 +102,12 @@ func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
 func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 	for _, iterative := range []bool{false, true} {
 		for _, limit := range []uint64{128, 449, 10000} {
-			p := stateBudgetParser(limits.Limits{Compute: limit})
+			// The recursive form charges the operator it tries before the copies under test.
+			compute := limit
+			if !iterative {
+				compute++
+			}
+			p := stateBudgetParser(limits.Limits{Compute: compute})
 			retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
 			op := &core.OperatorsRuleOp{Kind: grammar.Prefix, Line: &core.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
@@ -116,21 +121,21 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 			var best core.OperatorsRuleAttempt
 			err := catchFatal(t, func() {
 				if iterative {
-					f := &longestFrame{started: true, ops: []*core.OperatorsRuleOp{op}, f: p.NewFrame(320)}
-					setup(f.f)
+					f := &longestFrame{started: true, st: core.LongestState{L: []*core.OperatorsRuleOp{op}, F: p.NewFrame(320)}}
+					setup(f.st.F)
 					f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained})
 					best = ivmMachineOf(p).attempt
 				} else {
 					op.Line.M = func(p *core.Parser) (*value.Node, bool) { setup(p.Frame); return retained, true }
-					best, _ = p.Longest([]*core.OperatorsRuleOp{op})
+					best = p.Longest([]*core.OperatorsRuleOp{op})
 				}
 			})
 			if limit < 10000 {
 				if !errors.Is(err, limits.ErrLimit) || best.Op != nil {
 					t.Fatalf("iterative=%t limit=%d err=%v partial=%v", iterative, limit, err, best.Op)
 				}
-				if p.Control.Used != limit {
-					t.Fatalf("snapshot/restore boundary used=%d want%d", p.Control.Used, limit)
+				if p.Control.Used != compute {
+					t.Fatalf("snapshot/restore boundary used=%d want%d", p.Control.Used, compute)
 				}
 			} else if err != nil || best.Op != op || best.Frame.Vals[0] != retained {
 				t.Fatalf("iterative=%t winning captures lost: %v", iterative, err)

@@ -1,6 +1,10 @@
 package ops
 
-import "zeroparse.dev/zp/internal/ir/exec"
+import (
+	"strings"
+
+	"zeroparse.dev/zp/internal/ir/exec"
+)
 
 // State components of the capture frames and the Operators Rule loop.
 const (
@@ -37,6 +41,13 @@ const (
 	QSlots = "slots"
 	// QTrail is the number of trail writes after the mark that the call undoes.
 	QTrail = "trail"
+)
+
+// The names of the handle types of the records of the split forms of the Operators Rule loop.
+const (
+	LongestState = "LongestState"
+	NudState     = "NudState"
+	ExprState    = "ExprState"
 )
 
 // Cut is the register of the cut flag: whether the scope the parse entered last committed.
@@ -77,6 +88,8 @@ null attempt is no match.`)
 		Contract: `Returns the number of the errors recovered before the backtracking point m, as rec.mark does.`})
 	add(&exec.Op{Name: "frame.markEnv", Component: Frames, Params: m1, Results: []exec.Type{scope},
 		Contract: `Returns the variable environment of the backtracking point m.`})
+	add(&exec.Op{Name: "frame.markMissing", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt}, Features: []string{Missing},
+		Contract: `Returns the mark of the missing-token record at the backtracking point m, as missing.mark does.`})
 	add(&exec.Op{Name: "frame.markTrail", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the length of the trail at the backtracking point m.`})
 	add(&exec.Op{Name: "frame.undo", Component: Frames, Params: []exec.Param{exec.P("trail", exec.TInt)}, Reads: []string{Frames},
@@ -166,6 +179,14 @@ where the value of the application starts.`})
 		Reads: []string{Env, Pos},
 		Contract: `Returns the match of op from start to the position with the value v, the captures of f, the
 variable environment, the cut flag cut and the recovered errors errs.`})
+	add(&exec.Op{Name: "opr.attemptMissing", Component: Opr, Params: append(o, exec.P("f", frame), exec.P("v", value),
+		exec.P("start", exec.TInt), exec.P("cut", exec.TBool), exec.P("errs", errs), exec.P("mark", exec.TInt)), Results: []exec.Type{attempt},
+		Reads: []string{Env, Pos, Rec}, Features: []string{Missing}, NoReturn: true,
+		Contract: `Is opr.attempt in a parse that can insert missing tokens: the match also holds a copy of the tokens
+inserted after mark.`})
+	add(&exec.Op{Name: "opr.replay", Component: Rec, Params: a, Reads: []string{Opr}, Writes: []string{Rec}, Features: []string{Missing}, NoReturn: true,
+		Contract: `Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for
+the errors outside the missing-token mode.`})
 	add(&exec.Op{Name: "opr.found", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether a is a match, not the null attempt.`})
 	add(&exec.Op{Name: "opr.op", Component: Opr, Params: a, Results: []exec.Type{op},
@@ -182,4 +203,34 @@ variable environment, the cut flag cut and the recovered errors errs.`})
 		Writes: []string{Opr}, Contract: `Records whether a candidate of the longest match failed after a cut.`})
 	add(&exec.Op{Name: "opr.cutFailed", Component: Opr, Results: []exec.Type{exec.TBool}, Reads: []string{Opr},
 		Contract: `Reports what the last opr.setCutFailed recorded.`})
+
+	// The records of the split forms of the loop, which their caller holds between two steps.
+	field := func(n string, t exec.Type) splitField { return splitField{n, t} }
+	lines := []splitField{field("prevFrame", frame), field("prevCut", exec.TBool), field("f", frame)}
+	for _, rec := range []struct {
+		prefix, handle, doc string
+		fields              []splitField
+	}{
+		{"oprLongest", LongestState, "The record of a suspended longest match.", append([]splitField{field("l", opsList), field("i", exec.TInt),
+			field("m0", mark), field("best", attempt), field("cutFailed", exec.TBool)}, lines...)},
+		{"oprNud", NudState, "The record of the suspended start of an expression.", append([]splitField{field("m0", mark), field("a", attempt),
+			field("i", exec.TInt)}, lines...)},
+		{"oprExpr", ExprState, "The record of the suspended loop of an expression.", []splitField{field("min", exec.TInt), field("lhs", value),
+			field("lastNone", exec.TInt), field("m0", mark), field("a", attempt)}},
+	} {
+		st := exec.P("st", m.AddHandle(rec.handle, Suspended, rec.doc))
+		for _, f := range rec.fields {
+			add(&exec.Op{Name: rec.prefix + "." + f.name, Component: Suspended, Params: []exec.Param{st}, Results: []exec.Type{f.t},
+				Reads: []string{Suspended}, Contract: `Returns the field ` + f.name + ` of the record st.`})
+			add(&exec.Op{Name: rec.prefix + ".set" + strings.ToUpper(f.name[:1]) + f.name[1:], Component: Suspended,
+				Params: []exec.Param{st, exec.P("x", f.t)}, Writes: []string{Suspended},
+				Contract: `Sets the field ` + f.name + ` of the record st to x.`})
+		}
+	}
+}
+
+// A splitField is a field of a record of the split forms of the Operators Rule loop.
+type splitField struct {
+	name string
+	t    exec.Type
 }

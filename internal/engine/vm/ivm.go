@@ -3,7 +3,6 @@ package vm
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/engine/core"
 
@@ -69,9 +68,8 @@ func (im *ivmMachine) reset() {
 
 // iresult is the result of running a child.
 type iresult struct {
-	v         *value.Node
-	ok        bool
-	cutFailed bool // result of longestFrame, whose attempt is in ivmMachine.attempt
+	v  *value.Node
+	ok bool
 }
 
 // iframe is an element of the VM stack. next receives the child's result res (empty on the first
@@ -229,7 +227,8 @@ func (mc *ivmMachine) skipFrame(pr *core.OperatorsRule) *skipFrame {
 
 func (mc *ivmMachine) longestFrame(ops []*core.OperatorsRuleOp) *longestFrame {
 	f := reuse(&mc.p.MemKept, &mc.pool.longests)
-	*f = longestFrame{ops: ops}
+	*f = longestFrame{}
+	mc.p.LongestBegin(&f.st, ops)
 	return f
 }
 
@@ -241,10 +240,9 @@ func (mc *ivmMachine) nudFrame(r *core.Rule) *nudFrame {
 
 func (mc *ivmMachine) operatorsRuleFrame(r *core.Rule, min int) *operatorsRuleFrame {
 	p := mc.p
-	p.Spend()
 	p.Enter()
 	f := reuse(&mc.p.MemKept, &mc.pool.operatorsRules)
-	*f = operatorsRuleFrame{r: r, min: min}
+	*f = operatorsRuleFrame{r: r, st: core.ExprState{Min: min}}
 	return f
 }
 
@@ -367,7 +365,8 @@ func (f *callFrame) invoke(mc *ivmMachine) iframe {
 	return mc.bodyFrame(f.r.Entry, f.r, f.min, false)
 }
 
-// skipFrame is the skip of an Operators Rule expression (same steps as parser.skipTrivia).
+// skipFrame is the skip of an Operators Rule expression, between the split form's TriviaBegin and
+// TriviaEnd.
 type skipFrame struct {
 	pr      *core.OperatorsRule
 	m       core.Mark
@@ -381,80 +380,42 @@ func (f *skipFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 	}
 	if !f.started {
 		f.started = true
-		f.m = p.Mark()
-		p.Silent++
+		f.m = p.TriviaBegin()
 		return blockFrame(mc, f.pr.SkipEntry), iresult{}, false
 	}
-	p.Silent--
-	if !res.ok {
-		p.Reset(f.m)
-	} else {
-		p.DropRecovered(f.m) // the errors recovered in the skip (Parser.skipTrivia)
-	}
+	p.TriviaEnd(f.m, res.ok)
 	return nil, iresult{ok: true}, true
 }
 
-// longestFrame is the longest match over operator parts (same steps as Parser.Longest).
+// longestFrame is the longest match over operator parts: it runs the line of each operator between
+// the steps of the split form.
 type longestFrame struct {
-	ops       []*core.OperatorsRuleOp
-	i         int
-	started   bool
-	m0        core.Mark
-	best      core.OperatorsRuleAttempt
-	cutFailed bool
-	prevFrame *core.Frame
-	prevCut   bool
-	f         *core.Frame
+	st      core.LongestState
+	started bool
 }
 
 func (f *longestFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresult, bool) {
 	p := mc.p
-	if !f.started {
-		f.started = true
-		f.m0 = p.Mark()
+	var l *core.OperatorsRuleLine
+	var more bool
+	if f.started {
+		l, more = p.LongestStep(&f.st, res.v, res.ok)
 	} else {
-		op := f.ops[f.i]
-		cut := p.Cut
-		p.Frame, p.Cut = f.prevFrame, f.prevCut
-		if res.ok && p.Pos == f.m0.Pos && op.Kind != grammar.Infix {
-			res.ok = false // see Parser.Longest: empty prefix and postfix matches are not candidates
-		}
-		if res.ok && (f.best.Op == nil || p.Pos > f.best.End) {
-			f.best = core.OperatorsRuleAttempt{Op: op, Frame: f.f, V: res.v, Start: f.m0.Pos, End: p.Pos, Env: p.Env, Cut: cut,
-				Errs: core.AppendSpend(p, []*core.SyntaxError(nil), p.Recovered[f.m0.Recovered:])}
-		}
-		if !res.ok && cut {
-			f.cutFailed = true
-		}
-		if len(f.f.Vals) == 0 {
-			p.Reset(f.m0)
-		} else {
-			p.Saved = core.AppendSpend(p, p.Saved[:0], f.f.Vals) // see Parser.Longest
-			p.Reset(f.m0)
-			core.CopySpend(p, f.f.Vals, p.Saved)
-		}
-		f.i++
+		f.started = true
+		l, more = p.LongestNext(&f.st)
 	}
-	if f.i == len(f.ops) {
-		mc.attempt = f.best // passed through the parser to keep iresult small
-		return nil, iresult{cutFailed: f.cutFailed}, true
+	if !more {
+		mc.attempt = f.st.Best // passed through the parser to keep iresult small
+		return nil, iresult{}, true
 	}
-	f.prevFrame, f.prevCut = p.Frame, p.Cut
-	f.f = p.NewFrame(len(f.ops[f.i].Line.Scope.Names))
-	p.Frame, p.Cut = f.f, false
-	return blockFrame(mc, f.ops[f.i].Line.Entry), iresult{}, false
+	return blockFrame(mc, l.Entry), iresult{}, false
 }
 
-// nudFrame is the beginning of an expression (same steps as parser.operatorsRuleNud).
+// nudFrame is the beginning of an expression, between the steps of the split form.
 type nudFrame struct {
-	r         *core.Rule
-	state     int
-	m0        core.Mark
-	a         core.OperatorsRuleAttempt
-	i         int
-	prevFrame *core.Frame
-	prevCut   bool
-	f         *core.Frame
+	r     *core.Rule
+	state int
+	st    core.NudState
 }
 
 const (
@@ -477,67 +438,50 @@ func (f *nudFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresu
 				return mc.skipFrame(pr), iresult{}, false
 			}
 		case nSkipped:
-			f.m0 = p.Mark()
+			p.NudBegin(&f.st)
 			f.state = nPrefix
 			return mc.longestFrame(pr.Prefix), iresult{}, false
 		case nPrefix:
-			f.a = mc.attempt
-			if f.a.Op == nil {
-				if res.cutFailed {
-					return nil, iresult{}, true
-				}
+			f.st.A = mc.attempt
+			level, ok := p.NudPrefix(f.r, &f.st)
+			if !ok {
+				return nil, iresult{}, true
+			}
+			if f.st.A.Op == nil {
 				f.state = nOperand
 				continue
 			}
-			p.Apply(&f.a)
 			f.state = nRHS
-			return mc.operatorsRuleFrame(f.r, f.a.Op.Level), iresult{}, false
+			return mc.operatorsRuleFrame(f.r, level), iresult{}, false
 		case nRHS:
-			if res.ok {
-				return nil, iresult{v: p.OperatorsRuleBuild(f.r, &f.a, nil, res.v), ok: true}, true
+			v, ok, done := p.NudRhs(f.r, &f.st, res.v, res.ok)
+			if done {
+				return nil, iresult{v: v, ok: ok}, true
 			}
-			if f.a.Cut {
-				return nil, iresult{}, true
-			}
-			p.Reset(f.m0)
 			f.state = nOperand
 		case nOperand:
-			if f.i == len(pr.Operands) {
+			l, more := p.NudNext(f.r, &f.st)
+			if !more {
 				return nil, iresult{}, true
 			}
-			o := pr.Operands[f.i]
-			f.prevFrame, f.prevCut = p.Frame, p.Cut
-			f.f = p.NewFrame(len(o.Scope.Names))
-			p.Frame, p.Cut = f.f, false
 			f.state = nOperandDone
-			return blockFrame(mc, o.Entry), iresult{}, false
+			return blockFrame(mc, l.Entry), iresult{}, false
 		case nOperandDone:
-			o := pr.Operands[f.i]
-			cut := p.Cut
-			p.Frame, p.Cut = f.prevFrame, f.prevCut
-			if res.ok {
-				return nil, iresult{v: p.LineResult(f.r, o, f.f, res.v, f.m0.Pos, nil), ok: true}, true
+			v, ok, done := p.NudOperand(f.r, &f.st, res.v, res.ok)
+			if done {
+				return nil, iresult{v: v, ok: ok}, true
 			}
-			p.Reset(f.m0)
-			if cut {
-				return nil, iresult{}, true
-			}
-			f.i++
 			f.state = nOperand
 		}
 	}
 }
 
 // operatorsRuleFrame parses an expression, absorbing only operators that bind tighter than binding level
-// min (same steps as Parser.OperatorsRuleParse).
+// min, between the steps of the split form.
 type operatorsRuleFrame struct {
-	r        *core.Rule
-	min      int
-	state    int
-	lhs      *value.Node
-	lastNone int
-	m0       core.Mark
-	a        core.OperatorsRuleAttempt
+	r     *core.Rule
+	state int
+	st    core.ExprState
 }
 
 const (
@@ -558,17 +502,12 @@ func (f *operatorsRuleFrame) next(mc *ivmMachine, vm *Program, res iresult) (ifr
 			f.state = pNud
 			return mc.nudFrame(f.r), iresult{}, false
 		case pNud:
-			if !res.ok {
-				return nil, iresult{}, true
+			if done, ok := p.ExprStart(f.r, &f.st, res.v, res.ok); done {
+				return nil, f.result(ok), true
 			}
-			if len(pr.Led) == 0 { // as in Parser.operatorsRuleExpr
-				return nil, iresult{v: res.v, ok: true}, true
-			}
-			f.lhs, f.lastNone = res.v, -1
 			f.state = pLoop
 		case pLoop:
-			p.Spend()
-			f.m0 = p.Mark()
+			p.ExprLoop(&f.st)
 			f.state = pSkipped
 			if pr.SkipEntry >= 0 {
 				return mc.skipFrame(pr), iresult{}, false
@@ -577,55 +516,33 @@ func (f *operatorsRuleFrame) next(mc *ivmMachine, vm *Program, res iresult) (ifr
 			f.state = pLed
 			return mc.longestFrame(pr.Led), iresult{}, false
 		case pLed:
-			f.a = mc.attempt
-			a := &f.a
-			if a.Op == nil {
-				p.Reset(f.m0)
-				if res.cutFailed {
-					return nil, iresult{}, true
-				}
-				return nil, iresult{v: f.lhs, ok: true}, true
+			f.st.A = mc.attempt
+			done, ok, rmin := p.ExprLed(f.r, &f.st)
+			if done {
+				return nil, f.result(ok), true
 			}
-			if a.Op.Level <= f.min || a.Op.Assoc == grammar.AssocNone && a.Op.Level == f.lastNone {
-				p.Reset(f.m0)
-				return nil, iresult{v: f.lhs, ok: true}, true
-			}
-			p.Apply(a)
-			if a.Op.Kind == grammar.Postfix {
-				f.lhs = p.OperatorsRuleBuild(f.r, a, f.lhs, nil)
-				f.lastNone = -1
-				if p.Pos == f.m0.Pos { // as in Parser.OperatorsRuleParse
-					return nil, iresult{v: f.lhs, ok: true}, true
-				}
+			if rmin < 0 {
 				f.state = pLoop
 				continue
-			}
-			rmin := a.Op.Level
-			if a.Op.Assoc == grammar.AssocRight {
-				rmin--
 			}
 			f.state = pRHS
 			return mc.operatorsRuleFrame(f.r, rmin), iresult{}, false
 		case pRHS:
-			a := &f.a
-			if !res.ok {
-				if a.Cut {
-					return nil, iresult{}, true
-				}
-				p.Reset(f.m0)
-				return nil, iresult{v: f.lhs, ok: true}, true
-			}
-			f.lhs = p.OperatorsRuleBuild(f.r, a, f.lhs, res.v)
-			f.lastNone = -1
-			if a.Op.Assoc == grammar.AssocNone {
-				f.lastNone = a.Op.Level
-			}
-			if p.Pos == f.m0.Pos { // as in Parser.OperatorsRuleParse
-				return nil, iresult{v: f.lhs, ok: true}, true
+			done, ok := p.ExprRhs(f.r, &f.st, res.v, res.ok)
+			if done {
+				return nil, f.result(ok), true
 			}
 			f.state = pLoop
 		}
 	}
+}
+
+// result is the result of the expression when a step ended it with success ok.
+func (f *operatorsRuleFrame) result(ok bool) iresult {
+	if !ok {
+		return iresult{}
+	}
+	return iresult{v: f.st.Lhs, ok: true}
 }
 
 // traceFrame is a traced rule call in the iterative-model VM: it reports the call, runs the frame

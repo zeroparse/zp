@@ -398,6 +398,6 @@ that the target's observed function wraps.`})
 transitional: recovery bookkeeping has no Exec IR form.`,
 		Requires: `The parse retains the tail (stream.tail).`})
 
-	framesAndOperators(m, add, rule, value, errs)
 	splitCall(m, add, rule, values, ctx, mark, entry)
+	framesAndOperators(m, add, rule, value, errs)
 }

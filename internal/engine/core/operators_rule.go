@@ -51,190 +51,49 @@ type OperatorsRuleAttempt struct {
 	missing    []MissingTokenEvent
 }
 
-func (p *Parser) skipTrivia(pr *OperatorsRule) {
-	if pr.Skip == nil {
-		return
-	}
-	m := p.Mark()
-	p.Silent++
-	_, ok := pr.Skip(p)
-	p.Silent--
-	if !ok {
-		p.Reset(m)
-		return
-	}
-	// As at the end of a lookahead, the errors recovered in the skip are discarded.
-	p.DropRecovered(m)
+// LongestState is the record of a suspended longest match (Parser.LongestBegin, LongestNext and
+// LongestStep), which the iterative VM holds. Best is the match when the last step returned.
+type LongestState struct {
+	L         []*OperatorsRuleOp
+	I         int
+	M0        Mark
+	Best      OperatorsRuleAttempt
+	CutFailed bool
+	PrevFrame *Frame
+	PrevCut   bool
+	F         *Frame
 }
 
-// Longest tries every operator part and returns the longest match (the one declared first on a
-// tie); best.op is nil when none matched. cutFailed reports that some candidate failed after passing
-// a cut. The attempt is returned by value and captures are saved in one buffer per parser, so trying
-// operators allocates nothing for lines without captures.
-func (p *Parser) Longest(ops []*OperatorsRuleOp) (best OperatorsRuleAttempt, cutFailed bool) {
-	m0 := p.Mark()
-	for _, op := range ops {
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(op.Line.Scope.Names))
-		p.Frame, p.Cut = f, false
-		v, ok := op.Line.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok && p.Pos == m0.Pos && op.Kind != grammar.Infix {
-			// A prefix or postfix operator that consumes nothing could be applied forever,
-			// so an empty match does not count as a candidate.
-			ok = false
-		}
-		if ok && (best.Op == nil || p.Pos > best.End) {
-			best = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: m0.Pos, End: p.Pos, Env: p.Env, Cut: cut,
-				Errs: p.copyErrors(p.Recovered[m0.Recovered:]), missing: p.MissingEvents(m0.missing)}
-		}
-		if !ok && cut {
-			cutFailed = true
-		}
-		if len(f.Vals) == 0 {
-			p.Reset(m0)
-			continue
-		}
-		// reset undoes this candidate's captures; restore them. Nothing is parsed between saving
-		// and restoring, so one buffer per parser suffices.
-		p.Saved = AppendSpend(p, p.Saved[:0], f.Vals)
-		p.Reset(m0)
-		CopySpend(p, f.Vals, p.Saved)
-	}
-	return best, cutFailed
+// NudState is the record of the suspended start of an expression (Parser.NudBegin and its steps). The
+// caller puts the longest match of the prefix operators in A.
+type NudState struct {
+	M0        Mark
+	A         OperatorsRuleAttempt
+	I         int
+	PrevFrame *Frame
+	PrevCut   bool
+	F         *Frame
 }
 
-func (p *Parser) Apply(a *OperatorsRuleAttempt) {
-	p.Pos, p.Env = a.End, a.Env
-	if p.Missing != nil || len(a.Errs) != 0 {
-		p.applyRecovered(a)
-	}
+// ExprState is the record of the suspended loop of an expression (Parser.ExprStart and its steps). The
+// caller sets Min and puts the longest match of each iteration in A; Lhs is the value so far.
+type ExprState struct {
+	Min      int
+	Lhs      *value.Node
+	LastNone int
+	M0       Mark
+	A        OperatorsRuleAttempt
 }
 
-// applyRecovered replays the recovery errors, and under missing-token support the missing-token
-// events, of an applied operator. It is separate so that apply stays inlinable: the common strict
-// parse has neither.
-func (p *Parser) applyRecovered(a *OperatorsRuleAttempt) {
+// ApplyRecovered replays the recovery errors, and under missing-token support the missing-token
+// events, of an applied operator. It is separate so that the step that applies an operator stays
+// small: the common strict parse has neither.
+func (p *Parser) ApplyRecovered(a *OperatorsRuleAttempt) {
 	if p.Missing == nil {
 		p.Recovered = AppendSpend(p, p.Recovered, a.Errs)
 	} else {
 		p.restoreMissing(a.missing, a.Errs, false)
 	}
-}
-
-// OperatorsRuleParse parses an expression, absorbing only operators that bind tighter than binding level
-// min. The operand of a prefix operator and the right operand of an infix operator are parsed by
-// recursion, so each level, and the entry, counts as a recursive rule call against the nesting limit: a chain of prefix or
-// right-associative operators would otherwise nest without bound on the goroutine stack.
-func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*value.Node, bool) {
-	p.Spend()
-	p.Enter()
-	v, ok := p.operatorsRuleExpr(r, min)
-	p.Depth--
-	return v, ok
-}
-
-// operatorsRuleExpr is the body of OperatorsRuleParse.
-func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
-	pr := r.OperatorsRule
-	lhs, ok := p.operatorsRuleNud(r)
-	if !ok {
-		return nil, false
-	}
-	// Without an infix or postfix operator nothing can follow the start: the loop would only evaluate
-	// the skip again at every level of a chain of prefix operators.
-	if len(pr.Led) == 0 {
-		return lhs, true
-	}
-	lastNone := -1
-	for {
-		p.Spend()
-		m0 := p.Mark()
-		p.skipTrivia(pr)
-		at, cutFailed := p.Longest(pr.Led)
-		a := &at
-		if a.Op == nil {
-			p.Reset(m0)
-			if cutFailed {
-				return nil, false
-			}
-			break
-		}
-		if a.Op.Level <= min || a.Op.Assoc == grammar.AssocNone && a.Op.Level == lastNone {
-			p.Reset(m0)
-			break
-		}
-		p.Apply(a)
-		if a.Op.Kind == grammar.Postfix {
-			lhs = p.OperatorsRuleBuild(r, a, lhs, nil)
-			lastNone = -1
-			if p.Pos == m0.Pos {
-				break
-			}
-			continue
-		}
-		rmin := a.Op.Level
-		if a.Op.Assoc == grammar.AssocRight {
-			rmin--
-		}
-		rhs, ok := p.OperatorsRuleParse(r, rmin)
-		if !ok {
-			if a.Cut {
-				return nil, false
-			}
-			p.Reset(m0)
-			break
-		}
-		lhs = p.OperatorsRuleBuild(r, a, lhs, rhs)
-		lastNone = -1
-		if a.Op.Assoc == grammar.AssocNone {
-			lastNone = a.Op.Level
-		}
-		// An application that consumed no input ends the loop, as an empty iteration ends a repetition:
-		// otherwise an operator that can match empty after an operand that can loops forever.
-		if p.Pos == m0.Pos {
-			break
-		}
-	}
-	return lhs, true
-}
-
-// operatorsRuleNud parses the beginning of an expression (a prefix operator or an operand).
-func (p *Parser) operatorsRuleNud(r *Rule) (*value.Node, bool) {
-	pr := r.OperatorsRule
-	p.skipTrivia(pr)
-	m0 := p.Mark()
-	if at, cutFailed := p.Longest(pr.Prefix); at.Op != nil {
-		a := &at
-		p.Apply(a)
-		rhs, ok := p.OperatorsRuleParse(r, a.Op.Level)
-		if ok {
-			return p.OperatorsRuleBuild(r, a, nil, rhs), true
-		}
-		if a.Cut {
-			return nil, false
-		}
-		p.Reset(m0)
-	} else if cutFailed {
-		return nil, false
-	}
-	for _, o := range pr.Operands {
-		prevFrame, prevCut := p.Frame, p.Cut
-		f := p.NewFrame(len(o.Scope.Names))
-		p.Frame, p.Cut = f, false
-		v, ok := o.M(p)
-		cut := p.Cut
-		p.Frame, p.Cut = prevFrame, prevCut
-		if ok {
-			return p.LineResult(r, o, f, v, m0.Pos, nil), true
-		}
-		p.Reset(m0)
-		if cut {
-			return nil, false
-		}
-	}
-	return nil, false
 }
 
 // LineResult builds the value of an operand line, and checks it against the rule's declared type
