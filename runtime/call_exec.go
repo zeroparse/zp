@@ -603,7 +603,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		p.Observation.memoHit()
 		if p.Document != nil {
 			p.documentTouch(e.examined)
-			if e.before {
+			if e.from == fromBefore {
 				p.documentTouchFrom(start + -1)
 			}
 			p.Document.stats.Reused++
@@ -650,7 +650,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 		if p.Document != nil {
-			entry.examined, entry.before, entry.pinned = p.docHigh, p.docLow < start, false
+			entry.examined, entry.from, entry.pinned = p.docHigh, examinedFromOf(p.docLow < start), false
 			if r.Positional {
 				entry.pinned = true
 			}
@@ -800,7 +800,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
-		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, before: p.docLow < start}
+		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, recorded: true, before: p.docLow < start}
 		if r.Positional {
 			p.TypedDocument.pin(entry)
 		}

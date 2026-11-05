@@ -385,7 +385,7 @@ func goTarget(s goSpec) *execgo.Target {
 			if typed {
 				return "p.TypedDocument.meta[" + a[0] + "].before"
 			}
-			return a[0] + ".before"
+			return a[0] + ".from == fromBefore"
 		case "memo.pin":
 			if typed {
 				return "p.TypedDocument.pin(" + a[0] + ")"
@@ -412,9 +412,9 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.Document.stats.Reused++"
 		case "memo.examine":
 			if typed {
-				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[2] + ", before: " + a[1] + "}"
+				return "p.TypedDocument.meta[" + a[0] + "] = typedDocumentMeta{examined: " + a[2] + ", recorded: true, before: " + a[1] + "}"
 			}
-			return fmt.Sprintf("%s.examined, %s.before, %s.pinned = %s, %s, false", a[0], a[0], a[0], a[2], a[1])
+			return fmt.Sprintf("%s.examined, %s.from, %s.pinned = %s, examinedFromOf(%s), false", a[0], a[0], a[0], a[2], a[1])
 		case "call.body":
 			return fmt.Sprintf("p.%s(%s, %s)", s.body, a[0], a[1])
 		case "ctx.found":

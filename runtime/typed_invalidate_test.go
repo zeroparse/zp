@@ -14,14 +14,14 @@ func referenceInvalidate(d *typedDocumentState, ed documentEdit) ([][]int32, map
 	meta := make(map[*tmemoEntry]typedDocumentMeta)
 	for pos, head := range d.slots {
 		for e := head; e != nil; e = e.next {
-			m, complete := d.meta[e]
+			m := d.meta[e]
 			from := pos
 			if m.before {
 				from--
 			}
 			to := pos
 			switch {
-			case !complete:
+			case !m.recorded:
 				continue
 			case m.examined <= ed.start:
 			case from >= ed.end && !m.pinned && len(e.errs) == 0:
@@ -90,10 +90,13 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 					if r.Intn(8) == 0 {
 						e.errs = []*SyntaxError{{}}
 					}
-					switch r.Intn(5) {
+					switch r.Intn(6) {
 					case 0: // incomplete: no metadata
+					case 1: // pinned without a record of the examined input
+						d.meta[e] = typedDocumentMeta{pinned: true}
 					default:
-						d.meta[e] = typedDocumentMeta{examined: pos + 1 + r.Intn(6), before: pos > 0 && r.Intn(3) == 0, pinned: r.Intn(6) == 0}
+						// An entry that examined no input records the empty range at its position.
+						d.meta[e] = typedDocumentMeta{examined: pos + r.Intn(7), recorded: true, before: pos > 0 && r.Intn(3) == 0, pinned: r.Intn(6) == 0}
 					}
 				}
 			}

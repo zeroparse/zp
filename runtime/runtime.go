@@ -1786,10 +1786,11 @@ type memoEntry struct {
 	// silent means the result was computed inside a lookahead without recording expectations;
 	// outside lookaheads it is computed again.
 	silent bool
-	// before and examined are the input that a Document call examined (memo.examine): from the
-	// entry's position, or from the unit before it if before, to examined; pinned keeps the entry from
-	// moving with an edit (memo.pin).
-	before, pinned bool
+	// from and examined are the input that a Document call examined (memo.examine): from the
+	// entry's position, or from the unit before it, to examined; from is noRecord for an entry
+	// without a record. pinned keeps the entry from moving with an edit (memo.pin).
+	from   examinedFrom
+	pinned bool
 	// present is the set of leaders (Rule.leaderBit) that grew at the position when a result of a
 	// rule of their cycle was evaluated; it is reused only where every leader that grows there is in
 	// the set (ctxCallState.memoAllows).

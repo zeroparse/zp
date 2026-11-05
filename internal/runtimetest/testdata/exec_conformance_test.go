@@ -95,12 +95,12 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{args[0].(*memoEntry).silent}
 	case "memo.examine":
 		e := args[0].(*memoEntry)
-		e.before, e.examined, e.pinned = args[1].(bool), i(2), false
+		e.from, e.examined, e.pinned = examinedFromOf(args[1].(bool)), i(2), false
 		return nil
 	case "memo.examined":
 		return []any{int64(args[0].(*memoEntry).examined)}
 	case "memo.before":
-		return []any{args[0].(*memoEntry).before}
+		return []any{args[0].(*memoEntry).from == fromBefore}
 	case "memo.pin":
 		args[0].(*memoEntry).pinned = true
 		return nil
@@ -254,7 +254,7 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.silent":
 		return []any{args[0].(*tmemoEntry).silent}
 	case "memo.examine":
-		m.doc.meta[args[0].(*tmemoEntry)] = typedDocumentMeta{examined: i(2), before: args[1].(bool)}
+		m.doc.meta[args[0].(*tmemoEntry)] = typedDocumentMeta{examined: i(2), recorded: true, before: args[1].(bool)}
 		return nil
 	case "memo.examined":
 		return []any{int64(m.doc.meta[args[0].(*tmemoEntry)].examined)}
@@ -332,6 +332,9 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		call       func(m *rtMachine, args []any) []any
 		controlled bool
 		stream     bool
+		// document runs the cases of the document suite, which store entries without editing them
+		// back into reach, instead of the cases that edit a Document's memo.
+		document bool
 		// want is a part of the failure message that names the reason, when the variant has one.
 		want string
 	}
@@ -394,6 +397,19 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, e)
 			return []any{e}
 		}},
+		// A splice that reads an examined end of 0 as no record: it drops an entry at position 0 that
+		// examined no input.
+		"splice drops an entry that examined nothing at position 0": {op: "memo.splice", document: true, call: func(m *rtMachine, args []any) []any {
+			for _, head := range m.p.memo.slots {
+				for e := head; e != nil; e = e.next {
+					if e.examined == 0 {
+						e.from = noRecord
+					}
+				}
+			}
+			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
+			return nil
+		}},
 		// A splice that keeps the entries whose examined end is the edit's start plus one.
 		"splice keeps an entry that examined the edited unit": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
 			start, end := int(args[0].(int64))+1, int(args[1].(int64))
@@ -404,7 +420,9 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		"splice moves an entry that examined the unit before the edit's end": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
 			for _, head := range m.p.memo.slots {
 				for e := head; e != nil; e = e.next {
-					e.before = false
+					if e.from == fromBefore {
+						e.from = fromPos
+					}
 				}
 			}
 			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
@@ -447,6 +465,9 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			ops := rtMemoOps
 			if strings.HasPrefix(b.op, "memo.splice") {
 				ops = rtDocEditOps
+			}
+			if b.document {
+				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtDocOps...)
 			}
 			if b.stream {
 				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtStreamOps...)

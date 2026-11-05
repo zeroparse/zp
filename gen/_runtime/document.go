@@ -299,6 +299,26 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 	return ed, nil
 }
 
+// examinedFrom is where the input that a Document call examined starts (memoEntry.from), or
+// noRecord for an entry without a record of memo.examine. An entry that examined no input records
+// the empty range at its position, which an entry at position 0 tells from no record by from.
+type examinedFrom uint8
+
+const (
+	noRecord examinedFrom = iota
+	fromPos
+	fromBefore
+)
+
+// examinedFromOf returns the start of a record of memo.examine that starts before the position of
+// its entry if before.
+func examinedFromOf(before bool) examinedFrom {
+	if before {
+		return fromBefore
+	}
+	return fromPos
+}
+
 // splice applies an edit to the memo (memo.splice), copying the entries it keeps into a new table:
 // those that examined only input before the edit stay; those that examined only input after it,
 // with no recovered errors and not pinned, move by its delta, with what their values must move
@@ -308,11 +328,11 @@ func (t *memoTable) splice(ed documentEdit) {
 	for pos := range t.slots {
 		for e := t.slots[pos]; e != nil; e = e.next {
 			to, from := pos, pos
-			if e.before {
+			if e.from == fromBefore {
 				from--
 			}
 			switch {
-			case e.examined == 0:
+			case e.from == noRecord:
 				continue
 			case e.examined <= ed.start:
 			case from >= ed.end && !e.pinned && len(e.errs) == 0:

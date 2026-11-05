@@ -334,7 +334,8 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				if o.Name == "memo.examine" {
 					before := rng.IntN(3) == 0
 					args, exprs = append(args, before), append(exprs, exec.BoolC(before))
-					intArg(e.ref.Pos() + 1 + rng.Int64N(6))
+					// An entry that examined no input records the empty range at its position.
+					intArg(e.ref.Pos() + rng.Int64N(7))
 				}
 			case "budget.charge":
 				v := rng.Uint64N(8)

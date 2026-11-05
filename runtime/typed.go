@@ -1144,11 +1144,11 @@ type typedDocumentState struct {
 }
 
 type typedDocumentMeta struct {
-	// examined and before are the input that the call examined (memo.examine), as in memoEntry;
-	// pinned is memo.pin; shift is how far the positions in the value must move (move).
-	examined       int
-	shift          int
-	before, pinned bool
+	// recorded reports a record of memo.examine, and examined and before are the input that it
+	// recorded; pinned is memo.pin; shift is how far the positions in the value must move (move).
+	examined                 int
+	shift                    int
+	recorded, before, pinned bool
 }
 
 // splice applies an edit to the memo (memo.splice), relinking the chains into a new table. No parse
@@ -1172,7 +1172,7 @@ func (d *typedDocumentState) splice(ed documentEdit) {
 				from--
 			}
 			switch {
-			case m.examined == 0: // no record
+			case !m.recorded:
 				delete(d.meta, e)
 				continue
 			case m.examined <= ed.start:
