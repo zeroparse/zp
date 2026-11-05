@@ -434,3 +434,64 @@ func TestDocumentMoveChargesTheCheckAndTheCopy(t *testing.T) {
 		})
 	}
 }
+
+// TestDocumentMoveKeepsSharedNodesShared checks that a reused result that holds a node twice, as a
+// child and as a field, holds one moved copy of it, not two, and that the result of the parse before
+// the edit keeps the positions it had.
+func TestDocumentMoveKeepsSharedNodesShared(t *testing.T) {
+	item := &Rule{Id: 1, Name: "item", Memo: true, DocMemo: true, Seen: -1}
+	item.Body = func(p *Parser, _ int) (*Node, bool) {
+		return p.MatchLiteral([]rune("a"), "a", IdAny, true)
+	}
+	pair := &Rule{Id: 2, Name: "pair", Memo: true, DocMemo: true, Seen: -1}
+	pair.Body = func(p *Parser, _ int) (*Node, bool) {
+		start := p.Pos
+		v, ok := p.Call(item, 0)
+		if !ok {
+			return nil, false
+		}
+		return &Node{RawKind: RawKindList, RawStart: int32(start), RawEnd: int32(p.Pos),
+			RawChildren: []*Node{v}, RawFields: Fields{{Name: "x", Value: v}}}, true
+	}
+	main := &Rule{Id: 0, Name: "main", Memo: true, DocMemo: true, Seen: -1}
+	main.Body = func(p *Parser, _ int) (*Node, bool) {
+		start := p.Pos
+		for {
+			if _, ok := p.MatchLiteral([]rune("b"), "b", IdAny, true); !ok {
+				break
+			}
+		}
+		v, ok := p.Call(pair, 0)
+		if !ok || !p.AtEnd() {
+			return nil, false
+		}
+		return &Node{RawKind: RawKindList, RawStart: int32(start), RawEnd: int32(p.Pos), RawChildren: []*Node{v}}, true
+	}
+	d := testDocumentState(main, "ba", CodePoints)
+	o := parseOptions{unit: CodePoints, maxDepth: defaultMaxDepth}
+	first, err := d.parse(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := d.edit(0, 0, "b"); err != nil {
+		t.Fatal(err)
+	}
+	second, err := d.parse(o)
+	if err != nil || d.stats.Reused == 0 {
+		t.Fatalf("the pair is not reused: err %v, stats %+v", err, d.stats)
+	}
+	pairOf := func(root *Node) (*Node, *Node, *Node) {
+		pr := root.RawChildren[0]
+		return pr, pr.RawChildren[0], pr.RawFields[0].Value.(*Node)
+	}
+	pr, child, field := pairOf(second)
+	if child != field {
+		t.Fatal("the moved pair holds two copies of the node that it held once")
+	}
+	if pr.RawStart != 2 || child.RawStart != 2 || child.RawEnd != 3 {
+		t.Fatalf("moved pair [%d,%d), node [%d,%d); want [2,3), [2,3)", pr.RawStart, pr.RawEnd, child.RawStart, child.RawEnd)
+	}
+	if pr0, child0, field0 := pairOf(first); child0 != field0 || pr0.RawStart != 1 || child0.RawStart != 1 {
+		t.Fatal("the result of the parse before the edit changed")
+	}
+}
