@@ -499,10 +499,11 @@ func (c *bcompiler) capture(e *grammar.Capture, s *Scope, keep bool) {
 
 func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 	if site := c.prog.SkipSite(e); site != 0 { // as Walker.repeat: a site is neither a scan nor resumed
+		free := b2i(c.prog.EnvFree(site)) << 1
 		if int64(e.Min) <= 1<<31-1 {
-			c.emit(bytecode.OpSkipRepeat, int32(e.Min), int32(site), 0)
+			c.emit(bytecode.OpSkipRepeat, int32(e.Min), int32(site), free)
 		} else {
-			c.emit(bytecode.OpSkipRepeat, c.integer(e.Min), int32(site), 1)
+			c.emit(bytecode.OpSkipRepeat, c.integer(e.Min), int32(site), 1|free)
 		}
 		loop := c.here()
 		iter := c.emit(bytecode.OpIter, 0, 0, 0)
@@ -537,7 +538,7 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 	run, runBuild := int32(0), int32(0)
 	if !stream {
 		if run = int32(c.prog.RunSite(e)); run != 0 {
-			runBuild = b2i(build)
+			runBuild = b2i(build) | b2i(c.prog.EnvFree(int(run)))<<1
 		}
 	}
 	iter := c.emit(bytecode.OpIter, 0, runBuild, run)

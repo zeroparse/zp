@@ -95,19 +95,27 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 			prog.NumRunSites++
 			site := prog.NumSkipSites + prog.NumRunSites
 			prog.runSites[rep] = site
-			if !envFree(rep, readsVars) {
-				for len(prog.envSites) <= site {
-					prog.envSites = append(prog.envSites, false)
-				}
-				prog.envSites[site] = true
+			if envFree(rep, readsVars) {
+				prog.markEnvFree(site)
 			}
 		}, control)
 	}
 }
 
-// EnvSite reports whether the records of the skip-run or run site are keyed by the environment the
-// walk from a position starts in, and a walk that reuses one takes its end environment.
-func (prog *Program) EnvSite(site int) bool { return site < len(prog.envSites) && prog.envSites[site] }
+// EnvFree reports whether the skip-run or run site is free of the environment: its records are
+// kept by position alone, and a walk that reuses one keeps its own environment. Otherwise the
+// records are keyed by the environment the walk from a position starts in, and a walk that reuses
+// one takes its end environment; a site of which nothing is known is keyed, which is always
+// correct.
+func (prog *Program) EnvFree(site int) bool { return site < len(prog.envFree) && prog.envFree[site] }
+
+// markEnvFree marks the site free of the environment (EnvFree).
+func (prog *Program) markEnvFree(site int) {
+	for len(prog.envFree) <= site {
+		prog.envFree = append(prog.envFree, false)
+	}
+	prog.envFree[site] = true
+}
 
 // EnvFreeMutation, when not zero, leaves a part out of envFree, for the mutation tests of the
 // differential tests of run sites; nothing else sets it.
@@ -126,6 +134,8 @@ const (
 // spec/language/predicates.md), so only the element's own bindings count; one there would carry
 // into the iterations after it and the environment after the walk. Then the rest of a walk from a
 // position is a function of the position and the input, and ends in the environment it began in.
+// Inline actions are lowered to calls of hidden rules before the sites are marked, so the calls
+// stand for them.
 func envFree(e *grammar.Repeat, readsVars func(rule string) bool) bool {
 	if EnvFreeMutation == EnvFreeAll {
 		return true
@@ -135,8 +145,6 @@ func envFree(e *grammar.Repeat, readsVars func(rule string) bool) bool {
 		switch x := x.(type) {
 		case *grammar.Predicate:
 			free = free && !readsOrBindsVariable(x.Term)
-		case *grammar.InlineAction:
-			free = free && !readsOrBindsVariable(x.Action)
 		case *grammar.Ref:
 			free = free && (EnvFreeMutation == EnvFreeCalleesIgnore || !readsVars(x.Name))
 		}

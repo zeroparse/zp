@@ -802,11 +802,11 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 		case bytecode.OpSkipRepeat:
 			min := int(in.A)
-			if in.C == 1 {
+			if in.C&1 == 1 {
 				min = int(m.Exprs[in.A].Integer())
 			}
 			mc.reps = append(mc.reps, repState{min: min, max: -1, scope: -1, base: len(mc.vals), skip: true})
-			p.SkipBegin(int(in.B))
+			p.SkipBegin(int(in.B), in.C&2 == 0)
 		case bytecode.OpIter:
 			p.Spend()
 			rep := &mc.reps[len(mc.reps)-1]
@@ -820,12 +820,12 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				switch {
 				case !p.RunHot(int(in.C)):
 					rep.cold, rep.coldStart, rep.site = true, p.Pos, int(in.C)
-				case in.B == 1:
+				case in.B&1 == 1:
 					rep.skip, rep.build = true, true
-					p.SkipBeginList(int(in.C))
+					p.SkipBeginList(int(in.C), in.B&2 == 0)
 				default:
 					rep.skip = true
-					p.SkipBegin(int(in.C))
+					p.SkipBegin(int(in.C), in.B&2 == 0)
 				}
 			}
 			if rep.skip {

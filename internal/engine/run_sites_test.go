@@ -175,6 +175,56 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 	}
 }
 
+// TestRunSitesOfLoadedPrograms checks that a program loaded from a compiled grammar keys the
+// records of its run sites as the compiled program does: parses and Document parses of the grammars
+// of runValueGrammars, many of whose sites are keyed by the environment, give the results of plain
+// repetitions on the bytecode backends, which run loaded programs.
+func TestRunSitesOfLoadedPrograms(t *testing.T) { atHotSpans(t, runSitesOfLoadedPrograms) }
+
+func runSitesOfLoadedPrograms(t *testing.T) {
+	rng := rand.New(rand.NewSource(115))
+	for _, g := range runValueGrammars {
+		compile.NoRunSites = true
+		plain := mustCompile(t, g.Src)
+		compile.NoRunSites = false
+		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		turns := core.RunHotTurns
+		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
+			data, err := mustCompile(t, g.Src).Marshal("", mode)
+			if err != nil {
+				t.Fatalf("%s: %v", g.Name, err)
+			}
+			loaded, _, err := LoadProgram(data)
+			if err != nil {
+				t.Fatalf("%s: %v", g.Name, err)
+			}
+			for _, b := range []Backend{Bytecode, BytecodeIterative} {
+				for _, in := range inputs {
+					o := ParseOptions{Backend: b, Expectations: true}
+					wn, werr := plain.ParseWith("main", in, o)
+					want := skipDump(t, wn, werr)
+					if mode == CompiledDocument {
+						d, err := loaded.NewDocumentWith("main", in, o)
+						if err != nil {
+							t.Fatalf("%s: %v", g.Name, err)
+						}
+						n, err := d.Parse()
+						if got := skipDump(t, n, err); got != want {
+							t.Fatalf("%s, %s, document of a loaded program: input %q\n got  %s\n want %s", g.Name, b, in, got, want)
+						}
+						continue
+					}
+					n, err := loaded.ParseWith("main", in, o)
+					if got := skipDump(t, n, err); got != want {
+						t.Fatalf("%s, %s, loaded program: input %q\n got  %s\n want %s", g.Name, b, in, got, want)
+					}
+				}
+			}
+		}
+		assertTurnedHot(t, g.Name, turns)
+	}
+}
+
 // TestRunSitesMatchParsesWithoutRecords checks that the records of run sites change no result:
 // values and syntax errors with their expectations, on every backend. It toggles package state, so
 // it does not run in parallel.
@@ -287,10 +337,22 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 		compile.NoRunSites = true
 		plain := mustCompile(t, c.Src)
 		compile.NoRunSites = false
+		// A loaded program keeps which sites are free of the environment.
+		data, err := prog.Marshal("", CompiledParse)
+		if err != nil {
+			t.Fatal(err)
+		}
+		loaded, _, err := LoadProgram(data)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 150 * uint64(len(c.Input))}}
 			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, limits.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
+			}
+			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, limits.ErrLimit) {
+				t.Errorf("%s, %s: the parse of the loaded program exceeds the budget", c.Name, b)
 			}
 			// (The closure backend does not charge the iterations of plain loops over literals, so
 			// only the bytecode backends show that the control is quadratic without records; the
@@ -380,13 +442,13 @@ func TestRunSitesKeyedByEnvironment(t *testing.T) {
 			t.Fatalf("%s: %d run sites, want 1", c.name, prog.NumRunSites)
 		}
 		site := prog.NumSkipSites + 1
-		if got := prog.EnvSite(site); got != c.keyed {
+		if got := !prog.EnvFree(site); got != c.keyed {
 			t.Errorf("%s: keyed by the environment %v, want %v", c.name, got, c.keyed)
 		}
 	}
 	prog := mustCompile(t, "var m int\nrule main = (({ m := 1 } \"a\" \"b\") #recover(skip=[^;]* \";\"))* $$")
 	for site := 1; site <= prog.NumSkipSites; site++ {
-		if prog.EnvSite(site) {
+		if !prog.EnvFree(site) {
 			t.Errorf("skip-run site %d is keyed by the environment", site)
 		}
 	}

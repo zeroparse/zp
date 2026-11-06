@@ -499,8 +499,9 @@ func (b *Builder) ScanRepeat(e *grammar.Repeat, desc core.ExpID) core.Matcher {
 func (b *Builder) SkipRepeat(e *grammar.Repeat, m core.Matcher, skip int) core.Matcher {
 	min := e.Min
 	charge := b.charges()
+	keyEnv := !b.prog.EnvFree(skip)
 	return func(p *core.Parser) (*value.Node, bool) {
-		p.SkipBegin(skip)
+		p.SkipBegin(skip, keyEnv)
 		count := 0
 		for {
 			if charge {
@@ -538,12 +539,13 @@ func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compil
 	min := e.Min
 	elemValue := scopeValueOf(b.prog, e.Expr)
 	charge := b.charges()
+	keyEnv := !b.prog.EnvFree(run)
 	return func(p *core.Parser) (*value.Node, bool) {
 		start := p.Pos
 		if build {
-			p.SkipBeginList(run)
+			p.SkipBeginList(run, keyEnv)
 		} else {
-			p.SkipBegin(run)
+			p.SkipBegin(run, keyEnv)
 		}
 		count := 0
 		for {

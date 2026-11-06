@@ -83,6 +83,9 @@ func (prog *Program) markSkipSites(control *Control) {
 			if rep, ok := x.(*grammar.Repeat); ok && prog.skipSites[rep] == 0 && !prog.inSite[rep] && eligible(rep) {
 				prog.NumSkipSites++
 				prog.skipSites[rep] = prog.NumSkipSites
+				// Its element reads and binds no variable (eligible), so it is free of the
+				// environment.
+				prog.markEnvFree(prog.NumSkipSites)
 				// Nothing inside a site is one.
 				walkExprControlled(rep.Expr, func(y grammar.Expr) {
 					if r, ok := y.(*grammar.Repeat); ok {

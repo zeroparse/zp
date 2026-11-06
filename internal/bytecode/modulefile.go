@@ -427,7 +427,10 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		case OpFail, OpCut, OpPushPos, OpPushNil, OpEndLabel, OpReturn, OpEnd:
 		case OpIter:
 			forward(ip, x.A, n)
-			flag(x.B, 1)
+			flag(x.B, 3)
+			if x.C == 0 && x.B != 0 {
+				fail("run site flags %d without a run site", x.B)
+			}
 			if x.C < 0 || int(x.C) > n {
 				fail("invalid run site %d", x.C)
 			}
@@ -465,8 +468,8 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			wideBounds(x.A, x.B)
 			opt("scope", int(x.C), len(m.Scopes))
 		case OpSkipRepeat:
-			flag(x.C, 1)
-			if x.C == 1 {
+			flag(x.C, 3)
+			if x.C&1 == 1 {
 				if min := bound(x.A); min < 0 {
 					fail("invalid minimum %d", min)
 				}

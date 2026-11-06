@@ -605,10 +605,12 @@ repetition for which all of the following hold:
 
 The result of the rest of a walk from a position is a function of the
 position, the variables and the input: an iteration reads the variables that
-its predicates and the rules it calls read, and the captures of a repetition
-element are visible to the iteration alone. A run site is **free of the
-environment** when its expression has no predicate that reads or binds a
-variable and calls no rule that reads one, directly or indirectly. A binding
+its predicates, its actions and the rules it calls read, and the captures of
+a repetition element are visible to the iteration alone. A run site is **free
+of the environment** when its expression has no predicate that reads or binds
+a variable, no [inline action](../language/actions.md#inline-value-actions) that reads one, and
+calls no rule that reads one, directly or indirectly, in a predicate or an
+action. A binding
 made in a called rule is undone when the rule returns, so the rest of a walk
 of such a site is a function of the position and the input, and it ends in
 the environment it began in. Its records are kept by position alone, and a

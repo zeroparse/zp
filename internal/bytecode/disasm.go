@@ -118,7 +118,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return []string{"begin-input", "end-input", "begin-line", "end-line"}[a]
 	case OpIter:
 		if c > 0 {
-			return fmt.Sprintf("-> %d run=%d", a, c)
+			return fmt.Sprintf("-> %d run=%d build=%d%s", a, c, bb&1, envFreeNote(bb))
 		}
 		return fmt.Sprintf("-> %d", a)
 	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, EAnd, EOr:
@@ -153,10 +153,10 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		}
 		return fmt.Sprintf("min=%d max=%d scope=%s", a, bb, sc)
 	case OpSkipRepeat:
-		if c == 1 {
+		if c&1 == 1 {
 			a = int(m.Exprs[a].Integer())
 		}
-		return fmt.Sprintf("min=%d site=%d", a, bb)
+		return fmt.Sprintf("min=%d site=%d%s", a, bb, envFreeNote(c))
 	case OpNext:
 		if bb == 3 {
 			return fmt.Sprintf("-> %d mode=field slot=%d", a, c)
@@ -226,4 +226,13 @@ func varName(m *Module, i int) string {
 		return fmt.Sprintf("var%d", i)
 	}
 	return m.Strings[m.Vars[i].Name]
+}
+
+// envFreeNote describes the flag of a site instruction (bit 1 of its flags) that the site is free
+// of the environment.
+func envFreeNote(flags int) string {
+	if flags&2 != 0 {
+		return " env-free"
+	}
+	return ""
 }

@@ -10,7 +10,7 @@ import (
 // and stops before its end if abort.
 func walkSkip(p *Parser, pos, n int, abort bool) {
 	p.Pos = pos
-	p.SkipBegin(1)
+	p.SkipBegin(1, false)
 	for k := 0; ; k++ {
 		if k >= 1 && p.SkipHit() {
 			break

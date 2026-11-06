@@ -216,8 +216,10 @@ type skipWalk struct {
 	on bool
 	// keyEnv reports that the records of the site are keyed by the environment the walk starts in,
 	// and that a walk that reuses one takes its end environment. The walks of a site whose element
-	// reads or binds no variable, directly or in the rules it calls (compile.Program.EnvSite), do
-	// neither: their records hold for every environment, which a walk keeps.
+	// reads or binds no variable, directly or in the rules it calls (compile.Program.EnvFree), do
+	// neither: their records hold for every environment, which a walk keeps. The program says
+	// which sites those are (the closure backend asks compile.Program, a module marks them in its
+	// instructions), and a site it says nothing of is keyed.
 	keyEnv bool
 	// recording reports that the walk records its visits (it met a position that is not fresh).
 	recording bool
@@ -316,14 +318,15 @@ func (p *Parser) RunWalked(site, start int) {
 	c.end = max(c.end, p.Pos)
 }
 
-// SkipBegin starts a walk of the site at the current position.
-func (p *Parser) SkipBegin(site int) { p.skipBegin(site, false) }
+// SkipBegin starts a walk of the site at the current position. keyEnv reports that the records of
+// the site are keyed by the environment (skipWalk.keyEnv).
+func (p *Parser) SkipBegin(site int, keyEnv bool) { p.skipBegin(site, false, keyEnv) }
 
 // SkipBeginList starts a walk of the site, whose iterations have values (SkipValue) that SkipEndList
 // gathers in a list.
-func (p *Parser) SkipBeginList(site int) { p.skipBegin(site, true) }
+func (p *Parser) SkipBeginList(site int, keyEnv bool) { p.skipBegin(site, true, keyEnv) }
 
-func (p *Parser) skipBegin(site int, build bool) {
+func (p *Parser) skipBegin(site int, build, keyEnv bool) {
 	if p.skipN == len(p.skips) {
 		p.skips = append(p.skips, skipWalk{})
 	}
@@ -331,8 +334,7 @@ func (p *Parser) skipBegin(site int, build bool) {
 	w := p.walk()
 	w.build, w.placed, w.vals = build, false, w.vals[:0]
 	w.on = !SkipRecordsOff && p.Missing == nil
-	// (A parser of a unit test can have no program; its sites are not keyed by the environment.)
-	w.keyEnv = p.Prog != nil && p.Prog.staticProgram != nil && p.Prog.EnvSite(site)
+	w.keyEnv = keyEnv
 	if !w.on {
 		return
 	}

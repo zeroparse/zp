@@ -48,8 +48,10 @@ $\lambda$ and the input:
   ([Run Sites](../runtime/parsing.md#run-sites)).
 
 **Environments.** The site is **free of the environment** when $e$ has no
-predicate that reads or binds a variable, and calls no rule that reads one,
-directly or indirectly. Then $E(r, \eta)$ gives the same for every $\eta$,
+predicate that reads or binds a variable, no inline action that reads one,
+and calls no rule that reads one, directly or indirectly, in a predicate or
+an action. (An inline action is a call of a hidden rule whose action is the
+inline action, so the last condition covers it.) Then $E(r, \eta)$ gives the same for every $\eta$,
 and when it matches, $\eta' = \eta$:
 
 - a predicate or action of $e$ or of a rule that $e$ calls reads no variable,
@@ -249,6 +251,25 @@ site whose walks build values is bounded only by the copies of its lists.
 ## Scope
 
 The lemmas cover the engine's three backends, which keep records for run
-sites. Generated Go and TypeScript parsers keep records only for skip-run
+sites, in every kind of parse they run:
+
+- **Loaded programs.** A [compiled grammar](../runtime/compiled-grammars.md)
+  marks in the [instruction](../bytecode/README.md) of each site whether it
+  is free of the environment. A program loaded from one keys the records of a
+  site by the environment unless its instruction marks it free, so it keeps
+  the keys of the program it was compiled from, and a site of which nothing
+  is marked is keyed, for which Lemma 1 holds as for any site that is not
+  free.
+- **Streams.** A [stream](../runtime/streaming.md) drops the records of the
+  positions before the input it commits. A dropped record is never looked up
+  again, since no walk returns before a commit, so Lemma 1 holds of the
+  records that remain, and Lemmas 2 and 3 count fewer evaluations.
+- **Documents.** The records of a parse last for that parse: a parse of an
+  [incremental document](../runtime/documents.md) starts without them. A
+  repetition that the document resumes is not walked as a run site in that
+  parse, and runs as an ordinary repetition, which the lemmas do not need.
+  Every other site walks as in a fresh parse.
+
+ Generated Go and TypeScript parsers keep records only for skip-run
 sites. Their run-site repetitions are ordinary repetitions, whose cost these
 lemmas do not bound.
