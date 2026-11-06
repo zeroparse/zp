@@ -677,7 +677,7 @@ describes the worst input of each length.
 |:--|:--|:--|:--|
 | Linear | At most proportional to n | `main = (A / "a")* $$; A = "a" "c"` | `a` repeated n times |
 | Linear given an environment bound | Proportional to n times the number of combinations of variable values that occur at one position and the size of the strings they hold | A rule that reads `indent`, bound from the length of a captured run of spaces | Lines of increasing indentation |
-| Polynomial of degree k | Proportional to n^k on its worst inputs | `main = (A / "a")* $$; A = "a"* "c"` (k = 2) | `a` repeated n times |
+| Polynomial of degree k | Proportional to n^k on its worst inputs, for the causes; a grammar that also has [reasons](#classification) for the class unknown can cost more where they apply | `main = (A / "a")* $$; A = "a"* "c"` (k = 2) | `a` repeated n times |
 | Exponential | Can double when n grows by a constant | `var v string`; `R = "(" {v := v + "0"} R ")" "y" / "(" {v := v + "1"} R ")" "z" / "n" {len(v) >= 0}` | `(` n times, `n`, then `)z` n times |
 
 The following grammars have the class shown on the inputs shown.
@@ -897,8 +897,11 @@ The conditions below use these terms.
   that can match without consuming input can be reached in both ways, such as
   the alternative `E` in `E = "y"? (E / "z") "q" / "x"`: without the `"y"` it
   is a growing unit, and after the `"y"` its call is at a new position, where
-  it reads no seed. Such a unit is checked as both, as a growing unit and as an
-  alternative that is not growing. In each step of a growth after
+  it reads no seed. The same holds when the part that can match without
+  consuming input is before a call of the unit's rule, in the body of the rule
+  that calls it, as for `f` in `r = "y"? f "q" / "x"; f = r / "z"`, or before a
+  call of a rule that reaches it through left calls. Such a unit is checked as
+  both, as a growing unit and as an alternative that is not growing. In each step of a growth after
   the first, the left call reads the seed, and the unit examines the input
   from the end of the seed. In the first step, the left call fails before the
   unit examines any input when the unit reaches the leader only through
@@ -912,7 +915,8 @@ The conditions below use these terms.
   failed seed, so for a unit of a leader this check follows only the paths
   that evaluate something other than a left call of that leader first, from
   there. A unit of another rule of the cycle is checked as an alternative that
-  is not growing also when a call that is not a left call evaluates its rule,
+  is not growing also when a call that is not a left call, or one after
+  something that can match without consuming input, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
   that call evaluates the unit once more, outside the steps, where the leader
   that its left call reaches grows and gives its final result.

@@ -105,7 +105,10 @@ func TestClassifyComplexity(t *testing.T) {
 		{"restarted scan", "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", ClassPoly, 2},
 		{"nested restarted scans", "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n", ClassPoly, 3},
 		{"left call after an option that consumed input", "rule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", ClassUnknown, 0},
+		{"left call after an option, behind a call", "rule main = r $$\nrule r = [ab]? f (w [ ] [b])\nrule f = r / [a-c]\nrule w = [^a]* $$\n", ClassUnknown, 0},
+		{"left call after an option rule, behind two calls", "rule main = r $$\nrule r = p f (w [ ] [b])\nrule p = [ab]?\nrule f = g / [a-c]\nrule g = r\nrule w = [^a]* $$\n", ClassUnknown, 0},
 		{"restarted scan in a repetition of each growth step", "rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassPoly, 3},
+		{"restarted scan in a rule that the repetition calls indirectly", "rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassPoly, 3},
 		// The iteration fails only at "\"\"", before its scan, so it need not be committing.
 		{"unit failing before its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\"\n", ClassLinear, 0},
 		{"unit failing after its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\" [^\"]* \"!\")* \"\\\"\"\n", ClassPoly, 2},

@@ -22,7 +22,11 @@ import (
 // grammars from fixed seeds, classifies each and measures it on every backend on inputs made of
 // repeated fragments. A grammar of the class Linear whose cost grows faster than the input fails the
 // gate, and so does a polynomial one without reasons that grows clearly faster than its degree. The
-// default tier runs a few seeds and those of slopeCaught; the tag zp_long runs many more.
+// degree of a grammar with reasons covers only its causes, and the gate does not hold it. The
+// default tier runs a few seeds and those of slopeCaught; the tag zp_long runs many more. The gate
+// holds the classifier only where its grammars reach: some checks (the cut of a choice in what an
+// expression surely consumes, counted rules off every cycle, the repetition depth of nesting) are
+// held by the class tests and controls instead.
 
 const (
 	slopeSize   = 150 // the first of the doubling sizes of an input
@@ -120,8 +124,8 @@ func (g *slopeGrammar) template() string {
 	scan := g.oneOf(`w`, `w [ ]`, `w [ ] [b]`, `w "q"`, `&w`, `!w`, `(w #recover(skip=[ab]+))`, `(w "q" / "a")`, `(w #cut "q" / "b")`)
 	end := g.oneOf(`[^a]*`, `[ab]*`, `"a"*`, `[^ ]*`, `[ab]+`, `(. .)*`)
 	stop := g.oneOf(`$$`, `"q"`, `[ ]`, `"c"`, `!.`, ``)
-	var body string
-	switch g.r.IntN(5) {
+	var body, calls string
+	switch g.r.IntN(7) {
 	case 0:
 		body = fmt.Sprintf("%s (r / %s) (%s)", lead, other, scan)
 	case 1:
@@ -130,10 +134,31 @@ func (g *slopeGrammar) template() string {
 		body = fmt.Sprintf("%s r %s / %s", lead, scan, other)
 	case 3:
 		body = fmt.Sprintf("(r %s %s / %s)*", g.oneOf(`[ab]`, `"a"`, `.`), scan, other)
-	default:
+	case 4:
 		body = fmt.Sprintf("%s (r %s / %s) / %s", lead, scan, other, g.expr(1))
+	default:
+		// The alternative that begins with the call of r is behind one or two calls, and what can
+		// match nothing before it is in a rule of its own or not.
+		if g.r.IntN(2) == 0 {
+			calls = fmt.Sprintf("rule p = %s\n", lead)
+			lead = "p"
+		}
+		if g.r.IntN(2) == 0 {
+			calls += fmt.Sprintf("rule f = r / %s\n", other)
+		} else {
+			calls += fmt.Sprintf("rule f = g / %s\nrule g = r\n", other)
+		}
+		body = fmt.Sprintf("%s f (%s)", lead, scan)
+		if g.r.IntN(3) == 0 {
+			body = fmt.Sprintf("(%s)*", body)
+		}
 	}
-	return fmt.Sprintf("rule main = %s\nrule r = %s\nrule w = %s %s\n", g.oneOf(`r $$`, `r* $$`, `(r / "a")* $$`), body, end, stop)
+	rules := fmt.Sprintf("rule r = %s\n%s", body, calls)
+	if calls != "" && g.r.IntN(3) == 0 {
+		// The leader of the cycle is the rule declared first on it.
+		rules = calls + fmt.Sprintf("rule r = %s\n", body)
+	}
+	return fmt.Sprintf("rule main = %s\n%srule w = %s %s\n", g.oneOf(`r $$`, `r* $$`, `(r / "a")* $$`), rules, end, stop)
 }
 
 func (g *slopeGrammar) source() string {
@@ -274,9 +299,21 @@ func TestSlopeGateGrowth(t *testing.T) {
 		{"left call after an option that consumed input",
 			"rule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n",
 			func(n int) string { return rep("ab", n) + rep("b", n) + " " }, 1 + slopeMargin},
+		// The same alternative behind a call, and behind two calls after an option in a rule of its
+		// own: the context of a call after input reaches the rules that it calls.
+		{"left call after an option, behind a call",
+			"rule main = r $$\nrule r = [ab]? f (w [ ] [b])\nrule f = r / [a-c]\nrule w = [^a]* $$\n",
+			func(n int) string { return rep("ab", n) + rep("b", n) + " " }, 1 + slopeMargin},
+		{"left call after an option rule, behind two calls",
+			"rule main = r $$\nrule r = p f (w [ ] [b])\nrule p = [ab]?\nrule f = g / [a-c]\nrule g = r\nrule w = [^a]* $$\n",
+			func(n int) string { return rep("ab", n) + rep("b", n) + " " }, 1 + slopeMargin},
 		// Each step of the growth of r runs the repetition, which restarts the scan in s.
 		{"restarted scan in a repetition of each growth step",
 			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			func(n int) string { return rep("a", n/2) }, 2 + slopeMargin},
+		// The same, with the scan in a rule that the repetition reaches through another rule.
+		{"restarted scan in a rule called indirectly",
+			"rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
 			func(n int) string { return rep("a", n/2) }, 2 + slopeMargin},
 		// The same growth from the next size on reaches the cap, whose cost is a lower bound.
 		{"restarted scan up to the cap",
@@ -349,9 +386,10 @@ func TestSlopeLimits(t *testing.T) {
 	}
 }
 
-// slopeCaught lists seeds beyond the seeds of the default tier that found a false class when the
-// check of a unit after input was taken out.
-var slopeCaught = []uint64{343, 508}
+// slopeCaught lists seeds beyond the seeds of the default tier that found a false class under a
+// negative control: 508 when the check of a unit after input in its own rule was taken out, and 609
+// when a call after input no longer made its callee start growths (startsGrowth).
+var slopeCaught = []uint64{508, 609}
 
 func TestSlopeGate(t *testing.T) {
 	const inputs = 8

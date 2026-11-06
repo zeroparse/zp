@@ -840,9 +840,14 @@ unit rests on its left call reading the seed, which holds only on the paths that
 reach the unit without consuming input. On a path that consumes input first, as
 through the `"y"` in `E = "y"? (E / "z") "q" / "x"`, the unit starts at a new
 position with nothing to grow from there, and a failure inside it is a failure of
-a plain alternative, which only the cases of Lemma 4 bound. So condition 2 also
-checks such a unit as an alternative that is not growing, against its plain
-continuations. In the first step of a leader R, every
+a plain alternative, which only the cases of Lemma 4 bound. The path can consume
+that input in a caller as well: in `r = "y"? f "q" / "x"; f = r / "z"`, the call
+of `f` after the `"y"` is outside every growth of the cycle at its position, so
+`f` and the rules that it reaches through left calls evaluate their growing units
+there as plain alternatives. So condition 2 also checks such a unit as an
+alternative that is not growing, against its plain continuations, whether the
+part that can match nothing is in the unit's rule or before a call that reaches
+it. In the first step of a leader R, every
 left call of R reads the failed seed and fails without examining input, so only
 the paths of a unit of R that evaluate something else first can examine input in
 that step.
@@ -2091,8 +2096,10 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
   paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
 - `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
   for growing units, with their continuations: Lemma 5, *Sources at fixed
-  offsets*. `checkGrowingUnit` also checks a unit that `walk` marks `afterInput`
-  as a plain unit: the paths of Lemma 5 that consume input before it.
+  offsets*. `checkGrowingUnit` also checks a unit that `walk` marks `afterInput`,
+  and a unit of a rule that `startsGrowth` reaches from a call after something
+  that can match nothing, as a plain unit: the paths of Lemma 5 that consume
+  input before it.
 - `checkGrowth` decides condition 3, and `checkCarriedGrowth`, `dropsResult`,
   `carryPaths` and `growthGoesOn` condition 5: Lemma 5.
 - `checkValues`, with `selfDependent` and `reaches`, decides condition 1, and
@@ -2200,8 +2207,9 @@ that the proof assumes of the cost view.
    step and in the step where the growth stops, and the case where the first
    step of a growth matches a part before the left call, as through `F` in
    `E = F "+" X / Y; F = E / M`, and a part before the unit, as through the
-   `"y"` in `E = "y"? (E / "z") "q" / "x"`, where the unit is also checked as an
-   alternative that is not growing.
+   `"y"` in `E = "y"? (E / "z") "q" / "x"`, or before a call that reaches it,
+   as in `r = "y"? f "q" / "x"; f = r / "z"`, where the unit is also checked as
+   an alternative that is not growing.
 4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an

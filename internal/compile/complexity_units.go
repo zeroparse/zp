@@ -1498,7 +1498,8 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 
 // startsGrowth reports whether the rule, a rule of a left-recursion cycle other than a leader, can
 // be evaluated where its cycle does not grow: when a call that is not a left call evaluates it, or
-// it is the start rule, or a left call evaluates it in the body of such a rule. Its left calls of
+// one that can run after its caller's body consumed input, or it is the start rule, or a left call
+// evaluates it in the body of such a rule. Its left calls of
 // leaders then start the growths, and the parser continues after them when the growths end.
 func (k *classifier) startsGrowth(rule string) bool {
 	if k.starters == nil {
@@ -1517,7 +1518,9 @@ func (k *classifier) startsGrowth(rule string) bool {
 		}
 		add(k.start)
 		for _, s := range k.sites {
-			if k.outside[s.ref] {
+			// A call after something that can match nothing is a left call only when that matches
+			// nothing; after input it is outside the growths of its cycle at its position.
+			if k.outside[s.ref] || !s.mustStart {
 				add(s.callee)
 			}
 		}
