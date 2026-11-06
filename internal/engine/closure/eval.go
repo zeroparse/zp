@@ -83,6 +83,18 @@ func evalTerm(ctx *core.EvalCtx, t grammar.Term) (any, error) {
 	return cm.Eval(ctx, t)
 }
 
+// termSite is a term of a matcher with the scope its names resolve in.
+type termSite struct {
+	term  grammar.Term
+	scope *compile.Scope
+}
+
+// isFunction is the operation term.isFunction.
+func isFunction(v any) bool {
+	_, ok := v.(*closure)
+	return ok
+}
+
 // convert evaluates the node type constructor t, T{x}: it converts the value of x to the named
 // node type T.
 func (cm *Machine) convert(c *core.EvalCtx, t *grammar.New) (any, error) {

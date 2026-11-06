@@ -2,8 +2,9 @@
 
 // print_runtime writes the printed compositions of the Go runtime to runtime/call_exec.go,
 // runtime/operators_exec.go and runtime/stream_exec.go, and those of the engine to
-// internal/engine/core/call_exec.go, operators_exec.go, stream_exec.go and document_exec.go. It runs
-// from go generate in the directory of package core.
+// internal/engine/core/call_exec.go, operators_exec.go, stream_exec.go and document_exec.go, and the
+// term compositions of the engine's backends to internal/engine/closure/term_exec.go and
+// internal/engine/vm/term_exec.go. It runs from go generate in the directory of package core.
 package main
 
 import (
@@ -61,6 +62,20 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := os.WriteFile(core.EngineDocumentFile, []byte(engineDocument), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	closureTerms, err := core.EngineClosureTerms()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineClosureTermFile, []byte(closureTerms), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	vmTerms, err := core.EngineVMTerms()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineVMTermFile, []byte(vmTerms), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }

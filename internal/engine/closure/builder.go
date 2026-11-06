@@ -437,33 +437,11 @@ func single(build bool, desc core.ExpID, accept func(*core.Parser, rune) bool) c
 
 func (b *Builder) Predicate(e *grammar.Predicate, s *compile.Scope) core.Matcher {
 	if a, ok := e.Term.(*grammar.Bind); ok {
-		slot := b.prog.Vars.Index(a.Name)
-		return func(p *core.Parser) (*value.Node, bool) {
-			ctx := p.UseCtx(core.EvalCtx{P: p, Scope: s, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-			v, err := evalTerm(ctx, a.Value)
-			p.DropCreated(ctx.Cbase)
-			if err != nil {
-				return nil, false
-			}
-			if _, isFn := v.(*closure); isFn {
-				return nil, false
-			}
-			p.Bind(slot, v)
-			return nil, true
-		}
+		slot, t := b.prog.Vars.Index(a.Name), &termSite{term: a.Value, scope: s}
+		return func(p *core.Parser) (*value.Node, bool) { return nil, bind(p, slot, t) }
 	}
-	return func(p *core.Parser) (*value.Node, bool) {
-		ctx := p.UseCtx(core.EvalCtx{P: p, Scope: s, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-		v, err := evalTerm(ctx, e.Term)
-		p.DropCreated(ctx.Cbase)
-		if err != nil {
-			return nil, false
-		}
-		if b, ok := v.(bool); ok && !b {
-			return nil, false
-		}
-		return nil, true
-	}
+	t := &termSite{term: e.Term, scope: s}
+	return func(p *core.Parser) (*value.Node, bool) { return nil, predicate(p, t) }
 }
 
 // ScanRepeat advances over the repetition without saving and restoring state per element.

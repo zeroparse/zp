@@ -32,6 +32,8 @@ const (
 	Res = "CtxResult"
 	// Grow is the state of the growth of a leader (grow.begin).
 	Grow = "Grow"
+	// Term is a term of the grammar, a predicate's or a binding's, in the form its target evaluates.
+	Term = "Term"
 )
 
 // Cost quantities of the transitional operations: measures of their arguments and of the state
@@ -63,6 +65,10 @@ const (
 	QRun = "run"
 	// QSteps is the number of memoized steps and jumps that the call takes.
 	QSteps = "steps"
+	// QTerm is what evaluating the term of the call charges, which the term's expression decides.
+	QTerm = "term"
+	// QDropped is the number of values above the mark of the call.
+	QDropped = "dropped"
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
 	// and of those it scans for line starts: every loaded element when the whole input is loaded from
 	// its first element and no table of its lines exists yet, otherwise those before its argument
@@ -398,6 +404,40 @@ that the target's observed function wraps.`})
 most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.`,
 		Requires: `The parse retains the tail (stream.tail).`})
 
+	addTerms(m, add)
 	splitCall(m, add, rule, values, ctx, mark, entry)
 	framesAndOperators(m, add, rule, value, errs)
+}
+
+// addTerms adds the operations of evaluating a term of a predicate or a binding. What a term means
+// stays with each target: these operations are its boundary, the compositions predicate and bind
+// what surrounds it.
+func addTerms(m *exec.Module, add func(*exec.Op)) {
+	term := m.AddHandle(Term, Host, "A term of a predicate or a binding, in the form the target evaluates.")
+	datum := exec.THandle(Datum)
+	mark := exec.P("mark", exec.TInt)
+	dropped := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDropped}}}
+	add(&exec.Op{Name: "term.eval", Component: Host, Params: []exec.Param{exec.P("t", term)}, Results: []exec.Type{datum, exec.TBool},
+		Reads: []string{Host}, Writes: []string{Host}, NoReturn: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTerm}}},
+		Contract: `Evaluates t over the current capture frame with an empty span at the position, and returns its
+value and true. A term that fails, a list element or a conversion it cannot make, returns false and may
+leave the values it gathered and created; term.dropKids and term.dropCreated release them. An interruption
+ends the parse and leaves them too, for the next parse starts without them.`})
+	add(&exec.Op{Name: "term.created", Component: Host, Results: []exec.Type{exec.TInt}, Reads: []string{Host},
+		Contract: `Returns the mark of the nodes that terms and actions created, which term.dropCreated takes.`})
+	add(&exec.Op{Name: "term.dropCreated", Component: Host, Params: []exec.Param{mark}, Writes: []string{Host},
+		NoReturn: true, Cost: dropped,
+		Contract: `Forgets the nodes created after the mark, without changing them, and charges one unit for each.`,
+		Requires: `mark came from term.created, and nothing dropped it since.`})
+	add(&exec.Op{Name: "term.kids", Component: Host, Results: []exec.Type{exec.TInt}, Reads: []string{Host},
+		Contract: `Returns the mark of the values that list built-ins gather, which term.dropKids takes.`})
+	add(&exec.Op{Name: "term.dropKids", Component: Host, Params: []exec.Param{mark}, Writes: []string{Host},
+		NoReturn: true, Cost: dropped,
+		Contract: `Drops the values gathered after the mark and charges one unit for each.`,
+		Requires: `mark came from term.kids, and nothing dropped it since.`})
+	add(&exec.Op{Name: "term.isFalse", Component: Host, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether v is the boolean false. Any other value, nil among them, is not.`})
+	add(&exec.Op{Name: "term.isFunction", Component: Host, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether v is a function, which no variable may hold.`})
 }

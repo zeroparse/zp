@@ -27,6 +27,16 @@ type trule struct {
 	runs                 int // the evaluations of the body
 }
 
+// term is a term of the model: what it evaluates to and what it leaves on the machine.
+type term struct {
+	value         any
+	fails         bool
+	kids, created int
+}
+
+// fnValue is the function of the model's terms.
+const fnValue = "function"
+
 // record is an expectation record of the model: the farthest position and the expectations there.
 type record struct {
 	far  int64
@@ -46,6 +56,8 @@ type machine struct {
 	// exps holds the expectations of each entry (memo.setExpected).
 	exps                   map[*ref.Entry]record
 	spends, steps, memoHit int
+	// kids and created count what terms left (term.eval), binds the bindings they made (env.bind).
+	kids, created, binds int
 	// ctx is what the context operations answer (ops.Growth): the context state of every call.
 	ctx ctxModel
 	// events lists what the observation was told (obs.enter, obs.exit); high is the examined frontier
@@ -163,6 +175,32 @@ func entryOf(x any) *ref.Entry {
 
 func (m *machine) Call(o *exec.Op, args []any) []any {
 	switch o.Name {
+	case "env.bind":
+		m.binds++
+		return nil
+	case "term.eval":
+		tm := args[0].(*term)
+		m.kids += tm.kids
+		m.created += tm.created
+		return []any{tm.value, !tm.fails}
+	case "term.created":
+		return []any{int64(m.created)}
+	case "term.kids":
+		return []any{int64(m.kids)}
+	case "term.dropCreated":
+		mark := int(args[0].(int64))
+		m.spends += m.created - mark
+		m.created = mark
+		return nil
+	case "term.dropKids":
+		mark := int(args[0].(int64))
+		m.spends += m.kids - mark
+		m.kids = mark
+		return nil
+	case "term.isFalse":
+		return []any{args[0] == false}
+	case "term.isFunction":
+		return []any{args[0] == fnValue}
 	case "call.tracked":
 		return []any{false}
 	case "budget.charge":
@@ -1155,5 +1193,64 @@ func TestEngineCallExamined(t *testing.T) {
 	}
 	if m.high != 6 || m.reused != 1 {
 		t.Errorf("the reuse leaves the frontier at %d with %d reuses, want 6 and 1", m.high, m.reused)
+	}
+}
+
+// TestTerms runs predicate and bind over the outcomes of a term: what each answers, what it binds,
+// what it leaves and what it charges for dropping the rest.
+func TestTerms(t *testing.T) {
+	cases := []struct {
+		name             string
+		t                term
+		predicate, bind  bool
+		binds            bool
+		kidsLeft, charge int
+	}{
+		{name: "true", t: term{value: true}, predicate: true, bind: true, binds: true},
+		{name: "false", t: term{value: false}, bind: true, binds: true},
+		{name: "nil holds", t: term{value: nil}, predicate: true, bind: true, binds: true},
+		{name: "a number holds", t: term{value: int64(0)}, predicate: true, bind: true, binds: true},
+		{name: "a function", t: term{value: fnValue}, predicate: true},
+		{name: "created nodes go", t: term{value: true, created: 3}, predicate: true, bind: true, binds: true, charge: 3},
+		// A successful term consumed its gathered values into a list; none stays above the mark.
+		{name: "kept kids stay", t: term{value: true, kids: 2}, predicate: true, bind: true, binds: true, kidsLeft: 2},
+		{name: "failure", t: term{fails: true}},
+		{name: "failure drops", t: term{value: true, fails: true, kids: 2, created: 3}, charge: 5},
+		{name: "failure of a function", t: term{value: fnValue, fails: true}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mod := Build()
+			for _, fn := range []string{"predicate", "bind"} {
+				m := newMachine()
+				m.kids, m.created = 1, 1 // what is below the marks stays
+				tm := c.t
+				var res []any
+				var err error
+				f := composition(t, mod, fn)
+				want := c.predicate
+				if fn == "bind" {
+					res, err = exec.Run(mod, f, &start{machine: m}, int64(0), &tm)
+					want = c.bind
+				} else {
+					res, err = exec.Run(mod, f, &start{machine: m}, &tm)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if res[0] != want {
+					t.Errorf("%s = %v, want %v", fn, res[0], want)
+				}
+				if m.kids != 1+c.kidsLeft || m.created != 1 {
+					t.Errorf("%s leaves %d values and %d nodes, want %d and 1", fn, m.kids, m.created, 1+c.kidsLeft)
+				}
+				if m.spends != c.charge {
+					t.Errorf("%s charges %d, want %d", fn, m.spends, c.charge)
+				}
+				if bound := m.binds == 1; bound != (fn == "bind" && c.binds) {
+					t.Errorf("%s made %d bindings", fn, m.binds)
+				}
+			}
+		})
 	}
 }

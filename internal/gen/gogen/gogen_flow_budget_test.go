@@ -201,6 +201,12 @@ func budgetProbeSources(pkg string, n int) string {
 // reports of the consumer; mutate, if not nil, changes the code of each parser.
 func runBudgetProbes(t *testing.T, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
 	t.Helper()
+	return runBudgetProbesAt(t, gentest.RuntimeCopy(), cases, start, mutate)
+}
+
+// runBudgetProbesAt is runBudgetProbes with the runtime module in rt.
+func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -209,7 +215,7 @@ func runBudgetProbes(t *testing.T, cases []gentest.Case, start string, mutate fu
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("wprobe"))
+	write("go.mod", gentest.GoModAt("wprobe", rt))
 	var inputs [][]string
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
@@ -387,7 +393,13 @@ func TestFlowNodeBudgetInvariantsWithoutExpectations(t *testing.T) {
 // returns the entries of the golden and the violations of the invariants of the reports.
 func budgetTotals(t *testing.T, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
 	t.Helper()
-	lines := runBudgetProbes(t, cases, start, mutate)
+	return budgetTotalsAt(t, gentest.RuntimeCopy(), group, cases, start, mutate)
+}
+
+// budgetTotalsAt is budgetTotals with the runtime module in rt.
+func budgetTotalsAt(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
+	t.Helper()
+	lines := runBudgetProbesAt(t, rt, cases, start, mutate)
 	if len(lines) == 0 {
 		t.Fatal("no reports")
 	}

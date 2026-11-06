@@ -3327,53 +3327,36 @@ func (c *ActCtx) result(action func(*ActCtx) any, where string) (n *Node) {
 	return n
 }
 
-// DropCreated releases tracking references without changing the created values.
+// dropCreated releases tracking references without changing the created values.
 func (p *Parser) dropCreated(base int) {
 	clear(p.created[base:])
 	p.created = p.created[:base]
 }
 
-func (p *Parser) Predicate(t func(*ActCtx) any) (ok bool) {
-	base, kids := len(p.created), len(p.KidStack)
+// evalTerm is the operation term.eval: it reports false for a term that fails. Any other panic, an
+// interruption among them, ends the parse and passes through.
+func (p *Parser) evalTerm(t func(*ActCtx) any) (v any, ok bool) {
 	defer func() {
-		p.dropCreated(base)
 		if x := recover(); x != nil {
 			if _, isEval := x.(evalError); !isEval {
 				panic(x)
 			}
-			p.DropKids(kids) // elements gathered by a list built-in that failed
 			ok = false
 		}
 	}()
-	c := p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})
-	v := t(c)
-	if b, isBool := v.(bool); isBool && !b {
-		return false
-	}
-	return true
+	return t(p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})), true
 }
 
-// Bind evaluates the value of a binding and binds it to the variable name. The compiler has
-// checked that the value fits the variable.
-func (p *Parser) Bind(slot int, t func(*ActCtx) any) (ok bool) {
-	base, kids := len(p.created), len(p.KidStack)
-	defer func() {
-		p.dropCreated(base)
-		if x := recover(); x != nil {
-			if _, isEval := x.(evalError); !isEval {
-				panic(x)
-			}
-			p.DropKids(kids) // elements gathered by a list built-in that failed
-			ok = false
-		}
-	}()
-	c := p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})
-	v := t(c)
-	if _, isFn := v.(func(...any) any); isFn {
-		return false
-	}
-	p.bind(slot, v)
-	return true
+// isFalse is the operation term.isFalse.
+func isFalse(v any) bool {
+	b, isBool := v.(bool)
+	return isBool && !b
+}
+
+// isFunction is the operation term.isFunction.
+func isFunction(v any) bool {
+	_, isFn := v.(func(...any) any)
+	return isFn
 }
 
 func (c *ActCtx) Cap(slot int) any { return UnboxNode(c.f.Vals[slot]) }

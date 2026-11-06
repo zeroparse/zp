@@ -1733,46 +1733,17 @@ func (p *TParser) DropCreated(base int) {
 	p.Created = p.Created[:base]
 }
 
-func (p *TParser) Predicate(t func(*TActCtx) any) (ok bool) {
-	base, kids := len(p.Created), len(p.KidStack)
+// evalTerm is Parser.evalTerm for the typed runtime.
+func (p *TParser) evalTerm(t func(*TActCtx) any) (v any, ok bool) {
 	defer func() {
-		p.DropCreated(base)
 		if x := recover(); x != nil {
 			if _, isEval := x.(evalError); !isEval {
 				panic(x)
 			}
-			p.DropKids(kids)
 			ok = false
 		}
 	}()
-	c := p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v := t(c)
-	if b, isBool := v.(bool); isBool && !b {
-		return false
-	}
-	return true
-}
-
-// Bind is Parser.Bind for the typed runtime.
-func (p *TParser) Bind(slot int, t func(*TActCtx) any) (ok bool) {
-	base, kids := len(p.Created), len(p.KidStack)
-	defer func() {
-		p.DropCreated(base)
-		if x := recover(); x != nil {
-			if _, isEval := x.(evalError); !isEval {
-				panic(x)
-			}
-			p.DropKids(kids)
-			ok = false
-		}
-	}()
-	c := p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v := t(c)
-	if _, isFn := v.(func(...any) any); isFn {
-		return false
-	}
-	p.bind(slot, v)
-	return true
+	return t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})), true
 }
 
 // tvalOrNil is the typed runtime's nodeOrNil: values are already any, with the untyped nil.

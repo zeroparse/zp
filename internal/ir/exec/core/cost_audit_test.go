@@ -314,10 +314,11 @@ func TestEngineEditFormsCallNothing(t *testing.T) {
 	}
 }
 
-// runsGrammar are the transitional operations that run a rule body. Their charges include those of
-// the grammar code they run, which a bound of the operation cannot state; the compositions that
-// replace them (rule completion, the Document call) charge their own steps.
+// runsGrammar are the transitional operations that run a rule body or a term. Their charges include
+// those of the grammar code they run, which a bound of the operation cannot state; the compositions
+// that replace them (rule completion, the Document call) charge their own steps.
 var runsGrammar = map[string]bool{"rule.invoke": true, "rule.invokePlain": true, "rule.run": true, "call.track": true, "call.trackBody": true,
+	"term.eval": true,
 	// The grammar code of an Operators Rule, and the actions that make the values of its lines.
 	"opr.skip": true, "opr.match": true, "opr.lineValue": true, "opr.build": true, "opr.buildTyped": true}
 

@@ -136,6 +136,9 @@ handle RunElem of runs
 handle RunSite of runs
   // A repetition that a Document parse can resume.
 
+handle Term of host
+  // A term of a predicate or a binding, in the form the target evaluates.
+
 handle CallState of suspended
   // The record of a suspended call, which its caller holds.
 
@@ -1370,6 +1373,64 @@ transitional op stream.settleErrors()
     // most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.
   requires:
     // The parse retains the tail (stream.tail).
+
+transitional op term.eval(t Term) (Datum, bool)
+  component host
+  reads host
+  writes host
+  noreturn
+  cost <= 0 + 1*term
+  contract:
+    // Evaluates t over the current capture frame with an empty span at the position, and returns its
+    // value and true. A term that fails, a list element or a conversion it cannot make, returns false and may
+    // leave the values it gathered and created; term.dropKids and term.dropCreated release them. An interruption
+    // ends the parse and leaves them too, for the next parse starts without them.
+
+transitional op term.created() int
+  component host
+  reads host
+  cost <= 0
+  contract:
+    // Returns the mark of the nodes that terms and actions created, which term.dropCreated takes.
+
+transitional op term.dropCreated(mark int)
+  component host
+  writes host
+  noreturn
+  cost <= 0 + 1*dropped
+  contract:
+    // Forgets the nodes created after the mark, without changing them, and charges one unit for each.
+  requires:
+    // mark came from term.created, and nothing dropped it since.
+
+transitional op term.kids() int
+  component host
+  reads host
+  cost <= 0
+  contract:
+    // Returns the mark of the values that list built-ins gather, which term.dropKids takes.
+
+transitional op term.dropKids(mark int)
+  component host
+  writes host
+  noreturn
+  cost <= 0 + 1*dropped
+  contract:
+    // Drops the values gathered after the mark and charges one unit for each.
+  requires:
+    // mark came from term.kids, and nothing dropped it since.
+
+transitional op term.isFalse(v Datum) bool
+  component host
+  cost <= 0
+  contract:
+    // Reports whether v is the boolean false. Any other value, nil among them, is not.
+
+transitional op term.isFunction(v Datum) bool
+  component host
+  cost <= 0
+  contract:
+    // Reports whether v is a function, which no variable may hold.
 
 op call.state() CallState
   component suspended

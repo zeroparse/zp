@@ -814,3 +814,93 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	}
 	return v, ok
 }
+
+// Predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
+// fails, and holds on every other value.
+//
+// Printed from Exec IR function predicate of internal/ir/exec/core.
+func (p *Parser) Predicate(t func(*ActCtx) any) bool {
+	created := len(p.created)
+	kids := len(p.KidStack)
+	v, ok := p.evalTerm(t)
+	if !ok {
+		clearSpend(p, p.KidStack[kids:])
+		p.KidStack = p.KidStack[:kids]
+		clearSpend(p, p.created[created:])
+		p.created = p.created[:created]
+		return false
+	}
+	clearSpend(p, p.created[created:])
+	p.created = p.created[:created]
+	return !isFalse(v)
+}
+
+// Bind binds the value of the term of a binding to the variable in slot. A term that fails and a
+// function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
+// value fits the variable.
+//
+// Printed from Exec IR function bind of internal/ir/exec/core.
+func (p *Parser) Bind(slot int, t func(*ActCtx) any) bool {
+	created := len(p.created)
+	kids := len(p.KidStack)
+	v, ok := p.evalTerm(t)
+	if !ok {
+		clearSpend(p, p.KidStack[kids:])
+		p.KidStack = p.KidStack[:kids]
+		clearSpend(p, p.created[created:])
+		p.created = p.created[:created]
+		return false
+	}
+	clearSpend(p, p.created[created:])
+	p.created = p.created[:created]
+	if isFunction(v) {
+		return false
+	}
+	p.bind(slot, v)
+	return true
+}
+
+// Predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
+// fails, and holds on every other value.
+//
+// Printed from Exec IR function predicate of internal/ir/exec/core.
+func (p *TParser) Predicate(t func(*TActCtx) any) bool {
+	created := len(p.Created)
+	kids := len(p.KidStack)
+	v, ok := p.evalTerm(t)
+	if !ok {
+		clearSpend(p.Parser, p.KidStack[kids:])
+		p.KidStack = p.KidStack[:kids]
+		clearSpend(p.Parser, p.Created[created:])
+		p.Created = p.Created[:created]
+		return false
+	}
+	clearSpend(p.Parser, p.Created[created:])
+	p.Created = p.Created[:created]
+	return !isFalse(v)
+}
+
+// Bind binds the value of the term of a binding to the variable in slot. A term that fails and a
+// function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
+// value fits the variable.
+//
+// Printed from Exec IR function bind of internal/ir/exec/core.
+func (p *TParser) Bind(slot int, t func(*TActCtx) any) bool {
+	created := len(p.Created)
+	kids := len(p.KidStack)
+	v, ok := p.evalTerm(t)
+	if !ok {
+		clearSpend(p.Parser, p.KidStack[kids:])
+		p.KidStack = p.KidStack[:kids]
+		clearSpend(p.Parser, p.Created[created:])
+		p.Created = p.Created[:created]
+		return false
+	}
+	clearSpend(p.Parser, p.Created[created:])
+	p.Created = p.Created[:created]
+	if isFunction(v) {
+		return false
+	}
+	p.bind(slot, v)
+	return true
+}

@@ -36,6 +36,9 @@ var tsSpecs = []struct {
 	{fn: "longest", on: []string{ops.Budget}, name: "longest"},
 	{fn: "skipTrivia", name: "skipTrivia"},
 	{fn: "reset", name: "reset"},
+	// Predicates and bindings.
+	{fn: "predicate", name: "predicate"},
+	{fn: "bind", name: "bind"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -75,6 +78,7 @@ var tsTarget = &exects.Target{
 			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
+			ops.Term: "Action", ops.Datum: "Value",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -117,6 +121,20 @@ var tsTarget = &exects.Target{
 			return a[0] + ".length"
 		case "env.restore":
 			return "this.env = " + a[0]
+		case "env.bind":
+			return fmt.Sprintf("this.bindValue(%s, %s)", a[0], a[1])
+		case "term.created":
+			return "this.created.length"
+		case "term.dropCreated":
+			return "this.dropSpend(this.created, " + a[0] + ")"
+		case "term.kids":
+			return "this.kidStack.length"
+		case "term.dropKids":
+			return "this.dropSpend(this.kidStack, " + a[0] + ")"
+		case "term.isFalse":
+			return a[0] + " === false"
+		case "term.isFunction":
+			return `typeof ` + a[0] + ` === "function"`
 		case "opr.led", "opr.prefix":
 			return a[0] + ".operatorsRule!." + strings.TrimPrefix(c.Callee, "opr.")
 		case "opr.count":
@@ -298,6 +316,9 @@ var tsTarget = &exects.Target{
 			c, seed := dst[0], dst[1]
 			return fmt.Sprintf("let %s = noCtx;\nlet %s: CtxResult | null = null;\nif (%s.cycle !== 0 && this.gamma.length !== 0) {\n  %s = newCtxCall();\n  %s = this.ctxEnter(%s, %s, %s);\n}",
 				c, seed, a[0], c, seed, c, a[0], a[1]), true
+		case "term.eval":
+			return fmt.Sprintf("let %s: Value = null;\nlet %s = true;\ntry {\n  %[1]s = %[3]s(this.useCtx(this.frame, this.pos, this.pos, null, null, null));\n"+
+				"} catch (x) {\n  if (!(x instanceof EvalError)) {\n    throw x;\n  }\n  %[2]s = false;\n}", dst[0], dst[1], a[0]), true
 		case "rec.add":
 			return fmt.Sprintf("for (const x of %s) {\n  this.spend();\n  this.recovered.push(x);\n}", a[0]), true
 		case "exp.copy":

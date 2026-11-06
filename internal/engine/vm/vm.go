@@ -1205,31 +1205,10 @@ func (vm *Program) evaluator(entry int, names []string) core.Evaluator {
 	}
 }
 
-func (vm *Program) predicate(p *core.Parser, entry int) bool {
-	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := vm.eval(ctx, entry, nil)
-	p.DropCreated(ctx.Cbase)
-	if err != nil {
-		return false
-	}
-	if b, ok := v.(bool); ok && !b {
-		return false
-	}
-	return true
-}
-
-func (vm *Program) bind(p *core.Parser, slot, entry int) bool {
-	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := vm.eval(ctx, entry, nil)
-	p.DropCreated(ctx.Cbase)
-	if err != nil {
-		return false
-	}
-	if _, isFn := v.(core.Function); isFn {
-		return false
-	}
-	p.Bind(slot, v)
-	return true
+// isFunction is the operation term.isFunction.
+func isFunction(v any) bool {
+	_, ok := v.(core.Function)
+	return ok
 }
 
 // eval evaluates expression code from ip until ERET. The operands are kept on the parser's
@@ -1246,11 +1225,10 @@ func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err err
 		stack = stack[:len(stack)-1]
 		return v
 	}
-	kids, lists := len(p.KidStack), len(mc.lists)
+	lists := len(mc.lists)
 	defer func() {
 		p.Estack = stack[:base]
-		if err != nil { // a failed predicate lets the parse go on: drop gathered list elements
-			p.DropKids(kids)
+		if err != nil { // the gathered elements go with the term (term.dropKids)
 			mc.lists = mc.lists[:lists]
 		}
 	}()

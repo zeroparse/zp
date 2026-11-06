@@ -2489,6 +2489,14 @@ export class Parser {
     this.kidStack.length = base;
   }
 
+  // dropSpend pops values[base:], charging one unit for each.
+  dropSpend(values: unknown[], base: number): void {
+    if (values.length > base) {
+      this.spend(values.length - base);
+      values.length = base;
+    }
+  }
+
   // reset returns to a mark: the position, variables, recovered errors and captures (undoing the
   // trail) at the time it was taken.
   // Its text is printed from Exec IR (internal/ir/exec/core).
@@ -4189,44 +4197,16 @@ export class Parser {
     return c;
   }
 
+  // predicate evaluates the term of a predicate.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   predicate(t: Action): boolean {
-    const base = this.created.length;
-    const kids = this.kidStack.length;
-    try {
-      const v = t(this.useCtx(this.frame, this.pos, this.pos, null, null, null));
-      return v !== false;
-    } catch (x) {
-      if (!(x instanceof EvalError)) {
-        throw x;
-      }
-      this.dropKids(kids); // elements gathered by a list built-in that failed
-      return false;
-    } finally {
-      this.created.length = base; // drop nodes created by the predicate
-    }
+    throw new Error("the printed method replaces this one");
   }
 
-  // bind binds the value of t to the variable in slot. The compiler has checked that the value
-  // fits the variable.
+  // bind binds the value of the term of a binding to the variable in slot.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
   bind(slot: number, t: Action): boolean {
-    const base = this.created.length;
-    const kids = this.kidStack.length;
-    try {
-      const v = t(this.useCtx(this.frame, this.pos, this.pos, null, null, null));
-      if (typeof v === "function") {
-        return false;
-      }
-      this.bindValue(slot, v);
-      return true;
-    } catch (x) {
-      if (!(x instanceof EvalError)) {
-        throw x;
-      }
-      this.dropKids(kids); // elements gathered by a list built-in that failed
-      return false;
-    } finally {
-      this.created.length = base; // drop nodes created by the predicate
-    }
+    throw new Error("the printed method replaces this one");
   }
 
   // bindValue rebinds the variable in slot i, copying the path to the slot and preserving
