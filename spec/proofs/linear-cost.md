@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-06
+Arata Furukawa · Last revised 2026-11-07
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -2139,7 +2139,8 @@ A new condition enters the proof in one of two ways.
 
 ## Open Steps
 
-The outlines leave these steps to be made precise.
+The outlines leave steps 1 to 8 to be made precise, and step 9 is a condition
+that the proof assumes of the cost view.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
    cost to the activations, show that the successful activations of a source

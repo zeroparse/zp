@@ -861,8 +861,11 @@ The conditions below use these terms.
 
   The classifier decides both bounds, as it does the conditions, on the
   [cost view](../proofs/grammar-laws.md#normalization) of the rule bodies, a rewriting that keeps
-  what they match and their cost within a constant factor, with the memoized
-  rules and the left-recursion cycles of the grammar as written.
+  what they match and is meant to keep their cost within a constant factor,
+  which is not yet proved (step 9 of the
+  [open steps of the linear cost proof](../proofs/linear-cost.md#open-steps)),
+  with the memoized rules and the left-recursion cycles of the grammar as
+  written.
 - A **unit** is an expression after whose failure the parser continues at the
   position where the unit started: an alternative of a choice other than the
   last, one iteration of a repetition, the expression of an option, the

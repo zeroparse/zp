@@ -220,10 +220,6 @@ func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 		return r.flow(e.Expr)
 	case *grammar.Atomic:
 		return r.flow(e.Expr)
-	case *grammar.InlineAction:
-		return r.flow(e.Expr)
-	case *grammar.Recovery:
-		return r.flow(e.Expr).join(r.flow(e.Skip))
 	case *grammar.Attributed:
 		f := r.flow(e.Expr)
 		if skip := recoverSkip(e); skip != nil {
@@ -340,11 +336,6 @@ func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
 		r.visit(e.Expr, in, changed)
 	case *grammar.Atomic:
 		r.visit(e.Expr, in, changed)
-	case *grammar.InlineAction:
-		r.visit(e.Expr, in, changed)
-	case *grammar.Recovery:
-		r.visit(e.Expr, in, changed)
-		r.visit(e.Skip, in, changed)
 	case *grammar.Attributed:
 		r.visit(e.Expr, in, changed)
 		if skip := recoverSkip(e); skip != nil {
@@ -388,8 +379,9 @@ func (k *classifier) looseCut(e grammar.Expr) bool {
 // the proof: a part that fails after a cut fails the choice, option or repetition around it, and a
 // call of a rule on a left-recursion cycle can read the failing seed of a growth. Each rule is
 // followed once; a call that returns to a rule being followed answers nothing, which the
-// under-approximation allows. No predicate or action is sure, and none succeeds surely, so the
-// answer holds whatever the variables that a rule reads hold, as it does for the input.
+// under-approximation allows. Variables reach matching only through predicates, which sure
+// answers nothing for and AlwaysSucceeds does not prove, so the answer holds whatever the variables
+// that a rule reads hold, as it does for the input.
 func (k *classifier) sure(e grammar.Expr) charset {
 	k.control.poll()
 	switch e := e.(type) {
@@ -408,8 +400,6 @@ func (k *classifier) sure(e grammar.Expr) charset {
 	case *grammar.Discard:
 		return k.sure(e.Expr)
 	case *grammar.Atomic:
-		return k.sure(e.Expr)
-	case *grammar.InlineAction:
 		return k.sure(e.Expr)
 	case *grammar.Choice:
 		var s charset
@@ -523,11 +513,6 @@ func (k *classifier) consumed(e grammar.Expr, rules map[string]charset) charset 
 			walk(e.Expr)
 		case *grammar.Atomic:
 			walk(e.Expr)
-		case *grammar.InlineAction:
-			walk(e.Expr)
-		case *grammar.Recovery:
-			walk(e.Expr)
-			walk(e.Skip)
 		case *grammar.Attributed:
 			walk(e.Expr)
 			if skip := recoverSkip(e); skip != nil {
@@ -671,10 +656,9 @@ func (k *classifier) rigid(e grammar.Expr) bool {
 		return k.rigid(e.Expr)
 	case *grammar.Atomic:
 		return k.rigid(e.Expr)
-	case *grammar.InlineAction:
-		return k.rigid(e.Expr)
-	case *grammar.Attributed, *grammar.Recovery, *grammar.OperatorsRule:
-		// The classifier reads the normalized grammar, where #stream is an attribute.
+	case *grammar.Attributed, *grammar.OperatorsRule:
+		// The classifier reads the lowered and normalized grammar, where #recover and #stream are
+		// attributes and inline actions are calls of hidden rules.
 		return false
 	}
 	return true
@@ -722,11 +706,6 @@ func (k *classifier) countedWalk(e grammar.Expr, ok bool, counted map[string]boo
 		k.countedWalk(e.Expr, ok, counted, changed)
 	case *grammar.Atomic:
 		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.InlineAction:
-		k.countedWalk(e.Expr, ok, counted, changed)
-	case *grammar.Recovery:
-		k.countedWalk(e.Expr, ok, counted, changed)
-		k.countedWalk(e.Skip, ok, counted, changed)
 	case *grammar.Attributed:
 		k.countedWalk(e.Expr, ok, counted, changed)
 		if skip := recoverSkip(e); skip != nil {

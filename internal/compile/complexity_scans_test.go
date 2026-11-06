@@ -216,9 +216,8 @@ func TestScanRuns(t *testing.T) {
 	}
 }
 
-// TestScanRecovery checks a Recovery built by code, which the attributed form of the source does not
-// reach: its skip adds to the flow and to the alphabet.
-func TestScanRecovery(t *testing.T) {
+// TestLooseCutInSkip checks that a cut in the skip of a recovery commits the choice around it.
+func TestLooseCutInSkip(t *testing.T) {
 	g, err := syntax.Parse("rule main = \"x\"\n")
 	if err != nil {
 		t.Fatal(err)
@@ -227,17 +226,7 @@ func TestScanRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := &grammar.Literal{Value: "a"}
-	rec := &grammar.Recovery{Expr: &grammar.Literal{Value: "b"}, Skip: a}
-	if !k.consumed(rec, nil).intersects(charOf('a')) {
-		t.Error("the alphabet leaves out the skip")
-	}
-	r := &runAnalysis{k: k, x: charOf('a'), rule: map[string]runFlow{}, exprs: map[grammar.Expr]runFlow{},
-		fixed: map[grammar.Expr]runFlow{}, sure: map[grammar.Expr]bool{}}
-	if got := r.flow(rec).apply(3); got != 4 {
-		t.Errorf("run %d after a skip, want 4", got)
-	}
-	if !k.looseCut(&grammar.Recovery{Expr: a, Skip: &grammar.Cut{}}) {
+	if !k.looseCut(&grammar.Recovery{Expr: &grammar.Literal{Value: "a"}, Skip: &grammar.Cut{}}) {
 		t.Error("a cut in the skip does not commit the choice around the recovery")
 	}
 }

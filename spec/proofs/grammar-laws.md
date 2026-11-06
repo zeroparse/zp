@@ -1,10 +1,12 @@
 # Grammar Laws
 
-Arata Furukawa · Last revised 2026-11-04
+Arata Furukawa · Last revised 2026-11-07
 
 **Status:** Draft. The laws are proved as stated, except the law of
-[Free Variables](#free-variables), which is unproved in full, and the
-confluence of the [Normalization](#normalization) is not proved.
+[Free Variables](#free-variables), which is unproved in full. The
+confluence of the [Normalization](#normalization) is not proved, nor is the
+condition of its [cost view](#normalization), that the written grammar costs
+at most a constant factor more than the view.
 
 This document states the equivalences ("laws") that hold between Rule
 Expressions of ZeroParse grammars, such as `X* X*` and `X*`, and a rewrite
