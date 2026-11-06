@@ -152,3 +152,13 @@ what running it did as run.prefix does. Returns it, or none at the end of the ru
 		Contract: `Records the run of a repetition that matched for the next parse, unless it is too short, or recovered
 errors, or read the seed of a growth.`})
 }
+
+// PendingEditLimit is the number of edits that a memo entry may lag behind when a lookup finds it. A
+// lookup applies the edits it does not account for to the entry, one step for each; past this limit
+// the entry is dropped and the call evaluates again, whose cost is that of the work the entry stands
+// for, so the work of applying edits stays within a constant factor of the work a parse from
+// scratch does. Where edits are spread over a 2,000-line input, a parse that reuses a memo that lags by
+// 64 edits costs about a third of a parse from scratch and one that lags by 256 edits costs as much;
+// where they land in a few places, reuse pays at every count measured, up to 1,024, and the limit gives
+// that up for the bound.
+const PendingEditLimit = 128

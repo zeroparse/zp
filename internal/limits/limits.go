@@ -29,7 +29,9 @@ const (
 )
 
 // DefaultBudget returns the budget of a parse whose Compute is zero, for an input of n units of the
-// position unit of the parse.
+// position unit of the parse. It counts the work that a parse of the input from scratch does. A
+// Document parse also does work that only a Document does, and the default budget leaves that out,
+// so a Document parse under it succeeds where a parse from scratch of its text does.
 func DefaultBudget(n uint64) uint64 {
 	if n > math.MaxUint64/DefaultBudgetPerUnit {
 		return math.MaxUint64 - 1

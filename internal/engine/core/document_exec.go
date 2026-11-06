@@ -5,18 +5,24 @@ package core
 // AdvanceEntry applies to the memo entry e the edits of log it does not account for yet, and reports
 // whether it is still valid. For each edit, in order, an entry that examined only input before it stays, one
 // that examined only input after it moves by the edit's change in length, unless it is pinned or holds
-// recovered errors, and any other is invalid. A form specialized for budget charges one unit for each edit
-// it applies. The entry changes only if it is still valid, and after every charge: one that is not valid
+// recovered errors, and any other is invalid. An entry that lags behind more than PendingEditLimit edits is invalid.
+// A form specialized for budget charges one unit for each edit it applies, as work of the Document that a parse
+// from scratch does not do. The entry changes only if it is still valid, and after every charge: one that is not valid
 // stays in its slot until a store replaces it, and a lookup before that applies the same edits again. The
 // first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
 // when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
 // Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
+	var fm uint64
 	var i int
 	if e.Growing {
 		return false
 	}
+	if len(log)-int(e.Vgen) > 128 {
+		return false
+	}
+	fm = p.FreeBegin(true)
 	from := e.From
 	examined := e.Examined
 	shift := 0
@@ -27,6 +33,7 @@ func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 			continue
 		}
 		if !(from >= log[i].End && !e.Positional && (len(e.Errs) == 0)) {
+			p.FreeEnd(fm)
 			return false
 		}
 		delta := log[i].Delta
@@ -42,22 +49,29 @@ func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 	e.shift += int32(shift)
 	e.shifted = shifted
 	e.Vgen = uint32(len(log))
+	p.FreeEnd(fm)
 	return true
 }
 
 // AdvanceEntry applies to the memo entry e the edits of log it does not account for yet, and reports
 // whether it is still valid. For each edit, in order, an entry that examined only input before it stays, one
 // that examined only input after it moves by the edit's change in length, unless it is pinned or holds
-// recovered errors, and any other is invalid. A form specialized for budget charges one unit for each edit
-// it applies. The entry changes only if it is still valid, and after every charge: one that is not valid
+// recovered errors, and any other is invalid. An entry that lags behind more than PendingEditLimit edits is invalid.
+// A form specialized for budget charges one unit for each edit it applies, as work of the Document that a parse
+// from scratch does not do. The entry changes only if it is still valid, and after every charge: one that is not valid
 // stays in its slot until a store replaces it, and a lookup before that applies the same edits again. The
 // first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
 // when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
 // Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document.
 func AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
+	var fm uint64
+	_ = fm
 	var i int
 	if e.Growing {
+		return false
+	}
+	if len(log)-int(e.Vgen) > 128 {
 		return false
 	}
 	from := e.From
