@@ -24,6 +24,14 @@ type Impl interface {
 	Values(id int64) any
 }
 
+// Environment is an Impl that provides the variable environment.
+type Environment interface {
+	// Datum returns the implementation's value for ref.Value(id).
+	Datum(id int64) any
+	// Rule returns the implementation's handle of the rule with the index in ref.Config.RuleVars.
+	Rule(index int64) any
+}
+
 // Metered is an Impl that reports the units of budget it has charged so far, so that the harness
 // checks each call against the operation's cost bound.
 type Metered interface {
@@ -41,6 +49,9 @@ type Suite struct {
 	// LazyEdits sets ref.Config.LazyEdits for the model of every case: the implementation is a memo
 	// that applies edits to an entry when it finds it.
 	LazyEdits bool
+	// Exact are the operations whose charges must equal their cost bound, not stay within it: in a
+	// metered implementation, the model's quantities state the work to the unit.
+	Exact []string
 }
 
 // ValuesOp is the operation that conformance cases use to make a Values handle from an identifier.
@@ -59,6 +70,14 @@ type recoveredErrors struct{ _ byte }
 // share it: the harness compares handles only by identity, and the errors themselves are not examined.
 var RecoveredErrors = &recoveredErrors{}
 
+// DatumOp is the operation that conformance cases use to make a value from an identifier
+// (ref.Value). It is not an operation of the parser VM.
+const DatumOp = "test.datum"
+
+// RuleOp is the operation that conformance cases use to make the handle of a rule of
+// ref.Config.RuleVars. It is not an operation of the parser VM.
+const RuleOp = "test.rule"
+
 // Module returns the pilot declarations with ValuesOp, ready for cases.
 func Module() *exec.Module {
 	m := ops.Pilot()
@@ -67,6 +86,12 @@ func Module() *exec.Module {
 		Contract: "Returns the Values handle of a conformance identifier; equal identifiers are equal values."})
 	m.AddOp(&exec.Op{Name: ErrsOp, Component: ops.Rec, Results: []exec.Type{exec.THandle(ops.Errs)},
 		Contract: "Returns the recovered errors of an entry that recovered some, as RecoveredErrors."})
+	m.AddOp(&exec.Op{Name: DatumOp, Component: ops.Host, Params: []exec.Param{exec.P("id", exec.TInt)},
+		Results:  []exec.Type{exec.THandle(ops.Datum)},
+		Contract: "Returns the value of a conformance identifier."})
+	m.AddOp(&exec.Op{Name: RuleOp, Component: ops.Rules, Params: []exec.Param{exec.P("index", exec.TInt)},
+		Results:  []exec.Type{exec.THandle(ops.Rule)},
+		Contract: "Returns the handle of a rule of the case's configuration."})
 	return m
 }
 
@@ -101,7 +126,7 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	}
 	cfg := c.Config
 	cfg.LazyEdits = s.LazyEdits
-	p := &pair{model: ref.New(cfg), impl: s.New(cfg),
+	p := &pair{suite: s, model: ref.New(cfg), impl: s.New(cfg),
 		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {
 		return &Failure{Impl: s.Name, Case: c.Func.Name, Step: len(p.trace), Trace: p.trace, Msg: msg,
@@ -135,7 +160,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	ok := true
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
-		case c.Callee == ValuesOp, c.Callee == ErrsOp:
+		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == DatumOp, c.Callee == RuleOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -163,6 +188,7 @@ func (h *handle) String() string { return fmt.Sprintf("h%p", h) }
 
 // pair is the machine that runs each call on the model and the implementation.
 type pair struct {
+	suite Suite
 	model *ref.Model
 	impl  Impl
 	trace []string
@@ -219,6 +245,14 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if o.Name == ErrsOp {
 		return []any{p.wrap(RecoveredErrors, RecoveredErrors)}
 	}
+	if o.Name == DatumOp {
+		id := args[0].(int64)
+		return []any{p.wrap(ref.Datum{ID: id}, p.impl.(Environment).Datum(id))}
+	}
+	if o.Name == RuleOp {
+		i := args[0].(int64)
+		return []any{p.wrap(ref.RuleRef{Index: i}, p.impl.(Environment).Rule(i))}
+	}
 	if !p.model.Allows(o, refArgs) {
 		panic(mismatch("the case breaks the precondition of " + o.Name))
 	}
@@ -250,6 +284,9 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 		used := meter.Used() - before
 		if used > uint64(bound) {
 			panic(mismatch(fmt.Sprintf("charged %d units, more than the bound %s = %d", used, o.Cost, bound)))
+		}
+		if charges && used != uint64(bound) && slices.Contains(p.suite.Exact, o.Name) {
+			panic(mismatch(fmt.Sprintf("charged %d units, not the exact cost %s = %d", used, o.Cost, bound)))
 		}
 		if charges && p.model.Absorb(used) {
 			panic(mismatch(fmt.Sprintf("charged %d units past the limit without interrupting", used)))

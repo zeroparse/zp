@@ -22,8 +22,6 @@ const (
 	// Backtrack is a backtracking point: the position, the variable environment, the recovered
 	// errors and the length of the trail when it was taken.
 	Backtrack = "Mark"
-	// Scope is a variable environment.
-	Scope = "Scope"
 	// Operators is a list of the operators of an Operators Rule: its prefix or its other operators.
 	Operators = "Operators"
 	// Operator is an operator of an Operators Rule.
@@ -64,7 +62,7 @@ failed after a cut.`)
 	frame := m.AddHandle(Frame, Frames, "A capture frame: the slots of the captures of a rule body or a line.")
 	mark := m.AddHandle(Backtrack, Frames, `A backtracking point: the position, the variable environment, the
 recovered errors and the length of the trail when it was taken.`)
-	scope := m.AddHandle(Scope, Env, "A variable environment, which bindings replace and never change.")
+	scope := exec.THandle(Scope)
 	opsList := m.AddHandle(Operators, Rules, "The prefix operators of an Operators Rule, or its other operators.")
 	op := m.AddHandle(Operator, Rules, "An operator of an Operators Rule: its kind, binding power, associativity and line.")
 	line := m.AddHandle(Line, Rules, "A line of an Operators Rule: an operand, or the expression of an operator.")
@@ -115,8 +113,6 @@ never written, so it may be shared.`})
 		Contract: `Copies the slots that the last frame.save set aside back into f, charging the copy as
 frame.save does.`,
 		Requires: `The last frame.save copied the slots of f, and nothing parsed since.`})
-	add(&exec.Op{Name: "env.restore", Component: Env, Params: []exec.Param{exec.P("s", scope)}, Writes: []string{Env},
-		Contract: `Makes s the variable environment.`})
 
 	// The descriptors of an Operators Rule.
 	add(&exec.Op{Name: "opr.led", Component: Rules, Params: r, Results: []exec.Type{opsList},

@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"slices"
+	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -27,6 +29,32 @@ type Config struct {
 	// the engine's is: it keeps the entries memo.splice removes until a lookup or a store replaces
 	// them, and its slots hold the gap as well. The charges of memo.lookup and memo.store count both.
 	LazyEdits bool
+	// Vars are the initial values of the variables, in slot order, as identifiers (Value).
+	Vars []int64
+	// RuleVars are the slots of the variables that each rule reads, in the order of its memo key.
+	RuleVars [][]int64
+}
+
+// Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
+type Datum struct{ ID int64 }
+
+// RuleRef is the model's handle of a rule of Config.RuleVars.
+type RuleRef struct{ Index int64 }
+
+// Scope is a variable environment of the model. A binding that changes it makes a new one.
+type Scope struct{ vals []int64 }
+
+// Value returns the value of a conformance identifier: an integer below 1,000; from 1,000 to 1,999 a
+// string of id-1,000 "a"; and from 2,000 a string of id-2,000 "b". Different identifiers are different
+// values, and two strings of the same length can differ.
+func Value(id int64) any {
+	switch {
+	case id < 1000:
+		return int(id)
+	case id < 2000:
+		return strings.Repeat("a", int(id-1000))
+	}
+	return strings.Repeat("b", int(id-2000))
 }
 
 // Model is the reference model of the pilot components. It implements exec.Machine.
@@ -57,6 +85,14 @@ type Model struct {
 
 	// depth
 	depth int64
+
+	// env
+	env *Scope
+	// keys holds the values of each Values handle that env.key returned; canon, the identifier that
+	// stands for them in a memo key, which equal values share.
+	keys    map[int64][]int64
+	canon   map[string]int64
+	nextKey int64
 }
 
 type slotKey struct{ rule, pos, level int64 }
@@ -104,15 +140,54 @@ type seenCounts struct {
 // New returns a model in the state at the start of a parse.
 func New(cfg Config) *Model {
 	return &Model{cfg: cfg, entries: map[memoKey]*Entry{}, at: map[int64]int{},
-		seen: map[[2]int64]bool{}, pages: map[[2]int64]bool{}, rules: make([]seenCounts, cfg.Rules)}
+		seen: map[[2]int64]bool{}, pages: map[[2]int64]bool{}, rules: make([]seenCounts, cfg.Rules),
+		env: &Scope{vals: cfg.Vars}, keys: map[int64][]int64{}, canon: map[string]int64{}}
 }
 
 // Values returns the model's Values handle for the conformance identifier id: the identifier itself.
 // Two Values are equal when their identifiers are; each stands for a single value.
 func (m *Model) Values(id int64) any { return id }
 
-func key(args []any) memoKey {
-	return memoKey{slotKey{args[0].(int64), args[1].(int64), args[2].(int64)}, args[3].(int64)}
+// key returns the key of the arguments of a memo operation. The Values handles that env.key returned
+// for equal values stand for one key.
+func (m *Model) key(args []any) memoKey {
+	vals := args[3].(int64)
+	if k, ok := m.keys[vals]; ok {
+		vals = m.canon[fmt.Sprint(k)]
+	}
+	return memoKey{slotKey{args[0].(int64), args[1].(int64), args[2].(int64)}, vals}
+}
+
+// keyCost returns what comparing the key of an entry inspects: one for each value, a string counting
+// two more for each of its bytes; a Values handle of a conformance case is one value.
+func (m *Model) keyCost(vals int64) int64 {
+	for _, k := range m.keys {
+		if m.canon[fmt.Sprint(k)] == vals {
+			n := int64(0)
+			for _, id := range k {
+				n += 1 + stringCost(id)
+			}
+			return n
+		}
+	}
+	return 1
+}
+
+// stringCost returns two for each byte of the value id if it is a string, and 0 otherwise.
+func stringCost(id int64) int64 {
+	if s, ok := Value(id).(string); ok {
+		return 2 * int64(len(s))
+	}
+	return 0
+}
+
+// envPath returns ops.QEnvPath for the variables of the model.
+func (m *Model) envPath() int64 {
+	path := int64(1)
+	for limit := 16; len(m.cfg.Vars) > limit; limit *= 16 {
+		path++
+	}
+	return path
 }
 
 // Allows reports whether a call of o with args meets its precondition in the current state.
@@ -137,6 +212,10 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return r >= 0 && r < int64(m.cfg.Rules) && pos >= 0
 	case "depth.exit":
 		return m.depth > 0
+	case "env.lookup":
+		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
+	case "env.bind":
+		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
 	}
 	return true
 }
@@ -145,19 +224,23 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 	switch name {
 	case ops.QKeyScan:
-		// Every Values of a conformance case is one value.
-		n := int64(m.at[args[1].(int64)])
-		for k := range m.held {
+		n := int64(0)
+		for k := range m.entries {
 			if k.pos == args[1].(int64) {
-				n++
+				n += 1 + m.keyCost(k.vals)
 			}
 		}
-		return 2 * n
+		for k := range m.held {
+			if k.pos == args[1].(int64) {
+				n += 1 + m.keyCost(k.vals)
+			}
+		}
+		return n
 	case ops.QPending:
 		if !m.cfg.LazyEdits {
 			return 0
 		}
-		k := key(args)
+		k := m.key(args)
 		if e := m.entries[k]; e != nil {
 			return m.edits - e.applied
 		}
@@ -193,6 +276,25 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		return int64(n)
 	case ops.QCovered:
 		return max(m.covered-m.floor, 0)
+	case ops.QVars:
+		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index]))
+	case ops.QEnvReads:
+		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index])) * m.envPath()
+	case ops.QEnvPath:
+		return m.envPath()
+	case ops.QEnvRebind:
+		if m.env.vals[args[0].(int64)] == args[1].(Datum).ID {
+			return 0
+		}
+		return m.envPath()
+	case ops.QValueCompare:
+		old, v := Value(m.env.vals[args[0].(int64)]), Value(args[1].(Datum).ID)
+		s, ok := old.(string)
+		t, ok2 := v.(string)
+		if !ok || !ok2 || len(s) != len(t) {
+			return 0
+		}
+		return 2 * int64(len(s))
 	}
 	panic("ref: unknown quantity " + name)
 }
@@ -201,13 +303,13 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 func (m *Model) Call(o *exec.Op, args []any) []any {
 	switch o.Name {
 	case "memo.lookup":
-		e := m.entries[key(args)]
+		e := m.entries[m.key(args)]
 		if e != nil {
 			e.applied = m.edits
 		}
 		return []any{e, e != nil}
 	case "memo.store":
-		return []any{m.put(&Entry{key: key(args), ok: args[4].(bool), end: args[5].(int64), silent: args[6].(bool), value: args[7], errs: args[8], applied: m.edits})}
+		return []any{m.put(&Entry{key: m.key(args), ok: args[4].(bool), end: args[5].(int64), silent: args[6].(bool), value: args[7], errs: args[8], applied: m.edits})}
 	case "memo.prune":
 		m.prune(args[0].(int64))
 		return nil
@@ -259,8 +361,40 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "depth.current":
 		return []any{m.depth}
+	case "env.lookup":
+		return []any{Datum{m.env.vals[args[0].(int64)]}}
+	case "env.bind":
+		slot, id := args[0].(int64), args[1].(Datum).ID
+		if m.env.vals[slot] != id {
+			vals := slices.Clone(m.env.vals)
+			vals[slot] = id
+			m.env = &Scope{vals: vals}
+		}
+		return nil
+	case "env.scope":
+		return []any{m.env}
+	case "env.restore":
+		m.env = args[0].(*Scope)
+		return nil
+	case "env.key":
+		return []any{m.envKey(args[0].(RuleRef))}
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
+}
+
+// envKey returns a new Values handle for the values of the variables of r; equal values make the same
+// key in the memo (key).
+func (m *Model) envKey(r RuleRef) int64 {
+	k := []int64{}
+	for _, slot := range m.cfg.RuleVars[r.Index] {
+		k = append(k, m.env.vals[slot])
+	}
+	m.nextKey--
+	m.keys[m.nextKey] = k
+	if _, ok := m.canon[fmt.Sprint(k)]; !ok {
+		m.canon[fmt.Sprint(k)] = m.nextKey
+	}
+	return m.nextKey
 }
 
 // Dead reports whether the handle h is no longer valid: an entry that memo.prune or memo.splice

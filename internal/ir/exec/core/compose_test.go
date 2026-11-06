@@ -187,7 +187,7 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		r.runs++
 		v, ok := r.body(m)
 		return []any{v, ok}
-	case "env.memoKey":
+	case "env.key":
 		return []any{int64(0)}
 	case "rec.mark":
 		return []any{int64(len(m.rec))}

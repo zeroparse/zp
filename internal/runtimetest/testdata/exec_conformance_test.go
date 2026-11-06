@@ -24,6 +24,56 @@ type rtMachine struct {
 	rules []*Rule
 	// metered reports a parse with budget controls, whose charges the suite checks.
 	metered bool
+	env     rtEnv
+}
+
+// rtEnv binds the variable environment of a parser, which the node and the typed runtime share.
+type rtEnv struct {
+	rules   []*Rule
+	nextKey int64
+}
+
+// setUp gives p the variables of cfg, through the setup of a grammar.
+func (e *rtEnv) setUp(p *Parser, cfg ref.Config) {
+	if len(cfg.Vars) == 0 {
+		p.g = &grammar{}
+		return
+	}
+	g, names, vals := &grammar{}, make([]string, len(cfg.Vars)), make([]any, len(cfg.Vars))
+	for i, id := range cfg.Vars {
+		names[i], vals[i] = fmt.Sprint("v", i), ref.Value(id)
+	}
+	for _, slots := range cfg.RuleVars {
+		r := &Rule{}
+		for _, slot := range slots {
+			r.Vars = append(r.Vars, names[slot])
+		}
+		g.rules = append(g.rules, r)
+		e.rules = append(e.rules, r)
+	}
+	g.SetVars(names, vals)
+	p.g, p.Env, p.envDepth = g, g.initEnv, g.envDepth
+}
+
+// call runs an operation of the environment, and reports false for any other.
+func (e *rtEnv) call(p *Parser, vals map[int64][]any, o *exec.Op, args []any) ([]any, bool) {
+	switch o.Name {
+	case "env.lookup":
+		return []any{p.variable(int(args[0].(int64)))}, true
+	case "env.bind":
+		p.bind(int(args[0].(int64)), args[1])
+		return nil, true
+	case "env.scope":
+		return []any{p.Env}, true
+	case "env.restore":
+		p.Env = args[0].(*Env)
+		return nil, true
+	case "env.key":
+		e.nextKey--
+		vals[e.nextKey] = p.memoEnv(args[0].(*Rule))
+		return []any{e.nextKey}, true
+	}
+	return nil, false
 }
 
 func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl {
@@ -36,6 +86,7 @@ func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl 
 	for i := range cfg.Rules {
 		m.rules = append(m.rules, &Rule{Seen: i})
 	}
+	m.env.setUp(p, cfg)
 	if controlled {
 		limit := cfg.Limit
 		if limit == 0 {
@@ -52,6 +103,10 @@ func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl 
 type meteredRT struct{ *rtMachine }
 
 func (m meteredRT) Used() uint64 { return m.p.Control.budgetUsed() }
+
+func (m *rtMachine) Datum(id int64) any { return ref.Value(id) }
+
+func (m *rtMachine) Rule(index int64) any { return m.env.rules[index] }
 
 func (m *rtMachine) Values(id int64) any {
 	if m.vals[id] == nil {
@@ -74,6 +129,9 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 		}
 	}()
 	p := m.p
+	if res, ok := m.env.call(p, m.vals, o, args); ok {
+		return res
+	}
 	i := func(k int) int { return int(args[k].(int64)) }
 	key := func() (int, int, int, []any) { return i(0), i(1), i(2), m.vals[args[3].(int64)] }
 	switch o.Name {
@@ -134,6 +192,11 @@ var (
 	// nothing between a store and the edit that follows it that would remove the entry: the cases
 	// then check which entries an edit keeps, moves and removes.
 	rtDocEditOps = []string{"memo.lookup", "memo.store", "memo.end", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
+	// rtEnvOps are the operations of the variable environment, with the memo operations that keys of
+	// the environment reach.
+	rtEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
+	// rtEnvExact are the environment operations whose charges equal their declared cost.
+	rtEnvExact = []string{"env.lookup", "env.bind"}
 )
 
 func rtSuites() []conform.Suite {
@@ -177,6 +240,21 @@ func rtSuites() []conform.Suite {
 			Ops:  ops,
 			New:  func(c ref.Config) conform.Impl { return newTypedMachine(c, controlled) },
 		})
+		ops = slices.Clone(rtEnvOps)
+		if controlled {
+			ops = append(ops, rtBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name:  fmt.Sprintf("generated Go runtime environment (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: rtEnvExact,
+			New:   func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, false, false) },
+		}, conform.Suite{
+			Name:  fmt.Sprintf("generated Go typed runtime environment (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: rtEnvExact,
+			New:   func(c ref.Config) conform.Impl { return newTypedMachine(c, controlled) },
+		})
 	}
 	return suites
 }
@@ -196,11 +274,13 @@ type typedMachine struct {
 	p    *TParser
 	doc  *typedDocumentState
 	vals map[int64][]any
+	env  rtEnv
 }
 
 func newTypedMachine(cfg ref.Config, controlled bool) conform.Impl {
 	p := &TParser{Parser: &Parser{MaxDepth: int(cfg.MaxDepth)}}
 	m := &typedMachine{p: p, doc: &typedDocumentState{meta: map[*tmemoEntry]typedDocumentMeta{}}, vals: map[int64][]any{}}
+	m.env.setUp(p.Parser, cfg)
 	if controlled {
 		limit := cfg.Limit
 		if limit == 0 {
@@ -215,6 +295,10 @@ func newTypedMachine(cfg ref.Config, controlled bool) conform.Impl {
 type meteredTyped struct{ *typedMachine }
 
 func (m meteredTyped) Used() uint64 { return m.p.Control.budgetUsed() }
+
+func (m *typedMachine) Datum(id int64) any { return ref.Value(id) }
+
+func (m *typedMachine) Rule(index int64) any { return m.env.rules[index] }
 
 func (m *typedMachine) Values(id int64) any {
 	if m.vals[id] == nil {
@@ -237,6 +321,9 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 		}
 	}()
 	p := m.p
+	if res, ok := m.env.call(p.Parser, m.vals, o, args); ok {
+		return res
+	}
 	i := func(k int) int { return int(args[k].(int64)) }
 	switch o.Name {
 	case "memo.lookup":
@@ -301,7 +388,7 @@ func conformanceFailures(s conform.Suite, seeds, n int) (fails []error, ran int)
 			limit = uint64(200 + seed)
 		}
 		rng := rand.New(rand.NewPCG(uint64(seed), 65))
-		run(conform.Random(fmt.Sprint("random_", seed), rng, s.Ops, n, ref.Config{Rules: 3 + seed%2*130, Limit: limit, MaxDepth: 4}))
+		run(conform.Random(fmt.Sprint("random_", seed), rng, s.Ops, n, ref.Config{Rules: 3 + seed%2*130, Limit: limit, MaxDepth: 4, Vars: conform.RandomVars(seed), RuleVars: conform.RandomRuleVars}))
 	}
 	return fails, ran
 }

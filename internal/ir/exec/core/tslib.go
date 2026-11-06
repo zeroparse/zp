@@ -177,7 +177,7 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("this.invoke(%s, %s)", a[0], a[1])
 		case "rule.invokePlain":
 			return fmt.Sprintf("this.invokePlainBody(%s, %s)", a[0], a[1])
-		case "env.memoKey":
+		case "env.key":
 			return "this.envValues(" + a[0] + ".vars)"
 		case "rec.mark":
 			return "this.recovered.length"
