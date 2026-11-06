@@ -726,31 +726,42 @@ move to Exec IR at once while mechanisms move one at a time.
    each costs `StreamDiagnosticLimit/bytecode/codepoints/complete` 2.8%, with the profile of the commit itself
    unchanged, and neither moving the functions nor padding them removes it.
 
-   Charges, results and `Stats` do not change. A differential run compares the hand-written and printed commits over
-   58,729 lines of outcome: five grammars on three backends, both position units, with and without a diagnostic limit,
-   on whole input and on a reader that returns one byte at a time, under the default budget, under a callback that
-   stops, and under Compute limits in steps of 101 or 509 (23,732 points) and Memory limits growing by a quarter
-   (2,321 points) until the parse succeeds; the two sides are identical. The cost declarations gain what the engine's
-   implementations do: the release and the dropped records are charged by the frames and inactive records they visit,
-   settling the errors by its 16 slots, and pruning the memo by the entries it covers as well as those it removes.
+   Charges, results and `Stats` do not change. A differential comparison of the hand-written and printed commits makes
+   26,293 runs (23,732 under Compute limits, 2,321 under Memory limits, 120 under the default budget and 120 with a
+   callback that stops): five grammars on three backends, both position units, with and without a diagnostic limit, on
+   whole input and on a reader that returns one byte at a time, with Compute limits in steps of 101 or 509 and Memory
+   limits growing by a quarter until the parse succeeds. The two sides are identical. The cost declarations bound what
+   each implementation charges: the release, at most two units for each frame of its scratch, since it scans them for
+   the frame in use and clears them again when that frame lies outside; the discard, the elements it copies and those
+   it scans for line starts, which are all that are loaded when the input is complete and nothing is discarded yet;
+   the dropped records, the inactive capacity they clear; settling the errors, its 16 slots; and pruning the memo, the
+   entries it removes and three units for each position it covers. The other operations of the compositions charge
+   nothing. A test measures the release, the discard and the settling at those values.
 
-   A long test builds 54 mutants through `-overlay`: each drops, reorders or moves one step of the printed functions,
-   of `core/stream_ops.go` or of the backends' calls, and each fails a named test. None is equivalent. The operations
-   of the window are host operations without reference models, so the tests bind their behaviour directly: a delivered
-   element stays final, the diagnosed count is forgotten, the scratch of errors stays bounded, and the order of
+   A long test builds 60 mutants through `-overlay`: each drops, reorders or moves one step of the printed functions,
+   of `core/stream_ops.go` or of the backends' calls, and each fails a named test. Four more edits are equivalent and
+   left out; the test states why. Moving the first checkpoint after the report and dropping the checkpoint before each
+   diagnostic are two of them, since each stands in for the other; one of the 60 takes both edits. The operations of
+   the window are host operations without reference models, so the tests bind their behaviour directly: a delivered
+   element stays final, the diagnosed count is forgotten, the scratch of errors stays bounded, a panic of the
+   diagnostic callback stays the caller's, a cancellation in its last call stops the element, and the order of
    discard, release, pruning and settling holds.
 
    In ten interleaved rounds against the hand-written commit, 12 of 135 engine `sec/op` rows are faster and 31 slower,
    and the geomean of all rows is 0.05% slower. `Stream`, `Incremental`, `IncrementalLong` and `Closure` rows have
    none above 1%. 21 rows are more than 1% slower, up to `Parse/CSV/bytecode/bytes` at +1.92%. All 21 are `bytes` rows
    of `Bytecode` or `BytecodeIterative`, 11 of them parses that deliver nothing, and no `codepoints` row is slower.
-   The cause is the placement of `Machine.step`, not its code. The change leaves it 64 bytes shorter and in this build
-   starts it 48 bytes into a 64-byte line. In twelve interleaved rounds of 24 of these rows, the same code padded so
+   These rows follow the layout of the binary, and the mechanism is not identified. The change leaves `Machine.step`
+   64 bytes shorter and in this build starts it 48 bytes into a 64-byte line, where the build of the hand-written
+   commit starts it at 0. In twelve interleaved rounds of 24 rows, 10 of them among the 21, the same code padded so
    that `Machine.step` starts at 0, 16 or 32 bytes has no row above 1% where the unpadded build has 7, and a geomean
-   of -0.04%, -0.05% and -0.19% over them where the unpadded build has +0.48%. The rows are accepted, since the
-   placement follows every function linked before it and does not carry over to another binary. `B/op` rises by at
-   most 0.06% and `allocs/op` by at most 0.02%. The `zp` binary grows by 240 bytes. Generated parsers run the same
-   code as before: their significant changes range from -1.59% to +0.76%.
+   of -0.04%, -0.05% and -0.19% over the 24 where the unpadded build has +0.48%. The offset of `Machine.step` alone
+   does not reproduce the effect: on one machine, in ten rounds of 12 rows, 9 of them among the other 11, with one
+   offset per build, the hand-written commit padded so that `Machine.step` starts at 48 has a geomean of +0.37%, no
+   row above 1% and `Parse/CSV/bytecode/bytes` at +0.53%; the unpadded printed commit has +1.22%, 9 rows and +2.05%;
+   and the printed commit padded to 0 has -0.30%, no row and +0.32%. The rows are accepted. Whether another binary
+   shows them is not measured. `B/op` rises by at most 0.06% and `allocs/op` by at most 0.02%. The `zp` binary grows
+   by 240 bytes. Generated parsers run the same code as before: their significant changes range from -1.59% to +0.76%.
 10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
     `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 

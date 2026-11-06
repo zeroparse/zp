@@ -176,11 +176,14 @@ them, and its tests check them.
   fix, and what it leaves in the memo and in the tables, although complete,
   changes later charges. An interruption by a limit is a function of the
   charges, and does not have this effect.
-  A stream's commit clears the inactive capacity of the trail, of the stack of
-  the bytecode backends and of the scratch of recovered errors, and charges for
-  it. That storage is not reusable across invocations: every stream parse
-  builds its own parser and machine, so the capacity follows from the appends
-  of that parse, on a given build of the backend.
+  On the backends of the engine, a stream's commit clears the inactive capacity
+  of the trail, of the stack of the bytecode backends and of the scratch of
+  recovered errors, and charges for it. That storage is not reusable across
+  invocations: every stream parse builds its own parser and machine, so the
+  capacity follows from the appends of that parse, on a given build of the
+  backend. Generated Go clears the capacity of the trail and of the scratch of
+  recovered errors without a charge, so its charges do not depend on them at
+  all, and a test keeps those operations free of charges in the Go runtime.
 
 ## Lemma 1 (Atomic Reservation)
 

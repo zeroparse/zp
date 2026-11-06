@@ -1079,7 +1079,7 @@ host op stream.release()
   writes window
   features stream
   noreturn
-  cost <= 0 + 1*stream_frames
+  cost <= 0 + 2*stream_frames
   contract:
     // Releases what the elements committed so far held: the trail, the capture frames and the node
     // chunks that no active call refers to, so that a delivered element is not kept alive through the parser.

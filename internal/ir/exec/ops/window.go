@@ -40,7 +40,7 @@ An error of the callback ends the parse unchanged.`,
 		Contract: `Discards the input before keep, when at least half of the buffer can go; later reads before keep
 are not supported. The line and column of the new base are kept.`})
 	host(&exec.Op{Name: "stream.release", Component: Win, Reads: []string{Win}, Writes: []string{Win}, Features: stream,
-		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QStreamFrames}}},
+		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 2, Quantity: QStreamFrames}}},
 		Contract: `Releases what the elements committed so far held: the trail, the capture frames and the node
 chunks that no active call refers to, so that a delivered element is not kept alive through the parser.
 The effect is memory held, which the parse result does not show.`,

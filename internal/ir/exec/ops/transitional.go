@@ -71,9 +71,13 @@ const (
 	// QEnvReads is QVars times one more than the levels of the variable environment.
 	QEnvReads = "env_reads"
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
-	// and of those before its argument that it scans for line starts for the first time.
+	// and of those it scans for line starts: every loaded element when the whole input is loaded from
+	// its first element and no table of its lines exists yet, otherwise those before its argument
+	// that no call scanned.
 	QStreamScan = "stream_scan"
-	// QStreamFrames is the number of capture frames that the scratch of the stream holds.
+	// QStreamFrames is the number of capture frames that the scratch of the stream holds. A target may
+	// visit each twice: a scan for the frame in use, which may lie outside the scratch, and a clear of
+	// those after it.
 	QStreamFrames = "stream_frames"
 	// QStreamInactive is the capacity of the trail and the inactive capacity of a target's value
 	// stack.
