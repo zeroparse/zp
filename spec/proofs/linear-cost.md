@@ -2303,7 +2303,12 @@ that the proof assumes of the cost view.
    1,260 items on all three backends. A first parse of a Document finishes at
    4,000 items under the same limit, because the default limit leaves the work
    of the memo free, so the limit does not bound this growth in a Document. The memory allocated grows with it: 75.8 MB,
-   289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
+   289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. The item counts at which
+   the default limit ends a parse (about 1,260 for a fresh parse on the closure,
+   bytecode and iterative backends; none up to 65,536 for a first parse of a Document) were
+   measured with the default limit that the code has now. The Compute per item
+   and the memory figures were measured before it and have not been measured
+   again; a fresh parse counts the same units as before. A proof of linear Compute
    for parses that recover errors needs an implementation that does not copy or
    replay these lists in proportion to their length.
 
