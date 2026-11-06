@@ -138,6 +138,10 @@ var frontendRejections = []string{
 	"type T = { A node }\n",
 	"rule a = b => 1 + nil(2)\n",
 	"rule a = b => true{}\n",
+	"rule a = \"0\"_[oO]\n",  // the lexer reads _ after a quote as a name, so [ is an index.
+	"rule a = \"x\"i[a-z]\n", // the suffix i is a name to the lexer too.
+	"rule a = \"x\"in[a]\n",
+	"rule a = 1a[a]\n",
 }
 
 func TestCanonicalFrontendRejections(t *testing.T) {
@@ -158,7 +162,8 @@ var frontendAgreements = []string{
 	"rule a = b @foo(\"\"x, k=y)\n", // an attribute argument is a whole expression: a sequence here.
 	"rule a = b @foo(\"x\" / y, \"z\"i)\n",
 	"rule a = b => nil\nrule c = d => true\n",
-	"rule a = \"!\" _|_[0-9] / x\n", // _|_ is a token, not a name
+	"rule a = \"!\" _|_[0-9] / x\n",       // _|_ is a token, not a name
+	"rule a = \"x\" [a-z] \"y\"i [0-9]\n", // a space before a class keeps it a class.
 }
 
 func TestCanonicalFrontendAgreements(t *testing.T) {

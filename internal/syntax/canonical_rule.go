@@ -189,8 +189,13 @@ func (c *canonical) bracketBefore(off int) bool {
 		if start == off-1 && start >= 2 && c.src[start-1] == '|' && c.src[start-2] == '_' {
 			return false // the token _|_
 		}
-		// A number and the suffix of a string are not names.
-		return !(c.src[start] >= '0' && c.src[start] <= '9') && (start == 0 || c.src[start-1] != '"')
+		// The lexer reads leading digits as a number and what follows them as a
+		// name, so only a run of digits is not a name. The suffix i of a string
+		// is a name to the lexer too: "x"i[a] is an index.
+		for start < off && c.src[start] >= '0' && c.src[start] <= '9' {
+			start++
+		}
+		return start < off
 	}
 	return false
 }
