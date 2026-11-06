@@ -226,7 +226,7 @@ var grammarMutants = []struct{ name, old, new string }{
 	{"atomic becomes stream", `Atomic{X: $lhs}`, `Stream{X: $lhs}`},
 	{"repeat loses its range flag", `Range: $bounds.Range}`, `Range: false}`},
 	{"top takes a name", `rule top Top = ("_" !ident_char) #atomic`, `rule top Top = ("_") #atomic`},
-	{"plus is not an operator", `infix left "+" / "-" !("-" / ">")`, `infix left "-" !("-" / ">")`},
+	{"plus is not an operator", `infix left "+" / "-" !"-"`, `infix left "-" !"-"`},
 	{"list type becomes optional", `prefix "[]" => ListType{Type: $rhs}`, `prefix "[]" => OptionalType{Type: $rhs}`},
 	{"zero is not an escape", `[ntrfvab0]`, `[ntrfvab]`},
 	{"none is not an associativity", `("left" / "right" / "none")`, `("left" / "right")`},
