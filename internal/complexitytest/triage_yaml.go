@@ -29,7 +29,7 @@ func triageYaml() []TriageGroup {
 				{Name: "folded flow scalars with empty lines", Build: func(n int) string { return "k: \"" + rep("a\n   \n  ", n) + "b\"\n" }, Sizes: doubling(500, 3), Order: Linear},
 				{Name: "sequences and mappings after long spaces", Build: list("", "k%d:"+rep(" ", 20)+"\n- a\n- b", "\n", "\n"), Sizes: doubling(200, 3), Order: Linear},
 			}},
-		{Grammar: "yaml", ID: "block-scalars", Witness: true, Rules: []string{"s_l_block_scalar"}, Pattern: `examined`,
+		{Grammar: "yaml", ID: "block-scalars", Witness: true, Rules: []string{"s_l_block_scalar", "l_nb_literal_text"}, Pattern: `examined`,
 			Shape:  "the indentation and trailing empty lines of a literal or folded block scalar, read by the chomping and keep tests and again by the lines that follow",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "block scalars with trailing empty lines", Build: list("", "k%d: |+\n  a\n"+rep(rep(" ", 6)+"\n", 3), "", ""), Sizes: doubling(200, 3), Order: Linear},
@@ -74,7 +74,7 @@ func triageYaml() []TriageGroup {
 					return b.String()
 				}, Sizes: []int{24, 48, 96}, Order: Linear},
 			}},
-		{Grammar: "yaml", ID: "stream-prefix", Rules: []string{"l_yaml_stream"}, Pattern: `contains the repetition l_comment\*`,
+		{Grammar: "yaml", ID: "stream-prefix", Rules: []string{"l_yaml_stream"}, Pattern: `contains the repetition l_comment[*+]`,
 			Shape:  "the comment lines of a document prefix against the prefixes that follow them",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "documents separated by comment lines", Build: list("", "a%d\n...\n# "+rep("c", 20)+"\n# x", "\n", "\n"), Sizes: doubling(200, 3), Order: Linear},

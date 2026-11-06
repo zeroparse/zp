@@ -87,7 +87,7 @@ func triageSmall() []TriageGroup {
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "long raw strings", Build: func(n int) string { return "r\"\"\"" + rep("a\"b", n) + "\"\"\" + r'''" + rep("b'c", n) + "'''" }, Sizes: doubling(2000, 3), Order: Linear},
 			}},
-		{Grammar: "cel", ID: "names", Witness: true, Rules: []string{"message", "name"}, Pattern: `examined`,
+		{Grammar: "cel", ID: "names", Witness: true, Rules: []string{"message", "name", "name_plain"}, Pattern: `examined`,
 			Shape:  "the dotted-name lookahead of message and a backquoted name of a selector, rescanned by a later alternative or operator part",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "long dotted names", Build: list("a", " . b", "", ""), Sizes: doubling(500, 3), Order: Linear},

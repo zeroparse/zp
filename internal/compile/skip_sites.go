@@ -1,6 +1,9 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/grammaranalysis"
+)
 
 // Skip-run sites.
 //
@@ -120,39 +123,9 @@ func skipOf(e grammar.Expr) grammar.Expr {
 }
 
 // escapingCut reports whether e has a #cut outside every choice, option, repetition and lookahead
-// in it: one that applies to the choice, option or repetition around e.
-func escapingCut(e grammar.Expr) bool {
-	switch e := e.(type) {
-	case *grammar.Cut:
-		return true
-	case *grammar.Choice, *grammar.Optional, *grammar.Repeat, *grammar.And, *grammar.Not, *grammar.Ref:
-		return false
-	case *grammar.Seq:
-		for _, it := range e.Items {
-			if escapingCut(it) {
-				return true
-			}
-		}
-		return false
-	case *grammar.Group:
-		return escapingCut(e.Expr)
-	case *grammar.InlineAction:
-		return escapingCut(e.Expr)
-	case *grammar.Atomic:
-		return escapingCut(e.Expr)
-	case *grammar.Stream:
-		return escapingCut(e.Expr)
-	case *grammar.Recovery:
-		return escapingCut(e.Expr)
-	case *grammar.Discard:
-		return escapingCut(e.Expr)
-	case *grammar.Capture:
-		return escapingCut(e.Expr)
-	case *grammar.Attributed:
-		return escapingCut(e.Expr)
-	}
-	return false
-}
+// in it: one that applies to the choice, option or repetition around e. The skip of a #recover runs
+// in the scope of the #recover, so a cut in it counts.
+func escapingCut(e grammar.Expr) bool { return grammaranalysis.HasLooseCut(e) }
 
 // readsOrBindsVariable reports whether the predicate term t reads or binds a variable.
 func readsOrBindsVariable(t grammar.Term) bool {

@@ -40,6 +40,7 @@ type source struct {
 	rule string
 	pos  grammar.Pos
 	what string
+	scan *grammar.Repeat // the repetition that is the source, if one is
 }
 
 func (s *source) String() string { return fmt.Sprintf("%s at %s", s.what, at(s.rule, s.pos)) }
@@ -106,6 +107,7 @@ type unit struct {
 	unsupported string
 
 	src   *source         // the first scanning source inside the unit itself
+	srcs  []*source       // the scanning sources that the walk found inside the unit itself
 	calls map[string]bool // the rules that the unit calls
 	inner []*unit         // the units inside it, in the same rule
 
@@ -175,14 +177,34 @@ func (k *classifier) collectCaptures(r *grammar.RuleDef) {
 }
 
 // addSource records a scanning source found in the walk.
-func (k *classifier) addSource(c wctx, pos grammar.Pos, what string) {
+func (k *classifier) addSource(c wctx, pos grammar.Pos, what string) *source {
 	s := &source{rule: c.rule, pos: pos, what: what}
-	if k.local[c.rule] == nil {
-		k.local[c.rule] = s
-	}
+	k.walked[c.rule] = append(k.walked[c.rule], s)
 	for _, u := range c.open {
+		u.srcs = append(u.srcs, s)
+	}
+	return s
+}
+
+// settleSources keeps the first of the sources that the walk found in each rule and unit, among
+// those that remain scanning sources.
+func (k *classifier) settleSources() {
+	live := func(ss []*source) *source {
+		for _, s := range ss {
+			if s.scan == nil || k.srcExprs[s.scan] {
+				return s
+			}
+		}
+		return nil
+	}
+	for r, ss := range k.walked {
+		if s := live(ss); s != nil {
+			k.local[r] = s
+		}
+	}
+	for _, u := range k.units {
 		if u.src == nil {
-			u.src = s
+			u.src = live(u.srcs)
 		}
 	}
 }
@@ -283,7 +305,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			return
 		}
 		if e.Max < 0 && !c.skipSites && !k.runSite(e) {
-			k.addSource(c, exprPos(e), "the repetition "+k.show(e))
+			k.addSource(c, exprPos(e), "the repetition "+k.show(e)).scan = e
 			k.srcExprs[e] = true
 		}
 		u := k.newUnit(unitIteration, c, e, []*cont{{items: []grammar.Expr{e.Expr}}},

@@ -31,8 +31,8 @@ func triageCue() []TriageGroup {
 			Assign: "O75", Order: Poly(2), Families: []TriageFamily{
 				{Name: "nested negations before long spaces", Build: cueField(func(n int) string { return rep("-", n) + "1" + rep(" ", n) }), Sizes: doubling(250, 3), Order: Poly(2)},
 			}},
-		{Grammar: "cue", ID: "definitions", Witness: true, Rules: []string{"hashrest"}, Pattern: `examined`,
-			Shape:  "the name of a definition #name read by the !(sp ident) lookahead of a let keyword or by a selector part that fails, and again by the label, embedding or selector part that follows",
+		{Grammar: "cue", ID: "definitions", Witness: true, Rules: []string{"idchars"}, Pattern: `examined`,
+			Shape:  "the name of an identifier or a definition #name read by the !(sp ident) lookahead of a let keyword or by a selector part that fails, and again by the label, embedding or selector part that follows",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "long definition names", Build: list("", "let L%d"+rep("x", 40)+" = #"+rep("D", 40), "\n", "\n#"+rep("D", 40)+": 1\n"), Sizes: doubling(200, 3), Order: Linear},
 				{Name: "one long definition", Build: func(n int) string { return "#" + rep("D", n) + ": 1\nlet\n" }, Sizes: doubling(2000, 3), Order: Linear},

@@ -424,8 +424,10 @@ Reported only with `-classify` (see [Classifying the parse cost](#classifying-th
 cause of a polynomial or exponential class, at the scan, binding or operation that causes it. A scan that can start
 again inside the input it examined is the most common cause: a repetition or a `#recover` skip in an alternative that
 can fail after it, when a later alternative or what follows can consume the same characters. Make the alternatives
-start differently, add a `#cut` after the part that decides, or move the scan out of the alternative. A copy of a value
-that grows with a recursion, such as `text` of a capture of the rule's own recursive call, is another cause.
+start differently, add a `#cut` after the part that decides, or move the scan out of the alternative. A scan needs none
+of this when it is a [bounded scan](../../spec/runtime/parsing.md#conditions-for-linear-cost): what stands before it
+cannot extend the characters it reads, as a quoted body after its opening quote, and its rule is memoized or reached
+through a fixed prefix. A copy of a value that grows with a recursion, such as `text` of a capture of the rule's own recursive call, is another cause.
 
 ### `case-insensitive-literal`
 

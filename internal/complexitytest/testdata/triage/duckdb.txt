@@ -1,4 +1,4 @@
-# duckdb: polynomial (degree 4), 19 witnesses, 604 reasons
+# duckdb: polynomial (degree 4), 18 witnesses, 604 reasons
 
 ## operator-tails (15) -> O75
 524:15 pm_end: the cost can grow as n^2: after the lookahead at 528:21 in rule op_star fails, what follows the lookahead &pm_end can start again inside the input that the repetition (!cut [+\-])* at 524:15 in rule pm_end examined; this repeats in the Operators Rule at 580:29 in rule expr
@@ -17,15 +17,16 @@
 545:45 op_special: the cost can grow as n^3: after the alternative at 544:40 in rule op_generic fails, the later alternative op_plain at 544:53 in rule op_generic can start again inside the input that the repetition (!cut [+\-*/<>=])* at 545:45 in rule op_special examined; it is evaluated again inside the alternative at 954:45 in rule frame_shift; this repeats in the recursion of rule frame_single
 547:14 core: the cost can grow as n^4: after an iteration of the repetition at 547:13 in rule core fails, what follows the repetition ((!cut [+\-])* !cut [*/<>=])+ can start again inside the input that the repetition (!cut [+\-])* at 547:14 in rule core examined; it is evaluated again inside the lookahead at 546:17 in rule op_plain; it is evaluated again inside the alternative at 954:45 in rule frame_shift; this repeats in the recursion of rule frame_single
 
-## strings (4) -> F97
+## strings (3) -> F97
 489:51 sq_string: the cost can grow as n^3: after an iteration of the repetition at 489:42 in rule sq_string fails, what follows the repetition (sq_cont ([^']+ / "''")* "'")* can start again inside the input that the repetition ([^']+ / "''")* at 489:51 in rule sq_string examined; it is evaluated again inside the alternative at 1727:33 in rule zone_value; this repeats in the repetition (-ws -";" -ws (-";" -ws)* s:statement)* at 1808:51 in rule main
 491:15 e_body: the cost can grow as n^3: after an iteration of the repetition at 492:37 in rule e_string fails, what follows the repetition (sq_cont e_body "'")* can start again inside the input that the repetition ([^\\']+ / "''" / "\\" ([uU] &hex4 / ... at 491:15 in rule e_body examined; it is evaluated again inside the alternative at 1727:33 in rule zone_value; this repeats in the repetition (-ws -";" -ws (-";" -ws)* s:statement)* at 1808:51 in rule main
-498:42 dq_tag: the cost can grow as n^4: after the lookahead at 496:66 in rule dollar_string fails, what follows the lookahead !dq_close can start again inside the input that the repetition [a-zA-Z_0-9\u{80}-\u{10ffff}]* at 498:42 in rule dq_tag examined; it is evaluated again inside an iteration of the repetition at 496:57 in rule dollar_string; it is evaluated again inside the alternative at 1727:33 in rule zone_value; this repeats in the repetition (-ws -";" -ws (-";" -ws)* s:statement)* at 1808:51 in rule main
 499:49 bit_string: the cost can grow as n^2: after an iteration of the repetition at 499:40 in rule bit_string fails, what follows the repetition (sq_cont [^']* "'")* can start again inside the input that the repetition [^']* at 499:49 in rule bit_string examined; this repeats in the recursion of rule primary_other
 
-## nested (604) -> F100
-454:11 ws: an iteration of the repetition at 454:11 in rule ws is not committing against what follows the repetition [\t\n\u{c}\r \u{a0}\u{2000}-\u{200b}\..., and units that are not committing are nested in it without bound through a recursion of rule calls
+## nested-comments (1) -> unassigned
 456:28 block_comment: the alternative at 456:28 in rule block_comment is not committing against the later alternative !"*/" . at 456:44 in rule block_comment, and units that are not committing are nested in it without bound through a recursion of rule calls
+
+## nested (603) -> F100
+454:11 ws: an iteration of the repetition at 454:11 in rule ws is not committing against what follows the repetition [\t\n\u{c}\r \u{a0}\u{2000}-\u{200b}\..., and units that are not committing are nested in it without bound through a recursion of rule calls
 467:43 word: the lookahead at 467:43 in rule word is not committing against what follows the lookahead !(&[nN] NULLS ws (FIRST / LAST)), and units that are not committing are nested in it without bound through a recursion of rule calls
 470:44 uquoted_ident: the option at 470:44 in rule uquoted_ident is not committing against what follows the option (ws [uU] [eE] [sS] [cC] [aA] [pP] [eE..., and units that are not committing are nested in it without bound through a recursion of rule calls
 474:37 col_id: the alternative at 474:37 in rule col_id is not committing against the later alternative !kw_not_col_id word at 474:53 in rule col_id, and units that are not committing are nested in it without bound through a recursion of rule calls

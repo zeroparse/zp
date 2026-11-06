@@ -26,7 +26,12 @@ func triageDuckdb() []TriageGroup {
 				{Name: "dollar string with inner tags", Build: sel(func(n int) string { return "$t$" + rep("$aaaa", n) + "$t$" }), Sizes: doubling(1000, 3), Order: Linear},
 				{Name: "time zone strings", Build: list("", "SET TIME ZONE '"+rep("z", 20)+"'\n'"+rep("y", 20)+"'", ";\n", ";\n"), Sizes: doubling(300, 3), Order: Linear},
 			}},
-		{Grammar: "duckdb", ID: "nested", Pattern: nestedPattern,
+		{Grammar: "duckdb", ID: "nested-comments", Rules: []string{"block_comment"}, Pattern: nestedPattern,
+			Shape:  "a block comment, which nests: a comment that is not closed fails at the end of the input, and each comment around it reads the rest of the input again through the alternative !\"*/\" .",
+			Assign: Unassigned, Order: Poly(2), Families: []TriageFamily{
+				{Name: "comments that are not closed", Build: func(n int) string { return "SELECT 1 " + rep("/*x", n) }, Sizes: doubling(100, 3), Lenient: true, Order: Poly(2)},
+			}},
+		{Grammar: "duckdb", ID: "nested", Except: []string{"block_comment"}, Pattern: nestedPattern,
 			Shape:  "units of statements, expressions, types and table references nested through the recursion of expressions, subqueries, joins and types, every call on it memoized",
 			Assign: "F100", Order: Linear, Families: []TriageFamily{
 				{Name: "nested parentheses", Build: sel(nest("(", "1", ")")), Sizes: doubling(300, 3), Order: Linear},

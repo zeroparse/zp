@@ -10,10 +10,13 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 6 is proved given the count
+Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 13 is proved for the
+[cost view](#setting) that the classifier reads, given its condition, step 9 of
+[Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
-5, which are outlines, and on Lemma 6, which is proved given step 1. Lemma 12
+5, which are outlines, on Lemma 6, which is proved given step 1, and on the
+condition of the cost view, step 9. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, in terms of what the
 Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded,
@@ -51,6 +54,15 @@ $\hat{n} = n + 1$. The parse is the memoized parse of the
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules).
 "A constant" below means a number that depends only on the grammar and the
 backend.
+
+The classifier decides the conditions on the [cost
+view](grammar-laws.md#normalization) of the rule bodies, with the memoized rules,
+the left-recursion cycles, the variables and the run sites of the grammar as
+written. The proof reads that view as the grammar: its rule bodies match what the
+written ones match, and the written grammar costs at most a constant factor more
+on every input, which is the condition of the cost view. So a bound on the parse
+of the view is a bound on the parse of the grammar. That condition is not proved:
+it is step 9 of [Open Steps](#open-steps).
 
 **Cost.** By [Cost](../runtime/parsing.md#cost), the cost of a parse is
 $C = C_{\mathrm{body}} + C_{\mathrm{in}} + C_{\mathrm{it}} + C_{\mathrm{val}}$:
@@ -249,9 +261,16 @@ evaluations.
 ## Lemma 4 (Scanned Cost)
 
 *Outline.* Under condition 2, the activations of the scanning sources of all
-body evaluations number at most a constant times $K\hat{n}$, and the scanned
-cost of all body evaluations, apart from the copying operations, which Lemma 6
-bounds, is at most a constant times the number of activations.
+body evaluations, other than the bounded scans that Lemma 13 counts, number at
+most a constant times $K\hat{n}$, and the scanned cost of all body evaluations,
+apart from the copying operations, which Lemma 6 bounds, is at most a constant
+times the number of activations, those of bounded scans included.
+
+In this proof, as in the [Setting](#setting) and Lemmas 1 and 2, a bounded scan
+is a scanning source: its iterations are activations. The conditions and the
+terms of the specification leave it out, so where this lemma says that a unit
+or an expression has no scanning source, it can hold bounded scans, whose
+activations Lemma 13 has counted wherever they occur.
 
 For the walks of a [skip-run site](../runtime/parsing.md#skip-runs) in the
 skip expression of a `#recover` that is not reused, the
@@ -424,7 +443,9 @@ a unit is committing give the following cases.
    so what follows it starts at the same position in both, and the continuation
    pays for it no more than the unit paid.
 3. *No source after the shared calls.* The input that the unit examines beyond
-   its shared calls is bounded by Lemma 1.
+   its shared calls is bounded by Lemma 1, apart from the bounded scans that it
+   evaluates there, which are no scanning sources of the conditions and whose
+   activations Lemma 13 counts, repeated or not.
 4. *Words that exclude.* The continuation fails, or stops examining, before the
    end of the word with which the unit began, which the unit examined at most
    once more, with the character after it.
@@ -1658,6 +1679,170 @@ the bound on $L$: its cost carries the factor $L + 1$, and
 [Classification](../runtime/parsing.md#classification) derives from the
 bound that the second class costs at most a constant times $K \cdot n^2$.
 
+## Lemma 13 (Bounded Scans)
+
+The activations of each [bounded
+scan](../runtime/parsing.md#conditions-for-linear-cost) number at most a
+constant times $K \hat{n}$. The proof uses Lemma 3 and the definitions: none of
+the conditions 1 to 5, and neither Lemma 4 nor Lemma 5. It is a proof for the
+cost view, and holds of the written grammar given the condition of the cost view
+(step 9 of [Open Steps](#open-steps)).
+
+Fix a set of characters $X$. For a position $p$, let $r(p)$ be the number of
+characters of $X$ directly before $p$, and let $\rho(p)$ be $-1$ when the
+character at $p$ is not in $X$ or $p$ is the end of the input, and $r(p)$
+otherwise. Every position that a parse evaluates an expression at lies on the
+one sequence of characters that decoding the input from its start gives, since
+every literal of a grammar is valid text, so $r$ and $\rho$ are well defined
+there. Consuming a character $c$ takes $p$ to $p'$ with
+$\rho(p') \le \rho(p) + 1$ when $c \in X$, and $\rho(p') \le 0$ when
+$c \notin X$: in the first case $\rho(p) = r(p)$ and $r(p') = r(p) + 1$, and in
+the second $r(p') = 0$.
+
+**Surely consumes.** Let $S(e)$ be the characters that the
+[specification](../runtime/parsing.md#conditions-for-linear-cost) says $e$ surely
+consumes, which its rules build from below. Every evaluation of $e$ at a position
+with a character of $S(e)$ next succeeds and consumes input, and no evaluation of
+an $e$ with $S(e)$ not empty fails after a cut that is loose in $e$, one that
+commits the choice, option or repetition around $e$. The proof is by induction on
+the derivation of the character, with the second claim first. A cut that is loose
+in a sequence is in the part that decides or in a part after it, since the options
+and repetitions before have none and a lookahead delimits its own; the parts after
+it always succeed, and the part that decides does not fail after its own by
+induction. The other forms pass the claim to their expression or delimit the cut.
+
+For the first claim, a terminal is immediate. A repetition with a minimum of 1
+succeeds in its first iteration by induction, and a later iteration that fails only
+stops it, by the second claim. In a choice, each alternative before the one that
+surely consumes $c$ either succeeds, and it consumes input since it cannot match
+nothing, or fails with no loose cut in it, so the next is tried. A `#recover` or
+`#missing` there can only make an alternative succeed, and what it matches then
+counts in whether the alternative can match nothing. In a sequence, the character
+is outside the first characters of each part before the one that decides, so the
+expression of an option or a repetition matches nothing or fails, at no loose cut,
+and a negative lookahead succeeds, since an expression that cannot match nothing
+fails where the next character is outside its first characters. The part that
+decides then starts at the same position, and the parts after it succeed. A call
+is its body, the same evaluation, once the three kinds of call are left out. A
+failure reaches further than the part that fails in two ways only, and the rules
+exclude both. One is a cut. The other is a call of a rule on a left-recursion
+cycle, which reads the failing seed of a growth at the position of the growth.
+A rule off every cycle cannot be in progress at the position of the call, or the
+call would close a cycle of left calls, and a predicate, a stream, a `#recover`
+and an Operators Rule surely consume nothing, so their failures and recoveries
+reach no derivation.
+
+**Transfer functions.** The analysis gives each expression $e$ a function
+$f_e(d) = \max(a, d + b)$ of the run, or a constant, and a value above 32 stands
+for no bound and stays there. These functions are closed under composition,
+pointwise maximum and iteration, and a rule takes the least fixed point of its
+body over the calls. When $e$ is evaluated at $p$ with $\rho(p) \le d$
+and succeeds at $p'$, then $\rho(p') \le f_e(d)$. The proof is by induction on the
+evaluation. A terminal is the step above, character by character: the function of
+a character is $0$ when no character of the set is in $X$, $d + 1$ when all are,
+and the maximum of both otherwise. A sequence, a choice, an option and a bounded
+repetition compose and join their parts. A repetition without an upper bound
+iterates its body. When $X$ lies in the characters on which its expression surely
+consumes input, it stops only where the next character is outside $X$ or at the
+end of the input, so $\rho(p') = -1$. A negative lookahead of such an expression
+succeeds only there. A positive lookahead of an expression that cannot match
+nothing, with first characters outside $X$, succeeds only where the character at
+$p$ is outside $X$, and $\$\$$ only at the end of the input. Other lookaheads
+leave the position. A `#recover` ends after its base or after its skip, each of
+which starts at the start of the `#recover`, and `#missing` adds the identity. An
+Operators Rule makes any number of steps, each of which is an operand, an operator
+part or the skip, and its function iterates their maximum. A call has the function
+of the rule, whose evaluation, or the evaluation that stored the memo entry that
+answers the call, is a smaller case at the same position. A growth is a sequence of
+steps, each a body evaluation from the same position in which the left call ends
+where the step before ended, so the same induction goes through each step.
+
+**Runs before an evaluation.** A forward pass starts at $\rho(0) \le 0$ and carries
+a value through each body, with the function of each part: into the expression of
+a repetition or an Operators Rule it carries the iterated function, into a
+lookahead the value before it, and into a rule the maximum over its calls. By the
+claim above and induction on the evaluations, each evaluation of a repetition
+$\sigma$ at $b$ has $\rho(b) \le d_\sigma$, the value that the pass records there,
+with $X$ the alphabet of $\sigma$. The first bound of a bounded scan says
+$d_\sigma \le 32$.
+
+**Starts.** Let $\sigma$ have the first bound. The evaluations of $\sigma$
+that reach a position $q$, by an activation at $q$ or by ending there, start in at
+most $d_\sigma + 2$ positions. An evaluation at $b < q$ that reaches $q$ consumed
+$[b, q)$ in its iterations, so those characters are in $X$. The character at $b$ is
+in $X$, so $r(b) = \rho(b) \le d_\sigma$. Let $s = q - r(q)$. Then $s \le b$, and
+$r(b) = b - s$, so $b$ is one of the $d_\sigma + 1$ positions from $s$ on. The other
+start is $q$.
+
+**Rigid expressions.** For a rigid expression $e$ there is a constant $w_e$ such
+that the evaluations of $e$ that end at a position start in at most $w_e$
+positions. $w_e$ is 1 for a lookahead or another expression that consumes
+nothing. A terminal matches a fixed text or at most one character, of at most
+four bytes. A sequence multiplies the $w$ of its parts, a choice adds them, an
+option adds 1, and a bounded repetition of at most $m$ iterations adds the powers
+of $w$ up to $m$, since each iteration is a part of a sequence. A repetition with
+the first bound has $d_\sigma + 2$ by the claim. A call has the $w$ of the body of
+its rule, which is finite because the rule is not recursive.
+
+**Evaluations at one position.** Let $E_e(p)$ be the number of evaluations of an
+occurrence $e$ at $p$. There is a constant $m$ such that
+$E_R(p) \le m K$ for every counted rule $R$ and every position $p$, and
+$E_e(p) \le m K$ for each expression $e$ that the second bound reaches. For a
+memoized rule off every left-recursion cycle, no evaluation is a growth step or
+in a context of growths, so Lemma 3 gives at most three for each variant, level
+and combination of values at $p$, at most $6 \cdot |\text{levels}| \cdot K$ in all.
+A rule that is not memoized is not recursive, so the counted rules that are not
+memoized can be ordered so that each comes after those that call it. Take such a
+rule $R$ after its callers. Its evaluations at $p$ are the evaluations of its
+calls at $p$, and one for the start rule at position 0, and each of its calls is
+an occurrence that the second bound reaches in the body of a counted rule, which
+the order or the case of a memoized rule settles. Within a body, the body has
+the bound of its rule. The parts of a choice, an option, a lookahead and the base
+and skip of a `#recover` start where the expression does, so each has the bound of
+the expression, as the first element of a sequence does. A later element of a
+sequence starts where a rigid prefix ended, in at most $w$ positions of the start
+of the sequence, and one evaluation of the sequence evaluates the element at most
+once, so its bound is $w$ times that of the sequence. The expression of a rigid
+repetition starts at $p$ in at most $w$ evaluations of the repetition by the
+definition of $w$ for the iterations before it, and in one evaluation only once,
+since its iterations that consume input start at increasing positions and the first
+that consumes nothing stops it, so its bound is $w$ times that of the repetition.
+The grammar is finite, so the largest bound is a constant.
+
+**Conclusion.** Let $\sigma$ be a bounded scan and $q$ a position. Each activation
+of $\sigma$ at $q$ is in an evaluation of $\sigma$ that reaches $q$. These start
+in at most $d_\sigma + 2$ positions, at most $m K$ of them at each, and each has
+at most one activation at $q$. So there are at most $34 m K$ activations at $q$,
+and at most $34 m K \hat{n}$ in all. The grammar has finitely many bounded scans.
+$\square$
+
+**The cost view.** The analysis, the bounds and the definitions above are of the
+view, and the claims hold of a parse of the view by the same proof: Lemma 3 reads
+which rules are memoized, which the written grammar decides, and the other claims
+read what bodies match, in the rule bodies of the view. The activations that the
+parse of the written grammar makes are then counted by the
+[cost view](grammar-laws.md#normalization), which removes an evaluation only when
+making it again costs a constant factor. That the written grammar costs at most a
+constant factor more than the view is the condition of the cost view, which step 9
+of [Open Steps](#open-steps) leaves to prove; this lemma holds of the written
+grammar given it.
+
+**What the conditions leave out.** The conditions read a grammar as if a bounded
+scan were no scanning source. This cannot lose a cost, because the lemma counts
+the activations of a bounded scan however often the units around it are evaluated
+or abandoned, and it asks nothing of them. Each other claim of this proof that an
+expression without a scanning source costs a constant, as case 3 of Lemma 4 and
+the bound on what follows a call in the fifth case do, is then a claim on its cost
+outside the bounded scans. A scanning source inside the expression of a bounded
+scan stays one: a unit that contains it contains a scanning source. Calls in an
+activation of a bounded scan are counted by Lemma 2, and the evaluations they
+start by Lemma 3, Lemma 5 and Lemma 10 as for any activation. A bounded scan is
+not in the body of a rule of a left-recursion cycle, and a rule that is not
+memoized and has one is not called from such a body, so the steps of a growth
+reach one only through a call of a memoized rule off the cycle, which Lemma 3
+counts. The lemma does not use the [run records](../runtime/parsing.md#run-sites): it
+holds for a parse that has none.
+
 ## Theorem (Linear Cost)
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
@@ -1666,16 +1851,17 @@ for a constant $c$. When no variable holds a string and every binding binds a
 literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
-The theorem rests on Lemmas 4 and 5, which are outlines, and on Lemma 6,
-which is proved given step 1 of [Open Steps](#open-steps); so the promises of
-the classes Linear and Linear Given an Environment Bound do too.
+The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
+which is proved given step 1 of [Open Steps](#open-steps), and on the condition
+of the cost view, step 9; so the promises of the classes Linear and Linear Given
+an Environment Bound do too.
 
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
 evaluation, the scanned cost of one, a call, or the walk cost. The body
 evaluations of memoized rules are at most a constant times $K \hat{n}$: by
 Lemma 3 outside the growth steps and the contexts of growths, and by Lemma 5
-for the growth steps and the evaluations in a context of growths. By Lemma 4
-the activations are at most a constant times $K \hat{n}$, and by Lemma 10 the
+for the growth steps and the evaluations in a context of growths. By Lemmas 4
+and 13 the activations are at most a constant times $K \hat{n}$, and by Lemma 10 the
 body evaluations of the other rules are at most a constant times those two
 counts plus one. By Lemma 2 the calls are at most a constant times the body
 evaluations plus the activations. By Lemma 1 each body evaluation has a local
@@ -1861,7 +2047,7 @@ that never consume input; `matchesWord` and `wordExcludes` evaluate a word
 against a continuation; and `foldDegrees` gives the degrees of a fold from its
 step matrix. `classify` runs the checks in the order `checkUnits`,
 `checkGrowth`, `checkCarriedGrowth`, `checkNesting` and `checkValues`, after
-`collect`.
+`collect` and `computeBoundedScans`.
 
 - `computeBounded`, `bounded` and `nullable` decide the expressions whose
   matches are bounded in length and those that can match nothing, which the
@@ -1870,6 +2056,10 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
   bounds, and Lemma 4 the first characters.
 - `addSource`, `computeRuleSources` and `containsSource` decide the scanning
   sources and what contains one: Lemmas 1, 2 and 4.
+- `computeBoundedScans` decides the bounded scans: `consumed` the alphabets,
+  `runAnalysis` the first bound, with `sure` for what surely consumes a
+  character, and `countedWalk` and `rigid` the second: Lemma 13. `newViewClassifier`
+  gives them the cost view that the Setting reads.
 - `reusedSkip`, `constantInput` and `costly` decide the reused skips of
   [Skip Runs](../runtime/parsing.md#skip-runs), which are no scanning
   source: Lemma 9, and Lemma 4 for the units whose only source was such a
@@ -2067,3 +2257,13 @@ The outlines leave these steps to be made precise.
    289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
    for parses that recover errors needs an implementation that does not copy or
    replay these lists in proportion to their length.
+
+9. **The condition of the cost view.** The classifier decides the conditions and
+   Lemma 13 counts on the [cost view](grammar-laws.md#normalization), and the
+   proof transfers each bound to the written grammar through one condition: on
+   every input, the parse of the written grammar costs at most a constant times
+   the parse of the view. The proof must show it for each rewrite that the view
+   applies, N1 to N12 without N7, under the further conditions that the view sets
+   on them: that a rewrite removes only evaluations that the original never makes
+   or makes again in the same state, and only cheap ones, and that N12 drops and
+   left-factors only what those conditions allow.

@@ -817,6 +817,102 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("a", n) + "c" },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// A repetition whose alphabet cannot extend what stands before it starts at one place of
+		// each run of its alphabet, and a constant number of evaluations start there: alternatives
+		// that scan the same input cost a constant number of passes, however they fail.
+		{
+			Name: "Number tokens over one digit scan", Family: "bounded scans",
+			Source: "rule main = (n ws)* $$\nrule n = double / int\nrule double = [0-9]+ \".\" [0-9]+\nrule int = [0-9]+\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return rep("1", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear, Positive: true,
+		},
+		{
+			Name: "String tokens over one quoted scan", Family: "bounded scans",
+			Source: "rule main = (s ws)* $$\nrule s = raw / str\nrule raw = \"\\\"\" [^\"\\n]* \"\\\"\" \"r\"\nrule str = \"\\\"\" ([^\"\\\\]+ / \"\\\\\" .)* \"\\\"\"\nrule ws = [ ]*\n",
+			Input:  func(n int) string { return "\"" + rep("a", n) + "\" " + rep("\"a\" ", n) },
+			Sizes:  double(1000), ShortSizes: double(250), Order: Linear, Class: ClassLinear, Positive: true,
+		},
+		{
+			Name: "Whitespace before two tokens", Family: "bounded scans",
+			Source: "rule main = (a / b)* $$\nrule a = [ ]* \"x\"\nrule b = [ ]* \"y\"\n",
+			Input:  func(n int) string { return rep(rep(" ", 40)+"y", n) },
+			Sizes:  double(100), ShortSizes: double(25), Order: Linear, Class: ClassLinear, Positive: true,
+		},
+		// The bound needs both halves. Here each start is bounded inside a run of spaces, but a
+		// call that is not memoized runs once for each level of the recursion that ends there.
+		{
+			Name: "Scan at the end of a nest", Family: "bounded scans",
+			Source: "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n",
+			Input:  func(n int) string { return rep("a", n) + "b" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// The opening delimiter is in the alphabet of the body, so a run of openers holds a start at
+		// each of its positions.
+		{
+			Name: "Scan whose alphabet holds its opener", Family: "bounded scans",
+			Source: "rule main = t* $$\nrule t = \"<\" [^>]* \">\" / \"<\"\n",
+			Input:  func(n int) string { return rep("<", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// A memo bounds the evaluations at one position, not the sum over the positions of a run:
+		// the alternative "." starts the scan at every digit, and each start scans to the end.
+		{
+			Name: "Memoized scan that each position starts", Family: "bounded scans",
+			Source: "rule main = (t \"y\" / t \"z\" / .)* $$\nrule t = d \"x\"\nrule d = [0-9]+\n",
+			Input:  func(n int) string { return rep("1", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// A choice that fails after a cut tries no later alternative, so a repetition of it can stop
+		// where the next character is one that the later alternative takes: the run is not cleared,
+		// and s starts at every position of it.
+		{
+			Name: "Scan after a repetition that a cut stops", Family: "bounded scans",
+			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Scan after a lookahead that a cut passes", Family: "bounded scans",
+			Source: "rule main = (!(\"aa\" #cut $$ / \"a\") (s \"z\")? \"a\")* \"aa\"? $$\nrule s = [a]+\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		{
+			Name: "Scan after a repetition of a rule with a cut", Family: "bounded scans",
+			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n",
+			Input:  func(n int) string { return rep("a", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// The call of t inside the growth of r reads the failing seed, so t* stops at once, whatever
+		// its rule would consume, and u scans from every position of the run.
+		{
+			Name: "Scan after a repetition of a left call", Family: "bounded scans",
+			Source: "rule main = (r / \"b\")* $$\nrule r = t* u / \"b\"\nrule t = r\nrule u = s \"x\"\nrule s = [b]*\n",
+			Input:  func(n int) string { return rep("b", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// A recovery ends after its skip, which reaches sp from every position of a run of letters.
+		{
+			Name: "Scan behind a recovery with many starts", Family: "bounded scans",
+			Source: "rule main = ((\"q\" #recover(skip=[ab]+)) sp \"!\" / [ab])* sp $$\nrule sp = [ ]*\n",
+			Input:  func(n int) string { return rep("a", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// An Operators Rule applies any number of prefix operators, so it reaches sp from every
+		// position of a run of them.
+		{
+			Name: "Scan behind an Operators Rule with many starts", Family: "bounded scans",
+			Source: "rule main = (e sp \"!\" / [-x])* sp $$\nrule e = #operators {\n    operand \"x\"\n    level neg { prefix \"-\" }\n}\nrule sp = [ ]*\n",
+			Input:  func(n int) string { return rep("-", n) + "x" + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// The run before sp is empty, but [ab]+ reaches it from every position of a run of letters.
+		{
+			Name: "Scan behind a prefix with many starts", Family: "bounded scans",
+			Source: "rule main = (w sp \"!\" / [ab])* sp $$\nrule w = [ab]+\nrule sp = [ ]*\n",
+			Input:  func(n int) string { return rep("a", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
 	}
 	return append(cs, rewriteControls()...)
 }

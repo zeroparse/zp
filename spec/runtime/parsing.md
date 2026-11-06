@@ -789,6 +789,80 @@ The conditions below use these terms.
   counts instead. An expression **contains** a scanning source when the
   source is part of it, or of the body of a rule that it calls, directly or
   indirectly.
+- A **bounded scan** is a repetition without an upper bound whose iterations at
+  any one position number a constant, however the units around it fail. It
+  costs a constant times the input in all, wherever it is evaluated, so the
+  conditions do not check it: in the conditions and the terms below, and in the
+  classes of [Classification](#classification), a scanning source is one that
+  is not a bounded scan, and the cost of a bounded scan is left out of what a
+  term says is bounded or repeated. A bounded scan needs two bounds, and neither
+  implies the other.
+
+  The **alphabet** of a repetition is the set of characters that an evaluation
+  of its expression can consume, through its calls and outside its lookaheads.
+  The first bound is on its **run**: at most 32 characters of the alphabet stand
+  directly before any position where the repetition is evaluated and the next
+  character is in the alphabet. A repetition that reaches a position has consumed
+  only characters of its alphabet since it started, so it can have started only
+  in the first positions of the longest stretch of the alphabet that ends there.
+  The classifier follows the length of the run forward through the grammar from
+  0 at the start of the input. A character outside the alphabet ends the run,
+  one in the alphabet extends it, and one that can be either extends it or ends
+  it. The run is also empty where the next character is known to be outside the
+  alphabet: after a greedy repetition of an expression that surely consumes every
+  character of the alphabet, after a negative lookahead of such an expression,
+  after a positive lookahead that cannot match nothing and whose first characters
+  are outside the alphabet, and at the end of the input. It takes every path that
+  an Operators Rule, a `#recover` or a `#missing` allows, and a repetition or an
+  Operators Rule whose body extends the run has no bound.
+
+  An expression **surely consumes** a character when every evaluation of it with
+  that character next succeeds and consumes input, whatever else the input holds.
+  The classifier knows this of a terminal of one character, of a repetition with
+  a minimum of 1 of an expression that surely consumes it, and of a choice when
+  an alternative surely consumes it and no alternative before that one can match
+  nothing or has a [cut](../language/parser-expressions.md#cut) that commits the
+  choice, a cut in the skip of a `#recover` included: an alternative that fails
+  after such a cut fails the whole choice, so the alternatives after it are not
+  tried. It knows it of a sequence when one part surely consumes it, the parts
+  after that one always succeed, and the parts before it are options, repetitions
+  with a minimum of 0 and negative lookaheads of expressions that cannot match
+  nothing, whose first characters do not hold it and whose options and repetitions
+  have no such cut. And it knows it of a call of a rule whose body surely consumes
+  it, when the rule is not on a left-recursion cycle, reads no variable and takes
+  no level: a call on a cycle can read the failing seed of a growth, however its
+  body would match.
+
+  The second bound is on its **evaluations**: the repetition stands at a
+  **counted place**. An expression stands at a counted place when it is in the
+  body of a **counted** rule, outside the skip, the operands and the operator
+  parts of Operators Rules, only **rigid** expressions come before it in that
+  body, and every repetition that encloses it there is rigid. A rule is counted
+  when it is memoized and not on a left-recursion cycle, or when it is not
+  memoized, not recursive and not on a left-recursion cycle, and every call of it
+  stands at a counted place. An expression is
+  rigid when a constant bounds the positions from which an evaluation of it can
+  end at a given position: a terminal, a lookahead, a sequence, choice or option
+  of rigid expressions, a repetition of a rigid expression with an upper bound, a
+  repetition without an upper bound that has the first bound, and a call of a rule
+  that is not recursive and whose body is rigid. A `#recover`, an attributed
+  expression, an Operators Rule and a stream are not rigid.
+
+  For example, in `main = (n ws)* $$`, `n = double / int`,
+  `double = [0-9]+ "." [0-9]+`, `int = [0-9]+`, `ws = [ ]*`, each `[0-9]+` is a
+  bounded scan, so `int` reading again what `double` read costs one more pass.
+  Memoization alone gives no such bound: it counts the evaluations at one
+  position, and a run has many positions. `[0-9]+` in `(t "y" / t "z" / .)*` with
+  `t = d "x"`, `d = [0-9]+` is memoized and quadratic, since `.` extends the run
+  and starts it at every digit. Nor does a bound on the run suffice: `sp = [ ]*`
+  in `e = "a" e (sp "!")? / "b"` is evaluated once for each level of the
+  recursion at the end of the same nest, which is quadratic on `a` n times, `b`
+  and n spaces.
+
+  The classifier decides both bounds, as it does the conditions, on the
+  [cost view](../proofs/grammar-laws.md#normalization) of the rule bodies, a rewriting that keeps
+  what they match and their cost within a constant factor, with the memoized
+  rules and the left-recursion cycles of the grammar as written.
 - A **unit** is an expression after whose failure the parser continues at the
   position where the unit started: an alternative of a choice other than the
   last, one iteration of a repetition, the expression of an option, the
@@ -935,9 +1009,11 @@ The conditions below use these terms.
   A unit is also committing for a continuation when no scanning source
   remains in it after those calls are removed: its scanning sources lie
   entirely inside the shared calls. The input that the unit examines beyond
-  the shared calls is then bounded by the other conditions, as for a unit
-  without a scanning source, and the continuation pays for the shared calls
-  no more than the unit paid, so a restart repeats no scan.
+  the shared calls, apart from what bounded scans examine, is then bounded by
+  the other conditions, as for a unit without a scanning source, and the
+  continuation pays for the shared calls no more than the unit paid, so a
+  restart repeats no scan but a bounded one, whose iterations at each position
+  are a constant however often it restarts.
   A unit is also committing for a continuation that its **words exclude**. The
   word of a path of a unit is the text with which the path begins after the
   shared calls, through groups, captures, discarded expressions `-e`,
@@ -1182,7 +1258,9 @@ necessary.
    a failure after it is a failure of an enclosing unit, which this condition
    checks in turn. The expression of a lookahead is abandoned even when it
    matches, and a growing unit and a unit of an Operators Rule are checked
-   whether or not they can fail after a source.
+   whether or not they can fail after a source. A unit whose only scanning
+   sources are bounded scans contains no scanning source in this sense: a
+   restart repeats them, and their bound counts the repetition.
 3. **Growth.** No scanning source can be evaluated, outside the left call that
    grows, at the position where a left-recursive rule grows, in its body or in
    the body of another rule of its cycle, other than inside a call, memoized

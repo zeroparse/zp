@@ -261,8 +261,9 @@ type classifier struct {
 	nestSites       map[*site]bool // the call sites whose evaluations can nest and end at one position (nestsAt)
 	retried         []retriedPart  // the operator parts after operands (addRetried)
 	units           []*unit
-	local           map[string]*source // the first scanning source in the body or action of a rule
-	ruleSrc         map[string]*source // the first scanning source that a rule contains, through calls
+	walked          map[string][]*source // the scanning sources that the walk found in each rule
+	local           map[string]*source   // the first scanning source in the body or action of a rule
+	ruleSrc         map[string]*source   // the first scanning source that a rule contains, through calls
 	follow          map[string]charset
 	growing         map[int]map[string]charset // FOLLOW without the seed reads of a cycle, by cycle
 	binds           []*binding
@@ -279,6 +280,12 @@ type classifier struct {
 	srcMemo         map[grammar.Expr]bool
 	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
+
+	scanRun     map[*grammar.Repeat]int  // the longest run before each repetition (computeBoundedScans)
+	scanCounted map[*grammar.Repeat]bool // the repetitions with a constant number of evaluations at a position
+	sureMemo    map[grammar.Expr]charset // what sureOf has found
+	sureRule    map[string]charset       // what sure has found for the body of each rule
+	rigidRule   map[string]bool          // what rigid has found for the body of each rule
 
 	trivia map[string]bool // the trivia rules among the rules asked about (isTrivia)
 	// exclOverBudget counts the comparisons of the exclusion analysis that exceeded exclBudget
@@ -307,7 +314,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*grammar.RuleDef{},
 		calls: map[string][]string{}, scc: map[string]int{}, recursive: map[string]bool{}, memo: map[string]bool{},
 		varType: map[string]string{}, nullRule: map[string]bool{}, firstRule: map[string]charset{},
-		boundedRule: map[string]bool{}, reachFrom: map[string]map[string]bool{}, local: map[string]*source{},
+		boundedRule: map[string]bool{}, reachFrom: map[string]map[string]bool{}, local: map[string]*source{}, walked: map[string][]*source{},
 		ruleSrc: map[string]*source{}, follow: map[string]charset{}, growing: map[int]map[string]charset{},
 		captures: map[string]map[string][]grammar.Expr{}, sourceIndex: map[sourceKey]*source{},
 		predicateSource: map[*grammar.Predicate]*source{}, includesMemo: map[sizeKey]bool{},
@@ -435,6 +442,8 @@ func (k *classifier) sameCycle(a, b string) bool {
 
 func (k *classifier) classify() *Complexity {
 	k.collect()
+	k.computeBoundedScans()
+	k.settleSources()
 	k.computeRuleSources()
 	k.computeFailRules()
 	k.computeFollow()

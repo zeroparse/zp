@@ -166,7 +166,7 @@ func TestDecidedUnitsTrivia(t *testing.T) {
 // trivia rules are memoized per position: the second call at a position then costs a memo access.
 func TestTriviaCheap(t *testing.T) {
 	defer restoreExclusionDefaults()
-	g, err := syntax.Parse("rule main = ws2 \"x\"\nrule ws2 = (sp)*\nrule sp = \" \"\n")
+	g, err := syntax.Parse("rule main = (ws2 \"x\" / .)* $$\nrule ws2 = (sp)*\nrule sp = \" \"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,8 +428,11 @@ func TestDecidedUnits(t *testing.T) {
 			ClassUnknown, ClassUnknown},
 		// The strict analysis decides the expression of the lookahead against what follows it, but
 		// lookahead units are left to the other ways of being committing.
-		{"a lookahead unit", "rule main = (!([a-f] id \"=\") [a-z0-9] id \"(\" / \";\")* $$\nrule id = [a-z]+\n",
+		{"a lookahead unit", "rule main = (!([a-f] id \"=\") [a-z0-9] id \"(\" / \";\" / .)* $$\nrule id = [a-z]+\n",
 			ClassPoly, ClassPoly},
+		// Without the "." the scans are bounded scans, which no unit has to commit for.
+		{"a lookahead unit over a bounded scan", "rule main = (!([a-f] id \"=\") [a-z0-9] id \"(\" / \";\")* $$\nrule id = [a-z]+\n",
+			ClassLinear, ClassLinear},
 		// Only the later alternative evaluates its lookahead, so the scan of s runs at each level
 		// of the recursion (measured in the controls "Scanning lookahead of a later alternative"
 		// and "Scanning first alternative of a later lookahead").
@@ -834,7 +837,8 @@ func TestDecidedUnitsOperand(t *testing.T) {
 // position, and returns whether all pairs part and the tag of the first pair that does not.
 func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string) {
 	t.Helper()
-	g, err := syntax.Parse("rule main = p q\n" + src)
+	// The alternatives after "." keep the scans of the rules from being bounded scans.
+	g, err := syntax.Parse("rule main = (p q / . q / .)* $$\n" + src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -918,12 +922,16 @@ func TestCutPrefixes(t *testing.T) {
 		name, src string
 		off, on   ComplexityClass
 	}{
-		{"a scan after the cut", "rule main = r* $$\nrule r = \"a\" #cut [a-z]* \"x\" / \"a\" [a-z]* \"y\"\n",
+		{"a scan after the cut", "rule main = (r / \"b\")* $$\nrule r = \"a\" #cut [a-z]* \"x\" / \"a\" [a-z]* \"y\"\n",
 			ClassPoly, ClassLinear},
+		{"a bounded scan after the cut", "rule main = r* $$\nrule r = \"a\" #cut [a-z]* \"x\" / \"a\" [a-z]* \"y\"\n",
+			ClassLinear, ClassLinear},
 		{"a scan before the cut", "rule main = (\"a\"* \"c\" #cut \"d\" / \"a\")* $$\n", ClassPoly, ClassPoly},
 		// The recursion after the cut is not inside the unit: a failure there fails the choice.
-		{"a recursion after the cut", "rule main = r $$\nrule r = \"(\" [a-z]* \"a\" #cut r \")\" / \"(\" [a-z]* \"b\" / \"x\"\n",
+		{"a recursion after the cut", "rule main = (r / .)* $$\nrule r = \"(\" [^x]* \"a\" #cut r \")\" / \"(\" [^x]* \"b\" / \"x\"\n",
 			ClassUnknown, ClassPoly},
+		{"a recursion after the cut over a bounded scan", "rule main = r $$\nrule r = \"(\" [a-z]* \"a\" #cut r \")\" / \"(\" [a-z]* \"b\" / \"x\"\n",
+			ClassLinear, ClassLinear},
 		{"a growing alternative", "rule main = e $$\nrule e = e \"+\" [a-z]* #cut \"x\" / \"a\"\n",
 			ClassLinear, ClassLinear},
 	} {

@@ -60,7 +60,7 @@ type TriageGroup struct {
 	Pattern string
 	// Shape describes what the causes have in common.
 	Shape string
-	// Assign is the item that the group is assigned to, or Inherent.
+	// Assign is the item that the group is assigned to, Unassigned, or Inherent.
 	Assign string
 	// Families are the adversarial input families derived from the witness paths of the group.
 	Families []TriageFamily
@@ -69,6 +69,9 @@ type TriageGroup struct {
 	// Budget is the recommended budget for a group whose cost is inherent.
 	Budget string
 }
+
+// Unassigned marks a group that no item takes yet.
+const Unassigned = "unassigned"
 
 // Inherent marks a group whose super-linear cost is inherent in the language that the grammar
 // accepts or in its result.

@@ -51,6 +51,12 @@ func triageTypescript() []TriageGroup {
 				}, Sizes: doubling(200, 3), Order: Linear},
 				{Name: "class members with escaped names", Build: func(n int) string { return "class C {\n" + list("", "  \\u{000063}%d = 1;", "\n", "")(n) + "\n}\n" }, Sizes: doubling(300, 3), Order: Linear},
 			}},
+		{Grammar: "typescript", ID: "literals", Witness: true, Rules: []string{"decimalInteger", "stringLiteral"}, Pattern: `examined`,
+			Shape:  "the digits of a decimal literal and the characters of a string, read again by the bigint or expression alternative that follows; a digit or a string character stands in the run before the scan, so the run has no bound",
+			Assign: Unassigned, Order: Linear, Families: []TriageFamily{
+				{Name: "a long decimal literal", Build: tsStmt(func(n int) string { return "1" + rep("0", n) }), Sizes: doubling(2000, 3), Order: Linear},
+				{Name: "a long module specifier", Build: func(n int) string { return "import x from '" + rep("m", n) + "';\n" }, Sizes: doubling(2000, 3), Order: Linear},
+			}},
 		{Grammar: "typescript", ID: "whitespace-and-templates", Witness: true, Rules: []string{"ws", "sp", "rawTemplateCharacters"}, Pattern: `examined`,
 			Shape:  "whitespace and comment scans before an export modifier, and the characters of a tagged template, read again by a later alternative",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
