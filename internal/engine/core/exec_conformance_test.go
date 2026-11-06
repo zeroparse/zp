@@ -304,6 +304,9 @@ func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 	}
 	for name, b := range variants {
 		t.Run(name, func(t *testing.T) {
+			if b.controlled && !BudgetControlsEnabled {
+				t.Skip("the reference build charges nothing, so a charge cannot exceed its bound")
+			}
 			memoOps := engineMemoOps
 			if b.document {
 				memoOps = engineDocOps
