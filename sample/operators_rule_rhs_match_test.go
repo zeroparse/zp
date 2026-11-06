@@ -45,12 +45,12 @@ func TestOperatorsRuleRHSStatus(t *testing.T) {
     level { infix left "!" }
     level { infix none "<" }
     level { infix none "=" }
-}`, "!a<a=a=a", true, matched, 8},
+}`, "!a<a=a=a", true, matched, 6},
 		{"right none frames", `rule e = #operators {
     operand "a"
     level { infix left "!" }
     level { infix right "^"; infix none "=" }
-}`, "!a^a=a=a", true, matched, 8},
+}`, "!a^a=a=a", true, matched, 6},
 		{"postfix resets none", `rule e = #operators {
     operand "a"
     level { infix left "!" }

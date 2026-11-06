@@ -198,6 +198,7 @@ type Parser struct {
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
 	Saved      []*value.Node  // captures saved across a reset in longest
 	cutFailed  bool           // a candidate of the last longest match failed after a cut
+	nudBound   int            // the binding level above which no operator can follow the last start of an expression
 }
 
 // BackendState is the state that a backend keeps beside the parser for the parse it runs, such

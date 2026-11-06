@@ -167,6 +167,13 @@ func TestOperatorsLoop(t *testing.T) {
 	postfix := func(c byte, level int) func(string) *OperatorsRuleOp {
 		return func(text string) *OperatorsRuleOp { return oprOp(grammar.Postfix, "", level, oprLit(text, c)) }
 	}
+	prefixed := func(c byte, level int, r rule) rule {
+		return func(text string) *OperatorsRule {
+			pr := r(text)
+			pr.Prefix = []*OperatorsRuleOp{oprOp(grammar.Prefix, "", level, oprLit(text, c))}
+			return pr
+		}
+	}
 	nothing := func(*Parser) (*value.Node, bool) { return nil, true }
 	empty := func(string) *OperatorsRuleOp { return oprOp(grammar.Infix, grammar.AssocLeft, 1, nothing) }
 	for _, c := range []struct {
@@ -180,7 +187,15 @@ func TestOperatorsLoop(t *testing.T) {
 		{"a right operator takes its own level on the right", "a^a^a", led(infix('^', grammar.AssocRight, 1)), 0, 5, true},
 		{"a non-associative operator does not repeat", "a=a=a", led(infix('=', grammar.AssocNone, 1)), 0, 3, true},
 		{"a postfix application clears the non-associative level", "a=a!=a", led(infix('=', grammar.AssocNone, 2), postfix('!', 1)), 0, 6, true},
-		{"an infix application clears the non-associative level", "a=a|a=a=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 9, true},
+		{"an infix application clears the non-associative level", "a=a&a=a", led(infix('=', grammar.AssocNone, 1), infix('&', grammar.AssocLeft, 1)), 0, 7, true},
+		{"a looser infix operator starts a new non-associative chain", "a=a|a=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 7, true},
+		{"a non-associative operator does not chain in the operand of a looser left infix", "a|a=a=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 5, true},
+		{"a non-associative operator does not chain in the operand of a looser right infix", "a^a=a=a", led(infix('=', grammar.AssocNone, 2), infix('^', grammar.AssocRight, 1)), 0, 5, true},
+		{"a non-associative operator does not chain in the operand of a prefix operator", "~a=a=a", prefixed('~', 1, led(infix('=', grammar.AssocNone, 2))), 0, 4, true},
+		{"a non-associative operator does not chain below a postfix operator in an operand", "a|a=a!=a", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1), postfix('!', 3)), 0, 6, true},
+		{"a postfix application lifts the bound of the infix before it", "a+a!*a", led(infix('+', grammar.AssocLeft, 1), postfix('!', 1), infix('*', grammar.AssocLeft, 2)), 0, 6, true},
+		{"a right operator bounds the operators after it below its own level", "a^a=a=a", led(infix('^', grammar.AssocRight, 1), infix('=', grammar.AssocNone, 1)), 0, 5, true},
+		{"a tighter operator whose operand fails is not retried", "a|a=", led(infix('=', grammar.AssocNone, 2), infix('|', grammar.AssocLeft, 1)), 0, 3, true},
 		{"a missing right operand ends the loop before the operator", "a+", led(infix('+', grammar.AssocLeft, 1)), 0, 1, true},
 		{"an application that consumes nothing ends the loop", "", func(string) *OperatorsRule {
 			return &OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(nothing)}, Led: []*OperatorsRuleOp{empty("")}}

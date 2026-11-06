@@ -12,6 +12,10 @@ import (
 // whose values travel with where they start (opr.buildTyped). The engine prints the forms without
 // typed values and the split forms, which stop where the iterative VM runs a line, a skip or an
 // expression, and keep their state in a record the VM holds; both come from the same builders.
+// unbounded is the binding level above which no operator follows an operand: a level above every
+// level that a rule declares, so that it bounds nothing.
+const unbounded = 1 << 30
+
 func addOperators(m *Module) {
 	rule, value := THandle(ops.Rule), THandle(ops.Value)
 	attempt, list, line := THandle(ops.Attempt), THandle(ops.Operators), THandle(ops.Line)
@@ -153,10 +157,11 @@ position, with the captures of each candidate in its frame.`
 	// The steps of the Operators Rule loop that the recursive and the split forms share. An exit ends
 	// a step: fail fails the expression, brk ends the loop with the left operand, and next goes on.
 	type exits struct{ fail, brk, next func(*Builder) }
-	// loopState names where a step of the loop reads and writes the state of the expression.
+	// loopState names where a step of the loop reads and writes the state of the expression: bound is
+	// the tightest level that may follow the start or the last operator applied.
 	type loopState struct {
-		a, m0, start, min, lastNone Expr
-		setLastNone                 func(*Builder, Expr)
+		a, m0, start, min, lastNone, bound Expr
+		setLastNone, setBound              func(*Builder, Expr)
 	}
 	// ledStep settles the match a of the loop: it ends the loop, or applies the operator, and ends the
 	// step for a postfix operator or else binds the level of the right operand to the local rmin.
@@ -170,7 +175,7 @@ position, with the captures of each candidate in its frame.`
 		})
 		op := b.Let("op", C("opr.op", a))
 		level := b.Let("level", C("opr.level", op))
-		b.If(Bin("||", Bin("<=", level, s.min), And(C("opr.nonAssoc", op), Eq(level, s.lastNone))), func(b *Builder) {
+		b.If(Bin("||", Bin("||", Bin("<=", level, s.min), Bin(">", level, s.bound)), And(C("opr.nonAssoc", op), Eq(level, s.lastNone))), func(b *Builder) {
 			b.Do("reset", s.m0)
 			x.brk(b)
 		})
@@ -178,6 +183,7 @@ position, with the captures of each candidate in its frame.`
 		b.If(C("opr.postfix", op), func(b *Builder) {
 			build(b, lhs, Null(value))
 			s.setLastNone(b, Int(-1))
+			s.setBound(b, Int(unbounded))
 			b.If(Eq(R(ops.Pos), s.start), x.brk)
 			x.next(b)
 		})
@@ -194,6 +200,14 @@ position, with the captures of each candidate in its frame.`
 		build(b, lhs, L("rhs"))
 		s.setLastNone(b, Int(-1))
 		b.If(C("opr.nonAssoc", op), func(b *Builder) { s.setLastNone(b, level) })
+		// The right operand takes every operator that binds tighter than the operator's own level, so
+		// when one that does follows, the right operand refused it (a non-associative operator
+		// there does not chain, and an operator whose right operand fails is not applied): it cannot
+		// apply to the operator and its operands as a whole either. bound is the tightest level that
+		// can still follow.
+		b.Let("rbound", level)
+		b.If(C("opr.right", op), func(b *Builder) { b.Set("rbound", Bin("-", L("rbound"), Int(1))) })
+		s.setBound(b, L("rbound"))
 		// An application that consumed no input ends the loop, as an empty iteration ends a
 		// repetition: otherwise an operator that can match empty after an operand that can
 		// loops forever.
@@ -252,13 +266,15 @@ operator) counts against the nesting limit, like the entry of a recursive rule.`
 			// evaluate the skip again at every level of a chain of prefix operators.
 			b.If(Eq(C("opr.count", L("led")), Int(0)), func(b *Builder) { b.Return(L("lhs"), BoolC(true)) })
 			b.Let("lastNone", Int(-1))
+			b.Let("bound", C("opr.nudBound"))
 			b.Loop("loop", func(b *Builder) {
 				b.Let("m0", C("frame.mark"))
 				start := b.Let("start", C("frame.markPos", L("m0")))
 				b.Do("skipTrivia", r)
 				a := b.Let("a", C("longest", L("led")))
-				s := loopState{a: a, m0: L("m0"), start: start, min: L("min"), lastNone: L("lastNone"),
-					setLastNone: func(b *Builder, x Expr) { b.Set("lastNone", x) }}
+				s := loopState{a: a, m0: L("m0"), start: start, min: L("min"), lastNone: L("lastNone"), bound: L("bound"),
+					setLastNone: func(b *Builder, x Expr) { b.Set("lastNone", x) },
+					setBound:    func(b *Builder, x Expr) { b.Set("bound", x) }}
 				x := exits{fail: func(b *Builder) { b.Return(Null(value), BoolC(false)) },
 					brk: func(b *Builder) { b.Break("loop") }, next: func(b *Builder) { b.Continue("loop") }}
 				ledStep(b, s, x, build, L("lhs"))
@@ -270,7 +286,9 @@ operator) counts against the nesting limit, like the entry of a recursive rule.`
 		expr.Doc = exprName + ` parses an operand, or a prefix application, and then applies the operators that
 follow it while they bind tighter than min: the longest operator match wins, a non-associative
 operator does not apply again at its own level, a right-associative one parses its right operand at
-one level less, and a failed right operand ends the loop before the operator unless the operator cut.`
+one level less, and a failed right operand ends the loop before the operator unless the operator cut.
+An operator that binds tighter than the last one applied, or than the prefix operator of the start,
+ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.`
 
 		nudResults := results
 		if typed {
@@ -285,6 +303,7 @@ one level less, and a failed right operand ends the loop before the operator unl
 				apply(b, a)
 				b.LetN([]string{"rhs", "rok"}, C(parseName, r, C("opr.level", C("opr.op", a))))
 				prefixRhs(b, a, L("m0"), func(b *Builder) {
+					b.Do("opr.setNudBound", C("opr.level", C("opr.op", a)))
 					if typed {
 						b.LetN([]string{"x", "xstart"}, C("opr.buildTyped", r, a, Null(value), Int(0), L("rhs")))
 						b.Return(L("x"), L("xstart"), BoolC(true))
@@ -301,6 +320,7 @@ one level less, and a failed right operand ends the loop before the operator unl
 				o := b.Let("o", C("opr.operand", r, L("i")))
 				framed(b, o, "ok")
 				operandEnd(b, L("m0"), func(b *Builder) {
+					b.Do("opr.setNudBound", Int(unbounded))
 					if typed {
 						b.Return(C("opr.lineValue", r, o, L("f"), L("v"), start), start, BoolC(true))
 						return
@@ -392,8 +412,10 @@ no operator, with false when the start fails.`, func(b *Builder) {
 application of a prefix operator to its operand rhs, whose parse reported rok: with done set it
 returns the result of the start, and otherwise the parse goes on with the operand lines.`, func(b *Builder) {
 		a := nd("a")
-		prefixRhs(b, a, nd("m0"), func(b *Builder) { b.Return(C("opr.build", r, a, Null(value), L("rhs")), BoolC(true), BoolC(true)) },
-			func(b *Builder) { b.Return(Null(value), BoolC(false), BoolC(true)) })
+		prefixRhs(b, a, nd("m0"), func(b *Builder) {
+			b.Do("opr.setNudBound", C("opr.level", C("opr.op", a)))
+			b.Return(C("opr.build", r, a, Null(value), L("rhs")), BoolC(true), BoolC(true))
+		}, func(b *Builder) { b.Return(Null(value), BoolC(false), BoolC(true)) })
 		b.Return(Null(value), BoolC(false), BoolC(false))
 	})
 	split("nudNext", []Param{P("r", rule), nudSt}, []Type{line, TBool}, `nudNext returns the next operand line of the start st,
@@ -411,6 +433,7 @@ result of the start, and otherwise the next line is tried.`, func(b *Builder) {
 		o := b.Let("o", C("opr.operand", r, nd("i")))
 		leaveLine(b, nd("prevFrame"), nd("prevCut"))
 		operandEnd(b, nd("m0"), func(b *Builder) {
+			b.Do("opr.setNudBound", Int(unbounded))
 			b.Return(C("opr.lineValue", r, o, nd("f"), L("v"), C("frame.markPos", nd("m0"))), BoolC(true), BoolC(true))
 		}, func(b *Builder) { b.Return(Null(value), BoolC(false), BoolC(true)) })
 		b.Do("oprNud.setI", st, Add(nd("i"), Int(1)))
@@ -420,8 +443,9 @@ result of the start, and otherwise the next line is tried.`, func(b *Builder) {
 	// The loop of an expression. Its steps return done with the success of the expression, whose value
 	// is the left operand in the record.
 	exprState := func() loopState {
-		return loopState{a: ex("a"), m0: ex("m0"), start: C("frame.markPos", ex("m0")), min: ex("min"), lastNone: ex("lastNone"),
-			setLastNone: func(b *Builder, x Expr) { b.Do("oprExpr.setLastNone", st, x) }}
+		return loopState{a: ex("a"), m0: ex("m0"), start: C("frame.markPos", ex("m0")), min: ex("min"), lastNone: ex("lastNone"), bound: ex("bound"),
+			setLastNone: func(b *Builder, x Expr) { b.Do("oprExpr.setLastNone", st, x) },
+			setBound:    func(b *Builder, x Expr) { b.Do("oprExpr.setBound", st, x) }}
 	}
 	exprBuild := func(b *Builder, lhs, rhs Expr) { b.Do("oprExpr.setLhs", st, C("opr.build", r, ex("a"), lhs, rhs)) }
 	split("exprStart", []Param{P("r", rule), exprSt, P("lhs", value), P("ok", TBool)}, []Type{TBool, TBool}, `exprStart takes the start
@@ -433,6 +457,7 @@ follow it.`, func(b *Builder) {
 		// evaluate the skip again at every level of a chain of prefix operators.
 		b.If(Eq(C("opr.count", C("opr.led", r)), Int(0)), func(b *Builder) { b.Return(BoolC(true), BoolC(true)) })
 		b.Do("oprExpr.setLastNone", st, Int(-1))
+		b.Do("oprExpr.setBound", st, C("opr.nudBound"))
 		b.Return(BoolC(false), BoolC(true))
 	})
 	split("exprLoop", []Param{exprSt}, nil, `exprLoop begins an iteration of the loop of the expression st; the caller

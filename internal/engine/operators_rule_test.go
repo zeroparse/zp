@@ -209,3 +209,21 @@ rule e = #operators {
 }`,
 		ok("a!!", `((lhs:(lhs:"a"@e op:"!")@e op:"!")@e)@main`))
 }
+
+// TestOperatorsRuleNoneInOperand pins that a non-associative operator does not chain in the right
+// operand of a looser operator, whatever the operator above it.
+func TestOperatorsRuleNoneInOperand(t *testing.T) {
+	t.Parallel()
+	check(t, `rule main = e $$
+rule e = #operators {
+    operand [a-z]
+    level { infix left "|" }
+    level { infix none "<" }
+}`,
+		ok("a<a", `((lhs:"a"@e op:"<" rhs:"a"@e)@e)@main`),
+		ok("a|a<a", `((lhs:"a"@e op:"|" rhs:(lhs:"a"@e op:"<" rhs:"a"@e)@e)@e)@main`),
+		fails("a<a<a", `1:4: syntax error: expected end of input, "|"`),
+		fails("a|a<a<a", `1:6: syntax error: expected end of input, "|"`),
+		ok("a|a<a|a<a", `((lhs:(lhs:"a"@e op:"|" rhs:(lhs:"a"@e op:"<" rhs:"a"@e)@e)@e op:"|" rhs:(lhs:"a"@e op:"<" rhs:"a"@e)@e)@e)@main`),
+	)
+}

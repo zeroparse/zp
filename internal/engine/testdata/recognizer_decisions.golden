@@ -1068,6 +1068,29 @@ scan	2	1
 grammar	lean,controlled	"node/direct_nested_frames"
 scan	1	3
 scan	1	8
+grammar	lean,controlled	"none-chain: below a left infix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"none-chain: below a prefix and a postfix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
+grammar	lean,controlled	"none-chain: below a right infix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"none-chain: levels of non-associative operators"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
+grammar	lean,controlled	"none-chain: with a left operator of the same level"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
 grammar	lean,controlled	"nullable minimum repetitions"
 guard	0	11	1	0	0	"\"u\""	166
 guard	0	14	1	0	0	"\"a\""	236

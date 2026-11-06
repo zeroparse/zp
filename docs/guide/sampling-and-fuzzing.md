@@ -615,10 +615,10 @@ After an already-used nonassociative operator closes its level, the stop check a
 that token: `e "<" e` with `infix none "<"` can generate `a<a<a`. Other applicable infix and postfix operators still
 prevent an early stop.
 
-Nonassociative restrictions belong to each Operators Rule invocation, including prefix and infix right operands. Returning
-from a tighter RHS restores the parent's restriction: with low `infix none "<"` and higher `infix none "="`, the
-generator can produce `a<a=a=a`, using `=` once inside `<`'s RHS and once in the enclosing frame. It still rejects
-`a=a=a`, which repeats `=` in the same frame. Explicit rule calls start their own state. Scope traversal consumes
+Nonassociative restrictions belong to each Operators Rule invocation, including prefix and infix right operands. A repeated
+nonassociative operator in a tighter RHS also closes the enclosing frames, because the enclosing infix binds more loosely:
+with low `infix none "<"` and higher `infix none "="`, the generator does not produce `a<a=a=a` (the second `=` belongs
+to neither frame), and it rejects `a=a=a`, which repeats `=` in the same frame. It can produce `a<a=a`. Explicit rule calls start their own state. Scope traversal consumes
 the generation budget; the operator-count bound remains per chain.
 
 For overlapping parts, stop checks compare all infix/postfix candidates by consumed length and declaration

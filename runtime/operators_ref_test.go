@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 	"testing"
@@ -83,7 +84,7 @@ func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 }
 func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 	pr := r.OperatorsRule
-	lhs, ok := p.refOperatorsRuleNud(r)
+	lhs, bound, ok := p.refOperatorsRuleNud(r)
 	if !ok {
 		return nil, false
 	}
@@ -102,7 +103,7 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 			}
 			break
 		}
-		if a.op.Level <= min || a.op.Assoc == "none" && a.op.Level == lastNone {
+		if a.op.Level <= min || a.op.Level > bound || a.op.Assoc == "none" && a.op.Level == lastNone {
 			p.refReset(m0)
 			break
 		}
@@ -110,6 +111,7 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if a.op.Kind == "postfix" {
 			lhs = p.operatorsRuleBuild(r, &a, lhs, nil)
 			lastNone = -1
+			bound = math.MaxInt
 			if p.Pos == m0.Pos {
 				break
 			}
@@ -132,6 +134,9 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if a.op.Assoc == "none" {
 			lastNone = a.op.Level
 		}
+		// The right operand took the operators that bind tighter than rmin: the next one that does was
+		// refused by it, and cannot apply to this application as a whole.
+		bound = rmin
 		// An application that consumed no input ends the loop, as an empty iteration ends a repetition:
 		// otherwise an operator that can match empty after an operand that can loops forever.
 		if p.Pos == m0.Pos {
@@ -140,7 +145,7 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 	}
 	return lhs, true
 }
-func (p *Parser) refOperatorsRuleNud(r *Rule) (*Node, bool) {
+func (p *Parser) refOperatorsRuleNud(r *Rule) (*Node, int, bool) {
 	pr := r.OperatorsRule
 	p.refSkipTrivia(pr)
 	m0 := p.Mark()
@@ -148,14 +153,14 @@ func (p *Parser) refOperatorsRuleNud(r *Rule) (*Node, bool) {
 		p.refApply(&a)
 		rhs, ok := p.refOperatorsRuleParse(r, a.op.Level)
 		if ok {
-			return p.operatorsRuleBuild(r, &a, nil, rhs), true
+			return p.operatorsRuleBuild(r, &a, nil, rhs), a.op.Level, true
 		}
 		if a.cut {
-			return nil, false
+			return nil, 0, false
 		}
 		p.refReset(m0)
 	} else if cutFailed {
-		return nil, false
+		return nil, 0, false
 	}
 	for _, o := range pr.Operands {
 		p.Spend()
@@ -166,14 +171,14 @@ func (p *Parser) refOperatorsRuleNud(r *Rule) (*Node, bool) {
 		cut := p.Cut
 		p.Frame, p.Cut = prevFrame, prevCut
 		if ok {
-			return p.lineResult(r, o, f, v, m0.Pos), true
+			return p.lineResult(r, o, f, v, m0.Pos), math.MaxInt, true
 		}
 		p.refReset(m0)
 		if cut {
-			return nil, false
+			return nil, 0, false
 		}
 	}
-	return nil, false
+	return nil, 0, false
 }
 
 // oprTrace is what the lines of a random Operators Rule share between the two parses of a round:

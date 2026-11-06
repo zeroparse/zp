@@ -194,6 +194,10 @@ named-level calls do not remove those operators from the entire result tree.
 If an `infix none` operator of the same level follows immediately after an `infix none` operator was applied, the loop exits (the operator is not consumed).
 `a == b == c` matches up to `a == b`, and the remaining `== c` fails in the outer context (typically at `$$`).
 
+The same holds when the first `==` is inside the right operand of a looser operator. In `a | a == a == b`, the right operand of `|` ends after `a == a`; the loop of `|` then does not accept `==`, which binds more tightly than `|`, so the expression ends after `a | a == a`. Each loop therefore keeps a bound: after an infix application, only operators that bind no more tightly than that operator (strictly more loosely for a right-associative one) may follow, and a postfix application lifts the bound because it makes a new left operand. A prefix operator passes its own level to the loop that continues after it.
+
+The bound costs one more comparison in each iteration of the loop, one more loop variable (a field of the state record in the iterative VM) and a store of the prefix level for the loop that follows an operand. Against the parent, the ns/op of the Arith rows (minimum of 12 interleaved runs of 500 ms) is +0.5% (closure, bytes), +0.2% (closure, code points), +1.6% and +0.7% (bytecode), +0.6% and -0.2% (iterative); the JSON rows, which have no Operators Rule, move by up to +1.2% in the same runs, which is the noise of the measurement. Folding the two comparisons of the level into one unsigned range check, with the bound raised to `min` once at the start of the loop, gives Arith rows within 0.6% of the parent and JSON rows between -0.4% and +1.5%, so the difference to the unfolded form is inside the noise. It would need an unsigned comparison in the Exec IR and in every printed form, and the loop keeps the two comparisons.
+
 ## Actions and Captures
 
 The following names are reserved in operator actions.

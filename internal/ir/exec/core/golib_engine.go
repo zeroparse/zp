@@ -279,6 +279,10 @@ func engineTarget() *execgo.Target {
 			return "p.cutFailed = " + a[0]
 		case "opr.cutFailed":
 			return "p.cutFailed"
+		case "opr.setNudBound":
+			return "p.nudBound = " + a[0]
+		case "opr.nudBound":
+			return "p.nudBound"
 		case "rec.none":
 			return "len(" + a[0] + ") == 0"
 		case "budget.charge":

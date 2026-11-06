@@ -3,9 +3,9 @@
 # Rewrite with: go test ./internal/gen/gogen -run Document -update
 # A run checks every entry of its scope: an entry that is missing, stale or different fails. -update replaces the
 # entries of the scope, drops stale ones and logs a summary per case. Review the diff: it is a regression freeze.
-corpus/0/../../examples/calculator/calc.zp	d21a56b62db281518604244e
+corpus/0/../../examples/calculator/calc.zp	3414ab9a12e43d589c3a855a
 corpus/0/../../examples/calculator/calc_lr.zp	92b62de081796a794d3653d8
-corpus/0/../../examples/minilang/minilang.zp	36bf684b1f8f2ea32f4eb6e2
+corpus/0/../../examples/minilang/minilang.zp	1577883e8baff7330fec6d8c
 corpus/0/../../examples/outline/outline.zp	cac2197388f78538a606faac
 corpus/0/LR cut inside optional	03c3e1a93fef00c8d8c65b36
 corpus/0/Operators Rule explicit default action	db095dc3b41fa8a7d57c8e5c
@@ -23,8 +23,8 @@ corpus/0/alias terminal action	a113f64f58d8cb9b76e68a86
 corpus/0/alias terminals in structs	828a0e78348a14dc444e966c
 corpus/0/anchors and classes	a3be26cb2f0769908a2ba31e
 corpus/0/any-character lookahead	9614770f56e1e84718a8d52e
-corpus/0/arith	7e3ac4ed1f485ffb783000c9
-corpus/0/ast	a45903afc8022dcba616e68c
+corpus/0/arith	c100f8c1218b4420bf22d55b
+corpus/0/ast	1c2b6a2c4559aa14a1a9296e
 corpus/0/attribute shape/diagnostic in a field	f3d03e2a94a8665cc528408f
 corpus/0/attribute shape/diagnostic in a repetition	5bcdd46b2ed00e27191c6a4f
 corpus/0/attribute shape/diagnostic in an alternative	c3fda37ee48c3c2b64c62d49
@@ -126,7 +126,7 @@ corpus/0/left recursion	d8d9fc51d8d9ca7af98ebd98
 corpus/0/left recursion in recovery skip	aca5bc62c6e0b2da8a34bb4d
 corpus/0/len of nodes and strings	78163ff0f0be6831dbdbcdab
 corpus/0/line choice of rules	5f6f256df832b18e4e2a0e87
-corpus/0/line choice with captures and skip	479db67c2dfb7d3bb4ee0028
+corpus/0/line choice with captures and skip	7309838f26392ebe57b05da8
 corpus/0/line start	8c2ce43c5a80c8f93664d811
 corpus/0/line start in a leader	fd726014a116e7667d4ce417
 corpus/0/line start in a member	d054a8b94229c45e383ad3de
@@ -158,6 +158,11 @@ corpus/0/nil allocating action	567877260a046b74df075b05
 corpus/0/node/direct_expectations	7311507aeb6a8dd02208e0d4
 corpus/0/node/direct_memo_action	53ee8c2c82c663c706bd27f1
 corpus/0/node/direct_nested_frames	e651ec84762af45eadb7393e
+corpus/0/none-chain: below a left infix	631ea8c508b71ef033966890
+corpus/0/none-chain: below a prefix and a postfix	3bed13113a4cad7506f9dcae
+corpus/0/none-chain: below a right infix	59156ddf5c74642670f02cd4
+corpus/0/none-chain: levels of non-associative operators	b2045c409503a2fe85978951
+corpus/0/none-chain: with a left operator of the same level	58cd09a4d405c555dfa61cf7
 corpus/0/nullable minimum repetitions	49ca5b43d085d10110f80cc4
 corpus/0/operatorsRule infix action variables	9d694e89e96b6149798b65ed
 corpus/0/operatorsRule operand action	27a2b5f03b52a9ebfcdc961a
@@ -189,7 +194,7 @@ corpus/0/recovery whose skip fails after consuming	45a77a48c4af212bcd8a8b15
 corpus/0/recovery with a far failing choice	113ce9d0a61d8d834ae510c2
 corpus/0/recovery with a zero-consumption skip	902d7a201aefb09cd631c4e3
 corpus/0/restricted OperatorsRule prefix memo	da60bc4a26eea5ffc3e58aff
-corpus/0/restricted OperatorsRule prefixes	a9c13f2b71751540f299cf5b
+corpus/0/restricted OperatorsRule prefixes	0b6e90ac3c5957446a708ba8
 corpus/0/rule action variables	e7d33081854c0b71ad023bd7
 corpus/0/runtime error	340ba39fbdd39bdee2bcdfb6
 corpus/0/scans	6be1af9591770a54e7708296
@@ -217,7 +222,7 @@ corpus/0/testdata/typed/fields.zp	81f0490c08c2d1d194faebac
 corpus/0/testdata/typed/mix.zp	887da24b268131b95b939df2
 corpus/0/testdata/typed/mixf.zp	8b3abdddbcda3f973e62ac99
 corpus/0/testdata/typed/operators_rule1.zp	6cc6ff2443edb6430742cea2
-corpus/0/testdata/typed/operators_rule1f.zp	7ec25623614b659e57da538f
+corpus/0/testdata/typed/operators_rule1f.zp	6bc26be7eabe20c7837a77bd
 corpus/0/testdata/typed/order.zp	61e2f234ca3dec4deff850c0
 corpus/0/testdata/typed/proj1.zp	a831bf717ee2fdde4171dd9b
 corpus/0/testdata/typed/proj2.zp	b06236eaf6af81a866d2a6fd
@@ -257,7 +262,7 @@ corpus/0/typed/LR_projected_repeat	39a026d2f2268b26cef509c1
 corpus/0/typed/LR_recovery	5415cc2d4094ba220b2810c4
 corpus/0/typed/LR_rollback_environment	3b945543296d2d21b604927b
 corpus/0/typed/LR_unreachable_capture	89f5e28967a765a7ac16bce8
-corpus/0/typed/OperatorsRule_associativity	c56925fa6033b07591a86a82
+corpus/0/typed/OperatorsRule_associativity	8aa78db3ab919e4eb1347f55
 corpus/0/typed/OperatorsRule_dead_capture_order	0968bdb8b87c2b90ef887f83
 corpus/0/typed/OperatorsRule_dead_element_predicate	9c1bf8b7d0d3997e1288bb59
 corpus/0/typed/OperatorsRule_dead_lookahead_capture	8b885472bbd27435803d51db
@@ -359,9 +364,9 @@ corpus/0/wide scan minimum 9223372036854775807	3cdcb63140a6418b6190f5c4
 corpus/0/wide unbounded minimum 2147483648	dc22f98e217c2a4badad7964
 corpus/0/wide unbounded minimum 4294967296	dc22f98e217c2a4badad7964
 corpus/0/wide unbounded minimum 9223372036854775807	dc22f98e217c2a4badad7964
-corpus/1/../../examples/calculator/calc.zp	d21a56b62db281518604244e
+corpus/1/../../examples/calculator/calc.zp	3414ab9a12e43d589c3a855a
 corpus/1/../../examples/calculator/calc_lr.zp	92b62de081796a794d3653d8
-corpus/1/../../examples/minilang/minilang.zp	36bf684b1f8f2ea32f4eb6e2
+corpus/1/../../examples/minilang/minilang.zp	1577883e8baff7330fec6d8c
 corpus/1/../../examples/outline/outline.zp	cac2197388f78538a606faac
 corpus/1/LR cut inside optional	03c3e1a93fef00c8d8c65b36
 corpus/1/Operators Rule explicit default action	db095dc3b41fa8a7d57c8e5c
@@ -379,8 +384,8 @@ corpus/1/alias terminal action	a113f64f58d8cb9b76e68a86
 corpus/1/alias terminals in structs	828a0e78348a14dc444e966c
 corpus/1/anchors and classes	a3be26cb2f0769908a2ba31e
 corpus/1/any-character lookahead	9614770f56e1e84718a8d52e
-corpus/1/arith	7e3ac4ed1f485ffb783000c9
-corpus/1/ast	a45903afc8022dcba616e68c
+corpus/1/arith	c100f8c1218b4420bf22d55b
+corpus/1/ast	1c2b6a2c4559aa14a1a9296e
 corpus/1/attribute shape/diagnostic in a field	f3d03e2a94a8665cc528408f
 corpus/1/attribute shape/diagnostic in a repetition	5bcdd46b2ed00e27191c6a4f
 corpus/1/attribute shape/diagnostic in an alternative	c3fda37ee48c3c2b64c62d49
@@ -482,7 +487,7 @@ corpus/1/left recursion	d8d9fc51d8d9ca7af98ebd98
 corpus/1/left recursion in recovery skip	aca5bc62c6e0b2da8a34bb4d
 corpus/1/len of nodes and strings	78163ff0f0be6831dbdbcdab
 corpus/1/line choice of rules	5f6f256df832b18e4e2a0e87
-corpus/1/line choice with captures and skip	479db67c2dfb7d3bb4ee0028
+corpus/1/line choice with captures and skip	7309838f26392ebe57b05da8
 corpus/1/line start	8c2ce43c5a80c8f93664d811
 corpus/1/line start in a leader	fd726014a116e7667d4ce417
 corpus/1/line start in a member	d054a8b94229c45e383ad3de
@@ -514,6 +519,11 @@ corpus/1/nil allocating action	567877260a046b74df075b05
 corpus/1/node/direct_expectations	7311507aeb6a8dd02208e0d4
 corpus/1/node/direct_memo_action	53ee8c2c82c663c706bd27f1
 corpus/1/node/direct_nested_frames	e651ec84762af45eadb7393e
+corpus/1/none-chain: below a left infix	631ea8c508b71ef033966890
+corpus/1/none-chain: below a prefix and a postfix	3bed13113a4cad7506f9dcae
+corpus/1/none-chain: below a right infix	59156ddf5c74642670f02cd4
+corpus/1/none-chain: levels of non-associative operators	b2045c409503a2fe85978951
+corpus/1/none-chain: with a left operator of the same level	58cd09a4d405c555dfa61cf7
 corpus/1/nullable minimum repetitions	49ca5b43d085d10110f80cc4
 corpus/1/operatorsRule infix action variables	9d694e89e96b6149798b65ed
 corpus/1/operatorsRule operand action	27a2b5f03b52a9ebfcdc961a
@@ -545,7 +555,7 @@ corpus/1/recovery whose skip fails after consuming	45a77a48c4af212bcd8a8b15
 corpus/1/recovery with a far failing choice	113ce9d0a61d8d834ae510c2
 corpus/1/recovery with a zero-consumption skip	902d7a201aefb09cd631c4e3
 corpus/1/restricted OperatorsRule prefix memo	da60bc4a26eea5ffc3e58aff
-corpus/1/restricted OperatorsRule prefixes	a9c13f2b71751540f299cf5b
+corpus/1/restricted OperatorsRule prefixes	0b6e90ac3c5957446a708ba8
 corpus/1/rule action variables	e7d33081854c0b71ad023bd7
 corpus/1/runtime error	340ba39fbdd39bdee2bcdfb6
 corpus/1/scans	6be1af9591770a54e7708296
@@ -573,7 +583,7 @@ corpus/1/testdata/typed/fields.zp	81f0490c08c2d1d194faebac
 corpus/1/testdata/typed/mix.zp	887da24b268131b95b939df2
 corpus/1/testdata/typed/mixf.zp	8b3abdddbcda3f973e62ac99
 corpus/1/testdata/typed/operators_rule1.zp	6cc6ff2443edb6430742cea2
-corpus/1/testdata/typed/operators_rule1f.zp	7ec25623614b659e57da538f
+corpus/1/testdata/typed/operators_rule1f.zp	6bc26be7eabe20c7837a77bd
 corpus/1/testdata/typed/order.zp	61e2f234ca3dec4deff850c0
 corpus/1/testdata/typed/proj1.zp	a831bf717ee2fdde4171dd9b
 corpus/1/testdata/typed/proj2.zp	b06236eaf6af81a866d2a6fd
@@ -613,7 +623,7 @@ corpus/1/typed/LR_projected_repeat	39a026d2f2268b26cef509c1
 corpus/1/typed/LR_recovery	5415cc2d4094ba220b2810c4
 corpus/1/typed/LR_rollback_environment	3b945543296d2d21b604927b
 corpus/1/typed/LR_unreachable_capture	89f5e28967a765a7ac16bce8
-corpus/1/typed/OperatorsRule_associativity	c56925fa6033b07591a86a82
+corpus/1/typed/OperatorsRule_associativity	8aa78db3ab919e4eb1347f55
 corpus/1/typed/OperatorsRule_dead_capture_order	0968bdb8b87c2b90ef887f83
 corpus/1/typed/OperatorsRule_dead_element_predicate	9c1bf8b7d0d3997e1288bb59
 corpus/1/typed/OperatorsRule_dead_lookahead_capture	8b885472bbd27435803d51db
@@ -721,7 +731,7 @@ grammars/0/cue	67ed88b8302bfb6b96459f54
 grammars/0/duckdb	19a0aa5d36c04499eb116e38
 grammars/0/golang	b4a222390c70601f3252bfdd
 grammars/0/json	4fcb27ce149747ef0b9be3d6
-grammars/0/python	7cc7940462f4e089a066c90e
+grammars/0/python	14fd568c472a90fc1a07959b
 grammars/0/typescript	3a279817dafdc3d91a93685b
 grammars/0/xml	dfaec6a867340a70d5bd5331
 grammars/0/yaml	e839d4a33995707cc1d4e34d
@@ -731,7 +741,7 @@ grammars/1/cue	67ed88b8302bfb6b96459f54
 grammars/1/duckdb	19a0aa5d36c04499eb116e38
 grammars/1/golang	b4a222390c70601f3252bfdd
 grammars/1/json	4fcb27ce149747ef0b9be3d6
-grammars/1/python	7cc7940462f4e089a066c90e
+grammars/1/python	14fd568c472a90fc1a07959b
 grammars/1/typescript	3a279817dafdc3d91a93685b
 grammars/1/xml	dfaec6a867340a70d5bd5331
 grammars/1/yaml	e839d4a33995707cc1d4e34d

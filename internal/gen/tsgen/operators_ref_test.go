@@ -219,6 +219,9 @@ function refOperatorsRuleParse(p: Parser, r: Rule, min: number): R {
   p.depth--;
   return v;
 }
+// refNudBound is the binding level above which no operator can follow the start that the last
+// refOperatorsRuleNud parsed.
+let refNudBound = Infinity;
 function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
   const pr = r.operatorsRule as OperatorsRule;
   let lhs = refOperatorsRuleNud(p, r);
@@ -229,6 +232,7 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
     return lhs;
   }
   let lastNone = -1;
+  let bound = refNudBound;
   for (;;) {
     const m0pos = p.pos;
     const m0env = p.env;
@@ -244,7 +248,7 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
       }
       break;
     }
-    if (a.op.level <= min || (a.op.assoc === "none" && a.op.level === lastNone)) {
+    if (a.op.level <= min || a.op.level > bound || (a.op.assoc === "none" && a.op.level === lastNone)) {
       refReset(p, m0pos, m0env, m0trail, m0rec);
       break;
     }
@@ -252,6 +256,7 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
     if (a.op.kind === "postfix") {
       lhs = p.operatorsRuleBuild(r, a, lhs, null);
       lastNone = -1;
+      bound = Infinity;
       if (p.pos === m0pos) {
         break;
       }
@@ -274,6 +279,9 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
     if (a.op.assoc === "none") {
       lastNone = a.op.level;
     }
+    // The right operand took the operators that bind tighter than rmin: the next one that does
+    // was refused by it, and cannot apply to this application as a whole.
+    bound = rmin;
     // An application that consumed no input ends the loop, as an empty iteration ends a
     // repetition: otherwise an operator that can match empty after an operand that can loops
     // forever.
@@ -295,6 +303,7 @@ function refOperatorsRuleNud(p: Parser, r: Rule): R {
     refApply(p, a);
     const rhs = refOperatorsRuleParse(p, r, a.op.level);
     if (rhs !== undefined) {
+      refNudBound = a.op.level;
       return p.operatorsRuleBuild(r, a, null, rhs);
     }
     if (a.cut) {
@@ -316,6 +325,7 @@ function refOperatorsRuleNud(p: Parser, r: Rule): R {
     p.frame = prevFrame;
     p.cut = prevCut;
     if (v !== undefined) {
+      refNudBound = Infinity;
       return p.lineResult(r, o, f, v, m0pos);
     }
     refReset(p, m0pos, m0env, m0trail, m0rec);

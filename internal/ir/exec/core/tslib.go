@@ -158,6 +158,10 @@ var tsTarget = &exects.Target{
 			return "this.cutFailed = " + a[0]
 		case "opr.cutFailed":
 			return "this.cutFailed"
+		case "opr.setNudBound":
+			return "this.nudBound = " + a[0]
+		case "opr.nudBound":
+			return "this.nudBound"
 		case "budget.charge":
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "this.spend()"

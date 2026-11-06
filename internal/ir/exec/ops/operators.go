@@ -203,6 +203,10 @@ the errors outside the missing-token mode.`})
 		Writes: []string{Opr}, Contract: `Records whether a candidate of the longest match failed after a cut.`})
 	add(&exec.Op{Name: "opr.cutFailed", Component: Opr, Results: []exec.Type{exec.TBool}, Reads: []string{Opr},
 		Contract: `Reports what the last opr.setCutFailed recorded.`})
+	add(&exec.Op{Name: "opr.setNudBound", Component: Opr, Params: []exec.Param{exec.P("bound", exec.TInt)},
+		Writes: []string{Opr}, Contract: `Records the binding level above which no operator can follow the start of an expression.`})
+	add(&exec.Op{Name: "opr.nudBound", Component: Opr, Results: []exec.Type{exec.TInt}, Reads: []string{Opr},
+		Contract: `Returns what the last opr.setNudBound recorded.`})
 
 	// The records of the split forms of the loop, which their caller holds between two steps.
 	field := func(n string, t exec.Type) splitField { return splitField{n, t} }
@@ -216,7 +220,7 @@ the errors outside the missing-token mode.`})
 		{"oprNud", NudState, "The record of the suspended start of an expression.", append([]splitField{field("m0", mark), field("a", attempt),
 			field("i", exec.TInt)}, lines...)},
 		{"oprExpr", ExprState, "The record of the suspended loop of an expression.", []splitField{field("min", exec.TInt), field("lhs", value),
-			field("lastNone", exec.TInt), field("m0", mark), field("a", attempt)}},
+			field("lastNone", exec.TInt), field("bound", exec.TInt), field("m0", mark), field("a", attempt)}},
 	} {
 		st := exec.P("st", m.AddHandle(rec.handle, Suspended, rec.doc))
 		for _, f := range rec.fields {

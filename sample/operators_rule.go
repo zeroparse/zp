@@ -35,16 +35,21 @@ func newOperatorsRuleScope(minLevel, lastNone int, parent *operatorsRuleScope) *
 	return &operatorsRuleScope{minLevel: minLevel, lastNone: lastNone, minimum: minimum, parent: parent}
 }
 
-// owner returns the innermost frame that can consume the selected operator. Disabled or repeated
-// none operators return from inner frames before the parent considers that same winning part.
-// Every visited frame costs work; incomplete means the caller must not infer an owner or rejection.
+// owner returns the innermost frame that can consume the selected operator. A frame whose level
+// bound is above the operator passes it to its parent. A repeated none operator returns from its
+// frame and from every frame around it, because it would apply to an expression that holds the
+// application of the first, which the parser does not allow. Every visited frame costs work;
+// incomplete means the caller must not infer an owner or rejection.
 func (s *operatorsRuleScope) owner(o operatorsRuleOp, budget int) (owner *operatorsRuleScope, work int, complete bool) {
 	for f := s; f != nil; f = f.parent {
 		work++
 		if work > budget {
 			return nil, work, false
 		}
-		if o.level >= f.minLevel && !(o.op.Kind == grammar.Infix && o.op.Assoc == grammar.AssocNone && f.lastNone == o.level) {
+		if o.level >= f.minLevel {
+			if o.op.Kind == grammar.Infix && o.op.Assoc == grammar.AssocNone && f.lastNone == o.level {
+				return nil, work, true
+			}
 			return f, work, true
 		}
 	}
@@ -215,7 +220,8 @@ func (g *gen) operatorsRuleOperand(pr *grammar.OperatorsRule, k thunk) bool {
 }
 
 // operatorsRuleTail emits a tail with a global per-chain operator count. Inner RHS frames are popped only
-// when the selected operator belongs to a parent; that parent's lastNone survives the nested RHS.
+// when the selected operator belongs to a parent; that parent's lastNone survives the nested RHS, but
+// it blocks only the operator's own frame.
 func (g *gen) operatorsRuleTail(ri *ruleInfo, count int, scope *operatorsRuleScope, k thunk) bool {
 	pr := ri.operatorsRule
 	s0 := g.steps

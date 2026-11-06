@@ -75,8 +75,8 @@ rule e = #operators {
 			t.Fatal("nested scope changed parent none restriction")
 		}
 		st, _ = m.runOperatorsRuleStop(saved, []byte("=a"), 0, true)
-		if st != matched {
-			t.Fatal("nested none should return to an accepting parent")
+		if st != failed {
+			t.Fatal("nested none should not return to a parent that holds its application")
 		}
 	}
 	if len(ri.stops) != 1 {

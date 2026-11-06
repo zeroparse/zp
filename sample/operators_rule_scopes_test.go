@@ -24,25 +24,25 @@ func TestSampleOperatorsRuleRHSScope(t *testing.T) {
 		name, body, rules, input string
 		valid                    bool
 	}{
-		{"nested then enclosing", "e", scopeNoneLevels, "a<a=a=a", true},
+		{"nested then enclosing", "e", scopeNoneLevels, "a<a=a=a", false},
 		{"short control", "e", scopeNoneLevels, "a<a=a", true},
-		{"three levels", "e", scopeNoneLevels[:len(scopeNoneLevels)-1] + ` level { infix none ":" } }`, "a<a=a:a:a", true},
+		{"three levels", "e", scopeNoneLevels[:len(scopeNoneLevels)-1] + ` level { infix none ":" } }`, "a<a=a:a:a", false},
 		{"prefix RHS", "e", `rule e = #operators {
     operand "a"
     level { prefix "~"; infix none "<" }
     level { infix none "=" }
-}`, "~a=a=a", true},
+}`, "~a=a=a", false},
 		{"nested prefixes", "e", `rule e = #operators {
     operand "a"
     level { prefix "~" }
     level { prefix "@" }
     level { infix none ":" }
-}`, "~@a:a:a:a", true},
+}`, "~@a:a:a:a", false},
 		{"restricted prefix", "level(e, tight)", `rule e = #operators {
     operand "a"
     level { prefix "~"; infix none "<" }
     level tight { infix none "=" }
-}`, "~a=a=a", true},
+}`, "~a=a=a", false},
 		{"explicit inner call", "e", `rule e = #operators {
     operand "(" inner ")" / "a"
     level { infix none "<" }
@@ -52,7 +52,7 @@ rule inner = e`, "a<a=(a=a)", true},
 		{"right RHS same level", "e", `rule e = #operators {
     operand "a"
     level { infix right "^"; infix none "=" }
-}`, "a^a=a=a", true},
+}`, "a^a=a=a", false},
 		{"left resets same frame", "e", `rule e = #operators {
     operand "a"
     level { infix none "="; infix left "+" }
@@ -76,15 +76,15 @@ rule inner = e`, "a<a=(a=a)", true},
     operand "a"
     level { infix none "<" }
     level { infix none "="; postfix "!" }
-}`, "a<a=a=a!=a", true},
+}`, "a<a=a!=a", true},
 		{"caller boundary", `e "=" e`, scopeNoneLevels, "a=a=a", true},
 		{"Unicode trivia", "e", `rule e = #operators {
     skip " "*
     operand "α"
     level { infix none "<" }
     level { infix none "=" }
-}`, " α < α = α = α", true},
-		{"past64 levels", "e", `rule e = #operators { operand "a"; ` + strings.Repeat("level {}; ", 69) + `level { infix none "<" }; level { infix none "=" } }`, "a<a=a=a", true},
+}`, " α < α = α = α", false},
+		{"past64 levels", "e", `rule e = #operators { operand "a"; ` + strings.Repeat("level {}; ", 69) + `level { infix none "<" }; level { infix none "=" } }`, "a<a=a=a", false},
 		{"nested repeated root none", "e", scopeNoneLevels, "a<a=a=a=a", false},
 		{"standalone none", "e", scopeNoneLevels, "a=a=a", false},
 		{"three level repeated", "e", scopeNoneLevels[:len(scopeNoneLevels)-1] + ` level { infix none ":" } }`, "a:a:a", false},
@@ -142,7 +142,12 @@ rule inner = e`, "a<a=(a=a=a)", false},
 }
 
 func TestSampleOperatorsRuleScopesLimits(t *testing.T) {
-	p := compile(t, `rule main = &("a<a=a=a" $$) e $$`+"\n"+scopeNoneLevels)
+	p := compile(t, `rule main = &("a<a=a~a" $$) e $$`+"\n"+`rule e = #operators {
+    operand "a"
+    level { infix none "<" }
+    level { infix none "=" }
+    level { infix none "~" }
+}`)
 	for _, opts := range [][]sample.Option{
 		{sample.WithBudget(1)}, {sample.WithMaxRepeat(2)},
 	} {
@@ -159,7 +164,7 @@ func TestSampleOperatorsRuleScopesLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if x, err := g.Generate(1); err != nil || !slices.Equal(x, []string{"a<a=a=a"}) {
+	if x, err := g.Generate(1); err != nil || !slices.Equal(x, []string{"a<a=a~a"}) {
 		t.Fatalf("soft limits: %q %v", x, err)
 	}
 }

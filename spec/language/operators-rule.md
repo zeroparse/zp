@@ -157,6 +157,11 @@ infix left _ // application    f x (empty operator part)
 - **Prefix operators.** A prefix operator at the start of an operand position is
   not restricted by binding levels: `2 ** -1` parses even though `**` binds more
   tightly than the prefix `-`.
+- **Non-associative operators.** After an `infix none` operator is applied, an
+  `infix none` operator of the same level does not apply to its result, whether
+  the first one is at the top of the expression or inside the right operand of
+  a looser operator: `a | b < c < d` ends after `a | b < c`, as `b < c < d`
+  does.
 - **Operator selection.** At each position, the parser selects, among the
   operator parts that match there, **the one with the longest match**; among
   matches of equal length, the operator declared first wins. The operator is

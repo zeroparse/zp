@@ -23,6 +23,8 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*value.Node, bool) {
 // follow it while they bind tighter than min: the longest operator match wins, a non-associative
 // operator does not apply again at its own level, a right-associative one parses its right operand at
 // one level less, and a failed right operand ends the loop before the operator unless the operator cut.
+// An operator that binds tighter than the last one applied, or than the prefix operator of the start,
+// ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget, missing.
 func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
@@ -35,6 +37,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		return lhs, true
 	}
 	lastNone := -1
+	bound := p.nudBound
 	for {
 		m0 := p.Mark()
 		start := m0.Pos
@@ -50,7 +53,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		}
 		op := a.Op
 		level := op.Level
-		if level <= min || (op.Assoc == grammar.AssocNone) && level == lastNone {
+		if level <= min || level > bound || (op.Assoc == grammar.AssocNone) && level == lastNone {
 			p.Reset(m0)
 			break
 		}
@@ -62,6 +65,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		if op.Kind == grammar.Postfix {
 			lhs = p.OperatorsRuleBuild(r, &a, lhs, nil)
 			lastNone = -1
+			bound = 1073741824
 			if p.Pos == start {
 				break
 			}
@@ -84,6 +88,11 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		if op.Assoc == grammar.AssocNone {
 			lastNone = level
 		}
+		rbound := level
+		if op.Assoc == grammar.AssocRight {
+			rbound--
+		}
+		bound = rbound
 		if p.Pos == start {
 			break
 		}
@@ -110,6 +119,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*value.Node, bool) {
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.Op.Level)
 		if rok {
+			p.nudBound = a.Op.Level
 			return p.OperatorsRuleBuild(r, &a, nil, rhs), true
 		}
 		if a.Cut {
@@ -132,6 +142,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*value.Node, bool) {
 		p.Frame = prevFrame
 		p.Cut = prevCut
 		if ok {
+			p.nudBound = 1073741824
 			return p.LineResult(r, o, f, v, start, nil), true
 		}
 		p.Reset(m0)
@@ -357,6 +368,7 @@ func (p *Parser) NudPrefix(r *Rule, st *NudState) (int, bool) {
 // Printed from Exec IR function nudRhs of internal/ir/exec/core, specialized for budget, missing.
 func (p *Parser) NudRhs(r *Rule, st *NudState, rhs *value.Node, rok bool) (*value.Node, bool, bool) {
 	if rok {
+		p.nudBound = st.A.Op.Level
 		return p.OperatorsRuleBuild(r, &st.A, nil, rhs), true, true
 	}
 	if st.A.Cut {
@@ -398,6 +410,7 @@ func (p *Parser) NudOperand(r *Rule, st *NudState, v *value.Node, ok bool) (*val
 	p.Frame = st.PrevFrame
 	p.Cut = st.PrevCut
 	if ok {
+		p.nudBound = 1073741824
 		return p.LineResult(r, o, st.F, v, st.M0.Pos, nil), true, true
 	}
 	p.Reset(st.M0)
@@ -422,6 +435,7 @@ func (p *Parser) ExprStart(r *Rule, st *ExprState, lhs *value.Node, ok bool) (bo
 		return true, true
 	}
 	st.LastNone = -1
+	st.Bound = p.nudBound
 	return false, true
 }
 
@@ -449,7 +463,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	}
 	op := st.A.Op
 	level := op.Level
-	if level <= st.Min || (op.Assoc == grammar.AssocNone) && level == st.LastNone {
+	if level <= st.Min || level > st.Bound || (op.Assoc == grammar.AssocNone) && level == st.LastNone {
 		p.Reset(st.M0)
 		return true, true, -1
 	}
@@ -461,6 +475,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	if op.Kind == grammar.Postfix {
 		st.Lhs = p.OperatorsRuleBuild(r, &st.A, st.Lhs, nil)
 		st.LastNone = -1
+		st.Bound = 1073741824
 		if p.Pos == st.M0.Pos {
 			return true, true, -1
 		}
@@ -492,6 +507,11 @@ func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *value.Node, rok bool) (boo
 	if op.Assoc == grammar.AssocNone {
 		st.LastNone = op.Level
 	}
+	rbound := op.Level
+	if op.Assoc == grammar.AssocRight {
+		rbound--
+	}
+	st.Bound = rbound
 	if p.Pos == st.M0.Pos {
 		return true, true
 	}

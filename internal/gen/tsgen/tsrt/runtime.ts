@@ -4259,6 +4259,10 @@ export class Parser {
   // cutFailed reports that a candidate of the last longest failed after a cut.
   cutFailed = false;
 
+  // nudBound is the binding level above which no operator can follow the start of the expression
+  // that the last start parsed.
+  nudBound = 0;
+
   // operatorsRuleParse parses an expression with operators that bind tighter than min.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   operatorsRuleParse(r: Rule, min: number): R {

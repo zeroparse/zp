@@ -21,6 +21,8 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 // follow it while they bind tighter than min: the longest operator match wins, a non-associative
 // operator does not apply again at its own level, a right-associative one parses its right operand at
 // one level less, and a failed right operand ends the loop before the operator unless the operator cut.
+// An operator that binds tighter than the last one applied, or than the prefix operator of the start,
+// ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget.
 func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
@@ -33,6 +35,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		return lhs, true
 	}
 	lastNone := -1
+	bound := p.nudBound
 	for {
 		m0 := p.Mark()
 		start := m0.Pos
@@ -48,7 +51,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		}
 		op := a.op
 		level := op.Level
-		if level <= min || (op.Assoc == "none") && level == lastNone {
+		if level <= min || level > bound || (op.Assoc == "none") && level == lastNone {
 			p.Reset(m0)
 			break
 		}
@@ -60,6 +63,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if op.Kind == "postfix" {
 			lhs = p.operatorsRuleBuild(r, &a, lhs, nil)
 			lastNone = -1
+			bound = 1073741824
 			if p.Pos == start {
 				break
 			}
@@ -82,6 +86,11 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if op.Assoc == "none" {
 			lastNone = level
 		}
+		rbound := level
+		if op.Assoc == "right" {
+			rbound--
+		}
+		bound = rbound
 		if p.Pos == start {
 			break
 		}
@@ -108,6 +117,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*Node, bool) {
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.op.Level)
 		if rok {
+			p.nudBound = a.op.Level
 			return p.operatorsRuleBuild(r, &a, nil, rhs), true
 		}
 		if a.cut {
@@ -130,6 +140,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*Node, bool) {
 		p.Frame = prevFrame
 		p.Cut = prevCut
 		if ok {
+			p.nudBound = 1073741824
 			return p.lineResult(r, o, f, v, start), true
 		}
 		p.Reset(m0)
@@ -234,6 +245,8 @@ func (p *TParser) OperatorsRuleParse(r *TRule, min int) (any, bool) {
 // follow it while they bind tighter than min: the longest operator match wins, a non-associative
 // operator does not apply again at its own level, a right-associative one parses its right operand at
 // one level less, and a failed right operand ends the loop before the operator unless the operator cut.
+// An operator that binds tighter than the last one applied, or than the prefix operator of the start,
+// ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExprTyped of internal/ir/exec/core, specialized for budget, typed.
 func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
@@ -246,6 +259,7 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		return lhs, true
 	}
 	lastNone := -1
+	bound := p.nudBound
 	for {
 		m0 := p.Mark()
 		start := m0.Pos
@@ -261,7 +275,7 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		}
 		op := a.op
 		level := op.Level
-		if level <= min || (op.Assoc == "none") && level == lastNone {
+		if level <= min || level > bound || (op.Assoc == "none") && level == lastNone {
 			p.Reset(m0)
 			break
 		}
@@ -273,6 +287,7 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		if op.Kind == "postfix" {
 			lhs, lstart = p.operatorsRuleBuild(r, &a, lhs, lstart, nil)
 			lastNone = -1
+			bound = 1073741824
 			if p.Pos == start {
 				break
 			}
@@ -295,6 +310,11 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		if op.Assoc == "none" {
 			lastNone = level
 		}
+		rbound := level
+		if op.Assoc == "right" {
+			rbound--
+		}
+		bound = rbound
 		if p.Pos == start {
 			break
 		}
@@ -322,6 +342,7 @@ func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.op.Level)
 		if rok {
+			p.nudBound = a.op.Level
 			x, xstart := p.operatorsRuleBuild(r, &a, nil, 0, rhs)
 			return x, xstart, true
 		}
@@ -345,6 +366,7 @@ func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
 		p.Frame = prevFrame
 		p.Cut = prevCut
 		if ok {
+			p.nudBound = 1073741824
 			return p.lineResult(r, o, f, v, start), start, true
 		}
 		p.Reset(m0)

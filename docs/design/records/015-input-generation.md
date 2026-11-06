@@ -150,7 +150,7 @@ The generator prunes candidates that the parser would read differently from how 
   `l` opens a fresh RHS frame strictly tighter than `l`, even below the caller's entry. Left and nonassociative
   infix operators likewise open a strictly tighter RHS; a right-associative operator permits its own level there.
   A selected operator is offered from the innermost frame through its parents until a frame can consume it.
-  Completed inner frames are discarded, restoring the parent's own nonassociative restriction; an ordinary infix
+  A frame that ends at a repeated nonassociative operator blocks its parents: they do not take the operator that the right operand of their own infix refused, because it binds more tightly than that infix. Otherwise completed inner frames are discarded; an ordinary infix
   or postfix resets only its owning frame. Prefixes and explicit rule calls start fresh state without erasing
   suspended parents. Tail counts remain global to the emitted chain and prefix counts remain per primary;
   virtual frames do not count as recursive rule calls. Every frame inspected consumes a generation-budget step.

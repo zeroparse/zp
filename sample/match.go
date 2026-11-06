@@ -1,6 +1,7 @@
 package sample
 
 import (
+	"math"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -153,6 +154,9 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 	if st != matched {
 		return st, pos
 	}
+	// bound is the tightest level that may follow the start or the last operator applied: the right
+	// operand took the operators that bind tighter, so one that does follow was refused by it.
+	bound := math.MaxInt
 	st, prefix, end := m.operatorsRuleLongest(s.prefixes, start)
 	switch st {
 	case more, unknown:
@@ -161,6 +165,9 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 		st, end = m.operatorsRuleExpr(s, prefix.level+1, end)
 		if st == operatorsRuleStableSuccess {
 			return st, end
+		}
+		if st == matched {
+			bound = prefix.level
 		}
 		if st == more || st == unknown {
 			return st, pos
@@ -200,7 +207,7 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 		case failed:
 			return matched, lhsEnd
 		}
-		if op.level < minLevel || op.op.Assoc == grammar.AssocNone && lastNone == op.level {
+		if op.level < minLevel || op.level > bound || op.op.Assoc == grammar.AssocNone && lastNone == op.level {
 			return matched, lhsEnd
 		}
 		end = partEnd
@@ -218,8 +225,12 @@ func (m *matcher) operatorsRuleExpr(s *operatorsRuleStop, minLevel, pos int) (st
 			}
 		}
 		lastNone = -1
-		if op.op.Kind == grammar.Infix && op.op.Assoc == grammar.AssocNone {
-			lastNone = op.level
+		bound = math.MaxInt
+		if op.op.Kind == grammar.Infix {
+			bound = operatorsRuleRHSMin(op) - 1
+			if op.op.Assoc == grammar.AssocNone {
+				lastNone = op.level
+			}
 		}
 		if end == lhsEnd {
 			return matched, end

@@ -268,6 +268,10 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.cutFailed = " + a[0]
 		case "opr.cutFailed":
 			return "p.cutFailed"
+		case "opr.setNudBound":
+			return "p.nudBound = " + a[0]
+		case "opr.nudBound":
+			return "p.nudBound"
 		case "call.tracked":
 			if typed {
 				return "p.TypedDocument != nil"

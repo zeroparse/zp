@@ -1439,7 +1439,10 @@ type Parser struct {
 	// cutFailed reports that a candidate of the last longest failed after a cut. It sits next to
 	// Cut, in the padding after it.
 	cutFailed bool
-	memo      memoTable
+	// nudBound is the binding level above which no operator can follow the start of the expression
+	// that the last start parsed.
+	nudBound int
+	memo     memoTable
 
 	// Silent is positive inside lookaheads, where expectations are not recorded.
 	Silent   int

@@ -449,6 +449,7 @@ rule e = #operators {
 		cases = append(cases, c)
 	}
 	cases = append(cases, OperatorsRuleLocalCases...)
+	cases = append(cases, OperatorsRuleNoneCases...)
 	return append(append(append(ConstructorCases(), TupleLiteralCases...), InlineActionGenCases()...), append(SpliceGenCases(), cases...)...)
 }
 

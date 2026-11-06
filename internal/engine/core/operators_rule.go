@@ -81,6 +81,7 @@ type ExprState struct {
 	Min      int
 	Lhs      *value.Node
 	LastNone int
+	Bound    int
 	M0       Mark
 	A        OperatorsRuleAttempt
 }
