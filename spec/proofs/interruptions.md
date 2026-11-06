@@ -262,7 +262,7 @@ called, and the element is not delivered. It then calls the callback, and
 checkpoints after it returns. If the second checkpoint interrupts, the element
 has been delivered and stays so (C4), and nothing is delivered after it. A
 callback that returns an error ends the parse with that error. The commit
-follows the second checkpoint and reserves units for the work it does, so a
+follows the second checkpoint and reserves units for its charged work, so a
 reservation of the commit can interrupt the invocation too. The element stays
 delivered, nothing is delivered after it, and the state of a commit cut short
 is the invocation's own, which nothing reads again (Lemma 5). The commit
