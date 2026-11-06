@@ -6,6 +6,7 @@ import (
 	"math/bits"
 	"math/rand/v2"
 	"reflect"
+	"slices"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -233,6 +234,139 @@ func TestMemoStoreChargesTheSlotsOfTheGap(t *testing.T) {
 	}
 	if grown == 0 {
 		t.Fatal("no store grew the slots")
+	}
+}
+
+// TestMemoChargesMatchTheModel runs random stores, edits and lookups on the engine's lazy memo and on
+// the model of a lazy memo, and compares what each lookup and store charges with the quantities the model
+// counts: the entries a scan passes (ops.QKeyScan) and the edits a lookup applies (ops.QPending). The
+// declared cost is a bound, since a lookup stops at the entry it finds and an entry that fails an edit
+// stops there; the charge is equal to it where the model is exact:
+//
+//   - a lookup of a key that no entry holds, live or dropped, and a store of such a key, pass every entry
+//     of the position;
+//   - a lookup of the entry at the end of its chain applies every pending edit when the entry stays valid,
+//     and the one pending edit that drops it when it has one;
+//
+// except that the model keeps the edits an entry accounts for as of its last store or lookup, while a
+// memo applies an edit at once to the entries at the positions the edit replaces and the one after
+// them (memo.splice). For these the model counts the edits since, which the engine does not charge, so
+// the declaration is a bound for them by design.
+func TestMemoChargesMatchTheModel(t *testing.T) {
+	t.Parallel()
+	pilot := ops.Pilot()
+	lookupOp, storeOp, spliceOp, examineOp := pilot.Op("memo.lookup"), pilot.Op("memo.store"), pilot.Op("memo.splice"), pilot.Op("memo.examine")
+	const positions, rule = 14, 1
+	var absent, valid, held, overstated, stores int
+	for seed := range uint64(300) {
+		rng := rand.New(rand.NewPCG(seed, 66))
+		model := ref.New(ref.Config{LazyEdits: true})
+		p := docParser()
+		// decided holds the entries that an edit decided at once: the model counts their edits from before.
+		decided := map[*MemoEntry]bool{}
+		keyOf := func(pos, v int) MemoKey { return MemoKey{Rule: rule, Pos: pos, Env: []any{int64(v)}} }
+		argsOf := func(pos, v int) []any { return []any{int64(rule), int64(pos), int64(0), int64(v)} }
+		// chain returns the entries of a position in the order a lookup passes them.
+		chain := func(pos int) (es []*MemoEntry) {
+			table := p.Memo
+			i := pos - table.Base
+			if i >= table.Gap {
+				i += table.GapLen
+			}
+			if i < 0 || i >= len(table.Slots) {
+				return nil
+			}
+			for e := table.Slots[i]; e != nil; e = e.Next {
+				es = append(es, e)
+			}
+			return es
+		}
+		for range 80 {
+			pos, v := rng.IntN(positions), rng.IntN(2)
+			args := argsOf(pos, v)
+			switch op := rng.IntN(10); {
+			case op < 3:
+				start := rng.IntN(positions)
+				end := start + rng.IntN(4)
+				delta := rng.IntN(5) - (end - start)
+				model.Call(spliceOp, []any{int64(start), int64(end), int64(delta)})
+				p.Edits = EditMemo(p.Memo, p.Edits, DocEdit{Start: start, End: end, Delta: delta})
+				p.Gen = uint32(len(p.Edits))
+				p.Memo.Each(func(e *MemoEntry) {
+					if e.Vgen == p.Gen {
+						decided[e] = true
+					}
+				})
+			case op < 6:
+				before := pos > 0 && rng.IntN(3) == 0
+				from := pos
+				if before {
+					from--
+				}
+				examined := pos + 1 + rng.IntN(6)
+				present := slices.ContainsFunc(chain(pos), func(e *MemoEntry) bool { return e.Env[0] == any(int64(v)) })
+				want := uint64(2 + model.Quantity(ops.QKeyScan, storeOp, args) + model.Quantity(ops.QSlotGrowth, storeOp, args))
+				got := spent(p, func() {
+					e := p.Memo.Alloc()
+					*e = MemoEntry{Ok: true, End: pos + 1, From: from, Examined: examined, Gen: p.Gen, Vgen: p.Gen}
+					p.MemoPut(keyOf(pos, v), e)
+					delete(decided, e)
+				})
+				if got > want || !present && got != want {
+					t.Fatalf("seed %d: a store at %d of a key that is %v charged %d, the model counts %d", seed, pos, map[bool]string{false: "absent", true: "present"}[present], got, want)
+				}
+				stores++
+				entry := model.Call(storeOp, append(slices.Clone(args), true, int64(pos+1), false, nil, nil))[0]
+				model.Call(examineOp, []any{entry, before, int64(examined)})
+			default:
+				es := chain(pos)
+				at := slices.IndexFunc(es, func(e *MemoEntry) bool { return e.Env[0] == any(int64(v)) })
+				var vgen uint32
+				if at >= 0 {
+					vgen = es[at].Vgen
+				}
+				want := uint64(1 + model.Quantity(ops.QKeyScan, lookupOp, args) + model.Quantity(ops.QPending, lookupOp, args))
+				var found bool
+				got := spent(p, func() {
+					e, ok := p.MemoGet(keyOf(pos, v))
+					found = ok && (e.Vgen == p.Gen || p.AdvanceEntry(e, p.Edits[:p.Gen]))
+				})
+				if modelFound := model.Call(lookupOp, args)[1].(bool); found != modelFound {
+					t.Fatalf("seed %d: a lookup at %d found %v, the model %v", seed, pos, found, modelFound)
+				}
+				switch {
+				case got > want:
+					t.Fatalf("seed %d: a lookup at %d charged %d, more than the model counts, %d", seed, pos, got, want)
+				case at < 0:
+					if got != want {
+						t.Fatalf("seed %d: a lookup at %d of an absent key charged %d, the model counts %d", seed, pos, got, want)
+					}
+					absent++
+				case at != len(es)-1:
+				case decided[es[at]]:
+					if got < want {
+						overstated++
+					}
+				case found:
+					if got != want {
+						t.Fatalf("seed %d: a lookup at %d of a valid entry charged %d, the model counts %d", seed, pos, got, want)
+					}
+					valid++
+				case p.Gen-vgen == 1:
+					if got != want {
+						t.Fatalf("seed %d: a lookup at %d of a dropped entry charged %d, the model counts %d", seed, pos, got, want)
+					}
+					held++
+				}
+				if found {
+					delete(decided, es[at])
+				}
+			}
+		}
+	}
+	// Each kind of lookup, and the case that is only a bound, occurred.
+	if absent == 0 || valid == 0 || held == 0 || overstated == 0 || stores == 0 {
+		t.Fatalf("lookups of absent keys %d, of valid entries %d, of dropped entries %d, bounded by design %d, stores %d", absent, valid, held, overstated, stores)
 	}
 }
 

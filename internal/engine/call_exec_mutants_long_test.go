@@ -689,7 +689,25 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"clear moved not charged", []printedEdit{{"\t\t\tp.Spend()\n\t\t\tdelete(p.Moved, key)", "\t\t\tdelete(p.Moved, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"./core"}},
 		{"clear shifts not charged", []printedEdit{{"\t\tp.Spend()\n\t\tdelete(p.Shifts, key)", "\t\tdelete(p.Shifts, key)"}}, "^TestDocMoveChargesAtItsBound$", []string{"./core"}},
 		{"search no charge", []printedEdit{{"\t\tp.Spend()\n\t\tmid := int", "\t\tmid := int"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
+		{"plain clear shifts gone", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"plain clear moved gone", []printedEdit{{"\t\t} else {\n\t\t\tclear(p.Moved)\n\t\t}\n", "\t\t}\n"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"plain moved threshold low", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 0 {"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"plain moved threshold high", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1025 {"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"budget moved threshold low", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 8 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"budget moved threshold high", []printedEdit{{"\tif len(p.Moved) > 1024 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key", "\tif len(p.Moved) > 1025 {\n\t\tp.Moved = nil\n\t} else {\n\t\tfor key"}}, "^TestClearMovementSpend$", []string{"./core"}},
+		{"plain move keeps shifts", []printedEdit{{"\t\tclear(p.Shifts)\n\t\treturn", "\t\treturn"}}, "^TestDocumentMoveWithoutControl$", []string{"./core"}},
+		{"plain move keeps a large map", []printedEdit{{"p.Control == nil {\n\t\tif len(p.Moved) > 1024 {", "p.Control == nil {\n\t\tif len(p.Moved) > 1 << 20 {"}}, "^TestDocumentMoveWithoutControl$", []string{"./core"}},
 		{"scan no charge", []printedEdit{{"\t\tp.Spend()\n\t\tif el.From < end {", "\t\tif el.From < end {"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
+	})
+	// The model of a lazy memo and the declared cost of memo.lookup and memo.store, which TestMemoChargesMatchTheModel
+	// holds to what the engine charges.
+	runPrintedMutants(t, "../ir/exec/ref/ref.go", []printedMutant{
+		{"ref pending inflated", []printedEdit{{"return m.edits - e.applied\n", "return m.edits - e.applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
+		{"ref held pending inflated", []printedEdit{{"return m.edits - applied\n", "return m.edits - applied + 3\n"}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
+		{"ref hold start inclusive", []printedEdit{{"case k.pos < start:", "case k.pos <= start:"}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
+		{"ref hold end inclusive", []printedEdit{{"case k.pos > end:", "case k.pos >= end:"}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
+		{"ref held survive store", []printedEdit{{"\tdelete(m.held, e.key)\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
+		{"ref lookup keeps applied", []printedEdit{{"\t\tif e != nil {\n\t\t\te.applied = m.edits\n\t\t}\n", ""}}, "^TestMemoChargesMatchTheModel$", []string{"./core"}},
 	})
 	runPrintedMutants(t, "core/resume.go", []printedMutant{
 		{"prefix no charge", []printedEdit{{"func (p *Parser) NextPrefix(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextPrefix(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},

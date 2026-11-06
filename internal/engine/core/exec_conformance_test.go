@@ -226,8 +226,10 @@ func TestEngineExecConformance(t *testing.T) {
 // variants of the engine's memo operations must fail conformance.
 func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 	type broken struct {
-		op         string
-		call       func(m *engineMachine, args []any) []any
+		op   string
+		call func(m *engineMachine, args []any) []any
+		// controlled runs the variant on the engine with charge controls, with the budget operations. A
+		// variant sets it when what it breaks is a charge, which only a build with charges can exceed.
 		controlled bool
 		// document runs the variant on the operations of a Document's memo.
 		document bool
@@ -305,7 +307,7 @@ func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 	for name, b := range variants {
 		t.Run(name, func(t *testing.T) {
 			if b.controlled && !BudgetControlsEnabled {
-				t.Skip("the reference build charges nothing, so a charge cannot exceed its bound")
+				t.Skip("the variant breaks a charge, and the reference build charges nothing, so a charge cannot exceed its bound")
 			}
 			memoOps := engineMemoOps
 			if b.document {
