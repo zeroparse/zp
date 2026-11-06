@@ -344,12 +344,25 @@ stream `text` costs the length of its result. Comparing two strings examines
 no more than the shorter one, so it costs at most the length of the shorter
 operand, plus a constant.
 
-Outside a [Document](documents.md), time is proportional to cost. The memory
-that a parse allocates is at most proportional to its cost plus the input,
-because each memo entry, node and value is built by cost that is counted. The
-cost of a parse is measured in compute units, which differ between backends, and
-the budget of [compute limits](#cancellation-and-compute-limits) caps it. A parse
-of a Document also does work that the cost does not count: it applies pending
+Outside a [Document](documents.md), and apart from the exceptions below, time is
+proportional to cost. The memory that a parse allocates is at most proportional
+to its cost plus the input, because each memo entry, node and value is built by
+cost that is counted, apart from the copied error lists below. The cost of a
+parse is measured in compute units, which differ between backends, and the budget
+of [compute limits](#cancellation-and-compute-limits) caps it.
+
+Compute units also count work that the cost does not, and the budget caps it too.
+In a parse that recovers errors, a memo entry stores a copy of the errors
+recovered in its call, and each call that the entry answers appends them again.
+These copied error lists are not cost: their time, compute units and memory can
+grow with the square of the length of the input in a grammar of the class Linear,
+so that such a parse can exceed the default limits
+([linear cost proof](../proofs/linear-cost.md#open-steps), step 8). A store under a
+key that a long chain of memo entries holds walks the chain, which cost does not
+count either; that matters only where K grows with the input, and has not been
+measured.
+
+A parse of a Document also does work that the cost does not count: it applies pending
 edits to the memo entries it finds, moves the values it reuses, and works through
 what the Document retains from earlier parses. Its time and its compute units
 include that work, and the budget caps them with it, so they are not proportional

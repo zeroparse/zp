@@ -16,7 +16,9 @@ proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 5, which are outlines, and on Lemma 6, which is proved given step 1. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, in terms of what the
-Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
+Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded,
+and of the recovered errors that a parse copies and replays, which $C$ does not
+count and step 8 leaves unbounded.
 [Correspondence](#correspondence) maps the checks of the classifier to the
 conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
@@ -1804,30 +1806,44 @@ does not count. $G$ grows with deletions and shrinks with insertions.
 
 ## Corollary (Compute of a Document Parse)
 
-Under the conditions of the theorem and given Lemmas 4 to 6, a parse of a
-Document on a backend of the engine charges at most
+Let $R$ be the number of recovered errors that the parse copies and replays:
+the sum, over each store of a memo entry and each call that an entry answers, of
+the recovered errors that the entry holds. Under the conditions of the theorem
+and given Lemmas 4 to 6, a parse of a Document on a backend of the engine charges
+at most
 
-$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
+$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G + R \big)$$
 
-units of Compute, for a constant $c$. Of these, the calls and their lookups,
+units of Compute, for a constant $c$. Here a parse is the run of the grammar
+over the text, up to its outcome. Of these units, the calls and their lookups,
 with the edits that the lookups apply, take at most
 $c \cdot K (L + E + 1) \hat{n}$ when no chain exceeds 32 entries. That part is
 linear in $n$ for a given log, with $E \le 2^{16}$; the other terms depend on
-what the Document retains.
+what the Document retains and on $R$. The whole bound has the form of a constant
+times $K \hat{n}$ for a given log and retained state only when no error is
+recovered, so that $R = 0$: $R$ can grow with the square of $n$ in a grammar of
+the class Linear (step 8 of [Open Steps](#open-steps)).
 
-*Proof.* Compute charges the steps that $C$ counts, which
-[Cost](../runtime/parsing.md#cost) measures in compute units, and the Document
-units. The theorem bounds the first by a constant times $K (L + 1) \hat{n}$, and
-Lemma 12 bounds the second. The part of the lookups is the theorem's bound of the
-calls, plus the edits and the walks of Lemma 12. $\square$
+*Proof.* The units of Compute of a parse are those of the steps that $C$ counts,
+the Document units, and the $R$ units of the error lists, which $C$ does not
+count: a store copies the list of its entry, one unit for each error, and a call
+that an entry answers appends the list of the entry in the same way. The theorem
+bounds the first by a constant times $K (L + 1) \hat{n}$, and Lemma 12 bounds the
+second. The part of the lookups is the theorem's bound of the calls, plus the
+edits and the walks of Lemma 12. $\square$
 
-The corollary rests on one premise that this proof does not derive: that the
-units that a parse charges apart from the Document units are at most a constant
-times $C$ for a given backend, which is what
-[Cost](../runtime/parsing.md#cost) states when it measures the cost in compute
-units. It does not cover the generated Document runtimes: they apply each edit
-to every entry at once, and a `doc.move` that copies does not move a node once
-for a parse.
+That these three are all the units of a parse is a reading of the charges of the
+engine, not a derivation: no lemma relates a charge to $C$ in general.
+A store of a key that a chain holds walks the chain to relink it. Here $Q$ counts
+that walk; outside a Document no bound of this proof does, and it has not been
+measured. It matters only where $K$ grows with the input, since otherwise a chain
+has a constant number of keys.
+
+The corollary does not cover the work that follows the outcome in the same
+Control: the capture and sharing of `SnapshotWith`, the comparison of change
+notifications, and the publication of diagnostics. Nor does it cover the
+generated Document runtimes: they apply each edit to every entry at once, and a
+`doc.move` that copies does not move a node once for a parse.
 
 ## Correspondence
 
@@ -2030,3 +2046,24 @@ The outlines leave these steps to be made precise.
    the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
    $W$ count what earlier texts left in the memo, which it keeps until a store,
    an edit or the drop of the table removes it.
+8. **Recovered errors in Compute and memory.** $C$ counts no recovered error, so
+   the theorem holds and says nothing of them, but each entry stores a copy of the
+   errors recovered in its call, and each call that it answers appends them
+   again. No bound on $R$ exists, in a Document or outside one, and the grammar
+
+   ```text
+   rule main = s $$
+   rule s = item s "!" / item s / item
+   rule item = ("a" ";") #recover(skip=[^;]* ";")
+   ```
+
+   which is classified Linear, shows that none by $n$ can hold. On `b;` repeated
+   $n$ times the entry of `s` at each item holds the errors of all the items after
+   it, so its copy and its replay cost in proportion to $n$ at each of $n$
+   positions. Compute for each item rises from 518 at $n = 250$ to 6,147 at
+   $n = 4000$, a first parse of a Document, where $E$, $W$, $B$, $G$ and $Q$ are
+   zero, grows in the same way, and the default limits end the parse at 2,000
+   items on all three backends. The memory allocated grows with it: 75.8 MB,
+   289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
+   for parses that recover errors needs an implementation that does not copy or
+   replay these lists in proportion to their length.
