@@ -90,13 +90,15 @@ func (p *printer) write(s string) {
 	if p.cur == nil {
 		p.newLine("")
 	}
-	p.cur.text = joinMinusTokens(p.cur.text, s)
+	p.cur.text = joinPrefixTokens(p.cur.text, s)
 }
 
-// joinMinusTokens keeps adjacent minus operators from becoming the reserved
-// token "--". It is also used when a complete expression is formatted.
-func joinMinusTokens(left, right string) string {
-	if strings.HasSuffix(left, "-") && strings.HasPrefix(right, "-") {
+// joinPrefixTokens keeps adjacent prefix operators from becoming a reserved
+// token: "-" and "-" from "--", "&" and "&" from "&&". It is also used when a
+// complete expression is formatted.
+func joinPrefixTokens(left, right string) string {
+	if strings.HasSuffix(left, "-") && strings.HasPrefix(right, "-") ||
+		strings.HasSuffix(left, "&") && strings.HasPrefix(right, "&") {
 		return left + " " + right
 	}
 	return left + right
@@ -1570,13 +1572,13 @@ func formatExprNode(e Expr, outer int, control *metadataControl) string {
 	case *Capture:
 		return finishFormat(paren(e.Name+":"+leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control), precPrefix, outer), control)
 	case *And:
-		return finishFormat(paren("&"+leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control), precPrefix, outer), control)
+		return finishFormat(paren(joinPrefixTokens("&", leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control)), precPrefix, outer), control)
 	case *Not:
 		return finishFormat(paren("!"+leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control), precPrefix, outer), control)
 	case *Atomic:
 		return finishFormat(paren(formatExpr(e.Expr, precSuffix, control)+gapAfter(operatorLayout(e), control)+" #atomic", precSuffix, outer), control)
 	case *Discard:
-		return finishFormat(paren(joinMinusTokens("-", leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control)), precPrefix, outer), control)
+		return finishFormat(paren(joinPrefixTokens("-", leadSep(e.Expr, control)+formatExpr(e.Expr, precPrefix, control)), precPrefix, outer), control)
 	case *Repeat:
 		return finishFormat(formatExpr(e.Expr, precSuffix, control)+repeatSuffix(e, control), control)
 	case *Optional:
@@ -1587,6 +1589,11 @@ func formatExprNode(e Expr, outer int, control *metadataControl) string {
 		return finishFormat(formatExpr(e.Expr, precSuffix, control)+gapAfter(operatorLayout(e), control)+" #recover"+recoveryHead(e, control)+formatExpr(e.Skip, precChoice, control)+recoveryClose(e, control)+")", control)
 	case *Attributed:
 		s := formatExpr(e.Expr, precSuffix, control)
+		if _, nested := e.Expr.(*Attributed); nested {
+			// Attributes written after attributes are one list, so an
+			// attributed operand needs parentheses to stay a separate node.
+			s = "(" + s + ")"
+		}
 		for _, a := range e.Attrs {
 			pollFormat(control)
 			s += " " + attributeGap(a, control) + formatAttribute(a, control)
@@ -2420,7 +2427,7 @@ func formatTermNode(t Term, outer int, control *metadataControl) string {
 		}
 		return s
 	case *Unary:
-		return joinMinusTokens(t.Op, formatTerm(t.X, 6, control))
+		return joinPrefixTokens(t.Op, formatTerm(t.X, 6, control))
 	case *Cast:
 		x := formatTerm(t.X, 7, control)
 		if _, ok := t.X.(*IntLit); ok {
