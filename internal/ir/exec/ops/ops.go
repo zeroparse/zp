@@ -274,7 +274,9 @@ that env.scope returned earlier do not change.`,
 		Contract: `Makes s the current environment: the bindings made since it was current are gone.`})
 	m.AddOp(&exec.Op{Name: "env.key", Component: Env, Params: []exec.Param{exec.P("r", rule)}, Results: []exec.Type{values},
 		Reads: []string{Env}, NoReturn: true,
-		Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QVars}, {Coef: 1, Quantity: QEnvReads}}},
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QVars}, {Coef: 1, Quantity: QEnvReads}}},
 		Contract: `Returns the values of the variables the rule reads, as its memo key. Two keys are equal when
-they have the same length and the host's value equality holds for each pair of their values.`})
+they have the same length and the host's value equality holds for each pair of their values. A rule that
+reads no variable has an empty key, which costs nothing: the charge pays for reading values, and the call
+paid for itself.`})
 }

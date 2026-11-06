@@ -196,7 +196,7 @@ var (
 	// the environment reach.
 	rtEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// rtEnvExact are the environment operations whose charges equal their declared cost.
-	rtEnvExact = []string{"env.lookup", "env.bind"}
+	rtEnvExact = []string{"env.lookup", "env.bind", "env.key"}
 )
 
 func rtSuites() []conform.Suite {

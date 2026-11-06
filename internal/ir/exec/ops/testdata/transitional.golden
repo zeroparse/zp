@@ -426,10 +426,12 @@ op env.key(r Rule) Values
   component env
   reads env
   noreturn
-  cost <= 1 + 1*vars + 1*env_reads
+  cost <= 0 + 1*vars + 1*env_reads
   contract:
     // Returns the values of the variables the rule reads, as its memo key. Two keys are equal when
-    // they have the same length and the host's value equality holds for each pair of their values.
+    // they have the same length and the host's value equality holds for each pair of their values. A rule that
+    // reads no variable has an empty key, which costs nothing: the charge pays for reading values, and the call
+    // paid for itself.
 
 transitional op call.tracked() bool
   component call

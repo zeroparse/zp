@@ -187,7 +187,7 @@ var (
 	// of the environment reach.
 	engineEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// engineEnvExact are the environment operations whose charges equal their declared cost.
-	engineEnvExact = []string{"env.lookup", "env.bind"}
+	engineEnvExact = []string{"env.lookup", "env.bind", "env.key"}
 )
 
 func engineSuites() []conform.Suite {
