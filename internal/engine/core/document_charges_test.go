@@ -5,6 +5,7 @@ package core
 import (
 	"math/bits"
 	"math/rand/v2"
+	"reflect"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -29,6 +30,72 @@ func spent(p *Parser, f func()) uint64 {
 	used := p.Control.Used
 	f()
 	return p.Control.Used - used
+}
+
+// TestAdvanceEntryMatchesItsContract runs both printed forms on random entries and logs against the
+// contract of memo.splice, written out here edit by edit. The engine reaches only part of these states
+// through each form, since an edit decides the entries at its positions at once.
+func TestAdvanceEntryMatchesItsContract(t *testing.T) {
+	t.Parallel()
+	valid, invalid := 0, 0
+	for seed := range uint64(20000) {
+		rng := rand.New(rand.NewPCG(seed, 66))
+		log := make([]DocEdit, rng.IntN(5))
+		for i := range log {
+			start := rng.IntN(24)
+			end := start + rng.IntN(4)
+			log[i] = DocEdit{Start: start, End: end, Delta: rng.IntN(5) - 2}
+		}
+		pos := rng.IntN(24)
+		before := MemoEntry{Pos: pos, From: pos - rng.IntN(2), Examined: pos + rng.IntN(6), End: pos + rng.IntN(3), Far: pos + rng.IntN(7),
+			Growing: rng.IntN(16) == 0, Positional: rng.IntN(8) == 0, shift: int32(rng.IntN(3)), shifted: rng.IntN(4) == 0,
+			Vgen: uint32(rng.IntN(len(log) + 1))}
+		if rng.IntN(8) == 0 {
+			before.Errs = []*SyntaxError{{}}
+		}
+		want, charged, ok := before, uint64(0), !before.Growing
+		if ok {
+			for _, ed := range log[before.Vgen:] {
+				charged++
+				if want.Examined <= ed.Start {
+					continue
+				}
+				if want.From < ed.End || want.Positional || want.Errs != nil {
+					ok = false
+					break
+				}
+				want.Pos += ed.Delta
+				want.End += ed.Delta
+				want.From += ed.Delta
+				want.Examined += ed.Delta
+				want.Far += ed.Delta
+				want.shift += int32(ed.Delta)
+				want.shifted = want.shifted || ed.Delta != 0
+			}
+		}
+		if ok {
+			want.Vgen = uint32(len(log))
+			valid++
+		} else {
+			want = before
+			invalid++
+		}
+		plain := before
+		if got := AdvanceEntry(&plain, log); got != ok || !reflect.DeepEqual(plain, want) {
+			t.Fatalf("seed %d: plain form: %v %+v, want %v %+v, log %v", seed, got, plain, ok, want, log)
+		}
+		p := docParser()
+		budget := before
+		if got := p.AdvanceEntry(&budget, log); got != ok || !reflect.DeepEqual(budget, want) {
+			t.Fatalf("seed %d: budget form: %v %+v, want %v %+v, log %v", seed, got, budget, ok, want, log)
+		}
+		if p.Control.Used != charged {
+			t.Fatalf("seed %d: charged %d, want %d", seed, p.Control.Used, charged)
+		}
+	}
+	if valid == 0 || invalid == 0 {
+		t.Fatalf("%d valid and %d invalid cases", valid, invalid)
+	}
 }
 
 func TestMemoLookupChargesItsPendingEdits(t *testing.T) {
@@ -239,6 +306,56 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 			t.Fatalf("charged %d", got)
 		}
 	})
+	t.Run("the nodes of the entry's generation replay nothing", func(t *testing.T) {
+		p := edited(3)
+		n := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
+		e := &MemoEntry{Node: n, shift: 5, shifted: true, Gen: 1}
+		if got := moved(p, e); got != 1 || value.D(n).Start != 7 {
+			t.Fatalf("charged %d, start %d", got, value.D(n).Start)
+		}
+		if e.Gen != 3 || e.shift != 0 || e.shifted {
+			t.Fatalf("the entry is not current: %+v", e)
+		}
+	})
+	t.Run("a root that another result moved stays", func(t *testing.T) {
+		p := edited(1)
+		n := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
+		if got := moved(p, entry(p, n)); got != 0 || value.D(n).Start != 2 {
+			t.Fatalf("charged %d, start %d", got, value.D(n).Start)
+		}
+	})
+	t.Run("a shared node moves once", func(t *testing.T) {
+		// The root, three edges, and the shared node once.
+		p := edited(1)
+		c := value.Ptr(value.Data{Start: 3, End: 4})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{c, c}, Fields: value.Fields{{Name: "f", Value: c}}})
+		if got := moved(p, entry(p, n)); got != 1+3+1 || value.D(c).Start != 4 {
+			t.Fatalf("charged %d, start %d", got, value.D(c).Start)
+		}
+		p = edited(1)
+		c = value.Ptr(value.Data{Start: 3, End: 4})
+		n = value.Ptr(value.Data{Start: 2, End: 5, Fields: value.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
+		if got := moved(p, entry(p, n)); got != 1+2+1 || value.D(c).Start != 4 {
+			t.Fatalf("fields: charged %d, start %d", got, value.D(c).Start)
+		}
+	})
+	t.Run("an empty child stays when nothing moves", func(t *testing.T) {
+		p := edited(1)
+		c := value.Ptr(value.Data{Start: 3, End: 3})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{c}})
+		e := &MemoEntry{Node: n, shifted: true}
+		if got := moved(p, e); got != 2 || value.D(n).Children[0] != c {
+			t.Fatalf("charged %d", got)
+		}
+	})
+	t.Run("an empty node charges its fields", func(t *testing.T) {
+		// The copy, one field, and forgetting the copy.
+		p := edited(1)
+		n := value.Ptr(value.Data{Start: 3, End: 3, Fields: value.Fields{{Name: "f", Value: "x"}}})
+		if got := moved(p, entry(p, n)); got != 3 || got > movedBound(1, 1, 0) {
+			t.Fatalf("charged %d", got)
+		}
+	})
 	t.Run("many copies are dropped, not forgotten one by one", func(t *testing.T) {
 		p := edited(1)
 		kids := make([]*value.Node, 1025)
@@ -335,6 +452,27 @@ func TestRunOperationsChargeTheirDeclaredWork(t *testing.T) {
 			}
 		}); got != want {
 			t.Fatalf("charged %d, want %d", got, want)
+		}
+		if s := value.D(r.Old[0].V).Start; s != 2 {
+			t.Fatalf("the empty value is at %d", s)
+		}
+	})
+	t.Run("run.tail replays no edit for the nodes of the run's generation", func(t *testing.T) {
+		p := docParser()
+		p.Edits, p.Gen = []DocEdit{{Start: 0, End: 0}, {Start: 0, End: 0, Delta: 2}}, 2
+		r := RunState{Old: oldRun(1, nil), J: 0, max: -1, edit: p.Edits[1]}
+		r.Old[0].V = value.Ptr(value.Data{Start: 0, End: 2, Gen: 1})
+		if got := spent(p, func() { p.NextTail(&r) }); got != 1+1 {
+			t.Fatalf("charged %d", got)
+		}
+	})
+	t.Run("run.tail leaves a value that another result moved", func(t *testing.T) {
+		p := docParser()
+		p.Edits, p.Gen = []DocEdit{{Start: 0, End: 0, Delta: 2}}, 1
+		r := RunState{Old: oldRun(1, nil), J: 0, max: -1, edit: p.Edits[0]}
+		r.Old[0].V = value.Ptr(value.Data{Start: 2, End: 4, Gen: 1})
+		if got := spent(p, func() { p.NextTail(&r) }); got != 1 || value.D(r.Old[0].V).Start != 2 {
+			t.Fatalf("charged %d", got)
 		}
 	})
 	t.Run("run.end charges the merge and the growth", func(t *testing.T) {
