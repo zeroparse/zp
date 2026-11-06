@@ -882,11 +882,13 @@ move to Exec IR at once while mechanisms move one at a time.
     until the parse ends, memory limits, cancellation and snapshots, including statistics and cache reuse counts) and
     7,381 stream parses, over grammars that bind, read and key variables, fail terms and recover. Over ten interleaved
     rounds the geomean of the time benchmarks moves by +0.16%, `B/op` and `allocs/op` of the engine do not rise, and a
-    benchmark whose items run four terms each moves by +0.3% to +0.6%, within noise. Four engine rows of the JSON and
-    XML grammars on the closure backend with byte positions are 1.0% to 1.9% slower in repeated runs, and
-    `ControlledParse/JSON/bytecode` by up to 2.3% in two of three. The JSON grammar has no term, so no code that its
-    parse runs changed; a function that shifts the placement of the closure backend's code moved neither build, so
-    the cause is not established.
+    benchmark whose items run four terms each moves by +0.3% to +0.6%, within noise. The rows of the JSON and XML
+    grammars on the closure backend with byte positions (`Parse`, `ControlledParse`) are 0.8% to 1.4% slower from the
+    commit that prints `predicate` and `bind`, measured build by build over the stage. The machine code that a JSON
+    parse runs is byte-identical in the builds before and after it, and about 50 functions of the closure backend
+    change their phase within 64 bytes, so placement is the remaining explanation; no control that restores the phases
+    confirms it. `ControlledParse/JSON/bytecode`, up to 2.3% slower in some runs, is slower in one intermediate build
+    only, which changes no engine code, and within noise in the builds after it.
 
 ### Completion
 
