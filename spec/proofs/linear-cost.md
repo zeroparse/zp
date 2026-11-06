@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-04
+Arata Furukawa · Last revised 2026-11-06
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -53,6 +53,23 @@ the rule bodies evaluated with each growth step counted, the input that
 terminals, repetitions of character classes and lookaheads examine, the
 iterations of repetitions and the operators applied, and the size of the
 values that actions and predicates build.
+
+**Pending edits of a Document.** A lookup in the memo of a
+[Document](../runtime/documents.md) parse of the reference implementation
+also applies to the entry it finds the edits of the log that the entry has not
+accounted for since it was stored or last found, and charges one unit for each
+edit it applies. Let $E$ be the length of the edit log at the parse: the
+reference implementation drops the memo and restarts the log when it reaches
+65,536 edits, so $E < 2^{16}$ there, and $E = 0$ outside a Document. These units
+belong to the call that makes the lookup, and each call has at most $E$ of
+them: an entry that edits dropped but that stays in its slot applies the edits
+up to the one that drops it again at each lookup that finds it, and an entry
+that stays valid applies them once. The lookup also passes the entries that
+earlier edits dropped and left in their slots. A slot holds at most one entry
+for each key, live or dropped, because a store replaces the entry under its
+key, so these entries do not lengthen a chain beyond the keys that the position
+has. Calls outside a Document have none of these units, and the memoization,
+the evaluations and the other costs are those of the setting.
 
 **Input that a lookahead examines.** This proof counts each examination of
 the input once, for the terminal, character class or `.` that makes it,
@@ -1634,10 +1651,22 @@ cost of at most $c_0 (L + 1)$. A call costs a constant and its memo lookup,
 which by [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
 costs in proportion to the size of its key: the number of variables that the
 rule reads, a constant, and the lengths of their string values, each at most
-$L$ by its definition; so each call costs at most a constant times $L + 1$.
+$L$ by its definition; so each call costs at most a constant times $L + 1$,
+and in a Document parse at most that plus $E$ units for the edits it applies
+([Setting](#setting)), so at most a constant times $L + E + 1$.
 The scanned cost is at most a constant times the activations by Lemma 4, plus
 what Lemma 5 adds, the walk cost is bounded by Lemma 9, and the values by
-Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$. $\square$
+Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$, except that of the
+calls in a Document parse, which is a constant times $K (L + E + 1) \hat{n}$;
+with $E = 0$ outside a Document, the sum is at most a constant times
+$K (L + E + 1) \hat{n}$ in every parse. $\square$
+
+The promise of the classes holds for a parse of a Document in the units that
+the specification's [Cost](../runtime/parsing.md#cost) counts, which include no
+lookup. In the units of Compute the reference implementation charges, the
+factor $E + 1$ enters: the theorem gives a bound of
+$c \cdot K (L + E + 1)(n + 1)$ there, which is linear in $n$ for a given log and
+a constant factor of at most $2^{16}$ larger than the bound outside a Document.
 
 The classifier reports the two classes only when the conditions hold, and it
 over-approximates where it cannot decide them

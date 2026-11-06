@@ -281,7 +281,7 @@ an interruption between the two leaves the caller with diagnostics whose
 element was not delivered. Both are deliveries of the uninterrupted sequence,
 and a prefix of it can end between them.
 
-## Lemma 5 (Nothing Survives but Complete State)
+## Lemma 5 (What Survives an Interruption)
 
 Let an invocation be interrupted. The state that outlives it is one of:
 
@@ -303,15 +303,30 @@ Let an invocation be interrupted. The state that outlives it is one of:
    raised later, in the conversion of the result or the copying of its
    diagnostics. A Document parse that is interrupted before it has touched the
    reusable state, by the admission checks or the first checkpoint, has changed
-   nothing. Applying pending edits to an entry charges every edit before it
-   changes the entry, so a reservation that interrupts it leaves the entry as
-   it was, in a table that is discarded in any case. Moving a value in place
-   has no such order: an interruption can leave some nodes moved, which is why
-   the interrupted parse discards the table and the runs that refer to them.
+   nothing. Applying pending edits to an entry charges each edit it applies
+   before the entry changes (an entry that is a seed of a growth is returned
+   as invalid without a charge, and no edit is applied to it), so a reservation
+   that interrupts it leaves the entry as it was, in a table that is discarded
+   in any case. Moving a value in place has no such order: an interruption can
+   leave some nodes moved and others not, while the entry that refers to them
+   still holds its old positions. The interrupted parse therefore discards the
+   table and the runs, as it does for the entries that depend on a growth that
+   had not ended (C5), and no later parse reads a node that was moved in part.
 4. **Program-level state** that is built once, outside the charge, such as
    the tables of a program that a parse needs: it is complete or absent, and
    is not affected by the invocation that triggers its construction.
 5. **Delivered elements** of a stream (Lemma 4).
+6. **Nodes that the caller holds from earlier parses.** A tree that an
+   earlier `Parse` returned shares its nodes with the memo table and the runs
+   of the Document, and a later parse moves the nodes it reuses in place. A
+   parse that is interrupted inside that move leaves some nodes of such a tree
+   moved by the edits since and others not. Take a tree $T$ from `Parse`, then
+   `Edit`, then a `ParseWith` whose compute limit is small enough to stop
+   inside the move of a reused value: $T$ is left partly moved, and since the
+   interrupted parse discards the table, no later parse moves it again. The
+   interruption promises the caller nothing about the positions in $T$ (the
+   Document proof does not make them part of the outcome), only that the next
+   parse returns the result of parsing the current text from scratch (C5).
 
 *Proof.* Item 1: the parser of a batch parse arms its release before the first
 reservation that can interrupt, and the release runs in a deferred call. Item
@@ -325,13 +340,17 @@ with entries that depended on a growth that had not ended (the cause of this
 rule in (C5)). The checks that precede the start of the execution are before
 any statement that changes a Document field, and `Edit` is not part of the
 parse and is not budgeted. Item 4: construction is not covered by a
-reservation, so no interruption occurs inside it. Item 5: Lemma 4. Nothing
-else outlives the invocation: the parser, the control and the memo table of a
-stream parse or a Document parse are the invocation's. $\square$
+reservation, so no interruption occurs inside it. Item 5: Lemma 4. Item 6:
+the move of a reused value charges its nodes one by one, and a reservation
+between two of them interrupts it. Nothing else of the invocation's own
+outlives it: the parser, the control and the memo table of a stream parse or a
+Document parse are the invocation's, and what the invocation changed in state
+that the caller owns is item 6. $\square$
 
 A retry with fresh controls starts from state that Lemma 5 shows to be a state
 that the Document would have without ever having parsed: empty memo, empty
-runs, complete or absent input caches. The Document proof shows that a parse
+runs, complete or absent input caches. The nodes of item 6 are the caller's,
+and no parse reads them again. The Document proof shows that a parse
 from such a state gives the result of a fresh parse of the text. A retry
 therefore gives the result of parsing the current text from scratch (C5).
 

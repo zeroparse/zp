@@ -61,10 +61,13 @@ chapter states the guarantee and not this mechanism.
   together with its key position and its range, if $l \ge b$ and its call was
   position-free; otherwise it is dropped. Edits are applied to an entry in
   order, either at once or when it is next looked up. The engine applies them
-  when it finds an entry, and at once to the entries at the positions the edit
-  replaces, in both cases from one printed composition. The generated runtimes
-  apply each edit to every entry at once. An entry found to be dropped may stay
-  in its slot, where no lookup returns it, until a store replaces it.
+  when it finds an entry, and at once to the entries at the positions $a$ to
+  $b$, both included (the positions the edit replaces and the one after them),
+  in both cases from one printed composition. The generated runtimes apply each
+  edit to every entry at once. An entry found to be dropped may stay in its
+  slot, where no lookup returns it, until a store under its key replaces it, a
+  later edit whose positions include its position drops it, or the whole memo
+  table is dropped.
 - **(P) Parses.** Entries are stored under the conditions of $\mathcal{M}$;
   what (D) keeps is dropped within the parse and never reaches a later one. A
   parse that does not complete, because it is interrupted

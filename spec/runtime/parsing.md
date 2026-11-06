@@ -283,7 +283,9 @@ observable consequences, and no others.
   [Predicates and Variables](../language/predicates.md#interaction-with-memoization).
   Finding a memoized result costs in proportion to the size of the key (the
   number of variables and the length of their string values), not to the
-  number of combinations of values that the position holds.
+  number of combinations of values that the position holds. In a parse of a
+  [Document](documents.md#reuse), a lookup also counts the edits it applies to the
+  entry it finds.
 - **Actions run when a rule is evaluated.** An action is evaluated every time
   the body of its rule is evaluated and matches, even if the enclosing
   alternative later fails, and also inside a lookahead, under `#atomic` and under `-`.

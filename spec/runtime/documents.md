@@ -96,7 +96,10 @@ a caller's mutation cannot change memoized errors or a later parse. Ordinary par
 failures are newly constructed; caller-supplied errors such as `Context.Err` keep
 their identity. This does not detach the mutable `Node` graph, which MAY share
 nodes with the document, and nodes that an earlier parse returned MAY be moved in
-place by a later one. Typed values returned by a generated parser's
+place by a later one. A later parse that is interrupted while it moves them can leave
+a tree from an earlier parse partly moved, and no later parse moves it again; the
+positions in such a tree are unspecified (take a `Clone` to keep a tree as it was).
+Typed values returned by a generated parser's
 `Document.ParseAST` are read-only and shared with the document and earlier results;
 its generated `CloneAST` returns an independent copy (see
 [Generated Parsers](generated-parsers.md)). Parsing and diagnostic publication use
@@ -185,7 +188,8 @@ collections.
 A cancellation or option error detected before execution touches reusable state
 preserves valid caches and the last statistics. Once execution starts, an
 interruption clears memo and repetition state before the next attempt, because
-entries can depend on unfinished left-recursion work. Fully completed input
+entries can depend on unfinished left-recursion work and a result that was being
+moved in place can be left partly moved. Fully completed input
 tables MAY be retained; incomplete tables are never published. The text and
 options stay available for retry or editing. A retry with fresh controls MUST
 produce the result of parsing the current text from scratch. Syntax errors and
@@ -196,7 +200,9 @@ recovered errors are completed outcomes and keep their reusable caches.
 Reuse is a performance property, not a result property. An implementation MAY
 retain, shift, drop or recompute any intermediate result, provided that every
 parse returns what a parse of the current text from scratch returns. Reuse is
-observable only through the statistics.
+observable only through the statistics. A lookup that finds a memo entry applies the
+edits since the entry was stored or last found, and counts one unit of Compute for each
+edit it applies; the [linear cost proof](../proofs/linear-cost.md#setting) bounds them by the length of the edit log.
 
 A result that read the growing result of a left recursion in progress when it
 started depends on that growth, not only on the text. A parse keeps it only
