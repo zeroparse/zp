@@ -5,6 +5,7 @@ package engine_test
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -369,6 +370,22 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 // (core/stream_ops.go). The operations of the window are host operations without reference models,
 // so these mutants are what binds them. Each must fail the test named for it; the two backends'
 // calls of the commit are held to their position too.
+//
+// Four edits change nothing that a parse can show, and are left out:
+//   - Moving the first checkpoint of EmitStream after the report, or dropping the checkpoint before
+//     each diagnostic in ReportRecovered: nothing changes state between the two, and the checkpoint
+//     after each diagnostic covers the next one, so each stands in for the other at the same state,
+//     except for a cancellation that arrives between them, which no order can fix. Together they
+//     are not equivalent, which the mutant that takes both edits shows.
+//   - Dropping the clamp of Diagnosed in ReportRecovered: it exceeds the recovered errors only after
+//     a rollback past a report. The elements' own marks are taken after the last report, and the
+//     compiler rejects #recover around a #stream repetition, so what can roll back further is a
+//     failure of the start rule, after which nothing is reported. A panic in its place passes the
+//     tests of the engine.
+//   - Splitting the chunks before the frames are reset in streamRelease: the split charges nothing
+//     and reads only the capacity of the scratch, which the reset keeps, so the charges, the memory
+//     counts and what stays referenced end the same, and an interruption between them leaves state
+//     that nothing reads (the proof's Lemma 5).
 func TestStreamCommitMutantsFail(t *testing.T) {
 	const (
 		check   = "\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
@@ -391,6 +408,8 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		start    = "^TestStreamStartRuleNeedsNoCount$"
 		scratch  = "^TestStreamDiagnosticTailCommitScratchOwnership$"
 		bounds   = "^TestStreamCommitBoundsTheErrorScratch$"
+		charges  = "^TestStreamCommitChargesItsDeclaredWork$"
+		ends     = "^TestStreamDiagnosticCallbackEndsTheEmission$"
 	)
 	here, vm, inCore := []string{"."}, []string{"./vm"}, []string{"./core"}
 	runPrintedMutants(t, "core/stream_exec.go", []printedMutant{
@@ -471,11 +490,43 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"a traced parse reuses the scratch", []printedEdit{{reuse, "if cap(p.Recovered) <= streamRecoveryScratchMax {"}}, scratch, here},
 		{"a large scratch is kept", []printedEdit{{reuse, "if p.Tr == nil {"}}, bounds, here},
 		{"the scratch is never reused", []printedEdit{{reuse, "if false {"}}, scratch, here},
+		{"the scratch of the errors is cleared free of charge",
+			[]printedEdit{{"\t\tClearSpend(p, p.Recovered[:cap(p.Recovered)])\n", "\t\tclear(p.Recovered[:cap(p.Recovered)])\n"}}, charges, here},
+		{"a panic of the diagnostic callback is the parser's",
+			[]printedEdit{{"\t\t\tp.EmitCall = true\n", ""}}, "^TestStreamDiagnosticCallbackPanicIsTheCallers$", here},
+		{"the mark of the diagnostic callback stays",
+			[]printedEdit{{"\t\t\tp.EmitCall = false\n", ""}}, "^TestStreamDiagnosticCallbackMarkEndsWithIt$", here},
+		{"cancellation in the last diagnostic is not observed",
+			[]printedEdit{{"\t\tp.Diagnosed++\n\t\tif BudgetControlsEnabled {\n\t\t\tp.Control.Check()\n\t\t}\n", "\t\tp.Diagnosed++\n"}}, ends, here},
+		{"the frames are scanned for free",
+			[]printedEdit{{"\tif StreamFrameScratch {\n\t\tp.ResetStreamFrames()\n\t}\n", "\tif StreamFrameScratch {\n\t\tp.FrameSlab = p.FrameSlab[:0]\n\t}\n"}}, charges, here},
 		{"the settled errors stay in the scratch", []printedEdit{{"\t\tClearSpend(p, p.Recovered[:cap(p.Recovered)])\n", ""}}, scratch, here},
 		{"the settled errors stay recorded", []printedEdit{{"\t\tp.Recovered = p.Recovered[:0]\n", ""}}, scratch, here},
 		{"the settled errors of a large scratch stay", []printedEdit{{"\t\tp.Recovered = nil\n", ""}}, scratch, here},
 		{"the count of reported errors stays", []printedEdit{{"\tp.Diagnosed = 0\n", ""}}, "^TestStreamCommitForgetsTheDiagnosedCount$", here},
 		{"the settled errors stay counted", []printedEdit{{"\t\tp.Control.errs = 0\n", ""}}, "^TestMemoryLimitStream$", here},
+	})
+	// The checkpoints before the first diagnostic stand in for each other, so only both go together.
+	reportSrc, err := os.ReadFile("core/stream_ops.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const before = "\t\tif BudgetControlsEnabled {\n\t\t\tp.Control.Check()\n\t\t}\n\t\toriginal := p.Recovered[p.Diagnosed]\n"
+	if strings.Count(string(reportSrc), before) != 1 {
+		t.Fatalf("core/stream_ops.go has no single checkpoint before a diagnostic")
+	}
+	reportMutant := filepath.Join(t.TempDir(), "stream_ops.go")
+	unchecked := strings.Replace(string(reportSrc), before, "\t\toriginal := p.Recovered[p.Diagnosed]\n", 1)
+	if err := os.WriteFile(reportMutant, []byte(unchecked), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	reportFile, err := filepath.Abs("core/stream_ops.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runPrintedMutantsOver(t, "core/stream_exec.go", map[string]string{reportFile: reportMutant}, []printedMutant{
+		{"a cancelled context still gets its diagnostics",
+			[]printedEdit{{check + report, report + check}}, "^TestStreamCancelledContextDeliversNoDiagnostic$", here},
 	})
 	runPrintedMutants(t, "closure/builder.go", []printedMutant{
 		{"the closure backend commits where the element started",
@@ -530,6 +581,12 @@ type printedEdit struct{ old, new string }
 // runPrintedMutants builds the tests of each mutant with the mutated copy of the printed file path
 // in place of the file, and requires that they fail.
 func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
+	runPrintedMutantsOver(t, path, nil, mutants)
+}
+
+// runPrintedMutantsOver is runPrintedMutants with the replacements of over, by absolute path, in
+// every overlay, for a mutant that takes edits of two files.
+func runPrintedMutantsOver(t *testing.T, path string, over map[string]string, mutants []printedMutant) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -553,7 +610,9 @@ func runPrintedMutants(t *testing.T, path string, mutants []printedMutant) {
 			if err := os.WriteFile(mutant, []byte(text), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			overlay, err := json.Marshal(map[string]map[string]string{"Replace": {file: mutant}})
+			replace := map[string]string{file: mutant}
+			maps.Copy(replace, over)
+			overlay, err := json.Marshal(map[string]map[string]string{"Replace": replace})
 			if err != nil {
 				t.Fatal(err)
 			}
