@@ -1,6 +1,6 @@
 # 065. Exec IR: One Parser VM Specified for Every Target
 
-- **Status**: Partially Implemented
+- **Status**: Implemented, as [Completion](#completion) defines it
 - **Author**: @ornew
 - **Date**: 2026-10-31
 
@@ -278,19 +278,33 @@ algebra and its order, which error messages expose. *Target*: membership filters
 and how their memory is accounted. *Conformance*: random sequences against the reference model, compared by farthest
 position and exact order.
 
-**Recovery** (`rec.mark`, `rec.rollback`, `rec.since`, `rec.append`, `rec.push`; with `#missing` in the engine,
-`missing.mark`, `missing.reset`, `missing.replay`). An ordered list of recovered errors with marks; `rollback` removes
-everything after a mark, `since` returns it for a memo entry. *Shared*: order and rollback. *Target*: list growth and
-sharing. *Conformance*: interleaved pushes, marks and rollbacks.
+**Recovery** (`rec.mark`, `rec.push`, `rec.truncate`, `rec.since`, `rec.add`, `rec.none`, `stream.settleErrors`; with
+`#missing` in the engine, `missing.mark`, `missing.reset`, `missing.replay`). An ordered list of recovered errors with
+marks; `truncate` removes everything after a mark, `since` returns a copy of it for a memo entry, `add` records a copy
+again and `settleErrors` forgets what a stream has delivered. *Shared*: order, truncation and which errors survive.
+*Target*: list growth and sharing, the scratch a stream keeps, and where the sites that make an error record it: grammar
+code and the recovery of each engine write `rec.push` in their own language. *Conformance*: interleaved pushes, marks,
+truncations and copies, compared by the identity of each error after every write, on generated Go and the engine;
+TypeScript stays on its parity tests.
 
-**Variable environment** (`env.bind`, `env.lookup`, `env.restore`, `env.key`). A persistent scope: bindings made
-after a mark are gone after `restore` of the environment that the mark holds; histories are bounded as specified; `env.key` returns the
-values of a rule's variables for its memo key, and two keys are equal when the host's value equality says so.
-*Shared*: scoping, bounds, key equality. *Target*: list or array, shared keys for the initial environment, history
-compaction. *Conformance*: nested scopes, shadowing, long histories, keys of equal and unequal values.
+**Variable environment** (`env.bind`, `env.lookup`, `env.scope`, `env.restore`, `env.key`). A persistent environment:
+one current value for each declared variable, in a slot the grammar fixes. A binding makes a new environment that
+shares what it can, and bindings made after a mark are gone after `restore` of the environment that the mark holds; an
+equal binding keeps the environment it is, so what depends on its identity stays valid. `env.key` returns the values of
+a rule's variables for its memo key, and two keys are equal when the host's value equality says so.
+*Shared*: scoping, equal bindings, key equality. *Target*: the representation of the environment, and a key shared
+for the initial environment. *Conformance*: nested scopes, shadowing, vectors of one and of several levels, keys of
+equal and unequal values, on generated Go and the engine; TypeScript stays on its parity tests.
+
+**Terms** (`predicate`, `bind`). Evaluating a term stays a host primitive of each runtime (`term.eval`), since it
+reads the value model; what surrounds it is one composition on every runtime. A predicate holds when its term
+succeeds with a value that is not false. A binding binds the value of its term, and refuses a function, which no
+variable holds. On either, a term that fails is an ordinary failure of the expression: what it gathered and created
+is dropped, and the parse goes on to its next alternative.
 
 **Capture frames** (`frame.open`, `frame.set`, `frame.mark`, `frame.undo`, `frame.save`, `frame.restore`,
-`frame.close`). Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark is the
+`frame.close`). Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. `frame.set`
+writes a slot and records the write on the trail, and `frame.close` releases a frame. A mark is the
 position, the environment, the recovered errors and the length of the trail; what a reset restores from it is the
 composition `reset`, and `frame.undo` undoes the writes of the trail after its length, charging one unit for each.
 `frame.save` and `frame.restore` keep the captures of a line across a reset, as the longest operator match needs.
@@ -374,7 +388,11 @@ step, per loop iteration, per operator or operand line an Operators Rule tries, 
 is a `budget.charge` of the composition, shared and exact on every target; a form specialized without the budget
 feature leaves it out.
 A charge inside an operation pays for work whose size depends on the operation's data: scanning an expectation
-record, growing the memo, inspecting input. The specification already lets budget counts depend on the backend and
+record, growing the memo, inspecting input. That is the rule on every target, and it settles what an operation of
+constant work charges: nothing, because the call or the step around it has paid. An empty memo key costs nothing, a
+key costs one unit for each value it reads and each node on the path to that value, a capture write costs nothing
+where `frame.undo` costs one unit for each write it undoes, and forgetting the values of a term costs one unit for
+each value. The specification already lets budget counts depend on the backend and
 the generated artifact as long as they are deterministic ([Cancellation and Budget
 Limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits)), and the targets already differ here:
 generated Go charges an expectation scan only after its membership filter matches, TypeScript charges every element
@@ -396,7 +414,8 @@ facilities outside the parser VM's state (input buffers, memory, callbacks, canc
 same way. With no reference model, neither bound is measured; a test follows the static calls of the Go runtime from
 each transitional and host operation and requires a quantity of its bound for every
 charge it can reach, so that a charge added to the runtime is accounted for when it is added. The operations that run
-a rule body declare none: what they charge includes the grammar code they run, which no bound of theirs can state.
+a rule body or a term declare none: what they charge includes the grammar code or the term they run, which no bound
+of theirs can state.
 
 Charges inside an operation spend the same budget that `budget.charge` and `budget.used` see. The conformance suite
 measures what an implementation charges in each call, checks it against the bound and adds it to the model's budget;
@@ -571,14 +590,10 @@ move to Exec IR at once while mechanisms move one at a time.
    and the reset to a mark are compositions printed into the Go and TypeScript runtimes. The loop charges one unit
    per operator or operand line it tries on every target, and nothing of its own per iteration: an iteration pays
    for the operators it tries.
-   Capture writes and the release of a frame (`frame.set`, `frame.close`) are not declared yet: grammar code reaches
-   the runtimes' `SetCapture` and `FreeFrame` through its transitional lowering, and a capture write charges a unit
-   in Go and none in TypeScript.
 7. **Stream commitment** (generated Go). The commit is a composition. Pruning the memo is the specified
    `memo.prune`, under conformance on the generated Go runtime; the floor of the memo is the position of the last
    prune. Discarding input, releasing the memory of delivered elements, the records a prune drops besides the memo,
-   the delivery callbacks and cancellation at stream boundaries are host operations of the window. The recovered
-   errors a commit settles are a transitional operation: recovery bookkeeping has no Exec IR form. On generated Go,
+   the delivery callbacks and cancellation at stream boundaries are host operations of the window. On generated Go,
    `BenchmarkStream` is within noise except `generated`, 1.1% slower in two interleaved runs; a layout experiment
    that padded the window's fields to the offsets they had before the stage kept the difference, and a CPU profile
    spreads it over functions the stage does not change
@@ -661,16 +676,8 @@ move to Exec IR at once while mechanisms move one at a time.
    engine time-benchmark rows `B/op` rises by at most 0.01% and `allocs/op` does not rise, and the `zp` binary
    shrinks by 80 bytes.
 
-   The variable environment has no composition on any target, so this part adopts one operation of it, and the
-   engine has that operation from the first part: `env.memoKey`, which reads the values of a rule's variables for
-   its memo key in the call compositions. Exec IR declares one more, transitional like `env.memoKey`: `env.restore`,
-   which only the Operators Rule compositions call, so the engine implements it with the third part. `env.bind`,
-   `env.lookup` and `env.key` of [Operations](#operations) are declared on no target and belong to stage 10: binding
-   and reading a variable are term evaluation, which reaches each runtime's hand-written code through the
-   transitional lowering of grammar code. On every target the environment's vector,
-   its charges and its reads stay hand-written, and no conformance case covers them. Adoption replaces a hand-written
-   mechanism with what the compositions print, and for the environment they print nothing else, so the engine needs
-   no further change here.
+   The call compositions read the values of a rule's variables for its memo key with `env.key`, so this part adopts
+   that operation of the variable environment, and the engine has it from the first part.
 
    In the third part, the Operators Rule compositions print the engine's loop, longest match, skip of trivia and
    `Reset` into `core/operators_exec.go`, specialized for budget controls and missing tokens, and the engine gains
@@ -860,8 +867,45 @@ move to Exec IR at once while mechanisms move one at a time.
    50,208 bytes: the builders and contracts of the new operations and compositions, which it links because it also
    generates parsers. Generated parsers run the same code as before: their significant changes range from -1.96% to
    +0.99%.
-10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
-    `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
+10. **The variable environment, terms and recovery.** `env.bind`, `env.lookup`, `env.scope`, `env.restore` and
+    `env.key` are specified with a reference model and conformance suites on generated Go (node and typed) and the
+    engine, which the charges of `env.bind`, `env.lookup` and `env.key` meet exactly. The surroundings of a term are
+    the printed compositions `predicate` and `bind` on every runtime, with one failure policy: on a term that fails,
+    a predicate and a binding fail and drop what the term left. The engine prints them for each backend, which evaluates
+    terms in its own way. The recovered-error list is specified in the same way as the environment, with `rec.push`
+    and `stream.settleErrors`. `frame.set` and `frame.close` are declared. Charges follow one rule
+    ([Cost Contracts](#cost-contracts)): generated Go stops charging a unit for a memo key and for a capture write,
+    TypeScript and generated Go charge for the values a term leaves, and generated Go charges for the error slots a
+    stream clears.
+
+    Results are identical to those before the stage on 1,220,195 Document parses (with edits, limits that rise
+    until the parse ends, memory limits, cancellation and snapshots, including statistics and cache reuse counts) and
+    7,381 stream parses, over grammars that bind, read and key variables, fail terms and recover. Over ten interleaved
+    rounds the geomean of the time benchmarks moves by +0.16%, `B/op` and `allocs/op` of the engine do not rise, and a
+    benchmark whose items run four terms each moves by +0.3% to +0.6%, within noise. Four engine rows of the JSON and
+    XML grammars on the closure backend with byte positions are 1.0% to 1.9% slower in repeated runs, and
+    `ControlledParse/JSON/bytecode` by up to 2.3% in two of three. The JSON grammar has no term, so no code that its
+    parse runs changed; a function that shifts the placement of the closure backend's code moved neither build, so
+    the cause is not established.
+
+### Completion
+
+The migration is complete when every mechanism of the parser VM runs on one composition or a declared operation:
+a change to a mechanism's policy is an edit of a composition, or of the contract of an operation that each target
+implements. That definition does not make each operation's implementation shared, and it holds today.
+
+These stay transitional, each declared with its contract and cost bound and implemented by hand on each target:
+
+- the operations in `ops/transitional.go`, `ops/operators.go`, `ops/document.go`, `ops/window.go` and `ops/split.go`
+  that have no reference model, whose charges a static test follows instead (expectations, capture frames,
+  left-recursion growth, calls, missing tokens, Operators Rule lines, Documents and the stream window); printed
+  tests bind what they do;
+- the primitives of grammar code, which reach each runtime's helpers through the lowering of Flow IR, among them the
+  sites that make a recovered error;
+- evaluating a term and the values it reads (`term.eval`), which is the following work: term evaluation and the value
+  model, with value operations as host primitives. It takes in the function values that bindings refuse today;
+- TypeScript's conformance: a runner of the suite in TypeScript does not exist, so TypeScript stays on its parity
+  tests and on the printed forms it shares.
 
 ### Pilot
 
@@ -872,7 +916,7 @@ budget controls, Documents, streams or observation:
 - the memo table, deferred memoization and their operations, with conformance suites and reference models;
 - the call protocol of a memoized rule outside Documents and left-recursion growth as compositions.
 
-Expected sets, recovery lists, environments and frames are transitional operations.
+Expected sets, recovery lists, environments and frames start as transitional operations.
 
 **Work.**
 
@@ -985,8 +1029,8 @@ instantiations share a GC shape, and does not help TypeScript or the engine.
   coarse.
 - **Contracts are incomplete.** An implementation can pass the suite and still differ in a way no case observes. The
   reference models, mutation controls and differential tests together cover it; each implementation bug adds a case.
-- **Transitional operations linger.** They are listed per stage and the stage that migrates a mechanism removes its
-  transitional operations.
+- **Transitional operations linger.** They are listed in [Completion](#completion) and the work that migrates a
+  mechanism removes its transitional operations.
 - **A shared bug reaches every target.** One composition means one bug everywhere. The engine as oracle until the last
   stage, golden files, fixtures and negative controls are the guards.
 - **Budget counts.** Charge coalescing and new operation implementations could change counts; counts stay pinned per
