@@ -103,6 +103,16 @@ for each, and drops them: every slot they wrote has the value it had before.`,
 		Writes: []string{Frames}, NoReturn: true, Cost: slots,
 		Contract: `Returns a new frame of n empty slots, which lives until the parse ends. A frame of no slots is
 never written, so it may be shared.`})
+	add(&exec.Op{Name: "frame.set", Component: Frames, Params: []exec.Param{exec.P("slot", exec.TInt), exec.P("v", value)},
+		Reads: []string{Frames}, Writes: []string{Frames},
+		Contract: `Writes v to the slot of the current frame and adds the slot's old value to the trail. The write
+is free: its size depends on nothing, the match that made v paid for itself, and frame.undo charges for
+each write it undoes.`,
+		Requires: `slot is a slot of the current frame.`})
+	add(&exec.Op{Name: "frame.close", Component: Frames, Params: f, Writes: []string{Frames},
+		Contract: `Ends f, which nothing refers to any more: a rule's frame when the rule returns. A target may
+reuse it, and one without a pool of frames does nothing.`,
+		Requires: `No trail entry and no current frame refer to f.`})
 	add(&exec.Op{Name: "frame.slots", Component: Frames, Params: f, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of slots of f.`})
 	add(&exec.Op{Name: "frame.save", Component: Frames, Params: f, Reads: []string{Frames}, Writes: []string{Frames},

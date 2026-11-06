@@ -115,6 +115,10 @@ var tsTarget = &exects.Target{
 			return "this.frame"
 		case "frame.use":
 			return "this.frame = " + a[0]
+		case "frame.set":
+			return fmt.Sprintf("this.setCapture(%s, %s)", a[0], a[1])
+		case "frame.close":
+			return ""
 		case "frame.open":
 			return "this.newFrame(" + a[0] + ")"
 		case "frame.slots":

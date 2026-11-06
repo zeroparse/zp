@@ -288,6 +288,10 @@ func engineTarget() *execgo.Target {
 			return "p.Frame"
 		case "frame.use":
 			return "p.Frame = " + a[0]
+		case "frame.set":
+			return fmt.Sprintf("p.SetCapture(%s, %s)", a[0], a[1])
+		case "frame.close":
+			return ""
 		case "frame.open":
 			return "p.NewFrame(" + a[0] + ")"
 		case "frame.slots":

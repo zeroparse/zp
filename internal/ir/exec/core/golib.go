@@ -224,6 +224,13 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.NewFrame(" + a[0] + ")"
 		case "frame.slots":
 			return "len(" + a[0] + ".Vals)"
+		case "frame.set":
+			return fmt.Sprintf("p.SetCapture(%s, %s)", a[0], a[1])
+		case "frame.close":
+			if typed {
+				return "p.FreeFrame(" + a[0] + ")"
+			}
+			return ""
 		case "frame.save":
 			return fmt.Sprintf("p.saved = appendSpend(%s, p.saved[:0], %s.Vals)", spender, a[0])
 		case "frame.restore":

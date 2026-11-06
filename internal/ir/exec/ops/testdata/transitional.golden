@@ -1670,6 +1670,28 @@ transitional op frame.open(n int) Frame
     // Returns a new frame of n empty slots, which lives until the parse ends. A frame of no slots is
     // never written, so it may be shared.
 
+transitional op frame.set(slot int, v Value)
+  component frames
+  reads frames
+  writes frames
+  cost <= 0
+  contract:
+    // Writes v to the slot of the current frame and adds the slot's old value to the trail. The write
+    // is free: its size depends on nothing, the match that made v paid for itself, and frame.undo charges for
+    // each write it undoes.
+  requires:
+    // slot is a slot of the current frame.
+
+transitional op frame.close(f Frame)
+  component frames
+  writes frames
+  cost <= 0
+  contract:
+    // Ends f, which nothing refers to any more: a rule's frame when the rule returns. A target may
+    // reuse it, and one without a pool of frames does nothing.
+  requires:
+    // No trail entry and no current frame refer to f.
+
 transitional op frame.slots(f Frame) int
   component frames
   cost <= 0

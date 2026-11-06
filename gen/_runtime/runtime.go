@@ -2320,13 +2320,6 @@ func (p *Parser) Mark() Mark {
 }
 
 func (p *Parser) SetCapture(slot int, v *Node) {
-	p.Spend()
-	p.Trail = append(p.Trail, undo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
-	p.Frame.Vals[slot] = v
-}
-
-// SetCaptureOrdinary is SetCapture in an ordinary parse (ExpectOrdinary).
-func (p *Parser) SetCaptureOrdinary(slot int, v *Node) {
 	p.Trail = append(p.Trail, undo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
 }
