@@ -150,6 +150,11 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 	if !core.BudgetControlsEnabled && c != nil {
 		return nil, core.ErrNoControls
 	}
+	if c != nil && o.Limits.Compute == 0 && lim.Compute != 0 {
+		// The default limit counts what a parse from scratch counts; the work that only a Document
+		// does is left out of it (BudgetControl.ChargeDoc).
+		c.DefaultCompute = true
+	}
 	c.Check()
 	if lim.Memory != 0 && d.retainedBytes() > lim.Memory {
 		// The caches alone pass the limit: drop them and parse from scratch, rather than fail
@@ -191,7 +196,9 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 		// detach recovered errors from memo entries before exposing them.
 		if capture == nil {
 			if recovered, ok := err.(core.SyntaxErrors); ok {
+				m := p.FreeBegin(true) // work of the Document that a parse from scratch does not do
 				err = copyDocumentDiagnostics(p, recovered)
+				p.FreeEnd(m)
 				c.Check()
 			}
 		}

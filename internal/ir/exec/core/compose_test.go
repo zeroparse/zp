@@ -218,8 +218,12 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return []any{args[0].(*trule).memo}
 	case "rule.leader":
 		return []any{args[0].(*trule).leader}
-	case "rule.plain":
+	case "rule.plain", "rule.docPlain", "rule.docOnlyMemo":
 		return []any{false}
+	case "budget.freeBegin":
+		return []any{uint64(0)}
+	case "budget.freeEnd":
+		return nil
 	case "rule.invoke":
 		r := args[0].(*trule)
 		r.runs++
@@ -774,7 +778,7 @@ func TestObserved(t *testing.T) {
 // interrupts the parse.
 func TestDocument(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "document", ops.Document)
+	f := composition(t, mod, "document", ops.Document, ops.Budget)
 	checkDocument(t, mod, f)
 	t.Run("typed", func(t *testing.T) {
 		checkDocument(t, mod, composition(t, mod, "typedDocument", ops.Document, ops.Observe, ops.Typed, ops.Budget), nil)
@@ -785,7 +789,7 @@ func TestDocument(t *testing.T) {
 // cleanup runs before each return of its body but not when an operation interrupts the parse.
 func TestDocumentCleanupMutant(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "document", ops.Document)
+	f := composition(t, mod, "document", ops.Document, ops.Budget)
 	stmts := f.Body.Stmts
 	p := stmts[len(stmts)-1].(*exec.Protect)
 	var unprotect func(b *exec.Block)
@@ -1010,7 +1014,7 @@ func TestTypedDocument(t *testing.T) {
 // record.
 func TestMemoizedDocument(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "memoized", ops.Document, ops.Observe)
+	f := composition(t, mod, "memoized", ops.Document, ops.Observe, ops.Budget)
 	for _, active := range []bool{true, false} {
 		m := newMachine()
 		m.docActive = active

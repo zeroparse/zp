@@ -365,9 +365,11 @@ measured.
 A parse of a Document also does work that the cost does not count: it applies pending
 edits to the memo entries it finds, moves the values it reuses, and works through
 what the Document retains from earlier parses. Its time and its compute units
-include that work, and the budget caps them with it, so they are not proportional
-to its cost; the [linear cost proof](../proofs/linear-cost.md#corollary-compute-of-a-document-parse)
-states their bound. The [memory limit](#memory-limit) caps the storage a parse
+include that work, so they are not proportional to its cost; the
+[linear cost proof](../proofs/linear-cost.md#corollary-compute-of-a-document-parse)
+states their bound. An explicit `Compute` limit caps the whole of it, and the default
+limit caps the part that a parse from scratch also does
+([Default Limits](#default-limits)). The [memory limit](#memory-limit) caps the storage a parse
 takes into use in bytes.
 
 ### Termination
@@ -1637,13 +1639,33 @@ budget, the outcome does not depend on how the reader splits the input into
 reads. With `Input` at its default, a stream tracks no length.
 
 The default is resolved once per entry point, from the input the entry point
-receives. For a `Document`, `n` is the length of the text at each `Parse`. A
-stream does not know `n` up front, so its default is `max(2^20, 1024 * d)`,
-where `d` is the number of units up to the furthest position the parser has
-demanded from the stream so far, and it never shrinks. `d` depends on the input
-and the grammar, not on how the reader splits the input into reads. A parser generated
-without limit controls spends no budget and accepts only a zero `Compute` and
-`Unlimited`.
+receives. A stream does not know `n` up front, so its default is
+`max(2^20, 1024 * d)`, where `d` is the number of units up to the furthest
+position the parser has demanded from the stream so far, and it never shrinks.
+`d` depends on the input and the grammar, not on how the reader splits the input
+into reads. A parser generated without limit controls spends no budget and
+accepts only a zero `Compute` and `Unlimited`.
+
+For a `Document`, `n` is the length of the text at each `Parse`, and the default
+counts only the work that a parse of that text from scratch counts. The work that
+only a `Document` does is not counted: the memo protocol of its calls (the
+lookups and the stores of memo entries, and the walks of their chains), applying
+pending edits to the entries, moving the values it reuses, and copying the
+diagnostics it returns. The unit of each call, the evaluation of rule bodies and
+the examination of the input are counted, as in a parse from scratch. A `Document` parse under
+the default limit therefore succeeds whenever a parse of the same text from
+scratch under the default limit does, whatever edits are pending and whatever
+the earlier parses left in the `Document`, and it returns the result of that
+parse. An explicit `Compute` limit counts all the work of the parse. Under the
+default, `Limit` and `Used` of a `LimitError` leave the work of the `Document`
+out as well.
+
+The work that the default leaves out is bounded by the
+[linear cost proof](../proofs/linear-cost.md#lemma-12-document-units). Pending
+edits add at most 128 units to a call, since a memo entry that lags behind by
+more edits is evaluated again instead of brought up to date; the other terms
+depend on what the `Document` retains. A grammar whose cost is far above the
+default limit stays stopped on a `Document`, also with the most pending edits.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary
 syntactic mismatches. Ordered choice, predicates, recovery, and other grammar
