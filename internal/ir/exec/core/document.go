@@ -13,7 +13,8 @@ func addDocument(m *Module) {
 	e, log := L("e"), L("log")
 	entry, edits := THandle(ops.Entry), THandle(ops.EditLog)
 	advance := m.AddFunc("memoAdvance", []Param{P("e", entry), P("log", edits)}, []Type{TBool}, []string{ops.Document, ops.Budget}, func(b *Builder) {
-		// A seed exists only while its growth lasts.
+		// A guard for memo.seed: a seed lives within one parse, when no edit is pending, so a lookup never
+		// applies edits to one.
 		b.If(C("memo.seed", e), func(b *Builder) { b.Return(BoolC(false)) })
 		b.Let("from", C("memo.from", e))
 		b.Let("examined", C("memo.examined", e))
@@ -42,5 +43,7 @@ whether it is still valid. For each edit, in order, an entry that examined only 
 that examined only input after it moves by the edit's change in length, unless it is pinned or holds
 recovered errors, and any other is invalid. A form specialized for budget charges one unit for each edit
 it applies. The entry changes only if it is still valid, and after every charge: one that is not valid
-stays in its slot until a store replaces it, and a lookup before that applies the same edits again.`
+stays in its slot until a store replaces it, and a lookup before that applies the same edits again. The
+first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
+when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.`
 }

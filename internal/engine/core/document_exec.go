@@ -7,7 +7,9 @@ package core
 // that examined only input after it moves by the edit's change in length, unless it is pinned or holds
 // recovered errors, and any other is invalid. A form specialized for budget charges one unit for each edit
 // it applies. The entry changes only if it is still valid, and after every charge: one that is not valid
-// stays in its slot until a store replaces it, and a lookup before that applies the same edits again.
+// stays in its slot until a store replaces it, and a lookup before that applies the same edits again. The
+// first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
+// when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
 // Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
@@ -48,7 +50,9 @@ func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 // that examined only input after it moves by the edit's change in length, unless it is pinned or holds
 // recovered errors, and any other is invalid. A form specialized for budget charges one unit for each edit
 // it applies. The entry changes only if it is still valid, and after every charge: one that is not valid
-// stays in its slot until a store replaces it, and a lookup before that applies the same edits again.
+// stays in its slot until a store replaces it, and a lookup before that applies the same edits again. The
+// first test, of memo.seed, is a guard that no production path reaches: the seed of a growth lives within one parse,
+// when no edit is pending, and a lookup applies edits only to an entry of an earlier parse.
 //
 // Printed from Exec IR function memoAdvance of internal/ir/exec/core, specialized for document.
 func AdvanceEntry(e *MemoEntry, log []DocEdit) bool {

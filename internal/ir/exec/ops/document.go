@@ -81,7 +81,9 @@ func documentEdits(m *exec.Module) {
 		host(&exec.Op{Name: name, Component: Memo, Params: []exec.Param{exec.P("e", entry)}, Results: []exec.Type{t},
 			Reads: []string{Memo}, Contract: doc})
 	}
-	attribute("memo.seed", exec.TBool, `Reports whether entry e is the seed of a growth, which no edit keeps.`)
+	attribute("memo.seed", exec.TBool, `Reports whether entry e is the seed of a growth, which no edit keeps. It guards memoAdvance: a seed
+lives within one parse, when no edit is pending, so the guard is not reached in a parse; only a case of
+conformance, which stores seeds without a parse, reaches it.`)
 	attribute("memo.from", exec.TInt, `Returns the start of the input that entry e examined, as of the edits it accounts for.`)
 	attribute("memo.pinned", exec.TBool, `Reports whether a call pinned entry e (memo.pin).`)
 	attribute("memo.shifted", exec.TBool, `Reports whether an edit moved entry e since its value was last made valid (doc.move).`)

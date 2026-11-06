@@ -1155,7 +1155,9 @@ host op memo.seed(e Entry) bool
   features document
   cost <= 0
   contract:
-    // Reports whether entry e is the seed of a growth, which no edit keeps.
+    // Reports whether entry e is the seed of a growth, which no edit keeps. It guards memoAdvance: a seed
+    // lives within one parse, when no edit is pending, so the guard is not reached in a parse; only a case of
+    // conformance, which stores seeds without a parse, reaches it.
 
 host op memo.from(e Entry) int
   component memo
