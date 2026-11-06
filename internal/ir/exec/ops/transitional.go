@@ -4,8 +4,6 @@ import "zeroparse.dev/zp/internal/ir/exec"
 
 // State components of the transitional operations.
 const (
-	// Rules is the grammar's rules: their descriptors and bodies.
-	Rules = "rules"
 	// Exp is the expectation record.
 	Exp = "expected"
 	// Call is the call bookkeeping of the target outside the pilot: the tracked path of Documents and
@@ -22,7 +20,6 @@ const (
 
 // Names of the handle types of the transitional operations.
 const (
-	Rule = "Rule"
 	Body = "Body"
 	Mark = "ExpMark"
 	Set  = "ExpSet"
@@ -66,10 +63,6 @@ const (
 	QRun = "run"
 	// QSteps is the number of memoized steps and jumps that the call takes.
 	QSteps = "steps"
-	// QVars is the number of variables of the rule's memo key.
-	QVars = "vars"
-	// QEnvReads is QVars times one more than the levels of the variable environment.
-	QEnvReads = "env_reads"
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
 	// and of those it scans for line starts: every loaded element when the whole input is loaded from
 	// its first element and no table of its lines exists yet, otherwise those before its argument
@@ -99,7 +92,6 @@ const (
 func Transitional(m *exec.Module) {
 	m.AddRegister(Pos, exec.TInt, "The position of the parse in the input.")
 	m.AddRegister(Silent, exec.TInt, "The depth of lookaheads, inside which expectations are not recorded.")
-	m.AddComponent(Rules, `The rules of the grammar: their descriptors and bodies.`)
 	m.AddComponent(Exp, `The expectation record: the expectations at the farthest position.`)
 	m.AddComponent(Call, `The call bookkeeping of the target outside the call protocol: the tracked path of
 Documents and observation.`)
@@ -108,7 +100,7 @@ Documents and observation.`)
 what the calls in their contexts depend on, and the tables of the results kept in each context (the
 dependency memo).`)
 
-	rule := m.AddHandle(Rule, Rules, "A rule's descriptor.")
+	rule := exec.THandle(Rule)
 	body := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
 	mark := m.AddHandle(Mark, Exp, "The record that an isolation set aside.")
 	set := m.AddHandle(Set, Exp, "The expectations an isolation recorded, valid until the next record.")
@@ -168,9 +160,6 @@ position on failure.`})
 	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", body)}, Results: result,
 		Writes: append([]string{Rules}, regs...), NoReturn: true,
 		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result.`})
-	add(&exec.Op{Name: "env.memoKey", Component: Env, Params: ruleArg, Results: []exec.Type{values}, Reads: []string{Env},
-		NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QVars}, {Coef: 1, Quantity: QEnvReads}}},
-		Contract: `Returns the values of the variables the rule reads, as its memo key.`})
 
 	recMark := []exec.Param{exec.P("mark", exec.TInt)}
 	add(&exec.Op{Name: "rec.mark", Component: Rec, Results: []exec.Type{exec.TInt}, Reads: []string{Rec},

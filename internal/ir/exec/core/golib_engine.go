@@ -501,7 +501,7 @@ func engineTarget() *execgo.Target {
 				s = fmt.Sprintf("var %s CtxState\nvar %s ctxHit\n", cs, seed)
 			}
 			return s + fmt.Sprintf("if %[1]s.Cycle != 0 && len(p.Gamma) != 0 {\n%[2]s = p.ctxEnter(&%[3]s, %[1]s, %[4]s)\n}", a[0], seed, cs, a[1]), true
-		case "env.memoKey":
+		case "env.key":
 			// The values of the variables are read only for a rule that reads some (Parser.keyVals).
 			return fmt.Sprintf("%s%sKeyVals{Missing: p.Missing != nil && %s.Missing && p.Silent > 0}\nif len(%[3]s.Vars) > 0 {\n%[1]s.Env = p.memoEnv(%[3]s)\n}", dst[0], op, a[0]), true
 		case "doc.enter":

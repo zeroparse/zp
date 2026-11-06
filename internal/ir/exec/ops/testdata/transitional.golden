@@ -18,8 +18,10 @@ component depth
   // The nesting depth of rule calls and its limit.
 
 component env
-  // The variable environment. Its operations are not declared yet; Values handles
-  // stand for the values of a rule's variables, compared by the host's value equality.
+  // The variable environment: one current value for each declared variable, in a slot
+  // that the grammar fixes. An environment is persistent: a binding makes a new one and changes none that a
+  // backtracking point holds. Values handles stand for the values of a rule's variables, compared by the
+  // host's value equality.
 
 component host
   // The host: values and nodes, which the parser VM passes on without reading.
@@ -87,6 +89,12 @@ handle Value of host
 handle Errs of recovered
   // The errors recovered in a rule call, kept with its memo entry.
 
+handle Datum of host
+  // A value that a variable holds or a term produces, which only the host reads.
+
+handle Scope of env
+  // A variable environment, which bindings replace and never change.
+
 handle Rule of rules
   // A rule's descriptor.
 
@@ -137,9 +145,6 @@ handle Frame of frames
 handle Mark of frames
   // A backtracking point: the position, the variable environment, the
   // recovered errors and the length of the trail when it was taken.
-
-handle Scope of env
-  // A variable environment, which bindings replace and never change.
 
 handle Operators of rules
   // The prefix operators of an Operators Rule, or its other operators.
@@ -375,6 +380,54 @@ op depth.current() int
   contract:
     // Returns the depth.
 
+op env.lookup(slot int) Datum
+  component env
+  reads env
+  noreturn
+  cost <= 0 + 1*env_path
+  contract:
+    // Returns the current value of the variable in slot.
+  requires:
+    // slot is the slot of a declared variable.
+  law: two lookups with no write of env between them return the same value
+
+op env.bind(slot int, v Datum)
+  component env
+  reads env
+  writes env
+  noreturn
+  cost <= 1 + 1*value_compare + 1*env_rebind
+  contract:
+    // Makes v the value of the variable in slot, in a new environment that shares what it can with
+    // the current one. When the host's value equality holds between v and the value the slot holds, the
+    // environment stays the one it is, so that equal bindings keep what depends on its identity. Environments
+    // that env.scope returned earlier do not change.
+  requires:
+    // slot is the slot of a declared variable, and v is a value that it may hold.
+
+op env.scope() Scope
+  component env
+  reads env
+  cost <= 0
+  contract:
+    // Returns the current environment, which env.restore takes.
+
+op env.restore(s Scope)
+  component env
+  writes env
+  cost <= 0
+  contract:
+    // Makes s the current environment: the bindings made since it was current are gone.
+
+op env.key(r Rule) Values
+  component env
+  reads env
+  noreturn
+  cost <= 1 + 1*vars + 1*env_reads
+  contract:
+    // Returns the values of the variables the rule reads, as its memo key. Two keys are equal when
+    // they have the same length and the host's value equality holds for each pair of their values.
+
 transitional op call.tracked() bool
   component call
   reads call
@@ -475,14 +528,6 @@ transitional op rule.run(inv Body) (Value, bool)
   cost <= 0
   contract:
     // Runs the invocation inv of a rule at binding level 0 and returns its result.
-
-transitional op env.memoKey(r Rule) Values
-  component env
-  reads env
-  noreturn
-  cost <= 1 + 1*vars + 1*env_reads
-  contract:
-    // Returns the values of the variables the rule reads, as its memo key.
 
 transitional op rec.mark() int
   component recovered
@@ -1588,13 +1633,6 @@ transitional op frame.restore(f Frame)
     // frame.save does.
   requires:
     // The last frame.save copied the slots of f, and nothing parsed since.
-
-transitional op env.restore(s Scope)
-  component env
-  writes env
-  cost <= 0
-  contract:
-    // Makes s the variable environment.
 
 transitional op opr.led(r Rule) Operators
   component rules

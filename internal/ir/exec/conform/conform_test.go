@@ -12,12 +12,17 @@ import (
 )
 
 var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice", "seen.first",
-	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current"}
+	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current",
+	"env.lookup", "env.bind", "env.scope", "env.restore", "env.key"}
 
 // modelImpl is the reference model run as an implementation: every case must pass on it.
 type modelImpl struct{ *ref.Model }
 
 func (m modelImpl) Values(id int64) any { return m.Model.Values(id) }
+
+func (m modelImpl) Datum(id int64) any { return ref.Datum{ID: id} }
+
+func (m modelImpl) Rule(index int64) any { return ref.RuleRef{Index: index} }
 
 // mutant breaks one operation of the model.
 type mutant struct {
@@ -57,7 +62,8 @@ func TestModelPassesItsCases(t *testing.T) {
 		}
 	}
 	for seed := uint64(0); seed < 200; seed++ {
-		c := Random("random", rand.New(rand.NewPCG(seed, 7)), allOps, 100, ref.Config{Rules: 3, Limit: 400, MaxDepth: 5})
+		c := Random("random", rand.New(rand.NewPCG(seed, 7)), allOps, 100, ref.Config{Rules: 3, Limit: 400, MaxDepth: 5,
+			Vars: RandomVars(int(seed)), RuleVars: RandomRuleVars})
 		if _, err := Run(s, c); err != nil {
 			t.Fatal(err)
 		}
@@ -120,6 +126,24 @@ func modelMutants() map[string]mutant {
 			a = slices.Clone(a)
 			a[8] = nil
 			return m.Call(Module().Op("memo.store"), a)
+		}},
+		"bind changes nothing": {op: "env.bind", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"bind of an equal value makes a new environment": {op: "env.bind", edit: func(m *ref.Model, a []any) []any {
+			op := Module().Op("env.bind")
+			was := m.Call(Module().Op("env.lookup"), a[:1])[0]
+			m.Call(op, []any{a[0], ref.Datum{ID: 999}})
+			if was != a[1] {
+				return m.Call(op, a)
+			}
+			return m.Call(op, []any{a[0], was})
+		}},
+		"restore keeps the current environment": {op: "env.restore", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"lookup reads the slot before": {op: "env.lookup", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("env.lookup"), []any{max(a[0].(int64)-1, 0)})
+		}},
+		"key leaves out the last variable": {op: "env.key", edit: func(m *ref.Model, a []any) []any {
+			r := a[0].(ref.RuleRef)
+			return m.Call(Module().Op("env.key"), []any{ref.RuleRef{Index: min(r.Index, 1)}})
 		}},
 		"budget charges one unit less": {op: "budget.charge", edit: func(m *ref.Model, a []any) []any {
 			n := a[0].(uint64)

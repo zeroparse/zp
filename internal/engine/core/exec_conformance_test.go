@@ -22,6 +22,9 @@ type engineMachine struct {
 	p     *Parser
 	vals  map[int64][]any
 	rules []*Rule
+	// envRules are the rules of ref.Config.RuleVars, and nextKey the Values handle that env.key made last.
+	envRules []*Rule
+	nextKey  int64
 }
 
 func newEngineMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
@@ -32,6 +35,23 @@ func newEngineMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
 		r := &Rule{}
 		r.Seen = i
 		m.rules = append(m.rules, r)
+	}
+	if len(cfg.Vars) > 0 {
+		vals := make([]any, len(cfg.Vars))
+		for i, id := range cfg.Vars {
+			vals[i] = ref.Value(id)
+		}
+		p.SetVars(vals)
+		p.initEnv = p.Env
+		for _, slots := range cfg.RuleVars {
+			r := &Rule{}
+			for _, slot := range slots {
+				r.Vars = append(r.Vars, fmt.Sprint("v", slot))
+				r.VarSlots = append(r.VarSlots, int(slot))
+				r.InitVals = append(r.InitVals, vals[slot])
+			}
+			m.envRules = append(m.envRules, r)
+		}
 	}
 	if !controlled {
 		return m
@@ -54,6 +74,10 @@ func (m *engineMachine) Values(id int64) any {
 	}
 	return id
 }
+
+func (m *engineMachine) Datum(id int64) any { return ref.Value(id) }
+
+func (m *engineMachine) Rule(index int64) any { return m.envRules[index] }
 
 // key returns the memo key of the first four arguments of a memo operation.
 func (m *engineMachine) key(args []any) MemoKey {
@@ -126,6 +150,20 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 		return nil
 	case "budget.used":
 		return []any{p.Control.Used}
+	case "env.lookup":
+		return []any{p.VarValue(int(args[0].(int64)))}
+	case "env.bind":
+		p.Bind(int(args[0].(int64)), args[1])
+		return nil
+	case "env.scope":
+		return []any{p.Env}
+	case "env.restore":
+		p.Env = args[0].(*Env)
+		return nil
+	case "env.key":
+		m.nextKey--
+		m.vals[m.nextKey] = p.keyVals(args[0].(*Rule)).Env
+		return []any{m.nextKey}
 	}
 	panic("engine binding: no operation " + o.Name)
 }
@@ -145,6 +183,11 @@ var (
 	// engineDocOps are the operations of a Document's memo. With only these, the entries a case
 	// examines survive its edits and are found again, as in the suites of the generated runtimes.
 	engineDocOps = []string{"memo.lookup", "memo.store", "memo.end", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
+	// engineEnvOps are the operations of the variable environment, with the memo operations that keys
+	// of the environment reach.
+	engineEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
+	// engineEnvExact are the environment operations whose charges equal their declared cost.
+	engineEnvExact = []string{"env.lookup", "env.bind"}
 )
 
 func engineSuites() []conform.Suite {
@@ -173,6 +216,16 @@ func engineSuites() []conform.Suite {
 			New:       func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
 			LazyEdits: true,
 		})
+		ops = slices.Clone(engineEnvOps)
+		if controlled {
+			ops = append(ops, engineBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name:  fmt.Sprintf("engine environment (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: engineEnvExact,
+			New:   func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
+		})
 	}
 	return suites
 }
@@ -199,7 +252,8 @@ func engineConformanceFailures(s conform.Suite, seeds, n int) (fails []error, ra
 			limit = uint64(200 + seed)
 		}
 		rng := rand.New(rand.NewPCG(uint64(seed), 65))
-		run(conform.Random(fmt.Sprint("random_", seed), rng, s.Ops, n, ref.Config{Rules: 3 + seed%2*130, Limit: limit, MaxDepth: 4}))
+		run(conform.Random(fmt.Sprint("random_", seed), rng, s.Ops, n, ref.Config{Rules: 3 + seed%2*130, Limit: limit, MaxDepth: 4,
+			Vars: conform.RandomVars(seed), RuleVars: conform.RandomRuleVars}))
 	}
 	return fails, ran
 }

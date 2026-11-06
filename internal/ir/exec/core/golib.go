@@ -310,7 +310,7 @@ func goTarget(s goSpec) *execgo.Target {
 			return fmt.Sprintf("p.invokePlainBody(%s, %s)", a[0], a[1])
 		case "rule.run":
 			return a[0] + "(p)"
-		case "env.memoKey":
+		case "env.key":
 			return "p.memoEnv(" + rule(a[0]) + ")"
 		case "rec.mark":
 			return "len(p.Recovered)"

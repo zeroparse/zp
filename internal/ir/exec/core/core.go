@@ -96,7 +96,7 @@ func Build() *Module {
 	// engine's bookkeeping, it also starts the examined input of the call (doc.enter), whose ends
 	// finish restores from oldHigh and oldLow.
 	reuse := func(b *Builder, level Expr, doc docMode, exit func(b *Builder, v, ok Expr)) {
-		b.Let("env", C("env.memoKey", r))
+		b.Let("env", C("env.key", r))
 		cs := b.LetN([]string{"c", "seed"}, C("ctx.enter", r, level))
 		c := cs[0]
 		b.If(C("ctx.found", cs[1]), func(b *Builder) { replay(b, cs[1], true, exit) })

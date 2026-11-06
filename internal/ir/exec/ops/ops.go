@@ -32,12 +32,15 @@ const (
 	Host = "host"
 	// Rec is the recovered-error list.
 	Rec = "recovered"
+	// Rules is the grammar's rules: their descriptors and bodies.
+	Rules = "rules"
 )
 
 // Cost quantities: abstract measures of the state before a call, computed by the reference model.
 const (
 	// QKeyScan is the sum, over the entries stored at the call's position for any rule, of one more
-	// than the number of their key values: what scanning the position and comparing keys inspects.
+	// than the number of their key values, a string counting two more for each of its bytes: what
+	// scanning the position and comparing keys inspects.
 	// It counts the entries that memo.splice removed and that a target may still hold there, because it
 	// applies edits to an entry when it finds the entry.
 	QKeyScan = "key_scan"
@@ -66,6 +69,20 @@ const (
 	// keeps per position pays for when it prunes them, moves the rest and drops the indexes of
 	// crowded positions.
 	QCovered = "covered"
+	// QVars is the number of variables of the rule's memo key.
+	QVars = "vars"
+	// QEnvReads is QVars times QEnvPath.
+	QEnvReads = "env_reads"
+	// QEnvPath is the number of nodes on the path to a slot of a persistent vector of the variables
+	// with 16 children for each node: the levels above the leaves, and the leaf. It is the same for
+	// every slot.
+	QEnvPath = "env_path"
+	// QEnvRebind is QEnvPath when the value of the call differs from the one the slot holds, and 0
+	// when they are equal: the nodes that a rebind copies.
+	QEnvRebind = "env_rebind"
+	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two
+	// for each byte of two strings of the same length, and 0 for anything else.
+	QValueCompare = "value_compare"
 )
 
 // Names of handle types.
@@ -76,6 +93,12 @@ const (
 	Value = "Value"
 	// Errs is a list of recovered errors that a memo entry keeps.
 	Errs = "Errs"
+	// Datum is a value that a variable holds or a term produces.
+	Datum = "Datum"
+	// Scope is a variable environment.
+	Scope = "Scope"
+	// Rule is a rule's descriptor.
+	Rule = "Rule"
 )
 
 // Pilot returns the module of the pilot operations, without functions.
@@ -89,16 +112,22 @@ rules whose memoization is deferred.`)
 	m.AddComponent(Bud, `The work budget of the parse: the units charged so far and the limit, zero for
 none.`)
 	m.AddComponent(Depth, `The nesting depth of rule calls and its limit.`)
-	m.AddComponent(Env, `The variable environment. Its operations are not declared yet; Values handles
-stand for the values of a rule's variables, compared by the host's value equality.`)
+	m.AddComponent(Env, `The variable environment: one current value for each declared variable, in a slot
+that the grammar fixes. An environment is persistent: a binding makes a new one and changes none that a
+backtracking point holds. Values handles stand for the values of a rule's variables, compared by the
+host's value equality.`)
 
 	m.AddComponent(Host, `The host: values and nodes, which the parser VM passes on without reading.`)
 	m.AddComponent(Rec, `The list of errors recovered so far in the parse.`)
+	m.AddComponent(Rules, `The rules of the grammar: their descriptors and bodies.`)
 
 	entry := m.AddHandle(Entry, Memo, "A memo entry: the result of a rule call with its outcome and end.")
 	values := m.AddHandle(Values, Env, "The values of a rule's variables, as a memo key.")
 	value := m.AddHandle(Value, Host, "The value of a rule's result: a node or a typed value.")
 	errs := m.AddHandle(Errs, Rec, "The errors recovered in a rule call, kept with its memo entry.")
+	datum := m.AddHandle(Datum, Host, "A value that a variable holds or a term produces, which only the host reads.")
+	scope := m.AddHandle(Scope, Env, "A variable environment, which bindings replace and never change.")
+	rule := m.AddHandle(Rule, Rules, "A rule's descriptor.")
 	result := []exec.Param{exec.P("silent", exec.TBool), exec.P("value", value), exec.P("errs", errs)}
 	key := []exec.Param{exec.P("rule", exec.TInt), exec.P("pos", exec.TInt), exec.P("level", exec.TInt), exec.P("key", values)}
 	scan := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QKeyScan}, {Coef: 1, Quantity: QPending}}}
@@ -217,5 +246,35 @@ ends with a nesting interruption.`})
 		Requires: `The depth is greater than zero.`})
 	m.AddOp(&exec.Op{Name: "depth.current", Component: Depth, Results: []exec.Type{exec.TInt}, Reads: []string{Depth},
 		Contract: `Returns the depth.`})
+	addEnvironment(m, datum, scope, rule, values)
 	return m
+}
+
+// addEnvironment adds the operations of the variable environment. Each is one step over the
+// representation of the environment, so no composition divides them further; a target chooses that
+// representation, and shares the key of the initial environment if it likes.
+func addEnvironment(m *exec.Module, datum, scope, rule, values exec.Type) {
+	slot := exec.P("slot", exec.TInt)
+	m.AddOp(&exec.Op{Name: "env.lookup", Component: Env, Params: []exec.Param{slot}, Results: []exec.Type{datum},
+		Reads: []string{Env}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QEnvPath}}},
+		Contract: `Returns the current value of the variable in slot.`,
+		Requires: `slot is the slot of a declared variable.`,
+		Laws:     []string{"two lookups with no write of env between them return the same value"}})
+	m.AddOp(&exec.Op{Name: "env.bind", Component: Env, Params: []exec.Param{slot, exec.P("v", datum)},
+		Reads: []string{Env}, Writes: []string{Env}, NoReturn: true,
+		Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QValueCompare}, {Coef: 1, Quantity: QEnvRebind}}},
+		Contract: `Makes v the value of the variable in slot, in a new environment that shares what it can with
+the current one. When the host's value equality holds between v and the value the slot holds, the
+environment stays the one it is, so that equal bindings keep what depends on its identity. Environments
+that env.scope returned earlier do not change.`,
+		Requires: `slot is the slot of a declared variable, and v is a value that it may hold.`})
+	m.AddOp(&exec.Op{Name: "env.scope", Component: Env, Results: []exec.Type{scope}, Reads: []string{Env},
+		Contract: `Returns the current environment, which env.restore takes.`})
+	m.AddOp(&exec.Op{Name: "env.restore", Component: Env, Params: []exec.Param{exec.P("s", scope)}, Writes: []string{Env},
+		Contract: `Makes s the current environment: the bindings made since it was current are gone.`})
+	m.AddOp(&exec.Op{Name: "env.key", Component: Env, Params: []exec.Param{exec.P("r", rule)}, Results: []exec.Type{values},
+		Reads: []string{Env}, NoReturn: true,
+		Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QVars}, {Coef: 1, Quantity: QEnvReads}}},
+		Contract: `Returns the values of the variables the rule reads, as its memo key. Two keys are equal when
+they have the same length and the host's value equality holds for each pair of their values.`})
 }

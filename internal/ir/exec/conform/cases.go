@@ -234,6 +234,8 @@ func Cases() []Case {
 		b.Assert(exec.Eq(exec.C("budget.used"), exec.U64(1<<40)), "no limit: every charge is added")
 	})
 
+	addEnvironmentCases(add)
+
 	add("depth", ref.Config{MaxDepth: 2}, func(b *exec.Builder) {
 		b.Do("depth.enter")
 		b.Do("depth.enter")
@@ -245,6 +247,125 @@ func Cases() []Case {
 	})
 	return cs
 }
+
+// addEnvironmentCases adds the cases of the variable environment, over one vector of a single node
+// and vectors with one and two levels above the leaves.
+func addEnvironmentCases(add func(string, ref.Config, func(*exec.Builder))) {
+	datum := func(id int64) exec.Expr { return exec.C(DatumOp, exec.Int(id)) }
+	rule := func(i int64) exec.Expr { return exec.C(RuleOp, exec.Int(i)) }
+	same := func(a, b exec.Expr) exec.Expr { return exec.Eq(a, b) }
+	vars := func(n int) []int64 {
+		v := make([]int64, n)
+		for i := range v {
+			v[i] = int64(i)
+		}
+		return v
+	}
+	for _, n := range []int{1, 4, 5, 16, 17, 256, 257} {
+		add(fmt.Sprintf("env_scopes_%d", n), ref.Config{Vars: vars(n)}, func(b *exec.Builder) {
+			last := int64(n - 1)
+			at := func(s int64, id int64, msg string) {
+				b.Assert(same(exec.C("env.lookup", exec.Int(s)), datum(id)), msg)
+			}
+			at(0, 0, "a slot starts with its initial value")
+			at(last, last, "the last slot starts with its initial value")
+			outer := b.Let("outer", exec.C("env.scope"))
+			b.Do("env.bind", exec.Int(last), datum(500))
+			at(last, 500, "a binding changes the slot")
+			if n > 1 {
+				at(0, 0, "a binding leaves the other slots")
+			}
+			inner := b.Let("inner", exec.C("env.scope"))
+			b.Assert(exec.Bin("!=", outer, inner), "a binding makes a new environment")
+			b.Do("env.bind", exec.Int(last), datum(501))
+			if n > 1 {
+				b.Do("env.bind", exec.Int(0), datum(502))
+			}
+			at(last, 501, "a later binding shadows an earlier one")
+			b.Do("env.restore", inner)
+			at(last, 500, "a restore brings the inner bindings back")
+			if n > 1 {
+				at(0, 0, "and drops the later ones")
+			}
+			b.Do("env.restore", outer)
+			at(last, last, "a restore of the first environment drops every binding")
+			b.Assert(same(exec.C("env.scope"), outer), "and it is that environment")
+		})
+	}
+	add("env_equal_binding", ref.Config{Vars: []int64{7, 1003, 2003, 1000}}, func(b *exec.Builder) {
+		s := b.Let("s", exec.C("env.scope"))
+		b.Do("env.bind", exec.Int(0), datum(7))
+		b.Assert(same(exec.C("env.scope"), s), "binding an equal integer keeps the environment")
+		b.Do("env.bind", exec.Int(1), datum(1003))
+		b.Assert(same(exec.C("env.scope"), s), "binding an equal string keeps the environment")
+		b.Do("env.bind", exec.Int(3), datum(1000))
+		b.Assert(same(exec.C("env.scope"), s), "binding an equal empty string keeps the environment")
+		b.Do("env.bind", exec.Int(1), datum(2003))
+		b.Assert(exec.Bin("!=", exec.C("env.scope"), s), "a string of the same length that differs is a new value")
+		b.Do("env.restore", s)
+		b.Do("env.bind", exec.Int(1), datum(1004))
+		b.Assert(exec.Bin("!=", exec.C("env.scope"), s), "a string of another length is a new value")
+		b.Do("env.restore", s)
+		b.Do("env.bind", exec.Int(0), datum(1000))
+		b.Assert(exec.Bin("!=", exec.C("env.scope"), s), "a string is not equal to an integer")
+	})
+	add("env_long_strings", ref.Config{Vars: []int64{1000 + 900, 1000 + 901}}, func(b *exec.Builder) {
+		b.Do("env.bind", exec.Int(0), datum(1000+900))
+		b.Do("env.bind", exec.Int(1), datum(1000+900))
+		b.Do("env.bind", exec.Int(1), datum(1000+900))
+	})
+	keyed := ref.Config{Vars: []int64{1, 2, 1003}, RuleVars: [][]int64{{}, {0}, {2, 0, 1}}}
+	add("env_keys", keyed, func(b *exec.Builder) {
+		memo := func(r int64, key exec.Expr) []exec.Expr {
+			return []exec.Expr{exec.Int(r), exec.Int(5), exec.Int(0), key}
+		}
+		k1 := b.Let("k1", exec.C("env.key", rule(2)))
+		b.Do("memo.store", append(memo(2, k1), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
+		r := b.LetN([]string{"e1", "f1"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		b.Assert(r[1], "keys of equal values are equal")
+		b.Do("env.bind", exec.Int(0), datum(40))
+		r = b.LetN([]string{"e2", "f2"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		b.Assert(exec.Not(r[1]), "a key of another value differs")
+		b.Do("env.bind", exec.Int(0), datum(1))
+		r = b.LetN([]string{"e3", "f3"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		b.Assert(r[1], "rebinding the value makes the key equal again, in another environment")
+		b.Do("env.bind", exec.Int(2), datum(2003))
+		r = b.LetN([]string{"e4", "f4"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		b.Assert(exec.Not(r[1]), "a string of the same length that differs makes another key")
+		b.Do("env.bind", exec.Int(2), datum(1003))
+		// The variables the rule does not read leave its key as it is.
+		k2 := b.Let("k2", exec.C("env.key", rule(1)))
+		b.Do("memo.store", append(memo(1, k2), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
+		b.Do("env.bind", exec.Int(2), datum(1004))
+		r = b.LetN([]string{"e5", "f5"}, exec.C("memo.lookup", memo(1, exec.C("env.key", rule(1)))...))
+		b.Assert(r[1], "a binding of another variable keeps the key of a rule")
+		k0 := b.Let("k0", exec.C("env.key", rule(0)))
+		b.Do("memo.store", append(memo(0, k0), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
+		b.Do("env.bind", exec.Int(1), datum(41))
+		r = b.LetN([]string{"e6", "f6"}, exec.C("memo.lookup", memo(0, exec.C("env.key", rule(0)))...))
+		b.Assert(r[1], "a rule that reads no variable has one key")
+	})
+	wide := ref.Config{Vars: vars(300), RuleVars: [][]int64{{0, 17, 299}, {}}}
+	add("env_keys_wide", wide, func(b *exec.Builder) {
+		b.Do("env.key", rule(0))
+		b.Do("env.bind", exec.Int(17), datum(900))
+		b.Do("env.key", rule(0))
+		b.Do("env.key", rule(1))
+	})
+}
+
+// RandomVars returns the variables of the randomized case with the seed: vectors of a single node,
+// with one level and with two levels above the leaves.
+func RandomVars(seed int) []int64 {
+	v := make([]int64, []int{3, 20, 300}[seed%3])
+	for i := range v {
+		v[i] = []int64{1, 1002, 1003}[i%3]
+	}
+	return v
+}
+
+// RandomRuleVars are the variables that the rules of a randomized case read.
+var RandomRuleVars = [][]int64{{}, {0}, {2, 0, 1}}
 
 // Random returns a randomized case of n operation calls from ops, drawn with rng, that meets every
 // precondition. Arguments come from small domains, so that keys, positions and rules collide often,
@@ -262,6 +383,9 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 	// does not edit draws exactly what it drew before.
 	var keys [][4]int64
 	edits := slices.Contains(opNames, "memo.splice")
+	// scopes are the environments the case took, for env.restore.
+	var scopes []string
+	var scopeRefs []*ref.Scope
 	f := m.AddFunc(name, nil, nil, []string{"budget", "stream", "document"}, func(b *exec.Builder) {
 		pos := func() int64 {
 			if rng.IntN(8) == 0 {
@@ -340,6 +464,28 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 			case "budget.charge":
 				v := rng.Uint64N(8)
 				args, exprs = append(args, v), append(exprs, exec.U64(v))
+			case "env.lookup", "env.bind":
+				if len(cfg.Vars) == 0 {
+					continue
+				}
+				intArg(rng.Int64N(int64(len(cfg.Vars))))
+				if o.Name == "env.bind" {
+					// Few values, so that many bindings are equal to the value they replace.
+					id := []int64{1, 2, 3, 1002, 1003, 2003}[rng.IntN(6)]
+					args, exprs = append(args, ref.Datum{ID: id}), append(exprs, exec.C(DatumOp, exec.Int(id)))
+				}
+			case "env.restore":
+				if len(scopes) == 0 {
+					continue
+				}
+				i := rng.IntN(len(scopes))
+				args, exprs = append(args, scopeRefs[i]), append(exprs, exec.L(scopes[i]))
+			case "env.key":
+				if len(cfg.RuleVars) == 0 {
+					continue
+				}
+				i := rng.Int64N(int64(len(cfg.RuleVars)))
+				args, exprs = append(args, ref.RuleRef{Index: i}), append(exprs, exec.C(RuleOp, exec.Int(i)))
 			}
 			if !mirror.Allows(o, args) {
 				continue
@@ -359,6 +505,12 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				keys = keys[max(0, len(keys)-48):]
 			}
 			switch {
+			case o.Name == "env.scope":
+				name := fmt.Sprintf("s%d", calls)
+				b.Let(name, exec.C(o.Name))
+				scopes, scopeRefs = append(scopes, name), append(scopeRefs, res[0].(*ref.Scope))
+			case o.Name == "env.lookup" || o.Name == "env.key":
+				b.Let(fmt.Sprintf("v%d", calls), exec.C(o.Name, exprs...))
 			case len(o.Results) > 0 && o.Results[0].Kind == exec.KHandle:
 				name := fmt.Sprintf("e%d", calls)
 				if len(o.Results) == 2 {
