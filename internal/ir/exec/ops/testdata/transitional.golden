@@ -348,6 +348,29 @@ op budget.used() u64
   contract:
     // Returns the units charged so far: by budget.charge and inside other operations.
 
+op budget.freeBegin(on bool) u64
+  component budget
+  reads budget
+  writes budget
+  features budget, document
+  cost <= 0
+  contract:
+    // Opens a region of Document work when on is true, and returns the mark that budget.freeEnd takes.
+    // The units that the region charges are work that only a Document parse does: a parse under the default
+    // Compute limit leaves them out of the count against it, and a parse under an explicit limit counts them
+    // as any other. The region must end before any work that a parse from scratch counts starts, and a region
+    // does not nest. When on is false, or the parse has no default limit, it opens no region and charges nothing.
+
+op budget.freeEnd(mark u64)
+  component budget
+  reads budget
+  writes budget
+  features budget, document
+  noreturn
+  cost <= 0
+  contract:
+    // Ends the region that budget.freeBegin opened with mark, if it opened one. It charges nothing.
+
 op depth.enter()
   component depth
   reads depth
@@ -437,6 +460,12 @@ transitional op rule.docMemo(r Rule) bool
   cost <= 0
   contract:
     // Reports whether a Document parse memoizes the rule.
+
+transitional op rule.docPlain(r Rule) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol.
 
 transitional op rule.positional(r Rule) bool
   component rules

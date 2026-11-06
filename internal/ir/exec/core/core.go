@@ -74,6 +74,23 @@ func Build() *Module {
 			body(b)
 		}
 	}
+	// docOpen and docClose bracket the memo protocol of a Document parse in the node and typed runtimes
+	// as work that only a Document does: a parse under the default limit leaves what the bracketed code
+	// charges out of the count against it. The body of the rule is outside the brackets. A node
+	// runtime's call is also the call of an observed parse that reads no Document, which has no such
+	// work. The local fm holds the mark of the open bracket.
+	docOpen := func(b *Builder, doc docMode) {
+		b.If(F(ops.Budget), func(b *Builder) {
+			if doc == nodeDoc {
+				b.Set("fm", C("budget.freeBegin", C("doc.active")))
+			} else {
+				b.Set("fm", C("budget.freeBegin", BoolC(true)))
+			}
+		})
+	}
+	docClose := func(b *Builder) {
+		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.freeEnd", L("fm")) })
+	}
 	// exit returns the value and success of a call that reuse found: the result of the call, or with
 	// hit set, the result of the begin of a split call (callBegin).
 	exit := func(b *Builder, v, ok Expr) { b.Return(v, ok) }
@@ -156,6 +173,9 @@ func Build() *Module {
 	// forgotten, so that it does not keep the entry alive.
 	finish := func(b *Builder, level Expr, doc docMode) {
 		c := L("c")
+		if doc == nodeDoc || doc == typedDoc {
+			docOpen(b, doc)
+		}
 		b.LetN([]string{"far", "inner"}, C("exp.unisolate", L("m")))
 		b.Let("kept", C("keep", L("inner")))
 		if doc != engineDoc {
@@ -186,6 +206,9 @@ func Build() *Module {
 			b.Do("doc.leave", L("oldHigh"), L("oldLow"))
 		}
 		b.If(Not(L("ok")), func(b *Builder) { b.SetReg(ops.Pos, L("start")) })
+		if doc == nodeDoc || doc == typedDoc {
+			docClose(b)
+		}
 		ret(b)
 	}
 
@@ -287,10 +310,13 @@ rule's memoization is deferred: its expectations need no isolation, and a failur
 position and the recovered errors.`
 
 	memoized := m.AddFunc("memoized", []Param{P("r", rule), P("min", TInt)}, result,
-		[]string{ops.Document, ops.Observe}, func(b *Builder) {
+		[]string{ops.Document, ops.Observe, ops.Budget}, func(b *Builder) {
 			locals(b)
+			b.Var("fm", TU64)
 			b.Let("start", R(ops.Pos))
-			reuse(b, L("min"), nodeDoc, exit)
+			docOpen(b, nodeDoc)
+			reuse(b, L("min"), nodeDoc, func(b *Builder, v, ok Expr) { docClose(b); exit(b, v, ok) })
+			docClose(b)
 			evaluate(b, L("min"), invoke)
 			finish(b, L("min"), nodeDoc)
 		})
@@ -299,7 +325,7 @@ memoization is no longer deferred, with the observation of a reuse and, in a Doc
 bookkeeping of how far each call examined the input.`
 
 	document := m.AddFunc("document", []Param{P("r", rule), P("min", TInt)}, result,
-		[]string{ops.Document}, func(b *Builder) {
+		[]string{ops.Document, ops.Budget}, func(b *Builder) {
 			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", R(ops.Pos)))
 			b.Protect(func(b *Builder) {
 				b.If(Not(C("rule.docMemo", r)), func(b *Builder) {
@@ -325,6 +351,7 @@ start from otherwise.`
 	typedDocument := m.AddFunc("typedDocument", []Param{P("r", rule), P("min", TInt), P("inv", THandle(ops.Body))}, result,
 		[]string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, func(b *Builder) {
 			locals(b)
+			b.Var("fm", TU64)
 			charge(b)
 			b.Let("start", R(ops.Pos))
 			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", L("start")))
@@ -338,7 +365,9 @@ start from otherwise.`
 					})
 					ret(b)
 				})
-				reuse(b, L("min"), typedDoc, exit)
+				docOpen(b, typedDoc)
+				reuse(b, L("min"), typedDoc, func(b *Builder, v, ok Expr) { docClose(b); exit(b, v, ok) })
+				docClose(b)
 				evaluate(b, L("min"), run)
 				finish(b, L("min"), typedDoc)
 			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh"), L("oldLow")) })
@@ -386,26 +415,55 @@ and otherwise saves in st what the end of the call needs.`
 	callEnd.Doc = `callEnd ends the memoized call of rule r whose state its begin saved in st with the value v
 and success ok of its body, or of the growth of a leader: it records the result where its
 dependencies send it, and restores the state from before the call.`
+	// docWork runs body as work that only a Document parse does: a parse under the default limit
+	// leaves what body charges out of the count against it, if on holds and the parse reads a Document
+	// (a test of one field, so that a parse from scratch pays almost nothing for the region). Other
+	// forms run body as it is. The region ends before the rule body runs.
+	docWork := func(b *Builder, on Expr, body func(b *Builder)) {
+		b.IfElse(And(F(ops.Document), F(ops.Budget)), func(b *Builder) {
+			b.Set("fm", C("budget.freeBegin", And(C("doc.active"), on)))
+			body(b)
+			b.Do("budget.freeEnd", L("fm"))
+		}, body)
+	}
 	engineCall := m.AddFunc("engineCall", []Param{P("r", rule), P("min", TInt)}, result, engine, func(b *Builder) {
 		locals(b)
 		b.Var("hit", TBool)
 		b.Var("mm", TInt)
-		charge(b)
+		b.Var("fm", TU64)
+		b.Var("direct", TBool)
+		// A parse from scratch calls the plain body of a plain rule directly, so the unit of the call
+		// protocol is Document work there; for any other rule it counts.
+		docWork(b, C("rule.docPlain", r), charge)
 		tracked(b, C("call.track", r, L("min")))
 		b.Let("start", R(ops.Pos))
-		b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)), func(b *Builder) {
+		// The memo protocol of a Document parse (the deferral, the begin and the end of the call) is
+		// Document work: a parse from scratch defers the memoization of a rule to its second call
+		// at a position, and does not memoize a transient rule at all, so it has no counterpart
+		// that the Document parse could be held to.
+		docWork(b, BoolC(true), func(b *Builder) {
+			b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)))
+		})
+		b.If(L("direct"), func(b *Builder) {
 			unmemoized(b, true)
 		})
 		b.Let("st", C("call.state"))
-		b.SetN([]Place{{Name: "v"}, {Name: "ok"}, {Name: "hit"}}, C("callBegin", r, L("min"), st))
+		docWork(b, BoolC(true), func(b *Builder) {
+			b.SetN([]Place{{Name: "v"}, {Name: "ok"}, {Name: "hit"}}, C("callBegin", r, L("min"), st))
+		})
 		b.If(L("hit"), ret)
 		b.IfElse(C("rule.leader", r), func(b *Builder) { b.SetN(pair, C("grow", r, L("min"))) }, invoke)
-		b.SetN(pair, C("callEnd", r, st, L("v"), L("ok")))
+		docWork(b, BoolC(true), func(b *Builder) {
+			b.SetN(pair, C("callEnd", r, st, L("v"), L("ok")))
+		})
 		ret(b)
 	})
 	engineCall.Doc = `engineCall calls rule r at binding level min in the engine: unmemoized while its
 memoization is deferred, and otherwise between the begin and the end of the split call protocol,
-growing the seed of a left-recursion leader.`
+growing the seed of a left-recursion leader. In a Document parse under the default limit, what a
+parse from scratch does not do is Document work and leaves the count against the limit: the unit of
+the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
+and the end of the call), whose counterparts in a parse from scratch differ in number and order.`
 
 	// ret2 returns the result of the call c of a function.
 	ret2 := func(b *Builder, c *Call) {
