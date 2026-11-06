@@ -419,57 +419,73 @@ dependencies send it, and restores the state from before the call.`
 	// leaves what body charges out of the count against it, if on holds and the parse reads a Document
 	// (a test of one field, so that a parse from scratch pays almost nothing for the region). Other
 	// forms run body as it is. The region ends before the rule body runs.
-	docWork := func(b *Builder, on Expr, body func(b *Builder)) {
-		b.IfElse(And(F(ops.Document), F(ops.Budget)), func(b *Builder) {
-			b.Set("fm", C("budget.freeBegin", And(C("doc.active"), on)))
-			body(b)
-			b.Do("budget.freeEnd", L("fm"))
-		}, body)
-	}
-	engineCall := m.AddFunc("engineCall", []Param{P("r", rule), P("min", TInt)}, result, engine, func(b *Builder) {
-		locals(b)
-		b.Var("hit", TBool)
-		b.Var("mm", TInt)
-		b.Var("fm", TU64)
-		b.Var("direct", TBool)
-		// A parse from scratch calls the plain body of a plain rule directly, so the unit of the call
-		// protocol is Document work there; for any other rule it counts.
-		docWork(b, C("rule.docPlain", r), charge)
-		tracked(b, C("call.track", r, L("min")))
-		b.Let("start", R(ops.Pos))
-		// The memo protocol of a Document parse (the deferral, the begin and the end of the call) is
-		// Document work: a parse from scratch defers the memoization of a rule to its second call
-		// at a position, and does not memoize a transient rule at all, so it has no counterpart
-		// that the Document parse could be held to.
-		docWork(b, BoolC(true), func(b *Builder) {
-			b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)))
-		})
-		b.If(L("direct"), func(b *Builder) {
-			unmemoized(b, true)
-		})
-		b.Let("st", C("call.state"))
-		docWork(b, BoolC(true), func(b *Builder) {
-			b.SetN([]Place{{Name: "v"}, {Name: "ok"}, {Name: "hit"}}, C("callBegin", r, L("min"), st))
-		})
-		b.If(L("hit"), ret)
-		b.IfElse(C("rule.leader", r), func(b *Builder) { b.SetN(pair, C("grow", r, L("min"))) }, invoke)
-		docWork(b, BoolC(true), func(b *Builder) {
-			b.SetN(pair, C("callEnd", r, st, L("v"), L("ok")))
-		})
-		ret(b)
-	})
-	engineCall.Doc = `engineCall calls rule r at binding level min in the engine: unmemoized while its
-memoization is deferred, and otherwise between the begin and the end of the split call protocol,
-growing the seed of a left-recursion leader. In a Document parse under the default limit, what a
-parse from scratch does not do is Document work and leaves the count against the limit: the unit of
-the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
-and the end of the call), whose counterparts in a parse from scratch differ in number and order.`
-
 	// ret2 returns the result of the call c of a function.
 	ret2 := func(b *Builder, c *Call) {
 		b.LetN([]string{"v", "ok"}, c)
 		b.Return(L("v"), L("ok"))
 	}
+	docWork := func(b *Builder, on Expr, body func(b *Builder)) {
+		b.Set("fm", C("budget.freeBegin", on))
+		body(b)
+		b.Do("budget.freeEnd", L("fm"))
+	}
+	// engineBody builds the call of the engine. With doc, it is the call of a Document parse, where
+	// what a parse from scratch does not do is Document work; without it, the call of any other
+	// parse, which pays nothing for that work and hands a Document parse to the first.
+	engineBody := func(doc bool) func(b *Builder) {
+		return func(b *Builder) {
+			locals(b)
+			b.Var("hit", TBool)
+			b.Var("mm", TInt)
+			b.Var("direct", TBool)
+			work := func(b *Builder, on Expr, body func(b *Builder)) { body(b) }
+			if doc {
+				b.Var("fm", TU64)
+				work = docWork
+			} else {
+				b.If(C("doc.active"), func(b *Builder) {
+					b.SetN(pair, C("engineCallDoc", r, L("min")))
+					ret(b)
+				})
+			}
+			// A parse from scratch calls the plain body of a plain rule directly, so the unit of the call
+			// protocol is Document work there; for any other rule it counts.
+			work(b, C("rule.docPlain", r), charge)
+			tracked(b, C("call.track", r, L("min")))
+			b.Let("start", R(ops.Pos))
+			// The memo protocol of a Document parse (the deferral, the begin and the end of the call) is
+			// Document work: a parse from scratch defers the memoization of a rule to its second call
+			// at a position, and does not memoize a transient rule at all, so it has no counterpart
+			// that the Document parse could be held to.
+			work(b, BoolC(true), func(b *Builder) {
+				b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)))
+			})
+			b.If(L("direct"), func(b *Builder) {
+				unmemoized(b, true)
+			})
+			b.Let("st", C("call.state"))
+			work(b, BoolC(true), func(b *Builder) {
+				b.SetN([]Place{{Name: "v"}, {Name: "ok"}, {Name: "hit"}}, C("callBegin", r, L("min"), st))
+			})
+			b.If(L("hit"), ret)
+			b.IfElse(C("rule.leader", r), func(b *Builder) { b.SetN(pair, C("grow", r, L("min"))) }, invoke)
+			work(b, BoolC(true), func(b *Builder) {
+				b.SetN(pair, C("callEnd", r, st, L("v"), L("ok")))
+			})
+			ret(b)
+		}
+	}
+	engineCallDoc := m.AddFunc("engineCallDoc", []Param{P("r", rule), P("min", TInt)}, result, engine, engineBody(true))
+	engineCall := m.AddFunc("engineCall", []Param{P("r", rule), P("min", TInt)}, result, engine, engineBody(false))
+	engineCall.Doc = `engineCall calls rule r at binding level min in the engine: unmemoized while its
+memoization is deferred, and otherwise between the begin and the end of the split call protocol,
+growing the seed of a left-recursion leader. A parse that reads a Document makes the call of
+engineCallDoc instead, which is decided by one test of a field that the parse sets once.`
+	engineCallDoc.Doc = `engineCallDoc is engineCall for a parse that reads a Document. Under the default limit, what a
+parse from scratch does not do is Document work and leaves the count against the limit: the unit of
+the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
+and the end of the call), whose counterparts in a parse from scratch differ in number and order.`
+
 	body := m.AddFunc("body", []Param{P("r", rule), P("min", TInt)}, result, []string{ops.Document, ops.Budget}, func(b *Builder) {
 		charge(b)
 		b.If(And(F(ops.Document), C("doc.active")), func(b *Builder) { ret2(b, C("document", r, L("min"))) })

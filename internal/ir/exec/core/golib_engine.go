@@ -37,6 +37,7 @@ var engineOn = []string{ops.Document, ops.Missing, ops.Budget}
 // engineSpecs are the functions of the engine that the compositions replace.
 var engineSpecs = []goSpec{
 	{fn: "engineCall", on: engineOn, name: "Call"},
+	{fn: "engineCallDoc", on: engineOn, name: "callDoc"},
 	{fn: "callBegin", on: engineOn, name: "CallBegin"},
 	{fn: "callEnd", on: engineOn, name: "CallEnd"},
 	{fn: "grow", name: "grow"},
@@ -209,7 +210,7 @@ func engineTarget() *execgo.Target {
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt",
 		ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
 	}
-	names := map[string]string{"engineCall": "Call", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
+	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
 		"expect": "Expect", "keep": "Keep",
 		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
 		"mergeKept": "MergeExpected", "mergeExpected": "MergeExpected"}
