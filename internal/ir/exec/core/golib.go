@@ -68,6 +68,11 @@ var goSpecs = []goSpec{
 	{fn: "tracked", on: []string{ops.Document, ops.Observe}, name: "callTracked"},
 	// The rule call of a Document parse in the typed runtime.
 	{fn: "typedDocument", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "DocumentCall"},
+	// The predicates and bindings of both runtimes.
+	{fn: "predicate", name: "Predicate"},
+	{fn: "bind", name: "Bind"},
+	{fn: "predicate", typed: true, name: "Predicate"},
+	{fn: "bind", typed: true, name: "Bind"},
 }
 
 // goStreamSpecs are the functions of the stream mechanism that the compositions replace, in the
@@ -150,6 +155,7 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
+		ops.Term: "func(*ActCtx) any", ops.Datum: "any",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
@@ -161,6 +167,8 @@ func goTarget(s goSpec) *execgo.Target {
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	// spender is the parser that the generic copies of values charge.
 	attemptType, spender := "operatorsRuleAttempt", "p"
+	// created is the field of the nodes that terms and actions create.
+	created := "created"
 	rule := func(r string) string { return r }
 	// step passes the value of a growth step as the node or the typed value of growStep.
 	step := func(v string) string { return v + ", nil" }
@@ -170,13 +178,14 @@ func goTarget(s goSpec) *execgo.Target {
 		handles[ops.Body] = "func(*TParser) (any, bool)"
 		handles[ops.Frame], handles[ops.Operators], handles[ops.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
 		handles[ops.Line], handles[ops.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
+		handles[ops.Term] = "func(*TActCtx) any"
 		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {
 			names[s.fn] = s.name
 		}
 		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
-		attemptType, spender = "toperatorsRuleAttempt", "p.Parser"
+		attemptType, spender, created = "toperatorsRuleAttempt", "p.Parser", "Created"
 		rule = func(r string) string { return r + ".Rule" }
 		step = func(v string) string { return "nil, " + v }
 	}
@@ -221,6 +230,22 @@ func goTarget(s goSpec) *execgo.Target {
 			return fmt.Sprintf("copySpend(%s, %s.Vals, p.saved)", spender, a[0])
 		case "env.restore":
 			return "p.Env = " + a[0]
+		case "env.bind":
+			return fmt.Sprintf("p.bind(%s, %s)", a[0], a[1])
+		case "term.eval":
+			return "p.evalTerm(" + a[0] + ")"
+		case "term.created":
+			return "len(p." + created + ")"
+		case "term.dropCreated":
+			return fmt.Sprintf("clearSpend(%s, p.%s[%s:])\np.%[2]s = p.%[2]s[:%[3]s]", spender, created, a[0])
+		case "term.kids":
+			return "len(p.KidStack)"
+		case "term.dropKids":
+			return fmt.Sprintf("clearSpend(%s, p.KidStack[%s:])\np.KidStack = p.KidStack[:%[2]s]", spender, a[0])
+		case "term.isFalse":
+			return "isFalse(" + a[0] + ")"
+		case "term.isFunction":
+			return "isFunction(" + a[0] + ")"
 		case "opr.led":
 			return a[0] + ".OperatorsRule.Led"
 		case "opr.prefix":

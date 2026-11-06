@@ -15,6 +15,7 @@ corpus/0/Operators Rule operator action on scalar operands	3523fb50d886e0a0024f8
 corpus/0/OperatorsRule prefix-part cuts	f3e8bc0f0edeee0f126dea14
 corpus/0/a cast binding in an Operators Rule operand	03dd414b9bc4ac9837d3761c
 corpus/0/a failed cast in a binding backtracks	ab74a3a6fe91601d92c6ac83
+corpus/0/a failed term leaves nothing it gathered	53ceace5942fc6106620099f
 corpus/0/action environments	ad5e4fb3beb3dd74ddb631bb
 corpus/0/alias constructors	6a24c16ab7e7fa56afe12caa
 corpus/0/alias singleton unions	307f05f95f60a451bf71e74a
@@ -376,6 +377,7 @@ corpus/1/Operators Rule operator action on scalar operands	3523fb50d886e0a0024f8
 corpus/1/OperatorsRule prefix-part cuts	f3e8bc0f0edeee0f126dea14
 corpus/1/a cast binding in an Operators Rule operand	03dd414b9bc4ac9837d3761c
 corpus/1/a failed cast in a binding backtracks	ab74a3a6fe91601d92c6ac83
+corpus/1/a failed term leaves nothing it gathered	53ceace5942fc6106620099f
 corpus/1/action environments	ad5e4fb3beb3dd74ddb631bb
 corpus/1/alias constructors	6a24c16ab7e7fa56afe12caa
 corpus/1/alias singleton unions	307f05f95f60a451bf71e74a

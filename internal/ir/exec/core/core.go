@@ -574,9 +574,47 @@ code and not a stable API.`
 
 	addOperators(m)
 	addDocument(m)
+	addTerms(m)
 
 	if err := Verify(m); err != nil {
 		panic(err)
 	}
 	return m
+}
+
+// addTerms adds the compositions of a predicate and a binding: the evaluation of a term and what
+// surrounds it. A term runs no rule body, so neither needs a split form.
+func addTerms(m *Module) {
+	t := P("t", THandle(ops.Term))
+	// evaluate evaluates t and leaves what it made behind: the gathered values of a term that failed,
+	// and the nodes it created in either outcome. An interruption unwinds past this cleanup, because
+	// it ends the parse and the next parse starts without them. A term that failed returns false; evaluate
+	// returns the value of one that did not.
+	evaluate := func(b *Builder) Expr {
+		b.Let("created", C("term.created"))
+		b.Let("kids", C("term.kids"))
+		r := b.LetN([]string{"v", "ok"}, C("term.eval", L("t")))
+		b.If(Not(r[1]), func(b *Builder) {
+			b.Do("term.dropKids", L("kids"))
+			b.Do("term.dropCreated", L("created"))
+			b.Return(BoolC(false))
+		})
+		b.Do("term.dropCreated", L("created"))
+		return r[0]
+	}
+	predicate := m.AddFunc("predicate", []Param{t}, []Type{TBool}, nil, func(b *Builder) {
+		v := evaluate(b)
+		b.Return(Not(C("term.isFalse", v)))
+	})
+	predicate.Doc = `predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
+fails, and holds on every other value.`
+	bind := m.AddFunc("bind", []Param{P("slot", TInt), t}, []Type{TBool}, nil, func(b *Builder) {
+		v := evaluate(b)
+		b.If(C("term.isFunction", v), func(b *Builder) { b.Return(BoolC(false)) })
+		b.Do("env.bind", L("slot"), v)
+		b.Return(BoolC(true))
+	})
+	bind.Doc = `bind binds the value of the term of a binding to the variable in slot. A term that fails and a
+function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
+value fits the variable.`
 }

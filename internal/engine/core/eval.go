@@ -88,6 +88,12 @@ func (p *Parser) DropCreated(base int) {
 	p.Created = p.Created[:base]
 }
 
+// IsFalse is the operation term.isFalse.
+func IsFalse(v any) bool {
+	b, ok := v.(bool)
+	return ok && !b
+}
+
 func TypeName(v any) string {
 	switch v := v.(type) {
 	case nil:

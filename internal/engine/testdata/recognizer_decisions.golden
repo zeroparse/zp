@@ -518,6 +518,9 @@ guard	0	2	0	0	0	""	48
 guard	0	7	1	0	0	"\"s\""	164
 guard	1	1	1	0	0	"\"i\""	152
 guard	1	2	1	0	0	"\"s\""	164
+grammar	lean,controlled	"a failed term leaves nothing it gathered"
+guard	1	4	0	0	0	""	48
+guard	1	7	0	0	0	""	48
 grammar	lean,controlled	"action environments"
 guard	1	3	0	0	0	""	48
 guard	1	6	0	0	0	""	48
@@ -743,488 +746,6 @@ guard	1	9	1	0	0	"\"+\""	191
 scan	3	1
 scope	1	5	
 scope	2	5	
-grammar	lean,controlled	"hidden leader behind an optional prefix"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-grammar	lean,controlled	"hidden rule: captured call"
-grammar	lean,controlled	"hidden rule: choice"
-guard	1	1	1	0	0	"\"b\""	237
-guard	1	2	1	0	0	"\"c\""	239
-grammar	lean,controlled	"hidden rule: cut"
-guard	0	1	1	0	0	"\"a\""	236
-guard	0	2	1	0	0	"\"a\""	236
-grammar	lean,controlled	"hidden rule: hidden captures"
-grammar	lean,controlled	"hidden rule: in a choice"
-guard	0	1	1	0	0	"\"a\""	236
-guard	0	2	1	0	0	"\"x\""	169
-grammar	lean,controlled	"hidden rule: in a repetition body"
-grammar	lean,controlled	"hidden rule: left recursion"
-guard	1	1	0	0	0	""	48
-guard	1	5	1	0	0	"\"a\""	236
-grammar	lean,controlled	"hidden rule: lookahead in body"
-grammar	lean,controlled	"hidden rule: nested"
-grammar	lean,controlled	"hidden rule: no value"
-grammar	lean,controlled	"hidden rule: one element"
-grammar	lean,controlled	"hidden rule: optional"
-grammar	lean,controlled	"hidden rule: optional recursion"
-grammar	lean,controlled	"hidden rule: recovery"
-scan	1	1
-grammar	lean,controlled	"hidden rule: repetition"
-grammar	lean,controlled	"hidden rule: right recursion"
-guard	1	1	1	0	0	"\"x\""	169
-guard	1	4	1	0	0	"\"x\""	169
-grammar	lean,controlled	"hidden rule: sequence"
-grammar	lean,controlled	"hidden rule: used twice"
-grammar	lean,controlled	"hidden rule: whole body"
-grammar	lean,controlled	"ignorecase group"
-guard	0	2	0	0	0	""	48
-guard	0	4	1	0	0	"\"ab\"i"	235
-guard	0	5	1	0	0	"\"cd\"i"	238
-guard	0	7	1	0	0	"\"x\""	169
-grammar	lean,controlled	"incremental"
-guard	0	3	0	0	0	""	48
-guard	0	4	1	0	0	"\"\\n\""	145
-guard	2	3	0	0	0	""	48
-guard	2	4	0	0	0	""	48
-guard	2	5	1	0	0	"\"@\""	212
-guard	4	1	0	0	0	""	48
-guard	4	5	0	0	0	""	48
-guard	8	10	1	0	0	"\"+\""	191
-guard	8	11	1	0	0	"\"-\""	193
-scan	5	1
-scan	7	1
-scan	8	2
-scope	8	1	
-scope	8	12	
-scope	8	13	
-scope	8	4	
-scope	8	9	
-grammar	lean,controlled	"indent"
-scan	2	6
-grammar	lean,controlled	"indirect leader cycle"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-guard	2	1	0	0	0	""	48
-guard	2	4	1	0	0	"\"m\""	156
-grammar	lean,controlled	"initial values key the memo like bound ones"
-guard	0	1	0	0	0	""	48
-guard	0	2	0	0	0	""	48
-guard	0	3	0	0	0	""	48
-guard	4	1	0	0	0	""	48
-guard	4	2	0	0	0	""	48
-guard	7	1	0	0	0	""	48
-guard	7	2	0	0	0	""	48
-grammar	lean,controlled	"inline action: action error"
-grammar	lean,controlled	"inline action: captures of the enclosing rule after"
-grammar	lean,controlled	"inline action: choice"
-guard	1	2	1	0	0	"\"a\""	236
-guard	1	3	1	0	0	"\"b\""	237
-grammar	lean,controlled	"inline action: choice of inline actions"
-guard	0	1	1	0	0	"\"a\""	236
-guard	0	2	1	0	0	"\"b\""	237
-grammar	lean,controlled	"inline action: cut"
-guard	0	1	1	0	0	"\"a\""	236
-guard	0	2	1	0	0	"\"a\""	236
-grammar	lean,controlled	"inline action: default action"
-grammar	lean,controlled	"inline action: left recursion"
-guard	1	1	0	0	0	""	48
-guard	1	2	1	0	0	"\"a\""	236
-grammar	lean,controlled	"inline action: nested"
-grammar	lean,controlled	"inline action: nested in a whole rule"
-grammar	lean,controlled	"inline action: operators rule operand"
-scan	1	2
-scope	0	1	
-scope	0	2	
-grammar	lean,controlled	"inline action: optional"
-grammar	lean,controlled	"inline action: outer capture stays"
-grammar	lean,controlled	"inline action: recover argument"
-scan	0	5
-scan	1	1
-scope	0	2	
-grammar	lean,controlled	"inline action: recovery"
-scan	1	3
-grammar	lean,controlled	"inline action: recovery inside"
-scan	1	3
-grammar	lean,controlled	"inline action: repetition"
-grammar	lean,controlled	"inline action: sequence"
-grammar	lean,controlled	"inline action: stream"
-scan	1	3
-grammar	lean,controlled	"inline action: whole rule"
-grammar	lean,controlled	"integer boundaries"
-grammar	lean,controlled	"leader behind lookahead prefixes"
-guard	0	1	0	0	0	""	48
-guard	0	8	1	0	0	"\"z\""	171
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-grammar	lean,controlled	"leader choice with several operators"
-guard	1	1	0	0	0	""	48
-guard	1	13	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-guard	1	9	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"leader in a repetition"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-grammar	lean,controlled	"leader in lookaheads"
-guard	0	2	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"leader with a cut"
-guard	1	1	0	0	0	""	48
-guard	1	6	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"leader with captures"
-guard	1	1	0	0	0	""	48
-guard	1	7	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"leader with memoized callers"
-guard	0	2	0	0	0	""	48
-guard	0	6	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"leader wrapped in a recovery"
-guard	1	2	0	0	0	""	48
-guard	1	6	0	0	0	""	48
-scan	2	1
-grammar	lean,controlled	"left recursion"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"y\""	170
-guard	2	1	0	0	0	""	48
-guard	2	4	0	0	0	""	48
-guard	3	1	0	0	0	""	48
-guard	3	4	1	0	0	"\"v\""	167
-grammar	lean,controlled	"left recursion in recovery skip"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"y\""	170
-grammar	lean,controlled	"len of nodes and strings"
-scan	1	1
-scan	2	1
-scan	3	0
-grammar	lean,controlled	"literal text different captures control"
-grammar	lean,controlled	"literal text missing capture"
-grammar	lean,controlled	"literal text mixed control"
-scan	0	3
-grammar	lean,controlled	"literal text negation control"
-scan	0	3
-grammar	lean,controlled	"literal text predicate controls"
-scan	0	3
-grammar	lean,controlled	"literal text predicate dispatch"
-scan	0	3
-grammar	lean,controlled	"literal text variable alias control"
-scan	0	3
-grammar	lean	"long expected lists"
-guard	0	1	1	0	0	"\"t\""	165
-guard	0	13	1	0	0	"\"r\""	162
-guard	0	5	1	0	0	"\"e\""	147
-guard	0	9	1	0	0	"\"w\""	168
-guard	1	1	1	0	0	"\"a\""	236
-guard	1	10	0	0	0	""	48
-guard	1	2	1	0	0	"\"b\""	237
-guard	1	3	1	0	0	"\"c\""	239
-guard	1	4	1	0	0	"\"d\""	146
-guard	1	5	1	0	0	"\"e\""	147
-guard	1	6	1	0	0	"\"f\""	149
-guard	1	7	1	0	0	"\"g\""	150
-guard	1	8	1	0	1	"[0-9]"	130
-guard	1	9	1	0	1	"[x-z]"	121
-guard	2	1	0	0	0	""	48
-guard	2	2	1	0	0	"\"h\""	151
-guard	3	1	0	0	0	""	48
-guard	3	2	0	0	0	""	48
-guard	3	5	1	0	0	"\"é\""	179
-guard	3	6	1	0	0	"\"😀\""	176
-guard	3	7	1	0	1	"[A-Z]"	133
-grammar	controlled	"long expected lists"
-guard	0	1	1	0	0	"\"t\""	165
-guard	0	13	1	0	0	"\"r\""	162
-guard	0	5	1	0	0	"\"e\""	147
-guard	0	9	1	0	0	"\"w\""	168
-guard	1	1	1	0	0	"\"a\""	236
-guard	1	10	0	0	0	""	48
-guard	1	2	1	0	0	"\"b\""	237
-guard	1	3	1	0	0	"\"c\""	239
-guard	1	4	1	0	0	"\"d\""	146
-guard	1	5	1	0	0	"\"e\""	147
-guard	1	6	1	0	0	"\"f\""	149
-guard	1	7	1	0	0	"\"g\""	150
-guard	1	8	1	0	0	"[0-9]"	130
-guard	1	9	1	0	0	"[x-z]"	121
-guard	2	1	0	0	0	""	48
-guard	2	2	1	0	0	"\"h\""	151
-guard	3	1	0	0	0	""	48
-guard	3	2	0	0	0	""	48
-guard	3	5	1	0	0	"\"é\""	179
-guard	3	6	1	0	0	"\"😀\""	176
-guard	3	7	1	0	0	"[A-Z]"	133
-grammar	lean,controlled	"long inferred chain"
-grammar	lean,controlled	"member reached from two call sites"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-guard	2	1	1	0	0	"\"(\""	188
-guard	2	11	0	0	0	""	48
-guard	2	6	1	0	0	"\"(\""	188
-grammar	lean,controlled	"members in a deeper cycle"
-guard	1	1	0	0	0	""	48
-guard	1	4	1	0	0	"\"n\""	157
-guard	2	1	1	0	0	"\"(\""	188
-guard	2	11	0	0	0	""	48
-guard	2	6	1	0	0	"\"(\""	188
-guard	3	1	1	0	0	"\"[\""	229
-guard	3	11	0	0	0	""	48
-guard	3	6	1	0	0	"\"[\""	229
-guard	4	1	1	0	0	"\"{\""	172
-guard	4	11	0	0	0	""	48
-guard	4	6	1	0	0	"\"{\""	172
-grammar	lean	"members that read two leaders"
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-guard	2	1	0	0	0	""	48
-guard	2	4	0	0	0	""	48
-guard	2	7	0	0	0	""	48
-guard	3	1	0	0	0	""	48
-guard	3	5	0	0	0	""	48
-guard	4	1	1	0	1	"[0-9]"	130
-guard	4	2	1	0	0	"\"(\""	188
-grammar	controlled	"members that read two leaders"
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-guard	2	1	0	0	0	""	48
-guard	2	4	0	0	0	""	48
-guard	2	7	0	0	0	""	48
-guard	3	1	0	0	0	""	48
-guard	3	5	0	0	0	""	48
-guard	4	1	1	0	0	"[0-9]"	130
-guard	4	2	1	0	0	"\"(\""	188
-grammar	lean,controlled	"memo entries are keyed by the variables the rule reads"
-guard	0	1	0	0	0	""	48
-guard	0	2	0	0	0	""	48
-guard	0	3	0	0	0	""	48
-guard	4	1	0	0	0	""	48
-guard	4	2	0	0	0	""	48
-guard	4	3	0	0	0	""	48
-grammar	lean,controlled	"memo keyed by variables"
-guard	0	1	0	0	0	""	48
-guard	0	5	0	0	0	""	48
-guard	1	1	0	0	0	""	48
-guard	1	4	0	0	0	""	48
-scan	0	8
-grammar	lean,controlled	"memoized rule with a cut called at one position"
-guard	0	2	0	0	0	""	48
-guard	0	7	0	0	0	""	48
-guard	1	1	1	0	0	"\"a\""	236
-guard	1	5	1	0	0	"\"a\""	236
-grammar	lean,controlled	"mutual leaders"
-guard	1	1	0	0	0	""	48
-guard	1	4	0	0	0	""	48
-guard	1	7	1	0	0	"\"n\""	157
-guard	2	1	0	0	0	""	48
-guard	2	4	0	0	0	""	48
-guard	2	7	1	0	0	"\"m\""	156
-grammar	lean,controlled	"named node type run-time conversions"
-guard	1	1	1	0	0	"\"a\""	236
-guard	1	2	1	0	0	"\"b\""	237
-grammar	lean,controlled	"named node types"
-guard	2	1	0	0	0	""	48
-guard	2	2	0	0	0	""	48
-guard	7	4	1	0	0	"\"a\""	236
-guard	7	5	1	0	0	"\"bc\""	237
-scan	3	1
-scan	4	2
-grammar	lean,controlled	"nested captured repetitions"
-scan	4	1
-scope	1	4	r
-scope	2	5	c
-grammar	lean	"nested left recursion"
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-guard	2	1	0	0	0	""	48
-guard	2	5	0	0	0	""	48
-guard	3	1	1	0	1	"[0-9]"	130
-guard	3	2	1	0	0	"\"(\""	188
-grammar	controlled	"nested left recursion"
-guard	1	1	0	0	0	""	48
-guard	1	5	0	0	0	""	48
-guard	2	1	0	0	0	""	48
-guard	2	5	0	0	0	""	48
-guard	3	1	1	0	0	"[0-9]"	130
-guard	3	2	1	0	0	"\"(\""	188
-grammar	lean,controlled	"nested recoveries"
-grammar	lean,controlled	"nil OperatorsRule action"
-scope	1	1	
-scope	1	2	
-grammar	lean,controlled	"nil allocating action"
-grammar	lean,controlled	"node/direct_expectations"
-guard	1	1	1	0	0	"\"let\""	155
-guard	1	6	1	0	0	"\"let\""	155
-scan	2	1
-grammar	lean,controlled	"node/direct_memo_action"
-guard	0	1	1	0	0	"[a-z]"	143
-guard	0	5	1	0	0	"[a-z]"	143
-scan	2	1
-grammar	lean,controlled	"node/direct_nested_frames"
-scan	1	3
-scan	1	8
-grammar	lean,controlled	"none-chain: below a left infix"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-grammar	lean,controlled	"none-chain: below a prefix and a postfix"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-scope	1	4	
-grammar	lean,controlled	"none-chain: below a right infix"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-grammar	lean,controlled	"none-chain: levels of non-associative operators"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-scope	1	4	
-grammar	lean,controlled	"none-chain: with a left operator of the same level"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-scope	1	4	
-grammar	lean,controlled	"nullable minimum repetitions"
-guard	0	11	1	0	0	"\"u\""	166
-guard	0	14	1	0	0	"\"a\""	236
-guard	0	17	1	0	0	"\"d\""	146
-guard	0	2	1	0	0	"\"z\""	171
-guard	0	20	1	0	0	"\"p\""	160
-guard	0	23	1	0	0	"\"f\""	149
-guard	0	5	1	0	0	"\"o\""	158
-guard	0	8	1	0	0	"\"t\""	165
-guard	1	3	1	0	0	"\"é\""	179
-guard	1	4	0	0	0	""	48
-guard	2	3	1	0	0	"\"é\""	179
-guard	2	4	0	0	0	""	48
-guard	3	3	1	0	0	"\"é\""	179
-guard	3	4	0	0	0	""	48
-guard	4	3	1	0	0	"\"é\""	179
-guard	4	4	0	0	0	""	48
-guard	5	3	1	0	0	"\"é\""	179
-guard	5	4	0	0	0	""	48
-guard	6	3	1	0	0	"\"é\""	179
-guard	6	4	0	0	0	""	48
-guard	7	4	1	0	0	"\"é\""	179
-guard	7	5	0	0	0	""	48
-guard	8	1	0	0	0	""	48
-guard	8	3	1	0	0	"\"é\""	179
-guard	8	4	0	0	0	""	48
-guard	8	5	1	0	0	"\"é\""	179
-scope	7	2	
-grammar	lean,controlled	"operatorsRule infix action variables"
-guard	0	1	0	0	0	""	48
-guard	0	13	0	0	0	""	48
-guard	0	5	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-scope	1	1	
-scope	1	2	
-grammar	lean,controlled	"operatorsRule operand action"
-scope	1	1	
-scope	1	2	
-grammar	lean,controlled	"operatorsRule operand action and captures"
-scope	1	1	
-scope	1	4	
-scope	1	5	
-scope	1	6	
-scope	1	7	
-grammar	lean,controlled	"operatorsRule operand action prefix"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-grammar	lean,controlled	"operatorsRule operand action variables"
-guard	0	1	0	0	0	""	48
-guard	0	13	0	0	0	""	48
-guard	0	5	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-scope	1	1	
-grammar	lean,controlled	"operatorsRule operand reading a capture of a repetition"
-scope	1	1	
-scope	1	3	
-scope	1	5	
-grammar	lean,controlled	"operatorsRule operand rule call with scalar result"
-scope	1	1	
-scope	1	2	
-scope	1	3	
-grammar	lean,controlled	"operatorsRule postfix action variables"
-guard	0	1	0	0	0	""	48
-guard	0	13	0	0	0	""	48
-guard	0	5	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-scope	1	1	
-scope	1	2	
-grammar	lean,controlled	"operatorsRule prefix action variables"
-guard	0	1	0	0	0	""	48
-guard	0	13	0	0	0	""	48
-guard	0	5	0	0	0	""	48
-guard	0	9	0	0	0	""	48
-scope	1	1	
-scope	1	2	
-grammar	lean,controlled	"operatorsRule scalar operand actions and typed results"
-scope	1	1	
-scope	1	4	
-grammar	lean,controlled	"operatorsRule scalar results of operators"
-scope	1	1	
-scope	1	3	
-scope	1	4	
-scope	1	5	
-scope	1	6	
-scope	1	7	
-scope	1	8	
-grammar	lean,controlled	"optional with a cut followed by input"
-grammar	lean	"outlined keywords"
-guard	1	1	1	0	1	"[sS]"	67
-guard	1	105	1	0	1	"[wW]"	71
-guard	1	112	1	0	1	"[wW]"	71
-guard	1	117	1	0	1	"[wW]"	71
-guard	1	125	1	0	1	"[wW]"	71
-guard	1	131	1	0	1	"[xX]"	72
-guard	1	16	1	0	1	"[sS]"	67
-guard	1	20	1	0	1	"[sS]"	67
-guard	1	26	1	0	1	"[fF]"	54
-guard	1	31	1	0	1	"[fF]"	54
-guard	1	38	1	0	1	"[uU]"	69
-guard	1	44	1	0	1	"[uU]"	69
-guard	1	51	1	0	1	"[uU]"	69
-guard	1	58	1	0	1	"[uU]"	69
-guard	1	62	1	0	1	"[uU]"	69
-guard	1	68	1	0	1	"[vV]"	70
-guard	1	75	1	0	1	"[vV]"	70
-guard	1	8	1	0	1	"[sS]"	67
-guard	1	80	1	0	1	"[vV]"	70
-guard	1	88	1	0	1	"[wW]"	71
-guard	1	93	1	0	1	"[wW]"	71
-guard	1	99	1	0	1	"[wW]"	71
-grammar	controlled	"outlined keywords"
-guard	1	1	1	0	0	"[sS]"	67
-guard	1	105	1	0	0	"[wW]"	71
-guard	1	112	1	0	0	"[wW]"	71
-guard	1	117	1	0	0	"[wW]"	71
-guard	1	125	1	0	0	"[wW]"	71
-guard	1	131	1	0	0	"[xX]"	72
-guard	1	16	1	0	0	"[sS]"	67
-guard	1	20	1	0	0	"[sS]"	67
-guard	1	26	1	0	0	"[fF]"	54
-guard	1	31	1	0	0	"[fF]"	54
-guard	1	38	1	0	0	"[uU]"	69
-guard	1	44	1	0	0	"[uU]"	69
-guard	1	51	1	0	0	"[uU]"	69
-guard	1	58	1	0	0	"[uU]"	69
-guard	1	62	1	0	0	"[uU]"	69
-guard	1	68	1	0	0	"[vV]"	70
-guard	1	75	1	0	0	"[vV]"	70
-guard	1	8	1	0	0	"[sS]"	67
-guard	1	80	1	0	0	"[vV]"	70
-guard	1	88	1	0	0	"[wW]"	71
-guard	1	93	1	0	0	"[wW]"	71
-guard	1	99	1	0	0	"[wW]"	71
 grammar	lean	"grammars/cel"
 guard	1	13	1	0	0	"\"<=\""	208
 guard	1	14	1	0	0	"\"<\""	208
@@ -15382,6 +14903,488 @@ scope	62	65	e
 scope	62	84	e
 scope	77	8	
 scope	80	8	
+grammar	lean,controlled	"hidden leader behind an optional prefix"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+grammar	lean,controlled	"hidden rule: captured call"
+grammar	lean,controlled	"hidden rule: choice"
+guard	1	1	1	0	0	"\"b\""	237
+guard	1	2	1	0	0	"\"c\""	239
+grammar	lean,controlled	"hidden rule: cut"
+guard	0	1	1	0	0	"\"a\""	236
+guard	0	2	1	0	0	"\"a\""	236
+grammar	lean,controlled	"hidden rule: hidden captures"
+grammar	lean,controlled	"hidden rule: in a choice"
+guard	0	1	1	0	0	"\"a\""	236
+guard	0	2	1	0	0	"\"x\""	169
+grammar	lean,controlled	"hidden rule: in a repetition body"
+grammar	lean,controlled	"hidden rule: left recursion"
+guard	1	1	0	0	0	""	48
+guard	1	5	1	0	0	"\"a\""	236
+grammar	lean,controlled	"hidden rule: lookahead in body"
+grammar	lean,controlled	"hidden rule: nested"
+grammar	lean,controlled	"hidden rule: no value"
+grammar	lean,controlled	"hidden rule: one element"
+grammar	lean,controlled	"hidden rule: optional"
+grammar	lean,controlled	"hidden rule: optional recursion"
+grammar	lean,controlled	"hidden rule: recovery"
+scan	1	1
+grammar	lean,controlled	"hidden rule: repetition"
+grammar	lean,controlled	"hidden rule: right recursion"
+guard	1	1	1	0	0	"\"x\""	169
+guard	1	4	1	0	0	"\"x\""	169
+grammar	lean,controlled	"hidden rule: sequence"
+grammar	lean,controlled	"hidden rule: used twice"
+grammar	lean,controlled	"hidden rule: whole body"
+grammar	lean,controlled	"ignorecase group"
+guard	0	2	0	0	0	""	48
+guard	0	4	1	0	0	"\"ab\"i"	235
+guard	0	5	1	0	0	"\"cd\"i"	238
+guard	0	7	1	0	0	"\"x\""	169
+grammar	lean,controlled	"incremental"
+guard	0	3	0	0	0	""	48
+guard	0	4	1	0	0	"\"\\n\""	145
+guard	2	3	0	0	0	""	48
+guard	2	4	0	0	0	""	48
+guard	2	5	1	0	0	"\"@\""	212
+guard	4	1	0	0	0	""	48
+guard	4	5	0	0	0	""	48
+guard	8	10	1	0	0	"\"+\""	191
+guard	8	11	1	0	0	"\"-\""	193
+scan	5	1
+scan	7	1
+scan	8	2
+scope	8	1	
+scope	8	12	
+scope	8	13	
+scope	8	4	
+scope	8	9	
+grammar	lean,controlled	"indent"
+scan	2	6
+grammar	lean,controlled	"indirect leader cycle"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+guard	2	1	0	0	0	""	48
+guard	2	4	1	0	0	"\"m\""	156
+grammar	lean,controlled	"initial values key the memo like bound ones"
+guard	0	1	0	0	0	""	48
+guard	0	2	0	0	0	""	48
+guard	0	3	0	0	0	""	48
+guard	4	1	0	0	0	""	48
+guard	4	2	0	0	0	""	48
+guard	7	1	0	0	0	""	48
+guard	7	2	0	0	0	""	48
+grammar	lean,controlled	"inline action: action error"
+grammar	lean,controlled	"inline action: captures of the enclosing rule after"
+grammar	lean,controlled	"inline action: choice"
+guard	1	2	1	0	0	"\"a\""	236
+guard	1	3	1	0	0	"\"b\""	237
+grammar	lean,controlled	"inline action: choice of inline actions"
+guard	0	1	1	0	0	"\"a\""	236
+guard	0	2	1	0	0	"\"b\""	237
+grammar	lean,controlled	"inline action: cut"
+guard	0	1	1	0	0	"\"a\""	236
+guard	0	2	1	0	0	"\"a\""	236
+grammar	lean,controlled	"inline action: default action"
+grammar	lean,controlled	"inline action: left recursion"
+guard	1	1	0	0	0	""	48
+guard	1	2	1	0	0	"\"a\""	236
+grammar	lean,controlled	"inline action: nested"
+grammar	lean,controlled	"inline action: nested in a whole rule"
+grammar	lean,controlled	"inline action: operators rule operand"
+scan	1	2
+scope	0	1	
+scope	0	2	
+grammar	lean,controlled	"inline action: optional"
+grammar	lean,controlled	"inline action: outer capture stays"
+grammar	lean,controlled	"inline action: recover argument"
+scan	0	5
+scan	1	1
+scope	0	2	
+grammar	lean,controlled	"inline action: recovery"
+scan	1	3
+grammar	lean,controlled	"inline action: recovery inside"
+scan	1	3
+grammar	lean,controlled	"inline action: repetition"
+grammar	lean,controlled	"inline action: sequence"
+grammar	lean,controlled	"inline action: stream"
+scan	1	3
+grammar	lean,controlled	"inline action: whole rule"
+grammar	lean,controlled	"integer boundaries"
+grammar	lean,controlled	"leader behind lookahead prefixes"
+guard	0	1	0	0	0	""	48
+guard	0	8	1	0	0	"\"z\""	171
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+grammar	lean,controlled	"leader choice with several operators"
+guard	1	1	0	0	0	""	48
+guard	1	13	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+guard	1	9	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"leader in a repetition"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+grammar	lean,controlled	"leader in lookaheads"
+guard	0	2	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"leader with a cut"
+guard	1	1	0	0	0	""	48
+guard	1	6	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"leader with captures"
+guard	1	1	0	0	0	""	48
+guard	1	7	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"leader with memoized callers"
+guard	0	2	0	0	0	""	48
+guard	0	6	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"leader wrapped in a recovery"
+guard	1	2	0	0	0	""	48
+guard	1	6	0	0	0	""	48
+scan	2	1
+grammar	lean,controlled	"left recursion"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"y\""	170
+guard	2	1	0	0	0	""	48
+guard	2	4	0	0	0	""	48
+guard	3	1	0	0	0	""	48
+guard	3	4	1	0	0	"\"v\""	167
+grammar	lean,controlled	"left recursion in recovery skip"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"y\""	170
+grammar	lean,controlled	"len of nodes and strings"
+scan	1	1
+scan	2	1
+scan	3	0
+grammar	lean,controlled	"literal text different captures control"
+grammar	lean,controlled	"literal text missing capture"
+grammar	lean,controlled	"literal text mixed control"
+scan	0	3
+grammar	lean,controlled	"literal text negation control"
+scan	0	3
+grammar	lean,controlled	"literal text predicate controls"
+scan	0	3
+grammar	lean,controlled	"literal text predicate dispatch"
+scan	0	3
+grammar	lean,controlled	"literal text variable alias control"
+scan	0	3
+grammar	lean	"long expected lists"
+guard	0	1	1	0	0	"\"t\""	165
+guard	0	13	1	0	0	"\"r\""	162
+guard	0	5	1	0	0	"\"e\""	147
+guard	0	9	1	0	0	"\"w\""	168
+guard	1	1	1	0	0	"\"a\""	236
+guard	1	10	0	0	0	""	48
+guard	1	2	1	0	0	"\"b\""	237
+guard	1	3	1	0	0	"\"c\""	239
+guard	1	4	1	0	0	"\"d\""	146
+guard	1	5	1	0	0	"\"e\""	147
+guard	1	6	1	0	0	"\"f\""	149
+guard	1	7	1	0	0	"\"g\""	150
+guard	1	8	1	0	1	"[0-9]"	130
+guard	1	9	1	0	1	"[x-z]"	121
+guard	2	1	0	0	0	""	48
+guard	2	2	1	0	0	"\"h\""	151
+guard	3	1	0	0	0	""	48
+guard	3	2	0	0	0	""	48
+guard	3	5	1	0	0	"\"é\""	179
+guard	3	6	1	0	0	"\"😀\""	176
+guard	3	7	1	0	1	"[A-Z]"	133
+grammar	controlled	"long expected lists"
+guard	0	1	1	0	0	"\"t\""	165
+guard	0	13	1	0	0	"\"r\""	162
+guard	0	5	1	0	0	"\"e\""	147
+guard	0	9	1	0	0	"\"w\""	168
+guard	1	1	1	0	0	"\"a\""	236
+guard	1	10	0	0	0	""	48
+guard	1	2	1	0	0	"\"b\""	237
+guard	1	3	1	0	0	"\"c\""	239
+guard	1	4	1	0	0	"\"d\""	146
+guard	1	5	1	0	0	"\"e\""	147
+guard	1	6	1	0	0	"\"f\""	149
+guard	1	7	1	0	0	"\"g\""	150
+guard	1	8	1	0	0	"[0-9]"	130
+guard	1	9	1	0	0	"[x-z]"	121
+guard	2	1	0	0	0	""	48
+guard	2	2	1	0	0	"\"h\""	151
+guard	3	1	0	0	0	""	48
+guard	3	2	0	0	0	""	48
+guard	3	5	1	0	0	"\"é\""	179
+guard	3	6	1	0	0	"\"😀\""	176
+guard	3	7	1	0	0	"[A-Z]"	133
+grammar	lean,controlled	"long inferred chain"
+grammar	lean,controlled	"member reached from two call sites"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+guard	2	1	1	0	0	"\"(\""	188
+guard	2	11	0	0	0	""	48
+guard	2	6	1	0	0	"\"(\""	188
+grammar	lean,controlled	"members in a deeper cycle"
+guard	1	1	0	0	0	""	48
+guard	1	4	1	0	0	"\"n\""	157
+guard	2	1	1	0	0	"\"(\""	188
+guard	2	11	0	0	0	""	48
+guard	2	6	1	0	0	"\"(\""	188
+guard	3	1	1	0	0	"\"[\""	229
+guard	3	11	0	0	0	""	48
+guard	3	6	1	0	0	"\"[\""	229
+guard	4	1	1	0	0	"\"{\""	172
+guard	4	11	0	0	0	""	48
+guard	4	6	1	0	0	"\"{\""	172
+grammar	lean	"members that read two leaders"
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+guard	2	1	0	0	0	""	48
+guard	2	4	0	0	0	""	48
+guard	2	7	0	0	0	""	48
+guard	3	1	0	0	0	""	48
+guard	3	5	0	0	0	""	48
+guard	4	1	1	0	1	"[0-9]"	130
+guard	4	2	1	0	0	"\"(\""	188
+grammar	controlled	"members that read two leaders"
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+guard	2	1	0	0	0	""	48
+guard	2	4	0	0	0	""	48
+guard	2	7	0	0	0	""	48
+guard	3	1	0	0	0	""	48
+guard	3	5	0	0	0	""	48
+guard	4	1	1	0	0	"[0-9]"	130
+guard	4	2	1	0	0	"\"(\""	188
+grammar	lean,controlled	"memo entries are keyed by the variables the rule reads"
+guard	0	1	0	0	0	""	48
+guard	0	2	0	0	0	""	48
+guard	0	3	0	0	0	""	48
+guard	4	1	0	0	0	""	48
+guard	4	2	0	0	0	""	48
+guard	4	3	0	0	0	""	48
+grammar	lean,controlled	"memo keyed by variables"
+guard	0	1	0	0	0	""	48
+guard	0	5	0	0	0	""	48
+guard	1	1	0	0	0	""	48
+guard	1	4	0	0	0	""	48
+scan	0	8
+grammar	lean,controlled	"memoized rule with a cut called at one position"
+guard	0	2	0	0	0	""	48
+guard	0	7	0	0	0	""	48
+guard	1	1	1	0	0	"\"a\""	236
+guard	1	5	1	0	0	"\"a\""	236
+grammar	lean,controlled	"mutual leaders"
+guard	1	1	0	0	0	""	48
+guard	1	4	0	0	0	""	48
+guard	1	7	1	0	0	"\"n\""	157
+guard	2	1	0	0	0	""	48
+guard	2	4	0	0	0	""	48
+guard	2	7	1	0	0	"\"m\""	156
+grammar	lean,controlled	"named node type run-time conversions"
+guard	1	1	1	0	0	"\"a\""	236
+guard	1	2	1	0	0	"\"b\""	237
+grammar	lean,controlled	"named node types"
+guard	2	1	0	0	0	""	48
+guard	2	2	0	0	0	""	48
+guard	7	4	1	0	0	"\"a\""	236
+guard	7	5	1	0	0	"\"bc\""	237
+scan	3	1
+scan	4	2
+grammar	lean,controlled	"nested captured repetitions"
+scan	4	1
+scope	1	4	r
+scope	2	5	c
+grammar	lean	"nested left recursion"
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+guard	2	1	0	0	0	""	48
+guard	2	5	0	0	0	""	48
+guard	3	1	1	0	1	"[0-9]"	130
+guard	3	2	1	0	0	"\"(\""	188
+grammar	controlled	"nested left recursion"
+guard	1	1	0	0	0	""	48
+guard	1	5	0	0	0	""	48
+guard	2	1	0	0	0	""	48
+guard	2	5	0	0	0	""	48
+guard	3	1	1	0	0	"[0-9]"	130
+guard	3	2	1	0	0	"\"(\""	188
+grammar	lean,controlled	"nested recoveries"
+grammar	lean,controlled	"nil OperatorsRule action"
+scope	1	1	
+scope	1	2	
+grammar	lean,controlled	"nil allocating action"
+grammar	lean,controlled	"node/direct_expectations"
+guard	1	1	1	0	0	"\"let\""	155
+guard	1	6	1	0	0	"\"let\""	155
+scan	2	1
+grammar	lean,controlled	"node/direct_memo_action"
+guard	0	1	1	0	0	"[a-z]"	143
+guard	0	5	1	0	0	"[a-z]"	143
+scan	2	1
+grammar	lean,controlled	"node/direct_nested_frames"
+scan	1	3
+scan	1	8
+grammar	lean,controlled	"none-chain: below a left infix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"none-chain: below a prefix and a postfix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
+grammar	lean,controlled	"none-chain: below a right infix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"none-chain: levels of non-associative operators"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
+grammar	lean,controlled	"none-chain: with a left operator of the same level"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+scope	1	4	
+grammar	lean,controlled	"nullable minimum repetitions"
+guard	0	11	1	0	0	"\"u\""	166
+guard	0	14	1	0	0	"\"a\""	236
+guard	0	17	1	0	0	"\"d\""	146
+guard	0	2	1	0	0	"\"z\""	171
+guard	0	20	1	0	0	"\"p\""	160
+guard	0	23	1	0	0	"\"f\""	149
+guard	0	5	1	0	0	"\"o\""	158
+guard	0	8	1	0	0	"\"t\""	165
+guard	1	3	1	0	0	"\"é\""	179
+guard	1	4	0	0	0	""	48
+guard	2	3	1	0	0	"\"é\""	179
+guard	2	4	0	0	0	""	48
+guard	3	3	1	0	0	"\"é\""	179
+guard	3	4	0	0	0	""	48
+guard	4	3	1	0	0	"\"é\""	179
+guard	4	4	0	0	0	""	48
+guard	5	3	1	0	0	"\"é\""	179
+guard	5	4	0	0	0	""	48
+guard	6	3	1	0	0	"\"é\""	179
+guard	6	4	0	0	0	""	48
+guard	7	4	1	0	0	"\"é\""	179
+guard	7	5	0	0	0	""	48
+guard	8	1	0	0	0	""	48
+guard	8	3	1	0	0	"\"é\""	179
+guard	8	4	0	0	0	""	48
+guard	8	5	1	0	0	"\"é\""	179
+scope	7	2	
+grammar	lean,controlled	"operatorsRule infix action variables"
+guard	0	1	0	0	0	""	48
+guard	0	13	0	0	0	""	48
+guard	0	5	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+scope	1	1	
+scope	1	2	
+grammar	lean,controlled	"operatorsRule operand action"
+scope	1	1	
+scope	1	2	
+grammar	lean,controlled	"operatorsRule operand action and captures"
+scope	1	1	
+scope	1	4	
+scope	1	5	
+scope	1	6	
+scope	1	7	
+grammar	lean,controlled	"operatorsRule operand action prefix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"operatorsRule operand action variables"
+guard	0	1	0	0	0	""	48
+guard	0	13	0	0	0	""	48
+guard	0	5	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+scope	1	1	
+grammar	lean,controlled	"operatorsRule operand reading a capture of a repetition"
+scope	1	1	
+scope	1	3	
+scope	1	5	
+grammar	lean,controlled	"operatorsRule operand rule call with scalar result"
+scope	1	1	
+scope	1	2	
+scope	1	3	
+grammar	lean,controlled	"operatorsRule postfix action variables"
+guard	0	1	0	0	0	""	48
+guard	0	13	0	0	0	""	48
+guard	0	5	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+scope	1	1	
+scope	1	2	
+grammar	lean,controlled	"operatorsRule prefix action variables"
+guard	0	1	0	0	0	""	48
+guard	0	13	0	0	0	""	48
+guard	0	5	0	0	0	""	48
+guard	0	9	0	0	0	""	48
+scope	1	1	
+scope	1	2	
+grammar	lean,controlled	"operatorsRule scalar operand actions and typed results"
+scope	1	1	
+scope	1	4	
+grammar	lean,controlled	"operatorsRule scalar results of operators"
+scope	1	1	
+scope	1	3	
+scope	1	4	
+scope	1	5	
+scope	1	6	
+scope	1	7	
+scope	1	8	
+grammar	lean,controlled	"optional with a cut followed by input"
+grammar	lean	"outlined keywords"
+guard	1	1	1	0	1	"[sS]"	67
+guard	1	105	1	0	1	"[wW]"	71
+guard	1	112	1	0	1	"[wW]"	71
+guard	1	117	1	0	1	"[wW]"	71
+guard	1	125	1	0	1	"[wW]"	71
+guard	1	131	1	0	1	"[xX]"	72
+guard	1	16	1	0	1	"[sS]"	67
+guard	1	20	1	0	1	"[sS]"	67
+guard	1	26	1	0	1	"[fF]"	54
+guard	1	31	1	0	1	"[fF]"	54
+guard	1	38	1	0	1	"[uU]"	69
+guard	1	44	1	0	1	"[uU]"	69
+guard	1	51	1	0	1	"[uU]"	69
+guard	1	58	1	0	1	"[uU]"	69
+guard	1	62	1	0	1	"[uU]"	69
+guard	1	68	1	0	1	"[vV]"	70
+guard	1	75	1	0	1	"[vV]"	70
+guard	1	8	1	0	1	"[sS]"	67
+guard	1	80	1	0	1	"[vV]"	70
+guard	1	88	1	0	1	"[wW]"	71
+guard	1	93	1	0	1	"[wW]"	71
+guard	1	99	1	0	1	"[wW]"	71
+grammar	controlled	"outlined keywords"
+guard	1	1	1	0	0	"[sS]"	67
+guard	1	105	1	0	0	"[wW]"	71
+guard	1	112	1	0	0	"[wW]"	71
+guard	1	117	1	0	0	"[wW]"	71
+guard	1	125	1	0	0	"[wW]"	71
+guard	1	131	1	0	0	"[xX]"	72
+guard	1	16	1	0	0	"[sS]"	67
+guard	1	20	1	0	0	"[sS]"	67
+guard	1	26	1	0	0	"[fF]"	54
+guard	1	31	1	0	0	"[fF]"	54
+guard	1	38	1	0	0	"[uU]"	69
+guard	1	44	1	0	0	"[uU]"	69
+guard	1	51	1	0	0	"[uU]"	69
+guard	1	58	1	0	0	"[uU]"	69
+guard	1	62	1	0	0	"[uU]"	69
+guard	1	68	1	0	0	"[vV]"	70
+guard	1	75	1	0	0	"[vV]"	70
+guard	1	8	1	0	0	"[sS]"	67
+guard	1	80	1	0	0	"[vV]"	70
+guard	1	88	1	0	0	"[wW]"	71
+guard	1	93	1	0	0	"[wW]"	71
+guard	1	99	1	0	0	"[wW]"	71
 grammar	lean,controlled	"projected and indexed repetition"
 scan	1	1
 scope	0	5	

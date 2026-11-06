@@ -31,6 +31,9 @@ type Target struct {
 	// Recv is the receiver of printed functions, such as "p *Parser"; empty prints package
 	// functions. A call of a function of the module goes through the receiver's name.
 	Recv string
+	// Params, if not empty, are parameters that printed functions take before their own, such as
+	// "p *core.Parser" for a parser the receiver does not hold.
+	Params string
 	// Op returns the Go expression of a call of an operation, given the call (with its immediate
 	// operand) and its printed arguments. A call of an operation without results is printed as a
 	// statement, which may be any simple statement, or nothing when Op returns "".
@@ -258,6 +261,9 @@ func (p *printer) fn() string {
 	params := make([]string, len(f.Params))
 	for i, x := range f.Params {
 		params[i] = x.Name + " " + p.typ(x.Type)
+	}
+	if p.t.Params != "" {
+		params = append([]string{p.t.Params}, params...)
 	}
 	p.w("%s(%s)", p.name(f.Name), strings.Join(params, ", "))
 	switch len(f.Results) {
