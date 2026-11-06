@@ -232,7 +232,6 @@ method (*Parser) Reset(Mark)
 method (*Parser) Restore(int, int)
 method (*Parser) ScopeValue(Shaper, *Node, int) *Node
 method (*Parser) SetCapture(int, *Node)
-method (*Parser) SetCaptureOrdinary(int, *Node)
 method (*Parser) ShapeCapture(Shaper, *Node, int) *Node
 method (*Parser) ShapeSingle(Shaper, *Node, int) (*Node, bool)
 method (*Parser) Single(int, bool) (*Node, bool)
@@ -338,7 +337,6 @@ method (*TParser) RecoverAttr(tmatcher, tmatcher, bool) (any, bool)
 method (*TParser) Reset(Mark)
 method (*TParser) ScopeValue(Shaper, any, int) any
 method (*TParser) SetCapture(int, any)
-method (*TParser) SetCaptureOrdinary(int, any)
 method (*TParser) ShapeCapture(Shaper, any, int) any
 method (*TParser) ShapeSingle(Shaper, any, int) (any, bool)
 method (*TParser) Single(int, bool) (any, bool)

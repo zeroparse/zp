@@ -856,14 +856,6 @@ func (p *TParser) DropTrail(base int) {
 }
 
 func (p *TParser) SetCapture(slot int, v any) {
-	p.Spend()
-	p.Trail = append(p.Trail, tundo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
-	p.Frame.Vals[slot] = v
-}
-
-// SetCaptureOrdinary is SetCapture in an ordinary parse (parser.ExpectOrdinary); so are
-// NewNodeOrdinary and NewMatchOrdinary.
-func (p *TParser) SetCaptureOrdinary(slot int, v any) {
 	p.Trail = append(p.Trail, tundo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
 }
