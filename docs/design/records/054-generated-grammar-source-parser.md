@@ -238,6 +238,9 @@ The recovery is linear. A test parses failing sources of 11 families (nested
 groups, brackets, attributes, strings and comments) of 2,000 and 16,000
 repetitions and requires that the time grows less than 24 times for 8 times
 the size; the measured ratios are 7.3 to 8.2.
+The detector is shown to fail on quadratic work, but no committed control makes
+the generated parser itself quadratic: lookaheads to the end of the source added
+to the recovery rules measured linear, for a cause that is not established.
 
 ### Selection Surface
 
