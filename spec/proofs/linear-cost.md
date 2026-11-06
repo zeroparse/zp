@@ -2299,8 +2299,10 @@ that the proof assumes of the cost view.
    it, so its copy and its replay cost in proportion to $n$ at each of $n$
    positions. Compute for each item rises from 518 at $n = 250$ to 6,147 at
    $n = 4000$, a first parse of a Document, where $E$, $W$, $B$, $G$ and $Q$ are
-   zero, grows in the same way, and the default limits end the parse at 2,000
-   items on all three backends. The memory allocated grows with it: 75.8 MB,
+   zero, grows in the same way. The default limit ends a fresh parse at about
+   1,260 items on all three backends. A first parse of a Document finishes at
+   4,000 items under the same limit, because the default limit leaves the work
+   of the memo free, so the limit does not bound this growth in a Document. The memory allocated grows with it: 75.8 MB,
    289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
    for parses that recover errors needs an implementation that does not copy or
    replay these lists in proportion to their length.
