@@ -6,10 +6,8 @@ import "zeroparse.dev/zp/internal/value"
 
 // Call calls rule r at binding level min in the engine: unmemoized while its
 // memoization is deferred, and otherwise between the begin and the end of the split call protocol,
-// growing the seed of a left-recursion leader. In a Document parse under the default limit, what a
-// parse from scratch does not do is Document work and leaves the count against the limit: the unit of
-// the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
-// and the end of the call), whose counterparts in a parse from scratch differ in number and order.
+// growing the seed of a left-recursion leader. A parse that reads a Document makes the call of
+// engineCallDoc instead, which is decided by one test of a field that the parse sets once.
 //
 // Printed from Exec IR function engineCall of internal/ir/exec/core, specialized for document, missing, budget.
 func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
@@ -17,9 +15,63 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 	var ok bool
 	var hit bool
 	var mm int
-	var fm uint64
 	var direct bool
-	fm = p.FreeBegin(p.MemoAll && r.Plain)
+	if p.MemoAll {
+		v, ok = p.callDoc(r, min)
+		return v, ok
+	}
+	p.Spend()
+	if p.Tr != nil && p.tracing() {
+		v, ok = p.tracedCall(r, min)
+		return v, ok
+	}
+	start := p.Pos
+	direct = !p.memoized(r) && !r.Leader || p.FirstCall(r)
+	if direct {
+		if len(r.Scope.Names) == 0 {
+			v, ok = p.InvokePlain(r, min)
+			return v, ok
+		}
+		rec := len(p.Recovered)
+		mm = p.missingMark()
+		v, ok = p.invoke(r, min)
+		if !ok {
+			p.Pos = start
+			p.Recovered = p.Recovered[:rec]
+			if p.Missing != nil {
+				p.ResetMissing(mm)
+			}
+		}
+		return v, ok
+	}
+	st := &CallState{}
+	v, ok, hit = p.CallBegin(r, min, st)
+	if hit {
+		return v, ok
+	}
+	if r.Leader {
+		v, ok = p.grow(r, min)
+	} else {
+		v, ok = p.invoke(r, min)
+	}
+	v, ok = p.CallEnd(r, st, v, ok)
+	return v, ok
+}
+
+// callDoc is engineCall for a parse that reads a Document. Under the default limit, what a
+// parse from scratch does not do is Document work and leaves the count against the limit: the unit of
+// the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
+// and the end of the call), whose counterparts in a parse from scratch differ in number and order.
+//
+// Printed from Exec IR function engineCallDoc of internal/ir/exec/core, specialized for document, missing, budget.
+func (p *Parser) callDoc(r *Rule, min int) (*value.Node, bool) {
+	var v *value.Node
+	var ok bool
+	var hit bool
+	var mm int
+	var direct bool
+	var fm uint64
+	fm = p.FreeBegin(r.Plain)
 	p.Spend()
 	p.FreeEnd(fm)
 	if p.Tr != nil && p.tracing() {
@@ -27,7 +79,7 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 		return v, ok
 	}
 	start := p.Pos
-	fm = p.FreeBegin(p.MemoAll)
+	fm = p.FreeBegin(true)
 	direct = !p.memoized(r) && !r.Leader || p.FirstCall(r)
 	p.FreeEnd(fm)
 	if direct {
@@ -48,7 +100,7 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 		return v, ok
 	}
 	st := &CallState{}
-	fm = p.FreeBegin(p.MemoAll)
+	fm = p.FreeBegin(true)
 	v, ok, hit = p.CallBegin(r, min, st)
 	p.FreeEnd(fm)
 	if hit {
@@ -59,7 +111,7 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 	} else {
 		v, ok = p.invoke(r, min)
 	}
-	fm = p.FreeBegin(p.MemoAll)
+	fm = p.FreeBegin(true)
 	v, ok = p.CallEnd(r, st, v, ok)
 	p.FreeEnd(fm)
 	return v, ok
