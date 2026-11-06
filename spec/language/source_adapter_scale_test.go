@@ -34,38 +34,130 @@ var scaleSources = []struct {
 	{"strings", func(n int) string { return "rule a = " + strings.Repeat("\"(\" ", n/4) + " )\n" }},
 }
 
-// parseTime returns the least time over a few runs of the generated parser on src.
-func parseTime(t *testing.T, src string) time.Duration {
-	t.Helper()
-	p, _ := sourceGrammar(t)
+// bestTime returns the least time over a few runs of run.
+func bestTime(run func()) time.Duration {
 	best := time.Duration(1 << 62)
 	for i := 0; i < 5; i++ {
 		start := time.Now()
-		p.Parse(src)
+		run()
 		best = min(best, time.Since(start))
 	}
 	return best
 }
 
+// scaleFactor is how many times larger the big source is than the small one.
+const scaleFactor = 8
+
+// scalesLinearly measures the work at a size and at scaleFactor times that size, and reports the ratio of
+// the two times. The work is linear if the ratio is about scaleFactor and quadratic if it is about its
+// square, so a ratio over 24 with a big time over 20ms is a growth that is not linear. Other work on the
+// machine slows a run, so the best of a few attempts counts: a quadratic time fails every attempt.
+func scalesLinearly(t *testing.T, small int, measure func(n int) time.Duration) (ratio float64, ok bool) {
+	t.Helper()
+	const attempts = 3
+	for attempt := 0; attempt < attempts; attempt++ {
+		a, b := measure(small), measure(small*scaleFactor)
+		ratio = float64(b) / float64(max(a, time.Microsecond))
+		t.Logf("%d: %v, %d: %v, ratio %.1f", small, a, small*scaleFactor, b, ratio)
+		if ratio <= 24 || b <= 20*time.Millisecond {
+			return ratio, true
+		}
+	}
+	return ratio, false
+}
+
 func TestRecoveryScalesLinearly(t *testing.T) {
-	const small, factor, attempts = 2000, 8, 3
+	p, _ := sourceGrammar(t)
 	for _, c := range scaleSources {
 		t.Run(c.name, func(t *testing.T) {
-			// The best of several runs of each size, and the best of a few attempts, so that other work on the
-			// machine does not fail the test: a quadratic time fails every attempt.
-			var ratio float64
-			for attempt := 0; attempt < attempts; attempt++ {
-				a, b := parseTime(t, c.make(small)), parseTime(t, c.make(small*factor))
-				ratio = float64(b) / float64(max(a, time.Microsecond))
-				t.Logf("%d: %v, %d: %v, ratio %.1f", small, a, small*factor, b, ratio)
-				// Linear is about 8 and quadratic about 64.
-				if ratio <= 24 || b <= 20*time.Millisecond {
-					return
-				}
+			ratio, ok := scalesLinearly(t, 2000, func(n int) time.Duration {
+				src := c.make(n)
+				return bestTime(func() { p.Parse(src) })
+			})
+			if !ok {
+				t.Errorf("the time grows %.1f times for %d times as many brackets in each attempt (limit 24)", ratio, scaleFactor)
 			}
-			t.Errorf("the time grows %.1f times for %d times as many brackets in each of %d attempts (limit 24)", ratio, factor, attempts)
 		})
 	}
+}
+
+// scaleSink keeps the work of the controls below from being removed.
+var scaleSink int
+
+func linearWork(n int) {
+	s := 0
+	for i := 0; i < 5000*n; i++ {
+		s += i ^ (i >> 3)
+	}
+	scaleSink = s
+}
+
+func quadraticWork(n int) {
+	s := 0
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			s += i ^ j
+		}
+	}
+	scaleSink = s
+}
+
+// TestScaleDetectorSeesQuadraticTime is the negative control of TestRecoveryScalesLinearly. A change of the
+// grammar that makes the recovery quadratic did not turn up: lookaheads to the end of the source that were
+// added to the recovery rules left the time of these sources linear. So the control applies the same
+// measure to work with a known growth: work that grows with the square of the size must be reported as a
+// failure, and linear work must not.
+func TestScaleDetectorSeesQuadraticTime(t *testing.T) {
+	measure := func(work func(n int)) func(n int) time.Duration {
+		return func(n int) time.Duration { return bestTime(func() { work(n) }) }
+	}
+	t.Run("quadratic", func(t *testing.T) {
+		ratio, ok := scalesLinearly(t, 2000, measure(quadraticWork))
+		if ok {
+			t.Errorf("quadratic work passed with ratio %.1f", ratio)
+		}
+	})
+	t.Run("linear", func(t *testing.T) {
+		if ratio, ok := scalesLinearly(t, 2000, measure(linearWork)); !ok {
+			t.Errorf("linear work failed with ratio %.1f", ratio)
+		}
+	})
+}
+
+// TestScaleAttemptsAbsorbNoise checks the attempts of scalesLinearly with times that are given, not
+// measured: a linear run that another process slowed in the first two attempts passes in the third, and
+// quadratic times fail in all three whatever the noise.
+func TestScaleAttemptsAbsorbNoise(t *testing.T) {
+	const unit = 100 * time.Microsecond
+	run := func(sizeTime func(call, n int) time.Duration) (float64, bool) {
+		call := 0
+		return scalesLinearly(t, 2000, func(n int) time.Duration {
+			call++
+			return sizeTime(call, n)
+		})
+	}
+	t.Run("noisy linear", func(t *testing.T) {
+		// Calls 1 to 4 are the first two attempts, the big size of each slowed by 10 times.
+		if ratio, ok := run(func(call, n int) time.Duration {
+			d := time.Duration(n) * unit
+			if call <= 4 && n > 2000 {
+				d *= 10
+			}
+			return d
+		}); !ok {
+			t.Errorf("linear time with two noisy attempts failed with ratio %.1f", ratio)
+		}
+	})
+	t.Run("quadratic", func(t *testing.T) {
+		calls := 0
+		ratio, ok := run(func(call, n int) time.Duration {
+			calls = call
+			return time.Duration(n) * time.Duration(n) * unit / 2000
+		})
+		if ok || calls != 6 {
+			t.Errorf("quadratic time: ok %v after %d calls with ratio %.1f, want failure after 6 calls", ok, calls, ratio)
+		}
+	})
 }
 
 // BenchmarkCanonicalFrontend parses grammars with the generated parser and builds the grammar from its
