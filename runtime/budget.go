@@ -1113,7 +1113,6 @@ func clearBudgetControlled[T any](p *Parser, values []T) {
 }
 
 func (p *Parser) controlledEnvValues(slots []int) []any {
-	p.Spend()
 	if len(slots) == 0 {
 		return nil
 	}
