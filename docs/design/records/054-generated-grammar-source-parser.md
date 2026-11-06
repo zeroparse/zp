@@ -469,12 +469,20 @@ allowance for its size.
 Cost. On valid grammars the recovery does not run, but the lists end at a
 place with the shape of a declaration, which the parser looks ahead for. On
 the grammars of the benchmark (`go test -bench CanonicalFrontend`, parsing
-and building the grammar, 6 alternating samples of 400 ms against the tree
-at the previous revision of the recovery), the median time changes by +6.6%
-for `golang.zp` (60.0 to 64.6 ms against 60.8 to 65.8 ms) and by -0.8% for
-`python.zp`; allocations by +0.2% and +0.2%, bytes by +16% and +14%. The
-ranges of the samples overlap for both grammars. The cause of the larger
-allocation was not investigated.
+and building the grammar, 8 alternating rounds of 40 iterations against the
+tree at the previous revision of the recovery), the median time changes by
++0.5% for `golang.zp` (57.31 and 57.58 ms) and by +0.2% for `python.zp`, and
+the bytes allocated per iteration by +6.1% and +1.5%. A run of 7 iterations
+had shown +6.6% in time and +16% and +14% in bytes; that was a measure at too
+small a count, because the memo chunks a parse takes are kept for the next
+parse, so the bytes of an iteration depend on how many iterations run. With a
+memory profile of 300 iterations of `golang.zp`, the bytes allocated in the
+adapter's parse grow by 132 MB of 10,698 MB (+1.2%), of which 105 MB is in
+`MemoTable.Alloc`, 14 MB in the first call of a memoized rule and 3 MB in
+`MemoPut`; every other function allocates the same. The grammar has 264 rules
+instead of 252. The growth is in the memo entries, which more memoized rules
+and the added lookaheads make; which of the two causes it is was not
+measured.
 
 ### Preliminary Frontend Baseline
 
