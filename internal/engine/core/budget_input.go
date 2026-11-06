@@ -9,6 +9,13 @@ func (in *Input) spendRead(n uint64) {
 	}
 }
 
+// spendReadDoc charges n units of reading that only a Document does (BudgetControl.ChargeDoc).
+func (in *Input) spendReadDoc(n uint64) {
+	if BudgetControlsEnabled && in.Control != nil && n > 0 {
+		in.Control.ChargeDoc(n)
+	}
+}
+
 func (p *Parser) Spend() {
 	if BudgetControlsEnabled && p.Control != nil {
 		p.Control.Charge(1)
@@ -87,4 +94,33 @@ func NewControlledTextInput(s string, unit PositionUnit, offsets bool, sc *scrat
 	}
 	in.setWideSource(s, valid)
 	return in
+}
+
+// SpendDoc charges one unit of work that only a Document parse does (BudgetControl.ChargeDoc).
+func (p *Parser) SpendDoc() {
+	if BudgetControlsEnabled && p.Control != nil {
+		p.Control.ChargeDoc(1)
+	}
+}
+
+// SpendDocN charges n units as n calls of SpendDoc do.
+func (p *Parser) SpendDocN(n uint64) {
+	if BudgetControlsEnabled && p.Control != nil {
+		p.Control.ChargeDoc(n)
+	}
+}
+
+// FreeBegin opens a region of Document work (BudgetControl.FreeBegin) if on holds, and returns its mark.
+func (p *Parser) FreeBegin(on bool) uint64 {
+	if on && BudgetControlsEnabled && p.Control != nil {
+		return p.Control.FreeBegin()
+	}
+	return noFree
+}
+
+// FreeEnd ends the region that FreeBegin opened.
+func (p *Parser) FreeEnd(mark uint64) {
+	if BudgetControlsEnabled && p.Control != nil {
+		p.Control.FreeEnd(mark)
+	}
 }

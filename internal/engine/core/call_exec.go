@@ -6,7 +6,10 @@ import "zeroparse.dev/zp/internal/value"
 
 // Call calls rule r at binding level min in the engine: unmemoized while its
 // memoization is deferred, and otherwise between the begin and the end of the split call protocol,
-// growing the seed of a left-recursion leader.
+// growing the seed of a left-recursion leader. In a Document parse under the default limit, what a
+// parse from scratch does not do is Document work and leaves the count against the limit: the unit of
+// the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
+// and the end of the call), whose counterparts in a parse from scratch differ in number and order.
 //
 // Printed from Exec IR function engineCall of internal/ir/exec/core, specialized for document, missing, budget.
 func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
@@ -14,13 +17,20 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 	var ok bool
 	var hit bool
 	var mm int
+	var fm uint64
+	var direct bool
+	fm = p.FreeBegin(p.MemoAll && r.Plain)
 	p.Spend()
+	p.FreeEnd(fm)
 	if p.Tr != nil && p.tracing() {
 		v, ok = p.tracedCall(r, min)
 		return v, ok
 	}
 	start := p.Pos
-	if !p.memoized(r) && !r.Leader || p.FirstCall(r) {
+	fm = p.FreeBegin(p.MemoAll)
+	direct = !p.memoized(r) && !r.Leader || p.FirstCall(r)
+	p.FreeEnd(fm)
+	if direct {
 		if len(r.Scope.Names) == 0 {
 			v, ok = p.InvokePlain(r, min)
 			return v, ok
@@ -38,7 +48,9 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 		return v, ok
 	}
 	st := &CallState{}
+	fm = p.FreeBegin(p.MemoAll)
 	v, ok, hit = p.CallBegin(r, min, st)
+	p.FreeEnd(fm)
 	if hit {
 		return v, ok
 	}
@@ -47,7 +59,9 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 	} else {
 		v, ok = p.invoke(r, min)
 	}
+	fm = p.FreeBegin(p.MemoAll)
 	v, ok = p.CallEnd(r, st, v, ok)
+	p.FreeEnd(fm)
 	return v, ok
 }
 

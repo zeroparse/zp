@@ -25,7 +25,8 @@ const (
 )
 
 // defaultBudget returns the budget of a parse whose Compute is zero, for an input of n units of the
-// position unit of the parse.
+// position unit of the parse. It counts the work that a parse of the input from scratch does; the
+// work that only a Document does is left out of it (documentWork).
 func defaultBudget(n uint64) uint64 {
 	if n > math.MaxUint64/defaultBudgetPerUnit {
 		return math.MaxUint64 - 1
@@ -180,6 +181,17 @@ type BudgetControl struct {
 	// adaptive is set for a stream whose budget is the default: the budget follows the furthest
 	// position the parser has demanded from the stream (demand).
 	adaptive bool
+
+	// defaultCompute is set when the compute limit is the default of a Document parse. Under it the
+	// limit counts only the work that a parse from scratch counts: the units reserved for work that
+	// only a Document does (chargeDoc, freeBegin) are added to doc and to the limit, so they leave
+	// room for the counted work. An explicit limit counts all units, and doc stays zero.
+	defaultCompute bool
+	// doc is the part of the units reserved that only a Document parse reserves, under a default limit.
+	doc uint64
+	// freeing is set between freeBegin and freeEnd; freed holds the limit that freeBegin lifted.
+	freeing bool
+	freed   uint64
 
 	// mem is the memory, in bytes, charged to the control itself: the bytes a typed Document
 	// retains from earlier parses. The memory check adds values, errs and the counters of the
@@ -337,6 +349,53 @@ func (c *BudgetControl) Take(n uint64) bool {
 	return true
 }
 
+// noFree is the mark that FreeBegin returns when it opens no region.
+const noFree = ^uint64(0)
+
+// ChargeDoc reserves n units of work that only a Document parse does, as Charge does, and under a
+// default limit leaves them out of the count against it: the limit rises by n first, so the units
+// leave the room that counted work has. Under an explicit limit it is Charge. It is safe on a nil
+// receiver.
+func (c *BudgetControl) ChargeDoc(n uint64) {
+	if c == nil {
+		return
+	}
+	if c.defaultCompute && !c.freeing {
+		c.settle()
+		c.doc = saturatingAdd(c.doc, n)
+		c.limits.Compute = saturatingAdd(c.limits.Compute, n)
+		c.refill()
+	}
+	c.Charge(n)
+}
+
+// FreeBegin opens a region in which every reservation is work that only a Document parse does, as
+// ChargeDoc reserves it, and returns the mark for FreeEnd, if on holds. The region ends the work it
+// covers before any counted work starts. Under a default limit it lifts the limit until FreeEnd;
+// otherwise, or in a region, it opens none and returns noFree. It is safe on a nil receiver.
+func (c *BudgetControl) FreeBegin(on bool) uint64 {
+	if c == nil || !on || !c.defaultCompute || c.freeing {
+		return noFree
+	}
+	c.settle()
+	c.freeing, c.freed, c.limits.Compute = true, c.limits.Compute, 0
+	c.refill()
+	return c.base
+}
+
+// FreeEnd ends the region that FreeBegin opened with mark: the units reserved since are Document
+// units, and the limit is what it was plus them.
+func (c *BudgetControl) FreeEnd(mark uint64) {
+	if mark == noFree {
+		return
+	}
+	c.settle()
+	n := c.base - mark
+	c.doc = saturatingAdd(c.doc, n)
+	c.limits.Compute, c.freeing = saturatingAdd(c.freed, n), false
+	c.refill()
+}
+
 // takeSlow charges n units one at a time, the reference charge, so that exhaustion and polls
 // fall where they do for the matcher that charges its input unit by unit.
 func (c *BudgetControl) takeSlow(n uint64) {
@@ -384,8 +443,8 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 	if exceeded {
 		c.interrupted = true
 		panic(fatal{err: &LimitError{
-			Kind: LimitCompute, Limit: c.limits.Compute,
-			Used: c.base, Requested: n,
+			Kind: LimitCompute, Limit: c.limits.Compute - c.doc,
+			Used: c.base - c.doc, Requested: n,
 		}})
 	}
 

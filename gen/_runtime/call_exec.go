@@ -2,6 +2,12 @@
 
 package runtime
 
+// pendingEditLimit is the number of edits after which a Document drops its memo until the next parse
+// (ops.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
+// a generated parser applies each edit to the memo when it is made, which a memo that many edits old
+// no longer pays for.
+const pendingEditLimit = 128
+
 // Call calls rule r at binding level min: unmemoized while its memoization is deferred, and
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
 // a left-recursion leader.
@@ -535,7 +541,7 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 // the call ends, an interruption included, so that a parse after it starts from the state it would
 // start from otherwise.
 //
-// Printed from Exec IR function document of internal/ir/exec/core, specialized for document.
+// Printed from Exec IR function document of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) callDocument(r *Rule, min int) (*Node, bool) {
 	oldHigh, oldLow := p.docHigh, p.docLow
 	p.docHigh, p.docLow = p.Pos+1, p.Pos
@@ -579,11 +585,13 @@ func (p *Parser) callUnmemoized(r *Rule, min int) (*Node, bool) {
 // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
 // bookkeeping of how far each call examined the input.
 //
-// Printed from Exec IR function memoized of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function memoized of internal/ir/exec/core, specialized for document, observe, budget.
 func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	var v *Node
 	var ok bool
+	var fm uint64
 	start := p.Pos
+	fm = p.Control.FreeBegin(p.Document != nil)
 	env := p.memoEnv(r)
 	var c ctxCallState
 	var seed *ctxResult
@@ -593,8 +601,10 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	if seed != nil {
 		p.replayCtx(seed, true)
 		if !seed.ok {
+			p.Control.FreeEnd(fm)
 			return nil, false
 		}
+		p.Control.FreeEnd(fm)
 		return seed.node, true
 	}
 	e := p.memoGet(r.Id, start, min, env)
@@ -610,10 +620,12 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		}
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
+			p.Control.FreeEnd(fm)
 			return nil, false
 		}
 		p.Pos = e.end
 		p.recAdd(e.errs)
+		p.Control.FreeEnd(fm)
 		return e.node, true
 	}
 	if c.ctx {
@@ -621,14 +633,17 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		if held != nil {
 			p.replayCtx(held, false)
 			if !held.ok {
+				p.Control.FreeEnd(fm)
 				return nil, false
 			}
+			p.Control.FreeEnd(fm)
 			return held.node, true
 		}
 	}
 	rec := len(p.Recovered)
 	p.ctxPush(&c)
 	m := p.Isolate(start)
+	p.Control.FreeEnd(fm)
 	if r.Leader {
 		v, ok = p.grow(r, min)
 	} else {
@@ -637,6 +652,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 			p.Recovered = p.Recovered[:rec]
 		}
 	}
+	fm = p.Control.FreeBegin(p.Document != nil)
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
 	if p.Document != nil {
@@ -663,6 +679,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	if !ok {
 		p.Pos = start
 	}
+	p.Control.FreeEnd(fm)
 	return v, ok
 }
 
@@ -707,6 +724,7 @@ func (p *Parser) callTracked(r *Rule, min int) (*Node, bool) {
 func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)) (any, bool) {
 	var v any
 	var ok bool
+	var fm uint64
 	p.Spend()
 	start := p.Pos
 	oldHigh, oldLow := p.docHigh, p.docLow
@@ -731,6 +749,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		}
 		return v, ok
 	}
+	fm = p.Control.FreeBegin(true)
 	env := p.memoEnv(r.Rule)
 	var c ctxCallState
 	var seed *ctxResult
@@ -740,8 +759,10 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if seed != nil {
 		p.replayCtx(seed, true)
 		if !seed.ok {
+			p.Control.FreeEnd(fm)
 			return nil, false
 		}
+		p.Control.FreeEnd(fm)
 		return seed.val, true
 	}
 	e := p.memoGet(r.Id, start, min, env)
@@ -755,10 +776,12 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		p.Document.stats.Reused++
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
+			p.Control.FreeEnd(fm)
 			return nil, false
 		}
 		p.Pos = e.end
 		p.recAdd(e.errs)
+		p.Control.FreeEnd(fm)
 		return e.val, true
 	}
 	if c.ctx {
@@ -766,14 +789,17 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		if held != nil {
 			p.replayCtx(held, false)
 			if !held.ok {
+				p.Control.FreeEnd(fm)
 				return nil, false
 			}
+			p.Control.FreeEnd(fm)
 			return held.val, true
 		}
 	}
 	rec := len(p.Recovered)
 	p.ctxPush(&c)
 	m := p.Isolate(start)
+	p.Control.FreeEnd(fm)
 	if r.Leader {
 		v, ok = p.grow(r, min)
 	} else {
@@ -787,6 +813,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 			p.Recovered = p.Recovered[:rec]
 		}
 	}
+	fm = p.Control.FreeBegin(true)
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
 	p.documentTouch(p.Pos + 1)
@@ -812,6 +839,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if !ok {
 		p.Pos = start
 	}
+	p.Control.FreeEnd(fm)
 	return v, ok
 }
 

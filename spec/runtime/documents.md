@@ -204,9 +204,21 @@ retain, shift, drop or recompute any intermediate result, provided that every
 parse returns what a parse of the current text from scratch returns. Reuse is
 observable only through the statistics. In the engine, a lookup that finds a memo entry
 applies the edits since the entry was stored or last found, and counts one unit of Compute
-for each edit it applies; the [linear cost proof](../proofs/linear-cost.md#setting) bounds
-them by the length of the edit log. Generated runtimes apply each edit to every entry at
-once, and a lookup there applies none.
+for each edit it applies, against an explicit `Compute` limit only
+([Default Limits](parsing.md#default-limits)). An entry that lags behind by more than 128
+edits is treated as absent and the call evaluates again, so a lookup applies at most 128 edits and the
+[linear cost proof](../proofs/linear-cost.md#setting) bounds their work by that
+constant. Generated runtimes apply each edit to every entry at once, and a lookup there applies none.
+Each edit costs them time in proportion to the memo, and after more than 128 edits since the last
+parse they drop the memo instead, so that further edits cost no more than the edit itself and the next
+parse evaluates every rule, as a parse from scratch does. The memo holds at most one entry for each
+call of the parse before, so the edits between two parses cost at most 128 times the work of the parse
+before, whatever their number, and a sequence of an edit, a parse, an edit and a parse costs per round
+what its parse costs plus that bound. The number 128 is where reuse stops paying when the edits are
+spread over the whole text; it is a constant of the implementation, which the operations of
+`internal/ir/exec/ops` define once. The two forms differ in the statistics alone: after more than 128
+edits the engine still reuses the entries that no more than 128 edits behind, where a generated parser
+reuses none (`Reused` is lower for it), and the results are the same.
 
 A result that read the growing result of a left recursion in progress when it
 started depends on that growth, not only on the text. A parse keeps it only

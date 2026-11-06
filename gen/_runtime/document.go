@@ -48,7 +48,7 @@ func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err
 		return nil, err
 	}
 	defer recoverParse(&d, &err)
-	o = prepareText(o, text)
+	o = prepareText(o, text).forDocument()
 	// Construction performs the same input decoding and budget checks as a parse,
 	// but its counters do not carry into subsequent invocations.
 	p := &Parser{unit: o.unit, Control: o.control}
@@ -80,7 +80,11 @@ func (d *Document) Edit(start, end int, text string) error {
 		return err
 	}
 	if d.typedMemo != nil {
-		d.typedMemo.splice(ed)
+		if d.State.pending > pendingEditLimit {
+			d.typedMemo = nil
+		} else {
+			d.typedMemo.splice(ed)
+		}
 	}
 	return nil
 }
@@ -295,7 +299,14 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 	// Build the replacement before changing either text or memo. Invalid UTF-8
 	// bytes are preserved, and a replacement may complete an existing prefix.
 	d.text = d.text[:startByte] + replacement + d.text[endByte:]
-	d.memo.splice(ed)
+	d.pending++
+	if d.pending > pendingEditLimit {
+		// The edits that the memo would keep up with cost more than parsing again: the next parse
+		// starts without the memo, as a parse from scratch does.
+		d.memo = memoTable{}
+	} else {
+		d.memo.splice(ed)
+	}
 	return ed, nil
 }
 
@@ -561,7 +572,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	if d.root == nil {
 		return res, fmt.Errorf("document start rule is missing")
 	}
-	o = prepareText(o, d.text)
+	o = prepareText(o, d.text).forDocument()
 	if o.control != nil && o.control.limits.Memory != 0 && d.memo.chargedBytes() > o.control.limits.Memory {
 		// The retained memo alone exceeds the limit: the parse starts without it.
 		d.memo = memoTable{}
@@ -581,6 +592,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 		d.memo, d.moves = memoTable{}, 0
 	}
 	p.Document, p.memo = d, d.memo
+	d.pending = 0
 	o.control.attachMemory(p)
 	d.stats = documentStats{}
 	defer func() {
@@ -615,6 +627,8 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 // entries. Strings are immutable, but the error objects and slice containers
 // must not be shared with a later invocation.
 func publishDocumentError(p *Parser, err error) error {
+	// The copy is work that only a Document parse does.
+	defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	switch e := err.(type) {
 	case SyntaxErrors:
 		if e == nil {

@@ -144,7 +144,10 @@ func (in *Input) decodePieces(i int) (r rune, size, examined int, ok bool) {
 	}
 	var buf [utf8.UTFMax]byte
 	available := min(utf8.UTFMax, in.Pieces.N-i)
-	in.spendRead(uint64(available))
+	// Reading one byte is what a flat input charges; the others read for the decoding are work of
+	// the piece representation.
+	in.spendRead(1)
+	in.spendReadDoc(uint64(available - 1))
 	for j := 0; j < available; j++ {
 		b, _ := in.Pieces.At(i + j)
 		buf[j] = byte(b)

@@ -20,6 +20,7 @@ condition of the cost view, step 8. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, in terms of what the
 Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
+Lemma 12 also proves that the units which the default budget counts for a Document parse are at most those of a parse of the same text from scratch.
 Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
 constant times $C$.
 [Correspondence](#correspondence) maps the checks of the classifier to the
@@ -80,11 +81,13 @@ elsewhere, is no part of $C$: Lemma 12 counts it as **Document units**.
 **Pending edits of a Document.** A lookup in the memo of a Document parse of
 the reference implementation also applies to the entry it finds the edits of
 the log that the entry has not accounted for since it was stored or last found,
-and charges one unit for each edit it applies. Let $E$ be the length of the
+and charges one unit for each edit it applies, but never applies more than
+$T = 128$: an entry that lags behind by more edits is treated as absent, and
+the call evaluates its body again. Let $E$ be the length of the
 edit log at the parse: the reference implementation tests the length before it
 records an edit, and drops the memo and restarts the log at the edit that finds
 65,536 edits in it, so a parse can see a log of 65,536 edits, $E \le 2^{16}$
-there, and $E = 0$ outside a Document. Each lookup has at most $E$ of these
+there, and $E = 0$ outside a Document. Each lookup has at most $\min(E, T)$ of these
 units: an entry that edits dropped but that stays in its slot applies the edits
 up to the one that drops it again at each lookup that finds it, and an entry
 that stays valid applies them once.
@@ -1919,7 +1922,7 @@ empty node reachable from it through empty nodes. Let $Q$ be the greatest length
 of a chain during the parse if it exceeds 32, and $0$ otherwise. Given Lemmas 4
 and 5, the Document units number at most
 
-$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
+$$c \cdot \big( K \big( (L + 1)(Q + 1) + T + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
 
 for a constant $c$.
 
@@ -1931,7 +1934,8 @@ a reused iteration is an activation ([Setting](#setting)), and the entries and
 runs of earlier parses evaluate nothing.
 
 *Edits.* A call makes at most one lookup, in `CallBegin`, and a lookup has at
-most $E$ units ([Setting](#setting)), so the edits come to at most $A E$.
+most $\min(E, T)$ units ([Setting](#setting)), so the edits come to at most $A T$:
+a constant times the calls, whatever the length of the log.
 
 *Long chains.* A lookup walks at most 32 entries before it consults the index,
 and comparing a stored key with the key of the call charges at most the size of
@@ -1995,6 +1999,32 @@ $p + 1 + G$ slots, so at most $2 (\hat{n} + G)$.
 Summing, with $A$ at most a constant times $K \hat{n}$ and $K \ge 1$, gives the
 bound. $\square$
 
+*The units that the default budget counts.* The default budget of a Document
+parse leaves out the Document units of Lemma 12 that the parse reserves in regions
+of Document work: the memo protocol of every rule call (the test of whether the
+call is memoized, its lookup with the walk of a chain of memo entries and the
+comparison of keys, the begin and the end of the call that store its result), the edits that
+a lookup applies, the moves of reused values with the cleanup that ends them, the
+operations of recorded runs, the extra units that decoding a piece of the text
+costs, and the copy of the diagnostics that the parse publishes. Every other unit
+is counted: the unit that opens a call, the evaluation of the body of a rule, the
+examination of the input, the values that the parse builds. The counted units of a Document parse are at most the
+units that a parse of the same text from scratch reserves. Each counted unit belongs to a
+call, to a body evaluation, to an examination of the input or to a value that
+the parse builds, and the Document parse makes each of these for the text at most as often as
+the parse from scratch does: it evaluates the same bodies on the same input in the same
+order, except that a memo entry answers a call and the body is not evaluated, and the
+entry costs the units of the call only, and its recovered errors, which the evaluation it
+replaces would have built at a unit each. A lookup and a store count none, however long the chain
+they walk, so no duplicate or order of entries adds to the counted units. This holds for the
+three backends of the engine and for generated Go; the tests of the reference
+implementation check it on random edits as well. So a Document parse under the default
+budget does not fail where the parse from scratch of its text does not. Its default
+budget, raised by the Document units, is at most that budget plus the bound on the Document
+units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not by
+$n$, $K$ and $L$, as step 7 leaves open). A grammar whose cost is above the default
+stays stopped: the counted units alone pass the default. $\square$
+
 A node counts in $W$ whichever text it was built for, and whether or not a call
 of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 7 of
 [Open Steps](#open-steps). A chain has at most $E + 1$ entries under one key
@@ -2008,15 +2038,30 @@ Under the conditions of the theorem and given Lemmas 4 to 6, a parse of a
 Document on a backend of the engine, outside the missing-token mode, charges at
 most
 
-$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
+$$c \cdot \big( K \big( (L + 1)(Q + 1) + T + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
 
 units of Compute, for a constant $c$, whether or not it recovers errors. Here a
 parse is the run of the grammar over the text, up to its outcome. Of these
 units, the calls and their lookups, with the edits that the lookups apply, take
-at most $c \cdot K (L + E + 1) \hat{n}$ when no chain exceeds 32 entries. That
-part is linear in $n$ for a given log, with $E \le 2^{16}$; the other terms
+at most $c \cdot K (L + T + 1) \hat{n}$ when no chain exceeds 32 entries. That
+part is linear in $n$ whatever the log; the other terms
 depend on what the Document retains, so the whole bound has the form of a
-constant times $K \hat{n}$ for a given log and retained state.
+constant times $K \hat{n}$ for a given retained state.
+
+*What the limit on the edits of a lookup bounds.* The edits that lookups apply come to at most
+$A\,T$ units, where $A$ counts the calls, the body evaluations and the activations of the
+parse, and $A \le c\,K \hat{n}$ by the theorem. So they are a constant times the work of the parse, and the
+constant does not depend on the number of pending edits $E$, up to the 65,536 of the log. This is the
+whole of the constant factor that the proof gives. The other Document units are not a constant factor of
+$K \hat{n}$: the moves cost $(E + B + 1) W$, a term in the size $W$ that the Document retains and in the
+length $E$ of the log, and the walks, the growth of the slots and $G$ depend on what earlier texts left
+in the memo (step 7 of [Open Steps](#open-steps)). The total of a Document parse is therefore bounded by
+the displayed form, and the claim that it is within a constant factor of a parse from scratch holds for
+the part of the lookups and their edits only. The tests of the reference implementation measure the
+whole for a grammar of 20,000 lines with 0 to 65,536 pending edits spread over the text: at most 4.3
+times the units of a parse from scratch on each backend, and 2.2 at 6,000 edits and above, where most
+entries lag behind by more than $T$ edits; the test enforces 6, and fails when a lookup applies the edits
+without the limit.
 
 *Proof.* The units of Compute of a parse are those of the steps that $C$ counts,
 those of the recovered errors, which $C$ does not count, and the Document units.

@@ -136,7 +136,10 @@ method (*ActCtx) Tuple(...any) any
 method (*ActCtx) Unary(string, any) any
 method (*ActCtx) Var(int) any
 method (*BudgetControl) Charge(uint64)
+method (*BudgetControl) ChargeDoc(uint64)
 method (*BudgetControl) Check()
+method (*BudgetControl) FreeBegin(bool) uint64
+method (*BudgetControl) FreeEnd(uint64)
 method (*BudgetControl) Take(uint64) bool
 method (*Chunk) MemoryBytes() uint64
 method (*Class) Has(rune) bool

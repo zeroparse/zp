@@ -1506,7 +1506,6 @@ func (mc *Machine) newRunState() *core.RunState {
 // freeRunState makes the RunState of a finished repetition available to later ones.
 func (mc *Machine) freeRunState(r *core.RunState) {
 	r.Old = nil
-	core.ClearSpend(mc.p, r.Mid)
-	core.ClearSpend(mc.p, r.Post)
+	mc.p.ReleaseRunLists(r)
 	mc.freeRuns = append(mc.freeRuns, r)
 }
