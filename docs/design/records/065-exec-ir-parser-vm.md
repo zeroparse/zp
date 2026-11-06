@@ -798,8 +798,10 @@ move to Exec IR at once while mechanisms move one at a time.
    and each `run` operation. These guarantees concern Documents, which have no default budget that grows with demand and
    deliver no result or diagnostic during a parse; a trace observer receives events. The run operations and lazy edits
    exist in the engine alone. `memo.splice` holds on generated Go through its conformance; `doc.move` has no reference
-   model there, and the differential tests of Documents, which compare every result after an edit with a parse from
-   scratch, cover its results.
+   model there: the static audit of charges covers its charges, since it is not an operation of the engine alone, and
+   the differential tests of generated Documents, `TestGeneratedDocumentAgainstBatch` and
+   `TestGeneratedDocumentsMatchBatchOnCorpus`, which compare every result after an edit with a parse from scratch,
+   cover its results.
 
    Results, errors, expectations, `Stats`, cache statistics and charges do not change. A differential comparison of the
    hand-written and printed reuse makes 879,825 parses: 15 grammars on three backends, both position units, with the
@@ -818,9 +820,9 @@ move to Exec IR at once while mechanisms move one at a time.
    lookup all others. Three more edits are equivalent and left out; the test states why.
 
    In ten rounds against the hand-written reuse, on an idle machine under the benchmark lock, with the two builds
-   alternating in order from round to round, 41 of 133 engine `sec/op` rows are faster and 34 slower (benchstat,
-   p < 0.05), and the geomean of all 183 rows is 0.14% faster. The engine rows are those of the closure, bytecode and
-   iterative backends, not the generated parsers or the counterparts of the standard library. One of them has a median
+   alternating in order from round to round, 41 of 132 engine `sec/op` rows are faster and 34 slower (benchstat,
+   p < 0.05), and the geomean of all 183 rows is 0.14% faster. The engine rows are the 44 of each of the closure,
+   bytecode and iterative backends, not the generated parsers or the counterparts of the standard library. One of them has a median
    above +1%: `Incremental/bytecode/document`, +1.04%. The next are three closure rows at +0.93%, +0.93% and +0.92%.
    The closure rows move together: the median change of their rows is +0.65% for `Recognize` (8 rows), +0.71% for
    `ControlledParse` (4) and +0.61% for `Parse` (16), while that of the bytecode rows is -0.28% (44) and that of the
@@ -829,15 +831,29 @@ move to Exec IR at once while mechanisms move one at a time.
    rounds, `Recognize/Minilang/closure` is 1.11% slower, 0.70% slower with `Parser.Call` and `Machine.step` of the
    printed build padded to their offsets in the hand-written build, and 0.12% slower with the hand-written build
    padded to the printed offsets. `Incremental` and `IncrementalLong` rows are not faster, and up to +1.04% slower;
-   `Stream` rows range from -1.76% to +0.52%. Of the engine's functions, only `AdvanceEntry`, `EditMemo` and
-   `Document.Edit` change size, none of them on the path of these rows.
+   the `Stream` rows and those of the two adoption families range from -1.76% to +0.52%. Of the engine's functions,
+   only `AdvanceEntry`, `EditMemo` and `Document.Edit` change size. `Incremental/*/document` calls all three, but they
+   take at most 0.34% of its samples, so they do not explain its rows, and `MoveTree`, about 75% of its samples, is
+   identical in the two builds. The change in these rows is real: in twelve alternating rounds
+   `Incremental/bytecode/document` is 0.98% slower (p = 0.001), the iterative row 0.84% slower (p = 0.005) and the
+   closure row unchanged. Likely the layout causes it here too, which is not proved. In a control of twelve alternating
+   rounds of 500 ms with `MoveTree`, `moveChild` and `ShiftOf` at the same offset modulo 64 in the padded build as in
+   the other build, where they differ by 32 bytes, the bytecode row is 0.60% slower (p = 0.045) and the iterative row
+   0.73% slower (p = 0.003). Padding the printed build to the hand-written offsets leaves 0.44% (p = 0.089) and 0.17%
+   (p = 0.410). Padding the hand-written build to the printed offsets makes it 0.51% (p = 0.101) and 0.50% (p = 0.060)
+   slower than itself, so that it differs from the printed build by 0.09% (p = 0.630) and 0.23% (p = 0.291). The
+   iterative row follows the offsets in both directions; the bytecode row does so clearly only in the second. Padding
+   moves other functions too, and it makes the closure row of the unchanged hand-written build 0.51% slower (p = 0.001),
+   so a shift of this size is within what layout does to these rows, and the control gives no stronger conclusion.
    `StreamDiagnosticLimit/iterative/codepoints/limit-32` is 0.83% slower here, 0.80% slower in sixteen rounds of
    500 ms with `complete` 0.55%, and 1.17% slower in the focused run. Padding the printed build so that `Parser.Call`
    and `Machine.step` start at their offsets in the hand-written build leaves it at 1.34% in the sixteen rounds, and
    padding the hand-written build to the printed offsets gives 0.22%, so these two offsets do not explain it, and the
-   cause is not identified. `B/op` of the engine rows rises by more than 0.02% only on `Recognize/Recovery/closure`
-   (+2.23%), and `allocs/op` on that row (+2.64%) and on `Parse/XML/closure/codepoints` (+2.47%). A fixed allocation of
-   each run is amortised over `b.N`, which can differ between the builds: at an equal count of iterations the builds
+   cause is not identified. `B/op` of the engine rows rises significantly by more than 0.02% only on
+   `Recognize/Recovery/closure` (+2.23%), and `allocs/op` significantly on that row (+2.64%) and on
+   `Parse/XML/closure/codepoints` (+2.47%). By raw median, without significance, `Recognize/JSON/closure` rises by
+   1.54% in bytes and 1.67% in allocations, and `Parse/Arith_LeftRec/bytecode/codepoints` by 1.15% in bytes. A fixed
+   allocation of each run is amortised over `b.N`, which can differ between the builds: at an equal count of iterations the builds
    agree, within 0.05% in bytes (`Recognize/Recovery/closure` at 25: 478,246 to 478,255 B/op and
    615 allocs/op; `Parse/XML/closure/codepoints` at 18: 14,081,220 to 14,081,693 B/op and 1,660 or 1,661 allocs/op;
    `Recognize/Arith_OperatorsRule/closure` at 33: 23,389 to 23,399 B/op and 54 allocs/op). The `zp` binary grows by
