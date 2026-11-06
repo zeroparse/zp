@@ -32,6 +32,15 @@ type Environment interface {
 	Rule(index int64) any
 }
 
+// Recovery is an Impl that provides the recovered-error list. The harness compares the list with the
+// model's after each call of an operation that writes it.
+type Recovery interface {
+	// Err returns a new syntax error of the implementation with the identifier id.
+	Err(id int64) any
+	// Recovered returns the identifiers of the recovered errors.
+	Recovered() []int64
+}
+
 // Metered is an Impl that reports the units of budget it has charged so far, so that the harness
 // checks each call against the operation's cost bound.
 type Metered interface {
@@ -78,6 +87,10 @@ const DatumOp = "test.datum"
 // ref.Config.RuleVars. It is not an operation of the parser VM.
 const RuleOp = "test.rule"
 
+// ErrOp is the operation that conformance cases use to make a syntax error from an identifier. It is
+// not an operation of the parser VM.
+const ErrOp = "test.err"
+
 // Module returns the pilot declarations with ValuesOp, ready for cases.
 func Module() *exec.Module {
 	m := ops.Pilot()
@@ -86,6 +99,9 @@ func Module() *exec.Module {
 		Contract: "Returns the Values handle of a conformance identifier; equal identifiers are equal values."})
 	m.AddOp(&exec.Op{Name: ErrsOp, Component: ops.Rec, Results: []exec.Type{exec.THandle(ops.Errs)},
 		Contract: "Returns the recovered errors of an entry that recovered some, as RecoveredErrors."})
+	m.AddOp(&exec.Op{Name: ErrOp, Component: ops.Rec, Params: []exec.Param{exec.P("id", exec.TInt)},
+		Results:  []exec.Type{exec.THandle(ops.Err)},
+		Contract: "Returns a new syntax error with a conformance identifier."})
 	m.AddOp(&exec.Op{Name: DatumOp, Component: ops.Host, Params: []exec.Param{exec.P("id", exec.TInt)},
 		Results:  []exec.Type{exec.THandle(ops.Datum)},
 		Contract: "Returns the value of a conformance identifier."})
@@ -160,7 +176,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	ok := true
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
-		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == DatumOp, c.Callee == RuleOp:
+		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -245,6 +261,10 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if o.Name == ErrsOp {
 		return []any{p.wrap(RecoveredErrors, RecoveredErrors)}
 	}
+	if o.Name == ErrOp {
+		id := args[0].(int64)
+		return []any{p.wrap(&ref.Err{ID: id}, p.impl.(Recovery).Err(id))}
+	}
 	if o.Name == DatumOp {
 		id := args[0].(int64)
 		return []any{p.wrap(ref.Datum{ID: id}, p.impl.(Environment).Datum(id))}
@@ -295,6 +315,11 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if want.interrupted != "" {
 		p.trace[len(p.trace)-1] += " -> interrupted: " + want.interrupted
 		panic(exec.Interrupt{Reason: want.interrupted})
+	}
+	if r, ok := p.impl.(Recovery); ok && slices.Contains(o.Writes, ops.Rec) {
+		if w, g := p.model.Recovered(), r.Recovered(); !slices.Equal(w, g) {
+			panic(mismatch(fmt.Sprintf("recovered errors: model %v, implementation %v", w, g)))
+		}
 	}
 	res := make([]any, len(want.res))
 	shown = shown[:0]

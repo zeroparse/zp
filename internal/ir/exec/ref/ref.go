@@ -93,7 +93,19 @@ type Model struct {
 	keys    map[int64][]int64
 	canon   map[string]int64
 	nextKey int64
+
+	// recovered errors, by the identifiers of their Err handles
+	rec []int64
 }
+
+// Err is an Err handle of the model.
+type Err struct{ ID int64 }
+
+// ErrList is a list of recovered errors that rec.since returned.
+type ErrList struct{ ids []int64 }
+
+// Recovered returns the identifiers of the recovered errors.
+func (m *Model) Recovered() []int64 { return m.rec }
 
 type slotKey struct{ rule, pos, level int64 }
 
@@ -216,6 +228,8 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
 	case "env.bind":
 		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
+	case "rec.truncate", "rec.since":
+		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
 	return true
 }
@@ -278,6 +292,11 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		return max(m.covered-m.floor, 0)
 	case ops.QVars:
 		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index]))
+	case ops.QErrs:
+		if o.Name == "rec.since" {
+			return int64(len(m.rec)) - args[0].(int64)
+		}
+		return int64(len(args[0].(*ErrList).ids))
 	case ops.QEnvReads:
 		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index])) * m.envPath()
 	case ops.QEnvPath:
@@ -378,6 +397,24 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "env.key":
 		return []any{m.envKey(args[0].(RuleRef))}
+	case "rec.mark":
+		return []any{int64(len(m.rec))}
+	case "rec.push":
+		m.rec = append(slices.Clip(m.rec), args[0].(*Err).ID)
+		return nil
+	case "rec.truncate":
+		m.rec = m.rec[:args[0].(int64)]
+		return nil
+	case "rec.since":
+		return []any{&ErrList{slices.Clone(m.rec[args[0].(int64):])}}
+	case "rec.add":
+		m.rec = append(slices.Clip(m.rec), args[0].(*ErrList).ids...)
+		return nil
+	case "rec.none":
+		return []any{len(args[0].(*ErrList).ids) == 0}
+	case "stream.settleErrors":
+		m.rec = nil
+		return nil
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }

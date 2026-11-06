@@ -235,6 +235,7 @@ func Cases() []Case {
 	})
 
 	addEnvironmentCases(add)
+	addRecoveryCases(add)
 
 	add("depth", ref.Config{MaxDepth: 2}, func(b *exec.Builder) {
 		b.Do("depth.enter")
@@ -246,6 +247,64 @@ func Cases() []Case {
 		b.Assert(exec.BoolC(false), "unreachable: the depth beyond the limit interrupts")
 	})
 	return cs
+}
+
+// addRecoveryCases adds the cases of the recovered-error list. The harness compares the list after each
+// write, so that the cases need only reach the states.
+func addRecoveryCases(add func(string, ref.Config, func(*exec.Builder))) {
+	next := int64(0)
+	push := func(b *exec.Builder, n int) {
+		for range n {
+			next++
+			b.Do("rec.push", exec.C(ErrOp, exec.Int(next)))
+		}
+	}
+	mark := func(n int64) exec.Expr { return exec.Eq(exec.C("rec.mark"), exec.Int(n)) }
+	add("truncate drops what followed the mark", ref.Config{}, func(b *exec.Builder) {
+		push(b, 2)
+		m := b.Let("m", exec.C("rec.mark"))
+		push(b, 3)
+		b.Do("rec.truncate", m)
+		b.Assert(mark(2), "truncate keeps the errors before the mark")
+		b.Do("rec.truncate", exec.Int(2))
+		b.Assert(mark(2), "truncate at the end changes nothing")
+		b.Do("rec.truncate", exec.Int(0))
+		b.Assert(mark(0), "truncate at the start empties the list")
+	})
+	add("a copy survives writes of the list", ref.Config{}, func(b *exec.Builder) {
+		push(b, 3)
+		l := b.Let("l", exec.C("rec.since", exec.Int(1)))
+		b.Do("rec.truncate", exec.Int(1))
+		push(b, 4)
+		b.Do("rec.add", l)
+		b.Assert(mark(7), "add records every error of the copy")
+		b.Do("rec.add", l)
+		b.Assert(mark(9), "a copy can be recorded twice")
+	})
+	add("a copy of nothing is empty", ref.Config{}, func(b *exec.Builder) {
+		push(b, 2)
+		l := b.Let("l", exec.C("rec.since", exec.Int(2)))
+		b.Assert(exec.C("rec.none", l), "nothing followed the mark")
+		b.Do("rec.add", l)
+		b.Assert(mark(2), "adding nothing changes nothing")
+		b.Assert(exec.Not(exec.C("rec.none", exec.C("rec.since", exec.Int(1)))), "an error followed the mark")
+	})
+	// Scratch of at most 16 slots stays for the next element; a larger list is released.
+	for _, n := range []int{0, 1, 16, 17, 40} {
+		add(fmt.Sprintf("settling %d errors", n), ref.Config{}, func(b *exec.Builder) {
+			push(b, n)
+			b.Do("stream.settleErrors")
+			b.Assert(mark(0), "settling forgets the errors")
+			push(b, 2)
+			b.Do("stream.settleErrors")
+			b.Assert(mark(0), "settling forgets the errors of the next element")
+		})
+	}
+	// Copies pay for each error, so a long list reaches the limit inside the copy.
+	add("a copy reaches the limit", ref.Config{Limit: 5}, func(b *exec.Builder) {
+		push(b, 40)
+		b.Let("l", exec.C("rec.since", exec.Int(0)))
+	})
 }
 
 // addEnvironmentCases adds the cases of the variable environment, over one vector of a single node
@@ -386,6 +445,11 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 	// scopes are the environments the case took, for env.restore.
 	var scopes []string
 	var scopeRefs []*ref.Scope
+	// lists are the copies of recovered errors the case took, for rec.add and rec.none, and nextErr the
+	// identifier of the last error it recorded.
+	var lists []string
+	var listRefs []*ref.ErrList
+	var nextErr int64
 	f := m.AddFunc(name, nil, nil, []string{"budget", "stream", "document"}, func(b *exec.Builder) {
 		pos := func() int64 {
 			if rng.IntN(8) == 0 {
@@ -480,6 +544,17 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				}
 				i := rng.IntN(len(scopes))
 				args, exprs = append(args, scopeRefs[i]), append(exprs, exec.L(scopes[i]))
+			case "rec.push":
+				nextErr++
+				args, exprs = append(args, &ref.Err{ID: nextErr}), append(exprs, exec.C(ErrOp, exec.Int(nextErr)))
+			case "rec.truncate", "rec.since":
+				intArg(rng.Int64N(int64(len(mirror.Recovered())) + 1))
+			case "rec.add", "rec.none":
+				if len(lists) == 0 {
+					continue
+				}
+				i := rng.IntN(len(lists))
+				args, exprs = append(args, listRefs[i]), append(exprs, exec.L(lists[i]))
 			case "env.key":
 				if len(cfg.RuleVars) == 0 {
 					continue
@@ -509,6 +584,10 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				name := fmt.Sprintf("s%d", calls)
 				b.Let(name, exec.C(o.Name))
 				scopes, scopeRefs = append(scopes, name), append(scopeRefs, res[0].(*ref.Scope))
+			case o.Name == "rec.since":
+				name := fmt.Sprintf("l%d", calls)
+				b.Let(name, exec.C(o.Name, exprs...))
+				lists, listRefs = append(lists, name), append(listRefs, res[0].(*ref.ErrList))
 			case o.Name == "env.lookup" || o.Name == "env.key":
 				b.Let(fmt.Sprintf("v%d", calls), exec.C(o.Name, exprs...))
 			case len(o.Results) > 0 && o.Results[0].Kind == exec.KHandle:

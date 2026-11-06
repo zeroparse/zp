@@ -76,6 +76,51 @@ func (e *rtEnv) call(p *Parser, vals map[int64][]any, o *exec.Op, args []any) ([
 	return nil, false
 }
 
+// errorList is an Errs handle: a list has no identity of its own that the harness could compare.
+type errorList struct{ errs []*SyntaxError }
+
+// recoveredIDs returns the identifiers of the recovered errors of p.
+func recoveredIDs(p *Parser) []int64 {
+	ids := make([]int64, len(p.Recovered))
+	for i, e := range p.Recovered {
+		// A list that shares its array with one that was cleared holds nil, which no case records.
+		if e == nil {
+			ids[i] = -1
+			continue
+		}
+		ids[i] = int64(e.Pos)
+	}
+	return ids
+}
+
+// recovery runs an operation of the recovered errors, and reports false for any other.
+func recovery(p *Parser, o *exec.Op, args []any) ([]any, bool) {
+	switch o.Name {
+	case "rec.mark":
+		return []any{int64(len(p.Recovered))}, true
+	case "rec.push":
+		p.Recovered = append(p.Recovered, args[0].(*SyntaxError))
+		return nil, true
+	case "rec.truncate":
+		p.Recovered = p.Recovered[:args[0].(int64)]
+		return nil, true
+	case "rec.since":
+		return []any{&errorList{p.copyErrors(nil, p.Recovered[args[0].(int64):])}}, true
+	case "rec.add":
+		p.Recovered = p.copyErrors(p.Recovered, args[0].(*errorList).errs)
+		return nil, true
+	case "rec.none":
+		return []any{len(args[0].(*errorList).errs) == 0}, true
+	case "stream.settleErrors":
+		if p.Stream == nil {
+			p.Stream = &streamInput{}
+		}
+		p.streamSettleErrors()
+		return nil, true
+	}
+	return nil, false
+}
+
 func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl {
 	p := &Parser{MaxDepth: int(cfg.MaxDepth)}
 	if stream {
@@ -108,6 +153,10 @@ func (m *rtMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *rtMachine) Rule(index int64) any { return m.env.rules[index] }
 
+func (m *rtMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
+
+func (m *rtMachine) Recovered() []int64 { return recoveredIDs(m.p) }
+
 func (m *rtMachine) Values(id int64) any {
 	if m.vals[id] == nil {
 		m.vals[id] = []any{id}
@@ -115,21 +164,27 @@ func (m *rtMachine) Values(id int64) any {
 	return id
 }
 
-func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
-	defer func() {
-		if x := recover(); x != nil {
-			f, ok := x.(fatal)
-			if !ok {
-				panic(x)
-			}
-			if _, limit := f.err.(*LimitError); limit {
-				panic(exec.Interrupt{Reason: "limit"})
-			}
-			panic(exec.Interrupt{Reason: "nesting"})
+// interrupted turns the panic that ends a parse into the interruption of Exec IR.
+func interrupted() {
+	if x := recover(); x != nil {
+		f, ok := x.(fatal)
+		if !ok {
+			panic(x)
 		}
-	}()
+		if _, limit := f.err.(*LimitError); limit {
+			panic(exec.Interrupt{Reason: "limit"})
+		}
+		panic(exec.Interrupt{Reason: "nesting"})
+	}
+}
+
+func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
+	defer interrupted()
 	p := m.p
 	if res, ok := m.env.call(p, m.vals, o, args); ok {
+		return res
+	}
+	if res, ok := recovery(p, o, args); ok {
 		return res
 	}
 	i := func(k int) int { return int(args[k].(int64)) }
@@ -197,6 +252,10 @@ var (
 	rtEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// rtEnvExact are the environment operations whose charges equal their declared cost.
 	rtEnvExact = []string{"env.lookup", "env.bind", "env.key"}
+	// rtRecoveryOps are the operations of the recovered errors, and rtRecoveryExact those whose charges
+	// equal their declared cost.
+	rtRecoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
+	rtRecoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
 )
 
 func rtSuites() []conform.Suite {
@@ -239,6 +298,21 @@ func rtSuites() []conform.Suite {
 			Name: fmt.Sprintf("generated Go typed runtime (controlled=%v)", controlled),
 			Ops:  ops,
 			New:  func(c ref.Config) conform.Impl { return newTypedMachine(c, controlled) },
+		})
+		ops = slices.Clone(rtRecoveryOps)
+		if controlled {
+			ops = append(ops, rtBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name:  fmt.Sprintf("generated Go runtime recovered errors (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: rtRecoveryExact,
+			New:   func(c ref.Config) conform.Impl { return newRTMachine(c, controlled, false, false) },
+		}, conform.Suite{
+			Name:  fmt.Sprintf("generated Go typed runtime recovered errors (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: rtRecoveryExact,
+			New:   func(c ref.Config) conform.Impl { return newTypedMachine(c, controlled) },
 		})
 		ops = slices.Clone(rtEnvOps)
 		if controlled {
@@ -300,6 +374,10 @@ func (m *typedMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *typedMachine) Rule(index int64) any { return m.env.rules[index] }
 
+func (m *typedMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
+
+func (m *typedMachine) Recovered() []int64 { return recoveredIDs(m.p.Parser) }
+
 func (m *typedMachine) Values(id int64) any {
 	if m.vals[id] == nil {
 		m.vals[id] = []any{id}
@@ -308,20 +386,12 @@ func (m *typedMachine) Values(id int64) any {
 }
 
 func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
-	defer func() {
-		if x := recover(); x != nil {
-			f, ok := x.(fatal)
-			if !ok {
-				panic(x)
-			}
-			if _, limit := f.err.(*LimitError); limit {
-				panic(exec.Interrupt{Reason: "limit"})
-			}
-			panic(exec.Interrupt{Reason: "nesting"})
-		}
-	}()
+	defer interrupted()
 	p := m.p
 	if res, ok := m.env.call(p.Parser, m.vals, o, args); ok {
+		return res
+	}
+	if res, ok := recovery(p.Parser, o, args); ok {
 		return res
 	}
 	i := func(k int) int { return int(args[k].(int64)) }
@@ -413,6 +483,20 @@ func TestExecConformance(t *testing.T) {
 
 // TestExecConformanceDetectsBrokenRuntime is the negative control: deliberately broken variants of
 // the runtime's operations must fail conformance.
+// TestSettlingChargesTheSlotsItClears measures stream.settleErrors, whose declared cost is the bound of
+// a representation: it charges the slots of the scratch it keeps, and nothing for a list it releases.
+func TestSettlingChargesTheSlotsItClears(t *testing.T) {
+	for _, c := range []struct{ errs, charged int }{{0, 0}, {16, 16}, {17, 0}} {
+		m := newRTMachine(ref.Config{}, true, false, true).(meteredRT)
+		m.p.Recovered = make([]*SyntaxError, c.errs)
+		before := m.Used()
+		m.p.streamSettleErrors()
+		if got := int(m.Used() - before); got != c.charged {
+			t.Errorf("settling a list of %d slots charged %d units, want %d", c.errs, got, c.charged)
+		}
+	}
+}
+
 func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 	type broken struct {
 		op         string
@@ -424,8 +508,73 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		document bool
 		// want is a part of the failure message that names the reason, when the variant has one.
 		want string
+		// ops and exact replace the operations of the suite, and name those it holds to their cost.
+		ops, exact []string
+	}
+	binding := func(m *rtMachine, args []any, charge int) {
+		slot := int(args[0].(int64))
+		for range charge {
+			m.p.Spend()
+		}
+		m.p.Env = m.p.Env.set(slot, m.p.envDepth, args[1])
+	}
+	envValues := func(m *rtMachine, vals []any) []any {
+		m.env.nextKey--
+		m.vals[m.env.nextKey] = vals
+		return []any{m.env.nextKey}
 	}
 	variants := map[string]broken{
+		// The variable environment.
+		"an equal binding makes a new environment": {op: "env.bind", ops: rtEnvOps, call: func(m *rtMachine, args []any) []any {
+			binding(m, args, 0)
+			return nil
+		}},
+		"a binding binds nothing": {op: "env.bind", ops: rtEnvOps, call: func(m *rtMachine, args []any) []any { return nil }},
+		"a binding charges nothing": {op: "env.bind", ops: rtEnvOps, exact: rtEnvExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
+			c := m.p.Control
+			m.p.Control = nil
+			defer func() { m.p.Control = c }()
+			m.p.bind(int(args[0].(int64)), args[1])
+			return nil
+		}},
+		"a lookup charges nothing": {op: "env.lookup", ops: rtEnvOps, exact: rtEnvExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
+			return []any{m.p.Env.get(int(args[0].(int64)), m.p.envDepth)}
+		}},
+		"a lookup reads another slot": {op: "env.lookup", ops: rtEnvOps, call: func(m *rtMachine, args []any) []any {
+			return []any{m.p.variable(0)}
+		}},
+		"a key charges one unit for the call": {op: "env.key", ops: rtEnvOps, exact: rtEnvExact, controlled: true, call: func(m *rtMachine, args []any) []any {
+			m.p.Spend()
+			return envValues(m, m.p.memoEnv(args[0].(*Rule)))
+		}},
+		"a key leaves out its first variable": {op: "env.key", ops: rtEnvOps, call: func(m *rtMachine, args []any) []any {
+			vals := m.p.memoEnv(args[0].(*Rule))
+			return envValues(m, vals[min(1, len(vals)):])
+		}},
+		"restoring keeps the bindings": {op: "env.restore", ops: rtEnvOps, call: func(m *rtMachine, args []any) []any { return nil }},
+
+		// The recovered errors.
+		"a truncate keeps the last error": {op: "rec.truncate", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
+			m.p.Recovered = m.p.Recovered[:min(int(args[0].(int64))+1, len(m.p.Recovered))]
+			return nil
+		}},
+		"a copy shares the list": {op: "rec.since", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
+			return []any{&errorList{m.p.Recovered[args[0].(int64):]}}
+		}},
+		"a copy charges nothing": {op: "rec.since", ops: rtRecoveryOps, exact: rtRecoveryExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
+			return []any{&errorList{slices.Clone(m.p.Recovered[args[0].(int64):])}}
+		}},
+		"adding charges nothing": {op: "rec.add", ops: rtRecoveryOps, exact: rtRecoveryExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
+			m.p.Recovered = append(m.p.Recovered, args[0].(*errorList).errs...)
+			return nil
+		}},
+		"settling keeps the errors": {op: "stream.settleErrors", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any { return nil }},
+		"settling clears a list beyond the scratch": {op: "stream.settleErrors", ops: rtRecoveryOps, controlled: true, want: "more than the bound", call: func(m *rtMachine, args []any) []any {
+			clearSpend(m.p, m.p.Recovered[:cap(m.p.Recovered)])
+			m.p.Recovered = m.p.Recovered[:0]
+			return nil
+		}},
+
 		// memoTable.put that links a new entry behind the chain instead of replacing the entry under
 		// the same key: lookups keep finding the old entry.
 		"store appends without replacing": {op: "memo.store", call: func(m *rtMachine, args []any) []any {
@@ -559,7 +708,13 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			if b.stream {
 				ops = append(slices.DeleteFunc(append([]string(nil), rtMemoOps...), func(o string) bool { return o == "seen.first" }), rtStreamOps...)
 			}
-			s := conform.Suite{Name: "broken: " + name, Ops: ops, New: func(c ref.Config) conform.Impl {
+			if b.ops != nil {
+				ops = b.ops
+				if b.controlled {
+					ops = append(slices.Clone(ops), rtBudgetOps...)
+				}
+			}
+			s := conform.Suite{Name: "broken: " + name, Ops: ops, Exact: b.exact, New: func(c ref.Config) conform.Impl {
 				if b.controlled {
 					return meteredBrokenRT{brokenRT{newRTMachine(c, true, false, b.stream).(meteredRT).rtMachine, b.op, b.call}}
 				}
@@ -588,6 +743,7 @@ type brokenRT struct {
 }
 
 func (b brokenRT) Call(o *exec.Op, args []any) []any {
+	defer interrupted()
 	if o.Name == b.op {
 		return b.call(b.rtMachine, args)
 	}

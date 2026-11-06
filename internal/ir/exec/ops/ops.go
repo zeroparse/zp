@@ -80,6 +80,9 @@ const (
 	// QEnvRebind is QEnvPath when the value of the call differs from the one the slot holds, and 0
 	// when they are equal: the nodes that a rebind copies.
 	QEnvRebind = "env_rebind"
+	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
+	// recovered after its mark.
+	QErrs = "errs"
 	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two
 	// for each byte of two strings of the same length, and 0 for anything else.
 	QValueCompare = "value_compare"
@@ -93,6 +96,8 @@ const (
 	Value = "Value"
 	// Errs is a list of recovered errors that a memo entry keeps.
 	Errs = "Errs"
+	// Err is one recovered error.
+	Err = "Err"
 	// Datum is a value that a variable holds or a term produces.
 	Datum = "Datum"
 	// Scope is a variable environment.
@@ -247,7 +252,39 @@ ends with a nesting interruption.`})
 	m.AddOp(&exec.Op{Name: "depth.current", Component: Depth, Results: []exec.Type{exec.TInt}, Reads: []string{Depth},
 		Contract: `Returns the depth.`})
 	addEnvironment(m, datum, scope, rule, values)
+	addRecovery(m, errs)
 	return m
+}
+
+// addRecovery adds the operations of the recovered-error list. A copy charges one unit for each
+// error, as a copy of values does; recording an error charges nothing, because making it is what the
+// parse pays for, and recovered errors stay outside the cost of the input.
+func addRecovery(m *exec.Module, errs exec.Type) {
+	err := m.AddHandle(Err, Rec, "A syntax error that a recovery made.")
+	mark := []exec.Param{exec.P("mark", exec.TInt)}
+	copies := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}}
+	const atMost = `mark is at most the number of recovered errors.`
+	m.AddOp(&exec.Op{Name: "rec.mark", Component: Rec, Results: []exec.Type{exec.TInt}, Reads: []string{Rec},
+		Contract: `Returns the number of recovered errors, which rec.truncate and rec.since take.`})
+	m.AddOp(&exec.Op{Name: "rec.push", Component: Rec, Params: []exec.Param{exec.P("e", err)}, Writes: []string{Rec},
+		Contract: `Records e after the recovered errors.`})
+	m.AddOp(&exec.Op{Name: "rec.truncate", Component: Rec, Params: mark, Writes: []string{Rec},
+		Contract: `Drops the errors recovered after the mark.`, Requires: atMost})
+	m.AddOp(&exec.Op{Name: "rec.since", Component: Rec, Params: mark, Results: []exec.Type{errs}, Reads: []string{Rec},
+		Writes: []string{Rec}, NoReturn: true, Cost: copies,
+		Contract: `Returns a copy of the errors recovered after the mark: later writes of the list do not change
+it.`, Requires: atMost})
+	m.AddOp(&exec.Op{Name: "rec.add", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Writes: []string{Rec},
+		NoReturn: true, Cost: copies,
+		Contract: `Records the errors again, after the recovered errors.`})
+	m.AddOp(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether the list of errors is empty.`})
+	m.AddOp(&exec.Op{Name: "stream.settleErrors", Component: Rec, Writes: []string{Rec}, Features: []string{Stream},
+		NoReturn: true, Cost: exec.Cost{Const: 16},
+		Contract: `Forgets the recovered errors, which were delivered and collected, and counts none as delivered.
+It charges one unit for each slot it clears of the scratch it keeps for the next element, which holds at
+most 16; a larger list is released without clearing it.`,
+		Requires: `The parse retains the tail (stream.tail), and no call holds a mark of the list.`})
 }
 
 // addEnvironment adds the operations of the variable environment. Each is one step over the

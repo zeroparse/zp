@@ -79,6 +79,24 @@ func (m *engineMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *engineMachine) Rule(index int64) any { return m.envRules[index] }
 
+func (m *engineMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
+
+func (m *engineMachine) Recovered() []int64 {
+	ids := make([]int64, len(m.p.Recovered))
+	for i, e := range m.p.Recovered {
+		// A list that shares its array with one that was cleared holds nil, which no case records.
+		if e == nil {
+			ids[i] = -1
+			continue
+		}
+		ids[i] = int64(e.Pos)
+	}
+	return ids
+}
+
+// errorList is an Errs handle: a list has no identity of its own that the harness could compare.
+type errorList struct{ errs []*SyntaxError }
+
 // key returns the memo key of the first four arguments of a memo operation.
 func (m *engineMachine) key(args []any) MemoKey {
 	return MemoKey{Rule: int(args[0].(int64)), Pos: int(args[1].(int64)), Min: int(args[2].(int64)), Env: m.vals[args[3].(int64)]}
@@ -103,6 +121,24 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 	defer interrupt()
 	p := m.p
 	switch o.Name {
+	case "rec.mark":
+		return []any{int64(len(p.Recovered))}
+	case "rec.push":
+		p.Recovered = append(p.Recovered, args[0].(*SyntaxError))
+		return nil
+	case "rec.truncate":
+		p.Recovered = p.Recovered[:args[0].(int64)]
+		return nil
+	case "rec.since":
+		return []any{&errorList{p.copyErrors(p.Recovered[args[0].(int64):])}}
+	case "rec.add":
+		p.Recovered = AppendSpend(p, p.Recovered, args[0].(*errorList).errs)
+		return nil
+	case "rec.none":
+		return []any{len(args[0].(*errorList).errs) == 0}
+	case "stream.settleErrors":
+		p.streamSettleErrors()
+		return nil
 	case "memo.lookup":
 		e, found := p.MemoGet(m.key(args))
 		if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {
@@ -188,6 +224,10 @@ var (
 	engineEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// engineEnvExact are the environment operations whose charges equal their declared cost.
 	engineEnvExact = []string{"env.lookup", "env.bind", "env.key"}
+	// recoveryOps are the operations of the recovered errors, and recoveryExact those whose charges
+	// equal their declared cost.
+	recoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
+	recoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
 )
 
 func engineSuites() []conform.Suite {
@@ -204,6 +244,18 @@ func engineSuites() []conform.Suite {
 				New:  func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, sparse) },
 			})
 		}
+	}
+	for _, controlled := range []bool{false, true} {
+		ops := slices.Clone(recoveryOps)
+		if controlled {
+			ops = append(ops, engineBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name:  fmt.Sprintf("engine recovered errors (controlled=%v)", controlled),
+			Ops:   ops,
+			Exact: recoveryExact,
+			New:   func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
+		})
 	}
 	for _, controlled := range []bool{false, true} {
 		ops := slices.Clone(engineDocOps)
@@ -273,6 +325,23 @@ func TestEngineExecConformance(t *testing.T) {
 				t.Error(err)
 			}
 		})
+	}
+}
+
+// TestSettlingChargesTheSlotsItClears measures stream.settleErrors, whose declared cost is the bound of
+// a representation: it charges the slots of the scratch it keeps, and nothing for a list it releases.
+func TestSettlingChargesTheSlotsItClears(t *testing.T) {
+	if !BudgetControlsEnabled {
+		t.Skip("the reference build charges nothing")
+	}
+	for _, c := range []struct{ errs, charged int }{{0, 0}, {16, 16}, {17, 0}} {
+		m := newEngineMachine(ref.Config{}, true, false).(meteredEngine)
+		m.p.Recovered = make([]*SyntaxError, c.errs)
+		before := m.Used()
+		m.p.streamSettleErrors()
+		if got := int(m.Used() - before); got != c.charged {
+			t.Errorf("settling a list of %d slots charged %d units, want %d", c.errs, got, c.charged)
+		}
 	}
 }
 

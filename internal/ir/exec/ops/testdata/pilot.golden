@@ -53,6 +53,9 @@ handle Scope of env
 handle Rule of rules
   // A rule's descriptor.
 
+handle Err of recovered
+  // A syntax error that a recovery made.
+
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
   reads memo
@@ -313,3 +316,65 @@ op env.key(r Rule) Values
     // they have the same length and the host's value equality holds for each pair of their values. A rule that
     // reads no variable has an empty key, which costs nothing: the charge pays for reading values, and the call
     // paid for itself.
+
+op rec.mark() int
+  component recovered
+  reads recovered
+  cost <= 0
+  contract:
+    // Returns the number of recovered errors, which rec.truncate and rec.since take.
+
+op rec.push(e Err)
+  component recovered
+  writes recovered
+  cost <= 0
+  contract:
+    // Records e after the recovered errors.
+
+op rec.truncate(mark int)
+  component recovered
+  writes recovered
+  cost <= 0
+  contract:
+    // Drops the errors recovered after the mark.
+  requires:
+    // mark is at most the number of recovered errors.
+
+op rec.since(mark int) Errs
+  component recovered
+  reads recovered
+  writes recovered
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Returns a copy of the errors recovered after the mark: later writes of the list do not change
+    // it.
+  requires:
+    // mark is at most the number of recovered errors.
+
+op rec.add(errs Errs)
+  component recovered
+  writes recovered
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Records the errors again, after the recovered errors.
+
+op rec.none(errs Errs) bool
+  component recovered
+  cost <= 0
+  contract:
+    // Reports whether the list of errors is empty.
+
+op stream.settleErrors()
+  component recovered
+  writes recovered
+  features stream
+  noreturn
+  cost <= 16
+  contract:
+    // Forgets the recovered errors, which were delivered and collected, and counts none as delivered.
+    // It charges one unit for each slot it clears of the scratch it keeps for the next element, which holds at
+    // most 16; a larger list is released without clearing it.
+  requires:
+    // The parse retains the tail (stream.tail), and no call holds a mark of the list.
