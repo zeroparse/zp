@@ -155,7 +155,7 @@ func (p *Parser) ctxReplay(h ctxHit, seed bool) {
 	}
 	p.Pos = e.End
 	if p.Missing == nil {
-		p.Recovered = AppendSpend(p, p.Recovered, e.Errs)
+		p.Recovered = p.appendErrors(p.Recovered, e.Errs)
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 	}

@@ -99,10 +99,13 @@ type unit struct {
 	repeated string
 	// growing marks an alternative that begins with a left call; choice and index locate it.
 	growing bool
-	choice  *grammar.Choice
-	index   int
-	after   *cont // what follows the choice
-	cycle   int
+	// afterInput marks a growing unit that the expressions before it can reach after consuming
+	// input, where its left call is an ordinary call and nothing grows.
+	afterInput bool
+	choice     *grammar.Choice
+	index      int
+	after      *cont // what follows the choice
+	cycle      int
 	// unsupported is set for a unit whose shape the classifier does not analyze.
 	unsupported string
 
@@ -295,6 +298,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 				u.choice, u.index, u.after = e, i, c.cont
 				if growing {
 					u.growing, u.cycle = true, k.an.cycle[c.rule]
+					u.afterInput = !c.mustStart
 				}
 				cc = c.push(u)
 			}
@@ -1470,6 +1474,12 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 		u.nc, u.witness = true, what
 		return
 	}
+	if u.afterInput {
+		if ok, what := k.committing(u.self, u.conts, 0); !ok {
+			u.nc, u.witness = true, what
+			return
+		}
+	}
 	// The unit of a leader is evaluated only in steps of its growth; in the first step the paths
 	// through its own left calls fail at them. The unit of another rule of the cycle is evaluated
 	// in the steps of the growths that reach it, and, when the rule is called where its cycle does
@@ -1645,6 +1655,7 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 // cycle, because each step of the growth evaluates the bodies of the cycle again there.
 func (k *classifier) checkGrowth() {
 	seen := map[*source]bool{}
+	k.stepRules = map[string]bool{}
 	for _, r := range k.rules {
 		if !k.reach[r.Name] || !k.an.cyclic[r.Name] {
 			continue
@@ -1694,6 +1705,9 @@ func (k *classifier) checkGrowth() {
 				}
 				if e.Max < 0 && !k.runSite(e) {
 					report(k.sourceAt(r.Name, e, "the repetition "+k.show(e)))
+					for _, c := range allCallsControlled(e.Expr, nil, k.control) {
+						maps.Copy(k.stepRules, k.reachable(c))
+					}
 				}
 				visit(e.Expr)
 				return k.nullable(e)
@@ -1853,6 +1867,10 @@ func (k *classifier) checkNesting() {
 	for _, u := range order {
 		if u.repeated != "" || k.repeatedRule(u.rule) != "" {
 			depth[u] = max(depth[u], 1)
+		}
+		// A repetition that each step of a growth evaluates repeats what it calls once more.
+		if k.stepRules[u.rule] {
+			depth[u] = max(depth[u], 2)
 		}
 	}
 	for i := len(order) - 1; i >= 0; i-- {

@@ -95,7 +95,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*value.Node, bool, 
 		if p.Missing != nil {
 			p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 		} else {
-			p.Recovered = AppendSpend(p, p.Recovered, e.Errs)
+			p.Recovered = p.appendErrors(p.Recovered, e.Errs)
 		}
 		return e.Node, true, true
 	}

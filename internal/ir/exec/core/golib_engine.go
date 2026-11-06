@@ -329,7 +329,7 @@ func engineTarget() *execgo.Target {
 		case "rec.since":
 			return "p.copyErrors(p.Recovered[" + a[0] + ":])"
 		case "rec.add":
-			return "p.Recovered = AppendSpend(p, p.Recovered, " + a[0] + ")"
+			return "p.Recovered = p.appendErrors(p.Recovered, " + a[0] + ")"
 		case "missing.active":
 			return "p.Missing != nil"
 		case "missing.recompute":

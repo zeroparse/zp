@@ -91,7 +91,7 @@ type ExprState struct {
 // small: the common strict parse has neither.
 func (p *Parser) ApplyRecovered(a *OperatorsRuleAttempt) {
 	if p.Missing == nil {
-		p.Recovered = AppendSpend(p, p.Recovered, a.Errs)
+		p.Recovered = p.appendErrors(p.Recovered, a.Errs)
 	} else {
 		p.restoreMissing(a.missing, a.Errs, false)
 	}

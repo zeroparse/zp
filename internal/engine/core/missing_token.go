@@ -134,7 +134,7 @@ func (p *Parser) restoreMissing(events []MissingTokenEvent, errs []*SyntaxError,
 		}
 	}
 	if duplicate == nil {
-		p.Recovered = AppendSpend(p, p.Recovered, errs)
+		p.Recovered = p.appendErrors(p.Recovered, errs)
 		return
 	}
 	for _, err := range errs {

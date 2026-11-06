@@ -186,9 +186,18 @@ func (p *Parser) copyErrors(src []*SyntaxError) []*SyntaxError {
 }
 
 func (p *Parser) copyErrorsSlow(src []*SyntaxError) []*SyntaxError {
-	out := AppendSpend(p, nil, src)
+	out := p.appendErrors(nil, src)
 	p.ChargeValueBytes(cap(out) * int(ptrBytes))
 	return out
+}
+
+// appendErrors copies a list of recovered errors, which Compute counts and the cost does not (see
+// Cost in spec/runtime/parsing.md), so it also counts what it copies apart (ErrorCopies).
+func (p *Parser) appendErrors(dst, src []*SyntaxError) []*SyntaxError {
+	if BudgetControlsEnabled && p.Control != nil {
+		p.Control.ErrorCopies += uint64(len(src))
+	}
+	return AppendSpend(p, dst, src)
 }
 
 // syntaxErrorSize returns the bytes of the syntax error e and its lists.

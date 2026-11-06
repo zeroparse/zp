@@ -693,6 +693,7 @@ The following grammars have the class shown on the inputs shown.
 | `main = (X / "a")* $$; X = (Y #recover(skip=[a]+)) "c"; Y = "b"` | `a` n times | Linear | The skip consumes the rest of the input, `"c"` then fails, and the recovery is abandoned, but `[a]+` is a [skip run](#skip-runs): the walk from each later position takes the rest of the walk from its record |
 | `main = (X / "a")* $$; X = (Y #recover(skip=S)) "c"; Y = "b"; S = [a]+` | `a` n times | Degree 2 | As above, but the repetition is in a rule that the skip calls, so it is not a skip run, and each skip walks to the end of the input again |
 | `main = (A / "a")* $$; A = (B / "a")* "c"; B = "a"* "d"` | `a` n times | Degree 3 | A repetition that can restart inside another one that can restart |
+| `main = R* $$; R = (R [ab] S . . .)*; S = ([a]* "ab"+ " "*)?` | `a` n times | Degree 3 | Each step of the growth of `R` runs the repetition, and each iteration of it restarts the scan in `S` |
 | `main = S $$; S = &R S "q" / "y"; R = R "q" / S` | `y`, then `q` n times | Degree 2 | In each step of the growth of `S`, the lookahead grows `R` from the growing result of `S` over the rest of the input, and drops it |
 | `main = S $$; S = &R S "q" / "y"; R = R ("q" / "r") / S "t" / "y"` | `y`, then `q` n times | Linear | `R` grows from the growing result of `S` only after a `"t"`, where `S` cannot grow; its growth from `"y"` is the same in every step and is reused |
 | `main = C $$; A = C "+" / "n"; C = "(" C ")" "y" / "(" C ")" "z" / A` | `(` n times, `n`, `)z` n times | Linear | `A` and `C` form a left-recursion cycle grown at `A`. The result of `C` at a position outside the growth of `A` there is memoized, so the two calls of `C` at the next position share it |
@@ -892,7 +893,12 @@ The conditions below use these terms.
   left call is the first expression that it evaluates, directly or through
   calls of rules of the cycle, such as the alternative `E "+" T` in
   `E = E "+" T / T`. A unit that evaluates anything before its left call, such
-  as `("y")? E S "q"`, is not a growing unit. In each step of a growth after
+  as `("y")? E S "q"`, is not a growing unit. A unit that follows something
+  that can match without consuming input can be reached in both ways, such as
+  the alternative `E` in `E = "y"? (E / "z") "q" / "x"`: without the `"y"` it
+  is a growing unit, and after the `"y"` its call is at a new position, where
+  it reads no seed. Such a unit is checked as both, as a growing unit and as an
+  alternative that is not growing. In each step of a growth after
   the first, the left call reads the seed, and the unit examines the input
   from the end of the seed. In the first step, the left call fails before the
   unit examines any input when the unit reaches the leader only through
@@ -1413,7 +1419,9 @@ from best to worst, as in the table: each is a weaker claim than the classes
 before it. A grammar has the worst class of its causes. A witnessed
 polynomial or exponential cause outranks a reason for the class unknown,
 because it is evidence of growth, while unknown is only the absence of a
-proof. The classes polynomial and exponential produce a
+proof. So the degree of a polynomial grammar that also has such reasons is the
+degree of its causes, and what the reasons leave open can cost more. The
+classes polynomial and exponential produce a
 [`super-linear`](lint.md#super-linear) hint at each cause, with its witness.
 The other classes produce no finding; the reasons for the class unknown are
 shown with the classification. Without the request, there is no

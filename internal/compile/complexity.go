@@ -283,6 +283,7 @@ type classifier struct {
 
 	scanRun     map[*grammar.Repeat]int  // the longest run before each repetition (computeBoundedScans)
 	scanCounted map[*grammar.Repeat]bool // the repetitions with a constant number of evaluations at a position
+	stepRules   map[string]bool          // the rules called in a repetition that each step of a growth evaluates
 	sureMemo    map[grammar.Expr]charset // what sureOf has found
 	sureRule    map[string]charset       // what sure has found for the body of each rule
 	rigidRule   map[string]bool          // what rigid has found for the body of each rule

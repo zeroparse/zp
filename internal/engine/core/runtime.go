@@ -483,7 +483,7 @@ func (p *Parser) replayEntry(e *MemoEntry) {
 	}
 	p.Pos = e.End
 	if p.Missing == nil {
-		p.Recovered = AppendSpend(p, p.Recovered, e.Errs)
+		p.Recovered = p.appendErrors(p.Recovered, e.Errs)
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 	}
@@ -861,7 +861,7 @@ func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
 		p.ResetMissing(g.missing)
 	}
 	if p.Missing == nil {
-		p.Recovered = AppendSpend(p, p.Recovered, best.Errs)
+		p.Recovered = p.appendErrors(p.Recovered, best.Errs)
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(best), best.Errs)
 	}

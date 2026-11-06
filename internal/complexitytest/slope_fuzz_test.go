@@ -1,0 +1,388 @@
+package complexitytest
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math"
+	"math/rand/v2"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+
+	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/starttest"
+)
+
+// The slope gate holds the classifier to what it says against measured cost. It writes random
+// grammars from fixed seeds, classifies each and measures it on every backend on inputs made of
+// repeated fragments. A grammar of the class Linear whose cost grows faster than the input fails the
+// gate, and so does a polynomial one without reasons that grows clearly faster than its degree. The
+// default tier runs a few seeds and those of slopeCaught; the tag zp_long runs many more.
+
+const (
+	slopeSize   = 150 // the first of the doubling sizes of an input
+	slopeCap    = 40_000_000
+	slopeMargin = 0.45 // what a slope can pass the degree by at these sizes
+)
+
+var (
+	slopeLiterals = []string{`"a"`, `"a"`, `"b"`, `"c"`, `" "`, `"ab"`, `"aa"`, `"ba"`, `"a"i`}
+	slopeClasses  = []string{`[a]`, `[ab]`, `[^a]`, `[a-c]`, `[ ]`, `[^ ]`, `[b]`, `[ac]`}
+	slopeInputs   = []string{"a", "b", "c", " ", "ab", "aa", "aab", "a ", "ab ", "abc", "ba", "ca", "a b", "cab"}
+)
+
+// slopeGrammar writes one random grammar.
+type slopeGrammar struct {
+	r     *rand.Rand
+	rules []string
+}
+
+func (g *slopeGrammar) term() string {
+	switch g.r.IntN(15) {
+	case 0, 1, 2, 3, 4:
+		return slopeLiterals[g.r.IntN(len(slopeLiterals))]
+	case 5, 6, 7, 8:
+		return slopeClasses[g.r.IntN(len(slopeClasses))]
+	case 9:
+		return "."
+	}
+	return g.rules[g.r.IntN(len(g.rules))]
+}
+
+func (g *slopeGrammar) expr(depth int) string {
+	if depth <= 0 {
+		return g.term()
+	}
+	sub := func() string { return g.expr(depth - 1) }
+	list := func(sep string) string {
+		parts := []string{sub(), sub()}
+		if g.r.IntN(2) == 0 {
+			parts = append(parts, sub())
+		}
+		return "(" + strings.Join(parts, sep) + ")"
+	}
+	switch n := g.r.IntN(30); {
+	case n < 4:
+		return g.term()
+	case n < 10:
+		return list(" ")
+	case n < 15:
+		return list(" / ")
+	case n < 18:
+		return "(" + sub() + ")*"
+	case n < 20:
+		return "(" + sub() + ")+"
+	case n < 22:
+		return "(" + sub() + ")?"
+	case n < 24:
+		return "!(" + sub() + ")"
+	case n < 25:
+		return "&(" + sub() + ")"
+	case n < 26:
+		return "(" + sub() + " #recover(skip=" + g.term() + "+))"
+	case n < 27:
+		return "$$"
+	case n < 28:
+		return "((" + sub() + ") #repeat(," + strconv.Itoa(1+g.r.IntN(3)) + "))"
+	}
+	return "(" + sub() + " #cut " + sub() + " / " + sub() + ")"
+}
+
+// leftRecursive writes a body that calls rule before it consumes input.
+func (g *slopeGrammar) leftRecursive(rule string, depth int) string {
+	sub := func() string { return g.expr(depth) }
+	switch g.r.IntN(4) {
+	case 0:
+		return rule + " " + sub() + " / " + sub()
+	case 1:
+		return "(" + sub() + ")? (" + rule + " / " + sub() + ") " + sub()
+	case 2:
+		return "!(" + sub() + ") " + rule + " " + sub() + " / " + sub()
+	}
+	return "(" + rule + " " + sub() + " / " + sub() + ")*"
+}
+
+// oneOf picks one of the choices.
+func (g *slopeGrammar) oneOf(choices ...string) string { return choices[g.r.IntN(len(choices))] }
+
+// template writes a left-recursive rule around a scan that can fail late, the shape in which a call
+// is a left call on one path and an ordinary call on another. Random grammars reach it too rarely
+// to find a false class in a few seeds.
+func (g *slopeGrammar) template() string {
+	g.rules = []string{"r", "w"}
+	lead := g.oneOf(`[ab]?`, `"a"?`, `[a]*`, `"ab"?`, `("a" #cut "b")?`, `!"q"`, `&[ab]`, `("q" #recover(skip=[ab]+))?`, `(!"a" "b")?`)
+	other := g.oneOf(`[a-c]`, `[ab]`, `"a"`, `.`, `"b"`, `w`)
+	scan := g.oneOf(`w`, `w [ ]`, `w [ ] [b]`, `w "q"`, `&w`, `!w`, `(w #recover(skip=[ab]+))`, `(w "q" / "a")`, `(w #cut "q" / "b")`)
+	end := g.oneOf(`[^a]*`, `[ab]*`, `"a"*`, `[^ ]*`, `[ab]+`, `(. .)*`)
+	stop := g.oneOf(`$$`, `"q"`, `[ ]`, `"c"`, `!.`, ``)
+	var body string
+	switch g.r.IntN(5) {
+	case 0:
+		body = fmt.Sprintf("%s (r / %s) (%s)", lead, other, scan)
+	case 1:
+		body = fmt.Sprintf("(%s (r / %s) (%s))*", lead, other, scan)
+	case 2:
+		body = fmt.Sprintf("%s r %s / %s", lead, scan, other)
+	case 3:
+		body = fmt.Sprintf("(r %s %s / %s)*", g.oneOf(`[ab]`, `"a"`, `.`), scan, other)
+	default:
+		body = fmt.Sprintf("%s (r %s / %s) / %s", lead, scan, other, g.expr(1))
+	}
+	return fmt.Sprintf("rule main = %s\nrule r = %s\nrule w = %s %s\n", g.oneOf(`r $$`, `r* $$`, `(r / "a")* $$`), body, end, stop)
+}
+
+func (g *slopeGrammar) source() string {
+	if g.r.IntN(3) == 0 {
+		return g.template()
+	}
+	g.rules = nil
+	count := 2 + g.r.IntN(4)
+	for i := range count {
+		g.rules = append(g.rules, "r"+strconv.Itoa(i))
+	}
+	var b strings.Builder
+	if g.r.IntN(2) == 0 {
+		fmt.Fprintf(&b, "rule main = (%s)* $$\n", g.expr(3))
+	} else {
+		fmt.Fprintf(&b, "rule main = %s $$\n", g.expr(3))
+	}
+	for i, r := range g.rules {
+		switch {
+		case i == count-1 && g.r.IntN(5) == 0:
+			fmt.Fprintf(&b, "rule %s = #operators {\n  skip %s\n  operand %s\n  level add { infix left %s }\n  level neg { prefix %s }\n}\n",
+				r, g.expr(1), g.expr(1), slopeLiterals[g.r.IntN(len(slopeLiterals))], slopeLiterals[g.r.IntN(len(slopeLiterals))])
+		case g.r.IntN(4) == 0:
+			fmt.Fprintf(&b, "rule %s = %s\n", r, g.leftRecursive(r, 1+g.r.IntN(2)))
+		default:
+			fmt.Fprintf(&b, "rule %s = %s\n", r, g.expr(2+g.r.IntN(2)))
+		}
+	}
+	return b.String()
+}
+
+// spent returns the cost of a parse: its Compute without the copies of lists of recovered errors,
+// which the cost leaves out. It reports a parse that used up slopeCap as capped.
+func spent(p *zp.Parser, input string, b zp.Backend) (cost uint64, capped bool) {
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: slopeCap}),
+		zp.WithTrace(func(e zp.TraceEvent) {
+			if c := core.TraceParser(e).Control; c != nil {
+				cost = c.Used - c.ErrorCopies
+			}
+		}))
+	var le *zp.LimitError
+	return cost, errors.As(err, &le)
+}
+
+// slopeHit measures one input on one backend at four doubling sizes and describes a slope above
+// limit that holds at each of them, or returns "".
+func slopeHit(p *zp.Parser, build func(int) string, b zp.Backend, limit float64) string {
+	var costs [4]uint64
+	for i := range costs {
+		c, capped := spent(p, build(slopeSize<<i), b)
+		if capped {
+			// The cap stops Compute, which includes what the cost leaves out, so all that is known
+			// is that the cost is at least c.
+			if i == 0 || math.Log2(float64(c)/float64(costs[i-1])) <= limit {
+				return ""
+			}
+			return fmt.Sprintf("%s reaches the cap at size %d, costs %v", BackendName(b), slopeSize<<i, costs[:i])
+		}
+		if i == 0 && c < 3000 {
+			return ""
+		}
+		costs[i] = c
+		if i > 0 {
+			if s := math.Log2(float64(c) / float64(costs[i-1])); i >= 2 && s <= limit || i == 1 && s <= limit-0.3 {
+				return ""
+			}
+		}
+	}
+	return fmt.Sprintf("%s costs %v", BackendName(b), costs)
+}
+
+// slopeLimit returns the slope above which the class of the grammar is false, or 0 when the class
+// makes no statement to hold it to.
+func slopeLimit(src string) (limit float64, class *engine.Complexity) {
+	g, err := zp.ParseGrammar(src)
+	if err != nil {
+		return 0, class
+	}
+	class, err = engine.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "main")
+	if err != nil {
+		return 0, class
+	}
+	switch class.Class {
+	case ClassLinear, ClassLinearEnv:
+		return 1 + slopeMargin, class
+	case ClassPoly:
+		return float64(class.Degree) + slopeMargin, class
+	}
+	return 0, class
+}
+
+// slopeCheck checks the grammar of one seed on random inputs and describes what it finds, or
+// returns "". A grammar that does not compile, as an operand with a left call does not, is skipped.
+func slopeCheck(seed uint64, inputs int) string {
+	r := rand.New(rand.NewPCG(seed, 7))
+	src := (&slopeGrammar{r: r}).source()
+	p, err := Compile(src)
+	if err != nil {
+		return ""
+	}
+	limit, class := slopeLimit(src)
+	// The degree of a grammar with reasons covers its causes only, so its cost can pass it.
+	if limit == 0 || class.Class == ClassPoly && len(class.Reasons) > 0 {
+		return ""
+	}
+	for range inputs {
+		frag := func(p int) string {
+			if r.IntN(p) == 0 {
+				return slopeInputs[r.IntN(len(slopeInputs))]
+			}
+			return ""
+		}
+		before, x, y, after := frag(2), slopeInputs[r.IntN(len(slopeInputs))], frag(2), frag(2)
+		build := func(n int) string {
+			return before + strings.Repeat(x, n) + strings.Repeat(y, n) + after
+		}
+		for _, b := range Backends {
+			if hit := slopeHit(p, build, b, limit); hit != "" {
+				return fmt.Sprintf("seed %d: %v of degree %d, but %s on %q (%q)^n (%q)^n %q\n%s", seed, class.Class, class.Degree, hit, before, x, y, after, src)
+			}
+		}
+	}
+	return ""
+}
+
+// TestSlopeGateGrowth holds the gate to grammars that grow, whose inputs the grammars reject, as
+// the controls of Controls do not: each slope stays above grows on every backend, and the class of
+// the grammar must allow for it. Seeds of the gate need not reach such a grammar, so a classifier
+// that claims too little of one fails here first.
+func TestSlopeGateGrowth(t *testing.T) {
+	cases := []struct {
+		name, source string
+		input        func(int) string
+		grows        float64
+	}{
+		// The alternative r begins with a left call only when [ab]? matches nothing. After a letter
+		// it starts at a new position, and the scan in w fails after it at each of them.
+		{"left call after an option that consumed input",
+			"rule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n",
+			func(n int) string { return rep("ab", n) + rep("b", n) + " " }, 1 + slopeMargin},
+		// Each step of the growth of r runs the repetition, which restarts the scan in s.
+		{"restarted scan in a repetition of each growth step",
+			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			func(n int) string { return rep("a", n/2) }, 2 + slopeMargin},
+		// The same growth from the next size on reaches the cap, whose cost is a lower bound.
+		{"restarted scan up to the cap",
+			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			func(n int) string { return rep("a", n) }, 2},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := Compile(c.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			limit, class := slopeLimit(c.source)
+			if limit != 0 && limit <= c.grows {
+				t.Errorf("%v of degree %d, below its measured growth", class.Class, class.Degree)
+			}
+			for _, b := range Backends {
+				if slopeHit(p, c.input, b, c.grows) == "" {
+					t.Errorf("%s stays below a slope of %.2f", BackendName(b), c.grows)
+				}
+				if limit != 0 {
+					if hit := slopeHit(p, c.input, b, limit); hit != "" {
+						t.Errorf("%v of degree %d, but %s", class.Class, class.Degree, hit)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestSlopeGateLeavesErrorCopies measures a Linear grammar that copies a list of recovered errors
+// at each position. Compute is quadratic through those copies, which the cost leaves out.
+func TestSlopeGateLeavesErrorCopies(t *testing.T) {
+	src := `rule main = (("a"+ &r3)*)* $$
+rule r0 = ([b] r3)?
+rule r1 = (([^a] [ac]) #recover(skip="a"i+)) / "a"i / (("aa" / r0) r4 &r2)
+rule r2 = !(!r0)
+rule r3 = (([ac] "a") / (r2 / r4)) ((r1 r0 .) / "ba"?)
+rule r4 = &[^ ]
+`
+	p, err := Compile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	limit, class := slopeLimit(src)
+	if class.Class != ClassLinear {
+		t.Fatalf("class %v, want Linear", class.Class)
+	}
+	input := func(n int) string { return rep("ab", n) + rep("aab", n) + "b" }
+	for _, b := range Backends {
+		if hit := slopeHit(p, input, b, limit); hit != "" {
+			t.Error(hit)
+		}
+	}
+}
+
+// TestSlopeLimits holds the limits of the gate to the classes that they hold grammars to.
+func TestSlopeLimits(t *testing.T) {
+	for _, c := range []struct {
+		source string
+		want   float64
+	}{
+		{"rule main = (a / \"a\")* $$\nrule a = \"a\" \"c\"\n", 1 + slopeMargin},
+		{"rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", 2 + slopeMargin},
+		{"rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n", 3 + slopeMargin},
+	} {
+		if got, class := slopeLimit(c.source); got != c.want {
+			t.Errorf("%v of degree %d: limit %.2f, want %.2f", class.Class, class.Degree, got, c.want)
+		}
+	}
+}
+
+// slopeCaught lists seeds beyond the seeds of the default tier that found a false class when the
+// check of a unit after input was taken out.
+var slopeCaught = []uint64{343, 508}
+
+func TestSlopeGate(t *testing.T) {
+	const inputs = 8
+	grammars := uint64(5000)
+	if reduced() {
+		grammars = 150
+	}
+	var mu sync.Mutex
+	next := make(chan uint64)
+	var wg sync.WaitGroup
+	for range runtime.GOMAXPROCS(0) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for seed := range next {
+				if hit := slopeCheck(seed, inputs); hit != "" {
+					mu.Lock()
+					t.Error(hit)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+	for seed := range grammars {
+		next <- seed
+	}
+	for _, seed := range slopeCaught {
+		if seed >= grammars {
+			next <- seed
+		}
+	}
+	close(next)
+	wg.Wait()
+}

@@ -427,7 +427,7 @@ func (p *Parser) SkipHit() bool {
 		p.Env = r.env
 	}
 	for c := r.errs; c != nil; c = c.next {
-		p.Recovered = AppendSpend(p, p.Recovered, c.errs)
+		p.Recovered = p.appendErrors(p.Recovered, c.errs)
 	}
 	w.hit, w.hitOK = r, true
 	return true

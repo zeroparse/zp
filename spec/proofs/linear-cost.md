@@ -835,7 +835,14 @@ the start of this one, so the end of the leader's body continues after it as
 after any call that starts a growth. Outside the steps, the call of M evaluates
 M's growing units once more, and those of the rules that it reaches through left
 calls, after the leader has grown, as alternatives that are not growing, which
-condition 2 checks as any other unit. In the first step of a leader R, every
+condition 2 checks as any other unit. Everything this lemma says of a growing
+unit rests on its left call reading the seed, which holds only on the paths that
+reach the unit without consuming input. On a path that consumes input first, as
+through the `"y"` in `E = "y"? (E / "z") "q" / "x"`, the unit starts at a new
+position with nothing to grow from there, and a failure inside it is a failure of
+a plain alternative, which only the cases of Lemma 4 bound. So condition 2 also
+checks such a unit as an alternative that is not growing, against its plain
+continuations. In the first step of a leader R, every
 left call of R reads the failed seed and fails without examining input, so only
 the paths of a unit of R that evaluate something else first can examine input in
 that step.
@@ -2084,7 +2091,8 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
   paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
 - `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
   for growing units, with their continuations: Lemma 5, *Sources at fixed
-  offsets*.
+  offsets*. `checkGrowingUnit` also checks a unit that `walk` marks `afterInput`
+  as a plain unit: the paths of Lemma 5 that consume input before it.
 - `checkGrowth` decides condition 3, and `checkCarriedGrowth`, `dropsResult`,
   `carryPaths` and `growthGoesOn` condition 5: Lemma 5.
 - `checkValues`, with `selfDependent` and `reaches`, decides condition 1, and
@@ -2191,7 +2199,8 @@ that the proof assumes of the cost view.
    alternatives that a step evaluates after a growing unit fails, in the first
    step and in the step where the growth stops, and the case where the first
    step of a growth matches a part before the left call, as through `F` in
-   `E = F "+" X / Y; F = E / M`, where the unit is also checked as an
+   `E = F "+" X / Y; F = E / M`, and a part before the unit, as through the
+   `"y"` in `E = "y"? (E / "z") "q" / "x"`, where the unit is also checked as an
    alternative that is not growing.
 4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
