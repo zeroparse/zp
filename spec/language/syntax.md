@@ -15,7 +15,12 @@ the public `grammar.Grammar` AST.
 The grammar is checked by tests, which run both views on every
 `.zp` file of the repository and on every `zp` code block of the
 documentation and require them to agree with the parser of the reference
-implementation on whether the text is a valid grammar.
+implementation on whether the text is a valid grammar. They also compare the
+errors of mutated texts that are not valid, in numbers of sources per class: the
+first error is at the same place, or at another place for the same mistake, such
+as the next token or the end of a block or group that the text does not close.
+The comparison is a measurement on a generated corpus, not a proof, and an error
+before the first error of the reference is accepted only in the named forms.
 
 ## Simple Grammar
 
@@ -66,17 +71,72 @@ rule item_sep = block_sep / empty_item_sep
 rule field_sep = block_sep / empty_field_sep
 rule block_sep = block_with_line
 rule empty_stmt_sep = ";" / nl / &$$
-rule empty_item_sep = ";" / nl / &"}"
-rule empty_field_sep = ";" / nl / &"}"
-// Recovery consumes its own separator and stops before the next item.
-rule stmt_sync = -comments (sync_token / !(";" / nl) .)* (";" / nl / &$$)
-rule item_sync = -comments (sync_token / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
-rule field_sync = -comments (sync_token / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
+// An item or a field may end at the end of the input; the list that is not closed reports the missing brace.
+rule empty_item_sep = ";" / nl / &"}" / &$$
+rule empty_field_sep = ";" / nl / &"}" / &$$
+// Recovery of a declaration skips from the start of the failed declaration to the next one, as the
+// hand-written parser does. The skip follows the brackets that the declaration opens. At the top level, a
+// line or a statement after a semicolon that starts with rule, type or var, or the attributes of a rule,
+// starts the next declaration. A balanced group (...), {...} or [...] and the arguments of an attribute
+// are skipped whole, so that a line inside them is not taken for a declaration, whatever it starts with.
+// A group that is not closed before a place with the shape of a declaration (below) is not skipped whole:
+// from its opening bracket on, only such a place resumes. Strings, classes and comments are skipped as
+// units, so that a bracket or a keyword inside them counts for nothing. The item and field recoveries
+// consume their own separator and stop before the next item.
+rule stmt_sync = -comments (attrs_prefix / sync_unit) sync_top* (sync_open (!decl_start sync_unit)*)? (";" / nl / &$$)
+rule sync_top = attr_call / sync_class / sync_closed / !sync_open !top_start sync_unit
+rule sync_open = "(" / "{" / "["
+rule sync_class = "[" ("\\" . / [^\]\\\n])* "]"
+rule attr_call = "@" ident_char+ space_no_line* attr_paren
+rule sync_closed = sync_closed_paren / sync_closed_brace / sync_closed_bracket
+rule sync_closed_paren = "(" (attr_call / sync_class / sync_closed / !")" !sync_open !decl_start sync_unit)* ")"
+rule sync_closed_brace = "{" (attr_call / sync_class / sync_closed / !"}" !sync_open !decl_start sync_unit)* "}"
+rule sync_closed_bracket = "[" (attr_call / sync_class / sync_closed / !"]" !sync_open !decl_start sync_unit)* "]"
+// A declaration at the top level: a keyword that is not part of a longer name, the attributes of a rule, or
+// an attribute named like a keyword.
+rule top_start = (nl / ";") comments (decl_keyword !ident_char / attrs_start / "@" decl_keyword !ident_char)
+// The attributes at the start of a declaration are skipped whole: a line inside their arguments that starts
+// with a keyword is an argument, not a declaration.
+rule attrs_prefix = "@" (!("rule" !ident_char) attr_unit / nl comments &"@")*
+// A place inside a bracket that starts a declaration: a line or a statement after a semicolon that has the
+// shape of one, or attributes before a rule that has it.
+rule decl_start = (nl / ";") comments (decl_shape / attrs_decl)
+rule decl_keyword = "rule" / "type" / "var"
+// The shape of a declaration: rule, type or var, then on the same line a bare = or ~ (not part of an
+// operator such as :=, ==, !=, <=, >=, += or =>) before any ; { } ( or ), outside strings, classes and block
+// comments. No field, item or statement has it. What stands between them is not checked, so a declaration
+// whose name is missing or wrong is still a place to resume at. So is a word that ends the source, with or
+// without a name: the end of a truncated declaration. A field, a statement or a name that is called rule,
+// type or var, such as `type string`, `var := 1`, `var / t`, `var != "="` or `rule Foo`, does not have the
+// shape, so a body that is valid is not read as declarations, also when another declaration follows on the
+// same line. A declaration without the = or ~ (`var x int`) is a place to resume at only at the top level.
+rule decl_shape = decl_keyword !ident_char decl_tail
+rule rule_shape = "rule" !ident_char decl_tail
+rule decl_tail = decl_shape_line / decl_shape_end
+rule decl_shape_line = space_no_line+ !(":" / "/") (assign_op / source_string / source_class / inline_comment / !nl !"//" !("=" / "~" / ";" / "{" / "}" / "(" / ")") .)* ("=" / "~")
+rule decl_shape_end = (space_no_line+ ident_char+)? space_no_line* &$$
+rule assign_op = [:!<>=+*/%&|\^\-] "=" / "=>"
+// The start of a declaration inside an item list ends the list instead of being taken for its items.
+rule declaration_ahead = &(comments decl_shape)
+rule sync_unit = source_string / source_class / inline_comment / comment_line / incomplete_comment / ident_char+ / .
+// The attributes of a rule: an @ that starts a line and reaches the keyword rule, on the same line or a
+// later one, through attributes alone. Inside a bracket the rule must have the shape of a declaration.
+rule attrs_start = "@" (!("rule" !ident_char) attr_unit / nl comments &"@")* (nl comments)? "rule" !ident_char
+rule attrs_decl = "@" (!("rule" !ident_char) attr_unit / nl comments &"@")* (nl comments)? &rule_shape
+rule attr_unit = ident_char / space_no_line / "@" / source_string / inline_comment / comment_line / attr_paren
+rule attr_paren = "(" (attr_paren / source_string / inline_comment / comment_line / !("(" / ")") .)* ")"
+rule item_sync = -comments (sync_ml / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
+rule field_sync = -comments (sync_ml / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
 
 // Completed literals, nested comments and groups do not end recovery.
 rule sync_token = string / char_class / inline_comment / comment_line / sync_paren / sync_brace
 rule sync_paren = "(" (sync_token / !("(" / ")" / nl) .)* ")"
 rule sync_brace = "{" (sync_token / !("{" / "}" / nl) .)* "}"
+// The recovery of an item skips the braces and parentheses that it opens, to their end on any later line,
+// so that the lines of a nested block are not taken for items.
+rule sync_ml = string / char_class / inline_comment / comment_line / sync_ml_paren / sync_ml_brace
+rule sync_ml_paren = "(" (sync_ml / !("(" / ")") .)* ")"
+rule sync_ml_brace = "{" (sync_ml / !("{" / "}") .)* "}"
 
 // Types. Join is the weakest operation; list and optional prefixes nest.
 // A type declaration is a type alias (type Name ~ Type) or a type definition
@@ -90,7 +150,7 @@ rule type_def = comments type_def_body &source_item_tail stmt_end
 rule type_alias_body = "type" -word_end #cut ident -ws "~" -ws type_expr
 rule type_def_body = (
     "type" -word_end #cut ident -ws
-    -("=" -ws &("{" / "node["))
+    -(&("=" comments ("{" / "node[" !"]")) "=" -ws)
     (struct_type / node_type)
 )
 // The node type of a named node type takes one type argument.
@@ -98,7 +158,7 @@ rule node_type = (
     &"node[" ident "[" {ml := true} -ws type_expr -ws ","? -ws
     -"]"
 )
-rule field_spec = !(comments "}") field
+rule field_spec = !(comments "}") !declaration_ahead field
 rule field = comments field_body &source_item_tail field_end
 rule field_body = ident -ws type_expr
 rule type_expr = #operators {
@@ -148,12 +208,14 @@ rule rule_decl = comments rule_def_body &source_item_tail stmt_end
 rule rule_def_body = (
     (attr decl_attr_gap)*
     "rule" -word_end #cut ident -ws type_expr? -ws
-    -"=" -ws (ops_rule_body / rule_expr) trailing_action?
+    -"=" -ws (ops_rule_body / rule_body_expr) trailing_action?
 )
 // Declaration attributes may share a line; the last one ends its line before "rule".
 rule decl_attr_gap = decl_attr_same_line / decl_attr_line_end
-rule decl_attr_same_line = horizontal &"@"
-rule decl_attr_line_end = horizontal -nl comments
+rule decl_attr_same_line = decl_attr_trivia &"@"
+rule decl_attr_line_end = decl_attr_trivia -nl comments
+// A block comment between attributes may span lines; it does not end the line of the attribute before it.
+rule decl_attr_trivia = -space_no_line* ((line_comment / inline_comment) -space_no_line*)*
 rule whole_action = "=>" -ws action
 // The spacing before an action belongs to the action, so a rule without one ends at its expression.
 rule trailing_action = -ws whole_action
@@ -163,9 +225,9 @@ rule rule_expr = #operators {
     level ordered_choice { infix left "/" }
     level sequence { infix left _ }
     level prefix {
-        prefix ident ":"
-        prefix "&" / "!"
-        prefix "-" !("-" / ">")
+        prefix ident ":" !"="
+        prefix "&" !"&" / "!"
+        prefix "-" !"-"
     }
     level suffix {
         postfix "?"
@@ -178,14 +240,29 @@ rule rule_expr = #operators {
         postfix "#repeat" !ident_char repeat_args
         postfix "#recover" !ident_char recover_args
         postfix attr
+        postfix unknown_pragma
     }
 }
+// A pragma that does not exist is not parsed. The rule fails after the name, which is where
+// the error is reported, and it never matches. #operators is a pragma only where an
+// Operators Rule starts.
+rule unknown_pragma = "#" !(known_pragma !ident_char) ident _|_
+rule rule_body_expr = !legacy_operators_start rule_expr
+// An Operators Rule starts with #operators. A rule that starts with operators { and an item is an
+// error; operators {x == 1} is a reference followed by a predicate.
+rule legacy_operators_start = "operators" !ident_char horizontal "{" comments (
+    ("skip" / "operand" / "level" / "prefix" / "postfix" / "infix") !ident_char
+    (comments ("\"" / "[" / ident_start) / space comments "(")
+    / "level" !ident_char comments "{" comments ("prefix" / "postfix" / "infix") !ident_char
+)
+rule known_pragma = "atomic" / "stream" / "missing" / "ignorecase" / "repeat" / "recover" / "cut" / "operators" &(horizontal "{")
 rule rule_group = (
     "(" {ml := true} -ws (inline_action / rule_expr) -ws
     -")"
 )
 rule inline_action = rule_expr -ws "=>" -ws action
-rule rule_ref = ident !"("
+// A character class directly after a name is an error: it reads as an index, and a rule expression has none.
+rule rule_ref = ident !"(" !"["
 rule level_call = (
     "level(" {ml := true} -ws #cut ident -ws
     -"," -ws
@@ -228,23 +305,23 @@ rule attr_no_values = &")"
 rule attr_trailing_comma = (-ws "," -ws)?
 rule attr_named_tail = -ws "," -ws attr_named_args
 rule attr_slot = !(ident -ws "=") attr_value
-rule attr_named = ident -ws "=" -ws attr_value
+rule attr_named = &(ident -ws "=") ident -ws "=" -ws attr_value
 rule attr_value = true_lit / false_lit / nil_lit / signed_int / rule_expr
 rule signed_int = (("-" -ws)? digit+ #atomic) #atomic
 
-// #ignorecase may follow the block of an Operators Rule on its line, and covers the literals of the
-// whole rule. No other pragma may.
+// #ignorecase may follow the block of an Operators Rule on its line, once or several times, and covers
+// the literals of the whole rule. No other pragma may.
 rule ops_rule_body = ops_rule_ignorecase / ops_rule_plain
-rule ops_rule_ignorecase = ops_rule_expr -ws "#ignorecase" !ident_char !"("
+rule ops_rule_ignorecase = (ops_rule_ignorecase / ops_rule_expr) -ws "#ignorecase" !ident_char !"("
 rule ops_rule_plain = ops_rule_expr -(-ws &("#" !("ignorecase" !ident_char)) _|_)?
 // Operators Rule items and each level recover independently. An absent level
 // name remains nil; level(rule, name) can target only named levels.
 rule ops_rule_expr = (
-    "#operators" !ident_char -ws &"{" #cut "{" {ml := false} &source_head_open ops_stmt*
+    &("#operators" !ident_char -ws "{") "#operators" -ws #cut "{" {ml := false} &source_head_open ops_stmt*
     comments -"}"
 )
 rule ops_stmt = (
-    !(comments "}")
+    !(comments "}") !declaration_ahead
     (ops_skip_stmt / ops_operand_stmt / ops_level_stmt / _|_)
 )
 rule ops_skip_stmt = comments ops_skip_body &source_item_tail item_end
@@ -258,7 +335,7 @@ rule ops_level_body = (
     comments -"}"
 )
 rule ops_operator = (
-    !(comments "}")
+    !(comments "}") !declaration_ahead
     (ops_prefix / ops_postfix / ops_infix / _|_)
 )
 rule ops_prefix = comments ops_prefix_body &source_item_tail item_end
@@ -280,18 +357,18 @@ rule action_block = (
     "{" {ml := false} action_block_stmt* comments
     -"}"
 )
-rule action_block_stmt = !(comments "}") action_block_value
+rule action_block_stmt = !(comments "}") !declaration_ahead action_block_value
 rule action_block_value = -comments action_stmt -item_end
 rule action_stmt = action_bind_stmt / action_expr
 rule action_bind_stmt = ident -ws ":=" -ws action_expr
 rule action_expr = lambda / action_ops
 rule action_ops = #operators {
     skip !(ws "[" !"]") ws
-    operand list_constructor / constructor / call / action_tuple / action_group / int / string / true_lit / false_lit / nil_lit / capture_ref / var_ref
+    operand list_constructor / constructor / call / action_tuple / action_group / int / action_string / true_lit / false_lit / nil_lit / capture_ref / var_ref
     level disjunction { infix left "||" }
     level conjunction { infix left "&&" }
     level comparison { infix none "==" / "!=" / "<=" / ">=" / "<" / ">" }
-    level addition { infix left "+" / "-" !("-" / ">") }
+    level addition { infix left "+" / "-" !"-" }
     level multiplication { infix left "*" / "/" / "%" }
     level unary { prefix "-" !"-" / "!" !"=" }
     // x[i] indexes a list. The "[" of an index follows its operand directly: the skip leaves
@@ -300,10 +377,14 @@ rule action_ops = #operators {
     level field_access {
         postfix "." -ws capture_ref
         postfix "." -ws cast_type
-        postfix "." -ws ident
+        postfix "." -ws !capture_member ident
         postfix index_suffix
     }
 }
+// x.name with a lowercase name is an error, because a capture is read with x.$name: the fields of a node
+// start with an uppercase letter, and startPos, endPos, children, expected and message are members of every node.
+// A name is ASCII, so the check is exact; the adapter makes it again for a tree it is given.
+rule capture_member = !(("startPos" / "endPos" / "children" / "expected" / "message") !ident_char) [a-z_]
 // The brackets of an index open their own delimiter, and a rule of its own keeps ml from
 // reaching the rest of the action.
 rule index_suffix = "[" {ml := true} -ws action_expr -ws "]"
@@ -347,13 +428,14 @@ rule init_field_body = (
     ident -ws -":" -ws
     action_expr
 )
-rule int = digit+ #atomic
+// A "[" directly after a number or a string is not an index: the lexer reads it as a character class.
+rule int = (digit+ !"[") #atomic
 rule true_lit = ("true" !ident_char) #atomic
 rule false_lit = ("false" !ident_char) #atomic
 rule nil_lit = ("nil" !ident_char) #atomic
-rule capture_ref = ("$" ident #atomic) #atomic
-rule var_name = (!(true_lit / false_lit / nil_lit) ident) #atomic
-rule var_ref = (ident !"(") #atomic
+rule capture_ref = (&("$" ident) "$" ident #atomic) #atomic
+rule var_name = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
+rule var_ref = (!bottom ident !"(") #atomic
 
 // Trivia. Space is discarded before and after each retained comment, keeping
 // the resulting list homogeneous without introducing nil whitespace elements.
@@ -387,6 +469,8 @@ rule ident_start = [a-zA-Z_]
 rule ident_char = [a-zA-Z0-9_]
 rule digit = [0-9]
 rule string = ("\"" ("\\" escape_char / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
+// A string of an action has no ignorecase suffix.
+rule action_string = ("\"" ("\\" escape_char / [^"\\\n])* "\"" !"[") #atomic
 rule char_class = (
     "[" "^"? (char_class_rng / char_class_chr)+
     -"]"

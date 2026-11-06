@@ -2,6 +2,7 @@ package language_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -20,12 +21,36 @@ import (
 // formatter reads are not in it.
 
 // adaptCanonical parses src with the canonical grammar and builds the public AST from the tree.
+// It rejects a source with the errors in the form of the hand-written parser, a syntax.ErrorList:
+// the lexical errors, then the errors of the grammar or of the checks on the tree.
 func adaptCanonical(p *zp.Parser, src string) (*grammar.Grammar, error) {
-	n, err := p.Parse(src)
+	text, invalid := syntax.WithoutInvalidCharacters(src)
+	n, err := p.Parse(text)
 	if err != nil {
-		return nil, err
+		return nil, canonicalErrors(src, err)
+	}
+	if invalid {
+		return nil, syntax.SourceErrors(src, nil)
 	}
 	return syntax.FromSourceTree(src, n)
+}
+
+// canonicalErrors converts the error that the canonical grammar returns for src.
+func canonicalErrors(src string, err error) error {
+	var list zp.SyntaxErrors
+	var one *zp.SyntaxError
+	switch {
+	case errors.As(err, &list):
+	case errors.As(err, &one):
+		list = zp.SyntaxErrors{one}
+	default:
+		return err
+	}
+	errs := make([]syntax.SourceError, len(list))
+	for i, e := range list {
+		errs[i] = syntax.SourceError{Offset: e.Pos, Msg: e.Message()}
+	}
+	return syntax.SourceErrors(src, errs)
 }
 
 // grammarJSON returns the JSON form of g, indented one value to a line, and
@@ -142,6 +167,14 @@ var frontendRejections = []string{
 	"rule a = \"x\"i[a-z]\n", // the suffix i is a name to the lexer too.
 	"rule a = \"x\"in[a]\n",
 	"rule a = 1a[a]\n",
+	"rule a = b => 1[0]\n",                  // the lexer reads a [ after a number as a character class.
+	"rule a = b => 36854775808[\n var\n]\n", // so the class is not terminated.
+	"rule a = b => \"x\"[0]\n",              // and after a string as well.
+	"rule a = x[a-z]\n",                     // a name directly followed by a class is an index.
+	"rule a = \"x\" => \"y\"i\n",            // the suffix i belongs to a string of a rule, not to one of an action.
+	"rule a = \"x\" => $x.y\n",              // x.name with a lowercase name is not a field.
+	"rule a = \"x\" => $x._y\n",
+	"rule a = \"x\" => $x.children.z\n", // children is a member of every node, z is not.
 }
 
 func TestCanonicalFrontendRejections(t *testing.T) {
@@ -162,8 +195,17 @@ var frontendAgreements = []string{
 	"rule a = b @foo(\"\"x, k=y)\n", // an attribute argument is a whole expression: a sequence here.
 	"rule a = b @foo(\"x\" / y, \"z\"i)\n",
 	"rule a = b => nil\nrule c = d => true\n",
-	"rule a = \"!\" _|_[0-9] / x\n",       // _|_ is a token, not a name
-	"rule a = \"x\" [a-z] \"y\"i [0-9]\n", // a space before a class keeps it a class.
+	"rule a = \"!\" _|_[0-9] / x\n",                                   // _|_ is a token, not a name
+	"rule a = \"x\" [a-z] \"y\"i [0-9]\n",                             // a space before a class keeps it a class.
+	"rule a = b => c[0] + $d[1][2] + f(x)[3]\n",                       // an index follows a name, a capture, ) or ].
+	"rule a = #operators { operand \"1\" } #ignorecase #ignorecase\n", // the pragma may be repeated
+	"rule a = #operators { operand \"1\" } #ignorecase#ignorecase/* b */ => ...\n",
+	"@bar /* x\n y */ @baz(1)\nrule a = \"x\"\n", // a block comment over lines between attributes
+	"@bar /* x\n y */\n// z\nrule a = \"x\"\n",
+	"rule a = b => {var; y := 2\n z}\n", // a statement may start with var, type or rule
+	"rule a = {\n type := 1\n rule\n}\n",
+	"rule a = x [a-z]\n",
+	"rule a = \"x\" => $x.Name.startPos + $x.children + $x.message\n", // members of every node
 }
 
 func TestCanonicalFrontendAgreements(t *testing.T) {

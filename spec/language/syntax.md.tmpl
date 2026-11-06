@@ -15,7 +15,12 @@ the public `grammar.Grammar` AST.
 The grammar is checked by tests, which run both views on every
 `.zp` file of the repository and on every `zp` code block of the
 documentation and require them to agree with the parser of the reference
-implementation on whether the text is a valid grammar.
+implementation on whether the text is a valid grammar. They also compare the
+errors of mutated texts that are not valid, in numbers of sources per class: the
+first error is at the same place, or at another place for the same mistake, such
+as the next token or the end of a block or group that the text does not close.
+The comparison is a measurement on a generated corpus, not a proof, and an error
+before the first error of the reference is accepted only in the named forms.
 
 ## Simple Grammar
 
