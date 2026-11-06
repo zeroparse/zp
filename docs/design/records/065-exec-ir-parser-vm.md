@@ -783,39 +783,67 @@ move to Exec IR at once while mechanisms move one at a time.
    no composition runs an element, so the iterative VM needs no split form.
 
    A memo that applies edits lazily charges more than one that applies them at once: a lookup pays for each pending
-   edit, an entry that an edit dropped stays in its slot until a store replaces it and is charged at each scan and each
-   lookup, and the slots hold the gap. The costs of `memo.lookup` and `memo.store` state these for such a target alone,
-   so the bounds of the generated runtimes are those of an eager memo.
-   Measured tests hold each operation at its bound: `memo.store` against the slots the model counts through random
-   edits, `doc.move` for trees, shared and empty nodes, generations and the case that reaches its bound, and each
-   `run` operation. These guarantees concern Documents, which have no default budget that grows with demand and
-   deliver nothing during a parse. The run operations and lazy edits exist in the engine alone; `doc.move` and
-   `memo.splice` hold on generated Go through its own conformance.
+   edit, an entry that an edit dropped stays in its slot until a store under its key, a later edit that includes its
+   position, or the drop of the whole table removes it, and is charged at each scan and each lookup, and the slots hold
+   the gap. The costs of `memo.lookup` and `memo.store` state these for such a target alone, so the bounds of the
+   generated runtimes are those of an eager memo.
+   The model of a lazy memo counts the edits an entry accounts for as of its last store or lookup, while the engine
+   applies an edit at once to the entries at the positions from the start of the edit to its end, both included, so
+   for these entries `pending_edits` is a bound by design: the model counts the edits since, which the engine does not
+   charge.
+   Measured tests hold each operation at its bound: `memo.lookup` and `memo.store` against the entries and pending
+   edits the model counts through random stores, edits and lookups, where they are equal for a key that no entry holds
+   and for the entry at the end of its chain, except for those entries; `memo.store` against the slots the model counts
+   through random edits, `doc.move` for trees, shared and empty nodes, generations and the case that reaches its bound,
+   and each `run` operation. These guarantees concern Documents, which have no default budget that grows with demand and
+   deliver no result or diagnostic during a parse; a trace observer receives events. The run operations and lazy edits
+   exist in the engine alone. `memo.splice` holds on generated Go through its conformance; `doc.move` has no reference
+   model there, and the differential tests of Documents, which compare every result after an edit with a parse from
+   scratch, cover its results.
 
    Results, errors, expectations, `Stats`, cache statistics and charges do not change. A differential comparison of the
    hand-written and printed reuse makes 879,825 parses: 15 grammars on three backends, both position units, with the
    default and the smallest length of a recorded run, four seeds and five modes of 14 edit steps, which include failed
    edits, batches and two edits between parses; the modes parse without limits, under Compute limits that rise until
    the parse ends, after one Compute limit, under Memory limits, and with a cancelled context, a fine sweep of Compute
-   limits and a snapshot. The two sides are identical, including the 51,549 parses that reuse a result or an element.
+   limits and a snapshot. The two sides are identical, including the 39,320 parses that return an outcome, a result
+   or a syntax error, and report a `Reused` above zero; 18,984 of them return no error. A parse that ends
+   with a limit, nesting or cancellation error does not report the reuse of a completed parse, and it is not counted.
    The same comparison detects two of the mutants below, with 18 and 8,159 lines that differ.
 
-   A long test builds 130 mutants through `-overlay`, of both printed forms, `EditMemo`, `doc.move`, the charges of the
-   runs and the calls of the printed lookup, and each fails a named test. A test of both forms against the contract,
+   A long test builds 144 mutants through `-overlay`, of both printed forms, `EditMemo`, `doc.move`, the cleanup that
+   ends a move, the charges of the runs, the calls of the printed lookup and the model of a lazy memo, and each fails a
+   named test. A test of both forms against the contract,
    charges included, is what kills the mutants of one form: an edit reaches only the entries at its positions, and a
    lookup all others. Three more edits are equivalent and left out; the test states why.
 
-   In ten interleaved rounds against the hand-written reuse, 31 of 135 engine `sec/op` rows are faster and 6 slower,
-   and the geomean of all rows is 0.15% faster. `Incremental` and `IncrementalLong` rows do not change significantly, and
-   `Stream` rows are within noise or up to 1.03% faster. Four rows have a median above +1%, up to 1.11%. Of the engine's
-   functions, only `AdvanceEntry`, `EditMemo` and `Document.Edit` change size, none of them on the path of these rows.
-   In twelve further rounds three of the four stay below 0.6%. The fourth, `StreamDiagnosticLimit/iterative/codepoints/limit-32`,
-   is 0.80% slower in sixteen rounds of 500 ms, with `complete` 0.55%. Padding the printed build so that `Parser.Call` and
-   `Machine.step` start at their offsets in the hand-written build leaves it at 1.34%, and padding the hand-written build
-   to the printed offsets gives 0.22%, so these two offsets do not explain it, and the cause is not identified. `B/op` and
-   `allocs/op` rise by more than 0.01% only on `Recognize/Arith_OperatorsRule/closure`, whose counts vary by 6%, and in
-   allocations by 0.49% on `Parse/XML/iterative`. The `zp` binary grows by 50,208 bytes: the builders and contracts of the
-   new operations and compositions, which it links because it also generates parsers.
+   In ten rounds against the hand-written reuse, on an idle machine under the benchmark lock, with the two builds
+   alternating in order from round to round, 41 of 133 engine `sec/op` rows are faster and 34 slower (benchstat,
+   p < 0.05), and the geomean of all 183 rows is 0.14% faster. The engine rows are those of the closure, bytecode and
+   iterative backends, not the generated parsers or the counterparts of the standard library. One of them has a median
+   above +1%: `Incremental/bytecode/document`, +1.04%. The next are three closure rows at +0.93%, +0.93% and +0.92%.
+   The closure rows move together: the median change of their rows is +0.65% for `Recognize` (8 rows), +0.71% for
+   `ControlledParse` (4) and +0.61% for `Parse` (16), while that of the bytecode rows is -0.28% (44) and that of the
+   iterative rows -0.23% (44), each the median over a backend's rows of the change of a row's median. Likely the
+   layout of the binary causes it, which is not proved, and padding removes only part of it. In a focused run of twelve
+   rounds, `Recognize/Minilang/closure` is 1.11% slower, 0.70% slower with `Parser.Call` and `Machine.step` of the
+   printed build padded to their offsets in the hand-written build, and 0.12% slower with the hand-written build
+   padded to the printed offsets. `Incremental` and `IncrementalLong` rows are not faster, and up to +1.04% slower;
+   `Stream` rows range from -1.76% to +0.52%. Of the engine's functions, only `AdvanceEntry`, `EditMemo` and
+   `Document.Edit` change size, none of them on the path of these rows.
+   `StreamDiagnosticLimit/iterative/codepoints/limit-32` is 0.83% slower here, 0.80% slower in sixteen rounds of
+   500 ms with `complete` 0.55%, and 1.17% slower in the focused run. Padding the printed build so that `Parser.Call`
+   and `Machine.step` start at their offsets in the hand-written build leaves it at 1.34% in the sixteen rounds, and
+   padding the hand-written build to the printed offsets gives 0.22%, so these two offsets do not explain it, and the
+   cause is not identified. `B/op` of the engine rows rises by more than 0.02% only on `Recognize/Recovery/closure`
+   (+2.23%), and `allocs/op` on that row (+2.64%) and on `Parse/XML/closure/codepoints` (+2.47%). A fixed allocation of
+   each run is amortised over `b.N`, which can differ between the builds: at an equal count of iterations the builds
+   agree, within 0.05% in bytes (`Recognize/Recovery/closure` at 25: 478,246 to 478,255 B/op and
+   615 allocs/op; `Parse/XML/closure/codepoints` at 18: 14,081,220 to 14,081,693 B/op and 1,660 or 1,661 allocs/op;
+   `Recognize/Arith_OperatorsRule/closure` at 33: 23,389 to 23,399 B/op and 54 allocs/op). The `zp` binary grows by
+   50,208 bytes: the builders and contracts of the new operations and compositions, which it links because it also
+   generates parsers. Generated parsers run the same code as before: their significant changes range from -1.96% to
+   +0.99%.
 10. **Term evaluation and the value model**, with value operations as host primitives. The stage declares
     `env.bind`, `env.lookup` and `env.key` with their conformance cases, and `env.key` replaces `env.memoKey`.
 
