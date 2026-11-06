@@ -19,6 +19,7 @@ ZeroParse and name the proof.
 | Proof | Shows | Status |
 |:--|:--|:--|
 | [Skip Runs](skip-runs.md) | A reused record of a [skip run](../runtime/parsing.md#skip-runs) gives what the rest of the walk would, and the walks of a site evaluate its element a linear number of times | Proved |
+| [Run Sites](run-sites.md) | A reused record of a [run site](../runtime/parsing.md#run-sites) gives what the rest of the walk would, in the environment of the walk that reuses it, and once a site keeps records its walks evaluate its element a number of times linear in the input plus a constant per walk | Proved for the engine backends; the cost of placing the values of a walk is not bounded |
 | [Memoization](memoization.md) | Answering a call from a memo entry, including the members of a left-recursion cycle and results that depend on the order of evaluation, gives the outcome that evaluating it again would give | Proved, given the assumptions that it lists |
 | [Left-Recursion Growth](left-recursion.md) | The growth of a left-recursive rule at a position ends after at most two more steps than the input it consumes, and gives one result, which every parse gives, including the members of a cycle, several leaders at one position and the dependency memo | Proved, given the assumptions that it lists |
 | [Documents](documents.md) | A parse of a [Document](../runtime/documents.md) after edits, reusing carried memo entries and recorded runs, gives the result of a fresh parse of its text | Proved, given the assumptions that it lists |

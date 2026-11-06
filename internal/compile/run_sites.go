@@ -23,6 +23,11 @@ import "zeroparse.dev/zp/grammar"
 //     left-recursive (a leader or member of a cycle), and contains none of the above;
 //   - it is restartable (restartableRepeats): a repetition that no iteration can reach is walked
 //     from each position at most once, so no walk can reuse another's record.
+//
+// The records of a run site are keyed by the environment, and a walk that reuses one takes its end
+// environment, unless the site is free of the environment (envFree): then the rest of a walk from a
+// position is the same in every environment and leaves the environment as it found it, so its
+// records hold for every environment. Skip-run sites are free of it by their conditions.
 
 // NoRunSites disables the marking of run sites when a program is compiled, for tests and
 // measurements that compare parses with and without them.
@@ -51,6 +56,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 		names[i] = r.Name
 	}
 	restart := restartableRepeats(names, func(n string) grammar.Expr { return prog.ByName[n].Def.Expr }, calls)
+	readsVars := func(n string) bool { r := prog.ByName[n]; return r == nil || len(r.Vars) > 0 }
 	memo := map[*grammar.Repeat]bool{}
 	var eligible func(e *grammar.Repeat) bool
 	eligible = func(e *grammar.Repeat) bool {
@@ -87,9 +93,55 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 				return
 			}
 			prog.NumRunSites++
-			prog.runSites[rep] = prog.NumSkipSites + prog.NumRunSites
+			site := prog.NumSkipSites + prog.NumRunSites
+			prog.runSites[rep] = site
+			if !envFree(rep, readsVars) {
+				for len(prog.envSites) <= site {
+					prog.envSites = append(prog.envSites, false)
+				}
+				prog.envSites[site] = true
+			}
 		}, control)
 	}
+}
+
+// EnvSite reports whether the records of the skip-run or run site are keyed by the environment the
+// walk from a position starts in, and a walk that reuses one takes its end environment.
+func (prog *Program) EnvSite(site int) bool { return site < len(prog.envSites) && prog.envSites[site] }
+
+// EnvFreeMutation, when not zero, leaves a part out of envFree, for the mutation tests of the
+// differential tests of run sites; nothing else sets it.
+var EnvFreeMutation int
+
+// The parts that EnvFreeMutation leaves out.
+const (
+	EnvFreeAll           = 1 + iota // every site is free of the environment
+	EnvFreeCalleesIgnore            // the variables that the called rules read are left out
+)
+
+// envFree reports whether the run site e is free of the environment: neither its element nor a rule
+// that the element calls, directly or indirectly, reads a variable, and the element binds none.
+// readsVars reports whether a rule or the rules it calls read a variable (Rule.Vars). A binding
+// made in a called rule is undone when the rule returns (Interaction With Memoization in
+// spec/language/predicates.md), so only the element's own bindings count; one there would carry
+// into the iterations after it and the environment after the walk. Then the rest of a walk from a
+// position is a function of the position and the input, and ends in the environment it began in.
+func envFree(e *grammar.Repeat, readsVars func(rule string) bool) bool {
+	if EnvFreeMutation == EnvFreeAll {
+		return true
+	}
+	free := true
+	WalkExpr(e.Expr, func(x grammar.Expr) {
+		switch x := x.(type) {
+		case *grammar.Predicate:
+			free = free && !readsOrBindsVariable(x.Term)
+		case *grammar.InlineAction:
+			free = free && !readsOrBindsVariable(x.Action)
+		case *grammar.Ref:
+			free = free && (EnvFreeMutation == EnvFreeCalleesIgnore || !readsVars(x.Name))
+		}
+	})
+	return free
 }
 
 // isScan reports whether e repeats a single character, which a scan walks without a record.

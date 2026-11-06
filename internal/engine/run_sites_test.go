@@ -93,14 +93,23 @@ rule e = ("a" "b" #recover(skip=[z]+))`, "abz!"},
 	{"lookahead and silent walks", `rule main = (!(a "!") "x" / a "!" / [,y])* $$
 rule a = (x ","?)+
 rule x = "x" "y"?`, "xy,!z"},
+	{"a site free of the environment under rebindings", `var n int
+rule main = ({ n := 1 } r "!" / { n := 2 } r "?" / r "#" / [xyzw!?#])* $$
+rule r = ("x" / "yz" / b)*
+rule b = "w" { n := 3 }`, "xyzw!?#"},
+	{"a called rule that reads a variable", `var n int
+rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
+rule r = e*
+rule e = "x" { n < 3 } / "y"`, "xyz!?"},
 }
 
 // runValueInputs are inputs, besides random ones, that reach what a grammar of runValueGrammars is
 // about: here a walk that a record of another environment would answer wrongly.
 var runValueInputs = map[string][]string{
-	"two environments at one position": {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
-	"bindings that a record restores":  {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
-	"errors that a record replays":     {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
+	"two environments at one position":    {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
+	"bindings that a record restores":     {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
+	"errors that a record replays":        {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
+	"a called rule that reads a variable": {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
 }
 
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
@@ -260,8 +269,9 @@ func TestRunSitesReuseRecords(t *testing.T) {
 }
 
 // TestRunSitesBoundValueControls checks that the controls whose repetitions build values (no
-// action in the grammar), among them one with two callers of a repetition, fit a budget that is
-// linear in the input on every backend, and exceed it with plain repetitions.
+// action in the grammar), among them one with two callers of a repetition and one whose walks start
+// in a new environment at each position, fit a budget that is linear in the input on every backend,
+// and exceed it with plain repetitions.
 func TestRunSitesBoundValueControls(t *testing.T) {
 	if !core.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
@@ -269,6 +279,7 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 	cases := []struct{ Name, Src, Input string }{
 		{"E1", "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", strings.Repeat("a", 1000)},
 		{"E7", "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n", strings.Repeat("a", 100)},
+		{"rebindings around a site free of the environment", "var m int\nrule main = (a / \"x\")* [xyz]* $$\nrule a = { m := 0 } w \"!\" / { m := 1 } w \"?\" / { m := 2 } w \"#\"\nrule w = (\"x\" / \"yy\")*\n", strings.Repeat("x", 500) + strings.Repeat("yy", 500)},
 		{"two callers", "@start\nrule main = (\"(\" b \")!\" / \"(\" b \")?\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", strings.Repeat("(", 1000)},
 	}
 	for _, c := range cases {
@@ -316,6 +327,71 @@ func TestRunSitesNegativeControls(t *testing.T) {
 			}
 			core.SkipRecordMutation = 0
 		}
+	}
+	// The sites that the compiler keys by the environment must be keyed by it: a program compiled
+	// with every site free of it, or with the variables of called rules left out, gives other
+	// results than a parse without records.
+	defer func() { compile.EnvFreeMutation = 0 }()
+	for _, tc := range []struct {
+		mutation int
+		grammar  string
+	}{
+		{compile.EnvFreeAll, "two environments at one position"},
+		{compile.EnvFreeAll, "bindings that a record restores"},
+		{compile.EnvFreeCalleesIgnore, "a called rule that reads a variable"},
+	} {
+		for _, g := range runValueGrammars {
+			if g.Name != tc.grammar {
+				continue
+			}
+			// (The mutation stays on while the backends build their programs.)
+			compile.EnvFreeMutation = tc.mutation
+			prog := mustCompile(t, g.Src)
+			inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), runValueInputs[g.Name]...)
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) == 0 {
+					t.Errorf("compile mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
+				}
+			}
+			compile.EnvFreeMutation = 0
+		}
+	}
+}
+
+// TestRunSitesKeyedByEnvironment checks which sites the compiler keys by the environment: those
+// whose element reads or binds a variable, or calls a rule that reads one, directly or indirectly.
+// A binding in a called rule is undone when it returns and keys nothing, and a skip-run site never
+// reads or binds one.
+func TestRunSitesKeyedByEnvironment(t *testing.T) {
+	for _, c := range []struct {
+		name, src string
+		keyed     bool
+	}{
+		{"no variables", "rule main = (r \"!\" / [xy])* $$\nrule r = (\"x\" / \"yy\")*", false},
+		{"a rebinding outside the site", "var m int\nrule main = ({ m := 1 } r \"!\" / [xy])* $$\nrule r = (\"x\" / \"yy\")*", false},
+		{"a predicate that reads in the element", "var m int\nrule main = (r \"!\" / [xy])* $$\nrule r = (\"x\" { m == 0 } / \"yy\")*", true},
+		{"a binding in the element", "var m int\nrule main = (r \"!\" / [xy])* $$\nrule r = (\"x\" { m := 1 } / \"yy\")*", true},
+		{"a called rule that reads", "var m int\nrule main = (r \"!\" / [xy])* $$\nrule r = e*\nrule e = \"x\" { m == 0 } / \"yy\"", true},
+		{"a rule called indirectly that reads", "var m int\nrule main = (r \"!\" / [xy])* $$\nrule r = e*\nrule e = f / \"yy\"\nrule f = \"x\" { m == 0 }", true},
+		{"a called rule that binds", "var m int\nrule main = (r \"!\" / [xy])* $$\nrule r = e*\nrule e = \"x\" { m := 1 } / \"yy\"", false},
+	} {
+		prog := mustCompile(t, c.src)
+		if prog.NumRunSites != 1 {
+			t.Fatalf("%s: %d run sites, want 1", c.name, prog.NumRunSites)
+		}
+		site := prog.NumSkipSites + 1
+		if got := prog.EnvSite(site); got != c.keyed {
+			t.Errorf("%s: keyed by the environment %v, want %v", c.name, got, c.keyed)
+		}
+	}
+	prog := mustCompile(t, "var m int\nrule main = (({ m := 1 } \"a\" \"b\") #recover(skip=[^;]* \";\"))* $$")
+	for site := 1; site <= prog.NumSkipSites; site++ {
+		if prog.EnvSite(site) {
+			t.Errorf("skip-run site %d is keyed by the environment", site)
+		}
+	}
+	if prog.NumSkipSites == 0 {
+		t.Errorf("no skip-run site")
 	}
 }
 

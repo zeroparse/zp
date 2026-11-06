@@ -72,6 +72,8 @@ type Program struct {
 	// runSites numbers the run sites (run_sites.go) after the skip-run sites, NumRunSites of them.
 	runSites    map[*grammar.Repeat]int
 	NumRunSites int
+	// envSites[site] reports that the records of the site are keyed by the environment (EnvSite).
+	envSites []bool
 }
 
 // Options configures compilation.

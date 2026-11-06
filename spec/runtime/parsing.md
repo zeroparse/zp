@@ -606,22 +606,32 @@ repetition for which all of the following hold:
 The result of the rest of a walk from a position is a function of the
 position, the variables and the input: an iteration reads the variables that
 its predicates and the rules it calls read, and the captures of a repetition
-element are visible to the iteration alone. A record is therefore kept for a
-position and the environment (the values of the variables) in which the walk
-started there, and a walk reuses it only in the same environment: a record
-for the same position in another environment is neither used nor replaced, so
-the environments of two walks at a position never share a record. Two
+element are visible to the iteration alone. A run site is **free of the
+environment** when its expression has no predicate that reads or binds a
+variable and calls no rule that reads one, directly or indirectly. A binding
+made in a called rule is undone when the rule returns, so the rest of a walk
+of such a site is a function of the position and the input, and it ends in
+the environment it began in. Its records are kept by position alone, and a
+walk that reuses one keeps its own environment. Skip-run sites are free of
+the environment by their conditions.
+
+The records of any other run site are kept for a position and the
+environment (the values of the variables) in which the walk started there,
+and a walk reuses one only in the same environment: a record for the same
+position in another environment is neither used nor replaced, so the
+environments of two walks at a position never share a record. Two
 environments are the same if they are the same object (bindings that leave a
 variable's value alone leave the environment as it is, and equal environments
 that were built separately differ). A walk under a freshly rebound but equal
 environment therefore does not reuse the records of a walk under the earlier
 one, and a grammar that rebinds a variable to the same new value at each
-position can cost more than linear in the input even when its sites keep
-records.
+position, and walks a site that is not free of the environment there, can
+cost more than linear in the input even when its sites keep records.
 
 Besides what a record of a skip-run site holds, it holds
-- the environment at the end of the rest of the walk, which the parse takes
-  as its own when a walk reuses the record;
+- for a site that is not free of the environment, the environment at the end
+  of the rest of the walk, which the parse takes as its own when a walk reuses
+  the record;
 - the elements of the rest of the walk, for a run site whose iterations have
   values: a walk that reuses the record lists them after its own elements. The
   list a walk returns and the records of its positions share one sequence of
@@ -651,7 +661,9 @@ limit succeeds can depend on records.
 The walks of run sites nest: the expression of a site can call rules that walk
 sites of their own, and the walks in progress are a stack. Records never
 change the result of a parse, and they last for one parse, as those of skip
-runs do. In a parse of an [incremental document](documents.md) outside a
+runs do. The [Run Sites](../proofs/run-sites.md) proof shows that a reused
+record gives what the rest of the walk would, and bounds the evaluations of a
+site's element. In a parse of an [incremental document](documents.md) outside a
 lookahead, a run site that the document can resume is resumed as before.
 
 ### Classes of Growth
