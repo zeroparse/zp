@@ -61,9 +61,9 @@ var goSpecs = []goSpec{
 	{fn: "observed", typed: true, on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved", body: "invokePlainBody"},
 	// The tracked path of the node runtime: the rule call of a Document parse, the unmemoized and
 	// memoized calls, the call without observation, and the entry of the path.
-	{fn: "document", on: []string{ops.Document}, name: "callDocument"},
+	{fn: "document", on: []string{ops.Document, ops.Budget}, name: "callDocument"},
 	{fn: "unmemoized", name: "callUnmemoized"},
-	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo"},
+	{fn: "memoized", on: []string{ops.Document, ops.Observe, ops.Budget}, name: "callMemo"},
 	{fn: "body", on: []string{ops.Document, ops.Budget}, name: "callBody"},
 	{fn: "tracked", on: []string{ops.Document, ops.Observe}, name: "callTracked"},
 	// The rule call of a Document parse in the typed runtime.
@@ -290,6 +290,10 @@ func goTarget(s goSpec) *execgo.Target {
 				return "p.Spend()"
 			}
 			return "p.Control.Charge(" + a[0] + ")"
+		case "budget.freeBegin":
+			return "p.Control.FreeBegin(" + a[0] + ")"
+		case "budget.freeEnd":
+			return "p.Control.FreeEnd(" + a[0] + ")"
 		case "call.first":
 			return "p.FirstCall(" + rule(a[0]) + ")"
 		case "rule.memo":

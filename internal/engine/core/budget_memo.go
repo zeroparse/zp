@@ -45,6 +45,18 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 		return p.Memo.Get(k)
 	}
 	p.Spend()
+	// The search of the chains is work of the Document: they hold the entries of earlier texts and
+	// of rules that only a Document memoizes, in an order that differs from the one of a parse from
+	// scratch, so the unit that opens the lookup is the one that a parse from scratch has too.
+	fm := p.FreeBegin(p.MemoAll)
+	e, ok := p.memoChainGet(k)
+	p.FreeEnd(fm)
+	return e, ok
+}
+
+// memoChainGet searches the chain of memo entries at the position of k, through the index if the
+// chain is long.
+func (p *Parser) memoChainGet(k MemoKey) (*MemoEntry, bool) {
 	t := p.Memo
 	i := k.Pos - t.Base
 	if i >= t.Gap {
@@ -111,6 +123,8 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	if i >= t.Gap {
 		i += t.GapLen
 	}
+	// The search of the chain and the growth of the slots are work of the Document, as in MemoGet.
+	fm := p.FreeBegin(p.MemoAll)
 	slots := t.Slots
 	if i >= len(slots) {
 		p.growthSpend(len(slots), i+1)
@@ -161,6 +175,7 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 			ixSlot, _ = ix.probe(h, func(y *MemoEntry) bool { return y == replaced })
 		}
 	}
+	p.FreeEnd(fm)
 	p.Spend()
 	// No checkpoint may separate the link swap from retiring its old entry.
 	// In particular, do not publish a partially copied slot array or key.

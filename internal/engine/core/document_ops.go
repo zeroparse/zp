@@ -31,6 +31,8 @@ func EditMemo(t *MemoTable, edits []DocEdit, ed DocEdit) []DocEdit {
 // and to one after it at the same time. Empty nodes are therefore never modified; they are
 // copied, moving with the node that contains them (or, at the root, with the memo entry).
 func (p *Parser) moveResult(e *MemoEntry) {
+	// Moving values is work of the Document that a parse from scratch does not do.
+	defer p.FreeEnd(p.FreeBegin(true))
 	n := e.Node
 	p.moveBase, p.baseShift = e.Gen, int(e.shift)
 	e.Gen, e.shift, e.shifted = p.Gen, 0, false
@@ -160,6 +162,7 @@ func (p *Parser) moveDescendant(c *value.Node, gen uint32, shift int) *value.Nod
 // moveValue moves the nodes of the value v of an element recorded in the generation base by
 // shift, as moveResult moves the result of a memo entry, and returns it or its copy.
 func (p *Parser) moveValue(v *value.Node, shift int, base uint32) *value.Node {
+	defer p.FreeEnd(p.FreeBegin(true))
 	if v == nil {
 		return nil
 	}

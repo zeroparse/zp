@@ -1,5 +1,7 @@
 package core
 
+import "zeroparse.dev/zp/internal/value"
+
 // The engine's implementations of the operations of the call protocol that its printed
 // compositions call (call_exec.go, printed from internal/ir/exec/core): the call state, the context
 // state of a memoized call, the bit of an expectation in the filter of the current record (expBit) and
@@ -39,6 +41,44 @@ func (p *Parser) GrowKey(r *Rule, min int) MemoKey {
 // in the parse (Memoizes).
 func (p *Parser) memoized(r *Rule) bool {
 	return r.Memo && (!r.Transient || p.MemoAll) && !(p.Missing != nil && r.Missing)
+}
+
+// DocCallSpend charges the unit of a call that the call protocol of the iterative machine makes
+// (the charge of Call): Document work for a rule whose plain body a parse from scratch calls
+// directly.
+func (p *Parser) DocCallSpend(r *Rule) {
+	m := p.FreeBegin(r.Plain)
+	p.Spend()
+	p.FreeEnd(m)
+}
+
+// DirectCall reports whether the call of r runs its body unmemoized, as the test of Call does:
+// the rule is not memoized, or its memoization is deferred. In a Document parse the memo protocol
+// is Document work.
+func (p *Parser) DirectCall(r *Rule) bool {
+	if !p.MemoAll {
+		return !p.Memoizes(r) || p.FirstCall(r)
+	}
+	m := p.FreeBegin(true)
+	direct := !p.Memoizes(r) || p.FirstCall(r)
+	p.FreeEnd(m)
+	return direct
+}
+
+// CallBeginDoc is CallBegin as the iterative machine makes it: in a Document parse, Document work.
+func (p *Parser) CallBeginDoc(r *Rule, min int, st *CallState) (*value.Node, bool, bool) {
+	m := p.FreeBegin(p.MemoAll)
+	v, ok, hit := p.CallBegin(r, min, st)
+	p.FreeEnd(m)
+	return v, ok, hit
+}
+
+// CallEndDoc is CallEnd as the iterative machine makes it (CallBeginDoc).
+func (p *Parser) CallEndDoc(r *Rule, st *CallState, v *value.Node, ok bool) (*value.Node, bool) {
+	m := p.FreeBegin(p.MemoAll)
+	v, ok = p.CallEnd(r, st, v, ok)
+	p.FreeEnd(m)
+	return v, ok
 }
 
 // tracing reports whether a call takes the traced path: in a traced parse, except for the call

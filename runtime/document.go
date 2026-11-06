@@ -48,7 +48,7 @@ func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err
 		return nil, err
 	}
 	defer recoverParse(&d, &err)
-	o = prepareText(o, text)
+	o = prepareText(o, text).forDocument()
 	// Construction performs the same input decoding and budget checks as a parse,
 	// but its counters do not carry into subsequent invocations.
 	p := &Parser{unit: o.unit, Control: o.control}
@@ -80,7 +80,11 @@ func (d *Document) Edit(start, end int, text string) error {
 		return err
 	}
 	if d.typedMemo != nil {
-		d.typedMemo.splice(ed)
+		if d.State.pending > pendingEditLimit {
+			d.typedMemo = nil
+		} else {
+			d.typedMemo.splice(ed)
+		}
 	}
 	return nil
 }
@@ -295,7 +299,14 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 	// Build the replacement before changing either text or memo. Invalid UTF-8
 	// bytes are preserved, and a replacement may complete an existing prefix.
 	d.text = d.text[:startByte] + replacement + d.text[endByte:]
-	d.memo.splice(ed)
+	d.pending++
+	if d.pending > pendingEditLimit {
+		// The edits that the memo would keep up with cost more than parsing again: the next parse
+		// starts without the memo, as a parse from scratch does.
+		d.memo = memoTable{}
+	} else {
+		d.memo.splice(ed)
+	}
 	return ed, nil
 }
 
@@ -362,6 +373,14 @@ func (t *memoTable) splice(ed documentEdit) {
 	}
 	*t = kept
 }
+
+// pendingEditLimit is the number of edits after which a Document drops its memo until the next parse.
+// An edit applies to the memo when it is made, at a cost in proportion to the memo, and a memo that
+// many edits old reuses little; a parse without it costs what a parse from scratch costs, so the work
+// that edits give a parse stays within a constant factor of that cost. The engine applies edits to the
+// memo entries when a parse looks them up, and treats an entry that lags behind by more edits than this
+// as absent; the two limits are equal.
+const pendingEditLimit = 128
 
 // moveMarkLimit is the number of moves after which a parse starts without the memo of the Document,
 // and numbers the moves from 1 again. A parse moves each entry of the memo at most once, so it makes
@@ -561,7 +580,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	if d.root == nil {
 		return res, fmt.Errorf("document start rule is missing")
 	}
-	o = prepareText(o, d.text)
+	o = prepareText(o, d.text).forDocument()
 	if o.control != nil && o.control.limits.Memory != 0 && d.memo.chargedBytes() > o.control.limits.Memory {
 		// The retained memo alone exceeds the limit: the parse starts without it.
 		d.memo = memoTable{}
@@ -581,6 +600,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 		d.memo, d.moves = memoTable{}, 0
 	}
 	p.Document, p.memo = d, d.memo
+	d.pending = 0
 	o.control.attachMemory(p)
 	d.stats = documentStats{}
 	defer func() {
@@ -615,6 +635,8 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 // entries. Strings are immutable, but the error objects and slice containers
 // must not be shared with a later invocation.
 func publishDocumentError(p *Parser, err error) error {
+	// The copy is work that only a Document parse does.
+	defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	switch e := err.(type) {
 	case SyntaxErrors:
 		if e == nil {

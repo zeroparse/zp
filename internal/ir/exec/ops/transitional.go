@@ -151,6 +151,7 @@ stream, or for a rule without a seen index).`})
 		{"rule.leader", "Reports whether the rule leads a left-recursive cycle."},
 		{"rule.plain", "Reports whether the rule has no captures, so that its plain body serves its invocation."},
 		{"rule.docMemo", "Reports whether a Document parse memoizes the rule."},
+		{"rule.docPlain", "Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol."},
 		{"rule.positional", "Reports whether the results of the rule may depend on positions, not only on the input they examine."},
 	} {
 		add(&exec.Op{Name: a.name, Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TBool}, Contract: a.doc})

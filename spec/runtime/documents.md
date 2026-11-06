@@ -204,9 +204,15 @@ retain, shift, drop or recompute any intermediate result, provided that every
 parse returns what a parse of the current text from scratch returns. Reuse is
 observable only through the statistics. In the engine, a lookup that finds a memo entry
 applies the edits since the entry was stored or last found, and counts one unit of Compute
-for each edit it applies; the [linear cost proof](../proofs/linear-cost.md#setting) bounds
-them by the length of the edit log. Generated runtimes apply each edit to every entry at
-once, and a lookup there applies none.
+for each edit it applies, against an explicit `Compute` limit only
+([Default Limits](parsing.md#default-limits)). An entry that lags behind by more than 128
+edits is treated as absent and the call evaluates again, so a lookup applies at most 128 edits and the
+[linear cost proof](../proofs/linear-cost.md#setting) bounds their work by that
+constant. Generated runtimes apply each edit to every entry at once, and a lookup there applies none;
+after more than 128 edits since the last parse they drop the memo instead, and the next parse
+evaluates every rule, as a parse from scratch does. The number 128 is where reuse stops
+paying when the edits are spread over the whole text; it is a constant of the
+implementation and the only observable effect of passing it is in the statistics.
 
 A result that read the growing result of a left recursion in progress when it
 started depends on that growth, not only on the text. A parse keeps it only

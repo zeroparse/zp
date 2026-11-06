@@ -91,9 +91,17 @@ A stream does not know `n`, and its default budget is $B_t = \max(2^{20},
 1024\,d_t)$, where $d_t$ is the number of units up to the furthest position
 that the parser has demanded from the stream at the time of the reservation.
 It never shrinks, and it depends on the input and the grammar, not on how the
-reader splits the input. So for a stream $B$ is a function of the point of the
-reservation, written $B_i$ at the $i$th reservation, and a constant for every
-other invocation.
+reader splits the input. A Document parse under the default budget leaves out
+the work that only a Document does (its **Document units**: the memo protocol of a
+call, which includes the walks of chains of memo entries, the application of
+pending edits, the moves of reused values, the recorded runs, and the copy of
+the diagnostics): the
+reservation of $d$ Document units raises $B$ by $d$ before it is made, and a
+limit error reports $B - \delta$ and $u - \delta$ for the $\delta$ Document units reserved so
+far. An explicit budget counts every unit, and then $B$ is constant. So for a
+stream and for a Document under the default budget $B$ is a function of the
+point of the reservation, written $B_i$ at the $i$th reservation, and never
+shrinks, and a constant for every other invocation.
 
 A **reservation** of $n$ units is made before the work it covers. A
 **checkpoint** observes the context without reserving. The interval of polling
@@ -115,7 +123,7 @@ error, raised by the reservation or the checkpoint before it returns.
 
 The charge sequence of an invocation is the sequence $n_1, n_2, \dots$ of its
 reservations, in order, together with the positions of its checkpoints among
-them.
+them and, for a Document, which of the reservations are of Document units.
 
 ## Assumptions
 
@@ -360,7 +368,8 @@ therefore gives the result of parsing the current text from scratch (C5).
 Let two invocations have the same limits $B_i$ and the same charge sequence.
 Without a context, the invocations are interrupted at the same reservation
 $i$, the least $i$ with $\sum_{j \le i} n_j > B_i$ (if there is one), with the
-same limit error: limit $B_i$, used $\sum_{j < i} n_j$, requested $n_i$. With a
+same limit error: limit $B_i$, used $\sum_{j < i} n_j$, requested $n_i$ (a Document under the
+default budget reports each of the first two less the Document units reserved before $i$). With a
 context, the reservations at which the context is observed are the same in
 both: those with $s_{i-1} + n_i \ge I$ and the checkpoints.
 
@@ -369,7 +378,8 @@ effect, so by Lemma 1 the counter is $u_i = \sum_{j \le i} n_j$ until the first
 reservation at which $u_{i-1} + n_i > B_i$, which interrupts with the error of
 step 3. $B_i$ is a constant, or for a stream a function of the demand so far,
 which is the same in both invocations because it depends on the input and
-the grammar. The counters $s_i$ are a function of the sequence and of the
+the grammar, or for a Document under the default budget a function of the Document units
+among the reservations before $i$, which the charge sequence holds. The counters $s_i$ are a function of the sequence and of the
 checkpoints, so the reservations that poll are fixed by them. Whether the
 context has an error at such an observation depends on time, which is the one
 input of a cancellation that the charge sequence does not fix. $\square$

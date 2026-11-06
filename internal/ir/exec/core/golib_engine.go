@@ -290,6 +290,12 @@ func engineTarget() *execgo.Target {
 				return "p.Spend()"
 			}
 			return "p.SpendN(" + a[0] + ")"
+		case "budget.freeBegin":
+			return "p.FreeBegin(" + a[0] + ")"
+		case "budget.freeEnd":
+			return "p.FreeEnd(" + a[0] + ")"
+		case "rule.docPlain":
+			return a[0] + ".Plain"
 		case "call.tracked":
 			return "p.Tr != nil && p.tracing()"
 		case "call.track":
