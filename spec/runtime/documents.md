@@ -96,9 +96,11 @@ a caller's mutation cannot change memoized errors or a later parse. Ordinary par
 failures are newly constructed; caller-supplied errors such as `Context.Err` keep
 their identity. This does not detach the mutable `Node` graph, which MAY share
 nodes with the document, and nodes that an earlier parse returned MAY be moved in
-place by a later one. A later parse that is interrupted while it moves them can leave
-a tree from an earlier parse partly moved, and no later parse moves it again; the
-positions in such a tree are unspecified (take a `Clone` to keep a tree as it was).
+place by a later one. A later parse moves only the nodes it reuses, so even when it
+completes a tree from an earlier parse can be left partly moved, and when it is
+interrupted while it moves them no later parse moves them again. The positions in a
+tree from an earlier parse are unspecified once a parse after an edit has started; to
+keep a tree as it was, take a `Clone` before that parse.
 Typed values returned by a generated parser's
 `Document.ParseAST` are read-only and shared with the document and earlier results;
 its generated `CloneAST` returns an independent copy (see
@@ -200,9 +202,11 @@ recovered errors are completed outcomes and keep their reusable caches.
 Reuse is a performance property, not a result property. An implementation MAY
 retain, shift, drop or recompute any intermediate result, provided that every
 parse returns what a parse of the current text from scratch returns. Reuse is
-observable only through the statistics. A lookup that finds a memo entry applies the
-edits since the entry was stored or last found, and counts one unit of Compute for each
-edit it applies; the [linear cost proof](../proofs/linear-cost.md#setting) bounds them by the length of the edit log.
+observable only through the statistics. In the engine, a lookup that finds a memo entry
+applies the edits since the entry was stored or last found, and counts one unit of Compute
+for each edit it applies; the [linear cost proof](../proofs/linear-cost.md#setting) bounds
+them by the length of the edit log. Generated runtimes apply each edit to every entry at
+once, and a lookup there applies none.
 
 A result that read the growing result of a left recursion in progress when it
 started depends on that growth, not only on the text. A parse keeps it only

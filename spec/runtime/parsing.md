@@ -344,12 +344,18 @@ stream `text` costs the length of its result. Comparing two strings examines
 no more than the shorter one, so it costs at most the length of the shorter
 operand, plus a constant.
 
-Time is proportional to cost. The memory that a parse allocates is at most
-proportional to its cost plus the input, because each memo entry, node and
-value is built by cost that is counted. The cost of a parse is measured in
-compute units, which differ between backends, and the budget of
-[compute limits](#cancellation-and-compute-limits) caps it. The
-[memory limit](#memory-limit) caps the storage a parse takes into use in bytes.
+Outside a [Document](documents.md), time is proportional to cost. The memory
+that a parse allocates is at most proportional to its cost plus the input,
+because each memo entry, node and value is built by cost that is counted. The
+cost of a parse is measured in compute units, which differ between backends, and
+the budget of [compute limits](#cancellation-and-compute-limits) caps it. A parse
+of a Document also does work that the cost does not count: it applies pending
+edits to the memo entries it finds, moves the values it reuses, and works through
+what the Document retains from earlier parses. Its time and its compute units
+include that work, and the budget caps them with it, so they are not proportional
+to its cost; the [linear cost proof](../proofs/linear-cost.md#corollary-compute-of-a-document-parse)
+states their bound. The [memory limit](#memory-limit) caps the storage a parse
+takes into use in bytes.
 
 ### Termination
 
@@ -1389,7 +1395,10 @@ reason:
 ### Memory
 
 - **Memo table.** It holds at most one entry per memoized rule, position,
-  binding level and combination of variable values. While growths are in
+  binding level and combination of variable values, and a lookup finds one. The
+  table of a [Document](documents.md) keeps the entries of earlier parses, and
+  a deletion can bring entries of one key to a position, at most one more for
+  each edit since the table was last dropped. While growths are in
   progress at a position, the results there that read their growing results
   are kept apart, one for each combination of the growing results and
   lookahead outcomes that they read, and dropped when the first of those

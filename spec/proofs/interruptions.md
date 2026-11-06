@@ -307,9 +307,10 @@ Let an invocation be interrupted. The state that outlives it is one of:
    before the entry changes (an entry that is a seed of a growth is returned
    as invalid without a charge, and no edit is applied to it), so a reservation
    that interrupts it leaves the entry as it was, in a table that is discarded
-   in any case. Moving a value in place has no such order: an interruption can
-   leave some nodes moved and others not, while the entry that refers to them
-   still holds its old positions. The interrupted parse therefore discards the
+   in any case. Moving a value in place has no such order: `moveResult` first
+   records in the entry that its value is current, and an interruption can then
+   leave some nodes of the value moved and others not, so the entry claims
+   positions that its value does not all have. The interrupted parse therefore discards the
    table and the runs, as it does for the entries that depend on a growth that
    had not ended (C5), and no later parse reads a node that was moved in part.
 4. **Program-level state** that is built once, outside the charge, such as
