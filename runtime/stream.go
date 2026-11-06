@@ -271,7 +271,7 @@ func (p *Parser) streamSettleErrors() {
 	// the start rule's call saved an empty one, and the element marks
 	// are no longer active. Memo entries own copies of their lists.
 	if cap(p.Recovered) <= streamRecoveryScratchMax {
-		clear(p.Recovered[:cap(p.Recovered)])
+		clearSpend(p, p.Recovered[:cap(p.Recovered)])
 		p.Recovered = p.Recovered[:0]
 	} else {
 		p.Recovered = nil

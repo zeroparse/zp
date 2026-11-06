@@ -98,6 +98,9 @@ handle Scope of env
 handle Rule of rules
   // A rule's descriptor.
 
+handle Err of recovered
+  // A syntax error that a recovery made.
+
 handle Body of rules
   // The invocation of a rule's body that a generated call passes.
 
@@ -433,6 +436,68 @@ op env.key(r Rule) Values
     // reads no variable has an empty key, which costs nothing: the charge pays for reading values, and the call
     // paid for itself.
 
+op rec.mark() int
+  component recovered
+  reads recovered
+  cost <= 0
+  contract:
+    // Returns the number of recovered errors, which rec.truncate and rec.since take.
+
+op rec.push(e Err)
+  component recovered
+  writes recovered
+  cost <= 0
+  contract:
+    // Records e after the recovered errors.
+
+op rec.truncate(mark int)
+  component recovered
+  writes recovered
+  cost <= 0
+  contract:
+    // Drops the errors recovered after the mark.
+  requires:
+    // mark is at most the number of recovered errors.
+
+op rec.since(mark int) Errs
+  component recovered
+  reads recovered
+  writes recovered
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Returns a copy of the errors recovered after the mark: later writes of the list do not change
+    // it.
+  requires:
+    // mark is at most the number of recovered errors.
+
+op rec.add(errs Errs)
+  component recovered
+  writes recovered
+  noreturn
+  cost <= 0 + 1*errs
+  contract:
+    // Records the errors again, after the recovered errors.
+
+op rec.none(errs Errs) bool
+  component recovered
+  cost <= 0
+  contract:
+    // Reports whether the list of errors is empty.
+
+op stream.settleErrors()
+  component recovered
+  writes recovered
+  features stream
+  noreturn
+  cost <= 16
+  contract:
+    // Forgets the recovered errors, which were delivered and collected, and counts none as delivered.
+    // It charges one unit for each slot it clears of the scratch it keeps for the next element, which holds at
+    // most 16; a larger list is released without clearing it.
+  requires:
+    // The parse retains the tail (stream.tail), and no call holds a mark of the list.
+
 transitional op call.tracked() bool
   component call
   reads call
@@ -533,45 +598,6 @@ transitional op rule.run(inv Body) (Value, bool)
   cost <= 0
   contract:
     // Runs the invocation inv of a rule at binding level 0 and returns its result.
-
-transitional op rec.mark() int
-  component recovered
-  reads recovered
-  cost <= 0
-  contract:
-    // Returns the number of recovered errors, which rec.truncate and rec.since take.
-
-transitional op rec.truncate(mark int)
-  component recovered
-  writes recovered
-  cost <= 0
-  contract:
-    // Drops the errors recovered after the mark.
-
-transitional op rec.since(mark int) Errs
-  component recovered
-  reads recovered
-  writes recovered
-  noreturn
-  cost <= 0 + 1*errs
-  contract:
-    // Returns a copy of the errors recovered after the mark, charging their copy as the target charges
-    // copies of values.
-
-transitional op rec.add(errs Errs)
-  component recovered
-  writes recovered
-  noreturn
-  cost <= 0 + 1*errs
-  contract:
-    // Records the errors again, after the recovered errors, charging their copy as the target
-    // charges copies of values.
-
-transitional op rec.none(errs Errs) bool
-  component recovered
-  cost <= 0
-  contract:
-    // Reports whether the list of errors is empty.
 
 transitional op exp.isolate(pos int) ExpMark
   component expected
@@ -1362,19 +1388,6 @@ host op run.finish(r Run)
   contract:
     // Records the run of a repetition that matched for the next parse, unless it is too short, or recovered
     // errors, or read the seed of a growth.
-
-transitional op stream.settleErrors()
-  component window
-  reads window
-  writes window
-  features stream
-  noreturn
-  cost <= 16
-  contract:
-    // Forgets the recovered errors before the boundary, which were delivered and collected, keeping at
-    // most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.
-  requires:
-    // The parse retains the tail (stream.tail).
 
 transitional op term.eval(t Term) (Datum, bool)
   component host

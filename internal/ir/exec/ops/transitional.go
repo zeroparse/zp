@@ -41,9 +41,6 @@ const (
 const (
 	// QSet is the number of expectations of the set that the call takes.
 	QSet = "set"
-	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
-	// recovered after its mark.
-	QErrs = "errs"
 	// QMerge is the units that the compositions over the expectation record (keep, mergeKept,
 	// mergeExpected, and the calls of expect they make) charge for the sets that the call keeps or
 	// merges.
@@ -166,22 +163,6 @@ position on failure.`})
 	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", body)}, Results: result,
 		Writes: append([]string{Rules}, regs...), NoReturn: true,
 		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result.`})
-
-	recMark := []exec.Param{exec.P("mark", exec.TInt)}
-	add(&exec.Op{Name: "rec.mark", Component: Rec, Results: []exec.Type{exec.TInt}, Reads: []string{Rec},
-		Contract: `Returns the number of recovered errors, which rec.truncate and rec.since take.`})
-	add(&exec.Op{Name: "rec.truncate", Component: Rec, Params: recMark, Writes: []string{Rec},
-		Contract: `Drops the errors recovered after the mark.`})
-	add(&exec.Op{Name: "rec.since", Component: Rec, Params: recMark, Results: []exec.Type{errs}, Reads: []string{Rec},
-		Writes: []string{Rec}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
-		Contract: `Returns a copy of the errors recovered after the mark, charging their copy as the target charges
-copies of values.`})
-	add(&exec.Op{Name: "rec.add", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Writes: []string{Rec},
-		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
-		Contract: `Records the errors again, after the recovered errors, charging their copy as the target
-charges copies of values.`})
-	add(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
-		Contract: `Reports whether the list of errors is empty.`})
 
 	add(&exec.Op{Name: "exp.isolate", Component: Exp, Params: []exec.Param{exec.P("pos", exec.TInt)}, Results: []exec.Type{mark},
 		Writes:   []string{Exp},
@@ -392,18 +373,11 @@ so far, exclusive.`, Requires: inDoc})
 		Contract: `Calls the rule at the binding level min without observation: the call, or the plain invocation,
 that the target's observed function wraps.`})
 
-	// The host operations of the stream window, and the settling of its recovered errors.
-	stream := []string{Stream}
+	// The host operations of the stream window.
 	streamWindow(m, value)
 	documentMove(m)
 	documentEdits(m)
 	documentRuns(m, value)
-	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
-		Features: stream, NoReturn: true, Cost: exec.Cost{Const: 16},
-		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected, keeping at
-most 16 slots of scratch for the next element. It is transitional: recovery bookkeeping has no Exec IR form.`,
-		Requires: `The parse retains the tail (stream.tail).`})
-
 	addTerms(m, add)
 	splitCall(m, add, rule, values, ctx, mark, entry)
 	framesAndOperators(m, add, rule, value, errs)

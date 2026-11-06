@@ -13,7 +13,8 @@ import (
 
 var allOps = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "memo.prune", "memo.floor", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice", "seen.first",
 	"budget.charge", "budget.used", "depth.enter", "depth.exit", "depth.current",
-	"env.lookup", "env.bind", "env.scope", "env.restore", "env.key"}
+	"env.lookup", "env.bind", "env.scope", "env.restore", "env.key",
+	"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
 
 // modelImpl is the reference model run as an implementation: every case must pass on it.
 type modelImpl struct{ *ref.Model }
@@ -23,6 +24,8 @@ func (m modelImpl) Values(id int64) any { return m.Model.Values(id) }
 func (m modelImpl) Datum(id int64) any { return ref.Datum{ID: id} }
 
 func (m modelImpl) Rule(index int64) any { return ref.RuleRef{Index: index} }
+
+func (m modelImpl) Err(id int64) any { return &ref.Err{ID: id} }
 
 // mutant breaks one operation of the model.
 type mutant struct {
@@ -127,7 +130,18 @@ func modelMutants() map[string]mutant {
 			a[8] = nil
 			return m.Call(Module().Op("memo.store"), a)
 		}},
-		"bind changes nothing": {op: "env.bind", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"push drops the error":      {op: "rec.push", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"truncate keeps everything": {op: "rec.truncate", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"truncate drops one error too many": {op: "rec.truncate", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("rec.truncate"), []any{max(a[0].(int64)-1, 0)})
+		}},
+		"since leaves out the first error": {op: "rec.since", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("rec.since"), []any{min(a[0].(int64)+1, int64(len(m.Recovered())))})
+		}},
+		"add records nothing":       {op: "rec.add", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"none is always true":       {op: "rec.none", edit: func(m *ref.Model, a []any) []any { return []any{true} }},
+		"settling keeps the errors": {op: "stream.settleErrors", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"bind changes nothing":      {op: "env.bind", edit: func(m *ref.Model, a []any) []any { return nil }},
 		"bind of an equal value makes a new environment": {op: "env.bind", edit: func(m *ref.Model, a []any) []any {
 			op := Module().Op("env.bind")
 			was := m.Call(Module().Op("env.lookup"), a[:1])[0]
