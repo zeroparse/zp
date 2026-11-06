@@ -279,6 +279,41 @@ var chargedElsewhere = map[string]string{
 	"stream.settleErrors": "the engine charges one unit for each slot of the error scratch it clears",
 }
 
+// engineOnly are the host operations that the generated Go runtime has no form of. Runs and the edits
+// that a memo applies when it finds an entry exist in the engine alone, whose tests measure the charges
+// of each: TestRunOperationsChargeTheirDeclaredWork, TestMemoLookupChargesItsPendingEdits and the
+// conformance suites of the engine's Document memo. Those that declare no cost are read in printed code,
+// where TestEngineEditFormsCallNothing holds them to their fields.
+var engineOnly = map[string]bool{"memo.seed": true, "memo.from": true, "memo.pinned": true, "memo.shifted": true, "memo.applied": true,
+	"memo.advance": true, "edit.count": true, "edit.start": true, "edit.end": true, "edit.delta": true,
+	"run.start": true, "run.prefix": true, "run.resync": true, "run.tail": true, "run.begin": true, "run.end": true, "run.finish": true}
+
+// TestEngineEditFormsCallNothing holds the forms of the operations that the engine reads while it
+// applies an edit to an entry to fields and conversions: they declare no cost, and memoAdvance charges
+// for the edit.
+func TestEngineEditFormsCallNothing(t *testing.T) {
+	tg := engineTarget()
+	for name := range engineOnly {
+		if strings.HasPrefix(name, "run.") {
+			continue
+		}
+		op := Build().Op(name)
+		if op.Cost.Const != 0 || len(op.Cost.Terms) != 0 {
+			t.Errorf("%s declares cost %s", name, op.Cost)
+		}
+		args := make([]string, len(op.Params))
+		for i := range args {
+			args[i] = fmt.Sprintf("a%d", i)
+		}
+		form := tg.Op(&exec.Call{Callee: name}, args)
+		for _, m := range goCallee.FindAllStringSubmatch(form, -1) {
+			if m[1] != "" || m[2] != "int" && m[2] != "int32" && m[2] != "uint32" && m[2] != "len" {
+				t.Errorf("%s calls %s: %s", name, m[0], form)
+			}
+		}
+	}
+}
+
 // runsGrammar are the transitional operations that run a rule body. Their charges include those of
 // the grammar code they run, which a bound of the operation cannot state; the compositions that
 // replace them (rule completion, the Document call) charge their own steps.
@@ -307,7 +342,7 @@ func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 			fns = append(fns, f...)
 		}
 		if !found {
-			if op.Host {
+			if op.Host && !engineOnly[op.Name] {
 				t.Errorf("host operation %s has no Go form to audit", op.Name)
 			}
 			continue

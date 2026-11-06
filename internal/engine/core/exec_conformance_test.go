@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -59,30 +60,58 @@ func (m *engineMachine) key(args []any) MemoKey {
 	return MemoKey{Rule: int(args[0].(int64)), Pos: int(args[1].(int64)), Min: int(args[2].(int64)), Env: m.vals[args[3].(int64)]}
 }
 
-func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
-	defer func() {
-		if x := recover(); x != nil {
-			f, ok := x.(Fatal)
-			if !ok {
-				panic(x)
-			}
-			var le *limits.LimitError
-			if errors.As(f.Err, &le) && le.Kind == limits.LimitDepth {
-				panic(exec.Interrupt{Reason: "nesting"})
-			}
-			panic(exec.Interrupt{Reason: "limit"})
+// interrupt turns a panic that ends a parse into the interruption of the conformance harness.
+func interrupt() {
+	if x := recover(); x != nil {
+		f, ok := x.(Fatal)
+		if !ok {
+			panic(x)
 		}
-	}()
+		var le *limits.LimitError
+		if errors.As(f.Err, &le) && le.Kind == limits.LimitDepth {
+			panic(exec.Interrupt{Reason: "nesting"})
+		}
+		panic(exec.Interrupt{Reason: "limit"})
+	}
+}
+
+func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
+	defer interrupt()
 	p := m.p
 	switch o.Name {
 	case "memo.lookup":
 		e, found := p.MemoGet(m.key(args))
+		if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {
+			found = false
+		}
 		return []any{e, found}
 	case "memo.store":
 		e := p.Memo.Alloc()
-		*e = MemoEntry{Ok: args[4].(bool), End: int(args[5].(int64)), silent: args[6].(bool), Errs: engineErrors(args[8])}
+		// Every entry the call protocol stores has a record of the input it examined; the seed of a
+		// growth has none that an edit can keep, and stands here for an entry without a record.
+		*e = MemoEntry{Ok: args[4].(bool), End: int(args[5].(int64)), silent: args[6].(bool), Gen: p.Gen, Vgen: p.Gen, Errs: engineErrors(args[8]),
+			Growing: true, From: int(args[1].(int64))}
 		p.MemoPut(m.key(args), e)
 		return []any{e}
+	case "memo.examine":
+		e := args[0].(*MemoEntry)
+		e.Growing, e.Examined, e.From, e.Positional = false, int(args[2].(int64)), e.Pos, false
+		if args[1].(bool) {
+			e.From--
+		}
+		return nil
+	case "memo.examined":
+		return []any{int64(args[0].(*MemoEntry).Examined)}
+	case "memo.before":
+		e := args[0].(*MemoEntry)
+		return []any{e.From < e.Pos}
+	case "memo.pin":
+		args[0].(*MemoEntry).Positional = true
+		return nil
+	case "memo.splice":
+		p.Edits = EditMemo(p.Memo, p.Edits, DocEdit{Start: int(args[0].(int64)), End: int(args[1].(int64)), Delta: int(args[2].(int64))})
+		p.Gen = uint32(len(p.Edits))
+		return nil
 	case "memo.ok":
 		return []any{args[0].(*MemoEntry).Ok}
 	case "memo.end":
@@ -113,6 +142,9 @@ func engineErrors(arg any) []*SyntaxError {
 var (
 	engineMemoOps   = []string{"memo.lookup", "memo.store", "memo.ok", "memo.end", "memo.silent", "seen.first"}
 	engineBudgetOps = []string{"budget.charge", "budget.used"}
+	// engineDocOps are the operations of a Document's memo. With only these, the entries a case
+	// examines survive its edits and are found again, as in the suites of the generated runtimes.
+	engineDocOps = []string{"memo.lookup", "memo.store", "memo.end", "memo.examine", "memo.examined", "memo.before", "memo.pin", "memo.splice"}
 )
 
 func engineSuites() []conform.Suite {
@@ -129,6 +161,18 @@ func engineSuites() []conform.Suite {
 				New:  func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, sparse) },
 			})
 		}
+	}
+	for _, controlled := range []bool{false, true} {
+		ops := slices.Clone(engineDocOps)
+		if controlled {
+			ops = append(ops, engineBudgetOps...)
+		}
+		suites = append(suites, conform.Suite{
+			Name:      fmt.Sprintf("engine Document memo (controlled=%v)", controlled),
+			Ops:       ops,
+			New:       func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
+			LazyEdits: true,
+		})
 	}
 	return suites
 }
@@ -185,6 +229,8 @@ func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 		op         string
 		call       func(m *engineMachine, args []any) []any
 		controlled bool
+		// document runs the variant on the operations of a Document's memo.
+		document bool
 		// want is a part of the failure message that names the reason, when the variant has one.
 		want string
 	}
@@ -230,17 +276,46 @@ func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 			e, found := m.p.MemoGet(k)
 			return []any{e, found}
 		}},
+		// A lookup that does not apply the pending edits finds an entry where the edit moved it or
+		// after the edit invalidated it.
+		"lookup skips the edits": {op: "memo.lookup", document: true, call: func(m *engineMachine, args []any) []any {
+			e, found := m.p.MemoGet(m.key(args))
+			return []any{e, found}
+		}},
+		// An edit that forgets its log moves the slots, and no entry learns how far.
+		"splice keeps no log": {op: "memo.splice", document: true, call: func(m *engineMachine, args []any) []any {
+			log := []DocEdit{{Start: int(args[0].(int64)), End: int(args[1].(int64)), Delta: int(args[2].(int64))}}
+			m.p.Memo.Splice(log[0].Start, log[0].End, log[0].Delta, func(e *MemoEntry) bool { return AdvanceEntry(e, log) })
+			return nil
+		}},
+		// A lookup that applies each pending edit twice over: within the results, beyond the bound.
+		"lookup charges each edit twice": {op: "memo.lookup", document: true, controlled: true, want: "more than the bound", call: func(m *engineMachine, args []any) []any {
+			e, found := m.p.MemoGet(m.key(args))
+			if found && e.Vgen != m.p.Gen {
+				for range m.p.Gen - e.Vgen {
+					m.p.Spend()
+				}
+				if !m.p.AdvanceEntry(e, m.p.Edits[:m.p.Gen]) {
+					found = false
+				}
+			}
+			return []any{e, found}
+		}},
 	}
 	for name, b := range variants {
 		t.Run(name, func(t *testing.T) {
-			s := conform.Suite{Name: "broken: " + name, Ops: engineMemoOps, New: func(c ref.Config) conform.Impl {
+			memoOps := engineMemoOps
+			if b.document {
+				memoOps = engineDocOps
+			}
+			s := conform.Suite{Name: "broken: " + name, Ops: memoOps, LazyEdits: b.document, New: func(c ref.Config) conform.Impl {
 				if b.controlled {
 					return meteredBrokenEngine{brokenEngine{newEngineMachine(c, true, false).(meteredEngine).engineMachine, b.op, b.call}}
 				}
 				return brokenEngine{newEngineMachine(c, false, false).(*engineMachine), b.op, b.call}
 			}}
 			if b.controlled {
-				s.Ops = append(append([]string(nil), engineMemoOps...), engineBudgetOps...)
+				s.Ops = append(slices.Clone(memoOps), engineBudgetOps...)
 			}
 			fails, _ := engineConformanceFailures(s, 200, 150)
 			if len(fails) == 0 {
@@ -265,6 +340,7 @@ type brokenEngine struct {
 
 func (b brokenEngine) Call(o *exec.Op, args []any) []any {
 	if o.Name == b.op {
+		defer interrupt()
 		return b.call(b.engineMachine, args)
 	}
 	return b.engineMachine.Call(o, args)

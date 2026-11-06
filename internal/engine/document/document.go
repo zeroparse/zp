@@ -276,7 +276,6 @@ func (d *Document) Edit(start, end int, text string) error {
 		d.memo, d.edits, d.runs = core.NewMemoTable(), nil, nil
 		return nil
 	}
-	d.edits = append(d.edits, core.DocEdit{Start: start, End: end, Delta: delta})
-	d.memo.Splice(start, end, delta, func(e *core.MemoEntry) bool { return core.AdvanceEntry(e, d.edits) })
+	d.edits = core.EditMemo(d.memo, d.edits, core.DocEdit{Start: start, End: end, Delta: delta})
 	return nil
 }

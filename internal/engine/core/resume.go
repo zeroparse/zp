@@ -350,22 +350,3 @@ func after(elems []RunElem, end int) bool {
 	}
 	return true
 }
-
-// moveValue moves the nodes of the value v of an element recorded in the generation base by
-// shift, as moveResult moves the result of a memo entry, and returns it or its copy.
-func (p *Parser) moveValue(v *value.Node, shift int, base uint32) *value.Node {
-	if v == nil {
-		return nil
-	}
-	if p.Moved == nil {
-		p.Moved = map[*value.Node]*value.Node{}
-	}
-	p.moveBase, p.baseShift = base, shift
-	if value.D(v).Start == value.D(v).End {
-		v = p.MoveEmpty(v, shift)
-	} else if value.D(v).Gen < p.Gen {
-		p.MoveTree(v, p.ShiftOf(v))
-	}
-	p.ClearMovementSpend()
-	return v
-}

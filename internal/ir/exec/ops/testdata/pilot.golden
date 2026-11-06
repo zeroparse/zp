@@ -42,7 +42,7 @@ handle Errs of recovered
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
   reads memo
-  cost <= 1 + 1*key_scan
+  cost <= 1 + 1*key_scan + 1*pending_edits
   contract:
     // Returns the entry stored under the key, if one is there and not replaced, and true;
     // otherwise false and an entry that must not be used. Two keys are equal when their rules, positions
@@ -142,7 +142,10 @@ op memo.splice(start int, end int, delta int)
     // it is found at its position plus delta, and its end and its examined input move with it, and its
     // value moves when it is reused (doc.move). Every other entry is removed. The handles of all entries from
     // before the edit are no longer valid: a target may copy the entries it keeps. What a target records with
-    // an entry besides these moves with it as that record says (memo.setExpected).
+    // an entry besides these moves with it as that record says (memo.setExpected). The operation charges
+    // nothing: a target may apply the edit to an entry when it next finds the entry instead of at once, so
+    // that memo.lookup pays for it, one unit for each edit applied. Lookups then see what they would have
+    // seen had the edit applied at once.
   requires:
     // 0 <= start <= end, and start <= end + delta.
 

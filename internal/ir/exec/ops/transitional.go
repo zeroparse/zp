@@ -401,6 +401,8 @@ that the target's observed function wraps.`})
 	stream := []string{Stream}
 	streamWindow(m, value)
 	documentMove(m)
+	documentEdits(m)
+	documentRuns(m, value)
 	add(&exec.Op{Name: "stream.settleErrors", Component: Win, Reads: []string{Win}, Writes: []string{Win},
 		Features: stream, NoReturn: true, Cost: exec.Cost{Const: 16},
 		Contract: `Forgets the recovered errors before the boundary, which were delivered and collected, keeping at

@@ -573,6 +573,7 @@ entries in the same order, and otherwise a copy, which becomes the set kept last
 code and not a stable API.`
 
 	addOperators(m)
+	addDocument(m)
 
 	if err := Verify(m); err != nil {
 		panic(err)

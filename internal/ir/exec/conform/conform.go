@@ -38,6 +38,9 @@ type Suite struct {
 	New func(ref.Config) Impl
 	// Ops are the operations the implementation provides. Cases that call others are skipped.
 	Ops []string
+	// LazyEdits sets ref.Config.LazyEdits for the model of every case: the implementation is a memo
+	// that applies edits to an entry when it finds it.
+	LazyEdits bool
 }
 
 // ValuesOp is the operation that conformance cases use to make a Values handle from an identifier.
@@ -96,7 +99,9 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	if !provides(s, c.Module, c.Func, map[string]bool{}) {
 		return true, nil
 	}
-	p := &pair{model: ref.New(c.Config), impl: s.New(c.Config),
+	cfg := c.Config
+	cfg.LazyEdits = s.LazyEdits
+	p := &pair{model: ref.New(cfg), impl: s.New(cfg),
 		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {
 		return &Failure{Impl: s.Name, Case: c.Func.Name, Step: len(p.trace), Trace: p.trace, Msg: msg,

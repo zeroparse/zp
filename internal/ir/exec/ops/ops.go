@@ -38,10 +38,17 @@ const (
 const (
 	// QKeyScan is the sum, over the entries stored at the call's position for any rule, of one more
 	// than the number of their key values: what scanning the position and comparing keys inspects.
+	// It counts the entries that memo.splice removed and that a target may still hold there, because it
+	// applies edits to an entry when it finds the entry.
 	QKeyScan = "key_scan"
+	// QPending is the number of edits since the entry under the call's key was stored or last found,
+	// counting an entry that memo.splice removed and a target may still hold: the edits that a target
+	// which applies them to an entry when it finds it has yet to apply.
+	QPending = "pending_edits"
 	// QSlotGrowth is the number of positions the memo covers from its floor before the call when
 	// storing at the call's position makes that number cross a power of two, and 0 otherwise: the copy
-	// that doubling a position-indexed table stands for.
+	// that doubling a position-indexed table stands for. A target whose table keeps a gap for edits
+	// counts its slots, the gap among them.
 	QSlotGrowth = "slot_growth"
 	// QPageIndex is the call's position divided by 1,024.
 	QPageIndex = "page_index"
@@ -94,7 +101,7 @@ stand for the values of a rule's variables, compared by the host's value equalit
 	errs := m.AddHandle(Errs, Rec, "The errors recovered in a rule call, kept with its memo entry.")
 	result := []exec.Param{exec.P("silent", exec.TBool), exec.P("value", value), exec.P("errs", errs)}
 	key := []exec.Param{exec.P("rule", exec.TInt), exec.P("pos", exec.TInt), exec.P("level", exec.TInt), exec.P("key", values)}
-	scan := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QKeyScan}}}
+	scan := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QKeyScan}, {Coef: 1, Quantity: QPending}}}
 	write := exec.Cost{Const: 2, Terms: []exec.CostTerm{{Coef: 1, Quantity: QKeyScan}, {Coef: 1, Quantity: QSlotGrowth}}}
 	with := func(ps []exec.Param, more ...exec.Param) []exec.Param {
 		return append(append([]exec.Param(nil), ps...), more...)
@@ -156,7 +163,10 @@ examined input starts at or after end, that is not pinned and has no recovered e
 it is found at its position plus delta, and its end and its examined input move with it, and its
 value moves when it is reused (doc.move). Every other entry is removed. The handles of all entries from
 before the edit are no longer valid: a target may copy the entries it keeps. What a target records with
-an entry besides these moves with it as that record says (memo.setExpected).`,
+an entry besides these moves with it as that record says (memo.setExpected). The operation charges
+nothing: a target may apply the edit to an entry when it next finds the entry instead of at once, so
+that memo.lookup pays for it, one unit for each edit applied. Lookups then see what they would have
+seen had the edit applied at once.`,
 		Requires: `0 <= start <= end, and start <= end + delta.`})
 	for _, a := range []struct {
 		name string

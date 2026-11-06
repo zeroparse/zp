@@ -325,11 +325,22 @@ examined only input after it moves by the change unless it is pinned or holds re
 entry goes. The value of a moved entry moves when the entry is reused, through `doc.move`, a host operation because
 the positions in a value lie outside the parser VM's state; the target may refuse a value it cannot move, and the
 call evaluates the rule again. The cost of `doc.move` is twice the number of nodes, fields and children it covers
-(`QMoved`): a target checks that a value is movable and then copies it, and charges both passes. Which entry is reused
-stays in the composition. *Shared*: which entries stay, move or
-go, and the positions after a move. *Target*: tables rebuilt or relinked at an edit, side tables of pending moves,
-copying or moving nodes in place. *Conformance*: the memo operations under random edits on both Go runtimes, and the
-Document differential tests, which compare every result after an edit with a parse from scratch.
+(`QMoved`): a target checks that a value is movable and then copies it, and charges both passes. A target that moves
+in place makes one pass, and spends the second unit on the empty nodes it copies and the copies it forgets; replaying
+the edits for a node that another result moved adds one unit for each (`QMoveEdits`). Which entry is reused stays in
+the composition. `splice` charges nothing, and a target may apply it lazily: the engine logs the edit, decides the
+entries at the replaced positions at once, and applies the log to any other entry when `memo.lookup` finds it, through
+the composition `memoAdvance` and the host operations it reads (`memo.seed`, `memo.from`, `memo.advance`, `edit.start`
+and the others), which exist on that target only. `memo.lookup` pays one unit for each edit it applies
+(`QPending`), and its scan counts the entries such a target still holds (`QKeyScan`); the model states both, and
+the slots of the engine's gap in `QSlotGrowth`, under `ref.Config.LazyEdits`. The repetition runs are host operations
+of the engine (`run.start` to `run.finish`). None of them runs grammar code: a backend drives a run and evaluates its
+elements between `run.begin` and `run.end`, and charges its own steps, and no composition calls them, so the backends
+need no split form. *Shared*: which entries stay, move or go, and the positions after a move. *Target*: tables rebuilt
+or relinked at an edit, side tables of pending moves, copying or moving nodes in place, and repetition runs.
+*Conformance*: the memo operations under random edits on both Go runtimes and on the engine's Document memo, and the
+Document differential tests, which compare every result after an edit with a parse from scratch. Runs and moves have
+no reference model; tests of the engine measure their charges.
 
 The Operators Rule loop has no operation of its own: the longest operator match, the loop, binding powers, prefix
 commitment and the application order are composition, which is where all three of its core changes landed. The

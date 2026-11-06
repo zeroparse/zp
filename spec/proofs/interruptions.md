@@ -303,7 +303,11 @@ Let an invocation be interrupted. The state that outlives it is one of:
    raised later, in the conversion of the result or the copying of its
    diagnostics. A Document parse that is interrupted before it has touched the
    reusable state, by the admission checks or the first checkpoint, has changed
-   nothing.
+   nothing. Applying pending edits to an entry charges every edit before it
+   changes the entry, so a reservation that interrupts it leaves the entry as
+   it was, in a table that is discarded in any case. Moving a value in place
+   has no such order: an interruption can leave some nodes moved, which is why
+   the interrupted parse discards the table and the runs that refer to them.
 4. **Program-level state** that is built once, outside the charge, such as
    the tables of a program that a parse needs: it is complete or absent, and
    is not affected by the invocation that triggers its construction.

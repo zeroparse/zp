@@ -33,6 +33,7 @@ type goSpec struct {
 	on    []string
 	name  string // the Go name
 	body  string // the method that call.body calls
+	plain bool   // printed as a function of its package, without the parser as receiver
 }
 
 // goSpecs are the functions of the Go runtime that the compositions replace.

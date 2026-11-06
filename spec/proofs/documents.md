@@ -60,7 +60,11 @@ chapter states the guarantee and not this mechanism.
   range $[l, h)$ is kept unchanged if $h \le a$; it is shifted by $\delta$,
   together with its key position and its range, if $l \ge b$ and its call was
   position-free; otherwise it is dropped. Edits are applied to an entry in
-  order, either at once or when it is next looked up.
+  order, either at once or when it is next looked up. The engine applies them
+  when it finds an entry, and at once to the entries at the positions the edit
+  replaces, in both cases from one printed composition. The generated runtimes
+  apply each edit to every entry at once. An entry found to be dropped may stay
+  in its slot, where no lookup returns it, until a store replaces it.
 - **(P) Parses.** Entries are stored under the conditions of $\mathcal{M}$;
   what (D) keeps is dropped within the parse and never reaches a later one. A
   parse that does not complete, because it is interrupted

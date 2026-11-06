@@ -50,6 +50,10 @@ component window
   // elements of the #stream repetition, the recovered errors delivered so far, and the memory that the
   // delivered elements held.
 
+component runs
+  // The repetition runs of a Document: for each repetition of the last parse that a parse may
+  // resume, the positions, the examined input, the value and the expectations of its elements.
+
 component suspended
   // The calls whose rule body runs between the begin and the end of the split call
   // protocol, each with the state that its begin saved for its end in a record that its caller holds.
@@ -112,6 +116,18 @@ handle CtxResult of growth
 handle Grow of growth
   // The state of the growth of a left-recursion leader.
 
+handle EditLog of memo
+  // The edits of a Document, in order.
+
+handle Run of runs
+  // A repetition run in progress in a Document parse.
+
+handle RunElem of runs
+  // An element of an old run that the parse reuses, or none.
+
+handle RunSite of runs
+  // A repetition that a Document parse can resume.
+
 handle CallState of suspended
   // The record of a suspended call, which its caller holds.
 
@@ -151,7 +167,7 @@ handle ExprState of suspended
 op memo.lookup(rule int, pos int, level int, key Values) (Entry, bool)
   component memo
   reads memo
-  cost <= 1 + 1*key_scan
+  cost <= 1 + 1*key_scan + 1*pending_edits
   contract:
     // Returns the entry stored under the key, if one is there and not replaced, and true;
     // otherwise false and an entry that must not be used. Two keys are equal when their rules, positions
@@ -251,7 +267,10 @@ op memo.splice(start int, end int, delta int)
     // it is found at its position plus delta, and its end and its examined input move with it, and its
     // value moves when it is reused (doc.move). Every other entry is removed. The handles of all entries from
     // before the edit are no longer valid: a target may copy the entries it keeps. What a target records with
-    // an entry besides these moves with it as that record says (memo.setExpected).
+    // an entry besides these moves with it as that record says (memo.setExpected). The operation charges
+    // nothing: a target may apply the edit to an entry when it next finds the entry instead of at once, so
+    // that memo.lookup pays for it, one unit for each edit applied. Lookups then see what they would have
+    // seen had the edit applied at once.
   requires:
     // 0 <= start <= end, and start <= end + delta.
 
@@ -1114,16 +1133,183 @@ host op doc.move(e Entry) bool
   writes memo
   features document
   noreturn
-  cost <= 0 + 2*moved
+  cost <= 0 + 2*moved + 1*move_edits
   contract:
     // Makes the value of entry e valid at the position of e, after memo.splice moved e: moves the
-    // positions in the value by as much as the edits moved e since the value was made, in a copy, since the
-    // value may be part of a result that the parse returned. Returns false, changing nothing, when the
-    // target cannot move the value (a value of the host that is not made of nodes and of basic values);
-    // the call that finds e then evaluates the rule again. Returns true for an entry that no edit moved.
-    // The target checks the value before it copies it; each pass charges, for each distinct node it visits,
-    // one unit and one for each child and field, which is what the cost bounds: a refusal charges no more
-    // than the check of the nodes it reached.
+    // positions in the value by as much as the edits moved e since the value was made. A target that may
+    // not change a value that the parse returned moves a copy; one whose contract says that a reuse moves
+    // the nodes of earlier results moves them in place, where each node records how many edits its
+    // positions account for. Returns false, changing nothing, when the target cannot move the value (a
+    // value of the host that is not made of nodes and of basic values); the call that finds e then evaluates
+    // the rule again. Returns true for an entry that no edit moved.
+    // The cost has two parts. Each pass over the value charges, for each distinct node it visits, one unit
+    // and one for each child and field. A target that copies checks the value and then copies it, in two
+    // passes, and a refusal charges no more than the check of the nodes it reached. A target that moves in
+    // place makes one pass, charges a second unit for each reference to an empty node, which it copies,
+    // and for each copy it forgets at the end, and replays the edits since the generation of a node that
+    // another result moved, once for each generation.
+
+host op memo.seed(e Entry) bool
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Reports whether entry e is the seed of a growth, which no edit keeps.
+
+host op memo.from(e Entry) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the start of the input that entry e examined, as of the edits it accounts for.
+
+host op memo.pinned(e Entry) bool
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Reports whether a call pinned entry e (memo.pin).
+
+host op memo.shifted(e Entry) bool
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Reports whether an edit moved entry e since its value was last made valid (doc.move).
+
+host op memo.applied(e Entry) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the number of edits that entry e accounts for.
+
+host op memo.advance(e Entry, from int, examined int, shift int, shifted bool, applied int)
+  component memo
+  writes memo
+  features document
+  cost <= 0
+  contract:
+    // Records that entry e accounts for the first applied edits: its examined input is [from, examined),
+    // its position, its end and the far position of its expectations move by shift, the shift of its value
+    // grows by shift, and shifted tells whether its value has to move.
+
+host op edit.count(log EditLog) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the number of edits of the log.
+
+host op edit.start(log EditLog, i int) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the start of the input that edit i replaced.
+  requires:
+    // 0 <= i < edit.count(log).
+
+host op edit.end(log EditLog, i int) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns the end of the input that edit i replaced.
+  requires:
+    // 0 <= i < edit.count(log).
+
+host op edit.delta(log EditLog, i int) int
+  component memo
+  reads memo
+  features document
+  cost <= 0
+  contract:
+    // Returns how many units longer the replacement of edit i is than the input it replaced.
+  requires:
+    // 0 <= i < edit.count(log).
+
+host op run.start(r Run, site RunSite)
+  component runs
+  reads runs
+  writes runs
+  features document
+  cost <= 0
+  contract:
+    // Starts the run r of the repetition at the position. It takes over the record that this parse left
+    // there, or the record of the previous parse here or where the one edit since moved it; with no such
+    // record it has nothing to reuse.
+
+host op run.prefix(r Run) RunElem
+  component runs
+  reads runs
+  writes runs
+  features document
+  noreturn
+  cost <= 1 + 1*merge
+  contract:
+    // Reuses the next old element if it examined only input before the one edit since, replaying what
+    // running it did: the examined input, the expectations, the position, the reuse statistics. Returns it,
+    // or none when the prefix of the run ends.
+
+host op run.resync(r Run) bool
+  component runs
+  reads runs
+  writes runs
+  features document
+  noreturn
+  cost <= 0 + 1*run_search + 1*run_scan
+  contract:
+    // Reports whether an old element after the edit starts where the next element would, and every element from it on examined only input after the edit; run.tail then reuses them.
+
+host op run.tail(r Run) RunElem
+  component runs
+  reads runs
+  writes runs
+  features document
+  noreturn
+  cost <= 1 + 1*merge + 2*moved + 1*move_edits
+  contract:
+    // Reuses the next old element after the edit, moved by the edit with its value (doc.move), replaying
+    // what running it did as run.prefix does. Returns it, or none at the end of the run or its bound.
+
+host op run.begin(r Run)
+  component runs
+  reads runs
+  writes runs
+  features document
+  cost <= 0
+  contract:
+    // Starts evaluating an element: its examined input and its expectations are recorded apart from the enclosing call's.
+
+host op run.end(r Run, ok bool, v Value)
+  component runs
+  reads runs
+  writes runs
+  features document
+  noreturn
+  cost <= 0 + 1*merge + 1*run_growth
+  contract:
+    // Ends evaluating an element, adding its examined input and its expectations to those of the enclosing call, and records it if it matched with the value v.
+
+host op run.finish(r Run)
+  component runs
+  reads runs
+  writes runs
+  features document
+  noreturn
+  cost <= 0 + 1*run_elems
+  contract:
+    // Records the run of a repetition that matched for the next parse, unless it is too short, or recovered
+    // errors, or read the seed of a growth.
 
 transitional op stream.settleErrors()
   component window
