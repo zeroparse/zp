@@ -191,6 +191,8 @@ func (p *Parser) BeginElem(r *RunState) {
 // EndElem ends parsing an element (before the state is reset if it failed), and records it if it
 // matched with the value v.
 func (p *Parser) EndElem(r *RunState, ok bool, v *value.Node) {
+	// Recording the run is work of the Document that a parse from scratch does not do.
+	defer p.FreeEnd(p.FreeBegin(true))
 	far, inner := p.Unisolate(r.mk)
 	var exp []ExpID
 	if ok {
@@ -242,6 +244,7 @@ func (p *Parser) readSeedIn(r *RunState) bool {
 
 // FinishRun records the run of a repetition that matched, for the next parse.
 func (p *Parser) FinishRun(r *RunState) {
+	defer p.FreeEnd(p.FreeBegin(true))
 	if r.Count < MinRecorded || len(p.Recovered) != r.rec0 || p.readSeedIn(r) {
 		return
 	}
@@ -279,7 +282,9 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
 	p.StartRun(&r, rs.Id, rs.Min, rs.Max, rs.Shiftable)
 	base := len(p.KidStack)
 	if rs.Build {
+		m := p.FreeBegin(true)
 		p.KidStack = GrowSpend(p, p.KidStack, len(r.Old))
+		p.FreeEnd(m)
 	}
 	for el := p.NextPrefix(&r); el != nil; el = p.NextPrefix(&r) {
 		if rs.Build {
@@ -349,4 +354,13 @@ func after(elems []RunElem, end int) bool {
 		}
 	}
 	return true
+}
+
+// ReleaseRunLists clears the element lists of a finished run for reuse; the clearing is work of
+// the Document that a parse from scratch does not do.
+func (p *Parser) ReleaseRunLists(r *RunState) {
+	m := p.FreeBegin(true)
+	ClearSpend(p, r.Mid)
+	ClearSpend(p, r.Post)
+	p.FreeEnd(m)
 }

@@ -27,7 +27,7 @@ func (c *TypedDocumentCloneBase) Begin(control *BudgetControl) { c.Control = con
 
 func (c *TypedDocumentCloneBase) Step(n uint64) {
 	if c.Control != nil {
-		c.Control.Charge(n)
+		c.Control.ChargeDoc(n)
 	}
 }
 
@@ -56,7 +56,7 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 	if o.expectations != d.State.expectations {
 		return res, fmt.Errorf("document parse cannot change expectations")
 	}
-	o = prepareText(o, d.State.text)
+	o = prepareText(o, d.State.text).forDocument()
 	cache, ok := d.typedMemo.(*typedDocumentState)
 	if ok && o.control != nil && o.control.limits.Memory != 0 && cache.retainedBytes() > o.control.limits.Memory {
 		// The retained memo alone exceeds the limit: the parse starts without it.
@@ -85,6 +85,7 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 	a.SetBudgetControl(o.control)
 	defer a.SetBudgetControl(nil)
 	d.State.stats = documentStats{}
+	d.State.pending = 0
 	v, parseErr := p.run(root, d.State.text, o, a)
 	// Context implementations may return any public error type. Fatal budget
 	// interruption must not be mistaken for a completed syntax failure.

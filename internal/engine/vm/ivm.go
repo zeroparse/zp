@@ -132,7 +132,7 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			return &traceFrame{r: r, min: min}, iresult{}, false
 		}
 		// What callChild does, written out on this hot path
-		if !p.Memoizes(r) || p.FirstCall(r) {
+		if !p.MemoAll && (!p.Memoizes(r) || p.FirstCall(r)) || p.MemoAll && p.DirectCallDoc(r) {
 			if len(r.Scope.Names) == 0 {
 				return mc.plainCallFrame(r, min), iresult{}, false
 			}
@@ -166,7 +166,7 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 // callChild returns the frame that runs a call of r (the same steps as call).
 func (mc *ivmMachine) callChild(r *core.Rule, min int) iframe {
 	p := mc.p
-	if !p.Memoizes(r) || p.FirstCall(r) {
+	if !p.MemoAll && (!p.Memoizes(r) || p.FirstCall(r)) || p.MemoAll && p.DirectCallDoc(r) {
 		if len(r.Scope.Names) == 0 {
 			return mc.plainCallFrame(r, min)
 		}
@@ -318,12 +318,22 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 	r := f.r
 	switch f.state {
 	case cBegin:
-		p.Spend() // the charge of Parser.Call
+		if p.MemoAll {
+			p.DocCallSpend(r) // the charge of Parser.Call
+		} else {
+			p.Spend()
+		}
 		if !f.memoized {
 			f.start, f.rec = p.Pos, len(p.Recovered)
 			return f.invoke(mc), iresult{}, false
 		}
-		v, ok, hit := p.CallBegin(r, f.min, &f.st)
+		var v *value.Node
+		var ok, hit bool
+		if p.MemoAll {
+			v, ok, hit = p.CallBeginDoc(r, f.min, &f.st)
+		} else {
+			v, ok, hit = p.CallBegin(r, f.min, &f.st)
+		}
 		if hit {
 			return nil, iresult{v: v, ok: ok}, true
 		}
@@ -331,7 +341,11 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			f.g = p.GrowBegin(p.GrowKey(r, f.min), r.LeaderBit, r.Cycle)
 			if !p.GrowNext(&f.g) {
 				v, ok = p.GrowEnd(r, &f.g)
-				v, ok = p.CallEnd(r, &f.st, v, ok)
+				if p.MemoAll {
+					v, ok = p.CallEndDoc(r, &f.st, v, ok)
+				} else {
+					v, ok = p.CallEnd(r, &f.st, v, ok)
+				}
 				return nil, iresult{v: v, ok: ok}, true
 			}
 		}
@@ -352,7 +366,11 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			}
 			v, ok = p.GrowEnd(r, &f.g)
 		}
-		v, ok = p.CallEnd(r, &f.st, v, ok)
+		if p.MemoAll {
+			v, ok = p.CallEndDoc(r, &f.st, v, ok)
+		} else {
+			v, ok = p.CallEnd(r, &f.st, v, ok)
+		}
 		return nil, iresult{v: v, ok: ok}, true
 	}
 }

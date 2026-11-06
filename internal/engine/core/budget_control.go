@@ -31,6 +31,17 @@ type BudgetControl struct {
 	// position the parser has demanded from the stream (Demand).
 	Adaptive bool
 
+	// DefaultCompute is set when the Compute limit is the default of the entry point. Under it the
+	// limit counts only the work that a parse from scratch counts: the units reserved for work that
+	// only a Document does (ChargeDoc, FreeBegin) are also added to Doc and to the limit, so they
+	// leave room for the counted work. An explicit limit counts all units, and Doc stays zero.
+	DefaultCompute bool
+	// Doc is the part of Used that only a Document parse reserves, under a default limit.
+	Doc uint64
+	// freeing is set between FreeBegin and FreeEnd; freed holds the limit that FreeBegin lifted.
+	freeing bool
+	freed   uint64
+
 	// Mem is the memory, in bytes, charged to the control itself: the bytes of the history a
 	// Document retains outside its memo table when its parse starts. The memory check adds values,
 	// errs and the counters of the parser attached by AttachMemory (MemoryUsed).
@@ -153,6 +164,47 @@ func (c *BudgetControl) Charge(n uint64) {
 	c.SinceCheck = limits.SaturatingAdd(c.SinceCheck, n)
 }
 
+// noFree is the mark that FreeBegin returns when it opens no region.
+const noFree = ^uint64(0)
+
+// ChargeDoc reserves n units of work that only a Document parse does, as Charge does, and under a
+// default limit leaves them out of the count against it: the limit rises by n first, so the units
+// leave the room that counted work has. Under an explicit limit it is Charge. It is safe on a nil
+// receiver.
+func (c *BudgetControl) ChargeDoc(n uint64) {
+	if c == nil {
+		return
+	}
+	if c.DefaultCompute && !c.freeing {
+		c.Doc += n
+		c.Limits.Compute = limits.SaturatingAdd(c.Limits.Compute, n)
+	}
+	c.Charge(n)
+}
+
+// FreeBegin opens a region in which every reservation is work that only a Document parse does, as
+// ChargeDoc reserves it, and returns the mark for FreeEnd. The region ends the work it covers before
+// any counted work starts. Under a default limit it lifts the limit until FreeEnd; otherwise, or in
+// a region, it opens none and returns noFree. It is safe on a nil receiver.
+func (c *BudgetControl) FreeBegin() uint64 {
+	if c == nil || !c.DefaultCompute || c.freeing {
+		return noFree
+	}
+	c.freeing, c.freed, c.Limits.Compute = true, c.Limits.Compute, 0
+	return c.Used
+}
+
+// FreeEnd ends the region that FreeBegin opened with mark: the units reserved since are Document
+// units, and the limit is what it was plus them.
+func (c *BudgetControl) FreeEnd(mark uint64) {
+	if mark == noFree {
+		return
+	}
+	n := c.Used - mark
+	c.Doc += n
+	c.Limits.Compute, c.freeing = limits.SaturatingAdd(c.freed, n), false
+}
+
 // chargeSlow is Charge on a poll boundary or a failed reservation, kept out of line so that the
 // reservation every step makes stays small. It checks cancellation first, so that an already
 // canceled invocation wins over a simultaneously exhausted budget, then, at a poll, the memory
@@ -168,8 +220,8 @@ func (c *BudgetControl) chargeSlow(n uint64, poll, exceeded bool) {
 	}
 	if exceeded {
 		panic(Fatal{Err: &limits.LimitError{
-			Kind: limits.LimitCompute, Limit: c.Limits.Compute,
-			Used: c.Used, Requested: n,
+			Kind: limits.LimitCompute, Limit: c.Limits.Compute - c.Doc,
+			Used: c.Used - c.Doc, Requested: n,
 		}})
 	}
 	// Not exceeded, so the reservation reached a poll boundary.
