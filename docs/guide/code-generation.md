@@ -307,7 +307,7 @@ than `speed` has and nothing else, so `-opt` and `-no-opt` still apply after it:
 | `memory` | `typed-object-slabs` and `typed-list-slabs` off | Fewer bytes and less live heap in typed Go parsers, at the price of many more allocations | bytes allocated 0.886 and live heap 0.848 of `speed`'s, parse time 0.996; allocations rise 1.03 to 1.39 times for the typed grammars and 52 to 97 times for the JSON, CSV and XML parses; no grammar is more than 3.8% slower |
 | `size` | `inline-literals` off, `class-tables` at 5 | Smaller generated Go source and binaries | `parser.go` 0.912, stripped binary 0.986 and parse time 1.022 of `speed`'s; no grammar is more than 5.5% slower |
 
-No profile changes what a parser returns. The measurements are in [design record 134](../optimizations/134-measured-effect-of-the-generation-flags.md).
+No profile changes what a parser returns. The measurements are in [optimization record 136](../optimizations/136-measured-effect-of-the-generation-flags.md).
 
 A flag never overrides soundness: whether an optimization applies to a parser is decided by the generator, and `-opt`
 never turns on a pass for a parser that it is unsound for. `-no-opt guards` also leaves out the guarded classes, which need guards.
