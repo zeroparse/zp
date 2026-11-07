@@ -34,8 +34,6 @@ rule word = [a-z]+
 `, Inputs: []string{"adg1 xé日!", "adg", "ad", "xé", "adh9 cfg0", "x日", "", "adg1adg1", "\xffdg1"}},
 		{Name: "class tables", Src: `rule main = ([a-cf-hk-mp-rt-vx-z0-35-7]+ / [^a-cf-hk-mp-rt-vx-z0-35-7 ]+ / -" ")* $$
 `, Inputs: []string{"abcfghklm", "defij", "abc def 012", "4 8", "xyz789", "", "é日", "\xff", "a4b"}},
-		{Name: "term rewrites", Src: `rule main = (x:[a-z]+ #atomic "," y:[a-z]+ #atomic {text($x) == text($y)} -" "?)* $$
-`, Inputs: []string{"a,a", "ab,ab a,a", "a,b", "ab,a", "a,a b,b ab,ab", ",", "a,", "é,é"}},
 		{Name: "inline literals", Src: `rule main = (l:lit / -" ")* $$
 rule lit = "a" / "ab" / "abc" / "abcd" / "abcde" / "abcdef" / "日本" / "日本語日本語"
 `, Inputs: []string{"a ab abc abcd abcde abcdef", "abcdefg", "日本 日本語日本語", "日本語", "ab abc", "abcd abcd", "", "x", "abcde"}},
@@ -58,7 +56,6 @@ rule lit = "a" / "ab" / "abc" / "abcd" / "abcde" / "abcdef" / "日本" / "日本
 // A flag that is missing here fails TestOptimizationsHaveTests, so a new optimization comes with a test.
 var optimizationTests = map[string]string{
 	"terminals":              "TestTerminalProgramDisabledParity",
-	"term-rewrites":          "",
 	"text-dispatch":          "TestLiteralTextPredicateDispatchDisabledParity",
 	"field-compare":          "TestGeneratedTextFieldComparisons",
 	"guards":                 "",
@@ -112,9 +109,8 @@ func off(names ...string) gen.GenOptions {
 	return gen.GenOptions{Types: true, TypedOnly: true, NoOpt: names}
 }
 
-// generateShowingIR returns the code of a parser and the Core IR after the guards pass, which has the
-// effect of the passes before it that the code does not show: the generators read the terms of the
-// grammar, not the rewritten terms of the Core IR.
+// generateShowingIR returns the code of a parser and the Core IR after the guards pass, which shows
+// what the passes up to it did even where the code does not.
 func generateShowingIR(t *testing.T, g *grammar.Grammar, o gen.GenOptions) ([]byte, string) {
 	t.Helper()
 	var ir strings.Builder

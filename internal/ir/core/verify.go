@@ -27,7 +27,7 @@ import (
 //   - repetition and Scan bounds are ordered;
 //   - a Terminal holds only literals, classes, sequences, choices, options, negative lookaheads,
 //     Text and Drop, and wants no value; Scan and ClassRun want no value;
-//   - in a typed module, every term but a lambda, every FieldCompare operand, every slot and the
+//   - in a typed module, every term but a lambda, every slot and the
 //     value of every rule that is not value-free have a checked type.
 func Verify(m *Module) error {
 	v := &verifier{m: m, classes: map[*Class]bool{}}
@@ -218,9 +218,6 @@ func (v *verifier) term(t Term, scope []Slot) error {
 		}
 		if _, lambda := x.(*Lambda); v.m.Typed && !lambda && TypeOf(x) == nil {
 			err = fmt.Errorf("term %s has no type", TermString(x))
-		}
-		if c, ok := x.(*FieldCompare); ok && v.m.Typed && (c.L.Type == nil || c.R.Type == nil) {
-			err = fmt.Errorf("term %s: operand without type", TermString(x))
 		}
 	})
 	return err

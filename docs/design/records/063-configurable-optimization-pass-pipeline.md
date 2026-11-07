@@ -88,12 +88,11 @@ Analyses are the data that passes read and that other passes make stale. The Cor
 analyses. No pass changes the calls between rules, so the call graph is checked by `Verify` and is not an analysis of
 the manager.
 
-The five Core passes, declared:
+The four Core passes, declared:
 
 | Pass | Requires | Invalidates | After | Applies when | Obligation |
 |:--|:--|:--|:--|:--|:--|
 | `terminals` | | `attributes` | | Typed table, lean, no observability | Same input consumed and expectations recorded as the expression it replaces |
-| `term-rewrites` | | | | Always | Same results and errors, in the same order |
 | `guards` | `attributes` | | `terminals` | Always; guarded classes only when ordinary | A guard equals the alternative's first terminal |
 | `scans` | | `attributes` | | Always | Same input consumed and expectations recorded |
 | `class-runs` | | `attributes` | `guards` | Typed table, lean | Same input consumed and expectations recorded; the first class of a guarded alternative is left alone |
@@ -122,16 +121,15 @@ Documents.
 
 ### Flags
 
-The registry `internal/gen/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Runtime`), a
+The registry `internal/gen/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Printer`, `Runtime`), a
 description and its value in the `speed` profile. The Core pipeline names the passes, and a test checks that the
 registry has the name of every pass.
 
 | Flag | Kind | Controls |
 |:--|:--|:--|
 | `terminals` | pass | `terminals` |
-| `term-rewrites` | pass | `term-rewrites` |
-| `text-dispatch` | pass | The `TextDispatch` rewrite of `term-rewrites` |
-| `field-compare` | pass | The `FieldCompare` rewrite of `term-rewrites` |
+| `text-dispatch` | printer | The Go and TypeScript printers emit a predicate that compares the text of a capture with literals as one switch |
+| `field-compare` | printer | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields |
 | `guards` | pass | `guards` |
 | `guarded-classes` | pass | The guarded-class marks that `guards` sets, and their lowering |
 | `scans` | pass | `scans` |
@@ -173,7 +171,7 @@ expression is code, and the first may be smaller or larger depending on the gram
 | Flag | `speed` | `memory` | `size` |
 |:--|:--|:--|:--|
 | `terminals` | on | on | open |
-| `term-rewrites`, `text-dispatch`, `field-compare` | on | on | on |
+| `text-dispatch`, `field-compare` | on | on | on |
 | `guards`, `guarded-classes` | on | on | open |
 | `scans` | on | on | on |
 | `class-runs` | on | on | open |
@@ -258,7 +256,6 @@ plain fields, and their options are fields. Rejected for consistency.
 - Disabled optimizations: for each flag, lean typed parsers generated without it run the generated-parser differential
   (`GeneratedTypesCorpus`), which compares results and errors with the engine in both position units. Each
   flag is also checked to change the generated code or the Core IR on the cases, so a flag that does nothing is caught.
-  `term-rewrites` is the case of the second kind: no printer reads the rewritten terms, so only the Core IR shows it.
 - Combinations: all optional flags off, and a seeded sample of pairs, with `Verify` after every pass. The full 2^n
   product is not run.
 - Mode applicability: `class-runs`, `terminals` and guarded classes do not run in builds with work controls, Documents
@@ -289,9 +286,6 @@ and TypeScript, are byte-identical to those of the former sequences.
 
 - **What `memory` and `size` contain.** Their flag sets are hypotheses until measured. Whether they also set the
   typed slab controls, and whether `size` also changes the runtime embedded in the parser, is open.
-- **Granularity of `term-rewrites`.** Each rewrite (`TextEq`, `ConcatFused`, `ProjectedMap`) could have its own flag. No
-  printer reads the rewritten terms, so a flag changes only the Core IR, and splitting it earns nothing until the Flow
-  printer takes terms from Core.
 - **Flow and Exec passes.** When Flow or Exec IR gains an optional pass, the manager runs it, and the flag and profile
   tables grow. Whether Flow lowering's options (`class-tables`, `inline-literals`) become passes is decided with them.
 - **Observability and budget controls as passes.** They are modes, not optimizations, so they stay out of the flag set;

@@ -633,19 +633,6 @@ func TestVerifyRejects(t *testing.T) {
 		{"capture in drop", func() *Module {
 			return module(rule(0, "a", &Drop{Body: &Capture{Slot: 0, Name: "x", Body: lit("a")}}, "x"))
 		}, "inside drop"},
-		{"untyped field compare operand", func() *Module {
-			l, r := &Const{Value: 1}, &Const{Value: 2}
-			fc := &FieldCompare{Op: "==", L: Operand{X: l, Type: "int"}, R: Operand{X: r}}
-			for _, t := range []Term{fc, l, r} {
-				SetType(t, "int")
-			}
-			rl := rule(0, "a", lit("a"))
-			rl.Type = "T"
-			rl.Finish = Finish{Kind: FinishAction, Action: fc}
-			m := module(rl)
-			m.Typed = true
-			return m
-		}, "operand without type"},
 		{"untyped term", func() *Module {
 			r := rule(0, "a", lit("a"))
 			r.Type = "T"

@@ -15,20 +15,15 @@ const AttributesAnalysis pipeline.Analysis = "attributes"
 
 // Names of the passes. A name is also the name of the flag that turns the pass off.
 const (
-	PassTerminals    = "terminals"
-	PassTermRewrites = "term-rewrites"
-	PassGuards       = "guards"
-	PassScans        = "scans"
-	PassClassRuns    = "class-runs"
+	PassTerminals = "terminals"
+	PassGuards    = "guards"
+	PassScans     = "scans"
+	PassClassRuns = "class-runs"
 )
 
 // Names of the flags that select a variant of a pass. A variant is on unless its flag, or the flag of
 // the pass, says otherwise.
 const (
-	// FlagTextDispatch selects the TextIn rewrite of term-rewrites.
-	FlagTextDispatch = "text-dispatch"
-	// FlagFieldCompare selects the FieldCompare rewrite of term-rewrites.
-	FlagFieldCompare = "field-compare"
 	// FlagGuardedClasses selects the GuardedClass marks that guards sets.
 	FlagGuardedClasses = "guarded-classes"
 )
@@ -63,8 +58,7 @@ type Env struct {
 // On reports whether the optimization of the given name is on.
 func (e *Env) On(name string) bool { return e.Flag == nil || e.Flag(name) }
 
-// Pipeline is the pipeline of the Core passes: terminal regions, term rewrites, choice guards,
-// scans and class runs. A run on the recognizer's or the Node table's module has no Lean mode, so
+// Pipeline is the pipeline of the Core passes: terminal regions, choice guards, scans and class runs. A run on the recognizer's or the Node table's module has no Lean mode, so
 // the first and last do not apply.
 var Pipeline = &pipeline.Pipeline[*Module, *Env]{
 	Passes: []pipeline.Pass[*Module, *Env]{
@@ -78,14 +72,6 @@ var Pipeline = &pipeline.Pipeline[*Module, *Env]{
 					return fmt.Errorf("no rule predicate")
 				}
 				Terminals(m, e.Local)
-				return nil
-			},
-		},
-		{
-			Name:       PassTermRewrites,
-			Obligation: "Gives the same results and the same errors in the same order.",
-			Run: func(m *Module, e *Env) error {
-				RewriteTerms(m, TermOptions{TextDispatch: e.On(FlagTextDispatch), FieldCompare: e.On(FlagFieldCompare)})
 				return nil
 			},
 		},

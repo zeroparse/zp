@@ -322,7 +322,7 @@ Expression nodes:
 Terms (actions, predicate expressions, bindings) are a typed sublanguage of Core IR: names are resolved to
 slots, items, lambda parameters and variables; built-ins are resolved; each term carries its checked type
 and whether it can raise. Projected repetitions, `concat` fusion, literal-text dispatch and unboxed text
-comparisons become term rewrites.
+comparisons are choices of the printers, which read the terms of the grammar (record 063).
 
 Every node carries attributes computed once and cached: **want** (whether its value is used), its value
 shape (none, one value, or elements spliced into the enclosing tuple, which is what `isElems` and

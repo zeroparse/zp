@@ -371,35 +371,6 @@ func TermString(t Term) string {
 		return t.Op + TermString(t.X)
 	case *Cast:
 		return TermString(t.X) + ".(" + fmt.Sprint(t.Check) + ")"
-	case *TextEq:
-		op := "=="
-		if t.Neg {
-			op = "!="
-		}
-		return "text-eq(" + TermString(t.L) + " " + op + " " + TermString(t.R) + ")"
-	case *FieldCompare:
-		return "field-cmp(" + operandString(t.L) + " " + t.Op + " " + operandString(t.R) + ")"
-	case *TextIn:
-		qs := make([]string, len(t.Texts))
-		for i, s := range t.Texts {
-			qs[i] = strconv.Quote(s)
-		}
-		return "text-in(" + TermString(t.X) + ", " + strings.Join(qs, " ") + ")"
-	case *ConcatFused:
-		ps := make([]string, len(t.Parts))
-		for i, p := range t.Parts {
-			switch p.Kind {
-			case PartList:
-				ps[i] = "list(" + termList(p.Args) + ")"
-			case PartMap:
-				ps[i] = "map(" + TermString(p.X) + ", " + TermString(p.Fn) + ")"
-			default:
-				ps[i] = "items(" + TermString(p.X) + ")"
-			}
-		}
-		return "concat-fused(" + strings.Join(ps, ", ") + ")"
-	case *ProjectedMap:
-		return "projected-map(" + TermString(t.X) + ")"
 	}
 	return fmt.Sprintf("%T", t)
 }
@@ -417,11 +388,4 @@ func termList(ts []Term) string {
 		xs[i] = TermString(t)
 	}
 	return strings.Join(xs, ", ")
-}
-
-func operandString(o Operand) string {
-	if o.Field {
-		return TermString(o.X) + "." + o.Name
-	}
-	return TermString(o.X)
 }

@@ -19,11 +19,10 @@ import (
 // testdata/typed_decisions.golden for the typed Go rules (table trules) and
 // testdata/recognizer_decisions.golden for the recognizers (recRules). They are Core's own
 // decisions, as coreDecisionLines encodes them: the Terminals, the guard of every alternative,
-// the class runs, the scans, the scopes and, for the typed rules, the structure and forms of
-// every action, predicate and binding. A run of TestCoreTypedDecisionsFrozen or
+// the class runs, the scans and the scopes. A run of TestCoreTypedDecisionsFrozen or
 // TestCoreRecognizerDecisionsFrozen compares the Core IR of every corpus grammar with its golden
-// entry; the negative controls of core_passes_test.go and core_terms_test.go break a pass and
-// require the comparison to notice.
+// entry; the negative controls of core_passes_test.go break a pass and require the comparison to
+// notice.
 //
 // A golden is a regression freeze, not an oracle: regenerating it makes a changed decision pass.
 // Regenerate it only for a change of a pass's decisions that is intended and justified, and review
@@ -44,8 +43,6 @@ import (
 //	runs     rule expr first:length ...
 //	scan     rule expr
 //	scope    rule expr slot,...
-//	term     rule at tree           at is the expression of a predicate or binding, -1 for the
-//	                                action of the rule and -2-i for the action of line i
 const (
 	typedDecisionsGolden      = "testdata/typed_decisions.golden"
 	recognizerDecisionsGolden = "testdata/recognizer_decisions.golden"

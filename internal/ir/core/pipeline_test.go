@@ -11,7 +11,7 @@ func TestPipelineIsValid(t *testing.T) {
 	if err := Pipeline.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{PassTerminals, PassTermRewrites, PassGuards, PassScans, PassClassRuns}
+	want := []string{PassTerminals, PassGuards, PassScans, PassClassRuns}
 	if got := Pipeline.Names(); !slices.Equal(got, want) {
 		t.Fatalf("passes %v, want %v", got, want)
 	}
@@ -25,7 +25,7 @@ func TestPipelineIsValid(t *testing.T) {
 // The passes that run depend on the mode, and a flag that is off removes its pass but never adds a
 // pass that does not apply.
 func TestPipelineAppliesByMode(t *testing.T) {
-	all := []string{PassTerminals, PassTermRewrites, PassGuards, PassScans, PassClassRuns}
+	all := []string{PassTerminals, PassGuards, PassScans, PassClassRuns}
 	off := func(names ...string) func(string) bool {
 		return func(name string) bool { return !slices.Contains(names, name) }
 	}
@@ -35,11 +35,11 @@ func TestPipelineAppliesByMode(t *testing.T) {
 		want []string
 	}{
 		{"lean", Env{Mode: Mode{Lean: true, Ordinary: true}}, all},
-		{"lean observable", Env{Mode: Mode{Lean: true, Ordinary: true, Observe: true}}, []string{PassTermRewrites, PassGuards, PassScans, PassClassRuns}},
-		{"controlled", Env{}, []string{PassTermRewrites, PassGuards, PassScans}},
-		{"recognizer", Env{Mode: Mode{Ordinary: true}}, []string{PassTermRewrites, PassGuards, PassScans}},
-		{"lean without guards", Env{Mode: Mode{Lean: true, Ordinary: true}, Flag: off(PassGuards)}, []string{PassTerminals, PassTermRewrites, PassScans, PassClassRuns}},
-		{"controlled with class runs on", Env{Flag: func(string) bool { return true }}, []string{PassTermRewrites, PassGuards, PassScans}},
+		{"lean observable", Env{Mode: Mode{Lean: true, Ordinary: true, Observe: true}}, []string{PassGuards, PassScans, PassClassRuns}},
+		{"controlled", Env{}, []string{PassGuards, PassScans}},
+		{"recognizer", Env{Mode: Mode{Ordinary: true}}, []string{PassGuards, PassScans}},
+		{"lean without guards", Env{Mode: Mode{Lean: true, Ordinary: true}, Flag: off(PassGuards)}, []string{PassTerminals, PassScans, PassClassRuns}},
+		{"controlled with class runs on", Env{Flag: func(string) bool { return true }}, []string{PassGuards, PassScans}},
 		{"nothing", Env{Mode: Mode{Lean: true, Ordinary: true}, Flag: func(string) bool { return false }}, nil},
 	}
 	for _, c := range cases {

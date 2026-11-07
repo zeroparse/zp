@@ -275,9 +275,8 @@ The names are the following, and an unknown name in `-no-opt` is an error that l
 | Name | What it does |
 | --- | --- |
 | `terminals` | Value-free choices of many literals and classes run as one program (lean typed Go) |
-| `term-rewrites` | Rewrite the terms of actions and predicates into forms that need no intermediate values |
-| `text-dispatch` | A predicate that compares the text of a capture with literals becomes one switch |
-| `field-compare` | Compare fields without boxing them |
+| `text-dispatch` | The printers emit a predicate that compares the text of a capture with literals as one switch |
+| `field-compare` | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields |
 | `guards` | Skip an alternative when the next character cannot start it |
 | `guarded-classes` | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers) |
 | `scans` | A value-free repetition of a class or of any character runs as a scan |

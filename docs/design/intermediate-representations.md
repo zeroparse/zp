@@ -142,7 +142,7 @@ rule 4 ws memo transient plain novalue
     class [\u0020\u0009]
 ```
 
-After term rewriting, analysis, guards and scans, the same rules read:
+After analysis, guards and scans, the same rules read:
 
 ```text
 rule 1 item memo transient scope=[n] => Item{Name: $0:n}!

@@ -1,9 +1,9 @@
 // Package opt is the registry of the generation-time optimizations and their settings (design 063).
 //
 // An optimization is a flag with a name. A pass of the Core IR pipeline is one (its name is the
-// pass's); so are the options of Flow lowering and the generation controls of the runtime
-// structures that the printers emit. A Settings value says which are on, and an integer parameter
-// where there is one. A profile is a named Settings. Whatever the settings, a generated parser
+// pass's); so are the options of Flow lowering, the forms that the printers emit for terms, and the
+// generation controls of the runtime structures that they emit. A Settings value says which are on,
+// and an integer parameter where there is one. A profile is a named Settings. Whatever the settings, a generated parser
 // returns the same results, errors and events; only its code and its resource use change.
 package opt
 
@@ -23,6 +23,9 @@ const (
 	Pass Kind = iota
 	// Lowering is an option of Flow lowering.
 	Lowering
+	// Printer is a choice of what the Go and TypeScript printers emit for a term of an action or a
+	// predicate.
+	Printer
 	// Runtime is a control of the runtime structures that the printers emit.
 	Runtime
 )
@@ -33,6 +36,8 @@ func (k Kind) String() string {
 		return "pass"
 	case Lowering:
 		return "lowering"
+	case Printer:
+		return "printer"
 	}
 	return "runtime"
 }
@@ -52,9 +57,8 @@ type Flag struct {
 // Flags lists the optimizations in the order the reference documents them.
 var Flags = []Flag{
 	{Name: core.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
-	{Name: core.PassTermRewrites, Kind: Pass, Default: 1, Doc: "rewrite terms of actions and predicates into forms that need no intermediate values"},
-	{Name: core.FlagTextDispatch, Kind: Pass, Default: 1, Doc: "a predicate that compares the text of a capture with literals becomes one switch"},
-	{Name: core.FlagFieldCompare, Kind: Pass, Default: 1, Doc: "compare fields without boxing them"},
+	{Name: "text-dispatch", Kind: Printer, Default: 1, Doc: "the printers emit a predicate that compares the text of a capture with literals as one switch"},
+	{Name: "field-compare", Kind: Printer, Default: 1, Doc: "the Go printer compares fields in the actions and predicates of typed rules without boxing string fields"},
 	{Name: core.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
 	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
 	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},

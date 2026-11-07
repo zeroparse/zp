@@ -15,9 +15,9 @@ func TestEveryCorePassIsAFlag(t *testing.T) {
 			t.Errorf("pass %s is not a registered optimization of kind pass", name)
 		}
 	}
-	for _, name := range []string{core.FlagTextDispatch, core.FlagFieldCompare, core.FlagGuardedClasses} {
+	for _, name := range []string{"text-dispatch", "field-compare", core.FlagGuardedClasses} {
 		if _, ok := lookup(name); !ok {
-			t.Errorf("the variant flag %s is not registered", name)
+			t.Errorf("the flag %s is not registered", name)
 		}
 	}
 }

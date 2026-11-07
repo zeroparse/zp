@@ -76,8 +76,6 @@ type New struct {
 	Declared []string
 	// Final reports that the struct is the rule's or line's result: its range is the rule's.
 	Final bool
-	// InOrder reports that the fields given are written in declaration order (RewriteTerms).
-	InOrder bool
 }
 
 // FieldInit is a field given to New.
@@ -142,73 +140,6 @@ type Cast struct {
 	Line, Col int
 }
 
-// TextEq compares the texts of two values, as text(L) == text(R) (or != with Neg), without
-// boxing them. It is what RewriteTerms makes of such a comparison.
-type TextEq struct {
-	termBase
-	L, R Term
-	Neg  bool
-}
-
-// FieldCompare compares two operands, at least one a field read, without boxing string
-// fields.
-type FieldCompare struct {
-	termBase
-	Op   string
-	L, R Operand
-}
-
-// Operand is an operand of FieldCompare: a field Name of X if Field, else the value of X.
-type Operand struct {
-	X     Term
-	Field bool
-	Name  string
-	// Type is the checked type of the operand's value: the field's if Field.
-	Type Type
-}
-
-// TextIn reports whether the text of a capture is one of Texts: a disjunction of text equality
-// comparisons with literals (Orig), evaluated once.
-type TextIn struct {
-	termBase
-	X     Term
-	Texts []string
-	Orig  Term
-}
-
-// ConcatFused is concat whose arguments push their elements directly.
-type ConcatFused struct {
-	termBase
-	Parts []ConcatPart
-}
-
-// ConcatPartKind is the kind of a part of ConcatFused.
-type ConcatPartKind uint8
-
-const (
-	// PartList pushes the values of Args (a list call).
-	PartList ConcatPartKind = iota
-	// PartMap pushes the results of Fn over the items of X.
-	PartMap
-	// PartItems pushes the items of X.
-	PartItems
-)
-
-// ConcatPart is a part of ConcatFused.
-type ConcatPart struct {
-	Kind ConcatPartKind
-	Args []Term
-	X    Term
-	Fn   *Lambda
-}
-
-// ProjectedMap is map over a projected repetition capture, whose items already are the mapped
-// values: the list of the items of X.
-type ProjectedMap struct {
-	termBase
-	X Term
-}
-
 // TermChildren returns the direct subterms of t.
 func TermChildren(t Term) []Term {
 	switch t := t.(type) {
@@ -233,26 +164,6 @@ func TermChildren(t Term) []Term {
 	case *Unary:
 		return []Term{t.X}
 	case *Cast:
-		return []Term{t.X}
-	case *TextEq:
-		return []Term{t.L, t.R}
-	case *FieldCompare:
-		return []Term{t.L.X, t.R.X}
-	case *TextIn:
-		return []Term{t.Orig}
-	case *ConcatFused:
-		var xs []Term
-		for _, p := range t.Parts {
-			xs = append(xs, p.Args...)
-			if p.X != nil {
-				xs = append(xs, p.X)
-			}
-			if p.Fn != nil {
-				xs = append(xs, p.Fn)
-			}
-		}
-		return xs
-	case *ProjectedMap:
 		return []Term{t.X}
 	}
 	return nil

@@ -35,7 +35,7 @@ func TestGenOptimize(t *testing.T) {
 		want string
 	}{
 		{[]string{"-optimize", "memory"}, `-optimize: unknown optimization profile "memory" (valid: speed)`},
-		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: terminals, term-rewrites,`},
+		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: terminals, text-dispatch,`},
 		{[]string{"-no-opt", "guards,nosuch"}, `unknown optimization "nosuch"`},
 		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: build, terminals,`},
 	} {
@@ -69,7 +69,7 @@ func TestGenPrintAfter(t *testing.T) {
 		return out.String()
 	}
 	all := run("all")
-	for _, want := range []string{"table after build --", "table after term-rewrites --", "table after guards --", "table after scans --", "table after class-runs --"} {
+	for _, want := range []string{"table after build --", "table after guards --", "table after scans --", "table after class-runs --"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("-print-after all lacks %q", want)
 		}

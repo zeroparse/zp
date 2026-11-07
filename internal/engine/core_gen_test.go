@@ -246,15 +246,7 @@ func guardString(g *gogen.Generator, m *core.Module, f *core.First) (string, str
 
 // coreDecisionCounts counts the decisions compared.
 type coreDecisionCounts struct {
-	terminals, guards, guardedClasses, classRuns, scans, scopes, terms int
-	// forms counts the special forms of the terms compared.
-	forms map[string]int
-}
-
-// termTree is a term's form and the terms inside it, in order.
-type termTree struct {
-	form string
-	kids []*termTree
+	terminals, guards, guardedClasses, classRuns, scans, scopes int
 }
 
 // coreDecisionLines encodes the decisions of the Core IR of c as the lines of the decisions
@@ -266,8 +258,7 @@ type termTree struct {
 //   - the guard of every alternative of a choice, and whether its first class is a guarded class;
 //   - the class runs of every value-free sequence;
 //   - the scans;
-//   - the scopes of repetition elements and Operators Rule lines;
-//   - for the typed rules, the structure and forms of every action, predicate and binding.
+//   - the scopes of repetition elements and Operators Rule lines.
 func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems []string) {
 	g := c.g()
 	for _, cr := range c.m.Rules {
@@ -288,19 +279,6 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 			lines = append(lines, fmt.Sprintf("%s\t%d\t%d", kind, cr.ID, at)+fmt.Sprintf(format, args...))
 		}
 		names := func(s []core.Slot) string { return strings.Join(core.SlotNames(s), ",") }
-		term := func(at int, t core.Term) {
-			tree := coreTermTree(t, g.NoBudget && c.table == "trules") // only the typed runtime takes fields in order
-			if n.forms == nil {
-				n.forms = map[string]int{}
-			}
-			countForms(tree, n.forms)
-			add("term", at, "\t%s", tree)
-			n.terms++
-		}
-		typed := c.table == "trules"
-		if typed && cr.Finish.Kind == core.FinishAction {
-			term(-1, cr.Finish.Action)
-		}
 		coreNodes(cr, func(x core.Node) {
 			switch x := x.(type) {
 			case *core.Terminal:
@@ -380,39 +358,12 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					n.scopes++
 				}
 			case *core.OperatorsRule:
-				lineList, exprs, actions := opLines(x, r.Def.Expr.(*grammar.OperatorsRule))
+				lineList, exprs, _ := opLines(x, r.Def.Expr.(*grammar.OperatorsRule))
 				for i, l := range lineList {
 					if ei, ok := at("scope", exprs[i]); ok {
 						add("scope", ei, "\t%s", names(l.Scope))
 						n.scopes++
 					}
-					if typed && l.Action != nil && actions[i] != nil {
-						term(-2-i, l.Action)
-					}
-				}
-			case *core.Pred:
-				if !typed {
-					return
-				}
-				e, ok := c.origin[x].(*grammar.Predicate)
-				if !ok {
-					problem("term", "predicate without origin")
-					return
-				}
-				if i, ok := at("term", e); ok {
-					term(i, x.Term)
-				}
-			case *core.BindNode:
-				if !typed {
-					return
-				}
-				e, ok := c.origin[x].(*grammar.Predicate)
-				if !ok {
-					problem("term", "binding without origin")
-					return
-				}
-				if i, ok := at("term", e); ok {
-					term(i, x.Term)
 				}
 			}
 		})
@@ -422,7 +373,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 }
 
 // decisionAspects maps the kind of a decision line to its aspect.
-var decisionAspects = map[string]string{"terminal": "terminal", "guard": "guard", "runs": "class runs", "scan": "scan", "scope": "scope", "term": "term"}
+var decisionAspects = map[string]string{"terminal": "terminal", "guard": "guard", "runs": "class runs", "scan": "scan", "scope": "scope"}
 
 // compareCoreDecisions compares the decisions of the Core IR of c with the golden's, and returns
 // the differences, each prefixed with its aspect (terminal, guard, class runs, scan, scope, term;
@@ -468,95 +419,6 @@ func compareCoreDecisions(c *coreGenCase, n *coreDecisionCounts) []string {
 	return errs
 }
 
-// coreTermTree returns the structure and forms of a Core term as the decisions record them
-// (termTree): a struct constructor is in declaration order only where the generator writes it so,
-// in a parser without step charges.
-func coreTermTree(t core.Term, noBudget bool) *termTree {
-	n := &termTree{}
-	kids := core.TermChildren(t)
-	switch t := t.(type) {
-	case *core.Const:
-		n.form = "const"
-	case *core.SlotRef, *core.Local:
-		n.form = "capture"
-	case *core.VarRef:
-		n.form = "var"
-	case *core.Member:
-		n.form = "member"
-	case *core.New:
-		n.form = "new"
-		if noBudget && t.InOrder {
-			n.form = "new-in-order"
-		}
-	case *core.Convert:
-		n.form = "convert"
-	case *core.Tuple:
-		n.form = "tuple"
-	case *core.Builtin:
-		n.form = "call:" + t.Func
-	case *core.Lambda:
-		n.form = "lambda"
-	case *core.Binary:
-		n.form = "binary:" + t.Op
-	case *core.Unary:
-		n.form = "unary:" + t.Op
-	case *core.Cast:
-		n.form = "cast"
-	case *core.TextEq:
-		n.form = "text-eq"
-	case *core.FieldCompare:
-		n.form = "field-cmp"
-	case *core.TextIn:
-		n.form = "text-in"
-	case *core.ProjectedMap:
-		n.form = "projected-map"
-	case *core.ConcatFused:
-		n.form = "concat-fused"
-		kids = nil
-		for _, p := range t.Parts {
-			part := &termTree{form: [...]string{core.PartList: "part-list", core.PartMap: "part-map", core.PartItems: "part-items"}[p.Kind]}
-			for _, x := range p.Args {
-				part.kids = append(part.kids, coreTermTree(x, noBudget))
-			}
-			if p.X != nil {
-				part.kids = append(part.kids, coreTermTree(p.X, noBudget))
-			}
-			if p.Fn != nil {
-				part.kids = append(part.kids, coreTermTree(p.Fn, noBudget))
-			}
-			n.kids = append(n.kids, part)
-		}
-	default:
-		n.form = fmt.Sprintf("%T", t)
-	}
-	for _, k := range kids {
-		n.kids = append(n.kids, coreTermTree(k, noBudget))
-	}
-	return n
-}
-
-func (n *termTree) String() string {
-	if len(n.kids) == 0 {
-		return n.form
-	}
-	xs := make([]string, len(n.kids))
-	for i, k := range n.kids {
-		xs[i] = k.String()
-	}
-	return n.form + "(" + strings.Join(xs, " ") + ")"
-}
-
-// countForms adds the special forms of the tree to forms.
-func countForms(n *termTree, forms map[string]int) {
-	switch n.form {
-	case "text-eq", "field-cmp", "text-in", "projected-map", "concat-fused", "new-in-order", "part-items":
-		forms[n.form]++
-	}
-	for _, k := range n.kids {
-		countForms(k, forms)
-	}
-}
-
 // coreAspectErrors returns the differences of the aspect among errs (compareCoreDecisions).
 func coreAspectErrors(errs []string, aspect string) []string {
 	var out []string
@@ -577,13 +439,9 @@ func TestCoreTypedDecisionsFrozen(t *testing.T) {
 	}, func(t *testing.T, mode coreGenMode, n *coreDecisionCounts) {
 		lean := !mode.opts.LimitControls
 		terminals := lean && !mode.opts.Observability
-		if n.guards == 0 || n.scans == 0 || n.scopes == 0 || n.terms == 0 ||
+		if n.guards == 0 || n.scans == 0 || n.scopes == 0 ||
 			(n.terminals > 0) != terminals || (n.classRuns > 0) != lean || (n.guardedClasses > 0) != lean {
 			t.Errorf("counts %+v", n)
-		}
-		if slices.Contains(mode.opts.NoOpt, "field-compare") != (n.forms["field-cmp"] == 0) || slices.Contains(mode.opts.NoOpt, "text-dispatch") != (n.forms["text-in"] == 0) ||
-			n.forms["concat-fused"] == 0 || n.forms["projected-map"]+n.forms["part-items"] == 0 {
-			t.Errorf("forms %v", n.forms)
 		}
 	})
 }
