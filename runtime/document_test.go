@@ -141,7 +141,7 @@ func TestDocumentReturnedRecoveryErrorOwnership(t *testing.T) {
 	r := &Rule{Id: 0, Name: "main", Memo: true, DocMemo: true, Seen: -1}
 	r.Body = func(p *Parser, _ int) (*Node, bool) {
 		p.Pos = 1
-		p.Recovered = append(p.Recovered, &SyntaxError{Line: 1, Col: 1, Expected: []string{"original"}, Messages: []string{"original"}})
+		p.PushRecovered(&SyntaxError{Line: 1, Col: 1, Expected: []string{"original"}, Messages: []string{"original"}})
 		return &Node{RawKind: kindError, RawEnd: 1}, true
 	}
 	d := testDocumentState(r, "x", CodePoints)
@@ -173,7 +173,7 @@ func TestDocumentDiagnosticPublicationBudget(t *testing.T) {
 		for i := range expected {
 			expected[i] = "original"
 		}
-		p.Recovered = append(p.Recovered, &SyntaxError{Line: 1, Col: 1, Expected: expected, Messages: []string{"original"}})
+		p.PushRecovered(&SyntaxError{Line: 1, Col: 1, Expected: expected, Messages: []string{"original"}})
 		return &Node{RawKind: kindError, RawEnd: 1}, true
 	}
 	d := testDocumentState(r, "x", CodePoints)
@@ -225,7 +225,7 @@ func TestDocumentDiagnosticPublicationCancellation(t *testing.T) {
 	r := &Rule{Id: 0, Name: "main", Memo: true, DocMemo: true, Seen: -1}
 	r.Body = func(p *Parser, _ int) (*Node, bool) {
 		p.Pos = 1
-		p.Recovered = append(p.Recovered, &SyntaxError{Expected: make([]string, 2048)})
+		p.PushRecovered(&SyntaxError{Expected: make([]string, 2048)})
 		return &Node{RawKind: kindError, RawEnd: 1}, true
 	}
 	d := testDocumentState(r, "x", CodePoints)

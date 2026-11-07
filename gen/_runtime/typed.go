@@ -692,7 +692,8 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 	p.Control.Check()
 	if ok && p.Pos == p.n {
 		if len(p.Recovered) > 0 {
-			errors := p.copyErrors(nil, p.Recovered)
+			errors := p.recoveredErrors()
+			p.chargeValues(len(errors))
 			p.Control.Check()
 			return v, SyntaxErrors(errors)
 		}
@@ -944,7 +945,7 @@ func (p *TParser) NewFrame(n int) *TCaptureFrame {
 // memoTable, whose FirstCall bookkeeping the typed runtime shares.
 type tmemoEntry struct {
 	val      any
-	errs     []*SyntaxError
+	errs     recEntry
 	expected []ExpID
 	next     *tmemoEntry
 	env      []any
@@ -1171,7 +1172,7 @@ func (d *typedDocumentState) splice(ed documentEdit) {
 				delete(d.meta, e)
 				continue
 			case m.examined <= ed.start:
-			case from >= ed.end && !m.pinned && len(e.errs) == 0:
+			case from >= ed.end && !m.pinned && e.errs.none():
 				to = pos + ed.delta
 				e.end += ed.delta
 				e.far += ed.delta
@@ -1656,7 +1657,7 @@ func (p *TParser) RecoverAttr(m, skip tmatcher, build bool) (any, bool) {
 		return nil, false
 	}
 	e := p.MakeError(far, expected)
-	p.Recovered = append(p.Recovered, e)
+	p.PushRecovered(e)
 	if !build {
 		return nil, true
 	}
@@ -2216,7 +2217,7 @@ type toperatorsRuleAttempt struct {
 	start, end int
 	env        *Env
 	cut        bool
-	errs       []*SyntaxError
+	errs       recEntry
 }
 
 func (p *TParser) lineResult(r *TRule, l *TOperatorsRuleLine, f *TCaptureFrame, v any, start int) any {

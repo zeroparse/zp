@@ -146,7 +146,7 @@ func (p *Parser) heldBytes() uint64 {
 		// The environment in use, which a stream keeps after it returns the copies made before.
 		n += uint64(p.envDepth+1) * envNodeBytes
 	}
-	n += uint64(cap(p.KidStack)+cap(p.saved)+cap(p.Recovered)+cap(p.created)) * ptrBytes
+	n += uint64(cap(p.KidStack)+cap(p.saved)+cap(p.created))*ptrBytes + uint64(cap(p.Recovered))*recEntryBytes
 	n += uint64(cap(p.Trail)) * uint64(unsafe.Sizeof(undo{}))
 	n += uint64(cap(p.exp)) * expIDBytes
 	n += uint64(cap(p.gamma)) * uint64(unsafe.Sizeof(growRec{}))

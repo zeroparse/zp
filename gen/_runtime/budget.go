@@ -1037,24 +1037,6 @@ func (p *Parser) makeControlledError(pos int, expected []ExpID) *SyntaxError {
 	return e
 }
 
-// copyErrors appends the recovered errors src to dst. It stays inlinable for the common case of
-// no errors; a new list (nil dst) belongs to a memo entry and its pointers are charged to values
-// (copyErrorsSlow). The errors themselves are charged once, when they are made (errs).
-func (p *Parser) copyErrors(dst, src []*SyntaxError) []*SyntaxError {
-	if len(src) == 0 {
-		return dst
-	}
-	return p.copyErrorsSlow(dst, src)
-}
-
-func (p *Parser) copyErrorsSlow(dst, src []*SyntaxError) []*SyntaxError {
-	out := appendSpend(p, dst, src)
-	if c := p.Control; c != nil && dst == nil {
-		c.values = saturatingAdd(c.values, uint64(cap(out))*ptrBytes)
-	}
-	return out
-}
-
 // rawValueEqual preserves the interface equality of memo keys and bindings.
 // In particular, a typed nil pointer differs from a nil interface. Action
 // valueEqual has different nil semantics and must not be used for these keys.

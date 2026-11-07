@@ -47,7 +47,7 @@ func (p *Parser) refLongest(ops []*OperatorsRuleOp) (best operatorsRuleAttempt, 
 		}
 		if ok && (best.op == nil || p.Pos > best.end) {
 			best = operatorsRuleAttempt{op: op, frame: f, v: v, start: m0.Pos, end: p.Pos, env: p.Env, cut: cut,
-				errs: p.copyErrors(nil, p.Recovered[m0.recovered:])}
+				errs: p.recSince(m0.recovered)}
 		}
 		if !ok && cut {
 			cutFailed = true
@@ -66,12 +66,12 @@ func (p *Parser) refLongest(ops []*OperatorsRuleOp) (best operatorsRuleAttempt, 
 }
 func (p *Parser) refApply(a *operatorsRuleAttempt) {
 	p.Pos, p.Env = a.end, a.env
-	if len(a.errs) != 0 {
+	if !a.errs.none() {
 		p.refApplyErrors(a)
 	}
 }
 func (p *Parser) refApplyErrors(a *operatorsRuleAttempt) {
-	p.Recovered = p.copyErrors(p.Recovered, a.errs)
+	p.recAdd(a.errs)
 }
 func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 	p.Depth++
@@ -222,7 +222,7 @@ func oprLine(rng *rand.Rand, tr *oprTrace, name, lit string, slots int) matcher 
 			p.SetCapture(0, tr.nodes[k])
 		}
 		if recover {
-			p.Recovered = append(p.Recovered, tr.errs[k])
+			p.PushRecovered(tr.errs[k])
 		}
 		if env {
 			p.Env = tr.envs[k]
@@ -304,7 +304,7 @@ func oprRule(rng *rand.Rand, tr *oprTrace) *Rule {
 				p.Pos++
 			}
 			if hash {
-				p.Recovered = append(p.Recovered, tr.errs[0])
+				p.PushRecovered(tr.errs[0])
 				if p.Pos == len(tr.in) || tr.in[p.Pos] != '#' {
 					return nil, false
 				}
@@ -369,7 +369,7 @@ func TestOperatorsRuleMatchesReference(t *testing.T) {
 					}
 				}
 				var errs []int
-				for _, e := range p.Recovered {
+				for _, e := range p.recoveredErrors() {
 					errs = append(errs, e.Pos)
 				}
 				return fmt.Sprintf("v=%s ok=%v fatal=%q pos=%d errs=%v env=%d trail=%d frame=%v cut=%v depth=%d spent=%d log=%v",

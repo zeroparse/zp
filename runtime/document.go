@@ -335,7 +335,7 @@ func (t *memoTable) splice(ed documentEdit) {
 			case e.from == noRecord:
 				continue
 			case e.examined <= ed.start:
-			case from >= ed.end && !e.pinned && len(e.errs) == 0:
+			case from >= ed.end && !e.pinned && e.errs.none():
 				to = pos + ed.delta
 			default:
 				continue
@@ -597,7 +597,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	if ok && p.Pos == p.n {
 		n = v
 		if len(p.Recovered) > 0 {
-			err = SyntaxErrors(p.Recovered)
+			err = SyntaxErrors(p.recoveredErrors())
 		}
 	} else {
 		if ok {

@@ -24,7 +24,7 @@ func referenceInvalidate(d *typedDocumentState, ed documentEdit) ([][]int32, map
 			case !m.recorded:
 				continue
 			case m.examined <= ed.start:
-			case from >= ed.end && !m.pinned && len(e.errs) == 0:
+			case from >= ed.end && !m.pinned && e.errs.none():
 				to += ed.delta
 				m.examined += ed.delta
 				m.shift += ed.delta
@@ -88,7 +88,7 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 					e.next = d.slots[pos]
 					d.slots[pos] = e
 					if r.Intn(8) == 0 {
-						e.errs = []*SyntaxError{{}}
+						e.errs = recEntry{err: &SyntaxError{}}
 					}
 					switch r.Intn(6) {
 					case 0: // incomplete: no metadata

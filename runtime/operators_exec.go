@@ -57,8 +57,8 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		}
 		p.Pos = a.end
 		p.Env = a.env
-		if len(a.errs) != 0 {
-			p.Recovered = p.copyErrors(p.Recovered, a.errs)
+		if !a.errs.none() {
+			p.recAdd(a.errs)
 		}
 		if op.Kind == "postfix" {
 			lhs = p.operatorsRuleBuild(r, &a, lhs, nil)
@@ -112,8 +112,8 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*Node, bool) {
 	if a.op != nil {
 		p.Pos = a.end
 		p.Env = a.env
-		if len(a.errs) != 0 {
-			p.Recovered = p.copyErrors(p.Recovered, a.errs)
+		if !a.errs.none() {
+			p.recAdd(a.errs)
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.op.Level)
 		if rok {
@@ -177,7 +177,7 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 		p.Cut = prevCut
 		matched := ok && !(p.Pos == start && (op.Kind != "infix"))
 		if matched && ((best.op == nil) || p.Pos > best.end) {
-			best = operatorsRuleAttempt{op: op, frame: f, v: v, start: start, end: p.Pos, env: p.Env, cut: cut, errs: p.copyErrors(nil, p.Recovered[m0.recovered:])}
+			best = operatorsRuleAttempt{op: op, frame: f, v: v, start: start, end: p.Pos, env: p.Env, cut: cut, errs: p.recSince(m0.recovered)}
 		}
 		if !matched && cut {
 			cutFailed = true
@@ -281,8 +281,8 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		}
 		p.Pos = a.end
 		p.Env = a.env
-		if len(a.errs) != 0 {
-			p.Recovered = p.copyErrors(p.Recovered, a.errs)
+		if !a.errs.none() {
+			p.recAdd(a.errs)
 		}
 		if op.Kind == "postfix" {
 			lhs, lstart = p.operatorsRuleBuild(r, &a, lhs, lstart, nil)
@@ -337,8 +337,8 @@ func (p *TParser) operatorsRuleNud(r *TRule) (any, int, bool) {
 	if a.op != nil {
 		p.Pos = a.end
 		p.Env = a.env
-		if len(a.errs) != 0 {
-			p.Recovered = p.copyErrors(p.Recovered, a.errs)
+		if !a.errs.none() {
+			p.recAdd(a.errs)
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.op.Level)
 		if rok {
@@ -403,7 +403,7 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 		p.Cut = prevCut
 		matched := ok && !(p.Pos == start && (op.Kind != "infix"))
 		if matched && ((best.op == nil) || p.Pos > best.end) {
-			best = toperatorsRuleAttempt{op: op, frame: f, v: v, start: start, end: p.Pos, env: p.Env, cut: cut, errs: p.copyErrors(nil, p.Recovered[m0.recovered:])}
+			best = toperatorsRuleAttempt{op: op, frame: f, v: v, start: start, end: p.Pos, env: p.Env, cut: cut, errs: p.recSince(m0.recovered)}
 		}
 		if !matched && cut {
 			cutFailed = true

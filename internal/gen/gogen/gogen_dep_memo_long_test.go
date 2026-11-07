@@ -38,7 +38,7 @@ var depMemoMutations = map[string][][2]string{
 		{"return !c.ctx || c.known && c.present&^present == 0\n", "return true\n"},
 	},
 	"canonical seeds": {
-		{"if c.e.examined == e.examined && len(c.e.errs) == 0 && p.nodesEqual(", "if true || p.nodesEqual("},
+		{"if c.e.examined == e.examined && c.e.errs.none() && p.nodesEqual(", "if true || p.nodesEqual("},
 	},
 	"jumps over observations of the growing seed": {
 		{"v != d.val || !free {", "v != d.val || !free && false {"},

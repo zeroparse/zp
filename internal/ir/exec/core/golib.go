@@ -150,7 +150,7 @@ func goTarget(s goSpec) *execgo.Target {
 	typed := s.typed
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
-		ops.Rule: "*Rule", ops.Value: "*Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "[]*SyntaxError",
+		ops.Rule: "*Rule", ops.Value: "*Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "recEntry",
 		ops.ExpID: "ExpID", ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
@@ -349,11 +349,11 @@ func goTarget(s goSpec) *execgo.Target {
 		case "rec.truncate":
 			return "p.Recovered = p.Recovered[:" + a[0] + "]"
 		case "rec.since":
-			return "p.copyErrors(nil, p.Recovered[" + a[0] + ":])"
+			return "p.recSince(" + a[0] + ")"
 		case "rec.add":
-			return "p.Recovered = p.copyErrors(p.Recovered, " + a[0] + ")"
+			return "p.recAdd(" + a[0] + ")"
 		case "rec.none":
-			return "len(" + a[0] + ") == 0"
+			return a[0] + ".none()"
 		case "exp.farthest":
 			return "p.farthest"
 		case "exp.recording":
@@ -527,7 +527,7 @@ func goTarget(s goSpec) *execgo.Target {
 		case "opr.infix":
 			return a[0] + `.Kind != "infix"`, true
 		case "rec.none":
-			return "len(" + a[0] + ") != 0", true
+			return "!" + a[0] + ".none()", true
 		}
 		return "", false
 	}

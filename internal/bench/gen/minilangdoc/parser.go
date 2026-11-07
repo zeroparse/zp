@@ -561,7 +561,7 @@ L42:
 		goto L36
 	}
 	x43 = p.MakeError(x4, x5)
-	p.Recovered = append(p.Recovered, x43)
+	p.PushRecovered(x43)
 	v8 = p.NewErrorNode(x2.Pos, x43)
 	goto L7
 L36:
@@ -2421,4 +2421,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol1
+const _ = rt.Protocol2

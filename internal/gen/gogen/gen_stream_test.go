@@ -225,6 +225,13 @@ rule main = {n := 0} item* #stream $$
 rule item = "a" {n := n + 1} / "b" {n > 0}`, Inputs: []string{"ab", "b", "aab"}},
 	{Name: "recovery", Src: `rule main = stmt* #stream $$
 rule stmt = ([a-z]+ #atomic ";") #recover(skip=[^;]+ ";")`, Inputs: []string{"ab;1x;cd;9;", "1x;ab", "ab;"}},
+	// An element that calls pair a second time at its position, after the first alternative failed,
+	// takes the result that the memo stored, whose errors are then one list: the reports deliver
+	// each of its errors once.
+	{Name: "recovery lists", Src: `rule main = item+ #stream $$
+rule item = pair ";" / pair "!"
+rule pair = part "," part
+rule part = "ab" #recover(skip=[^a;,!]+)`, Inputs: []string{"ab,X;Y,Z!", strings.Repeat("ab,X;Y,Z!", 20), "ab,X;Y,Z!ab,ab!X"}},
 	{Name: "unicode", Src: `rule main = ch* #stream $$
 rule ch = "é" / "😀" / "\u{fffd}" / [a-z]`, Inputs: []string{"aé😀b", "é\xe2\x82", "\xff\xfe", "a\xe2\x82\xacb", "\xf0\x9f\x98", "😀😀"}},
 	{Name: "errors after discard", Src: `rule main = line* #stream $$

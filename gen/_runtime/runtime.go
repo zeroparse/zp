@@ -1320,7 +1320,7 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *Node, err err
 	p.Control.Check()
 	if ok && p.Pos == p.n {
 		if len(p.Recovered) > 0 {
-			return v, SyntaxErrors(p.Recovered)
+			return v, SyntaxErrors(p.recoveredErrors())
 		}
 		return v, nil
 	}
@@ -1460,7 +1460,9 @@ type Parser struct {
 	arena    []ExpID
 	lastKept []ExpID
 
-	Recovered []*SyntaxError
+	// Recovered is the record of the syntax errors recovered by #recover: errors and the lists that
+	// results share (recEntry). Backtracking undoes them; recoveredErrors lists them.
+	Recovered []recEntry
 
 	// Result slabs, the stack that gathers repetition children, and the reused
 	// evaluation context.
@@ -1776,10 +1778,10 @@ func (t *memoTable) sparsePage(pos, r int) *[16]uint64 {
 
 type memoEntry struct {
 	node     *Node
-	errs     []*SyntaxError // errors recovered in this call, recorded again on reuse
-	expected []ExpID        // expectations at far, recorded again on reuse
-	next     *memoEntry     // next entry at the same position
-	env      []any          // values of the rule's variables at the call (memo key)
+	errs     recEntry   // errors recovered in this call, recorded again on reuse
+	expected []ExpID    // expectations at far, recorded again on reuse
+	next     *memoEntry // next entry at the same position
+	env      []any      // values of the rule's variables at the call (memo key)
 	end      int
 	examined int // exclusive upper bound examined by a Document call
 	far      int
@@ -1798,6 +1800,9 @@ type memoEntry struct {
 	// rule of their cycle was evaluated; it is reused only where every leader that grows there is in
 	// the set (ctxCallState.memoAllows).
 	present uint32
+	// _ pads the entry to 128 bytes, two cache lines of the slab that holds it: at 120 bytes,
+	// entries straddle lines and node parses ran about 2% slower.
+	_ [8]byte
 }
 
 // get returns the entry for the rule, position, level and variable values.
@@ -3228,7 +3233,7 @@ func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*Node, bool) {
 		return nil, false
 	}
 	e := p.MakeError(far, expected)
-	p.Recovered = append(p.Recovered, e)
+	p.PushRecovered(e)
 	if !build {
 		return nil, true
 	}
@@ -3823,7 +3828,7 @@ type operatorsRuleAttempt struct {
 	start, end int
 	env        *Env
 	cut        bool
-	errs       []*SyntaxError
+	errs       recEntry
 }
 
 func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *Node, start int) *Node {
