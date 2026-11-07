@@ -72,8 +72,8 @@ func TestSettings(t *testing.T) {
 	if s, err := Profile("speed"); err != nil || s.Value("inline-literals") != 4 {
 		t.Errorf("speed: %v, %v", s, err)
 	}
-	if _, err := Profile("memory"); err == nil || !strings.Contains(err.Error(), "valid: speed") {
-		t.Errorf("memory: %v", err)
+	if _, err := Profile("nosuch"); err == nil || !strings.Contains(err.Error(), "valid: speed, memory, size") {
+		t.Errorf("unknown profile: %v", err)
 	}
 	off, err := speed.Without("guards", "inline-literals")
 	if err != nil {
