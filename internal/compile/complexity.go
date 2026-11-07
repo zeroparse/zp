@@ -92,8 +92,8 @@ type Complexity struct {
 }
 
 // ClassifyComplexity classifies the cost of g from the start rule start ("" selects the default
-// start rule). g must compile and start must be one of its start rules; the classification of any
-// other grammar is unspecified. It analyzes the grammar that the compiler runs: inline actions are
+// start rule, and its absence is an error). g must compile and start must be one of its start
+// rules; the classification of any other grammar is unspecified. It analyzes the grammar that the compiler runs: inline actions are
 // lowered to hidden rules and attributes are normalized. A non-nil control polls for
 // cancellation.
 func ClassifyComplexity(g *grammar.Grammar, start string, control *Control) (*Complexity, error) {
@@ -173,7 +173,11 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *Control, b
 	}
 	rules := control.rules(g)
 	if start == "" {
-		_, start, _ = resolveStarts(rules, control)
+		_, def, errs := resolveStarts(rules, control)
+		if len(errs) > 0 {
+			return nil, nil, errs
+		}
+		start = def
 	}
 	return build(g, rules, start, control), names, nil
 }
