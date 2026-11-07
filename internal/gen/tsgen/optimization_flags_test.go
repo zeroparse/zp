@@ -1,7 +1,6 @@
 package tsgen_test
 
 import (
-	"os/exec"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -26,10 +25,7 @@ var tsModes = []struct {
 // or with the opt-in literal sharing on, with the engine, in every mode of tsModes.
 func TestOptimizationDisabledTSParity(t *testing.T) {
 	t.Parallel()
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node not found")
-	}
+	node := gentest.RequireNode(t)
 	var all []string
 	for _, f := range genopt.Flags {
 		if f.Kind != genopt.Runtime {
@@ -61,21 +57,22 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 	}
 }
 
-// TestOptimizationDisabledTSNegativeControl shows that the comparison of the test above notices a
-// parser that is wrong: with the guards off and a literal of the grammar changed in the generated
-// code, the results differ from those of the parser as generated.
+// TestOptimizationDisabledTSNegativeControl shows that the comparison of the test above, the one
+// of TSParsersCorpus with the engine, notices a parser that is wrong: with the guards off and a
+// literal of the grammar changed in the generated code, results differ from the engine's, and
+// without the change they do not.
 func TestOptimizationDisabledTSNegativeControl(t *testing.T) {
 	t.Parallel()
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node not found")
-	}
+	node := gentest.RequireNode(t)
 	for _, mode := range tsModes {
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
 			o := mode.opts
 			o.NoOpt = []string{"guards"}
 			cases := gentest.FlagParityCases()
+			if got := gentest.TSParsersMismatches(t, node, cases, o, nil); len(got) != 0 {
+				t.Fatalf("the unchanged parsers differ from the engine's results:\n%s", got[0])
+			}
 			var changed atomic.Bool
 			mutate := func(src string) string {
 				out := strings.ReplaceAll(src, `"while"`, `"whilx"`)
@@ -84,13 +81,12 @@ func TestOptimizationDisabledTSNegativeControl(t *testing.T) {
 				}
 				return out
 			}
-			want := gentest.TSParsersOutputs(t, node, cases, o, nil)
-			got := gentest.TSParsersOutputs(t, node, cases, o, mutate)
+			got := gentest.TSParsersMismatches(t, node, cases, o, mutate)
 			if !changed.Load() {
 				t.Fatal(`the generated code has no literal "while" to change: the control proves nothing`)
 			}
-			if got == want {
-				t.Errorf("a parser with a changed literal gives the results of the parser as generated")
+			if len(got) == 0 {
+				t.Errorf("a parser with a changed literal gives the results of the engine")
 			}
 		})
 	}

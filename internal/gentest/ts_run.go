@@ -246,6 +246,33 @@ func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts ge
 // inputs of the case, in positions of code points and of bytes, with those of the engine.
 func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOptions) {
 	t.Helper()
+	for _, m := range TSParsersMismatches(t, node, cases, opts, nil) {
+		t.Error(m)
+	}
+}
+
+// RequireNode returns the Node executable, or skips the test when there is none, unless the
+// environment variable REQUIRE_NODE is 1 (the toolchain check of the CI workflows sets it), when
+// the missing executable fails the test: a comparison with the generated TypeScript must not pass
+// by not running.
+func RequireNode(t *testing.T) string {
+	t.Helper()
+	node, err := exec.LookPath("node")
+	if err != nil {
+		if os.Getenv("REQUIRE_NODE") == "1" {
+			t.Fatalf("node not found, and REQUIRE_NODE=1: %v", err)
+		}
+		t.Skip("node not found")
+	}
+	return node
+}
+
+// TSParsersMismatches is TSParsersCorpus but it returns a description of every result that differs
+// from the engine's instead of failing on them, after changing the source of each generated parser
+// with mutate (when not nil; the types are then not checked). TSParsersCorpus fails on them; a
+// negative control passes a mutation and requires some.
+func TSParsersMismatches(t *testing.T, node string, cases []Case, opts gen.GenOptions, mutate func(string) string) []string {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
@@ -273,6 +300,9 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		name := fmt.Sprintf("g%d.ts", i)
+		if mutate != nil {
+			code = []byte(mutate(string(code)))
+		}
 		write(name, string(code))
 		files = append(files, name)
 		var in []input
@@ -296,7 +326,11 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 	data, _ := json.Marshal(inputs)
 	write("inputs.json", string(data))
 
-	if tsc, err := exec.LookPath("tsc"); err == nil {
+	tsc, tscErr := exec.LookPath("tsc")
+	switch {
+	case mutate != nil:
+		// A mutated parser is compared, not type-checked.
+	case tscErr == nil:
 		// The strictest checks there are, so that the code compiles in any project; ES2020 is the
 		// oldest target it supports (bigint).
 		args := append([]string{"--noEmit", "--target", "es2020", "--lib", "es2020", "--strict",
@@ -308,7 +342,7 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Errorf("tsc: %v\n%s", err, out)
 		}
-	} else {
+	default:
 		t.Log("tsc not found: not type-checking the generated code")
 	}
 
@@ -323,6 +357,7 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 	}
 	defer f.Close()
 	results := bufio.NewReader(f)
+	var mismatches []string
 	k, w := 0, 0
 	for _, c := range cases {
 		for _, s := range c.Inputs {
@@ -358,7 +393,7 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 					}
 					if res != wants[w].out {
 						at := DiffAt(res, wants[w].out)
-						t.Errorf("%s (%v, %s): input %q\n generated %s\n engine    %s", c.Name, unit, form, in, Clip(res, at), Clip(wants[w].out, at))
+						mismatches = append(mismatches, fmt.Sprintf("%s (%v, %s): input %q\n generated %s\n engine    %s", c.Name, unit, form, in, Clip(res, at), Clip(wants[w].out, at)))
 					}
 					str, err := base64.StdEncoding.DecodeString(got.Str)
 					if err != nil {
@@ -366,10 +401,10 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 					}
 					if string(str) != wants[w].str {
 						at := DiffAt(string(str), wants[w].str)
-						t.Errorf("%s (%v, %s): input %q: String\n generated %s\n engine    %s", c.Name, unit, form, in, Clip(string(str), at), Clip(wants[w].str, at))
+						mismatches = append(mismatches, fmt.Sprintf("%s (%v, %s): input %q: String\n generated %s\n engine    %s", c.Name, unit, form, in, Clip(string(str), at), Clip(wants[w].str, at)))
 					}
 					if got.Rec != wants[w].rec {
-						t.Errorf("%s (%v, %s): input %q: recognize\n generated %s\n engine    %s", c.Name, unit, form, in, got.Rec, wants[w].rec)
+						mismatches = append(mismatches, fmt.Sprintf("%s (%v, %s): input %q: recognize\n generated %s\n engine    %s", c.Name, unit, form, in, got.Rec, wants[w].rec))
 					}
 				}
 				w++
@@ -378,8 +413,9 @@ func TSParsersCorpus(t *testing.T, node string, cases []Case, opts gen.GenOption
 	}
 	t.Logf("compared %d results of %d grammars", k, len(cases))
 	if rest, _ := results.ReadString('\n'); rest != "" {
-		t.Errorf("got more than %d results", k)
+		mismatches = append(mismatches, fmt.Sprintf("got more than %d results", k))
 	}
+	return mismatches
 }
 
 // TSBundles generates a TypeScript parser for each case with opts, concurrently, for TSOutputs.
