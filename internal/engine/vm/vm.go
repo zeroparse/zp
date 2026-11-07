@@ -857,6 +857,8 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			if in.B&4 != 0 { // (the scan sites of OpIter build lists: the others are OpScanSite)
 				scanSite, runSite = runSite, 0
 			}
+			// A repetition that a Document resumes neither looks up nor makes records. This only keeps
+			// its cost and reuse as they were: any record would be exact. No test tells the two apart.
 			if scanSite > 0 && rep.run == nil && rep.count == core.ScanHotSpan && !rep.scan {
 				// The walk of a scan site has reached its ScanHotSpan-th element: as closure's scanSiteList.
 				rep.scan, rep.site, rep.coldStart = true, scanSite, *mc.vals[rep.base-1].(*int)

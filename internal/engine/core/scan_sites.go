@@ -87,8 +87,9 @@ func (p *Parser) ScanJump(rec skipRecord) {
 // The guard on the range is defensive and not what makes a record exact: Decode fills the input up to
 // the character it examines (Fill) or reaches the end of the input (Eof) before it reports the
 // range, so the range of a walk never reaches past the input loaded unless the input has ended. The
-// guard stores nothing if that were not so, because more input would then change the walk. No test
-// reaches it: with the guard made to panic, the engine tests, which include streams, pass.
+// guard stores nothing if that were not so, because more input would then change the walk. With the
+// guard made to panic, the tests of the engine package, which include streams, pass; other packages
+// were not run that way.
 func (p *Parser) ScanStore(site, start, examined, count int, kids []*value.Node) {
 	if SkipRecordMutation == SkipNeverRecord || !(p.Eof || examined <= p.Loaded()) {
 		return

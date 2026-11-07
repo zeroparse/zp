@@ -713,8 +713,10 @@ the range always lies in the part that has been read unless the input has ended,
 and the test is a safeguard only. The elements of a record are shared with
 the lists of the walks that take them. They are final, as those of run sites are.
 
-A scan site that a [document](documents.md) resumes is resumed as before. The
-records of scan sites last for one parse.
+A scan site that a [document](documents.md) resumes is resumed as before: a
+repetition that is resumed neither looks up nor makes records. That affects only
+cost and reuse, since every record is exact (see the proof). The records of scan
+sites last for one parse.
 
 A parse with scan sites gives the result of a parse without them, with the same
 expectations and examined ranges. The steps a parse charges exceed those of a

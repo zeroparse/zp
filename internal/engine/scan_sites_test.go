@@ -646,7 +646,7 @@ func TestScanSitesResumeInDocuments(t *testing.T) {
 	const src = `rule main = (ws "a" / ws "b" / ws "c" / ws "d" / ws "e")* $$
 rule ws = [ ]*`
 	prog, plain := mustCompile(t, src), compileWithoutScanSites(t, src)
-	for _, c := range []struct {
+	cases := []struct {
 		name          string
 		text          string
 		a, e          int
@@ -655,7 +655,19 @@ rule ws = [ ]*`
 	}{
 		{"an edit at the end of a long run", strings.Repeat(" ", 3000) + "a", 3000, 3001, "b", true},
 		{"an edit inside the hot span", strings.Repeat(" ", 40) + "e", 3, 3, "  ", false},
-	} {
+	}
+	// Edits at every position of a run of 40 blanks: some leave a resumed prefix of exactly the hot
+	// span, after which the walk goes on.
+	for a := 1; a < 36; a++ {
+		cases = append(cases, struct {
+			name          string
+			text          string
+			a, e          int
+			ins           string
+			lessThanFirst bool
+		}{fmt.Sprintf("an edit at %d of a run of 40", a), strings.Repeat(" ", 40) + "e", a, a, " ", false})
+	}
+	for _, c := range cases {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			first, edit := documentSteps(t, prog, b, c.text, c.a, c.e, c.ins)
 			_, want := documentSteps(t, plain, b, c.text, c.a, c.e, c.ins)
