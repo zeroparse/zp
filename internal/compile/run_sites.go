@@ -57,6 +57,16 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 	}
 	restart := restartableRepeats(names, func(n string) grammar.Expr { return prog.ByName[n].Def.Expr }, calls)
 	readsVars := func(n string) bool { r := prog.ByName[n]; return r == nil || len(r.Vars) > 0 }
+	scanRules := prog.scanRules(control, defs, calls)
+	for _, r := range prog.RuleList {
+		if scanRules[r.Name] {
+			walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
+				if rep, ok := x.(*grammar.Repeat); ok {
+					restart[rep] = true
+				}
+			}, control)
+		}
+	}
 	memo := map[*grammar.Repeat]bool{}
 	var eligible func(e *grammar.Repeat) bool
 	eligible = func(e *grammar.Repeat) bool {
@@ -100,6 +110,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 			}
 		}, control)
 	}
+	prog.markScanSites(control, scanRules)
 }
 
 // EnvFree reports whether the skip-run or run site is free of the environment: its records are

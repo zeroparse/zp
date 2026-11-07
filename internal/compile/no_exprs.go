@@ -36,9 +36,9 @@ func (NoExprs) Empty() struct{}                                                {
 func (NoExprs) Fail() struct{}                                                 { return struct{}{} }
 func (NoExprs) Anchor(e grammar.Expr, desc ExpID) struct{}                     { return struct{}{} }
 func (NoExprs) Predicate(e *grammar.Predicate, s *Scope) struct{}              { return struct{}{} }
-func (NoExprs) ScanRepeat(e *grammar.Repeat, desc ExpID) struct{}              { return struct{}{} }
+func (NoExprs) ScanRepeat(e *grammar.Repeat, desc ExpID, scan int) struct{}    { return struct{}{} }
 func (NoExprs) SkipRepeat(e *grammar.Repeat, elem struct{}, skip int) struct{} { return struct{}{} }
-func (NoExprs) Repeat(e *grammar.Repeat, elem struct{}, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, in *Rule, run int) struct{} {
+func (NoExprs) Repeat(e *grammar.Repeat, elem struct{}, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, in *Rule, run, scan int) struct{} {
 	return struct{}{}
 }
 func (NoExprs) ProjectRepeat(e *grammar.Repeat, elem struct{}, slot, n int) struct{} {

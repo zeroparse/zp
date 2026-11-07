@@ -49,7 +49,7 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 			closure.NewBuilder(&compile.Compiler{Control: c}, false).Guard(compile.First{Term: cl})
 		}},
 		{"scan-repeat", func(c *compile.Control) {
-			closure.NewBuilder(&compile.Compiler{Control: c}, false).ScanRepeat(&grammar.Repeat{Expr: cl, Max: -1}, 0)
+			closure.NewBuilder(&compile.Compiler{Control: c}, false).ScanRepeat(&grammar.Repeat{Expr: cl, Max: -1}, 0, 0)
 		}},
 		{"guard-extraction", func(c *compile.Control) {
 			compile.FirstTerminalControlled(&compile.Program{}, deep, 0, map[string]bool{}, c)

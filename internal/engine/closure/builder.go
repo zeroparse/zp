@@ -447,13 +447,16 @@ func (b *Builder) Predicate(e *grammar.Predicate, s *compile.Scope) core.Matcher
 // ScanRepeat advances over the repetition without saving and restoring state per element.
 // Expectations are recorded as for a general repetition (once, at the position that did not match
 // last).
-func (b *Builder) ScanRepeat(e *grammar.Repeat, desc core.ExpID) core.Matcher {
+func (b *Builder) ScanRepeat(e *grammar.Repeat, desc core.ExpID, scan int) core.Matcher {
 	accept := func(*core.Parser, rune) bool { return true }
 	if x, ok := e.Expr.(*grammar.CharClass); ok {
 		accept = ClassAcceptControlled(x, b.control)
 	}
 	min, max := e.Min, e.Max
 	charge := b.charges()
+	if scan != 0 && max < 0 {
+		return b.scanSite(accept, desc, min, charge, scan)
+	}
 	return func(p *core.Parser) (*value.Node, bool) {
 		count := 0
 		for max < 0 || count < max {
@@ -469,6 +472,116 @@ func (b *Builder) ScanRepeat(e *grammar.Repeat, desc core.ExpID) core.Matcher {
 			count++
 		}
 		return nil, count >= min
+	}
+}
+
+// scanSite is ScanRepeat for the scan site scan (core/scan_sites.go): a walk that reaches its
+// ScanHotSpan-th character looks for the record of its start, if the site is hot, and otherwise
+// reports itself to the cold state of the site.
+func (b *Builder) scanSite(accept func(*core.Parser, rune) bool, desc core.ExpID, min int, charge bool, site int) core.Matcher {
+	return func(p *core.Parser) (*value.Node, bool) {
+		start, span := p.Pos, core.ScanHotSpan
+		count := 0
+		for count < span {
+			if charge {
+				p.Spend()
+			}
+			ch, size, ok := p.Peek()
+			if !ok || !accept(p, ch) {
+				p.Expect(p.Pos, desc)
+				return nil, count >= min
+			}
+			p.Pos += size
+			count++
+		}
+		hot, hit := p.ScanHot(site), false
+		hw0 := p.Hw
+		p.Hw = 0
+		if hot {
+			var rec core.ScanRecord
+			if rec, hit = p.ScanLookup(site, start); hit {
+				p.ScanJump(rec)
+				count = rec.Count()
+			}
+		}
+		for {
+			if charge {
+				p.Spend()
+			}
+			ch, size, ok := p.Peek()
+			if !ok || !accept(p, ch) {
+				p.Expect(p.Pos, desc)
+				break
+			}
+			p.Pos += size
+			count++
+		}
+		p.FinishScan(site, start, count, hot, hit, hw0)
+		return nil, count >= min
+	}
+}
+
+// scanSiteList is Repeat for the scan site scan whose walks build a list of the elements (see
+// scanSite). The element is a single character, matched by m, so it captures nothing and cuts nothing.
+func (b *Builder) scanSiteList(m core.Matcher, elemValue func(*core.Parser, *value.Node, int) *value.Node, rs *core.RunSite, min int, charge, build bool, site int) core.Matcher {
+	return func(p *core.Parser) (*value.Node, bool) {
+		if rs != nil && p.Runs != nil && p.Silent == 0 {
+			return p.ResumeRepeat(rs)
+		}
+		start, span := p.Pos, core.ScanHotSpan
+		base := len(p.KidStack)
+		var (
+			hot, hit bool
+			rec      core.ScanRecord
+			hw0      int
+		)
+		count := 0
+		for n := 0; ; n++ {
+			if n == span {
+				hot = p.ScanHot(site)
+				hw0 = p.Hw
+				p.Hw = 0
+				if hot {
+					if rec, hit = p.ScanLookup(site, start); hit {
+						p.ScanJump(rec)
+						count = rec.Count()
+					}
+				}
+			}
+			if charge {
+				p.Spend()
+			}
+			m0 := p.Mark()
+			v, ok := m(p)
+			if !ok {
+				p.Reset(m0)
+				break
+			}
+			count++
+			if build {
+				p.KidStack = append(p.KidStack, elemValue(p, v, m0.Pos))
+			}
+			if p.Pos == m0.Pos {
+				break
+			}
+		}
+		if count < min {
+			if count >= span {
+				p.Hw = max(hw0, p.Hw)
+			}
+			p.Kids(base)
+			return nil, false
+		}
+		if !build {
+			if count >= span {
+				p.FinishScan(site, start, count, hot, hit, hw0)
+			}
+			return nil, true
+		}
+		if count >= span {
+			return p.FinishScanList(site, start, base, count, hot, hit, rec, hw0), true
+		}
+		return p.NewNode(value.Data{Kind: value.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 	}
 }
 
@@ -570,7 +683,7 @@ func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compil
 	}
 }
 
-func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule, run int) core.Matcher {
+func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule, run, scan int) core.Matcher {
 	// A run site walks as a plain repetition until its walks overlap, and keeps records after.
 	var hot core.Matcher
 	if run != 0 {
@@ -584,6 +697,9 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 	}
 	charge := b.charges()
 	inID, inRec := in.ID, in.Rec
+	if scan != 0 && !stream && !ownScope && max < 0 && run == 0 {
+		return b.scanSiteList(m, elemValue, rs, min, charge, build, scan)
+	}
 	return func(p *core.Parser) (*value.Node, bool) {
 		if rs != nil && p.Runs != nil && p.Silent == 0 {
 			return p.ResumeRepeat(rs)

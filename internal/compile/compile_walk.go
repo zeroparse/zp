@@ -43,13 +43,13 @@ type ExprBuilder[M any] interface {
 	Predicate(e *grammar.Predicate, s *Scope) M
 	// ScanRepeat matches the repetition e of a value-free character class or ., whose
 	// expectation is desc.
-	ScanRepeat(e *grammar.Repeat, desc ExpID) M
+	ScanRepeat(e *grammar.Repeat, desc ExpID, scan int) M
 	// Repeat matches the repetition e of elem, whose captures are in elemScope (its own scope when
 	// ownScope). stream passes the elements of a #stream on; site, if not 0, is the number of a
 	// repetition that a Document can resume, whose elements' values move past an edit when
 	// shiftable. run, if not 0, is the number of the run site (run_sites.go) whose walks record the
 	// rest of them, with values where build.
-	Repeat(e *grammar.Repeat, elem M, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, in *Rule, run int) M
+	Repeat(e *grammar.Repeat, elem M, elemScope *Scope, ownScope, build, stream bool, site int, shiftable bool, in *Rule, run, scan int) M
 	// SkipRepeat matches the repetition e of elem, the skip-run site skip (Program.SkipSite),
 	// recording its walks and reusing the records (core/skip_runs.go).
 	SkipRepeat(e *grammar.Repeat, elem M, skip int) M
@@ -268,9 +268,9 @@ func (c *Walker[M]) scanRepeat(e *grammar.Repeat, build bool) (M, bool) {
 	}
 	switch x := e.Expr.(type) {
 	case *grammar.CharClass:
-		return c.Builder.ScanRepeat(e, c.desc(CharClassStringControlled(x, c.Control))), true
+		return c.Builder.ScanRepeat(e, c.desc(CharClassStringControlled(x, c.Control)), c.Prog.ScanSite(e)), true
 	case *grammar.Any:
-		return c.Builder.ScanRepeat(e, IDAny), true
+		return c.Builder.ScanRepeat(e, IDAny, c.Prog.ScanSite(e)), true
 	}
 	return none, false
 }
@@ -304,7 +304,20 @@ func (c *Walker[M]) plainRepeat(e *grammar.Repeat, s *Scope, build, stream bool)
 		c.runSites++
 		site, shiftable = c.runSites, !c.positional(e.Expr)
 	}
-	return c.Builder.Repeat(e, m, elemScope, elemScope != s, build, stream, site, shiftable, c.rule, c.runSiteOf(e, stream))
+	return c.Builder.Repeat(e, m, elemScope, elemScope != s, build, stream, site, shiftable, c.rule, c.runSiteOf(e, stream), c.scanSiteOf(e, stream, build))
+}
+
+// scanSiteOf returns the number of the scan site e for the walks that build values (the next of its
+// number) or do not, or 0 (compile/scan_sites.go). A repetition that passes its elements on in a stream is none.
+func (c *Walker[M]) scanSiteOf(e *grammar.Repeat, stream, build bool) int {
+	if stream {
+		return 0
+	}
+	if s := c.Prog.ScanSite(e); s != 0 && build {
+		return s + 1
+	} else {
+		return s
+	}
 }
 
 // runSiteOf returns the number of the run site e, or 0 (compile/run_sites.go). A repetition that

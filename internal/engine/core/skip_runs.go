@@ -1,6 +1,7 @@
 package core
 
 import (
+	"sync/atomic"
 	"unsafe"
 
 	"zeroparse.dev/zp/internal/value"
@@ -261,9 +262,10 @@ func (p *Parser) walk() *skipWalk { return &p.skips[p.skipN-1] }
 var RunHotSpan = 64
 
 // RunHotTurns counts the run sites that turned hot. It is a hook for tests in other packages that
-// check a parse reaches the hot path; nothing reads it in a parse. A turn happens once for each site
+// check a parse reaches the hot path; nothing reads it in a parse. It is atomic because parses run
+// concurrently, and a per-parse counter would need the tests to reach the parser of each parse. A turn happens once for each site
 // and lookahead state of a parse, so counting it costs nothing on the hot path.
-var RunHotTurns int
+var RunHotTurns atomic.Int64
 
 // runCold is the state of a run site (and lookahead state) before it keeps records: the furthest
 // position that its walks passed, among the walks that RunWalked was told of (the engine tells it of
@@ -299,7 +301,10 @@ func (p *Parser) RunHot(site int) bool {
 // RunWalked ends the walk of a run site that was not hot, which began at start and ended at the
 // current position. A walk that began below the furthest position that the walks of the site passed
 // walks input again, and the site turns hot when it walks RunHotSpan of it below that position.
-func (p *Parser) RunWalked(site, start int) {
+func (p *Parser) RunWalked(site, start int) { p.walked(site, start, RunHotSpan) }
+
+// walked is RunWalked for a site whose walks turn it hot at span characters below the furthest position.
+func (p *Parser) walked(site, start, span int) {
 	if SkipRecordsOff || p.Missing != nil {
 		return
 	}
@@ -311,9 +316,9 @@ func (p *Parser) RunWalked(site, start int) {
 		p.runCold = grown
 	}
 	c := &p.runCold[i]
-	if start < c.end && min(p.Pos, c.end)-start >= RunHotSpan {
+	if start < c.end && min(p.Pos, c.end)-start >= span {
 		c.hot = true
-		RunHotTurns++
+		RunHotTurns.Add(1)
 	}
 	c.end = max(c.end, p.Pos)
 }

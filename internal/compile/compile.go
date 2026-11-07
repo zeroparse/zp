@@ -74,6 +74,10 @@ type Program struct {
 	NumRunSites int
 	// envFree[site] reports that the records of the site are not keyed by the environment (EnvFree).
 	envFree []bool
+	// scanRepeats numbers the scan sites (scan_sites.go) after the run sites: NumScanSites of them,
+	// two numbers each, one for the walks that build a value and one for those that do not.
+	scanRepeats  map[*grammar.Repeat]int
+	NumScanSites int
 }
 
 // Options configures compilation.
