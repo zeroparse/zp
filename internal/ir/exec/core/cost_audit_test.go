@@ -273,9 +273,9 @@ var siteCost = map[string][]string{
 // chargedElsewhere are the operations whose declared cost comes from the charges of a target other
 // than the generated Go runtime, which charges nothing for them.
 var chargedElsewhere = map[string]string{
-	"frame.open":          "the TypeScript runtime charges one unit for each slot of a new frame",
-	"stream.release":      "the engine charges one unit for each capture frame it scans or clears",
-	"stream.dropRecords":  "the engine charges one unit for each slot of inactive capacity it clears",
+	"frame.open":         "the TypeScript runtime charges one unit for each slot of a new frame",
+	"stream.release":     "the engine charges one unit for each capture frame it scans or clears",
+	"stream.dropRecords": "the engine charges one unit for each slot of inactive capacity it clears",
 }
 
 // engineOnly are the host operations that the generated Go runtime has no form of. Runs and the edits
