@@ -73,6 +73,7 @@ func GenerateRaw(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]gen.G
 	if Compile == nil {
 		t.Fatal("gentest.Compile is not set: the test package must set it before generating")
 	}
+	opts.VerifyEachPass = true
 	if opts.Runtime == gen.RuntimeOnly {
 		return gogen.Generate(g, Compile, opts)
 	}
@@ -107,6 +108,7 @@ func GenerateTSRaw(g *grammar.Grammar, opts gen.GenOptions) ([]gen.GeneratedFile
 	if Compile == nil {
 		panic("gentest.Compile is not set: the test package must set it before generating")
 	}
+	opts.VerifyEachPass = true
 	return tsgen.Generate(g, Compile, opts)
 }
 
