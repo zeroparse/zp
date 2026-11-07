@@ -2003,15 +2003,24 @@ bound. $\square$
 *The units that the default budget counts.* The default budget of a Document
 parse leaves out the Document units of Lemma 12 that the parse reserves in regions
 of Document work: the memo protocol of a call of a rule that only a Document memoizes
-(a transient rule, which a parse from scratch does not memoize), the walk of the chain of memo
-entries at a position and the growth of the table in a lookup and a store, the edits that a
-lookup applies, the moves of reused values with the cleanup that ends them, the
+(a transient rule, which a parse from scratch does not memoize), except a constant for each
+variable of the key of its lookups, the steps of the walk of the chain of memo entries at a
+position beyond the entry that answers, and the growth of the table in a lookup and a store, the
+edits that a lookup applies, the moves of reused values with the cleanup that ends them, the
 operations of recorded runs, the extra units that decoding a piece of the text
 costs, and the copy of the diagnostics that the parse publishes. Every other unit
 is counted: the unit that opens a call, the evaluation of the body of a rule, the
 examination of the input, the values that the parse builds, and the memo protocol of a
-rule that a parse from scratch memoizes too, with the unit of each lookup and store and the copy
-and the replay of the recovered errors of an entry. The claim that the counted units of a
+rule that a parse from scratch memoizes too, with the unit of each lookup and store, the hashing
+of the key of a lookup and its comparison with the entry that answers, and the copy and the
+replay of the recovered errors of an entry. The comparison of two strings costs the length of
+the string, unless they are the same bytes of the same memory, which costs a constant. A lookup
+of a rule that only a Document memoizes compares the strings of the key by identity only, at a
+constant for each variable of the key: a string that is equal but not identical is a miss, and a
+miss is sound, since the rule is then evaluated and that work counts as a parse from scratch counts it.
+So the work on keys is not left out of the count and is not bounded by what the Document retains: it
+depends on the grammar and the text, and a Document does at most the work of a parse from scratch
+on it, up to the constant of the lookup. The claim that the counted units of a
 Document parse are at most the units that a parse of the same text from scratch reserves is
 argued here, not proved by a lemma, and the tests of the reference implementation check it on
 random edits. The argument: each counted unit belongs to a call, to a
@@ -2033,8 +2042,9 @@ by $n$, $K$ and $L$, as step 7 leaves open). A grammar whose counted units alone
 default is stopped by it, whatever the Document retains: the recovered errors that the memo
 copies and replays count (step 8), and the tests run a grammar of recovered errors at four times
 the length that a parse from scratch admits and expect the limit error. A grammar whose
-cost is high only in work that is left out of the count, such as the retained state of step 7, is not
-stopped by the default in proportion to that work. $\square$
+cost is high only in work that is left out of the count (the extra steps along the chains, the growth of
+the table, the edits, the moves, and the retained state of step 7) is not stopped by the default in
+proportion to that work. $\square$
 
 A node counts in $W$ whichever text it was built for, and whether or not a call
 of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 7 of

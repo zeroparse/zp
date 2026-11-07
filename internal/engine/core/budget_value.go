@@ -4,6 +4,7 @@ import (
 	"math/bits"
 	"strings"
 	"unicode/utf8"
+	"unsafe"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -97,10 +98,20 @@ func ResetSpend[T any](p *Parser, a *Arena[T], n int) {
 	a.N = n
 }
 
+// sameData reports whether two strings are the same bytes of the same memory.
+func sameData(l, r string) bool {
+	return len(l) == len(r) && (len(l) == 0 || unsafe.StringData(l) == unsafe.StringData(r))
+}
+
 // CompareText preserves bytewise Go string ordering, including malformed UTF-8.
 func (p *Parser) CompareText(l, r string) int {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return strings.Compare(l, r)
+	}
+	if len(l) > 0 && sameData(l, r) {
+		// The same bytes: the comparison reads none of them, so it costs a constant.
+		p.Spend()
+		return 0
 	}
 	for off, end := 0, min(len(l), len(r)); off < end; {
 		n := min(spendValueChunk, end-off)

@@ -39,8 +39,9 @@ type BudgetControl struct {
 	// Doc is the part of Used that only a Document parse reserves, under a default limit.
 	Doc uint64
 	// freeing is set between FreeBegin and FreeEnd; freed holds the limit that FreeBegin lifted.
-	freeing bool
-	freed   uint64
+	freeing  bool
+	freed    uint64
+	freeMark uint64 // Used when the open region began
 
 	// Mem is the memory, in bytes, charged to the control itself: the bytes of the history a
 	// Document retains outside its memo table when its parse starts. The memory check adds values,
@@ -191,18 +192,40 @@ func (c *BudgetControl) FreeBegin() uint64 {
 		return noFree
 	}
 	c.freeing, c.freed, c.Limits.Compute = true, c.Limits.Compute, 0
+	c.freeMark = c.Used
 	return c.Used
 }
 
-// FreeEnd ends the region that FreeBegin opened with mark: the units reserved since are Document
-// units, and the limit is what it was plus them.
+// FreeEnd ends the region that FreeBegin opened (mark is what it returned, noFree if it opened none):
+// the units reserved since the region began, or resumed after FreeHold, are Document units, and the
+// limit is what it was plus them.
 func (c *BudgetControl) FreeEnd(mark uint64) {
-	if mark == noFree {
+	if mark == noFree || !c.freeing {
 		return
 	}
-	n := c.Used - mark
+	n := c.Used - c.freeMark
 	c.Doc += n
 	c.Limits.Compute, c.freeing = limits.SaturatingAdd(c.freed, n), false
+}
+
+// Freeing reports whether a region is open. It is safe on a nil receiver.
+func (c *BudgetControl) Freeing() bool { return c != nil && c.freeing }
+
+// FreeHold ends the open region for work that counts, and reports whether there was one; FreeResume
+// opens it again. The FreeEnd of the region that was held takes the work from the resume on.
+func (c *BudgetControl) FreeHold() bool {
+	if c == nil || !c.freeing {
+		return false
+	}
+	c.FreeEnd(c.freeMark)
+	return true
+}
+
+// FreeResume opens again the region that FreeHold ended, if it ended one.
+func (c *BudgetControl) FreeResume(held bool) {
+	if held {
+		c.FreeBegin()
+	}
 }
 
 // chargeSlow is Charge on a poll boundary or a failed reservation, kept out of line so that the

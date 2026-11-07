@@ -215,7 +215,7 @@ func TestBudgetActionShortCircuitAndRecoveryPropagation(t *testing.T) {
 	shortCircuit := mustCompile(t, `rule main = words:items {true || text($words) == text($words)} $$
 
 rule items = [a-z]* #atomic`)
-	recovery := mustCompile(t, `rule main = (words:items {text($words) == text($words)} "!") #recover(skip=[^;]* ";") $$
+	recovery := mustCompile(t, `rule main = (words:items {text($words) == text($words) + ""} "!") #recover(skip=[^;]* ";") $$
 
 rule items = [a-z]* #atomic`)
 	input := strings.Repeat("a", 1024) + "!"

@@ -991,17 +991,23 @@ func (p *TParser) memoIndexAt(pos int, hash func(*tmemoEntry) uint64) memoIndex[
 
 func (p *TParser) memoGetControlled(rule, pos, min int, key []any) *tmemoEntry {
 	p.Spend()
+	// A lookup in a region of Document work is that of a rule that only a Document parse memoizes: it
+	// compares keys by identity, and finds no entry that the chain holds beyond the first memoScan.
+	ident := p.Control.isFreeing()
 	if pos >= len(p.memoSlots) {
 		return nil
 	}
 	e, n := p.memoSlots[pos], 0
 	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
 		p.Spend()
-		if e.rule == int32(rule) && e.min == int32(min) && p.memoKeyEqual(e.env, key) {
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
+			if ident {
+				p.countKeyMatch(e.env, key, ident)
+			}
 			return e
 		}
 	}
-	if e == nil {
+	if e == nil || ident {
 		return nil
 	}
 	ix := p.memoIndexAt(pos, func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
@@ -1065,6 +1071,7 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, e *tmemoEntry) {
 
 func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry) {
 	p.Spend()
+	ident := p.Control.isFreeing() // as in memoGetControlled
 	slots := p.memoSlots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
@@ -1081,7 +1088,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	link := &slots[pos]
 	var replaced *tmemoEntry
 	same := func(x *tmemoEntry) bool {
-		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.memoKeyEqual(x.env, key)
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
 	}
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
 		p.Spend()
@@ -1092,7 +1099,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	}
 	var ix memoIndex[tmemoEntry]
 	var ixSlot uint64
-	if replaced == nil && *link != nil {
+	if replaced == nil && *link != nil && !ident {
 		// A long chain: the index finds the entry to replace.
 		ix = indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, slots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next },
 			func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
@@ -1109,6 +1116,9 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 		if ix = p.memoIndexes[pos]; ix != nil {
 			ixSlot, _ = ix.probe(p.hashMemoKey(replaced.rule, replaced.min, replaced.env), func(y *tmemoEntry) bool { return y == replaced })
 		}
+	}
+	if ident && replaced != nil && replaced != e {
+		p.countKeyMatch(replaced.env, key, ident)
 	}
 	p.Spend()
 	p.memoSlots = slots

@@ -84,7 +84,8 @@ const (
 	// recovered after its mark.
 	QErrs = "errs"
 	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two
-	// for each byte of two strings of the same length, and 0 for anything else.
+	// for each byte of two strings of the same length that are not the same bytes of the same memory,
+	// one for two such strings that are (the comparison reads none of them), and 0 for anything else.
 	QValueCompare = "value_compare"
 )
 

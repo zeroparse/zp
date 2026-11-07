@@ -1649,11 +1649,18 @@ accepts only a zero `Compute` and `Unlimited`.
 For a `Document`, `n` is the length of the text at each `Parse`, and the default
 counts the work that a parse of that text from scratch counts. The work that only a
 `Document` does is not counted: the memo protocol of a rule that a parse from scratch does not
-memoize (a transient rule), the walk of the chains of memo entries, applying pending edits to
-the entries, moving the values it reuses, and copying the diagnostics it returns. The unit of
-each call, the evaluation of rule bodies, the examination of the input, and the memo protocol of
-the rules that a parse from scratch memoizes too, with the copy and the replay of recovered
-errors, are counted, as in a parse from scratch. A `Document` parse under the default limit
+memoize (a transient rule), except a constant for each variable of the key of a lookup; the steps
+that a lookup or a store takes along a chain of memo entries beyond the entry that answers it,
+and the growth of the memo table; applying pending edits to the entries, moving the values it
+reuses, and copying the diagnostics it returns. The unit of each call, the evaluation of rule
+bodies, the examination of the input, and the memo protocol of the rules that a parse from
+scratch memoizes too, are counted, as in a parse from scratch: the unit of each lookup and store,
+the hashing of the key of a lookup and its comparison with the entry that answers it, and the
+copy and the replay of recovered errors. A lookup of a rule that only a `Document` memoizes
+compares the strings of the key by identity, which costs a constant: a string that equals the one
+of an entry but is not the same bytes is a miss, and the rule is evaluated, which counts. The
+comparison of two strings that are the same bytes costs a constant everywhere, in a parse from
+scratch too. A `Document` parse under the default limit
 therefore succeeds whenever a parse of the same text from scratch under the default limit does,
 whatever edits are pending and whatever the earlier parses left in the `Document`, and it returns
 the result of that parse; the [linear cost proof](../proofs/linear-cost.md#lemma-12-document-units)
@@ -1663,8 +1670,10 @@ well.
 
 The work that the default leaves out is bounded by that proof. Pending edits add at most 128
 units to a call, since a memo entry that lags behind by more edits is evaluated again instead of
-brought up to date; the other terms depend on what the `Document` retains, and the default does
-not bound them. A grammar whose counted work is far above the default limit stops on a `Document`
+brought up to date; the steps along the chains, the growth of the table, the moves of reused
+values and the copy of diagnostics depend on what the `Document` retains, and the default does
+not bound them. The work on the keys of the memo is not among them: it depends on the grammar
+and the text, and the default counts it. A grammar whose counted work is far above the default limit stops on a `Document`
 as it does on a parse from scratch, also with the most pending edits.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary
