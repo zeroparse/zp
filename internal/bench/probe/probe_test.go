@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenOptionsAndTSGenArgs(t *testing.T) {
-	root := filepath.Join("..", "..")
+	root := filepath.Join("..", "..", "..")
 	got, err := GenOptions(root, "json")
 	if err != nil {
 		t.Fatal(err)

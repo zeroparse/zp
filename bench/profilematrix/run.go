@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/bench/probe"
 	"zeroparse.dev/zp/internal/bench/inputs"
+	"zeroparse.dev/zp/internal/bench/probe"
 )
 
 type variant struct {
