@@ -42,7 +42,8 @@ func WithComplexitySink(ctx context.Context, sink func(*Complexity)) context.Con
 }
 
 // ClassifyComplexity classifies the cost of g from the start rule start ("" selects the default
-// start rule). g must compile and start must be one of its start rules. It returns ctx's error,
+// start rule). g must compile. A start that parsing rejects is the error that
+// parsing gives. It returns ctx's error,
 // and no classification, if ctx ends. It passes the classification to the sink of ctx, if any
 // (see WithComplexitySink).
 func ClassifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (*Complexity, error) {

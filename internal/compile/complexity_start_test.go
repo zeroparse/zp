@@ -49,4 +49,28 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 			t.Errorf("start \"\" gives %v degree %d, start \"main\" gives %v degree %d", marked.Class, marked.Degree, named.Class, named.Degree)
 		}
 	})
+	// A start name is accepted or rejected as the entry to a parse of the compiled grammar
+	// rejects or accepts it, with the same message.
+	t.Run("agrees with parsing", func(t *testing.T) {
+		const src = "@start(default)\nrule main = \"a\"\n@start\nrule other = \"b\"\nrule inner = \"c\"\nrule _hidden = \"d\"\n"
+		g, err := syntax.Parse(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prog, err := CompileProgram(g, Options{}, nil, InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range []string{"", "main", "other", "inner", "_hidden", "nosuch"} {
+			want := prog.CheckStart(name)
+			_, got := ClassifyComplexity(g, name, nil)
+			if (want == nil) != (got == nil) || want != nil && want.Error() != got.Error() {
+				t.Errorf("start %q: parsing gives %v, classification gives %v", name, want, got)
+			}
+			_, got = GrowingBindings(g, name, nil)
+			if (want == nil) != (got == nil) || want != nil && want.Error() != got.Error() {
+				t.Errorf("start %q: parsing gives %v, GrowingBindings gives %v", name, want, got)
+			}
+		}
+	})
 }

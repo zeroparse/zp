@@ -90,9 +90,21 @@ func isDefaultArg(arg any) bool {
 	return ok && ref.Name == "default" && ref.Level == ""
 }
 
-// CheckStart is CheckStart.
+// CheckStart reports why name cannot begin a parse of prog: it is empty and there is no default
+// start rule, it is hidden, it is not defined, or it is not a start rule.
 func (prog *Program) CheckStart(name string) error {
-	if slices.Contains(prog.StartRules, prog.ResolveStart(name)) {
+	return checkStartName(prog.StartRules, prog.DefaultStartRule, prog.definesRule, name)
+}
+
+// checkStartName reports why name cannot begin a parse of a grammar with the start rules starts,
+// the default start rule def and the rules that defined reports. It is the check that every entry
+// to a parse makes, and that the classification of a grammar makes of its start rule.
+func checkStartName(starts []string, def string, defined func(string) bool, name string) error {
+	resolved := name
+	if name == "" {
+		resolved = def
+	}
+	if slices.Contains(starts, resolved) {
 		return nil
 	}
 	if name == "" {
@@ -101,7 +113,7 @@ func (prog *Program) CheckStart(name string) error {
 	if err := EntryError(name); err != nil {
 		return err
 	}
-	if prog.definesRule(name) {
+	if defined(name) {
 		return fmt.Errorf("rule %s is not a start rule; parsing can begin only at a rule marked @start", name)
 	}
 	return fmt.Errorf("rule %s is not defined", name)

@@ -33,12 +33,35 @@ func lintSourceWith(t *testing.T, parse func(string) (*grammar.Grammar, error), 
 	if _, err := engine.Compile(starttest.MarkAll(g.Clone()), engine.Options{}); err != nil {
 		t.Fatalf("the test grammar does not compile: %v", err)
 	}
+	// A grammar that declares no start rule gets main as its start rule, as the classification
+	// of the cost needs one; the other rules stay unmarked, so unreachable-rule is unaffected.
+	if marked := markMain(g); marked != nil {
+		g = marked
+	}
 	fs := runUnchecked(g, "main", opts)
 	var out []string
 	for _, f := range fs {
 		out = append(out, fmt.Sprintf("%d:%d %s %s", f.Pos.Line, f.Pos.Col, f.Severity, f.Check))
 	}
 	return out, fs
+}
+
+// markMain returns a copy of g with main marked @start, or nil if a rule of g declares a start
+// rule or g has no rule main.
+func markMain(g *grammar.Grammar) *grammar.Grammar {
+	for _, rd := range g.Rules() {
+		if slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !a.Pragma && a.Name == "start" }) {
+			return nil
+		}
+	}
+	c := g.Clone()
+	for _, rd := range c.Rules() {
+		if rd.Name == "main" {
+			rd.Attrs = append(rd.Attrs, &grammar.Attribute{Name: "start"})
+			return c
+		}
+	}
+	return nil
 }
 
 type lintCase struct {

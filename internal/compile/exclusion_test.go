@@ -747,7 +747,7 @@ func TestFollowPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareBaseClassifier(g, "main", nil)
+	k, _, err := prepareBaseClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +786,7 @@ func TestContPathsEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k, _, err := prepareClassifier(g, "main", nil)
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
