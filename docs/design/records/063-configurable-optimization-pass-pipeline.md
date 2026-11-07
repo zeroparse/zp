@@ -270,10 +270,10 @@ plain fields, and their options are fields. Rejected for consistency.
 
 The manager adds a constant number of checks to a sequence of passes that is linear in the grammar.
 `gen.Go{Types: true}.Generate` and `gen.TypeScript{Types: true}.Generate` on the DuckDB grammar and
-`gen.Go{Types: true}.Generate` on the Go grammar, interleaved with the commit before the pipeline on the same machine,
-did not change beyond noise (two alternating pairs, 2 iterations each: DuckDB Go 2.47 s and 2.66 s before, 2.60 s and
-2.44 s after; DuckDB TypeScript 0.51 s and 0.51 s before, 0.52 s and 0.48 s after; Go grammar 0.69 s and 0.64 s before,
-0.68 s and 0.58 s after). Allocations per operation are equal to within 0.01 percent.
+`gen.Go{Types: true}.Generate` on the Go grammar, run five times alternately with the commit before the pipeline on the
+same machine (2 iterations each), did not change beyond noise. The medians of the five runs before and after were 2.47 s
+and 2.46 s for DuckDB Go, 0.467 s and 0.468 s for DuckDB TypeScript, and 0.596 s and 0.598 s for the Go grammar;
+allocations per operation differ by less than 0.002 percent.
 
 The generated parsers of the checked-in grammars, and the generated source of 356 grammars under 18 option sets for Go
 and TypeScript, are byte-identical to those of the former sequences.
