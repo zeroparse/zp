@@ -153,6 +153,8 @@ messages where that is direct.
    property of its recovery that is measured, not proved. The mutation tests
    count the sources that break it (the classes `extra` and `other earlier` of
    the [Mutation Measurement](#mutation-measurement)) and bound them by a cap.
+   They are 92 and 15 of the 908,747 rejected sources of 12 seeds (about 1.2
+   in 10,000), so the property holds for all but those, not for every source.
    An error on a declaration that no edit touched and where the reference
    reports none counts as `extra`, also at the start of the declaration after
    a broken one, unless it is the only error that the generated parser reports
@@ -160,7 +162,12 @@ messages where that is direct.
    `type` and `var` as names, with and without a following mistake, require
    that the valid text is accepted and, after a mistake, unflagged. A string
    or a character class that is not terminated is one error: the grammar
-   failure that lies in it is dropped, and the lexical error stays.
+   failure that lies in it is dropped, and the lexical error stays. So is the
+   failure at the declaration after it, if the literal holds an opening
+   bracket that no later line closes or swallows the closing bracket of its
+   group, and no declaration starts between them. A literal that holds a
+   closing bracket which a later line closes again is not covered: the stray
+   bracket is one more error.
 3. **First error.** The first error is at the offset of the reference's first
    error, or in one of the forms below. Every form is bounded by a distance or
    by a check that the two errors belong to the same mistake, and the
@@ -379,13 +386,14 @@ seed (binomial, about 75,000 rejected sources), rounded up, so it describes
 what this generator produces on this grammar and corpus. A change that moves
 a class past its cap is looked at, and the cap is not raised to make it pass.
 The long tier is not an independent check, because its seeds are among those
-that set the caps. Two seeds that did not (13 and 14, 200,000 sources) were
+that set the caps. Ten seeds that did not (13 to 22, 1,000,000 sources) were
 run once as a check. The first caps were the largest share of any of the 12
 seeds; seed 13 passed one of them (`near` at 524.44 against 524), which showed
 that the largest of 12 underestimates the spread, so the caps became the mean
-plus three standard deviations. With them every class of both seeds is within
-its cap (the largest are `near` at 524.44 against 534 and `missed: other` at
-16.41 against 22).
+plus three standard deviations. Seeds 13 and 14 were used to choose that
+formula, so 15 to 22 are the check proper. With the caps every class of the ten
+seeds is within its cap (the largest are `near` at 524.44 against 534 and
+`missed: other` at 19.22 against 22).
 
 Over the 12 seeds, 908,747 of the 1,200,000 sources are rejected by both
 parsers (the others are accepted by both, with the same grammar). Over the
@@ -422,9 +430,15 @@ error. The lines apart are given for the forms that have a distance in lines;
 `unclosed` requires that a brace or parenthesis is still open at the generated
 parser's error; a later error with nothing open in the same declaration is
 `dropped`.
+A mistake that is recovered inside a block is dropped likewise when a later
+construct of the same declaration fails: in `rule x = operators {...}
+#ignorevarcase` the reference reports the mistake in the block, and the
+generated parser reports the unknown pragma, at the first token after the
+declaration as the reference does for the pragma alone, so that the error is
+on the declaration after it, which is valid.
 
 The errors of the two parsers are matched by declaration. The generated parser
-reports 99 errors in a declaration where the reference reports none (`extra`;
+reports 92 errors in a declaration where the reference reports none (`extra`;
 cap 3 per 10,000). Most are a real mistake that the reference does not
 report after an earlier one: the window ends in the middle of an attribute
 (`@x(`) after a block that failed, or a mistyped keyword in a later
@@ -457,9 +471,6 @@ error. The 31 at the top level are of three kinds: hints (checks that the
 reference makes while it reads tokens), an argument named like a keyword of
 an attribute that follows a mistake, and a mistyped keyword after an
 attribute list.
-On the same sources, the shape with no bracket depth (the reviewer's
-prototype, which already read strings, classes and comments as units) misses
-477 where this grammar misses 507; the depth only moves where the loss is.
 
 The full list of error offsets is equal for 70.2% of the rejected sources, and
 the second error is at the same offset for 33.2% of the 319,782 sources in
