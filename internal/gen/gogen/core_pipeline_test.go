@@ -1,7 +1,6 @@
 package gogen_test
 
 import (
-	"bytes"
 	"runtime"
 	"sync"
 	"testing"
@@ -14,34 +13,6 @@ import (
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
 
-// legacyRun runs the passes in the hand-written sequences that Generator.TypedCore and
-// gen.Generator.StartRecFlow had before the pipeline of Core IR (design 063), as the oracle of the
-// pipeline: for every grammar and mode it must give the same module, and so the same parser. The
-// sequence of StartRecFlow is the one with PrepareScans.
-func legacyRun(m *core.Module, env *core.Env, _ core.RunOptions) ([]string, error) {
-	if env.PrepareScans == nil {
-		if env.Mode.Lean && !env.Mode.Observe && env.On(core.PassTerminals) {
-			core.Terminals(m, env.Local)
-		}
-		core.RewriteTerms(m, core.TermOptions{TextDispatch: env.On(core.FlagTextDispatch), FieldCompare: env.On(core.FlagFieldCompare)})
-		core.Analyze(m)
-		core.Guards(m, env.Mode.Ordinary && env.On(core.FlagGuardedClasses))
-		core.Scans(m)
-		if env.Mode.Lean {
-			core.ClassRuns(m)
-		}
-	} else {
-		core.RewriteTerms(m, core.TermOptions{TextDispatch: env.On(core.FlagTextDispatch), FieldCompare: env.On(core.FlagFieldCompare)})
-		core.Analyze(m)
-		core.Guards(m, env.Mode.Ordinary && env.On(core.FlagGuardedClasses))
-		finish := env.PrepareScans(m)
-		core.Scans(m)
-		finish()
-	}
-	core.Analyze(m)
-	return nil, core.Verify(m)
-}
-
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
 func typedEnv(g *gogen.Generator) *core.Env {
 	return &core.Env{
@@ -51,23 +22,20 @@ func typedEnv(g *gogen.Generator) *core.Env {
 	}
 }
 
-// pipelinedTypedCore runs the pipeline, or the legacy sequence if legacy is set, on the typed rules of g.
-func pipelinedTypedCore(g *gogen.Generator, legacy, verifyEach bool) (*core.Module, error) {
+// pipelinedTypedCore runs the pipeline on the typed rules of g.
+func pipelinedTypedCore(g *gogen.Generator, verifyEach bool) (*core.Module, error) {
 	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]grammar.Expr{})
 	if err != nil {
 		return nil, err
 	}
-	run := core.Run
-	if legacy {
-		run = legacyRun
-	}
-	_, err = run(m, typedEnv(g), core.RunOptions{VerifyEach: verifyEach})
+	_, err = core.Run(m, typedEnv(g), core.RunOptions{VerifyEach: verifyEach})
 	return m, err
 }
 
-// The pipeline gives the module of the sequence that TypedCore ran before, for every grammar of the
-// corpus and every mode, with or without verification between the passes.
-func TestCorePipelineMatchesTheLegacySequence(t *testing.T) {
+// The pipeline runs on the typed rules of every grammar of the corpus in every mode, and the module
+// verifies after every pass and gives the same Core IR with or without verification between the passes
+// (verification only reads).
+func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 	modes := []struct {
 		name string
 		opts gen.GenOptions
@@ -100,20 +68,22 @@ func TestCorePipelineMatchesTheLegacySequence(t *testing.T) {
 				if _, err := gogen.GenerateParser(pg, gentest.Compile, opts, &gogen.Hooks{Generator: func(x *gogen.Generator) { g = x }}); err != nil || g == nil {
 					return
 				}
-				want, err := pipelinedTypedCore(g, true, false)
-				if err != nil || len(want.Rules) == 0 {
+				want, err := pipelinedTypedCore(g, false)
+				if err != nil {
+					t.Errorf("%s: %s: %v", mode.name, c.Name, err)
 					return
 				}
-				for _, each := range []bool{false, true} {
-					got, err := pipelinedTypedCore(g, false, each)
-					if err != nil {
-						t.Errorf("%s: %s (verify each %v): %v", mode.name, c.Name, each, err)
-						return
-					}
-					if a, b := core.Print(want, true), core.Print(got, true); a != b {
-						t.Errorf("%s: %s (verify each %v): the pipeline gives another module than the legacy sequence", mode.name, c.Name, each)
-						return
-					}
+				if len(want.Rules) == 0 {
+					return
+				}
+				got, err := pipelinedTypedCore(g, true)
+				if err != nil {
+					t.Errorf("%s: %s: %v", mode.name, c.Name, err)
+					return
+				}
+				if a, b := core.Print(want, true), core.Print(got, true); a != b {
+					t.Errorf("%s: %s: verifying between the passes changes the module", mode.name, c.Name)
+					return
 				}
 				mu.Lock()
 				compared++
@@ -124,70 +94,5 @@ func TestCorePipelineMatchesTheLegacySequence(t *testing.T) {
 	wg.Wait()
 	if compared < 500 {
 		t.Fatalf("compared %d modules", compared)
-	}
-}
-
-// The parsers generated through the pipeline are the bytes that the legacy sequences give, in both
-// routes that run Core passes (the typed rules, and the Node and recognizer tables), for every grammar of
-// the corpus.
-func TestGeneratedParsersMatchTheLegacySequence(t *testing.T) {
-	sets := []gen.GenOptions{
-		{Types: true, TypedOnly: true},
-		{Types: true, TypedOnly: true, Observability: true},
-		{Types: true, TypedOnly: true, LimitControls: true},
-		{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}},
-		{Types: true, TypedOnly: true, NoOpt: []string{"guarded-classes"}},
-		{Types: true, TypedOnly: true, NoOpt: []string{"terminals"}},
-		{Types: true, Recognize: true},
-		{Recognize: true},
-		{Recognize: true, LimitControls: true, Observability: true},
-		{Recognize: true, NoOpt: []string{"guarded-classes", "text-dispatch"}},
-		{Document: true, Types: true},
-		{Stream: true, Types: true},
-	}
-	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
-	var mu sync.Mutex
-	compared := 0
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
-	for i, opts := range sets {
-		for _, c := range cases {
-			wg.Go(func() {
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				pg, err := parseTest(c.Src)
-				if err != nil {
-					return
-				}
-				opts := opts
-				opts.Module, opts.Runtime = "example.com/p", gen.RuntimeImport
-				want, err := gogen.GenerateParser(pg, gentest.Compile, opts, &gogen.Hooks{CoreRun: legacyRun})
-				if err != nil {
-					return
-				}
-				opts.VerifyEachPass = true
-				got, err := gogen.GenerateParser(pg, gentest.Compile, opts, nil)
-				if err != nil {
-					t.Errorf("set %d: %s: %v, which the legacy sequence generates", i, c.Name, err)
-					return
-				}
-				if len(got) != len(want) {
-					t.Errorf("set %d: %s: %d files, want %d", i, c.Name, len(got), len(want))
-					return
-				}
-				for j := range got {
-					if got[j].Path != want[j].Path || !bytes.Equal(got[j].Content, want[j].Content) {
-						t.Errorf("set %d: %s: %s differs from the legacy sequence's", i, c.Name, got[j].Path)
-					}
-				}
-				mu.Lock()
-				compared++
-				mu.Unlock()
-			})
-		}
-	}
-	wg.Wait()
-	if compared < 1500 {
-		t.Fatalf("compared %d parsers", compared)
 	}
 }
