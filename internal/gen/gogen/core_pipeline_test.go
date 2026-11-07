@@ -165,6 +165,7 @@ func TestGeneratedParsersMatchTheLegacySequence(t *testing.T) {
 				if err != nil {
 					return
 				}
+				opts.VerifyEachPass = true
 				got, err := gogen.GenerateParser(pg, gentest.Compile, opts, nil)
 				if err != nil {
 					t.Errorf("set %d: %s: %v, which the legacy sequence generates", i, c.Name, err)

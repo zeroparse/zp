@@ -106,6 +106,10 @@ type GenOptions struct {
 	// text, once for each Core module the generator builds.
 	PrintAfter string
 	PrintTo    io.Writer
+	// VerifyEachPass verifies the Core IR after every pass instead of once at the end, so that an
+	// internal error names the first pass that broke an invariant. Tests and diagnosis set it; it
+	// costs generation time and changes no output.
+	VerifyEachPass bool
 }
 
 // Optimizations returns the settings that Optimize and NoOpt select, or an error for a profile or an
@@ -115,8 +119,10 @@ func (o GenOptions) Optimizations() (opt.Settings, error) {
 	if err != nil {
 		return opt.Settings{}, err
 	}
-	if _, err := opt.ParsePrintAfter(o.PrintAfter); err != nil {
+	if names, err := opt.ParsePrintAfter(o.PrintAfter); err != nil {
 		return opt.Settings{}, err
+	} else if len(names) > 0 && o.PrintTo == nil {
+		return opt.Settings{}, fmt.Errorf("PrintAfter %q needs a PrintTo writer", o.PrintAfter)
 	}
 	return s.Without(o.NoOpt...)
 }

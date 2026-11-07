@@ -47,6 +47,8 @@ type Generator struct {
 	// (GenOptions.PrintAfter); "all" selects every pass.
 	PrintAfter []string
 	PrintTo    io.Writer
+	// VerifyEach verifies the Core IR after every pass (GenOptions.VerifyEachPass).
+	VerifyEach bool
 	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that compare another
 	// sequence of passes with the pipeline.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
@@ -346,7 +348,7 @@ func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local 
 			}
 		}
 	}
-	if _, err := run(m, env, core.RunOptions{Dump: dump}); err != nil {
+	if _, err := run(m, env, core.RunOptions{Dump: dump, VerifyEach: g.VerifyEach}); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil
