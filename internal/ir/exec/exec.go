@@ -129,7 +129,9 @@ type Op struct {
 	Params    []Param
 	Results   []Type
 	// Reads and Writes are the components and registers the operation reads and writes. An operation
-	// may write only its own component and registers.
+	// may write only its own component and registers; a transitional one, which stands for a runtime
+	// function that does the work of several components until its mechanism migrates, may write
+	// theirs too, so that passes see every state it changes.
 	Reads, Writes []string
 	// Features are the features the operation exists in; a function may call it only if it is
 	// specialized for all of them. Empty means every build.

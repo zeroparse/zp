@@ -249,6 +249,28 @@ func Cases() []Case {
 	return cs
 }
 
+// growthSteps records the errors of two steps of a left-recursion growth as grow.step and grow.end
+// state them: each step takes the errors it recovered after the growth's mark as one list and drops
+// them when it returns to the start, and the second step replays the seed of the first, the list of
+// two errors, before it recovers one more. The end records the last seed's list again. Without the
+// truncation of a step (truncate false) the second step holds the seed's list twice, which the case
+// asserts against.
+func growthSteps(b *exec.Builder, push func(*exec.Builder, int), mark func(int64) exec.Expr, truncate bool) {
+	g := b.Let("g", exec.C("rec.mark"))
+	push(b, 2)
+	seed := b.Let("seed", exec.C("rec.since", g))
+	if truncate {
+		b.Do("rec.truncate", g)
+	}
+	b.Do("rec.add", seed)
+	push(b, 1)
+	b.Assert(mark(2), "the second step holds the seed's list once and its own error")
+	best := b.Let("best", exec.C("rec.since", g))
+	b.Do("rec.truncate", g)
+	b.Do("rec.add", best)
+	b.Assert(mark(1), "the end records the last seed's list as one entry")
+}
+
 // addRecoveryCases adds the cases of the recovered-error list. The harness compares the list after each
 // write, so that the cases need only reach the states.
 func addRecoveryCases(add func(string, ref.Config, func(*exec.Builder))) {
@@ -271,23 +293,94 @@ func addRecoveryCases(add func(string, ref.Config, func(*exec.Builder))) {
 		b.Do("rec.truncate", exec.Int(0))
 		b.Assert(mark(0), "truncate at the start empties the list")
 	})
-	add("a copy survives writes of the list", ref.Config{}, func(b *exec.Builder) {
+	add("a list survives writes of the list", ref.Config{}, func(b *exec.Builder) {
 		push(b, 3)
 		l := b.Let("l", exec.C("rec.since", exec.Int(1)))
+		b.Assert(mark(2), "since puts the list in place of the entries after the mark")
 		b.Do("rec.truncate", exec.Int(1))
 		push(b, 4)
 		b.Do("rec.add", l)
-		b.Assert(mark(7), "add records every error of the copy")
+		b.Assert(mark(6), "add records the list as one entry")
 		b.Do("rec.add", l)
-		b.Assert(mark(9), "a copy can be recorded twice")
+		b.Assert(mark(7), "a list can be recorded twice")
 	})
-	add("a copy of nothing is empty", ref.Config{}, func(b *exec.Builder) {
+	add("a list of nothing is empty", ref.Config{}, func(b *exec.Builder) {
 		push(b, 2)
 		l := b.Let("l", exec.C("rec.since", exec.Int(2)))
 		b.Assert(exec.C("rec.none", l), "nothing followed the mark")
+		b.Assert(mark(2), "since of nothing changes nothing")
 		b.Do("rec.add", l)
 		b.Assert(mark(2), "adding nothing changes nothing")
 		b.Assert(exec.Not(exec.C("rec.none", exec.C("rec.since", exec.Int(1)))), "an error followed the mark")
+	})
+	add("since over one list returns it", ref.Config{}, func(b *exec.Builder) {
+		push(b, 3)
+		l := b.Let("l", exec.C("rec.since", exec.Int(0)))
+		b.Assert(exec.Eq(exec.C("rec.since", exec.Int(0)), l), "since over one list returns that list")
+		b.Assert(mark(1), "and leaves the entries as they are")
+		b.Do("rec.add", l)
+		b.Assert(exec.Not(exec.Eq(exec.C("rec.since", exec.Int(0)), l)), "since over two entries makes a list")
+		b.Assert(mark(1), "and puts it in their place")
+	})
+	add("since over one error returns it as the list", ref.Config{}, func(b *exec.Builder) {
+		push(b, 2)
+		l := b.Let("l", exec.C("rec.since", exec.Int(1)))
+		b.Assert(exec.Not(exec.C("rec.none", l)), "the error followed the mark")
+		b.Assert(exec.Eq(exec.C("rec.since", exec.Int(1)), l), "the list of one error is the entry")
+		b.Do("rec.add", l)
+		b.Assert(mark(3), "add records the list of one error as one entry")
+	})
+	add("growth steps replace the errors of the step before", ref.Config{}, func(b *exec.Builder) {
+		growthSteps(b, push, mark, true)
+	})
+	// A list of an error and a list of two errors has the largest unrolled size of three errors, 5,
+	// which the harness checks for the lists that rec.since returns.
+	add("a list of an error and a list of two", ref.Config{}, func(b *exec.Builder) {
+		m0 := b.Let("m0", exec.C("rec.mark"))
+		push(b, 1)
+		m1 := b.Let("m1", exec.C("rec.mark"))
+		push(b, 2)
+		b.Let("inner", exec.C("rec.since", m1))
+		b.Assert(mark(2), "the list of two is one entry after the error")
+		l := b.Let("l", exec.C("rec.since", m0))
+		b.Assert(mark(1), "the list of three is the one entry")
+		b.Do("rec.add", l)
+		b.Assert(mark(2), "add records the list of three as one entry")
+	})
+	// Calls nested d deep, each storing what it recovered and replayed: the innermost recovers an
+	// error, and every other only stores the entry after its mark, which is the list of the call it made.
+	// The harness checks after each write that listing the errors visits fewer than twice as many lists.
+	for _, d := range []int{1, 2, 8} {
+		add(fmt.Sprintf("calls %d deep share one list", d), ref.Config{}, func(b *exec.Builder) {
+			var marks []exec.Expr
+			for i := range d {
+				marks = append(marks, b.Let(fmt.Sprintf("m%d", i), exec.C("rec.mark")))
+			}
+			push(b, 1)
+			var l exec.Expr
+			for i := d - 1; i >= 0; i-- {
+				l = b.Let(fmt.Sprintf("l%d", i), exec.C("rec.since", marks[i]))
+			}
+			b.Do("rec.truncate", exec.Int(0))
+			for range 3 {
+				b.Do("rec.add", l)
+			}
+			b.Assert(mark(3), "each replay is one entry")
+		})
+	}
+	add("replays of replays share their lists", ref.Config{}, func(b *exec.Builder) {
+		push(b, 2)
+		l := b.Let("l", exec.C("rec.since", exec.Int(0)))
+		b.Do("rec.add", l)
+		push(b, 1)
+		l2 := b.Let("l2", exec.C("rec.since", exec.Int(0)))
+		b.Do("rec.truncate", exec.Int(0))
+		b.Do("rec.add", l2)
+		b.Do("rec.add", l)
+		b.Do("rec.add", l2)
+		b.Assert(mark(3), "each replay is one entry")
+		b.Let("l3", exec.C("rec.since", exec.Int(0)))
+		b.Assert(mark(1), "since puts one list in place of the three")
 	})
 	// Scratch of at most 16 slots stays for the next element; a larger list is released.
 	for _, n := range []int{0, 1, 16, 17, 40} {
@@ -300,8 +393,8 @@ func addRecoveryCases(add func(string, ref.Config, func(*exec.Builder))) {
 			b.Assert(mark(0), "settling forgets the errors of the next element")
 		})
 	}
-	// Copies pay for each error, so a long list reaches the limit inside the copy.
-	add("a copy reaches the limit", ref.Config{Limit: 5}, func(b *exec.Builder) {
+	// A list pays for each entry it is made of, so one of many entries reaches the limit inside since.
+	add("a list of many entries reaches the limit", ref.Config{Limit: 5}, func(b *exec.Builder) {
 		push(b, 40)
 		b.Let("l", exec.C("rec.since", exec.Int(0)))
 	})
@@ -548,7 +641,7 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				nextErr++
 				args, exprs = append(args, &ref.Err{ID: nextErr}), append(exprs, exec.C(ErrOp, exec.Int(nextErr)))
 			case "rec.truncate", "rec.since":
-				intArg(rng.Int64N(int64(len(mirror.Recovered())) + 1))
+				intArg(rng.Int64N(mirror.Entries() + 1))
 			case "rec.add", "rec.none":
 				if len(lists) == 0 {
 					continue

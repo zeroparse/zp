@@ -3,6 +3,7 @@ package ops
 import (
 	"flag"
 	"os"
+	"slices"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -34,4 +35,33 @@ func TestPilotGolden(t *testing.T) {
 			t.Errorf("listing differs from %s; run go test -run TestPilotGolden -update", golden)
 		}
 	}
+}
+
+// TestCrossComponentWriters pins the transitional operations that write a component other than
+// their own, which Verify allows only for transitional operations: the growth operations that
+// record recovered errors again. Another writer needs a reason recorded here.
+func TestCrossComponentWriters(t *testing.T) {
+	m := Pilot()
+	Transitional(m)
+	var got []string
+	for _, o := range m.Ops {
+		for _, s := range o.Writes {
+			if s != o.Component && isComponent(m, s) {
+				got = append(got, o.Name+" writes "+s)
+			}
+		}
+	}
+	want := []string{"ctx.replay writes " + Rec, "grow.step writes " + Rec, "grow.end writes " + Rec}
+	if !slices.Equal(got, want) {
+		t.Errorf("cross-component writers:\n got %q\nwant %q", got, want)
+	}
+}
+
+func isComponent(m *exec.Module, name string) bool {
+	for _, c := range m.Components {
+		if c.Name == name {
+			return true
+		}
+	}
+	return false
 }

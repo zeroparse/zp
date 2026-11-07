@@ -110,7 +110,7 @@ func (v *verifier) decls() {
 			case m.register(s) != nil:
 			case m.component(s) == nil:
 				v.errorf("%s: writes undeclared state %s", where, s)
-			case s != o.Component:
+			case s != o.Component && !o.Transitional:
 				v.errorf("%s: writes component %s, which is not its own (%s)", where, s, o.Component)
 			}
 		}

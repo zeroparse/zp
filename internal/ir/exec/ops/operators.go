@@ -191,6 +191,7 @@ variable environment, the cut flag cut and the recovered errors errs.`})
 		Contract: `Is opr.attempt in a parse that can insert missing tokens: the match also holds a copy of the tokens
 inserted after mark.`})
 	add(&exec.Op{Name: "opr.replay", Component: Rec, Params: a, Reads: []string{Opr}, Writes: []string{Rec}, Features: []string{Missing}, NoReturn: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
 		Contract: `Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for
 the errors outside the missing-token mode.`})
 	add(&exec.Op{Name: "opr.found", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
