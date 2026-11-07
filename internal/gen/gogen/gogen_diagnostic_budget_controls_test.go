@@ -114,9 +114,9 @@ func TestDiagnosticSortingAndSnapshots(t *testing.T){
  p=diagnosticParser(Limits{Compute:100000});p.MergeExpected(0,ids)
  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:128})
  if err:=catchFatal(t,func(){p.MergeExpected(0,ids)});!errors.Is(err,ErrLimit){t.Fatal("merged expectations unbounded",err)}
- errorsList:=make([]*SyntaxError,320)
  p=diagnosticParser(Limits{Compute:319})
- if err:=catchFatal(t,func(){p.X_copyErrors(nil,errorsList)});!errors.Is(err,ErrLimit){t.Fatal("recovered error copies unbounded",err)}
+ for range 320{p.PushRecovered(&SyntaxError{})}
+ if err:=catchFatal(t,func(){p.X_recSince(0)});!errors.Is(err,ErrLimit){t.Fatal("recovered error lists unbounded",err)}
 }
 func TestRecoveredPublicDiagnostics(t *testing.T){
  for _,unit:=range []PositionUnit{Bytes,CodePoints}{

@@ -30,6 +30,7 @@ var hotInline = []string{
 	"(*Parser).NewNodeOrdinary",
 	"(*Parser).NewTerminalOrdinary",
 	"(*Parser).Nodes",
+	"(*Parser).PushRecovered",
 	"(*Parser).Restore",
 	"(*Parser).SetCapture",
 	"(*Parser).Spend",

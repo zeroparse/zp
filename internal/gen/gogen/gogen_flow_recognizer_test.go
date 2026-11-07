@@ -108,12 +108,12 @@ var flowRecognizerMutants = map[string]func([]byte) []byte{
 }
 
 var (
-	recordRecovered = regexp.MustCompile(`p\.Recovered = append\(p\.Recovered, (\w+)\)`)
+	recordRecovered = regexp.MustCompile(`p\.PushRecovered\((\w+)\)`)
 	zeroProgress    = regexp.MustCompile(`(?m)^(\t+if p\.Pos == x\d+\.Pos)( \{\n\t+goto L\d+\n\t+\}\n)`)
 	skipRewind      = regexp.MustCompile(`(?m)^(\t+x\d+ = p\.Keep\(x\d+\)\n)\t+p\.Reset\(x\d+\)\n`)
 )
 
-// dropRecoveredErrors recovers without recording the error, as a printer would if it lost the append.
+// dropRecoveredErrors recovers without recording the error, as a printer would if it lost the push.
 func dropRecoveredErrors(code []byte) []byte {
 	return recordRecovered.ReplaceAll(code, []byte("_ = $1"))
 }

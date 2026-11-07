@@ -235,10 +235,11 @@ var siteCost = map[string][]string{
 	"Parser.controlledEnvValues": {ops.QVars},
 	"Parser.variable":            {ops.QEnvReads},
 	// Recovered errors and expectations.
-	"Parser.copyErrorsSlow": {ops.QErrs},
-	"Parser.Expect":         {ops.QMerge},
-	"Parser.MergeExpected":  {ops.QMerge},
-	"Parser.Keep":           {ops.QMerge},
+	"Parser.recSince":      {ops.QSegs},
+	"Parser.recSinceSlow":  {ops.QSegs},
+	"Parser.Expect":        {ops.QMerge},
+	"Parser.MergeExpected": {ops.QMerge},
+	"Parser.Keep":          {ops.QMerge},
 	// Left-recursion contexts and growths.
 	"Parser.addDep":                {ops.QDeps, ""}, // "": ctx.enter adds one, the seed it reads
 	"Parser.stored":                {ops.QDeps},
@@ -283,11 +284,6 @@ var chargedElsewhere = map[string]string{
 // of each: TestRunOperationsChargeTheirDeclaredWork, TestMemoLookupChargesItsPendingEdits and the
 // conformance suites of the engine's Document memo. Those that declare no cost are read in printed code,
 // where TestEngineEditFormsCallNothing holds them to their fields.
-// copiesErrors lists the operations of a growth whose contracts share the lists of recovered errors
-// while the Go runtime still copies them one by one (Parser.copyErrorsSlow): the audit leaves that
-// site out for them until the runtime shares the lists, and fails for one that no longer reaches it.
-var copiesErrors = map[string]bool{"ctx.replay": true, "grow.step": true, "grow.end": true}
-
 var engineOnly = map[string]bool{"memo.seed": true, "memo.from": true, "memo.pinned": true, "memo.shifted": true, "memo.applied": true,
 	"memo.advance": true, "edit.count": true, "edit.start": true, "edit.end": true, "edit.delta": true,
 	"run.start": true, "run.prefix": true, "run.resync": true, "run.tail": true, "run.begin": true, "run.end": true, "run.finish": true}
@@ -353,9 +349,6 @@ func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 			continue
 		}
 		sites := chargeSites(pkg, callees, charges, fns)
-		if copiesErrors[op.Name] && !sites["Parser.copyErrorsSlow"] {
-			t.Errorf("%s no longer reaches Parser.copyErrorsSlow: remove it from copiesErrors", op.Name)
-		}
 		declared := map[string]bool{}
 		if op.Cost.Const != 0 {
 			declared[""] = true
@@ -387,7 +380,7 @@ func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 				t.Errorf("%s reaches the charge site %s, which siteCost does not attribute", op.Name, s)
 				continue
 			}
-			if qs == nil || s == "Parser.copyErrorsSlow" && copiesErrors[op.Name] {
+			if qs == nil {
 				continue
 			}
 			if !slices.ContainsFunc(qs, func(q string) bool { return declared[q] }) {

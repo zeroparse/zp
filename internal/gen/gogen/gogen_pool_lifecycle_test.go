@@ -153,7 +153,7 @@ func TestUntypedPoolRetention(t *testing.T) {
 			}
 			for i, chunk := range p.X_memo.X_chunks {
 				for j, entry := range chunk {
-					if entry.X_node != nil || entry.X_errs != nil || entry.X_expected != nil || entry.X_next != nil || entry.X_env != nil {
+					if entry.X_node != nil || !entry.X_errs.X_none() || entry.X_expected != nil || entry.X_next != nil || entry.X_env != nil {
 						t.Fatalf("memo chunk %d entry %d retains parse state", i, j)
 					}
 				}

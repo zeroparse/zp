@@ -25,6 +25,7 @@ type rtMachine struct {
 	// metered reports a parse with budget controls, whose charges the suite checks.
 	metered bool
 	env     rtEnv
+	lists   recHandles
 }
 
 // rtEnv binds the variable environment of a parser, which the node and the typed runtime share.
@@ -76,41 +77,85 @@ func (e *rtEnv) call(p *Parser, vals map[int64][]any, o *exec.Op, args []any) ([
 	return nil, false
 }
 
-// errorList is an Errs handle: a list has no identity of its own that the harness could compare.
-type errorList struct{ errs []*SyntaxError }
+// errorList is an Errs handle: the entry that rec.since returned.
+type errorList struct{ e recEntry }
+
+// recHandles are the Errs handles of the entries that rec.since returned, one for each entry, so
+// that a list that two calls share is one handle.
+type recHandles map[recEntry]*errorList
+
+// handle returns the Errs handle of the entry e: the one of the entry for an error or a list, and a
+// new one for no errors, which has no identity of its own.
+func (h recHandles) handle(e recEntry) *errorList {
+	if e.none() {
+		return &errorList{}
+	}
+	l := h[e]
+	if l == nil {
+		l = &errorList{e}
+		h[e] = l
+	}
+	return l
+}
+
+// unrolled returns the number of lists that listing the errors of e visits, counted as the model
+// counts them: one for an error, and one for a list with those of its entries.
+func unrolled(e recEntry) int {
+	switch {
+	case e.list != nil:
+		n := 1
+		for _, x := range e.list.entries {
+			n += unrolled(x)
+		}
+		return n
+	case e.err != nil:
+		return 1
+	}
+	return 0
+}
+
+// unrolledRecord returns the lists that listing the record of p visits.
+func unrolledRecord(p *Parser) int {
+	n := 0
+	for _, e := range p.Recovered {
+		n += unrolled(e)
+	}
+	return n
+}
+
+// listOf returns the lists that listing the Errs handle l visits, and its errors.
+func listOf(l any) (visits, errs int) {
+	e := l.(*errorList).e
+	return unrolled(e), e.len()
+}
 
 // recoveredIDs returns the identifiers of the recovered errors of p.
 func recoveredIDs(p *Parser) []int64 {
-	ids := make([]int64, len(p.Recovered))
-	for i, e := range p.Recovered {
-		// A list that shares its array with one that was cleared holds nil, which no case records.
-		if e == nil {
-			ids[i] = -1
-			continue
-		}
-		ids[i] = int64(e.Pos)
+	var ids []int64
+	for _, e := range p.recoveredErrors() {
+		ids = append(ids, int64(e.Pos))
 	}
 	return ids
 }
 
 // recovery runs an operation of the recovered errors, and reports false for any other.
-func recovery(p *Parser, o *exec.Op, args []any) ([]any, bool) {
+func recovery(p *Parser, lists recHandles, o *exec.Op, args []any) ([]any, bool) {
 	switch o.Name {
 	case "rec.mark":
 		return []any{int64(len(p.Recovered))}, true
 	case "rec.push":
-		p.Recovered = append(p.Recovered, args[0].(*SyntaxError))
+		p.PushRecovered(args[0].(*SyntaxError))
 		return nil, true
 	case "rec.truncate":
 		p.Recovered = p.Recovered[:args[0].(int64)]
 		return nil, true
 	case "rec.since":
-		return []any{&errorList{p.copyErrors(nil, p.Recovered[args[0].(int64):])}}, true
+		return []any{lists.handle(p.recSince(int(args[0].(int64))))}, true
 	case "rec.add":
-		p.Recovered = p.copyErrors(p.Recovered, args[0].(*errorList).errs)
+		p.recAdd(args[0].(*errorList).e)
 		return nil, true
 	case "rec.none":
-		return []any{len(args[0].(*errorList).errs) == 0}, true
+		return []any{args[0].(*errorList).e.none()}, true
 	case "stream.settleErrors":
 		if p.Stream == nil {
 			p.Stream = &streamInput{}
@@ -127,7 +172,7 @@ func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl 
 		p.Stream = &streamInput{}
 	}
 	p.memo.stride, p.memo.sparse = cfg.Rules, sparse
-	m := &rtMachine{p: p, vals: map[int64][]any{}, metered: controlled}
+	m := &rtMachine{p: p, vals: map[int64][]any{}, metered: controlled, lists: recHandles{}}
 	for i := range cfg.Rules {
 		m.rules = append(m.rules, &Rule{Seen: i})
 	}
@@ -157,14 +202,9 @@ func (m *rtMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
 
 func (m *rtMachine) Recovered() []int64 { return recoveredIDs(m.p) }
 
-// Unrolled is one list for each error: the runtime keeps the errors in one array.
-func (m *rtMachine) Unrolled() int { return len(m.p.Recovered) }
+func (m *rtMachine) Unrolled() int { return unrolledRecord(m.p) }
 
-// List is one list for each error of the copied list l.
-func (m *rtMachine) List(l any) (visits, errs int) {
-	n := len(l.([]*SyntaxError))
-	return n, n
-}
+func (m *rtMachine) List(l any) (visits, errs int) { return listOf(l) }
 
 func (m *rtMachine) Values(id int64) any {
 	if m.vals[id] == nil {
@@ -193,7 +233,7 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 	if res, ok := m.env.call(p, m.vals, o, args); ok {
 		return res
 	}
-	if res, ok := recovery(p, o, args); ok {
+	if res, ok := recovery(p, m.lists, o, args); ok {
 		return res
 	}
 	i := func(k int) int { return int(args[k].(int64)) }
@@ -262,10 +302,9 @@ var (
 	// rtEnvExact are the environment operations whose charges equal their declared cost.
 	rtEnvExact = []string{"env.lookup", "env.bind", "env.key"}
 	// rtRecoveryOps are the operations of the recovered errors that the runtime implements as specified,
-	// and rtRecoveryExact those whose charges equal their declared cost. The runtime copies a list where
-	// rec.since and rec.add share one, so the suites leave them out.
-	rtRecoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none", "stream.settleErrors"}
-	rtRecoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none"}
+	// and rtRecoveryExact those whose charges equal their declared cost.
+	rtRecoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
+	rtRecoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
 )
 
 func rtSuites() []conform.Suite {
@@ -344,26 +383,31 @@ func rtSuites() []conform.Suite {
 }
 
 // recoveredErrors returns the errors that an entry of the runtime holds for the recovered errors of
-// an argument of memo.store: none for nil, and one error for the errors that conform.ErrsOp makes.
-func recoveredErrors(arg any) []*SyntaxError {
-	if arg == nil {
-		return nil
+// an argument of memo.store: none for nil, one error for the errors that conform.ErrsOp makes, and
+// the entry of a handle that rec.since returned.
+func recoveredErrors(arg any) recEntry {
+	switch a := arg.(type) {
+	case nil:
+		return recEntry{}
+	case *errorList:
+		return a.e
 	}
-	return []*SyntaxError{{}}
+	return recEntry{err: &SyntaxError{}}
 }
 
 // typedMachine binds the memo operations of the typed runtime, with the Document records of a typed
 // Document (typedDocumentState) beside the entries.
 type typedMachine struct {
-	p    *TParser
-	doc  *typedDocumentState
-	vals map[int64][]any
-	env  rtEnv
+	p     *TParser
+	doc   *typedDocumentState
+	vals  map[int64][]any
+	env   rtEnv
+	lists recHandles
 }
 
 func newTypedMachine(cfg ref.Config, controlled bool) conform.Impl {
 	p := &TParser{Parser: &Parser{MaxDepth: int(cfg.MaxDepth)}}
-	m := &typedMachine{p: p, doc: &typedDocumentState{meta: map[*tmemoEntry]typedDocumentMeta{}}, vals: map[int64][]any{}}
+	m := &typedMachine{p: p, doc: &typedDocumentState{meta: map[*tmemoEntry]typedDocumentMeta{}}, vals: map[int64][]any{}, lists: recHandles{}}
 	m.env.setUp(p.Parser, cfg)
 	if controlled {
 		limit := cfg.Limit
@@ -388,14 +432,9 @@ func (m *typedMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
 
 func (m *typedMachine) Recovered() []int64 { return recoveredIDs(m.p.Parser) }
 
-// Unrolled is one list for each error: the runtime keeps the errors in one array.
-func (m *typedMachine) Unrolled() int { return len(m.p.Parser.Recovered) }
+func (m *typedMachine) Unrolled() int { return unrolledRecord(m.p.Parser) }
 
-// List is one list for each error of the copied list l.
-func (m *typedMachine) List(l any) (visits, errs int) {
-	n := len(l.([]*SyntaxError))
-	return n, n
-}
+func (m *typedMachine) List(l any) (visits, errs int) { return listOf(l) }
 
 func (m *typedMachine) Values(id int64) any {
 	if m.vals[id] == nil {
@@ -410,7 +449,7 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 	if res, ok := m.env.call(p.Parser, m.vals, o, args); ok {
 		return res
 	}
-	if res, ok := recovery(p.Parser, o, args); ok {
+	if res, ok := recovery(p.Parser, m.lists, o, args); ok {
 		return res
 	}
 	i := func(k int) int { return int(args[k].(int64)) }
@@ -507,7 +546,7 @@ func TestExecConformance(t *testing.T) {
 func TestSettlingChargesTheSlotsItClears(t *testing.T) {
 	for _, c := range []struct{ errs, charged int }{{0, 0}, {16, 16}, {17, 0}} {
 		m := newRTMachine(ref.Config{}, true, false, true).(meteredRT)
-		m.p.Recovered = make([]*SyntaxError, c.errs)
+		m.p.Recovered = make([]recEntry, c.errs)
 		before := m.Used()
 		m.p.streamSettleErrors()
 		if got := int(m.Used() - before); got != c.charged {
@@ -575,6 +614,50 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		// The recovered errors.
 		"a truncate keeps the last error": {op: "rec.truncate", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
 			m.p.Recovered = m.p.Recovered[:min(int(args[0].(int64))+1, len(m.p.Recovered))]
+			return nil
+		}},
+		"since leaves the entries in place": {op: "rec.since", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
+			mark := int(args[0].(int64))
+			if len(m.p.Recovered)-mark < 2 {
+				return []any{m.lists.handle(m.p.recSince(mark))}
+			}
+			after := m.p.Recovered[mark:]
+			l := &errList{entries: appendSpend(m.p, make([]recEntry, 0, len(after)), after)}
+			for _, e := range after {
+				l.n += e.len()
+			}
+			return []any{m.lists.handle(recEntry{list: l})}
+		}},
+		"since copies the errors of the lists": {op: "rec.since", ops: rtRecoveryOps, exact: rtRecoveryExact, controlled: true, want: "more than the bound", call: func(m *rtMachine, args []any) []any {
+			mark := int(args[0].(int64))
+			if len(m.p.Recovered)-mark < 2 {
+				return []any{m.lists.handle(m.p.recSince(mark))}
+			}
+			l := &errList{}
+			for _, e := range appendRecErrors(nil, m.p.Recovered[mark:]) {
+				m.p.spendValue(1)
+				l.entries = append(l.entries, recEntry{err: e})
+				l.n++
+			}
+			m.p.Recovered = append(m.p.Recovered[:mark], recEntry{list: l})
+			return []any{m.lists.handle(recEntry{list: l})}
+		}},
+		// The control of the bound on unrolling: wrapping the one entry after a mark changes no error
+		// and no charge, and only the bound fails.
+		"since wraps the one entry after its mark": {op: "rec.since", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
+			mark := int(args[0].(int64))
+			if len(m.p.Recovered)-mark != 1 {
+				return []any{m.lists.handle(m.p.recSince(mark))}
+			}
+			m.p.spendValue(1)
+			l := &errList{entries: []recEntry{m.p.Recovered[mark]}, n: m.p.Recovered[mark].len()}
+			m.p.Recovered[mark] = recEntry{list: l}
+			return []any{m.lists.handle(recEntry{list: l})}
+		}},
+		"an add copies the errors of a list": {op: "rec.add", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
+			for _, e := range appendRecErrors(nil, []recEntry{args[0].(*errorList).e}) {
+				m.p.PushRecovered(e)
+			}
 			return nil
 		}},
 		"settling keeps the errors": {op: "stream.settleErrors", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any { return nil }},
@@ -677,7 +760,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		"splice moves an entry with recovered errors": {op: "memo.splice", call: func(m *rtMachine, args []any) []any {
 			for _, head := range m.p.memo.slots {
 				for e := head; e != nil; e = e.next {
-					e.errs = nil
+					e.errs = recEntry{}
 				}
 			}
 			m.p.memo.splice(documentEdit{int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64))})
@@ -771,7 +854,7 @@ func TestExecConformanceDetectsBrokenTypedRuntime(t *testing.T) {
 		"splice moves an entry with recovered errors": func(m *typedMachine) {
 			for _, head := range m.p.memoSlots {
 				for e := head; e != nil; e = e.next {
-					e.errs = nil
+					e.errs = recEntry{}
 				}
 			}
 		},

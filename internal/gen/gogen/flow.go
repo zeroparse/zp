@@ -354,7 +354,7 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	case *flow.FreeFrame:
 		p.write(fmt.Sprintf("p.FreeFrame(%s)\n", s.F.Name))
 	case *flow.AppendError:
-		p.write(fmt.Sprintf("p.Recovered = append(p.Recovered, %s)\n", p.expr(s.X)))
+		p.write(fmt.Sprintf("p.PushRecovered(%s)\n", p.expr(s.X)))
 	case *flow.DeclareNames:
 		// Declared whatever the reachability.
 		p.scopeNames(s.N)

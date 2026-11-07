@@ -44,11 +44,16 @@ type streamInput struct {
 	// nodeChunks counts the node chunks started since the last split.
 	nodeChunks int
 	// diagnostic receives the committed recovered errors; diagnosed is the
-	// prefix of p.Recovered already delivered to it or to tail.
-	diagnostic func(*SyntaxError) error
-	diagnosed  int
-	tail       streamDiagnosticTail
-	text       streamTextSnapshot
+	// number of entries of p.Recovered already delivered to it or to tail,
+	// and diagnosedSkip errors of the entry after them were delivered too
+	// when it is the list diagnosedList, which took the place of delivered
+	// entries (compactDiagnosed).
+	diagnostic    func(*SyntaxError) error
+	diagnosed     int
+	diagnosedSkip int
+	diagnosedList *errList
+	tail          streamDiagnosticTail
+	text          streamTextSnapshot
 	// lines holds the line starts once the whole input is loaded and
 	// nothing was discarded.
 	lines []int
@@ -167,7 +172,7 @@ func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*Node, *Budge
 			return p.Stream.tail.result(p)
 		}
 		if len(p.Recovered) > 0 {
-			return SyntaxErrors(p.Recovered)
+			return SyntaxErrors(p.recoveredErrors())
 		}
 		return nil
 	}
@@ -276,7 +281,7 @@ func (p *Parser) streamSettleErrors() {
 	} else {
 		p.Recovered = nil
 	}
-	s.diagnosed = 0
+	s.diagnosed, s.diagnosedSkip, s.diagnosedList = 0, 0, nil
 	if p.Control != nil {
 		// With a diagnostic limit, the errors are now held by the tail, which counts
 		// those it keeps; without one, Recovered keeps them and errs keeps counting them.
@@ -295,23 +300,47 @@ func (p *Parser) reportRecovered() error {
 	if s.diagnosed > len(p.Recovered) {
 		s.diagnosed = len(p.Recovered)
 	}
+	var errs []*SyntaxError
 	for s.diagnosed < len(p.Recovered) {
-		p.Control.Check()
-		original := p.Recovered[s.diagnosed]
-		if s.diagnostic != nil {
-			e := *original
-			e.Expected = append([]string(nil), e.Expected...)
-			e.Messages = append([]string(nil), e.Messages...)
-			if err := s.diagnostic(&e); err != nil {
+		if e := p.Recovered[s.diagnosed]; e.list == nil {
+			// An error, delivered without listing it.
+			if e.err != nil {
+				if err := p.reportError(e.err); err != nil {
+					// The error ends the parse.
+					return err
+				}
+			}
+			s.diagnosed++
+			continue
+		}
+		errs = appendRecErrors(errs[:0], p.Recovered[s.diagnosed:s.diagnosed+1])
+		for _, original := range errs[s.partialDiagnosed(p):] {
+			if err := p.reportError(original); err != nil {
 				return err
 			}
 		}
-		if s.tail.limit > 0 {
-			s.tail.add(original)
-		}
-		s.diagnosed++
-		p.Control.Check()
+		s.diagnosed, s.diagnosedSkip, s.diagnosedList = s.diagnosed+1, 0, nil
 	}
+	return nil
+}
+
+// reportError delivers the recovered error original to the diagnostic callback, as a copy that the
+// callback owns, and to the retained tail.
+func (p *Parser) reportError(original *SyntaxError) error {
+	s := p.Stream
+	p.Control.Check()
+	if s.diagnostic != nil {
+		e := *original
+		e.Expected = append([]string(nil), e.Expected...)
+		e.Messages = append([]string(nil), e.Messages...)
+		if err := s.diagnostic(&e); err != nil {
+			return err
+		}
+	}
+	if s.tail.limit > 0 {
+		s.tail.add(original)
+	}
+	p.Control.Check()
 	return nil
 }
 

@@ -455,7 +455,7 @@ func TestRecoveredNilClonePublication(t *testing.T){
  for i:=range recovered{recovered[i]=&SyntaxError{Line:i+1,Col:1}}
  for _,named:=range []bool{false,true}{for _,panicMode:=range []bool{false,true}{
   ctx:=&clonePhaseContext{Context:context.Background()};if panicMode{ctx.marker=new(int)}
-  trules[0].Entry=func(p *zprt.TParser)(any,bool){ctx.control=p.Control;p.Recovered=recovered;return nil,true}
+  trules[0].Entry=func(p *zprt.TParser)(any,bool){ctx.control=p.Control;for _,e:=range recovered{p.PushRecovered(e)};return nil,true}
   call:=func()(any,error){if named{return ParseRuleAST("main","",WithContext(ctx))};return ParseAST("",WithContext(ctx))}
   if panicMode{func(){defer func(){if got:=recover();got!=ctx.marker{t.Errorf("clone panic missed or changed: %T",got)}}();call()}()}else{
    v,err:=call()

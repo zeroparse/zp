@@ -52,7 +52,7 @@ const maxLeaderBits = 32
 type ctxResult struct {
 	node     *Node
 	val      any
-	errs     []*SyntaxError
+	errs     recEntry
 	expected []ExpID
 	end      int
 	far      int
@@ -773,7 +773,7 @@ func (p *Parser) replayCtx(e *ctxResult, seed bool) {
 	}
 	if e.ok {
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 	}
 }
 
@@ -974,7 +974,7 @@ func (p *Parser) growStep(g *growState, node *Node, val any, ok bool) {
 		}
 		p.Spend()
 		*best = ctxResult{node: node, val: val, ok: true, end: p.Pos, examined: p.examinedNow(),
-			errs: p.copyErrors(nil, p.Recovered[g.rec:])}
+			errs: p.recSince(g.rec)}
 		p.gamma[g.gi].id = p.nextSeedID()
 		p.Pos = g.start
 		p.Recovered = p.Recovered[:g.rec]
@@ -991,7 +991,7 @@ func (p *Parser) growStep(g *growState, node *Node, val any, ok bool) {
 	}
 	res := &ctxResult{node: node, val: val, ok: ok, end: p.Pos, examined: examined, silent: p.Silent > 0}
 	if ok {
-		res.errs = p.copyErrors(nil, p.Recovered[g.rec:])
+		res.errs = p.recSince(g.rec)
 	} else {
 		res.end = g.start
 	}
@@ -1030,7 +1030,7 @@ func (p *Parser) advance(g *growState, res *ctxResult, rid uint64, st runStep) b
 			obs = append(obs, d)
 		}
 	}
-	if grew && !other && len(res.errs) == 0 {
+	if grew && !other && res.errs.none() {
 		st.deps = obs
 		c := cap(g.run)
 		g.run = append(g.run, st)
@@ -1062,7 +1062,8 @@ func (p *Parser) growEnd(g *growState) ctxResult {
 	clear(p.gamma[g.gi:]) // release the seeds
 	p.gamma = p.gamma[:g.gi]
 	p.Pos = best.end
-	p.Recovered = p.copyErrors(p.Recovered[:g.rec], best.errs)
+	p.Recovered = p.Recovered[:g.rec]
+	p.recAdd(best.errs)
 	return best
 }
 
@@ -1209,7 +1210,7 @@ func (p *Parser) unionExpected(a, b []ExpID) []ExpID {
 // equal result's of the leader at the position, whose result it then returns instead of e.
 func (p *Parser) canonicalSeed(g *growState, e *ctxResult) (*ctxResult, uint64) {
 	id := p.nextSeedID()
-	if !e.ok || len(e.errs) > 0 {
+	if !e.ok || !e.errs.none() {
 		return e, id
 	}
 	t := p.table(g.start, g.gp, true)
@@ -1220,7 +1221,7 @@ func (p *Parser) canonicalSeed(g *growState, e *ctxResult) (*ctxResult, uint64) 
 	p.Spend()
 	if c, ok := t.canon[ck]; ok {
 		budget := 64
-		if c.e.examined == e.examined && len(c.e.errs) == 0 && p.nodesEqual(c.e.node, e.node, &budget) && p.valuesEqual(reflect.ValueOf(c.e.val), reflect.ValueOf(e.val), &budget) {
+		if c.e.examined == e.examined && c.e.errs.none() && p.nodesEqual(c.e.node, e.node, &budget) && p.valuesEqual(reflect.ValueOf(c.e.val), reflect.ValueOf(e.val), &budget) {
 			return c.e, c.id
 		}
 	}

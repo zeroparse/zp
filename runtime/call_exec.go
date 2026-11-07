@@ -50,7 +50,7 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 			return nil, false
 		}
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 		return e.node, true
 	}
 	if c.ctx {
@@ -79,12 +79,12 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		entry := p.memo.alloc()
-		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
+		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
-		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
+		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
 	p.ctxDone(&c)
 	p.MergeExpected(far, inner)
@@ -339,7 +339,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 			return nil, false
 		}
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 		return e.val, true
 	}
 	if c.ctx {
@@ -368,12 +368,12 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		entry := p.memoSlab.one()
-		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
+		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
-		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
+		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
 	p.ctxDone(&c)
 	p.MergeExpected(far, inner)
@@ -417,7 +417,7 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 			return nil, false
 		}
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 		return e.val, true
 	}
 	if c.ctx {
@@ -446,12 +446,12 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		entry := p.memoSlab.one()
-		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
+		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, 0, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
-		p.ctxKeep(&c, r.Id, start, 0, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
+		p.ctxKeep(&c, r.Id, start, 0, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
 	p.ctxDone(&c)
 	p.MergeExpected(far, inner)
@@ -613,7 +613,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 			return nil, false
 		}
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 		return e.node, true
 	}
 	if c.ctx {
@@ -645,7 +645,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		entry := p.memo.alloc()
-		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
+		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
@@ -656,7 +656,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 			}
 		}
 	} else if store == storeCtx {
-		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
+		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{node: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
 	p.ctxDone(&c)
 	p.MergeExpected(far, inner)
@@ -758,7 +758,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 			return nil, false
 		}
 		p.Pos = e.end
-		p.Recovered = p.copyErrors(p.Recovered, e.errs)
+		p.recAdd(e.errs)
 		return e.val, true
 	}
 	if c.ctx {
@@ -796,7 +796,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 			delete(p.TypedDocument.meta, e)
 		}
 		entry := p.memoSlab.one()
-		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
+		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, min, env, entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
@@ -805,7 +805,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 			p.TypedDocument.pin(entry)
 		}
 	} else if store == storeCtx {
-		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:]), far: far, expected: kept})
+		p.ctxKeep(&c, r.Id, start, min, env, &ctxResult{val: v, ok: ok, end: p.Pos, examined: p.examinedNow(), silent: p.Silent > 0, errs: p.recSince(rec), far: far, expected: kept})
 	}
 	p.ctxDone(&c)
 	p.MergeExpected(far, inner)

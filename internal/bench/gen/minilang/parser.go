@@ -1026,7 +1026,7 @@ L42:
 		goto L36
 	}
 	x43 = p.MakeError(x4, x5)
-	p.Recovered = append(p.Recovered, x43)
+	p.PushRecovered(x43)
 	v8 = p.NewErrorNode(x2.Pos, x43)
 	goto L7
 L36:
@@ -3198,7 +3198,7 @@ L31:
 		goto L25
 	}
 	x32 = p.MakeError(x3, x4)
-	p.Recovered = append(p.Recovered, x32)
+	p.PushRecovered(x32)
 	goto L6
 L25:
 	p.Reset(x1)
@@ -5007,7 +5007,7 @@ L42:
 		goto L36
 	}
 	x43 = p.MakeError(x4, x5)
-	p.Recovered = append(p.Recovered, x43)
+	p.PushRecovered(x43)
 	v8 = rt.NewTError(x2.Pos, p.Pos, p.RecoveryErrorText(x43))
 	goto L7
 L36:
@@ -7326,4 +7326,4 @@ fail:
 
 const _ = types.ZPSchema_e7e66c267f0d9ca7
 
-const _ = rt.Protocol1
+const _ = rt.Protocol2
