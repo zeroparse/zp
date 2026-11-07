@@ -21,6 +21,13 @@ func TestGenOptimize(t *testing.T) {
 	if err != nil || speed != def {
 		t.Fatalf("-optimize speed differs from the default: %v", err)
 	}
+	spaced, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", "guards, scans")
+	if err != nil {
+		t.Fatalf("-no-opt with spaces after the comma: %v", err)
+	}
+	if plain, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", "guards,scans"); err != nil || plain != spaced {
+		t.Errorf("-no-opt \"guards, scans\" differs from \"guards,scans\": %v", err)
+	}
 	for _, name := range []string{"guards", "scans", "class-runs", "guards,scans"} {
 		without, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", name)
 		if err != nil {
@@ -78,6 +85,10 @@ func TestGenPrintAfter(t *testing.T) {
 	controlled := run("all", "-limits")
 	if !strings.Contains(controlled, "after scans --") || strings.Contains(controlled, "after terminals --") || strings.Contains(controlled, "after class-runs --") {
 		t.Errorf("-print-after all with -limits prints the passes that apply to a lean parser")
+	}
+	// A pass that does not apply prints nothing, however it is asked for.
+	if got := run("terminals", "-limits"); got != "" {
+		t.Errorf("-print-after terminals with -limits printed:\n%.300s", got)
 	}
 	guards := run("guards")
 	if strings.Count(guards, "-- Core IR of the") != strings.Count(all, "after guards --") || !strings.Contains(guards, "after guards --") || strings.Contains(guards, "after scans --") {

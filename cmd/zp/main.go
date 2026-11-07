@@ -849,7 +849,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
 	optimize := fs.String("optimize", "", "profile of generation-time optimizations: "+strings.Join(genopt.Profiles(), ", ")+" (default speed); no profile changes what the parser returns")
 	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization: "+strings.Join(genopt.Names(), ", "))
-	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas: "+strings.Join(genopt.PrintNames(), ", "))
+	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(genopt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

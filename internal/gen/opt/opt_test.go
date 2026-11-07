@@ -55,6 +55,9 @@ func TestSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if sp, err := speed.Without(" guards", "scans "); err != nil || sp.On("guards") || sp.On("scans") {
+		t.Errorf("Without does not ignore spaces around a name: %v", err)
+	}
 	if off.On("guards") || off.Value("inline-literals") != 0 || !off.On("scans") || !speed.On("guards") {
 		t.Error("Without changes the wrong flags, or its receiver")
 	}

@@ -196,7 +196,7 @@ zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|impor
 | `-nodoc` | off | Leave out the package comment (`// Package p is a parser generated from a ZeroParse grammar.`), for a package that has its own documentation in another file |
 | `-optimize` | `speed` | The profile of [generation-time optimizations](#optimizations). `speed` is the only one so far; any other name is an error that lists the valid ones |
 | `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
-| `-print-after` | none | Write the Core IR that the generator builds to standard error, as text, after the named passes, separated by commas: `build`, a pass name, or `all` (see [Optimizations](#optimizations)) |
+| `-print-after` | none | Write the Core IR that the generator builds to standard error, as text, after the named passes, separated by commas: `build`, a pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
 
 Details:
 
@@ -294,7 +294,8 @@ The names are the following, and an unknown name in `-no-opt` is an error that l
 A name only removes: whether an optimization is sound for a parser is decided by the generator, and a flag never
 overrides that. `-no-opt guards` also leaves out the guarded classes, which need guards.
 
-`-print-after` shows the Core IR, the form the passes work on, for debugging the generator. Only the generation that
+`-print-after` shows the Core IR, the form the passes work on, for debugging the generator. A pass that does not apply to the
+parser (the lean passes in a parser with limit controls, for example) prints nothing. Only the generation that
 writes the output prints, and the text starts with `-- Core IR of the <table> after <pass> --`, where `<table>` is
 `typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables.
 

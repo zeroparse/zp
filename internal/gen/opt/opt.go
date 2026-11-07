@@ -134,14 +134,15 @@ func (s Settings) With(name string, value int) (Settings, error) {
 	return out, nil
 }
 
-// Without returns the settings with the named optimizations off. An unknown name is an error that
-// lists the valid ones.
+// Without returns the settings with the named optimizations off; spaces around a name are ignored. An
+// unknown name is an error that lists the valid ones.
 func (s Settings) Without(names ...string) (Settings, error) {
 	out := Settings{over: map[string]int{}}
 	for k, v := range s.over {
 		out.over[k] = v
 	}
 	for _, n := range names {
+		n = strings.TrimSpace(n)
 		if _, ok := lookup(n); !ok {
 			return Settings{}, fmt.Errorf("unknown optimization %q (valid: %s)", n, strings.Join(Names(), ", "))
 		}
