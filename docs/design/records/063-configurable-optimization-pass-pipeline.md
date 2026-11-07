@@ -134,7 +134,7 @@ registry has the name of every pass.
 | `guarded-classes` | pass | The guarded-class marks that `guards` sets, and their lowering |
 | `scans` | pass | `scans` |
 | `class-runs` | pass | `class-runs` |
-| `class-tables` | lowering | `lower.Options.ClassTableRanges` (the least number of ranges of a class that is matched through a table; 5 in `speed`; 0 turns it off) |
+| `class-tables` | lowering | `lower.Options.ClassTableRanges` (the least number of ranges of a class that is matched through a table; an opt-in, 0 in `speed`, and 5 is the value that was measured; 0 turns it off) |
 | `inline-literals` | lowering | `lower.Options.InlineLiterals` (a count, 4 in `speed`; 0 turns it off) |
 | `method-sharing` | printer | Equal generated bodies share one helper |
 | `literal-sharing` | printer | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) |
@@ -180,7 +180,7 @@ helpers of the generator set it, so every fixture of the suite runs with the che
 
 ### Profiles
 
-A profile is a preset: a name for fixed flag values. `speed` is the default and sets every flag on, with `class-tables` at 5 and `inline-literals` at 4, except the opt-in `ts-literal-sharing`, which is 0.
+A profile is a preset: a name for fixed flag values. `speed` is the default and sets every flag on, with `inline-literals` at 4, except the opt-ins `ts-literal-sharing` and `class-tables`, which are 0.
 `-optimize` takes a profile name, and any other name is an error until the profile is registered.
 
 `memory` and `size` are not registered. Their cells are hypotheses until measured: a table is data and a straight-line
@@ -193,7 +193,7 @@ expression is code, and the first may be smaller or larger depending on the gram
 | `guards`, `guarded-classes` | on | on | open |
 | `scans` | on | on | on |
 | `class-runs` | on | on | open |
-| `class-tables` | 5 | open | open |
+| `class-tables` | 0 | open | open |
 | `inline-literals` | 4 | open | open |
 | `method-sharing`, `literal-sharing` | on | on | on |
 | `ts-literal-sharing` | 0 | open | open |

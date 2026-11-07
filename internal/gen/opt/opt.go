@@ -70,7 +70,7 @@ var Flags = []Flag{
 	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
 	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
 	{Name: core.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
-	{Name: "class-tables", Kind: Lowering, Int: true, Default: 5, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); 0 turns it off"},
+	{Name: "class-tables", Kind: Lowering, Int: true, Default: 0, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); smaller source against a slower parse, so an opt-in: 0 in speed, 5 is the measured choice"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
 	{Name: "method-sharing", Kind: Printer, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
 	{Name: "literal-sharing", Kind: Printer, Default: 1, Doc: "emit one table for equal literals (Go; TypeScript also needs ts-literal-sharing)"},

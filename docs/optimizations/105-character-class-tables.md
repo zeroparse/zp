@@ -62,3 +62,7 @@ suite and `alpha-parsers/test.sh` pass.
 
 Adopted for Go parsers without budget controls and Documents. The helpers are
 generated-code support, not a stable API.
+
+The tables are an opt-in (`-opt class-tables=5`), not part of the `speed` profile: a repeated
+measurement of the six typed language grammars found them about 1% slower for about 3% smaller source
+([record 136](136-measured-effect-of-the-generation-flags.md)).

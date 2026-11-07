@@ -266,7 +266,7 @@ Details:
 
 The generator optimizes what it emits. Each optimization is a flag with a name. A profile is a preset: a name for fixed
 values of flags, with no logic of its own. The `speed` profile, the default, has every flag on except the opt-ins named
-below. `-opt` sets a flag, and `-no-opt` turns flags off after the profile and `-opt` are applied, so `-no-opt` wins.
+below (`ts-literal-sharing` and `class-tables`). `-opt` sets a flag, and `-no-opt` turns flags off after the profile and `-opt` are applied, so `-no-opt` wins.
 A flag keeps what the parser returns, the same results, errors and events, and changes the code, the speed and the size.
 A flag that changes the generated API or the representation of the results instead is marked "changes output" in
 the table, is always an opt-in, and is never part of a profile. Two uses of the flags:
@@ -288,7 +288,7 @@ table changes output yet:
 | `guarded-classes` | pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
 | `scans` | pass | on | A value-free repetition of a class or of any character runs as a scan. A loop against the general repetition |
 | `class-runs` | pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go). One run against one test and call per class |
-| `class-tables` | lowering | 5 | Match a class of at least five ranges through a membership table (lean typed Go); the number is the minimum count of ranges, and 0 turns the tables off. Table data against code: smaller source, one lookup per character |
+| `class-tables` | lowering | off | Match a class of at least this many ranges through a membership table (lean typed Go); `-opt class-tables=5` is the measured choice, and 0 turns the tables off. Table data against code: about 3% smaller source, and about 1% slower parsing on the language grammars (3.7% on TypeScript). It is an opt-in |
 | `inline-literals` | lowering | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
 | `method-sharing` | printer | on | Emit one helper for generated bodies that are exactly equal (Go and TypeScript). Code against calls: smaller source, with a call where a body was |
 | `literal-sharing` | printer | on | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`). Smaller source against an indirection to the table |

@@ -116,7 +116,7 @@ func TestGenOpt(t *testing.T) {
 	}
 	def := gen()
 	// A value that is the default changes nothing; a different one changes the parser.
-	if got := gen("-opt", "class-tables=5, inline-literals=4"); got != def {
+	if got := gen("-opt", "class-tables=0, inline-literals=4"); got != def {
 		t.Errorf("-opt with the default values changed the parser")
 	}
 	off := gen("-opt", "inline-literals=0")

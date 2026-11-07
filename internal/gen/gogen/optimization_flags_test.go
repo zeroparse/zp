@@ -153,9 +153,15 @@ func generateShowingIR(t *testing.T, g *grammar.Grammar, o gen.GenOptions) ([]by
 	return code, ir.String()
 }
 
+// optInValues is the value that TestOptimizationDisabledParity gives an optimization that the speed
+// profile leaves off, and that is not 1.
+var optInValues = map[string]int{"class-tables": 5}
+
 // TestOptimizationDisabledParity compares lean typed parsers generated without an optimization with
 // the engine, in both position units, for the optimizations that no other test covers; and checks
 // that turning it off changes the generated code or the Core IR, so that a flag that does nothing is caught.
+// For an optimization that the speed profile leaves off, it compares the parsers generated with it on,
+// and checks that turning it on changes them.
 func TestOptimizationDisabledParity(t *testing.T) {
 	t.Parallel()
 	gentest.PinOrdinary(t)
@@ -163,6 +169,15 @@ func TestOptimizationDisabledParity(t *testing.T) {
 	for _, f := range genopt.Flags {
 		if optimizationTests[f.Name] != "" || f.ChangesOutput {
 			continue
+		}
+		variant := off(f.Name)
+		if f.Default == 0 {
+			v := 1
+			if o, ok := optInValues[f.Name]; ok {
+				v = o
+			}
+			variant = off()
+			variant.Opt = map[string]int{f.Name: v}
 		}
 		t.Run(f.Name, func(t *testing.T) {
 			changed := false
@@ -172,13 +187,13 @@ func TestOptimizationDisabledParity(t *testing.T) {
 					t.Fatal(err)
 				}
 				on, onIR := generateShowingIR(t, g, off())
-				without, withoutIR := generateShowingIR(t, g, off(f.Name))
+				without, withoutIR := generateShowingIR(t, g, variant)
 				changed = changed || string(on) != string(without) || onIR != withoutIR
 			}
 			if !changed {
-				t.Errorf("generating without %s changes no parser of the cases: the flag does nothing there", f.Name)
+				t.Errorf("generating with the %s setting changes no parser of the cases: the flag does nothing there", f.Name)
 			}
-			gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, off(f.Name), 0)
+			gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, variant, 0)
 		})
 	}
 }
@@ -194,7 +209,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 		if !f.Int || f.ChangesOutput {
 			continue
 		}
-		for _, v := range []int{1, 2, 3, 8} {
+		for _, v := range []int{1, 2, 3, 5, 8} {
 			if v == f.Default {
 				continue
 			}

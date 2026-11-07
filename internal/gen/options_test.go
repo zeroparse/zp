@@ -15,7 +15,7 @@ func TestGenOptionsOptimizationsOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !s.On("guards") || s.Value("class-tables") != 5 || s.On("ts-literal-sharing") {
+	if !s.On("guards") || s.Value("class-tables") != 0 || s.On("ts-literal-sharing") {
 		t.Errorf("the default profile: guards %v, class-tables %d, ts-literal-sharing %v", s.On("guards"), s.Value("class-tables"), s.On("ts-literal-sharing"))
 	}
 
