@@ -2,6 +2,7 @@ package gogen_test
 
 import (
 	"math/rand"
+	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -85,6 +86,19 @@ func TestOptimizationsHaveTests(t *testing.T) {
 	for name := range optimizationTests {
 		if !slices.Contains(genopt.Names(), name) {
 			t.Errorf("a test names %s, which is not a registered optimization", name)
+		}
+	}
+}
+
+// The guide lists every registered optimization, with the name that -no-opt takes.
+func TestOptimizationsAreInTheGuide(t *testing.T) {
+	doc, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "guide", "code-generation.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range genopt.Names() {
+		if !strings.Contains(string(doc), "| `"+n+"` | ") {
+			t.Errorf("the guide has no row for the optimization %s", n)
 		}
 	}
 }

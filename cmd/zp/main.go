@@ -39,6 +39,7 @@ import (
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
 	igen "zeroparse.dev/zp/internal/gen"
+	genopt "zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -821,6 +822,9 @@ func isFlagSet(fs *flag.FlagSet, name string) bool {
 	return set
 }
 
+// genDiagnostics receives the Core IR that zp gen -print-after writes; tests replace it.
+var genDiagnostics io.Writer = os.Stderr
+
 func genCmd(args []string, stdout io.Writer) error {
 	fs := flag.NewFlagSet("gen", flag.ContinueOnError)
 	grammarPath := fs.String("g", "", "grammar file (.zp or .json)")
@@ -843,6 +847,9 @@ func genCmd(args []string, stdout io.Writer) error {
 	nodoc := fs.Bool("nodoc", false, "leave out the package comment (Go)")
 	sourceInfo := fs.Bool("source-info", false, "make the generated parser record the rule of each node and the names of captures")
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
+	optimize := fs.String("optimize", "", "profile of generation-time optimizations: "+strings.Join(genopt.Profiles(), ", ")+" (default speed); no profile changes what the parser returns")
+	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization: "+strings.Join(genopt.Names(), ", "))
+	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas: "+strings.Join(genopt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -860,7 +867,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		}
 		switch mode {
 		case runtimeOnly:
-			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize", "max-depth", "nodoc", "source-info", "default-value"} {
+			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize", "max-depth", "nodoc", "source-info", "default-value", "optimize", "no-opt", "print-after"} {
 				if isFlagSet(fs, name) {
 					return fmt.Errorf("-%s cannot be combined with -runtime only, which writes just the runtime", name)
 				}
@@ -889,7 +896,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		}
 		switch mode {
 		case runtimeOnly:
-			for _, name := range []string{"g", "s", "types", "observability", "limits", "recognize", "max-depth", "source-info", "default-value", "runtime-module"} {
+			for _, name := range []string{"g", "s", "types", "observability", "limits", "recognize", "max-depth", "source-info", "default-value", "runtime-module", "optimize", "no-opt", "print-after"} {
 				if isFlagSet(fs, name) {
 					return fmt.Errorf("-%s cannot be combined with -runtime only, which writes just the runtime", name)
 				}
@@ -912,6 +919,24 @@ func genCmd(args []string, stdout io.Writer) error {
 	default:
 		return fmt.Errorf("unknown language %q (want go or ts)", *lang)
 	}
+	var noOptNames []string
+	if *noOpt != "" {
+		noOptNames = strings.Split(*noOpt, ",")
+	}
+	profile, err := genopt.Profile(*optimize)
+	if err != nil {
+		return fmt.Errorf("-optimize: %w", err)
+	}
+	if _, err := profile.Without(noOptNames...); err != nil {
+		return fmt.Errorf("-no-opt: %w", err)
+	}
+	if _, err := genopt.ParsePrintAfter(*printAfter); err != nil {
+		return fmt.Errorf("-print-after: %w", err)
+	}
+	var printTo io.Writer
+	if *printAfter != "" {
+		printTo = genDiagnostics
+	}
 	var generator gen.Generator
 	if *lang == "ts" {
 		generator = gen.TypeScript{
@@ -925,6 +950,10 @@ func genCmd(args []string, stdout io.Writer) error {
 			Expectations:  *expectations,
 			Recognize:     *recognize,
 			MaxDepth:      *maxDepth,
+			Optimize:      *optimize,
+			NoOpt:         noOptNames,
+			PrintAfter:    *printAfter,
+			PrintTo:       printTo,
 		}
 	} else {
 		generator = gen.Go{
@@ -943,6 +972,10 @@ func genCmd(args []string, stdout io.Writer) error {
 			Stream:         *stream,
 			TypedOnly:      *typedOnly,
 			OmitPackageDoc: *nodoc,
+			Optimize:       *optimize,
+			NoOpt:          noOptNames,
+			PrintAfter:     *printAfter,
+			PrintTo:        printTo,
 		}
 	}
 	if mode == runtimeOnly {
