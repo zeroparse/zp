@@ -153,7 +153,7 @@ messages where that is direct.
    property of its recovery that is measured, not proved. The mutation tests
    count the sources that break it (the classes `extra` and `other earlier` of
    the [Mutation Measurement](#mutation-measurement)) and bound them by a cap.
-   They are 92 and 15 of the 908,747 rejected sources of 12 seeds (about 1.2
+   They are 90 and 15 of the 908,697 rejected sources of 12 seeds (about 1.2
    in 10,000), so the property holds for all but those, not for every source.
    An error on a declaration that no edit touched and where the reference
    reports none counts as `extra`, also at the start of the declaration after
@@ -163,11 +163,15 @@ messages where that is direct.
    that the valid text is accepted and, after a mistake, unflagged. A string
    or a character class that is not terminated is one error: the grammar
    failure that lies in it is dropped, and the lexical error stays. So is the
-   failure at the declaration after it, if the literal holds an opening
-   bracket that no later line closes or swallows the closing bracket of its
-   group, and no declaration starts between them. A literal that holds a
-   closing bracket which a later line closes again is not covered: the stray
-   bracket is one more error.
+   failure exactly at the start of the declaration after it, if the literal
+   holds an opening bracket that no later line closes or swallows the closing
+   bracket of its group. A declaration here is a line that starts in the first
+   column with `rule`, `type`, `var` or `@`, and none starts between the
+   literal and the failure; an indented line with a keyword is a statement or a
+   field of a group. A failure after the declaration's first token, such as an
+   attribute without a name, is kept. A literal that holds a closing bracket
+   which a later line closes again is not covered: the stray bracket is one
+   more error.
 3. **First error.** The first error is at the offset of the reference's first
    error, or in one of the forms below. Every form is bounded by a distance or
    by a check that the two errors belong to the same mistake, and the
@@ -395,21 +399,21 @@ formula, so 15 to 22 are the check proper. With the caps every class of the ten
 seeds is within its cap (the largest are `near` at 524.44 against 534 and
 `missed: other` at 19.22 against 22).
 
-Over the 12 seeds, 908,747 of the 1,200,000 sources are rejected by both
+Over the 12 seeds, 908,697 of the 1,200,000 sources are rejected by both
 parsers (the others are accepted by both, with the same grammar). Over the
 rejected sources, with the largest distance in lines between the two first
-errors in any of the 14 seeds:
+errors in any of the 12 seeds:
 
 | First error | Sources | Share | Cap per 10,000 | Lines apart |
 | --- | ---: | ---: | ---: | ---: |
-| same offset | 848,604 | 93.38% | | |
-| near | 46,304 | 5.10% | 534 | 1 |
-| end | 8,440 | 0.929% | 104 | 12 |
-| shadowed | 2,956 | 0.325% | 39 | 9 |
-| head | 975 | 0.107% | 15 | 5 |
+| same offset | 848,569 | 93.38% | | |
+| near | 46,308 | 5.10% | 534 | 1 |
+| end | 8,423 | 0.927% | 104 | 12 |
+| shadowed | 2,954 | 0.325% | 39 | 9 |
+| head | 976 | 0.107% | 15 | 5 |
 | unclosed | 645 | 0.071% | 11 | 12 |
 | dropped | 643 | 0.071% | 10 | 10 |
-| hint | 143 | 0.016% | 3 | 12 |
+| hint | 142 | 0.016% | 3 | 12 |
 | late | 12 | 0.001% | 1 | 2 |
 | other later | 10 | 0.001% | 1 | not counted |
 | other earlier | 15 | 0.002% | 1 | 3 |
@@ -438,7 +442,7 @@ declaration as the reference does for the pragma alone, so that the error is
 on the declaration after it, which is valid.
 
 The errors of the two parsers are matched by declaration. The generated parser
-reports 92 errors in a declaration where the reference reports none (`extra`;
+reports 90 errors in a declaration where the reference reports none (`extra`;
 cap 3 per 10,000). Most are a real mistake that the reference does not
 report after an earlier one: the window ends in the middle of an attribute
 (`@x(`) after a block that failed, or a mistyped keyword in a later
@@ -448,8 +452,8 @@ a broken one, unless it is the only error that the generated parser reports
 for the broken one (its report of what the broken one lacks at its end).
 
 The reference reports an error in a declaration where the generated parser
-reports none for 1,562 errors: 20 of a `hint` (made once the first mistake is
-fixed, see above) and 1,542 of another kind (`missed: other`), 0.17% of the
+reports none for 1,563 errors: 20 of a `hint` (made once the first mistake is
+fixed, see above) and 1,543 of another kind (`missed: other`), 0.17% of the
 rejected sources and 20 in 10,000 at most for a seed (cap 22). A sample of the 517
 missed errors in 4 seeds (403 sources) shows where they are:
 
@@ -473,7 +477,7 @@ an attribute that follows a mistake, and a mistyped keyword after an
 attribute list.
 
 The full list of error offsets is equal for 70.2% of the rejected sources, and
-the second error is at the same offset for 33.2% of the 319,782 sources in
+the second error is at the same offset for 33.2% of the 319,806 sources in
 which the reference reports two. These shares are lower than the share of the
 first error because a source with two edits often has two mistakes inside one
 declaration, where a recovery that resumes at a later place cannot match the
@@ -494,7 +498,7 @@ memory profile of 300 iterations of `golang.zp`, the bytes allocated in the
 adapter's parse grow by 132 MB of 10,698 MB (+1.2%), of which 105 MB is in
 `MemoTable.Alloc`, 14 MB in the first call of a memoized rule and 3 MB in
 `MemoPut`; every other function allocates the same. The measured grammar has 264
-rules instead of 252. The growth is in the memo entries, which more memoized rules
+rules instead of 252 (it has 261 now, without three rules that no start rule reached). The growth is in the memo entries, which more memoized rules
 and the added lookaheads make; which of the two causes it is was not
 measured.
 
