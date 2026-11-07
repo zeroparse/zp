@@ -589,6 +589,12 @@ transitional op rule.docMemo(r Rule) bool
   contract:
     // Reports whether a Document parse memoizes the rule.
 
+transitional op rule.docOnlyMemo(r Rule) bool
+  component rules
+  cost <= 0
+  contract:
+    // Reports whether a Document parse memoizes the rule and a parse from scratch does not.
+
 transitional op rule.docPlain(r Rule) bool
   component rules
   cost <= 0

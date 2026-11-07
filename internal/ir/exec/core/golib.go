@@ -351,6 +351,8 @@ func goTarget(s goSpec) *execgo.Target {
 			return "len(" + a[0] + ".Scope) == 0"
 		case "rule.docMemo":
 			return a[0] + ".DocMemo"
+		case "rule.docOnlyMemo":
+			return "(" + a[0] + ".DocMemo && !" + a[0] + ".Memo && !" + a[0] + ".Leader)"
 		case "rule.positional":
 			return a[0] + ".Positional"
 		case "rule.id":

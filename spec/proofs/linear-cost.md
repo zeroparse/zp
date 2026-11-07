@@ -2001,29 +2001,39 @@ bound. $\square$
 
 *The units that the default budget counts.* The default budget of a Document
 parse leaves out the Document units of Lemma 12 that the parse reserves in regions
-of Document work: the memo protocol of every rule call (the test of whether the
-call is memoized, its lookup with the walk of a chain of memo entries and the
-comparison of keys, the begin and the end of the call that store its result), the edits that
-a lookup applies, the moves of reused values with the cleanup that ends them, the
+of Document work: the memo protocol of a call of a rule that only a Document memoizes
+(a transient rule, which a parse from scratch does not memoize), the walk of the chain of memo
+entries at a position and the growth of the table in a lookup and a store, the edits that a
+lookup applies, the moves of reused values with the cleanup that ends them, the
 operations of recorded runs, the extra units that decoding a piece of the text
 costs, and the copy of the diagnostics that the parse publishes. Every other unit
 is counted: the unit that opens a call, the evaluation of the body of a rule, the
-examination of the input, the values that the parse builds. The counted units of a Document parse are at most the
-units that a parse of the same text from scratch reserves. Each counted unit belongs to a
-call, to a body evaluation, to an examination of the input or to a value that
-the parse builds, and the Document parse makes each of these for the text at most as often as
-the parse from scratch does: it evaluates the same bodies on the same input in the same
-order, except that a memo entry answers a call and the body is not evaluated, and the
-entry costs the units of the call only, and its recovered errors, which the evaluation it
-replaces would have built at a unit each. A lookup and a store count none, however long the chain
-they walk, so no duplicate or order of entries adds to the counted units. This holds for the
-three backends of the engine and for generated Go; the tests of the reference
-implementation check it on random edits as well. So a Document parse under the default
-budget does not fail where the parse from scratch of its text does not. Its default
-budget, raised by the Document units, is at most that budget plus the bound on the Document
-units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not by
-$n$, $K$ and $L$, as step 7 leaves open). A grammar whose cost is above the default
-stays stopped: the counted units alone pass the default. $\square$
+examination of the input, the values that the parse builds, and the memo protocol of a
+rule that a parse from scratch memoizes too, with the unit of each lookup and store and the copy
+and the replay of the recovered errors of an entry. The claim that the counted units of a
+Document parse are at most the units that a parse of the same text from scratch reserves is
+argued here, not proved by a lemma, and the tests of the reference implementation check it on
+random edits. The argument: each counted unit belongs to a call, to a
+body evaluation, to an examination of the input, to a value that the parse builds, or to the
+memo protocol of a rule that a parse from scratch memoizes. The Document parse makes each of these
+for the text at most as often as the parse from scratch does: it evaluates the same bodies on
+the same input in the same order, except that a memo entry answers a call and the body is not
+evaluated, and the entry costs the units of the lookup and the replay of its recovered errors,
+which the evaluation it replaces would have built at a unit each. The deferral of the memoization
+of a rule is the same in both parses, so the rules that both memoize have the same lookups and
+stores. A first parse of a Document is the parse from scratch plus the Document work, and a parse
+after edits evaluates a call again where an entry lagged behind by more than 128 edits. This
+holds for the three backends of the engine and for generated Go, whose Documents memoize the
+same rules as a parse from scratch plus those that only a Document memoizes. So a Document parse
+under the default budget is argued not to fail where the parse from scratch of its text does not.
+Its default budget, raised by the Document units, is at most that budget plus the bound on the
+Document units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not
+by $n$, $K$ and $L$, as step 7 leaves open). A grammar whose counted units alone pass the
+default is stopped by it, whatever the Document retains: the recovered errors that the memo
+copies and replays count (step 8), and the tests run a grammar of recovered errors at four times
+the length that a parse from scratch admits and expect the limit error. A grammar whose
+cost is high only in work that is left out of the count, such as the retained state of step 7, is not
+stopped by the default in proportion to that work. $\square$
 
 A node counts in $W$ whichever text it was built for, and whether or not a call
 of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 7 of

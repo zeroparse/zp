@@ -74,22 +74,30 @@ func Build() *Module {
 			body(b)
 		}
 	}
-	// docOpen and docClose bracket the memo protocol of a Document parse in the node and typed runtimes
-	// as work that only a Document does: a parse under the default limit leaves what the bracketed code
-	// charges out of the count against it. The body of the rule is outside the brackets. A node
+	// docOpen and docClose bracket the memo protocol of a rule that only a Document parse memoizes, in the
+	// node and typed runtimes, as work that only a Document does: a parse under the default limit
+	// leaves what the bracketed code charges out of the count against it. A parse from scratch does not
+	// memoize such a rule, so its protocol has no counterpart that the Document parse could be held to;
+	// the protocol of every other rule counts, except the work of moving an entry and its value after
+	// an edit, which opens its own region. The body of the rule is outside the brackets. A node
 	// runtime's call is also the call of an observed parse that reads no Document, which has no such
 	// work. The local fm holds the mark of the open bracket.
+	// A call that opens no region leaves fm at the mark that FreeBegin returns for none, and pays no call.
+	noFree := U64(^uint64(0))
 	docOpen := func(b *Builder, doc docMode) {
 		b.If(F(ops.Budget), func(b *Builder) {
+			b.Set("fm", noFree)
+			var on Expr = C("rule.docOnlyMemo", r)
 			if doc == nodeDoc {
-				b.Set("fm", C("budget.freeBegin", C("doc.active")))
-			} else {
-				b.Set("fm", C("budget.freeBegin", BoolC(true)))
+				on = And(C("doc.active"), on)
 			}
+			b.If(on, func(b *Builder) { b.Set("fm", C("budget.freeBegin", BoolC(true))) })
 		})
 	}
 	docClose := func(b *Builder) {
-		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.freeEnd", L("fm")) })
+		b.If(F(ops.Budget), func(b *Builder) {
+			b.If(Not(Eq(L("fm"), noFree)), func(b *Builder) { b.Do("budget.freeEnd", L("fm")) })
+		})
 	}
 	// exit returns the value and success of a call that reuse found: the result of the call, or with
 	// hit set, the result of the begin of a split call (callBegin).
@@ -453,23 +461,24 @@ dependencies send it, and restores the state from before the call.`
 			work(b, C("rule.docPlain", r), charge)
 			tracked(b, C("call.track", r, L("min")))
 			b.Let("start", R(ops.Pos))
-			// The memo protocol of a Document parse (the deferral, the begin and the end of the call) is
-			// Document work: a parse from scratch defers the memoization of a rule to its second call
-			// at a position, and does not memoize a transient rule at all, so it has no counterpart
-			// that the Document parse could be held to.
-			work(b, BoolC(true), func(b *Builder) {
+			// The memo protocol (the deferral, the begin and the end of the call) of a rule that only a
+			// Document parse memoizes is Document work: a parse from scratch does not memoize the rule, so it has
+			// no counterpart that the Document parse could be held to. The protocol of every other rule counts,
+			// the copy and the replay of recovered errors included, except the work of moving an entry and its
+			// value after an edit, which opens its own region.
+			work(b, C("rule.docOnlyMemo", r), func(b *Builder) {
 				b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)))
 			})
 			b.If(L("direct"), func(b *Builder) {
 				unmemoized(b, true)
 			})
 			b.Let("st", C("call.state"))
-			work(b, BoolC(true), func(b *Builder) {
+			work(b, C("rule.docOnlyMemo", r), func(b *Builder) {
 				b.SetN([]Place{{Name: "v"}, {Name: "ok"}, {Name: "hit"}}, C("callBegin", r, L("min"), st))
 			})
 			b.If(L("hit"), ret)
 			b.IfElse(C("rule.leader", r), func(b *Builder) { b.SetN(pair, C("grow", r, L("min"))) }, invoke)
-			work(b, BoolC(true), func(b *Builder) {
+			work(b, C("rule.docOnlyMemo", r), func(b *Builder) {
 				b.SetN(pair, C("callEnd", r, st, L("v"), L("ok")))
 			})
 			ret(b)
@@ -483,8 +492,8 @@ growing the seed of a left-recursion leader. A parse that reads a Document makes
 engineCallDoc instead, which is decided by one test of a field that the parse sets once.`
 	engineCallDoc.Doc = `engineCallDoc is engineCall for a parse that reads a Document. Under the default limit, what a
 parse from scratch does not do is Document work and leaves the count against the limit: the unit of
-the call protocol for a plain rule, and the memo protocol of every rule (its deferral, the begin
-and the end of the call), whose counterparts in a parse from scratch differ in number and order.`
+the call protocol for a plain rule, and the memo protocol (its deferral, the begin and the end of
+the call) of a rule that a parse from scratch does not memoize.`
 
 	body := m.AddFunc("body", []Param{P("r", rule), P("min", TInt)}, result, []string{ops.Document, ops.Budget}, func(b *Builder) {
 		charge(b)

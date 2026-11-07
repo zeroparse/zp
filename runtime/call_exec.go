@@ -591,7 +591,10 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	var ok bool
 	var fm uint64
 	start := p.Pos
-	fm = p.Control.FreeBegin(p.Document != nil)
+	fm = uint64(18446744073709551615)
+	if (p.Document != nil) && (r.DocMemo && !r.Memo && !r.Leader) {
+		fm = p.Control.FreeBegin(true)
+	}
 	env := p.memoEnv(r)
 	var c ctxCallState
 	var seed *ctxResult
@@ -601,10 +604,14 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	if seed != nil {
 		p.replayCtx(seed, true)
 		if !seed.ok {
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return nil, false
 		}
-		p.Control.FreeEnd(fm)
+		if !(fm == uint64(18446744073709551615)) {
+			p.Control.FreeEnd(fm)
+		}
 		return seed.node, true
 	}
 	e := p.memoGet(r.Id, start, min, env)
@@ -620,12 +627,16 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		}
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return nil, false
 		}
 		p.Pos = e.end
 		p.recAdd(e.errs)
-		p.Control.FreeEnd(fm)
+		if !(fm == uint64(18446744073709551615)) {
+			p.Control.FreeEnd(fm)
+		}
 		return e.node, true
 	}
 	if c.ctx {
@@ -633,17 +644,23 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		if held != nil {
 			p.replayCtx(held, false)
 			if !held.ok {
-				p.Control.FreeEnd(fm)
+				if !(fm == uint64(18446744073709551615)) {
+					p.Control.FreeEnd(fm)
+				}
 				return nil, false
 			}
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return held.node, true
 		}
 	}
 	rec := len(p.Recovered)
 	p.ctxPush(&c)
 	m := p.Isolate(start)
-	p.Control.FreeEnd(fm)
+	if !(fm == uint64(18446744073709551615)) {
+		p.Control.FreeEnd(fm)
+	}
 	if r.Leader {
 		v, ok = p.grow(r, min)
 	} else {
@@ -652,7 +669,10 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 			p.Recovered = p.Recovered[:rec]
 		}
 	}
-	fm = p.Control.FreeBegin(p.Document != nil)
+	fm = uint64(18446744073709551615)
+	if (p.Document != nil) && (r.DocMemo && !r.Memo && !r.Leader) {
+		fm = p.Control.FreeBegin(true)
+	}
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
 	if p.Document != nil {
@@ -679,7 +699,9 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	if !ok {
 		p.Pos = start
 	}
-	p.Control.FreeEnd(fm)
+	if !(fm == uint64(18446744073709551615)) {
+		p.Control.FreeEnd(fm)
+	}
 	return v, ok
 }
 
@@ -749,7 +771,10 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		}
 		return v, ok
 	}
-	fm = p.Control.FreeBegin(true)
+	fm = uint64(18446744073709551615)
+	if r.DocMemo && !r.Memo && !r.Leader {
+		fm = p.Control.FreeBegin(true)
+	}
 	env := p.memoEnv(r.Rule)
 	var c ctxCallState
 	var seed *ctxResult
@@ -759,10 +784,14 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if seed != nil {
 		p.replayCtx(seed, true)
 		if !seed.ok {
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return nil, false
 		}
-		p.Control.FreeEnd(fm)
+		if !(fm == uint64(18446744073709551615)) {
+			p.Control.FreeEnd(fm)
+		}
 		return seed.val, true
 	}
 	e := p.memoGet(r.Id, start, min, env)
@@ -776,12 +805,16 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		p.Document.stats.Reused++
 		p.MergeExpected(e.far, e.expected)
 		if !e.ok {
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return nil, false
 		}
 		p.Pos = e.end
 		p.recAdd(e.errs)
-		p.Control.FreeEnd(fm)
+		if !(fm == uint64(18446744073709551615)) {
+			p.Control.FreeEnd(fm)
+		}
 		return e.val, true
 	}
 	if c.ctx {
@@ -789,17 +822,23 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		if held != nil {
 			p.replayCtx(held, false)
 			if !held.ok {
-				p.Control.FreeEnd(fm)
+				if !(fm == uint64(18446744073709551615)) {
+					p.Control.FreeEnd(fm)
+				}
 				return nil, false
 			}
-			p.Control.FreeEnd(fm)
+			if !(fm == uint64(18446744073709551615)) {
+				p.Control.FreeEnd(fm)
+			}
 			return held.val, true
 		}
 	}
 	rec := len(p.Recovered)
 	p.ctxPush(&c)
 	m := p.Isolate(start)
-	p.Control.FreeEnd(fm)
+	if !(fm == uint64(18446744073709551615)) {
+		p.Control.FreeEnd(fm)
+	}
 	if r.Leader {
 		v, ok = p.grow(r, min)
 	} else {
@@ -813,7 +852,10 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 			p.Recovered = p.Recovered[:rec]
 		}
 	}
-	fm = p.Control.FreeBegin(true)
+	fm = uint64(18446744073709551615)
+	if r.DocMemo && !r.Memo && !r.Leader {
+		fm = p.Control.FreeBegin(true)
+	}
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
 	p.documentTouch(p.Pos + 1)
@@ -839,7 +881,9 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if !ok {
 		p.Pos = start
 	}
-	p.Control.FreeEnd(fm)
+	if !(fm == uint64(18446744073709551615)) {
+		p.Control.FreeEnd(fm)
+	}
 	return v, ok
 }
 

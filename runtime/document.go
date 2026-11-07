@@ -397,6 +397,8 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 	// that move went on or refused, never reads as a visit of this one. A node that the check finds
 	// marked occurs in the value more than once; such a value is moved through a map from the nodes to
 	// their copies, so that each is copied once and the copies are shared as the nodes were.
+	// Moving the value is work of the Document that a parse from scratch does not do.
+	defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	d := p.Document
 	d.moves++
 	movable, shared := p.movable(e.node, d.moves)
