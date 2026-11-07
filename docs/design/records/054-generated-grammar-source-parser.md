@@ -166,8 +166,9 @@ messages where that is direct.
    failure exactly at the start of the declaration after it, if the literal
    holds an opening bracket that no later line closes or swallows the closing
    bracket of its group. A declaration here is a line that starts in the first
-   column with `rule`, `type`, `var` or `@`, and none starts between the
-   literal and the failure; an indented line with a keyword is a statement or a
+   column with `rule`, `type`, `var` or `@`, or an indented line that has the
+   shape of a declaration, and none starts between the literal and the
+   failure; an indented line with a keyword but no shape is a statement or a
    field of a group. A failure after the declaration's first token, such as an
    attribute without a name, is kept. A literal that holds a closing bracket
    which a later line closes again is not covered: the stray bracket is one
@@ -396,8 +397,8 @@ seeds; seed 13 passed one of them (`near` at 524.44 against 524), which showed
 that the largest of 12 underestimates the spread, so the caps became the mean
 plus three standard deviations. Seeds 13 and 14 were used to choose that
 formula, so 15 to 22 are the check proper. With the caps every class of the ten
-seeds is within its cap (the largest are `near` at 524.44 against 534 and
-`missed: other` at 19.22 against 22).
+seeds is within its cap (the largest are `near` at 524.64 against 534,
+`shadowed` at 36.92 against 39 and `missed: other` at 19.22 against 22).
 
 Over the 12 seeds, 908,697 of the 1,200,000 sources are rejected by both
 parsers (the others are accepted by both, with the same grammar). Over the
