@@ -140,7 +140,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*value.Node, bool, 
 		}
 		return seed.e.Node, true, true
 	}
-	e, found := p.MemoGet(MemoKey{Rule: r.ID, Pos: start, Min: min, Env: env.Env, MissingSilent: env.Missing})
+	e, found := p.MemoGet(MemoKey{Rule: r.ID, Pos: start, Min: min, Env: env.Env, MissingSilent: env.Missing, DocOnly: p.docOnlyMemo(r)})
 	if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {
 		found = false
 	}
@@ -222,7 +222,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 			entry = p.entry(c.ctx)
 			*entry = MemoEntry{Node: v, Ok: ok, End: p.Pos, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen, Errs: p.copyErrors(p.Recovered[rec:])}
 		}
-		p.MemoPut(MemoKey{Rule: r.ID, Pos: start, Min: min, Env: env.Env, MissingSilent: env.Missing}, entry)
+		p.MemoPut(MemoKey{Rule: r.ID, Pos: start, Min: min, Env: env.Env, MissingSilent: env.Missing, DocOnly: p.docOnlyMemo(r)}, entry)
 		entry.Present = c.present
 		entry.Far, entry.Expected = far, kept
 		entry.Examined, entry.From, entry.Positional = p.Hw, p.lw, false

@@ -224,9 +224,9 @@ func engineTarget() *execgo.Target {
 	t.Reg = func(name string) string {
 		return map[string]string{ops.Pos: "p.Pos", ops.Silent: "p.Silent", ops.Cut: "p.Cut"}[name]
 	}
-	// key is the memo key of the first four arguments of a memo operation.
-	key := func(a []string) string {
-		return fmt.Sprintf("MemoKey{Rule: %s, Pos: %s, Min: %s, Env: %s.Env, MissingSilent: %[4]s.Missing}", a[0], a[1], a[2], a[3])
+	// key is the memo key of the first four arguments of a memo operation, and whether its rule only a Document memoizes.
+	key := func(a []string, docOnly string) string {
+		return fmt.Sprintf("MemoKey{Rule: %s, Pos: %s, Min: %s, Env: %s.Env, MissingSilent: %[4]s.Missing, DocOnly: %s}", a[0], a[1], a[2], a[3], docOnly)
 	}
 	t.Op = func(c *exec.Call, a []string) string {
 		// The records of the split forms of the Operators Rule loop have a Go field for each field.
@@ -577,7 +577,7 @@ func engineTarget() *execgo.Target {
 			}
 			// A Document applies its edits to an entry when the entry is found (AdvanceEntry).
 			return fmt.Sprintf("%s, %s%sp.MemoGet(%s)\nif %[2]s && %[1]s.Vgen != p.Gen && !p.AdvanceEntry(%[1]s, p.Edits[:p.Gen]) {\n%[2]s = false\n}",
-				e, found, op, key(a)), true
+				e, found, op, key(a, a[4])), true
 		case "ctx.enter":
 			// The context of a call of a rule of no cycle, or outside every growth, is empty.
 			cs, seed := dst[0], dst[1]
@@ -610,7 +610,7 @@ func engineTarget() *execgo.Target {
 %[2]s = p.entry(c.ctx)
 *%[2]s = MemoEntry{Node: %s, Ok: %s, End: %s, silent: %s, Gen: p.Gen, Vgen: p.Gen, Errs: %s}
 }
-p.MemoPut(%s, %[2]s)`, decl, e, a[7], a[4], a[5], a[6], a[8], key(a)), true
+p.MemoPut(%s, %[2]s)`, decl, e, a[7], a[4], a[5], a[6], a[8], key(a, a[9])), true
 		case "exp.copy":
 			// The kept sets fill append-only chunks of the arena.
 			return fmt.Sprintf(`if cap(p.Arena)-len(p.Arena) < len(%[1]s) {

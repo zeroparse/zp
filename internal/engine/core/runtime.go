@@ -230,6 +230,11 @@ type BackendState interface {
 type MemoKey struct {
 	Rule, Pos, Min int
 	MissingSilent  bool // insertion-disabled lookahead has its own LR seeds
+	// DocOnly is set for the key of a rule that only a Document parse memoizes (rule.docOnlyMemo): a
+	// controlled lookup of it finds an entry only if the values of the key are the same values as the
+	// entry's (the same bytes for a string), and none beyond the first docOnlyScan entries of a chain.
+	// It shares a word with MissingSilent, so it adds nothing to the memory a key holds.
+	DocOnly bool
 	// Env holds the values of the variables the rule reads (rule.vars) when it is called, or nil.
 	// Results of such rules are memoized per combination of these values.
 	Env []any

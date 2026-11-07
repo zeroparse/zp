@@ -14,6 +14,10 @@ import (
 // harness compares handles only by identity, and the model passes them through.
 var noValue, noErrs = exec.Null(exec.THandle(ops.Value)), exec.Null(exec.THandle(ops.Errs))
 
+// noDocOnly is the docOnly argument of memo.lookup and memo.store for a rule that a parse from scratch
+// memoizes too. The cases leave the rules that only a Document memoizes to the tests of the budget.
+var noDocOnly = exec.BoolC(false)
+
 // Cases returns the handwritten conformance cases of the pilot operations, in one module. Each case
 // states the behavior it checks; the model checks it too, so a case that is wrong about the
 // contract fails on the model before it judges an implementation.
@@ -28,10 +32,10 @@ func Cases() []Case {
 		return []exec.Expr{exec.Int(rule), exec.Int(pos), exec.Int(level), vals(id)}
 	}
 	store := func(b *exec.Builder, name string, k []exec.Expr, ok bool, end int64) exec.Expr {
-		return b.Let(name, exec.C("memo.store", append(slices.Clone(k), exec.BoolC(ok), exec.Int(end), exec.BoolC(!ok), noValue, noErrs)...))
+		return b.Let(name, exec.C("memo.store", append(slices.Clone(k), exec.BoolC(ok), exec.Int(end), exec.BoolC(!ok), noValue, noErrs, noDocOnly)...))
 	}
 	lookup := func(b *exec.Builder, e, found string, k []exec.Expr) (exec.Expr, exec.Expr) {
-		r := b.LetN([]string{e, found}, exec.C("memo.lookup", k...))
+		r := b.LetN([]string{e, found}, exec.C("memo.lookup", append(slices.Clone(k), noDocOnly)...))
 		return r[0], r[1]
 	}
 
@@ -60,14 +64,14 @@ func Cases() []Case {
 			b.If(exec.Bin(">=", exec.L("pos"), exec.Int(300)), func(b *exec.Builder) { b.Break("fill") })
 			for rule := int64(0); rule < 3; rule++ {
 				b.Do("memo.store", exec.Int(rule), exec.L("pos"), exec.Int(0), vals(0), exec.BoolC(true), exec.Add(exec.L("pos"), exec.Int(rule)),
-					exec.BoolC(false), noValue, noErrs)
+					exec.BoolC(false), noValue, noErrs, noDocOnly)
 			}
 			b.Set("pos", exec.Add(exec.L("pos"), exec.Int(7)))
 		})
 		b.Set("pos", exec.Int(0))
 		b.Loop("check", func(b *exec.Builder) {
 			b.If(exec.Bin(">=", exec.L("pos"), exec.Int(300)), func(b *exec.Builder) { b.Break("check") })
-			r := b.LetN([]string{"e", "f"}, exec.C("memo.lookup", exec.Int(2), exec.L("pos"), exec.Int(0), vals(0)))
+			r := b.LetN([]string{"e", "f"}, exec.C("memo.lookup", exec.Int(2), exec.L("pos"), exec.Int(0), vals(0), noDocOnly))
 			b.Assert(exec.And(r[1], exec.Eq(exec.C("memo.end", r[0]), exec.Add(exec.L("pos"), exec.Int(2)))), "every stored position keeps its entry")
 			b.Set("pos", exec.Add(exec.L("pos"), exec.Int(7)))
 		})
@@ -119,7 +123,7 @@ func Cases() []Case {
 		// Of rule 4, entries with recovered errors, at 0 before the edit and at 6 after it.
 		for _, x := range [][2]int64{{0, 3}, {6, 9}} {
 			e := b.Let(fmt.Sprint("er", x[0]), exec.C("memo.store", append(key(4, x[0], 0, 7), exec.BoolC(true), exec.Int(x[0]+1),
-				exec.BoolC(false), noValue, exec.C(ErrsOp))...))
+				exec.BoolC(false), noValue, exec.C(ErrsOp), noDocOnly)...))
 			b.Do("memo.examine", e, exec.BoolC(false), exec.Int(x[1]))
 		}
 		unexamined := store(b, "u", key(2, 1, 0, 7), true, 2)
@@ -379,29 +383,29 @@ func addEnvironmentCases(add func(string, ref.Config, func(*exec.Builder))) {
 			return []exec.Expr{exec.Int(r), exec.Int(5), exec.Int(0), key}
 		}
 		k1 := b.Let("k1", exec.C("env.key", rule(2)))
-		b.Do("memo.store", append(memo(2, k1), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
-		r := b.LetN([]string{"e1", "f1"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		b.Do("memo.store", append(memo(2, k1), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs, noDocOnly)...)
+		r := b.LetN([]string{"e1", "f1"}, exec.C("memo.lookup", append(memo(2, exec.C("env.key", rule(2))), noDocOnly)...))
 		b.Assert(r[1], "keys of equal values are equal")
 		b.Do("env.bind", exec.Int(0), datum(40))
-		r = b.LetN([]string{"e2", "f2"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		r = b.LetN([]string{"e2", "f2"}, exec.C("memo.lookup", append(memo(2, exec.C("env.key", rule(2))), noDocOnly)...))
 		b.Assert(exec.Not(r[1]), "a key of another value differs")
 		b.Do("env.bind", exec.Int(0), datum(1))
-		r = b.LetN([]string{"e3", "f3"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		r = b.LetN([]string{"e3", "f3"}, exec.C("memo.lookup", append(memo(2, exec.C("env.key", rule(2))), noDocOnly)...))
 		b.Assert(r[1], "rebinding the value makes the key equal again, in another environment")
 		b.Do("env.bind", exec.Int(2), datum(2003))
-		r = b.LetN([]string{"e4", "f4"}, exec.C("memo.lookup", memo(2, exec.C("env.key", rule(2)))...))
+		r = b.LetN([]string{"e4", "f4"}, exec.C("memo.lookup", append(memo(2, exec.C("env.key", rule(2))), noDocOnly)...))
 		b.Assert(exec.Not(r[1]), "a string of the same length that differs makes another key")
 		b.Do("env.bind", exec.Int(2), datum(1003))
 		// The variables the rule does not read leave its key as it is.
 		k2 := b.Let("k2", exec.C("env.key", rule(1)))
-		b.Do("memo.store", append(memo(1, k2), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
+		b.Do("memo.store", append(memo(1, k2), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs, noDocOnly)...)
 		b.Do("env.bind", exec.Int(2), datum(1004))
-		r = b.LetN([]string{"e5", "f5"}, exec.C("memo.lookup", memo(1, exec.C("env.key", rule(1)))...))
+		r = b.LetN([]string{"e5", "f5"}, exec.C("memo.lookup", append(memo(1, exec.C("env.key", rule(1))), noDocOnly)...))
 		b.Assert(r[1], "a binding of another variable keeps the key of a rule")
 		k0 := b.Let("k0", exec.C("env.key", rule(0)))
-		b.Do("memo.store", append(memo(0, k0), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs)...)
+		b.Do("memo.store", append(memo(0, k0), exec.BoolC(true), exec.Int(9), exec.BoolC(false), noValue, noErrs, noDocOnly)...)
 		b.Do("env.bind", exec.Int(1), datum(41))
-		r = b.LetN([]string{"e6", "f6"}, exec.C("memo.lookup", memo(0, exec.C("env.key", rule(0)))...))
+		r = b.LetN([]string{"e6", "f6"}, exec.C("memo.lookup", append(memo(0, exec.C("env.key", rule(0))), noDocOnly)...))
 		b.Assert(r[1], "a rule that reads no variable has one key")
 	})
 	wide := ref.Config{Vars: vars(300), RuleVars: [][]int64{{0, 17, 299}, {}}}
@@ -481,6 +485,7 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 					args = []any{k[0], k[1], k[2], k[3]}
 					exprs = []exec.Expr{exec.Int(k[0]), exec.Int(k[1]), exec.Int(k[2]), exec.C(ValuesOp, exec.Int(k[3]))}
 				}
+				args, exprs = append(args, false), append(exprs, noDocOnly)
 			case "memo.store":
 				keyArgs(true)
 				ok := rng.IntN(2) == 0
@@ -495,6 +500,7 @@ func Random(name string, rng *rand.Rand, opNames []string, n int, cfg ref.Config
 				} else {
 					args, exprs = append(args, nil), append(exprs, noErrs)
 				}
+				args, exprs = append(args, false), append(exprs, noDocOnly)
 			case "memo.ok", "memo.end", "memo.silent":
 				if len(entries) == 0 {
 					continue

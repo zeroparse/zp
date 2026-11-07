@@ -957,9 +957,9 @@ type tmemoEntry struct {
 	present  uint32 // as in memoEntry
 }
 
-func (p *TParser) memoGet(rule, pos, min int, env []any) *tmemoEntry {
+func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEntry {
 	if p.Control != nil {
-		return p.memoGetControlled(rule, pos, min, env)
+		return p.memoGetControlled(rule, pos, min, env, docOnly)
 	}
 	if pos >= len(p.memoSlots) {
 		return nil
@@ -989,16 +989,19 @@ func (p *TParser) memoIndexAt(pos int, hash func(*tmemoEntry) uint64) memoIndex[
 	return indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, p.memoSlots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next }, hash)
 }
 
-func (p *TParser) memoGetControlled(rule, pos, min int, key []any) *tmemoEntry {
+func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *tmemoEntry {
 	p.Spend()
-	// A lookup in a region of Document work is that of a rule that only a Document parse memoizes: it
-	// compares keys by identity, and finds no entry that the chain holds beyond the first memoScan.
-	ident := p.Control.isFreeing()
+	// ident is set for a rule that only a Document parse memoizes: the lookup compares keys by identity and
+	// walks docOnlyScan entries (see there).
 	if pos >= len(p.memoSlots) {
 		return nil
 	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
 	e, n := p.memoSlots[pos], 0
-	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
+	for ; e != nil && n < scan; e, n = e.next, n+1 {
 		p.Spend()
 		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
 			if ident {
@@ -1017,9 +1020,9 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any) *tmemoEntry {
 	return x
 }
 
-func (p *TParser) memoPut(rule, pos, min int, env []any, e *tmemoEntry) {
+func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoEntry) {
 	if p.Control != nil {
-		p.memoPutControlled(rule, pos, min, env, e)
+		p.memoPutControlled(rule, pos, min, env, docOnly, e)
 		return
 	}
 	if pos >= len(p.memoSlots) {
@@ -1069,9 +1072,8 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, e *tmemoEntry) {
 	p.memoSlots[pos] = e
 }
 
-func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry) {
+func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *tmemoEntry) {
 	p.Spend()
-	ident := p.Control.isFreeing() // as in memoGetControlled
 	slots := p.memoSlots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
@@ -1090,7 +1092,11 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, e *tmemoEntry
 	same := func(x *tmemoEntry) bool {
 		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
 	}
-	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
+	for n := 0; *link != nil && n < scan; link, n = &(*link).next, n+1 {
 		p.Spend()
 		if x := *link; same(x) {
 			replaced = x

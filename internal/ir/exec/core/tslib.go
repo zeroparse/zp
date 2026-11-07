@@ -193,6 +193,8 @@ var tsTarget = &exects.Target{
 			return "this.firstCall(" + a[0] + ")"
 		case "rule.memo", "rule.leader", "rule.id":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "rule.")
+		case "rule.docOnlyMemo":
+			return "false" // TypeScript has no Documents: no rule is memoized by a Document alone
 		case "rule.plain":
 			return a[0] + ".scope.length === 0"
 		case "rule.invoke":

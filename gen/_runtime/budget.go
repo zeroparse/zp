@@ -399,9 +399,6 @@ func (c *BudgetControl) FreeEnd(mark uint64) {
 	c.refill()
 }
 
-// isFreeing reports whether a region is open. It is safe on a nil receiver.
-func (c *BudgetControl) isFreeing() bool { return c != nil && c.freeing }
-
 // holdFree ends the open region for work that counts, and reports whether there was one; resumeFree
 // opens it again. The FreeEnd of the region that was held takes the work from the resume on.
 func (c *BudgetControl) holdFree() bool {
@@ -1272,7 +1269,7 @@ func (p *Parser) controlledEnvValues(slots []int) []any {
 	return vals
 }
 
-func (p *Parser) memoGet(rule, pos, min int, key []any) *memoEntry {
+func (p *Parser) memoGet(rule, pos, min int, key []any, docOnly bool) *memoEntry {
 	if p.Stream != nil {
 		// A call at a position before the pruned memo needs no entry (a
 		// start rule called at 0).
@@ -1281,16 +1278,15 @@ func (p *Parser) memoGet(rule, pos, min int, key []any) *memoEntry {
 		}
 	}
 	if p.Control != nil {
-		return p.memoGetControlled(rule, pos, min, key)
+		return p.memoGetControlled(rule, pos, min, key, docOnly)
 	}
 	return p.memo.get(rule, pos, min, key)
 }
 
-func (p *Parser) memoGetControlled(rule, pos, min int, key []any) *memoEntry {
+func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *memoEntry {
 	p.Spend()
-	// A lookup in a region of Document work is that of a rule that only a Document parse memoizes: it
-	// compares keys by identity, and finds no entry that the chain holds beyond the first memoScan.
-	ident := p.Control.isFreeing()
+	// ident is set for a rule that only a Document parse memoizes: the lookup compares keys by identity and
+	// walks docOnlyScan entries (see there).
 	if p.Control.defaultCompute {
 		// The steps of the walk of a chain that holds entries of earlier texts, and of rules that a parse
 		// from scratch does not memoize, are work of the Document; the comparison of the key with the
@@ -1300,8 +1296,12 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any) *memoEntry {
 	if pos >= len(p.memo.slots) {
 		return nil
 	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
 	e, n := p.memo.slots[pos], 0
-	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
+	for ; e != nil && n < scan; e, n = e.next, n+1 {
 		p.Spend()
 		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
 			p.countKeyMatch(e.env, key, ident)
@@ -1336,22 +1336,21 @@ func (p *Parser) hashMemoKey(rule, min int32, env []any) uint64 {
 	return h
 }
 
-func (p *Parser) memoPut(rule, pos, min int, key []any, e *memoEntry) {
+func (p *Parser) memoPut(rule, pos, min int, key []any, docOnly bool, e *memoEntry) {
 	if p.Stream != nil {
 		if pos -= p.Stream.memoBase; pos < 0 {
 			return
 		}
 	}
 	if p.Control != nil {
-		p.memoPutControlled(rule, pos, min, key, e)
+		p.memoPutControlled(rule, pos, min, key, docOnly, e)
 		return
 	}
 	p.memo.put(rule, pos, min, key, e)
 }
 
-func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) {
+func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *memoEntry) {
 	p.Spend()
-	ident := p.Control.isFreeing() // as in memoGetControlled
 	if p.Control.defaultCompute {
 		// The steps of the walk of the chain and the growth of the table are work of the Document.
 		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
@@ -1374,7 +1373,11 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	same := func(x *memoEntry) bool {
 		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
 	}
-	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
+	for n := 0; *link != nil && n < scan; link, n = &(*link).next, n+1 {
 		p.Spend()
 		if x := *link; same(x) {
 			replaced = x

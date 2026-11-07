@@ -562,7 +562,7 @@ func goTarget(s goSpec) *execgo.Target {
 		case "opr.skip":
 			return fmt.Sprintf("_, %s%s%s.OperatorsRule.Skip(p)", dst[0], op, a[0]), true
 		case "memo.lookup":
-			s := dst[0] + op + "p.memoGet(" + key() + ")"
+			s := dst[0] + op + "p.memoGet(" + key() + ", " + a[4] + ")"
 			if dst[1] != "_" {
 				s += "\n" + dst[1] + op + dst[0] + " != nil"
 			}
@@ -591,7 +591,7 @@ p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
 		case "memo.store":
 			e := dst[0]
 			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])
-			return fmt.Sprintf("%s%s%s\n*%s = %s{%s}\np.memoPut(%s, %s)", e, op, alloc, e, entryType, fields, key(), e), true
+			return fmt.Sprintf("%s%s%s\n*%s = %s{%s}\np.memoPut(%s, %s, %s)", e, op, alloc, e, entryType, fields, key(), a[9], e), true
 		}
 		return "", false
 	}

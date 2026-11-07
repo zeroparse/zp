@@ -242,7 +242,9 @@ boundaries, invalid sequences, both units, the examined bound after each read, a
 stored for a key (rule, position, binding level, variable values, missing-token mode), or none; `store` adds an entry
 that later lookups of its key return, with an end at or after its position; `setPresent` records the leaders of the
 call's left-recursion cycle that grew at the position when the result was evaluated; `prune` drops entries below a
-position. The memo holds only results that read no growing seed, so a lookup is exact on every target. *Shared*:
+position. The memo holds only results that read no growing seed, so a lookup is exact on every target. Both
+operations take the rule's `docOnly` property (a rule that only a Document memoizes): such a lookup matches by
+identity of the key's values and walks a bounded part of the chain, a miss that is always sound. *Shared*:
 keys, the specified entry attributes, which entry a lookup returns, the storage charge. *Target*: slot arrays or maps,
 chaining, slab allocation and free lists, entry layout and packing. *Conformance*: random sequences of stores, lookups
 and prunes compared with a reference model; storage charges that do not depend on storage left by an earlier parse, as

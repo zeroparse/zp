@@ -48,7 +48,7 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 		}
 		return seed.node, true
 	}
-	e := p.memoGet(r.Id, start, min, env)
+	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.MergeExpected(e.far, e.expected)
@@ -86,7 +86,7 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 	if store == storeMemo {
 		entry := p.memo.alloc()
 		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
-		p.memoPut(r.Id, start, min, env, entry)
+		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
@@ -336,7 +336,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 		}
 		return seed.val, true
 	}
-	e := p.memoGet(r.Id, start, min, env)
+	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
@@ -375,7 +375,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	if store == storeMemo {
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
-		p.memoPut(r.Id, start, min, env, entry)
+		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
@@ -414,7 +414,7 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 		}
 		return seed.val, true
 	}
-	e := p.memoGet(r.Id, start, 0, env)
+	e := p.memoGet(r.Id, start, 0, env, (r.DocMemo && !r.Memo && !r.Leader))
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) {
 		p.Observation.memoHit()
@@ -453,7 +453,7 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 	if store == storeMemo {
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
-		p.memoPut(r.Id, start, 0, env, entry)
+		p.memoPut(r.Id, start, 0, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 	} else if store == storeCtx {
@@ -614,7 +614,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 		}
 		return seed.node, true
 	}
-	e := p.memoGet(r.Id, start, min, env)
+	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && (!(p.Document != nil) || p.documentMove(e)) {
 		p.Observation.memoHit()
@@ -682,7 +682,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 	if store == storeMemo {
 		entry := p.memo.alloc()
 		*entry = memoEntry{node: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
-		p.memoPut(r.Id, start, min, env, entry)
+		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 		if p.Document != nil {
@@ -794,7 +794,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		}
 		return seed.val, true
 	}
-	e := p.memoGet(r.Id, start, min, env)
+	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
 	found := e != nil
 	if found && c.memoAllows(e.present) && (!e.silent || p.Silent > 0) && p.TypedDocument.move(e) {
 		p.Observation.memoHit()
@@ -866,7 +866,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		}
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.copyErrors(nil, p.Recovered[rec:])}
-		p.memoPut(r.Id, start, min, env, entry)
+		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, recorded: true, before: p.docLow < start}
