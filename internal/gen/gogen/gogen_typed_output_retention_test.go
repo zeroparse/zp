@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -66,7 +67,7 @@ rule small Token = t:("b") #atomic => Token{Text: text($t)}
 			}
 			t.Run(name, func(t *testing.T) {
 				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "typedoutput", Start: "main", Types: true,
-					ConvertTypes: conversion, DisableTypedObjectSlabs: variant.objects, DisableTypedListSlabs: variant.lists, DisableTypedOutputBootstrap: variant.legacy})
+					ConvertTypes: conversion, NoOpt: slices.Concat(gentest.NoOptIf(variant.objects, "typed-object-slabs"), gentest.NoOptIf(variant.lists, "typed-list-slabs"), gentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
 				if err != nil {
 					t.Fatal(err)
 				}

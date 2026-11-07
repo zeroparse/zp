@@ -2,11 +2,13 @@ package gen
 
 import (
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/flow"
@@ -32,17 +34,19 @@ type Generator struct {
 	DisableLiteralSharing bool
 	// Only exact emitted bodies with the same signature share a helper. Rule
 	// wrappers, memo IDs, frame layouts and expectation IDs remain in the code.
-	methodNames                map[generatedMethod]string
-	literalNames               map[string]string
-	methodKeys                 []generatedMethod
-	literalKeys                []string
-	DisableLiteralTextDispatch bool
-	DisableGuardedClasses      bool
-	BoxedComparisons           bool
-	DisableTerminalPrograms    bool
+	methodNames  map[generatedMethod]string
+	literalNames map[string]string
+	methodKeys   []generatedMethod
+	literalKeys  []string
+	// Opt holds the generation-time optimizations that are on (GenOptions.Optimize and NoOpt).
+	Opt opt.Settings
 	// CoreHook, if set, is called with the module after it is built and after each pass that runs on
 	// it (core.RunOptions.Dump).
 	CoreHook func(pass string, m *core.Module)
+	// PrintAfter lists the passes after which the Core IR of each module is written to PrintTo
+	// (GenOptions.PrintAfter); "all" selects every pass.
+	PrintAfter []string
+	PrintTo    io.Writer
 	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that compare another
 	// sequence of passes with the pipeline.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
@@ -89,8 +93,8 @@ func (g *Generator) FieldTypeVar(key any, ft compile.Ty, decl func(v string, t *
 
 // UseSparseMemo removes the representation selector entirely when neither
 // emitted rule table can cross the sparse-storage threshold.
-func UseSparseMemo(opts GenOptions, prog, rec *compile.Program) bool {
-	return !opts.DisableSparseMemo && (prog.NSeen > 64 || rec != nil && rec.NSeen > 64)
+func UseSparseMemo(o opt.Settings, prog, rec *compile.Program) bool {
+	return o.On("sparse-memo") && (prog.NSeen > 64 || rec != nil && rec.NSeen > 64)
 }
 
 // GeneratedMaxDepth returns the maximum depth that a generated parser enforces: o.MaxDepth, or the
@@ -320,32 +324,29 @@ func RecFlowEligible(r *compile.Rule) bool {
 	return ok
 }
 
-// CoreFlag reports whether the Core optimization of the given name is on in this generator
-// (core.Env.Flag).
-func (g *Generator) CoreFlag(name string) bool {
-	switch name {
-	case core.PassTerminals:
-		return !g.DisableTerminalPrograms
-	case core.FlagTextDispatch:
-		return !g.DisableLiteralTextDispatch
-	case core.FlagFieldCompare:
-		return !g.BoxedComparisons
-	case core.FlagGuardedClasses:
-		return !g.DisableGuardedClasses
-	}
-	return true
-}
-
-// RunCore runs the pipeline of Core passes on m in the mode, with the flags of the generator. local
+// RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the generator. local
 // selects the rules that terminal regions are made in, and prepareScans is called around the scans
-// (core.Env). A failure is an internal error that names the pass.
-func (g *Generator) RunCore(m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
-	env := &core.Env{Mode: mode, Flag: g.CoreFlag, Local: local, PrepareScans: prepareScans}
+// (core.Env). The module is the one of the table named table, which the printed Core IR is
+// labeled with. A failure is an internal error that names the pass.
+func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
+	env := &core.Env{Mode: mode, Flag: g.Opt.On, Local: local, PrepareScans: prepareScans}
 	run := core.Run
 	if g.CoreRun != nil {
 		run = g.CoreRun
 	}
-	if _, err := run(m, env, core.RunOptions{Dump: g.CoreHook}); err != nil {
+	dump := g.CoreHook
+	if len(g.PrintAfter) > 0 && g.PrintTo != nil {
+		hook := dump
+		dump = func(pass string, m *core.Module) {
+			if hook != nil {
+				hook(pass, m)
+			}
+			if slices.Contains(g.PrintAfter, pass) || slices.Contains(g.PrintAfter, "all") {
+				fmt.Fprintf(g.PrintTo, "-- Core IR of the %s table after %s --\n%s\n", table, pass, core.Print(m, true))
+			}
+		}
+	}
+	if _, err := run(m, env, core.RunOptions{Dump: dump}); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil
@@ -372,12 +373,12 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 			}
 		}
 	}
-	if err := g.RunCore(m, core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
+	if err := g.RunCore(g.Table, m, core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node runtime's generated code writes them.
-	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), GuardedClasses: g.Ordinary && !g.DisableGuardedClasses,
-		InlineLiterals: MaxInlineLiteral, Observe: g.Observability, Node: true, Document: g.Document}
+	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), GuardedClasses: g.GuardedClasses(),
+		InlineLiterals: g.Opt.Value("inline-literals"), Observe: g.Observability, Node: true, Document: g.Document}
 	g.Flow = &FlowState{M: m, Origin: origin, Opts: opts, Rules: append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)}
 	return nil
 }
@@ -440,8 +441,12 @@ func leanRuleOK(r *compile.Rule) bool {
 	return ok
 }
 
-// MaxInlineLiteral is the longest literal (in code points) compared in place.
-const MaxInlineLiteral = 4
+// GuardedClasses reports whether the first class of a guarded alternative consumes the character that
+// the guard read: the parser prints bodies in their ordinary form, and the guards and their guarded
+// classes are on.
+func (g *Generator) GuardedClasses() bool {
+	return g.Ordinary && g.Opt.On(core.PassGuards) && g.Opt.On(core.FlagGuardedClasses)
+}
 
 // capRefs calls f with the name of each capture the term t refers to outside lambdas that bind
 // the name.

@@ -1,6 +1,7 @@
 package tsgen
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
+	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
 )
 
@@ -85,6 +87,11 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	if err := opts.ValidateDefaultValue(); err != nil {
 		return nil, err
 	}
+	settings, err := opts.Optimizations()
+	if err != nil {
+		return nil, err
+	}
+	printAfter, _ := opt.ParsePrintAfter(opts.PrintAfter)
 	prog, recognizer, err := c(g, compile.Options{SourceInfo: opts.SourceInfo, DefaultValue: opts.DefaultValue, LeftRecursionBindings: opts.LeftRecursionBindings})
 	if err != nil {
 		return nil, err
@@ -106,9 +113,15 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	if err != nil {
 		return nil, err
 	}
+	// The code is generated up to twice; only the last generation's Core IR is printed.
+	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
-		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing || !opts.EnableTSLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		dumped = &bytes.Buffer{}
+		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing || !opts.EnableTSLiteralSharing, Opt: settings}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
+		if opts.PrintTo != nil {
+			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped
+		}
 		tsg.optionsType = "ParseOptions"
 		if !opts.LimitControls {
 			tsg.optionsType = "PlainParseOptions"
@@ -148,9 +161,14 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	if h.Generator != nil {
 		defer h.Generator(tsg)
 	}
+	if opts.PrintTo != nil {
+		if _, err := opts.PrintTo.Write(dumped.Bytes()); err != nil {
+			return nil, err
+		}
+	}
 
 	var out strings.Builder
-	fmt.Fprintf(&out, "const G = mkGrammar(%d, %v, %v, %v);\n\n", gen.GeneratedMaxDepth(opts), gen.UseSparseMemo(opts, prog, rec), opts.Observability, opts.LimitControls)
+	fmt.Fprintf(&out, "const G = mkGrammar(%d, %v, %v, %v);\n\n", gen.GeneratedMaxDepth(opts), gen.UseSparseMemo(settings, prog, rec), opts.Observability, opts.LimitControls)
 	fmt.Fprintf(&out, "/**\n * Parses the whole input with the rule %s. unit selects the position unit (CodePoints by default).\n", start.Name)
 	out.WriteString(" * A string is parsed as its UTF-8 encoding would be (lone surrogates as U+FFFD), and bytes are\n")
 	out.WriteString(" * decoded as UTF-8 (invalid sequences as U+FFFD, one per byte). If the parse recovered from errors\n")
@@ -935,7 +953,7 @@ func (g *Generator) termBody(t grammar.Term, s *compile.Scope, locals map[string
 }
 
 func (g *Generator) predicateTerm(t grammar.Term, s *compile.Scope) string {
-	if !g.DisableLiteralTextDispatch {
+	if g.Opt.On("text-dispatch") {
 		if name, literals, ok := gen.LiteralTextMembership(t); ok {
 			var cases []string
 			seen := map[string]bool{}

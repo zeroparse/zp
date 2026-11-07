@@ -41,7 +41,7 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 			}
 		}
 	}
-	env := &core.Env{Mode: core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.CoreFlag, PrepareScans: prepare}
+	env := &core.Env{Mode: core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
 	if _, err := core.Run(m, env, core.RunOptions{Dump: check}); err != nil {
 		return nil, err
 	}

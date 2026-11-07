@@ -80,7 +80,7 @@ func terminalLeaves(e grammar.Expr) (leaves int, choice, ok bool) {
 // a value-free terminal expression worth lowering in a lean typed parser, declaring it on first
 // use.
 func (g *Generator) terminalTable(e grammar.Expr) (string, bool) {
-	if !g.leanTyped() || g.Observability || g.DisableTerminalPrograms {
+	if !g.leanTyped() || g.Observability || !g.Opt.On("terminals") {
 		return "", false
 	}
 	leaves, choice, ok := terminalLeaves(e)

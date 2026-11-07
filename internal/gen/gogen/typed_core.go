@@ -18,7 +18,7 @@ func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, 
 		return nil, err
 	}
 	mode := core.Mode{Lean: g.Ordinary && g.GoBudgetControls, Ordinary: g.Ordinary, Observe: g.Observability}
-	if err := g.RunCore(m, mode, CoreLocalRule, nil); err != nil {
+	if err := g.RunCore("typed", m, mode, CoreLocalRule, nil); err != nil {
 		return nil, err
 	}
 	return m, nil

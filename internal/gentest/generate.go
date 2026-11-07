@@ -109,3 +109,12 @@ func GenerateTSRaw(g *grammar.Grammar, opts gen.GenOptions) ([]gen.GeneratedFile
 	}
 	return tsgen.Generate(g, Compile, opts)
 }
+
+// NoOptIf returns the optimizations to turn off (gen.GenOptions.NoOpt) if cond holds, and none
+// otherwise, for tests that generate a parser with and without them.
+func NoOptIf(cond bool, names ...string) []string {
+	if !cond {
+		return nil
+	}
+	return names
+}

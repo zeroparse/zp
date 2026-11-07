@@ -33,7 +33,7 @@ func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	if !strings.Contains(string(code), `switch c.TextStr(`) || !strings.Contains(string(code), `case "a", "b":`) {
 		t.Fatal("typed Go generator did not emit literal text dispatch")
 	}
-	baseline, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "dispatch", Start: "main", Types: true, DisableLiteralTextDispatch: true})
+	baseline, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "dispatch", Start: "main", Types: true, NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	if !strings.Contains(string(ts), `switch (c.textStr(`) || !strings.Contains(string(ts), `case "a": case "b":`) {
 		t.Fatal("TypeScript generator did not emit literal text dispatch")
 	}
-	tsBaseline, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", DisableLiteralTextDispatch: true})
+	tsBaseline, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 				disabled bool
 			}{{"candidate", false}, {"reference", true}} {
 				packageName := "dispatch"
-				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: packageName, Start: "main", Types: mode.types, Recognize: true, DisableLiteralTextDispatch: variant.disabled})
+				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: packageName, Start: "main", Types: mode.types, Recognize: true, NoOpt: gentest.NoOptIf(variant.disabled, "text-dispatch")})
 				if err != nil {
 					t.Fatalf("%s/%s/%s: %v", workload.name, mode.name, variant.name, err)
 				}
@@ -232,7 +232,7 @@ func writeLiteralDispatchTypeScript(t *testing.T, dir string, workload literalDi
 	if err != nil {
 		return err
 	}
-	reference, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", DisableLiteralTextDispatch: true})
+	reference, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		return err
 	}

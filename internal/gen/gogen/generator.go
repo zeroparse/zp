@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
+	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
 )
 
@@ -145,6 +146,15 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 	if err := opts.ValidateDefaultValue(); err != nil {
 		return nil, err
 	}
+	settings, err := opts.Optimizations()
+	if err != nil {
+		return nil, err
+	}
+	// Only the pass that writes the output prints the Core IR.
+	var printAfter []string
+	if collect == nil {
+		printAfter, _ = opt.ParsePrintAfter(opts.PrintAfter)
+	}
 	info, err := loadRuntime()
 	if err != nil {
 		return nil, err
@@ -165,7 +175,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch, DisableTerminalPrograms: opts.DisableTerminalPrograms, CoreRun: h.CoreRun, DisableGuardedClasses: opts.DisableGuardedClasses, BoxedComparisons: opts.BoxedComparisons, disableTypedObjectSlabs: opts.DisableTypedObjectSlabs, disableTypedListSlabs: opts.DisableTypedListSlabs, disableTypedOutputBootstrap: opts.DisableTypedOutputBootstrap, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
+	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
 	if live != nil {
 		goGen.SeedDescs()
 		for _, d := range live.descs[len(goGen.Descs):] {
@@ -448,15 +458,12 @@ type Generator struct {
 	tableErr            error                     // the rule table does not fit the form of runtime.RuleSpec
 	hooks               Hooks                     // the zero value changes nothing
 	// chunksInRuntime is set when the typed values take their storage from the runtime (Chunk).
-	chunksInRuntime             bool
-	ruleTypesDone               bool // the types of the rule table entries are written
-	disableTypedObjectSlabs     bool
-	disableTypedListSlabs       bool
-	disableTypedOutputBootstrap bool
-	FlowRules                   int
-	FlowFrames                  int
-	ExecFuncs                   int            // the functions printed from Exec IR (execRoute)
-	ExecTables                  map[string]int // ExecFuncs by table
+	chunksInRuntime bool
+	ruleTypesDone   bool // the types of the rule table entries are written
+	FlowRules       int
+	FlowFrames      int
+	ExecFuncs       int            // the functions printed from Exec IR (execRoute)
+	ExecTables      map[string]int // ExecFuncs by table
 	// NodeScopes records the frame layouts shared by typed rule metadata.
 	NodeScopes map[*compile.Rule][]string
 	// typedOnly leaves out the untyped Node family: the rule table keeps only the metadata the
@@ -1559,7 +1566,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 				return fmt.Sprintf("any(c.TextStr(%s) %s c.TextStr(%s))", xs[0], t.Op, xs[1])
 			}
 		}
-		if g.Table == "trules" && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) && !g.BoxedComparisons {
+		if g.Table == "trules" && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) && g.Opt.On("field-compare") {
 			// Compare string fields without boxing them (see tctx.compare).
 			xs := g.seq(func() string { return g.operand(t.L, s, locals) }, func() string { return g.operand(t.R, s, locals) })
 			return fmt.Sprintf("c.Compare(%q, %s, %s)", t.Op, xs[0], xs[1])
@@ -1600,7 +1607,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 // predicateBody returns the body of a function that returns the value of the predicate term t. A
 // membership of a captured text in literals is a switch.
 func (g *Generator) predicateBody(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if !g.DisableLiteralTextDispatch {
+	if g.Opt.On("text-dispatch") {
 		if name, literals, ok := gen.LiteralTextMembership(t); ok {
 			var cases []string
 			seen := map[string]bool{}

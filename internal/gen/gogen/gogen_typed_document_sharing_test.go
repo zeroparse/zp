@@ -87,7 +87,7 @@ func sharingPackages(t *testing.T, tests map[string]string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		gentest.GeneratePackageIn(t, dir, "sharedtypeddocument", pkg.name, g, gen.GenOptions{Start: "main", Types: true, Document: true, DisableTypedOutputBootstrap: pkg.legacy})
+		gentest.GeneratePackageIn(t, dir, "sharedtypeddocument", pkg.name, g, gen.GenOptions{Start: "main", Types: true, Document: true, NoOpt: gentest.NoOptIf(pkg.legacy, "typed-output-bootstrap")})
 	}
 	for name, text := range tests {
 		write(name, text)

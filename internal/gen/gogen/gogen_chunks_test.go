@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -36,7 +37,7 @@ rule token Token = t:("é") #atomic => Token{Text: text($t)}`)
 	for _, conv := range []bool{false, true} {
 		for _, variant := range typedAllocatorControls {
 			t.Run(strconv.FormatBool(conv)+"/"+variant.name, func(t *testing.T) {
-				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "chunks", Start: "main", Types: true, ConvertTypes: conv, DisableTypedObjectSlabs: variant.objects, DisableTypedListSlabs: variant.lists, DisableTypedOutputBootstrap: variant.legacy})
+				code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "chunks", Start: "main", Types: true, ConvertTypes: conv, NoOpt: slices.Concat(gentest.NoOptIf(variant.objects, "typed-object-slabs"), gentest.NoOptIf(variant.lists, "typed-list-slabs"), gentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
 				if err != nil {
 					t.Fatal(err)
 				}

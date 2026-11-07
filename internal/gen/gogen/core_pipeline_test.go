@@ -43,28 +43,16 @@ func legacyRun(m *core.Module, env *core.Env, _ core.RunOptions) ([]string, erro
 }
 
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
-func typedEnv(g *gogen.Generator, opts gen.GenOptions) *core.Env {
+func typedEnv(g *gogen.Generator) *core.Env {
 	return &core.Env{
-		Mode: core.Mode{Lean: g.Ordinary && g.GoBudgetControls, Ordinary: g.Ordinary, Observe: g.Observability},
-		Flag: func(name string) bool {
-			switch name {
-			case core.PassTerminals:
-				return !opts.DisableTerminalPrograms
-			case core.FlagTextDispatch:
-				return !g.DisableLiteralTextDispatch
-			case core.FlagFieldCompare:
-				return !g.BoxedComparisons
-			case core.FlagGuardedClasses:
-				return !g.DisableGuardedClasses
-			}
-			return true
-		},
+		Mode:  core.Mode{Lean: g.Ordinary && g.GoBudgetControls, Ordinary: g.Ordinary, Observe: g.Observability},
+		Flag:  g.Opt.On,
 		Local: gogen.CoreLocalRule,
 	}
 }
 
 // pipelinedTypedCore runs the pipeline, or the legacy sequence if legacy is set, on the typed rules of g.
-func pipelinedTypedCore(g *gogen.Generator, opts gen.GenOptions, legacy, verifyEach bool) (*core.Module, error) {
+func pipelinedTypedCore(g *gogen.Generator, legacy, verifyEach bool) (*core.Module, error) {
 	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]grammar.Expr{})
 	if err != nil {
 		return nil, err
@@ -73,7 +61,7 @@ func pipelinedTypedCore(g *gogen.Generator, opts gen.GenOptions, legacy, verifyE
 	if legacy {
 		run = legacyRun
 	}
-	_, err = run(m, typedEnv(g, opts), core.RunOptions{VerifyEach: verifyEach})
+	_, err = run(m, typedEnv(g), core.RunOptions{VerifyEach: verifyEach})
 	return m, err
 }
 
@@ -87,9 +75,9 @@ func TestCorePipelineMatchesTheLegacySequence(t *testing.T) {
 		{"lean", gen.GenOptions{Types: true, TypedOnly: true}},
 		{"lean observable", gen.GenOptions{Types: true, TypedOnly: true, Observability: true}},
 		{"controlled", gen.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
-		{"lean boxed", gen.GenOptions{Types: true, TypedOnly: true, DisableLiteralTextDispatch: true, BoxedComparisons: true}},
-		{"lean without guarded classes", gen.GenOptions{Types: true, TypedOnly: true, DisableGuardedClasses: true}},
-		{"lean without terminals", gen.GenOptions{Types: true, TypedOnly: true, DisableTerminalPrograms: true}},
+		{"lean boxed", gen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}}},
+		{"lean without guarded classes", gen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"guarded-classes"}}},
+		{"lean without terminals", gen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"terminals"}}},
 		{"document", gen.GenOptions{Types: true, Document: true}},
 	}
 	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
@@ -112,12 +100,12 @@ func TestCorePipelineMatchesTheLegacySequence(t *testing.T) {
 				if _, err := gogen.GenerateParser(pg, gentest.Compile, opts, &gogen.Hooks{Generator: func(x *gogen.Generator) { g = x }}); err != nil || g == nil {
 					return
 				}
-				want, err := pipelinedTypedCore(g, opts, true, false)
+				want, err := pipelinedTypedCore(g, true, false)
 				if err != nil || len(want.Rules) == 0 {
 					return
 				}
 				for _, each := range []bool{false, true} {
-					got, err := pipelinedTypedCore(g, opts, false, each)
+					got, err := pipelinedTypedCore(g, false, each)
 					if err != nil {
 						t.Errorf("%s: %s (verify each %v): %v", mode.name, c.Name, each, err)
 						return
@@ -147,13 +135,13 @@ func TestGeneratedParsersMatchTheLegacySequence(t *testing.T) {
 		{Types: true, TypedOnly: true},
 		{Types: true, TypedOnly: true, Observability: true},
 		{Types: true, TypedOnly: true, LimitControls: true},
-		{Types: true, TypedOnly: true, DisableLiteralTextDispatch: true, BoxedComparisons: true},
-		{Types: true, TypedOnly: true, DisableGuardedClasses: true},
-		{Types: true, TypedOnly: true, DisableTerminalPrograms: true},
+		{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}},
+		{Types: true, TypedOnly: true, NoOpt: []string{"guarded-classes"}},
+		{Types: true, TypedOnly: true, NoOpt: []string{"terminals"}},
 		{Types: true, Recognize: true},
 		{Recognize: true},
 		{Recognize: true, LimitControls: true, Observability: true},
-		{Recognize: true, DisableGuardedClasses: true, DisableLiteralTextDispatch: true},
+		{Recognize: true, NoOpt: []string{"guarded-classes", "text-dispatch"}},
 		{Document: true, Types: true},
 		{Stream: true, Types: true},
 	}

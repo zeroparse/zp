@@ -84,7 +84,7 @@ func TestTerminalProgramGeneration(t *testing.T) {
 		if got, want := strings.Contains(string(code), "p.SkipTerminal(term"), !strings.Contains(c.Name, "left recursion"); got != want {
 			t.Errorf("%s: terminal program %v, want %v", c.Name, got, want)
 		}
-		reference, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true, DisableTerminalPrograms: true})
+		reference, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true, NoOpt: []string{"terminals"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -121,7 +121,7 @@ func TestTerminalProgramDisabledParity(t *testing.T) {
 		}
 		cases = append(cases, c)
 	}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, gen.GenOptions{DisableTerminalPrograms: true}, 0)
+	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, gen.GenOptions{NoOpt: []string{"terminals"}}, 0)
 }
 
 // TestTerminalProgramEligibility pins where the generator lowers a terminal expression: only
@@ -149,7 +149,7 @@ func TestTerminalProgramEligibility(t *testing.T) {
 		{"observability", "rule main = -" + choice16 + " $$\n", gen.GenOptions{Observability: true}, false},
 		{"budget controls", "rule main = -" + choice16 + " $$\n", gen.GenOptions{LimitControls: true}, false},
 		{"document", "rule main = -" + choice16 + " $$\n", gen.GenOptions{Document: true}, false},
-		{"disabled", "rule main = -" + choice16 + " $$\n", gen.GenOptions{DisableTerminalPrograms: true}, false},
+		{"disabled", "rule main = -" + choice16 + " $$\n", gen.GenOptions{NoOpt: []string{"terminals"}}, false},
 		// The typed body of a left-recursive rule is a frame body, which keeps straight-line code.
 		{"left recursion", "rule main = e $$\nrule e = e -" + choice16 + " [0-9] / [0-9]\n", gen.GenOptions{}, false},
 		// Streaming parses run the Node bodies; only the typed bodies of ParseAST hold programs.

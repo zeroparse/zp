@@ -5,10 +5,12 @@ package gen
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/gen/opt"
 )
 
 // GenOptions configures code generation.
@@ -94,27 +96,29 @@ type GenOptions struct {
 	// literal tables can hurt TypeScript warm-up; production shares helpers
 	// only. An explicit DisableLiteralSharing takes precedence.
 	EnableTSLiteralSharing bool
-	// DisableLiteralTextDispatch keeps literal text disjunctions on the general
-	// expression path for differential tests and same-generator measurements.
-	DisableLiteralTextDispatch bool
-	// DisableTerminalPrograms keeps value-free terminal expressions of lean typed parsers as
-	// straight-line code (gogen/terminal.go) for differential tests and measurements.
-	DisableTerminalPrograms bool
-	// DisableGuardedClasses makes the first class of an alternative read and test the character
-	// that the guard of its choice has accepted (core.Alt.GuardedClass), for differential tests.
-	DisableGuardedClasses bool
-	// BoxedComparisons evaluates comparisons of fields as other binary operations, for tests.
-	BoxedComparisons bool
-	// Independent generation-only controls for typed object and list slabs.
-	// Reference parsers allocate each object or list separately.
-	DisableTypedObjectSlabs bool
-	DisableTypedListSlabs   bool
-	// DisableTypedOutputBootstrap retains the original slab first allocation
-	// for same-generator retention and throughput comparisons.
-	DisableTypedOutputBootstrap bool
-	// DisableSparseMemo keeps the dense first-call bitset in TypeScript output
-	// for same-generator comparisons without a parser-time selector.
-	DisableSparseMemo bool
+	// Optimize selects the profile of generation-time optimizations (opt.Profiles); empty selects
+	// speed. NoOpt then turns the named optimizations (opt.Names) off, for isolating a
+	// miscompilation, for differential tests and for same-generator measurements. Neither changes
+	// what a parser returns.
+	Optimize string
+	NoOpt    []string
+	// PrintAfter lists the passes (opt.PrintNames) after which the Core IR is written to PrintTo, as
+	// text, once for each Core module the generator builds.
+	PrintAfter string
+	PrintTo    io.Writer
+}
+
+// Optimizations returns the settings that Optimize and NoOpt select, or an error for a profile or an
+// optimization that does not exist, and validates PrintAfter.
+func (o GenOptions) Optimizations() (opt.Settings, error) {
+	s, err := opt.Profile(o.Optimize)
+	if err != nil {
+		return opt.Settings{}, err
+	}
+	if _, err := opt.ParsePrintAfter(o.PrintAfter); err != nil {
+		return opt.Settings{}, err
+	}
+	return s.Without(o.NoOpt...)
 }
 
 // ValidateDefaultValue rejects typed output with default values: the types come from the actions and
