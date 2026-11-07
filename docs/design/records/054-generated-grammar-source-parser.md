@@ -172,7 +172,10 @@ messages where that is direct.
    field of a group. A failure after the declaration's first token, such as an
    attribute without a name, is kept. A literal that holds a closing bracket
    which a later line closes again is not covered: the stray bracket is one
-   more error.
+   more error. Nor are two mistakes in one block, a literal and a broken line
+   that has the shape of a declaration or holds one after a semicolon: in `rule a = {\n x "{\n var = 1\n}\nrule c = d\n`
+   and `rule a = {\n x "{\n}\n  rule b; rule c = d\n` the grammar also fails at
+   `rule c`, which is valid, because a declaration starts after the literal.
 3. **First error.** The first error is at the offset of the reference's first
    error, or in one of the forms below. Every form is bounded by a distance or
    by a check that the two errors belong to the same mistake, and the
