@@ -97,7 +97,9 @@ func (prog *Program) Recognizer() (*Program, error) {
 		for i, r := range prog.RuleList {
 			flags[i] = compile.RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Cycle: r.Cycle, Positional: r.Positional, Twin: r.TwinOK}
 		}
-		prog.rec, prog.recErr = build(prog.SourceGrammar(), compile.Options{Recognize: true, Recognizer: true, SourceInfo: prog.RecordsSourceInfo, DefaultValue: prog.MakesDefaultValue}, flags)
+		prog.rec, prog.recErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
+			o.Recognize, o.Recognizer, o.ControlledDispatch = true, true, false
+		}), flags)
 	})
 	return prog.rec, prog.recErr
 }
@@ -361,4 +363,14 @@ func (prog *Program) admitMissing(o ParseOptions, stream bool) error {
 		return compile.MissingUnsupported("bytecode backends")
 	}
 	return nil
+}
+
+// lazyOptions returns the options for a program that is built later from the grammar of prog (the
+// controlled closure graph, the recognizer): the options prog was compiled with, changed by derive
+// for what the build is for. This is the one place that makes them, so no option of prog is
+// dropped from a lazily built program (TestLazyProgramsCarryEveryOption).
+func (prog *Program) lazyOptions(derive func(*compile.Options)) compile.Options {
+	o := prog.Opts
+	derive(&o)
+	return o
 }

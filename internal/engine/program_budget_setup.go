@@ -142,14 +142,9 @@ func (prog *Program) prepareControlledProgram(b Backend, c *core.BudgetControl) 
 		}
 		// The grammar as written: lowering its inline actions again names them in messages as
 		// the program that was compiled first does.
-		prog.budgetProgram, prog.budgetErr = build(prog.SourceGrammar(), compile.Options{
-			Recognize:          prog.BudgetRecognize,
-			Recognizer:         prog.BudgetRecognizer,
-			NoProjections:      prog.NoProjections,
-			ControlledDispatch: true,
-			SourceInfo:         prog.RecordsSourceInfo,
-			DefaultValue:       prog.MakesDefaultValue,
-		}, flags)
+		prog.budgetProgram, prog.budgetErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
+			o.ControlledDispatch = true
+		}), flags)
 	})
 	c.Check()
 	if prog.budgetProgram == nil && prog.budgetErr == nil {

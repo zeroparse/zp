@@ -52,8 +52,10 @@ type Program struct {
 	Vars *VarTable
 	// fieldTypes caches the types of casts (castType).
 	fieldTypes sync.Map
-	// BudgetRecognize and BudgetRecognizer are Options.Recognize and Options.Recognizer.
-	BudgetRecognize, BudgetRecognizer bool
+	// Opts are the options the program was compiled with. The engine builds further programs from the
+	// same grammar later (the controlled closure graph and the recognizer) and derives their options
+	// from these, so that none is lost (engine.Program.lazyOptions).
+	Opts Options
 
 	BytecodeOnce sync.Once
 	Bytecode     *bytecode.Module
@@ -409,7 +411,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		}()
 	}
 	prog.StartRules, prog.DefaultStartRule = starts, defaultStart
-	prog.BudgetRecognize, prog.BudgetRecognizer = opts.Recognize, opts.Recognizer
+	prog.Opts = opts
 	prog.NoProjections = opts.NoProjections
 	prog.RecordsSourceInfo = opts.SourceInfo
 	prog.MakesDefaultValue = opts.DefaultValue

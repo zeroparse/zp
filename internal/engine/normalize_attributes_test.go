@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 )
 
@@ -68,6 +69,19 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 						if actual, expected := gentest.ResultJSON(optimized.ParseWith("main", input, opts)), gentest.ResultJSON(eager.ParseWith("main", input, opts)); actual != expected {
 							t.Fatalf("%s/%s %q: %s / %s", backend, unit, input, actual, expected)
 						}
+					}
+				}
+			}
+			// The closure parses above ran the controlled graph, which is built from the source grammar
+			// when the first parse needs it. It is compiled the way its program was, so the closure half
+			// of the comparison is of the two normalizations and not of one with itself.
+			if core.BudgetControlsEnabled {
+				for _, c := range []struct {
+					p     *Program
+					eager bool
+				}{{optimized, false}, {eager, true}} {
+					if c.p.budgetProgram == nil || c.p.budgetProgram.Opts.EagerAttributeCopies != c.eager {
+						t.Fatalf("the controlled graph of the program with eager copies %v was not compiled with them", c.eager)
 					}
 				}
 			}
