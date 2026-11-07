@@ -32,10 +32,9 @@ func TestGeneratedDocumentRunawayStoppedByDefault(t *testing.T) {
 	runDocumentBudgetFixture(t, "rule main = (. &mid)* $$\nrule mid = (. &.*) #repeat(0, 1000000)", fixtureRunaway)
 }
 
-// The copy and the replay of recovered errors in the memo count in a generated Document parse as they
-// count in a parse from scratch: a text several times as long as the longest one that a parse from
-// scratch admits stays stopped.
-func TestGeneratedDocumentCountsRecoveredErrorCopies(t *testing.T) {
+// A text of recovered errors that a parse from scratch completes under the default limit is completed by
+// a generated Document parse as well: the lists of errors are shared between the results.
+func TestGeneratedDocumentRecoveredErrorsWithinFresh(t *testing.T) {
 	t.Parallel()
 	runDocumentBudgetFixture(t, "rule main = s $$\nrule s = item s \"!\" / item s / item\nrule item = (\"a\" \";\") #recover(skip=[^;]* \";\")", fixtureRecovered)
 }
@@ -360,22 +359,13 @@ import (
   "strings"
   "testing"
 )
-func TestRecoveredErrorCopiesCounted(t *testing.T) {
-  fits := func(n int) bool {
-    _, err := Parse(strings.Repeat("b;", n))
-    if err != nil && !errors.Is(err, ErrLimit) { return true }
-    return err == nil
-  }
-  lo, hi := 1, 1<<12
-  if !fits(lo) || fits(hi) { t.Fatal("range") }
-  for hi-lo > 1 {
-    if mid := (lo + hi) / 2; fits(mid) { lo = mid } else { hi = mid }
-  }
-  n := 4 * lo
-  d, err := NewDocument(strings.Repeat("b;", n))
-  if err != nil { t.Fatal(err) }
-  if _, err := d.Parse(); !errors.Is(err, ErrLimit) {
-    t.Fatalf("Document parse of %d items, 4 times the %d that a parse from scratch admits: got %.80v, want the limit error", n, lo, err)
+func TestRecoveredErrorsWithinFresh(t *testing.T) {
+  for _, n := range []int{1 << 12, 1 << 14} {
+    text := strings.Repeat("b;", n)
+    if _, err := Parse(text); errors.Is(err, ErrLimit) { t.Fatalf("n=%d: parse from scratch: %.80v", n, err) }
+    d, err := NewDocument(text)
+    if err != nil { t.Fatal(err) }
+    if _, err := d.Parse(); errors.Is(err, ErrLimit) { t.Errorf("n=%d: Document parse: %.80v", n, err) }
   }
 }
 `

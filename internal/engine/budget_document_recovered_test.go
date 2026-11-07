@@ -11,46 +11,29 @@ import (
 	"zeroparse.dev/zp/internal/limits"
 )
 
-// recoverGrammar copies and replays the list of recovered errors in proportion to its length at each
-// position (see the recovered errors in spec/proofs/linear-cost.md): its rule s is memoized by a parse
-// from scratch too, so the copies count against the default limit of a Document parse as they do there.
+// recoverGrammar recovers an error at each item and shares the list of the errors between the results
+// of its rule s, which a parse from scratch memoizes too (see the recovered errors in
+// spec/proofs/linear-cost.md).
 const recoverGrammar = "rule main = s $$\nrule s = item s \"!\" / item s / item\nrule item = (\"a\" \";\") #recover(skip=[^;]* \";\")"
 
-// A Document parse stays stopped by the default limit on a text of recovered errors that is several
-// times as long as the longest one a parse from scratch admits: the copy and the replay of the errors in
-// the memo count in a Document as they count in a parse from scratch.
-func TestBudgetDocumentCountsRecoveredErrorCopies(t *testing.T) {
+// A text of recovered errors that a parse from scratch completes under the default limit is completed by
+// a Document parse as well, with a constant factor of its units: the lists of errors are shared, so
+// replaying them in the memo costs a constant for each entry, counted or not.
+func TestBudgetDocumentRecoveredErrorsWithinFresh(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, recoverGrammar)
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(fmt.Sprint(back), func(t *testing.T) {
 			t.Parallel()
 			o := ParseOptions{Backend: back}
-			fits := func(n int) bool {
-				_, err := prog.ParseWith("main", strings.Repeat("b;", n), o)
-				if err != nil && !errors.Is(err, limits.ErrLimit) {
-					return true // the syntax errors are the result of a completed parse
+			for _, n := range []int{1 << 12, 1 << 14} {
+				fresh, doc, ferr, derr := freshAndDocumentUnits(t, prog, strings.Repeat("b;", n), o)
+				if errors.Is(ferr, limits.ErrLimit) || errors.Is(derr, limits.ErrLimit) {
+					t.Fatalf("n=%d: parse from scratch: %.80v; Document parse: %.80v; want neither to exceed the limit", n, ferr, derr)
 				}
-				return err == nil
-			}
-			lo, hi := 1, 1<<12
-			if !fits(lo) || fits(hi) {
-				t.Fatalf("the boundary of a parse from scratch is outside %d..%d", lo, hi)
-			}
-			for hi-lo > 1 {
-				if mid := (lo + hi) / 2; fits(mid) {
-					lo = mid
-				} else {
-					hi = mid
+				if doc > 3*fresh {
+					t.Errorf("n=%d: the Document reserves %d units, more than 3 times the %d of a parse from scratch", n, doc, fresh)
 				}
-			}
-			n := 4 * lo
-			d, err := prog.NewDocumentWith("main", strings.Repeat("b;", n), o)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := d.ParseWith(o); !errors.Is(err, limits.ErrLimit) {
-				t.Fatalf("Document parse of %d items, 4 times the %d that a parse from scratch admits: got %.80v, want the limit error", n, lo, err)
 			}
 		})
 	}

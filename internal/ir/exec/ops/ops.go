@@ -260,7 +260,9 @@ choice, and end the parse with a cancellation interruption.`,
 The units that the region charges are work that only a Document parse does: a parse under the default
 Compute limit leaves them out of the count against it, and a parse under an explicit limit counts them
 as any other. The region must end before any work that a parse from scratch counts starts, and a region
-does not nest. When on is false, or the parse has no default limit, it opens no region and charges nothing.`})
+does not nest. An operation that does work a parse from scratch counts inside a region, such as the
+hash of a memo key and its comparison with each entry of the walk, counts it: it lifts the region for that
+charge and restores it. When on is false, or the parse has no default limit, it opens no region and charges nothing.`})
 	m.AddOp(&exec.Op{Name: "budget.freeEnd", Component: Bud, Params: []exec.Param{exec.P("mark", exec.TU64)},
 		Reads: []string{Bud}, Writes: []string{Bud}, Features: []string{Budget, Document}, NoReturn: true,
 		Contract: `Ends the region that budget.freeBegin opened with mark, if it opened one. It charges nothing.`})

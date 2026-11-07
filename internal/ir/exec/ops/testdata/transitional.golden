@@ -375,7 +375,9 @@ op budget.freeBegin(on bool) u64
     // The units that the region charges are work that only a Document parse does: a parse under the default
     // Compute limit leaves them out of the count against it, and a parse under an explicit limit counts them
     // as any other. The region must end before any work that a parse from scratch counts starts, and a region
-    // does not nest. When on is false, or the parse has no default limit, it opens no region and charges nothing.
+    // does not nest. An operation that does work a parse from scratch counts inside a region, such as the
+    // hash of a memo key and its comparison with each entry of the walk, counts it: it lifts the region for that
+    // charge and restores it. When on is false, or the parse has no default limit, it opens no region and charges nothing.
 
 op budget.freeEnd(mark u64)
   component budget

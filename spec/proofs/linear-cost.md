@@ -2011,8 +2011,8 @@ costs, and the copy of the diagnostics that the parse publishes. Every other uni
 is counted: the unit that opens a call, the evaluation of the body of a rule, the
 examination of the input, the values that the parse builds, and the memo protocol of a
 rule that a parse from scratch memoizes too, with the unit of each lookup and store, the hashing
-of the key of a lookup and its comparison with each entry of the walk that it compares with, and the copy and the
-replay of the recovered errors of an entry. The comparison of two strings costs the length of
+of the key of a lookup and its comparison with each entry of the walk that it compares with, and the operations on the
+recovered errors of an entry, which Lemma 14 bounds by a constant times $C$. The comparison of two strings costs the length of
 the string, unless they are the same bytes of the same memory, which costs a constant. A lookup
 of a rule that only a Document memoizes compares the strings of the key by identity only, at a
 constant for each variable of the key: a string that is equal but not identical is a miss, and a
@@ -2038,9 +2038,9 @@ under the default budget is argued not to fail where the parse from scratch of i
 Its default budget, raised by the Document units, is at most that budget plus the bound on the
 Document units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not
 by $n$, $K$ and $L$, as step 7 leaves open). A grammar whose counted units alone pass the
-default is stopped by it, whatever the Document retains: the recovered errors that the memo
-copies and replays count (step 8), and the tests run a grammar of recovered errors at four times
-the length that a parse from scratch admits and expect the limit error. A grammar whose
+default is stopped by it, whatever the Document retains: the operations on the recovered errors
+count (Lemma 14), and the tests run a grammar of recovered errors at lengths that a parse from scratch
+completes and expect a Document parse to complete with a constant factor of its units. A grammar whose
 cost is high only in work that is left out of the count (the extra steps along the chains, the growth of
 the table, the edits, the moves, and the retained state of step 7) is not stopped by the default in
 proportion to that work. $\square$
