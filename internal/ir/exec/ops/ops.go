@@ -83,6 +83,10 @@ const (
 	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
 	// recovered after its mark.
 	QErrs = "errs"
+	// QSegs is the number of entries of the recovered-error list after the mark of the call, or for
+	// grow.step after the mark that the growth took when it began: errors that rec.push recorded and
+	// lists that rec.add recorded or rec.since put in their place.
+	QSegs = "segs"
 	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two
 	// for each byte of two strings of the same length, and 0 for anything else.
 	QValueCompare = "value_compare"
@@ -256,27 +260,36 @@ ends with a nesting interruption.`})
 	return m
 }
 
-// addRecovery adds the operations of the recovered-error list. A copy charges one unit for each
-// error, as a copy of values does; recording an error charges nothing, because making it is what the
-// parse pays for, and recovered errors stay outside the cost of the input.
+// addRecovery adds the operations of the recovered-error list. The list is a sequence of entries,
+// each an error that rec.push recorded or a list that rec.add recorded or rec.since put in place of
+// the entries after its mark. A list is immutable and shared: rec.since makes one of the entries
+// after its mark, charging one unit for each, and rec.add records one as one entry, which costs
+// nothing, so a list of any length is replayed for a constant. Recording an error charges nothing,
+// because making it is what the parse pays for. The errors of a list keep the positions they were
+// made at: no list moves, since an entry of a Document that holds recovered errors does not move
+// after an edit (memo.advance). It stays if it examined only input before the edit, and otherwise
+// stops being valid.
 func addRecovery(m *exec.Module, errs exec.Type) {
 	err := m.AddHandle(Err, Rec, "A syntax error that a recovery made.")
 	mark := []exec.Param{exec.P("mark", exec.TInt)}
-	copies := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}}
-	const atMost = `mark is at most the number of recovered errors.`
+	const atMost = `mark is a mark of the list: a result of rec.mark at most its current length, and no
+rec.since with a smaller mark has run since rec.mark returned it.`
 	m.AddOp(&exec.Op{Name: "rec.mark", Component: Rec, Results: []exec.Type{exec.TInt}, Reads: []string{Rec},
-		Contract: `Returns the number of recovered errors, which rec.truncate and rec.since take.`})
+		Contract: `Returns the number of entries of the list, which rec.truncate and rec.since take.`})
 	m.AddOp(&exec.Op{Name: "rec.push", Component: Rec, Params: []exec.Param{exec.P("e", err)}, Writes: []string{Rec},
-		Contract: `Records e after the recovered errors.`})
+		Contract: `Records e after the recovered errors, as one entry.`})
 	m.AddOp(&exec.Op{Name: "rec.truncate", Component: Rec, Params: mark, Writes: []string{Rec},
-		Contract: `Drops the errors recovered after the mark.`, Requires: atMost})
+		Contract: `Drops the entries after the mark, and with them their errors.`, Requires: atMost})
 	m.AddOp(&exec.Op{Name: "rec.since", Component: Rec, Params: mark, Results: []exec.Type{errs}, Reads: []string{Rec},
-		Writes: []string{Rec}, NoReturn: true, Cost: copies,
-		Contract: `Returns a copy of the errors recovered after the mark: later writes of the list do not change
-it.`, Requires: atMost})
+		Writes: []string{Rec}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSegs}}},
+		Contract: `Returns the list of the errors recovered after the mark, and puts it in place of the
+entries after the mark, so that the errors stay the same and the list has one entry after the mark. When
+there is one entry after the mark, an error or a list, returns it as the list, and the list does not
+change. When there is none, returns an empty list and the list does not change. A list never changes once
+made: later writes of the list do not change it.`, Requires: atMost})
 	m.AddOp(&exec.Op{Name: "rec.add", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Writes: []string{Rec},
-		NoReturn: true, Cost: copies,
-		Contract: `Records the errors again, after the recovered errors.`})
+		Contract: `Records the errors of errs again, after the recovered errors, as one entry that shares
+errs; an empty list records nothing.`})
 	m.AddOp(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether the list of errors is empty.`})
 	m.AddOp(&exec.Op{Name: "stream.settleErrors", Component: Rec, Writes: []string{Rec}, Features: []string{Stream},

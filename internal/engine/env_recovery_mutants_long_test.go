@@ -37,20 +37,13 @@ func TestEnvironmentMutantsFail(t *testing.T) {
 }
 
 // TestRecoveryMutantsFail is the negative control of the conformance of the engine's recovered
-// errors: each mutant breaks one part of rec.since or stream.settleErrors, the operations with an
-// implementation of their own; the others are printed forms that the conformance machine repeats.
+// errors: each mutant breaks one part of stream.settleErrors, the operation with an implementation of
+// its own that the conformance suite checks; the others are printed forms that the conformance machine
+// repeats.
 func TestRecoveryMutantsFail(t *testing.T) {
 	const conformance = "^TestEngineExecConformance$"
 	const charges = "^TestSettlingChargesTheSlotsItClears$"
 	core := []string{"./core"}
-	t.Run("copy", func(t *testing.T) {
-		runPrintedMutants(t, "core/budget_memory.go", []printedMutant{
-			{"a copy shares the list",
-				[]printedEdit{{"out := p.appendErrors(nil, src)\n", "out := src\n"}}, conformance, core},
-			{"a copy leaves out the last error",
-				[]printedEdit{{"out := p.appendErrors(nil, src)\n", "out := p.appendErrors(nil, src[:len(src)-1])\n"}}, conformance, core},
-		})
-	})
 	t.Run("settle", func(t *testing.T) {
 		const keep = "if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {"
 		runPrintedMutants(t, "core/stream_ops.go", []printedMutant{
