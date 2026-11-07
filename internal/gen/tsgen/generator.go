@@ -117,7 +117,7 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
 		dumped = &bytes.Buffer{}
-		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing || !opts.EnableTSLiteralSharing, Opt: settings, VerifyEach: opts.VerifyEachPass}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
 		if opts.PrintTo != nil {
 			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped

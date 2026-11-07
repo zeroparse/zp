@@ -27,11 +27,12 @@ type Generator struct {
 	// Ordinary prints the bodies in their ordinary form (no budget controls and no Documents): the
 	// helpers with an Ordinary form, no charges, inline class tests, and for typed rule bodies the
 	// lean lowering (terminal programs, class runs and tables, guarded classes).
-	Ordinary              bool
-	Document              bool
-	FlowErr               error // the first rule, line or stream body that Flow IR does not print, or the first internal error of the unread-variable check
-	DisableMethodSharing  bool
-	DisableLiteralSharing bool
+	Ordinary bool
+	Document bool
+	FlowErr  error // the first rule, line or stream body that Flow IR does not print, or the first internal error of the unread-variable check
+	// TypeScript reports that the generator prints TypeScript, whose literal tables are shared only
+	// with the optimization ts-literal-sharing.
+	TypeScript bool
 	// Only exact emitted bodies with the same signature share a helper. Rule
 	// wrappers, memo IDs, frame layouts and expectation IDs remain in the code.
 	methodNames  map[generatedMethod]string
@@ -116,7 +117,7 @@ type generatedMethod struct {
 // MethodName returns an existing exact helper or reserves the next name.
 // The signature keeps Node, typed Go and TypeScript functions distinct.
 func (g *Generator) MethodName(signature, body string) (string, bool) {
-	if g.DisableMethodSharing {
+	if !g.Opt.On("method-sharing") {
 		return g.Name("e"), false
 	}
 	key := generatedMethod{signature, body}
@@ -135,7 +136,7 @@ func (g *Generator) MethodName(signature, body string) (string, bool) {
 // LiteralName shares immutable literal tables by decoded text. Descriptions
 // belong to each matcher, so spellings with different expectations stay distinct.
 func (g *Generator) LiteralName(value string) (string, bool) {
-	if g.DisableLiteralSharing {
+	if !g.Opt.On("literal-sharing") || g.TypeScript && !g.Opt.On("ts-literal-sharing") {
 		return g.Name("lit"), false
 	}
 	if name, ok := g.literalNames[value]; ok {

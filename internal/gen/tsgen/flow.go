@@ -41,7 +41,7 @@ func (g *Generator) startTSFlow() bool {
 	// matchLiteral: it has no in-place reads and no class tables.
 	g.Flow.Opts.GuardedClasses = false
 	g.Flow.Opts.InlineLiterals = 0
-	g.Flow.Opts.ClassTables = false
+	g.Flow.Opts.ClassTableRanges = 0
 	if chosen := outlineNodes(g.Flow.M, g.Table == "rules"); len(chosen) > 0 {
 		g.Flow.Opts.Outline = func(n core.Node) bool { return chosen[n] }
 	}

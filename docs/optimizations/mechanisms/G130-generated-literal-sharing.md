@@ -13,14 +13,14 @@ reserved declarations. Helper-body sharing is independently selected.
 ## Scope and State
 
 Default literal sharing in generated Go Node and typed Go. TypeScript literal
-sharing is private, experimental and default-off; helper sharing remains default
+sharing is an opt-in that no profile sets; helper sharing remains default
 there. Core closure/VM literals are separate compilation representations.
 
 ## Reference Control
 
-Private `disableLiteralSharing` selects duplicate tables.
-`enableTSLiteralSharing` opts into the TypeScript experiment, unless explicit
-disable takes precedence. These select generated source before parsing.
+`-no-opt literal-sharing` selects duplicate tables. The optimization
+`ts-literal-sharing`, off by default, opts into TypeScript literal sharing;
+`-no-opt literal-sharing` takes precedence. These select generated source before parsing.
 
 ## Evidence and Implementation
 

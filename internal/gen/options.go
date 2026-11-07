@@ -6,6 +6,8 @@ package gen
 import (
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
@@ -87,21 +89,16 @@ type GenOptions struct {
 	// DisableKeepNodes leaves the Node rule functions out of a typed-only parser that needs them
 	// (a negative control for tests).
 	DisableKeepNodes bool
-	// DisableMethodSharing and DisableLiteralSharing retain duplicate generated
-	// helpers and read-only tables for independent generation-time controls.
-	// Neither adds a selector to the generated parser.
-	DisableMethodSharing  bool
-	DisableLiteralSharing bool
-	// EnableTSLiteralSharing retains a generation-only experiment. Sharing
-	// literal tables can hurt TypeScript warm-up; production shares helpers
-	// only. An explicit DisableLiteralSharing takes precedence.
-	EnableTSLiteralSharing bool
 	// Optimize selects the profile of generation-time optimizations (opt.Profiles); empty selects
 	// speed. NoOpt then turns the named optimizations (opt.Names) off, for isolating a
 	// miscompilation, for differential tests and for same-generator measurements. Neither changes
 	// what a parser returns.
 	Optimize string
 	NoOpt    []string
+	// Set gives optimizations (opt.Names) a value other than the profile's, for tests that compare
+	// a generator with and without one: 1 turns on an optimization that the profile leaves off, and
+	// a count sets an integer one. The public API has no way to set: a profile does.
+	Set map[string]int
 	// PrintAfter lists the passes (opt.PrintNames) after which the Core IR is written to PrintTo, as
 	// text, once for each Core module the generator builds.
 	PrintAfter string
@@ -112,7 +109,7 @@ type GenOptions struct {
 	VerifyEachPass bool
 }
 
-// Optimizations returns the settings that Optimize and NoOpt select, or an error for a profile or an
+// Optimizations returns the settings that Optimize, Enable and NoOpt select, or an error for a profile or an
 // optimization that does not exist, and validates PrintAfter.
 func (o GenOptions) Optimizations() (opt.Settings, error) {
 	s, err := opt.Profile(o.Optimize)
@@ -123,6 +120,11 @@ func (o GenOptions) Optimizations() (opt.Settings, error) {
 		return opt.Settings{}, err
 	} else if len(names) > 0 && o.PrintTo == nil {
 		return opt.Settings{}, fmt.Errorf("PrintAfter %q needs a PrintTo writer", o.PrintAfter)
+	}
+	for _, n := range slices.Sorted(maps.Keys(o.Set)) {
+		if s, err = s.With(n, o.Set[n]); err != nil {
+			return opt.Settings{}, err
+		}
 	}
 	return s.Without(o.NoOpt...)
 }

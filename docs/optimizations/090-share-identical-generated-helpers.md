@@ -14,12 +14,11 @@ expectation IDs remain attached to their original matchers.
 
 Go production generation enables both helper and literal sharing. TypeScript
 production generation enables helper sharing only; literal-table sharing is a
-private generation-time experiment because its mixed-use measurements do not
-justify enabling it by default. The private `GenOptions` controls
-`disableMethodSharing`, `disableLiteralSharing` and `enableTSLiteralSharing`
-select same-generator outputs without adding public options or runtime checks.
-An explicit `disableLiteralSharing` takes precedence over the TypeScript
-opt-in.
+generation-time opt-in because its mixed-use measurements do not
+justify enabling it by default. The optimizations `method-sharing`,
+`literal-sharing` and `ts-literal-sharing` select same-generator outputs
+without adding runtime checks. `-no-opt literal-sharing` takes precedence over
+the TypeScript opt-in.
 
 Direct-rule compilation can fail after speculative lowering. Its snapshot and
 rollback journals remove helper and literal entries inserted by a failed path,

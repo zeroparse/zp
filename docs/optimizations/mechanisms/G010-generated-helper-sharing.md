@@ -19,7 +19,7 @@ and VMs are outside this generator mechanism.
 
 ## Reference Control
 
-Private `disableMethodSharing` produces a same-generator duplicate-helper
+`-no-opt method-sharing` produces a same-generator duplicate-helper
 reference. Literal sharing can be held fixed independently; no matching-time
 selector is emitted.
 

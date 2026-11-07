@@ -29,7 +29,7 @@ func TestFlagNamesAreDistinctAndDocumented(t *testing.T) {
 			t.Errorf("flag %q is declared twice or has no description", f.Name)
 		}
 		seen[f.Name] = true
-		if !f.Int && f.Default != 1 {
+		if !f.Int && f.Default != 0 && f.Default != 1 {
 			t.Errorf("flag %s is on or off but its speed value is %d", f.Name, f.Default)
 		}
 	}
@@ -75,5 +75,28 @@ func TestParsePrintAfter(t *testing.T) {
 	}
 	if got := PrintNames(); got[0] != "build" || got[len(got)-1] != "all" || !slices.Contains(got, "class-runs") {
 		t.Errorf("names %v", got)
+	}
+}
+
+func TestWith(t *testing.T) {
+	speed, _ := Profile("")
+	on, err := speed.With("ts-literal-sharing", 1)
+	if err != nil || !on.On("ts-literal-sharing") || speed.On("ts-literal-sharing") {
+		t.Fatalf("opt-in: %v, speed %v", err, speed.On("ts-literal-sharing"))
+	}
+	if s, err := speed.With("class-tables", 1); err != nil || s.Value("class-tables") != 1 {
+		t.Errorf("count: %v, %v", s, err)
+	}
+	for _, bad := range []struct {
+		name string
+		v    int
+	}{{"nonsense", 1}, {"guards", 2}, {"guards", -1}, {"class-tables", -1}} {
+		if _, err := speed.With(bad.name, bad.v); err == nil {
+			t.Errorf("With(%q, %d) is accepted", bad.name, bad.v)
+		}
+	}
+	off, err := on.Without("ts-literal-sharing")
+	if err != nil || off.On("ts-literal-sharing") {
+		t.Errorf("Without after With: %v", err)
 	}
 }

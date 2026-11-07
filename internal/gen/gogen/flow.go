@@ -49,7 +49,11 @@ func (g *Generator) FlowOptions(m *core.Module) flowlower.Options {
 	// Node is false: the options of the Node and recognizer tables (gen.Generator.StartRecFlow) are
 	// built apart, and a function lowered with one set of options is never printed for the other
 	// runtime.
-	return flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), ClassTables: g.leanTyped() && g.Opt.On("class-tables"),
+	tableRanges := 0
+	if g.leanTyped() {
+		tableRanges = g.Opt.Value("class-tables")
+	}
+	return flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), ClassTableRanges: tableRanges,
 		GuardedClasses: g.GuardedClasses(), InlineLiterals: g.Opt.Value("inline-literals"), Observe: g.Observability, Document: g.Document}
 }
 
