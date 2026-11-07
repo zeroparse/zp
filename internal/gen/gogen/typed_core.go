@@ -1,48 +1,25 @@
 package gogen
 
 import (
-	"fmt"
-
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
 
-// TypedCore builds the Core IR of the typed Go rules and runs the passes of the typed Go backend:
-// term rewrites (with literal text dispatch and unboxed field comparisons unless disabled),
-// terminal regions (in rules lowered to Go-local code of lean parsers without observability),
-// choice guards (with guarded classes in lean parsers), scans and, in lean parsers, class runs.
-// With a decisions hook (tests), it calls the hook with the module after it is built and after
-// each pass.
+// TypedCore builds the Core IR of the typed Go rules and runs the pipeline of Core passes on it:
+// terminal regions (in rules lowered to Go-local code of lean parsers without observability), term
+// rewrites (with literal text dispatch and unboxed field comparisons unless disabled), choice guards
+// (with guarded classes in ordinary parsers), scans and, in lean parsers, class runs. With a hook
+// (Generator.CoreHook, tests), it calls the hook with the module after it is built and after each
+// pass.
 func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, error) {
 	m, err := irbuild.CoreFrom(g.Prog, origin)
 	if err != nil {
 		return nil, err
 	}
-	hook := func(string, *core.Module) {}
-	if g.CoreHook != nil {
-		hook = g.CoreHook
-	}
-	hook("build", m)
-	leanTyped := g.Ordinary && g.GoBudgetControls
-	if leanTyped && !g.Observability && !g.disableTerminalPrograms {
-		core.Terminals(m, CoreLocalRule)
-		hook("terminals", m)
-	}
-	core.RewriteTerms(m, core.TermOptions{TextDispatch: !g.DisableLiteralTextDispatch, FieldCompare: !g.BoxedComparisons})
-	hook("terms", m)
-	core.Analyze(m)
-	core.Guards(m, g.Ordinary && !g.DisableGuardedClasses)
-	hook("guards", m)
-	core.Scans(m)
-	hook("scans", m)
-	if leanTyped {
-		core.ClassRuns(m)
-		hook("class runs", m)
-	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
-		return nil, fmt.Errorf("internal error: %w", err)
+	mode := core.Mode{Lean: g.Ordinary && g.GoBudgetControls, Ordinary: g.Ordinary, Observe: g.Observability}
+	if err := g.RunCore(m, mode, CoreLocalRule, nil); err != nil {
+		return nil, err
 	}
 	return m, nil
 }

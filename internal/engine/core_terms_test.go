@@ -97,7 +97,7 @@ func unfieldOperand(o core.Operand) core.Term {
 // corpus lacks. It checks that a term pass that leaves out a rewrite is caught.
 func TestCoreTermRewritesFrozen(t *testing.T) {
 	checkCoreAspect(t, "term", []coreBreak{
-		{"text dispatch left out", "terms", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
+		{"text dispatch left out", "term-rewrites", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
 			return replaceTerm(m, func(t core.Term) core.Term {
 				if x, ok := t.(*core.TextIn); ok {
 					return x.Orig
@@ -105,7 +105,7 @@ func TestCoreTermRewritesFrozen(t *testing.T) {
 				return nil
 			})
 		}},
-		{"field comparison left out", "terms", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
+		{"field comparison left out", "term-rewrites", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
 			return replaceTerm(m, func(t core.Term) core.Term {
 				if x, ok := t.(*core.FieldCompare); ok {
 					b := &core.Binary{Op: x.Op, L: unfieldOperand(x.L), R: unfieldOperand(x.R)}
@@ -115,7 +115,7 @@ func TestCoreTermRewritesFrozen(t *testing.T) {
 				return nil
 			})
 		}},
-		{"text equality left out", "terms", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
+		{"text equality left out", "term-rewrites", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
 			return replaceTerm(m, func(t core.Term) core.Term {
 				if x, ok := t.(*core.TextEq); ok {
 					op := "=="
@@ -129,7 +129,7 @@ func TestCoreTermRewritesFrozen(t *testing.T) {
 				return nil
 			})
 		}},
-		{"concat fusion left out", "terms", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
+		{"concat fusion left out", "term-rewrites", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
 			return replaceTerm(m, func(t core.Term) core.Term {
 				x, ok := t.(*core.ConcatFused)
 				if !ok {
@@ -156,7 +156,7 @@ func TestCoreTermRewritesFrozen(t *testing.T) {
 				return b
 			})
 		}},
-		{"projected map left out", "terms", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
+		{"projected map left out", "term-rewrites", []string{"term"}, func(c *coreGenCase, m *core.Module) bool {
 			return replaceTerm(m, func(t core.Term) core.Term {
 				if x, ok := t.(*core.ProjectedMap); ok {
 					b := &core.Builtin{Func: "list", Args: []core.Term{x.X}}

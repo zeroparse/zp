@@ -90,7 +90,10 @@ var Pipeline = &pipeline.Pipeline[*Module, *Env]{
 			},
 		},
 		{
-			Name:       PassGuards,
+			Name: PassGuards,
+			// Guards read the First sets that Analyze computes. Without them the alternatives of a choice
+			// get no first-character guard and the Flow form calls the rules of the later alternatives at
+			// every position (duckdb: block_comment, 84,000 calls against none), and nothing reports it.
 			Requires:   []pipeline.Analysis{AttributesAnalysis},
 			After:      []string{PassTerminals},
 			Obligation: "A guard is the first terminal of its alternative, which the alternative cannot match without.",

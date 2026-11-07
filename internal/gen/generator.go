@@ -39,6 +39,13 @@ type Generator struct {
 	DisableLiteralTextDispatch bool
 	DisableGuardedClasses      bool
 	BoxedComparisons           bool
+	DisableTerminalPrograms    bool
+	// CoreHook, if set, is called with the module after it is built and after each pass that runs on
+	// it (core.RunOptions.Dump).
+	CoreHook func(pass string, m *core.Module)
+	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that compare another
+	// sequence of passes with the pipeline.
+	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
@@ -313,33 +320,60 @@ func RecFlowEligible(r *compile.Rule) bool {
 	return ok
 }
 
+// CoreFlag reports whether the Core optimization of the given name is on in this generator
+// (core.Env.Flag).
+func (g *Generator) CoreFlag(name string) bool {
+	switch name {
+	case core.PassTerminals:
+		return !g.DisableTerminalPrograms
+	case core.FlagTextDispatch:
+		return !g.DisableLiteralTextDispatch
+	case core.FlagFieldCompare:
+		return !g.BoxedComparisons
+	case core.FlagGuardedClasses:
+		return !g.DisableGuardedClasses
+	}
+	return true
+}
+
+// RunCore runs the pipeline of Core passes on m in the mode, with the flags of the generator. local
+// selects the rules that terminal regions are made in, and prepareScans is called around the scans
+// (core.Env). A failure is an internal error that names the pass.
+func (g *Generator) RunCore(m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
+	env := &core.Env{Mode: mode, Flag: g.CoreFlag, Local: local, PrepareScans: prepareScans}
+	run := core.Run
+	if g.CoreRun != nil {
+		run = g.CoreRun
+	}
+	if _, err := run(m, env, core.RunOptions{Dump: g.CoreHook}); err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+	return nil
+}
+
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
 // table), with the passes of the untyped tables (no terminal programs and no class runs), for
-// printing its eligible rules from Flow IR. It runs the passes of gogen.Generator.TypedCore that the
-// Node runtime's rules use: rewrites, Analyze, Guards, scans and the repeats, which
-// irbuild.FollowRepeats keeps in step with the scans. It omits Terminals and ClassRuns, which
-// gogen.Generator.TypedCore runs only for lean typed rules (leanTyped): the Node recognizer writes its
-// terminals and classes as inline tests.
+// printing its eligible rules from Flow IR. It runs the pipeline of Core passes in a mode that is not
+// Lean: the rewrites, the guards and the scans, with the repeats that irbuild.FollowRepeats keeps in
+// step with them. Terminals and class runs apply only to lean typed rules (gogen.Generator.TypedCore):
+// the Node recognizer writes its terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *compile.Program) error {
 	origin := map[core.Node]grammar.Expr{}
 	m, err := irbuild.CoreProjecting(rec, origin, g.Table != "recRules")
 	if err != nil {
 		return err
 	}
-	core.RewriteTerms(m, core.TermOptions{TextDispatch: !g.DisableLiteralTextDispatch, FieldCompare: !g.BoxedComparisons})
-	// Guards read the First sets that Analyze computes, as gogen.Generator.TypedCore does: without this
-	// pass the alternatives of a choice get no first-character guard, and the Flow form calls the rules of
-	// the later alternatives at every position (duckdb: block_comment, 84k calls against none).
-	core.Analyze(m)
-	core.Guards(m, g.Ordinary && !g.DisableGuardedClasses)
-	repeats := irbuild.FollowRepeats(m, origin)
-	core.Scans(m)
-	for _, f := range repeats {
-		f()
+	// The scans of the Flow route keep the origin of each repetition they replace (FollowRepeats).
+	prepare := func(m *core.Module) func() {
+		repeats := irbuild.FollowRepeats(m, origin)
+		return func() {
+			for _, f := range repeats {
+				f()
+			}
+		}
 	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
-		return fmt.Errorf("internal error: %w", err)
+	if err := g.RunCore(m, core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
+		return err
 	}
 	// Classes are inline tests, as the Node runtime's generated code writes them.
 	opts := flowlower.Options{Budget: !g.NoBudget, Recovers: flowlower.Recovers(m), GuardedClasses: g.Ordinary && !g.DisableGuardedClasses,

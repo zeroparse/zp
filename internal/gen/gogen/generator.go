@@ -81,6 +81,9 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
+	// CoreRun runs the Core passes in place of core.Run (gen.Generator.CoreRun), so that a test
+	// compares the generated parsers of another sequence of passes with the pipeline's.
+	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate (other than for RuntimeOnly). It generates twice: the
@@ -162,7 +165,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch, disableTerminalPrograms: opts.DisableTerminalPrograms, DisableGuardedClasses: opts.DisableGuardedClasses, BoxedComparisons: opts.BoxedComparisons, disableTypedObjectSlabs: opts.DisableTypedObjectSlabs, disableTypedListSlabs: opts.DisableTypedListSlabs, disableTypedOutputBootstrap: opts.DisableTypedOutputBootstrap, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
+	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", DisableMethodSharing: opts.DisableMethodSharing, DisableLiteralSharing: opts.DisableLiteralSharing, DisableLiteralTextDispatch: opts.DisableLiteralTextDispatch, DisableTerminalPrograms: opts.DisableTerminalPrograms, CoreRun: h.CoreRun, DisableGuardedClasses: opts.DisableGuardedClasses, BoxedComparisons: opts.BoxedComparisons, disableTypedObjectSlabs: opts.DisableTypedObjectSlabs, disableTypedListSlabs: opts.DisableTypedListSlabs, disableTypedOutputBootstrap: opts.DisableTypedOutputBootstrap, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
 	if live != nil {
 		goGen.SeedDescs()
 		for _, d := range live.descs[len(goGen.Descs):] {
@@ -444,12 +447,9 @@ type Generator struct {
 	recoveryProg        map[*compile.Program]bool // whether a program can recover from errors
 	tableErr            error                     // the rule table does not fit the form of runtime.RuleSpec
 	hooks               Hooks                     // the zero value changes nothing
-	// CoreHook, if set, is called by TypedCore with the module after it is built and after each pass.
-	CoreHook func(pass string, m *core.Module)
 	// chunksInRuntime is set when the typed values take their storage from the runtime (Chunk).
 	chunksInRuntime             bool
 	ruleTypesDone               bool // the types of the rule table entries are written
-	disableTerminalPrograms     bool
 	disableTypedObjectSlabs     bool
 	disableTypedListSlabs       bool
 	disableTypedOutputBootstrap bool

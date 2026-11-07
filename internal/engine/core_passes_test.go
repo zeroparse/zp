@@ -259,7 +259,7 @@ func valueFreeSeq(n core.Node, written func(core.Node) bool) *core.Seq {
 // and checks that a class-run pass that leaves one out is caught.
 func TestCoreClassRunsFrozen(t *testing.T) {
 	checkCoreAspect(t, "class runs", []coreBreak{
-		{"class run left out", "class runs", []string{"class runs"}, func(c *coreGenCase, m *core.Module) bool {
+		{"class run left out", "class-runs", []string{"class runs"}, func(c *coreGenCase, m *core.Module) bool {
 			var seq *core.Seq
 			at := -1
 			for _, r := range m.Rules {
