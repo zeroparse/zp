@@ -110,18 +110,18 @@ func TestTypedMemoWalksAndAtomicReplacement(t *testing.T){
  for _,put:=range []bool{false,true}{
   p:=&zprt.TParser{Parser:&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:32})},X_memoSlots:[]*zprt.X_tmemoEntry{head}}
   replacement:=&zprt.X_tmemoEntry{X_rule:-1,X_val:"replacement",X_ok:true}
-  err:=catchMemoFatal(func(){if put{p.X_memoPut(7,0,0,nil,replacement)}else{p.X_memoGet(7,0,0,nil)}})
+  err:=catchMemoFatal(func(){if put{p.X_memoPut(7,0,0,nil,false,replacement)}else{p.X_memoGet(7,0,0,nil,false)}})
   if !errors.Is(err,ErrLimit){t.Errorf("typed memo put=%v unbounded: %T",put,err)}
   if p.X_memoSlots[0]!=head || tail.X_next!=nil || replacement.X_rule!=-1{t.Fatal("partial replacement published")}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
-  if put{p.X_memoPut(7,0,0,nil,replacement);if p.X_memoGet(7,0,0,nil)!=replacement{t.Fatal("typed put retry")}}else{if p.X_memoGet(7,0,0,nil)!=tail{t.Fatal("typed read retry")}}
+  if put{p.X_memoPut(7,0,0,nil,false,replacement);if p.X_memoGet(7,0,0,nil,false)!=replacement{t.Fatal("typed put retry")}}else{if p.X_memoGet(7,0,0,nil,false)!=tail{t.Fatal("typed read retry")}}
  }
 }
 func TestMemoKeysAndStorage(t *testing.T){
  for _,typed:=range []bool{false,true}{
   p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:100000})};tp:=&zprt.TParser{Parser:p}
-  get:=func(key []any)any{if typed{return tp.X_memoGet(7,0,0,key)};return p.X_memoGet(7,0,0,key)}
-  put:=func(key []any)any{if typed{e:=&zprt.X_tmemoEntry{};tp.X_memoPut(7,0,0,key,e);return e};e:=&zprt.X_memoEntry{};p.X_memoPut(7,0,0,key,e);return e}
+  get:=func(key []any)any{if typed{return tp.X_memoGet(7,0,0,key,false)};return p.X_memoGet(7,0,0,key,false)}
+  put:=func(key []any)any{if typed{e:=&zprt.X_tmemoEntry{};tp.X_memoPut(7,0,0,key,false,e);return e};e:=&zprt.X_memoEntry{};p.X_memoPut(7,0,0,key,false,e);return e}
   var typedNil *Node
   entry:=put([]any{typedNil})
   if !reflect.ValueOf(get([]any{nil})).IsNil() || get([]any{typedNil})!=entry{t.Fatal("typed nil key equality changed")}
@@ -142,12 +142,12 @@ func TestMemoKeysAndStorage(t *testing.T){
   p.X_memo.X_slots=make([]*zprt.X_memoEntry,300);p.X_memo.X_slots[0]=nodeOriginal
   typedOriginal:=&zprt.X_tmemoEntry{X_rule:3};typedReplacement:=&zprt.X_tmemoEntry{X_rule:-1}
   tp:=&zprt.TParser{Parser:p,X_memoSlots:make([]*zprt.X_tmemoEntry,300)};tp.X_memoSlots[0]=typedOriginal
-  put:=func(){if typed{tp.X_memoPut(7,600,0,nil,typedReplacement)}else{p.X_memoPut(7,600,0,nil,nodeReplacement)}}
+  put:=func(){if typed{tp.X_memoPut(7,600,0,nil,false,typedReplacement)}else{p.X_memoPut(7,600,0,nil,false,nodeReplacement)}}
   err:=catchMemoFatal(put)
   if !errors.Is(err,ErrLimit){t.Fatal("slot copy unbounded",err)}
   if len(p.X_memo.X_slots)!=300 || p.X_memo.X_slots[0]!=nodeOriginal || nodeReplacement.X_rule!=-1 || len(tp.X_memoSlots)!=300 || tp.X_memoSlots[0]!=typedOriginal || typedReplacement.X_rule!=-1{t.Fatal("partial slot growth published")}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});put()
-  if typed{tp.X_memoPut(7,600,0,nil,typedReplacement);if tp.X_memoGet(7,600,0,nil)!=typedReplacement || typedReplacement.X_next!=nil{t.Fatal("typed self replacement changed")}}else{p.X_memoPut(7,600,0,nil,nodeReplacement);if p.X_memoGet(7,600,0,nil)!=nodeReplacement || nodeReplacement.X_next!=nil{t.Fatal("Node self replacement changed")}}
+  if typed{tp.X_memoPut(7,600,0,nil,false,typedReplacement);if tp.X_memoGet(7,600,0,nil,false)!=typedReplacement || typedReplacement.X_next!=nil{t.Fatal("typed self replacement changed")}}else{p.X_memoPut(7,600,0,nil,false,nodeReplacement);if p.X_memoGet(7,600,0,nil,false)!=nodeReplacement || nodeReplacement.X_next!=nil{t.Fatal("Node self replacement changed")}}
  }
 }
 func TestFirstCallStoragePublication(t *testing.T){
@@ -174,7 +174,7 @@ func TestMemoCancellation(t *testing.T){
  if p.Env!=before{t.Fatal("cancelled bind published")}
  tail:=&zprt.X_memoEntry{X_rule:7};head:=tail;for i:=0;i<600;i++{head=&zprt.X_memoEntry{X_rule:8,X_next:head}}
  p=&zprt.Parser{Control:zprt.X_newBudgetControl(ctx,Limits{})};p.X_memo.X_slots=[]*zprt.X_memoEntry{head}
- if err:=catchMemoFatal(func(){p.X_memoGet(7,0,0,nil)});!errors.Is(err,context.Canceled){t.Fatal("memo cancellation",err)}
+ if err:=catchMemoFatal(func(){p.X_memoGet(7,0,0,nil,false)});!errors.Is(err,context.Canceled){t.Fatal("memo cancellation",err)}
  if p.X_memo.X_slots[0]!=head{t.Fatal("cancelled lookup mutated table")}
 }
 

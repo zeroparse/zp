@@ -204,9 +204,6 @@ func (c *BudgetControl) FreeEnd(mark uint64) {
 	c.Limits.Compute, c.freeing = limits.SaturatingAdd(c.freed, n), false
 }
 
-// Freeing reports whether a region is open. It is safe on a nil receiver.
-func (c *BudgetControl) Freeing() bool { return c != nil && c.freeing }
-
 // FreeHold ends the open region for work that counts, and reports whether there was one; FreeResume
 // opens it again. The FreeEnd of the region that was held takes the work from the resume on.
 func (c *BudgetControl) FreeHold() bool {

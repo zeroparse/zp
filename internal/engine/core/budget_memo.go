@@ -93,9 +93,7 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 		return p.Memo.Get(k)
 	}
 	p.Spend()
-	// A lookup in a region of Document work is that of a rule that only a Document parse memoizes: it
-	// compares keys by identity, and finds no entry that the chain holds beyond the first memoScan.
-	ident := p.Control.Freeing()
+	ident := k.DocOnly // see MemoKey.DocOnly
 	if p.MemoAll {
 		defer p.FreeEnd(p.FreeBegin(true))
 	}
@@ -107,8 +105,12 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	if i < 0 || i >= len(t.Slots) {
 		return nil, false
 	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
 	e, n := t.Slots[i], 0
-	for ; e != nil && n < memoScan; e, n = e.Next, n+1 {
+	for ; e != nil && n < scan; e, n = e.Next, n+1 {
 		p.Spend()
 		if e.Rule == int32(k.Rule) && e.Min == int32(k.Min) && e.missingSilent == k.MissingSilent && p.keyMatches(e.Env, k.Env, ident) {
 			if p.MemoAll {
@@ -173,7 +175,7 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 		return
 	}
 	p.Spend()
-	ident := p.Control.Freeing() // as in MemoGet
+	ident := k.DocOnly
 	if p.MemoAll {
 		defer p.FreeEnd(p.FreeBegin(true))
 	}
@@ -204,8 +206,12 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	same := func(x *MemoEntry) bool {
 		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, ident)
 	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
 	n := 0
-	for x := *link; x != nil && n < memoScan; link, x, n = &x.Next, x.Next, n+1 {
+	for x := *link; x != nil && n < scan; link, x, n = &x.Next, x.Next, n+1 {
 		p.Spend()
 		if same(x) {
 			replaced = x

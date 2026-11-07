@@ -1,8 +1,10 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -52,7 +54,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 				wk := key{rule, pos, min, envKey(env)}
 				var got any
 				if k.typed {
-					if e := tp.memoGet(rule, pos, min, env); e != nil {
+					if e := tp.memoGet(rule, pos, min, env, false); e != nil {
 						got = e
 					}
 				} else if e := table.getAny(p, rule, pos, min, env); e != nil {
@@ -69,7 +71,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 					if got != nil && rng.Intn(5) == 0 {
 						e = got.(*tmemoEntry)
 					}
-					tp.memoPut(rule, pos, min, env, e)
+					tp.memoPut(rule, pos, min, env, false, e)
 					want[wk] = e
 				} else {
 					e := table.alloc()
@@ -109,14 +111,14 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 
 func (t *memoTable) getAny(p *Parser, rule, pos, min int, env []any) *memoEntry {
 	if p.Control != nil {
-		return p.memoGetControlled(rule, pos, min, env)
+		return p.memoGetControlled(rule, pos, min, env, false)
 	}
 	return t.get(rule, pos, min, env)
 }
 
 func (t *memoTable) putAny(p *Parser, rule, pos, min int, env []any, e *memoEntry) {
 	if p.Control != nil {
-		p.memoPutControlled(rule, pos, min, env, e)
+		p.memoPutControlled(rule, pos, min, env, false, e)
 		return
 	}
 	t.put(rule, pos, min, env, e)
@@ -142,5 +144,48 @@ func TestMemoIndexStreamPrune(t *testing.T) {
 				t.Fatalf("entry %d at position %d lost by the prune", i, pos)
 			}
 		}
+	}
+}
+
+// TestDocOnlyLookupComparesByIdentity checks the lookup of a rule that only a Document parse memoizes: a
+// key whose string has the same bytes in other memory is a miss that compares nothing by content, and a
+// key with the same memory is a hit that costs a constant, whatever the length. The lookup of any other
+// rule finds the equal string, at a cost of the length.
+func TestDocOnlyLookupComparesByIdentity(t *testing.T) {
+	big := strings.Repeat("x", 1<<16)
+	clone := strings.Clone(big)
+	newParser := func() *Parser {
+		p := &Parser{}
+		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 40})
+		return p
+	}
+	cost := func(p *Parser, f func()) uint64 {
+		before := p.Control.budgetUsed()
+		f()
+		return p.Control.budgetUsed() - before
+	}
+	p := newParser()
+	e := p.memo.alloc()
+	p.memoPutControlled(1, 0, 0, []any{big}, true, e)
+	var got *memoEntry
+	if c := cost(p, func() { got = p.memoGetControlled(1, 0, 0, []any{big}, true) }); got != e || c > 64 {
+		t.Errorf("the same memory: entry %v at %d units, want the entry at a constant cost", got == e, c)
+	}
+	// The comparison of the same memory in the lookup of any other rule costs more than that of a value that
+	// is not a string, and the same whatever the length.
+	hit := func(key any) uint64 {
+		q := newParser()
+		q.memoPutControlled(1, 0, 0, []any{key}, false, q.memo.alloc())
+		return cost(q, func() { q.memoGetControlled(1, 0, 0, []any{key}, false) })
+	}
+	intCost, smallCost, bigCost := hit(int64(7)), hit("x"), hit(big)
+	if bigCost <= intCost || bigCost != smallCost {
+		t.Errorf("the same memory costs %d units for %d bytes, %d for one byte, %d for an integer; want a constant above the integer's", bigCost, len(big), smallCost, intCost)
+	}
+	if c := cost(p, func() { got = p.memoGetControlled(1, 0, 0, []any{clone}, true) }); got != nil || c > 64 {
+		t.Errorf("equal bytes in other memory: found %v at %d units, want a miss at a constant cost", got != nil, c)
+	}
+	if c := cost(p, func() { got = p.memoGetControlled(1, 0, 0, []any{clone}, false) }); got != e || c < uint64(len(big)) {
+		t.Errorf("a rule a fresh parse memoizes: found %v at %d units, want the entry at a cost of the length", got == e, c)
 	}
 }

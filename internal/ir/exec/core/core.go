@@ -125,7 +125,7 @@ func Build() *Module {
 		cs := b.LetN([]string{"c", "seed"}, C("ctx.enter", r, level))
 		c := cs[0]
 		b.If(C("ctx.found", cs[1]), func(b *Builder) { replay(b, cs[1], true, exit) })
-		b.LetN([]string{"e", "found"}, C("memo.lookup", id, L("start"), level, L("env")))
+		b.LetN([]string{"e", "found"}, C("memo.lookup", id, L("start"), level, L("env"), C("rule.docOnlyMemo", r)))
 		e := L("e")
 		reusable := And(And(L("found"), C("ctx.allows", c, e)), Bin("||", Not(C("memo.silent", e)), silent))
 		// After an edit, an entry is reused once its value is moved to its position.
@@ -195,7 +195,7 @@ func Build() *Module {
 				b.If(L("found"), func(b *Builder) { b.Do("memo.forgetDoc", L("e")) })
 			}
 			entry := b.Let("entry", C("memo.store", id, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent,
-				L("v"), C("rec.since", L("rec"))))
+				L("v"), C("rec.since", L("rec")), C("rule.docOnlyMemo", r)))
 			b.Do("memo.setPresent", entry, c)
 			b.Do("memo.setExpected", entry, L("far"), L("kept"))
 			inDocument(b, doc, func(b *Builder) {

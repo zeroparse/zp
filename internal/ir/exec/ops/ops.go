@@ -146,17 +146,23 @@ host's value equality.`)
 		return append(append([]exec.Param(nil), ps...), more...)
 	}
 
-	m.AddOp(&exec.Op{Name: "memo.lookup", Component: Memo, Params: key, Results: []exec.Type{entry, exec.TBool},
+	docOnly := exec.P("docOnly", exec.TBool)
+	m.AddOp(&exec.Op{Name: "memo.lookup", Component: Memo, Params: with(key, docOnly), Results: []exec.Type{entry, exec.TBool},
 		Reads: []string{Memo}, Cost: scan,
 		Contract: `Returns the entry stored under the key, if one is there and not replaced, and true;
 otherwise false and an entry that must not be used. Two keys are equal when their rules, positions
-and levels are equal and the host's value equality holds for their values.`,
+and levels are equal and the host's value equality holds for their values. A lookup with docOnly set,
+for a rule that only a Document memoizes, finds an entry only if the values of the key are the same
+values as those of the entry (the same bytes for a string), not merely equal, and finds none beyond
+the first entries of a long chain: a miss is always sound, since the rule is then evaluated.`,
 		Laws: []string{"two lookups with no write of memo between them return the same result"}})
-	m.AddOp(&exec.Op{Name: "memo.store", Component: Memo, Params: with(with(key, exec.P("ok", exec.TBool), exec.P("end", exec.TInt)), result...),
+	m.AddOp(&exec.Op{Name: "memo.store", Component: Memo, Params: with(with(with(key, exec.P("ok", exec.TBool), exec.P("end", exec.TInt)), result...), docOnly),
 		Results: []exec.Type{entry}, Reads: []string{Memo}, Writes: []string{Memo}, Cost: write,
 		Contract: `Stores a complete entry with the outcome ok, the end, whether it was computed in a silent
 context, its value and its recovered errors under the key, replacing the entry stored under the same
-key, and returns it. Entries under other keys are unchanged.`,
+key, and returns it. Entries under other keys are unchanged. With docOnly set, the key of a stored
+entry matches only the key of a lookup with the same values (see memo.lookup), so the store replaces
+the entry of the same values only.`,
 		Requires: `end is at least pos. The handle of the entry that the store replaces is not used after
 it: an implementation may reuse it for a later entry.`})
 	m.AddOp(&exec.Op{Name: "memo.prune", Component: Memo, Params: []exec.Param{exec.P("pos", exec.TInt)},

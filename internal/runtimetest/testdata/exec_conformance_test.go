@@ -241,13 +241,13 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 	switch o.Name {
 	case "memo.lookup":
 		rule, pos, level, env := key()
-		e := p.memoGet(rule, pos, level, env)
+		e := p.memoGet(rule, pos, level, env, false)
 		return []any{e, e != nil}
 	case "memo.store":
 		rule, pos, level, env := key()
 		e := p.memo.alloc()
 		*e = memoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
-		p.memoPut(rule, pos, level, env, e)
+		p.memoPut(rule, pos, level, env, false, e)
 		return []any{e}
 	case "memo.ok":
 		return []any{args[0].(*memoEntry).ok}
@@ -455,12 +455,12 @@ func (m *typedMachine) Call(o *exec.Op, args []any) (res []any) {
 	i := func(k int) int { return int(args[k].(int64)) }
 	switch o.Name {
 	case "memo.lookup":
-		e := p.memoGet(i(0), i(1), i(2), m.vals[args[3].(int64)])
+		e := p.memoGet(i(0), i(1), i(2), m.vals[args[3].(int64)], false)
 		return []any{e, e != nil}
 	case "memo.store":
 		e := p.memoSlab.one()
 		*e = tmemoEntry{ok: args[4].(bool), end: i(5), silent: args[6].(bool), errs: recoveredErrors(args[8])}
-		p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], e)
+		p.memoPut(i(0), i(1), i(2), m.vals[args[3].(int64)], false, e)
 		return []any{e}
 	case "memo.ok":
 		return []any{args[0].(*tmemoEntry).ok}
@@ -691,7 +691,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		}},
 		// A lookup that forgets the level, as a key without Min would.
 		"lookup ignores the level": {op: "memo.lookup", call: func(m *rtMachine, args []any) []any {
-			e := m.p.memoGet(int(args[0].(int64)), int(args[1].(int64)), 0, m.vals[args[3].(int64)])
+			e := m.p.memoGet(int(args[0].(int64)), int(args[1].(int64)), 0, m.vals[args[3].(int64)], false)
 			return []any{e, e != nil}
 		}},
 		// A prune that shifts the slots by one position too many: the entries at the floor are lost.
@@ -722,7 +722,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 			rule, pos, level, env := int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64)), m.vals[args[3].(int64)]
 			e := m.p.memo.alloc()
 			*e = memoEntry{ok: args[4].(bool), end: int(args[5].(int64)), silent: args[6].(bool)}
-			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, e)
+			m.p.memoPut(rule, max(pos, m.p.Stream.memoBase), level, env, false, e)
 			return []any{e}
 		}},
 		// A splice that reads an examined end of 0 as no record: it drops an entry at position 0 that
@@ -784,7 +784,7 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 					m.p.Spend()
 				}
 			}
-			e := m.p.memoGet(int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64)), m.vals[args[3].(int64)])
+			e := m.p.memoGet(int(args[0].(int64)), int(args[1].(int64)), int(args[2].(int64)), m.vals[args[3].(int64)], false)
 			return []any{e, e != nil}
 		}},
 	}

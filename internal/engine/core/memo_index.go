@@ -13,6 +13,15 @@ import "math"
 // position in the chain, one step each; only a store of an existing key does that.
 const memoScan = 32
 
+// docOnlyScan is how many entries of a position's chain a lookup of a rule that only a Document
+// parse memoizes (MemoKey.DocOnly) walks. It finds no entry beyond them and builds no hash index for
+// them: a miss is always sound, because the rule is then evaluated, and that evaluation counts as a
+// parse from scratch counts it. A lookup therefore costs at most docOnlyScan comparisons by
+// identity, a constant, and what a miss costs is bounded by the evaluation that replaces the hit.
+// Entries of the rule beyond the first docOnlyScan of a chain are evaluated again, and a store
+// that finds none of them adds a new entry in front.
+const docOnlyScan = memoScan
+
 // memoIndex finds the entry of a long chain by the hash of its key, in
 // constant time instead of by walking the chain. It is open addressing over a
 // Go map: the entry for a key lives at its hash or at the next free hash
