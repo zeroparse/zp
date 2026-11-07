@@ -502,13 +502,15 @@ func TestListImplPasses(t *testing.T) {
 // that wraps the one entry after the mark, which changes nothing else, fails for the lists that listing
 // the errors visits: the bound of Lemma 14 that the returned entry keeps. A list of three errors made of
 // an error and a list of two has the largest unrolled size that the bound allows, 5, so a list around
-// it fails the bound on the lists that rec.since returns.
+// it fails the bound on the lists that rec.since returns. A list left beside the entries after the
+// mark fails where the case first reads the mark after rec.since: the model has the error before the
+// mark and the one list, 2 entries, where the mutant still has the 3 errors.
 func TestListMutantsFail(t *testing.T) {
-	for _, mu := range []struct{ mut, want string }{
-		{"keep", ""},
-		{"copy", "more than the bound"},
-		{"wrap", "visits"},
-		{"wrap3", "errors of the list"},
+	for _, mu := range []struct{ mut, kase, want string }{
+		{"keep", "a list survives writes of the list", "result 0: model 2, implementation 3"},
+		{"copy", "", "more than the bound"},
+		{"wrap", "", "visits"},
+		{"wrap3", "", "errors of the list"},
 	} {
 		t.Run(mu.mut, func(t *testing.T) {
 			s := Suite{Name: mu.mut, Ops: allOps, New: func(c ref.Config) Impl { return &listImpl{modelImpl: modelImpl{ref.New(c)}, mut: mu.mut} }}
@@ -517,7 +519,7 @@ func TestListMutantsFail(t *testing.T) {
 				t.Fatal("no case detected the mutant")
 			}
 			t.Logf("failing case %s, call %d: %s", f.Case, f.Step, f.Msg)
-			if !strings.Contains(f.Msg, mu.want) {
+			if !strings.Contains(f.Msg, mu.want) || mu.kase != "" && f.Case != mu.kase {
 				t.Fatalf("failed for another reason than %q:\n%v", mu.want, f)
 			}
 		})
