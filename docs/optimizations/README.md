@@ -274,6 +274,7 @@ Records [025](025-discarding-separators-in-the-example-grammars.md) and [055](05
 - [132. Records of the walks of recovery skips](132-records-of-recovery-skip-walks.md)
 - [133. Run records of restarted repetitions](133-run-records-of-restarted-repetitions.md)
 - [134. Records of single-character scans](134-records-of-single-character-scans.md)
+- [135. Shared recovered-error lists](135-shared-recovered-error-lists.md)
 
 ## Experiments That Did Not Pay Off
 
