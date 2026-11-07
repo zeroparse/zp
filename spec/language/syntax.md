@@ -128,10 +128,6 @@ rule attr_paren = "(" (attr_paren / source_string / inline_comment / comment_lin
 rule item_sync = -comments (sync_ml / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
 rule field_sync = -comments (sync_ml / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
 
-// Completed literals, nested comments and groups do not end recovery.
-rule sync_token = string / char_class / inline_comment / comment_line / sync_paren / sync_brace
-rule sync_paren = "(" (sync_token / !("(" / ")" / nl) .)* ")"
-rule sync_brace = "{" (sync_token / !("{" / "}" / nl) .)* "}"
 // The recovery of an item skips the braces and parentheses that it opens, to their end on any later line,
 // so that the lines of a nested block are not taken for items.
 rule sync_ml = string / char_class / inline_comment / comment_line / sync_ml_paren / sync_ml_brace

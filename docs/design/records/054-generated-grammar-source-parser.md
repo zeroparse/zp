@@ -493,8 +493,8 @@ parse, so the bytes of an iteration depend on how many iterations run. With a
 memory profile of 300 iterations of `golang.zp`, the bytes allocated in the
 adapter's parse grow by 132 MB of 10,698 MB (+1.2%), of which 105 MB is in
 `MemoTable.Alloc`, 14 MB in the first call of a memoized rule and 3 MB in
-`MemoPut`; every other function allocates the same. The grammar has 264 rules
-instead of 252. The growth is in the memo entries, which more memoized rules
+`MemoPut`; every other function allocates the same. The measured grammar has 264
+rules instead of 252. The growth is in the memo entries, which more memoized rules
 and the added lookaheads make; which of the two causes it is was not
 measured.
 
