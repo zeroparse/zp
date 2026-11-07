@@ -34,7 +34,9 @@ type SourceError struct {
 // ":=" or "=>", which the grammar reads as two characters. The token is found in
 // the token table of the lexer, so the text of a comment is never read again.
 // The failure of the grammar at the end of an unterminated string or class is not reported: it is that
-// lexical error, which is. The list is capped and de-duplicated as the hand-written parser's is.
+// lexical error, which is. Nor is the failure at the start of the declaration after an
+// unterminated string or class, if no declaration starts between them: the literal swallowed the closing
+// bracket of a group, and the hand-written parser ends the group there without another error. The list is capped and de-duplicated as the hand-written parser's is.
 //
 // The lexer skips the characters that start no token and goes on, so the
 // hand-written parser reads the rest of the source as if they were not there.
@@ -84,6 +86,42 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 			}
 		}
 	}
+	// lineStart reports whether span i is the first token of its line.
+	lineStart := func(i int) bool {
+		for j := spans[i].start - 1; j >= 0 && rs[j] != '\n'; j-- {
+			if rs[j] != ' ' && rs[j] != '\t' && rs[j] != '\r' {
+				return false
+			}
+		}
+		return true
+	}
+	keyword := func(i int) bool {
+		if spans[i].kind != tIdent || !lineStart(i) {
+			return false
+		}
+		switch string(rs[spans[i].start:spans[i].end]) {
+		case "rule", "type", "var":
+			return true
+		}
+		return false
+	}
+	// swallowed reports whether the grammar fails at span i, the start of a declaration, because an
+	// unterminated string or class swallowed the closing bracket of a group in the declaration before it. The
+	// lexical error is the report of that declaration, and the hand-written parser ends the group at the
+	// declaration without another.
+	swallowed := func(i int) bool {
+		if !lineStart(i) || !keyword(i) && rs[spans[i].start] != '@' {
+			return false
+		}
+		from := 0
+		for j := i - 1; j >= 0; j-- {
+			if keyword(j) {
+				from = spans[j].start
+				break
+			}
+		}
+		return slices.ContainsFunc(open, func(r [2]int) bool { return r[0] > from && r[1] <= spans[i].start })
+	}
 	for _, e := range errs {
 		if slices.ContainsFunc(open, func(r [2]int) bool { return r[0] <= e.Offset && e.Offset <= r[1] }) {
 			continue
@@ -95,9 +133,15 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 		k := sort.Search(len(spans), func(i int) bool { return spans[i].end > e.Offset })
 		switch {
 		case k < len(spans) && e.Offset < spans[k].start:
+			if swallowed(k) {
+				continue
+			}
 			at = spans[k].pos
 		case k < len(spans):
 			if spans[k].kind != tString && spans[k].kind != tCharClass {
+				if swallowed(k) && e.Offset == spans[k].start {
+					continue
+				}
 				at = spans[k].pos
 			}
 		case unterminated >= 0:

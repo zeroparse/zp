@@ -224,8 +224,10 @@ func TestKeywordFormsAreNotDeclarations(t *testing.T) {
 }
 
 // TestUnterminatedLiteralIsOneError requires an unterminated string or class to be one error, the lexical
-// one, and the declaration after it, which is valid, to have none: the grammar fails at the end of the
-// literal, which is the same error.
+// one, and the declaration after it, which is valid, to have none. The grammar fails at the end of the
+// literal, which is the same error; or, if the literal holds an opening bracket that no later line closes,
+// or swallows the closing bracket of its group, at the declaration after it, where the hand-written parser
+// reports nothing more.
 func TestUnterminatedLiteralIsOneError(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	for _, src := range []string{
@@ -235,6 +237,21 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 		"type T = {\n A string\n B int // \"\n}\nrule a = \"x\nrule b = \"y\"\n",
 		"rule a = \"x\r\nrule b = \"y\"\r\n",
 		"rule a = \"x",
+		// An opening bracket in the literal opens a group that only the next declaration ends.
+		"rule a0 = {\n var != \"={\n}\nrule a1 = b\n",
+		"rule a0 = x:\"a\" {\n var != \"={\n}\nrule a1 = b\n",
+		"rule a0 = {\n \"={\n}\nrule a1 = b\n",
+		"rule a0 = b {\n x != \"={\n}\nrule a1 = b\n",
+		"rule a0 = {\n var != [={\n}\nrule a1 = b\n",
+		"rule a0 = {\n [x{\n}\nrule a1 = b\n",
+		"type T = {\n A \"{\n}\nrule a1 = b\n",
+		"rule a = #operators {\n skip \"{\n}\nrule a1 = b\n",
+		// The literal swallows the closing bracket: the group ends at the next declaration, silently.
+		"type T = { A \"x }\nrule b = c\n",
+		"type T = { A int; B \"x }\nrule b = c\n",
+		"type T = { A \"x\nrule b = c\n",
+		"type T = { A [x }\nrule b = c\n",
+		"rule a = {\n x \"}\nrule b = c\n",
 	} {
 		_, merr := zp.ParseGrammar(src)
 		_, err := adaptCanonical(p, src)
