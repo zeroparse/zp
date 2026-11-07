@@ -23,8 +23,8 @@ shape.
 
 ## Reference Control
 
-Private generation option `disableLiteralTextDispatch` emits the general
-predicate from the same generator. It adds no runtime selector or public option.
+The generation option `-no-opt text-dispatch` emits the general
+predicate from the same generator. It adds no runtime selector to the generated parser.
 
 ## Evidence and Implementation
 

@@ -97,7 +97,7 @@ records the same expectation when it stops.
 
 The order passes run in, which are enabled for a target, and how they are configured are decisions of the generator;
 [record 063](records/063-configurable-optimization-pass-pipeline.md) is the design of the pass pipeline: declared passes,
-presets and a flag per optimization.
+profiles and a flag per optimization.
 
 ### A Worked Example
 
@@ -211,5 +211,5 @@ more of them move onto Core IR; the generator code and record 062 are the curren
 
 - [Architecture](architecture.md): the stages around these representations.
 - [Record 062](records/062-backend-independent-optimization-ir.md): why the representations exist and the rewrites with their obligations.
-- [Record 063](records/063-configurable-optimization-pass-pipeline.md): the pass pipeline, its presets and per-optimization flags.
+- [Record 063](records/063-configurable-optimization-pass-pipeline.md): the pass pipeline, its profiles and per-optimization flags.
 - [Optimization catalog](../optimizations/README.md): measured mechanisms.

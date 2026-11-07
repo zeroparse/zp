@@ -10,8 +10,8 @@ computed once, duplicate literals collapse to one case, and the switch returns
 true for a matching literal and false otherwise.
 
 The specialization applies to generated Go Node and typed outputs and generated
-TypeScript. It is selected during generation through the private
-`disableLiteralTextDispatch` reference control. Generated parsers contain no
+TypeScript. It is selected during generation through the
+`-no-opt text-dispatch` reference control. Generated parsers contain no
 runtime optimization selector or public option. Other predicate shapes retain
 general expression evaluation. Mixed expressions, different captures,
 bindings, and alias-based comparisons do not qualify, preserving the
