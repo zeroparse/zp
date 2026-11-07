@@ -514,11 +514,23 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 		return
 	}
 	if !build && !stream { // value-free repetition of a single character (same as Walker.scanRepeat)
+		site := int32(0)
+		if int64(e.Min) <= 1<<31-1 {
+			site = int32(c.prog.ScanSite(e))
+		}
 		switch x := e.Expr.(type) {
 		case *grammar.CharClass:
+			if site != 0 {
+				c.emit(bytecode.OpScanSite, c.class(x), int32(e.Min), site)
+				return
+			}
 			c.repetition(bytecode.OpScan, e.Min, e.Max, c.class(x))
 			return
 		case *grammar.Any:
+			if site != 0 {
+				c.emit(bytecode.OpScanSite, -1, int32(e.Min), site)
+				return
+			}
 			c.repetition(bytecode.OpScan, e.Min, e.Max, -1)
 			return
 		}
@@ -540,6 +552,10 @@ func (c *bcompiler) repeat(e *grammar.Repeat, s *Scope, build, stream bool) {
 		if run = int32(c.prog.RunSite(e)); run != 0 {
 			runBuild = b2i(build) | b2i(c.prog.EnvFree(int(run)))<<1
 		}
+	}
+	if scan := c.prog.ScanSite(e); scan != 0 && !stream && run == 0 && sc < 0 {
+		// A scan site (as Walker.plainRepeat): its walks list their elements if they build values.
+		runBuild, run = 4|b2i(build), int32(scan)+b2i(build)
 	}
 	iter := c.emit(bytecode.OpIter, 0, runBuild, run)
 	if build {

@@ -117,6 +117,9 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 	case OpAssert:
 		return []string{"begin-input", "end-input", "begin-line", "end-line"}[a]
 	case OpIter:
+		if c > 0 && bb&4 != 0 {
+			return fmt.Sprintf("-> %d scan=%d build=%d", a, c, bb&1)
+		}
 		if c > 0 {
 			return fmt.Sprintf("-> %d run=%d build=%d%s", a, c, bb&1, envFreeNote(bb))
 		}
@@ -143,6 +146,12 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 			cl = str(m.Classes[a].Desc)
 		}
 		return fmt.Sprintf("%s min=%d max=%d", cl, bb, c)
+	case OpScanSite:
+		cl := "any"
+		if a >= 0 {
+			cl = str(m.Classes[a].Desc)
+		}
+		return fmt.Sprintf("%s min=%d site=%d", cl, bb, c)
 	case OpRepeat, OpRepeatWide:
 		if in.Op == OpRepeatWide {
 			a, bb = int(m.Exprs[a].Integer()), int(m.Exprs[bb].Integer())

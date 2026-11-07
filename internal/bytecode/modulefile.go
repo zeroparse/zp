@@ -427,11 +427,18 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		case OpFail, OpCut, OpPushPos, OpPushNil, OpEndLabel, OpReturn, OpEnd:
 		case OpIter:
 			forward(ip, x.A, n)
-			flag(x.B, 3)
+			flag(x.B, 7)
 			if x.C == 0 && x.B != 0 {
 				fail("run site flags %d without a run site", x.B)
 			}
-			if x.C < 0 || int(x.C) > n {
+			if x.B&4 != 0 && x.B&2 != 0 {
+				fail("scan site with the flags %d of a run site", x.B)
+			}
+			if x.B&4 != 0 {
+				if x.C < 1 || x.C > scanSiteLimit(n) {
+					fail("invalid scan site %d", x.C)
+				}
+			} else if x.C < 0 || int(x.C) > n {
 				fail("invalid run site %d", x.C)
 			}
 		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover:
@@ -507,6 +514,12 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		case OpScanWide:
 			opt("class", int(x.A), len(m.Classes))
 			wideBounds(x.B, x.C)
+		case OpScanSite:
+			opt("class", int(x.A), len(m.Classes))
+			nonneg(x.B)
+			if x.C < 1 || x.C > scanSiteLimit(n) {
+				fail("invalid scan site %d", x.C)
+			}
 		default:
 			fail("invalid instruction %d at %d", x.Op, ip)
 		}
@@ -598,3 +611,8 @@ func ValidateStreamRecovery(code []Instr) error {
 	}
 	return nil
 }
+
+// scanSiteLimit is the largest scan site number that code of n instructions can name: the sites of
+// the skip runs and run sites come first, at most one for each instruction, and then two for each
+// scan site.
+func scanSiteLimit(n int) int32 { return int32(min(3*n+2, 1<<30)) }

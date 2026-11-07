@@ -226,8 +226,9 @@ const (
 	// scope (-1 if none). When building values, the start position is pushed with PUSHPOS just
 	// before.
 	OpRepeat
-	// ITER l: go to l if the repetition has reached its finite maximum; otherwise push an entry
-	// for one iteration. On failure, restore the state and go to l.
+	// ITER l, f, s: go to l if the repetition has reached its finite maximum; otherwise push an
+	// entry for one iteration. On failure, restore the state and go to l. If bit 2 of f is set, s
+	// is the scan site of the repetition instead of a run site.
 	OpIter
 	// NEXT l, f, s: commit one iteration and go to l if the repetition can continue. f is 1 to keep
 	// the value, 2 to pass it to the stream, 0 to discard it, and 3 to push the value of slot s of
@@ -292,6 +293,10 @@ const (
 	// elements, ITER reuses the record of the current position and goes to its l. If w is 1, min
 	// is stored in the EINT instruction A of Exprs.
 	OpSkipRepeat
+	// SCANSITE c, min, s: SCAN with an unbounded maximum for the scan site s (from 1) of a pure
+	// rule. After its first characters it takes the rest of the walk from the record of the walk's
+	// start if there is one, and records the walk if not.
+	OpScanSite
 )
 
 // Expression instructions
@@ -384,7 +389,7 @@ var opNames = map[Op]string{
 	OpCall: "CALL", OpOperatorsRule: "OPERATORS_RULE", OpPred: "PRED", OpBind: "BIND", OpLabel: "LABEL",
 	OpEndLabel: "ENDLABEL", OpRecover: "RECOVER", OpEndRecover: "ENDRECOVER", OpEndSkip: "ENDSKIP",
 	OpReturn: "RETURN", OpEnd: "END", OpScan: "SCAN", OpGuard: "GUARD",
-	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT",
+	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT", OpScanSite: "SCANSITE",
 	EInt: "EINT", EStr: "ESTR", EBool: "EBOOL", ENil: "ENIL", ECap: "ECAP", EItem: "EITEM",
 	ELocal: "ELOCAL", EVar: "EVAR", EMember: "EMEMBER", ENew: "ENEW", EBin: "EBIN", EUnary: "EUNARY",
 	EAnd: "EAND", EOr: "EOR", EBoolChk: "EBOOLCHK", EFunc: "EFUNC", ECall: "ECALL", ERet: "ERET",
@@ -403,4 +408,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 31
+const ISAVersion = 32
