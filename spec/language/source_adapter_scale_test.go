@@ -46,20 +46,34 @@ func bestTime(run func()) time.Duration {
 }
 
 // scaleFactor is how many times larger the big source is than the small one.
-const scaleFactor = 8
+const (
+	scaleFactor   = 8
+	scaleFloor    = 20 * time.Millisecond
+	scaleMaxSmall = 64000
+)
 
 // scalesLinearly measures the work at a size and at scaleFactor times that size, and reports the ratio of
 // the two times. The work is linear if the ratio is about scaleFactor and quadratic if it is about its
-// square, so a ratio over 24 with a big time over 20ms is a growth that is not linear. Other work on the
-// machine slows a run, so the best of a few attempts counts: a quadratic time fails every attempt.
+// square, so a ratio over 24 is a growth that is not linear. A time of a few milliseconds is mostly
+// noise, so the sizes double until the time of the big size is over scaleFloor, as far as scaleMaxSmall;
+// a family that stays under the floor there is reported as such and passes. Other work on the machine
+// slows a run, so the best of a few attempts counts: a quadratic time fails every attempt.
 func scalesLinearly(t *testing.T, small int, measure func(n int) time.Duration) (ratio float64, ok bool) {
 	t.Helper()
 	const attempts = 3
 	for attempt := 0; attempt < attempts; attempt++ {
 		a, b := measure(small), measure(small*scaleFactor)
+		for b <= scaleFloor && small < scaleMaxSmall {
+			small *= 2
+			a, b = measure(small), measure(small*scaleFactor)
+		}
 		ratio = float64(b) / float64(max(a, time.Microsecond))
 		t.Logf("%d: %v, %d: %v, ratio %.1f", small, a, small*scaleFactor, b, ratio)
-		if ratio <= 24 || b <= 20*time.Millisecond {
+		if b <= scaleFloor {
+			t.Logf("the time of the big size is under %v at the largest size: nothing is measured", scaleFloor)
+			return ratio, true
+		}
+		if ratio <= 24 {
 			return ratio, true
 		}
 	}
