@@ -106,7 +106,7 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 
 | ID | Mechanism | Path scope | C | RVM | IVM | Go Node / Recognize | Typed Go | TS | Default state | Same-source control |
 |:--|:--|:--|:-:|:-:|:-:|:-:|:-:|:-:|:--|:--|
-| [G010](mechanisms/G010-generated-helper-sharing.md) | Share exact generated helper bodies | GN/TG/TS default; literals independent | — | — | — | ✓ | ✓ | ✓ | Default | GenOptions.DisableMethodSharing |
+| [G010](mechanisms/G010-generated-helper-sharing.md) | Share exact generated helper bodies | GN/TG/TS default; literals independent | — | — | — | ✓ | ✓ | ✓ | Default | `-no-opt method-sharing` |
 | [G020](mechanisms/G020-lazy-backend-preparation.md) | Lazy one-time setup of optional engine recognizer/VM backends | First-use engine setup; closure recognition only, ordinary closure graph is eager | Partial | Partial | Partial | — | — | — | Default on demand | None maintained |
 | [G030](mechanisms/G030-constructor-dependency-analysis.md) | Sample constructor dependency propagation | Shared sampling analysis, runtime cells N/A | — | — | — | — | — | — | Default setup path | None maintained |
 | [G040](mechanisms/G040-copy-on-change-attribute-normalization.md) | Reuse unchanged AST paths during attribute normalization | Shared compile/generation preprocessing only, not runtime matching | — | — | — | — | — | — | Default setup path | Compile Options.EagerAttributeCopies |
@@ -120,7 +120,7 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 | [G110](mechanisms/G110-one-pass-code-point-preparation.md) | Decode/validate/build offsets in one pass | CodePoints input preparation; GN/TG eager, core recognition lazy, TypeScript uses its own decoder | Partial | Partial | Partial | Partial | Partial | Partial | Default by input path | None maintained |
 | [G120](mechanisms/G120-lsp-position-checkpoints.md) | LSP UTF-16/code-point checkpoints | Editor preprocessing only; backend cells N/A | — | — | — | — | — | — | Default editor path | None maintained |
 | [G125](mechanisms/G125-bounded-diagnostic-prefixes.md) | Bound displayed lint expression prefixes | CLI/LSP lint diagnostics only; runtime backend cells N/A | — | — | — | — | — | — | Default lint path | None maintained |
-| [G130](mechanisms/G130-generated-literal-sharing.md) | Share generated literal tables | GN/TG default; TS experimental/private off | — | — | — | ✓ | ✓ | Private off | Go default; TS off | GenOptions.DisableLiteralSharing; EnableTSLiteralSharing (off) |
+| [G130](mechanisms/G130-generated-literal-sharing.md) | Share generated literal tables | GN/TG default; TS experimental/private off | — | — | — | ✓ | ✓ | Private off | Go default; TS off | `-no-opt literal-sharing`; TS opt-in `ts-literal-sharing` (off) |
 | [G140](mechanisms/G140-typed-local-cuts.md) | Local cuts in ordinary direct typed rules | TG default eligible | — | — | — | — | Partial | — | Default | None maintained |
 | [G150](mechanisms/G150-typed-left-recursion-bodies.md) | Inline typed LR leader bodies | TG default eligible | — | — | — | — | Partial | — | Default | None maintained |
 | [G160](mechanisms/G160-typed-operators-line-bodies.md) | Inline typed Operators Rule line bodies | TG default eligible | — | — | — | — | Partial | — | Default | None maintained |

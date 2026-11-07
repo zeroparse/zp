@@ -23,5 +23,5 @@ func testGeneratedSharingLocalLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	gentest.GeneratedParsersCorpus(t, goBin, []gentest.Case{c}, gen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLocalLayoutCases[:5], gen.GenOptions{DisableMethodSharing: true, DisableLiteralSharing: true})
+	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLocalLayoutCases[:5], gen.GenOptions{NoOpt: []string{"method-sharing", "literal-sharing"}})
 }

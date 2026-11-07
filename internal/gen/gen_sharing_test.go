@@ -78,23 +78,23 @@ rule a = ("é" / "ab")+ #atomic`)
 				t.Fatal("generation must be deterministic")
 			}
 			if generate.name == "TypeScript" {
-				opts.DisableLiteralSharing = true
+				opts.NoOpt = []string{"literal-sharing"}
 				ref, err := generate.fn(opts)
 				if err != nil || !bytes.Equal(first, ref) {
 					t.Fatal("production TypeScript must leave literal tables unshared")
 				}
-				opts.EnableTSLiteralSharing = true
+				opts.Set = map[string]int{"ts-literal-sharing": 1}
 				ref, err = generate.fn(opts)
 				if err != nil || !bytes.Equal(first, ref) {
 					t.Fatal("explicit literal-sharing disable must override the experiment")
 				}
-				opts.DisableLiteralSharing = false
+				opts.NoOpt = nil
 				experiment, err := generate.fn(opts)
 				if err != nil || len(experiment) >= len(first) {
 					t.Fatal("fixture must exercise experimental literal sharing")
 				}
 			}
-			opts.DisableMethodSharing, opts.DisableLiteralSharing = true, true
+			opts.NoOpt = []string{"method-sharing", "literal-sharing"}
 			ref, err := generate.fn(opts)
 			if err != nil {
 				t.Fatal(err)
@@ -113,9 +113,10 @@ rule a = ("é" / "ab")+ #atomic`)
 func BenchmarkGeneratedSharing(b *testing.B) {
 	opts := gen.GenOptions{Package: "shared", Start: "main", Types: true, Recognize: true}
 	mode := os.Getenv("ZP_GENERATED_SHARING")
-	opts.DisableMethodSharing = mode == "methods" || mode == "both"
-	opts.DisableLiteralSharing = mode == "literals" || mode == "both"
-	opts.EnableTSLiteralSharing = mode == "combined" || mode == "methods" || mode == "literals" || mode == "both"
+	opts.NoOpt = sharingNoOpt(mode)
+	if mode == "combined" || mode == "methods" || mode == "literals" || mode == "both" {
+		opts.Set = map[string]int{"ts-literal-sharing": 1}
+	}
 	for _, name := range []string{"json", "typescript", "duckdb"} {
 		src, err := os.ReadFile(filepath.Join("../../testdata/grammars", name, name+".zp"))
 		if err != nil {
@@ -153,4 +154,17 @@ func BenchmarkGeneratedSharing(b *testing.B) {
 			})
 		}
 	}
+}
+
+// sharingNoOpt returns the optimizations that the mode of the sharing controls turns off: methods
+// leaves method sharing off, literals leaves literal sharing off, and both leaves both.
+func sharingNoOpt(mode string) []string {
+	var off []string
+	if mode == "methods" || mode == "both" {
+		off = append(off, "method-sharing")
+	}
+	if mode == "literals" || mode == "both" {
+		off = append(off, "literal-sharing")
+	}
+	return off
 }

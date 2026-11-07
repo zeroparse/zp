@@ -59,8 +59,11 @@ var Flags = []Flag{
 	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
 	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
 	{Name: core.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
-	{Name: "class-tables", Kind: Lowering, Default: 1, Doc: "match a class of many ranges through a membership table (lean typed Go)"},
+	{Name: "class-tables", Kind: Lowering, Int: true, Default: 5, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); 0 turns it off"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
+	{Name: "method-sharing", Kind: Lowering, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
+	{Name: "literal-sharing", Kind: Lowering, Default: 1, Doc: "emit one table for equal literals (Go; TypeScript also needs ts-literal-sharing)"},
+	{Name: "ts-literal-sharing", Kind: Lowering, Default: 0, Doc: "share literal tables in TypeScript parsers; off because a small cold parse measured about 1.5 times slower (design 090)"},
 	{Name: "typed-object-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed objects in slabs (typed Go)"},
 	{Name: "typed-list-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed lists in slabs (typed Go)"},
 	{Name: "typed-output-bootstrap", Kind: Runtime, Default: 1, Doc: "size the first slab of the typed output from the input (typed Go)"},
@@ -105,6 +108,26 @@ func (s Settings) Value(name string) int {
 		return v
 	}
 	return f.Default
+}
+
+// With returns the settings with the optimization set to the value: 0 or 1, or the parameter of an
+// integer flag. Profiles use it to turn on optimizations that the speed profile leaves off; a request
+// to the generator only removes (Without). An unknown name, or a value that the flag does not take, is
+// an error.
+func (s Settings) With(name string, value int) (Settings, error) {
+	f, ok := lookup(name)
+	if !ok {
+		return Settings{}, fmt.Errorf("unknown optimization %q (valid: %s)", name, strings.Join(Names(), ", "))
+	}
+	if value < 0 || !f.Int && value > 1 {
+		return Settings{}, fmt.Errorf("optimization %s does not take the value %d", name, value)
+	}
+	out := Settings{over: map[string]int{}}
+	for k, v := range s.over {
+		out.over[k] = v
+	}
+	out.over[name] = value
+	return out, nil
 }
 
 // Without returns the settings with the named optimizations off. An unknown name is an error that

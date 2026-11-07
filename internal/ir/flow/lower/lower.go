@@ -41,9 +41,9 @@ type Options struct {
 	// Recovers reports that the module can append recovered errors (Recovers), so backtracking
 	// points save their number.
 	Recovers bool
-	// ClassTables matches a class of more than four ranges through its membership table. It needs
-	// Budget off: a table match charges no budget for the input.
-	ClassTables bool
+	// ClassTableRanges, if positive, matches a class of at least that many ranges through its
+	// membership table. It needs Budget off: a table match charges no budget for the input.
+	ClassTableRanges int
 	// GuardedClasses keeps the size of the character a choice's guards read, for the classes
 	// that begin alternatives marked GuardedClass, which only consume it. It needs Budget off: the
 	// consuming advance charges no budget for the input.
@@ -181,8 +181,8 @@ func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot
 
 // checkOptions rejects the options that lower without work only.
 func checkOptions(opts Options) error {
-	if opts.Budget && (opts.ClassTables || opts.GuardedClasses) {
-		return fmt.Errorf("ClassTables and GuardedClasses lower functions without budget controls, but Options.Budget is set")
+	if opts.Budget && (opts.ClassTableRanges > 0 || opts.GuardedClasses) {
+		return fmt.Errorf("ClassTableRanges and GuardedClasses lower functions without budget controls, but Options.Budget is set")
 	}
 	return nil
 }
@@ -493,7 +493,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		if n == l.guarded {
 			return l.guardedClass(build)
 		}
-		if l.opts.ClassTables && len(n.Class.Ranges) > 4 {
+		if l.opts.ClassTableRanges > 0 && len(n.Class.Ranges) >= l.opts.ClassTableRanges {
 			if !build {
 				l.failIf(nil, &flow.Not{X: &flow.MatchClass{Class: n.Class}}, fail)
 				return &flow.Nil{}

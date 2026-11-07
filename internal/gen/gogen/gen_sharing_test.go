@@ -18,7 +18,7 @@ func testGeneratedUnsharedParsersMatchEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	opts := gen.GenOptions{DisableMethodSharing: true, DisableLiteralSharing: true}
+	opts := gen.GenOptions{NoOpt: []string{"method-sharing", "literal-sharing"}}
 	gentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), gentest.Representative(gentest.GenCorpus(t)), opts)
 	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), gentest.Representative(gentest.GenCorpus(t)), opts)
 }

@@ -282,8 +282,11 @@ The names are the following, and an unknown name in `-no-opt` is an error that l
 | `guarded-classes` | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers) |
 | `scans` | A value-free repetition of a class or of any character runs as a scan |
 | `class-runs` | Consecutive classes of a value-free sequence run as one (lean typed Go) |
-| `class-tables` | Match a class of many ranges through a membership table (lean typed Go) |
-| `inline-literals` | Compare literals of at most four code points in place first |
+| `class-tables` | Match a class of at least five ranges through a membership table (lean typed Go); the number is the minimum count of ranges, and 0 turns the tables off |
+| `inline-literals` | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off |
+| `method-sharing` | Emit one helper for generated bodies that are exactly equal (Go and TypeScript) |
+| `literal-sharing` | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`) |
+| `ts-literal-sharing` | Share literal tables in TypeScript parsers. It is off, because a small cold parse measured about 1.5 times slower; nothing in `-no-opt` can turn it on |
 | `typed-object-slabs` | Allocate typed objects in slabs (typed Go) |
 | `typed-list-slabs` | Allocate typed lists in slabs (typed Go) |
 | `typed-output-bootstrap` | Size the first slab of the typed output from the input (typed Go) |

@@ -131,21 +131,21 @@ func TestVerifyBudgetCharges(t *testing.T) {
 // TestLowerRejectsBudgetWithLeanClasses checks that the class options that charge no spend for the input
 // cannot be combined with Options.Budget.
 func TestLowerRejectsBudgetWithLeanClasses(t *testing.T) {
-	for _, opts := range []Options{{Budget: true, ClassTables: true}, {Budget: true, GuardedClasses: true}} {
+	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
 		m, r := valueFree(&core.Lit{Text: "a"})
 		if _, err := Lower(m, r, "r", opts); err == nil {
 			t.Errorf("Lower accepted %+v", opts)
 		}
 	}
 	m, r := valueFree(&core.Lit{Text: "a"})
-	if _, err := Lower(m, r, "r", Options{ClassTables: true, GuardedClasses: true}); err != nil {
+	if _, err := Lower(m, r, "r", Options{ClassTableRanges: 5, GuardedClasses: true}); err != nil {
 		t.Error(err)
 	}
 }
 
 // TestLowerFrameRejectsBudgetWithLeanClasses is the same check for the framed lowering.
 func TestLowerFrameRejectsBudgetWithLeanClasses(t *testing.T) {
-	for _, opts := range []Options{{Budget: true, ClassTables: true}, {Budget: true, GuardedClasses: true}} {
+	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
 		m, r := valueFree(&core.Lit{Text: "a"})
 		for name, lower := range map[string]func() (*flow.Func, error){
 			"LowerFrame": func() (*flow.Func, error) { return LowerFrame(m, r, r.Body, nil, false, "r", opts) },

@@ -49,9 +49,10 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 			var want, wantTS string
 			for _, mode := range []string{"default", "combined", "methods", "literals", "both"} {
 				opts := gen.GenOptions{Package: "sharingfixture", Start: "main", Types: true, Recognize: true,
-					DisableMethodSharing:   mode == "methods" || mode == "both",
-					DisableLiteralSharing:  mode == "literals" || mode == "both",
-					EnableTSLiteralSharing: mode != "default"}
+					NoOpt: sharingNoOpt(mode)}
+				if mode != "default" {
+					opts.Set = map[string]int{"ts-literal-sharing": 1}
+				}
 				code, err := gentest.GenerateCode(t, g, opts)
 				if err != nil {
 					t.Fatal(err)

@@ -1,6 +1,7 @@
 package gogen_test
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -66,6 +67,9 @@ var optimizationTests = map[string]string{
 	"class-runs":             "",
 	"class-tables":           "",
 	"inline-literals":        "",
+	"method-sharing":         "TestGeneratedUnsharedParsersMatchEngine",
+	"literal-sharing":        "TestGeneratedUnsharedParsersMatchEngine",
+	"ts-literal-sharing":     "TestGeneratedSharingIdentity (internal/gen)",
 	"typed-object-slabs":     "TestGeneratedTypedOutputRetentionFixture",
 	"typed-list-slabs":       "TestGeneratedTypedOutputRetentionFixture",
 	"typed-output-bootstrap": "TestGeneratedTypedOutputRetentionFixture",
@@ -149,6 +153,30 @@ func TestOptimizationDisabledParity(t *testing.T) {
 			}
 			gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, off(f.Name), 0)
 		})
+	}
+}
+
+// TestIntegerOptimizationValuesParity compares parsers generated with other values of the optimizations
+// that take a count with the engine: any value is correct, and a profile may pick it.
+func TestIntegerOptimizationValuesParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	cases := optimizationCases()
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, f := range genopt.Flags {
+		if !f.Int {
+			continue
+		}
+		for _, v := range []int{1, 2, 3, 8} {
+			if v == f.Default {
+				continue
+			}
+			t.Run(fmt.Sprintf("%s=%d", f.Name, v), func(t *testing.T) {
+				opts := off()
+				opts.Set = map[string]int{f.Name: v}
+				gentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
+			})
+		}
 	}
 }
 
