@@ -216,9 +216,10 @@ call of the parse before, so the edits between two parses cost at most 128 times
 before, whatever their number, and a sequence of an edit, a parse, an edit and a parse costs per round
 what its parse costs plus that bound. The number 128 is where reuse stops paying when the edits are
 spread over the whole text; it is a constant of the implementation, which the operations of
-`internal/ir/exec/ops` define once. The two forms differ in the statistics alone: after more than 128
-edits the engine still reuses the entries that no more than 128 edits behind, where a generated parser
-reuses none (`Reused` is lower for it), and the results are the same.
+`internal/ir/exec/ops` define once. The two forms differ in the statistics alone: the engine
+counts the lag of each entry from the parse that stored it or last found it, and a generated parser
+counts the edits since the last parse for the whole memo, so either may reuse entries that the other
+treats as absent (`Reused` differs), and the results are the same.
 
 A result that read the growing result of a left recursion in progress when it
 started depends on that growth, not only on the text. A parse keeps it only

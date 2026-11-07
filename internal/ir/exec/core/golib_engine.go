@@ -371,6 +371,8 @@ func engineTarget() *execgo.Target {
 			return "p.FreeBegin(" + a[0] + ")"
 		case "budget.freeEnd":
 			return "p.FreeEnd(" + a[0] + ")"
+		case "rule.docOnlyMemo":
+			return "p.docOnlyMemo(" + a[0] + ")"
 		case "rule.docPlain":
 			return a[0] + ".Plain"
 		case "call.tracked":
