@@ -3,6 +3,7 @@ package language_test
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"testing"
 
@@ -252,6 +253,8 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 		"type T = { A \"x\nrule b = c\n",
 		"type T = { A [x }\nrule b = c\n",
 		"rule a = {\n x \"}\nrule b = c\n",
+		// An indented line with a keyword in the group is not a declaration.
+		"rule a0 = {\n var != \"={\n var != \"=\"\n}\nrule a1 = x:\"a\" {\n type := \"=\"\n}\n",
 	} {
 		_, merr := zp.ParseGrammar(src)
 		_, err := adaptCanonical(p, src)
@@ -261,6 +264,28 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 		h, g := errorsOf(src, merr), errorsOf(src, err)
 		if len(g) != 1 || len(h) != 1 || g[0].off != h[0].off {
 			t.Errorf("%q: want the one error of the reference\n  hand-written: %v\n  canonical:    %v", src, merr, err)
+		}
+	}
+}
+
+// TestUnterminatedLiteralKeepsTheNextError requires an error that is the report of the declaration after an
+// unterminated literal to stay: a failure at an attribute without a name is not the closing bracket that
+// the literal swallowed.
+func TestUnterminatedLiteralKeepsTheNextError(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	for _, src := range []string{
+		"rule a = \"x\n@\nrule b = c\n",
+		"rule a = [x\n@\nrule b = c\n",
+		"type T = { A \"x\n@\nrule b = c\n",
+	} {
+		_, merr := zp.ParseGrammar(src)
+		_, err := adaptCanonical(p, src)
+		if merr == nil || err == nil {
+			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
+		}
+		h, g := sortedOffsets(errorsOf(src, merr)), sortedOffsets(errorsOf(src, err))
+		if !slices.Equal(h, g) || len(h) != 2 {
+			t.Errorf("%q: want the two errors of the reference\n  hand-written: %v\n  canonical:    %v", src, merr, err)
 		}
 	}
 }

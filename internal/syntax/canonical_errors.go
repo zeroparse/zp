@@ -34,8 +34,8 @@ type SourceError struct {
 // ":=" or "=>", which the grammar reads as two characters. The token is found in
 // the token table of the lexer, so the text of a comment is never read again.
 // The failure of the grammar at the end of an unterminated string or class is not reported: it is that
-// lexical error, which is. Nor is the failure at the start of the declaration after an
-// unterminated string or class, if no declaration starts between them: the literal swallowed the closing
+// lexical error, which is. Nor is the failure exactly at the start of the declaration after an
+// unterminated string or class (a line with a keyword in the first column), if no declaration starts between them: the literal swallowed the closing
 // bracket of a group, and the hand-written parser ends the group there without another error. The list is capped and de-duplicated as the hand-written parser's is.
 //
 // The lexer skips the characters that start no token and goes on, so the
@@ -86,15 +86,9 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 			}
 		}
 	}
-	// lineStart reports whether span i is the first token of its line.
-	lineStart := func(i int) bool {
-		for j := spans[i].start - 1; j >= 0 && rs[j] != '\n'; j-- {
-			if rs[j] != ' ' && rs[j] != '\t' && rs[j] != '\r' {
-				return false
-			}
-		}
-		return true
-	}
+	// lineStart reports whether span i starts a line, in the first column: a declaration of a grammar file
+	// starts there, and an indented line with a keyword is a statement or a field of a group.
+	lineStart := func(i int) bool { return spans[i].start == 0 || rs[spans[i].start-1] == '\n' }
 	keyword := func(i int) bool {
 		if spans[i].kind != tIdent || !lineStart(i) {
 			return false
@@ -133,9 +127,6 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 		k := sort.Search(len(spans), func(i int) bool { return spans[i].end > e.Offset })
 		switch {
 		case k < len(spans) && e.Offset < spans[k].start:
-			if swallowed(k) {
-				continue
-			}
 			at = spans[k].pos
 		case k < len(spans):
 			if spans[k].kind != tString && spans[k].kind != tCharClass {
