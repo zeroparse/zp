@@ -74,7 +74,7 @@ var tsTarget = &exects.Target{
 	Handle: func(name string) string {
 		return map[string]string{
 			ops.Rule: "Rule", ops.Value: "R", ops.Entry: "MemoEntry | null", ops.Values: "Value[] | null",
-			ops.Errs: "SyntaxError[]", ops.Kept: "number[]", ops.ExpID: "number",
+			ops.Errs: "Errs", ops.Kept: "number[]", ops.ExpID: "number",
 			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
@@ -101,7 +101,7 @@ var tsTarget = &exects.Target{
 		case "opr.infix":
 			return a[0] + `.kind !== "infix"`, true
 		case "rec.none":
-			return a[0] + ".length !== 0", true
+			return a[0] + " !== null", true
 		}
 		return "", false
 	},
@@ -206,10 +206,9 @@ var tsTarget = &exects.Target{
 		case "rec.truncate":
 			return "this.recovered.length = " + a[0]
 		case "rec.since":
-			return fmt.Sprintf("this.recovered.length > %s ? (this.control === null ? this.recovered.slice(%s) : "+
-				"copyErrorsSpend(this.recovered, %s, this.recovered.length, this.control)) : noErrs", a[0], a[0], a[0])
+			return "this.recSince(" + a[0] + ")"
 		case "rec.none":
-			return a[0] + ".length === 0"
+			return a[0] + " === null"
 		case "exp.farthest":
 			return "this.farthest"
 		case "exp.recording":
@@ -324,7 +323,7 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("let %s: Value = null;\nlet %s = true;\ntry {\n  %[1]s = %[3]s(this.useCtx(this.frame, this.pos, this.pos, null, null, null));\n"+
 				"} catch (x) {\n  if (!(x instanceof EvalError)) {\n    throw x;\n  }\n  %[2]s = false;\n}", dst[0], dst[1], a[0]), true
 		case "rec.add":
-			return fmt.Sprintf("for (const x of %s) {\n  this.spend();\n  this.recovered.push(x);\n}", a[0]), true
+			return "this.recAdd(" + a[0] + ");", true
 		case "exp.copy":
 			return fmt.Sprintf("this.lastKept = this.control === null ? this.exp.slice(%[1]sFrom, %[1]sTo) : copyIDsSpend(this.exp, %[1]sFrom, %[1]sTo, this.control);\n%[2]s = this.lastKept;", a[0], lhs(dst[0])), true
 		case "exp.isolate":
