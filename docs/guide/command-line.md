@@ -311,14 +311,18 @@ writes no output. To save another mode, compile the grammar source.
 ## `gen`
 
 ```bash
-zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-recognize] [-source-info] [-default-value]
-zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-runtime embed|import|only] [-runtime-module <specifier>] [-types] [-recognize] [-expectations] [-observability] [-default-value]
+zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-recognize] [-source-info] [-default-value] [-optimize <profile>] [-no-opt <names>] [-print-after <passes>]
+zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-runtime embed|import|only] [-runtime-module <specifier>] [-types] [-recognize] [-expectations] [-observability] [-default-value] [-optimize <profile>] [-no-opt <names>] [-print-after <passes>]
 ```
 
 Generates a standalone Go parser (see [code-generation.md](code-generation.md)) or, with `-lang ts`, a TypeScript
 parser (see [typescript.md](typescript.md)). `-g` is required (except with `-runtime only`), and for Go `-o`, the output directory, and `-module`, the import path of the package (with `-runtime import`, `-pkg` is enough). The Go output is `parser.go`, `api.go` and, with `-runtime embed`, a copy of the runtime in `internal/runtime`; `zp gen` refuses to replace a file in the directory that it did not generate. TypeScript needs `-o` as well and writes `parser.ts`, `runtime.ts` and, with `-types`, `types.ts`; `-runtime import` imports the runtime from `-runtime-module` instead of writing `runtime.ts`. `-source-info` makes the generated Go parser record the rule of each node and the names of captures.
 `-default-value` makes the generated parser return default values; it cannot be combined with `-types`, because the
 types come from the dropped actions.
+`-optimize <profile>` selects the generation-time optimizations (`speed`, the only profile so far), `-no-opt <name>[,<name>]`
+turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR to standard error after the named
+passes. None of them changes what the generated parser returns; the names are in
+[Optimizations](code-generation.md#optimizations). They cannot be combined with `-runtime only`.
 
 A `.zpc` compiled without `-default-value` cannot be used with `-default-value` in `parse`: the command
 asks you to compile it again with `-default-value`.

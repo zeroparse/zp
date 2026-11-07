@@ -194,6 +194,9 @@ zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|impor
 | `-max-depth` | `0` | Default nested recursive rule-call limit in the generated parser; zero selects 100,000, a positive value overrides it, and negatives fail generation |
 | `-default-value` | off | Make the parser return the default node tree: value actions and declared rule types are dropped, predicates still run (see [Default Values](../../spec/language/actions.md#default-values)). Cannot be combined with `-types` |
 | `-nodoc` | off | Leave out the package comment (`// Package p is a parser generated from a ZeroParse grammar.`), for a package that has its own documentation in another file |
+| `-optimize` | `speed` | The profile of [generation-time optimizations](#optimizations). `speed` is the only one so far; any other name is an error that lists the valid ones |
+| `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
+| `-print-after` | none | Write the Core IR that the generator builds to standard error, as text, after the named passes, separated by commas: `build`, a pass name, or `all` (see [Optimizations](#optimizations)) |
 
 Details:
 
@@ -258,6 +261,41 @@ Details:
   `undefined: rt.Protocol2` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
   runtime version that implements the protocol.
 
+### Optimizations
+
+The generator optimizes what it emits. Each optimization has a name, is on in the `speed` profile, and can be turned
+off with `-no-opt`. Turning one off changes the code of the parser and its speed or size, never what it returns: the
+same results, errors and events. Two uses:
+
+- To isolate a miscompilation: generate with `-no-opt` and one name and see whether the output changes.
+- To measure an optimization with the same generator on both sides.
+
+The names are the following, and an unknown name in `-no-opt` is an error that lists them:
+
+| Name | What it does |
+| --- | --- |
+| `terminals` | Value-free choices of many literals and classes run as one program (lean typed Go) |
+| `term-rewrites` | Rewrite the terms of actions and predicates into forms that need no intermediate values |
+| `text-dispatch` | A predicate that compares the text of a capture with literals becomes one switch |
+| `field-compare` | Compare fields without boxing them |
+| `guards` | Skip an alternative when the next character cannot start it |
+| `guarded-classes` | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers) |
+| `scans` | A value-free repetition of a class or of any character runs as a scan |
+| `class-runs` | Consecutive classes of a value-free sequence run as one (lean typed Go) |
+| `class-tables` | Match a class of many ranges through a membership table (lean typed Go) |
+| `inline-literals` | Compare literals of at most four code points in place first |
+| `typed-object-slabs` | Allocate typed objects in slabs (typed Go) |
+| `typed-list-slabs` | Allocate typed lists in slabs (typed Go) |
+| `typed-output-bootstrap` | Size the first slab of the typed output from the input (typed Go) |
+| `sparse-memo` | Keep the first-call table of large TypeScript parsers sparse |
+
+A name only removes: whether an optimization is sound for a parser is decided by the generator, and a flag never
+overrides that. `-no-opt guards` also leaves out the guarded classes, which need guards.
+
+`-print-after` shows the Core IR, the form the passes work on, for debugging the generator. Only the generation that
+writes the output prints, and the text starts with `-- Core IR of the <table> after <pass> --`, where `<table>` is
+`typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables.
+
 ### From Go
 
 The same generator is available from Go, in package `zeroparse.dev/zp/gen`, for build tools that produce parsers programmatically:
@@ -282,7 +320,7 @@ for _, f := range files { // parser.go, api.go, types/types.go with Types, and i
 }
 ```
 
-The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
+The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`; `Optimize` is `-optimize`; `NoOpt: []string{"guards"}` is `-no-opt guards`; and `PrintAfter` with `PrintTo` is `-print-after` (it needs a writer, such as `os.Stderr`). `gen.TypeScript` has the same four fields. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
 
 `zp gen` is a thin wrapper around `gen.Go` (and `gen.TypeScript` with `-lang ts`, whose `Generate` returns the files too); both implement `gen.Generator`. Because a grammar built with the `grammar` package (see the
 [Running Parsers](running-parsers.md#from-go-values-programmatic-grammars)) is just an AST, it can be generated from, too.

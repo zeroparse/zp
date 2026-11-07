@@ -9,6 +9,7 @@ package gen
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 
 	"zeroparse.dev/zp/grammar"
@@ -133,6 +134,17 @@ type Go struct {
 	// OmitPackageDoc leaves the package comment out of the generated parser, for a package that
 	// has its own documentation in another file.
 	OmitPackageDoc bool
+	// Optimize selects the profile of generation-time optimizations: "speed", the default and the
+	// only one so far. NoOpt then turns the named optimizations off, to isolate a miscompilation or
+	// to measure one optimization; the names are those of the -no-opt flag of zp gen. Neither
+	// changes what a generated parser returns, only its code. An unknown name is an error.
+	Optimize string
+	NoOpt    []string
+	// PrintAfter lists, separated by commas, the passes after which the Core IR of the generator is
+	// written to PrintTo as text, for debugging the generator: build, the names of the passes, or
+	// all. It needs PrintTo.
+	PrintAfter string
+	PrintTo    io.Writer
 }
 
 // Generate generates the files of a Go parser for g in the package with import path c.Module:
@@ -162,6 +174,10 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		Stream:         c.Stream,
 		TypedOnly:      c.TypedOnly,
 		OmitPackageDoc: c.OmitPackageDoc,
+		Optimize:       c.Optimize,
+		NoOpt:          c.NoOpt,
+		PrintAfter:     c.PrintAfter,
+		PrintTo:        c.PrintTo,
 	})
 }
 
@@ -215,6 +231,17 @@ type TypeScript struct {
 	// negative values and values that are not exact JavaScript integers fail generation.
 	// Individual invocations may override it with limits.depth.
 	MaxDepth int
+	// Optimize selects the profile of generation-time optimizations: "speed", the default and the
+	// only one so far. NoOpt then turns the named optimizations off, to isolate a miscompilation or
+	// to measure one optimization; the names are those of the -no-opt flag of zp gen. Neither
+	// changes what a generated parser returns, only its code. An unknown name is an error.
+	Optimize string
+	NoOpt    []string
+	// PrintAfter lists, separated by commas, the passes after which the Core IR of the generator is
+	// written to PrintTo as text, for debugging the generator: build, the names of the passes, or
+	// all. It needs PrintTo.
+	PrintAfter string
+	PrintTo    io.Writer
 }
 
 // Generate generates the files of a TypeScript parser for g: its parse(input) parses from the
@@ -244,6 +271,10 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		Expectations:  c.Expectations,
 		Recognize:     c.Recognize,
 		MaxDepth:      c.MaxDepth,
+		Optimize:      c.Optimize,
+		NoOpt:         c.NoOpt,
+		PrintAfter:    c.PrintAfter,
+		PrintTo:       c.PrintTo,
 	})
 }
 
