@@ -83,7 +83,7 @@ type Hooks struct {
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
 	// CoreRun runs the Core passes in place of core.Run (gen.Generator.CoreRun), so that a test
-	// compares the generated parsers of another sequence of passes with the pipeline's.
+	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
 }
 

@@ -49,8 +49,8 @@ type Generator struct {
 	PrintTo    io.Writer
 	// VerifyEach verifies the Core IR after every pass (GenOptions.VerifyEachPass).
 	VerifyEach bool
-	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that compare another
-	// sequence of passes with the pipeline.
+	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that generate with a
+	// pipeline of their own.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
