@@ -1,4 +1,4 @@
-protocol 2
+protocol 3
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0

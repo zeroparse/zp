@@ -2421,4 +2421,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol2
+const _ = rt.Protocol3
