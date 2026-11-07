@@ -395,14 +395,21 @@ rule r = [ab] #repeat(5000000000,)`,
 	}
 }
 
-// compileWithoutScanSites compiles src with the marking of scan sites off. A parse under a limit
-// builds the controlled graph of the closure backend, and recognition builds the recognizer, when they
-// first run, and both read the flag then. The program parses once with each so that they are built
-// before the marking is switched on again.
+// compileWithoutScanSites compiles src with the marking of scan sites off (see compileWithout).
 func compileWithoutScanSites(t *testing.T, src string) *Program {
 	t.Helper()
-	compile.NoScanSites = true
-	defer func() { compile.NoScanSites = false }()
+	return compileWithout(t, src, &compile.NoScanSites)
+}
+
+// compileWithout compiles src with the marking switched off by the flag. A parse under a limit builds
+// the controlled graph of the closure backend, and recognition builds the recognizer, when they first
+// run, and both read the flag then. The program parses once with each so that they are built before
+// the flag is cleared again; without that the program a test takes for plain marks its sites on the
+// closure backend.
+func compileWithout(t *testing.T, src string, flag *bool) *Program {
+	t.Helper()
+	*flag = true
+	defer func() { *flag = false }()
 	prog := mustCompile(t, src)
 	rec, err := prog.Recognizer()
 	if err != nil {

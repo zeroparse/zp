@@ -151,9 +151,7 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 		if prog.NumRunSites == 0 {
 			t.Errorf("%s: no run sites", g.Name)
 		}
-		compile.NoRunSites = true
-		plain := mustCompile(t, g.Src)
-		compile.NoRunSites = false
+		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
 		turns := core.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -184,9 +182,7 @@ func TestRunSitesOfLoadedPrograms(t *testing.T) { atHotSpans(t, runSitesOfLoaded
 func runSitesOfLoadedPrograms(t *testing.T) {
 	rng := rand.New(rand.NewSource(115))
 	for _, g := range runValueGrammars {
-		compile.NoRunSites = true
-		plain := mustCompile(t, g.Src)
-		compile.NoRunSites = false
+		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
 		turns := core.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
@@ -334,9 +330,7 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.Src)
-		compile.NoRunSites = true
-		plain := mustCompile(t, c.Src)
-		compile.NoRunSites = false
+		plain := compileWithout(t, c.Src, &compile.NoRunSites)
 		// A loaded program keeps which sites are free of the environment.
 		data, err := prog.Marshal("", CompiledParse)
 		if err != nil {
@@ -467,9 +461,7 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 	in := strings.Repeat("x", 300) + "z" + strings.Repeat("x", 200) + "!"
 	for _, g := range append(runSiteGrammars[:2:2], runValueGrammars[0]) {
 		prog := mustCompile(t, g.Src)
-		compile.NoRunSites = true
-		plain := mustCompile(t, g.Src)
-		compile.NoRunSites = false
+		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, exp := range []bool{true, false} {
 				o := ParseOptions{Backend: b, Expectations: exp}
@@ -493,9 +485,7 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	src := "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n"
 	in := strings.Repeat("(", 300)
 	prog := mustCompile(t, src)
-	compile.NoRunSites = true
-	plain := mustCompile(t, src)
-	compile.NoRunSites = false
+	plain := compileWithout(t, src, &compile.NoRunSites)
 	turns := core.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
