@@ -2,14 +2,12 @@ package main
 
 import (
 	"bytes"
-	"compress/gzip"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 
+	"zeroparse.dev/zp/bench/probe"
 	"zeroparse.dev/zp/internal/bench/inputs"
 )
 
@@ -96,42 +94,14 @@ func captureTS(root, commit, work, node string, count int) ([]byte, error) {
 
 // sizeParsers are the grammars whose generated size is recorded, with the options of
 // testdata/grammars/generate.txt (the options of the ready-made parsers).
-var sizeParsers = []string{"json", "csv", "xml", "yaml", "cel", "cue", "golang", "python", "typescript", "duckdb"}
+var sizeParsers = probe.Grammars
 
 // genOptions returns the options of testdata/grammars/generate.txt for grammar name.
-func genOptions(root, name string) ([]string, error) {
-	data, err := os.ReadFile(filepath.Join(root, "testdata", "grammars", "generate.txt"))
-	if err != nil {
-		return nil, err
-	}
-	for _, line := range strings.Split(string(data), "\n") {
-		f := strings.Fields(line)
-		if len(f) > 0 && f[0] == name {
-			return f[1:], nil
-		}
-	}
-	return nil, fmt.Errorf("testdata/grammars/generate.txt has no line for %s", name)
-}
+func genOptions(root, name string) ([]string, error) { return probe.GenOptions(root, name) }
 
 // parserGenArgs returns the options with which testdata/grammars/generate.txt generates parser name,
-// adapted to TypeScript: the Go-only options (-module, -runtime import, -nodoc, -typed-only) are dropped.
-func parserGenArgs(root, name string) ([]string, error) {
-	f, err := genOptions(root, name)
-	if err != nil {
-		return nil, err
-	}
-	out := []string{"-g", filepath.Join(root, "testdata", "grammars", name, name+".zp")}
-	for i := 0; i < len(f); i++ {
-		switch f[i] {
-		case "-module", "-runtime", "-o":
-			i++
-		case "-nodoc", "-typed-only":
-		default:
-			out = append(out, f[i])
-		}
-	}
-	return out, nil
-}
+// adapted to TypeScript.
+func parserGenArgs(root, name string) ([]string, error) { return probe.TSGenArgs(root, name) }
 
 // captureSizes records, for each parser of sizeParsers, the size of the generated Go parser.go,
 // of a binary that calls its ParseAST (built with -trimpath and stripped of symbols and DWARF), of
@@ -185,110 +155,26 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 }
 
 // sizeOfFile returns the size of a file and of its gzip -9 compression.
-func sizeOfFile(path string) (raw, gz int, err error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return 0, 0, err
-	}
-	var buf bytes.Buffer
-	w, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
-	if _, err := w.Write(data); err != nil {
-		return 0, 0, err
-	}
-	if err := w.Close(); err != nil {
-		return 0, 0, err
-	}
-	return len(data), buf.Len(), nil
-}
+func sizeOfFile(path string) (raw, gz int, err error) { return probe.SizeOfFile(path) }
 
 // generateGo generates the Go parser of grammar name with the options of testdata/grammars/generate.txt
 // into the work directory and returns the directory.
 func generateGo(root, zpBin, work, name string) (string, error) {
-	f, err := genOptions(root, name)
-	if err != nil {
-		return "", err
-	}
 	dir := filepath.Join(work, "gen-"+name)
-	args := append([]string{"gen", "-g", filepath.Join(root, "testdata", "grammars", name, name+".zp"), "-module", "sizeprobe/gen"}, f...)
-	if _, err := execOut(root, nil, zpBin, append(args, "-o", dir)...); err != nil {
-		return "", err
-	}
-	return dir, nil
+	return dir, probe.GenerateGo(root, zpBin, dir, name)
 }
 
 // buildBinary builds a program that calls ParseAST of the parser generated into genDir, in a module of
 // its own in the work directory, and returns the size of the binary.
 func buildBinary(root, work, name, genDir string) (int, error) {
-	dir := filepath.Join(work, "bin-"+name)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return 0, err
-	}
-	mod := fmt.Sprintf(`module sizeprobe
-
-go 1.27.1
-
-require (
-	%[1]s v0.0.0
-	%[1]s/runtime v0.0.0
-)
-
-replace (
-	%[1]s => %[2]s
-	%[1]s/runtime => %[3]s
-)
-`, "zeroparse.dev/zp", root, filepath.Join(root, "runtime"))
-	src := `package main
-
-import (
-	"os"
-
-	p "sizeprobe/gen"
-)
-
-func main() {
-	if _, err := p.ParseAST(os.Args[1]); err != nil {
-		os.Exit(1)
-	}
-}
-`
-	if err := os.CopyFS(filepath.Join(dir, "gen"), os.DirFS(genDir)); err != nil {
-		return 0, err
-	}
-	for file, content := range map[string]string{"go.mod": mod, "main.go": src} {
-		if err := os.WriteFile(filepath.Join(dir, file), []byte(content), 0o644); err != nil {
-			return 0, err
-		}
-	}
-	out := filepath.Join(dir, "probe")
-	if _, err := execOut(dir, []string{"GOWORK=off", "GOFLAGS=-mod=mod"}, "go", "build", "-trimpath", "-ldflags=-s -w", "-o", out, "."); err != nil {
-		return 0, err
-	}
-	st, err := os.Stat(out)
-	if err != nil {
-		return 0, err
-	}
-	return int(st.Size()), nil
+	_, size, err := probe.BuildProgram(root, filepath.Join(work, "bin-"+name), genDir, probe.SizeMain)
+	return size, err
 }
 
 // buildZP builds the zp command of the repository into the work directory.
-func buildZP(root, work string) (string, error) {
-	out := filepath.Join(work, "zp")
-	if _, err := execOut(root, []string{"GOFLAGS=" + os.Getenv("GOFLAGS")}, "go", "build", "-trimpath", "-o", out, "./cmd/zp"); err != nil {
-		return "", err
-	}
-	return out, nil
-}
+func buildZP(root, work string) (string, error) { return probe.BuildZP(root, work) }
 
 // execOut runs a command in dir, with extra environment variables, and returns its standard output.
 func execOut(dir string, env []string, name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), env...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("%s %s: %w\n%s", name, strings.Join(slices.Clone(args), " "), err, stderr.String())
-	}
-	return string(out), nil
+	return probe.ExecOut(dir, env, name, args...)
 }
