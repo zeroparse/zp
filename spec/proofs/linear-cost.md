@@ -2022,13 +2022,16 @@ constant times $K \hat{n}$ for a given log and retained state.
 those of the recovered errors, which $C$ does not count, and the Document units.
 The theorem bounds the first by a constant times $K (L + 1) \hat{n}$. Lemma 14
 bounds the second by a constant times $C$, and so by the same bound: they are
-the units that `rec.since` charges and the entries that listing the errors of
-the outcome visits, and no list moves in a Document. Lemma 12 bounds the third.
+the units that `rec.since` charges, and no list moves in a Document. Lemma 12
+bounds the third.
 The part of the lookups is the theorem's bound of the calls, plus the edits and
 the walks of Lemma 12. $\square$
 
-In the missing-token mode, `missing.replay` records the errors of an entry one
-by one when the tokens that it inserted repeat, and no lemma bounds those units.
+Listing the errors of the outcome charges no Compute. By Lemma 14 it visits at
+most twice as many lists as the outcome has errors, counted as often as they
+occur; no lemma bounds that number by $C$. In the missing-token mode, the parse
+records the errors of every reused result one by one, and no lemma bounds those
+units.
 
 That these three are all the units of a parse is a reading of the charges of the
 engine, not a derivation: no lemma relates a charge to $C$ in general.
@@ -2115,8 +2118,8 @@ operations charge and the entries of their lists are at most a constant times
 $C$, and listing the errors of the outcome visits at most twice as many lists
 as there are errors. That each call belongs to a step that $C$ counts is a
 reading of the compositions, as the reading of the charges in the corollary is.
-The lemma does not cover the missing-token mode, where `missing.replay` records
-the errors of an entry one by one if the tokens it inserted repeat.
+The lemma does not cover the missing-token mode, which records the errors of
+every reused result one by one.
 
 **Measured controls.** The engine on its three backends and the generated Go
 and TypeScript runtimes implement these operations. Two grammars of the class
@@ -2152,11 +2155,12 @@ parse, for each item, is:
 | Generated Go | 162.6 to 166.5 | 48.0 to 49.1 |
 | Generated TypeScript | 178 | 77 |
 
-The TypeScript runtime was measured at $n = 250$, 1,000 and 4,000. Under the
-default limits every parse completes, and the memory that a parse allocates
-about doubles with $n$: for the first grammar on closures it is 10.9 MB,
-23.7 MB and 48.2 MB at $n = 4000$, 8,000 and 16,000, and 3.1 MB, 6.4 MB and
-13.3 MB for the leader.
+The TypeScript cells hold at all three of $n = 250$, 1,000 and 4,000, where the
+runtime was measured. At $n = 4000$, 8,000 and 16,000, the engine on its three
+backends and the generated Go runtime complete every parse of both grammars
+under the default limits, and the memory that a parse allocates about doubles
+with $n$: for the first grammar on closures it is 10.9 MB, 23.7 MB and 48.2 MB,
+and 3.1 MB, 6.4 MB and 13.3 MB for the leader.
 
 The slope tests of the classifier check both grammars on the three backends of
 the engine, and the tests of each generated runtime check that four times the

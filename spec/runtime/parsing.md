@@ -345,9 +345,11 @@ no more than the shorter one, so it costs at most the length of the shorter
 operand, plus a constant.
 
 Outside a [Document](documents.md), and apart from the exceptions below, time is
-proportional to cost. The memory that a parse allocates is at most proportional
-to its cost plus the input, because each memo entry, node and value is built by
-cost that is counted. The cost of a parse is measured in compute units, which
+proportional to cost, plus the number of errors that a result reports when its
+recovered errors are listed. The memory that a parse allocates is at most
+proportional to its cost plus the input, because each memo entry, node and value
+is built by cost that is counted, except in a parse with missing-token
+insertion, as below. The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
 [compute limits](#cancellation-and-compute-limits) caps it.
 
@@ -358,8 +360,8 @@ a call that reuses the result records that list as one entry. Making a list
 charges a unit for each entry that it takes, which adds up to at most a constant
 times the cost
 ([linear cost proof](../proofs/linear-cost.md#lemma-14-shared-recovered-errors)),
-except in a parse with missing-token insertion, which records the errors of a
-reused entry one by one when the tokens it inserted repeat. A store under a key
+except in a parse with missing-token insertion, which records the errors of
+every reused result one by one. A store under a key
 that a long chain of memo entries holds walks the chain, which cost does not
 count; that matters only where K grows with the input, and has not been
 measured.
@@ -1659,7 +1661,8 @@ Here `n` is the length of the input in the position unit of the parse: bytes
 for `Bytes`, code points for `CodePoints`. `Input` has no finite default
 because the default `Compute` already grows with `n`, and `Memory` has none
 because the memory a parse allocates is at most proportional to its cost
-plus the input ([Time and Memory](#time-and-memory)).
+plus the input outside missing-token insertion
+([Time and Memory](#time-and-memory)).
 
 `WithLimits` sets the fields field by field. A nonzero field overrides the
 value an earlier `WithLimits` of the same invocation set, and a zero field
