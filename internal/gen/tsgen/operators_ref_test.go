@@ -177,7 +177,7 @@ function refLongest(p: Parser, ops: OperatorsRuleOp[]): OperatorsRuleAttempt | n
         end: p.pos,
         env: p.env,
         cut,
-        errs: p.recovered.length > m0rec ? (p.control === null ? p.recovered.slice(m0rec) : copyErrorsSpend(p.recovered, m0rec, p.recovered.length, p.control)) : noErrs,
+        errs: p.recSince(m0rec),
       };
     }
     if (!ok && cut) {
@@ -206,10 +206,7 @@ function refLongest(p: Parser, ops: OperatorsRuleOp[]): OperatorsRuleAttempt | n
 function refApply(p: Parser, a: OperatorsRuleAttempt): void {
   p.pos = a.end;
   p.env = a.env;
-  for (const x of a.errs) {
-    p.spend();
-    p.recovered.push(x);
-  }
+  p.recAdd(a.errs);
 }
 function refOperatorsRuleParse(p: Parser, r: Rule, min: number): R {
   if (++p.depth > p.maxDepth) {

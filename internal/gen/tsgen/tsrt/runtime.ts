@@ -1241,8 +1241,9 @@ export function isStackOverflow(x: unknown): boolean {
 export function result(p: Parser, v: R): ParseResult {
   if (v !== undefined && p.pos === p.n) {
     if (p.recovered.length > 0) {
-      if (p.control !== null) reserveRecoveredMessageSpend(p.recovered, p.control);
-      const error = new SyntaxErrors(p.recovered);
+      const errors = recoveredErrors(p.recovered, p.control);
+      if (p.control !== null) reserveRecoveredMessageSpend(errors, p.control);
+      const error = new SyntaxErrors(errors);
       p.control?.check();
       return { node: v, error };
     }
@@ -1527,7 +1528,7 @@ export function envSet(e: Env, i: number, depth: number, v: Value): Env {
 
 export interface MemoEntry {
   node: R;
-  errs: SyntaxError[]; // errors recovered in this call, recorded again on reuse
+  errs: Errs; // errors recovered in this call, recorded again on reuse
   expected: number[]; // expectations at far, recorded again on reuse
   next: MemoEntry | null; // next entry at the same position
   env: Value[] | null; // values of the rule's variables at the call (memo key)
@@ -1544,7 +1545,7 @@ export interface MemoEntry {
   present: number;
 }
 
-export function newEntry(node: R, ok: boolean, end: number, silent: boolean, errs: SyntaxError[]): MemoEntry {
+export function newEntry(node: R, ok: boolean, end: number, silent: boolean, errs: Errs): MemoEntry {
   return { node, errs, expected: noExp, next: null, env: null, end, far: 0, rule: 0, min: 0, ok, silent, present: 0 };
 }
 
@@ -1618,7 +1619,53 @@ function mergeSkipExpected(a: number[], b: number[]): number[] {
   }
   return out;
 }
-export const noErrs: SyntaxError[] = [];
+
+// ErrList is a list of recovered errors that the parser's record and the results that recorded them
+// share: a sequence of errors and of other lists, never changed after it is made. Recording a result
+// again adds the list as one entry, so reusing a result costs the same however many errors it holds.
+export class ErrList {
+  readonly entries: readonly RecEntry[];
+
+  constructor(entries: readonly RecEntry[]) {
+    this.entries = entries;
+  }
+}
+
+// RecEntry is an entry of the record of recovered errors: an error or a shared list.
+export type RecEntry = SyntaxError | ErrList;
+
+// Errs is the errors recovered in a call: none (null), the single entry they took, or a list.
+export type Errs = RecEntry | null;
+export const noErrs: Errs = null;
+
+// recoveredErrors returns the errors of the record entries in order, unrolling the lists without
+// recursion (lists nest as deep as the growths of a leader go). Each entry it visits costs one unit
+// of budget; the visits are at most twice the errors (spec/proofs/linear-cost.md, Lemma 14).
+export function recoveredErrors(entries: readonly RecEntry[], control: BudgetControl | null): SyntaxError[] {
+  const out: SyntaxError[] = [];
+  const lists: (readonly RecEntry[])[] = [entries];
+  const at: number[] = [0];
+  while (lists.length !== 0) {
+    const top = lists.length - 1;
+    const l = lists[top]!;
+    const i = at[top]!;
+    if (i === l.length) {
+      lists.pop();
+      at.pop();
+      continue;
+    }
+    at[top] = i + 1;
+    control?.charge(1);
+    const x = l[i]!;
+    if (x instanceof ErrList) {
+      lists.push(x.entries);
+      at.push(0);
+    } else {
+      out.push(x);
+    }
+  }
+  return out;
+}
 
 /** memoScan is how many entries of a position's chain a lookup walks before it consults the
  * position's hash index; see runtime/memo_index.go. */
@@ -1749,7 +1796,7 @@ export const storeCtx = 2;
 // a call that read a seed.
 export interface CtxResult {
   node: R;
-  errs: SyntaxError[];
+  errs: Errs;
   expected: number[];
   end: number;
   far: number;
@@ -1757,7 +1804,7 @@ export interface CtxResult {
   silent: boolean;
 }
 
-export function newCtxResult(node: R, end: number, silent: boolean, errs: SyntaxError[], far: number, expected: number[]): CtxResult {
+export function newCtxResult(node: R, end: number, silent: boolean, errs: Errs, far: number, expected: number[]): CtxResult {
   return { node, errs, expected, end, far, ok: node !== undefined, silent };
 }
 
@@ -2007,7 +2054,8 @@ export class Parser {
   isoStack: number[] = [];
   isoIds: number[] = noExp;
 
-  recovered: SyntaxError[] = [];
+  // recovered is the record of recovered errors: errors and the shared lists of reused results.
+  recovered: RecEntry[] = [];
 
   kidStack: (Node | null)[] = []; // gathers repetition children and list elements
   lines: number[] | null = null; // positions where lines start (makeError)
@@ -2954,10 +3002,7 @@ export class Parser {
         return undefined;
       }
       this.pos = e.end;
-      for (const x of e.errs) {
-        this.spend();
-        this.recovered.push(x);
-      }
+      this.recAdd(e.errs);
       return e.node;
     }
     if (c.ctx) {
@@ -2996,13 +3041,13 @@ export class Parser {
     // lookahead that did.
     const store = this.ctxPop(c);
     if (store === storeMemo) {
-      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recovered.length > rec ? (this.control === null ? this.recovered.slice(rec) : copyErrorsSpend(this.recovered, rec, this.recovered.length, this.control)) : noErrs);
+      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
       this.memoPut(r.id, start, min, env, entry);
       entry.present = c.present;
       entry.far = far;
       entry.expected = kept;
     } else if (store === storeCtx) {
-      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recovered.length > rec ? (this.control === null ? this.recovered.slice(rec) : copyErrorsSpend(this.recovered, rec, this.recovered.length, this.control)) : noErrs, far, kept));
+      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
     }
     this.ctxDone(c);
     this.mergeExpected(far, innerFrom, innerTo);
@@ -3033,9 +3078,30 @@ export class Parser {
   // spec/runtime/parsing.md and spec/proofs/memoization.md), without Documents: the examined input
   // of results is not tracked.
 
-  // recSince returns a copy of the errors recovered since rec.
-  recSince(rec: number): SyntaxError[] {
-    return this.recovered.length > rec ? (this.control === null ? this.recovered.slice(rec) : copyErrorsSpend(this.recovered, rec, this.recovered.length, this.control)) : noErrs;
+  // recSince returns the errors recovered since the mark rec, charging one unit per entry after it:
+  // none, the single entry after the mark, or a new list of the entries after it, which then takes
+  // their place in the record, so that a later recSince over an earlier mark visits it as one entry.
+  // A mark after rec is no longer valid.
+  recSince(rec: number): Errs {
+    const end = this.recovered.length;
+    if (end === rec) {
+      return null;
+    }
+    if (end - rec === 1) {
+      this.spend();
+      return this.recovered[rec]!;
+    }
+    const l = new ErrList(this.control === null ? this.recovered.slice(rec) : copyEntriesSpend(this.recovered, rec, end, this.control));
+    this.recovered.length = rec;
+    this.recovered.push(l);
+    return l;
+  }
+
+  // recAdd records the errors of a result again: one entry, at no cost.
+  recAdd(errs: Errs): void {
+    if (errs !== null) {
+      this.recovered.push(errs);
+    }
   }
 
   // gammaAt returns the index of the first growth of the cycle at pos that the innermost growths
@@ -3484,10 +3550,7 @@ export class Parser {
     }
     if (e.ok) {
       this.pos = e.end;
-      for (const x of e.errs) {
-        this.spend();
-        this.recovered.push(x);
-      }
+      this.recAdd(e.errs);
     }
   }
 
@@ -3660,7 +3723,7 @@ export class Parser {
         obs.push(d);
       }
     }
-    if (grew && !other && res.errs.length === 0) {
+    if (grew && !other && res.errs === null) {
       st.deps = obs;
       g.run.push(st);
     } else {
@@ -3692,10 +3755,7 @@ export class Parser {
     this.gamma.length = g.gi;
     this.pos = best.end;
     this.recovered.length = g.rec;
-    for (const x of best.errs) {
-      this.spend();
-      this.recovered.push(x);
-    }
+    this.recAdd(best.errs);
     return best;
   }
 
@@ -3806,7 +3866,7 @@ export class Parser {
   // equal result's of the leader at the position, whose result it then returns instead of e.
   canonicalSeed(g: GrowState, e: CtxResult): { e: CtxResult; id: number } {
     const id = this.nextSeedID();
-    if (!e.ok || e.errs.length > 0) {
+    if (!e.ok || e.errs !== null) {
       return { e, id };
     }
     const t = this.table(g.start, g.gp, true)!;
@@ -3818,7 +3878,7 @@ export class Parser {
     const c = t.canon.get(ck);
     if (c !== undefined) {
       const budget = { n: 64 };
-      if (c.e.errs.length === 0 && this.nodesEqual(c.e.node ?? null, e.node ?? null, budget)) {
+      if (c.e.errs === null && this.nodesEqual(c.e.node ?? null, e.node ?? null, budget)) {
         return c;
       }
     }
@@ -4992,7 +5052,7 @@ export interface OperatorsRuleAttempt {
   end: number;
   env: Env | null;
   cut: boolean;
-  errs: SyntaxError[];
+  errs: Errs;
 }
 
 // Declarations that the code generated for a grammar may not use, read here so that projects
