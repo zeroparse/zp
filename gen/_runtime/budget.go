@@ -1163,17 +1163,47 @@ func (p *Parser) memoKeyIdentical(l, r []any) bool {
 }
 
 // keyMatches compares a memo key under the lookup that ident selects. A lookup of a rule that a parse
-// from scratch memoizes too pays for the comparison with every entry the walk compares, as a parse from
-// scratch does, so it counts in a region of Document work as well: it is bounded by the size of the key
-// and by the entries of the walk. A lookup of a rule that only a Document memoizes compares by identity,
-// which costs a constant per variable, and counts there too only for the entry that answers.
-func (p *Parser) keyMatches(l, r []any, ident bool) bool {
+// from scratch memoizes too pays for the comparison with every entry of this parse that the walk compares,
+// as a parse from scratch does, so it counts in a region of Document work as well: it is bounded by the
+// size of the key and by the entries of the walk. The comparison with an entry that is not current in this
+// parse (current reports it) is Document work, since a parse from scratch has no such entry, and stays
+// inside the region; countKeyEqual charges it when such an entry answers. A lookup of a rule that only a
+// Document memoizes compares by identity, which costs a constant per variable, and counts there too only
+// for the entry that answers.
+func (p *Parser) keyMatches(l, r []any, ident, current bool) bool {
 	if ident {
 		return p.memoKeyIdentical(l, r)
+	}
+	if !current {
+		return p.memoKeyEqual(l, r)
 	}
 	held := p.Control.holdFree()
 	defer p.Control.resumeFree(held)
 	return p.memoKeyEqual(l, r)
+}
+
+// current reports whether an entry with the stamp seen was stored, or answered a lookup, in this parse:
+// in a Document, an entry that an earlier parse stored and this one has not touched is not. A parse from
+// scratch has no other entry.
+func (p *Parser) current(seen uint32) bool {
+	return p.Document == nil || seen == p.Document.epoch
+}
+
+// stamp marks an entry as current in this parse.
+func (p *Parser) stamp() uint32 {
+	if p.Document == nil {
+		return 0
+	}
+	return p.Document.epoch
+}
+
+// countKeyEqual charges, in a region of Document work, what comparing the key of an entry that was not
+// current in this parse costs once the entry answers a lookup: a parse from scratch compares it too.
+func (p *Parser) countKeyEqual(l, r []any) {
+	if p.Control.holdFree() {
+		p.memoKeyEqual(l, r)
+		p.Control.resumeFree(true)
+	}
 }
 
 // countKeyMatch charges what comparing the key of the entry that answers a lookup of a rule that only a
@@ -1277,7 +1307,7 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *m
 	if p.Control.defaultCompute {
 		// The steps of the walk of a chain that holds entries of earlier texts, and of rules that a parse
 		// from scratch does not memoize, are work of the Document; the comparison of the key with each
-		// entry that the walk compares it with counts, as it does in a parse from scratch.
+		// entry of this parse that the walk compares it with counts, as it does in a parse from scratch.
 		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	}
 	if pos >= len(p.memo.slots) {
@@ -1290,9 +1320,14 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *m
 	e, n := p.memo.slots[pos], 0
 	for ; e != nil && n < scan; e, n = e.next, n+1 {
 		p.Spend()
-		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident, p.current(e.seen)) {
 			if ident {
 				p.countKeyMatch(e.env, key)
+			} else if !p.current(e.seen) {
+				p.countKeyEqual(e.env, key)
+			}
+			if p.Control.defaultCompute {
+				e.seen = p.stamp() // an explicit limit counts every comparison, and needs no stamp
 			}
 			return e
 		}
@@ -1303,7 +1338,7 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *m
 	ix := indexAt(&p.memo.index, &p.memo.indexBytes, pos, p.memo.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 		func(e *memoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
 	_, x := ix.probe(p.countedHash(int32(rule), int32(min), key), func(x *memoEntry) bool {
-		return x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, false)
+		return x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, false, p.current(x.seen))
 	})
 	return x
 }
@@ -1357,7 +1392,7 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e 
 	link := &slots[pos]
 	var replaced *memoEntry
 	same := func(x *memoEntry) bool {
-		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident, p.current(x.seen))
 	}
 	scan := memoScan
 	if ident {
@@ -1397,7 +1432,7 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e 
 	// Commit the completed key/slot array and link together, with no further
 	// checkpoint between mutations. A resident self-entry retains its successor.
 	p.memo.slots = slots
-	e.rule, e.min, e.env = int32(rule), int32(min), key
+	e.rule, e.min, e.env, e.seen = int32(rule), int32(min), key, p.stamp()
 	if ix != nil {
 		n := len(ix)
 		ix[ixSlot] = e

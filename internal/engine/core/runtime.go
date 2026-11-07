@@ -291,6 +291,11 @@ type MemoEntry struct {
 	// be shifted past an edit.
 	Positional bool
 	shifted    bool
+
+	// Seen is the number of document edits when the entry was last stored, or answered a lookup, in a
+	// parse. The entry is current in the parse at Gen edits if Seen is Gen; an entry of an earlier text
+	// that the parse has not touched is not, and comparisons with it are Document work (keyMatches).
+	Seen uint32
 }
 
 // Stats counts rule evaluations and memo uses during a parse.

@@ -2011,8 +2011,8 @@ costs, and the copy of the diagnostics that the parse publishes. Every other uni
 is counted: the unit that opens a call, the evaluation of the body of a rule, the
 examination of the input, the values that the parse builds, and the memo protocol of a
 rule that a parse from scratch memoizes too, with the unit of each lookup and store, the hashing
-of the key of a lookup and its comparison with each entry of the walk that it compares with, and the operations on the
-recovered errors of an entry, which Lemma 14 bounds by a constant times $C$. The comparison of two strings costs the length of
+of the key of a lookup and its comparison with each entry of this parse that the walk compares it with, and the operations on the
+recovered errors of an entry, which Lemma 14 bounds by a constant times $C$. A comparison with an entry that is not current in this parse, one that an earlier text left in the chain and this parse has neither stored nor found to answer a lookup, is Document work, since a parse from scratch has no such entry. The comparison of two strings costs the length of
 the string, unless they are the same bytes of the same memory, which costs a constant. A lookup
 of a rule that only a Document memoizes compares the strings of the key by identity only, at a
 constant for each variable of the key: a string that is equal but not identical is a miss, and a

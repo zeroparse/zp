@@ -37,17 +37,38 @@ func (p *Parser) memoKeyIdentical(l, r []any) bool {
 }
 
 // keyMatches compares a memo key under the lookup that ident selects. A lookup of a rule that a parse
-// from scratch memoizes too pays for the comparison with every entry the walk compares, as a parse from
-// scratch does, so it counts in a region of Document work as well: it is bounded by the size of the key
-// and by the entries of the walk. A lookup of a rule that only a Document memoizes compares by identity,
-// which costs a constant per variable, and counts there too only for the entry that answers.
-func (p *Parser) keyMatches(l, r []any, ident bool) bool {
+// from scratch memoizes too pays for the comparison with every entry of this parse that the walk compares,
+// as a parse from scratch does, so it counts in a region of Document work as well: it is bounded by the
+// size of the key and by the entries of the walk. The comparison with an entry that is not current in this
+// parse (current reports it; see MemoEntry.Seen) is Document work, since a parse from scratch has no such
+// entry, and stays inside the region; countKeyEqual charges it when such an entry answers. A lookup of a
+// rule that only a Document memoizes compares by identity, which costs a constant per variable, and counts
+// there too only for the entry that answers.
+func (p *Parser) keyMatches(l, r []any, ident, current bool) bool {
 	if ident {
 		return p.memoKeyIdentical(l, r)
+	}
+	if !current {
+		return p.memoKeyEqual(l, r)
 	}
 	held := p.Control.FreeHold()
 	defer p.Control.FreeResume(held)
 	return p.memoKeyEqual(l, r)
+}
+
+// current reports whether e was stored or answered a lookup in this parse: in a Document, an entry that
+// an earlier parse stored and this one has not touched is not.
+func (p *Parser) current(e *MemoEntry) bool {
+	return e.Seen == p.Gen
+}
+
+// countKeyEqual charges, in a region of Document work, what comparing the key of an entry that was not
+// current in this parse costs once the entry answers a lookup: a parse from scratch compares it too.
+func (p *Parser) countKeyEqual(l, r []any) {
+	if p.Control.FreeHold() {
+		p.memoKeyEqual(l, r)
+		p.Control.FreeResume(true)
+	}
 }
 
 // countKeyMatch charges what comparing the key of the entry that answers a lookup of a rule that only a
@@ -117,9 +138,16 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	e, n := t.Slots[i], 0
 	for ; e != nil && n < scan; e, n = e.Next, n+1 {
 		p.Spend()
-		if e.Rule == int32(k.Rule) && e.Min == int32(k.Min) && e.missingSilent == k.MissingSilent && p.keyMatches(e.Env, k.Env, ident) {
-			if ident && p.MemoAll {
-				p.countKeyMatch(e.Env, k.Env)
+		if e.Rule == int32(k.Rule) && e.Min == int32(k.Min) && e.missingSilent == k.MissingSilent && p.keyMatches(e.Env, k.Env, ident, p.current(e)) {
+			if p.MemoAll {
+				if ident {
+					p.countKeyMatch(e.Env, k.Env)
+				} else if !p.current(e) {
+					p.countKeyEqual(e.Env, k.Env)
+				}
+			}
+			if p.Control.DefaultCompute {
+				e.Seen = p.Gen // an explicit limit counts every comparison, and needs no stamp
 			}
 			return e, true
 		}
@@ -130,7 +158,7 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	ix := t.indexAt(k.Pos, t.Slots[i], p.chargeMemoHash)
 	h := p.countedHash(int32(k.Rule), int32(k.Min), k.MissingSilent, k.Env)
 	_, x := ix.probe(h, func(x *MemoEntry) bool {
-		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, false)
+		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, false, p.current(x))
 	})
 	return x, x != nil
 }
@@ -206,7 +234,7 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	link := &slots[i]
 	var replaced *MemoEntry
 	same := func(x *MemoEntry) bool {
-		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, ident)
+		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, ident, p.current(x))
 	}
 	scan := memoScan
 	if ident {
@@ -251,6 +279,7 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	// In particular, do not publish a partially copied slot array or key.
 	t.Slots = slots
 	e.Rule, e.Min, e.Pos, e.Env = int32(k.Rule), int32(k.Min), k.Pos, k.Env
+	e.Seen = p.Gen
 	e.missingSilent = k.MissingSilent
 	if ix != nil {
 		n := len(ix)

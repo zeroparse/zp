@@ -1004,7 +1004,7 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *
 	e, n := p.memoSlots[pos], 0
 	for ; e != nil && n < scan; e, n = e.next, n+1 {
 		p.Spend()
-		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident, true) {
 			if ident {
 				p.countKeyMatch(e.env, key)
 			}
@@ -1091,7 +1091,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 	link := &slots[pos]
 	var replaced *tmemoEntry
 	same := func(x *tmemoEntry) bool {
-		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident, true)
 	}
 	scan := memoScan
 	if ident {

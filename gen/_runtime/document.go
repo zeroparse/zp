@@ -595,6 +595,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	}
 	p.Document, p.memo = d, d.memo
 	d.pending = 0
+	d.epoch++
 	o.control.attachMemory(p)
 	d.stats = documentStats{}
 	defer func() {

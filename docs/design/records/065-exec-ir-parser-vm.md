@@ -345,8 +345,9 @@ entries that a prune removes, and handles of removed entries that an implementat
 **Counting in a region of Document work.** The memo operations of a rule that a parse from scratch memoizes too
 run in a region of Document work (`budget.freeBegin`), where the steps of a walk along the chain and the growth of
 the table are not counted against the default limit. The charges that a parse from scratch makes for the same
-lookup are lifted out of the region and counted: the hash of the key, and its comparison with each entry that the
-walk compares it with. The region itself does not nest, so a charge that is counted ends it and reopens it.
+lookup are lifted out of the region and counted: the hash of the key, and its comparison with each entry of this
+parse that the walk compares it with. The comparison with an entry that this parse has not stored or found to answer a
+lookup (an entry of an earlier text) is Document work: a parse from scratch has no such entry. The region itself does not nest, so a charge that is counted ends it and reopens it.
 
 **Document reuse** (`memo.examine`, `memo.examined`, `memo.before`, `memo.pin`, `memo.splice`, `doc.move`). A call
 records with its entry the input it examined: from its position, or from the unit before it, which a line start

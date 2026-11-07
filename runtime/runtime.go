@@ -1519,6 +1519,9 @@ type documentState struct {
 	moves uint32
 	// pending is the number of edits since the memo was last used by a parse (pendingEditLimit).
 	pending int
+	// epoch numbers the parses of the Document (memoEntry.seen); an entry is current in a parse if it
+	// carries the epoch of that parse.
+	epoch uint32
 }
 
 type documentStats struct {
@@ -1812,9 +1815,12 @@ type memoEntry struct {
 	// rule of their cycle was evaluated; it is reused only where every leader that grows there is in
 	// the set (ctxCallState.memoAllows).
 	present uint32
+	// seen is the epoch of the parse of a Document that last stored the entry or found it to answer a
+	// lookup (documentState.epoch); a parse from scratch leaves it zero.
+	seen uint32
 	// _ pads the entry to 128 bytes, two cache lines of the slab that holds it: at 120 bytes,
 	// entries straddle lines and node parses ran about 2% slower.
-	_ [8]byte
+	_ [4]byte
 }
 
 // get returns the entry for the rule, position, level and variable values.

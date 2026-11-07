@@ -75,6 +75,18 @@ func TestGeneratedDocumentCountsMemoWalkComparisons(t *testing.T) {
 	runDocumentBudgetFixture(t, grammar, fixtureWalk)
 }
 
+// The entries that earlier texts left in the chain of a position are not entries of a parse from scratch,
+// so the comparisons with them are work of a generated Document that the default limit does not count:
+// after edits that rewrite the end of the head, the parse still succeeds where a parse from scratch does.
+func TestGeneratedDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
+	t.Parallel()
+	grammar := "var s string\nvar a string\nvar b string\nvar c string\n" +
+		"rule main = h:head { a := text($h) + \"1\"; b := text($h) + \"2\"; c := \"z\" } \";\" " +
+		"({ s := a } u \"!\" / { s := c } { s := b } u \"!\" / { s := c } { s := a } u)* $$\n" +
+		"rule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\""
+	runDocumentBudgetFixture(t, grammar, fixtureLeftover)
+}
+
 // A value that equals the key of an entry but is not the same bytes is a miss for a rule that only a
 // generated Document memoizes, and a miss gives the result of a parse from scratch for the work that
 // the rule takes.
@@ -467,6 +479,35 @@ func TestWalkComparisonsCount(t *testing.T) {
   d, err := NewDocument(text)
   if err != nil { t.Fatal(err) }
   if _, err := d.Parse(); !errors.Is(err, ErrLimit) { t.Errorf("Document parse: %.80v, want the limit to be exceeded", err) }
+}
+`
+
+const fixtureLeftover = `package fixture
+import (
+  "fmt"
+  "strings"
+  "testing"
+)
+func head(n int, tail string) string { return strings.Repeat("a", n-2) + tail + ";" + strings.Repeat("b", n) }
+func TestLeftoverEntriesAreNotCounted(t *testing.T) {
+  // The longest text whose parse from scratch completes under the default limit: the work of the
+  // text is just below the limit, so work counted beyond a parse from scratch's is a limit error.
+  lo, hi := 100, 4000
+  for hi-lo > 1 {
+    mid := (lo + hi) / 2
+    if _, err := Parse(head(mid, "aa")); err == nil { lo = mid } else { hi = mid }
+  }
+  n := lo
+  t.Logf("n=%d", n)
+  d, err := NewDocument(head(n, "aa"))
+  if err != nil { t.Fatal(err) }
+  if _, err := d.Parse(); err != nil { t.Fatalf("first Document parse: %.100v", err) }
+  for k := 0; k < 12; k++ {
+    rep := fmt.Sprintf("%c%c", 'c'+k/6, 'c'+k%6)
+    if err := d.Edit(n-2, n, rep); err != nil { t.Fatal(err) }
+    if _, err := Parse(head(n, rep)); err != nil { t.Fatalf("edit %d: parse from scratch: %.100v", k, err) }
+    if _, err := d.Parse(); err != nil { t.Fatalf("edit %d: Document parse: %.100v", k, err) }
+  }
 }
 `
 
