@@ -256,6 +256,10 @@ plain fields, and their options are fields. Rejected for consistency.
 - Disabled optimizations: for each flag, lean typed parsers generated without it run the generated-parser differential
   (`GeneratedTypesCorpus`), which compares results and errors with the engine in both position units. Each
   flag is also checked to change the generated code or the Core IR on the cases, so a flag that does nothing is caught.
+- Other routes: the same differential runs for the Node and recognizer parsers in four modes (plain, observability,
+  limit controls, recognizer) and for TypeScript parsers in four modes (plain, typed, observability, limit controls),
+  with a few flags off and with all of them off, and with the opt-in `ts-literal-sharing` on. Each route has a negative
+  control that changes a literal in the generated code and requires the comparison to notice.
 - Combinations: all optional flags off, and a seeded sample of pairs, with `Verify` after every pass. The full 2^n
   product is not run.
 - Mode applicability: `class-runs`, `terminals` and guarded classes do not run in builds with work controls, Documents

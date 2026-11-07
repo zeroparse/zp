@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -198,5 +199,78 @@ func TestOptimizationCombinationsParity(t *testing.T) {
 	for range pairs {
 		a, b := names[rng.Intn(len(names))], names[rng.Intn(len(names))]
 		t.Run(a+"+"+b, func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, off(a, b), 0) })
+	}
+}
+
+// nodeRouteModes are the ways a Node or recognizer parser is generated, which take routes other than
+// lean typed Go: the ordinary Node parser, one with observability, one with limit controls, and the
+// recognizer.
+var nodeRouteModes = []struct {
+	name string
+	opts gen.GenOptions
+}{
+	{"plain", gen.GenOptions{}},
+	{"observability", gen.GenOptions{Observability: true}},
+	{"limits", gen.GenOptions{LimitControls: true}},
+	{"recognize", gen.GenOptions{Recognize: true}},
+}
+
+// TestOptimizationDisabledNodeRouteParity compares Node and recognizer parsers generated with an
+// optimization off with the engine, in every mode of nodeRouteModes. The flag tests above generate
+// lean typed Go; these are the other routes, where a pass applies in some modes and not in others.
+func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	var all []string
+	for _, f := range genopt.Flags {
+		if f.Kind != genopt.Runtime {
+			all = append(all, f.Name)
+		}
+	}
+	sets := [][]string{{"guards"}, {"scans"}, {"text-dispatch"}, {"inline-literals"}, {"guarded-classes"}, all}
+	for _, mode := range nodeRouteModes {
+		for _, set := range sets {
+			name := mode.name + "/" + strings.Join(set, "+")
+			if len(set) == len(all) {
+				name = mode.name + "/all"
+			}
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				o := mode.opts
+				o.NoOpt = set
+				gentest.GeneratedParsersCorpus(t, goBin, gentest.FlagParityCases(), o)
+			})
+		}
+	}
+}
+
+// TestOptimizationDisabledNodeRouteNegativeControl shows that the comparison of the test above
+// fails for a parser that is wrong: with the guards off and a literal of the grammar changed in the
+// generated code, the parser differs from the engine on the inputs that contain the literal.
+func TestOptimizationDisabledNodeRouteNegativeControl(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, mode := range nodeRouteModes {
+		t.Run(mode.name, func(t *testing.T) {
+			t.Parallel()
+			o := mode.opts
+			o.NoOpt = []string{"guards"}
+			var changed atomic.Bool
+			mutate := func(code []byte) []byte {
+				out := strings.ReplaceAll(string(code), `"while"`, `"whilx"`)
+				if out != string(code) {
+					changed.Store(true)
+				}
+				return []byte(out)
+			}
+			if got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, mutate); len(got) == 0 {
+				t.Errorf("a parser with a changed literal matches the engine")
+			}
+			if !changed.Load() {
+				t.Errorf("the generated code has no literal \"while\" to change: the control proves nothing")
+			}
+		})
 	}
 }

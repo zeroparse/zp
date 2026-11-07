@@ -144,6 +144,17 @@ const NodeViewsSource = `func() string {
 
 func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.GenOptions) {
 	t.Helper()
+	for _, m := range GeneratedParsersMismatches(t, goBin, cases, opts, nil) {
+		t.Error(m)
+	}
+}
+
+// GeneratedParsersMismatches generates a Go parser for each case with opts, changes the source of
+// each with mutate (when not nil), runs them and returns a description of every result that differs
+// from the engine's. GeneratedParsersCorpus fails on them; a negative control passes a mutation and
+// requires some.
+func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts gen.GenOptions, mutate func([]byte) []byte) []string {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -165,6 +176,9 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.G
 		code, err := GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
+		}
+		if mutate != nil {
+			code = mutate(code)
 		}
 		write(fmt.Sprintf("g%d/parser.go", i), string(code))
 		fmt.Fprintf(&imports, "\tg%d \"gentest/g%d\"\n", i, i)
@@ -235,17 +249,19 @@ func main() {
 	if len(got) != len(want) {
 		t.Fatalf("got %d results, want %d\n%s", len(got), len(want), out)
 	}
+	var mismatches []string
 	k := 0
 	for _, c := range cases {
 		for _, in := range c.Inputs {
 			for _, unit := range []string{"codepoints", "bytes"} {
 				if got[k] != want[k] {
-					t.Errorf("%s (%v): input %q\n generated %s\n engine    %s", c.Name, unit, in, got[k], want[k])
+					mismatches = append(mismatches, fmt.Sprintf("%s (%v): input %q\n generated %s\n engine    %s", c.Name, unit, in, got[k], want[k]))
 				}
 				k++
 			}
 		}
 	}
+	return mismatches
 }
 
 func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, requiredTyped ...int) {
