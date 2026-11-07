@@ -61,7 +61,7 @@ func TestGuardedClassGeneration(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, disabled := range []bool{false, true} {
-			code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "guarded", Start: "main", Types: true, TypedOnly: true, DisableGuardedClasses: disabled})
+			code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "guarded", Start: "main", Types: true, TypedOnly: true, NoOpt: gentest.NoOptIf(disabled, "guarded-classes")})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -79,7 +79,7 @@ func TestGuardedClassGeneration(t *testing.T) {
 func TestGuardedClassDisabledParity(t *testing.T) {
 	t.Parallel()
 	gentest.PinOrdinary(t)
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), guardedClassCases(), gen.GenOptions{DisableGuardedClasses: true}, 0)
+	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), guardedClassCases(), gen.GenOptions{NoOpt: []string{"guarded-classes"}}, 0)
 }
 
 // TestGuardedClassEligibility checks that parsers that spend budget for reading (budget controls or

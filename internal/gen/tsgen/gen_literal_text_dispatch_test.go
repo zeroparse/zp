@@ -29,7 +29,7 @@ func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reference, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", DisableLiteralTextDispatch: true})
+	reference, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}

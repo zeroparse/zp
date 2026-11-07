@@ -30,7 +30,7 @@ func TestGeneratedSparseMemoSmallTable(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			opts.DisableSparseMemo = true
+			opts.NoOpt = []string{"sparse-memo"}
 			control, err := generate(g, opts)
 			if err != nil {
 				t.Fatal(err)
@@ -65,7 +65,7 @@ func TestGeneratedTSSparseMemoControls(t *testing.T) {
 	}
 	var results [2]string
 	for i, name := range []string{"optimized", "reference"} {
-		code, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Recognize: true, DisableSparseMemo: i == 1})
+		code, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Recognize: true, NoOpt: gentest.NoOptIf(i == 1, "sparse-memo")})
 		if err != nil {
 			t.Fatal(err)
 		}

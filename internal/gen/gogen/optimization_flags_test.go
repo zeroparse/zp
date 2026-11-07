@@ -1,0 +1,164 @@
+package gogen_test
+
+import (
+	"math/rand"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/gen"
+	genopt "zeroparse.dev/zp/internal/gen/opt"
+	"zeroparse.dev/zp/internal/gentest"
+)
+
+// optimizationCases are grammars on which the optimizations of lean typed Go act, with inputs at their
+// edges: guards that skip alternatives, value-free repetitions of classes, runs of classes, classes of
+// many ranges, and literals around the length that is compared in place.
+func optimizationCases() []gentest.Case {
+	alphabet := append(strings.Split("abcdefghijklmnopqrstuvwxyz0123456789 _é日", ""), "\xff", "\xe6\x97")
+	cases := []gentest.Case{
+		{Name: "guards of words", Src: `rule main = (word / num / ident / -" ")* $$
+rule word = "if" / "else" / "while" / "fn"
+rule num = [0-9]+
+rule ident = [a-z] [a-z0-9_]*
+`, Inputs: []string{"if else while fn", "if1 x9", "123 abc", "", " ", "else9", "é", "while_", "fn fn fn", "zz 01 if"}},
+		{Name: "scans", Src: `rule main = word (-[ ]* word)* -.* $$
+rule word = [a-z]+
+`, Inputs: []string{"a b c", "abc   def  ", "a  b ~~~ tail", "", "a", " ", "a\xff", "aé b"}},
+		{Name: "class runs", Src: `rule main = (-([a-c] [d-f] [g-h] [0-9]) / -([x-z] [é] [日] "!") / -" ")* $$
+`, Inputs: []string{"adg1 xé日!", "adg", "ad", "xé", "adh9 cfg0", "x日", "", "adg1adg1", "\xffdg1"}},
+		{Name: "class tables", Src: `rule main = ([a-cf-hk-mp-rt-vx-z0-35-7]+ / [^a-cf-hk-mp-rt-vx-z0-35-7 ]+ / -" ")* $$
+`, Inputs: []string{"abcfghklm", "defij", "abc def 012", "4 8", "xyz789", "", "é日", "\xff", "a4b"}},
+		{Name: "term rewrites", Src: `rule main = (x:[a-z]+ #atomic "," y:[a-z]+ #atomic {text($x) == text($y)} -" "?)* $$
+`, Inputs: []string{"a,a", "ab,ab a,a", "a,b", "ab,a", "a,a b,b ab,ab", ",", "a,", "é,é"}},
+		{Name: "inline literals", Src: `rule main = (l:lit / -" ")* $$
+rule lit = "a" / "ab" / "abc" / "abcd" / "abcde" / "abcdef" / "日本" / "日本語日本語"
+`, Inputs: []string{"a ab abc abcd abcde abcdef", "abcdefg", "日本 日本語日本語", "日本語", "ab abc", "abcd abcd", "", "x", "abcde"}},
+	}
+	rng := rand.New(rand.NewSource(7))
+	for i := range cases {
+		for range 120 {
+			var b strings.Builder
+			for range rng.Intn(14) {
+				b.WriteString(alphabet[rng.Intn(len(alphabet))])
+			}
+			cases[i].Inputs = append(cases[i].Inputs, b.String())
+		}
+	}
+	return append(cases, guardedClassCases()...)
+}
+
+// optimizationTests says for each registered optimization the test that shows a parser generated
+// without it returns what the engine does, or "" where this file's TestOptimizationDisabledParity does.
+// A flag that is missing here fails TestOptimizationsHaveTests, so a new optimization comes with a test.
+var optimizationTests = map[string]string{
+	"terminals":              "TestTerminalProgramDisabledParity",
+	"term-rewrites":          "",
+	"text-dispatch":          "TestLiteralTextPredicateDispatchDisabledParity",
+	"field-compare":          "TestGeneratedTextFieldComparisons",
+	"guards":                 "",
+	"guarded-classes":        "TestGuardedClassDisabledParity",
+	"scans":                  "",
+	"class-runs":             "",
+	"class-tables":           "",
+	"inline-literals":        "",
+	"typed-object-slabs":     "TestGeneratedTypedOutputRetentionFixture",
+	"typed-list-slabs":       "TestGeneratedTypedOutputRetentionFixture",
+	"typed-output-bootstrap": "TestGeneratedTypedOutputRetentionFixture",
+	"sparse-memo":            "TestGeneratedTSSparseMemoControls (tsgen)",
+}
+
+// TestOptimizationsHaveTests fails for an optimization that is registered and has no test of its
+// disabled form, and for a test that names an optimization that does not exist.
+func TestOptimizationsHaveTests(t *testing.T) {
+	for _, f := range genopt.Flags {
+		if _, ok := optimizationTests[f.Name]; !ok {
+			t.Errorf("the optimization %s has no test of its disabled form", f.Name)
+		}
+		if f.Doc == "" {
+			t.Errorf("the optimization %s has no description", f.Name)
+		}
+	}
+	for name := range optimizationTests {
+		if !slices.Contains(genopt.Names(), name) {
+			t.Errorf("a test names %s, which is not a registered optimization", name)
+		}
+	}
+}
+
+// off returns the options for a lean typed parser with the optimizations off.
+func off(names ...string) gen.GenOptions {
+	return gen.GenOptions{Types: true, TypedOnly: true, NoOpt: names}
+}
+
+// generateShowingIR returns the code of a parser and the Core IR after the guards pass, which has the
+// effect of the passes before it that the code does not show: the generators read the terms of the
+// grammar, not the rewritten terms of the Core IR.
+func generateShowingIR(t *testing.T, g *grammar.Grammar, o gen.GenOptions) ([]byte, string) {
+	t.Helper()
+	var ir strings.Builder
+	o.PrintAfter, o.PrintTo = "guards", &ir
+	code, err := gentest.GenerateCode(t, g, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return code, ir.String()
+}
+
+// TestOptimizationDisabledParity compares lean typed parsers generated without an optimization with
+// the engine, in both position units, for the optimizations that no other test covers; and checks
+// that turning it off changes the generated code or the Core IR, so that a flag that does nothing is caught.
+func TestOptimizationDisabledParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	cases := optimizationCases()
+	for _, f := range genopt.Flags {
+		if optimizationTests[f.Name] != "" {
+			continue
+		}
+		t.Run(f.Name, func(t *testing.T) {
+			changed := false
+			for _, c := range cases {
+				g, err := parseTest(c.Src)
+				if err != nil {
+					t.Fatal(err)
+				}
+				on, onIR := generateShowingIR(t, g, off())
+				without, withoutIR := generateShowingIR(t, g, off(f.Name))
+				changed = changed || string(on) != string(without) || onIR != withoutIR
+			}
+			if !changed {
+				t.Errorf("generating without %s changes no parser of the cases: the flag does nothing there", f.Name)
+			}
+			gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, off(f.Name), 0)
+		})
+	}
+}
+
+// TestOptimizationCombinationsParity compares parsers generated with every optimization of the Core
+// passes and of lowering off, and with a seeded sample of pairs off, with the engine.
+func TestOptimizationCombinationsParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	var names []string
+	for _, f := range genopt.Flags {
+		if f.Kind != genopt.Runtime {
+			names = append(names, f.Name)
+		}
+	}
+	cases := optimizationCases()
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	t.Run("all", func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, off(names...), 0) })
+	rng := rand.New(rand.NewSource(11))
+	pairs := 3
+	if gentest.Long() {
+		pairs = 12
+	}
+	for range pairs {
+		a, b := names[rng.Intn(len(names))], names[rng.Intn(len(names))]
+		t.Run(a+"+"+b, func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, off(a, b), 0) })
+	}
+}

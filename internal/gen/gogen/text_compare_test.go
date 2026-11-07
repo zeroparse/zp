@@ -34,7 +34,7 @@ func TestGeneratedTextFieldComparisons(t *testing.T) {
 	pkg := func(convert, boxed bool) string { return fmt.Sprintf("compare_%v_%v", convert, boxed) }
 	for _, convert := range []bool{false, true} {
 		for _, boxed := range []bool{false, true} {
-			code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: pkg(convert, boxed), Start: "main", Types: true, ConvertTypes: convert, BoxedComparisons: boxed})
+			code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: pkg(convert, boxed), Start: "main", Types: true, ConvertTypes: convert, NoOpt: gentest.NoOptIf(boxed, "field-compare")})
 			if err != nil {
 				t.Fatal(err)
 			}

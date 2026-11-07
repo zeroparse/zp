@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"slices"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/core"
@@ -179,7 +180,7 @@ func TestCoreTermRewritesFrozen(t *testing.T) {
 			}
 		}
 		fields := 3
-		if mode.opts.BoxedComparisons {
+		if slices.Contains(mode.opts.NoOpt, "field-compare") {
 			fields = 0
 		}
 		if forms["text-eq"] != 2 || forms["field-cmp"] != fields {

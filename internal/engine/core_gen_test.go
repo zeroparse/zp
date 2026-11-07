@@ -34,7 +34,7 @@ var coreGenModes = []coreGenMode{
 	{"lean", gen.GenOptions{Types: true, TypedOnly: true}},
 	{"lean observable", gen.GenOptions{Types: true, TypedOnly: true, Observability: true}},
 	{"controlled", gen.GenOptions{Types: true, TypedOnly: true, LimitControls: true}},
-	{"lean boxed", gen.GenOptions{Types: true, TypedOnly: true, DisableLiteralTextDispatch: true, BoxedComparisons: true}},
+	{"lean boxed", gen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"text-dispatch", "field-compare"}}},
 }
 
 // coreGenCase is a corpus grammar generated with the options of a mode, and the Core IR of its
@@ -581,7 +581,7 @@ func TestCoreTypedDecisionsFrozen(t *testing.T) {
 			(n.terminals > 0) != terminals || (n.classRuns > 0) != lean || (n.guardedClasses > 0) != lean {
 			t.Errorf("counts %+v", n)
 		}
-		if mode.opts.BoxedComparisons != (n.forms["field-cmp"] == 0) || mode.opts.DisableLiteralTextDispatch != (n.forms["text-in"] == 0) ||
+		if slices.Contains(mode.opts.NoOpt, "field-compare") != (n.forms["field-cmp"] == 0) || slices.Contains(mode.opts.NoOpt, "text-dispatch") != (n.forms["text-in"] == 0) ||
 			n.forms["concat-fused"] == 0 || n.forms["projected-map"]+n.forms["part-items"] == 0 {
 			t.Errorf("forms %v", n.forms)
 		}
