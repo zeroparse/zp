@@ -16,7 +16,7 @@ term carries its checked type, which is the type of its value. A lambda has no t
 | `New` | Makes a struct of a type from the fields given. Final marks the struct that is the result of the rule or line, whose range is the rule's. |
 | `Convert` | Converts a value to a named node type. Proven records that the checker proved that every value converts |
 | `Tuple` | Makes a tuple |
-| `Builtin` | Calls a built-in function: `len`, `text`, `foldl`, `foldr`, `map`, `filter`, `list` or `concat`. Projected marks a `map` over a capture of a projected repetition whose function takes out the projected field, so that the capture already holds the mapped values |
+| `Builtin` | Calls a built-in function: `len`, `text`, `foldl`, `foldr`, `map`, `filter`, `list` or `concat` |
 | `Lambda` | A function literal, an argument of a built-in |
 | `Binary`, `Unary` | An operation on one or two terms |
 | `Cast` | Converts a value to a checked type |

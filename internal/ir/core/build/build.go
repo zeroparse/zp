@@ -751,9 +751,6 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		return n, nil
 	case *grammar.Call:
 		n := &core.Builtin{Func: t.Func}
-		if t.Func == "map" {
-			_, n.Projected = compile.ProjectedMap(t, b.proj, func(name string) bool { _, local := env[name]; return local })
-		}
 		for _, a := range t.Args {
 			v, err := sub(a)
 			if err != nil {

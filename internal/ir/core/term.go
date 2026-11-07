@@ -104,9 +104,6 @@ type Builtin struct {
 	termBase
 	Func string
 	Args []Term
-	// Projected reports a map call over a capture of a projected repetition whose function takes
-	// out the projected field: the capture already holds the mapped values.
-	Projected bool
 }
 
 // Lambda is a function literal, an argument of a built-in.
