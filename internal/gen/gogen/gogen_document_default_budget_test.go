@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/gen"
@@ -29,6 +30,21 @@ func TestGeneratedDocumentDefaultLimitsAtBoundary(t *testing.T) {
 func TestGeneratedDocumentRunawayStoppedByDefault(t *testing.T) {
 	t.Parallel()
 	runDocumentBudgetFixture(t, "rule main = (. &mid)* $$\nrule mid = (. &.*) #repeat(0, 1000000)", fixtureRunaway)
+}
+
+// The copy and the replay of recovered errors in the memo count in a generated Document parse as they
+// count in a parse from scratch: a text several times as long as the longest one that a parse from
+// scratch admits stays stopped.
+func TestGeneratedDocumentCountsRecoveredErrorCopies(t *testing.T) {
+	t.Parallel()
+	runDocumentBudgetFixture(t, "rule main = s $$\nrule s = item s \"!\" / item s / item\nrule item = (\"a\" \";\") #recover(skip=[^;]* \";\")", fixtureRecovered)
+}
+
+// A memo entry that lags behind 128 pending edits is reused; one that lags behind 129 is a miss.
+func TestGeneratedDocumentMemoLagBoundary(t *testing.T) {
+	t.Parallel()
+	item := strings.TrimSpace(strings.Repeat("item ", 40))
+	runDocumentBudgetFixture(t, "rule main = "+item+" $$\nrule item = [a-z]+ \" \" #atomic", fixtureLag)
 }
 
 // runDocumentBudgetFixture generates a Document parser for the grammar and runs the test source
@@ -281,5 +297,55 @@ func TestRunawayStopped(t *testing.T) {
       t.Fatalf("limit %d, want the default %d", le.Limit, want)
     }
   }
+}
+`
+
+const fixtureRecovered = `package fixture
+import (
+  "errors"
+  "strings"
+  "testing"
+)
+func TestRecoveredErrorCopiesCounted(t *testing.T) {
+  fits := func(n int) bool {
+    _, err := Parse(strings.Repeat("b;", n))
+    if err != nil && !errors.Is(err, ErrLimit) { return true }
+    return err == nil
+  }
+  lo, hi := 1, 1<<12
+  if !fits(lo) || fits(hi) { t.Fatal("range") }
+  for hi-lo > 1 {
+    if mid := (lo + hi) / 2; fits(mid) { lo = mid } else { hi = mid }
+  }
+  n := 4 * lo
+  d, err := NewDocument(strings.Repeat("b;", n))
+  if err != nil { t.Fatal(err) }
+  if _, err := d.Parse(); !errors.Is(err, ErrLimit) {
+    t.Fatalf("Document parse of %d items, 4 times the %d that a parse from scratch admits: got %.80v, want the limit error", n, lo, err)
+  }
+}
+`
+
+const fixtureLag = `package fixture
+import (
+  "strings"
+  "testing"
+)
+func hitsAfter(t *testing.T, count int) int {
+  d, err := NewDocument(strings.Repeat("ab ", 40))
+  if err != nil { t.Fatal(err) }
+  if _, err := d.Parse(); err != nil { t.Fatal(err) }
+  for i := 0; i < count; i++ {
+    if err := d.Edit(3*39, 3*39+1, string(rune('a'+i%2))); err != nil { t.Fatal(err) }
+  }
+  if _, err := d.Parse(); err != nil { t.Fatal(err) }
+  return d.Stats().Reused
+}
+func TestMemoLagBoundary(t *testing.T) {
+  hits := map[int]int{}
+  for _, k := range []int{127, 128, 129, 130} { hits[k] = hitsAfter(t, k) }
+  t.Logf("memo hits by pending edits: %v", hits)
+  if hits[127] < 30 || hits[128] < 30 { t.Errorf("entries that lag behind 127 and 128 edits are not reused: %v", hits) }
+  if hits[129] > 5 || hits[130] > 5 { t.Errorf("entries that lag behind 129 and 130 edits are reused: %v", hits) }
 }
 `

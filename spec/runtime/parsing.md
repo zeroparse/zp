@@ -1647,25 +1647,25 @@ into reads. A parser generated without limit controls spends no budget and
 accepts only a zero `Compute` and `Unlimited`.
 
 For a `Document`, `n` is the length of the text at each `Parse`, and the default
-counts only the work that a parse of that text from scratch counts. The work that
-only a `Document` does is not counted: the memo protocol of its calls (the
-lookups and the stores of memo entries, and the walks of their chains), applying
-pending edits to the entries, moving the values it reuses, and copying the
-diagnostics it returns. The unit of each call, the evaluation of rule bodies and
-the examination of the input are counted, as in a parse from scratch. A `Document` parse under
-the default limit therefore succeeds whenever a parse of the same text from
-scratch under the default limit does, whatever edits are pending and whatever
-the earlier parses left in the `Document`, and it returns the result of that
-parse. An explicit `Compute` limit counts all the work of the parse. Under the
-default, `Limit` and `Used` of a `LimitError` leave the work of the `Document`
-out as well.
+counts the work that a parse of that text from scratch counts. The work that only a
+`Document` does is not counted: the memo protocol of a rule that a parse from scratch does not
+memoize (a transient rule), the walk of the chains of memo entries, applying pending edits to
+the entries, moving the values it reuses, and copying the diagnostics it returns. The unit of
+each call, the evaluation of rule bodies, the examination of the input, and the memo protocol of
+the rules that a parse from scratch memoizes too, with the copy and the replay of recovered
+errors, are counted, as in a parse from scratch. A `Document` parse under the default limit
+therefore succeeds whenever a parse of the same text from scratch under the default limit does,
+whatever edits are pending and whatever the earlier parses left in the `Document`, and it returns
+the result of that parse; the [linear cost proof](../proofs/linear-cost.md#lemma-12-document-units)
+argues this and does not prove it. An explicit `Compute` limit counts all the work of the parse.
+Under the default, `Limit` and `Used` of a `LimitError` leave the work of the `Document` out as
+well.
 
-The work that the default leaves out is bounded by the
-[linear cost proof](../proofs/linear-cost.md#lemma-12-document-units). Pending
-edits add at most 128 units to a call, since a memo entry that lags behind by
-more edits is evaluated again instead of brought up to date; the other terms
-depend on what the `Document` retains. A grammar whose cost is far above the
-default limit stays stopped on a `Document`, also with the most pending edits.
+The work that the default leaves out is bounded by that proof. Pending edits add at most 128
+units to a call, since a memo entry that lags behind by more edits is evaluated again instead of
+brought up to date; the other terms depend on what the `Document` retains, and the default does
+not bound them. A grammar whose counted work is far above the default limit stops on a `Document`
+as it does on a parse from scratch, also with the most pending edits.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary
 syntactic mismatches. Ordered choice, predicates, recovery, and other grammar

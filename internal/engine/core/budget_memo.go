@@ -40,11 +40,25 @@ func (p *Parser) bindControlled(slot int, val any) {
 	p.ChargeValueBytes(int(uint64(p.envLevels+1) * envNodeBytes))
 }
 
+// MemoGet looks up the entry for k. The lookup counts one unit and the walk of the chain at the position
+// counts the steps it makes, except in a Document parse, where the chain holds the entries of rules
+// that a parse from scratch does not memoize and those of earlier texts: the walk is Document work
+// there.
 func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return p.Memo.Get(k)
 	}
 	p.Spend()
+	if p.MemoAll {
+		m := p.FreeBegin(true)
+		e, ok := p.memoWalk(k)
+		p.FreeEnd(m)
+		return e, ok
+	}
+	return p.memoWalk(k)
+}
+
+func (p *Parser) memoWalk(k MemoKey) (*MemoEntry, bool) {
 	t := p.Memo
 	i := k.Pos - t.Base
 	if i >= t.Gap {
@@ -97,12 +111,24 @@ func (p *Parser) chargeMemoHash(e *MemoEntry) {
 	}
 }
 
+// MemoPut stores e for k. The store counts one unit; the walk of the chain at the position and the
+// growth of the table count as MemoGet's walk does, and are Document work in a Document parse.
 func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		p.Memo.Put(k, e)
 		return
 	}
 	p.Spend()
+	if p.MemoAll {
+		m := p.FreeBegin(true)
+		p.memoStore(k, e)
+		p.FreeEnd(m)
+		return
+	}
+	p.memoStore(k, e)
+}
+
+func (p *Parser) memoStore(k MemoKey, e *MemoEntry) {
 	t := p.Memo
 	i := k.Pos - t.Base
 	if i < 0 {

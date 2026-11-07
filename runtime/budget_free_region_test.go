@@ -45,22 +45,19 @@ func TestFreeRegionChargesExactly(t *testing.T) {
 // ChargeDoc reserves exactly the units it is given, as Charge does, and counts them as Document work
 // under a default limit only.
 func TestChargeDocChargesExactly(t *testing.T) {
-	for _, defaultLimit := range []bool{true} {
-		c := newBudgetControl(nil, Limits{Compute: 100})
-		c.defaultCompute = defaultLimit
-		c.ChargeDoc(70)
-		c.ChargeDoc(70)
-		c.Charge(30)
-		wantDoc := uint64(0)
-		if defaultLimit {
-			wantDoc = 140
-		}
-		if c.budgetUsed() != 170 || c.doc != wantDoc {
-			t.Fatalf("default %v: used %d (want 170), Document units %d (want %d)", defaultLimit, c.budgetUsed(), c.doc, wantDoc)
-		}
-	}
 	c := newBudgetControl(nil, Limits{Compute: 100})
+	c.defaultCompute = true
 	c.ChargeDoc(70)
+	c.ChargeDoc(70)
+	c.Charge(30)
+	if c.budgetUsed() != 170 || c.doc != 140 {
+		t.Fatalf("default limit: used %d (want 170), Document units %d (want 140)", c.budgetUsed(), c.doc)
+	}
+	c = newBudgetControl(nil, Limits{Compute: 100})
+	c.ChargeDoc(70)
+	if c.budgetUsed() != 70 || c.doc != 0 {
+		t.Fatalf("explicit limit: used %d (want 70), Document units %d (want 0)", c.budgetUsed(), c.doc)
+	}
 	defer func() {
 		if recover() == nil {
 			t.Fatal("an explicit limit of 100 let 140 units of Document work pass")

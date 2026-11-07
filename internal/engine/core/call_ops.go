@@ -43,6 +43,12 @@ func (p *Parser) memoized(r *Rule) bool {
 	return r.Memo && (!r.Transient || p.MemoAll) && !(p.Missing != nil && r.Missing)
 }
 
+// docOnlyMemo reports whether the parse memoizes rule r and a parse from scratch does not: a transient
+// rule in a Document parse. The memo protocol of such a rule is Document work.
+func (p *Parser) docOnlyMemo(r *Rule) bool {
+	return p.MemoAll && r.Memo && r.Transient && !r.Leader && !(p.Missing != nil && r.Missing)
+}
+
 // The iterative machine writes the call protocol out on its hot path. In a Document parse (MemoAll)
 // it calls the forms below, which run the memo protocol as Document work; a parse from scratch runs
 // the plain steps without a call.
@@ -56,25 +62,26 @@ func (p *Parser) DocCallSpend(r *Rule) {
 }
 
 // DirectCallDoc reports whether the call of r runs its body unmemoized, as the test of Call does:
-// the rule is not memoized, or its memoization is deferred.
+// the rule is not memoized, or its memoization is deferred. The test is Document work for a rule that
+// only a Document parse memoizes.
 func (p *Parser) DirectCallDoc(r *Rule) bool {
-	m := p.FreeBegin(true)
+	m := p.FreeBegin(p.docOnlyMemo(r))
 	direct := !p.Memoizes(r) || p.FirstCall(r)
 	p.FreeEnd(m)
 	return direct
 }
 
-// CallBeginDoc is CallBegin as work of the Document.
+// CallBeginDoc is CallBegin, as work of the Document for a rule that only a Document parse memoizes.
 func (p *Parser) CallBeginDoc(r *Rule, min int, st *CallState) (*value.Node, bool, bool) {
-	m := p.FreeBegin(true)
+	m := p.FreeBegin(p.docOnlyMemo(r))
 	v, ok, hit := p.CallBegin(r, min, st)
 	p.FreeEnd(m)
 	return v, ok, hit
 }
 
-// CallEndDoc is CallEnd as work of the Document.
+// CallEndDoc is CallEnd, as work of the Document for a rule that only a Document parse memoizes.
 func (p *Parser) CallEndDoc(r *Rule, st *CallState, v *value.Node, ok bool) (*value.Node, bool) {
-	m := p.FreeBegin(true)
+	m := p.FreeBegin(p.docOnlyMemo(r))
 	v, ok = p.CallEnd(r, st, v, ok)
 	p.FreeEnd(m)
 	return v, ok
