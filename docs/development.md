@@ -116,6 +116,21 @@ Generated Go `-stream` adds a Node `ParseStream` that follows the engine's Reade
 call counts with the engine across chunkings, units, controls, observability and Document generation; changes to
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.
 
+Generation-time optimizations are the flags of one registry (`internal/gen/opt`), and the Core passes are a pipeline
+declared in `internal/ir/core/pipeline.go` and run by the generic manager in `internal/ir/pipeline`
+([design 063](design/records/063-configurable-optimization-pass-pipeline.md)). To add an optimization:
+
+1. Declare a pass with its `Requires`, `Invalidates`, `After`, `Applies` and `Obligation`, or add a lowering or
+   runtime flag; register its name, kind, description and `speed` value in the registry.
+2. Add its entry to `optimizationTests` in `internal/gen/gogen/optimization_flags_test.go`. The entry names the test of
+   the parser generated without it, or leaves it to `TestOptimizationDisabledParity`, which compares such parsers with the
+   engine and fails for a flag that changes neither the code nor the Core IR.
+3. Add a row to the optimizations table of the [code-generation guide](guide/code-generation.md#optimizations).
+
+`zp gen -print-after all` shows the Core IR after each pass, and `-no-opt name` isolates a miscompilation to one
+optimization. The test helpers of `internal/gentest` verify the Core IR after every pass
+(`GenOptions.VerifyEachPass`), so a pass that breaks an invariant is named by the failing test.
+
 Generated Go typed-output cleanup is not implemented; the measured full-sweep and bounded candidates and their limits are in [design 034](design/records/034-typed-output-liveness.md) and [optimization record 094](optimizations/094-generated-typed-output-liveness.md).
 
 ## Modules and the Workspace
