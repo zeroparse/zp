@@ -47,6 +47,33 @@ func TestGeneratedDocumentMemoLagBoundary(t *testing.T) {
 	runDocumentBudgetFixture(t, "rule main = "+item+" $$\nrule item = [a-z]+ \" \" #atomic", fixtureLag)
 }
 
+// The comparison of memo keys costs what it does: a key whose string is the same bytes compares in a
+// constant. A generated Document parse completes on a text whose key is long, and does a constant factor
+// of the work of a parse from scratch, however long the text, whether the rule that the key belongs to
+// is memoized by a parse from scratch too or only by a Document.
+func TestGeneratedDocumentCountsMemoKeyWork(t *testing.T) {
+	t.Parallel()
+	for name, grammar := range map[string]string{
+		"leaf":    "var s string\nrule main = h:head { s := text($h) } \";\" (u \"!\" / u)* $$\nrule head = [a-z]* #atomic\nrule u = { s != \"\" } \"b\"",
+		"nonleaf": "var s string\nrule main = h:head { s := text($h) } \";\" (u \"!\" / u)* $$\nrule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\"",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			runDocumentBudgetFixture(t, grammar, fixtureEnvKey)
+		})
+	}
+}
+
+// A value that equals the key of an entry but is not the same bytes is a miss for a rule that only a
+// generated Document memoizes, and a miss gives the result of a parse from scratch for the work that
+// the rule takes.
+func TestGeneratedDocumentIdentityMissIsSound(t *testing.T) {
+	t.Parallel()
+	runDocumentBudgetFixture(t, "var s string\nrule main = line* $$\n"+
+		"rule line = h:head { s := text($h) + \"x\" } u \"!\" / h:head { s := text($h) + \"x\" } u \"\\n\"\n"+
+		"rule head = \"a\"* #atomic\nrule u = { s == \"aax\" } \"b\"", fixtureIdentityMiss)
+}
+
 // A typed generated Document parse stores an entry at the first call of a rule, where a typed parse from
 // scratch defers the memoization to the second call. The units it counts against the default limit stay
 // within those of the parse from scratch: it succeeds on the longest text that the parse from scratch
@@ -394,5 +421,91 @@ func TestTypedDocumentCountedWithinFresh(t *testing.T) {
   if err := doc(4 * lo); !errors.Is(err, ErrLimit) {
     t.Fatalf("the typed Document parse of %d items, 4 times the %d that a parse from scratch admits: got %.80v, want the limit error", 4*lo, lo, err)
   }
+}
+`
+
+const fixtureEnvKey = `package fixture
+import (
+  "errors"
+  "strings"
+  "testing"
+)
+func TestMemoKeyWorkWithinFresh(t *testing.T) {
+  least := func(text string, doc bool) uint64 {
+    ok := func(l uint64) bool {
+      var err error
+      if doc {
+        d, derr := NewDocument(text)
+        if derr != nil { t.Fatal(derr) }
+        _, err = d.Parse(WithLimits(Limits{Compute: l}))
+      } else {
+        _, err = Parse(text, WithLimits(Limits{Compute: l}))
+      }
+      if err != nil && !errors.Is(err, ErrLimit) { t.Fatal(err) }
+      return err == nil
+    }
+    lo, hi := uint64(1), uint64(1)<<30
+    if ok(lo) || !ok(hi) { t.Fatal("range") }
+    for hi-lo > 1 {
+      if mid := (lo + hi) / 2; ok(mid) { hi = mid } else { lo = mid }
+    }
+    return hi
+  }
+  for _, n := range []int{2000, 64000} {
+    text := strings.Repeat("a", n) + ";" + strings.Repeat("b", n)
+    fresh, doc := least(text, false), least(text, true)
+    t.Logf("n=%d: fresh %d units, Document %d units", n, fresh, doc)
+    if doc > 3*fresh {
+      t.Errorf("n=%d: a Document parse needs %d units, more than 3 times the %d of a parse from scratch", n, doc, fresh)
+    }
+    // Under the default limit the Document parse completes.
+    d, err := NewDocument(text)
+    if err != nil { t.Fatal(err) }
+    if _, err := d.Parse(); err != nil { t.Errorf("n=%d: Document parse under the default limits: %.80v", n, err) }
+  }
+}
+`
+
+const fixtureIdentityMiss = `package fixture
+import (
+  "encoding/json"
+  "errors"
+  "strings"
+  "testing"
+)
+func TestIdentityMissIsSound(t *testing.T) {
+  text := strings.Repeat("aab\n", 3000)
+  want, err := Parse(text)
+  if err != nil { t.Fatal(err) }
+  d, err := NewDocument(text)
+  if err != nil { t.Fatal(err) }
+  got, err := d.Parse()
+  if err != nil { t.Fatal(err) }
+  w, _ := json.Marshal(want)
+  g, _ := json.Marshal(got)
+  if string(w) != string(g) { t.Error("the Document parse returns a different tree than the parse from scratch") }
+  least := func(doc bool) uint64 {
+    ok := func(l uint64) bool {
+      var err error
+      if doc {
+        d, derr := NewDocument(text)
+        if derr != nil { t.Fatal(derr) }
+        _, err = d.Parse(WithLimits(Limits{Compute: l}))
+      } else {
+        _, err = Parse(text, WithLimits(Limits{Compute: l}))
+      }
+      if err != nil && !errors.Is(err, ErrLimit) { t.Fatal(err) }
+      return err == nil
+    }
+    lo, hi := uint64(1), uint64(1)<<30
+    if ok(lo) || !ok(hi) { t.Fatal("range") }
+    for hi-lo > 1 {
+      if mid := (lo + hi) / 2; ok(mid) { hi = mid } else { lo = mid }
+    }
+    return hi
+  }
+  fresh, doc := least(false), least(true)
+  t.Logf("fresh %d units, Document %d units", fresh, doc)
+  if doc > 3*fresh { t.Errorf("a Document parse needs %d units, more than 3 times the %d of a parse from scratch", doc, fresh) }
 }
 `

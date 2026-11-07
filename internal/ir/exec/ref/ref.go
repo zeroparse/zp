@@ -12,6 +12,7 @@ import (
 	"math/bits"
 	"slices"
 	"strings"
+	"sync"
 
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -47,14 +48,27 @@ type Scope struct{ vals []int64 }
 // Value returns the value of a conformance identifier: an integer below 1,000; from 1,000 to 1,999 a
 // string of id-1,000 "a"; and from 2,000 a string of id-2,000 "b". Different identifiers are different
 // values, and two strings of the same length can differ.
+//
+// The string of an identifier is made once, so that every use of an identifier is the same bytes of the
+// same memory, as the model of the comparison of values (ops.QValueCompare) has it.
 func Value(id int64) any {
 	switch {
 	case id < 1000:
 		return int(id)
 	case id < 2000:
-		return strings.Repeat("a", int(id-1000))
+		return cachedString(id, "a", int(id-1000))
 	}
-	return strings.Repeat("b", int(id-2000))
+	return cachedString(id, "b", int(id-2000))
+}
+
+var strCache sync.Map // int64 -> string
+
+func cachedString(id int64, c string, n int) string {
+	if s, ok := strCache.Load(id); ok {
+		return s.(string)
+	}
+	s, _ := strCache.LoadOrStore(id, strings.Repeat(c, n))
+	return s.(string)
 }
 
 // Model is the reference model of the pilot components. It implements exec.Machine.
@@ -362,6 +376,9 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		t, ok2 := v.(string)
 		if !ok || !ok2 || len(s) != len(t) {
 			return 0
+		}
+		if m.env.vals[args[0].(int64)] == args[1].(Datum).ID && len(s) > 0 {
+			return 1 // the same value: the same bytes of the same memory
 		}
 		return 2 * int64(len(s))
 	}

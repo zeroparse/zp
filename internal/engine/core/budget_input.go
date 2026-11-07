@@ -120,7 +120,7 @@ func (p *Parser) FreeBegin(on bool) uint64 {
 
 // FreeEnd ends the region that FreeBegin opened.
 func (p *Parser) FreeEnd(mark uint64) {
-	if BudgetControlsEnabled && p.Control != nil {
+	if mark != noFree && BudgetControlsEnabled && p.Control != nil {
 		p.Control.FreeEnd(mark)
 	}
 }

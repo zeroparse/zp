@@ -190,8 +190,9 @@ type BudgetControl struct {
 	// doc is the part of the units reserved that only a Document parse reserves, under a default limit.
 	doc uint64
 	// freeing is set between freeBegin and freeEnd; freed holds the limit that freeBegin lifted.
-	freeing bool
-	freed   uint64
+	freeing  bool
+	freed    uint64
+	freeMark uint64 // the units reserved when the open region began
 
 	// mem is the memory, in bytes, charged to the control itself: the bytes a typed Document
 	// retains from earlier parses. The memory check adds values, errs and the counters of the
@@ -379,21 +380,43 @@ func (c *BudgetControl) FreeBegin(on bool) uint64 {
 	}
 	c.settle()
 	c.freeing, c.freed, c.limits.Compute = true, c.limits.Compute, 0
+	c.freeMark = c.base
 	c.refill()
 	return c.base
 }
 
-// FreeEnd ends the region that FreeBegin opened with mark: the units reserved since are Document
-// units, and the limit is what it was plus them.
+// FreeEnd ends the region that FreeBegin opened (mark is what it returned, noFree if it opened none):
+// the units reserved since the region began, or resumed after holdFree, are Document units, and the
+// limit is what it was plus them.
 func (c *BudgetControl) FreeEnd(mark uint64) {
-	if mark == noFree {
+	if mark == noFree || !c.freeing {
 		return
 	}
 	c.settle()
-	n := c.base - mark
+	n := c.base - c.freeMark
 	c.doc = saturatingAdd(c.doc, n)
 	c.limits.Compute, c.freeing = saturatingAdd(c.freed, n), false
 	c.refill()
+}
+
+// isFreeing reports whether a region is open. It is safe on a nil receiver.
+func (c *BudgetControl) isFreeing() bool { return c != nil && c.freeing }
+
+// holdFree ends the open region for work that counts, and reports whether there was one; resumeFree
+// opens it again. The FreeEnd of the region that was held takes the work from the resume on.
+func (c *BudgetControl) holdFree() bool {
+	if c == nil || !c.freeing {
+		return false
+	}
+	c.FreeEnd(c.freeMark)
+	return true
+}
+
+// resumeFree opens again the region that holdFree ended, if it ended one.
+func (c *BudgetControl) resumeFree(held bool) {
+	if held {
+		c.FreeBegin(true)
+	}
 }
 
 // takeSlow charges n units one at a time, the reference charge, so that exhaustion and polls
@@ -740,7 +763,17 @@ func (p *Parser) compareText(l, r string) int {
 	return strings.Compare(l, r)
 }
 
+// sameData reports whether two strings are the same bytes of the same memory.
+func sameData(l, r string) bool {
+	return len(l) == len(r) && (len(l) == 0 || unsafe.StringData(l) == unsafe.StringData(r))
+}
+
 func (p *Parser) compareTextControlled(l, r string) int {
+	if len(l) > 0 && sameData(l, r) {
+		// The same bytes: the comparison reads none of them, so it costs a constant.
+		p.Spend()
+		return 0
+	}
 	for off, end := 0, min(len(l), len(r)); off < end; {
 		n := min(spendValueChunk, end-off)
 		p.spendValue(2 * n)
@@ -1107,6 +1140,57 @@ func (p *Parser) rawValueEqual(l, r any) bool {
 	return l == r
 }
 
+// identEqual compares two key values for a lookup of a rule that only a Document parse memoizes: strings
+// are equal if they are the same bytes of the same memory, which costs a constant; a value that is not
+// identical is a miss, and a miss is sound, since the rule is then evaluated and that work counts.
+func (p *Parser) identEqual(l, r any) bool {
+	if s, ok := l.(string); ok {
+		t, ok := r.(string)
+		return ok && sameData(s, t)
+	}
+	return l == r
+}
+
+// memoKeyIdentical is memoKeyEqual under identEqual.
+func (p *Parser) memoKeyIdentical(l, r []any) bool {
+	if len(l) != len(r) {
+		return false
+	}
+	for i, v := range l {
+		p.Spend()
+		if !p.identEqual(v, r[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// keyMatches compares a memo key under the lookup that ident selects.
+func (p *Parser) keyMatches(l, r []any, ident bool) bool {
+	if ident {
+		return p.memoKeyIdentical(l, r)
+	}
+	return p.memoKeyEqual(l, r)
+}
+
+// countKeyMatch charges what comparing the key of the entry that answers a lookup costs, in a region
+// of Document work: a parse from scratch pays it for a rule that it memoizes, and a Document pays a
+// constant per variable for a rule that only it memoizes.
+func (p *Parser) countKeyMatch(l, r []any, ident bool) {
+	if p.Control.holdFree() {
+		p.keyMatches(l, r, ident)
+		p.Control.resumeFree(true)
+	}
+}
+
+// countedHash is hashMemoKey for the key of a lookup, which counts in a region of Document work: a
+// parse from scratch hashes the key too, once per lookup.
+func (p *Parser) countedHash(rule, min int32, env []any) uint64 {
+	h := p.Control.holdFree()
+	defer p.Control.resumeFree(h)
+	return p.hashMemoKey(rule, min, env)
+}
+
 func (p *Parser) memoKeyEqual(l, r []any) bool {
 	if len(l) != len(r) {
 		return false
@@ -1186,24 +1270,37 @@ func (p *Parser) memoGet(rule, pos, min int, key []any) *memoEntry {
 
 func (p *Parser) memoGetControlled(rule, pos, min int, key []any) *memoEntry {
 	p.Spend()
+	// A lookup in a region of Document work is that of a rule that only a Document parse memoizes: it
+	// compares keys by identity, and finds no entry that the chain holds beyond the first memoScan.
+	ident := p.Control.isFreeing()
+	if p.Control.defaultCompute {
+		// The steps of the walk of a chain that holds entries of earlier texts, and of rules that a parse
+		// from scratch does not memoize, are work of the Document; the comparison of the key with the
+		// entry that answers counts, as it does in a parse from scratch.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
 	if pos >= len(p.memo.slots) {
 		return nil
 	}
 	e, n := p.memo.slots[pos], 0
 	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
 		p.Spend()
-		if e.rule == int32(rule) && e.min == int32(min) && p.memoKeyEqual(e.env, key) {
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident) {
+			p.countKeyMatch(e.env, key, ident)
 			return e
 		}
 	}
-	if e == nil {
+	if e == nil || ident {
 		return nil
 	}
 	ix := indexAt(&p.memo.index, &p.memo.indexBytes, pos, p.memo.slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 		func(e *memoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
-	_, x := ix.probe(p.hashMemoKey(int32(rule), int32(min), key), func(x *memoEntry) bool {
+	_, x := ix.probe(p.countedHash(int32(rule), int32(min), key), func(x *memoEntry) bool {
 		return x.rule == int32(rule) && x.min == int32(min) && p.memoKeyEqual(x.env, key)
 	})
+	if x != nil {
+		p.countKeyMatch(x.env, key, false)
+	}
 	return x
 }
 
@@ -1236,6 +1333,11 @@ func (p *Parser) memoPut(rule, pos, min int, key []any, e *memoEntry) {
 
 func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) {
 	p.Spend()
+	ident := p.Control.isFreeing() // as in memoGetControlled
+	if p.Control.defaultCompute {
+		// The steps of the walk of the chain and the growth of the table are work of the Document.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
 	slots := p.memo.slots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
@@ -1252,7 +1354,7 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	link := &slots[pos]
 	var replaced *memoEntry
 	same := func(x *memoEntry) bool {
-		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.memoKeyEqual(x.env, key)
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident)
 	}
 	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
 		p.Spend()
@@ -1263,11 +1365,11 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 	}
 	var ix memoIndex[memoEntry]
 	var ixSlot uint64
-	if replaced == nil && *link != nil {
+	if replaced == nil && *link != nil && !ident {
 		// A long chain: the index finds the entry to replace.
 		ix = indexAt(&p.memo.index, &p.memo.indexBytes, pos, slots[pos], func(e *memoEntry) *memoEntry { return e.next },
 			func(e *memoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
-		ixSlot, replaced = ix.probe(p.hashMemoKey(int32(rule), int32(min), key), same)
+		ixSlot, replaced = ix.probe(p.countedHash(int32(rule), int32(min), key), same)
 		if replaced != nil {
 			link = &slots[pos]
 			for *link != replaced {
@@ -1280,6 +1382,9 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, e *memoEntry) 
 		if ix = p.memo.index[pos]; ix != nil {
 			ixSlot, _ = ix.probe(p.hashMemoKey(replaced.rule, replaced.min, replaced.env), func(y *memoEntry) bool { return y == replaced })
 		}
+	}
+	if replaced != nil && replaced != e && p.Control.defaultCompute {
+		p.countKeyMatch(replaced.env, key, ident)
 	}
 	p.Spend()
 	// Commit the completed key/slot array and link together, with no further

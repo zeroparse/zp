@@ -16,7 +16,7 @@ corpus/0/OperatorsRule prefix-part cuts	f3e8bc0f0edeee0f126dea14
 corpus/0/a cast binding in an Operators Rule operand	03dd414b9bc4ac9837d3761c
 corpus/0/a failed cast in a binding backtracks	ab74a3a6fe91601d92c6ac83
 corpus/0/a failed term leaves nothing it gathered	53ceace5942fc6106620099f
-corpus/0/action environments	ad5e4fb3beb3dd74ddb631bb
+corpus/0/action environments	3f70ed3f053f9eb0037c5736
 corpus/0/alias constructors	6a24c16ab7e7fa56afe12caa
 corpus/0/alias singleton unions	307f05f95f60a451bf71e74a
 corpus/0/alias terminal	4103c6040af4ed997227c531
@@ -140,7 +140,7 @@ corpus/0/literal text predicate controls	b5796b257b6216da6b1fe2b5
 corpus/0/literal text predicate dispatch	373a56a28c32c7ac31c38925
 corpus/0/literal text variable alias control	1e4867d08bcd25053fa706e5
 corpus/0/long expected lists	86b5c6a1872d4c2f4b4e6f03
-corpus/0/long inferred chain	384e6715195c38e174fcedfa
+corpus/0/long inferred chain	cc0af77dfcae36fec0af348d
 corpus/0/member reached from two call sites	f5a794e33a6ddc40401c22e9
 corpus/0/members in a deeper cycle	d202dc2d31965c9e2ccd6d41
 corpus/0/members that read two leaders	c899aa43e650304b5177bf69
@@ -729,14 +729,14 @@ corpus/1/wide unbounded minimum 4294967296	dc22f98e217c2a4badad7964
 corpus/1/wide unbounded minimum 9223372036854775807	dc22f98e217c2a4badad7964
 grammars/0/cel	f06d80241736ffa900bcbc19
 grammars/0/csv	53b1c308297d2fb5bff12cfe
-grammars/0/cue	67ed88b8302bfb6b96459f54
-grammars/0/duckdb	19a0aa5d36c04499eb116e38
-grammars/0/golang	b4a222390c70601f3252bfdd
+grammars/0/cue	de44dc9035b07ad81f519798
+grammars/0/duckdb	5f2f298d1d530e62c7d825cb
+grammars/0/golang	18e3ffec8d35815c96031c02
 grammars/0/json	4fcb27ce149747ef0b9be3d6
-grammars/0/python	14fd568c472a90fc1a07959b
-grammars/0/typescript	3a279817dafdc3d91a93685b
+grammars/0/python	b1063b990e7cb4fa08260dc8
+grammars/0/typescript	e53378de699caa047ef23a75
 grammars/0/xml	dfaec6a867340a70d5bd5331
-grammars/0/yaml	e839d4a33995707cc1d4e34d
+grammars/0/yaml	ec4b8d91e4f8a2510b4db1e7
 grammars/1/cel	f06d80241736ffa900bcbc19
 grammars/1/csv	53b1c308297d2fb5bff12cfe
 grammars/1/cue	67ed88b8302bfb6b96459f54

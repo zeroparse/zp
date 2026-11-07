@@ -165,7 +165,7 @@ func TestStringAndMalformedTextBudget(t *testing.T){
  }
  if p.Control.X_budgetUsed()==0{t.Fatal("string spend not charged")}
  for _,invoke:=range []func(*zprt.Parser){
-  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary("==",text,text)},
+  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary("==",text,strings.Clone(text))},
   func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary("+",text,text)},
   func(p *zprt.Parser){p.X_unitLen(text)},
  }{
