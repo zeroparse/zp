@@ -2017,9 +2017,11 @@ the string, unless they are the same bytes of the same memory, which costs a con
 of a rule that only a Document memoizes compares the strings of the key by identity only, at a
 constant for each variable of the key: a string that is equal but not identical is a miss, and a
 miss is sound, since the rule is then evaluated and that work counts as a parse from scratch counts it.
-So the work on keys is not left out of the count and is not bounded by what the Document retains: it
+So the work on the keys of this parse is not left out of the count: it
 depends on the grammar and the text, and a Document does at most the work of a parse from scratch
-on it, up to the constant of the lookup. The claim that the counted units of a
+on it, up to the constant of the lookup. The comparisons with entries of earlier texts are Document
+work, which depends on what the Document retains and is bounded by the window of 128 edits
+(step 7 of [Open Steps](#open-steps)). The claim that the counted units of a
 Document parse are at most the units that a parse of the same text from scratch reserves is
 argued here, not proved by a lemma, and the tests of the reference implementation check it on
 random edits. The argument: each counted unit belongs to a call, to a
@@ -2443,7 +2445,12 @@ that the proof assumes of the cost view.
    for each reference to it, not once. And the replays of `move_edits` multiply
    the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
    $W$ count what earlier texts left in the memo, which it keeps until a store,
-   an edit or the drop of the table removes it.
+   an edit or the drop of the table removes it. An edit removes the entries that
+   no parse has stored or found to answer a lookup in the last 128 edits (a
+   lookup treats such an entry as a miss, and a walk of the engine drops it), so
+   the entries of earlier texts, the comparisons of a key with them, which are
+   Document work, and the steps along their chains are bounded by the work of that
+   window of edits, not by $n$, $K$ and $L$.
 8. **The condition of the cost view.** The classifier decides the conditions and
    Lemma 13 counts on the [cost view](grammar-laws.md#normalization), and the
    proof transfers each bound to the written grammar through one condition: on

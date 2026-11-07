@@ -56,3 +56,46 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 		}
 	}
 }
+
+// A Document retains the entries that earlier texts stored, and a lookup compares its key with those it
+// meets. An entry that lags behind more edits than a lookup applies to one is a miss, and a walk drops
+// it, so the work of the Document on the entries of earlier texts stops growing once the first of them
+// is that many edits old: the units of a parse, counted or not, are the same 150 edits on as 70 edits
+// later.
+func TestBudgetDocumentLeftoverEntriesAreBoundedByTheEditLimit(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, walkGrammar)
+	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		t.Run(back.String(), func(t *testing.T) {
+			t.Parallel()
+			const n = 60
+			o := ParseOptions{Backend: back, Unit: Bytes}
+			d, err := prog.NewDocumentWith("main", envKeyText(n), o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var used uint64
+			od := o
+			od.Trace = func(e TraceEvent) { used = core.TraceParser(e).Control.Used }
+			var settled, last uint64
+			for k := 0; k < 230; k++ {
+				rep := fmt.Sprintf("%c%c", 'c'+k/20, 'c'+k%20)
+				if err := d.Edit(n-2, n, rep); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := d.ParseWith(od); err != nil {
+					t.Fatalf("edit %d: %.100v", k, err)
+				}
+				switch k {
+				case 150:
+					settled = used
+				case 229:
+					last = used
+				}
+			}
+			if last > settled+settled/20 {
+				t.Errorf("a parse after 229 edits takes %d units, after 150 edits %d: the work on the entries of earlier texts still grows", last, settled)
+			}
+		})
+	}
+}

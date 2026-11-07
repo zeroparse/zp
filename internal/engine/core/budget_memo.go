@@ -1,5 +1,7 @@
 package core
 
+import "zeroparse.dev/zp/internal/ir/exec/ops"
+
 // rawValueEqual preserves the interface equality of memo keys and bindings.
 // In particular, a typed nil pointer differs from a nil interface. Action
 // ValueEqual has different nil semantics and must not be used for these keys.
@@ -62,6 +64,36 @@ func (p *Parser) current(e *MemoEntry) bool {
 	return e.Seen == p.Gen
 }
 
+// lagged reports whether a lookup treats e as a miss because it lags behind more than ops.PendingEditLimit
+// edits (AdvanceEntry). A Document drops such an entry where a walk meets it (unlinkLagged): the entries of
+// earlier texts that it retains, and so the work of a walk that compares them, stay bounded by that many
+// edits.
+func (p *Parser) lagged(e *MemoEntry) bool {
+	return !e.Growing && p.Gen-e.Vgen > ops.PendingEditLimit
+}
+
+// unlinkLagged removes from the chain at pos, starting at the link, the entries that lag behind (lagged)
+// among the next limit entries that do not, or among all of them if limit is negative, and reports where the
+// walk ends: the link before the first entry it did not visit. Each entry removed costs the step of a walk.
+// The index of the position, if there is one, no longer matches the chain and is dropped.
+func (p *Parser) unlinkLagged(pos int, link **MemoEntry, limit int) **MemoEntry {
+	t := p.Memo
+	for kept := 0; *link != nil && kept != limit; {
+		e := *link
+		if !p.lagged(e) {
+			link, kept = &e.Next, kept+1
+			continue
+		}
+		p.Spend()
+		*link = e.Next
+		if t.Index[pos] != nil {
+			t.dropIndex(pos)
+		}
+		t.Retire(e)
+	}
+	return link
+}
+
 // countKeyEqual charges, in a region of Document work, what comparing the key of an entry that was not
 // current in this parse costs once the entry answers a lookup: a parse from scratch compares it too.
 func (p *Parser) countKeyEqual(l, r []any) {
@@ -112,8 +144,9 @@ func (p *Parser) bindControlled(slot int, val any) {
 // MemoGet looks up the entry for k. The lookup counts one unit, the steps of the walk of the chain at the
 // position and the comparison of the keys. In a Document parse the chain holds the entries of rules that a
 // parse from scratch does not memoize and those of earlier texts, so the steps are Document work there; the
-// comparison of the key with each entry that the walk compares it with counts, as it does in a parse from
-// scratch, and it is bounded by the size of the key and the entries of the walk.
+// comparison of the key with each entry of this parse that the walk compares it with counts, as it does in a
+// parse from scratch, and it is bounded by the size of the key and the entries of the walk. The walk drops
+// the entries that lag behind too many edits (lagged) before it compares anything with them.
 func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return p.Memo.Get(k)
@@ -135,8 +168,8 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	if ident {
 		scan = docOnlyScan
 	}
-	e, n := t.Slots[i], 0
-	for ; e != nil && n < scan; e, n = e.Next, n+1 {
+	link := p.unlinkLagged(k.Pos, &t.Slots[i], scan)
+	for e := t.Slots[i]; e != nil && e != *link; e = e.Next {
 		p.Spend()
 		if e.Rule == int32(k.Rule) && e.Min == int32(k.Min) && e.missingSilent == k.MissingSilent && p.keyMatches(e.Env, k.Env, ident, p.current(e)) {
 			if p.MemoAll {
@@ -152,7 +185,11 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 			return e, true
 		}
 	}
-	if e == nil || ident {
+	if *link == nil || ident {
+		return nil, false
+	}
+	p.unlinkLagged(k.Pos, link, -1)
+	if *link == nil {
 		return nil, false
 	}
 	ix := t.indexAt(k.Pos, t.Slots[i], p.chargeMemoHash)
@@ -160,6 +197,12 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	_, x := ix.probe(h, func(x *MemoEntry) bool {
 		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, false, p.current(x))
 	})
+	if x != nil && p.MemoAll && !p.current(x) {
+		p.countKeyEqual(x.Env, k.Env)
+	}
+	if x != nil && p.Control.DefaultCompute {
+		x.Seen = p.Gen
+	}
 	return x, x != nil
 }
 
@@ -240,8 +283,8 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	if ident {
 		scan = docOnlyScan
 	}
-	n := 0
-	for x := *link; x != nil && n < scan; link, x, n = &x.Next, x.Next, n+1 {
+	end := p.unlinkLagged(k.Pos, link, scan)
+	for x := *link; x != nil && link != end; link, x = &x.Next, x.Next {
 		p.Spend()
 		if same(x) {
 			replaced = x
@@ -252,6 +295,9 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 	var ix memoIndex
 	if replaced == nil && *link != nil && !ident {
 		// A long chain: the index finds the entry to replace.
+		p.unlinkLagged(k.Pos, link, -1)
+	}
+	if replaced == nil && *link != nil && !ident {
 		ix = t.indexAt(k.Pos, slots[i], p.chargeMemoHash)
 		h := p.countedHash(int32(k.Rule), int32(k.Min), k.MissingSilent, k.Env)
 		ixSlot, replaced = ix.probe(h, same)

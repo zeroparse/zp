@@ -300,11 +300,13 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 	// bytes are preserved, and a replacement may complete an existing prefix.
 	d.text = d.text[:startByte] + replacement + d.text[endByte:]
 	d.pending++
+	d.epoch++
 	if d.pending > pendingEditLimit {
 		// The edits that the memo would keep up with cost more than parsing again: the next parse
 		// starts without the memo, as a parse from scratch does.
 		d.memo = memoTable{}
 	} else {
+		d.memo.epoch = d.epoch
 		d.memo.splice(ed)
 	}
 	return ed, nil
@@ -333,8 +335,11 @@ func examinedFromOf(before bool) examinedFrom {
 // splice applies an edit to the memo (memo.splice), copying the entries it keeps into a new table:
 // those that examined only input before the edit stay; those that examined only input after it,
 // with no recovered errors and not pinned, move by its delta, with what their values must move
-// recorded in shifts (documentMove); the others are removed.
+// recorded in shifts (documentMove); the others are removed, with those that more than pendingEditLimit
+// edits have passed since a parse stored them or found them to answer a lookup (memoTable.epoch against
+// memoEntry.seen).
 func (t *memoTable) splice(ed documentEdit) {
+	epoch := t.epoch
 	var kept memoTable
 	for pos := range t.slots {
 		for e := t.slots[pos]; e != nil; e = e.next {
@@ -344,6 +349,10 @@ func (t *memoTable) splice(ed documentEdit) {
 			}
 			switch {
 			case e.from == noRecord:
+				continue
+			case epoch-e.seen > pendingEditLimit:
+				// More edits behind than a lookup applies to an entry: it is a miss from now on, and
+				// the entries of earlier texts that a Document retains stay bounded by that many edits.
 				continue
 			case e.examined <= ed.start:
 			case from >= ed.end && !e.pinned && e.errs.none():
@@ -595,7 +604,6 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	}
 	p.Document, p.memo = d, d.memo
 	d.pending = 0
-	d.epoch++
 	o.control.attachMemory(p)
 	d.stats = documentStats{}
 	defer func() {

@@ -365,7 +365,10 @@ entries at the replaced positions at once, and applies the log to any other entr
 the composition `memoAdvance` and the host operations it reads (`memo.seed`, `memo.from`, `memo.advance`, `edit.start`
 and the others), which exist on that target only. `memo.lookup` pays one unit for each edit it applies
 (`QPending`), and its scan counts the entries such a target still holds (`QKeyScan`); the model states both, and
-the slots of the engine's gap in `QSlotGrowth`, under `ref.Config.LazyEdits`. The repetition runs are host operations
+the slots of the engine's gap in `QSlotGrowth`, under `ref.Config.LazyEdits`. An entry that lags behind more than
+`PendingEditLimit` edits is a miss, so a target drops it where it meets it: the engine unlinks it in a walk of the
+chain, and a target that rebuilds its table at an edit leaves it out of the new table, which bounds the comparisons
+with the entries of earlier texts, Document work, by the work of that window of edits. The repetition runs are host operations
 of the engine (`run.start` to `run.finish`). None of them runs grammar code: a backend drives a run and evaluates its
 elements between `run.begin` and `run.end`, and charges its own steps, and no composition calls them, so the backends
 need no split form. *Shared*: which entries stay, move or go, and the positions after a move. *Target*: tables rebuilt

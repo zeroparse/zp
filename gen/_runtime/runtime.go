@@ -1519,8 +1519,10 @@ type documentState struct {
 	moves uint32
 	// pending is the number of edits since the memo was last used by a parse (pendingEditLimit).
 	pending int
-	// epoch numbers the parses of the Document (memoEntry.seen); an entry is current in a parse if it
-	// carries the epoch of that parse.
+	// epoch counts the edits of the Document (memoEntry.seen): an entry is current in a parse if it
+	// carries the epoch of that parse, which no edit changes, and an entry that more than
+	// pendingEditLimit edits have passed since it was last stored or found to answer a lookup is
+	// dropped by the edit that makes it so (memoTable.splice).
 	epoch uint32
 }
 
@@ -1583,6 +1585,9 @@ type memoTable struct {
 	// shifts holds, for each entry that an edit of a Document moved (splice), how far the positions in
 	// its value must move (documentMove).
 	shifts map[*memoEntry]int
+	// epoch is the edit count of the Document that owns the table (documentState.epoch) as of the edit
+	// being spliced in; splice drops the entries that more than pendingEditLimit edits behind it.
+	epoch uint32
 	// index holds the hash index of each position whose chain is longer than a lookup walks
 	// (memoScan), by position.
 	index map[int]memoIndex[memoEntry]
@@ -1815,8 +1820,8 @@ type memoEntry struct {
 	// rule of their cycle was evaluated; it is reused only where every leader that grows there is in
 	// the set (ctxCallState.memoAllows).
 	present uint32
-	// seen is the epoch of the parse of a Document that last stored the entry or found it to answer a
-	// lookup (documentState.epoch); a parse from scratch leaves it zero.
+	// seen is the epoch of the Document (documentState.epoch) when a parse last stored the entry or
+	// found it to answer a lookup; a parse from scratch leaves it zero.
 	seen uint32
 	// _ pads the entry to 128 bytes, two cache lines of the slab that holds it: at 120 bytes,
 	// entries straddle lines and node parses ran about 2% slower.

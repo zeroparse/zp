@@ -1741,8 +1741,11 @@ The work that the default leaves out is bounded by that proof. Pending edits add
 units to a call, since a memo entry that lags behind by more edits is evaluated again instead of
 brought up to date; the steps along the chains, the growth of the table, the moves of reused
 values and the copy of diagnostics depend on what the `Document` retains, and the default does
-not bound them. The work on the keys of the memo is not among them: it depends on the grammar
-and the text, and the default counts it. A grammar whose counted work is far above the default limit stops on a `Document`
+not bound them. The work on the keys of the memo of this parse is not among them: it depends on
+the grammar and the text, and the default counts it. The comparisons with the entries of earlier
+texts are: they are work of the `Document` that the default does not count, and a `Document` drops
+an entry that more than 128 edits have passed since a parse stored it or found it to answer a
+lookup, so the comparisons stay within the work of that window of edits. A grammar whose counted work is far above the default limit stops on a `Document`
 as it does on a parse from scratch, also with the most pending edits.
 
 Cancellation and exhausted limits are fatal interruptions, not ordinary

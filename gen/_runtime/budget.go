@@ -1297,7 +1297,11 @@ func (p *Parser) memoGet(rule, pos, min int, key []any, docOnly bool) *memoEntry
 	if p.Control != nil {
 		return p.memoGetControlled(rule, pos, min, key, docOnly)
 	}
-	return p.memo.get(rule, pos, min, key)
+	e := p.memo.get(rule, pos, min, key)
+	if e != nil {
+		e.seen = p.stamp()
+	}
+	return e
 }
 
 func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *memoEntry {
@@ -1326,9 +1330,7 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *m
 			} else if !p.current(e.seen) {
 				p.countKeyEqual(e.env, key)
 			}
-			if p.Control.defaultCompute {
-				e.seen = p.stamp() // an explicit limit counts every comparison, and needs no stamp
-			}
+			e.seen = p.stamp()
 			return e
 		}
 	}
@@ -1340,6 +1342,12 @@ func (p *Parser) memoGetControlled(rule, pos, min int, key []any, ident bool) *m
 	_, x := ix.probe(p.countedHash(int32(rule), int32(min), key), func(x *memoEntry) bool {
 		return x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, false, p.current(x.seen))
 	})
+	if x != nil {
+		if !p.current(x.seen) {
+			p.countKeyEqual(x.env, key)
+		}
+		x.seen = p.stamp()
+	}
 	return x
 }
 
@@ -1368,6 +1376,7 @@ func (p *Parser) memoPut(rule, pos, min int, key []any, docOnly bool, e *memoEnt
 		return
 	}
 	p.memo.put(rule, pos, min, key, e)
+	e.seen = p.stamp()
 }
 
 func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *memoEntry) {

@@ -22,7 +22,7 @@ there are errors.
 | Execution profile | Applied / Partial / Not applied / Not applicable | Reason |
 |:--|:--|:--|
 | Closure, bytecode, iterative bytecode | Applied | `core/recovered.go`, used by calls, growths, Operators Rules, context results and skip-run records |
-| Generated Go | Applied | `runtime/recovered.go`; runtime protocol 2 |
+| Generated Go | Applied | `runtime/recovered.go`; needs runtime protocol 2 or later |
 | Generated TypeScript | Applied | `ErrList` in the TypeScript runtime |
 | Documents | Applied | An entry that holds errors is not moved after an edit, so no list moves |
 | Streams | Applied | A stream reports whole entries and flattens a list only when it reports it |

@@ -956,6 +956,7 @@ type tmemoEntry struct {
 	ok       bool
 	silent   bool
 	present  uint32 // as in memoEntry
+	seen     uint32 // as in memoEntry
 }
 
 func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEntry {
@@ -968,6 +969,7 @@ func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEnt
 	e, n := p.memoSlots[pos], 0
 	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
 		if e.rule == int32(rule) && e.min == int32(min) && sameValues(e.env, env) {
+			e.seen = p.stamp()
 			return e
 		}
 	}
@@ -978,6 +980,9 @@ func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEnt
 	_, x := p.memoIndexAt(pos, nil).probe(h, func(x *tmemoEntry) bool {
 		return x.rule == int32(rule) && x.min == int32(min) && sameValues(x.env, env)
 	})
+	if x != nil {
+		x.seen = p.stamp()
+	}
 	return x
 }
 
@@ -994,6 +999,11 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *
 	p.Spend()
 	// ident is set for a rule that only a Document parse memoizes: the lookup compares keys by identity and
 	// walks docOnlyScan entries (see there).
+	if p.Control.defaultCompute {
+		// As in Parser.memoGetControlled: the steps of the walk are work of the Document, and so is
+		// the comparison with an entry of an earlier text, which is charged once if that entry answers.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
 	if pos >= len(p.memoSlots) {
 		return nil
 	}
@@ -1004,10 +1014,13 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *
 	e, n := p.memoSlots[pos], 0
 	for ; e != nil && n < scan; e, n = e.next, n+1 {
 		p.Spend()
-		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident, true) {
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident, p.current(e.seen)) {
 			if ident {
 				p.countKeyMatch(e.env, key)
+			} else if !p.current(e.seen) {
+				p.countKeyEqual(e.env, key)
 			}
+			e.seen = p.stamp()
 			return e
 		}
 	}
@@ -1015,9 +1028,15 @@ func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *
 		return nil
 	}
 	ix := p.memoIndexAt(pos, func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
-	_, x := ix.probe(p.hashMemoKey(int32(rule), int32(min), key), func(x *tmemoEntry) bool {
-		return x.rule == int32(rule) && x.min == int32(min) && p.memoKeyEqual(x.env, key)
+	_, x := ix.probe(p.countedHash(int32(rule), int32(min), key), func(x *tmemoEntry) bool {
+		return x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, false, p.current(x.seen))
 	})
+	if x != nil {
+		if !p.current(x.seen) {
+			p.countKeyEqual(x.env, key)
+		}
+		x.seen = p.stamp()
+	}
 	return x
 }
 
@@ -1026,6 +1045,7 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 		p.memoPutControlled(rule, pos, min, env, docOnly, e)
 		return
 	}
+	e.seen = p.stamp()
 	if pos >= len(p.memoSlots) {
 		if pos < cap(p.memoSlots) {
 			p.memoSlots = p.memoSlots[:pos+1]
@@ -1075,6 +1095,10 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 
 func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *tmemoEntry) {
 	p.Spend()
+	if p.Control.defaultCompute {
+		// The steps of the walk of the chain and the growth of the table are work of the Document.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
 	slots := p.memoSlots
 	if pos >= len(slots) {
 		p.growthSpend(len(slots), pos+1)
@@ -1091,7 +1115,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 	link := &slots[pos]
 	var replaced *tmemoEntry
 	same := func(x *tmemoEntry) bool {
-		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident, true)
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident, p.current(x.seen))
 	}
 	scan := memoScan
 	if ident {
@@ -1110,7 +1134,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 		// A long chain: the index finds the entry to replace.
 		ix = indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, slots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next },
 			func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
-		ixSlot, replaced = ix.probe(p.hashMemoKey(int32(rule), int32(min), key), same)
+		ixSlot, replaced = ix.probe(p.countedHash(int32(rule), int32(min), key), same)
 		if replaced != nil {
 			link = &slots[pos]
 			for *link != replaced {
@@ -1129,7 +1153,7 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 	}
 	p.Spend()
 	p.memoSlots = slots
-	e.rule, e.min, e.env = int32(rule), int32(min), key
+	e.rule, e.min, e.env, e.seen = int32(rule), int32(min), key, p.stamp()
 	if ix != nil {
 		n := len(ix)
 		ix[ixSlot] = e
@@ -1169,8 +1193,13 @@ type typedDocumentMeta struct {
 // only input before the edit stay; those that examined only input after it, with no recovered
 // errors and not pinned, move by its delta, and their values move when reused (move); the others
 // are dropped. The table ends after the last position that keeps an entry, as a table built anew
-// does.
+// does. Those that more than pendingEditLimit edits have passed since a parse stored them or found them
+// to answer a lookup (tmemoEntry.seen, documentState.epoch) are dropped too.
 func (d *typedDocumentState) splice(ed documentEdit) {
+	var epoch uint32 // a memo without a Document has no edits behind
+	if d.owner != nil {
+		epoch = d.owner.epoch
+	}
 	old := d.slots
 	slots := make([]*tmemoEntry, len(old)+max(ed.delta, 0))
 	tails := make([]*tmemoEntry, len(slots))
@@ -1185,6 +1214,10 @@ func (d *typedDocumentState) splice(ed documentEdit) {
 			}
 			switch {
 			case !m.recorded:
+				delete(d.meta, e)
+				continue
+			case epoch-e.seen > pendingEditLimit:
+				// More edits behind than a lookup applies to an entry (memoTable.splice).
 				delete(d.meta, e)
 				continue
 			case m.examined <= ed.start:

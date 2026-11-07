@@ -87,6 +87,18 @@ func TestGeneratedDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 	runDocumentBudgetFixture(t, grammar, fixtureLeftover)
 }
 
+// A typed generated Document keeps and moves its memo too: the comparisons with the entries that earlier
+// texts left are work of the Document there as well, so the typed parse succeeds after the same edits.
+func TestGeneratedTypedDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
+	t.Parallel()
+	grammar := "var s string\nvar a string\nvar b string\nvar c string\n" +
+		"rule main = h:head { a := text($h) + \"1\"; b := text($h) + \"2\"; c := \"z\" } \";\" " +
+		"({ s := a } u \"!\" / { s := c } { s := b } u \"!\" / { s := c } { s := a } u)* $$\n" +
+		"rule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\""
+	typed := strings.NewReplacer("Parse(head", "ParseAST(head", "d.Parse()", "d.ParseAST()").Replace(fixtureLeftover)
+	runDocumentBudgetFixtureWith(t, gen.GenOptions{Package: "fixture", Start: "main", Types: true, Document: true}, grammar, typed)
+}
+
 // A value that equals the key of an entry but is not the same bytes is a miss for a rule that only a
 // generated Document memoizes, and a miss gives the result of a parse from scratch for the work that
 // the rule takes.
