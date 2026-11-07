@@ -279,13 +279,22 @@ and how their memory is accounted. *Conformance*: random sequences against the r
 position and exact order.
 
 **Recovery** (`rec.mark`, `rec.push`, `rec.truncate`, `rec.since`, `rec.add`, `rec.none`, `stream.settleErrors`; with
-`#missing` in the engine, `missing.mark`, `missing.reset`, `missing.replay`). An ordered list of recovered errors with
-marks; `truncate` removes everything after a mark, `since` returns a copy of it for a memo entry, `add` records a copy
-again and `settleErrors` forgets what a stream has delivered. *Shared*: order, truncation and which errors survive.
-*Target*: list growth and sharing, the scratch a stream keeps, and where the sites that make an error record it: grammar
+`#missing` in the engine, `missing.mark`, `missing.reset`, `missing.replay`). An ordered list of entries with marks:
+errors that `push` records, and immutable lists that entries share. `truncate` removes the entries after a mark,
+`since` makes a list of them for a memo entry and puts it in their place, charging one unit for each, `add` records a
+list again as one entry, for nothing, and `settleErrors` forgets what a stream has delivered. Where one entry follows
+the mark, `since` returns it, so that nested calls share one list instead of wrapping it.
+The steps of a left-recursion growth and the results that a context keeps make and replay their lists the same way.
+A replay then costs a
+constant however many errors it brings back, the lists hold no more entries than the steps that made them, and
+listing k errors visits fewer than 2k lists ([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)).
+No list moves: a memo entry that holds recovered errors stops being valid where an edit would move it. *Shared*: order,
+truncation, which errors survive and when a list is shared. *Target*: the representation of entries and lists, the
+scratch a stream keeps, how the outcome lists the errors, and where the sites that make an error record it: grammar
 code and the recovery of each engine write `rec.push` in their own language. *Conformance*: interleaved pushes, marks,
-truncations and copies, compared by the identity of each error after every write, on generated Go and the engine;
-TypeScript stays on its parity tests.
+truncations, lists and replays, compared by the identity of each error and of each list after every write, with the
+lists that listing the errors visits held below twice their number, on generated Go and the engine; TypeScript stays on
+its parity tests.
 
 **Variable environment** (`env.bind`, `env.lookup`, `env.scope`, `env.restore`, `env.key`). A persistent environment:
 one current value for each declared variable, in a slot the grammar fixes. A binding makes a new environment that

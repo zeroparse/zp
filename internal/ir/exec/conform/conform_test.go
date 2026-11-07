@@ -132,11 +132,11 @@ func modelMutants() map[string]mutant {
 		}},
 		"push drops the error":      {op: "rec.push", edit: func(m *ref.Model, a []any) []any { return nil }},
 		"truncate keeps everything": {op: "rec.truncate", edit: func(m *ref.Model, a []any) []any { return nil }},
-		"truncate drops one error too many": {op: "rec.truncate", edit: func(m *ref.Model, a []any) []any {
+		"truncate drops one entry too many": {op: "rec.truncate", edit: func(m *ref.Model, a []any) []any {
 			return m.Call(Module().Op("rec.truncate"), []any{max(a[0].(int64)-1, 0)})
 		}},
-		"since leaves out the first error": {op: "rec.since", edit: func(m *ref.Model, a []any) []any {
-			return m.Call(Module().Op("rec.since"), []any{min(a[0].(int64)+1, int64(len(m.Recovered())))})
+		"since leaves out the first entry": {op: "rec.since", edit: func(m *ref.Model, a []any) []any {
+			return m.Call(Module().Op("rec.since"), []any{min(a[0].(int64)+1, m.Entries())})
 		}},
 		"add records nothing":       {op: "rec.add", edit: func(m *ref.Model, a []any) []any { return nil }},
 		"none is always true":       {op: "rec.none", edit: func(m *ref.Model, a []any) []any { return []any{true} }},
@@ -324,6 +324,178 @@ func TestWindowMutantsFail(t *testing.T) {
 			}
 			t.Logf("failing case %s, call %d: %s", f.Case, f.Step, f.Msg)
 			if !strings.Contains(f.Msg, mu.want) || mu.want != "more than the bound" && !strings.Contains(f.Trace[len(f.Trace)-1], "memo.lookup") {
+				t.Fatalf("failed for another reason than %q:\n%v", mu.want, f)
+			}
+		})
+	}
+}
+
+// errList is a list of recovered errors of listImpl: one error, or the entries that rec.since made a
+// list of.
+type errList struct {
+	err     int64
+	entries []*errList
+	n       int
+	wrap    bool // made by the mutant "wrap"
+}
+
+func (l *errList) ids(out []int64) []int64 {
+	if l.entries == nil {
+		return append(out, l.err)
+	}
+	for _, e := range l.entries {
+		out = e.ids(out)
+	}
+	return out
+}
+
+func (l *errList) unrolled() int {
+	n := 1
+	for _, e := range l.entries {
+		n += e.unrolled()
+	}
+	return n
+}
+
+// listImpl implements the recovered-error list apart from the model, charging for rec.since through
+// the budget of its own model, which answers every other operation. mut breaks one part of rec.since:
+// "keep" leaves the entries after the mark in place, "copy" makes a list of the errors one by one, as
+// a list of copied errors does, charging one unit for each (an error alone stays the entry it is), and
+// "wrap" puts a new list of the one entry
+// after the mark in its place, which leaves the errors and the results as they are: only the lists that
+// listing the errors visits grow. "wrap3" puts a new list around each list of three errors that it
+// makes, and returns it.
+type listImpl struct {
+	modelImpl
+	mut   string
+	rec   []*errList
+	spent uint64
+}
+
+func (m *listImpl) Used() uint64 { return m.spent }
+
+func (m *listImpl) Recovered() []int64 {
+	var out []int64
+	for _, e := range m.rec {
+		out = e.ids(out)
+	}
+	return out
+}
+
+func (m *listImpl) Unrolled() int {
+	n := 0
+	for _, e := range m.rec {
+		n += e.unrolled()
+	}
+	return n
+}
+
+func (m *listImpl) List(l any) (visits, errs int) {
+	x := l.(*errList)
+	return x.unrolled(), x.n
+}
+
+func (m *listImpl) charge(n int) {
+	if m.Model.Absorb(uint64(n)) {
+		panic(exec.Interrupt{Reason: "limit"})
+	}
+	m.spent += uint64(n)
+}
+
+func (m *listImpl) Call(o *exec.Op, a []any) []any {
+	switch o.Name {
+	case "rec.mark":
+		return []any{int64(len(m.rec))}
+	case "rec.push":
+		m.rec = append(m.rec, &errList{err: a[0].(*ref.Err).ID, n: 1})
+		return nil
+	case "rec.truncate":
+		m.rec = m.rec[:a[0].(int64)]
+		return nil
+	case "rec.since":
+		mark := a[0].(int64)
+		after := m.rec[mark:]
+		if m.mut == "copy" && (len(after) > 1 || len(after) == 1 && after[0].entries != nil) {
+			l := &errList{entries: []*errList{}}
+			for _, e := range after {
+				for _, id := range e.ids(nil) {
+					m.charge(1)
+					l.entries = append(l.entries, &errList{err: id, n: 1})
+					l.n++
+				}
+			}
+			m.rec = append(m.rec[:mark:mark], l)
+			return []any{l}
+		}
+		m.charge(len(after))
+		switch {
+		case len(after) == 0:
+			return []any{&errList{entries: []*errList{}}}
+		case len(after) == 1 && m.mut == "wrap":
+			l := after[0]
+			m.rec[mark] = &errList{entries: []*errList{l}, n: l.n, wrap: true}
+			for l.wrap {
+				l = l.entries[0]
+			}
+			return []any{l}
+		case len(after) == 1:
+			return []any{after[0]}
+		}
+		l := &errList{entries: append([]*errList(nil), after...)}
+		for _, e := range after {
+			l.n += e.n
+		}
+		if m.mut == "wrap3" && l.n == 3 {
+			l = &errList{entries: []*errList{l}, n: l.n}
+		}
+		if m.mut != "keep" {
+			m.rec = append(m.rec[:mark:mark], l)
+		}
+		return []any{l}
+	case "rec.add":
+		if l := a[0].(*errList); l.n > 0 {
+			m.rec = append(m.rec, l)
+		}
+		return nil
+	case "rec.none":
+		return []any{a[0].(*errList).n == 0}
+	case "stream.settleErrors":
+		m.rec = nil
+		return nil
+	}
+	return m.Model.Call(o, a)
+}
+
+// TestListImplPasses checks a list of shared errors written apart from the model against its cases:
+// the positive control of TestListMutantsFail.
+func TestListImplPasses(t *testing.T) {
+	s := Suite{Name: "shared lists", Ops: allOps, Exact: []string{"rec.since"}, New: func(c ref.Config) Impl { return &listImpl{modelImpl: modelImpl{ref.New(c)}} }}
+	if f := firstFailure(s); f != nil {
+		t.Fatalf("failing case %s, call %d: %s\n%v", f.Case, f.Step, f.Msg, f.Trace)
+	}
+}
+
+// TestListMutantsFail is the negative control of the contract of rec.since: a list that is not put in
+// place of the entries after the mark fails, a list of copied errors fails for its charges, and a list
+// that wraps the one entry after the mark, which changes nothing else, fails for the lists that listing
+// the errors visits: the bound of Lemma 14 that the returned entry keeps. A list of three errors made of
+// an error and a list of two has the largest unrolled size that the bound allows, 5, so a list around
+// it fails the bound on the lists that rec.since returns.
+func TestListMutantsFail(t *testing.T) {
+	for _, mu := range []struct{ mut, want string }{
+		{"keep", ""},
+		{"copy", "more than the bound"},
+		{"wrap", "visits"},
+		{"wrap3", "errors of the list"},
+	} {
+		t.Run(mu.mut, func(t *testing.T) {
+			s := Suite{Name: mu.mut, Ops: allOps, New: func(c ref.Config) Impl { return &listImpl{modelImpl: modelImpl{ref.New(c)}, mut: mu.mut} }}
+			f := firstFailure(s)
+			if f == nil {
+				t.Fatal("no case detected the mutant")
+			}
+			t.Logf("failing case %s, call %d: %s", f.Case, f.Step, f.Msg)
+			if !strings.Contains(f.Msg, mu.want) {
 				t.Fatalf("failed for another reason than %q:\n%v", mu.want, f)
 			}
 		})

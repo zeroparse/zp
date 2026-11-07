@@ -247,10 +247,11 @@ none.`})
 	add(&exec.Op{Name: "ctx.value", Component: Growth, Params: resArg, Results: []exec.Type{value}, Reads: []string{Growth},
 		Contract: `Returns the value of the result s.`})
 	add(&exec.Op{Name: "ctx.replay", Component: Growth, Params: append(resArg, exec.P("seed", exec.TBool)),
-		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}}},
+		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}}},
 		Contract: `Applies the result s as the call that it records would have: counts a reuse, extends the
 examined frontier of a Document parse, adds its expectations unless it is a seed, and on success moves
-the position to its end and records its recovered errors again.`})
+the position to its end and records its recovered errors again as rec.add does, as one entry that
+shares their list, at no cost.`})
 	add(&exec.Op{Name: "ctx.allows", Component: Growth, Params: append([]exec.Param{ctxArg}, entryArg...),
 		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Memo},
 		Contract: `Reports whether the call with the context state c may reuse the memo entry e: always outside a
@@ -305,13 +306,15 @@ it first takes the steps that the memoized steps and jumps of the context give, 
 what the step it reports depends on.`})
 	add(&exec.Op{Name: "grow.step", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value),
 		exec.P("ok", exec.TBool)}, Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
-		Cost: exec.Cost{Const: 66, Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}, {Coef: 2, Quantity: QDeps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QRun}}},
+		Cost: exec.Cost{Const: 66, Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QSegs}, {Coef: 2, Quantity: QDeps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QRun}}},
 		Contract: `Receives the result of a step of the growth g: adopts it as the seed, charging one unit, and
-returns to the start of the growth if the match grew, and otherwise ends the growth.`})
+returns to the start of the growth if the match grew, and otherwise ends the growth. The result holds
+the errors recovered in the step as the list that rec.since returns for the mark that the growth took
+when it began.`})
 	add(&exec.Op{Name: "grow.end", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{res},
-		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QRun}, {Coef: 1, Quantity: QErrs}}},
-		Contract: `Ends the growth g and returns its last seed: the position moves to its end and its recovered
-errors replace those recorded since the growth began.`})
+		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QRun}}},
+		Contract: `Ends the growth g and returns its last seed: the position moves to its end, and its recovered
+errors replace the entries recorded since the growth began, recorded as rec.add does, at no cost.`})
 
 	add(&exec.Op{Name: "obs.memoHit", Component: Obs, Writes: []string{Obs}, Features: []string{Observe},
 		Contract: `Counts a reuse of a memo entry in the observation, if the parse is observed.`})
