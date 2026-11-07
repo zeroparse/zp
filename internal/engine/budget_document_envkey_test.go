@@ -22,6 +22,15 @@ var envKeyGrammars = map[string]string{
 	"nonleaf": "var s string\nrule main = h:head { s := text($h) } \";\" (u \"!\" / u)* $$\nrule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\"",
 }
 
+// walkGrammar binds three strings that the text of the head sets, and calls the rule u under each of
+// them at the same position, so that the chain of the position holds entries of u whose keys have the
+// same rule and level and differ in the string: a lookup compares its key with each of them, at the cost
+// of the string, before it finds its own.
+const walkGrammar = "var s string\nvar a string\nvar b string\nvar c string\n" +
+	"rule main = h:head { a := text($h) + \"1\"; b := text($h) + \"2\"; c := \"z\" } \";\" " +
+	"({ s := a } u \"!\" / { s := c } { s := b } u \"!\" / { s := c } { s := a } u)* $$\n" +
+	"rule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\""
+
 func envKeyText(n int) string { return strings.Repeat("a", n) + ";" + strings.Repeat("b", n) }
 
 // freshAndDocumentUnits returns the units that a parse from scratch and the first parse of a Document
@@ -171,6 +180,31 @@ func TestBudgetDocumentRecoveredErrorsOfDocumentOnlyRuleAfterEdit(t *testing.T) 
 			}
 			if reparse > 3*fresh {
 				t.Errorf("the reparse reserves %d units, more than 3 times the %d of a parse from scratch", reparse, fresh)
+			}
+		})
+	}
+}
+
+// The comparisons of a lookup with the entries of its walk count in a Document as they do in a parse
+// from scratch. On a text whose keys differ only at the end of a long string, a parse from scratch
+// exceeds the default limits, and so does the first parse of a Document, after about as many units: the
+// comparisons with the entries of the walk are not free there.
+func TestBudgetDocumentCountsMemoWalkComparisons(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, walkGrammar)
+	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		t.Run(fmt.Sprint(back), func(t *testing.T) {
+			t.Parallel()
+			o := ParseOptions{Backend: back, Unit: Bytes}
+			fresh, doc, ferr, derr := freshAndDocumentUnits(t, prog, envKeyText(16000), o)
+			if !errors.Is(ferr, limits.ErrLimit) {
+				t.Fatalf("parse from scratch: %.80v, want the limit to be exceeded", ferr)
+			}
+			if !errors.Is(derr, limits.ErrLimit) {
+				t.Errorf("Document parse: %.80v, want the limit to be exceeded", derr)
+			}
+			if doc > 3*fresh {
+				t.Errorf("the Document reserves %d units, more than 3 times the %d of a parse from scratch", doc, fresh)
 			}
 		})
 	}

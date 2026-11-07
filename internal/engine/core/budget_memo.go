@@ -36,20 +36,25 @@ func (p *Parser) memoKeyIdentical(l, r []any) bool {
 	return true
 }
 
-// keyMatches compares a memo key under the lookup that ident selects.
+// keyMatches compares a memo key under the lookup that ident selects. A lookup of a rule that a parse
+// from scratch memoizes too pays for the comparison with every entry the walk compares, as a parse from
+// scratch does, so it counts in a region of Document work as well: it is bounded by the size of the key
+// and by the entries of the walk. A lookup of a rule that only a Document memoizes compares by identity,
+// which costs a constant per variable, and counts there too only for the entry that answers.
 func (p *Parser) keyMatches(l, r []any, ident bool) bool {
 	if ident {
 		return p.memoKeyIdentical(l, r)
 	}
+	held := p.Control.FreeHold()
+	defer p.Control.FreeResume(held)
 	return p.memoKeyEqual(l, r)
 }
 
-// countKeyMatch charges what comparing the key of the entry that answers a lookup costs, in a region
-// of Document work: a parse from scratch pays it for a rule that it memoizes, and a Document pays a
-// constant per variable for a rule that only it memoizes.
-func (p *Parser) countKeyMatch(l, r []any, ident bool) {
+// countKeyMatch charges what comparing the key of the entry that answers a lookup of a rule that only a
+// Document memoizes costs, in a region of Document work: a constant per variable.
+func (p *Parser) countKeyMatch(l, r []any) {
 	if p.Control.FreeHold() {
-		p.keyMatches(l, r, ident)
+		p.memoKeyIdentical(l, r)
 		p.Control.FreeResume(true)
 	}
 }
@@ -86,8 +91,8 @@ func (p *Parser) bindControlled(slot int, val any) {
 // MemoGet looks up the entry for k. The lookup counts one unit, the steps of the walk of the chain at the
 // position and the comparison of the keys. In a Document parse the chain holds the entries of rules that a
 // parse from scratch does not memoize and those of earlier texts, so the steps are Document work there; the
-// comparison of the key with the entry that answers the lookup counts, as it does in a parse from scratch,
-// and it is bounded by the size of the key.
+// comparison of the key with each entry that the walk compares it with counts, as it does in a parse from
+// scratch, and it is bounded by the size of the key and the entries of the walk.
 func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return p.Memo.Get(k)
@@ -113,8 +118,8 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	for ; e != nil && n < scan; e, n = e.Next, n+1 {
 		p.Spend()
 		if e.Rule == int32(k.Rule) && e.Min == int32(k.Min) && e.missingSilent == k.MissingSilent && p.keyMatches(e.Env, k.Env, ident) {
-			if p.MemoAll {
-				p.countKeyMatch(e.Env, k.Env, ident)
+			if ident && p.MemoAll {
+				p.countKeyMatch(e.Env, k.Env)
 			}
 			return e, true
 		}
@@ -125,11 +130,8 @@ func (p *Parser) MemoGet(k MemoKey) (*MemoEntry, bool) {
 	ix := t.indexAt(k.Pos, t.Slots[i], p.chargeMemoHash)
 	h := p.countedHash(int32(k.Rule), int32(k.Min), k.MissingSilent, k.Env)
 	_, x := ix.probe(h, func(x *MemoEntry) bool {
-		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.memoKeyEqual(x.Env, k.Env)
+		return x.Rule == int32(k.Rule) && x.Min == int32(k.Min) && x.missingSilent == k.MissingSilent && p.keyMatches(x.Env, k.Env, false)
 	})
-	if x != nil && p.MemoAll {
-		p.countKeyMatch(x.Env, k.Env, false)
-	}
 	return x, x != nil
 }
 
@@ -241,8 +243,8 @@ func (p *Parser) MemoPut(k MemoKey, e *MemoEntry) {
 			ixSlot, _ = ix.probe(h, func(y *MemoEntry) bool { return y == replaced })
 		}
 	}
-	if replaced != nil && replaced != e && p.MemoAll {
-		p.countKeyMatch(replaced.Env, k.Env, ident)
+	if replaced != nil && replaced != e && ident && p.MemoAll {
+		p.countKeyMatch(replaced.Env, k.Env)
 	}
 	p.Spend()
 	// No checkpoint may separate the link swap from retiring its old entry.

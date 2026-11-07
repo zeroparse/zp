@@ -1721,7 +1721,8 @@ and the growth of the memo table; applying pending edits to the entries, moving 
 reuses, and copying the diagnostics it returns. The unit of each call, the evaluation of rule
 bodies, the examination of the input, and the memo protocol of the rules that a parse from
 scratch memoizes too, are counted, as in a parse from scratch: the unit of each lookup and store,
-the hashing of the key of a lookup and its comparison with the entry that answers it, and the
+the hashing of the key of a lookup and its comparison with each entry that the walk of the chain
+compares it with, and the
 copy and the replay of recovered errors. A lookup of a rule that only a `Document` memoizes
 compares the strings of the key by identity, which costs a constant: a string that equals the one
 of an entry but is not the same bytes is a miss, and the rule is evaluated, which counts. The

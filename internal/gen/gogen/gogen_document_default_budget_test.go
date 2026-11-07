@@ -64,6 +64,18 @@ func TestGeneratedDocumentCountsMemoKeyWork(t *testing.T) {
 	}
 }
 
+// The comparisons of a lookup with the entries of its walk count in a generated Document as they do in
+// a parse from scratch: a text whose keys differ only at the end of a long string exceeds the default
+// limits in a parse from scratch, and so does the first parse of a generated Document.
+func TestGeneratedDocumentCountsMemoWalkComparisons(t *testing.T) {
+	t.Parallel()
+	grammar := "var s string\nvar a string\nvar b string\nvar c string\n" +
+		"rule main = h:head { a := text($h) + \"1\"; b := text($h) + \"2\"; c := \"z\" } \";\" " +
+		"({ s := a } u \"!\" / { s := c } { s := b } u \"!\" / { s := c } { s := a } u)* $$\n" +
+		"rule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\""
+	runDocumentBudgetFixture(t, grammar, fixtureWalk)
+}
+
 // A value that equals the key of an entry but is not the same bytes is a miss for a rule that only a
 // generated Document memoizes, and a miss gives the result of a parse from scratch for the work that
 // the rule takes.
@@ -463,6 +475,21 @@ func TestMemoKeyWorkWithinFresh(t *testing.T) {
     if err != nil { t.Fatal(err) }
     if _, err := d.Parse(); err != nil { t.Errorf("n=%d: Document parse under the default limits: %.80v", n, err) }
   }
+}
+`
+
+const fixtureWalk = `package fixture
+import (
+  "errors"
+  "strings"
+  "testing"
+)
+func TestWalkComparisonsCount(t *testing.T) {
+  text := strings.Repeat("a", 16000) + ";" + strings.Repeat("b", 16000)
+  if _, err := Parse(text); !errors.Is(err, ErrLimit) { t.Fatalf("parse from scratch: %.80v, want the limit to be exceeded", err) }
+  d, err := NewDocument(text)
+  if err != nil { t.Fatal(err) }
+  if _, err := d.Parse(); !errors.Is(err, ErrLimit) { t.Errorf("Document parse: %.80v, want the limit to be exceeded", err) }
 }
 `
 

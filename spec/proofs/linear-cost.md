@@ -2011,7 +2011,7 @@ costs, and the copy of the diagnostics that the parse publishes. Every other uni
 is counted: the unit that opens a call, the evaluation of the body of a rule, the
 examination of the input, the values that the parse builds, and the memo protocol of a
 rule that a parse from scratch memoizes too, with the unit of each lookup and store, the hashing
-of the key of a lookup and its comparison with the entry that answers, and the copy and the
+of the key of a lookup and its comparison with each entry of the walk that it compares with, and the copy and the
 replay of the recovered errors of an entry. The comparison of two strings costs the length of
 the string, unless they are the same bytes of the same memory, which costs a constant. A lookup
 of a rule that only a Document memoizes compares the strings of the key by identity only, at a
