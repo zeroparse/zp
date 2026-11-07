@@ -274,7 +274,8 @@ func (p *Parser) streamSettleErrors() {
 	// The recovered errors before the boundary were delivered and
 	// collected, and no active call restores a longer prefix of them:
 	// the start rule's call saved an empty one, and the element marks
-	// are no longer active. Memo entries own copies of their lists.
+	// are no longer active. Memo entries hold their errors as immutable
+	// lists (recEntry), so clearing the record does not touch them.
 	if cap(p.Recovered) <= streamRecoveryScratchMax {
 		clearSpend(p, p.Recovered[:cap(p.Recovered)])
 		p.Recovered = p.Recovered[:0]
