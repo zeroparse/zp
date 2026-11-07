@@ -273,3 +273,112 @@ sites, in every kind of parse they run:
  Generated Go and TypeScript parsers keep records only for skip-run
 sites. Their run-site repetitions are ordinary repetitions, whose cost these
 lemmas do not bound.
+
+## Scan Sites
+
+This section covers the records of [scan sites](../runtime/parsing.md#scan-sites). Lemma 4 is the
+exactness of a reused record. The cost is a draft: Lemma 5 states what is to be shown, and its open
+steps are listed.
+
+**Setting.** A scan site $\sigma$ repeats a character class $C$ (or any character) without an upper
+bound, with minimum $c_{\min}$, in a pure scan rule. The rule calls no rule and has no capture,
+predicate, lookahead, assertion, variable, `#recover` or other attribute, so an iteration of
+$\sigma$ reads the one character at its position and nothing else, and no state of the parse
+outside the input and the position changes what it gives. Positions are in the unit of the input
+(characters, or bytes when the unit is bytes), and a character of the input takes one or more units.
+For a position $r$ let $\mathrm{end}(r)$ be the least position $q \ge r$ at which the input holds no
+character of $C$ (the end of the input counts as such a position). The walk of $\sigma$ from $r$
+matches the characters that begin at $r, \dots, \mathrm{end}(r)$, up to $q = \mathrm{end}(r)$, and
+nothing else. Define $\mathrm{Rest}(r)$ as the tuple of
+
+- the end $q = \mathrm{end}(r)$, a position,
+- the number $k$ of characters matched (the iterations that succeed), which equals $q - r$ only when
+  every character takes one unit,
+- the examined range, which ends at the furthest position that an iteration examined: just after the
+  character at $q$ (or at the end of the input), since the iteration that fails at $q$ looks at that
+  character and no later one, or further when an earlier iteration read an invalid byte of a
+  bytes-unit input together with the bytes that follow it. It is a function of $r$ and the input too,
+  and a record holds it whole, which the iteration at $q$ alone does not give,
+- the elements: one value for each of the $k$ characters, which depends on the character and its
+  position alone,
+- the failure of the iteration at $q$: the expectation of $C$ at $q$.
+
+$\mathrm{Rest}(r)$ is a function of $r$ and the input alone, by the setting. A parse with missing-token
+insertion keeps no records, so assume it inserts none. The record holds $q$ and $k$ as separate fields,
+so nothing below derives one from the other.
+
+**Silence.** A lookahead only silences the expectations that a failed iteration reports
+(`Expect` returns when `Silent` is positive). The walk puts none of them into the record, and
+$\mathrm{Rest}(r)$ does not depend on them, so a walk in a lookahead and a walk outside it that begin
+at $r$ make equal records. This is why a site keeps one table of records for both (the hot state is kept
+apart for each, and decides only which walks look).
+
+## Lemma 4 (Exactness of Scan Records)
+
+Every record stored by $\sigma$ at $s$ equals $\mathrm{Rest}(s)$ without the failure, which a walk
+that takes the record derives again. A walk that takes the record at its $T$-th iteration ends where the
+walk that went on from there would end, with the same outcome, farthest failure and expectations,
+examined range, count and elements. No node that a record holds is changed after the record is made.
+
+*Proof.* A walk of $\sigma$ that began at $s$ stores a record when it ends at $q$ after it matched at
+least $T$ characters, and only if the input it examined, up to just after $q$, is available (the parse
+has all of its input, or that range lies in the part of a stream that is loaded; the input is filled up
+to each character before it is examined, so the second always holds unless the input has ended, and the
+test only guards that). The iterations it ran are those of the definition, so the record holds
+$q = \mathrm{end}(s)$, the count $k$ of characters it matched (not $q - s$), the range it examined (the
+first $T$ iterations and the rest, whose union is the range of $\mathrm{Rest}(s)$) and the elements it
+built, which are $\mathrm{Rest}(s)$'s. The availability condition makes $q$ the same on any longer prefix
+of a stream: the character at $q$ is in the loaded input, so it is not in $C$ whatever follows. This
+proves the first claim.
+
+A walk that began at $s$ and has matched $T$ characters is at $s'$, the position after those
+characters, and would go on to match the remaining $k - T$ characters and fail at $q$. Taking the record
+moves the position to $q$, examines the recorded range and sets the count to $k$ and the elements to the
+record's, which hold the first $T$ iterations' as well; they equal those the walk had built (the same
+characters at the same positions). The count is the stored $k$, which is the number of characters in
+$[s, q)$, so it is the count of the walk that went on, in every unit; no position is subtracted from
+another. The loop then runs the iteration at $q$, which fails there with the expectation of $C$ at $q$,
+or at the end of the input with that of the end, and examines that character: the outcome, farthest
+failure and expectations of the walk that went on. Examined ranges only grow, so touching the recorded
+range and then that of the iteration at $q$ gives the range of the walk that went on. The check of the
+minimum uses the count $k$. The walk that went on and the walk that took the record leave the same
+result.
+
+It remains that a node a record holds is not changed. The elements are nodes that the repetition made
+for the characters, and a rule changes a node only if the node is marked fresh (`Fresh`) when it
+receives it as the value of its body, to label it or to attach captures; a node that the rule that
+made it may still change is marked final before another holder can see it (as `SkipValue` does for the
+elements of run sites). A walk marks every element final when it stores its record, before any other
+walk can reach the record, and a walk that takes a record gets elements that are final already. The
+element of a scan site is never the value of a rule body in any case: a pure scan rule has no capture and
+no action, so the value of the rule is the list node that the walk makes or a node that holds it, never
+one of its elements. The list node is new for each walk (it is the node a rule labels) and holds the
+shared elements as children only. The same holds for the list under `FinishScanList`: the node is made after the elements
+are marked, and shares nothing else. So the lists of two walks share nodes that nothing changes, and the
+sharing changes no list.
+
+Last, the sharing across [document](../runtime/documents.md) parses. The records are in the tables of
+one parse and are dropped with it; no record is carried to the next parse. What persists is a tree,
+whose lists may share elements. A reused tree is moved in place (`MoveTree`) when an edit comes before
+it, and a node moves only if its generation is below the current one and takes the current one when it
+moves, so a node that two lists share moves once. Both lists cover the same range, as the walks began
+at one position and ended at one, so the shift that an edit gives to the one is the shift it gives to
+the other (the nodes of a reused result move together; an edit never falls inside the input that a
+reused result examined). The elements are not empty (a character is at least one unit), so none is
+copied by `MoveEmpty`, which would break the sharing, and the write of the moved pointer into the
+shared slice of children stores the pointer already there. The same sharing of elements between lists
+already happens for the nodes that rule memo entries and the records of run sites share. $\square$
+
+Which positions have records, and the hot state of the site, decide only which walks find a record,
+never what a record holds, so none changes the result of a parse. A record is looked up and made only
+when no [document](../runtime/documents.md) run resumes the repetition, and the records last for one
+parse.
+
+## Lemma 5 (Cost of Scan Records) (Draft)
+
+A walk costs its first $T$ characters, then one step for the lookup, one more for the slot of a record
+that it finds, and either one step for the record that it makes or its own length. So the walks of
+$\sigma$ that start at the same position cost $T + 2$ each after the first that makes the record. To
+show: the total for walks that start at different positions of one run, for which no record exists;
+the bound is $O(1)$ for each walk besides the walk's own cost. Open: the cold state, which is kept for
+the walks in lookaheads apart from the others, is to be shown to give the same bound.

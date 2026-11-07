@@ -668,6 +668,63 @@ record gives what the rest of the walk would, and bounds the evaluations of a
 site's element. In a parse of an [incremental document](documents.md) outside a
 lookahead, a run site that the document can resume is resumed as before.
 
+### Scan Sites
+
+A rule that matches input and calls no rule, as a run of blanks, is walked again
+by every failed alternative that leads back to its start, and the walk of a
+single-character repetition keeps no record because a run site does not repeat
+a single character. A **scan site** is an unbounded repetition of a character
+class or of any character in a **pure scan rule**, which has all of the
+following:
+
+- it is called from two places in the grammar at least;
+- it has no attribute but `@start`, no type and no action;
+- it calls no rule, and its expression is made of literals, character classes,
+  any character, sequences, alternatives, groups, optionals, repetitions and
+  discards: no capture, predicate, lookahead, assertion, variable, `#recover`
+  or other attribute.
+
+Every other repetition of such a rule is made restartable, so that it is a run
+site wherever the conditions of [Run Sites](#run-sites) otherwise hold. The
+result of a pure scan rule and the input range it examines depend on the
+position and the input alone, so its records need no environment.
+
+A walk of a scan site charges and examines as an ordinary repetition for its
+first 16 characters, the constant `T` (`core.ScanHotSpan`, which is not the
+`core.RunHotSpan` of run sites: a site turns hot after walks of `T` characters
+that overlap, as a run site does after `RunHotSpan`). If the site is hot, the
+walk that has matched `T` characters looks for the record of its start. A scan site keeps at most one record for a walk, at
+the start of the walk, and none for the positions inside it. A record holds
+the position where the walk ended, the range of input the walk examined, the
+number of elements and, for a walk that builds a value, the elements. A walk
+that finds one moves to the recorded end, takes the number of elements and the
+elements from the record, and examines the recorded range; the test of the next
+character fails there as it did when the walk was recorded, and gives the same
+expectation. Otherwise the walk goes on, and when it ends it makes the record.
+The lookup costs one step, the slot of a record that it finds one more, the
+record that a walk makes one, and the skipped characters nothing. A site has one
+table of records for the walks inside lookaheads and the walks outside them:
+a lookahead silences only the expectations, which the walk does not put in the
+record, so both make the same record. (Whether a site is hot is kept apart for
+the two.) A walk records only if the input it examined is available: the parse
+has all of its input, or the examined range lies in the part of a stream that
+has been read. The input is filled up to the character that a walk examines, so
+the range always lies in the part that has been read unless the input has ended,
+and the test is a safeguard only. The elements of a record are shared with
+the lists of the walks that take them. They are final, as those of run sites are.
+
+A scan site that a [document](documents.md) resumes is resumed as before. The
+records of scan sites last for one parse.
+
+A parse with scan sites gives the result of a parse without them, with the same
+expectations and examined ranges. The steps a parse charges exceed those of a
+parse without scan sites by at most the three steps of each walk that reached
+`T` characters. A walk that starts at another position than a recorded start
+inside the same run does not reuse the record, and costs its own length.
+
+Parsers generated as Go source keep no records of scan sites or of run sites;
+they are outside this section.
+
 ### Classes of Growth
 
 A grammar's cost as a function of n falls into one of these classes. A class
