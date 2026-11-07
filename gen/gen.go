@@ -134,9 +134,9 @@ type Go struct {
 	// OmitPackageDoc leaves the package comment out of the generated parser, for a package that
 	// has its own documentation in another file.
 	OmitPackageDoc bool
-	// Optimize selects the optimization profile: "speed", the default and the
-	// only one so far. Opt then gives optimizations a value other than the profile's, as -opt of
-	// zp gen does: 1 turns on one that the profile leaves off, and a count sets an integer one.
+	// Optimize selects the optimization profile: "speed", the default, "memory" or "size". Opt
+	// then gives optimizations a value other than the profile's, as -opt of zp gen does: 1 turns
+	// on one that the profile leaves off, and a count sets an integer one.
 	// NoOpt finally turns the named optimizations off, to isolate a miscompilation or to measure
 	// one optimization, as -no-opt does, and wins over Opt. The names are those of the guide.
 	// None of them changes what a generated parser returns, only its code. An unknown name, or a
@@ -236,9 +236,9 @@ type TypeScript struct {
 	// negative values and values that are not exact JavaScript integers fail generation.
 	// Individual invocations may override it with limits.depth.
 	MaxDepth int
-	// Optimize selects the optimization profile: "speed", the default and the
-	// only one so far. Opt then gives optimizations a value other than the profile's, as -opt of
-	// zp gen does: 1 turns on one that the profile leaves off, and a count sets an integer one.
+	// Optimize selects the optimization profile: "speed", the default, "memory" or "size". Opt
+	// then gives optimizations a value other than the profile's, as -opt of zp gen does: 1 turns
+	// on one that the profile leaves off, and a count sets an integer one.
 	// NoOpt finally turns the named optimizations off, to isolate a miscompilation or to measure
 	// one optimization, as -no-opt does, and wins over Opt. The names are those of the guide.
 	// None of them changes what a generated parser returns, only its code. An unknown name, or a

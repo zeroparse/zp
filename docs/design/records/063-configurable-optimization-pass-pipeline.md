@@ -12,7 +12,7 @@ flag in one registry:
 - each pass declares its name, the analyses it requires and invalidates, its mode applicability and its obligation;
 - a flag per optimization turns a pass or one of its variants off;
 - an optional verifier runs between passes;
-- a profile (`speed` today, later `memory` and `size`) is a preset: a name for fixed flag values, with no logic of its own;
+- a profile (`speed`, `memory` and `size`) is a preset: a name for fixed flag values, with no logic of its own;
 - the module can be printed after any pass.
 
 The default pipeline produces the generated output of the former hand-written sequences byte for byte. Users select a
@@ -125,24 +125,27 @@ The registry `internal/gen/opt` lists every optimization with a name, a kind (`P
 description, its value in the `speed` profile and whether it changes the output. The Core pipeline names the passes, and a test checks that the
 registry has the name of every pass.
 
-| Flag | Kind | Controls |
-|:--|:--|:--|
-| `terminals` | pass | `terminals` |
-| `text-dispatch` | printer | The Go and TypeScript printers emit a predicate that compares the text of a capture with literals as one switch |
-| `field-compare` | printer | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields |
-| `guards` | pass | `guards` |
-| `guarded-classes` | pass | The guarded-class marks that `guards` sets, and their lowering |
-| `scans` | pass | `scans` |
-| `class-runs` | pass | `class-runs` |
-| `class-tables` | lowering | `lower.Options.ClassTableRanges` (the least number of ranges of a class that is matched through a table; an opt-in, 0 in `speed`, and 5 is the value that was measured; 0 turns it off) |
-| `inline-literals` | lowering | `lower.Options.InlineLiterals` (a count, 4 in `speed`; 0 turns it off) |
-| `method-sharing` | printer | Equal generated bodies share one helper |
-| `literal-sharing` | printer | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) |
-| `ts-literal-sharing` | printer | TypeScript literal tables are shared; an opt-in, 0 in `speed` |
-| `typed-object-slabs` | runtime | Typed objects are allocated in slabs |
-| `typed-list-slabs` | runtime | Typed lists are allocated in slabs |
-| `typed-output-bootstrap` | runtime | The first slab of the typed output is sized from the input |
-| `sparse-memo` | runtime | The first-call table of large TypeScript parsers is sparse |
+| Flag | Kind | Default | Controls | Cost |
+|:--|:--|:--|:--|:--|
+| `terminals` | pass | on | Value-free choices of many literals and classes run as one program (lean typed Go) | Data against code: the choice becomes a table in the parser |
+| `text-dispatch` | printer | on | The Go and TypeScript printers emit a predicate that compares the text of a capture with literals as one switch | One switch against a chain of comparisons; none |
+| `field-compare` | printer | on | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields | None; fewer allocations |
+| `guards` | pass | on | An alternative is skipped when the next character cannot start it | One read of the next character per choice, and 9% more source |
+| `guarded-classes` | pass | on | The guarded-class marks that `guards` sets, and their lowering: a leading class consumes the character its guard read | None measured |
+| `scans` | pass | on | A value-free repetition of a class or of any character runs as a loop | None measured |
+| `class-runs` | pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go) | None measured |
+| `class-tables` | lowering | off | `lower.Options.ClassTableRanges`: the least number of ranges of a class that is matched through a table; 0 turns it off, and 5 is the value that was measured | Table data against code: 3% smaller source, about 1% slower; an opt-in |
+| `inline-literals` | lowering | 4 | `lower.Options.InlineLiterals`: the longest literal, in code points, that is compared in place first; 0 turns it off | Code against calls: 7.5% more source |
+| `method-sharing` | printer | on | Equal generated bodies share one helper | A call where a body was |
+| `literal-sharing` | printer | on | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) | An indirection to the table |
+| `ts-literal-sharing` | printer | off | TypeScript literal tables are shared | A small cold parse about 1.5 times slower; an opt-in |
+| `typed-object-slabs` | runtime | on | Typed objects are allocated in slabs | Memory: 6% more bytes and live heap |
+| `typed-list-slabs` | runtime | on | Typed lists are allocated in slabs | Memory: 10% more bytes and live heap |
+| `typed-output-bootstrap` | runtime | on | The first slab of the typed output is sized from the input | A few allocations before the slabs start |
+| `sparse-memo` | runtime | on | The first-call table of large TypeScript parsers is sparse | A page lookup per check |
+
+The guide has the same table with the measured costs; [record 136](../../optimizations/136-measured-effect-of-the-generation-flags.md)
+has the measurements.
 
 Everything is a flag. An optimization that makes a parser smaller, lighter on memory or faster, a representation choice
 and a trade-off that a user may want are each one entry of the registry, with a kind, a default, a description and
@@ -183,25 +186,32 @@ helpers of the generator set it, so every fixture of the suite runs with the che
 A profile is a preset: a name for fixed flag values. `speed` is the default and sets every flag on, with `inline-literals` at 4, except the opt-ins `ts-literal-sharing` and `class-tables`, which are 0.
 `-optimize` takes a profile name, and any other name is an error until the profile is registered.
 
-`memory` and `size` are not registered. Their cells are hypotheses until measured: a table is data and a straight-line
-expression is code, and the first may be smaller or larger depending on the grammar; guards add code and remove calls.
+A profile has to earn its place by a measurement. It is kept if it improves the metric it is named for by at least 1% beyond
+an identical copy of the baseline, on at least six of the ten language grammars, and costs at most 3% of parse time as a
+geometric mean with no grammar more than 6% slower; a profile that fails is not registered. The flags are held to the same
+rule for `speed`: a flag is on in `speed` if it improves the parse time, or the other metric it exists for, by that rule
+or costs nothing that was measured ([record 136](../../optimizations/136-measured-effect-of-the-generation-flags.md) has the numbers).
 
 | Flag | `speed` | `memory` | `size` |
 |:--|:--|:--|:--|
-| `terminals` | on | on | open |
+| `terminals` | on | on | on |
 | `text-dispatch`, `field-compare` | on | on | on |
-| `guards`, `guarded-classes` | on | on | open |
+| `guards`, `guarded-classes` | on | on | on |
 | `scans` | on | on | on |
-| `class-runs` | on | on | open |
-| `class-tables` | 0 | open | open |
-| `inline-literals` | 4 | open | open |
+| `class-runs` | on | on | on |
+| `class-tables` | 0 | 0 | 5 |
+| `inline-literals` | 4 | 4 | 0 |
 | `method-sharing`, `literal-sharing` | on | on | on |
-| `ts-literal-sharing` | 0 | open | open |
-| `typed-object-slabs`, `typed-list-slabs`, `typed-output-bootstrap`, `sparse-memo` | on | open | open |
+| `ts-literal-sharing` | 0 | 0 | 0 |
+| `typed-object-slabs`, `typed-list-slabs` | on | off | on |
+| `typed-output-bootstrap`, `sparse-memo` | on | on | on |
 
-Each cell marked open is filled by measuring generated source size, binary size and resident memory on the checked-in
-parsers, and the measured result goes in the profile's table and in `docs/optimizations/`. Adding a profile is a row
-in the registry, a consumer of the profile name, and a measured cell for every open one.
+Against `speed`, as ratios of a geometric mean over the ten language grammars: `memory` allocates typed values one by one,
+so bytes allocated are 0.886 and live heap 0.848 of `speed`'s, parse time is 0.996, and there are many more allocations
+(4.06 times). `size` writes short literals as calls and matches large classes through tables: `parser.go` is 0.912 and the
+stripped binary 0.986 of `speed`'s, for a parse time of 1.022. A third candidate that also turned off `guards`, `scans` and
+`guarded-classes` made the source 15% smaller but parsing 14% slower (29% on one grammar) and was dropped. Adding a profile is a row
+in the registry, a consumer of the profile name, and a measurement against the rule above.
 
 The word "profile" already names the rule profiler (`zp profile`, `WithProfile`), so the flag that selects a profile is
 `-optimize`.
@@ -290,6 +300,10 @@ plain fields, and their options are fields. Rejected for consistency.
 - Output-changing flags: `TestRegistryIsValid` rejects a registry in which a `ChangesOutput` flag is on in `speed`.
   `TestOutputFlagsHaveContractTests` requires each such flag to name a contract test, and keeps it out of the flag-off
   parity tests. Profiles may set only flags that keep behavior.
+- Profiles: each profile other than `speed` is compared with the engine on every route: lean typed Go, the Node parser
+  (plain, with observability, with limit controls), the recognizer, the Document runner, `ParseStream`, and TypeScript in four
+  modes (`TestProfilesParity`, `TestProfilesRouteParity`, `TestProfilesStreamParity`, `TestProfilesTSParity`), and each profile
+  must change the generated code of some case. The Document route has a negative control.
 - Options: the fields of `gen.Go` and `gen.TypeScript` and the flags of `zp gen` reject an unknown profile, optimization
   and pass, accept `speed`, apply `Opt` and then `NoOpt` in that order (`NoOpt` wins), and change the output only through them.
 
@@ -305,12 +319,12 @@ allocations per operation differ by less than 0.002 percent.
 The generated parsers of the checked-in grammars, and the generated source of 356 grammars under 18 option sets for Go
 and TypeScript, are byte-identical to those of the former sequences.
 
-`memory` and `size` are measured as described under [Profiles](#profiles) before they are registered or documented.
+`memory` and `size` were measured as described under [Profiles](#profiles); the numbers are in [record 136](../../optimizations/136-measured-effect-of-the-generation-flags.md).
 
 ## Limitations and Open Questions
 
-- **What `memory` and `size` contain.** Their flag sets are hypotheses until measured. Whether they also set the
-  typed slab controls, and whether `size` also changes the runtime embedded in the parser, is open.
+- **Where `size` stops.** `size` does not change the runtime embedded in the parser, and the TypeScript printers have no flag
+  that it sets. A TypeScript profile would need a parse-time measurement, which the harness does not make yet.
 - **Flow and Exec passes.** When Flow or Exec IR gains an optional pass, the manager runs it, and the flag and profile
   tables grow. Whether Flow lowering's options (`class-tables`, `inline-literals`) become passes is decided with them.
 - **Observability and budget controls as passes.** They are modes, not optimizations, so they stay out of the flag set;

@@ -42,7 +42,7 @@ func TestGenOptimize(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"-optimize", "memory"}, `-optimize: unknown optimization profile "memory" (valid: speed)`},
+		{[]string{"-optimize", "nosuch"}, `-optimize: unknown optimization profile "nosuch" (valid: speed, memory, size)`},
 		{[]string{"-no-opt", "nosuch"}, `-no-opt: unknown optimization "nosuch" (valid: terminals, text-dispatch,`},
 		{[]string{"-no-opt", "guards,nosuch"}, `unknown optimization "nosuch"`},
 		{[]string{"-print-after", "nosuch"}, `-print-after: unknown pass "nosuch" to print after (valid: build, terminals,`},

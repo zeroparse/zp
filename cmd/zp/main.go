@@ -848,9 +848,9 @@ func genCmd(args []string, stdout io.Writer) error {
 	nodoc := fs.Bool("nodoc", false, "leave out the package comment (Go)")
 	sourceInfo := fs.Bool("source-info", false, "make the generated parser record the rule of each node and the names of captures")
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
-	optimize := fs.String("optimize", "", "optimization profile: "+strings.Join(genopt.Profiles(), ", ")+" (default speed); no profile changes what the parser returns")
-	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt: "+strings.Join(genopt.Names(), ", "))
-	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization: "+strings.Join(genopt.Names(), ", "))
+	optimize := fs.String("optimize", "", "optimization profile: "+profileHelp()+"; no profile changes what the parser returns")
+	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+genopt.Summaries())
+	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+genopt.Summaries())
 	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(genopt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -1236,4 +1236,13 @@ func compileCmd(args []string) error {
 func firstLine(data []byte) string {
 	line, _, _ := bytes.Cut(data, []byte("\n"))
 	return string(bytes.TrimSuffix(line, []byte("\r")))
+}
+
+// profileHelp describes the optimization profiles for the usage of -optimize: each name with what it is for.
+func profileHelp() string {
+	var parts []string
+	for _, name := range genopt.Profiles() {
+		parts = append(parts, name+" ("+genopt.ProfileDoc(name)+")")
+	}
+	return strings.Join(parts, "; ")
 }

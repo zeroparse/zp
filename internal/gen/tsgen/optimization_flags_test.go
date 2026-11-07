@@ -57,6 +57,25 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 	}
 }
 
+// TestProfilesTSParity compares TypeScript parsers generated with each profile other than speed with
+// the engine, in every mode of tsModes. The profiles set no flag that acts on TypeScript output
+// today, but a profile selects flag values for every target, so the parsers must agree with the
+// engine whatever the values are.
+func TestProfilesTSParity(t *testing.T) {
+	t.Parallel()
+	node := gentest.RequireNode(t)
+	for _, name := range genopt.Profiles()[1:] {
+		for _, mode := range tsModes {
+			t.Run(name+"/"+mode.name, func(t *testing.T) {
+				t.Parallel()
+				o := mode.opts
+				o.Optimize = name
+				gentest.TSParsersCorpus(t, node, gentest.FlagParityCases(), o)
+			})
+		}
+	}
+}
+
 // TestOptimizationDisabledTSNegativeControl shows that the comparison of the test above, the one
 // of TSParsersCorpus with the engine, notices a parser that is wrong: with the guards off and a
 // literal of the grammar changed in the generated code, results differ from the engine's, and

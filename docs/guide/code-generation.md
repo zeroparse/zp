@@ -194,7 +194,7 @@ zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|impor
 | `-max-depth` | `0` | Default nested recursive rule-call limit in the generated parser; zero selects 100,000, a positive value overrides it, and negatives fail generation |
 | `-default-value` | off | Make the parser return the default node tree: value actions and declared rule types are dropped, predicates still run (see [Default Values](../../spec/language/actions.md#default-values)). Cannot be combined with `-types` |
 | `-nodoc` | off | Leave out the package comment (`// Package p is a parser generated from a ZeroParse grammar.`), for a package that has its own documentation in another file |
-| `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed` is the only one so far; any other name is an error that lists the valid ones |
+| `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed`, `memory` or `size`; any other name is an error that lists the valid ones |
 | `-opt` | none | Optimizations to give a value after the profile is applied and before `-no-opt`, separated by commas, as `name` or `name=count`: a name alone turns on an optimization that the profile leaves off (`-opt ts-literal-sharing`), a count sets an integer one (`-opt class-tables=3`), and `0` turns one off. An unknown name, a count that is not a number, or a value that the optimization does not take is an error |
 | `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
 | `-print-after` | none | Write the Core IR that the generator builds to standard error, as text, after the named passes, separated by commas: `build`, a pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
@@ -297,6 +297,17 @@ table changes output yet:
 | `typed-list-slabs` | runtime | on | Allocate typed lists in slabs (typed Go). Fewer allocations against memory, as for objects |
 | `typed-output-bootstrap` | runtime | on | Size the first slab of the typed output from the input (typed Go). A small parse keeps little memory, against a few allocations before the slabs start |
 | `sparse-memo` | runtime | on | Keep the first-call table of large TypeScript parsers sparse. Memory in proportion to the positions visited against a page lookup per check |
+
+A profile is chosen with `-optimize` (`Optimize` in `gen.Go` and `gen.TypeScript`). Each sets flags of the table above to other values
+than `speed` has and nothing else, so `-opt` and `-no-opt` still apply after it:
+
+| Profile | Sets | For | Measured against `speed` (ratios to `speed`, geometric mean over ten language grammars) |
+| --- | --- | --- | --- |
+| `speed` | nothing | The default: the fastest parse that does not cost generated code or memory out of proportion | |
+| `memory` | `typed-object-slabs` and `typed-list-slabs` off | Fewer bytes and less live heap in typed Go parsers, at the price of many more allocations | bytes allocated 0.886 and live heap 0.848 of `speed`'s, parse time 0.996; allocations rise 1.03 to 1.39 times for the typed grammars and 52 to 97 times for the JSON, CSV and XML parses; no grammar is more than 3.8% slower |
+| `size` | `inline-literals` off, `class-tables` at 5 | Smaller generated Go source and binaries | `parser.go` 0.912, stripped binary 0.986 and parse time 1.022 of `speed`'s; no grammar is more than 5.5% slower |
+
+No profile changes what a parser returns. The measurements are in [design record 134](../optimizations/134-measured-effect-of-the-generation-flags.md).
 
 A flag never overrides soundness: whether an optimization applies to a parser is decided by the generator, and `-opt`
 never turns on a pass for a parser that it is unsound for. `-no-opt guards` also leaves out the guarded classes, which need guards.

@@ -62,7 +62,7 @@ rule num = [0-9]+
 			if _, err := c.generate("", []string{"nonsense"}, "", nil); err == nil || !strings.Contains(err.Error(), "valid: terminals") {
 				t.Errorf("unknown optimization: %v", err)
 			}
-			if _, err := c.generate("memory", nil, "", nil); err == nil || !strings.Contains(err.Error(), "valid: speed") {
+			if _, err := c.generate("nosuch", nil, "", nil); err == nil || !strings.Contains(err.Error(), "valid: speed") {
 				t.Errorf("unknown profile: %v", err)
 			}
 			if _, err := c.generate("", nil, "guards", nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {

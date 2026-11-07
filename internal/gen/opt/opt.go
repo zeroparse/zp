@@ -10,6 +10,7 @@ package opt
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -100,6 +101,40 @@ func check(flags []Flag) error {
 		seen[f.Name] = true
 	}
 	return nil
+}
+
+// DefaultText is the default value as the guide and the usage text write it: "on" or "off" for a
+// flag, "off" or the number for a flag with a count.
+func (f Flag) DefaultText() string {
+	switch {
+	case f.Int && f.Default != 0:
+		return strconv.Itoa(f.Default)
+	case f.Default != 0:
+		return "on"
+	}
+	return "off"
+}
+
+// Summary is the name of the flag with its kind and default, as `class-tables (lowering, off; count)`:
+// a flag with a count says so, and one that changes the output says that.
+func (f Flag) Summary() string {
+	s := f.Name + " (" + f.Kind.String() + ", " + f.DefaultText()
+	if f.Int {
+		s += "; count"
+	}
+	if f.ChangesOutput {
+		s += "; changes output"
+	}
+	return s + ")"
+}
+
+// Summaries returns the Summary of every flag in order, joined by ", ".
+func Summaries() string {
+	out := make([]string, len(Flags))
+	for i, f := range Flags {
+		out[i] = f.Summary()
+	}
+	return strings.Join(out, ", ")
 }
 
 // Names returns the names of the flags in order.
@@ -210,17 +245,99 @@ func ParseValues(list string) (map[string]int, error) {
 	return out, nil
 }
 
+// A profileDef is a preset: the values that differ from the speed values of the flags, and what the
+// preset is for. It has no logic of its own.
+type profileDef struct {
+	Name   string
+	Doc    string
+	Values map[string]int
+}
+
+// profileDefs lists the profiles; the first is the default. The values were chosen by the rule of
+// record 136 (docs/optimizations/136-measured-effect-of-the-generation-flags.md): a profile is kept
+// if it improves the metric it is named for by at least 1% beyond the noise of an identical copy, on
+// at least six of the ten language grammars, costs at most 3% of parse time as a geometric mean, and
+// slows no grammar by more than 6%.
+var profileDefs = []profileDef{
+	{Name: "speed", Doc: "the fastest parse that does not cost generated code or memory out of proportion; the default"},
+	{Name: "memory", Doc: "typed values are allocated one by one: fewer bytes allocated and less live heap, with many more allocations",
+		Values: map[string]int{"typed-object-slabs": 0, "typed-list-slabs": 0}},
+	{Name: "size", Doc: "smaller generated Go source and binaries, for a little parse time",
+		Values: map[string]int{"inline-literals": 0, "class-tables": 5}},
+}
+
+// checkProfiles reports a profile that breaks the rules: a repeated or undocumented one, a value of
+// an unknown flag or one the flag does not take, and a value for a flag that changes the output.
+func checkProfiles(defs []profileDef, flags []Flag) error {
+	seen := map[string]bool{}
+	for _, d := range defs {
+		if d.Name == "" || d.Doc == "" || seen[d.Name] {
+			return fmt.Errorf("profile %q has no name or no description, or is declared twice", d.Name)
+		}
+		seen[d.Name] = true
+		for name, v := range d.Values {
+			i := slices.IndexFunc(flags, func(f Flag) bool { return f.Name == name })
+			switch {
+			case i < 0:
+				return fmt.Errorf("profile %s sets %q, which is not a flag", d.Name, name)
+			case flags[i].ChangesOutput:
+				return fmt.Errorf("profile %s sets %s, which changes the output", d.Name, name)
+			case v < 0 || !flags[i].Int && v > 1:
+				return fmt.Errorf("profile %s gives %s the value %d", d.Name, name, v)
+			}
+		}
+	}
+	return nil
+}
+
 // Profile returns the settings of the named profile; the empty name is the default, speed.
 func Profile(name string) (Settings, error) {
-	switch name {
-	case "", "speed":
-		return Settings{}, nil
+	if name == "" {
+		name = profileDefs[0].Name
+	}
+	for _, d := range profileDefs {
+		if d.Name == name {
+			s := Settings{}
+			for flag, v := range d.Values {
+				var err error
+				if s, err = s.With(flag, v); err != nil {
+					return Settings{}, err
+				}
+			}
+			return s, nil
+		}
 	}
 	return Settings{}, fmt.Errorf("unknown optimization profile %q (valid: %s)", name, strings.Join(Profiles(), ", "))
 }
 
-// Profiles returns the names of the profiles.
-func Profiles() []string { return []string{"speed"} }
+// Profiles returns the names of the profiles; the first is the default.
+func Profiles() []string {
+	out := make([]string, len(profileDefs))
+	for i, d := range profileDefs {
+		out[i] = d.Name
+	}
+	return out
+}
+
+// ProfileDoc returns the one line that says what the profile is for, or "" for an unknown name.
+func ProfileDoc(name string) string {
+	for _, d := range profileDefs {
+		if d.Name == name {
+			return d.Doc
+		}
+	}
+	return ""
+}
+
+// ProfileValues returns the flags that the profile sets to other than their speed values, by name.
+func ProfileValues(name string) map[string]int {
+	for _, d := range profileDefs {
+		if d.Name == name {
+			return maps.Clone(d.Values)
+		}
+	}
+	return nil
+}
 
 // PrintNames returns the names that select the module to print after: "build", the passes, and
 // "all".

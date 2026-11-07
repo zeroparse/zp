@@ -172,3 +172,103 @@ func TestParseValues(t *testing.T) {
 		}
 	}
 }
+
+func TestProfileDefinitionsAreValid(t *testing.T) {
+	if err := checkProfiles(profileDefs, Flags); err != nil {
+		t.Error(err)
+	}
+	for _, c := range []struct {
+		name string
+		defs []profileDef
+		want string
+	}{
+		{"undocumented", []profileDef{{Name: "a"}}, "no description"},
+		{"repeated", []profileDef{{Name: "a", Doc: "x"}, {Name: "a", Doc: "y"}}, "twice"},
+		{"unknown flag", []profileDef{{Name: "a", Doc: "x", Values: map[string]int{"nosuch": 1}}}, "not a flag"},
+		{"bad value", []profileDef{{Name: "a", Doc: "x", Values: map[string]int{"guards": 2}}}, "value 2"},
+	} {
+		if err := checkProfiles(c.defs, Flags); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v, want an error with %q", c.name, err, c.want)
+		}
+	}
+	if err := checkProfiles([]profileDef{{Name: "a", Doc: "x", Values: map[string]int{"o": 1}}}, []Flag{{Name: "o", Doc: "x", ChangesOutput: true}}); err == nil || !strings.Contains(err.Error(), "changes the output") {
+		t.Errorf("a profile that sets an output flag: %v", err)
+	}
+}
+
+func TestProfileSettings(t *testing.T) {
+	if got := Profiles(); !slices.Equal(got, []string{"speed", "memory", "size"}) {
+		t.Fatalf("profiles %v", got)
+	}
+	mem, err := Profile("memory")
+	if err != nil || mem.On("typed-object-slabs") || mem.On("typed-list-slabs") || !mem.On("typed-output-bootstrap") || !mem.On("guards") {
+		t.Errorf("memory: %v", err)
+	}
+	size, err := Profile("size")
+	if err != nil || size.Value("inline-literals") != 0 || size.Value("class-tables") != 5 || !size.On("guards") {
+		t.Errorf("size: %v", err)
+	}
+	for _, name := range Profiles() {
+		if ProfileDoc(name) == "" {
+			t.Errorf("profile %s has no description", name)
+		}
+	}
+	if ProfileDoc("nosuch") != "" || ProfileValues("nosuch") != nil {
+		t.Errorf("an unknown profile has a description or values")
+	}
+	if v := ProfileValues("size"); v["class-tables"] != 5 || len(v) != 2 {
+		t.Errorf("size values %v", v)
+	}
+}
+
+// A registry with an optimization that changes the output, which no flag of the real one does yet,
+// shows the checks on their positive path: it is valid as an opt-in, and neither a nonzero default nor
+// a profile that sets it is.
+func TestOutputChangingFlagRegistry(t *testing.T) {
+	fake := Flag{Name: "fake-output", Kind: Printer, Doc: "changes the generated API", ChangesOutput: true}
+	flags := append(slices.Clone(Flags), fake)
+	if err := check(flags); err != nil {
+		t.Errorf("an opt-in that changes the output: %v", err)
+	}
+	on := fake
+	on.Default = 1
+	if err := check(append(slices.Clone(Flags), on)); err == nil || !strings.Contains(err.Error(), "must be an opt-in") {
+		t.Errorf("a nonzero default for a flag that changes the output: %v, want the opt-in error", err)
+	}
+	intOn := Flag{Name: "fake-count", Kind: Lowering, Int: true, Doc: "changes the generated API", Default: 3, ChangesOutput: true}
+	if err := check([]Flag{intOn}); err == nil || !strings.Contains(err.Error(), "must be an opt-in") {
+		t.Errorf("a nonzero count default for a flag that changes the output: %v, want the opt-in error", err)
+	}
+	for _, v := range []int{0, 1} {
+		defs := []profileDef{{Name: "p", Doc: "x", Values: map[string]int{"fake-output": v}}}
+		if err := checkProfiles(defs, flags); err == nil || !strings.Contains(err.Error(), "changes the output") {
+			t.Errorf("a profile that gives the flag %d: %v, want an error", v, err)
+		}
+	}
+	if err := checkProfiles([]profileDef{{Name: "p", Doc: "x", Values: map[string]int{"guards": 0}}}, flags); err != nil {
+		t.Errorf("a profile of flags that keep behavior, in a registry that also has the flag: %v", err)
+	}
+	if got := fake.Summary(); got != "fake-output (printer, off; changes output)" {
+		t.Errorf("Summary = %q", got)
+	}
+}
+
+func TestFlagSummaries(t *testing.T) {
+	for _, c := range []struct{ name, want string }{
+		{"class-tables", "class-tables (lowering, off; count)"},
+		{"inline-literals", "inline-literals (lowering, 4; count)"},
+		{"guards", "guards (pass, on)"},
+		{"ts-literal-sharing", "ts-literal-sharing (printer, off)"},
+		{"sparse-memo", "sparse-memo (runtime, on)"},
+	} {
+		f, ok := lookup(c.name)
+		if !ok || f.Summary() != c.want {
+			t.Errorf("%s: Summary = %q, want %q", c.name, f.Summary(), c.want)
+		}
+	}
+	for _, f := range Flags {
+		if !strings.Contains(Summaries(), f.Summary()) {
+			t.Errorf("Summaries lacks %s", f.Name)
+		}
+	}
+}

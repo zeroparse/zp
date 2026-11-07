@@ -2,6 +2,7 @@ package gogen_test
 
 import (
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -80,59 +81,109 @@ var optimizationTests = map[string]string{
 // engine as the ordinary one is.
 var outputFlagTests = map[string]string{}
 
+// flagTestProblems returns what is wrong with the tests that the flags name: an optimization without
+// a test of its disabled form (or, if it changes the output, of its changed contract), an output
+// change that is also in the parity tests, a test that names an unregistered optimization, and a
+// contract test for a flag that does not change the output.
+func flagTestProblems(flags []genopt.Flag, keeps, changes map[string]string) []string {
+	var out []string
+	known := map[string]genopt.Flag{}
+	for _, f := range flags {
+		known[f.Name] = f
+		if f.ChangesOutput {
+			if changes[f.Name] == "" {
+				out = append(out, fmt.Sprintf("the optimization %s changes the output and names no test of its contract", f.Name))
+			}
+			if _, ok := keeps[f.Name]; ok {
+				out = append(out, fmt.Sprintf("the optimization %s changes the output, so the parity tests of the flags that keep behavior do not apply to it", f.Name))
+			}
+		} else if _, ok := keeps[f.Name]; !ok {
+			out = append(out, fmt.Sprintf("the optimization %s has no test of its disabled form", f.Name))
+		}
+		if f.Doc == "" {
+			out = append(out, fmt.Sprintf("the optimization %s has no description", f.Name))
+		}
+	}
+	for _, tests := range []map[string]string{keeps, changes} {
+		for name := range tests {
+			if _, ok := known[name]; !ok {
+				out = append(out, fmt.Sprintf("a test names %s, which is not a registered optimization", name))
+			}
+		}
+	}
+	for name := range changes {
+		if f, ok := known[name]; ok && !f.ChangesOutput {
+			out = append(out, fmt.Sprintf("%s names a contract test but does not change the output", name))
+		}
+	}
+	return out
+}
+
 // TestOptimizationsHaveTests fails for an optimization that is registered and has no test of its
 // disabled form (or, if it changes the output, of its changed contract), and for a test that names an
 // optimization that does not exist.
 func TestOptimizationsHaveTests(t *testing.T) {
-	for _, f := range genopt.Flags {
-		if f.ChangesOutput {
-			if outputFlagTests[f.Name] == "" {
-				t.Errorf("the optimization %s changes the output and names no test of its contract", f.Name)
-			}
-			if _, ok := optimizationTests[f.Name]; ok {
-				t.Errorf("the optimization %s changes the output, so the parity tests of the flags that keep behavior do not apply to it", f.Name)
-			}
-		} else if _, ok := optimizationTests[f.Name]; !ok {
-			t.Errorf("the optimization %s has no test of its disabled form", f.Name)
-		}
-		if f.Doc == "" {
-			t.Errorf("the optimization %s has no description", f.Name)
-		}
-	}
-	for _, tests := range []map[string]string{optimizationTests, outputFlagTests} {
-		for name := range tests {
-			if !slices.Contains(genopt.Names(), name) {
-				t.Errorf("a test names %s, which is not a registered optimization", name)
-			}
-		}
-	}
-	for name := range outputFlagTests {
-		if f, ok := lookupFlag(name); ok && !f.ChangesOutput {
-			t.Errorf("%s names a contract test but does not change the output", name)
-		}
+	for _, p := range flagTestProblems(genopt.Flags, optimizationTests, outputFlagTests) {
+		t.Error(p)
 	}
 }
 
-// The guide lists every registered optimization, with the name that -no-opt takes.
+// A registry with an optimization that changes the output, which no flag of the real one does yet,
+// shows the test check on its positive path: such a flag must name a contract test in place of a
+// disabled-form test (TestOutputChangingFlagRegistry in internal/gen/opt checks the opt-in rule).
+func TestOutputChangingFlagChecks(t *testing.T) {
+	fake := genopt.Flag{Name: "fake-output", Kind: genopt.Printer, Doc: "changes the generated API", ChangesOutput: true}
+	flags := append(slices.Clone(genopt.Flags), fake)
+
+	has := func(problems []string, want string) bool {
+		return slices.ContainsFunc(problems, func(p string) bool { return strings.Contains(p, want) })
+	}
+	if got := flagTestProblems(flags, optimizationTests, outputFlagTests); !has(got, "fake-output changes the output and names no test") {
+		t.Errorf("no contract test: %v", got)
+	}
+	contract := map[string]string{"fake-output": "TestFakeOutputContract"}
+	if got := flagTestProblems(flags, optimizationTests, contract); len(got) != 0 {
+		t.Errorf("with a contract test: %v, want none", got)
+	}
+	both := maps.Clone(optimizationTests)
+	both["fake-output"] = ""
+	if got := flagTestProblems(flags, both, contract); !has(got, "parity tests of the flags that keep behavior do not apply") {
+		t.Errorf("in the parity tests too: %v", got)
+	}
+	if got := flagTestProblems(genopt.Flags, optimizationTests, contract); !has(got, "not a registered optimization") {
+		t.Errorf("a contract test for an unregistered flag: %v", got)
+	}
+	if got := flagTestProblems(genopt.Flags, optimizationTests, map[string]string{"guards": "TestX"}); !has(got, "does not change the output") {
+		t.Errorf("a contract test for a flag that keeps behavior: %v", got)
+	}
+}
+
+// The guide lists every registered optimization, with the name that -no-opt takes, and the row
+// carries the kind and the default of the registry (and "changes output" for a flag that does).
 func TestOptimizationsAreInTheGuide(t *testing.T) {
 	doc, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "guide", "code-generation.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, n := range genopt.Names() {
-		if !strings.Contains(string(doc), "| `"+n+"` | ") {
-			t.Errorf("the guide has no row for the optimization %s", n)
-		}
-	}
-}
-
-func lookupFlag(name string) (genopt.Flag, bool) {
 	for _, f := range genopt.Flags {
-		if f.Name == name {
-			return f, true
+		prefix := "| `" + f.Name + "` | "
+		row := ""
+		for _, line := range strings.Split(string(doc), "\n") {
+			if strings.HasPrefix(line, prefix) {
+				row = line
+			}
+		}
+		if row == "" {
+			t.Errorf("the guide has no row for the optimization %s", f.Name)
+			continue
+		}
+		if want := prefix + f.Kind.String() + " | " + f.DefaultText() + " | "; !strings.HasPrefix(row, want) {
+			t.Errorf("the guide row of %s does not start with %q (the kind and the default of the registry): %.80s", f.Name, want, row)
+		}
+		if f.ChangesOutput && !strings.Contains(row, "changes output") {
+			t.Errorf("the guide row of %s does not say that it changes the output", f.Name)
 		}
 	}
-	return genopt.Flag{}, false
 }
 
 // off returns the options for a lean typed parser with the optimizations off.
@@ -317,5 +368,146 @@ func TestOptimizationDisabledNodeRouteNegativeControl(t *testing.T) {
 				t.Errorf("the generated code has no literal \"while\" to change: the control proves nothing")
 			}
 		})
+	}
+}
+
+// TestProfilesParity compares lean typed parsers generated with each profile with the engine, in both
+// position units: a profile only fixes flag values, so it changes the code and never the results.
+func TestProfilesParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	cases := optimizationCases()
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, name := range genopt.Profiles() {
+		t.Run(name, func(t *testing.T) {
+			opts := off()
+			opts.Optimize = name
+			gentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
+		})
+	}
+}
+
+// profileRouteModes are the Go routes on which the profiles are compared with the engine beyond lean
+// typed Go: the ordinary Node parser, with observability, with limit controls, the recognizer, and the
+// Document runner.
+var profileRouteModes = append(slices.Clone(nodeRouteModes), struct {
+	name string
+	opts gen.GenOptions
+}{"document", gen.GenOptions{Document: true}})
+
+// TestProfilesRouteParity compares Node, recognizer and Document parsers generated with each profile
+// other than speed with the engine, in every mode of profileRouteModes and in both position units. A
+// profile only fixes flag values, so it must change the code and never the results on any route;
+// TestProfilesParity does the same for lean typed Go, TestProfilesStreamParity for ParseStream, and
+// the tsgen package for TypeScript.
+func TestProfilesRouteParity(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, name := range genopt.Profiles()[1:] {
+		for _, mode := range profileRouteModes {
+			t.Run(name+"/"+mode.name, func(t *testing.T) {
+				t.Parallel()
+				o := mode.opts
+				o.Optimize = name
+				gentest.GeneratedParsersCorpus(t, goBin, gentest.FlagParityCases(), o)
+			})
+		}
+	}
+}
+
+// TestProfilesRouteNegativeControl shows that the comparison of the test above notices a wrong parser
+// on the Document route, which only this file's tests compare: a changed literal differs from the
+// engine, and the unchanged parsers do not.
+func TestProfilesRouteNegativeControl(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	o := gen.GenOptions{Document: true, Optimize: "size"}
+	if got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, nil); len(got) != 0 {
+		t.Fatalf("the unchanged Document parsers differ from the engine:\n%s", got[0])
+	}
+	var changed atomic.Bool
+	mutate := func(code []byte) []byte {
+		out := strings.ReplaceAll(string(code), `"while"`, `"whilx"`)
+		if out != string(code) {
+			changed.Store(true)
+		}
+		return []byte(out)
+	}
+	got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, mutate)
+	if !changed.Load() {
+		t.Fatal(`the generated code has no literal "while" to change: the control proves nothing`)
+	}
+	if len(got) == 0 {
+		t.Errorf("a Document parser with a changed literal matches the engine")
+	}
+}
+
+// TestProfilesStreamParity compares ParseStream generated with each profile other than speed with the
+// engine's: the elements, the reads before each and the final error, as TestGeneratedStreamMatchesEngine does.
+func TestProfilesStreamParity(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("builds generated code")
+		}
+		goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+		cases := append([]gentest.Case(nil), streamCorpus...)
+		for _, c := range gentest.GenCorpus(t) {
+			if strings.Contains(c.Src, "#stream") {
+				cases = append(cases, c)
+			}
+		}
+		for _, name := range genopt.Profiles()[1:] {
+			t.Run(name, func(t *testing.T) { testGeneratedStreams(t, goBin, cases, gen.GenOptions{Optimize: name}) })
+		}
+	})
+}
+
+// Each profile other than speed changes the generated code, so that a profile that sets nothing is caught.
+func TestProfilesChangeTheCode(t *testing.T) {
+	t.Parallel()
+	gentest.PinOrdinary(t)
+	for _, name := range genopt.Profiles()[1:] {
+		changed := false
+		for _, c := range optimizationCases() {
+			g, err := parseTest(c.Src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			base, _ := generateShowingIR(t, g, off())
+			o := off()
+			o.Optimize = name
+			got, _ := generateShowingIR(t, g, o)
+			changed = changed || string(base) != string(got)
+		}
+		if !changed {
+			t.Errorf("the profile %s generates the same parsers as speed for every case", name)
+		}
+	}
+}
+
+// The guide lists every profile with the flags it sets.
+func TestProfilesAreInTheGuide(t *testing.T) {
+	doc, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "guide", "code-generation.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range genopt.Profiles() {
+		if !strings.Contains(string(doc), "| `"+n+"` | ") {
+			t.Errorf("the guide has no row for the profile %s", n)
+		}
+		for flag := range genopt.ProfileValues(n) {
+			row := ""
+			for _, line := range strings.Split(string(doc), "\n") {
+				if strings.HasPrefix(line, "| `"+n+"` | ") {
+					row = line
+				}
+			}
+			if !strings.Contains(row, "`"+flag+"`") {
+				t.Errorf("the guide row of the profile %s does not name the flag %s that it sets", n, flag)
+			}
+		}
 	}
 }

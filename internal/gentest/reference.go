@@ -149,7 +149,8 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.G
 	}
 }
 
-// GeneratedParsersMismatches generates a Go parser for each case with opts, changes the source of
+// GeneratedParsersMismatches generates a Go parser for each case with opts (with opts.Document, the
+// result is that of Parse on a new Document), changes the source of
 // each with mutate (when not nil), runs them and returns a description of every result that differs
 // from the engine's. GeneratedParsersCorpus fails on them; a negative control passes a mutation and
 // requires some.
@@ -182,7 +183,12 @@ func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts g
 		}
 		write(fmt.Sprintf("g%d/parser.go", i), string(code))
 		fmt.Fprintf(&imports, "\tg%d \"gentest/g%d\"\n", i, i)
-		fmt.Fprintf(&parsers, "\tfunc(s string, b bool) (any, error) { u := g%d.CodePoints; if b { u = g%d.Bytes }; n, err := g%d.Parse(s, g%[3]d.WithUnit(u)); return n, err },\n", i, i, i)
+		if opts.Document {
+			// The Document route: parse the text of a new Document, as an editor does before its first edit.
+			fmt.Fprintf(&parsers, "\tfunc(s string, b bool) (any, error) { u := g%d.CodePoints; if b { u = g%d.Bytes }; d, err := g%d.NewDocument(s, g%[3]d.WithUnit(u)); if err != nil { return nil, err }; n, err := d.Parse(); return n, err },\n", i, i, i)
+		} else {
+			fmt.Fprintf(&parsers, "\tfunc(s string, b bool) (any, error) { u := g%d.CodePoints; if b { u = g%d.Bytes }; n, err := g%d.Parse(s, g%[3]d.WithUnit(u)); return n, err },\n", i, i, i)
+		}
 		fmt.Fprintf(&recognizers, "\tfunc(s string, b bool) error { u := g%d.CodePoints; if b { u = g%d.Bytes }; return g%d.Recognize(s, g%[3]d.WithUnit(u)) },\n", i, i, i)
 		fmt.Fprintf(&viewers, "\tfunc(n any) string { return %s },\n", strings.ReplaceAll(NodeViewsSource, "PKG", fmt.Sprintf("g%d", i)))
 		inputs = append(inputs, c.Inputs)
