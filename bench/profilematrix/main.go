@@ -12,6 +12,11 @@
 // relative to it. -control adds a copy of the baseline under the name "control": its ratios show the
 // noise of the machine, and the deterministic metrics must equal the baseline's.
 //
+// Two more rows, csv-incremental and csv-stream, generate the CSV parser with -document or -stream and
+// measure an edit in the middle of a 50000-record file followed by a reparse, and the parse of the file as a
+// stream of records. A variant whose generated Go parser is byte-identical to the baseline's for a row is
+// listed as "noeffect" and is neither built nor measured there (the control always is).
+//
 // The program is measured by parsing every input of the grammar that parses without an error: the
 // .txt files of testdata/grammars/NAME, and for json, csv and xml also a generated input of about
 // 256 KiB. One pass parses all of them. Time is the minimum over the rounds, which makes it robust

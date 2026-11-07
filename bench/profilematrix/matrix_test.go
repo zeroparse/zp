@@ -185,3 +185,42 @@ func TestRunMeasuresEveryMetric(t *testing.T) {
 		t.Errorf("no ratio table for src_bytes:\n%s", out.String())
 	}
 }
+
+// TestRunSkipsVariantsWithTheSameOutputAndMeasuresTheCSVRows checks that a variant that generates
+// the baseline's parser is listed as having no effect and is not measured (the control, which is the
+// same on purpose, still is), and that the incremental and stream rows of CSV run for a variant that
+// changes the parser.
+func TestRunSkipsVariantsWithTheSameOutputAndMeasuresTheCSVRows(t *testing.T) {
+	if testing.Short() {
+		t.Skip("generates, builds and runs parsers")
+	}
+	cfg := config{
+		Root: "../..", Grammars: []string{"csv-incremental", "csv-stream"}, Rounds: 1, Benchtime: "3x", Control: true,
+		Variants: []variant{
+			{Name: "speed"},
+			{Name: "same", Args: []string{"-opt", "guards=1"}},
+			{Name: "noguards", Args: []string{"-no-opt", "guards"}},
+		},
+	}
+	var out, log bytes.Buffer
+	if err := run(cfg, &out, &log); err != nil {
+		t.Fatalf("%v\n%s", err, log.String())
+	}
+	c := parseCells(t, out.String())
+	for _, g := range cfg.Grammars {
+		for _, v := range []string{"speed", "noguards", "control"} {
+			if x, ok := c.get(g, v, "ns_op"); !ok || x <= 0 {
+				t.Errorf("%s %s: ns_op = %v, %v", g, v, x, ok)
+			}
+		}
+		if _, ok := c.get(g, "same", "ns_op"); ok {
+			t.Errorf("%s same was measured", g)
+		}
+		if !strings.Contains(out.String(), "noeffect "+g+" same\n") {
+			t.Errorf("%s same is not listed as having no effect:\n%s", g, out.String())
+		}
+		if strings.Contains(out.String(), "noeffect "+g+" noguards") || strings.Contains(out.String(), "noeffect "+g+" control") {
+			t.Errorf("%s: a variant with another output or the control is listed as having no effect", g)
+		}
+	}
+}

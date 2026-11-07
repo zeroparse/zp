@@ -104,7 +104,7 @@ go tool pprof -top -nodecount 30 bench.test cpu.out
 go tool pprof -sample_index=alloc_space -top -nodecount 30 bench.test mem.out
 ```
 
-To compare generation options on the generated parsers of the ten language grammars, `bench/profilematrix` generates each grammar once per
+To compare generation options on the generated parsers of the ten language grammars and of two CSV use cases, `bench/profilematrix` generates each grammar once per
 variant (`NAME=ARGS`, the options of `zp gen` added to those of `testdata/grammars/generate.txt`), builds the parsers and measures them in fresh
 processes in rotated order:
 
@@ -115,7 +115,11 @@ go run ./bench/profilematrix -variant speed= -variant noguards='-no-opt guards' 
 For each grammar and variant it prints the time of a pass over the inputs (the minimum over the rounds), bytes and allocations per pass, the live
 heap that the results hold, the peak resident set size, the share of CPU time spent in garbage collection, the size of `parser.go`, of a stripped
 program that calls `ParseAST` and (with `-ts`) of `parser.ts`, and the compile time; then the ratios to the first variant. `-control` adds an
-identical copy of the first variant, which shows the noise of the machine. Run it under the benchmark lock of the machine.
+identical copy of the first variant, which shows the noise of the machine. Two more rows, `csv-incremental` (an edit in the middle of a
+50000-record file followed by a reparse of a generated `Document`) and `csv-stream` (the whole file parsed as a stream of records), measure
+the incremental and the stream use; the other rows parse the inputs of the grammar once. A variant whose generated Go parser is
+byte-identical to the baseline's for a row is listed as having no effect and is neither built nor measured there. Run it under the benchmark
+lock of the machine.
 
 Saved benchmark rows used by the report must contain a positive iteration count and exactly one finite, positive
 `ns/op` value plus finite, nonnegative `B/op` and `allocs/op` values. Zero allocation values are valid; a missing metric
