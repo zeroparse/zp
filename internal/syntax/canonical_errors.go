@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"cmp"
 	"slices"
 	"sort"
 	"strings"
@@ -35,8 +36,11 @@ type SourceError struct {
 // the token table of the lexer, so the text of a comment is never read again.
 // The failure of the grammar at the end of an unterminated string or class is not reported: it is that
 // lexical error, which is. Nor is the failure exactly at the start of the declaration after an
-// unterminated string or class (a line with a keyword that has the shape of a declaration, or is in the first column), if no declaration starts between them: the literal swallowed the closing
-// bracket of a group, and the hand-written parser ends the group there without another error. The list is capped and de-duplicated as the hand-written parser's is.
+// unterminated string or class (a line with a keyword that has the shape of a declaration, or is in the
+// first column), if no declaration starts between them: the literal swallowed the closing bracket of a
+// group, and the hand-written parser ends the group there without another error.
+// After the lexical errors the list is in the order of the source, and it is capped and de-duplicated as the
+// hand-written parser's is.
 //
 // The lexer skips the characters that start no token and goes on, so the
 // hand-written parser reads the rest of the source as if they were not there.
@@ -45,6 +49,10 @@ type SourceError struct {
 // of the failure there: the offsets are those of src.
 func SourceErrors(src string, errs []SourceError) ErrorList {
 	out := &errorList{}
+	// The hand-written parser reports in the order of the source, and keeps the first errors when it caps the
+	// list. The grammar lists the failure that ends the parse before the mistakes it recovered from.
+	errs = slices.Clone(errs)
+	slices.SortStableFunc(errs, func(a, b SourceError) int { return cmp.Compare(a.Offset, b.Offset) })
 	toks := lex(src, out)
 	rs := []rune(src)
 	pos := sourceast.NewPositions(src)

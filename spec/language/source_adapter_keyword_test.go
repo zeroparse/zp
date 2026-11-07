@@ -314,3 +314,27 @@ func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
 		}
 	}
 }
+
+// TestCanonicalErrorsAreInTheOrderOfTheSource requires the errors after the lexical ones to be in the order of
+// the source, as the hand-written parser reports them. The grammar lists the failure that ends the parse
+// before the mistakes it recovered from.
+func TestCanonicalErrorsAreInTheOrderOfTheSource(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	for _, src := range []string{
+		"rule a = {\n x \"{\n var = 1\n}\nrule c = d\n",
+		"rule a = {\n x \"{\n}\n  rule b; rule c = d\n",
+		"rule a = )\nrule b = )\nrule c = {\n  x ) \n}\n",
+	} {
+		_, err := adaptCanonical(p, src)
+		errs := errorsOf(src, err)
+		if len(errs) < 2 {
+			t.Fatalf("%q: want at least two errors: %v", src, err)
+		}
+		for i := 1; i < len(errs); i++ {
+			if errs[i].off < errs[i-1].off {
+				t.Errorf("%q: error %d at %d comes after the one at %d\n  %v", src, i, errs[i].off, errs[i-1].off, err)
+				break
+			}
+		}
+	}
+}

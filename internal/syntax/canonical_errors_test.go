@@ -78,3 +78,33 @@ func TestWithoutInvalidCharacters(t *testing.T) {
 		}
 	}
 }
+
+func TestSourceErrorsAreInTheOrderOfTheSource(t *testing.T) {
+	src := "rule a = x\nrule b = y\nrule c = z\n"
+	got := SourceErrors(src, []SourceError{{Offset: 22, Msg: "c"}, {Offset: 0, Msg: "a"}, {Offset: 11, Msg: "b"}, {Offset: 11, Msg: "b2"}})
+	var msgs []string
+	for _, e := range got {
+		msgs = append(msgs, e.Msg)
+	}
+	if strings.Join(msgs, " ") != "a b c" {
+		t.Errorf("got %v", got)
+	}
+}
+
+func TestSourceErrorsKeepTheFirstOfTheCap(t *testing.T) {
+	// The grammar lists the failure that ends the parse first: the cap must keep the earliest errors.
+	src := strings.Repeat("rule a = x\n", maxErrors+20)
+	var errs []SourceError
+	for i := maxErrors + 19; i >= 0; i-- {
+		errs = append(errs, SourceError{Offset: i * 11, Msg: "e"})
+	}
+	got := SourceErrors(src, errs)
+	if len(got) != maxErrors+1 || got[maxErrors].Msg != "too many errors" {
+		t.Fatalf("got %d errors", len(got))
+	}
+	for i, e := range got[:maxErrors] {
+		if e.Pos.Line != i+1 {
+			t.Fatalf("error %d is at line %d, want %d", i, e.Pos.Line, i+1)
+		}
+	}
+}
