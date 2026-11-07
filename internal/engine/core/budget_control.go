@@ -23,10 +23,6 @@ type BudgetControl struct {
 	Used       uint64
 	SinceCheck uint64
 
-	// ErrorCopies is the part of Used that copied lists of recovered errors, which the cost of a
-	// parse leaves out.
-	ErrorCopies uint64
-
 	// Adaptive is set for a stream whose budget is the default: the budget follows the furthest
 	// position the parser has demanded from the stream (Demand).
 	Adaptive bool

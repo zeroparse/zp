@@ -347,19 +347,21 @@ operand, plus a constant.
 Outside a [Document](documents.md), and apart from the exceptions below, time is
 proportional to cost. The memory that a parse allocates is at most proportional
 to its cost plus the input, because each memo entry, node and value is built by
-cost that is counted, apart from the copied error lists below. The cost of a
-parse is measured in compute units, which differ between backends, and the budget
-of [compute limits](#cancellation-and-compute-limits) caps it.
+cost that is counted. The cost of a parse is measured in compute units, which
+differ between backends, and the budget of
+[compute limits](#cancellation-and-compute-limits) caps it.
 
 Compute units also count work that the cost does not, and the budget caps it too.
-In a parse that recovers errors, a memo entry stores a copy of the errors
-recovered in its call, and each call that the entry answers appends them again.
-These copied error lists are not cost: their time, compute units and memory can
-grow with the square of the length of the input in a grammar of the class Linear,
-so that such a parse can exceed the default limits
-([linear cost proof](../proofs/linear-cost.md#open-steps), step 8). A store under a
-key that a long chain of memo entries holds walks the chain, which cost does not
-count either; that matters only where K grows with the input, and has not been
+In a parse that recovers errors, a memo entry, a result of a growth or an
+attempt of an Operators Rule shares the list of the errors recovered in it, and
+a call that reuses the result records that list as one entry. Making a list
+charges a unit for each entry that it takes, which adds up to at most a constant
+times the cost
+([linear cost proof](../proofs/linear-cost.md#lemma-14-shared-recovered-errors)),
+except in a parse with missing-token insertion, which records the errors of a
+reused entry one by one when the tokens it inserted repeat. A store under a key
+that a long chain of memo entries holds walks the chain, which cost does not
+count; that matters only where K grows with the input, and has not been
 measured.
 
 A parse of a Document also does work that the cost does not count: it applies pending
@@ -936,7 +938,7 @@ The conditions below use these terms.
   The classifier decides both bounds, as it does the conditions, on the
   [cost view](../proofs/grammar-laws.md#normalization) of the rule bodies, a rewriting that keeps
   what they match and is meant to keep their cost within a constant factor,
-  which is not yet proved (step 9 of the
+  which is not yet proved (step 8 of the
   [open steps of the linear cost proof](../proofs/linear-cost.md#open-steps)),
   with the memoized rules and the left-recursion cycles of the grammar as
   written.

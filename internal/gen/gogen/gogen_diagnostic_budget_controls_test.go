@@ -202,3 +202,80 @@ func TestLongRecoveredMessage(t *testing.T){
  }
 }
 `
+
+// TestGeneratedGoRecoveredErrorsLinear measures two grammars whose results hold the recovered
+// errors of every item after them: a right-recursive rule whose memo entry at each item holds those
+// of the rest, and a left-recursive leader whose seed at each step holds those of the items before.
+// Shared lists keep the Compute of each item constant, where copies made it grow with the input:
+// four times the items must cost less than five times the Compute.
+func TestGeneratedGoRecoveredErrorsLinear(t *testing.T) {
+	t.Parallel()
+	gentest.NeedsBudgetControls(t)
+	if testing.Short() {
+		t.Skip("builds generated consumers")
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("recoveredlinear")), 0644); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		pkg, src, input string
+		n               int
+	}{
+		{"right", `rule main = s $$
+
+rule s = item s "!" / item s / item
+
+rule item = ("a" ";") #recover(skip=[^;]* ";")`, `strings.Repeat("b;", n)`, 250},
+		{"left", `rule main = e $$
+
+rule e = e "," item / item
+
+rule item = ("a" ";") #recover(skip=[^;]* ";")`, `strings.TrimSuffix(strings.Repeat("b;,", n), ",")`, 500},
+	} {
+		g, err := parseTest(tt.src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: tt.pkg, Start: "main"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(dir, tt.pkg)
+		if err := os.Mkdir(path, 0755); err != nil {
+			t.Fatal(err)
+		}
+		fixture := strings.NewReplacer("PACKAGE", tt.pkg, "INPUT", tt.input, "ITEMS", fmt.Sprint(tt.n)).Replace(generatedGoRecoveredLinearConsumer)
+		for name, data := range map[string][]byte{"parser.go": code, "linear_test.go": []byte(fixture)} {
+			if err := os.WriteFile(filepath.Join(path, name), data, 0644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	cmd := exec.Command("go", "test", "-count=1", "./...")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("generated recovered-error Compute: %v\n%s", err, out)
+	}
+}
+
+const generatedGoRecoveredLinearConsumer = `package PACKAGE
+
+import ("errors";"strings";"testing")
+func input(n int) string { return INPUT }
+func minimum(t *testing.T, s string) uint64 {
+ fits := func(n uint64) bool { _, err := Parse(s, WithLimits(Limits{Compute: n})); var le *LimitError; return !errors.As(err, &le) }
+ lo, hi := uint64(0), uint64(1)
+ for !fits(hi) { lo, hi = hi, hi*2; if hi > 1<<30 { t.Fatal("no finite budget") } }
+ for lo+1 < hi { mid := (lo + hi) / 2; if fits(mid) { hi = mid } else { lo = mid } }
+ return hi
+}
+func TestLinear(t *testing.T) {
+ n := ITEMS
+ _, err := Parse(input(4 * n))
+ var se SyntaxErrors
+ if !errors.As(err, &se) || len(se) != 4*n { t.Fatalf("every item recovers: %v", err) }
+ small, large := minimum(t, input(n)), minimum(t, input(4*n))
+ if large >= 5*small { t.Fatalf("Compute grows faster than the input: %d for %d items, %d for %d", small, n, large, 4*n) }
+}
+`

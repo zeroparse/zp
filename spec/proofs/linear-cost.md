@@ -11,17 +11,17 @@ part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
 Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemma 13 is proved for the
-[cost view](#setting) that the classifier reads, given its condition, step 9 of
+[cost view](#setting) that the classifier reads, given its condition, step 8 of
 [Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 5, which are outlines, on Lemma 6, which is proved given step 1, and on the
-condition of the cost view, step 9. Lemma 12
+condition of the cost view, step 8. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, in terms of what the
-Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded,
-and of the recovered errors that a parse copies and replays, which $C$ does not
-count and step 8 leaves unbounded.
+Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
+Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
+constant times $C$.
 [Correspondence](#correspondence) maps the checks of the classifier to the
 conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
@@ -62,7 +62,7 @@ written. The proof reads that view as the grammar: its rule bodies match what th
 written ones match, and the written grammar costs at most a constant factor more
 on every input, which is the condition of the cost view. So a bound on the parse
 of the view is a bound on the parse of the grammar. That condition is not proved:
-it is step 9 of [Open Steps](#open-steps).
+it is step 8 of [Open Steps](#open-steps).
 
 **Cost.** By [Cost](../runtime/parsing.md#cost), the cost of a parse is
 $C = C_{\mathrm{body}} + C_{\mathrm{in}} + C_{\mathrm{it}} + C_{\mathrm{val}}$:
@@ -1698,7 +1698,7 @@ scan](../runtime/parsing.md#conditions-for-linear-cost) number at most a
 constant times $K \hat{n}$. The proof uses Lemma 3 and the definitions: none of
 the conditions 1 to 5, and neither Lemma 4 nor Lemma 5. It is a proof for the
 cost view, and holds of the written grammar given the condition of the cost view
-(step 9 of [Open Steps](#open-steps)).
+(step 8 of [Open Steps](#open-steps)).
 
 Fix a set of characters $X$. For a position $p$, let $r(p)$ be the number of
 characters of $X$ directly before $p$, and let $\rho(p)$ be $-1$ when the
@@ -1835,7 +1835,7 @@ read what bodies match, in the rule bodies of the view. The activations that the
 parse of the written grammar makes are then counted by the
 [cost view](grammar-laws.md#normalization), which removes an evaluation only when
 making it again costs a constant factor. That the written grammar costs at most a
-constant factor more than the view is the condition of the cost view, which step 9
+constant factor more than the view is the condition of the cost view, which step 8
 of [Open Steps](#open-steps) leaves to prove; this lemma holds of the written
 grammar given it.
 
@@ -1865,7 +1865,7 @@ $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
 which is proved given step 1 of [Open Steps](#open-steps), and on the condition
-of the cost view, step 9; so the promises of the classes Linear and Linear Given
+of the cost view, step 8; so the promises of the classes Linear and Linear Given
 an Environment Bound do too.
 
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
@@ -2004,31 +2004,31 @@ does not count. $G$ grows with deletions and shrinks with insertions.
 
 ## Corollary (Compute of a Document Parse)
 
-Let $R$ be the number of recovered errors that the parse copies and replays:
-the sum, over each store of a memo entry and each call that an entry answers, of
-the recovered errors that the entry holds. Under the conditions of the theorem
-and given Lemmas 4 to 6, a parse of a Document on a backend of the engine charges
-at most
+Under the conditions of the theorem and given Lemmas 4 to 6, a parse of a
+Document on a backend of the engine, outside the missing-token mode, charges at
+most
 
-$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G + R \big)$$
+$$c \cdot \big( K \big( (L + 1)(Q + 1) + E + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
 
-units of Compute, for a constant $c$. Here a parse is the run of the grammar
-over the text, up to its outcome. Of these units, the calls and their lookups,
-with the edits that the lookups apply, take at most
-$c \cdot K (L + E + 1) \hat{n}$ when no chain exceeds 32 entries. That part is
-linear in $n$ for a given log, with $E \le 2^{16}$; the other terms depend on
-what the Document retains and on $R$. The whole bound has the form of a constant
-times $K \hat{n}$ for a given log and retained state only when no error is
-recovered, so that $R = 0$: $R$ can grow with the square of $n$ in a grammar of
-the class Linear (step 8 of [Open Steps](#open-steps)).
+units of Compute, for a constant $c$, whether or not it recovers errors. Here a
+parse is the run of the grammar over the text, up to its outcome. Of these
+units, the calls and their lookups, with the edits that the lookups apply, take
+at most $c \cdot K (L + E + 1) \hat{n}$ when no chain exceeds 32 entries. That
+part is linear in $n$ for a given log, with $E \le 2^{16}$; the other terms
+depend on what the Document retains, so the whole bound has the form of a
+constant times $K \hat{n}$ for a given log and retained state.
 
 *Proof.* The units of Compute of a parse are those of the steps that $C$ counts,
-the Document units, and the $R$ units of the error lists, which $C$ does not
-count: a store copies the list of its entry, one unit for each error, and a call
-that an entry answers appends the list of the entry in the same way. The theorem
-bounds the first by a constant times $K (L + 1) \hat{n}$, and Lemma 12 bounds the
-second. The part of the lookups is the theorem's bound of the calls, plus the
-edits and the walks of Lemma 12. $\square$
+those of the recovered errors, which $C$ does not count, and the Document units.
+The theorem bounds the first by a constant times $K (L + 1) \hat{n}$. Lemma 14
+bounds the second by a constant times $C$, and so by the same bound: they are
+the units that `rec.since` charges and the entries that listing the errors of
+the outcome visits, and no list moves in a Document. Lemma 12 bounds the third.
+The part of the lookups is the theorem's bound of the calls, plus the edits and
+the walks of Lemma 12. $\square$
+
+In the missing-token mode, `missing.replay` records the errors of an entry one
+by one when the tokens that it inserted repeat, and no lemma bounds those units.
 
 That these three are all the units of a parse is a reading of the charges of the
 engine, not a derivation: no lemma relates a charge to $C$ in general.
@@ -2116,8 +2116,51 @@ $C$, and listing the errors of the outcome visits at most twice as many lists
 as there are errors. That each call belongs to a step that $C$ counts is a
 reading of the compositions, as the reading of the charges in the corollary is.
 The lemma does not cover the missing-token mode, where `missing.replay` records
-the errors of an entry one by one if the tokens it inserted repeat, nor a
-target that copies the lists, as step 8 of [Open Steps](#open-steps) describes.
+the errors of an entry one by one if the tokens it inserted repeat.
+
+**Measured controls.** The engine on its three backends and the generated Go
+and TypeScript runtimes implement these operations. Two grammars of the class
+Linear check it. In the first,
+
+```text
+rule main = s $$
+rule s = item s "!" / item s / item
+rule item = ("a" ";") #recover(skip=[^;]* ";")
+```
+
+on `b;` repeated $n$ times, the entry of `s` at each item holds the errors of
+all the items after it, and each later alternative reuses it. In the second, a
+left-recursive leader that recovers in each step,
+
+```text
+rule main = e $$
+rule e = e "," item / item
+rule item = ("a" ";") #recover(skip=[^;]* ";")
+```
+
+on `b;` repeated $n$ times with `,` between, each seed holds the errors of all
+the items before it. A target that stored a copy of the errors in each entry or
+seed, and appended the copy again at each reuse, would charge in proportion to
+$n$ at each of $n$ positions. The least budget of Compute that completes a
+parse, for each item, is:
+
+| Target | First grammar, $n = 250$ to $4000$ | Leader, $n = 250$ to $4000$ |
+| --- | --- | --- |
+| Engine, closures | 148.6 to 152.6 | 43.0 to 44.1 |
+| Engine, bytecode | 160.6 to 164.6 | 48.0 to 49.1 |
+| Engine, iterative bytecode | 159.6 to 163.6 | 48.0 to 49.1 |
+| Generated Go | 162.6 to 166.5 | 48.0 to 49.1 |
+| Generated TypeScript | 178 | 77 |
+
+The TypeScript runtime was measured at $n = 250$, 1,000 and 4,000. Under the
+default limits every parse completes, and the memory that a parse allocates
+about doubles with $n$: for the first grammar on closures it is 10.9 MB,
+23.7 MB and 48.2 MB at $n = 4000$, 8,000 and 16,000, and 3.1 MB, 6.4 MB and
+13.3 MB for the leader.
+
+The slope tests of the classifier check both grammars on the three backends of
+the engine, and the tests of each generated runtime check that four times the
+items cost less than five times the Compute.
 
 ## Correspondence
 
@@ -2230,7 +2273,7 @@ A new condition enters the proof in one of two ways.
 
 ## Open Steps
 
-The outlines leave steps 1 to 8 to be made precise, and step 9 is a condition
+The outlines leave steps 1 to 7 to be made precise, and step 8 is a condition
 that the proof assumes of the cost view.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
@@ -2330,42 +2373,7 @@ that the proof assumes of the cost view.
    the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
    $W$ count what earlier texts left in the memo, which it keeps until a store,
    an edit or the drop of the table removes it.
-8. **Recovered errors in Compute and memory.** $C$ counts no recovered error, so
-   the theorem holds and says nothing of them, but each entry stores a copy of the
-   errors recovered in its call, and each call that it answers appends them
-   again. No bound on $R$ exists, in a Document or outside one, and the grammar
-
-   ```text
-   rule main = s $$
-   rule s = item s "!" / item s / item
-   rule item = ("a" ";") #recover(skip=[^;]* ";")
-   ```
-
-   which is classified Linear, shows that none by $n$ can hold. On `b;` repeated
-   $n$ times the entry of `s` at each item holds the errors of all the items after
-   it, so its copy and its replay cost in proportion to $n$ at each of $n$
-   positions. Compute for each item rises from 518 at $n = 250$ to 6,147 at
-   $n = 4000$, a first parse of a Document, where $E$, $W$, $B$, $G$ and $Q$ are
-   zero, grows in the same way, and the default limits end the parse at 2,000
-   items on all three backends. The memory allocated grows with it: 75.8 MB,
-   289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
-   for parses that recover errors needs an implementation that does not copy or
-   replay these lists in proportion to their length. Lemma 14 proves that the
-   operations of the recovered errors as the Exec IR states them, which share
-   the lists in calls, Operators Rules and growths alike, charge and hold at
-   most a constant times $C$. The step closes when the engine and the generated
-   runtimes implement them in all three, and this grammar and a left-recursive
-   leader that recovers in each step, such as
-
-   ```text
-   rule main = e $$
-   rule e = e "," item / item
-   rule item = ("a" ";") #recover(skip=[^;]* ";")
-   ```
-
-   on `b;` repeated with `,` between, measure linear on every backend.
-
-9. **The condition of the cost view.** The classifier decides the conditions and
+8. **The condition of the cost view.** The classifier decides the conditions and
    Lemma 13 counts on the [cost view](grammar-laws.md#normalization), and the
    proof transfers each bound to the written grammar through one condition: on
    every input, the parse of the written grammar costs at most a constant times

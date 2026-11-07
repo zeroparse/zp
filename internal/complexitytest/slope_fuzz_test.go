@@ -190,13 +190,13 @@ func (g *slopeGrammar) source() string {
 	return b.String()
 }
 
-// spent returns the cost of a parse: its Compute without the copies of lists of recovered errors,
-// which the cost leaves out. It reports a parse that used up slopeCap as capped.
+// spent returns the cost of a parse, its Compute. It reports a parse that used up slopeCap as
+// capped.
 func spent(p *zp.Parser, input string, b zp.Backend) (cost uint64, capped bool) {
 	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: slopeCap}),
 		zp.WithTrace(func(e zp.TraceEvent) {
 			if c := core.TraceParser(e).Control; c != nil {
-				cost = c.Used - c.ErrorCopies
+				cost = c.Used
 			}
 		}))
 	var le *zp.LimitError
@@ -210,8 +210,7 @@ func slopeHit(p *zp.Parser, build func(int) string, b zp.Backend, limit float64)
 	for i := range costs {
 		c, capped := spent(p, build(slopeSize<<i), b)
 		if capped {
-			// The cap stops Compute, which includes what the cost leaves out, so all that is known
-			// is that the cost is at least c.
+			// The cap stops the parse, so all that is known is that the cost is at least c.
 			if i == 0 || math.Log2(float64(c)/float64(costs[i-1])) <= limit {
 				return ""
 			}
@@ -344,29 +343,46 @@ func TestSlopeGateGrowth(t *testing.T) {
 	}
 }
 
-// TestSlopeGateLeavesErrorCopies measures a Linear grammar that copies a list of recovered errors
-// at each position. Compute is quadratic through those copies, which the cost leaves out.
-func TestSlopeGateLeavesErrorCopies(t *testing.T) {
-	src := `rule main = (("a"+ &r3)*)* $$
+// TestSlopeGateCountsRecoveredErrors holds Linear grammars whose results hold recovered errors to a
+// linear slope on every backend, with the work on those errors counted: each item of the first
+// two holds the errors of all the items after it, and a call reuses a list of errors at each
+// position of the third. While the parser copied the lists, each of them cost the square of n.
+func TestSlopeGateCountsRecoveredErrors(t *testing.T) {
+	for _, c := range []struct {
+		name, src string
+		input     func(int) string
+	}{
+		{"nested items", `rule main = s $$
+rule s = item s "!" / item s / item
+rule item = ("a" ";") #recover(skip=[^;]* ";")
+`, func(n int) string { return rep("b;", n) }},
+		{"left recursion", `rule main = e $$
+rule e = e "," item / item
+rule item = ("a" ";") #recover(skip=[^;]* ";")
+`, func(n int) string { return strings.TrimSuffix(rep("b;,", n), ",") }},
+		{"reused lists", `rule main = (("a"+ &r3)*)* $$
 rule r0 = ([b] r3)?
 rule r1 = (([^a] [ac]) #recover(skip="a"i+)) / "a"i / (("aa" / r0) r4 &r2)
 rule r2 = !(!r0)
 rule r3 = (([ac] "a") / (r2 / r4)) ((r1 r0 .) / "ba"?)
 rule r4 = &[^ ]
-`
-	p, err := Compile(src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	limit, class := slopeLimit(src)
-	if class.Class != ClassLinear {
-		t.Fatalf("class %v, want Linear", class.Class)
-	}
-	input := func(n int) string { return rep("ab", n) + rep("aab", n) + "b" }
-	for _, b := range Backends {
-		if hit := slopeHit(p, input, b, limit); hit != "" {
-			t.Error(hit)
-		}
+`, func(n int) string { return rep("ab", n) + rep("aab", n) + "b" }},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := Compile(c.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			limit, class := slopeLimit(c.src)
+			if class.Class != ClassLinear {
+				t.Fatalf("class %v, want Linear", class.Class)
+			}
+			for _, b := range Backends {
+				if hit := slopeHit(p, c.input, b, limit); hit != "" {
+					t.Error(hit)
+				}
+			}
+		})
 	}
 }
 

@@ -570,7 +570,7 @@ original makes. An analysis of cost may read a view only when the original
 costs at most a constant factor more than the view on every input. The
 classifier reads a view that applies the rules of both levels except N7 and
 N13, under these further conditions, which are meant to give that bound. That
-they do, for each rule that the view applies, is not yet proved: it is step 9 of
+they do, for each rule that the view applies, is not yet proved: it is step 8 of
 the [open steps of the linear cost proof](linear-cost.md#open-steps).
 
 - A rule removes an evaluation only when the original either never makes it
