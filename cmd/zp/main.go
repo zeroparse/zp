@@ -30,6 +30,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -847,7 +848,8 @@ func genCmd(args []string, stdout io.Writer) error {
 	nodoc := fs.Bool("nodoc", false, "leave out the package comment (Go)")
 	sourceInfo := fs.Bool("source-info", false, "make the generated parser record the rule of each node and the names of captures")
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
-	optimize := fs.String("optimize", "", "profile of generation-time optimizations: "+strings.Join(genopt.Profiles(), ", ")+" (default speed); no profile changes what the parser returns")
+	optimize := fs.String("optimize", "", "optimization profile: "+strings.Join(genopt.Profiles(), ", ")+" (default speed); no profile changes what the parser returns")
+	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt: "+strings.Join(genopt.Names(), ", "))
 	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization: "+strings.Join(genopt.Names(), ", "))
 	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(genopt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
@@ -867,7 +869,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		}
 		switch mode {
 		case runtimeOnly:
-			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize", "max-depth", "nodoc", "source-info", "default-value", "optimize", "no-opt", "print-after"} {
+			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize", "max-depth", "nodoc", "source-info", "default-value", "optimize", "opt", "no-opt", "print-after"} {
 				if isFlagSet(fs, name) {
 					return fmt.Errorf("-%s cannot be combined with -runtime only, which writes just the runtime", name)
 				}
@@ -896,7 +898,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		}
 		switch mode {
 		case runtimeOnly:
-			for _, name := range []string{"g", "s", "types", "observability", "limits", "recognize", "max-depth", "source-info", "default-value", "runtime-module", "optimize", "no-opt", "print-after"} {
+			for _, name := range []string{"g", "s", "types", "observability", "limits", "recognize", "max-depth", "source-info", "default-value", "runtime-module", "optimize", "opt", "no-opt", "print-after"} {
 				if isFlagSet(fs, name) {
 					return fmt.Errorf("-%s cannot be combined with -runtime only, which writes just the runtime", name)
 				}
@@ -927,6 +929,15 @@ func genCmd(args []string, stdout io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("-optimize: %w", err)
 	}
+	optValues, err := genopt.ParseValues(*opt)
+	if err != nil {
+		return fmt.Errorf("-opt: %w", err)
+	}
+	for _, n := range slices.Sorted(maps.Keys(optValues)) {
+		if profile, err = profile.With(n, optValues[n]); err != nil {
+			return fmt.Errorf("-opt: %w", err)
+		}
+	}
 	if _, err := profile.Without(noOptNames...); err != nil {
 		return fmt.Errorf("-no-opt: %w", err)
 	}
@@ -951,6 +962,7 @@ func genCmd(args []string, stdout io.Writer) error {
 			Recognize:     *recognize,
 			MaxDepth:      *maxDepth,
 			Optimize:      *optimize,
+			Opt:           optValues,
 			NoOpt:         noOptNames,
 			PrintAfter:    *printAfter,
 			PrintTo:       printTo,
@@ -973,6 +985,7 @@ func genCmd(args []string, stdout io.Writer) error {
 			TypedOnly:      *typedOnly,
 			OmitPackageDoc: *nodoc,
 			Optimize:       *optimize,
+			Opt:            optValues,
 			NoOpt:          noOptNames,
 			PrintAfter:     *printAfter,
 			PrintTo:        printTo,

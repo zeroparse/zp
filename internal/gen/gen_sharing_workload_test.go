@@ -51,7 +51,7 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 				opts := gen.GenOptions{Package: "sharingfixture", Start: "main", Types: true, Recognize: true,
 					NoOpt: sharingNoOpt(mode)}
 				if mode != "default" {
-					opts.Set = map[string]int{"ts-literal-sharing": 1}
+					opts.Opt = map[string]int{"ts-literal-sharing": 1}
 				}
 				code, err := gentest.GenerateCode(t, g, opts)
 				if err != nil {

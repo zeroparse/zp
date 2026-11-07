@@ -39,7 +39,7 @@ type Generator struct {
 	literalNames map[string]string
 	methodKeys   []generatedMethod
 	literalKeys  []string
-	// Opt holds the generation-time optimizations that are on (GenOptions.Optimize and NoOpt).
+	// Opt holds the optimizations that are on (GenOptions.Optimize, Opt and NoOpt).
 	Opt opt.Settings
 	// CoreHook, if set, is called with the module after it is built and after each pass that runs on
 	// it (core.RunOptions.Dump).

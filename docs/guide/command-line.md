@@ -319,7 +319,8 @@ Generates a standalone Go parser (see [code-generation.md](code-generation.md)) 
 parser (see [typescript.md](typescript.md)). `-g` is required (except with `-runtime only`), and for Go `-o`, the output directory, and `-module`, the import path of the package (with `-runtime import`, `-pkg` is enough). The Go output is `parser.go`, `api.go` and, with `-runtime embed`, a copy of the runtime in `internal/runtime`; `zp gen` refuses to replace a file in the directory that it did not generate. TypeScript needs `-o` as well and writes `parser.ts`, `runtime.ts` and, with `-types`, `types.ts`; `-runtime import` imports the runtime from `-runtime-module` instead of writing `runtime.ts`. `-source-info` makes the generated Go parser record the rule of each node and the names of captures.
 `-default-value` makes the generated parser return default values; it cannot be combined with `-types`, because the
 types come from the dropped actions.
-`-optimize <profile>` selects the generation-time optimizations (`speed`, the only profile so far), `-no-opt <name>[,<name>]`
+`-optimize <profile>` selects an optimization profile (`speed`, the only profile so far), `-opt <name>[=<count>][,...]`
+turns on an optimization that the profile leaves off or sets a count, `-no-opt <name>[,<name>]`
 turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR to standard error after the named
 passes. None of them changes what the generated parser returns; the names are in
 [Optimizations](code-generation.md#optimizations). They cannot be combined with `-runtime only`.

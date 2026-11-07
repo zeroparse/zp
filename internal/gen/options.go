@@ -89,16 +89,16 @@ type GenOptions struct {
 	// DisableKeepNodes leaves the Node rule functions out of a typed-only parser that needs them
 	// (a negative control for tests).
 	DisableKeepNodes bool
-	// Optimize selects the profile of generation-time optimizations (opt.Profiles); empty selects
-	// speed. NoOpt then turns the named optimizations (opt.Names) off, for isolating a
-	// miscompilation, for differential tests and for same-generator measurements. Neither changes
-	// what a parser returns.
+	// Optimize selects the optimization profile (opt.Profiles); empty selects
+	// speed. Opt then gives optimizations (opt.Names) a value other than the profile's: 1 turns on
+	// one that the profile leaves off, 0 turns one off, and a count sets an integer one. NoOpt
+	// finally turns the named optimizations off, for isolating a miscompilation, for differential
+	// tests and for same-generator measurements, and wins over Opt. An optimization that does not
+	// have opt.Flag.ChangesOutput changes the code and the resource use of a parser, never what it
+	// returns.
 	Optimize string
+	Opt      map[string]int
 	NoOpt    []string
-	// Set gives optimizations (opt.Names) a value other than the profile's, for tests that compare
-	// a generator with and without one: 1 turns on an optimization that the profile leaves off, and
-	// a count sets an integer one. The public API has no way to set: a profile does.
-	Set map[string]int
 	// PrintAfter lists the passes (opt.PrintNames) after which the Core IR is written to PrintTo, as
 	// text, once for each Core module the generator builds.
 	PrintAfter string
@@ -109,8 +109,9 @@ type GenOptions struct {
 	VerifyEachPass bool
 }
 
-// Optimizations returns the settings that Optimize, Set and NoOpt select, in that order, or an error for a
-// profile or an optimization that does not exist or a value that it does not take, and validates PrintAfter.
+// Optimizations returns the settings that Optimize, Opt and NoOpt select, in that order, or an error for a
+// profile or an optimization that does not exist, a value that it does not take, or a name that Opt gives twice
+// (keys that are the same once their spaces are trimmed), and validates PrintAfter.
 func (o GenOptions) Optimizations() (opt.Settings, error) {
 	s, err := opt.Profile(o.Optimize)
 	if err != nil {
@@ -121,8 +122,14 @@ func (o GenOptions) Optimizations() (opt.Settings, error) {
 	} else if len(names) > 0 && o.PrintTo == nil {
 		return opt.Settings{}, fmt.Errorf("PrintAfter %q needs a PrintTo writer", o.PrintAfter)
 	}
-	for _, n := range slices.Sorted(maps.Keys(o.Set)) {
-		if s, err = s.With(n, o.Set[n]); err != nil {
+	given := map[string]string{}
+	for _, n := range slices.Sorted(maps.Keys(o.Opt)) {
+		name := strings.TrimSpace(n)
+		if prev, dup := given[name]; dup {
+			return opt.Settings{}, fmt.Errorf("optimization %s is given twice in Opt (%q and %q)", name, prev, n)
+		}
+		given[name] = n
+		if s, err = s.With(name, o.Opt[n]); err != nil {
 			return opt.Settings{}, err
 		}
 	}

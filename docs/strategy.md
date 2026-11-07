@@ -23,7 +23,7 @@ of the aim is stated with its status today:
 | One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), accepted, not implemented) |
 | Any target language | Two: generated Go and generated TypeScript | More target languages ([Targets and engines](#wedge-and-sequencing) track) |
 | Any engine | Three engine backends in Go (closure, recursive VM, iterative VM); a bytecode with a published specification, implemented only by the Go VMs and unstable until it is declared stable and versioned, which the first tagged release does not do | A stable, versioned bytecode, then another implementation of it |
-| Selectable optimization profiles | One fixed set of optimizations | Generation profiles for speed, memory and size ([design record 063](design/records/063-configurable-optimization-pass-pipeline.md), accepted, not implemented) |
+| Selectable optimization profiles | One fixed set of optimizations | Optimization profiles for speed, memory and size ([design record 063](design/records/063-configurable-optimization-pass-pipeline.md), accepted, not implemented) |
 | Every use | Batch trees, typed values, recognition, recovery, `Document` and streaming, with per-target gaps ([What One Grammar Gives You](why-zeroparse.md#what-one-grammar-gives-you)); a language server for `.zp` sources | Editor-grade tooling for the languages users define ([Editor-Grade Parsing](#editor-grade-parsing)) |
 | The best measured speed in each | Generated Go is slower than Go's hand-written standard-library parsers on every comparable workload (1.1–5.4× for typed values, 1.6–6.8× for trees); no cross-tool benchmark yet | The targets of [Performance Leadership](#performance-leadership), first for the targets and uses that exist, then for each new one |
 | Safe by default | A nesting cap only | Compute limits on by default, in generated parsers too; optional input-length and memory caps ([Predictable Cost and Safety](#predictable-cost-and-safety)) |
@@ -355,7 +355,7 @@ condition.
 | Track | Next items | Later |
 |:--|:--|:--|
 | Credibility (the gate) | The wedge benchmark; then the full cross-tool harness on Apple silicon and Linux x86-64; recovery quality on two languages | Recovery quality on more languages |
-| Performance | The compute limit overhead first, then the targets below by impact; a `jsontext` baseline | Generation profiles once the pass pipeline exists |
+| Performance | The compute limit overhead first, then the targets below by impact; a `jsontext` baseline | Optimization profiles once the pass pipeline exists |
 | Safety | Default compute limits; the compute limit flag; `SECURITY.md`; optional input-length and memory caps; regression suites with step ratios | The complexity classifier (research, not on the critical path to release) |
 | Editor | A language server for one user grammar; a public position map with UTF-16; tree-producing recovery in a `Document` | Semantic tokens through the server; an action-free concrete tree; text query syntax and standalone highlighting output |
 | TypeScript parity | UTF-16 positions | `Document` and streaming in generated TypeScript |

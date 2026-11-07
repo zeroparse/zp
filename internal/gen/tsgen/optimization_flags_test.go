@@ -28,7 +28,7 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 	node := gentest.RequireNode(t)
 	var all []string
 	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime {
+		if f.Kind != genopt.Runtime && !f.ChangesOutput {
 			all = append(all, f.Name)
 		}
 	}
@@ -50,7 +50,7 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 			t.Run(mode.name+"/"+s.name, func(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
-				o.NoOpt, o.Set = s.noOpt, s.set
+				o.NoOpt, o.Opt = s.noOpt, s.set
 				gentest.TSParsersCorpus(t, node, gentest.FlagParityCases(), o)
 			})
 		}

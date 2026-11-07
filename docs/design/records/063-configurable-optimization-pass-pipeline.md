@@ -6,17 +6,17 @@
 
 ## Summary
 
-The passes over Core IR form a pipeline that a small manager runs, and every generation-time optimization is a named
+The passes over Core IR form a pipeline that a small manager runs, and every optimization is a named
 flag in one registry:
 
 - each pass declares its name, the analyses it requires and invalidates, its mode applicability and its obligation;
 - a flag per optimization turns a pass or one of its variants off;
 - an optional verifier runs between passes;
-- a profile (`speed` today, later `memory` and `size`) is a named flag set;
+- a profile (`speed` today, later `memory` and `size`) is a preset: a name for fixed flag values, with no logic of its own;
 - the module can be printed after any pass.
 
 The default pipeline produces the generated output of the former hand-written sequences byte for byte. Users select a
-profile with `zp gen -optimize`, remove optimizations with `-no-opt`, and print the Core IR with `-print-after`.
+profile with `zp gen -optimize`, set flags with `-opt`, remove optimizations with `-no-opt`, and print the Core IR with `-print-after`.
 
 ## Motivation
 
@@ -33,7 +33,7 @@ scattered booleans.
   equals the engine.
 - `Verify` ran once, after the last pass; a pass that broke an invariant was reported at the end, with no pass named.
 - There was no way to print the module after a pass from a command.
-- Generation profiles did not exist. The size and speed of generated parsers are decided by one fixed set of
+- Optimization profiles did not exist. The size and speed of generated parsers are decided by one fixed set of
   optimizations ([record 062](062-backend-independent-optimization-ir.md) lists the measured mechanisms); a user who
   wants a smaller parser has no lever except removing features.
 
@@ -49,7 +49,7 @@ negative-control test. This record gives that rule a mechanism.
 - Every optimization has a flag, and a test that a build without it equals the engine.
 - A pass that breaks a Core IR invariant is named, when verification between passes is on.
 - The Core IR can be printed after any pass.
-- A profile is a named flag set; `speed` is the default.
+- A profile is a preset of flag values; `speed` is the default.
 
 ## Non-Goals
 
@@ -62,7 +62,7 @@ negative-control test. This record gives that rule a mechanism.
   other rewrites into the printers and leaves the cost of this one to an independent fix.
 - The closure backend and bytecode, which do not use Core IR. TypeScript uses the Core passes through the route of the
   Node and recognizer tables and has the flags of its own runtime options.
-- Changes to what a parser does. Flags and profiles change generated code, never results, errors or events.
+- Changes to what a parser does by a profile. A profile changes generated code, never results, errors or events. A flag that changes the generated API or the representation of the results is possible (`ChangesOutput`), but it is always an opt-in and no profile sets it.
 - A textual pipeline language such as LLVM's `-passes=`.
 
 ## Design
@@ -122,7 +122,7 @@ Documents.
 ### Flags
 
 The registry `internal/gen/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Printer`, `Runtime`), a
-description and its value in the `speed` profile. The Core pipeline names the passes, and a test checks that the
+description, its value in the `speed` profile and whether it changes the output. The Core pipeline names the passes, and a test checks that the
 registry has the name of every pass.
 
 | Flag | Kind | Controls |
@@ -144,8 +144,21 @@ registry has the name of every pass.
 | `typed-output-bootstrap` | runtime | The first slab of the typed output is sized from the input |
 | `sparse-memo` | runtime | The first-call table of large TypeScript parsers is sparse |
 
-A flag is a value: 0 or 1, or a count. A profile may set a flag that `speed` leaves out, an opt-in, and `-no-opt` only
-removes. A flag can only turn an optimization off: turning it on never overrides `Applies`, so `class-runs` stays off in
+Everything is a flag. An optimization that makes a parser smaller, lighter on memory or faster, a representation choice
+and a trade-off that a user may want are each one entry of the registry, with a kind, a default, a description and
+the tests of its kind; there is no second mechanism next to it. A profile is only a preset of flag values and has no
+logic that a flag does not.
+
+A flag is a value: 0 or 1, or a count. A request sets a flag with `-opt name[=count]` (`GenOptions.Opt`) and removes
+with `-no-opt`. The order of application is the profile, then `-opt`, then `-no-opt`, so `-no-opt` wins. An unknown name or a
+value that the flag does not take is an error that lists the valid names.
+
+A flag keeps the results, errors and events of the parser and changes its code and its resource use, unless the registry
+marks it `ChangesOutput`: it changes the generated API or the representation of the results, as removing spans from
+typed values would. Such a flag is an opt-in (the registry rejects one that is on in `speed`), no profile may set it
+(a test), `-no-opt` on it does nothing, the flag-off parity tests and negative controls of the flags that keep behavior do
+not apply to it, and it must name a contract test of its own that checks the changed contract. A flag can only
+turn an optimization on where the pass allows it: turning it on never overrides `Applies`, so `class-runs` stays off in
 a build with budget controls whatever the flag says, because the pass is unsound there. The soundness gate is the
 pass's `Applies`, never a flag. A known name that does not apply to the parser being generated is accepted and does
 nothing; an unknown name is an error that lists the valid ones. The mode facts of `lower.Options` (`Spend`, `Recovers`,
@@ -162,7 +175,7 @@ helpers of the generator set it, so every fixture of the suite runs with the che
 
 ### Profiles
 
-A profile is a named set of flag values. `speed` is the default and sets every flag on, with `class-tables` at 5 and `inline-literals` at 4, except the opt-in `ts-literal-sharing`, which is 0.
+A profile is a preset: a name for fixed flag values. `speed` is the default and sets every flag on, with `class-tables` at 5 and `inline-literals` at 4, except the opt-in `ts-literal-sharing`, which is 0.
 `-optimize` takes a profile name, and any other name is an error until the profile is registered.
 
 `memory` and `size` are not registered. Their cells are hypotheses until measured: a table is data and a straight-line
@@ -211,9 +224,9 @@ internal.
 miscompilation or measuring one optimization, and `-print-after name|all` for the IR dump.
 
 Decision: **C, with the profile flag named `-optimize`.** The Go API mirrors the flags in the fields of `gen.Go` and
-`gen.TypeScript`, as `Types` mirrors `-types`: `Optimize string`, `NoOpt []string`, `PrintAfter string` and
-`PrintTo io.Writer`. A profile is applied first and `-no-opt` removes optimizations from it, so `-optimize size -no-opt
-guards` is `size` without `guards`. `PrintAfter` without `PrintTo` is an error. The name `-optimize` avoids the rule
+`gen.TypeScript`, as `Types` mirrors `-types`: `Optimize string`, `Opt map[string]int`, `NoOpt []string`, `PrintAfter string` and
+`PrintTo io.Writer`. A profile is applied first, then `-opt` sets flags, and `-no-opt` removes optimizations, so `-optimize size -no-opt
+guards` is `size` without `guards`, and the same flag in `-opt` and `-no-opt` is off. `PrintAfter` without `PrintTo` is an error. The name `-optimize` avoids the rule
 profiler's `zp profile` and `WithProfile`. The flags and the names are described in the
 [code-generation guide](../../guide/code-generation.md#optimizations); the
 [specification of generated parsers](../../../spec/runtime/generated-parsers.md) does not change, because it constrains
@@ -269,8 +282,11 @@ plain fields, and their options are fields. Rejected for consistency.
   the generators (`TestVerifyEachPassNamesTheBreakingPass`).
 - Print after pass: the dump hook is called once per pass in order, only the final generation prints, and a request to
   print without a writer is an error.
+- Output-changing flags: `TestRegistryIsValid` rejects a registry in which a `ChangesOutput` flag is on in `speed`.
+  `TestOutputFlagsHaveContractTests` requires each such flag to name a contract test, and keeps it out of the flag-off
+  parity tests. Profiles may set only flags that keep behavior.
 - Options: the fields of `gen.Go` and `gen.TypeScript` and the flags of `zp gen` reject an unknown profile, optimization
-  and pass, accept `speed`, and change the output only through `NoOpt`.
+  and pass, accept `speed`, apply `Opt` and then `NoOpt` in that order (`NoOpt` wins), and change the output only through them.
 
 ## Performance and Results
 

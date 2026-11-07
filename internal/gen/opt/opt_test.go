@@ -22,6 +22,30 @@ func TestEveryCorePassIsAFlag(t *testing.T) {
 	}
 }
 
+func TestRegistryIsValid(t *testing.T) {
+	if err := check(Flags); err != nil {
+		t.Error(err)
+	}
+	for _, c := range []struct {
+		name  string
+		flags []Flag
+		want  string
+	}{
+		{"repeated", []Flag{{Name: "a", Doc: "x"}, {Name: "a", Doc: "y"}}, "twice"},
+		{"undocumented", []Flag{{Name: "a"}}, "no description"},
+		{"on and off flag with a count", []Flag{{Name: "a", Doc: "x", Default: 2}}, "speed value is 2"},
+		{"output change that is on", []Flag{{Name: "a", Doc: "x", Default: 1, ChangesOutput: true}}, "must be an opt-in"},
+		{"integer output change that is on", []Flag{{Name: "a", Doc: "x", Int: true, Default: 4, ChangesOutput: true}}, "must be an opt-in"},
+	} {
+		if err := check(c.flags); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v, want an error with %q", c.name, err, c.want)
+		}
+	}
+	if err := check([]Flag{{Name: "a", Doc: "x", ChangesOutput: true}, {Name: "b", Doc: "x", Int: true, Default: 4}}); err != nil {
+		t.Errorf("a valid list: %v", err)
+	}
+}
+
 func TestFlagNamesAreDistinctAndDocumented(t *testing.T) {
 	seen := map[string]bool{}
 	for _, f := range Flags {
@@ -101,5 +125,50 @@ func TestWith(t *testing.T) {
 	off, err := on.Without("ts-literal-sharing")
 	if err != nil || off.On("ts-literal-sharing") {
 		t.Errorf("Without after With: %v", err)
+	}
+}
+
+// A profile is a preset of flags that keep behavior: it never sets one that changes the output.
+func TestProfilesSetNoOutputFlag(t *testing.T) {
+	for _, name := range Profiles() {
+		s, err := Profile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range Flags {
+			if f.ChangesOutput && s.Value(f.Name) != f.Default {
+				t.Errorf("profile %s sets %s, which changes the output", name, f.Name)
+			}
+		}
+	}
+}
+
+func TestParseValues(t *testing.T) {
+	got, err := ParseValues(" ts-literal-sharing , class-tables=3,inline-literals=0 ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int{"ts-literal-sharing": 1, "class-tables": 3, "inline-literals": 0}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %d, want %d", k, got[k], v)
+		}
+	}
+	if got, err := ParseValues("  "); got != nil || err != nil {
+		t.Errorf("an empty list is %v, %v", got, err)
+	}
+	for list, want := range map[string]string{
+		"a,,b":                        "empty optimization name",
+		"=3":                          "empty optimization name",
+		"class-tables=x":              `"x" is not a count`,
+		"class-tables=,scans":         `"" is not a count`,
+		"class-tables=3,class-tables": "twice",
+	} {
+		if _, err := ParseValues(list); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("ParseValues(%q) = %v, want an error with %q", list, err, want)
+		}
 	}
 }

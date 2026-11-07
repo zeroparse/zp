@@ -83,7 +83,7 @@ rule a = ("é" / "ab")+ #atomic`)
 				if err != nil || !bytes.Equal(first, ref) {
 					t.Fatal("production TypeScript must leave literal tables unshared")
 				}
-				opts.Set = map[string]int{"ts-literal-sharing": 1}
+				opts.Opt = map[string]int{"ts-literal-sharing": 1}
 				ref, err = generate.fn(opts)
 				if err != nil || !bytes.Equal(first, ref) {
 					t.Fatal("explicit literal-sharing disable must override the experiment")
@@ -115,7 +115,7 @@ func BenchmarkGeneratedSharing(b *testing.B) {
 	mode := os.Getenv("ZP_GENERATED_SHARING")
 	opts.NoOpt = sharingNoOpt(mode)
 	if mode == "combined" || mode == "methods" || mode == "literals" || mode == "both" {
-		opts.Set = map[string]int{"ts-literal-sharing": 1}
+		opts.Opt = map[string]int{"ts-literal-sharing": 1}
 	}
 	for _, name := range []string{"json", "typescript", "duckdb"} {
 		src, err := os.ReadFile(filepath.Join("../../testdata/grammars", name, name+".zp"))

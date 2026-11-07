@@ -134,11 +134,15 @@ type Go struct {
 	// OmitPackageDoc leaves the package comment out of the generated parser, for a package that
 	// has its own documentation in another file.
 	OmitPackageDoc bool
-	// Optimize selects the profile of generation-time optimizations: "speed", the default and the
-	// only one so far. NoOpt then turns the named optimizations off, to isolate a miscompilation or
-	// to measure one optimization; the names are those of the -no-opt flag of zp gen. Neither
-	// changes what a generated parser returns, only its code. An unknown name is an error.
+	// Optimize selects the optimization profile: "speed", the default and the
+	// only one so far. Opt then gives optimizations a value other than the profile's, as -opt of
+	// zp gen does: 1 turns on one that the profile leaves off, and a count sets an integer one.
+	// NoOpt finally turns the named optimizations off, to isolate a miscompilation or to measure
+	// one optimization, as -no-opt does, and wins over Opt. The names are those of the guide.
+	// None of them changes what a generated parser returns, only its code. An unknown name, or a
+	// value that the optimization does not take, is an error.
 	Optimize string
+	Opt      map[string]int
 	NoOpt    []string
 	// PrintAfter lists, separated by commas, the passes after which the Core IR of the generator is
 	// written to PrintTo as text, for debugging the generator: build, the names of the passes, or
@@ -175,6 +179,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		TypedOnly:      c.TypedOnly,
 		OmitPackageDoc: c.OmitPackageDoc,
 		Optimize:       c.Optimize,
+		Opt:            c.Opt,
 		NoOpt:          c.NoOpt,
 		PrintAfter:     c.PrintAfter,
 		PrintTo:        c.PrintTo,
@@ -231,11 +236,15 @@ type TypeScript struct {
 	// negative values and values that are not exact JavaScript integers fail generation.
 	// Individual invocations may override it with limits.depth.
 	MaxDepth int
-	// Optimize selects the profile of generation-time optimizations: "speed", the default and the
-	// only one so far. NoOpt then turns the named optimizations off, to isolate a miscompilation or
-	// to measure one optimization; the names are those of the -no-opt flag of zp gen. Neither
-	// changes what a generated parser returns, only its code. An unknown name is an error.
+	// Optimize selects the optimization profile: "speed", the default and the
+	// only one so far. Opt then gives optimizations a value other than the profile's, as -opt of
+	// zp gen does: 1 turns on one that the profile leaves off, and a count sets an integer one.
+	// NoOpt finally turns the named optimizations off, to isolate a miscompilation or to measure
+	// one optimization, as -no-opt does, and wins over Opt. The names are those of the guide.
+	// None of them changes what a generated parser returns, only its code. An unknown name, or a
+	// value that the optimization does not take, is an error.
 	Optimize string
+	Opt      map[string]int
 	NoOpt    []string
 	// PrintAfter lists, separated by commas, the passes after which the Core IR of the generator is
 	// written to PrintTo as text, for debugging the generator: build, the names of the passes, or
@@ -272,6 +281,7 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		Recognize:     c.Recognize,
 		MaxDepth:      c.MaxDepth,
 		Optimize:      c.Optimize,
+		Opt:           c.Opt,
 		NoOpt:         c.NoOpt,
 		PrintAfter:    c.PrintAfter,
 		PrintTo:       c.PrintTo,

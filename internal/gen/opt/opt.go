@@ -1,15 +1,17 @@
-// Package opt is the registry of the generation-time optimizations and their settings (design 063).
+// Package opt is the registry of the optimizations and their settings (design 063).
 //
 // An optimization is a flag with a name. A pass of the Core IR pipeline is one (its name is the
 // pass's); so are the options of Flow lowering, what the printers emit, and the
-// generation controls of the runtime structures that they emit. A Settings value says which are on,
-// and an integer parameter where there is one. A profile is a named Settings. Whatever the settings, a generated parser
-// returns the same results, errors and events; only its code and its resource use change.
+// controls of the runtime structures that they emit. A Settings value says which are on, and an
+// integer parameter where there is one. A profile is a preset: a name for fixed values of flags,
+// with no logic of its own. A flag keeps the results, errors and events of a generated parser and
+// changes only its code and its resource use, unless it is marked ChangesOutput.
 package opt
 
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/core"
@@ -52,6 +54,11 @@ type Flag struct {
 	Int bool
 	// Default is the value in the speed profile.
 	Default int
+	// ChangesOutput reports that turning the optimization on changes the generated API or the
+	// representation of what a parser returns, not only its code and resource use. Such a flag is an
+	// opt-in (Default 0), no preset sets it, and it has a contract test of its own in place of the
+	// disabled-form tests of the flags that keep behavior.
+	ChangesOutput bool
 }
 
 // Flags lists the optimizations in the order the reference documents them.
@@ -72,6 +79,27 @@ var Flags = []Flag{
 	{Name: "typed-list-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed lists in slabs (typed Go)"},
 	{Name: "typed-output-bootstrap", Kind: Runtime, Default: 1, Doc: "size the first slab of the typed output from the input (typed Go)"},
 	{Name: "sparse-memo", Kind: Runtime, Default: 1, Doc: "keep the first-call table of large TypeScript parsers sparse"},
+}
+
+// check reports a flag list that breaks the rules of the registry: a name or a description missing or
+// repeated, a value that is neither 0 or 1 nor a count, and an optimization that changes the output
+// without being an opt-in.
+func check(flags []Flag) error {
+	seen := map[string]bool{}
+	for _, f := range flags {
+		switch {
+		case f.Name == "" || f.Doc == "":
+			return fmt.Errorf("flag %q has no name or no description", f.Name)
+		case seen[f.Name]:
+			return fmt.Errorf("flag %s is declared twice", f.Name)
+		case f.Default < 0 || !f.Int && f.Default > 1:
+			return fmt.Errorf("flag %s is on or off but its speed value is %d", f.Name, f.Default)
+		case f.ChangesOutput && f.Default != 0:
+			return fmt.Errorf("flag %s changes the output but is on in the speed profile: it must be an opt-in", f.Name)
+		}
+		seen[f.Name] = true
+	}
+	return nil
 }
 
 // Names returns the names of the flags in order.
@@ -115,9 +143,9 @@ func (s Settings) Value(name string) int {
 }
 
 // With returns the settings with the optimization set to the value: 0 or 1, or the parameter of an
-// integer flag. Profiles use it to turn on optimizations that the speed profile leaves off; a request
-// to the generator only removes (Without). An unknown name, or a value that the flag does not take, is
-// an error.
+// integer flag. A request to the generator turns on an optimization that the speed profile leaves off
+// with it (GenOptions.Opt, -opt), and a preset sets the values of its flags with it. An unknown name,
+// or a value that the flag does not take, is an error.
 func (s Settings) With(name string, value int) (Settings, error) {
 	f, ok := lookup(name)
 	if !ok {
@@ -147,6 +175,37 @@ func (s Settings) Without(names ...string) (Settings, error) {
 			return Settings{}, fmt.Errorf("unknown optimization %q (valid: %s)", n, strings.Join(Names(), ", "))
 		}
 		out.over[n] = 0
+	}
+	return out, nil
+}
+
+// ParseValues parses a comma-separated list of name or name=count items, as -opt takes it, into the
+// values by name: a name alone is 1. Spaces around an item are ignored. A repeated name, a count
+// that is not a decimal number or an empty item is an error; whether a name exists, and whether it
+// takes the value, is for Settings.With.
+func ParseValues(list string) (map[string]int, error) {
+	if strings.TrimSpace(list) == "" {
+		return nil, nil
+	}
+	out := map[string]int{}
+	for _, item := range strings.Split(list, ",") {
+		name, num, hasValue := strings.Cut(strings.TrimSpace(item), "=")
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return nil, fmt.Errorf("empty optimization name in %q", list)
+		}
+		if _, dup := out[name]; dup {
+			return nil, fmt.Errorf("optimization %s is given twice", name)
+		}
+		v := 1
+		if hasValue {
+			n, err := strconv.Atoi(strings.TrimSpace(num))
+			if err != nil {
+				return nil, fmt.Errorf("optimization %s: %q is not a count", name, strings.TrimSpace(num))
+			}
+			v = n
+		}
+		out[name] = v
 	}
 	return out, nil
 }

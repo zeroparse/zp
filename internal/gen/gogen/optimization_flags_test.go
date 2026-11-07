@@ -74,20 +74,41 @@ var optimizationTests = map[string]string{
 	"sparse-memo":            "TestGeneratedTSSparseMemoControls (tsgen)",
 }
 
+// outputFlagTests says for each registered optimization that changes the output (ChangesOutput) the
+// test of the contract it changes. Such an optimization is not in optimizationTests: a parser
+// generated without it is the ordinary one, and a parser generated with it is not compared with the
+// engine as the ordinary one is.
+var outputFlagTests = map[string]string{}
+
 // TestOptimizationsHaveTests fails for an optimization that is registered and has no test of its
-// disabled form, and for a test that names an optimization that does not exist.
+// disabled form (or, if it changes the output, of its changed contract), and for a test that names an
+// optimization that does not exist.
 func TestOptimizationsHaveTests(t *testing.T) {
 	for _, f := range genopt.Flags {
-		if _, ok := optimizationTests[f.Name]; !ok {
+		if f.ChangesOutput {
+			if outputFlagTests[f.Name] == "" {
+				t.Errorf("the optimization %s changes the output and names no test of its contract", f.Name)
+			}
+			if _, ok := optimizationTests[f.Name]; ok {
+				t.Errorf("the optimization %s changes the output, so the parity tests of the flags that keep behavior do not apply to it", f.Name)
+			}
+		} else if _, ok := optimizationTests[f.Name]; !ok {
 			t.Errorf("the optimization %s has no test of its disabled form", f.Name)
 		}
 		if f.Doc == "" {
 			t.Errorf("the optimization %s has no description", f.Name)
 		}
 	}
-	for name := range optimizationTests {
-		if !slices.Contains(genopt.Names(), name) {
-			t.Errorf("a test names %s, which is not a registered optimization", name)
+	for _, tests := range []map[string]string{optimizationTests, outputFlagTests} {
+		for name := range tests {
+			if !slices.Contains(genopt.Names(), name) {
+				t.Errorf("a test names %s, which is not a registered optimization", name)
+			}
+		}
+	}
+	for name := range outputFlagTests {
+		if f, ok := lookupFlag(name); ok && !f.ChangesOutput {
+			t.Errorf("%s names a contract test but does not change the output", name)
 		}
 	}
 }
@@ -103,6 +124,15 @@ func TestOptimizationsAreInTheGuide(t *testing.T) {
 			t.Errorf("the guide has no row for the optimization %s", n)
 		}
 	}
+}
+
+func lookupFlag(name string) (genopt.Flag, bool) {
+	for _, f := range genopt.Flags {
+		if f.Name == name {
+			return f, true
+		}
+	}
+	return genopt.Flag{}, false
 }
 
 // off returns the options for a lean typed parser with the optimizations off.
@@ -131,7 +161,7 @@ func TestOptimizationDisabledParity(t *testing.T) {
 	gentest.PinOrdinary(t)
 	cases := optimizationCases()
 	for _, f := range genopt.Flags {
-		if optimizationTests[f.Name] != "" {
+		if optimizationTests[f.Name] != "" || f.ChangesOutput {
 			continue
 		}
 		t.Run(f.Name, func(t *testing.T) {
@@ -161,7 +191,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, f := range genopt.Flags {
-		if !f.Int {
+		if !f.Int || f.ChangesOutput {
 			continue
 		}
 		for _, v := range []int{1, 2, 3, 8} {
@@ -170,7 +200,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 			}
 			t.Run(fmt.Sprintf("%s=%d", f.Name, v), func(t *testing.T) {
 				opts := off()
-				opts.Set = map[string]int{f.Name: v}
+				opts.Opt = map[string]int{f.Name: v}
 				gentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
 			})
 		}
@@ -184,7 +214,7 @@ func TestOptimizationCombinationsParity(t *testing.T) {
 	gentest.PinOrdinary(t)
 	var names []string
 	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime {
+		if f.Kind != genopt.Runtime && !f.ChangesOutput {
 			names = append(names, f.Name)
 		}
 	}
@@ -224,7 +254,7 @@ func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	var all []string
 	for _, f := range genopt.Flags {
-		if f.Kind != genopt.Runtime {
+		if f.Kind != genopt.Runtime && !f.ChangesOutput {
 			all = append(all, f.Name)
 		}
 	}

@@ -14,7 +14,7 @@ ZeroParse is pre-release, and much of that aim is still ahead. Each part is pair
 | One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), accepted, not implemented) |
 | Any target language | Two: generated Go and generated TypeScript | More target languages |
 | Any engine | A closure backend, a recursive VM and an iterative VM, in Go; a bytecode with a [published specification](../spec/bytecode/README.md), implemented only by the Go VMs and unstable until it is declared stable and versioned, which the first tagged release does not do | A stable, versioned bytecode, then another implementation of it |
-| Selectable optimization profiles | One fixed set of optimizations | Generation profiles for speed, memory and size |
+| Selectable optimization profiles | One fixed set of optimizations | Optimization profiles for speed, memory and size |
 | Every use | Trees, typed values, recognition, recovery, `Document` and streaming, with per-target gaps ([What One Grammar Gives You](#what-one-grammar-gives-you)) | Editor support for the languages you define |
 | The best measured speed in each | Slower than Go's hand-written parsers on every comparable workload so far: 1.1–5.4× for typed values, 1.6–6.8× for trees ([Measured Today](#measured-today)) | Match, then beat them, and show it in a public cross-tool benchmark with every loss published ([Commitments and Targets](#commitments-and-targets)) |
 | Safe by default | A nesting cap; compute limits are opt-in | Compute limits on by default, in generated parsers too; optional input-length and memory caps |
@@ -242,7 +242,7 @@ These are goals, not results.
   overhead of the limits is to shrink alongside, but the default does not wait for it.
 - **One place for production limits.** Optional caps on input length and on estimated memory (memo entries and
   result trees) fail with the same kind of error as the compute limit.
-- **Choose the trade-off.** Generation profiles for speed, memory and size, each a named set of optimization passes,
+- **Choose the trade-off.** Optimization profiles for speed, memory and size, each a named set of optimization flags,
   so a program can choose the smallest parser or the fastest one
   ([design record 063](design/records/063-configurable-optimization-pass-pipeline.md), accepted, not implemented).
 - **Every target and use.** Recognition, streaming, `Document` editing and generated TypeScript each have their
