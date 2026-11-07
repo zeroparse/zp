@@ -6,7 +6,7 @@
 // and rewrites it (see package report).
 //
 // The generated parsers that the benchmarks run are in internal/bench/gen, written by zp gen;
-// regenerate them with go generate ./bench. Document (minilangdoc, csvdoc) and stream (csvstream)
+// regenerate them with go generate ./bench. Document (minilangdoc, minilangtdoc, csvdoc) and stream (csvstream)
 // parsers are separate packages, so the batch parsers keep their generated form. The inputs come from internal/bench/inputs.
 package bench
 
@@ -18,5 +18,6 @@ package bench
 //go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilang -runtime import -recognize -types -limits -o ../internal/bench/gen/minilang
 //go:generate go run ../cmd/zp gen -g ../examples/outline/outline.zp -module zeroparse.dev/zp/internal/bench/gen/outline -runtime import -recognize -types -limits -o ../internal/bench/gen/outline
 //go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilangdoc -runtime import -limits -document -o ../internal/bench/gen/minilangdoc
+//go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilangtdoc -runtime import -types -limits -document -o ../internal/bench/gen/minilangtdoc
 //go:generate go run ../cmd/zp gen -g ../testdata/grammars/csv/csv.zp -module zeroparse.dev/zp/internal/bench/gen/csvdoc -runtime import -limits -document -o ../internal/bench/gen/csvdoc
 //go:generate go run ../cmd/zp gen -g ../testdata/grammars/csv/csv.zp -module zeroparse.dev/zp/internal/bench/gen/csvstream -runtime import -limits -stream -o ../internal/bench/gen/csvstream

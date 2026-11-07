@@ -23,6 +23,7 @@ import (
 	gjson "zeroparse.dev/zp/internal/bench/gen/json"
 	gminilang "zeroparse.dev/zp/internal/bench/gen/minilang"
 	gminilangdoc "zeroparse.dev/zp/internal/bench/gen/minilangdoc"
+	gminilangtdoc "zeroparse.dev/zp/internal/bench/gen/minilangtdoc"
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	rt "zeroparse.dev/zp/runtime"
@@ -508,6 +509,13 @@ func BenchmarkIncremental(b *testing.B) {
 			b.Fatal(err)
 		}
 		documentEdits(b, at, doc.Edit, func() error { return genErr(doc.Parse()) })
+	})
+	b.Run("generated-typed/document", func(b *testing.B) {
+		doc, err := gminilangtdoc.NewDocument(input)
+		if err != nil {
+			b.Fatal(err)
+		}
+		documentEdits(b, at, doc.Edit, func() error { return genErr(doc.ParseAST()) })
 	})
 	b.Run("generated/fresh", func(b *testing.B) {
 		b.ReportAllocs()

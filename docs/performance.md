@@ -251,7 +251,7 @@ ZeroParse backends return the same results.
 | Minilang | `examples/minilang` | 300 functions (89 KB) | PEG statements nested with Operators Rule expressions, keyword exclusion |
 | Recovery | `examples/minilang` | Same as above, with one line in seven broken | `#recover`, expectation recording |
 | Outline | `examples/outline` | 5,000 lines (83 KB), depth up to 10 | Predicates and variables (non-memoized rules) |
-| Incremental | `examples/minilang` | Repeated one-character insertions and deletions in 300 functions | Memo reuse with `Document`, on every backend and a parser generated with `-document` (compared with a full parse each time) |
+| Incremental | `examples/minilang` | Repeated one-character insertions and deletions in 300 functions | Memo reuse with `Document`, on every backend, a parser generated with `-document` and one generated with `-document -types` (compared with a full parse each time) |
 | Incremental, long | `alpha-parsers/csv` | Repeated one-character insertions and deletions in the middle of 50,000 records | Resuming long repetitions with `Document`, on every backend and a parser generated with `-document` |
 | Stream | `alpha-parsers/csv` | 50,000 rows (2.2 MB) | Reading and discarding with `ParseStream`, on every backend and a parser generated with `-stream` |
 | Prepare | JSON, minilang | None | Compiling from source and loading `.zpc` (in each mode) |
