@@ -347,7 +347,8 @@ operand, plus a constant.
 Outside a [Document](documents.md), and apart from the exceptions below, time is
 proportional to cost, plus the number of errors that a result reports when its
 recovered errors are listed. The memory that a parse allocates is at most
-proportional to its cost plus the input, because each memo entry, node and value
+proportional to its cost plus the input, plus the errors that a result reports
+when its recovered errors are listed, because each memo entry, node and value
 is built by cost that is counted, except in a parse with missing-token
 insertion, as below. The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
@@ -1660,9 +1661,10 @@ limits; the [memory limit](#memory-limit) counts bytes.
 Here `n` is the length of the input in the position unit of the parse: bytes
 for `Bytes`, code points for `CodePoints`. `Input` has no finite default
 because the default `Compute` already grows with `n`, and `Memory` has none
-because the memory a parse allocates is at most proportional to its cost
-plus the input outside missing-token insertion
-([Time and Memory](#time-and-memory)).
+because, outside missing-token insertion, the memory a parse allocates is at
+most proportional to its cost plus the input, plus the errors that a result
+reports ([Time and Memory](#time-and-memory)). `Memory` does not count the list
+of reported errors, which the parse hands to the caller.
 
 `WithLimits` sets the fields field by field. A nonzero field overrides the
 value an earlier `WithLimits` of the same invocation set, and a zero field

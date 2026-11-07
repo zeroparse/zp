@@ -2158,9 +2158,11 @@ parse, for each item, is:
 The TypeScript cells hold at all three of $n = 250$, 1,000 and 4,000, where the
 runtime was measured. At $n = 4000$, 8,000 and 16,000, the engine on its three
 backends and the generated Go runtime complete every parse of both grammars
-under the default limits, and the memory that a parse allocates about doubles
-with $n$: for the first grammar on closures it is 10.9 MB, 23.7 MB and 48.2 MB,
-and 3.1 MB, 6.4 MB and 13.3 MB for the leader.
+under the default limits, and on each of them the memory that a parse
+allocates about doubles with $n$. For the first grammar it is 10.9, 23.7 and
+48.2 MB on closures, 12.7, 25.7 and 54.4 MB on bytecode, 13.5, 28.1 and 58.2 MB
+on iterative bytecode, and 10.0, 20.3 and 41.4 MB in generated Go; for the
+leader it is 3.1, 6.4 and 13.2 to 13.3 MB on every one.
 
 The slope tests of the classifier check both grammars on the three backends of
 the engine, and the tests of each generated runtime check that four times the
