@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"zeroparse.dev/zp/bench/probe"
 	"zeroparse.dev/zp/internal/bench/inputs"
+	"zeroparse.dev/zp/internal/bench/probe"
 )
 
 // tsWorkload is a workload measured on the generated TypeScript parser: the grammar and the input
