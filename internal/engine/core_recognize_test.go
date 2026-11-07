@@ -27,23 +27,24 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 	if err != nil {
 		return nil, err
 	}
-	check := func(pass string) {
+	check := func(pass string, m *core.Module) {
 		core.Analyze(m)
 		if err := core.Verify(m); err != nil {
 			c.passErrs = append(c.passErrs, fmt.Sprintf("after %s: %v", pass, err))
 		}
 	}
-	check("build")
-	core.RewriteTerms(m, core.TermOptions{TextDispatch: !g.DisableLiteralTextDispatch, FieldCompare: !g.BoxedComparisons})
-	check("terms")
-	core.Guards(m, g.Ordinary && !g.DisableGuardedClasses)
-	check("guards")
-	repeats := irbuild.FollowRepeats(m, c.origin)
-	core.Scans(m)
-	for _, f := range repeats {
-		f()
+	prepare := func(m *core.Module) func() {
+		repeats := irbuild.FollowRepeats(m, c.origin)
+		return func() {
+			for _, f := range repeats {
+				f()
+			}
+		}
 	}
-	check("scans")
+	env := &core.Env{Mode: core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.CoreFlag, PrepareScans: prepare}
+	if _, err := core.Run(m, env, core.RunOptions{Dump: check}); err != nil {
+		return nil, err
+	}
 	c.m = m
 	return c, nil
 }
