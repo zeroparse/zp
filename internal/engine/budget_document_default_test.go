@@ -419,3 +419,19 @@ func TestBudgetDocumentWorkWithinFactorOfFresh(t *testing.T) {
 		}
 	}
 }
+
+// The missing-token mode is not available to a Document parse, so no rule is excluded from the
+// memoization of a Document by it (docOnlyMemo tests the mode only for the sake of completeness, and
+// the unit test of docOnlyMemo covers it).
+func TestDocumentRejectsMissingTokens(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, "rule main = item* $$\nrule item = word sep\nrule word = \"a\"+ #atomic\nrule sep = \";\" #missing")
+	o := ParseOptions{Backend: Closure, MissingTokens: 10}
+	d, err := prog.NewDocumentWith("main", "aa;a;", o)
+	if err == nil {
+		_, err = d.ParseWith(o)
+	}
+	if err == nil || !strings.Contains(err.Error(), "not supported for Document parsing") {
+		t.Fatalf("a Document parse with missing tokens: got %v", err)
+	}
+}

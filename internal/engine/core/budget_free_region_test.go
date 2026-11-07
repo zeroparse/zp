@@ -92,3 +92,30 @@ func TestFreeRegionDoesNotNest(t *testing.T) {
 	var none *BudgetControl
 	none.FreeEnd(none.FreeBegin())
 }
+
+// A rule is memoized only by a Document parse when it is transient and memoized, no leader, and not
+// one that the missing-token mode evaluates again: the memo protocol of such a rule is Document work.
+func TestDocOnlyMemo(t *testing.T) {
+	missing := &MissingTokenState{}
+	for _, c := range []struct {
+		name    string
+		memoAll bool
+		missing *MissingTokenState
+		rule    Rule
+		want    bool
+	}{
+		{"transient memoized rule in a Document parse", true, nil, Rule{Memo: true, Transient: true}, true},
+		{"the same rule in a parse from scratch", false, nil, Rule{Memo: true, Transient: true}, false},
+		{"a rule that a parse from scratch memoizes", true, nil, Rule{Memo: true}, false},
+		{"a rule that is not memoized", true, nil, Rule{Transient: true}, false},
+		{"a leader", true, nil, Rule{Memo: true, Transient: true, Leader: true}, false},
+		{"a missing-token rule without the mode", true, nil, Rule{Memo: true, Transient: true, Missing: true}, true},
+		{"a missing-token rule in the mode", true, missing, Rule{Memo: true, Transient: true, Missing: true}, false},
+		{"another rule in the mode", true, missing, Rule{Memo: true, Transient: true}, true},
+	} {
+		p := &Parser{MemoAll: c.memoAll, Missing: c.missing}
+		if got := p.docOnlyMemo(&c.rule); got != c.want {
+			t.Errorf("%s: docOnlyMemo is %v, want %v", c.name, got, c.want)
+		}
+	}
+}

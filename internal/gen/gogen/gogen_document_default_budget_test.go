@@ -47,9 +47,24 @@ func TestGeneratedDocumentMemoLagBoundary(t *testing.T) {
 	runDocumentBudgetFixture(t, "rule main = "+item+" $$\nrule item = [a-z]+ \" \" #atomic", fixtureLag)
 }
 
+// A typed generated Document parse stores an entry at the first call of a rule, where a typed parse from
+// scratch defers the memoization to the second call. The units it counts against the default limit stay
+// within those of the parse from scratch: it succeeds on the longest text that the parse from scratch
+// admits, and the copy of recovered errors still stops a text four times as long.
+func TestGeneratedTypedDocumentCountedWorkWithinFresh(t *testing.T) {
+	t.Parallel()
+	runDocumentBudgetFixtureWith(t, gen.GenOptions{Package: "fixture", Start: "main", Types: true, Document: true},
+		"rule main = s $$\nrule s = item s \"!\" / item s / item\nrule item = (\"a\" \";\") #recover(skip=[^;]* \";\")", fixtureTypedRecovered)
+}
+
 // runDocumentBudgetFixture generates a Document parser for the grammar and runs the test source
 // against it.
 func runDocumentBudgetFixture(t *testing.T, grammar, testSource string) {
+	t.Helper()
+	runDocumentBudgetFixtureWith(t, gen.GenOptions{Package: "fixture", Start: "main", Document: true}, grammar, testSource)
+}
+
+func runDocumentBudgetFixtureWith(t *testing.T, opts gen.GenOptions, grammar, testSource string) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)
 	if testing.Short() {
@@ -59,7 +74,7 @@ func runDocumentBudgetFixture(t *testing.T, grammar, testSource string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "fixture", Start: "main", Document: true})
+	code, err := gentest.GenerateCode(t, g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,5 +362,37 @@ func TestMemoLagBoundary(t *testing.T) {
   t.Logf("memo hits by pending edits: %v", hits)
   if hits[127] < 30 || hits[128] < 30 { t.Errorf("entries that lag behind 127 and 128 edits are not reused: %v", hits) }
   if hits[129] > 5 || hits[130] > 5 { t.Errorf("entries that lag behind 129 and 130 edits are reused: %v", hits) }
+}
+`
+
+const fixtureTypedRecovered = `package fixture
+import (
+  "errors"
+  "strings"
+  "testing"
+)
+func TestTypedDocumentCountedWithinFresh(t *testing.T) {
+  fits := func(n int) bool {
+    _, err := ParseAST(strings.Repeat("b;", n))
+    if err != nil && !errors.Is(err, ErrLimit) { return true }
+    return err == nil
+  }
+  lo, hi := 1, 1<<12
+  if !fits(lo) || fits(hi) { t.Fatal("range") }
+  for hi-lo > 1 {
+    if mid := (lo + hi) / 2; fits(mid) { lo = mid } else { hi = mid }
+  }
+  doc := func(n int) error {
+    d, err := NewDocument(strings.Repeat("b;", n))
+    if err != nil { t.Fatal(err) }
+    _, err = d.ParseAST()
+    return err
+  }
+  if err := doc(lo); errors.Is(err, ErrLimit) {
+    t.Fatalf("the typed Document parse of %d items, the longest that a parse from scratch admits, ends at the limit: %.80v", lo, err)
+  }
+  if err := doc(4 * lo); !errors.Is(err, ErrLimit) {
+    t.Fatalf("the typed Document parse of %d items, 4 times the %d that a parse from scratch admits: got %.80v, want the limit error", 4*lo, lo, err)
+  }
 }
 `
