@@ -136,9 +136,9 @@ registry has the name of every pass.
 | `class-runs` | pass | `class-runs` |
 | `class-tables` | lowering | `lower.Options.ClassTableRanges` (the least number of ranges of a class that is matched through a table; 5 in `speed`; 0 turns it off) |
 | `inline-literals` | lowering | `lower.Options.InlineLiterals` (a count, 4 in `speed`; 0 turns it off) |
-| `method-sharing` | lowering | Equal generated bodies share one helper |
-| `literal-sharing` | lowering | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) |
-| `ts-literal-sharing` | lowering | TypeScript literal tables are shared; an opt-in, 0 in `speed` |
+| `method-sharing` | printer | Equal generated bodies share one helper |
+| `literal-sharing` | printer | Equal literals share one table (TypeScript also needs `ts-literal-sharing`) |
+| `ts-literal-sharing` | printer | TypeScript literal tables are shared; an opt-in, 0 in `speed` |
 | `typed-object-slabs` | runtime | Typed objects are allocated in slabs |
 | `typed-list-slabs` | runtime | Typed lists are allocated in slabs |
 | `typed-output-bootstrap` | runtime | The first slab of the typed output is sized from the input |

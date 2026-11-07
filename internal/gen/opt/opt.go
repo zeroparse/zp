@@ -1,7 +1,7 @@
 // Package opt is the registry of the generation-time optimizations and their settings (design 063).
 //
 // An optimization is a flag with a name. A pass of the Core IR pipeline is one (its name is the
-// pass's); so are the options of Flow lowering, the forms that the printers emit for terms, and the
+// pass's); so are the options of Flow lowering, what the printers emit, and the
 // generation controls of the runtime structures that they emit. A Settings value says which are on,
 // and an integer parameter where there is one. A profile is a named Settings. Whatever the settings, a generated parser
 // returns the same results, errors and events; only its code and its resource use change.
@@ -23,8 +23,8 @@ const (
 	Pass Kind = iota
 	// Lowering is an option of Flow lowering.
 	Lowering
-	// Printer is a choice of what the Go and TypeScript printers emit for a term of an action or a
-	// predicate.
+	// Printer is a choice of what the Go and TypeScript printers emit: the form of a term of an
+	// action or a predicate, or whether equal generated bodies and tables share one helper.
 	Printer
 	// Runtime is a control of the runtime structures that the printers emit.
 	Runtime
@@ -65,9 +65,9 @@ var Flags = []Flag{
 	{Name: core.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
 	{Name: "class-tables", Kind: Lowering, Int: true, Default: 5, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); 0 turns it off"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
-	{Name: "method-sharing", Kind: Lowering, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
-	{Name: "literal-sharing", Kind: Lowering, Default: 1, Doc: "emit one table for equal literals (Go; TypeScript also needs ts-literal-sharing)"},
-	{Name: "ts-literal-sharing", Kind: Lowering, Default: 0, Doc: "share literal tables in TypeScript parsers; off because a small cold parse measured about 1.5 times slower (design 090)"},
+	{Name: "method-sharing", Kind: Printer, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
+	{Name: "literal-sharing", Kind: Printer, Default: 1, Doc: "emit one table for equal literals (Go; TypeScript also needs ts-literal-sharing)"},
+	{Name: "ts-literal-sharing", Kind: Printer, Default: 0, Doc: "share literal tables in TypeScript parsers; off because a small cold parse measured about 1.5 times slower (design 090)"},
 	{Name: "typed-object-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed objects in slabs (typed Go)"},
 	{Name: "typed-list-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed lists in slabs (typed Go)"},
 	{Name: "typed-output-bootstrap", Kind: Runtime, Default: 1, Doc: "size the first slab of the typed output from the input (typed Go)"},

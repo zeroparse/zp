@@ -109,8 +109,8 @@ type GenOptions struct {
 	VerifyEachPass bool
 }
 
-// Optimizations returns the settings that Optimize, Enable and NoOpt select, or an error for a profile or an
-// optimization that does not exist, and validates PrintAfter.
+// Optimizations returns the settings that Optimize, Set and NoOpt select, in that order, or an error for a
+// profile or an optimization that does not exist or a value that it does not take, and validates PrintAfter.
 func (o GenOptions) Optimizations() (opt.Settings, error) {
 	s, err := opt.Profile(o.Optimize)
 	if err != nil {

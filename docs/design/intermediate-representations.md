@@ -60,7 +60,7 @@ the families.
 
 ### What the Verifier Guarantees
 
-`core.Verify` checks, once after the passes, that the module is well formed and that the facts on it are true. In
+`core.Verify` checks, by default once after the last pass, that the module is well formed and that the facts on it are true. With verification between passes on (`GenOptions.VerifyEachPass`), it also runs after every pass and names the pass that broke an invariant; see [Verification Between Passes](records/063-configurable-optimization-pass-pipeline.md#verification-between-passes). In
 principle it guarantees four things.
 
 - **Referential integrity.** Every call, capture and slot reference points at something that exists in the scope it

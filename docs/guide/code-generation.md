@@ -263,33 +263,38 @@ Details:
 
 ### Optimizations
 
-The generator optimizes what it emits. Each optimization has a name, is on in the `speed` profile, and can be turned
-off with `-no-opt`. Turning one off changes the code of the parser and its speed or size, never what it returns: the
-same results, errors and events. Two uses:
+The generator optimizes what it emits. Each optimization has a name and a kind, and an optimization profile says
+which are on. `speed` is the default and the only profile: it has every optimization on, with the value in the Default
+column, except `ts-literal-sharing`, which is off. An optimization can be turned off with `-no-opt`. Turning one off
+changes the code of the parser and its speed or size, never what it returns: the same results, errors and events. Two
+uses:
 
 - To isolate a miscompilation: generate with `-no-opt` and one name and see whether the output changes.
 - To measure an optimization with the same generator on both sides.
 
-The names are the following, and an unknown name in `-no-opt` is an error that lists them:
+The kind says what the optimization changes: a `pass` rewrites the parser before it is lowered, a `lowering` is an
+option of the lowering to the code, a `printer` is a choice of what the Go and TypeScript printers emit, and a `runtime`
+optimization is a control of the runtime structures the parser emits. The names are the following, and an unknown name
+in `-no-opt` is an error that lists them:
 
-| Name | What it does |
-| --- | --- |
-| `terminals` | Value-free choices of many literals and classes run as one program (lean typed Go) |
-| `text-dispatch` | The printers emit a predicate that compares the text of a capture with literals as one switch |
-| `field-compare` | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields |
-| `guards` | Skip an alternative when the next character cannot start it |
-| `guarded-classes` | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers) |
-| `scans` | A value-free repetition of a class or of any character runs as a scan |
-| `class-runs` | Consecutive classes of a value-free sequence run as one (lean typed Go) |
-| `class-tables` | Match a class of at least five ranges through a membership table (lean typed Go); the number is the minimum count of ranges, and 0 turns the tables off |
-| `inline-literals` | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off |
-| `method-sharing` | Emit one helper for generated bodies that are exactly equal (Go and TypeScript) |
-| `literal-sharing` | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`) |
-| `ts-literal-sharing` | Share literal tables in TypeScript parsers. It is off, because a small cold parse measured about 1.5 times slower; nothing in `-no-opt` can turn it on |
-| `typed-object-slabs` | Allocate typed objects in slabs (typed Go) |
-| `typed-list-slabs` | Allocate typed lists in slabs (typed Go) |
-| `typed-output-bootstrap` | Size the first slab of the typed output from the input (typed Go) |
-| `sparse-memo` | Keep the first-call table of large TypeScript parsers sparse |
+| Name | Kind | Default | What it does and what it costs |
+| --- | --- | --- | --- |
+| `terminals` | pass | on | Value-free choices of many literals and classes run as one program (lean typed Go). Data against code: the choice becomes a table in the parser instead of nested alternatives |
+| `text-dispatch` | printer | on | The printers emit a predicate that compares the text of a capture with literals as one switch. One switch against a chain of comparisons, and the text is computed once |
+| `field-compare` | printer | on | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields. Fewer allocations, no cost |
+| `guards` | pass | on | Skip an alternative when the next character cannot start it. One read of the next character per choice against the attempts of alternatives that cannot match, and a little more code per choice |
+| `guarded-classes` | pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
+| `scans` | pass | on | A value-free repetition of a class or of any character runs as a scan. A loop against the general repetition |
+| `class-runs` | pass | on | Consecutive classes of a value-free sequence run as one (lean typed Go). One run against one test and call per class |
+| `class-tables` | lowering | 5 | Match a class of at least five ranges through a membership table (lean typed Go); the number is the minimum count of ranges, and 0 turns the tables off. Table data against code: smaller source, one lookup per character |
+| `inline-literals` | lowering | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
+| `method-sharing` | printer | on | Emit one helper for generated bodies that are exactly equal (Go and TypeScript). Code against calls: smaller source, with a call where a body was |
+| `literal-sharing` | printer | on | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`). Smaller source against an indirection to the table |
+| `ts-literal-sharing` | printer | off | Share literal tables in TypeScript parsers. Smaller code against speed: a small cold parse measured about 1.5 times slower. It is an opt-in, and nothing in `-no-opt` can turn it on |
+| `typed-object-slabs` | runtime | on | Allocate typed objects in slabs (typed Go). Fewer allocations against memory: an object that escapes keeps the unused objects of its chunk |
+| `typed-list-slabs` | runtime | on | Allocate typed lists in slabs (typed Go). Fewer allocations against memory, as for objects |
+| `typed-output-bootstrap` | runtime | on | Size the first slab of the typed output from the input (typed Go). A small parse keeps little memory, against a few allocations before the slabs start |
+| `sparse-memo` | runtime | on | Keep the first-call table of large TypeScript parsers sparse. Memory in proportion to the positions visited against a page lookup per check |
 
 A name only removes: whether an optimization is sound for a parser is decided by the generator, and a flag never
 overrides that. `-no-opt guards` also leaves out the guarded classes, which need guards.
