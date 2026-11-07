@@ -10,7 +10,7 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9, 10 and 11 are proved. Lemma 13 is proved for the
+Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemma 13 is proved for the
 [cost view](#setting) that the classifier reads, given its condition, step 9 of
 [Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
@@ -2043,6 +2043,77 @@ notifications, and the publication of diagnostics. Nor does it cover the
 generated Document runtimes: they apply each edit to every entry at once, and a
 `doc.move` that copies does not move a node once for a parse.
 
+## Lemma 14 (Shared Recovered Errors)
+
+The recovered-error list of a parse is a sequence of **entries**: errors that
+`rec.push` recorded, and lists that `rec.add` recorded or `rec.since` made, as
+the operations of the recovered errors in the Exec IR (`addRecovery` in
+`internal/ir/exec/ops/ops.go`) state them. A **list** is an error alone, or the
+entries that one call of `rec.since` took; it never changes once made, and
+entries anywhere may share it. A call `rec.since(m)` charges one unit for each
+entry after the mark $m$. When there is none it returns an empty list, when
+there is one it returns that entry, and otherwise it makes a list of the entries
+after $m$ and puts it in their place. `rec.add` records a list that is not
+empty as one entry and an empty one not at all, and charges nothing;
+`rec.truncate` and `stream.settleErrors` only remove entries. Let $P$, $A$ and
+$S$ be the numbers of calls of `rec.push`, of `rec.add` with a list that is not
+empty, and of `rec.since` in a parse. The **unrolled size** of a list is 1 for
+an error, and 1 plus the unrolled sizes of its entries for any other list: the
+number of lists that listing its errors visits, a shared list counted where it
+occurs.
+
+**Lemma 14.** In every parse:
+
+1. the units that `rec.since` charges add up to at most $P + A + S$, and so do
+   the entries of the lists that it makes;
+2. a list of $k \ge 1$ errors, an error counted as often as it occurs, has an
+   unrolled size of at most $2k - 1$, and listing $k$ recovered errors visits
+   at most $2k$ lists.
+
+*Proof.* (1) Let $\Phi$ be the number of entries, 0 at the start of the parse
+and never negative. `rec.push`, and `rec.add` with a list that is not empty,
+add one entry each, and no other operation adds one. A call of `rec.since`
+with $s$ entries after its mark charges $s$ units. With $s \le 1$ it leaves the
+entries as they are and charges at most 1. With $s \ge 2$ it puts one entry in
+place of $s$, so that $\Phi$ falls by $s - 1$, and it charges
+$1 + (s - 1)$. The falls of $\Phi$ add up to at most its rises, which are at
+most $P + A$, so the charges add up to at most $S + P + A$. A list that
+`rec.since` makes holds the $s$ entries it charged for, so its entries add up
+to the same bound.
+
+(2) By induction on the order in which the lists are made. An error is a list
+of $k = 1$ with unrolled size $1 = 2k - 1$. A list that `rec.since` makes holds
+$s \ge 2$ entries made before it, of $k_1, \ldots, k_s \ge 1$ errors, since an
+empty list is never an entry; with $k = \sum_i k_i$ its unrolled size is
+$1 + \sum_i (2 k_i - 1) = 2k - s + 1 \le 2k - 1$. The bound holds wherever a
+list is shared, since no list changes once made. The recovered errors are
+those of the $m$ entries in order, so listing $k$ of them visits
+$\sum_i (2 k_i - 1) = 2k - m \le 2k$ lists. $\square$
+
+The case $s = 1$ is what keeps the second bound. A list made of the one list
+after a mark would add a level of unrolling and no error: calls nested $d$ deep,
+each storing the one list of the call that it made, would make a list of
+unrolled size $d + 1$ for one error.
+
+In a [Document](../runtime/documents.md) no list moves: an entry that holds
+recovered errors does not move after an edit but stops being valid, so a list
+holds its errors at the positions where they were made.
+
+**Units of recovered errors.** In the compositions of the Exec IR,
+`rec.push` records an error where a recovery makes it, `rec.add` replays a list
+where a call that a memo entry answers, a result of a growth or an attempt of
+an Operators Rule replays the errors that it holds, and `rec.since` makes a list
+where such an entry, result or attempt is stored. Each of these is part of a
+step that $C$ counts with at least one unit, so by the lemma the units that the
+operations charge and the entries of their lists are at most a constant times
+$C$, and listing the errors of the outcome visits at most twice as many lists
+as there are errors. That each call belongs to a step that $C$ counts is a
+reading of the compositions, as the reading of the charges in the corollary is.
+The lemma does not cover the missing-token mode, where `missing.replay` records
+the errors of an entry one by one if the tokens it inserted repeat, nor the
+targets as they are: the engine and the generated runtimes copy the lists, as
+step 8 of [Open Steps](#open-steps) describes.
+
 ## Correspondence
 
 The classifier in `internal/compile` decides the conditions, and the lemmas use
@@ -2274,7 +2345,10 @@ that the proof assumes of the cost view.
    items on all three backends. The memory allocated grows with it: 75.8 MB,
    289 MB and 1,091 MB at $n = 4000$, 8,000 and 16,000. A proof of linear Compute
    for parses that recover errors needs an implementation that does not copy or
-   replay these lists in proportion to their length.
+   replay these lists in proportion to their length. Lemma 14 proves that the
+   operations of the recovered errors as the Exec IR states them, which share
+   the lists, charge and hold at most a constant times $C$; the step closes when
+   the engine and the generated runtimes implement them.
 
 9. **The condition of the cost view.** The classifier decides the conditions and
    Lemma 13 counts on the [cost view](grammar-laws.md#normalization), and the

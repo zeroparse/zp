@@ -441,43 +441,48 @@ op rec.mark() int
   reads recovered
   cost <= 0
   contract:
-    // Returns the number of recovered errors, which rec.truncate and rec.since take.
+    // Returns the number of entries of the list, which rec.truncate and rec.since take.
 
 op rec.push(e Err)
   component recovered
   writes recovered
   cost <= 0
   contract:
-    // Records e after the recovered errors.
+    // Records e after the recovered errors, as one entry.
 
 op rec.truncate(mark int)
   component recovered
   writes recovered
   cost <= 0
   contract:
-    // Drops the errors recovered after the mark.
+    // Drops the entries after the mark, and with them their errors.
   requires:
-    // mark is at most the number of recovered errors.
+    // mark is a mark of the list: a result of rec.mark at most its current length, and no
+    // rec.since with a smaller mark has run since rec.mark returned it.
 
 op rec.since(mark int) Errs
   component recovered
   reads recovered
   writes recovered
   noreturn
-  cost <= 0 + 1*errs
+  cost <= 0 + 1*segs
   contract:
-    // Returns a copy of the errors recovered after the mark: later writes of the list do not change
-    // it.
+    // Returns the list of the errors recovered after the mark, and puts it in place of the
+    // entries after the mark, so that the errors stay the same and the list has one entry after the mark. When
+    // there is one entry after the mark and it is a list, returns that list, and the list does not change.
+    // When there is none, returns an empty list and the list does not change. A list never changes once
+    // made: later writes of the list do not change it.
   requires:
-    // mark is at most the number of recovered errors.
+    // mark is a mark of the list: a result of rec.mark at most its current length, and no
+    // rec.since with a smaller mark has run since rec.mark returned it.
 
 op rec.add(errs Errs)
   component recovered
   writes recovered
-  noreturn
-  cost <= 0 + 1*errs
+  cost <= 0
   contract:
-    // Records the errors again, after the recovered errors.
+    // Records the errors of errs again, after the recovered errors, as one entry that shares
+    // errs; an empty list records nothing.
 
 op rec.none(errs Errs) bool
   component recovered

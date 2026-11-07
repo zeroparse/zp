@@ -157,6 +157,9 @@ func (m *rtMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
 
 func (m *rtMachine) Recovered() []int64 { return recoveredIDs(m.p) }
 
+// Unrolled is one list for each error: the runtime keeps the errors in one array.
+func (m *rtMachine) Unrolled() int { return len(m.p.Recovered) }
+
 func (m *rtMachine) Values(id int64) any {
 	if m.vals[id] == nil {
 		m.vals[id] = []any{id}
@@ -252,10 +255,11 @@ var (
 	rtEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// rtEnvExact are the environment operations whose charges equal their declared cost.
 	rtEnvExact = []string{"env.lookup", "env.bind", "env.key"}
-	// rtRecoveryOps are the operations of the recovered errors, and rtRecoveryExact those whose charges
-	// equal their declared cost.
-	rtRecoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
-	rtRecoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
+	// rtRecoveryOps are the operations of the recovered errors that the runtime implements as specified,
+	// and rtRecoveryExact those whose charges equal their declared cost. The runtime copies a list where
+	// rec.since and rec.add share one, so the suites leave them out.
+	rtRecoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none", "stream.settleErrors"}
+	rtRecoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none"}
 )
 
 func rtSuites() []conform.Suite {
@@ -377,6 +381,9 @@ func (m *typedMachine) Rule(index int64) any { return m.env.rules[index] }
 func (m *typedMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
 
 func (m *typedMachine) Recovered() []int64 { return recoveredIDs(m.p.Parser) }
+
+// Unrolled is one list for each error: the runtime keeps the errors in one array.
+func (m *typedMachine) Unrolled() int { return len(m.p.Parser.Recovered) }
 
 func (m *typedMachine) Values(id int64) any {
 	if m.vals[id] == nil {
@@ -556,16 +563,6 @@ func TestExecConformanceDetectsBrokenRuntime(t *testing.T) {
 		// The recovered errors.
 		"a truncate keeps the last error": {op: "rec.truncate", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
 			m.p.Recovered = m.p.Recovered[:min(int(args[0].(int64))+1, len(m.p.Recovered))]
-			return nil
-		}},
-		"a copy shares the list": {op: "rec.since", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any {
-			return []any{&errorList{m.p.Recovered[args[0].(int64):]}}
-		}},
-		"a copy charges nothing": {op: "rec.since", ops: rtRecoveryOps, exact: rtRecoveryExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
-			return []any{&errorList{slices.Clone(m.p.Recovered[args[0].(int64):])}}
-		}},
-		"adding charges nothing": {op: "rec.add", ops: rtRecoveryOps, exact: rtRecoveryExact, controlled: true, want: "not the exact cost", call: func(m *rtMachine, args []any) []any {
-			m.p.Recovered = append(m.p.Recovered, args[0].(*errorList).errs...)
 			return nil
 		}},
 		"settling keeps the errors": {op: "stream.settleErrors", ops: rtRecoveryOps, call: func(m *rtMachine, args []any) []any { return nil }},

@@ -32,13 +32,18 @@ type Environment interface {
 	Rule(index int64) any
 }
 
-// Recovery is an Impl that provides the recovered-error list. The harness compares the list with the
-// model's after each call of an operation that writes it.
+// Recovery is an Impl that provides the recovered-error list. After each call of an operation that
+// writes it, the harness compares the errors with the model's, and checks that listing them visits
+// fewer than twice as many lists as there are errors (linear-cost.md, Lemma 14).
 type Recovery interface {
 	// Err returns a new syntax error of the implementation with the identifier id.
 	Err(id int64) any
 	// Recovered returns the identifiers of the recovered errors.
 	Recovered() []int64
+	// Unrolled returns the number of lists that listing the recovered errors visits, every shared one
+	// counted where it occurs; an implementation that keeps the errors in one array visits one for
+	// each error.
+	Unrolled() int
 }
 
 // Metered is an Impl that reports the units of budget it has charged so far, so that the harness
@@ -319,6 +324,9 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if r, ok := p.impl.(Recovery); ok && slices.Contains(o.Writes, ops.Rec) {
 		if w, g := p.model.Recovered(), r.Recovered(); !slices.Equal(w, g) {
 			panic(mismatch(fmt.Sprintf("recovered errors: model %v, implementation %v", w, g)))
+		}
+		if n, k := r.Unrolled(), len(p.model.Recovered()); n >= 2*k && n > 0 {
+			panic(mismatch(fmt.Sprintf("listing %d recovered errors visits %d lists, not fewer than %d", k, n, 2*k)))
 		}
 	}
 	res := make([]any, len(want.res))

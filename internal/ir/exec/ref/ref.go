@@ -94,18 +94,65 @@ type Model struct {
 	canon   map[string]int64
 	nextKey int64
 
-	// recovered errors, by the identifiers of their Err handles
-	rec []int64
+	// rec holds the entries of the recovered-error list: errors that rec.push recorded, as lists of one
+	// error, and the lists that rec.add recorded or rec.since put in place of the entries after its mark
+	rec []*ErrList
 }
 
 // Err is an Err handle of the model.
 type Err struct{ ID int64 }
 
-// ErrList is a list of recovered errors that rec.since returned.
-type ErrList struct{ ids []int64 }
+// ErrList is a list of recovered errors: one error, which rec.push recorded, or the entries that
+// rec.since made a list of, at least two. It never changes once made, and lists share it.
+type ErrList struct {
+	err     int64      // the identifier of the error of a list of one, made by rec.push
+	entries []*ErrList // the entries of a list that rec.since made
+	n       int        // the number of errors
+}
+
+// errs appends the identifiers of the errors of l to ids.
+func (l *ErrList) errs(ids []int64) []int64 {
+	if l.entries == nil {
+		return append(ids, l.err)
+	}
+	for _, e := range l.entries {
+		ids = e.errs(ids)
+	}
+	return ids
+}
+
+// Unrolled returns the number of lists that listing the errors of l visits, l and the lists in it with
+// every shared one counted where it occurs.
+func (l *ErrList) Unrolled() int {
+	n := 1
+	for _, e := range l.entries {
+		n += e.Unrolled()
+	}
+	return n
+}
 
 // Recovered returns the identifiers of the recovered errors.
-func (m *Model) Recovered() []int64 { return m.rec }
+func (m *Model) Recovered() []int64 {
+	var ids []int64
+	for _, e := range m.rec {
+		ids = e.errs(ids)
+	}
+	return ids
+}
+
+// Entries returns the number of entries of the recovered-error list, which rec.mark returns.
+func (m *Model) Entries() int64 { return int64(len(m.rec)) }
+
+// Unrolled returns the number of lists that listing the recovered errors visits: those of the entries
+// and the lists in them, with every shared one counted where it occurs. It is less than twice the
+// number of errors (linear-cost.md, Lemma 14).
+func (m *Model) Unrolled() int {
+	n := 0
+	for _, e := range m.rec {
+		n += e.Unrolled()
+	}
+	return n
+}
 
 type slotKey struct{ rule, pos, level int64 }
 
@@ -292,11 +339,8 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		return max(m.covered-m.floor, 0)
 	case ops.QVars:
 		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index]))
-	case ops.QErrs:
-		if o.Name == "rec.since" {
-			return int64(len(m.rec)) - args[0].(int64)
-		}
-		return int64(len(args[0].(*ErrList).ids))
+	case ops.QSegs:
+		return int64(len(m.rec)) - args[0].(int64)
 	case ops.QEnvReads:
 		return int64(len(m.cfg.RuleVars[args[0].(RuleRef).Index])) * m.envPath()
 	case ops.QEnvPath:
@@ -400,18 +444,32 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	case "rec.mark":
 		return []any{int64(len(m.rec))}
 	case "rec.push":
-		m.rec = append(slices.Clip(m.rec), args[0].(*Err).ID)
+		m.rec = append(slices.Clip(m.rec), &ErrList{err: args[0].(*Err).ID, n: 1})
 		return nil
 	case "rec.truncate":
 		m.rec = m.rec[:args[0].(int64)]
 		return nil
 	case "rec.since":
-		return []any{&ErrList{slices.Clone(m.rec[args[0].(int64):])}}
+		after := m.rec[args[0].(int64):]
+		switch len(after) {
+		case 0:
+			return []any{&ErrList{entries: []*ErrList{}}}
+		case 1:
+			return []any{after[0]}
+		}
+		l := &ErrList{entries: slices.Clone(after)}
+		for _, e := range after {
+			l.n += e.n
+		}
+		m.rec = append(m.rec[:args[0].(int64):args[0].(int64)], l)
+		return []any{l}
 	case "rec.add":
-		m.rec = append(slices.Clip(m.rec), args[0].(*ErrList).ids...)
+		if l := args[0].(*ErrList); l.n > 0 {
+			m.rec = append(slices.Clip(m.rec), l)
+		}
 		return nil
 	case "rec.none":
-		return []any{len(args[0].(*ErrList).ids) == 0}
+		return []any{args[0].(*ErrList).n == 0}
 	case "stream.settleErrors":
 		m.rec = nil
 		return nil
