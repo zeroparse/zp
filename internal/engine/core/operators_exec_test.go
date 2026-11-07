@@ -318,10 +318,10 @@ func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 				oprMissing(p)
 				p.Env = env
 				p.Pos = 2
-				p.Recovered = append(p.Recovered, errs...)
+				p.PushRecovered(errs[0])
 				return nil, true
 			})})
-			if a.Env != env || len(a.Errs) != 1 || len(a.missing) != 1 {
+			if a.Env != env || a.Errs.Len() != 1 || len(a.missing) != 1 {
 				t.Fatalf("attempt %+v", a)
 			}
 			if p.Env != nil || p.Pos != 0 || len(p.Recovered) != 0 || p.MissingLen != 0 {
@@ -380,7 +380,7 @@ func TestOperatorsTrivia(t *testing.T) {
 				r := oprRule(&OperatorsRule{Skip: func(p *Parser) (*value.Node, bool) {
 					silent = p.Silent
 					oprMissing(p)
-					p.Recovered = append(p.Recovered, &SyntaxError{})
+					p.PushRecovered(&SyntaxError{})
 					p.Pos = 2
 					return nil, ok
 				}})

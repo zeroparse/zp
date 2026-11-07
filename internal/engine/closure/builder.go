@@ -886,7 +886,7 @@ func recoverAttr(m, skip core.Matcher, build bool) core.Matcher {
 			return nil, false
 		}
 		e := p.MakeError(far, expected)
-		p.Recovered = append(p.Recovered, e)
+		p.PushRecovered(e)
 		if !build {
 			return nil, true
 		}

@@ -74,7 +74,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 func TestStreamCommitBoundsTheErrorScratch(t *testing.T) {
 	t.Parallel()
 	for capacity, reused := range map[int]bool{16: true, 17: false} {
-		p := &core.Parser{Memo: core.NewMemoTable(), Recovered: make([]*core.SyntaxError, 1, capacity)}
+		p := &core.Parser{Memo: core.NewMemoTable(), Recovered: make([]core.RecEntry, 1, capacity)}
 		p.DiagnosticTail.Limit = 1
 		p.Commit(1)
 		if (p.Recovered != nil) != reused || reused && cap(p.Recovered) != capacity {
@@ -111,11 +111,11 @@ func TestStreamCommitPrunesBeforeItSettles(t *testing.T) {
 	first := &core.SyntaxError{Pos: 1}
 	memo := core.NewMemoTable()
 	memo.Slots = make([]*core.MemoEntry, 2)
-	p := &core.Parser{Input: core.Input{Base: 1023, Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1})}, Memo: memo, Recovered: []*core.SyntaxError{first}}
+	p := &core.Parser{Input: core.Input{Base: 1023, Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1})}, Memo: memo, Recovered: []core.RecEntry{core.ErrEntry(first)}}
 	p.DiagnosticTail.Limit = 1
 	p.Diagnosed = 1
 	got := catchStreamPanic(func() { p.Commit(1024) })
-	if _, ok := got.(core.Fatal); !ok || len(p.Recovered) != 1 || p.Recovered[0] != first || p.Diagnosed != 1 || memo.Base != 0 {
+	if _, ok := got.(core.Fatal); !ok || len(p.Recovered) != 1 || p.Recovered[0] != core.ErrEntry(first) || p.Diagnosed != 1 || memo.Base != 0 {
 		t.Fatalf("interruption=%v recovered=%v diagnosed=%d floor=%d", got, p.Recovered, p.Diagnosed, memo.Base)
 	}
 }
@@ -169,7 +169,7 @@ func TestStreamCommitChargesItsDeclaredWork(t *testing.T) {
 		}
 	})
 	t.Run("the scratch of the errors is cleared", func(t *testing.T) {
-		p := &core.Parser{Input: core.Input{Control: budget()}, Memo: core.NewMemoTable(), Recovered: make([]*core.SyntaxError, 1, 16)}
+		p := &core.Parser{Input: core.Input{Control: budget()}, Memo: core.NewMemoTable(), Recovered: make([]core.RecEntry, 1, 16)}
 		p.DiagnosticTail.Limit = 1
 		p.Commit(1)
 		if p.Control.Used != 16 {
@@ -186,7 +186,7 @@ func TestStreamCancelledContextDeliversNoDiagnostic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	diagnostics, elements := 0, 0
-	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(ctx, limits.Limits{})}, Memo: core.NewMemoTable(), Recovered: []*core.SyntaxError{{Pos: 1}},
+	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(ctx, limits.Limits{})}, Memo: core.NewMemoTable(), Recovered: []core.RecEntry{core.ErrEntry(&core.SyntaxError{Pos: 1})},
 		Diagnostic: func(*core.SyntaxError) error { diagnostics++; return nil },
 		Emit:       func(*value.Node) error { elements++; return nil }}
 	got := catchStreamPanic(func() { p.EmitStream(nil, 0) })
@@ -268,7 +268,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 func TestStreamDiagnosticCallbackMarkEndsWithIt(t *testing.T) {
 	t.Parallel()
 	for _, want := range []error{nil, errors.New("stop")} {
-		p := &core.Parser{Recovered: []*core.SyntaxError{{Pos: 1}}}
+		p := &core.Parser{Recovered: []core.RecEntry{core.ErrEntry(&core.SyntaxError{Pos: 1})}}
 		p.Diagnostic = func(*core.SyntaxError) error {
 			if !p.EmitCall {
 				t.Error("the callback runs without the mark")

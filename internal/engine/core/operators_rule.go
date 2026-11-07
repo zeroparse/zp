@@ -47,7 +47,7 @@ type OperatorsRuleAttempt struct {
 	Start, End int
 	Env        *Env
 	Cut        bool
-	Errs       []*SyntaxError // syntax errors recovered in this candidate
+	Errs       RecEntry // syntax errors recovered in this candidate
 	missing    []MissingTokenEvent
 }
 
@@ -91,7 +91,7 @@ type ExprState struct {
 // small: the common strict parse has neither.
 func (p *Parser) ApplyRecovered(a *OperatorsRuleAttempt) {
 	if p.Missing == nil {
-		p.Recovered = p.appendErrors(p.Recovered, a.Errs)
+		p.recAdd(a.Errs)
 	} else {
 		p.restoreMissing(a.missing, a.Errs, false)
 	}

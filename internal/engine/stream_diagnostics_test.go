@@ -71,7 +71,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 func TestStreamDiagnosticCallbackCopiesErrorSlices(t *testing.T) {
 	t.Parallel()
 	original := &SyntaxError{Pos: 3, Expected: []string{"before"}, Messages: []string{"message"}}
-	p := &core.Parser{Recovered: []*SyntaxError{original}, Diagnostic: func(e *SyntaxError) error {
+	p := &core.Parser{Recovered: []core.RecEntry{core.ErrEntry(original)}, Diagnostic: func(e *SyntaxError) error {
 		e.Pos = 10
 		e.Expected[0] = "after"
 		e.Messages[0] = "after"
@@ -268,10 +268,10 @@ func TestStreamDiagnosticTailCommitScratchOwnership(t *testing.T) {
 		}
 		current := &SyntaxError{Pos: 7}
 		stale := &SyntaxError{Pos: 8}
-		p.Recovered = make([]*SyntaxError, 8)
-		p.Recovered[0] = current
+		p.Recovered = make([]core.RecEntry, 8)
+		p.Recovered[0] = core.ErrEntry(current)
 		for i := 1; i < 8; i++ {
-			p.Recovered[i] = stale
+			p.Recovered[i] = core.ErrEntry(stale)
 		}
 		p.Recovered = p.Recovered[:1]
 		p.DiagnosticTail.Add(current)
@@ -282,7 +282,7 @@ func TestStreamDiagnosticTailCommitScratchOwnership(t *testing.T) {
 			t.Fatalf("traced=%v lost retained diagnostic", traced)
 		}
 		if traced {
-			if p.Recovered != nil || held[0] != current {
+			if p.Recovered != nil || held[0] != core.ErrEntry(current) {
 				t.Fatalf("trace snapshot changed: recovered=%v held=%v", p.Recovered, held)
 			}
 			continue
@@ -291,13 +291,57 @@ func TestStreamDiagnosticTailCommitScratchOwnership(t *testing.T) {
 			t.Fatalf("scratch not reused: len=%d cap=%d", len(p.Recovered), cap(p.Recovered))
 		}
 		for i, e := range p.Recovered[:cap(p.Recovered)] {
-			if e != nil {
+			if !e.None() {
 				t.Fatalf("scratch retained stale diagnostic at %d", i)
 			}
 		}
-		p.Recovered = append(p.Recovered, &SyntaxError{Pos: 9})
+		p.Recovered = append(p.Recovered, core.ErrEntry(&SyntaxError{Pos: 9}))
 		if &p.Recovered[0] != backing || p.DiagnosticTail.Errors[0] != current {
 			t.Fatal("scratch reuse changed collector ownership")
+		}
+	}
+}
+
+// TestStreamDiagnosticsOfSharedLists delivers each recovered error once, in order, when the errors
+// of a stream come as lists: an element that calls pair a second time at its position, after the
+// first alternative failed, stores the result, whose two errors are then one list.
+func TestStreamDiagnosticsOfSharedLists(t *testing.T) {
+	t.Parallel()
+	p := mustCompile(t, `rule main = item+ #stream $$
+rule item = pair ";" / pair "!"
+rule pair = part "," part
+rule part = "ab" #recover(skip=[^a;,!]+)`)
+	const count = 50
+	input := strings.Repeat("ab,X;Y,Z!", count)
+	want, err := p.ParseWith("main", input, ParseOptions{})
+	var all SyntaxErrors
+	if want == nil || !errors.As(err, &all) || len(all) != 3*count {
+		t.Fatalf("parse: %v", err)
+	}
+	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		for _, limit := range []int{0, 3} {
+			var got []int
+			o := ParseOptions{Backend: backend, DiagnosticLimit: limit, DiagnosticCallback: func(e *SyntaxError) error {
+				got = append(got, e.Pos)
+				return nil
+			}}
+			err := p.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil }, o)
+			if len(got) != len(all) {
+				t.Fatalf("%v/limit %d: %d diagnostics, want %d (err=%v)", backend, limit, len(got), len(all), err)
+			}
+			for i, e := range all {
+				if got[i] != e.Pos {
+					t.Fatalf("%v/limit %d: diagnostic %d at %d, want %d", backend, limit, i, got[i], e.Pos)
+				}
+			}
+			var errs SyntaxErrors
+			var truncated *TruncatedSyntaxErrors
+			switch {
+			case limit == 0 && (!errors.As(err, &errs) || len(errs) != len(all)):
+				t.Fatalf("%v: terminal errors %v", backend, err)
+			case limit > 0 && (!errors.As(err, &truncated) || truncated.Total != uint64(len(all))):
+				t.Fatalf("%v/limit %d: terminal errors %v", backend, limit, err)
+			}
 		}
 	}
 }

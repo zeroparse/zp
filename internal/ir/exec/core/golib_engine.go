@@ -202,7 +202,7 @@ func engineFile(specs []goSpec, imports string) (string, error) {
 func engineTarget() *execgo.Target {
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
-		ops.Rule: "*Rule", ops.Value: "*value.Node", ops.Entry: "*MemoEntry", ops.Values: "KeyVals", ops.Errs: "[]*SyntaxError",
+		ops.Rule: "*Rule", ops.Value: "*value.Node", ops.Entry: "*MemoEntry", ops.Values: "KeyVals", ops.Errs: "RecEntry",
 		ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID", ops.ExpID: "ExpID",
 		ops.Ctx: "CtxState", ops.Res: "ctxHit", ops.Grow: "GrowState", ops.CallState: "*CallState",
 		ops.Frame: "*Frame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
@@ -343,7 +343,7 @@ func engineTarget() *execgo.Target {
 			return fmt.Sprintf("OperatorsRuleAttempt{Op: %s, Frame: %s, V: %s, Start: %s, End: p.Pos, Env: p.Env, Cut: %s, Errs: %s, missing: p.MissingEvents(%s)}",
 				a[0], a[1], a[2], a[3], a[4], a[5], a[6])
 		case "opr.replay":
-			return fmt.Sprintf("if p.Missing != nil || len(%s.Errs) != 0 {\np.ApplyRecovered(&%[1]s)\n}", a[0])
+			return fmt.Sprintf("if p.Missing != nil || !%s.Errs.None() {\np.ApplyRecovered(&%[1]s)\n}", a[0])
 		case "opr.found":
 			return a[0] + ".Op != nil"
 		case "opr.op", "opr.end", "opr.cut", "opr.env", "opr.errs":
@@ -358,7 +358,7 @@ func engineTarget() *execgo.Target {
 		case "opr.nudBound":
 			return "p.nudBound"
 		case "rec.none":
-			return "len(" + a[0] + ") == 0"
+			return a[0] + ".None()"
 		case "budget.charge":
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "p.Spend()"
@@ -401,9 +401,9 @@ func engineTarget() *execgo.Target {
 		case "rec.truncate":
 			return "p.Recovered = p.Recovered[:" + a[0] + "]"
 		case "rec.since":
-			return "p.copyErrors(p.Recovered[" + a[0] + ":])"
+			return "p.recSince(" + a[0] + ")"
 		case "rec.add":
-			return "p.Recovered = p.appendErrors(p.Recovered, " + a[0] + ")"
+			return "p.recAdd(" + a[0] + ")"
 		case "missing.active":
 			return "p.Missing != nil"
 		case "missing.recompute":
@@ -544,7 +544,7 @@ func engineTarget() *execgo.Target {
 		case "opr.infix":
 			return a[0] + ".Kind != grammar.Infix", true
 		case "rec.none":
-			return "len(" + a[0] + ") != 0", true
+			return "!" + a[0] + ".None()", true
 		case "memo.pinned":
 			return "!" + a[0] + ".Positional", true
 		}

@@ -114,13 +114,13 @@ func (p *Parser) RecordMissingSeed(e *MemoEntry, mark int) {
 // ReplayMissing restores a chosen seed/candidate. Repeated events already on
 // the path neither cost attempts nor duplicate their insertion diagnostic.
 // Consuming recovery diagnostics remain subject to their existing replay rules.
-func (p *Parser) ReplayMissing(events []MissingTokenEvent, errs []*SyntaxError) {
+func (p *Parser) ReplayMissing(events []MissingTokenEvent, errs RecEntry) {
 	p.restoreMissing(events, errs, true)
 }
 
 // Selecting an operator candidate restores an already charged synthesis; it is
 // not a memo replay and does not charge that synthesis a second time.
-func (p *Parser) restoreMissing(events []MissingTokenEvent, errs []*SyntaxError, charge bool) {
+func (p *Parser) restoreMissing(events []MissingTokenEvent, errs RecEntry, charge bool) {
 	var duplicate map[*SyntaxError]bool
 	for _, event := range events {
 		p.Spend()
@@ -134,13 +134,14 @@ func (p *Parser) restoreMissing(events []MissingTokenEvent, errs []*SyntaxError,
 		}
 	}
 	if duplicate == nil {
-		p.Recovered = p.appendErrors(p.Recovered, errs)
+		p.recAdd(errs)
 		return
 	}
-	for _, err := range errs {
+	// The errors are recorded one by one, without those of the repeated insertions.
+	for _, err := range errs.AppendErrors(nil) {
 		p.Spend()
 		if !duplicate[err] {
-			p.Recovered = append(p.Recovered, err)
+			p.PushRecovered(err)
 		}
 	}
 }
@@ -181,7 +182,7 @@ func MissingLiteral(literal Matcher, site int, expected string, build bool) Matc
 		}
 		e := p.MakeError(m0.Pos, exp)
 		p.InsertMissing(MissingTokenEvent{key, e})
-		p.Recovered = append(p.Recovered, e)
+		p.PushRecovered(e)
 		if !build {
 			return nil, true
 		}

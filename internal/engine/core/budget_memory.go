@@ -116,7 +116,7 @@ func (p *Parser) heldBytes() uint64 {
 		n += uint64(p.Reader.Size())
 	}
 	n += uint64(cap(p.KidStack))*ptrBytes + uint64(cap(p.Estack))*anyBytes
-	n += uint64(cap(p.Trail))*uint64(unsafe.Sizeof(Undo{})) + uint64(cap(p.Recovered))*ptrBytes
+	n += uint64(cap(p.Trail))*uint64(unsafe.Sizeof(Undo{})) + uint64(cap(p.Recovered))*recEntryBytes
 	n += uint64(cap(p.Created))*ptrBytes + uint64(cap(p.Exp))*expIDBytes
 	n += uint64(cap(p.Gamma))*uint64(unsafe.Sizeof(growRec{})) + uint64(cap(p.seedReadLog))*intBytes
 	n += uint64(cap(p.frames))*uint64(unsafe.Sizeof(depFrame{})) + uint64(cap(p.deps))*uint64(unsafe.Sizeof(dep{}))
@@ -173,35 +173,6 @@ func (p *Parser) chargeError(e *SyntaxError) {
 	if BudgetControlsEnabled && p.Control != nil {
 		p.Control.errs = limits.SaturatingAdd(p.Control.errs, syntaxErrorSize(e))
 	}
-}
-
-// copyErrors returns a copy of the recovered errors src for a memo entry, and charges the list's
-// pointers to values; the errors themselves are charged once, when they are made (errs). It
-// stays inlinable for the common case of no errors.
-func (p *Parser) copyErrors(src []*SyntaxError) []*SyntaxError {
-	if len(src) == 0 {
-		return nil
-	}
-	return p.copyErrorsSlow(src)
-}
-
-func (p *Parser) copyErrorsSlow(src []*SyntaxError) []*SyntaxError {
-	out := p.appendErrors(nil, src)
-	p.ChargeValueBytes(cap(out) * int(ptrBytes))
-	return out
-}
-
-// appendErrors copies a list of recovered errors, which Compute counts and the cost does not (see
-// Cost in spec/runtime/parsing.md), so it also counts what it copies apart (ErrorCopies).
-func (p *Parser) appendErrors(dst, src []*SyntaxError) []*SyntaxError {
-	if len(src) == 0 {
-		// Most memo hits carry no errors; appending nothing leaves dst as it is.
-		return dst
-	}
-	if BudgetControlsEnabled && p.Control != nil {
-		p.Control.ErrorCopies += uint64(len(src))
-	}
-	return AppendSpend(p, dst, src)
 }
 
 // syntaxErrorSize returns the bytes of the syntax error e and its lists.

@@ -56,11 +56,11 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 	}
 	type usage struct{ compute, memory uint64 }
 	want := map[run]usage{
-		{Closure, false, 10, false}:         {255, 83088},
-		{Closure, true, 10, false}:          {221, 48232},
-		{Closure, false, 0, true}:           {252, 83924},
-		{Bytecode, false, 0, true}:          {302, 92420},
-		{BytecodeIterative, false, 0, true}: {301, 93716},
+		{Closure, false, 10, false}:         {248, 81016},
+		{Closure, true, 10, false}:          {214, 46160},
+		{Closure, false, 0, true}:           {245, 81820},
+		{Bytecode, false, 0, true}:          {295, 90316},
+		{BytecodeIterative, false, 0, true}: {294, 91612},
 	}
 	for r, w := range want {
 		p := prog
@@ -94,7 +94,7 @@ func TestBudgetCallEndChargesErrorsAfterExpectations(t *testing.T) {
 		st := &core.CallState{}
 		p.CallBegin(r, 0, st)
 		p.Expect(0, 7)
-		p.Recovered = append(p.Recovered, &core.SyntaxError{}, &core.SyntaxError{}, &core.SyntaxError{})
+		p.Recovered = append(p.Recovered, core.ErrEntry(&core.SyntaxError{}), core.ErrEntry(&core.SyntaxError{}), core.ErrEntry(&core.SyntaxError{}))
 		p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: limit})
 		err = catchFatal(t, func() { p.CallEnd(r, st, nil, true) })
 		_, stored = p.Memo.Get(core.MemoKey{Rule: r.ID})

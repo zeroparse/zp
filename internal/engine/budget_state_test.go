@@ -51,7 +51,7 @@ func TestBudgetResetRestoresRepeatedCaptureWritesInReverse(t *testing.T) {
 	p.Pos = 71
 	p.Frame = f
 	p.SetVars([]any{1})
-	p.Recovered = []*SyntaxError{{Messages: []string{"temporary"}}}
+	p.Recovered = []core.RecEntry{core.ErrEntry(&SyntaxError{Messages: []string{"temporary"}})}
 	m := core.Mark{Pos: 4, Env: nil, Trail: 0, Recovered: 0}
 
 	p.Reset(m)

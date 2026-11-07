@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -16,9 +17,17 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
+// TestBudgetDiagnosticRecoveredLists checks the lists of recovered errors under the controls: a
+// snapshot (rec.since) copies the entries after its mark, charging each, and an interruption
+// publishes no part of it; a replay (rec.add) records the list as one entry, sharing it, at no
+// charge, so it has no copy to interrupt and runs only to completion.
+func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 	for _, name := range []string{"memo replay", "memo snapshot", "LR snapshot", "LR replay", "OperatorsRule snapshot", "iterative OperatorsRule snapshot", "OperatorsRule replay"} {
 		for _, mode := range []string{"complete", "budget", "cancel"} {
+			replay := strings.HasSuffix(name, "replay")
+			if replay && mode != "complete" {
+				continue
+			}
 			t.Run(name+"/"+mode, func(t *testing.T) {
 				a := &core.SyntaxError{Messages: []string{"retained-a"}}
 				b := &core.SyntaxError{Expected: []string{"retained-b"}}
@@ -30,27 +39,39 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 				before, _ := json.Marshal(records)
 				retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "stable"}}})
 				p := diagnosticParser(limits.Limits{})
-				p.Memo, p.Recovered = core.NewMemoTable(), []*core.SyntaxError{prefix}
+				list := core.NewErrList(records)
+				p.Memo, p.Recovered = core.NewMemoTable(), []core.RecEntry{core.ErrEntry(prefix)}
 				p.Memo.Slots = make([]*core.MemoEntry, 1)
 				r := &core.Rule{ID: 7}
 				key := core.MemoKey{Rule: 7}
 				steps := uint64(len(records))
+				if replay {
+					steps = 0
+				}
 				var run, completed, aborted func()
 				assertReplay := func() {
-					if len(p.Recovered) != 321 || p.Recovered[0] != prefix || !slices.Equal(p.Recovered[1:], records) {
-						t.Fatal("recovered replay changed pointer order or prefix")
+					if len(p.Recovered) != 2 || p.Recovered[0] != core.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
+						t.Fatal("recovered replay changed the prefix or did not share the list")
+					}
+					if !slices.Equal(p.RecoveredErrors(), append([]*core.SyntaxError{prefix}, records...)) {
+						t.Fatal("recovered replay changed pointer order")
 					}
 				}
-				assertSnapshot := func(got []*core.SyntaxError) {
-					if !slices.Equal(got, records) || &got[0] == &records[0] {
-						t.Fatal("snapshot lost pointers or aliases the source slice")
+				assertSnapshot := func(got core.RecEntry) {
+					if got.List() == nil || !slices.Equal(got.Errors(), records) {
+						t.Fatal("snapshot lost pointers")
+					}
+				}
+				pushRecords := func() {
+					for _, e := range records {
+						p.PushRecovered(e)
 					}
 				}
 				aborted = func() {}
 				switch name {
 				case "memo replay":
-					p.Memo.Slots[0] = &core.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: records}
-					steps += 2 // lookup and entry visit, then the controlled replay
+					p.Memo.Slots[0] = &core.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
+					steps += 2 // lookup and entry visit; the replay is free
 					var ok, hit bool
 					var val *value.Node
 					run = func() { val, ok, hit = p.CallBegin(r, 0, &core.CallState{}) }
@@ -65,10 +86,15 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 					var st core.CallState
 					p.CallBegin(r, 0, &st)
 					p.Pos = 1
-					p.Recovered = append(p.Recovered, records...)
+					pushRecords()
 					steps += 2 // atomic memo put after the snapshot
 					run = func() { p.CallEnd(r, &st, retained, true) }
-					completed = func() { assertSnapshot(p.Memo.Slots[0].Errs) }
+					completed = func() {
+						assertSnapshot(p.Memo.Slots[0].Errs)
+						if len(p.Recovered) != 2 || p.Recovered[1].List() != p.Memo.Slots[0].Errs.List() {
+							t.Fatal("the snapshot did not take the place of the records")
+						}
+					}
 					aborted = func() {
 						if p.Memo.Slots[0] != nil {
 							t.Fatal("partial memo snapshot published")
@@ -78,7 +104,7 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 					g := p.GrowBegin(key, 0, 0)
 					seed := g.Best
 					p.Pos = 1
-					p.Recovered = append(p.Recovered, records...)
+					pushRecords()
 					steps++ // the growth step
 					run = func() {
 						if p.GrowStep(&g, retained, true); !p.GrowNext(&g) {
@@ -97,7 +123,7 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 						}
 					}
 				case "LR replay":
-					g := core.GrowState{Rec: 1, Best: &core.MemoEntry{Ok: true, End: 1, Node: retained, Errs: records}}
+					g := core.GrowState{Rec: 1, Best: &core.MemoEntry{Ok: true, End: 1, Node: retained, Errs: list}}
 					run = func() { p.GrowEnd(r, &g) }
 					completed = assertReplay
 				case "OperatorsRule snapshot", "iterative OperatorsRule snapshot":
@@ -107,13 +133,13 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 						steps++ // the operator that the match tries
 						op.Line.M = func(p *core.Parser) (*value.Node, bool) {
 							p.Pos = 1
-							p.Recovered = append(p.Recovered, records...)
+							pushRecords()
 							return retained, true
 						}
 						run = func() { best = p.Longest([]*core.OperatorsRuleOp{op}) }
 					} else {
 						p.Pos = 1
-						p.Recovered = append(p.Recovered, records...)
+						pushRecords()
 						f := &longestFrame{started: true, st: core.LongestState{L: []*core.OperatorsRuleOp{op}, M0: core.Mark{Recovered: 1}, F: p.NewFrame(0)}}
 						run = func() { f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained}); best = ivmMachineOf(p).attempt }
 					}
@@ -129,11 +155,12 @@ func TestBudgetDiagnosticRecoveredCopies(t *testing.T) {
 						}
 					}
 				case "OperatorsRule replay":
-					run = func() { p.ApplyRecovered(&core.OperatorsRuleAttempt{End: 1, Errs: records}) }
+					run = func() { p.ApplyRecovered(&core.OperatorsRuleAttempt{End: 1, Errs: list}) }
 					completed = assertReplay
 				}
 				if mode == "complete" {
-					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: steps})
+					// A limit of 0 is no limit; a free replay runs under a limit of one unit.
+					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: max(steps, 1)})
 				} else if mode == "budget" {
 					// Less than the copy itself, so failure cannot be at a later put.
 					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 319})

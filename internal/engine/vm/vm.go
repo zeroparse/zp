@@ -1087,7 +1087,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				goto fail
 			}
 			se := p.MakeError(l.far, l.exp)
-			p.Recovered = append(p.Recovered, se)
+			p.PushRecovered(se)
 			if in.A == 1 {
 				mc.push(p.NewNode(value.Data{Kind: value.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: value.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
 			}

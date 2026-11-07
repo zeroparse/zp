@@ -72,7 +72,10 @@ type TraceEvent struct {
 	p   *Parser
 	far int
 	exp []ExpID
-	rec []*SyntaxError
+	// rec is the errors of a bounded stream's tail, and recs, otherwise, the entries of the record of
+	// recovered errors that the call left, which Recovered lists.
+	rec  []*SyntaxError
+	recs []RecEntry
 }
 
 // LineCol returns the 1-based line and column of the position pos. In a stream parse, it returns
@@ -115,6 +118,9 @@ func (e TraceEvent) Failure() *SyntaxError {
 // result. The expectations of a recovered error are not part of Failure: recovering removes them
 // from the record of the call that contains the #recover.
 func (e TraceEvent) Recovered() []*SyntaxError {
+	if e.recs != nil {
+		return appendRecErrors(nil, e.recs)
+	}
 	return e.rec
 }
 
@@ -169,7 +175,7 @@ type tracedCallState struct {
 	// resumed is the parse's repetition-element reuse count when the call started.
 	resumed int
 	// hw is the end of the examined input when the call started, and rec the number of
-	// recovered errors.
+	// entries of the record of recovered errors.
 	hw, rec int
 	exp     ExpMark
 }
@@ -218,9 +224,11 @@ func (p *Parser) TraceExit(ok bool) {
 		if len(t.stack) == 1 && p.DiagnosticTail.Limit > 0 {
 			// A bounded stream has released earlier committed recoveries.
 			// Report the same ordered tail, including a successful suffix.
-			ev.rec = p.DiagnosticTail.Preview(p, p.Recovered)
+			ev.rec = p.DiagnosticTail.Preview(p, p.RecoveredErrors())
 		} else if len(p.Recovered) > c.rec {
-			ev.rec = p.Recovered[c.rec:len(p.Recovered):len(p.Recovered)]
+			// The record changes in place as the parse goes on (recSince), so the event keeps its
+			// own copy of the entries; a call that recorded its errors as one list leaves one.
+			ev.recs = append([]RecEntry(nil), p.Recovered[c.rec:]...)
 		}
 	}
 	t.emit(ev)

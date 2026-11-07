@@ -156,7 +156,7 @@ func TestBudgetResetAndVMRestoreInterruptionIsFatal(t *testing.T) {
 			p.Frame = f
 			p.Pos = 99
 			p.SetVars([]any{1})
-			p.Recovered = []*core.SyntaxError{{Messages: []string{"temporary"}}}
+			p.Recovered = []core.RecEntry{core.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
 			if name == "reset" {
 				m := core.Mark{Pos: 4, Trail: 0}
 				if err := catchFatal(t, func() { p.Reset(m) }); !errors.Is(err, limits.ErrLimit) {

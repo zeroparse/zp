@@ -21,7 +21,7 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 	const reuse = "if found && (!c.ctx || p.ctxAllows(&c, e)) && (!e.silent || p.Silent > 0) && "
 	const examine = "entry.Examined, entry.From, entry.Positional = p.Hw, p.lw, false"
 	const route = "\tif store == storeMemo {\n"
-	const copyErrs = "Errs: p.copyErrors(p.Recovered[rec:])}"
+	const copyErrs = "Errs: p.recSince(rec)}"
 	runPrintedMutants(t, "core/call_exec.go", []printedMutant{
 		{"a failed call keeps its recovered errors",
 			[]printedEdit{{"if !r.Leader && !ok {\n\t\tp.Recovered = p.Recovered[:rec]\n", "if !r.Leader && !ok {\n"}},
@@ -47,10 +47,10 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 		{"a result that read a growing seed is stored in the memo",
 			[]printedEdit{{route, "\tif store != storeNowhere {\n"}},
 			"^TestLeftRecursionMemberMemoStale$", []string{"."}},
-		{"a call copies its recovered errors before it keeps its expectations",
+		{"a call takes its recovered errors before it keeps its expectations",
 			[]printedEdit{
 				{"\tfar, inner := p.Unisolate(m)\n\tkept := p.Keep(inner)\n\tstore := storeMemo\n",
-					"\terrs := p.copyErrors(p.Recovered[rec:])\n\tfar, inner := p.Unisolate(m)\n\tkept := p.Keep(inner)\n\tstore := storeMemo\n"},
+					"\terrs := p.recSince(rec)\n\tfar, inner := p.Unisolate(m)\n\tkept := p.Keep(inner)\n\tstore := storeMemo\n"},
 				{"Gen: p.Gen, Vgen: p.Gen, " + copyErrs, "Gen: p.Gen, Vgen: p.Gen, Errs: errs}"},
 				{"Positional: r.Positional, " + copyErrs, "Positional: r.Positional, Errs: errs}"},
 			},
@@ -173,7 +173,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"operatorsRuleExpr", "(op.Assoc == grammar.AssocNone) && level == lastNone", "false && level == lastNone"}},
 			{{"operatorsRuleExpr", "\t\tp.Pos = a.End\n", ""}},
 			{{"operatorsRuleExpr", "\t\tp.Env = a.Env\n", ""}},
-			{{"operatorsRuleExpr", "if p.Missing != nil || len(a.Errs) != 0 {", "if len(a.Errs) != 0 {"}},
+			{{"operatorsRuleExpr", "if p.Missing != nil || !a.Errs.None() {", "if !a.Errs.None() {"}},
 			{{"operatorsRuleExpr", "lhs, nil)\n\t\t\tlastNone = -1\n", "lhs, nil)\n"}},
 			{{"operatorsRuleExpr", "\t\t\tcontinue\n\t\t}\n\t\trmin", "\t\t}\n\t\trmin"}},
 			{{"operatorsRuleExpr", "rmin := level\n\t\tif op.Assoc == grammar.AssocRight {", "rmin := level\n\t\tif true {"}},
@@ -187,7 +187,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"ExprLed", "(op.Assoc == grammar.AssocNone) && level == st.LastNone", "false"}},
 			{{"ExprLed", "\tp.Pos = st.A.End\n", ""}},
 			{{"ExprLed", "\tp.Env = st.A.Env\n", ""}},
-			{{"ExprLed", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if len(st.A.Errs) != 0 {"}},
+			{{"ExprLed", "if p.Missing != nil || !st.A.Errs.None() {", "if !st.A.Errs.None() {"}},
 			{{"ExprLed", "st.Lhs, nil)\n\t\tst.LastNone = -1\n", "st.Lhs, nil)\n"}},
 			{{"ExprLed", "rmin := level\n\tif op.Assoc == grammar.AssocRight {", "rmin := level\n\tif true {"}},
 			{{"ExprRhs", "\t\tp.Reset(st.M0)\n\t\treturn true, true\n", "\t\treturn true, true\n"}},
@@ -211,14 +211,14 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"operatorsRuleNud", "\tp.skipTrivia(r)\n", ""}},
 			{{"operatorsRuleNud", "\t\tp.Pos = a.End\n", ""}},
 			{{"operatorsRuleNud", "\t\tp.Env = a.Env\n", ""}},
-			{{"operatorsRuleNud", "if p.Missing != nil || len(a.Errs) != 0 {", "if len(a.Errs) != 0 {"}},
+			{{"operatorsRuleNud", "if p.Missing != nil || !a.Errs.None() {", "if !a.Errs.None() {"}},
 			{{"operatorsRuleNud", "\t\tp.Cut = false\n", ""}},
 			{{"operatorsRuleNud", "\t\tp.Cut = prevCut\n", "\t\t_ = prevCut\n"}},
 			{{"operatorsRuleNud", "\t\tp.Reset(m0)\n\t\tif cut {", "\t\tif cut {"}},
 			{{"operatorsRuleNud", "\t\tif cut {", "\t\tif cut && false {"}},
 			{{"NudPrefix", "\t\tp.Pos = st.A.End\n", ""}},
 			{{"NudPrefix", "\t\tp.Env = st.A.Env\n", ""}},
-			{{"NudPrefix", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if len(st.A.Errs) != 0 {"}},
+			{{"NudPrefix", "if p.Missing != nil || !st.A.Errs.None() {", "if !st.A.Errs.None() {"}},
 			{{"NudNext", "\tp.Cut = false\n", ""}},
 			{{"NudNext", "\tst.PrevCut = prevCut\n", "\t_ = prevCut\n"}},
 			{{"NudOperand", "\tp.Cut = st.PrevCut\n", ""}},
@@ -232,7 +232,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"Longest", "matched := ok && !(p.Pos == start && (op.Kind != grammar.Infix))", "matched := ok"}},
 			{{"Longest", "if !matched && cut {", "if cut {"}},
 			{{"Longest", "if !matched && cut {", "if false && cut {"}},
-			{{"Longest", "Errs: p.copyErrors(p.Recovered[m0.Recovered:])", "Errs: nil"}},
+			{{"Longest", "Errs: p.recSince(m0.Recovered)", "Errs: RecEntry{}"}},
 			{{"Longest", "missing: p.MissingEvents(m0.missing)", "missing: nil"}},
 			{{"Longest", "Env: p.Env,", "Env: m0.Env,"}},
 			{{"Longest", "Cut: cut,", "Cut: false,"}},
@@ -249,7 +249,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"LongestStep", "matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != grammar.Infix))", "matched := ok"}},
 			{{"LongestStep", "if !matched && cut {", "if cut {"}},
 			{{"LongestStep", "if !matched && cut {", "if false && cut {"}},
-			{{"LongestStep", "Errs: p.copyErrors(p.Recovered[st.M0.Recovered:])", "Errs: nil"}},
+			{{"LongestStep", "Errs: p.recSince(st.M0.Recovered)", "Errs: RecEntry{}"}},
 			{{"LongestStep", "missing: p.MissingEvents(st.M0.missing)", "missing: nil"}},
 			{{"LongestStep", "Env: p.Env,", "Env: st.M0.Env,"}},
 			{{"LongestStep", "Cut: cut,", "Cut: false,"}},
@@ -284,7 +284,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
 			{{"LongestBegin", "\tp.SpendN(uint64(len(l)))\n", "\tif len(l) > 0 {\n\t\tp.Spend()\n\t}\n"}},
 		}},
-		{"^TestBudgetDiagnosticRecoveredCopies$", "./vm", [][]funcEdit{
+		{"^TestBudgetDiagnosticRecoveredLists$", "./vm", [][]funcEdit{
 			{{"Longest", "\tp.SpendN(uint64(len(l)))\n", ""}},
 		}},
 		{"^TestBudgetResetRestoresRepeatedCaptureWritesInReverse$", ".", [][]funcEdit{
@@ -298,8 +298,8 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"Reset", "\tp.UndoCaptures(m.Trail)\n", ""}},
 		}},
 		{"^TestCompiledRecognitionRoundTrip$", ".", [][]funcEdit{
-			{{"ExprLed", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if p.Missing != nil {"}},
-			{{"operatorsRuleNud", "if p.Missing != nil || len(a.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"ExprLed", "if p.Missing != nil || !st.A.Errs.None() {", "if p.Missing != nil {"}},
+			{{"operatorsRuleNud", "if p.Missing != nil || !a.Errs.None() {", "if p.Missing != nil {"}},
 			{{"operatorsRuleNud", "p.OperatorsRuleParse(r, a.Op.Level)", "p.OperatorsRuleParse(r, a.Op.Level-1)"}},
 			{{"NudRhs", "\tif st.A.Cut {\n\t\treturn nil, false, true\n\t}\n", ""}},
 			{{"NudRhs", "\tp.Reset(st.M0)\n", ""}},
@@ -364,9 +364,9 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		}},
 		{"^TestTracesAgreeAcrossBackends$", ".", [][]funcEdit{
 			{{"operatorsRuleExpr", "if failed {", "if failed && false {"}},
-			{{"operatorsRuleExpr", "if p.Missing != nil || len(a.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"operatorsRuleExpr", "if p.Missing != nil || !a.Errs.None() {", "if p.Missing != nil {"}},
 			{{"ExprLed", "if failed {", "if failed && false {"}},
-			{{"NudPrefix", "if p.Missing != nil || len(st.A.Errs) != 0 {", "if p.Missing != nil {"}},
+			{{"NudPrefix", "if p.Missing != nil || !st.A.Errs.None() {", "if p.Missing != nil {"}},
 			{{"Longest", "((best.Op == nil) || p.Pos > best.End)", "(best.Op == nil)"}},
 		}},
 	}
@@ -508,17 +508,17 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 		{"the scratch of the errors is cleared free of charge",
 			[]printedEdit{{"\t\tClearSpend(p, p.Recovered[:cap(p.Recovered)])\n", "\t\tclear(p.Recovered[:cap(p.Recovered)])\n"}}, charges, here},
 		{"a panic of the diagnostic callback is the parser's",
-			[]printedEdit{{"\t\t\tp.EmitCall = true\n", ""}}, "^TestStreamDiagnosticCallbackPanicIsTheCallers$", here},
+			[]printedEdit{{"\t\tp.EmitCall = true\n", ""}}, "^TestStreamDiagnosticCallbackPanicIsTheCallers$", here},
 		{"the mark of the diagnostic callback stays",
-			[]printedEdit{{"\t\t\tp.EmitCall = false\n", ""}}, "^TestStreamDiagnosticCallbackMarkEndsWithIt$", here},
+			[]printedEdit{{"\t\tp.EmitCall = false\n", ""}}, "^TestStreamDiagnosticCallbackMarkEndsWithIt$", here},
 		{"cancellation in the last diagnostic is not observed",
-			[]printedEdit{{"\t\tp.Diagnosed++\n\t\tif BudgetControlsEnabled {\n\t\t\tp.Control.Check()\n\t\t}\n", "\t\tp.Diagnosed++\n"}}, ends, here},
+			[]printedEdit{{"\t\tp.DiagnosticTail.Add(original)\n\t}\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n", "\t\tp.DiagnosticTail.Add(original)\n\t}\n"}}, ends, here},
 		{"the frames are scanned for free",
 			[]printedEdit{{"\tif StreamFrameScratch {\n\t\tp.ResetStreamFrames()\n\t}\n", "\tif StreamFrameScratch {\n\t\tp.FrameSlab = p.FrameSlab[:0]\n\t}\n"}}, charges, here},
 		{"the settled errors stay in the scratch", []printedEdit{{"\t\tClearSpend(p, p.Recovered[:cap(p.Recovered)])\n", ""}}, scratch, here},
 		{"the settled errors stay recorded", []printedEdit{{"\t\tp.Recovered = p.Recovered[:0]\n", ""}}, scratch, here},
 		{"the settled errors of a large scratch stay", []printedEdit{{"\t\tp.Recovered = nil\n", ""}}, scratch, here},
-		{"the count of reported errors stays", []printedEdit{{"\tp.Diagnosed = 0\n", ""}}, "^TestStreamCommitForgetsTheDiagnosedCount$", here},
+		{"the count of reported errors stays", []printedEdit{{"\tp.Diagnosed, p.diagnosedSkip, p.diagnosedList = 0, 0, nil\n", ""}}, "^TestStreamCommitForgetsTheDiagnosedCount$", here},
 		{"the settled errors stay counted", []printedEdit{{"\t\tp.Control.errs = 0\n", ""}}, "^TestMemoryLimitStream$", here},
 	})
 	// The checkpoints before the first diagnostic stand in for each other, so only both go together.
@@ -526,12 +526,12 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const before = "\t\tif BudgetControlsEnabled {\n\t\t\tp.Control.Check()\n\t\t}\n\t\toriginal := p.Recovered[p.Diagnosed]\n"
+	const before = "func (p *Parser) reportRecovered(original *SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
 	if strings.Count(string(reportSrc), before) != 1 {
 		t.Fatalf("core/stream_ops.go has no single checkpoint before a diagnostic")
 	}
 	reportMutant := filepath.Join(t.TempDir(), "stream_ops.go")
-	unchecked := strings.Replace(string(reportSrc), before, "\t\toriginal := p.Recovered[p.Diagnosed]\n", 1)
+	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *SyntaxError) error {\n", 1)
 	if err := os.WriteFile(reportMutant, []byte(unchecked), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -593,7 +593,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"budget: after lower", form(budgeted, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"budget: after always", form(budgeted, "from >= log[i].End &&", "true &&"), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"budget: pin ignored", form(budgeted, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
-		{"budget: errs ignored", form(budgeted, " && (len(e.Errs) == 0)", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
+		{"budget: errs ignored", form(budgeted, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"budget: invalid keeps going", form(budgeted, "\t\t\treturn false\n\t\t}\n\t\tdelta", "\t\t\tcontinue\n\t\t}\n\t\tdelta"), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"budget: from not moved", form(budgeted, "\t\tfrom = from + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"budget: examined not moved", form(budgeted, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
@@ -624,7 +624,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 		{"plain: after lower", form(plain, "from >= log[i].End &&", "from >= log[i].Start &&"), "^TestEngineExecConformance$", []string{"./core"}},
 		{"plain: after always", form(plain, "from >= log[i].End &&", "true &&"), "^TestEngineExecConformance$", []string{"./core"}},
 		{"plain: pin ignored", form(plain, " && !e.Positional", " "), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
-		{"plain: errs ignored", form(plain, " && (len(e.Errs) == 0)", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
+		{"plain: errs ignored", form(plain, " && e.Errs.None()", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
 		{"plain: invalid keeps going", form(plain, "\t\t\treturn false\n\t\t}\n\t\tdelta", "\t\t\tcontinue\n\t\t}\n\t\tdelta"), "^TestDocumentMovesReusedTrees$", []string{"."}},
 		{"plain: from not moved", form(plain, "\t\tfrom = from + delta\n", ""), "^TestEngineExecConformance$", []string{"./core"}},
 		{"plain: examined not moved", form(plain, "\t\texamined = examined + delta\n", ""), "^TestAdvanceEntryMatchesItsContract$", []string{"./core"}},
@@ -733,7 +733,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 	})
 	runPrintedMutants(t, "core/call_exec.go", []printedMutant{
 		{"lookup no advance", []printedEdit{{"if found && e.Vgen != p.Gen && !p.AdvanceEntry(e, p.Edits[:p.Gen]) {", "if false {"}}, "^TestBudgetDocumentReuseCancellationAndFreshRetry$", []string{"./document"}},
-		{"reuse always moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif true {\n"}}, "^TestBudgetDiagnosticRecoveredCopies$", []string{"./vm"}},
+		{"reuse always moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif true {\n"}}, "^TestBudgetDiagnosticRecoveredLists$", []string{"./vm"}},
 		{"reuse never moves", []printedEdit{{"\t\tif e.shifted {\n", "\t\tif false {\n"}}, "^TestBudgetDocumentStaleMemoCallReplayIsBounded$", []string{"."}},
 	})
 }

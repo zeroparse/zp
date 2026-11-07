@@ -86,14 +86,19 @@ type Parser struct {
 	LastKept []ExpID
 	// Descs maps expectation indices to strings (it differs per backend).
 	Descs []string
-	// Recovered holds the syntax errors recovered by #recover. Backtracking undoes them.
-	Recovered []*SyntaxError
+	// Recovered is the record of the syntax errors recovered by #recover: errors and the lists that
+	// results share (RecEntry). Backtracking undoes them; RecoveredErrors lists them.
+	Recovered []RecEntry
 	Missing   *MissingTokenState // invocation-local opt-in insertion accounting
 	// MissingLen is len(missing.path), or 0 without missing. It lives here so that mark and reset
 	// need no pointer chase or call on strict parses.
 	MissingLen int
-	// Diagnosed is the prefix of recovered already delivered to the stream diagnostic callback.
-	Diagnosed int
+	// Diagnosed is the number of entries of Recovered already delivered to the stream diagnostic
+	// callback; diagnosedSkip errors of the entry after them were delivered too when it is the list
+	// diagnosedList, which took the place of delivered entries (compactDiagnosed).
+	Diagnosed     int
+	diagnosedSkip int
+	diagnosedList *ErrList
 
 	// Emit receives the elements of the #stream repetition when parsing a stream.
 	Emit func(*value.Node) error
@@ -248,9 +253,9 @@ type MemoEntry struct {
 	// another result that shares them, so shift alone does not tell whether to move the node).
 	Gen   uint32
 	shift int32
-	// Errs holds the syntax errors recovered in this call. They are recorded again when the memo
-	// entry is used.
-	Errs []*SyntaxError
+	// Errs holds the syntax errors recovered in this call, as the list that rec.since returned. They
+	// are recorded again, as one entry, when the memo entry is used.
+	Errs RecEntry
 	// Far and expected are the farthest failure position and the expectations recorded within this
 	// call. They are recorded again when the memo entry is used.
 	Far      int
@@ -483,7 +488,7 @@ func (p *Parser) replayEntry(e *MemoEntry) {
 	}
 	p.Pos = e.End
 	if p.Missing == nil {
-		p.Recovered = p.appendErrors(p.Recovered, e.Errs)
+		p.recAdd(e.Errs)
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 	}
@@ -633,7 +638,7 @@ func (p *Parser) GrowStep(g *GrowState, v *value.Node, ok bool) {
 			// Only this growth holds its replaced seed.
 			p.Memo.Retire(old)
 		}
-		*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.copyErrors(p.Recovered[g.Rec:])}
+		*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.recSince(g.Rec)}
 		if p.Missing != nil {
 			p.RecordMissingSeed(g.Best, g.missing)
 		}
@@ -656,7 +661,7 @@ func (p *Parser) GrowStep(g *GrowState, v *value.Node, ok bool) {
 	res := new(MemoEntry)
 	*res = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: examined, From: from, Growing: true, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen}
 	if ok {
-		res.Errs = p.copyErrors(p.Recovered[g.Rec:])
+		res.Errs = p.recSince(g.Rec)
 	} else {
 		res.End = g.start
 	}
@@ -688,7 +693,7 @@ func (p *Parser) advance(g *GrowState, res *MemoEntry, rid uint64, st runStep) b
 			obs = append(obs, d)
 		}
 	}
-	if grew && !other && len(res.Errs) == 0 {
+	if grew && !other && res.Errs.None() {
 		st.deps = obs
 		c := cap(g.run)
 		g.run = append(g.run, st)
@@ -861,7 +866,7 @@ func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
 		p.ResetMissing(g.missing)
 	}
 	if p.Missing == nil {
-		p.Recovered = p.appendErrors(p.Recovered, best.Errs)
+		p.recAdd(best.Errs)
 	} else {
 		p.ReplayMissing(p.MissingSeedEvents(best), best.Errs)
 	}

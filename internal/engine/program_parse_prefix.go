@@ -94,7 +94,7 @@ func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result 
 	}
 	result = PrefixResult{Node: v, Consumed: p.Pos}
 	if len(p.Recovered) > 0 {
-		err = SyntaxErrors(p.Recovered)
+		err = SyntaxErrors(p.RecoveredErrors())
 	}
 	return result, err
 }

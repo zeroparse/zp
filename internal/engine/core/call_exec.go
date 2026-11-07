@@ -95,7 +95,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*value.Node, bool, 
 		if p.Missing != nil {
 			p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
 		} else {
-			p.Recovered = p.appendErrors(p.Recovered, e.Errs)
+			p.recAdd(e.Errs)
 		}
 		return e.Node, true, true
 	}
@@ -154,7 +154,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 			entry, p.grown = p.grown, nil
 		} else {
 			entry = p.entry(c.ctx)
-			*entry = MemoEntry{Node: v, Ok: ok, End: p.Pos, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen, Errs: p.copyErrors(p.Recovered[rec:])}
+			*entry = MemoEntry{Node: v, Ok: ok, End: p.Pos, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen, Errs: p.recSince(rec)}
 		}
 		p.MemoPut(MemoKey{Rule: r.ID, Pos: start, Min: min, Env: env.Env, MissingSilent: env.Missing}, entry)
 		entry.Present = c.present
@@ -169,7 +169,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 			p.grown = nil
 		} else {
 			e = new(MemoEntry)
-			*e = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: p.Hw, From: p.lw, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen, Positional: r.Positional, Errs: p.copyErrors(p.Recovered[rec:])}
+			*e = MemoEntry{Node: v, Ok: ok, End: p.Pos, Examined: p.Hw, From: p.lw, silent: p.Silent > 0, Gen: p.Gen, Vgen: p.Gen, Positional: r.Positional, Errs: p.recSince(rec)}
 		}
 		e.Far, e.Expected = far, kept
 		p.ctxKeep(&c, r, start, min, env, e)

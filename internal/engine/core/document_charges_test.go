@@ -52,7 +52,7 @@ func TestAdvanceEntryMatchesItsContract(t *testing.T) {
 			Growing: rng.IntN(16) == 0, Positional: rng.IntN(8) == 0, shift: int32(rng.IntN(3)), shifted: rng.IntN(4) == 0,
 			Vgen: uint32(rng.IntN(len(log) + 1))}
 		if rng.IntN(8) == 0 {
-			before.Errs = []*SyntaxError{{}}
+			before.Errs = ErrEntry(&SyntaxError{})
 		}
 		want, charged, ok := before, uint64(0), !before.Growing
 		if ok {
@@ -61,7 +61,7 @@ func TestAdvanceEntryMatchesItsContract(t *testing.T) {
 				if want.Examined <= ed.Start {
 					continue
 				}
-				if want.From < ed.End || want.Positional || want.Errs != nil {
+				if want.From < ed.End || want.Positional || !want.Errs.None() {
 					ok = false
 					break
 				}

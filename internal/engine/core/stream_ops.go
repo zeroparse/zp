@@ -49,7 +49,7 @@ func (p *Parser) streamSettleErrors() {
 	} else {
 		p.Recovered = nil
 	}
-	p.Diagnosed = 0
+	p.Diagnosed, p.diagnosedSkip, p.diagnosedList = 0, 0, nil
 	if BudgetControlsEnabled && p.Control != nil {
 		// With a diagnostic limit, the errors are now held by the tail, which counts those it
 		// keeps; without one, Recovered keeps them and errs keeps counting them.
@@ -66,29 +66,52 @@ func (p *Parser) ReportRecovered() error {
 	if p.Diagnosed > len(p.Recovered) {
 		p.Diagnosed = len(p.Recovered)
 	}
+	var errs []*SyntaxError
 	for p.Diagnosed < len(p.Recovered) {
-		if BudgetControlsEnabled {
-			p.Control.Check()
+		if e := p.Recovered[p.Diagnosed]; e.list == nil {
+			// An error, delivered without listing it.
+			if e.err != nil {
+				if err := p.reportRecovered(e.err); err != nil {
+					// The error ends the parse.
+					return err
+				}
+			}
+			p.Diagnosed++
+			continue
 		}
-		original := p.Recovered[p.Diagnosed]
-		if p.Diagnostic != nil {
-			e := *original
-			e.Expected = append([]string(nil), e.Expected...)
-			e.Messages = append([]string(nil), e.Messages...)
-			p.EmitCall = true
-			err := p.Diagnostic(&e)
-			p.EmitCall = false
-			if err != nil {
+		errs = p.Recovered[p.Diagnosed].AppendErrors(errs[:0])
+		for _, original := range errs[p.partialDiagnosed():] {
+			if err := p.reportRecovered(original); err != nil {
 				return err
 			}
 		}
-		if p.DiagnosticTail.Limit > 0 {
-			p.DiagnosticTail.Add(original)
+		p.Diagnosed, p.diagnosedSkip, p.diagnosedList = p.Diagnosed+1, 0, nil
+	}
+	return nil
+}
+
+// reportRecovered delivers the recovered error original to the diagnostic callback, as a copy that
+// the callback owns, and to the diagnostic tail.
+func (p *Parser) reportRecovered(original *SyntaxError) error {
+	if BudgetControlsEnabled {
+		p.Control.Check()
+	}
+	if p.Diagnostic != nil {
+		e := *original
+		e.Expected = append([]string(nil), e.Expected...)
+		e.Messages = append([]string(nil), e.Messages...)
+		p.EmitCall = true
+		err := p.Diagnostic(&e)
+		p.EmitCall = false
+		if err != nil {
+			return err
 		}
-		p.Diagnosed++
-		if BudgetControlsEnabled {
-			p.Control.Check()
-		}
+	}
+	if p.DiagnosticTail.Limit > 0 {
+		p.DiagnosticTail.Add(original)
+	}
+	if BudgetControlsEnabled {
+		p.Control.Check()
 	}
 	return nil
 }
