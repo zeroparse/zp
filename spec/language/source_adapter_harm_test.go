@@ -227,7 +227,7 @@ func unedited(rs []rune, starts []int, edits [][2]int, h, g []errorAt, e errorAt
 // both frontends reject, in parts per ten thousand, that a class took on average in 12 seeds of 100,000
 // sources (the 8 of the long tier and 4 more) plus three standard deviations of the share in one seed
 // (binomial, about 75,000 rejected sources), rounded up. The long tier is therefore not a held-out check:
-// seeds 13 and 14, which did not set the caps, were run once with them (see the record). The caps say what
+// seeds 13 to 22, which did not set the caps, were run once with them (see the record). The caps say what
 // this generator produces on this grammar and corpus: a change of the grammar, of the reference, of the
 // corpus or of the classification that moves a share past its cap shows here, and the cause is then looked
 // at, not the cap raised. A class of a cap above 0 may have 2 sources more than the share allows, and in a

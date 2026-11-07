@@ -289,3 +289,28 @@ func TestUnterminatedLiteralKeepsTheNextError(t *testing.T) {
 		}
 	}
 }
+
+// TestUnterminatedLiteralBeforeIndentedDeclaration requires the errors that follow an unterminated literal
+// and an indented declaration to stay. The language allows an indented declaration, and the hand-written
+// parser ends a group at it; the drop of the failure after the literal must not take the errors of that
+// declaration for the literal's.
+func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
+	p, _ := sourceGrammar(t)
+	for _, src := range []string{
+		"rule a = \"x\n  rule b = {\nrule c = d\n",
+		"rule a = {\n \"={\n  rule b = {\nrule e = c\n",
+		"rule a = {\n \"={\n  rule b = {\n  rule e = c\n",
+		"rule a = {\n \"={\n  rule b = {\nrule c = )\n",
+		"rule a = \"x\n  rule b = c\nrule d = )\n",
+	} {
+		_, merr := zp.ParseGrammar(src)
+		_, err := adaptCanonical(p, src)
+		if merr == nil || err == nil {
+			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
+		}
+		h, g := errorsOf(src, merr), errorsOf(src, err)
+		if len(h) != len(g) {
+			t.Errorf("%q: want as many errors as the reference\n  hand-written: %v\n  canonical:    %v", src, merr, err)
+		}
+	}
+}

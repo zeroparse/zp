@@ -35,7 +35,7 @@ type SourceError struct {
 // the token table of the lexer, so the text of a comment is never read again.
 // The failure of the grammar at the end of an unterminated string or class is not reported: it is that
 // lexical error, which is. Nor is the failure exactly at the start of the declaration after an
-// unterminated string or class (a line with a keyword in the first column), if no declaration starts between them: the literal swallowed the closing
+// unterminated string or class (a line with a keyword that has the shape of a declaration, or is in the first column), if no declaration starts between them: the literal swallowed the closing
 // bracket of a group, and the hand-written parser ends the group there without another error. The list is capped and de-duplicated as the hand-written parser's is.
 //
 // The lexer skips the characters that start no token and goes on, so the
@@ -57,13 +57,14 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 	// a block comment that is never closed starts, which swallows the rest.
 	type span struct {
 		kind       tokenKind
+		text       string
 		pos        grammar.Pos
 		start, end int
 	}
 	var spans []span
 	for _, t := range toks {
 		if t.kind != tEOF {
-			spans = append(spans, span{t.kind, t.pos, offsets[t.pos], offsets[t.end]})
+			spans = append(spans, span{t.kind, t.text, t.pos, offsets[t.pos], offsets[t.end]})
 		}
 	}
 	unterminated := -1
@@ -86,16 +87,40 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 			}
 		}
 	}
-	// lineStart reports whether span i starts a line, in the first column: a declaration of a grammar file
-	// starts there, and an indented line with a keyword is a statement or a field of a group.
-	lineStart := func(i int) bool { return spans[i].start == 0 || rs[spans[i].start-1] == '\n' }
-	keyword := func(i int) bool {
+	// lineStart reports whether span i is the first token of its line.
+	lineStart := func(i int) bool {
+		for j := spans[i].start - 1; j >= 0 && rs[j] != '\n'; j-- {
+			if rs[j] != ' ' && rs[j] != '\t' && rs[j] != '\r' {
+				return false
+			}
+		}
+		return true
+	}
+	// declaration reports whether span i starts a declaration: a keyword that starts a line in the first
+	// column, or that starts an indented line and has the shape of a declaration, a bare = or ~ on the line
+	// before any ; { } ( or ). An indented line such as var != "=" is a statement of a group.
+	declaration := func(i int) bool {
 		if spans[i].kind != tIdent || !lineStart(i) {
 			return false
 		}
-		switch string(rs[spans[i].start:spans[i].end]) {
+		switch spans[i].text {
 		case "rule", "type", "var":
+		default:
+			return false
+		}
+		if spans[i].start == 0 || rs[spans[i].start-1] == '\n' {
 			return true
+		}
+		for j := i + 1; j < len(spans) && spans[j].pos.Line == spans[i].pos.Line; j++ {
+			if spans[j].kind != tPunct {
+				continue
+			}
+			switch spans[j].text {
+			case "=", "~":
+				return true
+			case ";", "{", "}", "(", ")":
+				return false
+			}
 		}
 		return false
 	}
@@ -104,12 +129,18 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 	// lexical error is the report of that declaration, and the hand-written parser ends the group at the
 	// declaration without another.
 	swallowed := func(i int) bool {
-		if !lineStart(i) || !keyword(i) && rs[spans[i].start] != '@' {
+		if !lineStart(i) {
+			return false
+		}
+		switch {
+		case rs[spans[i].start] == '@':
+		case spans[i].kind == tIdent && (spans[i].text == "rule" || spans[i].text == "type" || spans[i].text == "var"):
+		default:
 			return false
 		}
 		from := 0
 		for j := i - 1; j >= 0; j-- {
-			if keyword(j) {
+			if declaration(j) {
 				from = spans[j].start
 				break
 			}
