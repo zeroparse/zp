@@ -416,8 +416,8 @@ export function equalValuesSpend(a: Value, b: Value, control: BudgetControl): bo
   return a === b;
 }
 
-export function copyErrorsSpend(items: readonly SyntaxError[], start: number, end: number, control: BudgetControl): SyntaxError[] {
-  const out: SyntaxError[] = new Array(end - start);
+export function copyEntriesSpend(items: readonly RecEntry[], start: number, end: number, control: BudgetControl): RecEntry[] {
+  const out: RecEntry[] = new Array(end - start);
   for (let from = start; from < end; from += 128) {
     const stop = Math.min(from + 128, end);
     control.charge(stop - from);
