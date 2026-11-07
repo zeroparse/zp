@@ -120,21 +120,21 @@ var hotSpans = []int{core.RunHotSpan, 2, 1}
 // atHotSpans runs f at each of hotSpans, and checks that the sites turn hot at the short ones.
 func atHotSpans(t *testing.T, f func(t *testing.T)) {
 	t.Helper()
-	defer func(n int) { core.RunHotSpan = n }(core.RunHotSpan)
+	defer func(n, m int) { core.RunHotSpan, core.ScanHotSpan = n, m }(core.RunHotSpan, core.ScanHotSpan)
 	for _, span := range hotSpans {
-		core.RunHotSpan = span
-		turns := core.RunHotTurns
+		core.RunHotSpan, core.ScanHotSpan = span, span
+		turns := core.RunHotTurns.Load()
 		t.Run("span"+strconv.Itoa(span), f)
-		if span <= 2 && core.RunHotTurns == turns {
+		if span <= 2 && core.RunHotTurns.Load() == turns {
 			t.Errorf("no run site turned hot at span %d", span)
 		}
 	}
 }
 
 // assertTurnedHot checks that a run site turned hot since turns, when the threshold is short.
-func assertTurnedHot(t *testing.T, name string, turns int) {
+func assertTurnedHot(t *testing.T, name string, turns int64) {
 	t.Helper()
-	if core.RunHotSpan <= 2 && core.RunHotTurns == turns {
+	if core.RunHotSpan <= 2 && core.RunHotTurns.Load() == turns {
 		t.Errorf("%s: no run site turned hot", name)
 	}
 }
@@ -155,7 +155,7 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 		plain := mustCompile(t, g.Src)
 		compile.NoRunSites = false
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
-		turns := core.RunHotTurns
+		turns := core.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ without records, first:\n%s", g.Name, b, len(diffs), diffs[0])
@@ -188,7 +188,7 @@ func runSitesOfLoadedPrograms(t *testing.T) {
 		plain := mustCompile(t, g.Src)
 		compile.NoRunSites = false
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
-		turns := core.RunHotTurns
+		turns := core.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
 			data, err := mustCompile(t, g.Src).Marshal("", mode)
 			if err != nil {
@@ -235,7 +235,7 @@ func runSitesMatchWithoutRecords(t *testing.T) {
 	for _, g := range runSiteGrammars {
 		prog := mustCompile(t, g.Src)
 		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
-		turns := core.RunHotTurns
+		turns := core.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ, first:\n%s", g.Name, b, len(diffs), diffs[0])
@@ -473,13 +473,13 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, exp := range []bool{true, false} {
 				o := ParseOptions{Backend: b, Expectations: exp}
-				turns := core.RunHotTurns
+				turns := core.RunHotTurns.Load()
 				n, err := prog.ParseWith("main", in, o)
 				wn, werr := plain.ParseWith("main", in, o)
 				if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
 					t.Fatalf("%s, %s: results differ\n got  %s\n want %s", g.Name, b, got, want)
 				}
-				if core.RunHotTurns == turns {
+				if core.RunHotTurns.Load() == turns {
 					t.Errorf("%s, %s: no run site turned hot", g.Name, b)
 				}
 			}
@@ -496,7 +496,7 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	compile.NoRunSites = true
 	plain := mustCompile(t, src)
 	compile.NoRunSites = false
-	turns := core.RunHotTurns
+	turns := core.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			o := ParseOptions{Backend: b, Limits: limits.Limits{Depth: uint64(depth)}}
@@ -510,7 +510,7 @@ func TestRunSitesDepthLimit(t *testing.T) {
 			}
 		}
 	}
-	if core.RunHotTurns == turns {
+	if core.RunHotTurns.Load() == turns {
 		t.Error("no run site turned hot")
 	}
 }

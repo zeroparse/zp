@@ -251,25 +251,25 @@ func Controls() []Control {
 			Name: "Scan shared through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Scan shared through the ends of rules around a recursion", Family: "rescanned calls",
 			Source: "rule main = e ws $$\nrule e = \"(\" e? t\nrule t = o\nrule o = (ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Scan shared after a literal through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e \"x\" ws $$\nrule e = \"(\" e? (\"x\" ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "x" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Scan shared after a memoized call through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e m ws $$\nrule e = \"(\" m e? (m ws \")\")?\nrule m = mx\nrule mx = \"x\"\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(x", n) + "x" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Memoized scan shared after a literal through the end of a recursion", Family: "rescanned calls", Positive: true,
@@ -281,37 +281,37 @@ func Controls() []Control {
 			Name: "Operators Rule skip shared by nested prefix operators", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Operators Rule part shared by nested right operands", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { infix right ws \"^\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("a^", n) + "a" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Operators Rule part shared by nested operands", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" x?\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Operators Rule part shared by operands nested through a rule", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" y?\n    level { postfix ws \"!\" }\n}\nrule y = x\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Operators Rule parts shared by operands of two nested Operators Rules", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" z?\n    level { postfix ws \"!\" }\n}\nrule z = #operators {\n    operand \"b\"\n    operand \"(\" x?\n    level { postfix ws \"?\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Operators Rule part shared by operator parts that nest", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { postfix \"(\" x? }\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("a(", n) + "a" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Operators Rule memoized part shared by nested operands", Family: "rescanned calls", Positive: true,
@@ -844,7 +844,7 @@ func Controls() []Control {
 			Name: "Scan at the end of a nest", Family: "bounded scans",
 			Source: "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("a", n) + "b" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// The opening delimiter is in the alphabet of the body, so a run of openers holds a start at
 		// each of its positions.
@@ -896,15 +896,19 @@ func Controls() []Control {
 			Name: "Scan behind a recovery with many starts", Family: "bounded scans",
 			Source: "rule main = ((\"q\" #recover(skip=[ab]+)) sp \"!\" / [ab])* sp $$\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("a", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// An Operators Rule applies any number of prefix operators, so it reaches sp from every
-		// position of a run of them.
+		// position of a run of them. The records of scan sites lower its steps 2.9 times at n=1000 (812,032 to
+		// 282,880) but it stays quadratic, which shows from 1000 on, so it is measured at the larger sizes.
+		// The same grammar without sp costs as many steps (1,019,030 against 1,166,914 at n=1000 in
+		// a traced parse with a hot span of 64), so the growth is the prefix loop of e, which runs from each of the n
+		// starts to the operand: an Operators Rule is no run site.
 		{
 			Name: "Scan behind an Operators Rule with many starts", Family: "bounded scans",
 			Source: "rule main = (e sp \"!\" / [-x])* sp $$\nrule e = #operators {\n    operand \"x\"\n    level neg { prefix \"-\" }\n}\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("-", n) + "x" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(1000), ShortSizes: double(500), Order: Poly(2), Class: ClassPoly,
 		},
 		// The run before sp is empty, but [ab]+ reaches it from every position of a run of letters.
 		{

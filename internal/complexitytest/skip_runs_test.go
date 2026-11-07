@@ -121,12 +121,12 @@ func TestAlternatingWalksTurnHot(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range Backends {
-			turns := core.RunHotTurns
+			turns := core.RunHotTurns.Load()
 			s, err := Measure(p, c.Input, double(100), b, Cap)
 			if err != nil {
 				t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 			}
-			if core.RunHotTurns == turns {
+			if core.RunHotTurns.Load() == turns {
 				t.Errorf("%s, %s: no run site turned hot", c.Name, BackendName(b))
 			}
 			if got := Classify(s); got != Poly(2) {

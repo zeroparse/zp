@@ -116,6 +116,11 @@ func corpusEntries() []corpusEntry {
 				" && items.exists(k, k == %d)",
 			}, ""),
 			sizes: double(40), shortSizes: double(10), order: Linear},
+		// A ladder of conditionals whose last branch is followed by a long run of spaces: every
+		// level of the ladder scans the run again from the same position.
+		{name: "cel conditional ladder", grammar: "../../testdata/grammars/cel/cel.zp", variants: 1, source: "a ladder of n conditionals and n spaces",
+			build: one(func(n int) string { return rep("a?b:", n) + "x" + rep(" ", n) }),
+			sizes: double(250), shortSizes: double(100), order: Linear},
 		{name: "cue", grammar: "../../testdata/grammars/cue/cue.zp", variants: 3, source: units,
 			build: repeated("package p\n\n", []string{
 				"a%d: 1 + 2\n",
