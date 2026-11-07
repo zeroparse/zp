@@ -41,3 +41,5 @@ within noise: python -1.1% (control -0.5%), cue -0.1% (control +1.6%), duckdb -0
 Adopted. Making `Restore` a call instead (not inlined) shrinks the binary by a
 further 0.8% but costs 1.6% to 3% of parse time on the language grammars, so the
 helpers stay inlinable.
+
+The helpers are therefore not an optimization flag (design 063).

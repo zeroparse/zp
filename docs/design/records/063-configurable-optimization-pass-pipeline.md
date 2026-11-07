@@ -164,6 +164,11 @@ pass's `Applies`, never a flag. A known name that does not apply to the parser b
 nothing; an unknown name is an error that lists the valid ones. The mode facts of `lower.Options` (`Spend`, `Recovers`,
 `Observe`) are not optimizations and have no flag, and neither does `DeadStores`, which the emitted code needs.
 
+The prologue and rollback helpers of the generated Go (`Parser.Enter`, `Parser.Restore`) are not a flag: the generated
+code always calls them and the Go compiler inlines them. Writing their statements out at each call site compiles to the
+same machine code and parses within the noise of an identical copy (optimization 108), so it would only make the
+generated source larger, and only an optimization that is effective gets a flag.
+
 `guards` off implies `guarded-classes` off and makes `class-runs` convert every class run, which `After` allows.
 
 ### Verification Between Passes
