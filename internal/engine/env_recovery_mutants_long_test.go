@@ -36,10 +36,10 @@ func TestEnvironmentMutantsFail(t *testing.T) {
 	})
 }
 
-// TestRecoveryMutantsFail is the negative control of the conformance of the engine's recovered
-// errors: each mutant breaks one part of stream.settleErrors, the operation with an implementation of
-// its own that the conformance suite checks; the others are printed forms that the conformance machine
-// repeats.
+// TestRecoveryMutantsFail is the negative control of the tests of the engine's recovered errors: each
+// mutant breaks one part of stream.settleErrors, of the shared lists (rec.since and rec.add), of a
+// stream's reports of them, of the growths that take them, or of their replay with missing tokens,
+// and the tests named for it must fail.
 func TestRecoveryMutantsFail(t *testing.T) {
 	const conformance = "^TestEngineExecConformance$"
 	const charges = "^TestSettlingChargesTheSlotsItClears$"
@@ -55,11 +55,47 @@ func TestRecoveryMutantsFail(t *testing.T) {
 			{"settling clears without charging",
 				[]printedEdit{{"ClearSpend(p, p.Recovered[:cap(p.Recovered)])", "clear(p.Recovered[:cap(p.Recovered)])"}}, charges, core},
 			{"settling leaves the errors counted as delivered",
-				[]printedEdit{{"\tp.Diagnosed = 0\n\tif BudgetControlsEnabled && p.Control != nil {\n\t\t// With a diagnostic",
+				[]printedEdit{{"\tp.Diagnosed, p.diagnosedSkip, p.diagnosedList = 0, 0, nil\n\tif BudgetControlsEnabled && p.Control != nil {\n\t\t// With a diagnostic",
 					"\tif BudgetControlsEnabled && p.Control != nil {\n\t\t// With a diagnostic"}},
 				"^TestStreamCommitForgetsTheDiagnosedCount$", []string{"."}},
 			{"settling keeps the bytes of the errors",
 				[]printedEdit{{"\t\tp.Control.errs = 0\n", "\t\t_ = 0\n"}}, "^TestMemoryLimitStream$", []string{"."}},
+		})
+	})
+	t.Run("lists", func(t *testing.T) {
+		runPrintedMutants(t, "core/recovered.go", []printedMutant{
+			{"since leaves the entries in place",
+				[]printedEdit{{"\tp.Recovered = append(p.Recovered[:m], RecEntry{list: l})\n", ""}}, conformance, core},
+			{"since copies the errors of the lists",
+				[]printedEdit{
+					{"entries: AppendSpend(p, make([]RecEntry, 0, len(after)), after)}", "entries: flatEntries(p, after)}"},
+					{"// countRecErrors returns", "func flatEntries(p *Parser, after []RecEntry) []RecEntry {\n\tvar out []RecEntry\n\tfor _, e := range appendRecErrors(nil, after) {\n\t\tp.SpendValue(1)\n\t\tout = append(out, RecEntry{err: e})\n\t}\n\treturn out\n}\n\n// countRecErrors returns"},
+				}, conformance, core},
+			// The control of the bound on unrolling: wrapping the one entry after a mark changes no
+			// error and no charge, and only the bound fails.
+			{"since wraps the one entry after its mark",
+				[]printedEdit{{"\tif len(p.Recovered)-m == 1 {\n\t\tp.SpendValue(1)\n\t\treturn p.Recovered[m]\n\t}\n", ""}}, conformance, core},
+			{"a list forgets the errors that a stream delivered",
+				[]printedEdit{{"p.Diagnosed, p.diagnosedSkip, p.diagnosedList = m, skip, l", "p.Diagnosed = m\n\t\t_ = skip"}},
+				"^TestReportRecoveredOfLists$", core},
+		})
+		runPrintedMutants(t, "core/stream_ops.go", []printedMutant{
+			{"a report delivers no errors of a list",
+				[]printedEdit{{"errs = p.Recovered[p.Diagnosed].AppendErrors(errs[:0])",
+					"errs = errs[:0]\n\t\tif e := p.Recovered[p.Diagnosed]; e.err != nil {\n\t\t\terrs = append(errs, e.err)\n\t\t}"}},
+				"^TestStreamDiagnosticsOfSharedLists$", []string{"."}},
+		})
+		runPrintedMutants(t, "core/runtime.go", []printedMutant{
+			{"a growth step keeps the errors of the step before",
+				[]printedEdit{{"\t\tp.Recovered = p.Recovered[:g.Rec]\n", ""}}, "^TestMissingTokensLeftRecursion$", []string{"."}},
+			{"a growth that grew keeps the errors of the step before",
+				[]printedEdit{{"\tp.Pos = g.start\n\tp.Recovered = p.Recovered[:g.Rec]\n\treturn true", "\tp.Pos = g.start\n\treturn true"}},
+				"^TestLeftRecursionDependencyMemoUnexamined$", []string{"."}},
+		})
+		runPrintedMutants(t, "core/missing_token.go", []printedMutant{
+			{"a replay records the errors of the insertions it repeats",
+				[]printedEdit{{"\tif duplicate == nil {\n\t\tp.recAdd(errs)", "\tif true {\n\t\tp.recAdd(errs)"}},
+				"^TestMissingTokensLedgerSeedBudget$", []string{"."}},
 		})
 	})
 }

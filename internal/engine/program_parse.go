@@ -217,7 +217,7 @@ func (prog *Program) Run(p *core.Parser, b Backend, start string) (n *value.Node
 	v, ok := p.Call(r, 0)
 	if ok && p.AtEOF() {
 		if len(p.Recovered) > 0 {
-			return v, SyntaxErrors(p.Recovered)
+			return v, SyntaxErrors(p.RecoveredErrors())
 		}
 		return v, nil
 	}
@@ -338,7 +338,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 			return p.DiagnosticTail.Result(p)
 		}
 		if len(p.Recovered) > 0 {
-			return SyntaxErrors(p.Recovered)
+			return SyntaxErrors(p.RecoveredErrors())
 		}
 		return nil
 	}

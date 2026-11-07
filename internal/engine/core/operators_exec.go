@@ -59,7 +59,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		}
 		p.Pos = a.End
 		p.Env = a.Env
-		if p.Missing != nil || len(a.Errs) != 0 {
+		if p.Missing != nil || !a.Errs.None() {
 			p.ApplyRecovered(&a)
 		}
 		if op.Kind == grammar.Postfix {
@@ -114,7 +114,7 @@ func (p *Parser) operatorsRuleNud(r *Rule) (*value.Node, bool) {
 	if a.Op != nil {
 		p.Pos = a.End
 		p.Env = a.Env
-		if p.Missing != nil || len(a.Errs) != 0 {
+		if p.Missing != nil || !a.Errs.None() {
 			p.ApplyRecovered(&a)
 		}
 		rhs, rok := p.OperatorsRuleParse(r, a.Op.Level)
@@ -179,7 +179,7 @@ func (p *Parser) Longest(l []*OperatorsRuleOp) OperatorsRuleAttempt {
 		p.Cut = prevCut
 		matched := ok && !(p.Pos == start && (op.Kind != grammar.Infix))
 		if matched && ((best.Op == nil) || p.Pos > best.End) {
-			best = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: start, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.copyErrors(p.Recovered[m0.Recovered:]), missing: p.MissingEvents(m0.missing)}
+			best = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: start, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.recSince(m0.Recovered), missing: p.MissingEvents(m0.missing)}
 		}
 		if !matched && cut {
 			cutFailed = true
@@ -305,7 +305,7 @@ func (p *Parser) LongestStep(st *LongestState, v *value.Node, ok bool) (*Operato
 	p.Cut = st.PrevCut
 	matched := ok && !(p.Pos == st.M0.Pos && (op.Kind != grammar.Infix))
 	if matched && ((st.Best.Op == nil) || p.Pos > st.Best.End) {
-		st.Best = OperatorsRuleAttempt{Op: op, Frame: st.F, V: v, Start: st.M0.Pos, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.copyErrors(p.Recovered[st.M0.Recovered:]), missing: p.MissingEvents(st.M0.missing)}
+		st.Best = OperatorsRuleAttempt{Op: op, Frame: st.F, V: v, Start: st.M0.Pos, End: p.Pos, Env: p.Env, Cut: cut, Errs: p.recSince(st.M0.Recovered), missing: p.MissingEvents(st.M0.missing)}
 	}
 	if !matched && cut {
 		st.CutFailed = true
@@ -351,7 +351,7 @@ func (p *Parser) NudPrefix(r *Rule, st *NudState) (int, bool) {
 	if st.A.Op != nil {
 		p.Pos = st.A.End
 		p.Env = st.A.Env
-		if p.Missing != nil || len(st.A.Errs) != 0 {
+		if p.Missing != nil || !st.A.Errs.None() {
 			p.ApplyRecovered(&st.A)
 		}
 		return st.A.Op.Level, true
@@ -469,7 +469,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	}
 	p.Pos = st.A.End
 	p.Env = st.A.Env
-	if p.Missing != nil || len(st.A.Errs) != 0 {
+	if p.Missing != nil || !st.A.Errs.None() {
 		p.ApplyRecovered(&st.A)
 	}
 	if op.Kind == grammar.Postfix {

@@ -1,10 +1,6 @@
 package core
 
-import (
-	"unsafe"
-
-	"zeroparse.dev/zp/internal/value"
-)
+import "zeroparse.dev/zp/internal/value"
 
 // Skip runs: the records of the walks of skip-run sites (compile/skip_sites.go; see "Skip Runs" in
 // spec/runtime/parsing.md and the proofs in spec/proofs/skip-runs.md).
@@ -67,7 +63,7 @@ type skipRecord struct {
 	state          uint8
 	env            *Env
 	vals           valSuffix
-	errs           *skipErrs
+	errs           *RecEntry // nil for none, so that a record of no errors stays small
 }
 
 // skipKey is the key of a record: the position and the environment the walk from the position
@@ -96,13 +92,6 @@ func (s valSuffix) slice() []*value.Node {
 		return nil
 	}
 	return s.buf.a[s.i:len(s.buf.a):len(s.buf.a)]
-}
-
-// skipErrs is the list of the errors that the rest of a walk recovered: the errors of one iteration,
-// then the list of the rest.
-type skipErrs struct {
-	errs []*SyntaxError
-	next *skipErrs
 }
 
 // skipSlots holds the slots of a site: a bit for each position from base on, set when the slot is
@@ -202,11 +191,11 @@ type skipVisit struct {
 	exp            []ExpID
 	from, examined int
 	// env is the environment the iteration started in (nil for a site not keyed by it), and vi the
-	// number of elements collected before it. e0 is the number of recovered errors before it, and
-	// errs the errors it recovered.
+	// number of elements collected before it. e0 is the number of entries of the record of recovered
+	// errors before it, and errs the errors it recovered.
 	env    *Env
 	vi, e0 int
-	errs   []*SyntaxError
+	errs   RecEntry
 }
 
 // skipWalk is a walk in progress. Walks nest: the element of a run site can call rules that walk
@@ -426,8 +415,8 @@ func (p *Parser) SkipHit() bool {
 	if w.keyEnv && SkipRecordMutation != SkipKeepEnv {
 		p.Env = r.env
 	}
-	for c := r.errs; c != nil; c = c.next {
-		p.Recovered = p.appendErrors(p.Recovered, c.errs)
+	if r.errs != nil {
+		p.recAdd(*r.errs)
 	}
 	w.hit, w.hitOK = r, true
 	return true
@@ -466,10 +455,7 @@ func (p *Parser) skipClose() {
 	v.far, v.exp = far, p.Keep(inner)
 	p.MergeExpected(far, inner)
 	v.from, v.examined = p.lw, p.Hw
-	if len(p.Recovered) > v.e0 {
-		v.errs = append([]*SyntaxError(nil), p.Recovered[v.e0:]...)
-		p.skipBytes += uint64(len(v.errs)) * ptrBytes
-	}
+	v.errs = p.recSince(v.e0)
 	p.Hw, p.lw = max(w.savedHW, p.Hw), Min2(w.savedLW, p.lw)
 	if SkipRecordMutation == SkipEarlyStore {
 		p.skipTable().put(v.pos, v.env, skipRecord{end: p.Pos, far: v.far, exp: v.exp, from: v.from, examined: v.examined, state: skipRecorded, env: p.walkEnv()})
@@ -564,14 +550,24 @@ func (p *Parser) skipEnd() {
 
 // skipLink sets the elements and errors of the record r of the visit v: the elements of the walk
 // from the iteration on, and the errors of the iteration before those of the rest, rest.
-func (p *Parser) skipLink(w *skipWalk, r *skipRecord, v skipVisit, rest *skipErrs) {
+func (p *Parser) skipLink(w *skipWalk, r *skipRecord, v skipVisit, rest *RecEntry) {
 	if i := w.lo + v.vi; w.placed && i < len(w.buf.a) {
 		r.vals = valSuffix{w.buf, i} // (an empty suffix keeps nothing alive)
 	}
-	r.errs = rest
-	if len(v.errs) > 0 {
-		r.errs = &skipErrs{errs: v.errs, next: rest}
-		p.skipBytes += uint64(unsafe.Sizeof(skipErrs{}))
+	switch {
+	case v.errs.None():
+		r.errs = rest
+	case rest == nil:
+		e := v.errs
+		r.errs = &e
+		p.skipBytes += recEntryBytes
+	default:
+		// The list of an iteration's errors and the rest's: a hit records the rest of the walk as one
+		// entry, and each list holds an error of its own iteration, so listing k errors still visits
+		// at most 2k lists.
+		l := &ErrList{entries: []RecEntry{v.errs, *rest}, n: v.errs.Len() + rest.Len()}
+		r.errs = &RecEntry{list: l}
+		p.skipBytes += errListBytes + 3*recEntryBytes
 	}
 }
 

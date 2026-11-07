@@ -85,8 +85,8 @@ func TestDocumentFailedEntriesHoldNoErrors(t *testing.T) {
 					return
 				}
 				failed++
-				if len(e.Errs) != 0 {
-					t.Fatalf("%v, edit %d: failed entry of rule %d at %d holds %d recovered errors", b, i, e.Rule, e.Pos, len(e.Errs))
+				if !e.Errs.None() {
+					t.Fatalf("%v, edit %d: failed entry of rule %d at %d holds %d recovered errors", b, i, e.Rule, e.Pos, e.Errs.Len())
 				}
 			})
 			cur := []rune(doc.Text())

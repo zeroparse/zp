@@ -759,7 +759,7 @@ func (p *Parser) LookEnd(ok bool) {
 func (p *Parser) canonicalSeed(pos, gp int, g growKey, e *MemoEntry) (*MemoEntry, uint64) {
 	p.seedSeq++
 	id := p.seedSeq + failSeed
-	if !e.Ok || len(e.Errs) > 0 {
+	if !e.Ok || !e.Errs.None() {
 		return e, id
 	}
 	t := p.table(pos, gp, true)
@@ -773,7 +773,7 @@ func (p *Parser) canonicalSeed(pos, gp int, g growKey, e *MemoEntry) (*MemoEntry
 			return c.e, c.id
 		}
 		budget := 64
-		if (p.ContextMemoUnexamined || c.e.Examined == e.Examined && c.e.From == e.From) && len(c.e.Errs) == 0 && nodesEqual(p, c.e.Node, e.Node, &budget) {
+		if (p.ContextMemoUnexamined || c.e.Examined == e.Examined && c.e.From == e.From) && c.e.Errs.None() && nodesEqual(p, c.e.Node, e.Node, &budget) {
 			return c.e, c.id
 		}
 	}

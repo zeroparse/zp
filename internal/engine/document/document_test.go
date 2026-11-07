@@ -46,7 +46,7 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 				case e.Growing:
 				case e.Examined <= start:
 					want[e] = e.Pos
-				case e.From >= end && !e.Positional && len(e.Errs) == 0:
+				case e.From >= end && !e.Positional && e.Errs.None():
 					want[e] = e.Pos + delta
 				}
 			})

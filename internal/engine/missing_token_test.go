@@ -351,8 +351,8 @@ func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 	if p.Missing.Attempts != 1 || seed[0].Site != event.Site {
 		t.Fatal("rollback refunded budget or cleared owned seed")
 	}
-	p.ReplayMissing(seed, []*SyntaxError{event.Err})
-	p.ReplayMissing(seed, []*SyntaxError{event.Err})
+	p.ReplayMissing(seed, core.ErrEntry(event.Err))
+	p.ReplayMissing(seed, core.ErrEntry(event.Err))
 	if p.Missing.Attempts != 2 || len(p.Recovered) != 1 {
 		t.Fatal("installed event replay was charged or duplicated")
 	}
@@ -364,7 +364,7 @@ func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 			t.Fatal("seed replay did not exhaust budget")
 		}
 	}()
-	p.ReplayMissing(seed, []*SyntaxError{event.Err})
+	p.ReplayMissing(seed, core.ErrEntry(event.Err))
 }
 
 func TestMissingTokensPredicateRecognitionAndMemoDependencies(t *testing.T) {

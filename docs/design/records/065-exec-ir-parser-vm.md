@@ -667,7 +667,7 @@ move to Exec IR at once while mechanisms move one at a time.
    without a record. An entry's recovered errors are charged after its expectations and context end rather than
    before, which moves only the point where a limit interrupts the call. A call in a context that records no
    dependencies, as with missing tokens or without the context memo, sends its result nowhere, as the generated
-   runtimes do, so it allocates no entry and copies no recovered errors: on a left-recursive grammar with
+   runtimes do, so it allocates no entry and takes no list of its recovered errors: on a left-recursive grammar with
    recovery, a call that is not recorded charges 6 fewer compute units and 48 fewer value bytes in the pinned
    grammar on every backend, which a budget test pins. On `BytecodeIterative`, `callFrame` embeds the larger
    `CallState` (440 to 464 bytes, charged per new frame), so peak memory grows by 24 bytes per nesting level: about
@@ -715,9 +715,7 @@ move to Exec IR at once while mechanisms move one at a time.
    can pass a poll boundary by more than a unit, so a run can poll its context once less. One charge per line costs
    1 to 2 points on rows with Operators Rules, because the default budget makes each charge a call.
 
-   On `BytecodeIterative`, an attempt copies its errors with the memory charge that the recursive forms make:
-   `copyErrors` adds exactly 8 bytes per recovered error to the Memory count (a parse that recovers 300 errors counts
-   191,101 bytes before and 193,501 after, and one that recovers 600 counts 355,041 before and 359,841 after), and a
+   On `BytecodeIterative`, an attempt takes its errors with the memory charge that the recursive forms make, and a
    Memory limit below the count still stops the parse with the limit error. Results and `Stats` do not change, and
    the frames of the VM keep their sizes.
 

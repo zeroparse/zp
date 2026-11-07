@@ -25,12 +25,15 @@ type engineMachine struct {
 	// envRules are the rules of ref.Config.RuleVars, and nextKey the Values handle that env.key made last.
 	envRules []*Rule
 	nextKey  int64
+	// lists are the Errs handles of the entries that rec.since returned, one for each entry, so that
+	// a list that two calls share is one handle.
+	lists map[RecEntry]*errorList
 }
 
 func newEngineMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
 	p := &Parser{Memo: NewMemoTable(), MaxDepth: int(cfg.MaxDepth), DeferMemo: true}
 	p.Memo.Stride, p.Memo.Sparse = cfg.Rules, sparse
-	m := &engineMachine{p: p, vals: map[int64][]any{}}
+	m := &engineMachine{p: p, vals: map[int64][]any{}, lists: map[RecEntry]*errorList{}}
 	for i := range cfg.Rules {
 		r := &Rule{}
 		r.Seen = i
@@ -81,30 +84,59 @@ func (m *engineMachine) Rule(index int64) any { return m.envRules[index] }
 
 func (m *engineMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
 
-// Unrolled is one list for each error: the engine keeps the errors in one array.
-func (m *engineMachine) Unrolled() int { return len(m.p.Recovered) }
+// unrolled returns the number of lists that listing the errors of e visits, counted as the model
+// counts them: one for an error, and one for a list with those of its entries.
+func unrolled(e RecEntry) int {
+	switch {
+	case e.list != nil:
+		n := 1
+		for _, x := range e.list.entries {
+			n += unrolled(x)
+		}
+		return n
+	case e.err != nil:
+		return 1
+	}
+	return 0
+}
 
-// List is one list for each error of the copied list l.
+func (m *engineMachine) Unrolled() int {
+	n := 0
+	for _, e := range m.p.Recovered {
+		n += unrolled(e)
+	}
+	return n
+}
+
 func (m *engineMachine) List(l any) (visits, errs int) {
-	n := len(l.([]*SyntaxError))
-	return n, n
+	e := l.(*errorList).e
+	return unrolled(e), e.Len()
 }
 
 func (m *engineMachine) Recovered() []int64 {
-	ids := make([]int64, len(m.p.Recovered))
-	for i, e := range m.p.Recovered {
-		// A list that shares its array with one that was cleared holds nil, which no case records.
-		if e == nil {
-			ids[i] = -1
-			continue
-		}
-		ids[i] = int64(e.Pos)
+	var ids []int64
+	for _, e := range m.p.RecoveredErrors() {
+		ids = append(ids, int64(e.Pos))
 	}
 	return ids
 }
 
-// errorList is an Errs handle: a list has no identity of its own that the harness could compare.
-type errorList struct{ errs []*SyntaxError }
+// errorList is an Errs handle: the entry that rec.since returned.
+type errorList struct{ e RecEntry }
+
+// handle returns the Errs handle of the entry e: the one of the entry for an error or a list, and a
+// new one for no errors, which has no identity of its own.
+func (m *engineMachine) handle(e RecEntry) *errorList {
+	if e.None() {
+		return &errorList{}
+	}
+	h := m.lists[e]
+	if h == nil {
+		h = &errorList{e}
+		m.lists[e] = h
+	}
+	return h
+}
 
 // key returns the memo key of the first four arguments of a memo operation.
 func (m *engineMachine) key(args []any) MemoKey {
@@ -133,18 +165,18 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "rec.mark":
 		return []any{int64(len(p.Recovered))}
 	case "rec.push":
-		p.Recovered = append(p.Recovered, args[0].(*SyntaxError))
+		p.PushRecovered(args[0].(*SyntaxError))
 		return nil
 	case "rec.truncate":
 		p.Recovered = p.Recovered[:args[0].(int64)]
 		return nil
 	case "rec.since":
-		return []any{&errorList{p.copyErrors(p.Recovered[args[0].(int64):])}}
+		return []any{m.handle(p.recSince(int(args[0].(int64))))}
 	case "rec.add":
-		p.Recovered = AppendSpend(p, p.Recovered, args[0].(*errorList).errs)
+		p.recAdd(args[0].(*errorList).e)
 		return nil
 	case "rec.none":
-		return []any{len(args[0].(*errorList).errs) == 0}
+		return []any{args[0].(*errorList).e.None()}
 	case "stream.settleErrors":
 		p.streamSettleErrors()
 		return nil
@@ -214,12 +246,16 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 }
 
 // engineErrors returns the errors that an entry of the engine holds for the recovered errors of an
-// argument of memo.store: none for nil, and one error for the errors that conform.ErrsOp makes.
-func engineErrors(arg any) []*SyntaxError {
-	if arg == nil {
-		return nil
+// argument of memo.store: none for nil, one error for the errors that conform.ErrsOp makes, and the
+// entry of a handle that rec.since returned.
+func engineErrors(arg any) RecEntry {
+	switch a := arg.(type) {
+	case nil:
+		return RecEntry{}
+	case *errorList:
+		return a.e
 	}
-	return []*SyntaxError{{}}
+	return ErrEntry(&SyntaxError{})
 }
 
 var (
@@ -233,11 +269,10 @@ var (
 	engineEnvOps = []string{"env.lookup", "env.bind", "env.scope", "env.restore", "env.key", "memo.lookup", "memo.store"}
 	// engineEnvExact are the environment operations whose charges equal their declared cost.
 	engineEnvExact = []string{"env.lookup", "env.bind", "env.key"}
-	// recoveryOps are the operations of the recovered errors that the engine implements as specified,
-	// and recoveryExact those whose charges equal their declared cost. The engine copies a list where
-	// rec.since and rec.add share one, so the suite leaves them out.
-	recoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none", "stream.settleErrors"}
-	recoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.none"}
+	// recoveryOps are the operations of the recovered errors, and recoveryExact those whose charges
+	// equal their declared cost.
+	recoveryOps   = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none", "stream.settleErrors"}
+	recoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
 )
 
 func engineSuites() []conform.Suite {
@@ -346,7 +381,7 @@ func TestSettlingChargesTheSlotsItClears(t *testing.T) {
 	}
 	for _, c := range []struct{ errs, charged int }{{0, 0}, {16, 16}, {17, 0}} {
 		m := newEngineMachine(ref.Config{}, true, false).(meteredEngine)
-		m.p.Recovered = make([]*SyntaxError, c.errs)
+		m.p.Recovered = make([]RecEntry, c.errs)
 		before := m.Used()
 		m.p.streamSettleErrors()
 		if got := int(m.Used() - before); got != c.charged {

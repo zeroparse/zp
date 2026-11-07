@@ -26,7 +26,7 @@ func (p *Parser) AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 		if examined <= log[i].Start {
 			continue
 		}
-		if !(from >= log[i].End && !e.Positional && (len(e.Errs) == 0)) {
+		if !(from >= log[i].End && !e.Positional && e.Errs.None()) {
 			return false
 		}
 		delta := log[i].Delta
@@ -68,7 +68,7 @@ func AdvanceEntry(e *MemoEntry, log []DocEdit) bool {
 		if examined <= log[i].Start {
 			continue
 		}
-		if !(from >= log[i].End && !e.Positional && (len(e.Errs) == 0)) {
+		if !(from >= log[i].End && !e.Positional && e.Errs.None()) {
 			return false
 		}
 		delta := log[i].Delta
