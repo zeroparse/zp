@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-07
+Arata Furukawa · Last revised 2026-11-08
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -10,9 +10,9 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemma 13 is proved for the
-[cost view](#setting) that the classifier reads, given its condition, step 8 of
-[Open Steps](#open-steps). Lemma 6 is proved given the count
+Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemmas 13 and 15 are proved
+for the [cost view](#setting) that the classifier reads, given its condition,
+step 8 of [Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 5, which are outlines, on Lemma 6, which is proved given step 1, and on the
@@ -1698,8 +1698,9 @@ bound that the second class costs at most a constant times $K \cdot n^2$.
 
 The activations of each [bounded
 scan](../runtime/parsing.md#conditions-for-linear-cost) number at most a
-constant times $K \hat{n}$. The proof uses Lemma 3 and the definitions: none of
-the conditions 1 to 5, and neither Lemma 4 nor Lemma 5. It is a proof for the
+constant times $K \hat{n}$. The proof uses Lemma 3, Lemma 15 for the region
+bound, and the definitions: none of the conditions 1 to 5, and neither Lemma 4
+nor Lemma 5. It is a proof for the
 cost view, and holds of the written grammar given the condition of the cost view
 (step 8 of [Open Steps](#open-steps)).
 
@@ -1778,16 +1779,18 @@ a repetition or an Operators Rule it carries the iterated function, into a
 lookahead the value before it, and into a rule the maximum over its calls. By the
 claim above and induction on the evaluations, each evaluation of a repetition
 $\sigma$ at $b$ has $\rho(b) \le d_\sigma$, the value that the pass records there,
-with $X$ the alphabet of $\sigma$. The first bound of a bounded scan says
+with $X$ the alphabet of $\sigma$. The run bound of a bounded scan says
 $d_\sigma \le 32$.
 
-**Starts.** Let $\sigma$ have the first bound. The evaluations of $\sigma$
+**Starts.** Let $\sigma$ have the run bound. The evaluations of $\sigma$
 that reach a position $q$, by an activation at $q$ or by ending there, start in at
 most $d_\sigma + 2$ positions. An evaluation at $b < q$ that reaches $q$ consumed
 $[b, q)$ in its iterations, so those characters are in $X$. The character at $b$ is
 in $X$, so $r(b) = \rho(b) \le d_\sigma$. Let $s = q - r(q)$. Then $s \le b$, and
 $r(b) = b - s$, so $b$ is one of the $d_\sigma + 1$ positions from $s$ on. The other
-start is $q$.
+start is $q$. When $\sigma$ has the region bound instead, they start in at
+most 2 positions by Lemma 15, and below $d_\sigma$ stands for 0 for such a
+$\sigma$, in place of the value of the pass.
 
 **Rigid expressions.** For a rigid expression $e$ there is a constant $w_e$ such
 that the evaluations of $e$ that end at a position start in at most $w_e$
@@ -1796,7 +1799,7 @@ nothing. A terminal matches a fixed text or at most one character, of at most
 four bytes. A sequence multiplies the $w$ of its parts, a choice adds them, an
 option adds 1, and a bounded repetition of at most $m$ iterations adds the powers
 of $w$ up to $m$, since each iteration is a part of a sequence. A repetition with
-the first bound has $d_\sigma + 2$ by the claim. A call has the $w$ of the body of
+the run bound or the region bound has $d_\sigma + 2$ by the claim. A call has the $w$ of the body of
 its rule, which is finite because the rule is not recursive.
 
 **Evaluations at one position.** Let $E_e(p)$ be the number of evaluations of an
@@ -1857,6 +1860,120 @@ memoized and has one is not called from such a body, so the steps of a growth
 reach one only through a call of a memoized rule off the cycle, which Lemma 3
 counts. The lemma does not use the [run records](../runtime/parsing.md#run-sites): it
 holds for a parse that has none.
+
+## Lemma 15 (Regions)
+
+Let the classifier have chosen the [region rules](../runtime/parsing.md#conditions-for-linear-cost)
+with their four conditions: fixed ends, no nesting, disjoint openers and guarded crossings. Then
+no evaluation outside the regions, other than one inside a check, starts at a position $x$ with
+$a < x < \mathrm{end}_R(a)$, where a region rule $R$ is called at $a$ and $\mathrm{end}_R(a)$ is
+where that call ends. So the evaluations of the body $\sigma = X^*$ of a trivia rule with the
+region bound that reach a position $q$ start in at most 2 positions. Like Lemma 13, it is a proof
+for the cost view, on whose rule bodies the classifier decides the conditions.
+
+**The reference parse.** The proof is of the reference parse $\mathcal{R}$ of
+[Memoization](memoization.md#setting), which evaluates every call. A memoized parse
+evaluates the same expressions at the same positions, in the same states, less the evaluations
+inside the calls that the memo answers: by (I1) of the theorem of Memoization an answered call
+has the outcome that $\mathcal{R}$ gives it, so by induction on the order of evaluation what the
+parse evaluates next is what $\mathcal{R}$ evaluates next once it leaves that call. The claim is
+about where evaluations start, so it holds of every subset of the evaluations of $\mathcal{R}$:
+the parses of the three backends of the engine, of a generated Go parser, which evaluates the same
+expressions under the same memo policy, of a [stream](../runtime/streaming.md), whose commits
+and default budget, which grows with the input, end a parse or discard entries but change no
+evaluation that it makes, and of a [Document](../runtime/documents.md), whose reused results
+answer calls as memo entries do. A parse with missing-token insertion is outside the classes.
+
+**Fixed ends.** No rule that a region rule reaches reads a variable, a level, a capture or a
+growth, and a cut in one commits a choice within the evaluation of its own rule, so by Lemma 1 of
+[Memoization](memoization.md#lemma-1-context), whose key is then the rule and the position, whether an expression in such a rule matches at a position, and
+where it ends, is a function of the position and the input. Write $\mathrm{end}_R(a)$ for where
+$R$ ends at $a$, which is $a$ itself when $X$ fails at $a$ for a trivia rule $R$.
+
+**Outside the regions.** Call an evaluation **inside** a region when it is nested in an
+evaluation of a call of a region rule, and **outside** otherwise. By no nesting, a rule that the
+body of a region rule reaches is called only inside a region, and a call of a region rule is
+outside, since no region rule is reached from the body of one. So every evaluation outside the
+regions is of an expression of a rule that the start rule reaches without passing a region rule,
+which the conditions read, and is either a call of a region rule or not nested in one.
+
+**The automaton.** Read a body as the conditions do: lookaheads, predicates, anchors and cuts as
+matching nothing, each alternative and each number of iterations of a repetition as possible, and
+a call as any match of the body of its rule. Every match of the body is then a word of that
+reading, and every character of a word is a character of a terminal of the body or of a rule that
+it reaches. So the first character of a match that consumes input is an opener, and when a match
+of the body of $R$ at $a$ consumes the text of $[a, x)$ and goes on, the character at $x$ is among
+those that can follow that text at the start of a match, as the conditions compute them.
+
+**Settled.** If a trivia rule $R$ is settled at an expression evaluated at $p$ outside the
+regions, then an evaluation of a call of $R$ ended at $p$. By induction on the order of
+evaluation, along the cases of the definition: the state at a place in a body holds of the
+evaluation that is there, a call of $R$ ends at its end, an evaluation that consumes nothing
+leaves the position, and a rule starts with what all its calls hold. A growth step evaluates the
+body of its rule from the position of the call, where the call holds, and its left call ends
+where an earlier body evaluation ended, which holds the end of the body. An evaluation of $X^*$
+ends only where $X$ fails, so by fixed ends $X$ fails at $p$ and $\mathrm{end}_R(p) = p$.
+
+**Next checks.** Let a terminal $t$ have the next check $!E$, an element of a sequence $S$. The
+forms through which the definition passes the next check on, from $t$ up to $S$, each end when
+their last part, chosen alternative or expression ends, and none is the body of a rule. So in an
+evaluation of $S$ that goes on past an evaluation of $t$ that ended at $x$, every form between
+them ends at $x$ and $S$ evaluates $!E$ at $x$ next.
+
+**Claim.** Suppose the claim fails. Among all calls of region rules $R$ at $a$ and evaluations $g$
+outside the regions and outside checks that start at an $x$ with $a < x < \mathrm{end}_R(a)$,
+take $x$ least, and then $g$ the first such evaluation at $x$. Its parent, the evaluation that
+$g$ is a part of, is outside the regions, since $g$ is outside, and outside checks, since $g$ is,
+so it starts at a $y < x$ by the choice of $g$, and $y \le a$ by the choice of $x$. The parent is
+a form whose parts follow one another, a sequence, a repetition or an Operators Rule, since the
+parts of the other forms start where they do. The part before $g$ ended at $x$; follow back the parts
+that the parent evaluated at $x$ before $g$: each is a check, by the choice of $g$, so some part
+$s$ started before $x$ and ended at $x$, since the parts of the parent cover $[y, x)$. Descend into
+$s$ along the last parts that consume input, through the alternative that matched, the last
+iteration, the last part of a sequence that consumes input, the body of a call, the base or skip
+of a `#recover`, and, for a left call, the body evaluation whose end it reads. Every evaluation
+on the way ends at $x$ and is outside the regions, and the descent stops at a terminal $t$, of
+$[z, x)$ with $z < x$, or at a call of a region rule $R'$ at $a'$ with $\mathrm{end}_{R'}(a') =
+x$.
+
+- A region rule $R'$ at $a'$. If $a' > a$, the call of $R'$ is outside the regions and starts in
+  $(a, \mathrm{end}_R(a))$ before $x$, against the choice of $x$. If $a' < a$, the call of $R$ at
+  $a$ is outside the regions and starts in $(a', \mathrm{end}_{R'}(a'))$ before $x$, against the
+  choice of $x$. If $a' = a$ and $R' = R$, fixed ends give $\mathrm{end}_R(a) = x$, against
+  $x < \mathrm{end}_R(a)$. If $a' = a$ and $R' \ne R$, both match input from $a$, so the character
+  at $a$ is an opener of both, against disjoint openers.
+- A terminal with $z > a$. It is outside the regions and outside checks (the descent passes no
+  lookahead), and starts in $(a, x)$, against the choice of $x$.
+- A terminal with $z < a$. It consumes the character at $a$, an opener of $R$, as a later
+  character than its first, against guarded crossings.
+- A terminal with $z = a$. It is a crossing of $R$, whose first character is the opener at $a$.
+  If $R$ is settled there, $\mathrm{end}_R(a) = a$, against $a < x$. Otherwise the match of $R$
+  at $a$ consumes the text of $t$ and goes on, so the character at $x$ can follow that text
+  (*The automaton*), and the next check $!E$ of $t$ surely consumes it, so $!E$ fails at $x$.
+  The sequence $S$ that holds the check is on the descent or is the parent, since the forms
+  between $t$ and $S$ are no rule body and the descent passes every form between $t$ and $s$.
+  Each evaluation on the descent ended at $x$, and the parent went on past $s$ to $g$, so $S$
+  went on past $t$ and evaluated $!E$ at $x$ next (*Next checks*), and went on past it, which a
+  sequence does not do after a part fails.
+
+Every case is impossible, so the claim holds. $\square$
+
+**Starts.** Let $R$ be a trivia rule with the region bound and $\sigma$ its body. An evaluation
+of $\sigma$ is the body of a call of $R$, at the same position, and by no nesting every call of
+$R$ is outside the regions. Let two evaluations of $\sigma$ that reach $q$ start at $b < b' < q$.
+The first reaches $q$, so $q \le \mathrm{end}_R(b)$, and the call at $b'$ starts in
+$(b, \mathrm{end}_R(b))$, against the claim. So at most one starts before $q$, and the other
+starts at $q$. $\square$
+
+**Scope.** The proof reads where evaluations start, not their cost. The records of
+[run sites](../runtime/parsing.md#run-sites) and [scan sites](../runtime/parsing.md#scan-sites)
+skip evaluations and give what they would have given (Lemmas 1 and 4 of
+[Run Sites](run-sites.md)), so a parse that keeps them makes a subset of the evaluations of one
+that does not, and the claim holds of it. The region bound replaces only the run
+bound: the second bound, which counts the evaluations at one position, is unchanged, and a
+scanning source inside the body of a region rule, such as `(!"*/" .)*` in an unclosed comment,
+stays a scanning source, so the input that a failed comment examined is still counted against the
+units around it.
 
 ## Theorem (Linear Cost)
 
@@ -2261,9 +2378,16 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
 - `addSource`, `computeRuleSources` and `containsSource` decide the scanning
   sources and what contains one: Lemmas 1, 2 and 4.
 - `computeBoundedScans` decides the bounded scans: `consumed` the alphabets,
-  `runAnalysis` the first bound, with `sure` for what surely consumes a
-  character, and `countedWalk` and `rigid` the second: Lemma 13. `newViewClassifier`
-  gives them the cost view that the Setting reads.
+  `runAnalysis` the run bound, with `sure` for what surely consumes a
+  character, `regionScans` the region bound, which `firstBound` and `rigid`
+  read with the run bound, and `countedWalk` and `rigid` the second bound:
+  Lemma 13.
+  `newViewClassifier` gives them the cost view that the Setting reads.
+- `regionScans` chooses the region rules and drops those that fail a condition:
+  `regionFree` decides fixed ends, `regionCheck` no nesting, disjoint openers
+  and the crossings, `regionNFA` the openers and what can follow a text in a
+  match, and `regionGuards` the settled rules, the next checks and the guarded
+  crossings: Lemma 15.
 - `reusedSkip`, `constantInput` and `costly` decide the reused skips of
   [Skip Runs](../runtime/parsing.md#skip-runs), which are no scanning
   source: Lemma 9, and Lemma 4 for the units whose only source was such a
@@ -2452,7 +2576,7 @@ that the proof assumes of the cost view.
    Document work, and the steps along their chains are bounded by the work of that
    window of edits, not by $n$, $K$ and $L$.
 8. **The condition of the cost view.** The classifier decides the conditions and
-   Lemma 13 counts on the [cost view](grammar-laws.md#normalization), and the
+   Lemmas 13 and 15 count on the [cost view](grammar-laws.md#normalization), and the
    proof transfers each bound to the written grammar through one condition: on
    every input, the parse of the written grammar costs at most a constant times
    the parse of the view. The proof must show it for each rewrite that the view

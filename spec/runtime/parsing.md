@@ -881,7 +881,8 @@ The conditions below use these terms.
 
   The **alphabet** of a repetition is the set of characters that an evaluation
   of its expression can consume, through its calls and outside its lookaheads.
-  The first bound is on its **run**: at most 32 characters of the alphabet stand
+  The first bound is the **run bound** or the **region bound**. The run bound is
+  on its **run**: at most 32 characters of the alphabet stand
   directly before any position where the repetition is evaluated and the next
   character is in the alphabet. A repetition that reaches a position has consumed
   only characters of its alphabet since it started, so it can have started only
@@ -914,6 +915,60 @@ The conditions below use these terms.
   no level: a call on a cycle can read the failing seed of a growth, however its
   body would match.
 
+  The region bound is for the body `X*` of a trivia rule (defined below under
+  units), whose alphabet often holds
+  every character, as in `ws = [ ]* (c [ ]*)*` with `c = "/*" [^*]* "*/"`: its
+  run has no bound, yet its evaluations that reach a position start at that
+  position or at one other. The classifier chooses a set of **region rules**,
+  and the body of a trivia rule among them has the region bound. The candidates
+  are the trivia rules, other than the start rule, whose body has no run bound,
+  and a rule that holds a crossing of one that is not guarded, such as a string
+  whose body holds blanks, is tried once as a further region rule. A rule that
+  breaks one of these conditions is dropped, and the others are checked again,
+  since the terminals of a dropped rule are then outside the regions:
+
+  - **Fixed ends.** Neither the rule nor a rule that it reaches reads or binds a
+    variable, has a predicate, an action, a call of a level, an attributed
+    expression, a `#recover`, a stream or an Operators Rule, or is on a
+    left-recursion cycle. Whether one of them matches at a position, and where
+    it ends, then depends on that position and the input alone.
+  - **No nesting.** The body of a region rule reaches no region rule, and no rule
+    that it reaches is reached from the start rule other than through a region
+    rule. An expression is **outside the regions** when it is in a rule that the
+    start rule reaches without passing a region rule.
+  - **Disjoint openers.** The **openers** of a region rule are the characters
+    that can begin a match of its body. Two region rules have no opener in
+    common: of two that share one, a further region rule is dropped when the
+    other is a trivia rule, and both are dropped otherwise.
+  - **Guarded crossings.** A **crossing** of a region rule `R` is a terminal
+    outside the regions and outside checks that can consume an opener of `R`. A
+    **check** is a negative lookahead whose expression is made of literals,
+    character classes, any character, sequences, alternatives, groups, optionals
+    and repetitions, with no call. A crossing is **guarded** when it can consume
+    an opener only as its first character, and `R` is a trivia rule that is
+    settled where the crossing starts, or no character can follow the text of
+    the crossing at the start of a match of the body of `R`, or the next check of
+    the crossing surely consumes every character that can.
+
+  The classifier finds what can follow a text in a match of a body by reading
+  lookaheads as matching nothing, each alternative as possible and each
+  repetition as any number of iterations, and a call of a rule as each match of
+  its body. A trivia rule `R` is **settled** where every path through the rules
+  outside the regions reaches the place only after a call of `R` with nothing
+  since that consumes input: a terminal consumes input; a call of `R` settles
+  `R` alone; a call of another rule outside the regions ends with what the end
+  of its body has settled; a rule starts with what is settled at all its calls,
+  and the start rule with nothing; a lookahead, a predicate, an anchor and a
+  cut keep what is settled; an alternative, an option or a repetition ends with
+  what every way through it settles; and a `#recover`, an attributed
+  expression, a stream and an Operators Rule settle nothing. The **next check**
+  of a terminal is the check that is evaluated as soon as the terminal ends: the
+  element after it in a sequence when that element is a check, and, when the
+  terminal is the last element of a sequence or the expression of a group,
+  capture, discard, atomic group, inline action, alternative or option, the
+  next check of that sequence or expression. A repetition, a lookahead and the
+  body of a rule pass on no next check.
+
   The second bound is on its **evaluations**: the repetition stands at a
   **counted place**. An expression stands at a counted place when it is in the
   body of a **counted** rule, outside the skip, the operands and the operator
@@ -925,7 +980,8 @@ The conditions below use these terms.
   rigid when a constant bounds the positions from which an evaluation of it can
   end at a given position: a terminal, a lookahead, a sequence, choice or option
   of rigid expressions, a repetition of a rigid expression with an upper bound, a
-  repetition without an upper bound that has the first bound, and a call of a rule
+  repetition without an upper bound that has the run bound or the region bound,
+  and a call of a rule
   that is not recursive and whose body is rigid. A `#recover`, an attributed
   expression, an Operators Rule and a stream are not rigid.
 

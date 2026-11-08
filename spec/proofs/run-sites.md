@@ -1,6 +1,6 @@
 # Run Sites
 
-Arata Furukawa · Last revised 2026-11-07
+Arata Furukawa · Last revised 2026-11-08
 
 This proof covers the records of [run sites](../runtime/parsing.md#run-sites).
 A reused record gives what the rest of the walk would have given, in the
@@ -277,8 +277,7 @@ lemmas do not bound.
 ## Scan Sites
 
 This section covers the records of [scan sites](../runtime/parsing.md#scan-sites). Lemma 4 is the
-exactness of a reused record. The cost is a draft: Lemma 5 states what is to be shown, and its open
-steps are listed.
+exactness of a reused record, and Lemma 5 bounds what the records add to the cost of a parse.
 
 **Setting.** A scan site $\sigma$ repeats a character class $C$ (or any character) without an upper
 bound, with minimum $c_{\min}$, in a pure scan rule. The rule calls no rule and has no capture,
@@ -374,11 +373,37 @@ never what a record holds, so none changes the result of a parse. A record is lo
 when no [document](../runtime/documents.md) run resumes the repetition, and the records last for one
 parse.
 
-## Lemma 5 (Cost of Scan Records) (Draft)
+## Lemma 5 (Cost of Scan Records)
 
-A walk costs its first $T$ characters, then one step for the lookup, one more for the slot of a record
-that it finds, and either one step for the record that it makes or its own length. So the walks of
-$\sigma$ that start at the same position cost $T + 2$ each after the first that makes the record. To
-show: the total for walks that start at different positions of one run, for which no record exists;
-the bound is $O(1)$ for each walk besides the walk's own cost. Open: the cold state, which is kept for
-the walks in lookaheads apart from the others, is to be shown to give the same bound.
+A parse with the records of scan sites charges at most three steps more for each walk of a scan site
+that reaches $T$ characters than the same parse without them, and no more for the other walks. So,
+where the walks charge their tests, its steps are at most $1 + 3/(T + 1)$ times those of the parse
+without them.
+
+*Proof.* By Lemma 4 a walk that takes a record ends where it would have ended, with the same count,
+elements, examined range and expectation, so the parse with records makes the same walks, at the
+same positions and in the same order, as the parse without them, and differs only inside the walks
+that reach $T$ characters. Without records a walk that matches $k$ characters charges one step for
+each test of a character, $k + 1$ in all. (A build that charges no test of a character charges
+only the steps of the records below, at most three for each walk, and the ratio is then not
+claimed.) With records a walk that matches fewer than $T$ characters
+is the same walk. A walk that reaches $T$ characters charges the first $T$ tests, then:
+
+- at a site that is not hot, nothing more than the rest of its tests: noting the walk in the cold
+  state (`walked`) charges no step, so it costs $k + 1$;
+- at a hot site with a record of its start, one step for the lookup and one for the slot
+  (`ScanLookup`), and one for the test of the character at the recorded end, which fails, so it
+  costs $T + 3 \le k + 3$;
+- at a hot site with no record, one step for the lookup, the rest of its tests and one step for the
+  record that it makes (`ScanStore`), so it costs $k + 3$.
+
+Each case is at most three steps above $k + 1$. A walk that reaches $T$ characters costs at least
+$T + 1$ steps without records, which gives the ratio. The closure backend (`scanSite`,
+`scanSiteList`) and the bytecode backends (`OpScanSite`, and the iterations of `OpIter` at a scan
+site) charge in this way. $\square$
+
+The bound is per walk, so it needs no count of the walks: the walks that start at different
+positions of one run, which find no record, each pay at most the three steps, and the cold state,
+kept apart for the walks inside lookaheads, only decides which walks look up. Parsers generated as
+Go source keep no records.
+

@@ -427,7 +427,9 @@ can fail after it, when a later alternative or what follows can consume the same
 start differently, add a `#cut` after the part that decides, or move the scan out of the alternative. A scan needs none
 of this when it is a [bounded scan](../../spec/runtime/parsing.md#conditions-for-linear-cost): what stands before it
 cannot extend the characters it reads, as a quoted body after its opening quote, and its rule is memoized or reached
-through a fixed prefix. A copy of a value that grows with a recursion, such as `text` of a capture of the rule's own recursive call, is another cause.
+through a fixed prefix. Blanks with comments, such as `ws = [ ]* (c [ ]*)*`, read any character, yet they can be a bounded
+scan too when nothing outside them consumes a blank or the opener of a comment except a token that a call of `ws`
+just ended before, or one that a negative lookahead after it stops from reading on into a comment, such as `"/" !"*"`. A copy of a value that grows with a recursion, such as `text` of a capture of the rule's own recursive call, is another cause.
 
 ### `case-insensitive-literal`
 
