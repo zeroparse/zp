@@ -65,3 +65,26 @@ func isComponent(m *exec.Module, name string) bool {
 	}
 	return false
 }
+
+// TestValueGolden checks that the declarations with the value primitives verify and that their listing
+// is testdata/value.golden.
+func TestValueGolden(t *testing.T) {
+	m := ValueModule()
+	if err := exec.Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	got := exec.String(m)
+	const golden = "testdata/value.golden"
+	if *update {
+		if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != string(want) {
+		t.Errorf("listing differs from %s; run go test -run TestValueGolden -update", golden)
+	}
+}
