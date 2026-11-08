@@ -30,6 +30,8 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
          [-runtime embed|import|only] [-s <rule>] [-o <path>]
          [-types] [-document] [-stream] [-recognize] [-expectations] [-observability]
          [-source-info] [-default-value] [-nodoc] [-max-depth <n>]
+         [-optimize <profile>] [-opt <name[=count],...>] [-no-opt <name,...>]
+         [-print-after <pass,...>]
 ```
 
 | Flag | Field of `gen.Go` / `gen.TypeScript` | Meaning |
@@ -51,10 +53,15 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
 | `-observability` | `Observability` | Generate tracing and profiling, specified in [Observability](observability.md) |
 | `-source-info` | `SourceInfo` | Make the parser record [source information](nodes.md#source-information): the rule of each node and the names of captures. Without it, `Node.Rule`, `Node.Field` and `Node.Fields` of a parsed node are empty and the outputs omit them |
 | `-default-value` | `DefaultValue` | Make the parser return default values, as [Default Values](../language/actions.md#default-values) describes. Cannot be combined with `-types`, because the types come from the dropped actions |
+| `-optimize` | `Optimize` | The [optimization profile](#optimization-options): `speed` (default, also the empty name), `memory` or `size`. An unknown profile is an error that lists the valid names. Rejected with `-runtime only` |
+| `-opt` | `Opt` (a map from name to value) | Gives single optimizations a value, as `name` or `name=count`. Rejected with `-runtime only` |
+| `-no-opt` | `NoOpt` | Turns the named optimizations off. Rejected with `-runtime only` |
+| `-print-after` | `PrintAfter` and `PrintTo` | Writes the Core IR to standard error (`PrintTo`, which `PrintAfter` requires) after the named passes. Rejected with `-runtime only` |
 | `-nodoc` | `OmitPackageDoc` | Omit the package comment (Go only; rejected with `-lang ts`) |
 | `-max-depth` | `MaxDepth` | The default nested recursive rule-call limit; zero selects 100,000, a positive value overrides it, a negative value fails generation. TypeScript also requires a safe integer |
 
-- The output is deterministic: generating twice yields identical bytes. Omitted,
+- The output is deterministic: generating twice yields identical bytes for the same grammar, options and
+  version of the generator. Omitted,
   zero and an explicit 100,000 depth default generate identical source.
 - Go output is formatted as by `gofmt`. Generated Go with the default `embed` runtime depends only on the
   standard library, and generated TypeScript has no dependencies. Generated TypeScript uses
@@ -77,6 +84,35 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
   parser import `<module>/types` for them. The grammar's types therefore share no
   namespace with `parser.go` and `api.go`: a grammar type may be named `Node`,
   `Parser`, `Walk`, `ParseOption` or like any other export of the runtime.
+
+### Optimization Options
+
+An optimization is a named setting of the generator that changes the code a parser is generated as, and the
+memory and time it needs, but not what it returns. It is either on or off, or it has a count where
+`0` is off. Each optimization has a kind: `pass` (a transformation of the generator's intermediate
+representation), `lowering` (an option of the step that lowers it toward the printers), `printer` (a choice
+of what the Go and TypeScript printers emit) or `runtime` (a control of the runtime structures that the
+printers emit). `zp gen -h` lists every optimization with its kind, its default and whether it takes a
+count; the [Code Generation guide](../../docs/guide/code-generation.md) describes what each does.
+
+- **No option changes what a parser returns.** For every accepted combination of `-optimize`, `-opt` and
+  `-no-opt`, the generated parser accepts and rejects the same inputs and returns the same trees, typed
+  values, syntax errors and recovered errors, and the same trace and profile events, as one generated with
+  the defaults. Options change only the generated source, its size and the time and memory of a parse.
+  `-print-after` writes a diagnostic to standard error and changes neither the files nor the parser.
+- **Profiles.** A profile is a fixed set of values and has no behavior of its own. `speed` is the default
+  and sets every optimization to its default value. `memory` allocates typed values one by one instead of in
+  slabs (fewer bytes and less live heap, more allocations). `size` produces smaller generated Go source
+  and binaries for a little parse time.
+- **Order.** The settings are the profile's, then the values of `-opt` replace them, then `-no-opt` turns
+  optimizations off. `-no-opt` therefore wins over `-opt` for the same name.
+- **Values.** `-opt name` is `name=1`. An optimization without a count takes `0` or `1`; one with a count
+  takes `0` or a positive number. A name that is not an optimization, a value that the optimization does not
+  take, a count that is not a decimal number, an empty item and a name given twice in `-opt` are errors, and generation fails before it writes a file.
+- **Languages.** The options apply to Go and TypeScript. An optimization that concerns only one language,
+  such as the slabs of typed Go values, has no effect on the other, and naming it is not an error.
+- **`-print-after`** takes `build` (the Core IR as built), the name of a pass, or `all`. A pass that does
+  not apply to the parser prints nothing. An unknown name is an error that lists the valid ones.
 
 ### Generated Go API
 
@@ -438,6 +474,23 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 
 A generated parser carries the runtime of the generator that produced it (`embed`) or imports it
 (`import`), and does not follow later changes of the grammar or of the generator.
+
+### Shared TypeScript runtime
+
+With `-runtime import`, `parser.ts` and `types.ts` import the names they use from the module that
+`-runtime-module` names. The generator does not check that module. The contract is:
+
+- The module MUST be the `runtime.ts` that the same version of `zp` writes (`-runtime embed`, or
+  `-runtime only` to refresh a copy). The parsers generated by one version need that version's runtime:
+  the names, types and behavior that a parser imports are not stable between versions.
+- One `runtime.ts` MAY serve any number of parsers, which are generated by that version and share its
+  classes. A `Node` made by one of them is an instance of the same class as in the others.
+- A generated parser carries no runtime version and the runtime has none: a runtime of another version is not
+  detected when the parser is generated or loaded. It fails to type-check or to load when a name is missing
+  or has another type, and may otherwise misbehave. Regenerate the parsers and the shared runtime together.
+- The generator imports only the exported names of the runtime that the parser uses. The runtime's other
+  exports are not part of this contract unless [Generated TypeScript API](#generated-typescript-api) lists
+  them.
 
 ## Conformance
 
