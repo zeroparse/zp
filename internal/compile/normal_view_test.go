@@ -398,9 +398,11 @@ func TestNormalViewKeepsValueShapes(t *testing.T) {
 		{name: "a recovery of a sequence that always succeeds in a read capture stays",
 			src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {len($x) == 2}",
 			want: map[string]string{"main": `x:("q" ("a"? "b"?) #recover(skip="z")) {len($x) == 2}`}},
+		// The recovery leaves an expression without a value without one, so dropping it would keep
+		// the value; the gate keeps it all the same, as it does not look at the shape of the value.
 		{name: "a recovery of an expression without a value that always succeeds in a read capture stays",
-			src:  "rule main = x:(\"q\" (-\"a\")? #recover(skip=\"z\")) {len($x) == 2}",
-			want: map[string]string{"main": `x:("q" (-"a")? #recover(skip="z")) {len($x) == 2}`}},
+			src:  "rule main = x:(\"q\" (-\"a\")? #recover(skip=\"z\")) {len($x) == 1}",
+			want: map[string]string{"main": `x:("q" (-"a")? #recover(skip="z")) {len($x) == 1}`}},
 		{name: "a recovery of a sequence that always succeeds in an unread capture is dropped",
 			src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {true}",
 			want: map[string]string{"main": `x:("q" "a"? "b"?) {true}`}},

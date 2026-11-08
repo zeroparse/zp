@@ -981,13 +981,13 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 				continue
 			}
 			// What recovers is one element: its value or an error, which #missing makes a missing
-			// token.
+			// token. An expression without a value stays without one: its error is only recorded.
 			el, ok := oneElem(elems, v.isSeq(e.Expr))
 			switch {
 			case neverMatches(e.Expr):
 				el = valueElem{t: TyBottom} // only the error
 			case !ok:
-				el.t = NodeTy{Value: TupleTy{Elems: []Ty{}}}
+				continue
 			}
 			if a.Name == "missing" {
 				el.t = Vjoin(el.t, TyMissing)

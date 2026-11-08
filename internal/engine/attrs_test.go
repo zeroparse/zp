@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestErrorAttribute(t *testing.T) {
@@ -150,6 +151,41 @@ func TestRecoverWithoutValue(t *testing.T) {
 			}
 		}
 		checkBackends(t, prog, "main", "x;b")
+	}
+}
+
+// TestRecoverWithoutValueAddsNoElement checks that an expression without a value stays without
+// one under #recover, whether it matches or recovers: it adds no element to the sequence around
+// it, which a predicate sees in the length of the capture, on every backend.
+func TestRecoverWithoutValueAddsNoElement(t *testing.T) {
+	t.Parallel()
+	for _, c := range []struct {
+		src    string
+		inputs []string // the expression matches on the first and recovers on the second
+	}{
+		{"rule main = x:(\"q\" (-\"a\") #recover(skip=\"z\")) {len($x) == 1} $$", []string{"qa", "qz"}},
+		{"rule main = x:(\"q\" (!\"a\") #recover(skip=\"a\")) {len($x) == 1} $$", []string{"q", "qa"}},
+		{"rule main = x:(\"q\" (-\"a\") #recover(skip=\"z\") #recover(skip=\"y\")) {len($x) == 1} $$", []string{"qa", "qz"}},
+		{"rule main = x:(\"q\" ((-\"a\") @error(\"want a\")) #recover(skip=\"z\")) {len($x) == 1} $$", []string{"qa", "qz"}},
+	} {
+		prog := mustCompile(t, c.src)
+		for i, in := range c.inputs {
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
+				var errs SyntaxErrors
+				recovered := errors.As(err, &errs) && len(errs) == 1
+				if n == nil || (i == 0) != (err == nil) || i == 1 && !recovered {
+					t.Errorf("%v, %q: got %v, %v\n%s", b, in, n, err, c.src)
+				}
+			}
+			checkBackends(t, prog, "main", in)
+		}
+	}
+	for _, c := range gentest.RecoverNoValueCases {
+		prog := mustCompile(t, c.Src)
+		for _, in := range c.Inputs {
+			checkBackends(t, prog, "main", in)
+		}
 	}
 }
 

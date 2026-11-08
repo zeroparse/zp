@@ -606,7 +606,8 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		}
 		n := &core.Recover{Body: x, Skip: skip}
 		if build {
-			// What recovers is one element: the value of the expression, or the error.
+			// What recovers is one element: the value of the expression, or the error. Its shape
+			// gives an expression without a value no element, which its users then leave out.
 			n.Attrs().Want, n.Attrs().Shape = true, coreShape(b.prog, e)
 		}
 		return n, nil

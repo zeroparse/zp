@@ -833,7 +833,8 @@ func (b *Builder) Diagnostic(m core.Matcher, name core.ExpID) core.Matcher {
 }
 
 func (b *Builder) Recover(e grammar.Expr, m, skip core.Matcher, build bool) core.Matcher {
-	// What recovers is one element: the value of the expression, or the error.
+	// What recovers is one element: the value of the expression, or the error. The walker builds
+	// no value for an expression without one, which stays without one.
 	if build {
 		m = captureMatcher(b.prog, e, m)
 	}

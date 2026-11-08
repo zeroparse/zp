@@ -593,6 +593,11 @@ func (c *bcompiler) attrElems(e *grammar.Attributed, i int, s *Scope) {
 		c.attrElems(e, i-1, s)
 		c.emit(bytecode.OpEndLabel, 0, 0, 0)
 	case "recover":
+		if ValuedCount(c.prog, e) == 0 {
+			// An expression without a value stays without one: its error is only recorded.
+			c.attributed(e, i, s)
+			return
+		}
 		skip, _ := a.Arg("skip")
 		rec := c.emit(bytecode.OpRecover, 0, 0, 0)
 		// The value of the inner expression where it is captured (captured), as in captureMatcher.

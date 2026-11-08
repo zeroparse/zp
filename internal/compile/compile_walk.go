@@ -404,7 +404,8 @@ func (c *Walker[M]) attributed(e *grammar.Attributed, s *Scope, build bool) M {
 				continue
 			}
 			c.noCaptures(skipExpr)
-			m = c.Builder.Recover(e.Expr, m, c.Expr(skipExpr, s, false), build)
+			// An expression without a value stays without one: its error is only recorded.
+			m = c.Builder.Recover(e.Expr, m, c.Expr(skipExpr, s, false), build && ValuedCount(c.Prog, e) > 0)
 		default:
 			c.errorf(a.Diagnostic(), "unknown attribute @%s", a.Name)
 		}

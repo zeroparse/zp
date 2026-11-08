@@ -323,13 +323,16 @@ func TestGeneratedTSTypedInferredRecovery(t *testing.T) {
 	for name, c := range map[string]struct {
 		src, inferred string
 		recovered     bool
+		kind          string // the type of the value that recovering from "!" gives, when not a Node
 	}{
-		"nil":   {`rule main = (-"a") #recover(skip=.+)`, "node[()] | error", true},
-		"never": {`rule main = main`, "_|_", false},
+		// An expression without a value stays without one under recovery, so the rule gives the
+		// unit whether its body matches or recovers.
+		"nil":   {`rule main = (-"a") #recover(skip=.+)`, "node[()]", true, "tuple"},
+		"never": {`rule main = main`, "_|_", false, ""},
 		"nil-rule-recovery": {`rule leaf = "a" => nil
-rule main = leaf #recover(skip=.+)`, "*error", true},
+rule main = leaf #recover(skip=.+)`, "*error", true, "error"},
 		"never-rule-recovery": {`rule leaf = leaf
-rule main = leaf #recover(skip=.+)`, "error", true},
+rule main = leaf #recover(skip=.+)`, "error", true, "error"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			prog := mustCompile(t, c.src)
@@ -344,7 +347,7 @@ import type {TypedValue, TypedParseResult} from "./types.ts";
  // Narrow the actual entry point's type, not just the widened annotation.
  const v = parseAST("!",unit).value;
  if (typeof v === "object" && v !== null && !(v instanceof Node) && !Array.isArray(v)) {
-   check(v.type === "error" && v.start === 0 && v.end === 1, "inferred recovered value");
+   check(v.type === "` + c.kind + `" && v.start === 0 && v.end === 1, "inferred recovered value");
  }
  const bad = parseAST("",unit); check(bad.value === null && bad.error !== null, "unrecoverable empty input");
  check(stable(r.value) === stable(parseAST("!",unit).value), "repeat value");
