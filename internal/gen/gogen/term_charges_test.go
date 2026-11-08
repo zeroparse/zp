@@ -14,22 +14,22 @@ import (
 	"zeroparse.dev/zp/internal/limits"
 )
 
-const termChargesGolden = "testdata/term_charges.golden"
-
-var termChargesGoldenFile = gentest.GoldenFile{
-	Path: termChargesGolden, CaseOf: gentest.GoldenCaseBefore,
-	Header: "# The charges of the generated term differential cases (gentest.TermCases) on every target: the units the\n" +
-		"# engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the\n" +
-		"# generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets\n" +
-		"# charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a\n" +
-		"# term's charges on one target is a stated change. The terms leave no struct field unset.\n" + gentest.GoldenRules,
+// termChargesGoldenFile returns the golden of the charges of the terms of the generator; what names it in
+// the header.
+func termChargesGoldenFile(path, what string) gentest.GoldenFile {
+	return gentest.GoldenFile{Path: path, CaseOf: gentest.GoldenCaseBefore,
+		Header: "# The charges of the generated term differential cases (" + what + ") on every target: the units the\n" +
+			"# engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the\n" +
+			"# generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets\n" +
+			"# charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a\n" +
+			"# term's charges on one target is a stated change. Some terms leave struct fields unset.\n" + gentest.GoldenRules}
 }
 
 // termChargeCases returns the term cases of the golden, which the compiler accepts.
-func termChargeCases(t *testing.T) []gentest.TermCase {
+func termChargeCases(t *testing.T, all []gentest.TermCase) []gentest.TermCase {
 	t.Helper()
 	var out []gentest.TermCase
-	for _, c := range gentest.TermCases(1, 40, false) {
+	for _, c := range all {
 		g, err := parseTest(c.Src)
 		if err == nil {
 			_, err = engine.Compile(g, compile.Options{})
@@ -60,11 +60,30 @@ func termOutcome(res string) string {
 // changes they make to them.
 func TestTermChargesAcrossTargets(t *testing.T) {
 	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges.golden", "gentest.TermCases", "termcharges", gentest.TermCases(1, 40, false))
+}
+
+// TestTermChargesAcrossTargetsWide pins the charges of the terms of gentest.TermCasesWide, which have
+// strings beyond the Basic Multilingual Plane, other literals, tuples, lists of structured values and
+// the errors of run time. The terms of seeds 5 to 12 leave struct fields unset, which read as nil, so
+// that the golden sees the errors of operators applied to nil. The targets charge them in their own
+// ways, like the terms above.
+func TestTermChargesAcrossTargetsWide(t *testing.T) {
+	t.Parallel()
+	var all []gentest.TermCase
+	for seed := uint64(1); seed <= 12; seed++ {
+		all = append(all, gentest.TermCasesWide(seed, 20, seed > 4)...)
+	}
+	checkTermCharges(t, "testdata/term_charges_wide.golden", "gentest.TermCasesWide, seeds 1 to 12", "termchargeswide", all)
+}
+
+func checkTermCharges(t *testing.T, golden, what, prefix string, all []gentest.TermCase) {
+	t.Helper()
 	gentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	terms := termChargeCases(t)
+	terms := termChargeCases(t, all)
 	cases := make([]gentest.Case, len(terms))
 	for i, c := range terms {
 		cases[i] = c.Case
@@ -72,7 +91,7 @@ func TestTermChargesAcrossTargets(t *testing.T) {
 	}
 	got := map[string]string{}
 	key := func(i int, input, target string) string {
-		return fmt.Sprintf("termcharges/term %d: %s | %s %s", i, terms[i].Term, input, target)
+		return fmt.Sprintf("%s/term %d: %s | %s %s", prefix, i, terms[i].Term, input, target)
 	}
 	inputIndex := func(i int, input string) int {
 		for j, in := range terms[i].Inputs {
@@ -108,12 +127,12 @@ func TestTermChargesAcrossTargets(t *testing.T) {
 		opts  gen.GenOptions
 		parse string
 	}{{"go-node", gen.GenOptions{}, "Parse"}, {"go-typed", gen.GenOptions{Types: true}, "ParseAST"}} {
-		totals, problems := budgetTotalsWith(t, rt, "termcharges", cases, "main", nil, run.opts, run.parse)
+		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", nil, run.opts, run.parse)
 		for _, p := range problems {
 			t.Error(p)
 		}
 		for k, v := range totals {
-			m := regexp.MustCompile(`^termcharges/term (\d+) \| (\d+) (\w+)$`).FindStringSubmatch(k)
+			m := regexp.MustCompile(`^` + prefix + `/term (\d+) \| (\d+) (\w+)$`).FindStringSubmatch(k)
 			if m == nil {
 				t.Fatalf("unexpected key %q", k)
 			}
@@ -146,7 +165,7 @@ func TestTermChargesAcrossTargets(t *testing.T) {
 			got[key(i, in, "ts-node")] = n + " " + termOutcome(res)
 		}
 	}
-	termChargesGoldenFile.Check(t, "termcharges/", got)
+	termChargesGoldenFile(golden, what).Check(t, prefix+"/", got)
 }
 
 // tsChargeScript is a TypeScript consumer that prints, for each input, the least compute limit under which
