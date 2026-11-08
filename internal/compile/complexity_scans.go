@@ -577,6 +577,7 @@ func (k *classifier) computeBoundedScans() {
 			k.scanRun[rep] = d
 		}
 	}
+	k.regionScan = k.regionScans()
 	// counted are the rules with a constant number of evaluations at one position: the memoized
 	// rules off left-recursion cycles, by Lemma 3, and the rules that only such evaluations reach
 	// at a bounded distance, which countedWalk clears the others from. The rules that are not
@@ -604,11 +605,19 @@ func (k *classifier) computeBoundedScans() {
 		if !ok {
 			continue
 		}
-		if d, ok := k.scanRun[rep]; ok && d < runOpen && d != runNone && k.scanCounted[rep] {
+		if k.firstBound(rep) && k.scanCounted[rep] {
 			delete(k.srcExprs, rep)
 			delete(k.srcExprs, k.again[rep])
 		}
 	}
+}
+
+// firstBound reports whether a constant bounds the positions from which the evaluations of rep
+// that reach a position start: the run bound, at most runMax characters of its alphabet before it,
+// or the region bound of the body of a trivia rule (complexity_regions.go).
+func (k *classifier) firstBound(rep *grammar.Repeat) bool {
+	d, ok := k.scanRun[rep]
+	return ok && d < runOpen && d != runNone || k.regionScan[rep]
 }
 
 // rigid reports whether a constant bounds the positions from which e can match up to any one
@@ -644,8 +653,9 @@ func (k *classifier) rigid(e grammar.Expr) bool {
 		if e.Max >= 0 {
 			return k.rigid(e.Expr)
 		}
+		// A repetition that no path reaches (runNone) is rigid as well: it has no evaluations.
 		d, ok := k.scanRun[e]
-		return ok && d < runOpen
+		return ok && d < runOpen || k.regionScan[e]
 	case *grammar.Optional:
 		return k.rigid(e.Expr)
 	case *grammar.Group:

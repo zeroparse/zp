@@ -293,6 +293,7 @@ type classifier struct {
 
 	scanRun     map[*grammar.Repeat]int  // the longest run before each repetition (computeBoundedScans)
 	scanCounted map[*grammar.Repeat]bool // the repetitions with a constant number of evaluations at a position
+	regionScan  map[*grammar.Repeat]bool // the bodies of trivia rules with the region bound (regionScans)
 	stepRules   map[string]bool          // the rules called in a repetition that each step of a growth evaluates
 	sureMemo    map[grammar.Expr]charset // what sureOf has found
 	sureRule    map[string]charset       // what sure has found for the body of each rule
