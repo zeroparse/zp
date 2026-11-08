@@ -22,16 +22,20 @@ definition and the place where the term is defined.
 | cost | What a parse spends: the rule bodies evaluated, the input examined, the iterations and operators applied and the size of the values built. Time is proportional to it, and the budget caps it, in compute units. See [Time and Memory](runtime/parsing.md#time-and-memory). |
 | cut | `#cut`: commits the enclosing choice to the current alternative. See [Cut](language/parser-expressions.md#cut). |
 | Declaration Statement | A Type Declaration Statement or Rule Declaration Statement in a `.zp` file. See [Grammar Files](language/grammar-files.md#structure). |
+| diagnostic | A syntax error that a parse reports with its position and expectations; a recovered parse and a Document publish them as caller-owned values, and a stream delivers them through diagnostic options. See [Syntax Errors](runtime/parsing.md#syntax-errors) and [Incremental Documents](runtime/documents.md). |
 | discard | `-a`: matches `a` and has no value. See [Discard](language/parser-expressions.md#discard). |
 | Document | A mutable text together with its parse result, updated by edits and reparsed incrementally. See [Incremental Documents](runtime/documents.md). |
 | edit | The replacement of a range of a Document's text; the next parse reuses the results that the edit did not affect. See [Edits](runtime/documents.md#edits). |
 | effect | One thing a Core IR node can do besides succeed or fail, such as consuming input, recording expectations or writing a capture. See [Attributes and Effects](core-ir/attributes.md#effects). |
 | expectation | An item that a syntax error lists as expected at a position: a literal, a character class, `any character` or an anchor. A parse records expectations only on request. See [Recording expectations](runtime/parsing.md#recording-expectations). |
 | farthest failure | The farthest position at which parsing failed, with the items expected there when the parse records expectations; the syntax error reports it. See [Syntax errors](runtime/parsing.md#syntax-errors). |
+| fixture suite | A versioned JSON file of named inputs with expected outcomes and goldens, run by `zp test`. See [Fixture Suites and Edit Sequences](runtime/test-formats.md). |
+| fragment | A part of a text that is parsed alone: a prefix parse matches the start rule at the beginning of a supplied string, which the caller confines by slicing both ends. See [Prefix Parsing](runtime/parsing.md#prefix-parsing). |
 | generated parser | A standalone Go or TypeScript parser written for one grammar by `zp gen`. See [Generated Parsers](runtime/generated-parsers.md). |
 | grammar | An optional package clause followed by Type and Rule Declaration Statements, normally written in a `.zp` file. See [Grammar Files](language/grammar-files.md). |
 | join type | The join `T \| U` of types: a type whose values are the values of any one of its member types. See [Join Types](language/types.md#join-types). |
 | left recursion | A rule that calls itself at the position where it started. It is evaluated by growing a seed. See [Left recursion](language/parser-expressions.md#left-recursion). |
+| limit, budget | A bound on one invocation: `Compute` (the cost of the parse, in compute units), `Memory` (bytes of storage), `Input` (length of the input) and `Depth` (nesting of recursive rule calls). The compute budget is the amount of compute units that the limit allows. See [Limits](runtime/parsing.md#limits). |
 | lookahead | `&a` and `!a`: tests the input that follows without consuming it. See [Lookahead](language/parser-expressions.md#lookahead). |
 | meet type | The meet `T & U` of types: a type whose values are the values of both. See [Top, Bottom, Join and Meet](language/types.md#top-bottom-join-and-meet). |
 | memoization | Caching the result of a rule at an input position so that the rule is not evaluated twice at that position (packrat parsing). See [Memoization](runtime/parsing.md#memoization). |
@@ -39,6 +43,7 @@ definition and the place where the term is defined.
 | node | A value together with the range of input that it covers: a string, a tuple or a list. See [Nodes and Values](runtime/nodes.md#node-model). |
 | operand, operator | The parts of an Operators Rule: an operand is the leading element of an expression, an operator is a prefix, infix or postfix form. See [Operators Rule](language/operators-rule.md). |
 | Operators Rule | A rule declaration that declares operators by precedence and associativity. See [Operators Rule](language/operators-rule.md). |
+| output schema | The description of the values a grammar can produce: its declared types and the inferred value shape of each rule, exported without parsing input. See [Output Schemas](runtime/schemas-and-queries.md#output-schemas). |
 | position | A number that identifies a place between two characters of the input, counted in the position unit. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | position unit | The unit in which positions and lengths in the input are measured: code points or bytes. See [Input and positions](runtime/parsing.md#input-and-positions). |
 | pragma | A `#` annotation that changes expression behavior or structure, such as `#atomic`, `#recover`, `#repeat(...)` or `#stream`, which follow an expression, and `#cut`, which stands in place of one. See [Pragmas](language/pragmas.md). |
@@ -53,15 +58,18 @@ definition and the place where the term is defined.
 | Rule Definition | `rule a = b`: defines the rule `a` by a Rule Expression or an Operators Rule. See [Rule Declaration Statements](language/grammar-files.md#rule-declaration-statements). |
 | Rule Expression | An expression that matches input; the body of an ordinary rule. See [Rule Expressions](language/parser-expressions.md). |
 | scope | The place where captures are visible: a rule body or one iteration of a repetition. See [Capture](language/parser-expressions.md#capture). |
-| skip run | The walks of a skip-run site: an unbounded repetition written in the skip expression of a `#recover`, whose walks the parser records and reuses. See [Skip Runs](runtime/parsing.md#skip-runs). |
-| source information | An opt-in record of the rule that produced each node and of the names of captures. See [Source Information](runtime/nodes.md#source-information). |
 | sequence | `a b`: matches `a` and then `b`. See [Sequence](language/parser-expressions.md#sequence). |
+| skip run | The walks of a skip-run site: an unbounded repetition written in the skip expression of a `#recover`, whose walks the parser records and reuses. See [Skip Runs](runtime/parsing.md#skip-runs). |
+| snapshot | An immutable capture of one revision of a Document: its text, parse outcome and value graph. See [Snapshots](runtime/documents.md#snapshots). |
+| source information | An opt-in record of the rule that produced each node and of the names of captures. See [Source Information](runtime/nodes.md#source-information). |
 | start rule | The rule with which parsing begins. It is chosen when the grammar is compiled or parsed, not in the grammar file. See [Start rule](runtime/parsing.md#start-rule). |
 | stream | A `#stream` repetition whose elements are handed to the caller as soon as they match, so that earlier input can be released. See [Streaming](runtime/streaming.md). |
-| struct type | A user-defined type of values with named fields, which an action builds. See [Struct types](language/types.md#struct-types). |
 | string node | A node whose value is the matched input text: the node of a literal, a character class, `.` or an atomic expression. Its type is `node[string]`. See [Nodes and Values](runtime/nodes.md#node-model). |
+| struct type | A user-defined type of values with named fields, which an action builds. See [Struct types](language/types.md#struct-types). |
 | terminal | A string node. `Node.IsTerminal` reports it. See [Nodes and Values](runtime/nodes.md#node-model). |
 | token | A lexical element of a grammar file: an identifier, a literal, a capture reference or punctuation. See [Tokens](language/lexical.md#tokens). |
+| trace, profile | A trace reports every rule call of a parse, at its start and its end, to a callback; a profile totals the cost of each rule. Both are opt-in and never change what the parser accepts or returns. See [Tracing and Profiling](runtime/observability.md). |
+| trivia rule | A rule whose body is a greedy repetition of an element that cannot match without consuming input, such as the whitespace of a grammar, and that runs no action. See [Evaluations of Rules](runtime/parsing.md#evaluations-of-rules). |
 | tuple | The value of a sequence: the values of its elements, in order. A rule without a valued element produces the empty tuple, the unit `()`. See [Nodes and Values](runtime/nodes.md#node-model). |
 | Type Alias | `type a ~ b`: gives the type `b` another name `a`, and defines no type. See [Type Aliases](language/types.md#type-aliases). |
 | Type Declaration Statement | A statement `type ...` that declares a type name: a Type Definition or a Type Alias. See [Type Declaration Statements](language/types.md#type-declaration-statements). |

@@ -384,14 +384,16 @@
             "spec/runtime/compiled-grammars.md",
             "spec/runtime/generated-parsers.md",
             "spec/runtime/schemas-and-queries.md",
-            "spec/runtime/lint.md"
+            "spec/runtime/lint.md",
+            "spec/runtime/test-formats.md"
           ],
           "first": [
             "spec/runtime/observability.md",
             "spec/runtime/compiled-grammars.md",
             "spec/runtime/generated-parsers.md",
             "spec/runtime/schemas-and-queries.md",
-            "spec/runtime/lint.md"
+            "spec/runtime/lint.md",
+            "spec/runtime/test-formats.md"
           ]
         }
       ]

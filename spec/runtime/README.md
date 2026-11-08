@@ -38,6 +38,7 @@ Observing a parse, saving and generating parsers, describing their output and ch
 | 7 | [Generated Parsers](generated-parsers.md) | `zp gen`: the Go and TypeScript parsers, their APIs and what each supports |
 | 8 | [Output Schemas and Structural Queries](schemas-and-queries.md) | Describing the output of a grammar and searching result nodes (experimental) |
 | 9 | [Grammar Lint](lint.md) | The checks of the linter, severities and suppression directives |
+| 10 | [Fixture Suites and Edit Sequences](test-formats.md) | The JSON formats of `zp test` suites and `zp edit-fuzz` saved sequences |
 
 The [Glossary](../glossary.md) lists the terms of the specifications, with the place
 where each is defined.

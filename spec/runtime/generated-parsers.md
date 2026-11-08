@@ -348,6 +348,15 @@ export const Bytes: Unit;
 export function marshal(n: Node | null): string;
 ```
 
+- **Public names.** The public API of a generated TypeScript parser is what `parser.ts` exports, plus the names of
+  `types.ts` with `-types`. From the runtime it re-exports `Value`, `Unit`, `CodePoints`, `Bytes`, `NodeField`,
+  `NodeJSON`, `Node`, `marshal`, `SyntaxError`, `SyntaxErrors`, `ParseResult`, `ParseOptions`, `Limits`,
+  `ParseInterruptionKind`, `ParseInterruptionError`, `Unlimited`, `TraceKind`, `TraceEvent`, `Profile`,
+  `ProfileLocation`, `SkipReasonCount`, `RuleProfile` and `ProfileSnapshot`, and with `-limits` also
+  `CancellationSignal`. Without `-limits` the exported `ParseOptions` and `Limits` are the forms without `signal` and
+  `limits.compute`. `TraceKind` is `"enter"`, `"exit"` or `"skipped"`. The other exports of `runtime.ts`, such as
+  `captureLocations` and `ProfileData`, are the contract between the runtime and the generated code. They are not
+  public API and may change between versions.
 - `parse` does not throw for bad input: it returns `{ node, error }` with a node and
   no error; no node and an error; or, after `#recover`, a node and `SyntaxErrors`.
   It throws only for defects that are not parse errors.
