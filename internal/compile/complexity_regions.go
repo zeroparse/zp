@@ -91,8 +91,11 @@ func (k *classifier) regionFree(name string) bool {
 		}
 		free := true
 		WalkExpr(d.Expr, func(e grammar.Expr) {
+			// Attribute normalization has made `#recover` and `#stream` attributed expressions, and
+			// the lowering of inline actions has made them rules with actions, so no recovery,
+			// stream or inline action node is left here.
 			switch e := e.(type) {
-			case *grammar.Predicate, *grammar.InlineAction, *grammar.Attributed, *grammar.Recovery, *grammar.Stream, *grammar.OperatorsRule:
+			case *grammar.Predicate, *grammar.Attributed, *grammar.OperatorsRule:
 				free = false
 			case *grammar.Ref:
 				if e.Level != "" {

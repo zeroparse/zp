@@ -111,8 +111,8 @@ func TestRegionScans(t *testing.T) {
 			regionSource(" / \"!\" &(\"/\" id) id", "")},
 		// (G): the skip and the operators of an Operators Rule.
 		{"the skip of an Operators Rule",
-			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ws\n    operand id\n    level add { infix left \"-\" }\n}\n"),
-			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ([ ] / \"/\")*\n    operand id\n    level add { infix left \"-\" }\n}\n")},
+			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ws\n    operand \"x\"\n    level add { infix left \"-\" }\n}\n"),
+			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ([ ] / \"/\")*\n    operand \"x\"\n    level add { infix left \"-\" }\n}\n")},
 		{"an operator of an Operators Rule",
 			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ws\n    operand id\n    level mul { infix left \"%\" }\n}\n"),
 			regionSource(" / \"!\" o", "rule o = #operators {\n    skip ws\n    operand id\n    level mul { infix left \"/\" }\n}\n")},
@@ -124,10 +124,37 @@ func TestRegionScans(t *testing.T) {
 		{"two trivia rules",
 			regionSource(" / \"[\" sp id \"]\"", "rule sp = [\\t]* (d [\\t]*)*\nrule d = \"#\" [^\\n]* \"\\n\"\n"),
 			regionSource(" / \"[\" sp id \"]\"", "rule sp = [\\t]* (d [\\t]*)*\nrule d = \"//\" [^\\n]* \"\\n\"\n")},
-		// (D): a region that reads a variable.
+		// (O): an auxiliary region that overlaps a trivia region gives way to it. The rule m is made
+		// an auxiliary region for the crossing of sp, which it holds, and overlaps ws by its first
+		// character. It is dropped, which leaves ws with the bound, if its slash is guarded; if it
+		// is not, the slash is a crossing of ws as well, and ws fails.
+		{"an auxiliary region and a trivia region",
+			regionSource(" / \"[\" sp id \"]\" / m", "rule sp = [\\t]* (d [\\t]*)*\nrule d = \"#\" [^\\n /]* \"\\n\"\nrule m = \"/\" !\"*\" \"#\" \"x\"\n"),
+			regionSource(" / \"[\" sp id \"]\" / m", "rule sp = [\\t]* (d [\\t]*)*\nrule d = \"#\" [^\\n /]* \"\\n\"\nrule m = \"/\" \"#\" \"x\"\n")},
+		// (D): a region with an inline action that reads a variable.
 		{"a region that reads a variable",
 			"var v int = 0\n" + regionSource("", ""),
-			"var v int = 0\n" + strings.Replace(regionSource("", ""), "rule c = \"/*\"", "rule c = {v == 0} \"/*\"", 1)},
+			"var v int = 0\n" + strings.Replace(regionSource("", ""), "rule c = \"/*\" [^*]* \"*/\"", "rule c = (\"/*\" [^*]* \"*/\" => v)", 1)},
+		// (D): a region with a whole-rule action.
+		{"a region with an action",
+			regionSource("", ""),
+			strings.Replace(regionSource("", ""), "rule c = \"/*\" [^*]* \"*/\"", "rule c = \"/*\" [^*]* \"*/\" => 1", 1)},
+		// (D): a region in a left-recursion cycle.
+		{"a region in a cycle",
+			regionSource("", ""),
+			strings.Replace(regionSource("", ""), "rule c = \"/*\" [^*]* \"*/\"", "rule c = c \"*\" / \"/*\" [^*]* \"*/\"", 1)},
+		// (D): a region that makes a level call.
+		{"a region with a level call",
+			regionSource("", "rule o = #operators {\n    operand \"x\"\n    level add { infix left \"-\" }\n}\n"),
+			strings.Replace(regionSource("", "rule o = #operators {\n    operand \"x\"\n    level add { infix left \"-\" }\n}\n"), "rule c = \"/*\" [^*]* \"*/\"", "rule c = \"/*\" [^*]* \"*/\" level(o, add)?", 1)},
+		// (D): a region with a recovery, which the classifier reads as an attributed expression.
+		{"a region with a recovery",
+			regionSource("", ""),
+			strings.Replace(regionSource("", ""), "rule c = \"/*\" [^*]* \"*/\"", "rule c = \"/*\" [^*]* (\"*/\" #recover(skip=[^;]*))", 1)},
+		// (D): a region with a stream, likewise.
+		{"a region with a stream",
+			regionSource("", ""),
+			strings.Replace(regionSource("", ""), "rule c = \"/*\" [^*]* \"*/\"", "rule c = \"/*\" ([^*]* #stream) \"*/\"", 1)},
 		// (N): a region whose body reaches a region that only it calls. The letters before cb leave
 		// its run open, which makes it a candidate.
 		{"a region inside a region",
