@@ -43,12 +43,18 @@ func TestRuntimeExecConformance(t *testing.T) {
 			copyFile(filepath.Join(src, n), filepath.Join(dir, n))
 		}
 	}
-	copyFile(filepath.Join("testdata", "exec_conformance_test.go"), filepath.Join(dir, "exec_conformance_test.go"))
+	tests, err := os.ReadDir("testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range tests {
+		copyFile(filepath.Join("testdata", e.Name()), filepath.Join(dir, e.Name()))
+	}
 	mod := "module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => " + root + "\n"
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(mod), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"test", "-count=1", "-v", "-run", "^TestExecConformance"}
+	args := []string{"test", "-count=1", "-v", "-run", "^Test(ExecConformance|ValueConformance)"}
 	if testing.Short() {
 		args = append(args, "-short")
 	}
@@ -59,7 +65,7 @@ func TestRuntimeExecConformance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)
 	}
-	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime"} {
+	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime", "TestValueConformance", "TestValueConformanceDetectsBrokenRuntime"} {
 		if !strings.Contains(string(out), "--- PASS: "+name+" ") {
 			t.Errorf("go test did not run %s:\n%s", name, out)
 		}
