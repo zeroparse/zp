@@ -44,6 +44,13 @@ func parens(n int) string { return rep("(", n) + "n" + rep(")z", n) }
 
 func double(n int) []int { return []int{n, 2 * n, 4 * n} }
 
+// regionGrammar is a grammar of nested terms whose blanks hold comments. The lookahead
+// !(ws ".") fails after ws has scanned a comment, and what follows evaluates ws again where it
+// started.
+const regionGrammar = "rule main = (p \";\" ws)* $$\n" +
+	"rule p = k !(ws \".\") / k ws \".\" ws id / \"(\" ws p ws \")\" / id\nrule k = \"true\"\nrule id = [a-z]+\n" +
+	"rule ws = [ ]* (c [ ]*)*\nrule c = \"/*\" [^*]* \"*/\"\n"
+
 // Controls returns the controls table. The negative controls record growth that the engine has
 // today: when a planned change makes one linear, its entry moves to the linear set by hand. The
 // negative E8 controls (repeated, nested and alternating walks) are linear in measurement through
@@ -915,6 +922,37 @@ func Controls() []Control {
 			Name: "Scan behind a prefix with many starts", Family: "bounded scans",
 			Source: "rule main = (w sp \"!\" / [ab])* sp $$\nrule w = [ab]+\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("a", n) + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
+		// The blanks hold comments, so the run before them has no bound, but nothing outside them
+		// consumes a blank or a slash: no evaluation outside them starts inside their match, and the
+		// lookahead that fails after them at each level of the nest starts them again only where
+		// they started (the region bound).
+		{
+			Name: "Comments in blanks before a failed lookahead", Family: "region bounds", Positive: true,
+			Source: regionGrammar,
+			Input: func(n int) string {
+				return rep("( /*"+rep("x", 8)+"*/ ", n/8) + "true /*" + rep("x", n) + "*/ . y" + rep(" )", n/8) + ";"
+			},
+			Sizes: double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
+		// A token where the blanks ended consumes the opener of a comment that is not closed, which
+		// is no match of the blanks, and the scan of the next comment runs to the end again. The
+		// blanks keep the region bound, and the scan inside the comment stays a scanning source. The
+		// engine measures linear through the records of run sites, which generated parsers do not
+		// keep: there it is quadratic.
+		{
+			Name: "Comments that are not closed after tokens", Family: "region bounds",
+			Source: "rule main = (ws t)* ws $$\nrule t = \"/\" \"*\" [a-z]+\nrule ws = (\" \" / c)*\nrule c = \"/*\" (!\"*/\" .)* \"*/\"\n",
+			Input:  func(n int) string { return rep(" /*b", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+		},
+		// The opener of a comment is a token, so an evaluation of the blanks starts inside the match
+		// of another at each opener.
+		{
+			Name: "Comments whose opener is a token", Family: "region bounds",
+			Source: "rule main = e $$\nrule e = \"<\" (ws \"!\" / \"\") e / \">\" ws\nrule ws = [ ]* (c [ ]*)*\nrule c = \"<\" [^>]* \">\"\n",
+			Input:  func(n int) string { return rep("<", n) + ">" },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
 		},
 	}
