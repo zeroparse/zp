@@ -17,6 +17,8 @@ package bench
 //go:generate go run ../cmd/zp gen -g ../examples/calculator/calc_lr.zp -module zeroparse.dev/zp/internal/bench/gen/calclr -runtime import -recognize -types -limits -o ../internal/bench/gen/calclr
 //go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilang -runtime import -recognize -types -limits -o ../internal/bench/gen/minilang
 //go:generate go run ../cmd/zp gen -g ../examples/outline/outline.zp -module zeroparse.dev/zp/internal/bench/gen/outline -runtime import -recognize -types -limits -o ../internal/bench/gen/outline
+//go:generate go run ../cmd/zp gen -g grammars/terms/pred.zp -module zeroparse.dev/zp/internal/bench/gen/termspred -runtime import -recognize -types -limits -o ../internal/bench/gen/termspred
+//go:generate go run ../cmd/zp gen -g grammars/terms/heavy.zp -module zeroparse.dev/zp/internal/bench/gen/termsheavy -runtime import -recognize -types -limits -o ../internal/bench/gen/termsheavy
 //go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilangdoc -runtime import -limits -document -o ../internal/bench/gen/minilangdoc
 //go:generate go run ../cmd/zp gen -g ../examples/minilang/minilang.zp -module zeroparse.dev/zp/internal/bench/gen/minilangtdoc -runtime import -types -limits -document -o ../internal/bench/gen/minilangtdoc
 //go:generate go run ../cmd/zp gen -g ../testdata/grammars/csv/csv.zp -module zeroparse.dev/zp/internal/bench/gen/csvdoc -runtime import -limits -document -o ../internal/bench/gen/csvdoc

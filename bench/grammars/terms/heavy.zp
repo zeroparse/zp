@@ -1,0 +1,19 @@
+// Lines of words whose action maps, folds, filters, builds a struct and compares: the benchmark of how
+// much a term costs when it does real work.
+package terms
+
+type Line = { N int; Total int; Long int; Longest string; Wide bool }
+type Doc = { Lines []Line }
+
+@start
+rule main Doc = ls:line* $$ => Doc{Lines: $ls.Value}
+
+rule line Line = ws:word+ ";" "\n" => Line{
+    N: len($ws),
+    Total: foldl(0, map($ws, (w) => len(text(w.$s))), (a, e) => a + e),
+    Long: len(filter(map($ws, (w) => len(text(w.$s))), (e) => e > 3)),
+    Longest: foldl("", map($ws, (w) => text(w.$s)), (a, e) => a + e),
+    Wide: foldl(0, map($ws, (w) => len(text(w.$s))), (a, e) => a + e) > 20,
+}
+
+rule word = s:[a-z]+ " "

@@ -160,3 +160,18 @@ func OutlineInput(lines int) string {
 	}
 	return b.String()
 }
+
+// TermsInput returns lines lines of four to twelve lowercase words, each word followed by a space, and
+// each line ended by ` ;`: the input of the term benchmarks.
+func TermsInput(lines int) string {
+	r := newRand()
+	var b strings.Builder
+	for i := 0; i < lines; i++ {
+		for n := 4 + r.IntN(9); n > 0; n-- {
+			b.WriteString(strings.Repeat(string(rune('a'+r.IntN(26))), 1+r.IntN(7)))
+			b.WriteByte(' ')
+		}
+		b.WriteString(";\n")
+	}
+	return b.String()
+}

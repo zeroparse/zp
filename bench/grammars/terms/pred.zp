@@ -1,0 +1,13 @@
+// Lines of words, each guarded by four predicate terms: the benchmark of how much a term costs when
+// nothing is built from it.
+package terms
+
+type Line = { N int }
+type Doc = { Lines []Line }
+
+@start
+rule main Doc = ls:line* $$ => Doc{Lines: $ls.Value}
+
+rule line Line = ws:word+ {len($ws) > 0} {len($ws) < 100} {$ws.Start != $ws.End} {len(text($ws)) >= 0} ";" "\n" => Line{N: len($ws)}
+
+rule word = [a-z]+ " "
