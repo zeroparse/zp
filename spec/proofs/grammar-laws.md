@@ -599,7 +599,13 @@ the [open steps of the linear cost proof](linear-cost.md#open-steps).
   positional references are not part of the language. So the view applies
   them neither inside a capture whose name a predicate of the rule reads,
   nor in the body of a rule whose value reaches such a capture, through the
-  rules it calls in positions that keep their value, transitively.
+  rules it calls in positions that keep their value, transitively. A call
+  keeps its value except under a discard, a negative lookahead, and a
+  positive lookahead outside its captures: a capture in a positive
+  lookahead keeps its value, which a predicate reads. Nor does the view
+  apply them to an expression that contains such a capture, or that calls
+  such a rule, since they would move or merge the capture that the
+  predicate names.
 - N7 is off because `@error` and `@diagnostic` decide where the parser keeps
   repetition runs, and N13 is off because inlining changes which rules are
   memoized. For the same reason the classifier decides memoization, call

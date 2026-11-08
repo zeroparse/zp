@@ -70,6 +70,9 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 		{"cut in an atomic in a repetition", `rule main = (("a" #cut "b") #atomic / !"q" "q")* "ac"`, []string{"ababac", "ac", "abq"}},
 		{"cut in a labeled expression in a repetition", `rule main = (("a" #cut "b") @error(message="m") / !"q" "q")* "ac"`, []string{"ababac", "ac"}},
 		{"cut in a choice spliced into a choice", "rule main = ((-(\"x\" #cut e \"q\") / !\"z\" \"z\") / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"xxq", "x", "xxxq", "xxqx", "xx"}},
+		{"capture in a lookahead of a called rule", "rule main = y:r {len($y.$z) == 2} (e \"q\" / \"x\")* $$\nrule r = &(z:s) \"a\"*\nrule s = \"a\"* \"a\"*\nrule e = e \"x\" / \"x\"", []string{"x", "axq", "aaxq", "aax", "xxq", "aaaxq"}},
+		{"read capture merged by a repetition", "rule main = x:\"a\" (x:\"a\")* {text($x) == \"a\"} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"axxq", "aaxq", "ax", "aax", "a"}},
+		{"read capture merged by an optional", "rule main = (x:\"a\")? (x:\"a\")* {text($x) == \"a\"} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"axxq", "aaxq", "ax", "aax", "x"}},
 		{"cut in a skip", `rule main = ("a" "b" #recover(skip=#cut [^;]*) / !"q" "q")* "ac"`, []string{"abac", "ac", "aac", "a;ac"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -202,5 +205,30 @@ func mutate(rng *rand.Rand, in string) string {
 			rs[i], rs[i+1] = rs[i+1], rs[i]
 		}
 		return string(rs)
+	}
+}
+
+// TestNormalViewCompiles checks that the cost view of every bundled grammar is a grammar that
+// compiles: a rewrite that moved or merged a capture that a predicate reads would leave the
+// predicate without it.
+func TestNormalViewCompiles(t *testing.T) {
+	for _, tg := range append(append([]TriageGrammar{}, TriageGrammars...), LinearGrammars...) {
+		t.Run(tg.Name, func(t *testing.T) {
+			src, err := os.ReadFile(tg.Path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g, err := syntax.Parse(string(src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			vg, err := compile.NormalView(g, false, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := engine.Compile(vg, engine.Options{DefaultValue: true}); err != nil {
+				t.Fatalf("the view does not compile: %v", err)
+			}
+		})
 	}
 }

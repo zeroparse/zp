@@ -316,7 +316,7 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 func (v *normalView) adjacent(a, b grammar.Expr) grammar.Expr {
 	ra, aRep := a.(*grammar.Repeat)
 	rb, bRep := b.(*grammar.Repeat)
-	if bRep && rb.Max < 0 && rb.Min <= 1 && v.depth == 0 {
+	if bRep && rb.Max < 0 && rb.Min <= 1 && v.depth == 0 && !v.observed(a, b) {
 		x := rb.Expr
 		switch {
 		case aRep && ra.Max < 0 && ra.Min <= 1 && rb.Min == 0 && v.same(ra.Expr, x) && v.idempotent(x):
@@ -395,7 +395,7 @@ func (v *normalView) unroll(ra, rb *grammar.Repeat) grammar.Expr {
 
 // nestedRepeat applies R6 to a repetition whose element is a repetition, or returns nil.
 func (v *normalView) nestedRepeat(outer *grammar.Repeat, inner grammar.Expr) grammar.Expr {
-	if outer.Max >= 0 || outer.Min > 1 || v.depth > 0 {
+	if outer.Max >= 0 || outer.Min > 1 || v.depth > 0 || v.observed(outer) {
 		return nil
 	}
 	switch in := inner.(type) {
@@ -635,7 +635,7 @@ func (v *normalView) factor(alts []grammar.Expr, ch *grammar.Choice) ([]grammar.
 			}
 		}
 		prefix := first[:min(n, len(first))]
-		if j-i < 2 || !v.evaluatedAgainCheaply(&grammar.Seq{Items: prefix}) {
+		if j-i < 2 || !v.evaluatedAgainCheaply(&grammar.Seq{Items: prefix}) || v.observed(alts[i:j]...) {
 			out = append(out, alts[i])
 			i++
 			continue
@@ -952,8 +952,36 @@ func (v *normalView) valueReaders(rules []*grammar.RuleDef) {
 	}
 }
 
+// observed reports whether a predicate of the current rule can read a value in es: one contains a
+// capture whose name a predicate of the rule reads, or calls, in positions that keep their value, a
+// rule whose value reaches such a capture. The rules that change values do not rewrite such an
+// expression, whose captures they would move or merge.
+func (v *normalView) observed(es ...grammar.Expr) bool {
+	reads := v.reads[v.cur]
+	for _, e := range es {
+		found := false
+		WalkExpr(e, func(x grammar.Expr) {
+			if c, ok := x.(*grammar.Capture); ok && reads[c.Name] {
+				found = true
+			}
+		})
+		if found {
+			return true
+		}
+		for _, n := range valueCalls(e) {
+			if v.valued[n] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // valueCalls returns the rules that e calls in positions that can keep their value: all but those
-// under a discard or a lookahead.
+// under a discard, a negative lookahead, and a positive lookahead outside its captures. A capture
+// in a positive lookahead keeps its value beside the tuple of its scope, where actions and
+// predicates read it. A negative lookahead has no captures and a capture under a discard is an
+// error, so no value survives them.
 func valueCalls(e grammar.Expr) []string {
 	dropped := map[*grammar.Ref]bool{}
 	drop := func(x grammar.Expr) {
@@ -968,7 +996,21 @@ func valueCalls(e grammar.Expr) []string {
 		case *grammar.Discard:
 			drop(x.Expr)
 		case *grammar.And:
-			drop(x.Expr)
+			kept := map[*grammar.Ref]bool{}
+			WalkExpr(x.Expr, func(y grammar.Expr) {
+				if c, ok := y.(*grammar.Capture); ok {
+					WalkExpr(c.Expr, func(z grammar.Expr) {
+						if r, ok := z.(*grammar.Ref); ok {
+							kept[r] = true
+						}
+					})
+				}
+			})
+			WalkExpr(x.Expr, func(y grammar.Expr) {
+				if r, ok := y.(*grammar.Ref); ok && !kept[r] {
+					dropped[r] = true
+				}
+			})
 		case *grammar.Not:
 			drop(x.Expr)
 		}
