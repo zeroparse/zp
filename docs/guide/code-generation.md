@@ -45,6 +45,7 @@ change what your code sees. The test suite checks this for every grammar in `exa
 A complete, runnable setup. The grammar, `pairs.zp`, is the one used in the [Running Parsers](running-parsers.md):
 
 ```zp
+// pairs.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start(default)
@@ -170,7 +171,7 @@ The output is exactly what the engine prints for the same grammar and input.
 ## The `zp gen` Command
 
 ```bash
-zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-expectations] [-observability] [-limits] [-default-value] [-nodoc] [-max-depth <n>]
+zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-expectations] [-observability] [-limits] [-default-value] [-nodoc] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
 ```
 
 | Flag | Default | Meaning |
@@ -207,6 +208,7 @@ Details:
 - Grammar errors are reported with positions, before any file is written. A rule with no expression is a syntax
   error:
 
+  <!-- example: error -->
   ```zp
   // broken.zp
   @start
@@ -223,6 +225,7 @@ Details:
 
   An action that reads a capture the rule does not have is a compile error:
 
+  <!-- example: error -->
   ```zp
   // typeerr.zp
   @start
@@ -264,7 +267,7 @@ Details:
 
 ### Optimizations
 
-The generator optimizes what it emits. Each optimization is a flag with a name. A profile is a preset: a name for fixed
+The generator optimizes what it emits. The contract of the options (the order in which they apply, their values, and the guarantee that none changes what a parser returns) is in [Optimization Options](../../spec/runtime/generated-parsers.md#optimization-options); this section lists the optimizations. Each optimization is a flag with a name. A profile is a preset: a name for fixed
 values of flags, with no logic of its own. The `speed` profile, the default, has every flag on except the opt-ins named
 below (`ts-literal-sharing` and `class-tables`). `-opt` sets a flag, and `-no-opt` turns flags off after the profile and `-opt` are applied, so `-no-opt` wins.
 A flag keeps what the parser returns, the same results, errors and events, and changes the code, the speed and the size.

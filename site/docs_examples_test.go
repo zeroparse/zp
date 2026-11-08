@@ -297,9 +297,7 @@ func trimOutput(s string) string {
 
 // deferredPages are pages whose examples are not run yet, with the reason. A page leaves this
 // list when its examples carry the markers that they need.
-var deferredPages = map[string]string{
-	"docs/guide/code-generation.md": "its examples need markers and a pairs.zp header that are added with its pending edit",
-}
+var deferredPages = map[string]string{}
 
 // exampleStats counts what TestDocumentationExamples did, for the log.
 type exampleStats struct{ Compiled, Rejected, Commands, Skipped int }
