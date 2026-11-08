@@ -144,17 +144,7 @@ func (e *TermEnv) binary(t *grammar.Binary, p params) V {
 	}
 	l := e.eval(t.L, p)
 	r := e.eval(t.R, p)
-	if t.Op == "[]" {
-		items := e.items("[]", l)
-		if r.Kind != KInt {
-			fail("index must be int, got %s", r.TypeName())
-		}
-		if r.I < 0 || r.I >= int64(len(items)) {
-			fail("index %d out of range for %d elements", r.I, len(items))
-		}
-		return items[r.I]
-	}
-	v, msg := Binary(t.Op, l, r)
+	v, msg := Binary(t.Op, l, r) // "[]" indexes a list or a tuple
 	if msg != "" {
 		fail("%s", msg)
 	}
@@ -185,8 +175,11 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		case KStr:
 			return Int(int64(unitLen(x.S, e.Bytes)))
 		case KNode:
-			return Int(int64(x.End - x.Start))
-		case KList:
+			if x.Items != nil {
+				return Int(int64(len(x.Items))) // a list or a tuple node
+			}
+			return Int(int64(x.End - x.Start)) // a string node
+		case KList, KTuple:
 			return Int(int64(len(x.Items)))
 		}
 		fail("len: invalid argument %s", x.TypeName())
@@ -245,7 +238,20 @@ func (e *TermEnv) cast(c *grammar.Cast, x V) V {
 	if !ok {
 		panic(fmt.Sprintf("ref: unsupported cast type %T", c.Type))
 	}
-	if !(ref.Name == "int" && x.Kind == KInt || ref.Name == "string" && x.Kind == KStr) {
+	fits := false
+	switch ref.Name {
+	case "int":
+		fits = x.Kind == KInt
+	case "string":
+		fits = x.Kind == KStr
+	case "bool":
+		fits = x.Kind == KBool
+	default:
+		// A struct type, or another type that the generated terms do not cast to: no value other
+		// than a struct of that type is one.
+		fits = x.Kind == KStruct && x.Type == ref.Name
+	}
+	if !fits {
 		fail("cannot cast %s to %s at input position %d (line %d, column %d)", x.TypeName(), ref.Name, e.Pos, e.Line, e.Col)
 	}
 	return x

@@ -377,7 +377,14 @@ rule same_span = &(a:name) b:name {$a.Start == $b.Start && $a.End == $b.End}
 rule name = [a-z]+ #atomic
 ```
 
-Strings are ordered lexicographically. Comparisons return `bool`.
+Strings are ordered lexicographically by code point, so that the order does not depend on the
+encoding of the input or of the host. Comparisons return `bool`.
+
+An `int` is a signed 64-bit integer. `+`, `-`, `*` and unary `-` wrap around on overflow, so that
+`9223372036854775807 + 1` is `-9223372036854775808`. `/` truncates toward zero and `%` has the sign of
+its left operand, so that `-7 / 2` is `-3` and `-7 % 2` is `-1`. The quotient wraps like the other
+operators, so that `-9223372036854775808 / -1` is `-9223372036854775808` and the remainder is `0`. A division or a remainder by zero is
+the runtime action error `division by zero`. Every backend computes the same value.
 
 ### Built-In Functions
 

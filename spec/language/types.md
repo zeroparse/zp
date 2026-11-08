@@ -15,7 +15,7 @@ The built-in types are named by these reserved names:
 | Type | Values |
 |:--|:--|
 | `bool` | Booleans. |
-| `int` | Integers. Positions in the input are also `int` values (see [Positions](../runtime/parsing.md#positions)). |
+| `int` | Signed 64-bit integers. Positions in the input are also `int` values (see [Positions](../runtime/parsing.md#positions)). |
 | `string` | Strings. `len` measures a string in the [position unit](../runtime/parsing.md#positions). |
 | `node[T]` | Nodes whose value has type `T`, for any type `T` (see [Node Types](#node-types)): `node[string]` for a string node, `node[(A, B)]` for the tuple node of a sequence, `node[[]A]` for the list node of a repetition. |
 | `error` | The values of [error recovery](pragmas.md#recover): a skipped range, or a `missing` token. |

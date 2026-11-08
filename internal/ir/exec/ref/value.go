@@ -85,6 +85,16 @@ func (v V) String() string {
 		return fmt.Sprintf("%q", v.S)
 	case KBool:
 		return fmt.Sprint(v.B)
+	case KList, KTuple:
+		parts := make([]string, len(v.Items))
+		for i, x := range v.Items {
+			parts[i] = x.String()
+		}
+		open, end := "[", "]"
+		if v.Kind == KTuple {
+			open, end = "(", ")"
+		}
+		return open + strings.Join(parts, ", ") + end
 	}
 	return v.TypeName()
 }
@@ -135,6 +145,22 @@ func invalidOperands(op string, l, r V) string {
 // error, "" if there is none.
 func Binary(op string, l, r V) (V, string) {
 	switch op {
+	case "[]":
+		var items []V
+		switch l.Kind {
+		case KNil:
+		case KList, KTuple:
+			items = l.Items
+		default:
+			return Nil, "[]: expected a list, got " + l.TypeName()
+		}
+		if r.Kind != KInt {
+			return Nil, "index must be int, got " + r.TypeName()
+		}
+		if r.I < 0 || r.I >= int64(len(items)) {
+			return Nil, fmt.Sprintf("index %d out of range for %d elements", r.I, len(items))
+		}
+		return items[r.I], ""
 	case "==", "!=":
 		var eq bool
 		switch {
