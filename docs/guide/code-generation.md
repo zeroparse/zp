@@ -171,7 +171,9 @@ The output is exactly what the engine prints for the same grammar and input.
 ## The `zp gen` Command
 
 ```bash
-zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-expectations] [-observability] [-limits] [-default-value] [-nodoc] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
+zp gen -g <grammar> -module <import path> -o <directory> [-lang go] [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-types] [-document] [-stream] [-recognize] [-typed-only] [-expectations] [-observability] [-limits] [-source-info] [-default-value] [-nodoc] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
+zp gen -lang ts -g <grammar> -o <directory> [-runtime embed|import|only] [-runtime-module <specifier>] [-s <rule>] [-types] [-recognize] [-expectations] [-observability] [-limits] [-source-info] [-default-value] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
+zp gen -runtime only -o <directory> [-lang go|ts]
 ```
 
 | Flag | Default | Meaning |
@@ -194,6 +196,7 @@ zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|impor
 | `-observability` | off | Emit opt-in tracing and profiling for Go or TypeScript parsers; combines with `-types`, `-recognize`, and Go `-document` and `-stream` (see [generated parser tracing and profiling](debugging.md#generated-go-node-and-typed-traces)) |
 | `-max-depth` | `0` | Default nested recursive rule-call limit in the generated parser; zero selects 100,000, a positive value overrides it, and negatives fail generation |
 | `-default-value` | off | Make the parser return the default node tree: value actions and declared rule types are dropped, predicates still run (see [Default Values](../../spec/language/actions.md#default-values)). Cannot be combined with `-types` |
+| `-source-info` | off | Make the parser record the rule of each node and the names of captures, so that results can be printed with them (as `zp parse -source-info` does) |
 | `-nodoc` | off | Leave out the package comment (`// Package p is a parser generated from a ZeroParse grammar.`), for a package that has its own documentation in another file |
 | `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed`, `memory` or `size`; any other name is an error that lists the valid ones |
 | `-opt` | none | Optimizations to give a value after the profile is applied and before `-no-opt`, separated by commas, as `name` or `name=count`: a name alone turns on an optimization that the profile leaves off (`-opt ts-literal-sharing`), a count sets an integer one (`-opt class-tables=3`), and `0` turns one off. An unknown name, a count that is not a number, or a value that the optimization does not take is an error |

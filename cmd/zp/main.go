@@ -7,7 +7,7 @@
 //	zp fmt [-w] [-l] [-check] [-syntax] [grammar.zp ...]
 //	zp convert [-to zp|json] [-o output] grammar.zp|grammar.json
 //	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-nodoc] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
-//	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
+//	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability] [-limits] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
 //	zp compile -g grammar.zp [-s main] [-mode parse|recognize|document] [-source-info] [-default-value] -o grammar.zpc
 //	zp trace -g grammar.zp [-s main] [-i input] [-show-depth n] [-rule name] [-failures] [-f text|json] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
 //	zp profile -g grammar.zp [-s main] [-i input] [-sort column] [-n rows] [-f text|json] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
@@ -87,7 +87,7 @@ Commands:
         [-expectations] [-optimize <profile>] [-opt <names>] [-no-opt <names>] [-print-after <passes>]
   gen -runtime only -o <dir>
   gen -lang ts -g <grammar> -o <dir> [-runtime embed|import|only] [-runtime-module <specifier>] [-s <rule>] [-types]
-        [-recognize] [-observability] [-max-depth <n>] [-source-info] [-default-value]
+        [-recognize] [-observability] [-limits] [-max-depth <n>] [-source-info] [-default-value]
         [-expectations] [-optimize <profile>] [-opt <names>] [-no-opt <names>] [-print-after <passes>]
   gen -lang ts -runtime only -o <dir>
       Generate a Go parser (or, with -lang ts, TypeScript modules) from a
