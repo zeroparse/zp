@@ -623,7 +623,7 @@ observer/profile state is released when a parse returns or panics.
 
 Generate tracing hooks with `zp gen -lang ts -observability`; add `-types` to
 trace typed-result parsing and `-recognize` to trace recognition calls. Tracing
-is delivered through the per-call options APIs, not the legacy positional-unit
+is delivered through the per-call options APIs, not the positional-unit
 functions:
 
 ```bash
@@ -642,7 +642,7 @@ const result = parseASTWithOptions(input, {
 
 `parseWithOptions`, `parseRuleWithOptions` and `recognizeWithOptions` accept the
 same trace options. With `-types`, the configured-start `parseASTWithOptions`
-does as well; TypeScript does not add a named typed-rule API. The legacy
+does as well; TypeScript does not add a named typed-rule API. The
 positional-unit functions do not accept trace callbacks. `traceMaxDepth` must
 be a safe integer; zero and negative values mean unlimited depth. Events use
 camel-case fields and the selected position unit. The `"enter"` and `"exit"`

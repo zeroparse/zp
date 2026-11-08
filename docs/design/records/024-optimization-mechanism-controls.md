@@ -46,7 +46,7 @@ meaningful reference path.
 ## Goals
 
 - Identify current optimization mechanisms independently of numbered history
-  entries and backlog IDs.
+  entries.
 - Record each mechanism's runtime or generator, applicability, dependencies,
   interactions, reference route and benchmark controls.
 - Allow equivalence checks and paired measurements of optimized and reference
@@ -75,7 +75,7 @@ meaningful reference path.
 ### Mechanism Identity and Inventory
 
 The optimization catalog assigns each current mechanism a stable category ID
-independent of numbered measurement records and Issue IDs. IDs use a letter
+independent of numbered measurement records. IDs use a letter
 and a three-digit number: `E` for value elision, `M` for
 matching and calls, `R` for reuse and memo/Document state, `A` for allocation
 and retention, and `G` for generation and compilation. IDs are not reused. A mechanism page

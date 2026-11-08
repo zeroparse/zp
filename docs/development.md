@@ -1,6 +1,6 @@
 # Development
 
-This document describes the repository layout and architecture, how to run tests, and the implementation status of language features. The living backlog is maintained in [Issue #1](https://github.com/zeroparse/zp/issues/1).
+This document describes the repository layout and architecture, how to run tests, and the implementation status of language features.
 
 ## Directory Layout
 
@@ -336,7 +336,3 @@ with a `go.work` file (the root module, the runtime module and the checkout) and
 | Done | | Grammar linting (`zp lint`, package `lint`) |
 | Done | | Editor support (`zp lsp`, VS Code extension with a TextMate grammar) |
 | Done | | Tracing, profiling and error explanation (`WithTrace`, `WithProfile`, `zp trace/profile/explain`) |
-
-## Roadmap
-
-[Issue #1](https://github.com/zeroparse/zp/issues/1)

@@ -220,7 +220,7 @@ TypeScript batch tracing MUST be enabled at generation with
 `Observability` of `gen.TypeScript` or `zp gen -lang ts -observability`.
 It applies to generated `parseWithOptions`, `parseRuleWithOptions` and, when
 generated, `recognizeWithOptions`. With `-types`, the configured-start
-`parseASTWithOptions` also accepts trace options; the legacy positional-unit
+`parseASTWithOptions` also accepts trace options; the positional-unit
 APIs do not. TypeScript does not expose a named typed-rule entry point.
 
 The tracing fields added to `ParseOptions` are:
@@ -260,7 +260,7 @@ with `Observability` of `gen.TypeScript` or `zp gen -lang ts
 `ProfileSnapshot`, and add `profile?: Profile | null` to `ParseOptions`.
 `parseWithOptions`, `parseRuleWithOptions`, and `recognizeWithOptions` MUST
 accept this option; with `-types`, `parseASTWithOptions` MUST accept it too.
-Legacy positional-unit APIs MUST NOT accept profiling options, and TypeScript
+Positional-unit APIs MUST NOT accept profiling options, and TypeScript
 MUST NOT add a named typed-rule API for this feature.
 Omitting the option or passing `null` MUST disable collection.
 

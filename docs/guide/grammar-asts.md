@@ -175,7 +175,7 @@ input should reject unknown fields and duplicate keys at every object. Its
 `*grammar.JSONDecodeError` reports a JSON path and zero-based byte offset for
 those strictness errors; malformed JSON wraps the standard syntax error. Both
 entry points check one complete value and run structural validation, while
-the legacy `UnmarshalJSON` signature and permissive behavior remain unchanged.
+`UnmarshalJSON` keeps the standard signature and is permissive: it ignores unknown fields.
 
 Source `@` attributes use `Attributed` and `Attribute`: `args` is an ordered list
 of integers, strings, booleans, null slots or expression nodes, and `kwArgs`

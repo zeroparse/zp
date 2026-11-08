@@ -257,8 +257,7 @@ ZeroParse backends return the same results.
 | Prepare | JSON, minilang | None | Compiling from source and loading `.zpc` (in each mode) |
 
 The 2026-10-09 run and the current analysis use the ready-made grammars in `alpha-parsers/csv` and `alpha-parsers/xml`.
-Older runs used the simpler grammars of `examples/csv` and `examples/xml`, since removed. Their figures do not
-isolate the effect of a runtime change across that grammar transition; use the paired measurements in each tuning entry.
+Use the paired measurements in each tuning entry to isolate the effect of a runtime change.
 
 The numbered records preserve evidence for individual changes; commits provide their chronology. Records before 13
 were measured on a 4-vCPU Intel Xeon virtual machine and are several times slower in absolute terms.

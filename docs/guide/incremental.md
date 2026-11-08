@@ -137,7 +137,7 @@ error handling.
 
 ## Keeping a Result While Editing
 
-A `Document` reuses and moves legacy `*Node` values on later parses. If a UI
+A `Document` reuses and moves `*Node` values on later parses. If a UI
 must keep the exact tree, text, diagnostics, and revision visible while the
 Document advances, capture them together:
 

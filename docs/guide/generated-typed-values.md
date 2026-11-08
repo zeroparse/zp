@@ -130,16 +130,15 @@ stars text 42
   as much code to `parser.go` as the parser itself.
 - **Scratch reuse.** The typed runtime clears discarded undo entries after rollback, rule return and captured
   repetition elements. Parser recycling also clears saved-capture backing slices, so overwritten values do not remain
-  reachable through pooled scratch after a later failed parse. Returned values remain valid. Regenerate existing typed
-  parsers to receive this cleanup; output strings may still retain their own backing storage.
+  reachable through pooled scratch after a later failed parse. Returned values remain valid. Output strings may still retain their own backing storage.
 - **Named rules.** `ParseRuleAST("expr", input)` returns the selected rule's typed value as `any`.
   Its generated documentation lists each rule's Go result type; use a type assertion or type switch.
   It consumes the whole input and applies options once before looking up the name. Unknown names and
   invalid options return plain nil with an error. Ordinary parse failure returns the selected type's
   zero value: nil pointers and slices retain their dynamic type in `any`, while a nil interface stays
   nil. A successful rule whose value is nil also returns the selected type's zero value, with no error.
-  This includes plain nil for `any` and join-interface results; legacy `ParseAST` keeps its
-  existing conversion mapping, which can box a nil `*Node` in an `any` result.
+  This includes plain nil for `any` and join-interface results; `ParseAST` converts a tree, so its
+  `any` result can hold a nil `*Node`.
   Recovery and conversion follow `ParseAST`, including `Error` values in joins and nil where
   a struct is expected. Direct typed execution uses the same full grammar guard as
   `ParseAST`; unsupported result or struct-field types and field-reading actions use Node conversion.
