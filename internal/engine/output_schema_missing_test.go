@@ -10,7 +10,7 @@ import (
 )
 
 const missingSchemaGrammar = `type P = { M missing; E error; O *missing; L []missing }
-rule main = "(" semi ")" $$ => P{}
+rule main = "(" s:semi ")" $$ => P{M: $s.(missing), E: $s.(error)}
 rule semi = ";" #missing`
 
 func missingSchema(t *testing.T) *schema.Output {
