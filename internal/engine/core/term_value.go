@@ -161,9 +161,5 @@ func (p *Parser) strCmp(l, r any) int {
 
 // strEq is the operation str.eq.
 func (p *Parser) strEq(l, r any) bool {
-	ls, rs := l.(string), r.(string)
-	if !BudgetControlsEnabled || p.Control == nil {
-		return ls == rs
-	}
-	return len(ls) == len(rs) && p.CompareText(ls, rs) == 0
+	return p.equalText(l.(string), r.(string))
 }

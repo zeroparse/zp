@@ -130,8 +130,22 @@ func (p *Parser) CompareText(l, r string) int {
 	return 0
 }
 
+// equalText is the operation str.eq on two strings: under budget controls it charges the comparison.
+func (p *Parser) equalText(ls, rs string) bool {
+	if !BudgetControlsEnabled || p.Control == nil {
+		return ls == rs
+	}
+	return len(ls) == len(rs) && p.CompareText(ls, rs) == 0
+}
+
 // ValueEqual reports whether l and r are equal as == compares them; a pair without equality is not.
 func (p *Parser) ValueEqual(l, r any) bool {
+	// Two strings, as the names of fields are, are compared as the composition does, without its dispatch.
+	if ls, ok := l.(string); ok {
+		if rs, ok := r.(string); ok {
+			return p.equalText(ls, rs)
+		}
+	}
 	eq, _ := p.termEqual(l, r)
 	return eq
 }

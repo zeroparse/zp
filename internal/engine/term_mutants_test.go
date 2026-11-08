@@ -29,8 +29,10 @@ var engineMutants = []engineMutant{
 	{"! of a bool does not negate", "term_exec.go", "termUnary", "return any(!x.(bool)), nil", "return any(x.(bool)), nil"},
 	{"a logical operand need not be a bool", "term_exec.go", "termLogic", "if valKind(x) != 3 {", "if false {"},
 	{"the controlled concatenation drops the right string", "term_value.go", "strAdd", "for _, s := range [...]string{ls, rs} {", "for _, s := range [...]string{ls} {"},
-	{"the controlled equality ignores the content", "term_value.go", "strEq", "return len(ls) == len(rs) && p.CompareText(ls, rs) == 0", "return len(ls) == len(rs)"},
+	{"the controlled equality ignores the content", "budget_value.go", "equalText", "return len(ls) == len(rs) && p.CompareText(ls, rs) == 0", "return len(ls) == len(rs)"},
 	{"the controlled comparison orders a prefix after its extension", "budget_value.go", "CompareText", "if len(l) < len(r) {\n\t\treturn -1", "if len(l) < len(r) {\n\t\treturn 1"},
+	{"the fast path of the value equality ignores the control", "budget_value.go", "ValueEqual", "return p.equalText(ls, rs)", "return ls == rs"},
+	{"the fast path of the value equality negates", "budget_value.go", "ValueEqual", "return p.equalText(ls, rs)", "return !p.equalText(ls, rs)"},
 	{"a remainder floors", "term_exec.go", "termBinary", `any(l.(int) % r.(int))`, `any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())`},
 	{"a division floors", "term_exec.go", "termBinary", `any(l.(int) / r.(int))`, `any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())`},
 	{"a box is not opened", "term_value.go", "unboxed", "return unboxed(value.D(n).Box)", "return v"},
@@ -65,7 +67,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()
