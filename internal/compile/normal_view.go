@@ -872,10 +872,14 @@ func (v *normalView) lookahead(e grammar.Expr, body grammar.Expr, not bool) gram
 // attributed applies V1 and, with labels, N7.
 func (v *normalView) attributed(a *grammar.Attributed) grammar.Expr {
 	inner := v.expr(a.Expr)
+	// A recovery makes its expression one element, as attrElems builds it. Without the recovery
+	// a sequence around a sequence takes its elements, and one around an expression without a
+	// value takes no element, so the recovery stays where a predicate can read the value.
+	shaped := v.depth > 0 || v.observed(inner)
 	var attrs []*grammar.Attribute
 	for _, at := range a.Attrs {
 		switch {
-		case at.Name == "recover" && v.an.AlwaysSucceeds(inner):
+		case at.Name == "recover" && !shaped && v.an.AlwaysSucceeds(inner):
 			// V1: a recovery of an expression that always succeeds never runs its skip.
 			v.count(ruleN6)
 			continue

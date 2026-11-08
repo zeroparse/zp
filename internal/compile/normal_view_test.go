@@ -395,6 +395,15 @@ func TestNormalViewKeepsValueShapes(t *testing.T) {
 			src:  "rule main = x:(\"a\" r) {true}\nrule r = \"b\" \"c\"",
 			opts: viewOptions{inline: true},
 			want: map[string]string{"main": `x:("a" "b" "c") {true}`}},
+		{name: "a recovery of a sequence that always succeeds in a read capture stays",
+			src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {len($x) == 2}",
+			want: map[string]string{"main": `x:("q" ("a"? "b"?) #recover(skip="z")) {len($x) == 2}`}},
+		{name: "a recovery of an expression without a value that always succeeds in a read capture stays",
+			src:  "rule main = x:(\"q\" (-\"a\")? #recover(skip=\"z\")) {len($x) == 2}",
+			want: map[string]string{"main": `x:("q" (-"a")? #recover(skip="z")) {len($x) == 2}`}},
+		{name: "a recovery of a sequence that always succeeds in an unread capture is dropped",
+			src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {true}",
+			want: map[string]string{"main": `x:("q" "a"? "b"?) {true}`}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got, _ := viewBodies(t, c.src+"\n", c.opts)
