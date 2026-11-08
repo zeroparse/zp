@@ -84,7 +84,7 @@ corpus/0/hidden rule: no value	e628db54872049915d32c98c
 corpus/0/hidden rule: one element	2d11a158a6e70b93f491d1bb
 corpus/0/hidden rule: optional	438930c3c5648c8a43fdf724
 corpus/0/hidden rule: optional recursion	8caa297882c58409c96e6a14
-corpus/0/hidden rule: recovery	f2a9d4d715145c4d380e7e7a
+corpus/0/hidden rule: recovery	61d4c6e543c187d895f61d50
 corpus/0/hidden rule: repetition	9cf887536b45f7c9d548f015
 corpus/0/hidden rule: right recursion	d4f6e7c7357f62184ce5d972
 corpus/0/hidden rule: sequence	2599c9733bdf53b9c9a6bef3
@@ -107,8 +107,8 @@ corpus/0/inline action: nested in a whole rule	d6e812dd4f26f3dd8bb4c29b
 corpus/0/inline action: operators rule operand	a8574ffdd58d97f251220291
 corpus/0/inline action: optional	74eef5cb04039bd82955d9a6
 corpus/0/inline action: outer capture stays	9cbd4c411d0ddb3d9e127d53
-corpus/0/inline action: recover argument	ce8ca31ca49e840b8f6498a8
-corpus/0/inline action: recovery	c405f2e2fe11356fbc81f826
+corpus/0/inline action: recover argument	401739db3d020894a59d4e66
+corpus/0/inline action: recovery	c1c9be6a4c8a2f11370cc369
 corpus/0/inline action: recovery inside	030d8b499cf9a9873167ccfd
 corpus/0/inline action: repetition	c27b41afa33677ad0fdd200e
 corpus/0/inline action: sequence	0377c24458fe7de3e9ce7720
@@ -446,7 +446,7 @@ corpus/1/hidden rule: no value	e628db54872049915d32c98c
 corpus/1/hidden rule: one element	2d11a158a6e70b93f491d1bb
 corpus/1/hidden rule: optional	438930c3c5648c8a43fdf724
 corpus/1/hidden rule: optional recursion	8caa297882c58409c96e6a14
-corpus/1/hidden rule: recovery	f2a9d4d715145c4d380e7e7a
+corpus/1/hidden rule: recovery	61d4c6e543c187d895f61d50
 corpus/1/hidden rule: repetition	9cf887536b45f7c9d548f015
 corpus/1/hidden rule: right recursion	d4f6e7c7357f62184ce5d972
 corpus/1/hidden rule: sequence	2599c9733bdf53b9c9a6bef3
@@ -469,8 +469,8 @@ corpus/1/inline action: nested in a whole rule	d6e812dd4f26f3dd8bb4c29b
 corpus/1/inline action: operators rule operand	a8574ffdd58d97f251220291
 corpus/1/inline action: optional	74eef5cb04039bd82955d9a6
 corpus/1/inline action: outer capture stays	9cbd4c411d0ddb3d9e127d53
-corpus/1/inline action: recover argument	ce8ca31ca49e840b8f6498a8
-corpus/1/inline action: recovery	c405f2e2fe11356fbc81f826
+corpus/1/inline action: recover argument	401739db3d020894a59d4e66
+corpus/1/inline action: recovery	c1c9be6a4c8a2f11370cc369
 corpus/1/inline action: recovery inside	030d8b499cf9a9873167ccfd
 corpus/1/inline action: repetition	c27b41afa33677ad0fdd200e
 corpus/1/inline action: sequence	0377c24458fe7de3e9ce7720
