@@ -486,6 +486,8 @@
         "docs/design/README.md",
         "docs/design/architecture.md",
         "docs/design/intermediate-representations.md",
+        "docs/design/optimization-pipeline.md",
+        "docs/design/cost-analysis.md",
         "docs/benchmarks.md",
         "docs/performance.md",
         "docs/optimizations/README.md"
@@ -577,6 +579,8 @@
     "docs/design/README.md",
     "docs/design/architecture.md",
     "docs/design/intermediate-representations.md",
+    "docs/design/optimization-pipeline.md",
+    "docs/design/cost-analysis.md",
     "docs/benchmarks.md",
     "docs/performance.md",
     "docs/optimizations/README.md",

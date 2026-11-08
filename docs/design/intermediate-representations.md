@@ -246,4 +246,5 @@ operations, compositions and passes are in `internal/ir/exec` and its packages; 
 - [Record 065](records/065-exec-ir-parser-vm.md): the parser VM, its operations, compositions and conformance suite.
 - [Record 062](records/062-backend-independent-optimization-ir.md): why the representations exist and the rewrites with their obligations.
 - [Record 063](records/063-configurable-optimization-pass-pipeline.md): the pass pipeline, its profiles and per-optimization flags.
+- [The optimization pipeline](optimization-pipeline.md): how the passes are declared, configured and verified.
 - [Optimization catalog](../optimizations/README.md): measured mechanisms.
