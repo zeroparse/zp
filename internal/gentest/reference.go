@@ -156,6 +156,28 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.G
 // requires some.
 func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts gen.GenOptions, mutate func([]byte) []byte) []string {
 	t.Helper()
+	got, want := GeneratedParsersOutputs(t, goBin, cases, opts, mutate)
+	var mismatches []string
+	k := 0
+	for _, c := range cases {
+		for _, in := range c.Inputs {
+			for _, unit := range []string{"codepoints", "bytes"} {
+				if got[k] != want[k] {
+					mismatches = append(mismatches, fmt.Sprintf("%s (%v): input %q\n generated %s\n engine    %s", c.Name, unit, in, got[k], want[k]))
+				}
+				k++
+			}
+		}
+	}
+	return mismatches
+}
+
+// GeneratedParsersOutputs generates and runs the parsers as GeneratedParsersMismatches does, and
+// returns their results and the engine's, one line for each input of each case in code points and
+// then in bytes. A line starts with the JSON object of the node, "null" for a failed parse, and the
+// error.
+func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts gen.GenOptions, mutate func([]byte) []byte) (got, want []string) {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -167,7 +189,6 @@ func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts g
 	write("go.mod", GoMod("gentest"))
 	var imports, parsers, recognizers, viewers strings.Builder
 	var inputs [][]string
-	var want []string
 	for i, c := range cases {
 		g, err := compiletest.Parse(c.Src)
 		if err != nil {
@@ -251,23 +272,11 @@ func main() {
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)
 	}
-	got := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	got = strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
 	if len(got) != len(want) {
 		t.Fatalf("got %d results, want %d\n%s", len(got), len(want), out)
 	}
-	var mismatches []string
-	k := 0
-	for _, c := range cases {
-		for _, in := range c.Inputs {
-			for _, unit := range []string{"codepoints", "bytes"} {
-				if got[k] != want[k] {
-					mismatches = append(mismatches, fmt.Sprintf("%s (%v): input %q\n generated %s\n engine    %s", c.Name, unit, in, got[k], want[k]))
-				}
-				k++
-			}
-		}
-	}
-	return mismatches
+	return got, want
 }
 
 func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, requiredTyped ...int) {

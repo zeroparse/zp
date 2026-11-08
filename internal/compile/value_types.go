@@ -916,11 +916,14 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 		var ts []Ty
 		valueless := false
 		count := map[string]int{}
-		var all []CapIndex
+		var all, never []CapIndex
 		alts := 0
 		for _, alt := range e.Alts {
-			if neverMatches(alt) {
-				continue // _|_ | T is T
+			if v.bottom(alt) {
+				// _|_ | T is T. The captures of an alternative that never matches are never made.
+				el, _ := v.single(alt)
+				never = append(never, el.caps...)
+				continue
 			}
 			alts++
 			el, ok := v.single(alt)
@@ -931,6 +934,12 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			}
 			for _, c := range el.caps {
 				count[c.Name]++
+				all = append(all, c)
+			}
+		}
+		// A name that only alternatives that never match capture is nil.
+		for _, c := range neverMade(never) {
+			if count[c.Name] == 0 {
 				all = append(all, c)
 			}
 		}
@@ -954,6 +963,11 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 		return []valueElem{{t: t, caps: caps}}
 	case *grammar.Optional:
 		el, ok := v.single(e.Expr)
+		if v.bottom(e.Expr) {
+			// An operand of type _|_ never matches: a? matches the empty input, and has no value,
+			// as _|_? does, since its operand gives none.
+			el, ok = valueElem{caps: neverMade(el.caps)}, false
+		}
 		if !ok && len(el.caps) == 0 {
 			return nil
 		}
@@ -982,11 +996,14 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			}
 			// What recovers is one element: its value or an error, which #missing makes a missing
 			// token. An expression without a value stays without one: its error is only recorded.
+			// An expression of type _|_ is no exception to the join: its recovery is only the
+			// error, since join(_|_, error) is error.
 			el, ok := oneElem(elems, v.isSeq(e.Expr))
 			switch {
-			case neverMatches(e.Expr):
-				el = valueElem{t: TyBottom} // only the error
-			case !ok:
+			case ok:
+			case v.bottom(e.Expr):
+				el.t = TyBottom
+			default:
 				continue
 			}
 			if a.Name == "missing" {
@@ -1016,20 +1033,55 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 	return nil
 }
 
-// neverMatches reports whether e is _|_, which has no value since it never matches.
-func neverMatches(e grammar.Expr) bool {
-	switch e := ungroupExpr(e).(type) {
+// bottom reports whether e has the type _|_, the type without values, which an expression has when
+// it never matches. The rules are those of the type system (spec/language/types.md): _|_ has it; a
+// sequence with an element of type _|_ has it, as a tuple of _|_ is _|_; a choice has the join of
+// its alternatives, _|_ only when each has it; a group, a label and a call of a splice rule have
+// the type of the expression they stand for, as in elems. A recovery joins the type with error,
+// which is not _|_. Every other expression has a type of its own whatever its operand is: no value
+// (an optional, which matches the empty input, a lookahead, a discard, a predicate), a match, a
+// list, a capture, or a call of a rule as one element, the rule's node.
+func (v *ValueInference) bottom(e grammar.Expr) bool {
+	v.control.poll()
+	switch e := e.(type) {
 	case *grammar.Bottom:
 		return true
-	case *grammar.Attributed:
-		for _, a := range e.Attrs {
-			if a.Name == "recover" || a.Name == "missing" {
-				return false // recovery produces an error value
+	case *grammar.Group:
+		return v.bottom(e.Expr)
+	case *grammar.Seq:
+		return slices.ContainsFunc(e.Items, v.bottom)
+	case *grammar.Choice:
+		for _, alt := range e.Alts {
+			if !v.bottom(alt) {
+				return false
 			}
 		}
-		return neverMatches(e.Expr)
+		return true
+	case *grammar.Attributed:
+		return !recovers(e) && v.bottom(e.Expr)
+	case *grammar.Ref:
+		body, ok := v.Prog.SpliceBody(e.Name)
+		if !ok || v.spliced[e.Name] {
+			return false
+		}
+		if v.spliced == nil {
+			v.spliced = map[string]bool{}
+		}
+		v.spliced[e.Name] = true
+		defer delete(v.spliced, e.Name)
+		return v.bottom(body)
 	}
 	return false
+}
+
+// neverMade returns the captures caps of an expression that never matches: they are never made, so
+// they are nil, and have no element, as the captures kept beside the tuple have none.
+func neverMade(caps []CapIndex) []CapIndex {
+	var out []CapIndex
+	for _, c := range caps {
+		out = mergeCap(out, maybeCap(CapIndex{Name: c.Name, Side: true, T: c.T, maybe: c.maybe, set: c.set}))
+	}
+	return out
 }
 
 // maybeCap returns c for a capture that may not be made.

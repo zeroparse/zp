@@ -92,7 +92,7 @@ of its original type and `error`, and an error value is assignable only to a typ
 `Parser.Parse` returns a recovered value together with a `SyntaxErrors` error
 listing the diagnostics. If parsing later fails, only the final syntax error
 is returned. A no-value expression, including lookahead or a predicate,
-remains no-value after recovery, though its error is recorded. An expression that never matches, such as `_|_`, is the exception: a recovery of it produces an error value covering the skipped input.
+remains no-value after recovery, though its error is recorded. An expression whose type is [`_|_`](types.md#top-bottom-join-and-meet), which never matches, is the exception: its recovered type is the join of `_|_` and `error`, which is `error`, so a recovery of it produces an error value covering the skipped input. Besides `_|_` itself, a sequence with an element of type `_|_` has that type, and so does a choice whose alternatives all have it, such an expression grouped or with attributes other than recovery, and a call of a hidden rule without an action whose body has it. An expression without a value keeps no value also when its operand has type `_|_`, as `-_|_` or `!_|_` does, and `a?` and `a*` match the empty input, so they do not have type `_|_`: `(_|_)?` has no value and `(_|_)*` is an empty list.
 
 Recovery proceeds in these steps.
 

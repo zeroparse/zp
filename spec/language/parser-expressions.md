@@ -78,7 +78,7 @@ The following rules determine the shape of the tree.
      [predicates](predicates.md).
 
    An optional expression `a?` that does not match does have a value, `nil`,
-   which appears as an element when `a` has a value, and so does a choice whose alternative has no value. When `a` has no value, `a?` has no value either and adds no element.
+   which appears as an element when `a` has a value, and so does a choice whose alternative has no value. When `a` has no value, `a?` has no value either and adds no element, and so it is when `a` has the [type `_|_`](types.md#top-bottom-join-and-meet), such as `_|_ "b"`: it never matches, so `a?` matches only the empty input, as `_|_?` does. A choice joins the types of its alternatives, so an alternative of type `_|_` adds nothing to its value, and a capture in it is never made and reads as `nil`.
 6. **Suppressed construction.** Atomic (`a #atomic`) and discard (`-a`) do not build
    the values of their operands, which saves work and keeps the tree small.
 7. **Whole input.** A parse succeeds only if the [start rule](../runtime/parsing.md#start-rule)

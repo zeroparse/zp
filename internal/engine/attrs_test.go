@@ -189,6 +189,26 @@ func TestRecoverWithoutValueAddsNoElement(t *testing.T) {
 	}
 }
 
+// TestRecoverBottomGivesError checks that a recovery of an expression of type _|_ is an error
+// value, one element, on every backend, while an expression without a value, also one around _|_,
+// stays without one: each grammar's predicate sees the elements in the length of a capture.
+func TestRecoverBottomGivesError(t *testing.T) {
+	t.Parallel()
+	for _, c := range gentest.RecoverBottomCases {
+		prog := mustCompile(t, c.Src)
+		for i, in := range c.Inputs {
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
+				var errs SyntaxErrors
+				if got := n != nil && (err == nil || errors.As(err, &errs)); got != c.Accept[i] {
+					t.Errorf("%s, %v, %q: got %v, %v; want accepted %v", c.Name, b, in, n, err, c.Accept[i])
+				}
+			}
+			checkBackends(t, prog, "main", in)
+		}
+	}
+}
+
 // TestRecoverInOperatorsRuleOperator checks that errors recovered inside an Operators Rule operator part are also
 // reported.
 func TestRecoverInOperatorsRuleOperator(t *testing.T) {

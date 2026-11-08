@@ -216,6 +216,22 @@ func TestValueActionTypes(t *testing.T) {
 		{`rule a = x:("a" / _|_ @error(message="m")) => $x.Value`, "a", `string`},
 		{`rule a = x:("a" / _|_ #recover(skip="x")) => $x`, "a", `node[string] | error`},
 		{`rule a = ("a" / _|_) "b"`, "a", `node[(node[string], node[string])]`},
+		// An expression has the type _|_ by the rules of the type system: a sequence with an element
+		// of that type, a choice of such alternatives, a call of a splice rule with such a body. Its
+		// recovery is join(_|_, error), the error.
+		{`rule a = x:("a" / "b" _|_ / -"c" (_|_ / _|_)) => $x`, "a", `node[string]`},
+		// A capture in an alternative of type _|_ is never made: it reads as nil.
+		{`rule a = ("a" / y:"b" _|_) => $y`, "a", `*node[string]`},
+		{`rule a = x:("a" / y:"b" _|_) {$y == nil} => $x`, "a", `node[string]`},
+		{`rule a = x:("a" / _|_ x:"b") => $x`, "a", `node[string]`},
+		{`rule a = x:((_|_ -"a") #recover(skip="x")) => $x`, "a", `error`},
+		{`rule a = x:((_|_ / -"a" _|_) @error(message="m") #recover(skip="x")) => $x`, "a", `error`},
+		{"rule a = x:(_r #recover(skip=\"x\")) => $x\nrule _r = -\"a\" _|_", "a", `error`},
+		// A recovery of an expression without a value, also one around _|_, has no value.
+		{`rule a = x:("a" (-(_|_)) #recover(skip="x")) => $x`, "a", `node[(node[string],)]`},
+		{`rule a = x:("a" (_|_)? #recover(skip="x")) => $x`, "a", `node[(node[string],)]`},
+		// An optional expression whose operand has type _|_ has no value, as (_|_)? has none.
+		{`rule a = x:("a" (_|_ "b")?) => $x`, "a", `node[(node[string],)]`},
 		// nil joins as an optional type, and a value not known yet absorbs a union.
 		{`rule a = _ => list(nil)`, "a", `[]nil`},
 		{`rule a = x:"x" => list($x, nil, $x)`, "a", `[]*node[string]`},
