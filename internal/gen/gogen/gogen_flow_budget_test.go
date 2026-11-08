@@ -207,6 +207,13 @@ func runBudgetProbes(t *testing.T, cases []gentest.Case, start string, mutate fu
 // runBudgetProbesAt is runBudgetProbes with the runtime module in rt.
 func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
 	t.Helper()
+	return runBudgetProbesWith(t, rt, cases, start, mutate, gen.GenOptions{}, "Parse")
+}
+
+// runBudgetProbesWith is runBudgetProbesAt with generator options, and with the entry point that the
+// "parse" entry of a report runs: Parse, or ParseAST for a typed parser (opts.Types).
+func runBudgetProbesWith(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte, opts gen.GenOptions, parse string) []string {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -222,7 +229,8 @@ func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start stri
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		o := gen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: start, Recognize: true}
+		o := opts
+		o.Package, o.Start, o.Recognize = fmt.Sprintf("f%d", i), start, true
 		code, err := gentest.GenerateCode(t, g, o)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -233,7 +241,8 @@ func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start stri
 		write(fmt.Sprintf("f%d/parser.go", i), string(code))
 		inputs = append(inputs, c.Inputs)
 	}
-	write("main.go", strings.Replace(budgetProbeSources("f", len(cases)), "IMPORTS", "", 1))
+	main := strings.Replace(budgetProbeSources("f", len(cases)), "IMPORTS", "", 1)
+	write("main.go", strings.ReplaceAll(main, ".Parse(s, opts...)", "."+parse+"(s, opts...)"))
 	data, _ := json.Marshal(inputs)
 	write("inputs.json", string(data))
 	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "run", ".", "inputs.json")
@@ -399,7 +408,13 @@ func budgetTotals(t *testing.T, group string, cases []gentest.Case, start string
 // budgetTotalsAt is budgetTotals with the runtime module in rt.
 func budgetTotalsAt(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
 	t.Helper()
-	lines := runBudgetProbesAt(t, rt, cases, start, mutate)
+	return budgetTotalsWith(t, rt, group, cases, start, mutate, gen.GenOptions{}, "Parse")
+}
+
+// budgetTotalsWith is budgetTotalsAt with the generator options and entry point of runBudgetProbesWith.
+func budgetTotalsWith(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte, opts gen.GenOptions, parse string) (got map[string]string, problems []string) {
+	t.Helper()
+	lines := runBudgetProbesWith(t, rt, cases, start, mutate, opts, parse)
 	if len(lines) == 0 {
 		t.Fatal("no reports")
 	}
