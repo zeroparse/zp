@@ -5,7 +5,7 @@ separate, and which rules hold across packages. It does not list files, fields o
 truth for those, and the package comments say what each package owns. Read this page to learn how the parts fit before
 you work in `internal/compile/`, `internal/engine/`, `runtime/` or a generator. The contracts every stage must keep are
 in the [specification](../../spec/README.md); the middle of the pipeline is in
-[Core and Flow IR](intermediate-representations.md).
+[Core, Flow and Exec IR](intermediate-representations.md).
 
 ## From Grammar to Parser
 
@@ -18,7 +18,7 @@ flowchart TD
   ast --> chk["Checked grammar"]
   chk --> prog["Program: rules, flags, types"]
   prog --> run["Run: closures or VM"]
-  prog --> ir["Core and Flow IR"]
+  prog --> ir["Core, Flow and Exec IR"]
   ir --> gen["Generated Go"]
   ir --> ts["Generated TypeScript"]
   prog --> bc["Bytecode, .zpc"]
@@ -54,9 +54,9 @@ The same grammar must behave the same way everywhere, but different uses need di
 The reference backend is also a test tool. Differential tests run the same input through several backends and compare
 values, errors, expectations and positions, so an optimization is correct when the backends cannot be told apart.
 
-## Two Levels of Optimization
+## Three Levels of Representation
 
-Generated Go is where most of the optimization work happens, and it is organized in layers so that a rewrite is
+The generators are where most of the optimization work happens, and it is organized in layers so that a rewrite is
 written once and verified once.
 
 ```mermaid
@@ -64,15 +64,22 @@ flowchart LR
   prog["Program"] --> core["Core IR: what the rule means"]
   core -->|"semantics-preserving rewrites"| core
   core --> flow["Flow IR: how a parser runs it"]
-  flow --> print["Go printer"]
+  flow --> exec["Exec IR: the parser VM that every target implements"]
+  exec --> goprint["Go printer"]
+  exec --> tsprint["TypeScript printer"]
 ```
 
 Core IR describes what each rule consumes, expects, captures and can fail with. Flow IR describes how that runs as
-variables, blocks and loops. Optimizations that depend only on the meaning of the grammar are rewrites of Core IR;
-the choice of loops and branches is made when lowering to Flow IR. The reasoning and the contracts are in
-[Core and Flow IR](intermediate-representations.md). Only some backends use these representations today, so a Core IR
-change does not by itself change every backend; [record 062](records/062-backend-independent-optimization-ir.md)
-states the intended reach.
+variables, blocks and loops. Exec IR specifies the operations of the parser VM (memo table, budget, expectations and
+the like) and holds the structured code over them: the algorithms that every runtime repeats, written once, and the
+grammar code lowered from Flow IR. The Go and TypeScript printers print Exec IR, so the rules of a generated parser and
+the shared parts of the generated runtimes come from the same representation. Optimizations that depend only on the
+meaning of the grammar are rewrites of Core IR; the choice of loops and branches is made when lowering to Flow IR;
+passes on Exec IR keep the behavior of a function while removing what a build does not need. The reasoning and the
+contracts are in [Core, Flow and Exec IR](intermediate-representations.md). Only some backends use these
+representations: the closure backend and the bytecode compiler work from the program, so a Core IR change does not by
+itself change every backend; [record 062](records/062-backend-independent-optimization-ir.md) states the intended
+reach and [record 065](records/065-exec-ir-parser-vm.md) the design of Exec IR.
 
 ## Values, Documents and Streams
 
@@ -125,15 +132,15 @@ contract is [Observability](../../spec/runtime/observability.md).
 | The bytecode VMs, recursive and iterative | `internal/engine/vm/` |
 | The incremental Document, its snapshots and change reports | `internal/engine/document/` |
 | Output schemas and structural queries | `schema/` (the types, their validation and `Compare`), `internal/schema/` (the export), `query/` (the queries) |
-| Core and Flow IR and their passes | `internal/ir/core/`, `internal/ir/flow/`; the Core builder in `internal/ir/core/build/` and the Flow lowering in `internal/ir/flow/lower/` |
-| Generated Go and TypeScript | The public entry points in `gen/`, the Go generator in `internal/gen/gogen/`, the TypeScript generator in `internal/gen/tsgen/` and the runtimes in `runtime/` and `internal/gen/tsgen/tsrt/` |
+| Core, Flow and Exec IR and their passes | `internal/ir/core/`, `internal/ir/flow/`, `internal/ir/exec/`; the pass runner in `internal/ir/pipeline/`, the Core builder in `internal/ir/core/build/`, the Flow lowering in `internal/ir/flow/lower/` and the Exec lowering in `internal/ir/exec/lower/` |
+| Generated Go and TypeScript | The public entry points in `gen/`, the Go generator in `internal/gen/gogen/`, the TypeScript generator in `internal/gen/tsgen/`, the optimization settings in `internal/gen/opt/` and the runtimes in `runtime/` and `internal/gen/tsgen/tsrt/` |
 | The public API | `zp.go`, `grammar/` |
 | Commands, linter, language server | `cmd/zp/`, `lint/`, `internal/lsp/` |
 | Playground and site | `cmd/playground/`, `site/` |
 
 ## Related Topics
 
-- [Core and Flow IR](intermediate-representations.md): the representations of the generated-Go route.
+- [Core, Flow and Exec IR](intermediate-representations.md): the representations between a program and generated code.
 - [Design records](records/): decisions and their alternatives.
 - [Development](../development.md): repository layout, tests and checks.
 - [Optimization catalog](../optimizations/README.md): measured mechanisms.

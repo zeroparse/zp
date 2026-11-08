@@ -1,13 +1,14 @@
-# Core and Flow IR
+# Core, Flow and Exec IR
 
-Core IR and Flow IR are the two internal representations between a checked grammar and the code a backend emits. This
-page explains why there are two, what each one is for, and how optimization works on them. It deliberately omits field
-tables, node inventories and call sites: those change often and the code, starting with the package comments of
-`internal/ir/core` and `internal/ir/flow`, is their source of truth. The reasons behind the design are in
-[record 062](records/062-backend-independent-optimization-ir.md); the whole system is in
+Core IR, Flow IR and Exec IR are the three internal representations between a checked grammar and the code a backend
+emits. This page explains why there are three, what each one is for, and how optimization works on them. It
+deliberately omits field tables, node inventories and call sites: those change often and the code, starting with the
+package comments of `internal/ir/core`, `internal/ir/flow` and `internal/ir/exec`, is their source of truth. The reasons behind the design are in
+[record 062](records/062-backend-independent-optimization-ir.md) (Core and Flow IR) and
+[record 065](records/065-exec-ir-parser-vm.md) (Exec IR); the whole system is in
 [Architecture](architecture.md). The exact definitions are in the [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md), which prints the module of this page's example in full. Nothing here is a public API.
 
-## Two Levels
+## Three Levels
 
 ```mermaid
 flowchart TD
@@ -17,21 +18,29 @@ flowchart TD
   core --> ver["Verify"]
   ver --> low["Lowering"]
   low --> flow["Flow IR"]
-  flow --> out["Printer: Go source"]
+  flow --> el["Lowering"]
+  el --> exec["Exec IR"]
+  comp["Compositions of the parser VM"] --> exec
+  exec --> xp["Passes: specialize and simplify"]
+  xp --> exec
+  exec --> out["Printers: Go and TypeScript source"]
 ```
 
-| | Core IR | Flow IR |
-|:--|:--|:--|
-| Question it answers | What does this rule mean? | How does a parser run it? |
-| Shape | A tree of grammar-level expressions, each carrying facts | Variables, blocks, loops and primitive operations |
-| Optimized by | Rewrites that are valid for any backend | Choices of representation only |
-| Knows about | Input consumed, expectations, captures, failure | Parser state, control flow, the runtime's primitives |
-| Knows nothing about | Host-language syntax and parser state layout | The grammar's alternatives and repetitions as such |
+| | Core IR | Flow IR | Exec IR |
+|:--|:--|:--|:--|
+| Question it answers | What does this rule mean? | How does a parser run it? | What must every runtime's parser VM do, and how is that composed? |
+| Shape | A tree of grammar-level expressions, each carrying facts | Variables, blocks, loops and primitive operations | Structured code (blocks, loops, branches) over declared operations and typed locals |
+| Optimized by | Rewrites that are valid for any backend | Choices of representation only | Behavior-preserving passes: specializing a function for the features of a build and removing code that cannot run |
+| Knows about | Input consumed, expectations, captures, failure | Parser state, control flow, the runtime's primitives | The abstract state of the parser (memo table, budget, ...) and the contract of each operation |
+| Knows nothing about | Host-language syntax and parser state layout | The grammar's alternatives and repetitions as such | How a target stores that state or implements an operation |
 
 The split keeps two kinds of reasoning apart. Whether a rewrite preserves what the grammar means is a question about
 grammars and is answered once, at the level where it is easy to state. How to turn the result into fast code is a
 question about a particular runtime and is answered at a lower level that no longer has to be correct about grammars.
-A new target that reuses Core IR inherits the rewrites; a change to how loops are written does not touch them.
+A new target that reuses Core IR inherits the rewrites; a change to how loops are written does not touch them. The third
+level separates what the runtime does from how a target spells it. The algorithms that every runtime repeats, such as the
+call protocol with memoization and the growth of a left-recursive rule, are written once over a declared set of
+operations, and each target implements the operations in its own language.
 
 ## Core IR
 
@@ -198,18 +207,43 @@ use the effects that Core IR computed to know what must be kept.
 
 ## How Targets Use the Result
 
-A target takes Core IR, Flow IR or neither. Generated Go for typed parsers and for the value-free rules of the Node parser and its
-recognizer is printed from Flow IR; other generated Go, the closure backend and the bytecode compiler read the grammar
-or the compiled rules directly. Generated TypeScript prints the matching code of every rule from Flow IR, including
-the lines of an Operators Rule, in both the Node table and the recognizer table. It has no other route: a rule that
-Flow IR or the printer does not cover fails the generation. Its rule table, typed declarations and runtime come from
+A target takes Core IR, Flow IR, Exec IR or none of them. Generated Go for typed parsers and for the value-free rules
+of the Node parser and its recognizer is lowered from Flow IR to Exec IR and printed from there; other generated Go, the
+closure backend and the bytecode compiler read the grammar or the compiled rules directly. Generated TypeScript prints
+the matching code of every rule the same way, including the lines of an Operators Rule, in both the Node table and the
+recognizer table. It has no other route: a rule that Flow IR or the printer does not cover fails the generation. Its rule table, typed declarations and runtime come from
 the compiled program. Actions and predicates are printed from the grammar terms that Core nodes record,
 because their text belongs to the target language. Which target uses which representation is expected to change as
 more of them move onto Core IR; the generator code and record 062 are the current statement.
 
+## Exec IR
+
+Exec IR has two parts. The first is the specification of the **parser VM**: a set of components and registers that make
+up the abstract state of a parse (the memo table, the budget, the position, ...) and a set of operations, each a
+transition of that state with a signature, a behavior contract, a precondition, the components it reads and writes, a
+bound on what it charges the budget, and the features it belongs to. An operation says what happens and not how. The
+second part is **compositions**: functions in structured code (labeled blocks, loops, branches, no exceptions) over the
+operations. Some are written once for the runtimes (the call protocol of a rule, left-recursion growth, the observation
+of a call, the bookkeeping of a Document); the others are the rules of a grammar, which lowering produces from Flow IR.
+The primitives of Flow IR that have no operation of their own yet become transitional operations that a printer prints
+as the runtime's helper.
+
+Two kinds of checking keep the freedom of the targets safe. A conformance suite runs sequences of operations on a
+reference model, written for clarity and never printed, and on an implementation, and fails on the first difference in
+results or in the cost charged beyond the bound. Passes on Exec IR keep a function's behavior: specializing a function
+for the set of features of one build turns each feature into a constant, and simplification removes what then cannot
+run, so the ordinary, budget-controlled, observed and Document variants of a mechanism are specializations of one
+composition.
+
+The Go and TypeScript printers print Exec IR as structured source, and they print the compositions of the runtimes too,
+so the rules of a generated parser and the shared mechanisms they call come from the same representation. The
+operations, compositions and passes are in `internal/ir/exec` and its packages; the design and its status are in
+[record 065](records/065-exec-ir-parser-vm.md).
+
 ## Related Topics
 
 - [Architecture](architecture.md): the stages around these representations.
+- [Record 065](records/065-exec-ir-parser-vm.md): the parser VM, its operations, compositions and conformance suite.
 - [Record 062](records/062-backend-independent-optimization-ir.md): why the representations exist and the rewrites with their obligations.
 - [Record 063](records/063-configurable-optimization-pass-pipeline.md): the pass pipeline, its profiles and per-optimization flags.
 - [Optimization catalog](../optimizations/README.md): measured mechanisms.

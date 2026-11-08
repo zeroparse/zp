@@ -32,8 +32,10 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/bytecode/` | The bytecode instruction set and module, its disassembly, the encoding of modules in compiled grammars and the validation of loaded modules |
 | `internal/gen/` | What the Go and TypeScript generators share: generation options, the runtime mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
 | `runtime/` | Runtime package of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/runtime`) |
-| `internal/gen/gogen/` | Go generator: prints the parser, its types package and the runtime copy from the compiled program and Flow IR, and leaves out what the entry points cannot reach |
-| `internal/gen/tsgen/` | TypeScript generator: prints the parser, its types and its runtime files from the compiled program and Flow IR |
+| `internal/gen/gogen/` | Go generator: prints the parser, its types package and the runtime copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
+| `internal/gen/tsgen/` | TypeScript generator: prints the parser, its types and its runtime files from the compiled program and Exec IR |
+| `internal/gen/opt/` | The registry of the generation-time optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles |
+| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR and its lowering in `flow/lower/`), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/execgo/` and `exec/exects/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
 | `internal/gen/tsgen/tsrt/` | Source of `runtime.ts`, the runtime that generated TypeScript parsers import (joined from `runtime.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
 | `examples/` | Small example grammars that show the features, with golden tests |
@@ -48,7 +50,7 @@ This document describes the repository layout and architecture, how to run tests
 | `docs/cookbook/` | Recipes: complete, runnable solutions to concrete tasks ([index](cookbook/README.md)) |
 | `docs/why-zeroparse.md`, `docs/strategy.md` | Project positioning: [who ZeroParse is for and how it compares](why-zeroparse.md), and the [project strategy](strategy.md) with its tracks and targets |
 | `docs/documentation-style.md` | How the documentation is organized and written: page kinds, link directions, titles, voice and examples |
-| `docs/design/` | How the system is built today: [architecture](design/architecture.md) and [Core and Flow IR](design/intermediate-representations.md) |
+| `docs/design/` | How the system is built today: [architecture](design/architecture.md) and [Core, Flow and Exec IR](design/intermediate-representations.md) |
 | `docs/design/records/` | Design records; [template](design/records/000-template.md) for new proposals |
 | `docs/optimizations/` | Numbered optimization history, measured evidence and backend applicability ([catalog](optimizations/README.md)); measurement method and latest analysis remain in [performance.md](performance.md) |
 
@@ -94,7 +96,7 @@ for backend scope, cleanup and measured costs.
 ### Code Generation
 
 Generated Go and TypeScript parsers embed their runtime and depend only on their standard libraries. Generated Go
-is printed from Flow IR ([design 062](design/records/062-backend-independent-optimization-ir.md)): lean value-free rules as direct rules and the others as framed bodies the runtime calls; typed Go also emits inferred Go types
+and TypeScript rules are built as Core IR, lowered to Flow IR and then to Exec IR, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
 and `ParseAST`/`ParseRuleAST` for configured-start and named rules
 ([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `gen.Go` and `gen.TypeScript`, `gen -max-depth`) and invocation-local depth
 options are implemented ([design 022](design/records/022-generated-parser-depth-limits.md)); Go entry points accept
@@ -325,7 +327,7 @@ with a `go.work` file (the root module, the runtime module and the checkout) and
 | Done | | Parsing ZeroParse source (`.zp`) |
 | Done | | Operators Rule declarations |
 | Done | | Stream parsing (`#stream`) |
-| Done | | Mutable incremental parsing (`Document`); snapshots/change notifications are proposed |
+| Done | | Mutable incremental parsing (`Document`); snapshots and change notifications |
 | Done | | Code generation (Go, `zp gen`) |
 | Done | | Typed values in generated parsers (`zp gen -types`) |
 | Done | | Saving and loading compiled grammars (`.zpc`) |
