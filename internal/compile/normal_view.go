@@ -359,11 +359,13 @@ func (v *normalView) unroll(ra, rb *grammar.Repeat) grammar.Expr {
 		ys.Items, ys.Breaks = slices.Clone(s.Items[:len(s.Items)-1]), nil
 		y = &ys
 	}
-	if v.cut(y) {
+	if v.cut(y) || bindsOutsideCalls(y) || !v.idempotent(x) {
 		return nil
 	}
-	// R7: both evaluate X first at each position and Y after X fails, in the same states; the
-	// view makes the same evaluations.
+	// R7: both evaluate X first at each position and Y after X fails, in the same states. When Y
+	// matches without consuming input, the unrolled form evaluates X again where it failed, which
+	// fails again only if Y bound nothing that X reads, and which the view drops: so Y makes no
+	// binding outside its calls, and X evaluated again costs at most what it cost first.
 	v.count(ruleN11)
 	c := *rb
 	c.SourceInfo = ra.SourceInfo

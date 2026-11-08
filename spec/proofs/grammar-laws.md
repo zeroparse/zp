@@ -1,6 +1,6 @@
 # Grammar Laws
 
-Arata Furukawa · Last revised 2026-11-07
+Arata Furukawa · Last revised 2026-11-08
 
 **Status:** Draft. The laws are proved as stated, except the law of
 [Free Variables](#free-variables), which is unproved in full. The
@@ -331,16 +331,24 @@ element.
 **Used.** The fix of `nullable-repetition` suggests these forms.
 
 **Law (R7) Unrolling.** `X* (Y X*)*` $\equiv_{E,X}$ `(X / Y)*` when `X`
-cannot match without consuming input and neither `X` nor `Y` has a loose cut.
+cannot match without consuming input, neither `X` nor `Y` has a loose cut, and
+`Y` makes no binding that `X` reads.
 
 **Proof.** At each position both evaluate `X` first and `Y` after `X` fails,
 in the same order and the same states. An iteration of `(X / Y)*` that matches
 without consuming input is one of `Y`, after `X` failed; the unrolled form
-then evaluates `X*` there, which matches nothing, and its outer repetition
-stops, as `(X / Y)*` does.
+then evaluates `X*` there, in the state after `Y`, which differs from the state
+in which `X` failed only by the bindings of `Y`. `X` reads none of them, so it
+fails again (F4), `X*` matches nothing, and the outer repetition stops, as
+`(X / Y)*` does. That evaluation of `X` is the one cost that the unrolled form
+adds: one evaluation of `X` again in a state in which it failed, for each
+evaluation of the whole expression in which `Y` matches without consuming input.
 
-**Counterexample.** With a nullable `X`, `"a"? ("b" "a"?)* $$` accepts `b`,
+**Counterexamples.** With a nullable `X`, `"a"? ("b" "a"?)* $$` accepts `b`,
 while `("a"? / "b")* $$` stops after the empty match of `"a"?` and rejects it.
+With `var v int = 0` and `x = {v == 1} "a"`, `x* ({v := 1} x*)* $$` accepts
+`a`: the empty match of `{v := 1}` binds `v`, and `x*` after it consumes `a`.
+`(x / {v := 1})* $$` stops after that empty iteration and rejects `a`.
 
 ## Lookahead
 
