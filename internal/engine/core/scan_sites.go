@@ -33,7 +33,7 @@ func (r skipRecord) Kids() []*value.Node { return r.vals.slice() }
 // record of its start, and the length of a walk that can turn the site hot (RunHotSpan for run
 // sites). A smaller value lowers the cost of each call that a record answers and raises the cost of
 // the walks that find none: the steps of a parse with records exceed those of a parse without by
-// three for each walk of at least ScanHotSpan characters. It is a variable and exported only as a
+// two for each walk of at least ScanHotSpan characters. It is a variable and exported only as a
 // hook for tests in other packages, as RunHotSpan is.
 var ScanHotSpan = 16
 

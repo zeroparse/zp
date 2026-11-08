@@ -727,7 +727,7 @@ sites last for one parse.
 
 A parse with scan sites gives the result of a parse without them, with the same
 expectations and examined ranges. The steps a parse charges exceed those of a
-parse without scan sites by at most the three steps of each walk that reached
+parse without scan sites by at most two steps for each walk that reached
 `T` characters. A walk that starts at another position than a recorded start
 inside the same run does not reuse the record, and costs its own length.
 

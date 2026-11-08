@@ -298,8 +298,9 @@ func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 }
 
 // TestScanSitesChargeBounds checks the cost that a scan site adds to a parse. The charge of a parse
-// is the same each time it is made, and a site adds to the charge of the walks without it at most the
-// three steps (the lookup, the slot and the record) of each walk that reaches the hot span, which is
+// is the same each time it is made, and a site adds to the charge of the walks without it at most two
+// steps of each walk that reaches the hot span (the lookup and the slot, or the lookup and the
+// record), which is
 // the number of its steps divided by the span at most. Reuse only lowers the charge.
 func TestScanSitesChargeBounds(t *testing.T) {
 	if !core.BudgetControlsEnabled {
@@ -319,7 +320,7 @@ func TestScanSitesChargeBounds(t *testing.T) {
 						if got == 0 || got != again {
 							t.Fatalf("%s, %s, span %d: input %q charged %d and %d steps", g.Name, b, span, in, got, again)
 						}
-						if bound := base + 3*(base/uint64(span)) + 3; got > bound {
+						if bound := base + 2*(base/uint64(span)) + 2; got > bound {
 							t.Fatalf("%s, %s, span %d: input %q charged %d steps, %d without scan sites (bound %d)", g.Name, b, span, in, got, base, bound)
 						}
 					}

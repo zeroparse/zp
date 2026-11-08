@@ -375,9 +375,9 @@ parse.
 
 ## Lemma 5 (Cost of Scan Records)
 
-A parse with the records of scan sites charges at most three steps more for each walk of a scan site
+A parse with the records of scan sites charges at most two steps more for each walk of a scan site
 that reaches $T$ characters than the same parse without them, and no more for the other walks. So,
-where the walks charge their tests, its steps are at most $1 + 3/(T + 1)$ times those of the parse
+where the walks charge their tests, its steps are at most $1 + 2/(T + 1)$ times those of the parse
 without them.
 
 *Proof.* By Lemma 4 a walk that takes a record ends where it would have ended, with the same count,
@@ -385,7 +385,7 @@ elements, examined range and expectation, so the parse with records makes the sa
 same positions and in the same order, as the parse without them, and differs only inside the walks
 that reach $T$ characters. Without records a walk that matches $k$ characters charges one step for
 each test of a character, $k + 1$ in all. (A build that charges no test of a character charges
-only the steps of the records below, at most three for each walk, and the ratio is then not
+only the steps of the records below, at most two for each walk, and the ratio is then not
 claimed.) With records a walk that matches fewer than $T$ characters
 is the same walk. A walk that reaches $T$ characters charges the first $T$ tests, then:
 
@@ -397,13 +397,13 @@ is the same walk. A walk that reaches $T$ characters charges the first $T$ tests
 - at a hot site with no record, one step for the lookup, the rest of its tests and one step for the
   record that it makes (`ScanStore`), so it costs $k + 3$.
 
-Each case is at most three steps above $k + 1$. A walk that reaches $T$ characters costs at least
+Each case costs at most $k + 3$, which is two steps above $k + 1$. A walk that reaches $T$ characters costs at least
 $T + 1$ steps without records, which gives the ratio. The closure backend (`scanSite`,
 `scanSiteList`) and the bytecode backends (`OpScanSite`, and the iterations of `OpIter` at a scan
 site) charge in this way. $\square$
 
 The bound is per walk, so it needs no count of the walks: the walks that start at different
-positions of one run, which find no record, each pay at most the three steps, and the cold state,
+positions of one run, which find no record, each pay at most the two steps, and the cold state,
 kept apart for the walks inside lookaheads, only decides which walks look up. Parsers generated as
 Go source keep no records.
 
