@@ -473,14 +473,31 @@ again inside the input that `a b` examined.
 
 **Law (T2) Harmless Cuts.** A cut that ends an alternative, `a #cut / b`, and a
 cut that is loose in the last alternative of a choice, `a / b #cut c` or
-`a / -(b #cut c)`, are $\equiv_O$ the same expressions without the cut:
-nothing can fail after the first, and no alternative follows the second. A
-cut at the start, `#cut a / b`, makes `#cut a / b` $\equiv_O$ `a`: `b` is
-never attempted. A choice of which one alternative is left after the others
-are dropped is replaced by that alternative only without its loose cuts: a
-loose cut left in it would commit the choice, option or repetition around the
-choice instead, as `(-("a" #cut "b") / !"q" "q")* "ac"`, which accepts `ac`,
-and `(-("a" #cut "b"))* "ac"`, which rejects it.
+`a / -(b #cut c)`, give the same match, end, captures and recorded outcome
+($\equiv_{E,X}$) as the same expressions without the cut: nothing can fail
+after the first, and no alternative follows the second. A cut at the start,
+`#cut a / b`, is $\equiv_{E,X}$ `a`: `b` is never attempted.
+
+They are $\equiv_O$ only when the value stays the same. A cut has no value, so
+`b #cut c` and `b c` are both a tuple of the elements `b` and `c`. But
+`a #cut` is a tuple of one element, whereas `a` is the value of `a` itself
+([Values](../language/parser-expressions.md#values-and-the-concrete-syntax-tree),
+rule 2), and `#cut a` too; a predicate that reads the capture `x:(a #cut / b)`
+sees the difference, as `len($x) == 1`. The sequence that is left with one
+item, or with none, is $\equiv_O$ to the sequence of that item (`a #cut` to a
+sequence of `a`) and to the bare item only where no predicate reads the value.
+The same holds for a choice that is left with one alternative after the others
+are dropped (C1 to C5, T2): that alternative is $\equiv_O$ to the choice of it,
+and to the alternative alone only where its value is the same alone as it is
+as the only alternative of a choice, that is, unless it is a sequence, which
+adds its elements to a sequence around it, or has no value, which the choice
+gives the value `nil`.
+
+A choice of which one alternative is left after the others are dropped is
+replaced by that alternative only without its loose cuts: a loose cut left in
+it would commit the choice, option or repetition around the choice instead, as
+`(-("a" #cut "b") / !"q" "q")* "ac"`, which accepts `ac`, and
+`(-("a" #cut "b"))* "ac"`, which rejects it.
 
 **Law (T3) Cuts Stop at Calls.** A cut in the body of a rule never escapes
 its call ([Cut](../language/parser-expressions.md#cut)), so inlining a rule
@@ -517,7 +534,7 @@ cites.
 | N3 | O | Drop an alternative equal to an earlier one, or one that an earlier one subsumes | C1, C5 |
 | N4 | O | Drop `_|_` alternatives without `@error`; replace `_|_ a` by `_|_` | C4, S2 |
 | N5 | O | Canonicalize stacked lookaheads; replace trivial lookaheads | K1, K2, K6 |
-| N6 | O | Drop harmless cuts and recoveries that never fire | T2, V1 |
+| N6 | O | Drop harmless cuts and recoveries that never fire; a sequence left with one item or none becomes a sequence of it | T2, V1 |
 | N7 | E | Remove `@error`, `@diagnostic`, `#atomic`, discards and captures that no predicate reads | (values and messages only) |
 | N8 | E | Merge runs of single-character alternatives into one class | C9 |
 | N9 | E | Replace `X* X*` by `X*`, `X+ X*` by `X+`, `X? X*` by `X*`, `X X*` by `X+` | R3, R4, R5 |
@@ -606,6 +623,16 @@ the [open steps of the linear cost proof](linear-cost.md#open-steps).
   apply them to an expression that contains such a capture, or that calls
   such a rule, since they would move or merge the capture that the
   predicate names.
+- The same holds for the parts of the other rules that change a value. A
+  sequence left with one item (or none) after N6 drops its cuts, or whose
+  items N9 to N11 merged, would become the bare item, which has another
+  value than the tuple of one element; a choice left with one alternative
+  that is a sequence or has no value would add its elements to the sequence
+  around it, or lose the element `nil`; an inlined call (N13) does the same
+  with the body of its rule. The view applies them only where the conditions
+  above hold, and otherwise keeps the sequence of one item or the choice of
+  one alternative, and the call. Dropping the cut is not changing a value, so
+  it applies everywhere.
 - N7 is off because `@error` and `@diagnostic` decide where the parser keeps
   repetition runs, and N13 is off because inlining changes which rules are
   memoized. For the same reason the classifier decides memoization, call

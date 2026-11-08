@@ -73,6 +73,11 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 		{"capture in a lookahead of a called rule", "rule main = y:r {len($y.$z) == 2} (e \"q\" / \"x\")* $$\nrule r = &(z:s) \"a\"*\nrule s = \"a\"* \"a\"*\nrule e = e \"x\" / \"x\"", []string{"x", "axq", "aaxq", "aax", "xxq", "aaaxq"}},
 		{"read capture merged by a repetition", "rule main = x:\"a\" (x:\"a\")* {text($x) == \"a\"} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"axxq", "aaxq", "ax", "aax", "a"}},
 		{"read capture merged by an optional", "rule main = (x:\"a\")? (x:\"a\")* {text($x) == \"a\"} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"axxq", "aaxq", "ax", "aax", "x"}},
+		{"cut that ends an alternative of a read capture", "rule main = x:(\"abc\" #cut / \"z\") {len($x) == 1} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"abcxxq", "abcx", "zxq", "zx", "abc", "abxq"}},
+		{"cut of the last alternative around a read capture", "rule main = (\"w\" / x:(\"abc\" #cut)) {len($x) == 1} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"abcxxq", "abcx", "wxq", "wx", "abc"}},
+		{"cut in a rule that a read capture reaches", "rule main = y:r {len($y) == 1} (e \"q\" / \"x\")* $$\nrule r = \"abc\" #cut / \"z\"\nrule e = e \"x\" / \"x\"", []string{"abcxxq", "abcx", "zxq", "zx", "abc"}},
+		{"choice of one sequence in a read capture", "rule main = x:(\"a\" (\"b\" \"c\" / _|_)) {len($x) == 2} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"", []string{"abcxxq", "abcx", "abxq", "ab"}},
+		{"call of a rule with several items in a read capture", "rule main = x:(\"a\" r) {len($x) == 2} (e \"q\" / \"x\")* $$\nrule r = \"b\" \"c\"\nrule e = e \"x\" / \"x\"", []string{"abcxxq", "abcx", "abxq", "abc"}},
 		{"cut in a skip", `rule main = ("a" "b" #recover(skip=#cut [^;]*) / !"q" "q")* "ac"`, []string{"abac", "ac", "aac", "a;ac"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {

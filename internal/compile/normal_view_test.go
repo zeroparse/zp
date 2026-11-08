@@ -299,3 +299,110 @@ func TestNormalViewText(t *testing.T) {
 		})
 	}
 }
+
+// TestNormalViewCutKeepsTuple checks that dropping the cuts of a sequence leaves a sequence of one
+// item, a tuple of one element, where a predicate can read its value, and the bare item where none
+// can: `a #cut` is a tuple of one element, and `len($x)` tells it from the item.
+func TestNormalViewCutKeepsTuple(t *testing.T) {
+	const tail = " (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"\n"
+	for _, c := range []struct {
+		name string
+		src  string
+		want int // the sequences of one item in the view
+	}{
+		{name: "a cut that ends an alternative of a read capture",
+			src: "rule main = x:(\"abc\" #cut / \"z\") {len($x) == 1}" + tail, want: 1},
+		{name: "a leading cut of a read capture",
+			src: "rule main = x:(#cut \"abc\" / \"z\") {len($x) == 1}" + tail, want: 1},
+		{name: "a cut of the last alternative around a read capture",
+			src: "rule main = (\"w\" / x:(\"abc\" #cut)) {len($x) == 1}" + tail, want: 1},
+		{name: "a cut of the last alternative of a read capture",
+			src: "rule main = x:(\"w\" / \"abc\" #cut) {len($x) == 1}" + tail, want: 1},
+		{name: "a cut of an alternative that calls a rule that reaches a read capture",
+			src: "rule main = y:(r #cut / \"z\") {len($y) == 1}\nrule r = \"abc\"" + tail, want: 1},
+		{name: "a rule that a read capture reaches keeps the tuple of its cut",
+			src: "rule main = y:r {len($y) == 1}\nrule r = \"abc\" #cut / \"z\"" + tail, want: 1},
+		{name: "a capture that no predicate reads loses the tuple with the cut",
+			src: "rule main = x:(\"abc\" #cut / \"z\") {true}" + tail, want: 0},
+		{name: "a cut outside any capture loses the tuple with the cut",
+			src: "rule main = (\"abc\" #cut / \"z\")" + tail, want: 0},
+		{name: "a capture another capture's predicate reads does not keep it",
+			src: "rule main = x:(\"abc\" #cut / \"z\") y:\"q\" {len($y) == 1}" + tail, want: 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			g, err := syntax.Parse(c.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g, err = NormalizeAttributesControlled(g, false, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rules := g.Rules()
+			an := AnalyzeControlled(rules, nil)
+			memo, _ := memoizedRules(rules, an, nil)
+			v := normalizeRules(rules, an, memo, costView, nil)
+			got := 0
+			for _, r := range v.rules {
+				WalkExpr(r.Expr, func(x grammar.Expr) {
+					if s, ok := x.(*grammar.Seq); ok && len(s.Items) == 1 {
+						got++
+					}
+				})
+			}
+			if got != c.want {
+				t.Errorf("sequences of one item in the view = %d, want %d", got, c.want)
+			}
+		})
+	}
+}
+
+// TestNormalViewKeepsValueShapes checks the rewrites that change a value without being about
+// repetitions or cuts: the choice that is left with one alternative, which a sequence would splice
+// into the sequence around it, an alternative without a value, which the choice gives the value
+// nil, and the inlining of a call, whose body would be spliced in the same way. Each stays where a
+// predicate reads the value, and applies elsewhere.
+func TestNormalViewKeepsValueShapes(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		src  string
+		opts viewOptions
+		want map[string]string
+	}{
+		{name: "a choice of one sequence in a read capture stays",
+			src:  "rule main = x:(\"a\" (\"b\" \"c\" / _|_)) {len($x) == 2}",
+			want: map[string]string{"main": `x:("a" ("b" "c")) {len($x) == 2}`}},
+		{name: "a choice of two equal sequences in a read capture stays",
+			src:  "rule main = x:(\"a\" (\"b\" \"c\" / \"b\" \"c\")) {len($x) == 2}",
+			want: map[string]string{"main": `x:("a" ("b" "c")) {len($x) == 2}`}},
+		{name: "a choice of one alternative without a value in a read capture stays",
+			src:  "rule main = x:(\"a\" (-\"b\" / _|_)) {len($x) == 2}",
+			want: map[string]string{"main": `x:("a" (-"b")) {len($x) == 2}`}},
+		{name: "a choice of one sequence in a rule that a read capture reaches stays",
+			src:  "rule main = y:r {len($y) == 2}\nrule r = \"a\" (\"b\" \"c\" / _|_)",
+			want: map[string]string{"r": `"a" ("b" "c")`}},
+		{name: "a choice of one literal in a read capture is replaced",
+			src:  "rule main = x:(\"a\" (\"b\" / _|_)) {len($x) == 2}",
+			want: map[string]string{"main": `x:("a" "b") {len($x) == 2}`}},
+		{name: "a choice of one sequence in an unread capture is replaced",
+			src:  "rule main = x:(\"a\" (\"b\" \"c\" / _|_)) {true}",
+			want: map[string]string{"main": `x:("a" "b" "c") {true}`}},
+		{name: "a call in a read capture is not inlined",
+			src:  "rule main = x:(\"a\" r) {len($x) == 2}\nrule r = \"b\" \"c\"",
+			opts: viewOptions{inline: true},
+			want: map[string]string{"main": `x:("a" r) {len($x) == 2}`}},
+		{name: "a call in an unread capture is inlined",
+			src:  "rule main = x:(\"a\" r) {true}\nrule r = \"b\" \"c\"",
+			opts: viewOptions{inline: true},
+			want: map[string]string{"main": `x:("a" "b" "c") {true}`}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got, _ := viewBodies(t, c.src+"\n", c.opts)
+			for name, want := range c.want {
+				if got[name] != want {
+					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
+				}
+			}
+		})
+	}
+}

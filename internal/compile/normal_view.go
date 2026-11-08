@@ -82,8 +82,9 @@ type normalView struct {
 	text map[grammar.Expr]string
 	// reads are, for each rule, the names of its captures that a predicate of the rule reads, and
 	// valued the rules whose value reaches such a capture (valueReaders). Inside such a capture and
-	// in the body of such a rule, depth is positive and the rules that change values (N9, N10, N11
-	// and the left factoring of N12) are off.
+	// in the body of such a rule, depth is positive and the rules that change values (N9, N10, N11,
+	// the left factoring of N12, N13, and the parts of N1 and N6 that turn a sequence or a choice of
+	// one item into the item) are off.
 	reads  map[string]map[string]bool
 	valued map[string]bool
 	depth  int
@@ -249,7 +250,9 @@ func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
 	case *grammar.Attributed:
 		return v.attributed(x)
 	case *grammar.Ref:
-		if v.opts.inline {
+		if v.opts.inline && v.depth == 0 {
+			// Inside a value that a predicate reads the call stays: the body of a rule with several
+			// items would add them to the sequence around the call instead of being one element.
 			if body := v.inline(x); body != nil {
 				v.count(ruleN13)
 				return body
@@ -298,11 +301,16 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 		}
 	}
 	if len(items) == 1 {
-		// A sequence of one item matches as the item does.
-		if len(s.Items) != 1 || changed {
-			v.count(ruleN1)
+		_, bottom := items[0].(*grammar.Bottom)
+		if bottom || v.depth == 0 && !v.observed(items[0]) {
+			// A sequence of one item matches as the item does, and has the value of a tuple of
+			// one element where the item does not: a predicate that reads it sees the difference
+			// (spec/language/parser-expressions.md, Values), so the sequence stays where one can.
+			if len(s.Items) != 1 || changed {
+				v.count(ruleN1)
+			}
+			return items[0]
 		}
-		return items[0]
 	}
 	if !changed {
 		return s
@@ -504,7 +512,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		// rewrites of its parts.
 		v.applied = applied
 		return ch
-	case len(alts) == 1:
+	case len(alts) == 1 && (v.depth == 0 && !v.observed(alts[0]) || sameValueBare(alts[0])):
 		return alts[0]
 	case !changed:
 		return ch
@@ -512,6 +520,20 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 	c := *ch
 	c.Alts, c.Breaks = alts, nil
 	return &c
+}
+
+// sameValueBare reports whether an expression has the same value alone as it has as the only
+// alternative of a choice. A sequence does not: it is one element of the sequence around the
+// choice as an alternative, and adds its elements to it alone. Neither does an expression without
+// a value, which a choice gives the value nil. Where a predicate can read the value, the choice of
+// one alternative stays.
+func sameValueBare(e grammar.Expr) bool {
+	switch e.(type) {
+	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Ref, *grammar.Repeat,
+		*grammar.Optional, *grammar.Atomic, *grammar.Bottom:
+		return true
+	}
+	return false
 }
 
 // subsumed reports whether an earlier alternative covers alt: it equals alt or is a prefix of
@@ -648,7 +670,7 @@ func (v *normalView) factor(alts []grammar.Expr, ch *grammar.Choice) ([]grammar.
 		// alternative's. A rest that is an expression of the grammar keeps its own text.
 		rests := make([]grammar.Expr, 0, j-i)
 		for _, a := range alts[i:j] {
-			r := seqOf(a, items(a)[len(prefix):])
+			r := seqOf(a, items(a)[len(prefix):], false)
 			v.standsFor(r, v.textOf(a))
 			rests = append(rests, r)
 		}
@@ -671,12 +693,18 @@ func items(e grammar.Expr) []grammar.Expr {
 }
 
 // seqOf returns the sequence of items, at the position of e: the item itself when there is one,
-// and a top when there is none.
-func seqOf(e grammar.Expr, items []grammar.Expr) grammar.Expr {
-	switch len(items) {
-	case 0:
+// and a top when there is none. With tuple it returns a sequence of the items, which is a tuple of
+// one element (or of none, written as a sequence of a top) and so keeps the value of the
+// sequence that it replaces.
+func seqOf(e grammar.Expr, items []grammar.Expr, tuple bool) grammar.Expr {
+	switch {
+	case len(items) == 0 && tuple:
+		return &grammar.Seq{SourceInfo: exprSource(e), Items: []grammar.Expr{&grammar.Top{SourceInfo: exprSource(e)}}}
+	case len(items) == 0:
 		return &grammar.Top{SourceInfo: exprSource(e)}
-	case 1:
+	case len(items) == 1 && tuple:
+		return &grammar.Seq{SourceInfo: exprSource(e), Items: slices.Clone(items)}
+	case len(items) == 1:
 		return items[0]
 	}
 	return &grammar.Seq{SourceInfo: exprSource(e), Items: slices.Clone(items)}
@@ -702,8 +730,12 @@ func leadingCut(alt grammar.Expr) bool {
 // an enclosing construct when the choice is replaced by its only alternative. A cut that ends an
 // alternative is removed only as an item of the alternative itself.
 func (v *normalView) dropCuts(alt grammar.Expr, all bool) grammar.Expr {
+	// A sequence that loses its cuts and keeps one item or none would become that item, which
+	// changes its value from a tuple to the item's. Where a predicate can read it, it stays a
+	// sequence of its items.
+	tuple := v.depth > 0 || v.observed(alt)
 	if _, ok := alt.(*grammar.Cut); ok || all {
-		return v.looseCutsDropped(alt)
+		return v.looseCutsDropped(alt, tuple)
 	}
 	s, ok := alt.(*grammar.Seq)
 	if !ok || len(s.Items) == 0 {
@@ -713,7 +745,7 @@ func (v *normalView) dropCuts(alt grammar.Expr, all bool) grammar.Expr {
 		return alt
 	}
 	if len(s.Items) < 3 {
-		return seqOf(alt, s.Items[:len(s.Items)-1])
+		return seqOf(alt, s.Items[:len(s.Items)-1], tuple)
 	}
 	c := *s
 	c.Items, c.Breaks = s.Items[:len(s.Items)-1:len(s.Items)-1], nil
@@ -723,16 +755,17 @@ func (v *normalView) dropCuts(alt grammar.Expr, all bool) grammar.Expr {
 // looseCutsDropped returns e without the cuts that are loose in it (grammaranalysis.HasLooseCut),
 // or e itself when it has none outside the skips of recoveries, which it keeps. A cut that is an
 // item of a sequence is removed, and a cut that is the whole of an expression becomes a top. Every
-// expression that it rebuilds stands for the text of the one it replaces.
-func (v *normalView) looseCutsDropped(e grammar.Expr) grammar.Expr {
-	n := v.looseCutsDroppedIn(e)
+// expression that it rebuilds stands for the text of the one it replaces. With tuple, a sequence
+// that keeps fewer than two items stays a sequence (seqOf).
+func (v *normalView) looseCutsDropped(e grammar.Expr, tuple bool) grammar.Expr {
+	n := v.looseCutsDroppedIn(e, tuple)
 	if n != e {
 		v.standsFor(n, v.textOf(e))
 	}
 	return n
 }
 
-func (v *normalView) looseCutsDroppedIn(e grammar.Expr) grammar.Expr {
+func (v *normalView) looseCutsDroppedIn(e grammar.Expr, tuple bool) grammar.Expr {
 	switch x := e.(type) {
 	case *grammar.Cut:
 		return &grammar.Top{SourceInfo: exprSource(x)}
@@ -744,7 +777,7 @@ func (v *normalView) looseCutsDroppedIn(e grammar.Expr) grammar.Expr {
 				changed = true
 				continue
 			}
-			n := v.looseCutsDropped(it)
+			n := v.looseCutsDropped(it, tuple)
 			changed = changed || n != it
 			items = append(items, n)
 		}
@@ -752,49 +785,49 @@ func (v *normalView) looseCutsDroppedIn(e grammar.Expr) grammar.Expr {
 			return x
 		}
 		if len(items) < 2 {
-			return seqOf(x, items)
+			return seqOf(x, items, tuple)
 		}
 		c := *x
 		c.Items, c.Breaks = items, nil
 		return &c
 	case *grammar.Group:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Capture:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Discard:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Atomic:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Stream:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Recovery:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
 		}
 	case *grammar.Attributed:
-		if n := v.looseCutsDropped(x.Expr); n != x.Expr {
+		if n := v.looseCutsDropped(x.Expr, tuple); n != x.Expr {
 			c := *x
 			c.Expr = n
 			return &c
