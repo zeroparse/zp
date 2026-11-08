@@ -2599,14 +2599,20 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
 8. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
    bounds the cost of the written grammar by a constant times that of its view,
    except for the values that actions build from a reshaped value: the value of
-   an expression that N9, N10, N11 or the left factoring of N12 replaces, or a
-   value that includes one through a capture, a sequence, a choice or the value
-   of a rule. Those rewrites preserve what the expression matches and its
-   recorded outcome, not its value, and the view applies them only where no
-   predicate reads such a value; an action of the written grammar can still read
-   one, and then reads another shape than the classifier sees in the view:
-   `x:("a"* "a"*) => concat($x[0], …)` copies a list where the view has an
-   element. Prove that the values which actions build from a value that N9, N10,
-   N11 or the left factoring of N12 reshapes, and the run-time errors of those
-   actions, stay within a constant factor of what the classifier bounds on the
-   view (or make the view keep the shape of every value that an action reads).
+   an expression that a rewrite replaces where it changes that value, or a value
+   that includes one through a capture, a sequence, a choice or the value of a
+   rule. The rewrites that change a value are listed in
+   [Rewrites That Change Values](cost-view.md#rewrites-that-change-values):
+   N9, N10, N11, the left factoring of N12, and the replacement of a sequence of
+   one item, or of a choice of one alternative, by its item, which N1, N6 and
+   the drop of the other alternatives make. They preserve what the expression
+   matches and its recorded outcome, not its value, and the view applies them
+   only where no predicate reads such a value; an action of the written grammar
+   can still read one, and then reads another shape than the classifier sees in
+   the view: `x:("a"* "a"*) => concat($x[0], …)` copies a list where the view
+   has an element, and `len($x)` of `x:("abc" #cut / "z")` counts one element
+   where the view has three characters. Prove that the values which actions
+   build from a value that one of these rewrites reshapes, and the run-time
+   errors of those actions, stay within a constant factor of what the
+   classifier bounds on the view (or make the view keep the shape of every
+   value that an action reads).

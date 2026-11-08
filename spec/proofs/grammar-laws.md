@@ -598,9 +598,12 @@ costs at most a constant factor more than the view on every input. The
 classifier reads a view that applies the rules of both levels except N7 and
 N13, under these further conditions, which give that bound for each rule that
 the view applies ([Cost View](cost-view.md)), except for the values that actions
-build from a value that N9, N10, N11 or the left factoring of N12 reshapes and
-their run-time errors: step 8 of the
-[open steps of the linear cost proof](linear-cost.md#open-steps).
+build from a value that a rewrite reshapes, and their run-time errors: step 8 of
+the [open steps of the linear cost proof](linear-cost.md#open-steps). The
+rewrites that reshape a value are N9, N10, N11, the left factoring of N12, and
+the replacement of a sequence of one item, or a choice of one alternative, by
+its item (in N1, in N6 and after the other alternatives are dropped), where the
+conditions below let them change the value.
 
 - A rule removes an evaluation only when the original either never makes it
   or makes it again in the same state, and only when that evaluation is

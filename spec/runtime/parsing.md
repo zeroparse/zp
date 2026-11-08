@@ -998,9 +998,10 @@ The conditions below use these terms.
 
   The classifier decides both bounds, as it does the conditions, on the
   [cost view](../proofs/grammar-laws.md#normalization) of the rule bodies, a rewriting that keeps
-  what they match and keeps their cost within a constant factor
-  ([Cost View](../proofs/cost-view.md); the values that actions build from a
-  value that the view reshapes, and their run-time errors, are step 8 of the
+  what they match and keeps their cost within a constant factor, apart from the
+  values that actions build from a value that the view reshapes
+  ([Cost View](../proofs/cost-view.md); those values, and the run-time errors of
+  the actions that build them, are step 8 of the
   [open steps of the linear cost proof](../proofs/linear-cost.md#open-steps)),
   with the memoized rules and the left-recursion cycles of the grammar as
   written.
