@@ -1536,10 +1536,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 		case "text":
 			return "c.Text(" + args[0] + ")"
 		case "foldl", "foldr":
-			if g.GoBudgetControls {
-				return fmt.Sprintf("c.Fold(%q, %v, %s, %s, %s)", t.Func, t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
-			}
-			return fmt.Sprintf("%sFold(%q, %v, %s, %s, %s)", g.rt(), t.Func, t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
+			return fmt.Sprintf("c.Fold(%q, %v, %s, %s, %s)", t.Func, t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
 		case "map":
 			if x, ok := g.Projected(t, locals); ok {
 				if g.GoBudgetControls {
@@ -1575,17 +1572,11 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 			// The right operand is evaluated only if the left one does not decide the result.
 			l, r := g.term(t.L, s, locals), g.closure(t.R, s, locals)
 			fn := map[string]string{"&&": "And", "||": "Or"}[t.Op]
-			if g.GoBudgetControls {
-				return fmt.Sprintf("c.%s(%s, %s)", fn, l, r)
-			}
-			return fmt.Sprintf("%s%s(%s, %s)", g.rt(), fn, l, r)
+			return fmt.Sprintf("c.%s(%s, %s)", fn, l, r)
 		}
 		xs := g.terms([]grammar.Term{t.L, t.R}, s, locals)
 		l, r := xs[0], xs[1]
-		if g.GoBudgetControls {
-			return fmt.Sprintf("c.Binary(%q, %s, %s)", t.Op, l, r)
-		}
-		return fmt.Sprintf("%sBinary(%q, %s, %s)", g.rt(), t.Op, l, r)
+		return fmt.Sprintf("c.Binary(%q, %s, %s)", t.Op, l, r)
 	case *grammar.Cast:
 		x := g.term(t.X, s, locals)
 		ft := g.Prog.ResolveCheck(t.Type)
@@ -1596,10 +1587,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 		line, col := g.Prog.CastPos(t)
 		return fmt.Sprintf("c.Cast(%s, %s, %d, %d)", x, v, line, col)
 	case *grammar.Unary:
-		if g.GoBudgetControls {
-			return fmt.Sprintf("c.Unary(%q, %s)", t.Op, g.term(t.X, s, locals))
-		}
-		return fmt.Sprintf("%sUnary(%q, %s)", g.rt(), t.Op, g.term(t.X, s, locals))
+		return fmt.Sprintf("c.Unary(%q, %s)", t.Op, g.term(t.X, s, locals))
 	}
 	panic(fmt.Sprintf("unsupported term %T", t))
 }
