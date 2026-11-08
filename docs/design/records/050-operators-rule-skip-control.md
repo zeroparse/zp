@@ -1,6 +1,6 @@
 # 050. Controlling Implicit Operators Rule Whitespace Skips
 
-- **Status**: Draft
+- **Status**: Proposed
 - **Author**: @ornew
 - **Date**: 2026-10-12
 
@@ -8,7 +8,7 @@
 
 Investigate control over the implicit trivia skip that an Operators Rule declaration inserts before operands and operator parts. The current [Operators Rule specification](../../../spec/language/operators-rule.md#skip) documents one rule-level `skip` expression applied at both boundaries. An operator whose spelling is whitespace can therefore compete with ordinary skipped trivia, as in a whitespace-as-infix interpretation of `a b`.
 
-This draft investigates three independent axes: whether to suppress only the implicit pre-entry skip or also skips inside an operator part; whether the control is local to an Operators Rule operator/expression or propagates into referenced rules; and whether its scope is per operator, a region (illustratively `(a b c) #noskip`), or a future global opt-in. The current explicit-trivia workaround is the control case. No scope, policy, or syntax is selected.
+This record investigates three independent axes: whether to suppress only the implicit pre-entry skip or also skips inside an operator part; whether the control is local to an Operators Rule operator/expression or propagates into referenced rules; and whether its scope is per operator, a region (illustratively `(a b c) #noskip`), or a future global opt-in. The current explicit-trivia workaround is the control case. No scope, policy, or syntax is selected.
 
 ## Current Behavior
 
@@ -39,4 +39,4 @@ The explicit-trivia grammar is the reference control. Verify every default-skip 
 
 ## Limitations and Open Questions
 
-This is a pre-proposal draft, not a recommended contract. Decide the suppression boundary, scope and propagation behavior independently before selecting syntax. A broader global extension may be investigated later, but must specify lexical boundaries and remain opt-in; preserve the current behavior until the choices and backend contracts are reviewed.
+This record is an exploration, not a recommended contract. Decide the suppression boundary, scope and propagation behavior independently before selecting syntax. A broader global extension may be investigated later, but must specify lexical boundaries and remain opt-in; preserve the current behavior until the choices and backend contracts are reviewed.

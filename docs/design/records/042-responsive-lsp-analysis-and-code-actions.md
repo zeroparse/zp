@@ -1,6 +1,6 @@
 # 042. Responsive LSP Analysis and Code Actions
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-11
 

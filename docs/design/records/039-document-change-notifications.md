@@ -1,6 +1,6 @@
 # 039. Conservative Document Change Notifications
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-11
 
@@ -96,7 +96,7 @@ Documents do not emit these events, and TypeScript generation has no Document AP
 - **Always publish exact changed subtrees:** this needs stable identity, parent/edge and scalar semantics. Begin with whole-output comparison or a conservative status.
 - **Notify only on text edits:** that leaves clients to infer output equality from shape. Keep source edits and output changes distinct.
 
-## Testing and Performance Plan
+## Testing and Performance
 
 Focused normal and snapshot-directory-ID comparison tests cover same-shape edits, scalar and terminal changes, aliases/cycles, typed nil, empty collections, diagnostics, budget interruption and retry across core backends and both position units. The full root suite, generated-parser checks and site checks passed. The measurements below compare both the opt-in edit-and-capture path and the default-off path against its pre-feature revision.
 

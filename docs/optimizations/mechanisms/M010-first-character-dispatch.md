@@ -28,11 +28,19 @@ alternatives or a general lookahead prediction.
 
 ## Reference Control
 
-No common same-source guard-disable control is maintained across all backends.
-Old bytecode without `GUARD` is compatibility input, not a current-source
-reference compiler.
+For generated Go and TypeScript parsers, `-no-opt guards` generates the same
+grammar without first-character guards, and `-no-opt guarded-classes` keeps the
+guards but leaves the leading class of a guarded alternative to test the
+character again. Both are same-generator references. The closure backend and the
+VMs have no guard-disable control, and old bytecode without `GUARD` is
+compatibility input, not a current-source reference compiler.
 
 ## Evidence and Implementation
+
+A leading class of a guarded alternative consumes the character its guard read in
+ordinary generated Go parsers (record 112). The flags are measured in record 136:
+with guards off, parse time is 1.091 times that of the default over the ten
+language grammars and `parser.go` is 0.917 times its size.
 
 Historical records 049–051 report JSON parsing improvements of 13% in generated
 Node, 7% in closure, and 13%/15% in the VMs on their recorded runs. Record 050
@@ -43,10 +51,12 @@ TypeScript workloads.
 Evidence records:
 [049](../049-first-character-dispatch-in-generated-choices.md),
 [050](../050-first-character-dispatch-in-the-closure-backend.md),
-[051](../051-first-character-dispatch-in-the-vms-instruction-set-3.md).
+[051](../051-first-character-dispatch-in-the-vms-instruction-set-3.md),
+[112](../112-guarded-first-classes.md),
+[136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`firstTerminal`](../../../internal/compile/compile.go),
-[`Walker.ExprForm and Compiler.first`](../../../internal/compile/compile_walk.go),
+[`Guards pass`](../../../internal/ir/core/passes.go), [`Walker.ExprForm and Compiler.first`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.Choice and Guard`](../../../internal/engine/closure/builder.go), [`GUARD
 emission`](../../../internal/compile/bcompile.go), [`generated choice
 guards`](../../../internal/gen/gogen/generator.go), [`TypeScript choice

@@ -1,6 +1,6 @@
 # 041. Opt-In Missing Literal Recovery
 
-- **Status**: Accepted for the Closure whole-input Node/recognition slice; other backends and APIs remain proposed
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-11
 

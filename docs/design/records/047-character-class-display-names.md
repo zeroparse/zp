@@ -1,6 +1,6 @@
 # 047. Diagnostic Expectation Names
 
-- **Status**: Proposed
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-12
 
@@ -11,7 +11,7 @@ Add a postfix `@diagnostic(name="...")` attribute that gives a parsing expressio
 The target may be any parsing expression, including a complete rule body:
 
 ```zp
-rule number Number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
+rule number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
 ```
 
 The precise wrapper boundary matters. An inner failure that is recovered before it reaches an outer diagnostic wrapper is no longer a failure of that outer wrapper. The annotation therefore does not rename every nested character-class expectation.
@@ -47,7 +47,7 @@ Attributes keep their normal postfix binding and written order. Each attribute w
 
 ```zp
 rule digit = [0-9] @diagnostic(name="digit")
-rule number Number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
+rule number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
 rule recovered = expression @diagnostic(name="expression") #recover(skip=";")
 rule recover_first = expression #recover(skip=";") @diagnostic(name="expression")
 ```
@@ -60,11 +60,11 @@ When `@diagnostic` and `@error` appear in either order in the same attribute cha
 
 When the wrapped expression fails, replace the ordinary, non-message expected-item descriptions contributed by that wrapped failure at its tracked farthest position with the configured name. Preserve the position and preserve explicit `@error` messages. Do not move the failure to the wrapper start, replace expectations recorded at a farther position by another failure, or collapse unrelated expectation events into one label. On success, preserve the inner expectations already recorded, as with the existing wrapper behavior.
 
-The attribute must not change whether the expression matches, which branch wins, captures or values produced, expression spans, or the farthest-failure position. If the existing expected-item table deduplicates identical strings, the configured name follows the same rule; the proposal does not change ordering or deduplication.
+The attribute must not change whether the expression matches, which branch wins, captures or values produced, expression spans, or the farthest-failure position. If the existing expected-item table deduplicates identical strings, the configured name follows the same rule; the attribute does not change ordering or deduplication.
 
-### Observed Baseline and Proposed Outcome
+### Result
 
-The baseline measurements below were executed on main `8aca682` using the grammar source form supported by that revision. They establish the existing diagnostic positions, not implementation or acceptance of the selected target syntax.
+Without a name, a rule shows the mechanical description of every expected item:
 
 ```zp
 rule number = [0-9]+ "." [0-9]+
@@ -73,35 +73,34 @@ rule number = [0-9]+ "." [0-9]+
 - Input `12x`: `1:3: syntax error: expected ".", [0-9]`
 - Input `12.`: `1:4: syntax error: expected [0-9]`
 
-With the proposed whole-body wrapper:
+With the whole-body wrapper, the positions and the diagnostic shape are the same and the ordinary expected descriptions
+are replaced:
 
 ```zp
-rule number Number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
+rule number = ([0-9]+ "." [0-9]+) @diagnostic(name="number")
 ```
-
-The proposed output keeps the same positions and full diagnostic shape while replacing the ordinary expected descriptions:
 
 - Input `12x`: `1:3: syntax error: expected number`
 - Input `12.`: `1:4: syntax error: expected number`
 
-These are design targets, not verified behavior. As a separate control measured on that same revision, a whole-body `@error(message="expected a decimal number")` equivalent reports:
+A whole-body `@error(message="expected a decimal number")` replaces the expected items with a message instead:
 
-- Input `12x`: `1:3: syntax error: expected a decimal number`
-- Input `12.`: `1:4: syntax error: expected a decimal number`
+- Input `12x`: `1:3: expected a decimal number`
+- Input `12.`: `1:4: expected a decimal number`
 
-That custom-message behavior remains intact and takes precedence when applicable.
+That custom-message behavior takes precedence when both attributes apply.
 
 ### Representation and Implementation Constraints
 
-Represent the proposal with the existing `grammar.Attributed` and `grammar.Attribute` form; do not add a field to `CharClass` or `RuleDef` solely for this feature. Validation records the exact name and rejects invalid argument shapes before compilation. Preserve the attribute in grammar JSON and formatter round trips.
+The attribute uses the existing `grammar.Attributed` and `grammar.Attribute` form; no field of `CharClass` or `RuleDef` carries it. Validation records the exact name and rejects invalid argument shapes before compilation. The attribute is preserved in grammar JSON and formatter round trips.
 
-Runtime and compiler paths must honor the wrapper's failure boundary. In particular, first-character guards, scanners, repetition lowering, choice dispatch, and other optimized paths that report failures directly must not blindly inject the label into all nested class descriptors. The wrapper behavior must be equivalent across closure compilation, recursive and iterative bytecode VMs, and generated Go and TypeScript parsers. It must leave matcher identity and all successful-path analysis unchanged.
+Runtime and compiler paths honor the wrapper's failure boundary. First-character guards, scanners, repetition lowering, choice dispatch and other optimized paths that report failures directly do not inject the label into the nested class descriptors. The wrapper behaves the same in the closure backend, the recursive and iterative bytecode VMs, and generated Go and TypeScript parsers, and it leaves matcher identity and all successful-path analysis unchanged.
 
 ### Compatibility
 
-Grammars without `@diagnostic` retain their existing behavior. Older implementations reject the new attribute as unknown, making it an opt-in grammar feature. The JSON AST already has an attributed-expression representation; verify strict JSON and bytecode compatibility before implementation, and use an explicit format revision if existing serialized forms cannot carry the required behavior safely.
+Grammars without `@diagnostic` retain their existing behavior. An implementation that does not know the attribute rejects it as unknown, so using it is an opt-in grammar feature. The JSON AST carries it in its attributed-expression representation. A compiled grammar carries it and reports the name in every mode.
 
-Update `spec/language/attributes.md`, grammar and diagnostic guides, formatter and LSP attribute help. The postfix spelling applies to expressions. [Design 049](049-rule-attribute-decorators.md) records the rejected declaration-prefix alternative.
+The [attributes specification](../../../spec/language/attributes.md#diagnostic) defines the attribute, and the formatter and the language server know it. The postfix spelling applies to expressions. [Design 049](049-rule-attribute-decorators.md) records the rejected declaration-prefix alternative.
 
 ## Alternatives Considered
 
@@ -113,15 +112,15 @@ Update `spec/language/attributes.md`, grammar and diagnostic guides, formatter a
 
 ## Testing
 
-Before implementation, acceptance should include:
+The tests check:
 
-- Ordinary terminal, class, sequence, choice, grouped, and whole-rule-body targets; successful inputs preserve matching, values, captures, and spans.
-- Failures at the wrapped farthest position replace only ordinary expected descriptions. Independent farther failures, unrelated expectation events, ordering, and deduplication remain correct.
-- Both `@diagnostic`/`@error` orders preserve explicit message precedence. Both diagnostic/recovery orders demonstrate the specified boundary behavior; nested recovery and failed recovery remain covered.
-- Invalid/empty names, wrong and extra arguments, duplicates, forbidden line separators, valid Unicode, JSON round trips, and formatter round trips.
-- Parity across closure, recursive bytecode, iterative bytecode, generated Go, and TypeScript, including first-guard/scanner/repetition/choice paths that emit failures directly.
-- LSP completion and hover, source locations, and diagnostic text agree across supported frontends.
+- Terminal, class, sequence, choice, grouped and whole-rule-body targets: the error text names the wrapper, and a successful parse is unchanged.
+- A failure at a farther position keeps its own expected items; the label replaces only the ordinary descriptions at the wrapped failure's position.
+- Both `@diagnostic`/`@error` orders keep the explicit message, and a failure that is recovered inside the wrapper keeps the label.
+- The structured expected items and messages agree in the closure backend and both bytecode VMs, and a compiled grammar reports the name in every mode.
+- Invalid arguments are rejected: a missing, empty, non-string or extra argument, a repeated attribute, and a name with a line separator.
+- Generated Go and TypeScript parsers report the same names, and the language server offers the attribute in completion and hover.
 
 ## Limitations
 
-This remains a proposal. The label applies only to ordinary expected items from a failure that reaches the annotated wrapper. Recovery and other semantic attributes retain normal written-order composition; the label is not a declaration-wide alias and does not cross a wrapper that has already recovered the failure. An applicable explicit `@error` message takes precedence.
+The label applies only to ordinary expected items from a failure that reaches the annotated wrapper. Recovery and other semantic attributes retain normal written-order composition; the label is not a declaration-wide alias and does not cross a wrapper that has already recovered the failure. An applicable explicit `@error` message takes precedence.

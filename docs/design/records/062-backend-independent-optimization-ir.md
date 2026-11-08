@@ -1,6 +1,6 @@
 # 062. Backend-Independent Optimization IR
 
-- **Status**: Accepted
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-22
 
@@ -608,6 +608,12 @@ Generated Go and TypeScript change in internal names and shape, not in API. Budg
 the specification allows.
 
 ### Implementation Sequence
+
+**Status of the stages.** Stage 3 is implemented, as are the typed-Go and value-free Node and recognizer parts of
+stages 1 and 2; the rest of generated Go still reads the grammar. Stages 4 and 5 are not implemented: the bytecode
+compiler and the closure builder work from the program, not from Core IR, and the instruction set has no `NEST` or
+`ENDNEST`. The text below states the intended end state and the gates of each stage, and the record is Partially
+Implemented until every stage lands.
 
 All five stages precede the first release, in this order, so that a release can be cut after any
 completed stage. Each stage ends by deleting the lowerings it replaces, including their term lowering.

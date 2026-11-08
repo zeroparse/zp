@@ -11,7 +11,7 @@ ZeroParse is pre-release, and much of that aim is still ahead. Each part is pair
 
 | Aim | Today | Goal |
 |:--|:--|:--|
-| One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), accepted, not implemented) |
+| One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), partially implemented) |
 | Any target language | Two: generated Go and generated TypeScript | More target languages |
 | Any engine | A closure backend, a recursive VM and an iterative VM, in Go; a bytecode with a [published specification](../spec/bytecode/README.md), implemented only by the Go VMs and unstable until it is declared stable and versioned, which the first tagged release does not do | A stable, versioned bytecode, then another implementation of it |
 | Selectable optimization profiles | Three profiles for generated Go, `speed`, `memory` and `size`, over named optimization flags ([Optimizations](guide/code-generation.md#optimizations)); none for TypeScript | A TypeScript profile |
@@ -95,8 +95,8 @@ features each backend lacks are listed rather than approximated (see
 **The best speed is the aim.** The runtime and generators avoid allocation (slab storage for nodes, lists and
 typed values, pooled frames, and typed values built without an intermediate tree). They also defer memoization for
 rules whose results are never reused, drop values that recognition and discarded captures do not need, and use
-specialized matching loops. The [optimization catalog](optimizations/README.md) indexes 85 mechanisms with their
-backend applicability, and each mechanism has a page with its evidence. It also keeps 123 numbered records of
+specialized matching loops. The [optimization catalog](optimizations/README.md) indexes 90 mechanisms with their
+backend applicability, and each mechanism has a page with its evidence. It also keeps 136 numbered records of
 measured changes and lists the experiments that did not pay off. Most mechanisms have no maintained switch for
 re-measuring them against the same source. The benchmark suite reruns with one command
 ([Performance](performance.md#how-to-measure)). [Performance](#performance) separates what is measured today from

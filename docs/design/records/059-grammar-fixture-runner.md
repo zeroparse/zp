@@ -1,6 +1,6 @@
 # 059. Grammar Fixture Runner
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-14
 
@@ -45,7 +45,7 @@ packages without treating backend agreement as the correctness oracle.
 
 ### Fixture Format
 
-Version 1 is a JSON object. The following is a proposed complete example; fields
+Version 1 is a JSON object. The following is a complete example; fields
 whose defaults are omitted are described below.
 
 ```json
@@ -76,9 +76,9 @@ whose defaults are omitted are described below.
 
 `version` is required and unsupported versions fail to load. `grammar` is
 required and names a ZeroParse source (`.zp`) or grammar JSON (`.json`) file,
-resolved relative to the suite file unless absolute. The proposed v1 accepts
-source and JSON grammars; compiled `.zpc` support is deferred pending a scope
-decision. `start` defaults to `main`. `unit` defaults to `codepoints`; `bytes`
+resolved relative to the suite file unless absolute. Version 1 accepts
+source and JSON grammars; a compiled grammar is not supported. `start` defaults to
+the grammar's default start rule. `unit` defaults to `codepoints`; `bytes`
 selects UTF-8 byte positions. `backends` defaults to `default`. Supported names
 are `default`, `closure`, `bytecode`, and `bytecode-iterative`; duplicates are
 removed while preserving order. Unknown fields, invalid values, trailing JSON
@@ -144,7 +144,7 @@ Parser runtime errors are distinct from syntax errors and are recorded on the
 case/backend result without assigning a parse outcome. The runner continues
 with later isolated cases; invocation-wide cancellation stops the run. Error
 text is diagnostic only and is not compared as a golden because wording may
-change. Whether fixtures can assert an error category is unresolved.
+change. A fixture cannot assert an error category.
 
 Backend equivalence is opt-in and requires at least two distinct resolved
 backends. `default` and `closure` resolve to the same backend and cannot satisfy
@@ -155,11 +155,11 @@ equivalence compares parse outcome, canonical node JSON (including null), root
 span, and ordered syntax-error locations. It reports differing fields
 separately from fixture mismatches. Matching backends cannot turn a wrong
 golden into a pass, and a fixture expectation may pass while equivalence fails.
-How runtime-error categories participate in equivalence remains unresolved.
+Equivalence compares whether a runtime error occurred, not its category or text.
 
 ### CLI and Go API
 
-The proposed command is:
+The command is:
 
 ```text
 zp test -f suite.json [-format text|json]
@@ -172,7 +172,7 @@ cannot be combined with equivalence. The command exits nonzero for fixture or
 equivalence failures; invalid suite/grammar input and compilation errors are
 command errors.
 
-The proposed Go API is `fixture.Load(path)`, `fixture.Run(suite,
+The Go API is `fixture.Load(path)`, `fixture.Run(suite,
 fixture.RunOptions)`, and `fixture.UpdateGoldens(suite, report, backend)`. `Run`
 returns the same structured report used by the CLI. File loading and execution
 options are sufficient for the initial capability; a programmatic in-memory
@@ -219,14 +219,14 @@ clearing a backend override without changing shared expectations.
 ## Compatibility and Backend Support
 
 This is additive and does not change grammar syntax, parser semantics, node
-serialization, or existing parser APIs. The proposed execution backends are
+serialization, or existing parser APIs. The execution backends are
 closure, recursive bytecode, and iterative bytecode. `default` follows ZeroParse's
 public default. Backend-specific expected values document observed differences
 without changing runtime selection.
 
-Version 1 should reject unknown fields and unsupported versions, rather than
-silently ignore them. Grammar JSON is included in the proposed v1. Compiled
-grammar support is open. No generated parser output changes are required.
+Version 1 rejects unknown fields and unsupported versions rather than
+silently ignoring them. Grammar JSON is supported; a compiled grammar is not. No
+generated parser output changes.
 
 ## Alternatives Considered
 
@@ -265,29 +265,25 @@ untargeted golden preservation. Exercise syntax errors separately from runtime
 errors and test the chosen runtime-error reporting/continuation policy. Test CLI
 dispatch/help as well as the package API.
 
-Acceptance requires the fixture package API and integrated CLI command to pass
-these cases across the supported backends.
+The tests of the fixture package and of the `zp test` command cover these cases
+across the supported backends.
 
 ## Performance and Results
 
-There are no performance measurements. Suite loading, grammar compilation, and
-parsing should be timed separately before making claims about routine cost.
-Running multiple backends increases test time; the default should remain the
-single `default` backend, with equivalence explicitly requested.
+There are no performance measurements. Running multiple backends increases test
+time, so the default is the single `default` backend and equivalence is
+requested explicitly.
 
-## Limitations and Open Questions
+## Decisions
 
-- Decide whether fixtures may assert a runtime error category. Runtime error
-  text remains diagnostic and is not golden data.
-- Confirm whether `unit` and backend defaults should remain implicit;
-  recommendation: codepoints and `default`, respectively.
-- Decide whether backend-specific expectations belong in version 1; they allow
-  intentional deviations without weakening common expectations.
-- Confirm whether update creates missing node/location goldens. It must refuse
-  to write when the observed parse outcome disagrees with the expected outcome.
-- Decide whether compiled `.zpc` suites are required in the initial release.
-- Decide whether equivalence should compare runtime-error categories; do not
-  compare unstable error text.
-- Backend equivalence does not explain why a known deviation exists. If fixture
-  authors need local rationale, define a comment/description convention in a
-  later compatible version.
+- Runtime error text is diagnostic and is not golden data. A fixture cannot
+  assert an error category, and equivalence compares only whether a runtime error
+  occurred.
+- `unit` defaults to `codepoints` and `backends` to `default`.
+- `byBackend` expectations are part of version 1; they record an intentional
+  deviation of one backend without weakening the common expectations.
+- `-update` writes the node, span and error locations of one backend, and
+  refuses to write when the observed outcome differs from the expected one.
+- A compiled `.zpc` grammar is not a supported suite grammar.
+- Backend equivalence does not explain why a known deviation exists. A fixture
+  has no description field for the rationale.

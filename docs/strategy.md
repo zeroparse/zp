@@ -20,7 +20,7 @@ of the aim is stated with its status today:
 
 | Aim | Today | Goal |
 |:--|:--|:--|
-| One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), accepted, not implemented) |
+| One compilation path | The Core IR and Flow IR feed the Go and TypeScript generators; the engine backends compile the grammar by their own routes | Every backend on the Core IR ([design record 062](design/records/062-backend-independent-optimization-ir.md), partially implemented) |
 | Any target language | Two: generated Go and generated TypeScript | More target languages ([Targets and engines](#wedge-and-sequencing) track) |
 | Any engine | Three engine backends in Go (closure, recursive VM, iterative VM); a bytecode with a published specification, implemented only by the Go VMs and unstable until it is declared stable and versioned, which the first tagged release does not do | A stable, versioned bytecode, then another implementation of it |
 | Selectable optimization profiles | Three profiles for generated Go, `speed`, `memory` and `size`, over named optimization flags ([design record 063](design/records/063-configurable-optimization-pass-pipeline.md), [Optimizations](guide/code-generation.md#optimizations)); none for TypeScript | A TypeScript profile, which needs a parse-time measurement |
@@ -396,8 +396,8 @@ today, and each new target or engine adds its own rows against the best tools fo
 
 **Baseline.** The design avoids allocation by construction: slab storage for nodes and lists, pooled frames, deferred
 memoization, typed values built without an intermediate tree, and value elision in recognition. The
-[optimization catalog](optimizations/README.md) indexes 85 mechanisms, and each has a page with its evidence. It also
-keeps 123 numbered records of measured changes and the experiments that did not pay off. 62 of the 85 mechanisms
+[optimization catalog](optimizations/README.md) indexes 90 mechanisms, and each has a page with its evidence. It also
+keeps 136 numbered records of measured changes and the experiments that did not pay off. 59 of the 90 mechanisms
 have no maintained same-source control, so their contribution cannot be re-measured at a given commit.
 
 | Measure (workload) | Today |

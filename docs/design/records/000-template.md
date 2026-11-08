@@ -5,8 +5,9 @@
 - **Date**: 2026-10-09
 
 Use this as a starting point for `NNN-topic.md`, following records 012, 015, 016, 017 and 018. Replace the title,
-status and date when copying it. Start an unaccepted design as **Proposed**; use **Implemented** only after the
-document describes landed behavior. Keep the author as `@ornew`. Do not add an issue-tracking metadata field: the
+status and date when copying it. Use one status: **Proposed** (not decided), **Accepted** (decided, not yet built),
+**Partially Implemented** (part has landed; the record says which), **Implemented** (the document describes
+landed behavior) or **Superseded** (replaced by a later record, which it links). Keep the author as `@ornew`. Do not add an issue-tracking metadata field: the
 record must explain its decisions without relying on mutable issue discussions. Remove these instructions and all prompts
 from the finished record. Keep only sections useful to the change; existing records vary with their scope.
 

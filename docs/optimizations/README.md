@@ -16,6 +16,8 @@ Backend cells describe default applicability: `✓` applies; `Partial` applies o
 
 Backend headers use C for Closure, RVM for recursive VM, IVM for iterative VM, Go Node / Recognize for generated Go Node parsing and recognition, Typed Go for generated `ParseAST`, and TS for generated TypeScript. Path scope abbreviations GN and TG refer to those generated Go paths.
 
+The same-source controls of generated parsers are the generation flags of `zp gen` (`-no-opt name`, `-opt name=count`; the [code-generation guide](../guide/code-generation.md#optimizations) lists them and [record 136](136-measured-effect-of-the-generation-flags.md) measures each one). The closure backend and the VMs have no generation flags; their controls are build tags and compile options.
+
 Each linked mechanism page describes its source, eligibility, interactions, control/reference scope, and evidence. Numbered records remain historical measurement reports and may cover multiple mechanisms. Their results apply only to the workloads, backends, and baselines stated in each record.
 
 ### E — Value Elision
@@ -33,10 +35,10 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 
 | ID | Mechanism | Path scope | C | RVM | IVM | Go Node / Recognize | Typed Go | TS | Default state | Same-source control |
 |:--|:--|:--|:-:|:-:|:-:|:-:|:-:|:-:|:--|:--|
-| [M010](mechanisms/M010-first-character-dispatch.md) | First-character guards for ordered choices | C/RVM/IVM/GN/TG/TS; eligibility-based | Partial | Partial | Partial | Partial | Partial | Partial | Default | None maintained |
+| [M010](mechanisms/M010-first-character-dispatch.md) | First-character guards for ordered choices | C/RVM/IVM/GN/TG/TS; eligibility-based | Partial | Partial | Partial | Partial | Partial | Partial | Default | `-no-opt guards`, `-no-opt guarded-classes` (generated parsers) |
 | [M020](mechanisms/M020-character-class-tests.md) | Backend-specific character-class tests/representations | C/RVM/IVM/GN/TG/TS; distinct implementations by backend | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [M030](mechanisms/M030-literal-matching.md) | Loaded-input literal matching | All six; input paths differ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
-| [M040](mechanisms/M040-character-scan-loops.md) | Value-free character repetition scan loops | Value-free character repetitions | Partial | Partial | Partial | Partial | Partial | Partial | Default | None maintained |
+| [M040](mechanisms/M040-character-scan-loops.md) | Value-free character repetition scan loops | Value-free character repetitions | Partial | Partial | Partial | Partial | Partial | Partial | Default | `-no-opt scans` (generated parsers) |
 | [M050](mechanisms/M050-plain-rule-calls.md) | Calls to eligible uncaptured/unmemoized rules | C/RVM/IVM/GN/TG/TS; each backend has separate call route | Partial | Partial | Partial | Partial | Partial | Partial | Default | None maintained |
 | [M060](mechanisms/M060-left-recursion-growth.md) | Reuse state during left-recursion growth | Go seed-growth storage | ✓ | ✓ | ✓ | ✓ | ✓ | — | Default | None maintained |
 | [M070](mechanisms/M070-vm-predecoded-match-data.md) | Predecoded VM literals and ASCII class masks | VM-program setup; predecoded literal/class data is used on RVM/IVM matching paths | — | ✓ | ✓ | — | — | — | Default | None maintained |
@@ -44,8 +46,11 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 | [M090](mechanisms/M090-diagnostic-line-index.md) | Lazy line-start table for diagnostics | All six; streams retain committed-position scan | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [M100](mechanisms/M100-absent-expectation-filter.md) | Fixed-size absent expectation filter | C/RVM/IVM/GN/TG Go only; TS unchanged | Partial | Partial | Partial | Partial | Partial | — | Default | None maintained |
 | [M110](mechanisms/M110-compact-vm-backtracking-state.md) | Compact VM entries and separate label state | RVM/IVM only | — | ✓ | ✓ | — | — | — | Default | None maintained |
-| [M120](mechanisms/M120-unboxed-text-comparisons.md) | Native text equality without boxing | All six eligible comparison paths | Partial | Partial | Partial | Partial | Partial | Partial | Default | None maintained |
-| [M130](mechanisms/M130-short-literal-comparisons.md) | In-place short literal comparison | GN/TG direct Go CodePoints only | — | — | — | Partial | Partial | — | Default | None maintained |
+| [M120](mechanisms/M120-unboxed-text-comparisons.md) | Native text equality without boxing | All six eligible comparison paths | Partial | Partial | Partial | Partial | Partial | Partial | Default | `-no-opt field-compare` (typed Go string fields only) |
+| [M130](mechanisms/M130-short-literal-comparisons.md) | In-place short literal comparison | GN/TG direct Go CodePoints only | — | — | — | Partial | Partial | — | Default | `-opt inline-literals=0` |
+| [M140](mechanisms/M140-terminal-programs.md) | Run large value-free keyword choices as one table-driven program | TG lean only; eligible choices of at least 16 literals and classes | — | — | — | — | Partial | — | Default | `-no-opt terminals` |
+| [M150](mechanisms/M150-class-runs.md) | Match consecutive value-free classes as one run | TG lean only; two or more consecutive classes | — | — | — | — | Partial | — | Default | `-no-opt class-runs` |
+| [M160](mechanisms/M160-class-tables.md) | Match large classes through a shared membership table | TG lean only; classes of at least the configured number of ranges | — | — | — | — | Partial | — | `speed` off; `size` on | `-opt class-tables=N` |
 
 ### R — Memo and Document Reuse
 
@@ -112,7 +117,7 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 | [G040](mechanisms/G040-copy-on-change-attribute-normalization.md) | Reuse unchanged AST paths during attribute normalization | Shared compile/generation preprocessing only, not runtime matching | — | — | — | — | — | — | Default setup path | Compile Options.EagerAttributeCopies |
 | [G050](mechanisms/G050-generated-budget-control-specialization.md) | Print one form of the generated Go functions per option set | GN/TG only; adopted; effect scope from record 096 | — | — | — | ✓ | ✓ | — | Default | — |
 | [G060](mechanisms/G060-ordinary-typed-direct-rules.md) | Ordinary typed direct bodies | TG eligible default; later extensions separately keyed | — | — | — | — | Partial | — | Default | None maintained |
-| [G070](mechanisms/G070-literal-text-predicates.md) | Pure literal-text disjunction lowering | GN/TG/TS eligible default | — | — | — | Partial | Partial | Partial | Default | GenOptions.DisableLiteralTextDispatch |
+| [G070](mechanisms/G070-literal-text-predicates.md) | Pure literal-text disjunction lowering | GN/TG/TS eligible default | — | — | — | Partial | Partial | Partial | Default | `-no-opt text-dispatch` |
 | [G080](mechanisms/G080-equal-capture-type-reuse.md) | Reuse structurally equal capture types | Shared type analysis, runtime cells N/A | — | — | — | — | — | — | Default setup path | None maintained |
 | [G085](mechanisms/G085-action-free-positional-items.md) | Skip positional item typing for action-free rules | Shared type analysis, runtime cells N/A | — | — | — | — | — | — | Default setup path | None maintained |
 | [G090](mechanisms/G090-variable-read-components.md) | Variable reads by dependency component | Shared compiler metadata, runtime cells N/A | — | — | — | — | — | — | Default setup path | None maintained |

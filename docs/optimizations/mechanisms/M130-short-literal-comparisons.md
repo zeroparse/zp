@@ -18,8 +18,11 @@ literals, fallback bodies, Bytes and other backends retain their literal route.
 
 ## Reference Control
 
-No short-literal-only same-source control exists; broader direct-body controls
-also change unrelated expression dispatch.
+`-opt inline-literals=N` sets the longest literal, in code points, that is
+compared in place; the default is 4 and `-opt inline-literals=0` generates the
+same grammar with every literal going through the general matcher. The `size`
+profile sets 0. With 0, parse time over the ten language grammars is 1.016 times
+that of the default and `parser.go` is 0.930 times its size (record 136).
 
 ## Evidence and Implementation
 
@@ -28,7 +31,8 @@ and Outline 2.14 to 1.97 ms. These do not establish current Node, Bytes or
 all-literal effects.
 
 Evidence records:
-[062](../062-comparing-short-literals-in-place-in-direct-rules.md).
+[062](../062-comparing-short-literals-in-place-in-direct-rules.md),
+[136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`Flow literal comparison
 lowering`](../../../internal/ir/flow/lower/lower.go),

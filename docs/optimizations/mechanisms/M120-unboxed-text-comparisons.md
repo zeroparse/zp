@@ -19,8 +19,11 @@ though its emitter also uses native string comparison.
 
 ## Reference Control
 
-No isolated same-source text-boxing control exists. Literal-text disjunction
-specialization is independently controlled.
+`-no-opt field-compare` makes the typed Go printer compare string fields in
+actions and predicates through boxed values again, from the same generator. No
+control covers the other comparisons. Literal-text disjunction specialization is
+independently controlled by `text-dispatch` ([G070](G070-literal-text-predicates.md)). None of the ten
+language grammars has a comparison of that form, so record 136 shows no effect of the flag.
 
 ## Evidence and Implementation
 

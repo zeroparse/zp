@@ -1,6 +1,6 @@
 # 067. Repetition Run Records
 
-- **Status**: Proposed
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-11-04
 
@@ -18,6 +18,13 @@ to make every nested reason Linear.
 
 The record specifies the behaviour as Exec IR operations and engine semantics first. Generated runtimes follow the Exec
 IR; none is edited by hand.
+
+**Status.** Stage (A) is implemented in the engine for the closure backend and both bytecode VMs, with the
+exactness and eligibility rules of [Run Sites](../../../spec/runtime/parsing.md#run-sites) and the measurements of
+[Optimization 133](../../optimizations/133-run-records-of-restarted-repetitions.md). Not implemented: the classifier
+does not yet count a run site as Linear (its marking is off, so the classes do not move), the records for the
+Operators Rule (B) and the size argument for copying (C), the operations in Exec IR, and records in the generated Go
+and TypeScript runtimes. The sections below keep the full design.
 
 ## Motivation
 
@@ -204,7 +211,8 @@ off when missing-token insertion is on, as the skip-run records are.
 
 ## Exec IR
 
-The operations are added to the Exec IR and defined once; each target implements them.
+The operations below are the intended Exec IR definition; Exec IR does not contain them yet, and the engine implements
+the behavior directly.
 
 - `RunBegin site` at the start of the repetition at position `p`: if a record exists for `(site, p)`, set the position
   to its end, merge its farthest failure and expectations, and jump to the loop exit; otherwise, mark the key visited and
@@ -217,7 +225,7 @@ The operations are added to the Exec IR and defined once; each target implements
 
 The engine implements the three operations by extending the skip-run machinery of the core (`SkipBegin`, `SkipHit`,
 `SkipVisit`, `SkipEnd`) from skip loops to ordinary repetitions; the walk state is not nested. The generated runtimes are
-produced by the Exec IR lowering once F95 settles the runtime core; no generated runtime is edited by hand before that.
+produced by the Exec IR lowering once Exec IR holds the runtime core; no generated runtime is edited by hand before that.
 
 ## Cost and trade-offs
 

@@ -21,8 +21,11 @@ repetitions are outside this specialization.
 
 ## Reference Control
 
-No shared same-source scan-disable comparator is maintained. A value-building
-parse changes the operation and is not an isolated reference.
+For generated Go and TypeScript parsers, `-no-opt scans` generates the same grammar
+with these repetitions as ordinary loops; with it off, parse time over the ten
+language grammars is 1.029 times that of the default (record 136). The closure
+backend and the VMs have no scan-disable control. A value-building parse
+changes the operation and is not an isolated reference.
 
 ## Evidence and Implementation
 
@@ -33,7 +36,8 @@ whole improvement to scanning or establish current performance in all six
 targets.
 
 Evidence records:
-[008](../008-fast-path-for-unmemoized-calls-scan-nesting-limit-d2db87d.md).
+[008](../008-fast-path-for-unmemoized-calls-scan-nesting-limit-d2db87d.md),
+[136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`Walker.scanRepeat`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),

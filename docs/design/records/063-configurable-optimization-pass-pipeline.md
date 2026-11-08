@@ -1,6 +1,6 @@
 # 063. Configurable Optimization Pass Pipeline
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-25
 

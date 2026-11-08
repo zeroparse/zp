@@ -1,6 +1,6 @@
 # 001. Grammar JSON Marshalling
 
-- **Status**: Final
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2025-06-29
 

@@ -1,6 +1,6 @@
 # 051. Chunked Input for Document Edits
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-13
 
@@ -28,7 +28,7 @@ This design does not add a public rope, input callback, edit-batch API, or immut
 
 ## Non-Goals
 
-This proposal does not change the public API or `Node` fields, add atomic multi-edit transactions, alter position units, add generated-parser Documents, or promise persistent tree snapshots. It does not change stream prefix discard or require callers to supply a rope. It makes no performance claim before paired measurements.
+This design does not change the public API or `Node` fields, add atomic multi-edit transactions, alter position units, add generated-parser Documents, or promise persistent tree snapshots. It does not change stream prefix discard or require callers to supply a rope. It makes no performance claim before paired measurements.
 
 ## Design
 

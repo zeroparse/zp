@@ -1,6 +1,6 @@
 # 057. Source Metadata and Declaration Comments
 
-- **Status**: Proposed
+- **Status**: Partially Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-14
 
@@ -31,7 +31,7 @@ formatter.
 - Keep raw formatter trivia separate from normalized ownership.
 - Preserve existing diagnostic locations and grammar behavior.
 
-## Proposed Design
+## Design
 
 ### Public Source Information
 
@@ -361,8 +361,8 @@ construction in `zp.zp` covers statements, list elements and, through the
 comment-bearing gaps between tokens and the claim in the source adapter, every
 node of expressions and types, and matches the hand-written frontend on the
 parity corpus. The public-AST adapter that builds those nodes from the canonical
-tree and the raw formatter state remain follow-up scope. Keep the overall record
-Proposed until those parts of the contract are implemented and validated.
+tree and the raw formatter state remain follow-up scope. The record is Partially
+Implemented until those parts of the contract are implemented and validated.
 
 ### Parenthesized Source Groups: Incremental Cost
 

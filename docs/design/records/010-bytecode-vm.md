@@ -1,6 +1,6 @@
 # 010. Bytecode VM
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-07
 

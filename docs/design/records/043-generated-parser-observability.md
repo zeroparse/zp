@@ -1,6 +1,6 @@
 # 043. Generated Parser Tracing and Profiling
 
-- **Status**: Proposed
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-11
 
@@ -227,8 +227,7 @@ selected by a nil check of the parse's observation, and the other hooks return
 at once when it is nil.
 
 Generated Document race tests with Go Profile behavior, regeneration coverage,
-full root, nested-module and site validation pass. The broader design remains
-proposed.
+full root, nested-module and site validation pass.
 
 ### TypeScript Batch Profiling
 
@@ -280,7 +279,7 @@ Observability types are emitted only with the generation option. Existing genera
 1. **Implemented:** generation-time opt-in and event sinks for standalone Go Node and typed Go batch parsing, covering actual rule calls, memo results, typed direct/conversion paths, recognition and representable first-character skips.
 2. **Implemented:** TypeScript batch events and typed-result tracing preserve exception identity and per-invocation isolation.
 3. **Implemented for generated Go Node and typed batch parsers; implemented for TypeScript batch parsers:** aggregate per-rule profiles over completed calls, with owned sorted snapshots. Focused synthetic Go and TypeScript profile costs are measured below; broader workload costs remain unmeasured.
-4. Resolve whether the runtime detects and rejects same-Document callback re-entry; callers must not re-enter a Document from its callback and can use another Document or schedule later work.
+4. **Implemented:** a generated Document rejects a `Parse`, `ParseAST` or `Edit` made from its own observability callback with `ErrDocumentBusy`; callers use another Document or schedule later work.
 
 ## Alternatives Considered
 
@@ -295,7 +294,7 @@ Observability types are emitted only with the generation option. Existing genera
 
 Generate fixtures for Go node, typed direct, typed conversion, recognition, TypeScript node and TypeScript typed output. For each, compare parsing values, syntax errors, recovered errors, positions and action behavior with instrumentation disabled and enabled in both position units. Assert exact small event streams for ordinary calls, memo hits, deferred memoization, left-recursion growth, failed calls, lookahead, recognition, typed dispatch, filtered nesting and each supported skipped-call reason.
 
-Verify every emitted enter has one exit on success; verify abort cases may end with open calls and never emit fabricated exits. Test profile counts against event-derived counts where available, deterministic serialization, unknown filter names, depth boundaries, unavailable metrics and callback timing. Test callback panic/throw identity, panic after nested calls, parse-pool reuse after panic, callback reentrancy, concurrent Go parses sharing one parser, TypeScript reentrant calls, and that no observer leaks to a later no-trace parse. Test generation with and without the option, stable output, Go compilation/standalone module use and strict TypeScript checking. The Go Node, typed and Document slices have focused fixture, ordinary-reference consumer and race coverage for tracing and profiling across direct and Node-conversion routes. The TypeScript slice has focused Node and typed-result fixtures and ordinary-output parity checks for tracing and profiling. The same-Document callback re-entry enforcement choice remains unresolved.
+Verify every emitted enter has one exit on success; verify abort cases may end with open calls and never emit fabricated exits. Test profile counts against event-derived counts where available, deterministic serialization, unknown filter names, depth boundaries, unavailable metrics and callback timing. Test callback panic/throw identity, panic after nested calls, parse-pool reuse after panic, callback reentrancy, concurrent Go parses sharing one parser, TypeScript reentrant calls, and that no observer leaks to a later no-trace parse. Test generation with and without the option, stable output, Go compilation/standalone module use and strict TypeScript checking. The Go Node, typed and Document slices have focused fixture, ordinary-reference consumer and race coverage for tracing and profiling across direct and Node-conversion routes. The TypeScript slice has focused Node and typed-result fixtures and ordinary-output parity checks for tracing and profiling.
 
 ## Performance and Results
 
@@ -539,5 +538,5 @@ sources and raw results are not repository artifacts.
 - Exact `Examined` and failed-work metrics may not be available on every generated direct path. The event must expose only what the implementation can account for, with explicit availability metadata or omission.
 - TypeScript profiling requires `performance.now()` and has no wall-clock fallback. Timing has been measured under Node 24.19; availability and behavior across other supported Node/browser targets still need validation.
 - **Instrumentation availability:** Go and TypeScript use generation-time opt-in; always-emitted, nil-disabled instrumentation would require separate code-size and parse-time evidence.
-- **Proposed skip visibility:** use explicit skip events only for call sites where code generation can identify the exact target and dispatch reason. A complete synthetic-call stream is an alternative, but would redefine call counts and risk presenting events as executed calls.
+- **Skip visibility:** explicit skip events are emitted only for call sites where code generation can identify the exact target and dispatch reason. A complete synthetic-call stream is an alternative, but would redefine call counts and risk presenting events as executed calls.
 - Cross-engine trace differences and `Document` resume/profile omissions remain independent limitations; this record does not resolve them.

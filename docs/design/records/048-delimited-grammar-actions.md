@@ -1,6 +1,6 @@
 # 048. Inline Grammar Actions
 
-- **Status**: Accepted
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-10-12
 

@@ -10,4 +10,5 @@ How ZeroParse is built today, and the records of the decisions that shaped it. R
 | [Design records](records/) | One record per decision, with its alternatives, validation and status |
 
 The pages above describe the ideas and invariants that the code does not show on its own; the code is the source of truth for details. A record explains why a decision was taken and may describe work that is
-proposed or only partly implemented; its status says which.
+proposed or only partly implemented; its status says which: Proposed, Accepted, Partially Implemented, Implemented or
+Superseded.
