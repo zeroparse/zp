@@ -178,6 +178,50 @@ func TestNormalViewPredicateCaptures(t *testing.T) {
 	}
 }
 
+// TestNormalViewPredicateValueFlow checks the other ways in which a predicate observes the value
+// of a captured expression: through a variable that a binding sets from the capture, through the
+// capture access $x.$y into a rule's node, and through the elements of a repetition. Each keeps the
+// written shape of the expression that it reads, while an expression that no predicate reaches is
+// normalized. The positional references $0 and $1, which could read an element of a sequence, are
+// removed from the language and rejected by the parser, so they cannot reach the view.
+func TestNormalViewPredicateValueFlow(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		src  string
+		want map[string]string // the view of each rule named
+	}{
+		{name: "a variable set from a capture keeps the capture's repetitions",
+			src:  "var n int\nrule main = x:(\"a\"* \"a\"*) {n := len($x)} {n == 2} \"q\" \"b\"* \"b\"*",
+			want: map[string]string{"main": `x:("a"* "a"*) {n := len($x)} {n == 2} "q" "b"*`}},
+		{name: "a capture access into a rule's node keeps the rule's repetitions",
+			src:  "rule main = x:r {len($x.$y) == 2}\nrule r = y:(\"a\"* \"a\"*)",
+			want: map[string]string{"main": `x:r {len($x.$y) == 2}`, "r": `y:("a"* "a"*)`}},
+		{name: "a capture access into the elements of a repetition keeps their repetitions",
+			src:  "rule main = xs:r* {len(map($xs, (i) => i.$y)) == 2}\nrule r = y:(\"a\"* \"a\"*) \"q\"",
+			want: map[string]string{"r": `y:("a"* "a"*) "q"`}},
+		{name: "a capture in an inline action keeps its repetitions",
+			src:  "rule main = (x:(\"a\"* \"a\"*) {len($x) == 2} => $x)",
+			want: map[string]string{"main": `(x:("a"* "a"*) {len($x) == 2} => $x)`}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got, _ := viewBodies(t, c.src+"\n", costView)
+			for name, want := range c.want {
+				if got[name] != want {
+					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
+				}
+			}
+		})
+	}
+	for _, src := range []string{
+		"rule main = (\"a\"* \"a\"*) {len($0) == 2} \"b\"\n",
+		"rule main = (\"a\"* \"a\"*) {len($1) == 2} \"b\"\n",
+	} {
+		if _, err := syntax.Parse(src); err == nil {
+			t.Errorf("a positional reference was accepted: %s", src)
+		}
+	}
+}
+
 // TestNormalViewText checks that every expression that the view builds stands for text of the
 // grammar, which messages quote: a factored rest for its whole alternative, a factored sequence for
 // the first alternative of its run, and an alternative without its cuts for itself.

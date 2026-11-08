@@ -592,11 +592,14 @@ the [open steps of the linear cost proof](linear-cost.md#open-steps).
   its whole shared prefix, only when that prefix is cheap, and never when an
   alternative has a loose cut.
 - N9, N10, N11 and the left factoring of N12 are $\equiv_{E,X}$ at most, so
-  the view applies them only in a context that reads no value of the
-  rewritten expression in a predicate: not inside a capture whose name a
-  predicate of the rule reads, and not in the body of a rule whose value
-  reaches such a capture, through the rules it calls in positions that keep
-  their value, transitively.
+  the view applies them only where no predicate can observe the value of
+  the rewritten expression. A predicate observes a value only by naming a
+  capture, as `$x`, `$x.$y` or the elements of `$xs`; a variable that a
+  binding sets from a capture is set by a predicate that names it, and
+  positional references are not part of the language. So the view applies
+  them neither inside a capture whose name a predicate of the rule reads,
+  nor in the body of a rule whose value reaches such a capture, through the
+  rules it calls in positions that keep their value, transitively.
 - N7 is off because `@error` and `@diagnostic` decide where the parser keeps
   repetition runs, and N13 is off because inlining changes which rules are
   memoized. For the same reason the classifier decides memoization, call
