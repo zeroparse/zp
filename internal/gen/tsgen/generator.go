@@ -17,6 +17,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 //go:embed tsrt/runtime.ts
@@ -927,19 +928,19 @@ func (g *Generator) termBody(t grammar.Term, s *compile.Scope, locals map[string
 		if lx, ok := compile.TextArg(t.L); ok && (t.Op == "==" || t.Op == "!=") {
 			if rx, ok := compile.TextArg(t.R); ok {
 				// Compare the strings directly (see evalCtx.binary).
-				return fmt.Sprintf("c.binary(%s, c.textStr(%s), c.textStr(%s))", TsString(t.Op), g.term(lx, s, locals), g.term(rx, s, locals))
+				return fmt.Sprintf("c.binary(%d, c.textStr(%s), c.textStr(%s))", ops.BinaryCode(t.Op), g.term(lx, s, locals), g.term(rx, s, locals))
 			}
 		}
 		l, r := g.term(t.L, s, locals), g.term(t.R, s, locals)
 		switch t.Op {
 		case "&&":
-			return fmt.Sprintf("rtAnd(%s, (): Value => %s)", l, r)
+			return fmt.Sprintf("c.and(%s, (): Value => %s)", l, r)
 		case "||":
-			return fmt.Sprintf("rtOr(%s, (): Value => %s)", l, r)
+			return fmt.Sprintf("c.or(%s, (): Value => %s)", l, r)
 		}
-		return fmt.Sprintf("c.binary(%s, %s, %s)", TsString(t.Op), l, r)
+		return fmt.Sprintf("c.binary(%d, %s, %s)", ops.BinaryCode(t.Op), l, r)
 	case *grammar.Unary:
-		return fmt.Sprintf("rtUnary(%s, %s)", TsString(t.Op), g.term(t.X, s, locals))
+		return fmt.Sprintf("c.unary(%d, %s)", ops.UnaryCode(t.Op), g.term(t.X, s, locals))
 	case *grammar.Cast:
 		x := g.term(t.X, s, locals)
 		ft := g.Prog.ResolveCheck(t.Type)

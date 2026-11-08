@@ -18,6 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // defaultPackageName returns the package name of the generated code for a module path: its last
@@ -1557,7 +1558,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 		if g.Table == "trules" && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) && g.Opt.On("field-compare") {
 			// Compare string fields without boxing them (see tctx.compare).
 			xs := g.seq(func() string { return g.operand(t.L, s, locals) }, func() string { return g.operand(t.R, s, locals) })
-			return fmt.Sprintf("c.Compare(%q, %s, %s)", t.Op, xs[0], xs[1])
+			return fmt.Sprintf("c.Compare(rt.%s, %s, %s)", ops.OperatorIdent(t.Op, false, false), xs[0], xs[1])
 		}
 		if t.Op == "&&" || t.Op == "||" {
 			// The right operand is evaluated only if the left one does not decide the result.
@@ -1567,7 +1568,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 		}
 		xs := g.terms([]grammar.Term{t.L, t.R}, s, locals)
 		l, r := xs[0], xs[1]
-		return fmt.Sprintf("c.Binary(%q, %s, %s)", t.Op, l, r)
+		return fmt.Sprintf("c.Binary(rt.%s, %s, %s)", ops.OperatorIdent(t.Op, false, false), l, r)
 	case *grammar.Cast:
 		x := g.term(t.X, s, locals)
 		ft := g.Prog.ResolveCheck(t.Type)
@@ -1578,7 +1579,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 		line, col := g.Prog.CastPos(t)
 		return fmt.Sprintf("c.Cast(%s, %s, %d, %d)", x, v, line, col)
 	case *grammar.Unary:
-		return fmt.Sprintf("c.Unary(%q, %s)", t.Op, g.term(t.X, s, locals))
+		return fmt.Sprintf("c.Unary(rt.%s, %s)", ops.OperatorIdent(t.Op, true, false), g.term(t.X, s, locals))
 	}
 	panic(fmt.Sprintf("unsupported term %T", t))
 }

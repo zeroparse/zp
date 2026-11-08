@@ -4269,6 +4269,56 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termEqual applies == to l and r.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termEqual(l: Value, r: Value): [boolean, boolean] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termIndex indexes the list or tuple l by r.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termIndex(l: Value, r: Value): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termBinary applies a binary operator; it returns the value and the failure, null if there is none.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termBinary(op: number, l: Value, r: Value): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termUnary applies a unary operator.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termUnary(op: number, x: Value): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termLogic checks the operand of a logical operator.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termLogic(op: number, x: Value): [boolean, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termError returns the text of a failure of a term.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termError(code: number, a: Value, b: Value, op: number, n: number): string {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // strAdd, strCmp and strEq are the operations str.add, str.cmp and str.eq: under budget controls they
+  // charge for the bytes they read.
+  strAdd(l: Value, r: Value): Value {
+    return this.control === null ? (l as string) + (r as string) : joinValueStringsSpend([l as string, r as string], this.control);
+  }
+
+  strCmp(l: Value, r: Value): number {
+    return this.control === null ? compareStrings(l as string, r as string) : compareStringsSpend(l as string, r as string, this.control);
+  }
+
+  strEq(l: Value, r: Value): boolean {
+    return this.control === null ? l === r : equalStringsSpend(l as string, r as string, this.control);
+  }
+
   // bindValue rebinds the variable in slot i, copying the path to the slot and preserving
   // environments saved for rollback. Binding the value it has already is a no-op. Under budget
   // controls it costs one unit for the old value and one for each array that a rebind copies.
@@ -4470,22 +4520,42 @@ export class Actx {
 
   spend(): void { this.p.spend(); }
 
-  binary(op: string, l: Value, r: Value): Value {
-    const control = this.p.control;
-    if (control !== null && typeof l === "string" && typeof r === "string") {
-      switch (op) {
-        case "==": case "!=": {
-          const equal = equalStringsSpend(l, r, control);
-          return op === "==" ? equal : !equal;
-        }
-        case "+": return joinValueStringsSpend([l, r], control);
-        case "<": return compareStringsSpend(l, r, control) < 0;
-        case "<=": return compareStringsSpend(l, r, control) <= 0;
-        case ">": return compareStringsSpend(l, r, control) > 0;
-        case ">=": return compareStringsSpend(l, r, control) >= 0;
-      }
+  // binary applies the binary operator with the code op (the index in the binary operators), failing the
+  // action if its operands are not valid.
+  binary(op: number, l: Value, r: Value): Value {
+    const [v, e] = this.p.termBinary(op, l, r);
+    if (e !== null) {
+      return evalError(e as string);
     }
-    return rtBinary(op, l, r);
+    return v;
+  }
+
+  // unary applies the unary operator with the code op to x.
+  unary(op: number, x: Value): Value {
+    const [v, e] = this.p.termUnary(op, x);
+    if (e !== null) {
+      return evalError(e as string);
+    }
+    return v;
+  }
+
+  // logic checks the operand x of the logical operator with the code op and returns it.
+  logic(op: number, x: Value): boolean {
+    const [b, e] = this.p.termLogic(op, x);
+    if (e !== null) {
+      return evalError(e as string);
+    }
+    return b;
+  }
+
+  // and evaluates l && r: r is evaluated only if l is true.
+  and(l: Value, r: () => Value): Value {
+    return this.logic(0, l) && this.logic(0, r());
+  }
+
+  // or evaluates l || r: r is evaluated only if l is false.
+  or(l: Value, r: () => Value): Value {
+    return this.logic(1, l) || this.logic(1, r());
   }
 
   result(action: Action, where: string): Node | null {
@@ -4863,160 +4933,108 @@ export function big(v: number | bigint): bigint {
   return typeof v === "bigint" ? v : BigInt(v);
 }
 
-export function rtUnary(op: string, x: Value): Value {
-  switch (op) {
-    case "-":
-      if (typeof x === "number") {
-        return 0 - x; // 0 - x, not -x, which is -0 for 0
-      }
-      if (typeof x === "bigint") {
-        return intOf(-x);
-      }
-      break;
-    case "!":
-      if (typeof x === "boolean") {
-        return !x;
-      }
+// --- The value primitives of terms ---
+
+// valKind is the operation val.kind: the kind of x.
+export function valKind(x: Value | undefined): number {
+  if (x === null || x === undefined) {
+    return 0;
   }
-  return evalError(`invalid operand ${typeName(x)} for unary ${op}`);
+  switch (typeof x) {
+    case "number":
+    case "bigint":
+      return 1;
+    case "string":
+      return 2;
+    case "boolean":
+      return 3;
+  }
+  return 4;
 }
 
-export function rtBool(op: string, v: Value): boolean {
-  if (typeof v !== "boolean") {
-    return evalError(`invalid operand ${typeName(v)} for ${op}`);
-  }
-  return v;
-}
-
-export function rtAnd(l: Value, r: () => Value): Value {
-  if (!rtBool("&&", l)) {
-    return false;
-  }
-  return rtBool("&&", r());
-}
-
-export function rtOr(l: Value, r: () => Value): Value {
-  if (rtBool("||", l)) {
-    return true;
-  }
-  return rtBool("||", r());
-}
-
-// comparisonHint is added to the error for comparing a node or another structured value, which
-// == and != do not compare (see Operators in the language specification).
-const comparisonHint = "nodes and other structured values cannot be compared; use text(x), or .Start and .End";
-
-// scalarOrNil reports whether v is nil, an int, a string or a bool, the values that == and != compare.
-function scalarOrNil(v: Value): boolean {
-  if (v instanceof Node && v.type === typeBox) {
-    return scalarOrNil(v.box as Value);
-  }
-  return v === null || v === undefined || typeof v === "number" || typeof v === "bigint" || typeof v === "string" || typeof v === "boolean";
-}
-
-// invalidOperands fails the action for applying op to l and r. A comparison of a node or another
-// structured value says why it fails.
-function invalidOperands(op: string, l: Value, r: Value): never {
-  const hint = (op === "==" || op === "!=") && !(scalarOrNil(l) && scalarOrNil(r)) ? `: ${comparisonHint}` : "";
-  return evalError(`invalid operands ${typeName(l)} and ${typeName(r)} for ${op}${hint}`);
-}
-
-// rtEqual applies == to l and r. It compares ints, strings and bools of one type, and any value with
-// nil; it fails for every other pair, which has no equality.
-function rtEqual(op: string, l: Value, r: Value): boolean {
-  const a = l instanceof Node && l.type === typeBox ? (l.box as Value) : l;
-  const b = r instanceof Node && r.type === typeBox ? (r.box as Value) : r;
-  if (a === null || a === undefined || b === null || b === undefined) {
-    return (a === null || a === undefined) && (b === null || b === undefined);
-  }
-  if (typeof a === typeof b && (typeof a === "string" || typeof a === "boolean")) {
-    return a === b;
-  }
-  if (isInt(a) && isInt(b)) {
-    return a === b;
-  }
-  return invalidOperands(op, l, r);
-}
-
-export function rtBinary(op: string, l: Value, r: Value): Value {
-  switch (op) {
-    case "==":
-      return rtEqual(op, l, r);
-    case "!=":
-      return !rtEqual(op, l, r);
-    case "[]": {
-      const items = listItems("[]", l);
-      if (!isInt(r)) {
-        return evalError(`index must be int, got ${typeName(r)}`);
-      }
-      if (r < 0 || r >= items.length) {
-        return evalError(`index ${r} out of range for ${items.length} elements`);
-      }
-      return unboxValue(items[Number(r)] ?? null);
+// intAdd, intSub and intMul are the operations int.add, int.sub and int.mul: the result is exact while it is a
+// safe integer, and wraps to 64 bits otherwise.
+export function intAdd(l: Value, r: Value): Value {
+  if (typeof l === "number" && typeof r === "number") {
+    const s = l + r;
+    if (Number.isSafeInteger(s)) {
+      return s;
     }
   }
-  if (isInt(l) && isInt(r)) {
-    const small = typeof l === "number" && typeof r === "number";
-    switch (op) {
-      case "+":
-        if (small) {
-          const s = (l as number) + (r as number);
-          if (Number.isSafeInteger(s)) {
-            return s;
-          }
-        }
-        return intOf(big(l) + big(r));
-      case "-":
-        if (small) {
-          const s = (l as number) - (r as number);
-          if (Number.isSafeInteger(s)) {
-            return s + 0;
-          }
-        }
-        return intOf(big(l) - big(r));
-      case "*":
-        if (small) {
-          const s = (l as number) * (r as number);
-          if (Number.isSafeInteger(s)) {
-            return s + 0;
-          }
-        }
-        return intOf(big(l) * big(r));
-      case "/":
-      case "%":
-        if (r === 0) {
-          return evalError("division by zero");
-        }
-        if (small) {
-          // Exact for safe integers; + 0 turns -0 into 0.
-          return (op === "/" ? Math.trunc((l as number) / (r as number)) : (l as number) % (r as number)) + 0;
-        }
-        return intOf(op === "/" ? big(l) / big(r) : big(l) % big(r));
-      case "<":
-        return l < r;
-      case "<=":
-        return l <= r;
-      case ">":
-        return l > r;
-      case ">=":
-        return l >= r;
-    }
-  } else if (typeof l === "string" && typeof r === "string") {
-    switch (op) {
-      case "+":
-        return l + r;
-      case "<":
-        return compareStrings(l, r) < 0;
-      case "<=":
-        return compareStrings(l, r) <= 0;
-      case ">":
-        return compareStrings(l, r) > 0;
-      case ">=":
-        return compareStrings(l, r) >= 0;
+  return intOf(big(l as number | bigint) + big(r as number | bigint));
+}
+
+export function intSub(l: Value, r: Value): Value {
+  if (typeof l === "number" && typeof r === "number") {
+    const s = l - r;
+    if (Number.isSafeInteger(s)) {
+      return s + 0;
     }
   }
-  return invalidOperands(op, l, r);
+  return intOf(big(l as number | bigint) - big(r as number | bigint));
 }
+
+export function intMul(l: Value, r: Value): Value {
+  if (typeof l === "number" && typeof r === "number") {
+    const s = l * r;
+    if (Number.isSafeInteger(s)) {
+      return s + 0;
+    }
+  }
+  return intOf(big(l as number | bigint) * big(r as number | bigint));
+}
+
+// intQuo and intRem are the operations int.quo and int.rem; the divisor is not zero.
+export function intQuo(l: Value, r: Value): Value {
+  if (typeof l === "number" && typeof r === "number") {
+    // Exact for safe integers; + 0 turns -0 into 0.
+    return Math.trunc(l / r) + 0;
+  }
+  return intOf(big(l as number | bigint) / big(r as number | bigint));
+}
+
+export function intRem(l: Value, r: Value): Value {
+  if (typeof l === "number" && typeof r === "number") {
+    return (l % r) + 0;
+  }
+  return intOf(big(l as number | bigint) % big(r as number | bigint));
+}
+
+// intNeg is the operation int.neg.
+export function intNeg(x: Value): Value {
+  if (typeof x === "number") {
+    return 0 - x; // 0 - x, not -x, which is -0 for 0
+  }
+  return intOf(-(x as bigint));
+}
+
+// intCmp is the operation int.cmp.
+export function intCmp(l: Value, r: Value): number {
+  const a = l as number | bigint;
+  const b = r as number | bigint;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// intIndex is the operation int.index.
+export function intIndex(x: Value, n: number): [number, boolean] {
+  const k = x as number | bigint;
+  if (k < 0 || k >= n) {
+    return [0, false];
+  }
+  return [Number(k), true];
+}
+
+// seqItems is the operation seq.items.
+export function seqItems(x: Value): [readonly (Node | null)[], boolean] {
+  if (x === null) {
+    return [noNodes, true];
+  }
+  if (x instanceof Node) {
+    return [x.children, true];
+  }
+  return [noNodes, false];
+}
+
 
 // --- OperatorsRule expressions ---
 
@@ -5057,4 +5075,4 @@ export interface OperatorsRuleAttempt {
 
 // Declarations that the code generated for a grammar may not use, read here so that projects
 // compiling with noUnusedLocals accept the module.
-void [idBeginInput, idBeginLine, idEndLine, rtFold, rtUnary, rtAnd, rtOr, rtBinary];
+void [idBeginInput, idBeginLine, idEndLine, rtFold];

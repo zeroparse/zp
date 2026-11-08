@@ -328,7 +328,7 @@ func e4(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("==", c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), c.Var(0)) }) {
 		goto fail
 	}
 	if v4, ok = r5(p); !ok {
@@ -388,7 +388,7 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">", c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), c.Var(0)) }) {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.ActCtx) any { return c.Length(c.Cap(0)) }) {
@@ -661,7 +661,7 @@ func e18(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("==", c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), c.Var(0)) }) {
 		goto fail
 	}
 	if _, ok = q5(p); !ok {
@@ -717,7 +717,7 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">", c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), c.Var(0)) }) {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.ActCtx) any { return c.Length(c.Cap(0)) }) {
@@ -1005,7 +1005,7 @@ func i2(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	k1 = v3
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary("==", c.Length(k1), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpEq, c.Length(k1), c.Var(0)) }) {
 		goto fail
 	}
 	if v6, ok = s5(p); !ok {
@@ -1084,7 +1084,7 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(">", c.Length(k7), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpGt, c.Length(k7), c.Var(0)) }) {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) any { return c.Length(k7) }) {
@@ -1252,4 +1252,4 @@ fail:
 
 const _ = types.ZPSchema_932055d5f3ada458
 
-const _ = rt.Protocol3
+const _ = rt.Protocol4

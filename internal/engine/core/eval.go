@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
@@ -182,23 +181,6 @@ func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*value.Node
 	return n, nil
 }
 
-func (p *Parser) ValueUnary(op string, x any) (any, error) {
-	switch op {
-	case "-":
-		if i, ok := x.(int); ok {
-			return -i, nil
-		}
-	case "!":
-		if b, ok := x.(bool); ok {
-			return !b, nil
-		}
-	}
-	if BudgetControlsEnabled && p != nil && p.Control != nil {
-		return nil, p.ActionError("invalid operand ", TypeName(x), " for unary ", op)
-	}
-	return nil, fmt.Errorf("invalid operand %s for unary %s", TypeName(x), op)
-}
-
 func (c *EvalCtx) NewList(items []*value.Node) *value.Node {
 	kids := c.P.Nodes(len(items))
 	CopySpend(c.P, kids, items)
@@ -233,130 +215,6 @@ func (c *EvalCtx) valueNode(kind *value.NodeKind, kids []*value.Node) *value.Nod
 		first = false
 	}
 	return n
-}
-
-// binaryOp performs a binary operation other than a logical one.
-func binaryOp(op string, l, r any) (any, error) {
-	return (*Parser)(nil).binaryOperation(op, l, r)
-}
-
-func (p *Parser) binaryOperation(op string, l, r any) (any, error) {
-	switch op {
-	case "[]":
-		return p.index(l, r)
-	case "==", "!=":
-		eq, ok := equal(l, r)
-		if !ok {
-			return nil, p.invalidOperands(op, l, r)
-		}
-		return eq == (op == "=="), nil
-	}
-	switch l := l.(type) {
-	case int:
-		if r, ok := r.(int); ok {
-			switch op {
-			case "+":
-				return l + r, nil
-			case "-":
-				return l - r, nil
-			case "*":
-				return l * r, nil
-			case "/", "%":
-				if r == 0 {
-					return nil, p.ActionError("division by zero")
-				}
-				if op == "/" {
-					return l / r, nil
-				}
-				return l % r, nil
-			case "<":
-				return l < r, nil
-			case "<=":
-				return l <= r, nil
-			case ">":
-				return l > r, nil
-			case ">=":
-				return l >= r, nil
-			}
-		}
-	case string:
-		if r, ok := r.(string); ok {
-			switch op {
-			case "+":
-				return l + r, nil
-			case "<":
-				return l < r, nil
-			case "<=":
-				return l <= r, nil
-			case ">":
-				return l > r, nil
-			case ">=":
-				return l >= r, nil
-			}
-		}
-	}
-	return nil, p.invalidOperands(op, l, r)
-}
-
-// comparisonHint is added to the error for comparing a node or another structured value, which
-// == and != do not compare (see Operators in the language specification).
-const comparisonHint = "nodes and other structured values cannot be compared; use text(x), or .Start and .End"
-
-// invalidOperands returns the error for applying op to the operands l and r.
-func (p *Parser) invalidOperands(op string, l, r any) error {
-	hint := ""
-	if (op == "==" || op == "!=") && (!comparableValue(l) || !comparableValue(r)) {
-		hint = ": " + comparisonHint
-	}
-	if BudgetControlsEnabled && p != nil && p.Control != nil {
-		return p.ActionError("invalid operands ", TypeName(l), " and ", TypeName(r), " for ", op, hint)
-	}
-	return fmt.Errorf("invalid operands %s and %s for %s%s", TypeName(l), TypeName(r), op, hint)
-}
-
-// comparableValue reports whether v is nil, an int, a string or a bool, the values that == and !=
-// compare.
-func comparableValue(v any) bool {
-	switch unboxed(v).(type) {
-	case nil, int, string, bool:
-		return true
-	}
-	return false
-}
-
-// unboxed returns the value that a node pointer stands for: nil for a nil pointer, the value of a
-// box, and otherwise v.
-func unboxed(v any) any {
-	if n, ok := v.(*value.Node); ok {
-		if n == nil {
-			return nil
-		}
-		if value.D(n).Kind == value.BoxKind {
-			return unboxed(value.D(n).Box)
-		}
-	}
-	return v
-}
-
-// equal applies == to a and b. It compares ints, strings and bools of one type, and any value with
-// nil; ok is false for every other pair, which has no equality.
-func equal(a, b any) (eq, ok bool) {
-	a, b = unboxed(a), unboxed(b)
-	if a == nil || b == nil {
-		return a == nil && b == nil, true
-	}
-	switch a := a.(type) {
-	case int:
-		b, ok := b.(int)
-		return a == b, ok
-	case string:
-		b, ok := b.(string)
-		return a == b, ok
-	case bool:
-		b, ok := b.(bool)
-		return a == b, ok
-	}
-	return false, false
 }
 
 // Builtin calls the built-in function fn with evaluated arguments.
@@ -488,22 +346,8 @@ func (c *EvalCtx) PushElems(fn string, args []any) error {
 	return nil
 }
 
-// index returns element i of the list l.
-func (p *Parser) index(l, i any) (any, error) {
-	items, err := p.ValueListItems("[]", l)
-	if err != nil {
-		return nil, err
-	}
-	n, ok := i.(int)
-	if !ok {
-		return nil, p.ActionError("index must be int, got ", TypeName(i))
-	}
-	if n < 0 || n >= len(items) {
-		return nil, p.ActionError("index ", strconv.Itoa(n), " out of range for ", strconv.Itoa(len(items)), " elements")
-	}
-	return value.UnboxNode(items[n]), nil
-}
-
+// ValueListItems returns the items of the list node v that the built-in fn reads: none for nil, and
+// an error for a value that is not a list.
 func (p *Parser) ValueListItems(fn string, v any) ([]*value.Node, error) {
 	switch x := v.(type) {
 	case nil:

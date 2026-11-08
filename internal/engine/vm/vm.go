@@ -1385,10 +1385,9 @@ func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err err
 			if in.Op == bytecode.EOr {
 				op = "||"
 			}
-			top := stack[len(stack)-1]
-			b, ok := top.(bool)
-			if !ok {
-				return nil, p.ActionError("invalid operand ", core.TypeName(top), " for ", op)
+			b, err := p.ValueLogic(op, stack[len(stack)-1])
+			if err != nil {
+				return nil, err
 			}
 			if b == (in.Op == bytecode.EOr) {
 				ip = int(in.A)
@@ -1396,9 +1395,8 @@ func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err err
 			}
 			stack = stack[:len(stack)-1]
 		case bytecode.EBoolChk:
-			top := stack[len(stack)-1]
-			if _, ok := top.(bool); !ok {
-				return nil, p.ActionError("invalid operand ", core.TypeName(top), " for ", m.Strings[in.A])
+			if _, err := p.ValueLogic(m.Strings[in.A], stack[len(stack)-1]); err != nil {
+				return nil, err
 			}
 		case bytecode.EFunc:
 			if len(locals) > 0 {

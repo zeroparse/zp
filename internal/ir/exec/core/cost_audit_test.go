@@ -247,7 +247,7 @@ var siteCost = map[string][]string{
 	"Parser.ctxStore":              {ops.QTable},
 	"Parser.findJump":              {ops.QTable},
 	"Parser.memoKeyEqual":          {ops.QTable},
-	"Parser.compareTextControlled": {ops.QTable},
+	"Parser.compareTextControlled": {ops.QTable, ops.QValueBytes},
 	"Parser.recordJumps":           {ops.QRun},
 	"Parser.jumpShadowed":          {ops.QRun},
 	"Parser.unionExpected":         {ops.QRun},
@@ -265,6 +265,11 @@ var siteCost = map[string][]string{
 	// The stream window.
 	"Parser.streamDiscard": {ops.QStreamScan},
 	"Parser.streamLineCol": {ops.QStreamScan},
+
+	// The values of terms: the bytes of a string operation, and the fragments of the text of a failure.
+	"Parser.strAdd":              {ops.QValueBytes},
+	"Parser.actionErrorText":     {ops.QErrParts},
+	"Parser.writeDiagnosticText": {ops.QErrParts},
 
 	// The capture frames.
 	"Parser.undoCaptures":  {ops.QTrail},

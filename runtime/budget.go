@@ -792,78 +792,34 @@ func (p *Parser) TextEqual(l, r string) bool {
 	return len(l) == len(r) && p.compareText(l, r) == 0
 }
 
-// stringBinary handles only string pairs; callers retain their existing
-// runtime's scalar, pointer-identity and invalid-operand behavior.
-func (p *Parser) stringBinary(op string, l, r any) (any, bool) {
-	if p.Control != nil {
-		return p.stringBinaryControlled(op, l, r)
-	}
-	return nil, false
-}
-
-func (p *Parser) stringBinaryControlled(op string, l, r any) (any, bool) {
-	ls, lok := l.(string)
-	rs, rok := r.(string)
-	if !lok || !rok {
-		return nil, false
-	}
+// compareStrings applies the comparison operator with the code op (OpEq ... OpGe) to two strings as the
+// composition termBinary does, without the values boxed.
+func (p *Parser) compareStrings(op int, l, r string) (bool, bool) {
 	switch op {
-	case "==":
-		return p.TextEqual(ls, rs), true
-	case "!=":
-		return !p.TextEqual(ls, rs), true
-	case "<":
-		return p.compareText(ls, rs) < 0, true
-	case "<=":
-		return p.compareText(ls, rs) <= 0, true
-	case ">":
-		return p.compareText(ls, rs) > 0, true
-	case ">=":
-		return p.compareText(ls, rs) >= 0, true
-	case "+":
-		var out strings.Builder
-		out.Grow(checkedTextSize(len(ls), len(rs)))
-		p.chargeValueBytes(len(ls) + len(rs))
-		for _, s := range [...]string{ls, rs} {
-			for off := 0; off < len(s); {
-				n := min(spendValueChunk, len(s)-off)
-				p.spendValue(n)
-				out.WriteString(s[off : off+n])
-				off += n
-			}
-		}
-		return out.String(), true
-	}
-	return nil, false
-}
-
-// compareStrings applies the comparison operator op to two strings as stringBinary does.
-func (p *Parser) compareStrings(op string, l, r string) (bool, bool) {
-	switch op {
-	case "==":
+	case OpEq:
 		return p.TextEqual(l, r), true
-	case "!=":
+	case OpNe:
 		return !p.TextEqual(l, r), true
-	case "<":
+	case OpLt:
 		return p.compareText(l, r) < 0, true
-	case "<=":
+	case OpLe:
 		return p.compareText(l, r) <= 0, true
-	case ">":
+	case OpGt:
 		return p.compareText(l, r) > 0, true
-	case ">=":
+	case OpGe:
 		return p.compareText(l, r) >= 0, true
 	}
 	return false, false
 }
 
-func (c *ActCtx) Binary(op string, l, r any) any {
-	if v, ok := c.P.stringBinary(op, l, r); ok {
-		return v
+// Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
+// its operands are not valid.
+func (c *ActCtx) Binary(op int, l, r any) any {
+	v, e := c.P.termBinary(op, l, r)
+	if e != nil {
+		panic(e)
 	}
-	if c.P.Control != nil {
-		return rtBinarySpend(c.P, op, l, r)
-	}
-	return rtBinary(op, l, r)
+	return v
 }
 
 // detachedText constructs normalized text when malformed source bytes prevent
@@ -1602,14 +1558,19 @@ func (p *Parser) actionErrorText(parts ...string) string {
 // evalErrorf accepts the engine's fixed %s/%d leaf formats. The inactive path
 // retains fmt semantics; active formatting splits known pieces before copying.
 func (p *Parser) evalErrorf(format string, args ...any) {
-	if p != nil && p.Control != nil {
-		p.evalErrorfControlled(format, args...)
-		return
-	}
-	evalErrorf(format, args...)
+	panic(p.evalErrorValue(format, args...))
 }
 
-func (p *Parser) evalErrorfControlled(format string, args ...any) {
+// evalErrorValue returns the failure that evalErrorf raises, as a value, so that a composition can
+// return it (see termError).
+func (p *Parser) evalErrorValue(format string, args ...any) evalError {
+	if p != nil && p.Control != nil {
+		return p.evalErrorfControlled(format, args...)
+	}
+	return evalError{fmt.Sprintf(format, args...)}
+}
+
+func (p *Parser) evalErrorfControlled(format string, args ...any) evalError {
 	parts := make([]string, 0, 2*len(args)+1)
 	arg, start := 0, 0
 	for i := 0; i < len(format); i++ {
@@ -1636,7 +1597,7 @@ func (p *Parser) evalErrorfControlled(format string, args ...any) {
 		panic("invalid internal action-error arguments")
 	}
 	parts = append(parts, format[start:])
-	panic(evalError{p.actionErrorText(parts...)})
+	return evalError{p.actionErrorText(parts...)}
 }
 func (p *Parser) wrapEvalError(where, message string) error {
 	if p.Control == nil {
@@ -1645,41 +1606,38 @@ func (p *Parser) wrapEvalError(where, message string) error {
 	return errors.New(p.actionErrorText("action in ", where, ": ", message))
 }
 
-func (c *ActCtx) Unary(op string, v any) any {
-	if c.P.Control != nil {
-		return c.unaryControlled(op, v)
+// Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
+func (c *ActCtx) Unary(op int, v any) any {
+	r, e := c.P.termUnary(op, v)
+	if e != nil {
+		panic(e)
 	}
-	return rtUnary(op, v)
+	return r
 }
 
-func (c *ActCtx) unaryControlled(op string, v any) any {
-	return rtUnarySpend(c.P, op, v)
+// logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
+func (p *Parser) logical(op int, x any) bool {
+	b, e := p.termLogic(op, x)
+	if e != nil {
+		panic(e)
+	}
+	return b
 }
+
+// And evaluates l && r: r is evaluated only if l is true.
 func (c *ActCtx) And(l any, r func() any) any {
-	if c.P.Control != nil {
-		return c.andControlled(l, r)
-	}
-	return rtAnd(l, r)
-}
-
-func (c *ActCtx) andControlled(l any, r func() any) any {
-	if !rtBoolSpend(c.P, "&&", l) {
+	if !c.P.logical(OpAnd, l) {
 		return false
 	}
-	return rtBoolSpend(c.P, "&&", r())
-}
-func (c *ActCtx) Or(l any, r func() any) any {
-	if c.P.Control != nil {
-		return c.orControlled(l, r)
-	}
-	return rtOr(l, r)
+	return c.P.logical(OpAnd, r())
 }
 
-func (c *ActCtx) orControlled(l any, r func() any) any {
-	if rtBoolSpend(c.P, "||", l) {
+// Or evaluates l || r: r is evaluated only if l is false.
+func (c *ActCtx) Or(l any, r func() any) any {
+	if c.P.logical(OpOr, l) {
 		return true
 	}
-	return rtBoolSpend(c.P, "||", r())
+	return c.P.logical(OpOr, r())
 }
 func (c *ActCtx) ListItems(fn string, v any) []*Node {
 	if c.P.Control != nil {

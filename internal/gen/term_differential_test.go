@@ -185,8 +185,8 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, m := range []struct{ name, from, to string }{
-		{"plus becomes minus", `c.Binary("+"`, `c.Binary("-"`},
-		{"times becomes plus", `c.Binary("*"`, `c.Binary("+"`},
+		{"plus becomes minus", `c.Binary(rt.OpAdd`, `c.Binary(rt.OpSub`},
+		{"times becomes plus", `c.Binary(rt.OpMul`, `c.Binary(rt.OpAdd`},
 		{"map becomes filter", `c.MapList(`, `c.FilterList(`},
 	} {
 		got := gentest.GeneratedParsersMismatches(t, goBin, list, gen.GenOptions{}, func(code []byte) []byte {
@@ -201,8 +201,8 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		return
 	}
 	for _, m := range []struct{ name, from, to string }{
-		{"plus becomes minus", `c.binary("+"`, `c.binary("-"`},
-		{"equal becomes not equal", `c.binary("=="`, `c.binary("!="`},
+		{"plus becomes minus", `c.binary(0,`, `c.binary(1,`},
+		{"equal becomes not equal", `c.binary(5,`, `c.binary(6,`},
 		{"length becomes zero", `c.length(`, `((x) => (c.length(x), 0))(`},
 	} {
 		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {

@@ -657,6 +657,7 @@ code and not a stable API.`
 
 	addOperators(m)
 	addDocument(m)
+	addValue(m)
 	addTerms(m)
 
 	if err := Verify(m); err != nil {

@@ -322,9 +322,9 @@ func (cm *Machine) binary(c *core.EvalCtx, t *grammar.Binary) (any, error) {
 	}
 	// Logical operators short-circuit.
 	if t.Op == "&&" || t.Op == "||" {
-		lb, ok := l.(bool)
-		if !ok {
-			return nil, c.P.ActionError("invalid operand ", core.TypeName(l), " for ", t.Op)
+		lb, err := c.P.ValueLogic(t.Op, l)
+		if err != nil {
+			return nil, err
 		}
 		if lb == (t.Op == "||") {
 			return lb, nil
@@ -333,11 +333,7 @@ func (cm *Machine) binary(c *core.EvalCtx, t *grammar.Binary) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		rb, ok := r.(bool)
-		if !ok {
-			return nil, c.P.ActionError("invalid operand ", core.TypeName(r), " for ", t.Op)
-		}
-		return rb, nil
+		return c.P.ValueLogic(t.Op, r)
 	}
 	r, err := cm.Eval(c, t.R)
 	if err != nil {

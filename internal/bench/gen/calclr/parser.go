@@ -1980,4 +1980,4 @@ func s13(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_a710b03a600590c2
 
-const _ = rt.Protocol3
+const _ = rt.Protocol4

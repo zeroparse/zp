@@ -170,7 +170,7 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
-		ops.Term: "func(*ActCtx) any", ops.Datum: "any",
+		ops.Term: "func(*ActCtx) any", ops.Datum: "any", ops.Seq: "[]*Node",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
@@ -179,6 +179,7 @@ func goTarget(s goSpec) *execgo.Target {
 	for _, s := range goOperatorSpecs {
 		names[s.fn] = s.name
 	}
+	goTermNames(names)
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	// spender is the parser that the generic copies of values charge.
 	attemptType, spender := "operatorsRuleAttempt", "p"
@@ -194,11 +195,13 @@ func goTarget(s goSpec) *execgo.Target {
 		handles[ops.Frame], handles[ops.Operators], handles[ops.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
 		handles[ops.Line], handles[ops.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
 		handles[ops.Term] = "func(*TActCtx) any"
+		handles[ops.Seq] = "[]any"
 		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {
 			names[s.fn] = s.name
 		}
+		goTermNames(names)
 		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
 		attemptType, spender, created = "toperatorsRuleAttempt", "p.Parser", "Created"
 		rule = func(r string) string { return r + ".Rule" }
@@ -211,6 +214,9 @@ func goTarget(s goSpec) *execgo.Target {
 		return map[string]string{ops.Pos: "p.Pos", ops.Silent: "p.Silent", ops.Cut: "p.Cut"}[name]
 	}
 	t.Op = func(c *exec.Call, a []string) string {
+		if s, ok := goValueOp(c.Callee, a, typed); ok {
+			return s
+		}
 		switch c.Callee {
 		case "depth.enter":
 			return "p.Depth++\nif p.Depth > p.MaxDepth {\np.TooDeep()\n}"

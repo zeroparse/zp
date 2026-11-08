@@ -1908,7 +1908,7 @@ func (c *TActCtx) FieldOperand(x any, name string) TOperand {
 }
 
 // Compare applies a comparison operator as binary does, comparing two strings directly.
-func (c *TActCtx) Compare(op string, l, r TOperand) any {
+func (c *TActCtx) Compare(op int, l, r TOperand) any {
 	if !l.IsStr {
 		l.Str, l.IsStr = l.V.(string)
 	}
@@ -1957,143 +1957,6 @@ func (c *TActCtx) Member(x any, name string) any {
 		c.P.evalErrorf("%s has no field %s", n.TName(), name)
 	}
 	return tvalOrNil(v)
-}
-
-func trtUnary(op string, x any) any {
-	switch op {
-	case "-":
-		if i, ok := x.(int); ok {
-			return -i
-		}
-	case "!":
-		if b, ok := x.(bool); ok {
-			return !b
-		}
-	}
-	evalErrorf("invalid operand %s for unary %s", ttypeName(x), op)
-	return nil
-}
-
-func trtBool(op string, v any) bool {
-	b, ok := v.(bool)
-	if !ok {
-		evalErrorf("invalid operand %s for %s", ttypeName(v), op)
-	}
-	return b
-}
-
-func trtAnd(l any, r func() any) any {
-	if !trtBool("&&", l) {
-		return false
-	}
-	return trtBool("&&", r())
-}
-
-func trtOr(l any, r func() any) any {
-	if trtBool("||", l) {
-		return true
-	}
-	return trtBool("||", r())
-}
-
-// trtComparable reports whether v is nil, an int, a string or a bool, the values that == and !=
-// compare.
-func trtComparable(v any) bool {
-	switch v.(type) {
-	case nil, int, string, bool:
-		return true
-	}
-	return false
-}
-
-// trtInvalidOperands returns the message for applying op to l and r. A comparison of a node or
-// another structured value says why it fails.
-func trtInvalidOperands(op string, l, r any) string {
-	msg := fmt.Sprintf("invalid operands %s and %s for %s", ttypeName(l), ttypeName(r), op)
-	if (op == "==" || op == "!=") && (!trtComparable(l) || !trtComparable(r)) {
-		msg += ": " + comparisonHint
-	}
-	return msg
-}
-
-// trtEqual applies == to a and b. It compares ints, strings and bools of one type, and any value
-// with nil; ok is false for every other pair, which has no equality.
-func trtEqual(a, b any) (eq, ok bool) {
-	if a == nil || b == nil {
-		return a == nil && b == nil, true
-	}
-	switch a := a.(type) {
-	case int:
-		b, ok := b.(int)
-		return a == b, ok
-	case string:
-		b, ok := b.(string)
-		return a == b, ok
-	case bool:
-		b, ok := b.(bool)
-		return a == b, ok
-	}
-	return false, false
-}
-
-func trtBinary(op string, l, r any) any {
-	switch op {
-	case "==", "!=":
-		eq, ok := trtEqual(l, r)
-		if !ok {
-			evalErrorf("%s", trtInvalidOperands(op, l, r))
-		}
-		return eq == (op == "==")
-	case "[]":
-		items := tlistItems("[]", l)
-		return items[rtIndex(nil, r, len(items), ttypeName)]
-	}
-	switch l := l.(type) {
-	case int:
-		if r, ok := r.(int); ok {
-			switch op {
-			case "+":
-				return l + r
-			case "-":
-				return l - r
-			case "*":
-				return l * r
-			case "/", "%":
-				if r == 0 {
-					evalErrorf("division by zero")
-				}
-				if op == "/" {
-					return l / r
-				}
-				return l % r
-			case "<":
-				return l < r
-			case "<=":
-				return l <= r
-			case ">":
-				return l > r
-			case ">=":
-				return l >= r
-			}
-		}
-	case string:
-		if r, ok := r.(string); ok {
-			switch op {
-			case "+":
-				return l + r
-			case "<":
-				return l < r
-			case "<=":
-				return l <= r
-			case ">":
-				return l > r
-			case ">=":
-				return l >= r
-			}
-		}
-	}
-	evalErrorf("invalid operands %s and %s for %s", ttypeName(l), ttypeName(r), op)
-	return nil
 }
 
 func (c *TActCtx) Length(x any) any {
@@ -2365,14 +2228,14 @@ func (p *TParser) convertOperator(r *TRule, v any) any {
 	return n
 }
 
-func (c *TActCtx) Binary(op string, l, r any) any {
-	if v, ok := c.P.stringBinary(op, l, r); ok {
-		return v
+// Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
+// its operands are not valid.
+func (c *TActCtx) Binary(op int, l, r any) any {
+	v, e := c.P.termBinary(op, l, r)
+	if e != nil {
+		panic(e)
 	}
-	if c.P.Control != nil {
-		return trtBinarySpend(c.P.Parser, op, l, r)
-	}
-	return trtBinary(op, l, r)
+	return v
 }
 
 func (p *TParser) PushKid(v any) { p.Spend(); p.KidStack = append(p.KidStack, v) }
@@ -2469,89 +2332,6 @@ func (p *TParser) ListField(kids []any) any {
 	return n
 }
 
-func trtUnarySpend(p *Parser, op string, x any) any {
-	switch op {
-	case "-":
-		if i, ok := x.(int); ok {
-			return -i
-		}
-	case "!":
-		if b, ok := x.(bool); ok {
-			return !b
-		}
-	}
-	p.evalErrorf("invalid operand %s for unary %s", ttypeName(x), op)
-	return nil
-}
-
-func trtBoolSpend(p *Parser, op string, v any) bool {
-	b, ok := v.(bool)
-	if !ok {
-		p.evalErrorf("invalid operand %s for %s", ttypeName(v), op)
-	}
-	return b
-}
-
-func trtBinarySpend(p *Parser, op string, l, r any) any {
-	switch op {
-	case "==", "!=":
-		eq, ok := trtEqual(l, r)
-		if !ok {
-			p.evalErrorf("%s", trtInvalidOperands(op, l, r))
-		}
-		return eq == (op == "==")
-	case "[]":
-		items := tlistItemsSpend(p, "[]", l)
-		return items[rtIndex(p, r, len(items), ttypeName)]
-	}
-	switch l := l.(type) {
-	case int:
-		if r, ok := r.(int); ok {
-			switch op {
-			case "+":
-				return l + r
-			case "-":
-				return l - r
-			case "*":
-				return l * r
-			case "/", "%":
-				if r == 0 {
-					p.evalErrorf("division by zero")
-				}
-				if op == "/" {
-					return l / r
-				}
-				return l % r
-			case "<":
-				return l < r
-			case "<=":
-				return l <= r
-			case ">":
-				return l > r
-			case ">=":
-				return l >= r
-			}
-		}
-	case string:
-		if r, ok := r.(string); ok {
-			switch op {
-			case "+":
-				return l + r
-			case "<":
-				return l < r
-			case "<=":
-				return l <= r
-			case ">":
-				return l > r
-			case ">=":
-				return l >= r
-			}
-		}
-	}
-	p.evalErrorf("invalid operands %s and %s for %s", ttypeName(l), ttypeName(r), op)
-	return nil
-}
-
 func tlistItemsSpend(p *Parser, fn string, v any) []any {
 	if v == nil {
 		return nil
@@ -2575,41 +2355,38 @@ func tasNodeSpend(p *Parser, fn string, v any) any {
 	return nil
 }
 
-func (c *TActCtx) Unary(op string, v any) any {
-	if c.P.Control != nil {
-		return c.unaryControlled(op, v)
+// Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
+func (c *TActCtx) Unary(op int, v any) any {
+	r, e := c.P.termUnary(op, v)
+	if e != nil {
+		panic(e)
 	}
-	return trtUnary(op, v)
+	return r
 }
 
-func (c *TActCtx) unaryControlled(op string, v any) any {
-	return trtUnarySpend(c.P.Parser, op, v)
+// logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
+func (p *TParser) logical(op int, x any) bool {
+	b, e := p.termLogic(op, x)
+	if e != nil {
+		panic(e)
+	}
+	return b
 }
+
+// And evaluates l && r: r is evaluated only if l is true.
 func (c *TActCtx) And(l any, r func() any) any {
-	if c.P.Control != nil {
-		return c.andControlled(l, r)
-	}
-	return trtAnd(l, r)
-}
-
-func (c *TActCtx) andControlled(l any, r func() any) any {
-	if !trtBoolSpend(c.P.Parser, "&&", l) {
+	if !c.P.logical(OpAnd, l) {
 		return false
 	}
-	return trtBoolSpend(c.P.Parser, "&&", r())
-}
-func (c *TActCtx) Or(l any, r func() any) any {
-	if c.P.Control != nil {
-		return c.orControlled(l, r)
-	}
-	return trtOr(l, r)
+	return c.P.logical(OpAnd, r())
 }
 
-func (c *TActCtx) orControlled(l any, r func() any) any {
-	if trtBoolSpend(c.P.Parser, "||", l) {
+// Or evaluates l || r: r is evaluated only if l is false.
+func (c *TActCtx) Or(l any, r func() any) any {
+	if c.P.logical(OpOr, l) {
 		return true
 	}
-	return trtBoolSpend(c.P.Parser, "||", r())
+	return c.P.logical(OpOr, r())
 }
 func (c *TActCtx) ListItems(fn string, v any) []any {
 	if c.P.Control != nil {

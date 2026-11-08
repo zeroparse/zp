@@ -22,6 +22,13 @@ func main() {
 	if err := os.WriteFile(core.GoRuntimeFile, []byte(src), 0o644); err != nil {
 		log.Fatal(err)
 	}
+	terms, err := core.GoTerms()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.GoTermsFile, []byte(terms), 0o644); err != nil {
+		log.Fatal(err)
+	}
 	operators, err := core.GoOperators()
 	if err != nil {
 		log.Fatal(err)
@@ -41,6 +48,13 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := os.WriteFile(core.EngineFile, []byte(engine), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	engineTerms, err := core.EngineTerms()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineTermsFile, []byte(engineTerms), 0o644); err != nil {
 		log.Fatal(err)
 	}
 	engineOperators, err := core.EngineOperators()

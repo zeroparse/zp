@@ -208,7 +208,7 @@ func engineTarget() *execgo.Target {
 		ops.Ctx: "CtxState", ops.Res: "ctxHit", ops.Grow: "GrowState", ops.CallState: "*CallState",
 		ops.Frame: "*Frame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt",
-		ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
+		ops.Seq: "[]*value.Node", ops.Datum: "any", ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
 	}
 	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
 		"expect": "Expect", "keep": "Keep",
@@ -219,6 +219,7 @@ func engineTarget() *execgo.Target {
 			names[s.fn] = s.name
 		}
 	}
+	goTermNames(names)
 	t.Handle = func(name string) string { return handles[name] }
 	t.FuncName = func(name string) string { return names[name] }
 	t.Reg = func(name string) string {
@@ -229,6 +230,9 @@ func engineTarget() *execgo.Target {
 		return fmt.Sprintf("MemoKey{Rule: %s, Pos: %s, Min: %s, Env: %s.Env, MissingSilent: %[4]s.Missing, DocOnly: %s}", a[0], a[1], a[2], a[3], docOnly)
 	}
 	t.Op = func(c *exec.Call, a []string) string {
+		if s, ok := engineValueOp(c.Callee, a); ok {
+			return s
+		}
 		// The records of the split forms of the Operators Rule loop have a Go field for each field.
 		if rec, field, ok := strings.Cut(c.Callee, "."); ok && (rec == "oprLongest" || rec == "oprNud" || rec == "oprExpr") {
 			if name, ok := strings.CutPrefix(field, "set"); ok && len(a) == 2 {

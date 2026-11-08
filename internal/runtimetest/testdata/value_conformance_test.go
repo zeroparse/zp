@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -10,18 +11,19 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-// The value primitives of the generated Go runtimes are bound to the functions that evaluate the
-// operators of a term: rtBinary, rtUnary and rtBool for node parsers, and trtBinary, trtUnary and
-// trtBool for typed parsers. Each fails by panicking with an evalError, which the binding turns into
-// the error text the primitive returns.
+// The compositions of the operators of terms in the generated Go runtimes (termBinary, termUnary and
+// termLogic, printed from Exec IR) are the subjects of the value conformance, for node parsers and for
+// typed parsers. Each returns its failure as a value, whose text the binding returns.
 
 type goValues struct {
-	binary func(op string, l, r any) any
-	unary  func(op string, x any) any
-	bool_  func(op string, x any) bool
+	binary func(op int, l, r any) (any, any)
+	unary  func(op int, x any) (any, any)
+	logic  func(op int, x any) (bool, any)
+	// typed makes the sequences of the typed runtime.
+	typed bool
 }
 
-func (goValues) Datum(v ref.V) any {
+func scalar(v ref.V) any {
 	switch v.Kind {
 	case ref.KInt:
 		return int(v.I)
@@ -31,6 +33,26 @@ func (goValues) Datum(v ref.V) any {
 		return v.B
 	}
 	return nil
+}
+
+func (g goValues) Datum(v ref.V) any {
+	if v.Kind != ref.KList && v.Kind != ref.KTuple {
+		return scalar(v)
+	}
+	if g.typed {
+		kids := make([]any, len(v.Items))
+		for i, x := range v.Items {
+			kids[i] = scalar(x)
+		}
+		return &TSeq{Typ: "list", Kids: kids}
+	}
+	kids := make([]*Node, len(v.Items))
+	for i, x := range v.Items {
+		if x.Kind != ref.KNil {
+			kids[i] = &Node{RawKind: kindBox, box: scalar(x)}
+		}
+	}
+	return &Node{RawKind: kindListValue, RawChildren: kids}
 }
 
 func (goValues) Canon(x any) ref.V {
@@ -47,46 +69,48 @@ func (goValues) Canon(x any) ref.V {
 	panic("runtime value is not a scalar")
 }
 
-// failed runs f and returns the text of the evalError it panics with, "" if it returns.
-func failed(f func()) (msg any) {
-	defer func() {
-		if x := recover(); x != nil {
-			e, ok := x.(evalError)
-			if !ok {
-				panic(x)
-			}
-			msg = e.msg
-		}
-	}()
-	f()
-	return nil
+// text returns the text of the failure e, nil if there is none.
+func text(e any) any {
+	if e == nil {
+		return nil
+	}
+	return e.(evalError).msg
 }
 
 func (g goValues) Call(o *exec.Op, args []any) (res []any) {
+	code := int(args[0].(int64))
 	switch o.Name {
-	case "val.binary":
-		var v any
-		err := failed(func() { v = g.binary(ops.BinaryOps[args[0].(int64)], args[1], args[2]) })
-		return []any{v, err}
-	case "val.unary":
-		var v any
-		err := failed(func() { v = g.unary(ops.UnaryOps[args[0].(int64)], args[1]) })
-		return []any{v, err}
-	case "val.bool":
-		var b bool
-		err := failed(func() { b = g.bool_(ops.LogicalOps[args[0].(int64)], args[1]) })
-		return []any{b, err}
+	case "binary":
+		v, e := g.binary(code, args[1], args[2])
+		return []any{v, text(e)}
+	case "unary":
+		v, e := g.unary(code, args[1])
+		return []any{v, text(e)}
+	case "logic":
+		b, e := g.logic(code, args[1])
+		return []any{b, text(e)}
 	}
 	panic("runtime does not provide " + o.Name)
 }
 
 var (
-	nodeValues  = goValues{rtBinary, rtUnary, rtBool}
-	typedValues = goValues{trtBinary, trtUnary, trtBool}
+	nodeValues  = goValues{(&Parser{}).termBinary, (&Parser{}).termUnary, (&Parser{}).termLogic, false}
+	typedParser = &TParser{Parser: &Parser{}}
+	typedValues = goValues{typedParser.termBinary, typedParser.termUnary, typedParser.termLogic, true}
 )
 
+// controlledValues binds the compositions of a parser that runs under budget controls, whose string
+// operations take the bounded paths.
+func controlledValues() (node, typed goValues) {
+	control := newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+	p := &Parser{Control: control}
+	tp := &TParser{Parser: &Parser{Control: control}}
+	return goValues{p.termBinary, p.termUnary, p.termLogic, false}, goValues{tp.termBinary, tp.termUnary, tp.termLogic, true}
+}
+
 func TestValueConformance(t *testing.T) {
-	for name, impl := range map[string]goValues{"node": nodeValues, "typed": typedValues} {
+	cn, ct := controlledValues()
+	for name, impl := range map[string]goValues{"node": nodeValues, "typed": typedValues, "node controlled": cn, "typed controlled": ct} {
 		s := conform.ValueSuite{Name: "go " + name, Impl: impl, Ops: conform.ValueOps}
 		if err := conform.RunValues(s); err != nil {
 			t.Error(err)
@@ -108,7 +132,7 @@ func (b brokenValues) Call(o *exec.Op, args []any) []any {
 // in one way fail the conformance run.
 func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 	binary := func(o *exec.Op, args []any) (string, int, int, bool) {
-		if o.Name != "val.binary" {
+		if o.Name != "binary" {
 			return "", 0, 0, false
 		}
 		l, lok := args[1].(int)
@@ -129,7 +153,7 @@ func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 			return res
 		},
 		"an int equals a string": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "val.binary" && ops.BinaryOps[args[0].(int64)] == "==" {
+			if o.Name == "binary" && ops.BinaryOps[args[0].(int64)] == "==" {
 				if _, ok := args[1].(int); ok {
 					if _, ok := args[2].(string); ok {
 						return []any{false, nil}
@@ -139,7 +163,7 @@ func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 			return res
 		},
 		"a string comparison compares bytes of the UTF-16 form": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "val.binary" && ops.BinaryOps[args[0].(int64)] == "<" {
+			if o.Name == "binary" && ops.BinaryOps[args[0].(int64)] == "<" {
 				if l, ok := args[1].(string); ok {
 					if r, ok := args[2].(string); ok && len(l) > 0 && len(r) > 0 && (l[0] >= 0xF0) != (r[0] >= 0xF0) {
 						return []any{!res[0].(bool), nil}
@@ -149,7 +173,7 @@ func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 			return res
 		},
 		"the error of a unary minus names no operand": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "val.unary" && res[1] != nil {
+			if o.Name == "unary" && res[1] != nil {
 				return []any{res[0], "invalid operand for unary -"}
 			}
 			return res
@@ -163,6 +187,64 @@ func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 			s := conform.ValueSuite{Name: "broken " + impl.name + ": " + name, Impl: brokenValues{impl.v, mutate}, Ops: conform.ValueOps}
 			if err := conform.RunValues(s); err == nil {
 				t.Errorf("%s %s: the conformance run did not notice", impl.name, name)
+			}
+		}
+	}
+}
+
+// TestValueBoxedOperands holds == of the node runtime to the rule that a box counts as the value it
+// holds, which the pool of the conformance cannot show: it has no box.
+func TestValueBoxedOperands(t *testing.T) {
+	box := func(v any) *Node { return &Node{RawKind: kindBox, box: v} }
+	p := &Parser{}
+	for _, c := range []struct {
+		op   int
+		l, r any
+		want any
+	}{
+		{OpEq, box(1), 1, true},
+		{OpEq, 1, box(1), true},
+		{OpEq, box("a"), "b", false},
+		{OpNe, box(true), true, false},
+		{OpEq, box(nil), nil, true},
+		{OpEq, box(1), nil, false},
+	} {
+		got, e := p.termBinary(c.op, c.l, c.r)
+		if e != nil || got != c.want {
+			t.Errorf("%v op %d %v = %v, %v; want %v", c.l, c.op, c.r, got, e, c.want)
+		}
+	}
+	if _, e := p.termBinary(OpAdd, box(1), 1); e == nil {
+		t.Error("a box is an operand of +")
+	}
+}
+
+// TestValueCompareStrings holds the comparison of two unboxed strings of the typed runtime
+// (TActCtx.Compare, whose fast path decides in compareStrings) to the composition termBinary on
+// every pair of strings of the pool, for each comparison operator, with and without a budget
+// control: compareStrings is written by hand, so the composition is its reference.
+func TestValueCompareStrings(t *testing.T) {
+	var strs []string
+	for _, v := range conform.ValuePool() {
+		if v.Kind == ref.KStr {
+			strs = append(strs, v.S)
+		}
+	}
+	control := newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+	for name, tp := range map[string]*TParser{"plain": {Parser: &Parser{}}, "controlled": {Parser: &Parser{Control: control}}} {
+		c := &TActCtx{P: tp}
+		for op := OpEq; op <= OpGe; op++ {
+			for _, l := range strs {
+				for _, r := range strs {
+					want, e := tp.termBinary(op, l, r)
+					if e != nil {
+						t.Fatalf("%s: %q op %d %q fails: %v", name, l, op, r, e)
+					}
+					got := c.Compare(op, TOperand{Str: l, IsStr: true}, TOperand{Str: r, IsStr: true})
+					if got != want {
+						t.Errorf("%s: %q op %d %q = %v, want %v", name, l, op, r, got, want)
+					}
+				}
 			}
 		}
 	}

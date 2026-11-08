@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -29,7 +30,7 @@ type ValueSuite struct {
 }
 
 // ValueOps are the operations of the value primitives.
-var ValueOps = []string{"val.binary", "val.unary", "val.bool"}
+var ValueOps = []string{"binary", "unary", "logic"}
 
 // ValuePool returns the scalars that the value conformance applies the operations to: nil, ints at the
 // limits of 64 bits and of the integers that a double holds exactly, and the neighbors that make the
@@ -48,6 +49,14 @@ func ValuePool() []ref.V {
 	return pool
 }
 
+// ValueSequences returns the lists and tuples that the value conformance indexes, besides the
+// scalars of the pool, which are not lists: an empty list, a list of scalars of every kind, and a
+// tuple. Their elements are scalars, so that the results and the failures of an index hold no type
+// name of a structured value.
+func ValueSequences() []ref.V {
+	return []ref.V{ref.List(), ref.List(ref.Int(10), ref.Str("a"), ref.Bool(true), ref.Nil, ref.Int(math.MinInt64)), ref.Tuple(ref.Int(5), ref.Int(6))}
+}
+
 // scalarEqual reports whether a and b are the same scalar.
 func scalarEqual(a, b ref.V) bool {
 	return a.Kind == b.Kind && a.I == b.I && a.S == b.S && a.B == b.B
@@ -55,17 +64,17 @@ func scalarEqual(a, b ref.V) bool {
 
 // ValueCall is one call of a value operation: the code of the operator and the arguments after it.
 type ValueCall struct {
-	Op   string // the operation, such as val.binary
+	Op   string // the operation, such as binary
 	Code int64  // the index into ops.BinaryOps, ops.UnaryOps or ops.LogicalOps
 	Args []ref.V
 }
 
-// Operator returns the operator of the call: "+" for val.binary with the code of +.
+// Operator returns the operator of the call: "+" for binary with the code of +.
 func (c ValueCall) Operator() string {
 	switch c.Op {
-	case "val.binary":
+	case "binary":
 		return ops.BinaryOps[c.Code]
-	case "val.unary":
+	case "unary":
 		return ops.UnaryOps[c.Code]
 	}
 	return ops.LogicalOps[c.Code]
@@ -77,6 +86,9 @@ func (c ValueCall) Key() string {
 	s := fmt.Sprintf("%s %d", c.Op, c.Code)
 	for _, a := range c.Args {
 		s += fmt.Sprintf(" %d:%q:%d", a.Kind, a.S, a.I)
+		if a.Kind == ref.KList || a.Kind == ref.KTuple {
+			s += a.String()
+		}
 		if a.B {
 			s += "t"
 		}
@@ -85,25 +97,39 @@ func (c ValueCall) Key() string {
 }
 
 // ValueCalls returns the calls that the value conformance makes of the operations named: every
-// binary operator on every pair of the pool, and every unary and logical operator on every value.
+// binary operator on every pair of the pool, the index of every sequence and every scalar by every
+// scalar, and every unary and logical operator on every value.
 func ValueCalls(provided []string) []ValueCall {
 	pool := ValuePool()
 	var calls []ValueCall
-	if slices.Contains(provided, "val.binary") {
-		for op := range ops.BinaryOps {
+	if slices.Contains(provided, "binary") {
+		for op := range ops.BinaryOps[:ops.OpIndex] {
 			for _, l := range pool {
 				for _, r := range pool {
-					calls = append(calls, ValueCall{"val.binary", int64(op), []ref.V{l, r}})
+					calls = append(calls, ValueCall{"binary", int64(op), []ref.V{l, r}})
+				}
+			}
+		}
+		for _, l := range append(ValueSequences(), pool...) {
+			for _, r := range pool {
+				calls = append(calls, ValueCall{"binary", int64(ops.OpIndex), []ref.V{l, r}})
+			}
+		}
+		// A sequence has no equality, with a value of any kind but nil.
+		for _, op := range []int{ops.OpEq, ops.OpNe} {
+			for _, l := range ValueSequences() {
+				for _, r := range append(ValueSequences(), pool...) {
+					calls = append(calls, ValueCall{"binary", int64(op), []ref.V{l, r}}, ValueCall{"binary", int64(op), []ref.V{r, l}})
 				}
 			}
 		}
 	}
-	for _, name := range []string{"val.unary", "val.bool"} {
+	for _, name := range []string{"unary", "logic"} {
 		if !slices.Contains(provided, name) {
 			continue
 		}
 		codes := ops.UnaryOps
-		if name == "val.bool" {
+		if name == "logic" {
 			codes = ops.LogicalOps
 		}
 		for op := range codes {
@@ -118,14 +144,9 @@ func ValueCalls(provided []string) []ValueCall {
 // RunValues makes every call of ValueCalls on the model and on the implementation, and returns the
 // first difference: in a result value, in a failure, or in the text of its error.
 func RunValues(s ValueSuite) error {
-	m := ops.ValueModule()
 	model := ref.Values{}
-	byName := map[string]*exec.Op{}
-	for _, o := range m.Ops {
-		byName[o.Name] = o
-	}
 	for _, c := range ValueCalls(s.Ops) {
-		o := byName[c.Op]
+		o := &exec.Op{Name: c.Op}
 		mArgs, iArgs := []any{c.Code}, []any{c.Code}
 		shown := c.Operator()
 		for _, a := range c.Args {
@@ -147,10 +168,34 @@ func RunValues(s ValueSuite) error {
 			} else {
 				w, g = want[i].(ref.V), s.Impl.Canon(got[i])
 			}
+			if structured(c) && w.Kind == ref.KStr && g.Kind == ref.KStr && w.S != g.S && afterFor(w.S) == afterFor(g.S) {
+				// The name of the type of a structured value is each target's own (a list is []_ in one
+				// and node[[]_] in another): the text agrees from the operator on.
+				continue
+			}
 			if !scalarEqual(w, g) {
 				return fmt.Errorf("%s: %s(%s) result %d: model %s, implementation %s", s.Name, c.Op, shown, i, w, g)
 			}
 		}
 	}
 	return nil
+}
+
+// structured reports whether a call has a sequence as an argument.
+func structured(c ValueCall) bool {
+	for _, a := range c.Args {
+		if a.Kind == ref.KList || a.Kind == ref.KTuple {
+			return true
+		}
+	}
+	return false
+}
+
+// afterFor returns the text of an error message from " for ", the operator and what follows it, or
+// "" if it has none.
+func afterFor(msg string) string {
+	if i := strings.Index(msg, " for "); i >= 0 {
+		return msg[i:]
+	}
+	return ""
 }

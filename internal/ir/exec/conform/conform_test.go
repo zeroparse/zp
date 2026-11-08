@@ -549,11 +549,11 @@ func (b brokenValues) Call(o *exec.Op, args []any) []any {
 	}
 	name := o.Name
 	switch o.Name {
-	case "val.binary":
+	case "binary":
 		name = ops.BinaryOps[args[0].(int64)]
-	case "val.unary":
+	case "unary":
 		name = "unary " + ops.UnaryOps[args[0].(int64)]
-	case "val.bool":
+	case "logic":
 		name = "bool " + ops.LogicalOps[args[0].(int64)]
 	}
 	return b.mutate(name, vs, res)

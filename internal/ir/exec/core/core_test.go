@@ -24,6 +24,23 @@ func TestGoRuntimeCurrent(t *testing.T) {
 	}
 }
 
+// TestGoTermsCurrent checks that the printed term compositions in the Go runtime are those the
+// compositions print now. The generated runtime's copy is held equal to this file by the runtime
+// copy test of the generator.
+func TestGoTermsCurrent(t *testing.T) {
+	want, err := GoTerms()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(GoTermsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core ./gen", GoTermsFile)
+	}
+}
+
 // TestGoStreamCurrent checks that the printed stream compositions in the Go runtime are those the
 // compositions print now.
 func TestGoStreamCurrent(t *testing.T) {
@@ -53,6 +70,17 @@ func TestEngineCurrent(t *testing.T) {
 	}
 	if string(got) != want {
 		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineFile)
+	}
+	want, err = EngineTerms()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = os.ReadFile(EngineTermsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineTermsFile)
 	}
 	want, err = EngineOperators()
 	if err != nil {

@@ -1,21 +1,42 @@
 package core
 
 import (
+	"context"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/internal/value"
 )
 
-// engineValues binds the value primitives to the engine's evaluation of terms (binaryOperation and
-// ValueUnary). The logical operators' operand check is inline code of the closure and bytecode
-// backends, so val.bool is not provided here; TestTermReferenceEvaluator in internal/gen checks it
-// through terms.
-type engineValues struct{}
+// engineValues binds the compositions of the operators to the engine's printed term_exec.go
+// (termBinary, termUnary and termLogic).
+type engineValues struct {
+	// p is the parser that runs the call; a limited parse has a budget control.
+	p *Parser
+}
+
+func (e engineValues) parser() *Parser {
+	if e.p == nil {
+		return &Parser{}
+	}
+	return e.p
+}
 
 func (engineValues) Datum(v ref.V) any {
+	if v.Kind == ref.KList || v.Kind == ref.KTuple {
+		p := &Parser{}
+		kids := make([]*value.Node, len(v.Items))
+		for i, x := range v.Items {
+			if x.Kind != ref.KNil {
+				kids[i] = p.NewNode(value.Data{Kind: value.BoxKind, Box: engineValues{}.Datum(x)})
+			}
+		}
+		return p.NewNode(value.Data{Kind: value.ListValueKind, Children: kids})
+	}
 	switch v.Kind {
 	case ref.KInt:
 		return int(v.I)
@@ -48,22 +69,28 @@ func errDatum(err error) any {
 	return err.Error()
 }
 
-func (engineValues) Call(o *exec.Op, args []any) []any {
+func (e engineValues) Call(o *exec.Op, args []any) []any {
 	switch o.Name {
-	case "val.binary":
-		v, err := binaryOp(ops.BinaryOps[args[0].(int64)], args[1], args[2])
+	case "binary":
+		v, err := e.parser().ValueBinary(ops.BinaryOps[args[0].(int64)], args[1], args[2])
 		return []any{v, errDatum(err)}
-	case "val.unary":
-		v, err := (*Parser)(nil).ValueUnary(ops.UnaryOps[args[0].(int64)], args[1])
+	case "unary":
+		v, err := e.parser().ValueUnary(ops.UnaryOps[args[0].(int64)], args[1])
 		return []any{v, errDatum(err)}
+	case "logic":
+		b, err := e.parser().ValueLogic(ops.LogicalOps[args[0].(int64)], args[1])
+		return []any{b, errDatum(err)}
 	}
 	panic("engine does not provide " + o.Name)
 }
 
 func TestEngineValueConformance(t *testing.T) {
-	s := conform.ValueSuite{Name: "engine", Impl: engineValues{}, Ops: []string{"val.binary", "val.unary"}}
-	if err := conform.RunValues(s); err != nil {
-		t.Fatal(err)
+	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), limits.Limits{Compute: 1 << 62})}}
+	for name, impl := range map[string]engineValues{"engine": {}, "engine controlled": {controlled}} {
+		s := conform.ValueSuite{Name: name, Impl: impl, Ops: []string{"binary", "unary", "logic"}}
+		if err := conform.RunValues(s); err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -81,7 +108,7 @@ func (b brokenEngineValues) Call(o *exec.Op, args []any) []any {
 // in one way each fail the conformance run.
 func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 	binary := func(o *exec.Op, args []any, op string) (l, r int, ok bool) {
-		if o.Name != "val.binary" || ops.BinaryOps[args[0].(int64)] != op {
+		if o.Name != "binary" || ops.BinaryOps[args[0].(int64)] != op {
 			return 0, 0, false
 		}
 		l, lok := args[1].(int)
@@ -102,7 +129,7 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 			return res
 		},
 		"a string compares less than a longer string with it as prefix, not": func(o *exec.Op, args []any, res []any) []any {
-			if o.Name == "val.binary" && ops.BinaryOps[args[0].(int64)] == "<" {
+			if o.Name == "binary" && ops.BinaryOps[args[0].(int64)] == "<" {
 				if l, ok := args[1].(string); ok {
 					if r, ok := args[2].(string); ok && l != "" && len(r) > len(l) && r[:len(l)] == l {
 						return []any{false, nil}
@@ -113,9 +140,40 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 		},
 	}
 	for name, mutate := range mutants {
-		s := conform.ValueSuite{Name: name, Impl: brokenEngineValues{mutate: mutate}, Ops: []string{"val.binary", "val.unary"}}
+		s := conform.ValueSuite{Name: name, Impl: brokenEngineValues{mutate: mutate}, Ops: []string{"binary", "unary", "logic"}}
 		if err := conform.RunValues(s); err == nil {
 			t.Errorf("%s: the conformance run did not notice", name)
 		}
+	}
+}
+
+// TestEngineValueBoxedOperands holds == to the rule that a box counts as the value it holds, which the
+// pool of the conformance cannot show: it has no box. A box of an int equals the int, a box of nil
+// equals nil, and a box of a string is not equal to a string with other bytes; a box is no operand of
+// an arithmetic operator.
+func TestEngineValueBoxedOperands(t *testing.T) {
+	p := &Parser{}
+	box := func(v any) *value.Node { return p.NewNode(value.Data{Kind: value.BoxKind, Box: v}) }
+	for _, c := range []struct {
+		op   string
+		l, r any
+		want any
+	}{
+		{"==", box(1), 1, true},
+		{"==", 1, box(1), true},
+		{"==", box("a"), "a", true},
+		{"==", box("a"), "b", false},
+		{"!=", box(true), true, false},
+		{"==", box(nil), nil, true},
+		{"==", box(1), nil, false},
+		{"==", box(1), box(2), false},
+	} {
+		got, err := p.ValueBinary(c.op, c.l, c.r)
+		if err != nil || got != c.want {
+			t.Errorf("%v %s %v = %v, %v; want %v", c.l, c.op, c.r, got, err, c.want)
+		}
+	}
+	if _, err := p.ValueBinary("+", box(1), 1); err == nil {
+		t.Error("a box is an operand of +")
 	}
 }

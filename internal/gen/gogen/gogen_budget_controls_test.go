@@ -158,15 +158,15 @@ func TestStringAndMalformedTextBudget(t *testing.T){
  text:=strings.Repeat("a",300)+"é"
  p:=&zprt.Parser{Control:zprt.X_newBudgetControl(context.Background(),Limits{Compute:100000})}
  c:=&zprt.ActCtx{P:p}
- for _,op:=range []string{"==","!=","<","<=",">",">=","+"}{
+ for _,op:=range []int{zprt.OpEq,zprt.OpNe,zprt.OpLt,zprt.OpLe,zprt.OpGt,zprt.OpGe,zprt.OpAdd}{
   got:=c.Binary(op,text,text)
-  want:=zprt.X_rtBinary(op,text,text)
-  if !reflect.DeepEqual(got,want){t.Fatalf("string %s: %v want %v",op,got,want)}
+  want,_:=p.X_termBinary(op,text,text)
+  if !reflect.DeepEqual(got,want){t.Fatalf("string op %d: %v want %v",op,got,want)}
  }
  if p.Control.X_budgetUsed()==0{t.Fatal("string spend not charged")}
  for _,invoke:=range []func(*zprt.Parser){
-  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary("==",text,strings.Clone(text))},
-  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary("+",text,text)},
+  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary(zprt.OpEq,text,strings.Clone(text))},
+  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary(zprt.OpAdd,text,text)},
   func(p *zprt.Parser){p.X_unitLen(text)},
  }{
   p:=&zprt.Parser{Control:zprt.X_newBudgetControl(context.Background(),Limits{Compute:127})}

@@ -17,5 +17,5 @@ chunks
 profile rules stack
 errs expected env
 limits
-rtBinary unitLen recoverParse
+termBinary unitLen recoverParse
 expectations

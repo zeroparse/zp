@@ -33,7 +33,7 @@ component rules
   // The rules of the grammar: their descriptors and bodies.
 
 component value
-  // The operators on the values of terms. They read and write no state.
+  // The operations on the values of terms. They read and write no state.
 
 handle Entry of memo
   // A memo entry: the result of a rule call with its outcome and end.
@@ -58,6 +58,9 @@ handle Rule of rules
 
 handle Err of recovered
   // A syntax error that a recovery made.
+
+handle Seq of value
+  // The elements of a list or a tuple, as seq.items returns them.
 
 op memo.lookup(rule int, pos int, level int, key Values, docOnly bool) (Entry, bool)
   component memo
@@ -417,41 +420,176 @@ op stream.settleErrors()
   requires:
     // The parse retains the tail (stream.tail), and no call holds a mark of the list.
 
-op val.binary(op int, l Datum, r Datum) (Datum, Datum)
+op val.kind(x Datum) int
   component value
   cost <= 0
   contract:
-    // Applies the binary operator BinaryOps[op] to l and r and returns the value and a nil error.
-    // Ints combine with + - * / % and compare with < <= > >=; the result of an arithmetic operator is the
-    // 64-bit result with wraparound, of / and % truncated toward zero with the sign of the dividend on %.
-    // A division by zero fails with "division by zero". Strings concatenate with + and compare with < <= > >=
-    // by code point. == and != compare two values of one scalar type, a bool, an int or a string, and any
-    // value with nil, which equals only nil; a box compares as the value it holds. Any other operands fail
-    // with "invalid operands T and U for op", T and U naming the types of the operands, and a == or != of
-    // structured values continues with ": nodes and other structured values cannot be compared; use text(x),
-    // or .Start and .End". On failure the value is nil.
-  requires:
-    // op is an index of BinaryOps.
-  law: pure: equal arguments give equal results
-  law: == is symmetric and != is its negation
-
-op val.unary(op int, x Datum) (Datum, Datum)
-  component value
-  cost <= 0
-  contract:
-    // Applies the unary operator UnaryOps[op] to x: - negates an int with wraparound (the negation of
-    // the least int is itself) and ! negates a bool. Any other operand fails with "invalid operand T for unary op".
-    // On failure the value is nil.
-  requires:
-    // op is an index of UnaryOps.
+    // Returns the kind of x: KindNil for nil, KindInt for an int, KindString for a string, KindBool
+    // for a bool and KindOther for every other value, a box that holds one of these included.
   law: pure: equal arguments give equal results
 
-op val.bool(op int, x Datum) (bool, Datum)
+op val.unbox(x Datum) Datum
   component value
   cost <= 0
   contract:
-    // Checks that x, an operand of the logical operator LogicalOps[op], is a bool, and returns it
-    // with a nil error. Any other value fails with "invalid operand T for op", and the bool is false.
-  requires:
-    // op is an index of LogicalOps.
+    // Returns the value that x stands for: the value a box holds, and x for any other value.
   law: pure: equal arguments give equal results
+
+op val.fromBool(b bool) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the bool value b.
+
+op val.toBool(x Datum) bool
+  component value
+  cost <= 0
+  contract:
+    // Returns the bool that x is.
+  requires:
+    // x is a bool: val.kind(x) is KindBool.
+
+host op val.fail(code int, a Datum, b Datum, op int, n int) Datum
+  component value
+  noreturn
+  cost <= 0 + 2*error_parts
+  contract:
+    // Returns the failure with the message TermErrors[code]: {a} and {b} read as the names of the types of
+    // a and b, {op} as the name of the operator that op indexes (BinaryOps for ErrOperands and ErrCompare, UnaryOps for ErrUnary,
+    // LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a value of the target, which the caller returns
+    // and the term evaluation reports: it is not an int, a string, a bool or nil. A target that bounds the work assembles
+    // the text piece by piece, charging for each piece.
+  requires:
+    // code indexes TermErrors, and the arguments are those its message names.
+
+op int.add(l Datum, r Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns l + r with 64-bit wraparound.
+  requires:
+    // l and r are ints.
+  law: pure: equal arguments give equal results
+
+op int.sub(l Datum, r Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns l - r with 64-bit wraparound.
+  requires:
+    // l and r are ints.
+  law: pure: equal arguments give equal results
+
+op int.mul(l Datum, r Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns l * r with 64-bit wraparound.
+  requires:
+    // l and r are ints.
+  law: pure: equal arguments give equal results
+
+op int.quo(l Datum, r Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns l / r truncated toward zero; the least int divided by -1 is the least int.
+  requires:
+    // l and r are ints, and r is not zero.
+  law: pure: equal arguments give equal results
+
+op int.rem(l Datum, r Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the remainder of l / r, with the sign of l; the remainder of the least int by -1 is zero.
+  requires:
+    // l and r are ints, and r is not zero.
+  law: pure: equal arguments give equal results
+
+op int.neg(x Datum) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns -x with 64-bit wraparound: the negation of the least int is itself.
+  requires:
+    // x is an int.
+  law: pure: equal arguments give equal results
+
+op int.zero(x Datum) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether x is zero.
+  requires:
+    // x is an int.
+
+op int.cmp(l Datum, r Datum) int
+  component value
+  cost <= 0
+  contract:
+    // Returns -1 if l is less than r, 0 if they are equal and 1 if l is greater.
+  requires:
+    // l and r are ints.
+  law: pure: equal arguments give equal results
+
+op int.index(x Datum, n int) (int, bool)
+  component value
+  cost <= 0
+  contract:
+    // Returns x as an int and true if 0 <= x < n, and 0 and false otherwise.
+  requires:
+    // x is an int.
+  law: pure: equal arguments give equal results
+
+host op str.add(l Datum, r Datum) Datum
+  component value
+  noreturn
+  cost <= 1 + 4*value_bytes
+  contract:
+    // Returns the concatenation of l and r. A target that bounds the work charges for the bytes it reads and copies.
+  requires:
+    // l and r are strings.
+
+host op str.cmp(l Datum, r Datum) int
+  component value
+  noreturn
+  cost <= 1 + 4*value_bytes
+  contract:
+    // Returns -1 if l is less than r, 0 if they are equal and 1 if l is greater, comparing by code point: the
+    // order of the bytes of UTF-8 and not of the code units of UTF-16. A target that bounds the work charges for the bytes it
+    // compares.
+  requires:
+    // l and r are strings.
+
+host op str.eq(l Datum, r Datum) bool
+  component value
+  noreturn
+  cost <= 1 + 4*value_bytes
+  contract:
+    // Reports whether l and r are the same string. A target that bounds the work charges for the bytes it compares.
+  requires:
+    // l and r are strings.
+
+op seq.items(x Datum) (Seq, bool)
+  component value
+  cost <= 0
+  contract:
+    // Returns the elements of x and true if x is nil (no elements), a list or a tuple, and false otherwise.
+  law: pure: equal arguments give equal results
+
+op seq.len(items Seq) int
+  component value
+  cost <= 0
+  contract:
+    // Returns the number of elements.
+  requires:
+    // items came from seq.items.
+
+op seq.at(items Seq, i int) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns element i as a value: the value a box holds, and nil for a missing element.
+  requires:
+    // items came from seq.items, and 0 <= i < seq.len(items).

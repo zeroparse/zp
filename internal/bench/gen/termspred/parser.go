@@ -273,16 +273,18 @@ func e5(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">", c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), any(0)) }) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("<", c.Length(c.Cap(0)), any(100)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpLt, c.Length(c.Cap(0)), any(100)) }) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("!=", c.Member(c.Cap(0), "Start"), c.Member(c.Cap(0), "End")) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		return c.Binary(rt.OpNe, c.Member(c.Cap(0), "Start"), c.Member(c.Cap(0), "End"))
+	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">=", c.Length(c.Text(c.Cap(0))), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGe, c.Length(c.Text(c.Cap(0))), any(0)) }) {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
@@ -436,16 +438,18 @@ func e12(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">", c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), any(0)) }) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("<", c.Length(c.Cap(0)), any(100)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpLt, c.Length(c.Cap(0)), any(100)) }) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("!=", c.Member(c.Cap(0), "Start"), c.Member(c.Cap(0), "End")) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		return c.Binary(rt.OpNe, c.Member(c.Cap(0), "Start"), c.Member(c.Cap(0), "End"))
+	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(">=", c.Length(c.Text(c.Cap(0))), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGe, c.Length(c.Text(c.Cap(0))), any(0)) }) {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
@@ -572,18 +576,18 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	v10 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
 	k1 = v10
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(">", c.Length(k1), any(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpGt, c.Length(k1), any(0)) }) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary("<", c.Length(k1), any(100)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpLt, c.Length(k1), any(100)) }) {
 		goto fail
 	}
 	if !p.Predicate(func(c *rt.TActCtx) any {
-		return c.Compare("!=", c.FieldOperand(k1, "Start"), c.FieldOperand(k1, "End"))
+		return c.Compare(rt.OpNe, c.FieldOperand(k1, "Start"), c.FieldOperand(k1, "End"))
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(">=", c.Length(c.Text(k1)), any(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpGe, c.Length(c.Text(k1)), any(0)) }) {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
@@ -670,4 +674,4 @@ fail:
 
 const _ = types.ZPSchema_fd6c5f4b30383702
 
-const _ = rt.Protocol3
+const _ = rt.Protocol4

@@ -141,7 +141,7 @@ func invalidOperands(op string, l, r V) string {
 	return msg
 }
 
-// Binary applies the operator op to l and r (val.binary). It returns the value and the text of the
+// Binary applies the operator op to l and r (binary). It returns the value and the text of the
 // error, "" if there is none.
 func Binary(op string, l, r V) (V, string) {
 	switch op {
@@ -221,7 +221,7 @@ func order(op string, c int) bool {
 	return c >= 0
 }
 
-// Unary applies the operator op to x (val.unary).
+// Unary applies the operator op to x (unary).
 func Unary(op string, x V) (V, string) {
 	switch {
 	case op == "-" && x.Kind == KInt:
@@ -232,7 +232,7 @@ func Unary(op string, x V) (V, string) {
 	return Nil, fmt.Sprintf("invalid operand %s for unary %s", x.TypeName(), op)
 }
 
-// Truth checks the operand of a logical operator (val.bool).
+// Truth checks the operand of a logical operator (logic).
 func Truth(op string, x V) (bool, string) {
 	if x.Kind != KBool {
 		return false, fmt.Sprintf("invalid operand %s for %s", x.TypeName(), op)
@@ -255,13 +255,13 @@ func errValue(msg string) V {
 func (Values) Call(o *exec.Op, args []any) []any {
 	code := func(i int, names []string) string { return names[args[i].(int64)] }
 	switch o.Name {
-	case "val.binary":
+	case "binary":
 		v, e := Binary(code(0, ops.BinaryOps), args[1].(V), args[2].(V))
 		return []any{v, errValue(e)}
-	case "val.unary":
+	case "unary":
 		v, e := Unary(code(0, ops.UnaryOps), args[1].(V))
 		return []any{v, errValue(e)}
-	case "val.bool":
+	case "logic":
 		b, e := Truth(code(0, ops.LogicalOps), args[1].(V))
 		return []any{b, errValue(e)}
 	}

@@ -1915,7 +1915,7 @@ func e31(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.ActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary("!=", c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XML")) })
+		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XML")) })
 	}) {
 		goto L6
 	}
@@ -2812,7 +2812,7 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("==", c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), any(0)) }) {
 		goto L24
 	}
 	goto L18
@@ -5903,7 +5903,7 @@ func e177(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.ActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary("!=", c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary("!=", c.Text(c.Cap(0)), any("XML")) })
+		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XML")) })
 	}) {
 		goto L6
 	}
@@ -6209,7 +6209,7 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary("==", c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), any(0)) }) {
 		goto L24
 	}
 	goto L18
@@ -10212,7 +10212,7 @@ func i13(p *rt.TParser) (any, bool) {
 	k1 = v3
 	x4 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.TActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary("!=", c.Text(k1), any("xml")), func() any { return c.Binary("!=", c.Text(k1), any("xmL")) }), func() any { return c.Binary("!=", c.Text(k1), any("xMl")) }), func() any { return c.Binary("!=", c.Text(k1), any("xML")) }), func() any { return c.Binary("!=", c.Text(k1), any("Xml")) }), func() any { return c.Binary("!=", c.Text(k1), any("XmL")) }), func() any { return c.Binary("!=", c.Text(k1), any("XMl")) }), func() any { return c.Binary("!=", c.Text(k1), any("XML")) })
+		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(k1), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XML")) })
 	}) {
 		goto L7
 	}
@@ -11327,7 +11327,7 @@ L21:
 	} else if _, ok = p.Parser.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary("==", c.Length(k1), any(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpEq, c.Length(k1), any(0)) }) {
 		goto L24
 	}
 	goto L18
@@ -14210,4 +14210,4 @@ fail:
 
 const _ = types.ZPSchema_575020edd4a9b657
 
-const _ = rt.Protocol3
+const _ = rt.Protocol4

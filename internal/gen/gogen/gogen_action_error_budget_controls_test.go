@@ -108,8 +108,8 @@ func TestActionHelperErrorsAndShortCircuit(t *testing.T){
  for _,typed:=range []bool{false,true}{
   p:=&zprt.Parser{};tp:=&zprt.TParser{Parser:p};called:=0
   cases:=[]func(){
-   func(){if typed{(&zprt.TActCtx{P:tp}).Unary("-",tn)}else{(&zprt.ActCtx{P:p}).Unary("-",n)}},
-   func(){if typed{(&zprt.TActCtx{P:tp}).Binary("+",tn,1)}else{(&zprt.ActCtx{P:p}).Binary("+",n,1)}},
+   func(){if typed{(&zprt.TActCtx{P:tp}).Unary(zprt.OpNeg,tn)}else{(&zprt.ActCtx{P:p}).Unary(zprt.OpNeg,n)}},
+   func(){if typed{(&zprt.TActCtx{P:tp}).Binary(zprt.OpAdd,tn,1)}else{(&zprt.ActCtx{P:p}).Binary(zprt.OpAdd,n,1)}},
    func(){right:=func()any{called++;return true};if typed{(&zprt.TActCtx{P:tp}).And(tn,right)}else{(&zprt.ActCtx{P:p}).And(n,right)}},
    func(){right:=func()any{called++;return false};if typed{(&zprt.TActCtx{P:tp}).Or(tn,right)}else{(&zprt.ActCtx{P:p}).Or(n,right)}},
    func(){if typed{(&zprt.TActCtx{P:tp}).ListItems(long,1)}else{(&zprt.ActCtx{P:p}).ListItems(long,1)}},

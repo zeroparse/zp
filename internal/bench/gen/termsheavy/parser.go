@@ -202,7 +202,7 @@ func init() {
 	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Doc", "Lines", c.Member(c.Cap(0), "Value")) }
 	rules[1].Body = e5
 	rules[1].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Line", "N", c.Length(c.Cap(0)), "Total", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_11 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_11), "$s"))) }), func(l_12, l_13 any) any { return c.Binary("+", rt.UnboxValue(l_12), rt.UnboxValue(l_13)) }), "Long", c.Length(c.FilterList(c.MapList(c.Cap(0), func(l_14 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_14), "$s"))) }), func(l_15 any) any { return c.Binary(">", rt.UnboxValue(l_15), any(3)) })), "Longest", c.Fold("foldl", false, any(""), c.MapList(c.Cap(0), func(l_16 any) any { return c.Text(c.Member(rt.UnboxValue(l_16), "$s")) }), func(l_17, l_18 any) any { return c.Binary("+", rt.UnboxValue(l_17), rt.UnboxValue(l_18)) }), "Wide", c.Binary(">", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_19 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_19), "$s"))) }), func(l_20, l_21 any) any { return c.Binary("+", rt.UnboxValue(l_20), rt.UnboxValue(l_21)) }), any(20)))
+		return c.NewStruct("Line", "N", c.Length(c.Cap(0)), "Total", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_11 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_11), "$s"))) }), func(l_12, l_13 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_12), rt.UnboxValue(l_13)) }), "Long", c.Length(c.FilterList(c.MapList(c.Cap(0), func(l_14 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_14), "$s"))) }), func(l_15 any) any { return c.Binary(rt.OpGt, rt.UnboxValue(l_15), any(3)) })), "Longest", c.Fold("foldl", false, any(""), c.MapList(c.Cap(0), func(l_16 any) any { return c.Text(c.Member(rt.UnboxValue(l_16), "$s")) }), func(l_17, l_18 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_17), rt.UnboxValue(l_18)) }), "Wide", c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_19 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_19), "$s"))) }), func(l_20, l_21 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_20), rt.UnboxValue(l_21)) }), any(20)))
 	}
 	rules[2].Body = e7
 	zpGrammar.StructFields["Doc"] = map[string]bool{"Lines": true}
@@ -572,7 +572,7 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "line"
-	v = tmk_Line(c, true, c.Length(k1), c.Fold("foldl", false, any(0), c.MapList(k1, func(l_23 any) any { return c.Length(c.Text(c.Member((l_23), "$s"))) }), func(l_24, l_25 any) any { return c.Binary("+", (l_24), (l_25)) }), c.Length(c.FilterList(c.MapList(k1, func(l_26 any) any { return c.Length(c.Text(c.Member((l_26), "$s"))) }), func(l_27 any) any { return c.Binary(">", (l_27), any(3)) })), c.Fold("foldl", false, any(""), c.MapList(k1, func(l_28 any) any { return c.Text(c.Member((l_28), "$s")) }), func(l_29, l_30 any) any { return c.Binary("+", (l_29), (l_30)) }), c.Binary(">", c.Fold("foldl", false, any(0), c.MapList(k1, func(l_31 any) any { return c.Length(c.Text(c.Member((l_31), "$s"))) }), func(l_32, l_33 any) any { return c.Binary("+", (l_32), (l_33)) }), any(20)))
+	v = tmk_Line(c, true, c.Length(k1), c.Fold("foldl", false, any(0), c.MapList(k1, func(l_23 any) any { return c.Length(c.Text(c.Member((l_23), "$s"))) }), func(l_24, l_25 any) any { return c.Binary(rt.OpAdd, (l_24), (l_25)) }), c.Length(c.FilterList(c.MapList(k1, func(l_26 any) any { return c.Length(c.Text(c.Member((l_26), "$s"))) }), func(l_27 any) any { return c.Binary(rt.OpGt, (l_27), any(3)) })), c.Fold("foldl", false, any(""), c.MapList(k1, func(l_28 any) any { return c.Text(c.Member((l_28), "$s")) }), func(l_29, l_30 any) any { return c.Binary(rt.OpAdd, (l_29), (l_30)) }), c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(k1, func(l_31 any) any { return c.Length(c.Text(c.Member((l_31), "$s"))) }), func(l_32, l_33 any) any { return c.Binary(rt.OpAdd, (l_32), (l_33)) }), any(20)))
 	return v, true
 fail:
 	return nil, false
@@ -655,4 +655,4 @@ fail:
 
 const _ = types.ZPSchema_fc4e5afe12323557
 
-const _ = rt.Protocol3
+const _ = rt.Protocol4

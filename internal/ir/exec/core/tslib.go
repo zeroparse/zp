@@ -39,6 +39,12 @@ var tsSpecs = []struct {
 	// Predicates and bindings.
 	{fn: "predicate", name: "predicate"},
 	{fn: "bind", name: "bind"},
+	// The operators of terms.
+	{fn: "equal", name: "termEqual"},
+	{fn: "index", name: "termIndex"},
+	{fn: "binary", name: "termBinary"},
+	{fn: "unary", name: "termUnary"},
+	{fn: "logic", name: "termLogic"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -56,7 +62,51 @@ func TSMethods() ([]TSMethod, error) {
 		}
 		out = append(out, TSMethod{Name: s.name, Text: src})
 	}
+	out = append(out, TSMethod{Name: "termError", Text: tsTermError()})
 	return out, nil
+}
+
+// tsOpTable returns the TypeScript array of the names of the operators that the failure code indexes.
+func tsOpTable(code int) string {
+	list := ops.BinaryOps
+	switch code {
+	case ops.ErrUnary:
+		list = ops.UnaryOps
+	case ops.ErrLogical:
+		list = ops.LogicalOps
+	}
+	q := make([]string, len(list))
+	for i, o := range list {
+		q[i] = fmt.Sprintf("%q", o)
+	}
+	return "[" + strings.Join(q, ", ") + "]"
+}
+
+// tsTermError returns the method that makes the text of a failure of a term from ops.TermErrors.
+func tsTermError() string {
+	var b strings.Builder
+	b.WriteString("  termError(code: number, a: Value, b: Value, op: number, n: number): string {\n    switch (code) {\n")
+	for code, e := range ops.TermErrors {
+		var t strings.Builder
+		for _, seg := range splitMessage(e.Text) {
+			switch seg.hole {
+			case "":
+				t.WriteString(strings.NewReplacer("\\", "\\\\", "`", "\\`", "$", "\\$").Replace(seg.text))
+			case "a", "b":
+				t.WriteString("${typeName(" + seg.hole + ")}")
+			case "op":
+				t.WriteString("${" + tsOpTable(code) + "[op]}")
+			case "i":
+				t.WriteString("${a}")
+			case "n":
+				t.WriteString("${n}")
+			}
+		}
+		t.WriteString(e.Hint)
+		fmt.Fprintf(&b, "      case %d: // %s\n        return `%s`;\n", code, e.Name, t.String())
+	}
+	b.WriteString("    }\n    throw new Error(\"no term failure\");\n  }")
+	return b.String()
 }
 
 // tsTarget is the TypeScript implementation of the operations in the runtime's Parser class.
@@ -78,7 +128,7 @@ var tsTarget = &exects.Target{
 			ops.Ctx: "CtxCall", ops.Res: "CtxResult | null", ops.Grow: "GrowState",
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
-			ops.Term: "Action", ops.Datum: "Value",
+			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -107,6 +157,30 @@ var tsTarget = &exects.Target{
 	},
 	Op: func(c *exec.Call, a []string) string {
 		switch c.Callee {
+		case "val.kind":
+			return "valKind(" + a[0] + ")"
+		case "val.unbox":
+			return "unboxValue(" + a[0] + ")"
+		case "val.fromBool":
+			return a[0]
+		case "val.toBool":
+			return "(" + a[0] + " as boolean)"
+		case "val.fail":
+			return fmt.Sprintf("this.termError(%s, %s, %s, %s, %s)", a[0], a[1], a[2], a[3], a[4])
+		case "int.add", "int.sub", "int.mul", "int.quo", "int.rem", "int.cmp", "int.index":
+			return "int" + strings.ToUpper(c.Callee[4:5]) + c.Callee[5:] + "(" + strings.Join(a, ", ") + ")"
+		case "int.neg":
+			return "intNeg(" + a[0] + ")"
+		case "int.zero":
+			return "(" + a[0] + " === 0)"
+		case "str.add", "str.cmp", "str.eq":
+			return "this.str" + strings.ToUpper(c.Callee[4:5]) + c.Callee[5:] + "(" + strings.Join(a, ", ") + ")"
+		case "seq.items":
+			return "seqItems(" + a[0] + ")"
+		case "seq.len":
+			return a[0] + ".length"
+		case "seq.at":
+			return "unboxValue(" + a[0] + "[" + a[1] + "]!)"
 		case "depth.exit":
 			return "this.depth--"
 		case "frame.markPos", "frame.markEnv", "frame.markTrail", "frame.markRec":

@@ -130,53 +130,50 @@ func (p *Parser) CompareText(l, r string) int {
 	return 0
 }
 
+// ValueEqual reports whether l and r are equal as == compares them; a pair without equality is not.
 func (p *Parser) ValueEqual(l, r any) bool {
-	if BudgetControlsEnabled && p.Control != nil {
-		if ls, ok := l.(string); ok {
-			if rs, ok := r.(string); ok {
-				return len(ls) == len(rs) && p.CompareText(ls, rs) == 0
-			}
-		}
-	}
-	eq, _ := equal(l, r)
+	eq, _ := p.termEqual(l, r)
 	return eq
 }
 
+// ValueBinary applies the binary operator op to l and r. An operator that is not one of ops.BinaryOps,
+// as only a corrupted program has, is an error.
 func (p *Parser) ValueBinary(op string, l, r any) (any, error) {
-	if !BudgetControlsEnabled || p.Control == nil {
-		return binaryOp(op, l, r)
+	code, ok := binaryCode(op)
+	if !ok {
+		return nil, p.ActionError("unknown operator ", op)
 	}
-	ls, lok := l.(string)
-	rs, rok := r.(string)
-	if (op == "==" || op == "!=") && lok && rok {
-		return p.ValueEqual(l, r) == (op == "=="), nil
+	v, e := p.termBinary(code, l, r)
+	if e != nil {
+		return nil, e.(error)
 	}
-	if lok && rok {
-		switch op {
-		case "+":
-			var out strings.Builder
-			p.ChargeValueBytes(len(ls) + len(rs))
-			out.Grow(len(ls) + len(rs))
-			for _, s := range [...]string{ls, rs} {
-				for off := 0; off < len(s); {
-					n := min(spendValueChunk, len(s)-off)
-					p.SpendValue(n)
-					out.WriteString(s[off : off+n])
-					off += n
-				}
-			}
-			return out.String(), nil
-		case "<":
-			return p.CompareText(ls, rs) < 0, nil
-		case "<=":
-			return p.CompareText(ls, rs) <= 0, nil
-		case ">":
-			return p.CompareText(ls, rs) > 0, nil
-		case ">=":
-			return p.CompareText(ls, rs) >= 0, nil
-		}
+	return v, nil
+}
+
+// ValueUnary applies the unary operator op to x.
+func (p *Parser) ValueUnary(op string, x any) (any, error) {
+	code, ok := unaryCode(op)
+	if !ok {
+		return nil, p.ActionError("unknown operator ", op)
 	}
-	return p.binaryOperation(op, l, r)
+	v, e := p.termUnary(code, x)
+	if e != nil {
+		return nil, e.(error)
+	}
+	return v, nil
+}
+
+// ValueLogic checks the operand x of the logical operator op and returns it.
+func (p *Parser) ValueLogic(op string, x any) (bool, error) {
+	code, ok := logicalCode(op)
+	if !ok {
+		return false, p.ActionError("unknown operator ", op)
+	}
+	b, e := p.termLogic(code, x)
+	if e != nil {
+		return false, e.(error)
+	}
+	return b, nil
 }
 
 func (p *Parser) ValueTextLen(s string) int {

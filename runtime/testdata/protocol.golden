@@ -1,4 +1,4 @@
-protocol 3
+protocol 4
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -21,6 +21,22 @@ const LimitDepth LimitKind = 2
 const LimitInput LimitKind = 1
 const LimitMemory LimitKind = 3
 const MsgBit ExpID = 1073741824
+const OpAdd untyped int = 0
+const OpAnd untyped int = 0
+const OpEq untyped int = 5
+const OpGe untyped int = 10
+const OpGt untyped int = 9
+const OpIndex untyped int = 11
+const OpLe untyped int = 8
+const OpLt untyped int = 7
+const OpMul untyped int = 2
+const OpNe untyped int = 6
+const OpNeg untyped int = 0
+const OpNot untyped int = 1
+const OpOr untyped int = 1
+const OpQuo untyped int = 3
+const OpRem untyped int = 4
+const OpSub untyped int = 1
 const RuleDocMemo uint8 = 8
 const RuleLeader uint8 = 2
 const RuleMemo uint8 = 1
@@ -111,7 +127,7 @@ func WithTraceFilter(...string) ParseOption
 func WithTraceMaxDepth(int) ParseOption
 func WithUnit(PositionUnit) ParseOption
 method (*ActCtx) And(any, func() any) any
-method (*ActCtx) Binary(string, any, any) any
+method (*ActCtx) Binary(int, any, any) any
 method (*ActCtx) Cap(int) any
 method (*ActCtx) Cast(any, *FieldType, int, int) any
 method (*ActCtx) Concat(...any) any
@@ -133,7 +149,7 @@ method (*ActCtx) PushMap(any, func(any) any)
 method (*ActCtx) Text(any) any
 method (*ActCtx) TextStr(any) string
 method (*ActCtx) Tuple(...any) any
-method (*ActCtx) Unary(string, any) any
+method (*ActCtx) Unary(int, any) any
 method (*ActCtx) Var(int) any
 method (*BudgetControl) Charge(uint64)
 method (*BudgetControl) ChargeDoc(uint64)
@@ -261,10 +277,10 @@ method (*StreamPull) Next() (T, bool, error)
 method (*SyntaxError) Error() string
 method (*SyntaxError) Message() string
 method (*TActCtx) And(any, func() any) any
-method (*TActCtx) Binary(string, any, any) any
+method (*TActCtx) Binary(int, any, any) any
 method (*TActCtx) Cap(int) any
 method (*TActCtx) Cast(any, *FieldType, int, int) any
-method (*TActCtx) Compare(string, TOperand, TOperand) any
+method (*TActCtx) Compare(int, TOperand, TOperand) any
 method (*TActCtx) Concat(...any) any
 method (*TActCtx) Convert(uint16, any) any
 method (*TActCtx) EndList(int) any
@@ -287,7 +303,7 @@ method (*TActCtx) Result(func(*TActCtx) any, string) any
 method (*TActCtx) Text(any) any
 method (*TActCtx) TextStr(any) string
 method (*TActCtx) Tuple(...any) any
-method (*TActCtx) Unary(string, any) any
+method (*TActCtx) Unary(int, any) any
 method (*TActCtx) Var(int) any
 method (*TError) TField(string) (any, bool)
 method (*TError) TFresh() bool

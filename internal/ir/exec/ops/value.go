@@ -2,18 +2,154 @@ package ops
 
 import "zeroparse.dev/zp/internal/ir/exec"
 
-// Val is the component of the value primitives: the operators that act on the scalar values of terms.
-// A primitive is a pure function of its arguments and has no cost: the compositions that call it charge.
+// Val is the component of the value primitives: the operations on the values of terms. A primitive
+// acts on one kind of value and has none of the policy of an operator: the compositions binary,
+// unary, equal, index and logic (internal/ir/exec/core) decide which primitive applies, which
+// operands are valid, and which failure a term reports.
 const Val = "value"
 
-// Binary operators of val.binary, by the code a call passes.
-var BinaryOps = []string{"+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">="}
+// Binary operators of the composition binary, by the code a call passes. The last, the index of a
+// list or a tuple, is not a scalar operator and takes the composition index.
+var BinaryOps = []string{"+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "[]"}
 
-// UnaryOps are the unary operators of val.unary, by the code a call passes.
+// Codes of the binary operators the compositions branch on. The codes of the three groups (binary,
+// unary and logical) are separate: each is an index into the table of its own group, so OpAdd, OpNeg
+// and OpAnd are all 0. A call passes the code of the group of the method it calls.
+const (
+	OpAdd = iota
+	OpSub
+	OpMul
+	OpQuo
+	OpRem
+	OpEq
+	OpNe
+	OpLt
+	OpLe
+	OpGt
+	OpGe
+	OpIndex
+)
+
+// UnaryOps are the unary operators of the composition unary, by the code a call passes.
 var UnaryOps = []string{"-", "!"}
 
-// LogicalOps are the operators whose operands val.bool checks, by the code a call passes.
+// BinaryNames, UnaryNames and LogicalNames are the names of the operators of the three tables, which
+// targets use to name their codes.
+var (
+	BinaryNames  = []string{"Add", "Sub", "Mul", "Quo", "Rem", "Eq", "Ne", "Lt", "Le", "Gt", "Ge", "Index"}
+	UnaryNames   = []string{"Neg", "Not"}
+	LogicalNames = []string{"And", "Or"}
+)
+
+// Ident returns the identifier of an operator code in a target: Ident("Add") is "OpAdd".
+func Ident(name string) string { return "Op" + name }
+
+// OperatorIdent returns the identifier of the operator sym of the binary operators, or of the unary
+// operators if unary is set, or of the logical operators if logical is set: "+" is "OpAdd".
+func OperatorIdent(sym string, unary, logical bool) string {
+	list, names := BinaryOps, BinaryNames
+	switch {
+	case unary:
+		list, names = UnaryOps, UnaryNames
+	case logical:
+		list, names = LogicalOps, LogicalNames
+	}
+	for i, s := range list {
+		if s == sym {
+			return Ident(names[i])
+		}
+	}
+	panic("ops: no operator " + sym)
+}
+
+// BinaryCode returns the code of the binary operator sym.
+func BinaryCode(sym string) int { return code(BinaryOps, sym) }
+
+// UnaryCode returns the code of the unary operator sym.
+func UnaryCode(sym string) int { return code(UnaryOps, sym) }
+
+func code(list []string, sym string) int {
+	for i, s := range list {
+		if s == sym {
+			return i
+		}
+	}
+	panic("ops: no operator " + sym)
+}
+
+// Codes of the unary operators.
+const (
+	OpNeg = iota
+	OpNot
+)
+
+// LogicalOps are the operators whose operands the composition logic checks, by the code a call passes.
 var LogicalOps = []string{"&&", "||"}
+
+// Codes of the logical operators.
+const (
+	OpAnd = iota
+	OpOr
+)
+
+// Kinds of a value, as val.kind returns them.
+const (
+	// KindNil is nil.
+	KindNil = iota
+	// KindInt is an int.
+	KindInt
+	// KindString is a string.
+	KindString
+	// KindBool is a bool.
+	KindBool
+	// KindOther is every other value: a node, a list, a tuple, a struct, and a box that holds a
+	// value (val.unbox opens a box).
+	KindOther
+)
+
+// TermError is a failure that a term reports. Text is its message with the placeholders {a} and
+// {b}, the type names of the first and second value; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
+// value as an int; and {n}, a count. Hint ends the message of a failure that has one. Every target
+// prints these messages and puts the text of a failure together from them, so that they read the
+// same on all targets.
+type TermError struct {
+	Name, Text, Hint string
+}
+
+// The failures of a term, by the code val.fail takes: the index of TermErrors.
+const (
+	// ErrDivZero is a division or remainder by zero.
+	ErrDivZero = iota
+	// ErrOperands is an operator applied to operands it does not accept (a is the left and b the right
+	// operand, op an index of BinaryOps).
+	ErrOperands
+	// ErrCompare is ErrOperands for a comparison with == or != of a value that is not nil, an int, a
+	// string or a bool.
+	ErrCompare
+	// ErrUnary is a unary operator applied to an operand it does not accept (op an index of UnaryOps).
+	ErrUnary
+	// ErrLogical is a logical operator applied to an operand that is not a bool (op an index of
+	// LogicalOps).
+	ErrLogical
+	// ErrNotList is the use of a value that is not a list or a tuple as one (op an index of BinaryOps, OpIndex).
+	ErrNotList
+	// ErrIndexType is an index that is not an int.
+	ErrIndexType
+	// ErrIndexRange is an index out of range (i is the index, n the length).
+	ErrIndexRange
+)
+
+// TermErrors are the messages of the failures of a term.
+var TermErrors = []TermError{
+	ErrDivZero:    {Name: "division by zero", Text: "division by zero"},
+	ErrOperands:   {Name: "invalid operands", Text: "invalid operands {a} and {b} for {op}"},
+	ErrCompare:    {Name: "invalid comparison", Text: "invalid operands {a} and {b} for {op}", Hint: ": nodes and other structured values cannot be compared; use text(x), or .Start and .End"},
+	ErrUnary:      {Name: "invalid unary operand", Text: "invalid operand {a} for unary {op}"},
+	ErrLogical:    {Name: "invalid logical operand", Text: "invalid operand {a} for {op}"},
+	ErrNotList:    {Name: "not a list", Text: "{op}: expected a list, got {a}"},
+	ErrIndexType:  {Name: "index not an int", Text: "index must be int, got {a}"},
+	ErrIndexRange: {Name: "index out of range", Text: "index {i} out of range for {n} elements"},
+}
 
 // ValueModule returns the pilot declarations with the value primitives. The primitives are not part
 // of Pilot until a composition calls them.
@@ -23,46 +159,103 @@ func ValueModule() *exec.Module {
 	return m
 }
 
+// Seq is the handle type of the elements of a list or a tuple.
+const Seq = "Seq"
+
+// QValueBytes is the number of bytes of the string operands of a primitive, which it reads and, for a
+// concatenation, copies.
+const QValueBytes = "value_bytes"
+
+// QErrParts is the number of fragments of the text of a failure: the fixed pieces and the values
+// between them, which a target that bounds the work assembles piece by piece, charging each.
+const QErrParts = "error_parts"
+
 // AddValue adds the value component and its primitives to m, which declares the handle Datum.
 //
-// A value is nil, an int, a string, a bool, or a structured value (a node, list, tuple or struct) that
-// the primitives accept only where they say so. An int is 64 bits wide with wraparound. A primitive
-// that can fail has a second result: nil on success, otherwise the text of the error as a string value.
-// The text is the one the action reports, so that every target fails with the same message.
+// A value is nil, an int, a string, a bool, or a structured value (a node, list, tuple or struct)
+// that the primitives accept only where they say so. An int is 64 bits wide with wraparound. A
+// primitive is pure unless its contract says it charges: the string primitives read their operands,
+// and val.fail makes a text, which a target that bounds the work does piece by piece.
 func AddValue(m *exec.Module) {
-	m.AddComponent(Val, `The operators on the values of terms. They read and write no state.`)
+	m.AddComponent(Val, `The operations on the values of terms. They read and write no state.`)
 	datum := exec.THandle(Datum)
+	items := m.AddHandle(Seq, Val, "The elements of a list or a tuple, as seq.items returns them.")
 	pure := func(o *exec.Op) {
 		o.Component = Val
 		m.AddOp(o)
 	}
-	pure(&exec.Op{Name: "val.binary",
-		Params:  []exec.Param{exec.P("op", exec.TInt), exec.P("l", datum), exec.P("r", datum)},
-		Results: []exec.Type{datum, datum},
-		Contract: `Applies the binary operator BinaryOps[op] to l and r and returns the value and a nil error.
-Ints combine with + - * / % and compare with < <= > >=; the result of an arithmetic operator is the
-64-bit result with wraparound, of / and % truncated toward zero with the sign of the dividend on %.
-A division by zero fails with "division by zero". Strings concatenate with + and compare with < <= > >=
-by code point. == and != compare two values of one scalar type, a bool, an int or a string, and any
-value with nil, which equals only nil; a box compares as the value it holds. Any other operands fail
-with "invalid operands T and U for op", T and U naming the types of the operands, and a == or != of
-structured values continues with ": nodes and other structured values cannot be compared; use text(x),
-or .Start and .End". On failure the value is nil.`,
-		Requires: `op is an index of BinaryOps.`,
-		Laws:     []string{"pure: equal arguments give equal results", "== is symmetric and != is its negation"}})
-	pure(&exec.Op{Name: "val.unary",
-		Params:  []exec.Param{exec.P("op", exec.TInt), exec.P("x", datum)},
-		Results: []exec.Type{datum, datum},
-		Contract: `Applies the unary operator UnaryOps[op] to x: - negates an int with wraparound (the negation of
-the least int is itself) and ! negates a bool. Any other operand fails with "invalid operand T for unary op".
-On failure the value is nil.`,
-		Requires: `op is an index of UnaryOps.`,
+	x, l, r := exec.P("x", datum), exec.P("l", datum), exec.P("r", datum)
+	bytes := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 4, Quantity: QValueBytes}}}
+	pure(&exec.Op{Name: "val.kind", Params: []exec.Param{x}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the kind of x: KindNil for nil, KindInt for an int, KindString for a string, KindBool
+for a bool and KindOther for every other value, a box that holds one of these included.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "val.unbox", Params: []exec.Param{x}, Results: []exec.Type{datum},
+		Contract: `Returns the value that x stands for: the value a box holds, and x for any other value.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
-	pure(&exec.Op{Name: "val.bool",
-		Params:  []exec.Param{exec.P("op", exec.TInt), exec.P("x", datum)},
-		Results: []exec.Type{exec.TBool, datum},
-		Contract: `Checks that x, an operand of the logical operator LogicalOps[op], is a bool, and returns it
-with a nil error. Any other value fails with "invalid operand T for op", and the bool is false.`,
-		Requires: `op is an index of LogicalOps.`,
+	pure(&exec.Op{Name: "val.fromBool", Params: []exec.Param{exec.P("b", exec.TBool)}, Results: []exec.Type{datum},
+		Contract: `Returns the bool value b.`})
+	pure(&exec.Op{Name: "val.toBool", Params: []exec.Param{x}, Results: []exec.Type{exec.TBool},
+		Contract: `Returns the bool that x is.`, Requires: `x is a bool: val.kind(x) is KindBool.`})
+	pure(&exec.Op{Name: "val.fail", Params: []exec.Param{exec.P("code", exec.TInt), exec.P("a", datum), exec.P("b", datum),
+		exec.P("op", exec.TInt), exec.P("n", exec.TInt)},
+		Results: []exec.Type{datum}, NoReturn: true, Host: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 2, Quantity: QErrParts}}},
+		Contract: `Returns the failure with the message TermErrors[code]: {a} and {b} read as the names of the types of
+a and b, {op} as the name of the operator that op indexes (BinaryOps for ErrOperands and ErrCompare, UnaryOps for ErrUnary,
+LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a value of the target, which the caller returns
+and the term evaluation reports: it is not an int, a string, a bool or nil. A target that bounds the work assembles
+the text piece by piece, charging for each piece.`,
+		Requires: `code indexes TermErrors, and the arguments are those its message names.`})
+	pure(&exec.Op{Name: "int.add", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns l + r with 64-bit wraparound.`, Requires: `l and r are ints.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.sub", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns l - r with 64-bit wraparound.`, Requires: `l and r are ints.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.mul", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns l * r with 64-bit wraparound.`, Requires: `l and r are ints.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.quo", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns l / r truncated toward zero; the least int divided by -1 is the least int.`,
+		Requires: `l and r are ints, and r is not zero.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.rem", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns the remainder of l / r, with the sign of l; the remainder of the least int by -1 is zero.`,
+		Requires: `l and r are ints, and r is not zero.`,
+		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.neg", Params: []exec.Param{x}, Results: []exec.Type{datum},
+		Contract: `Returns -x with 64-bit wraparound: the negation of the least int is itself.`, Requires: `x is an int.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.zero", Params: []exec.Param{x}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether x is zero.`, Requires: `x is an int.`})
+	pure(&exec.Op{Name: "int.cmp", Params: []exec.Param{l, r}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns -1 if l is less than r, 0 if they are equal and 1 if l is greater.`, Requires: `l and r are ints.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "int.index", Params: []exec.Param{x, exec.P("n", exec.TInt)}, Results: []exec.Type{exec.TInt, exec.TBool},
+		Contract: `Returns x as an int and true if 0 <= x < n, and 0 and false otherwise.`, Requires: `x is an int.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	str := func(o *exec.Op) {
+		o.Host, o.NoReturn, o.Cost = true, true, bytes
+		pure(o)
+	}
+	str(&exec.Op{Name: "str.add", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
+		Contract: `Returns the concatenation of l and r. A target that bounds the work charges for the bytes it reads and copies.`,
+		Requires: `l and r are strings.`})
+	str(&exec.Op{Name: "str.cmp", Params: []exec.Param{l, r}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns -1 if l is less than r, 0 if they are equal and 1 if l is greater, comparing by code point: the
+order of the bytes of UTF-8 and not of the code units of UTF-16. A target that bounds the work charges for the bytes it
+compares.`,
+		Requires: `l and r are strings.`})
+	str(&exec.Op{Name: "str.eq", Params: []exec.Param{l, r}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether l and r are the same string. A target that bounds the work charges for the bytes it compares.`,
+		Requires: `l and r are strings.`})
+	pure(&exec.Op{Name: "seq.items", Params: []exec.Param{x}, Results: []exec.Type{exec.THandle(Seq), exec.TBool},
+		Contract: `Returns the elements of x and true if x is nil (no elements), a list or a tuple, and false otherwise.`,
+		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
+	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},
+		Contract: `Returns element i as a value: the value a box holds, and nil for a missing element.`,
+		Requires: `items came from seq.items, and 0 <= i < seq.len(items).`})
 }
