@@ -23,6 +23,9 @@ type TermCase struct {
 	// Type is the declared Type of the rule main of a TermAction case, "" for a TermPredicate case.
 	Type string
 	Kind TermKind
+	// Lit is the text of the literal that the rule main matches, and $x captures: "a" in the terms of
+	// TermCases, and "a", "é" or "😀" in those of TermCasesWide, whose positions differ in the two units.
+	Lit string
 }
 
 // termTypes are the Types of the values a generated term may have.
@@ -56,22 +59,58 @@ func TermCases(seed uint64, n int, unset bool) []TermCase {
 	return out
 }
 
+// TermCasesWide returns n well-typed terms generated from seed like TermCases, with more forms: strings
+// with characters from U+E000 to U+FFFF and outside the Basic Multilingual Plane, a captured literal
+// that is not ASCII, tuple indexing, nil lists and nil elements, lists of bools, of structs, of lists
+// and of tuples, casts to bool and to a struct, and the errors that only run time can find (the
+// comparison of structured values, the operand of && that is not a bool, the filter that gives no
+// bool). TermCases is not changed by the forms, so that what the goldens pin stays the same.
+func TermCasesWide(seed uint64, n int, unset bool) []TermCase {
+	g := &termGen{rng: rand.New(rand.NewPCG(seed, 0x91de5)), unset: unset, wide: true}
+	out := make([]TermCase, 0, n)
+	for i := 0; i < n; i++ {
+		if i%4 == 3 {
+			out = append(out, g.predicateCase(i))
+		} else {
+			out = append(out, g.actionCase(i))
+		}
+	}
+	return out
+}
+
+// wideTypes are the Types of the values a term of TermCasesWide may have, besides termTypes.
+var wideTypes = []string{"[]bool", "[]R", "[][]int", "[](int, string)"}
+
+// wideLits are the literals the rule main may match in a term of TermCasesWide.
+var wideLits = []string{"a", "é", "😀"}
+
 func (g *termGen) actionCase(i int) TermCase {
-	typ := termTypes[g.rng.IntN(len(termTypes))]
+	typ, lit := "", "a"
+	if g.wide {
+		lit = wideLits[g.rng.IntN(len(wideLits))]
+		all := append(append([]string{}, termTypes...), wideTypes...)
+		typ = all[g.rng.IntN(len(all))]
+	} else {
+		typ = termTypes[g.rng.IntN(len(termTypes))]
+	}
 	term := g.term(typ, 3, nil)
 	return TermCase{
 		Case: Case{Name: fmt.Sprintf("term %d: %s", i, term),
-			Src: fmt.Sprintf("%srule main %s = x:\"a\" \"b\"? $$ => %s\n", termPrelude, typ, term), Inputs: TermInputs[:1]},
-		Term: term, Type: typ, Kind: TermAction,
+			Src: fmt.Sprintf("%srule main %s = x:%q \"b\"? $$ => %s\n", termPrelude, typ, lit, term), Inputs: []string{lit}},
+		Term: term, Type: typ, Kind: TermAction, Lit: lit,
 	}
 }
 
 func (g *termGen) predicateCase(i int) TermCase {
+	lit := "a"
+	if g.wide {
+		lit = wideLits[g.rng.IntN(len(wideLits))]
+	}
 	term := g.term("bool", 3, nil)
 	return TermCase{
 		Case: Case{Name: fmt.Sprintf("predicate %d: %s", i, term),
-			Src: fmt.Sprintf("%srule main int = x:\"a\" ({%s} \"b\" / \"\") $$ => 1\n", termPrelude, term), Inputs: TermInputs},
-		Term: term, Kind: TermPredicate,
+			Src: fmt.Sprintf("%srule main int = x:%q ({%s} \"b\" / \"\") $$ => 1\n", termPrelude, lit, term), Inputs: []string{lit, lit + "b"}},
+		Term: term, Kind: TermPredicate, Lit: lit,
 	}
 }
 
@@ -79,6 +118,9 @@ type termGen struct {
 	rng   *rand.Rand
 	next  int
 	unset bool
+	wide  bool // the forms of TermCasesWide
+	// noNil is positive while a list that is indexed is generated.
+	noNil int
 }
 
 // scope maps a lambda parameter to its Type.
@@ -116,7 +158,7 @@ func (g *termGen) term(typ string, depth int, s scope) string {
 		return g.stringTerm(depth, s)
 	case "bool":
 		return g.boolTerm(depth, s)
-	case "[]int", "[]string":
+	case "[]int", "[]string", "[]bool", "[]R", "[][]int", "[](int, string)":
 		return g.listTerm(typ, depth, s)
 	case "R":
 		return g.structTerm(depth, s)
@@ -127,6 +169,11 @@ func (g *termGen) term(typ string, depth int, s scope) string {
 }
 
 var termStrings = []string{`""`, `"a"`, `"bc"`, `"é"`, `"😀x"`}
+
+// wideStrings are the strings besides termStrings in TermCasesWide: characters from U+E000 to U+FFFF,
+// which sort before the characters outside the Basic Multilingual Plane by code point but after them by
+// UTF-16 code unit, and such a character.
+var wideStrings = []string{"\"\ue000\"", "\"\uffff\"", "\"\U0001F600\"", "\"a\uffff\"", "\"\U00010000\""}
 
 func (g *termGen) intTerm(depth int, s scope) string {
 	if depth <= 0 {
@@ -144,6 +191,24 @@ func (g *termGen) intTerm(depth int, s scope) string {
 		return fmt.Sprint(g.rng.IntN(7) - 2)
 	}
 	d := depth - 1
+	if g.wide {
+		switch g.rng.IntN(14) {
+		case 0:
+			return "(" + g.term("(int, string)", d, s) + ")[0]"
+		case 1:
+			return "len(" + g.source(g.pick("[]bool", "[]R", "[][]int", "[](int, string)"), d, s) + ")"
+		case 5:
+			// A nil element makes the Type of the list optional, which only len and the rest of the
+			// term that does not read an element accept.
+			return "len(list(" + g.pick("nil", "nil, 1", "1, nil, nil", "nil, \"a\"", "list(nil), nil", "nil, R{A: 1}") + "))"
+		case 2:
+			return "len(nil)"
+		case 3:
+			return "(" + g.indexed("[][]int", d, s) + ")[" + g.term("int", d, s) + "][" + g.term("int", d, s) + "]"
+		case 4:
+			return "(" + g.indexed("[]R", d, s) + ")[" + g.term("int", d, s) + "].A"
+		}
+	}
 	switch g.rng.IntN(16) {
 	case 0, 1, 2:
 		return "(" + g.term("int", d, s) + " " + g.pick("+", "-", "*") + " " + g.term("int", d, s) + ")"
@@ -154,7 +219,7 @@ func (g *termGen) intTerm(depth int, s scope) string {
 	case 6:
 		return "len(" + g.term("string", d, s) + ")"
 	case 7:
-		return "len(" + g.term(g.pick("[]int", "[]string"), d, s) + ")"
+		return "len(" + g.source(g.pick("[]int", "[]string"), d, s) + ")"
 	case 8:
 		return g.index("int", d, s)
 	case 9, 10:
@@ -173,7 +238,31 @@ func (g *termGen) intTerm(depth int, s scope) string {
 
 // index returns an element of a list of Type typ: list[i].
 func (g *termGen) index(typ string, d int, s scope) string {
-	return "(" + g.term("[]"+typ, d, s) + ")[" + g.term("int", d, s) + "]"
+	return "(" + g.indexed("[]"+typ, d, s) + ")[" + g.term("int", d, s) + "]"
+}
+
+// emptyList returns an empty list that a function reads: list(), or in TermCasesWide nil too, which
+// is the empty list as well. Where a list is the value of the term, nil has no Type that fits.
+func (g *termGen) emptyList() string {
+	if g.wide && g.rng.IntN(2) == 0 {
+		return "nil"
+	}
+	return "list()"
+}
+
+// source returns a list term of Type typ for len, which is nil sometimes.
+func (g *termGen) source(typ string, d int, s scope) string {
+	if g.wide && g.rng.IntN(8) == 0 {
+		return "nil"
+	}
+	return g.term(typ, d, s)
+}
+
+// indexed returns a list term of Type typ that is not nil.
+func (g *termGen) indexed(typ string, d int, s scope) string {
+	g.noNil++
+	defer func() { g.noNil-- }()
+	return g.term(typ, d, s)
 }
 
 // fold returns foldl/foldr of the element Type elem into an accumulator of Type acc.
@@ -182,7 +271,7 @@ func (g *termGen) fold(acc, elem string, d int, s scope) string {
 	if g.rng.IntN(6) == 0 {
 		// An empty list has no element Type, so the body may not use the element.
 		body := g.term(acc, d, append(s[:len(s):len(s)], scoped{a, acc}))
-		return fmt.Sprintf("%s(%s, list(), (%s, %s) => %s)", g.pick("foldl", "foldr"), g.term(acc, d, s), a, e, body)
+		return fmt.Sprintf("%s(%s, %s, (%s, %s) => %s)", g.pick("foldl", "foldr"), g.term(acc, d, s), g.emptyList(), a, e, body)
 	}
 	body := g.term(acc, d, append(s[:len(s):len(s)], scoped{a, acc}, scoped{e, elem}))
 	return fmt.Sprintf("%s(%s, %s, (%s, %s) => %s)", g.pick("foldl", "foldr"), g.term(acc, d, s), g.term("[]"+elem, d, s), a, e, body)
@@ -192,7 +281,7 @@ func (g *termGen) fold(acc, elem string, d int, s scope) string {
 // value of the other Type, so that the cast is well typed and may fail.
 func (g *termGen) cast(typ string, d int, s scope) string {
 	other := `"a"`
-	if typ == "string" {
+	if typ == "string" || typ == "bool" {
 		other = "1"
 	}
 	items := []string{g.term(typ, d, s), other}
@@ -212,9 +301,15 @@ func (g *termGen) stringTerm(depth int, s scope) string {
 		if g.rng.IntN(4) == 0 {
 			return "text($x)"
 		}
+		if g.wide && g.rng.IntN(3) == 0 {
+			return wideStrings[g.rng.IntN(len(wideStrings))]
+		}
 		return termStrings[g.rng.IntN(len(termStrings))]
 	}
 	d := depth - 1
+	if g.wide && g.rng.IntN(10) == 0 {
+		return "(" + g.term("(int, string)", d, s) + ")[1]"
+	}
 	switch g.rng.IntN(9) {
 	case 0, 1, 2:
 		return "(" + g.term("string", d, s) + " + " + g.term("string", d, s) + ")"
@@ -235,6 +330,22 @@ func (g *termGen) boolTerm(depth int, s scope) string {
 		return g.pick("true", "false", "($x != nil)", "($x == nil)")
 	}
 	d := depth - 1
+	if g.wide {
+		switch g.rng.IntN(12) {
+		case 0:
+			return g.cast("bool", d, s)
+		case 1:
+			// Structured values and values of different kinds have no equality: the error says so, and
+			// how to compare them. The checker accepts the operands only if their Types are not known,
+			// like an element of a list that mixes Types.
+			return g.pick("(list(R{A: 1}, 1)[0] == list(R{A: 1}, 1)[0])", "(list(list(1), 1)[0] != list(list(1), 1)[0])",
+				"(list($x, 1)[0] == list($x, 1)[0])", "(list(($x, 1), 1)[0] == list(($x, 1), 1)[0])",
+				"(list(1, \"a\")[0] == list(1, \"a\")[1])", "(list(1, true)[1] != list(1, true)[0])",
+				"(list(1, \"a\")[1] == list(1, \"a\")[1])", "(list() != nil)", "(list(nil)[0] == list(nil)[0])")
+		case 6:
+			return "(" + g.indexed("[]bool", d, s) + ")[" + g.term("int", d, s) + "]"
+		}
+	}
 	switch g.rng.IntN(12) {
 	case 0, 1:
 		return "(" + g.term("int", d, s) + " " + g.pick("==", "!=", "<", "<=", ">", ">=") + " " + g.term("int", d, s) + ")"
@@ -258,7 +369,7 @@ func (g *termGen) boolTerm(depth int, s scope) string {
 
 func (g *termGen) listTerm(typ string, depth int, s scope) string {
 	elem := strings.TrimPrefix(typ, "[]")
-	other := map[string]string{"int": "string", "string": "int"}[elem]
+	other := map[string]string{"int": "string", "string": "int", "bool": "int", "R": "string", "[]int": "int", "(int, string)": "int"}[elem]
 	if depth <= 0 {
 		var items []string
 		for range 1 + g.rng.IntN(3) {
@@ -277,6 +388,10 @@ func (g *termGen) listTerm(typ string, depth int, s scope) string {
 	case 2, 3:
 		e := g.fresh("e")
 		src := g.pick(elem, other)
+		if g.wide && g.rng.IntN(6) == 0 {
+			// The elements of an empty list have no Type, so the function does not read one.
+			return fmt.Sprintf("map(%s, (%s) => %s)", g.emptyList(), e, g.term(elem, d, s))
+		}
 		return fmt.Sprintf("map(%s, (%s) => %s)", g.term("[]"+src, d, s), e, g.term(elem, d, append(s[:len(s):len(s)], scoped{e, src})))
 	case 4:
 		e := g.fresh("e")
@@ -297,6 +412,9 @@ func (g *termGen) structTerm(depth int, s scope) string {
 	d := depth - 1
 	if depth <= 0 {
 		d = 0
+	}
+	if g.wide && depth > 0 && g.rng.IntN(8) == 0 {
+		return g.cast("R", d, s)
 	}
 	var fields []string
 	if !g.unset || g.rng.IntN(5) != 0 { // a field left unset reads as nil
