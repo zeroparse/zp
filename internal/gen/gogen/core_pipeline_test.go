@@ -16,7 +16,7 @@ import (
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
 func typedEnv(g *gogen.Generator) *core.Env {
 	return &core.Env{
-		Mode:  core.Mode{Lean: g.Ordinary && g.GoBudgetControls, Ordinary: g.Ordinary, Observe: g.Observability},
+		Mode:  core.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability},
 		Flag:  g.Opt.On,
 		Local: gogen.CoreLocalRule,
 	}

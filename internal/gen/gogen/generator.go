@@ -175,7 +175,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, GoBudgetControls: true, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
+	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
 	if live != nil {
 		goGen.SeedDescs()
 		for _, d := range live.descs[len(goGen.Descs):] {
@@ -445,10 +445,7 @@ type Generator struct {
 	gen.Generator
 	// hoist collects the statements the term being printed needs before its expression (see stmts); nil
 	// outside a term.
-	hoist *[]string
-	// GoBudgetControls emits budget-control charging; Go output always has it, TypeScript output has
-	// its own runtime budget controls.
-	GoBudgetControls    bool
+	hoist               *[]string
 	directTypedDocument bool
 	budgetClassNames    map[string]string
 	budgetClassKeys     []string
@@ -1539,10 +1536,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 			return fmt.Sprintf("c.Fold(%q, %v, %s, %s, %s)", t.Func, t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
 		case "map":
 			if x, ok := g.Projected(t, locals); ok {
-				if g.GoBudgetControls {
-					return "c.NewList(c.ListItems(\"map\", " + g.term(x, s, locals) + "))"
-				}
-				return "c.NewList(" + g.pick("listItems", "tlistItems") + "(\"map\", " + g.term(x, s, locals) + "))"
+				return "c.NewList(c.ListItems(\"map\", " + g.term(x, s, locals) + "))"
 			}
 			return fmt.Sprintf("c.MapList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
 		case "filter":
@@ -1557,10 +1551,7 @@ func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]str
 			if rx, ok := compile.TextArg(t.R); ok {
 				// Compare the strings directly (see evalCtx.binary).
 				xs := g.terms([]grammar.Term{lx, rx}, s, locals)
-				if g.GoBudgetControls {
-					return fmt.Sprintf("any(c.P.TextEqual(c.TextStr(%s), c.TextStr(%s)) == %v)", xs[0], xs[1], t.Op == "==")
-				}
-				return fmt.Sprintf("any(c.TextStr(%s) %s c.TextStr(%s))", xs[0], t.Op, xs[1])
+				return fmt.Sprintf("any(c.P.TextEqual(c.TextStr(%s), c.TextStr(%s)) == %v)", xs[0], xs[1], t.Op == "==")
 			}
 		}
 		if g.Table == "trules" && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) && g.Opt.On("field-compare") {
@@ -1607,10 +1598,7 @@ func (g *Generator) predicateBody(t grammar.Term, s *compile.Scope, locals map[s
 			}
 			_, text := g.stmts(func() string { return g.term(&grammar.CaptureRef{Name: name}, s, locals) })
 			fast := fmt.Sprintf("switch c.TextStr(%s) { case %s: return true }; return false", text, strings.Join(cases, ", "))
-			if g.GoBudgetControls {
-				return "if c.P.Control != nil { " + g.termBody(t, s, locals) + " }; " + fast
-			}
-			return fast
+			return "if c.P.Control != nil { " + g.termBody(t, s, locals) + " }; " + fast
 		}
 	}
 	return g.termBody(t, s, locals)
@@ -1739,7 +1727,7 @@ func (g *Generator) lambda(t grammar.Term, s *compile.Scope, locals map[string]s
 // membership uses immutable generated range tables. TS keeps its own runtime.
 func (g *Generator) ControlledClassReject(e *grammar.CharClass) string {
 	ordinary := classReject(e)
-	if !g.GoBudgetControls || g.NoBudget || len(e.Ranges) <= 4 {
+	if g.NoBudget || len(e.Ranges) <= 4 {
 		// Without budget controls the class is tested without a control, so it has no range table.
 		return ordinary
 	}
@@ -1789,7 +1777,7 @@ func (g *Generator) helper(name string) string {
 
 // leanTyped reports whether typed rule bodies are emitted in their ordinary form only.
 func (g *Generator) leanTyped() bool {
-	return g.Ordinary && g.GoBudgetControls && g.Table == "trules"
+	return g.Ordinary && g.Table == "trules"
 }
 
 // classTable returns the name of the package variable that holds the membership table of e,

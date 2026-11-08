@@ -341,7 +341,7 @@ func TestCoreScans(t *testing.T) {
 	if !ok {
 		t.Fatal("does not compile")
 	}
-	g := &gogen.Generator{Prog: prog.Static(), Table: "trules", GoBudgetControls: true}
+	g := &gogen.Generator{Prog: prog.Static(), Table: "trules"}
 	m, err := g.TypedCore(nil)
 	if err != nil {
 		t.Fatal(err)
