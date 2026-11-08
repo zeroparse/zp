@@ -78,7 +78,7 @@ The following rules determine the shape of the tree.
      [predicates](predicates.md).
 
    An optional expression `a?` that does not match does have a value, `nil`,
-   which appears as an element, and so does a choice whose alternative has no value.
+   which appears as an element when `a` has a value, and so does a choice whose alternative has no value. When `a` has no value, `a?` has no value either and adds no element.
 6. **Suppressed construction.** Atomic (`a #atomic`) and discard (`-a`) do not build
    the values of their operands, which saves work and keeps the tree small.
 7. **Whole input.** A parse succeeds only if the [start rule](../runtime/parsing.md#start-rule)

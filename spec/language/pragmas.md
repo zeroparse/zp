@@ -92,7 +92,7 @@ of its original type and `error`, and an error value is assignable only to a typ
 `Parser.Parse` returns a recovered value together with a `SyntaxErrors` error
 listing the diagnostics. If parsing later fails, only the final syntax error
 is returned. A no-value expression, including lookahead or a predicate,
-remains no-value after recovery, though its error is recorded.
+remains no-value after recovery, though its error is recorded. An expression that never matches, such as `_|_`, is the exception: a recovery of it produces an error value covering the skipped input.
 
 Recovery proceeds in these steps.
 
