@@ -15,12 +15,13 @@ import (
 // matcher function of the Node and typed tables (rule bodies, framed bodies, flat-rule methods and the
 // lines and skips of Operators Rules) begins with one Spend and has no other Spend before its first
 // loop; a typed wrapper u<N> or i<N> that only saves and restores state around a call of another matcher
-// function charges nothing itself. The lowered function of Flow IR charges no entry of its own (flow.Func.Entered); the method that holds it does, so a rule
+// function charges nothing itself, and neither does the Document-dispatch wrapper s<N> of a plain rule,
+// which hands the call to DocumentCall or calls the body ds<N> that charges the entry. The lowered function of Flow IR charges no entry of its own (flow.Func.Entered); the method that holds it does, so a rule
 // whose method lost the charge would consume input uncharged without Verify noticing.
 func TestGeneratedRuleEntryCharge(t *testing.T) {
 	t.Parallel()
-	name := regexp.MustCompile(`^[eiqrsuv][0-9]+$`)
-	wrapper := regexp.MustCompile(`^[iu][0-9]+$`) // typed wrappers: state around a call of the charging function
+	name := regexp.MustCompile(`^(ds|[eiqrsuv])[0-9]+$`)
+	wrapper := regexp.MustCompile(`^[isu][0-9]+$`) // typed wrappers: state or dispatch around a call of the charging function
 	var paths []string
 	for _, pattern := range []string{"../bench/gen/*/parser.go"} {
 		m, err := filepath.Glob(pattern)
