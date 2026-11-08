@@ -2,12 +2,15 @@ package conform
 
 import (
 	"errors"
+	"math"
 	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
+	"unicode/utf16"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
@@ -523,5 +526,146 @@ func TestListMutantsFail(t *testing.T) {
 				t.Fatalf("failed for another reason than %q:\n%v", mu.want, f)
 			}
 		})
+	}
+}
+
+// valueModelImpl is the model of the value primitives run as an implementation: it passes every case.
+type valueModelImpl struct{ ref.Values }
+
+func (valueModelImpl) Datum(v ref.V) any { return v }
+func (valueModelImpl) Canon(x any) ref.V { return x.(ref.V) }
+
+// brokenValues applies mutate to the results of the model.
+type brokenValues struct {
+	valueModelImpl
+	mutate func(op string, args []ref.V, res []any) []any
+}
+
+func (b brokenValues) Call(o *exec.Op, args []any) []any {
+	res := b.valueModelImpl.Call(o, args)
+	vs := make([]ref.V, len(args)-1)
+	for i, a := range args[1:] {
+		vs[i] = a.(ref.V)
+	}
+	name := o.Name
+	switch o.Name {
+	case "val.binary":
+		name = ops.BinaryOps[args[0].(int64)]
+	case "val.unary":
+		name = "unary " + ops.UnaryOps[args[0].(int64)]
+	case "val.bool":
+		name = "bool " + ops.LogicalOps[args[0].(int64)]
+	}
+	return b.mutate(name, vs, res)
+}
+
+func TestValueModelPassesItsCases(t *testing.T) {
+	s := ValueSuite{Name: "model", Impl: valueModelImpl{}, Ops: ValueOps}
+	if err := RunValues(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Verify(ops.ValueModule()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestValueConformanceDetectsMutants checks that a primitive that is wrong in one way, for the
+// arguments where that way matters, fails the conformance run: the pool and the exhaustive pairs cover
+// the cases that the mutants single out.
+func TestValueConformanceDetectsMutants(t *testing.T) {
+	ints := func(a []ref.V) bool { return len(a) == 2 && a[0].Kind == ref.KInt && a[1].Kind == ref.KInt }
+	set := func(res []any, v ref.V) []any { return []any{v, res[1]} }
+	mutants := map[string]func(op string, a []ref.V, res []any) []any{
+		"addition saturates": func(op string, a []ref.V, res []any) []any {
+			if op == "+" && ints(a) && a[0].I > 0 && a[1].I > 0 && res[0].(ref.V).I < 0 {
+				return set(res, ref.Int(math.MaxInt64))
+			}
+			return res
+		},
+		"multiplication does not wrap": func(op string, a []ref.V, res []any) []any {
+			if op == "*" && ints(a) && a[0].I == 3037000500 && a[1].I == 3037000500 {
+				return set(res, ref.Int(math.MaxInt64))
+			}
+			return res
+		},
+		"division floors": func(op string, a []ref.V, res []any) []any {
+			if op == "/" && ints(a) && a[1].I != 0 && a[0].I%a[1].I != 0 && (a[0].I < 0) != (a[1].I < 0) {
+				return set(res, ref.Int(res[0].(ref.V).I-1))
+			}
+			return res
+		},
+		"remainder takes the sign of the divisor": func(op string, a []ref.V, res []any) []any {
+			if op == "%" && ints(a) && a[1].I != 0 && a[0].I < 0 && res[0].(ref.V).I != 0 {
+				return set(res, ref.Int(res[0].(ref.V).I+a[1].I))
+			}
+			return res
+		},
+		"the least int divided by -1 saturates": func(op string, a []ref.V, res []any) []any {
+			if op == "/" && ints(a) && a[0].I == math.MinInt64 && a[1].I == -1 {
+				return set(res, ref.Int(math.MaxInt64))
+			}
+			return res
+		},
+		"negation of the least int saturates": func(op string, a []ref.V, res []any) []any {
+			if op == "unary -" && a[0].Kind == ref.KInt && a[0].I == math.MinInt64 {
+				return set(res, ref.Int(math.MaxInt64))
+			}
+			return res
+		},
+		"strings compare by UTF-16 code unit": func(op string, a []ref.V, res []any) []any {
+			if op == "<" && len(a) == 2 && a[0].Kind == ref.KStr && a[1].Kind == ref.KStr {
+				return set(res, ref.Bool(slices.Compare(utf16.Encode([]rune(a[0].S)), utf16.Encode([]rune(a[1].S))) < 0))
+			}
+			return res
+		},
+		"strings compare by byte of UTF-8 as signed": func(op string, a []ref.V, res []any) []any {
+			if op == "<=" && len(a) == 2 && a[0].Kind == ref.KStr && a[1].Kind == ref.KStr && a[0].S != "" && a[1].S != "" && a[0].S[0] >= 0x80 != (a[1].S[0] >= 0x80) {
+				return set(res, ref.Bool(!res[0].(ref.V).B))
+			}
+			return res
+		},
+		"nil equals nil is false": func(op string, a []ref.V, res []any) []any {
+			if op == "==" && a[0].Kind == ref.KNil && a[1].Kind == ref.KNil {
+				return set(res, ref.Bool(false))
+			}
+			return res
+		},
+		"an int equals a string": func(op string, a []ref.V, res []any) []any {
+			if op == "==" && a[0].Kind == ref.KInt && a[1].Kind == ref.KStr {
+				return []any{ref.Bool(false), ref.Nil}
+			}
+			return res
+		},
+		"nil is not equal to a value": func(op string, a []ref.V, res []any) []any {
+			if op == "!=" && a[0].Kind == ref.KNil && a[1].Kind == ref.KBool {
+				return set(res, ref.Bool(false))
+			}
+			return res
+		},
+		"the error of a division by zero is worded differently": func(op string, a []ref.V, res []any) []any {
+			if op == "%" && res[1].(ref.V).Kind == ref.KStr {
+				return []any{res[0], ref.Str("modulo by zero")}
+			}
+			return res
+		},
+		"not accepts an int": func(op string, a []ref.V, res []any) []any {
+			if op == "unary !" && a[0].Kind == ref.KInt {
+				return []any{ref.Bool(a[0].I == 0), ref.Nil}
+			}
+			return res
+		},
+		"a logical operand may be nil": func(op string, a []ref.V, res []any) []any {
+			if op == "bool &&" && a[0].Kind == ref.KNil {
+				return []any{false, ref.Nil}
+			}
+			return res
+		},
+	}
+	for name, mutate := range mutants {
+		s := ValueSuite{Name: name, Impl: brokenValues{mutate: mutate}, Ops: ValueOps}
+		err := RunValues(s)
+		if err == nil {
+			t.Errorf("%s: the conformance run did not notice", name)
+		}
 	}
 }
