@@ -1,20 +1,24 @@
 package gen_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/limits"
 )
 
@@ -178,5 +182,96 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		if len(got) == 0 {
 			t.Errorf("TypeScript: %s: no generated term notices", m.name)
 		}
+	}
+}
+
+// referenceTerm returns the term of the generated case: the action of the rule main, or the predicate
+// that precedes the optional "b".
+func referenceTerm(t *testing.T, c gentest.TermCase) grammar.Term {
+	t.Helper()
+	g, err := parseTest(c.Src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found grammar.Term
+	var walk func(e grammar.Expr)
+	walk = func(e grammar.Expr) {
+		switch e := e.(type) {
+		case *grammar.Predicate:
+			found = e.Term
+		case *grammar.Seq:
+			for _, x := range e.Items {
+				walk(x)
+			}
+		case *grammar.Choice:
+			for _, x := range e.Alts {
+				walk(x)
+			}
+		case *grammar.Group:
+			walk(e.Expr)
+		}
+	}
+	for _, d := range g.File.Decls {
+		if r, ok := d.(*grammar.RuleDef); ok && r.Name == "main" {
+			if c.Kind == gentest.TermAction {
+				return r.Action
+			}
+			walk(r.Expr)
+		}
+	}
+	if found == nil {
+		t.Fatalf("%s: no term", c.Name)
+	}
+	return found
+}
+
+// TestTermReferenceEvaluator checks the engine's closure backend against the reference evaluator of
+// terms (internal/ir/exec/ref), which states the semantics of a term on naive tagged values: the same
+// value or the same error for every generated term, in both position units. A predicate case compares
+// whether the predicate held, by whether the input "ab" parses.
+func TestTermReferenceEvaluator(t *testing.T) {
+	t.Parallel()
+	checked := 0
+	for seed := uint64(1); seed <= termDifferentialSeeds; seed++ {
+		cases, _ := wellTypedTermCases(t, seed, termDifferentialCases, true)
+		for _, c := range cases {
+			g, _ := parseTest(c.Src)
+			prog, err := engine.Compile(g, compile.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			term := referenceTerm(t, c)
+			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node("a", 0, 1)}, Bytes: unit == engine.Bytes, Start: 0, End: 1, Line: 1, Col: 1}
+				v, msg := env.Eval(term)
+				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
+				if c.Kind == gentest.TermPredicate {
+					n, err := prog.ParseWith("main", "ab", opts)
+					held := err == nil && n != nil
+					if want := ref.Holds(v, msg); held != want {
+						t.Errorf("%s: unit %d: the engine holds the predicate: %v, the reference evaluator: %v (%s)", c.Name, unit, held, want, msg)
+					}
+					checked++
+					continue
+				}
+				n, err := prog.ParseWith("main", "a", opts)
+				want := map[string]any{"node": nil}
+				if msg != "" {
+					want["err"] = "action in main: " + msg
+				} else {
+					want["node"] = env.Plain(v)
+				}
+				wantJSON, _ := json.Marshal(want)
+				got := gentest.ResultJSON(n, err)
+				var gotAny, wantAny any
+				if json.Unmarshal([]byte(got), &gotAny) != nil || json.Unmarshal(wantJSON, &wantAny) != nil || !reflect.DeepEqual(gotAny, wantAny) {
+					t.Errorf("%s: unit %d: the engine gives\n %s\nthe reference evaluator\n %s", c.Name, unit, got, wantJSON)
+				}
+				checked++
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no case was checked")
 	}
 }
