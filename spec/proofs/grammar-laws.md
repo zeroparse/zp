@@ -507,10 +507,20 @@ with a loose cut changes the choice that the cut commits (P1).
 
 ## Recovery
 
-**Law (V1) Recovery That Never Fires.** `e #recover(skip=s)` $\equiv_O$ `e`
-when `e` always succeeds. When `s` cannot consume input, the recovery never
-applies and the expression is $\equiv_V$ `e`; it is not $\equiv_X$, since a
-failure then also expects the first items of `s`.
+**Law (V1) Recovery That Never Fires.** `e #recover(skip=s)` $\equiv_{E,X}$ `e`
+when `e` always succeeds, and $\equiv_O$ `e` when its value also stays the same.
+When `s` cannot consume input, the recovery never applies and the expression
+is $\equiv_E$ `e`, and $\equiv_V$ `e` when its value stays the same; it is not
+$\equiv_X$, since a failure then also expects the first items of `s`.
+
+The value stays the same unless the recovery shapes it. A recovery makes `e`
+one element: a sequence `e` gives its tuple node, and an `e` without a value a
+tuple of no elements. Without the recovery, a
+sequence around it adds the elements of a sequence `e`, or no element for an
+`e` without a value; a predicate that reads the capture
+`x:("q" ("a"? "b"?) #recover(skip="z"))` sees the difference, as
+`len($x) == 2`. An `e` that is one element with a value and not a sequence
+has the same value either way.
 
 **Law (V2) Recovery in a Lookahead.** A lookahead, positive or negative,
 discards the errors recovered inside it when it ends: `&X` matches where `X`
@@ -536,7 +546,7 @@ cites.
 | N3 | O | Drop an alternative equal to an earlier one, or one that an earlier one subsumes | C1, C5 |
 | N4 | O | Drop `_|_` alternatives without `@error`; replace `_|_ a` by `_|_` | C4, S2 |
 | N5 | O | Canonicalize stacked lookaheads; replace trivial lookaheads | K1, K2, K6 |
-| N6 | O | Drop harmless cuts and recoveries that never fire; a sequence left with one item or none becomes a sequence of it | T2, V1 |
+| N6 | O | Drop harmless cuts and recoveries that never fire; a sequence left with one item or none becomes a sequence of it, and a recovery that makes its expression one element stays | T2, V1 |
 | N7 | E | Remove `@error`, `@diagnostic`, `#atomic`, discards and captures that no predicate reads | (values and messages only) |
 | N8 | E | Merge runs of single-character alternatives into one class | C9 |
 | N9 | E | Replace `X* X*` by `X*`, `X+ X*` by `X+`, `X? X*` by `X*`, `X X*` by `X+` | R3, R4, R5 |
@@ -602,7 +612,8 @@ build from a value that a rewrite reshapes, and their run-time errors: step 8 of
 the [open steps of the linear cost proof](linear-cost.md#open-steps). The
 rewrites that reshape a value are N9, N10, N11, the left factoring of N12, and
 the replacement of a sequence of one item, or a choice of one alternative, by
-its item (in N1, in N6 and after the other alternatives are dropped), where the
+its item (in N1, in N6 and after the other alternatives are dropped), and the
+drop of a recovery that makes its expression one element (V1 in N6), where the
 conditions below let them change the value.
 
 - A rule removes an evaluation only when the original either never makes it
@@ -639,7 +650,9 @@ conditions below let them change the value.
   with the body of its rule. The view applies them only where the conditions
   above hold, and otherwise keeps the sequence of one item or the choice of
   one alternative, and the call. Dropping the cut is not changing a value, so
-  it applies everywhere.
+  it applies everywhere. A recovery that V1 drops makes a sequence, or an
+  expression without a value, one element; it stays where the conditions
+  above do not hold.
 - N2 and N3 drop alternatives that never give the value of the choice, but
   they can drop every alternative with a value and keep one without: the
   choice of `_ / "b"` is one element, `nil` or the string, and `_` alone none.

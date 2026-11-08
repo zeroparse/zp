@@ -2605,7 +2605,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    [Rewrites That Change Values](cost-view.md#rewrites-that-change-values):
    N9, N10, N11, the left factoring of N12, and the replacement of a sequence of
    one item, or of a choice of one alternative, by its item, which N1, N6 and
-   the drop of the other alternatives make. They preserve what the expression
+   the drop of the other alternatives make, and the drop by V1 of a recovery
+   that makes its expression one element. They preserve what the expression
    matches and its recorded outcome, not its value, and the view applies them
    only where no predicate reads such a value; an action of the written grammar
    can still read one, and then reads another shape than the classifier sees in

@@ -90,19 +90,23 @@ By [Values](../language/parser-expressions.md#values-and-the-concrete-syntax-tre
 a sequence is a tuple of the values of its items that have one, even when there
 is only one; a parenthesized sequence in a sequence adds its elements to it; a
 group creates no value; and a choice has the value of the alternative that
-matched, or `nil` when that alternative has none. Measured by these rules, a
-rewrite of the view changes the value of the expression that it replaces only
-in the cases of the table. `depth` is positive inside a capture that a predicate
-of the rule reads and in the whole body of a rule whose value reaches such a
-capture, and `observed` holds of an expression that contains such a capture or
-calls such a rule in a position that keeps its value (Lemma 1). The lines are
-those of `internal/compile/normal_view.go`.
+matched, or `nil` when that alternative has none. A recovery makes its
+expression one element (`attrElems` in `internal/compile/bcompile.go`): a
+sequence gives its tuple node, and an expression without a value a tuple of no
+elements. Measured by these rules, a rewrite of the view changes the value of
+the expression that it replaces only in the cases of the table. `depth` is
+positive inside a capture that a predicate of the rule reads and in the whole
+body of a rule whose value reaches such a capture, and `observed` holds of an
+expression that contains such a capture or calls such a rule in a position that
+keeps its value (Lemma 1). The lines are those of
+`internal/compile/normal_view.go`.
 
 | Rewrite | How the value changes | Condition as the code checks it |
 |:--|:--|:--|
 | N1: a sequence of one item becomes the item (`seq` 303) | the tuple of one element becomes the value of the item | `depth` zero and the item not `observed`; or the item is a bottom, which never matches |
 | N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 732, `seqOf` 699) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
 | A choice left with one alternative becomes that alternative (`choice` 515), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence adds its elements to a sequence around the choice instead of being one element; one without a value loses the `nil` of the choice | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a call, a repetition, an optional, an `#atomic` or a bottom (`sameValueBare` 530), whose value alone is its value as the only alternative |
+| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 882) | an expression that is a sequence adds its elements to a sequence around it instead of being one element; one without a value adds no element instead of a tuple of no elements | `depth` zero and the expression not `observed` (`shaped` 878); otherwise the recovery stays. An expression that is one element with a value and not a sequence has the same value either way |
 | N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | `depth` zero and no item `observed` (`adjacent` 327, `nestedRepeat` 405, `unroll` 364) |
 | The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 636) |
 | N13 | the body of the rule takes the place of the call | off in the cost view; in the view of matching, only where `depth` is zero (`rewrite` 253) |
@@ -118,16 +122,17 @@ the captures in the dropped ones, see Lemma 1). N4 replaces `_|_ a` by `_|_`,
 and K4 of N12 replaces `!X X` by `_|_`: neither matches. N5 changes only
 lookaheads, which have no value, and K1 only where the expression binds nothing
 outside its calls. N6 drops a cut, which has no value, so a sequence that keeps
-two items or more is the same tuple, and V1 drops a recovery that never runs its
-skip. N8 replaces literals of one code point by a class, and both give a string
-node of the matched text.
+two items or more is the same tuple. N8 replaces literals of one code point by
+a class, and both give a string node of the matched text.
 
 A value is **reshaped** when it is the value of an expression that a rewrite of
 the table replaces where it changes that value (every case of the table but a
-bottom in the first row and the alternatives of `sameValueBare` in the third),
-or when it includes such a value: the value of a capture around it, of a
-sequence or choice around it, of a rule whose body value includes it, and so on
-outward. By Lemma 1 no predicate reads a reshaped value; an action can.
+bottom in the first row, the alternatives of `sameValueBare` in the third, and
+in the row of V1 an expression that is one element with a value and not a
+sequence), or when it includes such a value: the value of a capture around it,
+of a sequence or choice around it, of a rule whose body value includes it, and
+so on outward. By Lemma 1 no predicate reads a reshaped value; an action can,
+since the conditions of the table follow only the captures that predicates read.
 
 ## Scope
 
@@ -142,21 +147,22 @@ counts them, and the records of scan sites add at most two steps for each walk
 
 **What is not covered.** An action of $G$ that reads a reshaped value, through a
 capture or the value of a rule, reads another shape than the classifier sees in
-the view: `x:("a"* "a"*) => concat($x[0], …)` copies a list in $G$ and an element
-in the view, and `len($x)` of `x:("abc" #cut / "z")` is one element in $G$ and
-three characters in the view. It can build values of other sizes, and stop the
-parse with a run-time error where the view does not, or the reverse. The theorem
-therefore bounds $C'_G$, the cost $C_G$ less the values that such actions build,
-on inputs on which no action that reads a reshaped value stops either parse with
-a run-time error. Step 8 of the [open steps](linear-cost.md#open-steps) states
-what remains: prove that the values which actions build from a value that a
-rewrite of [Rewrites That Change Values](#rewrites-that-change-values) reshapes
-(a sequence of one item or a choice of one alternative replaced by its item
-under N1, N6 or the drop of the other alternatives, N9, N10, N11, or the left
+the view: `x:("a"* "a"*) => concat($x[0], …)` copies a list in $G$ and an
+element in the view, and `len($x)` of `x:("abc" #cut / "z")` is one element in
+$G$ and three characters in the view. It can build values of other sizes, and
+stop the parse with a run-time error where the view does not, or the reverse.
+The theorem therefore bounds $C'_G$, the cost $C_G$ less the values that such
+actions build, on inputs on which no action that reads a reshaped value stops
+either parse with a run-time error. Step 8 of the [open
+steps](linear-cost.md#open-steps) states what remains: prove that the values
+which actions build from a value that a rewrite of [Rewrites That Change
+Values](#rewrites-that-change-values) reshapes (a sequence of one item or a
+choice of one alternative replaced by its item under N1, N6 or the drop of the
+other alternatives, a recovery dropped by V1, N9, N10, N11, or the left
 factoring of N12), and the run-time errors of those actions, stay within a
 constant factor of what the classifier bounds on the view (or make the view keep
-the shape of every value that an action reads). Predicates are covered: by
-Lemma 1 none reads a reshaped value.
+the shape of every value that an action reads). Predicates are covered: by Lemma
+1 none reads a reshaped value.
 
 ## Lemma 1 (Context)
 
@@ -193,26 +199,28 @@ inside $c$ (the `Capture` case of `rewrite`, line 219), and $c$ inside $e$
 makes `observed` true for $e$. In the second, $r$ is `valued`, so `depth` is
 positive in the whole body of $r$ (`normalizeRules`, line 121).
 
-Each rewrite of the table of
-[Rewrites That Change Values](#rewrites-that-change-values) changes a value only
-where `depth` is zero and `observed` is false. For N9, N10, N11 and the left
-factoring, `observed` is checked on the expressions that $e$ is made of: both
-items (`adjacent`), the repetition (`nestedRepeat`), every alternative of the
-run (`factor`). So neither case holds, and these rewrites change no value that a
-predicate observes. In the first three rows, $e$ is a sequence or a choice of
-one expression $x$, besides the cuts that N6 drops, and $e'$ is $x$ itself (or
-a top): the captures of $e$ are those of $x$, which keeps them and their values.
-Only the value of $e$ itself changes, and a predicate observes it only through a
-capture around $e$ or through the value of a rule whose body contains $e$. A
-capture around $e$ makes `depth` positive where the view rewrites $e$, except a
-capture inside the alternative from which N6 drops the cuts, which
-`looseCutsDropped` enters without changing `depth`; that capture makes
-`observed` true for the alternative, which is what `dropCuts` checks (line
-736). A rule whose body contains $e$ and whose value a predicate reads is
-`valued`. In each case the view keeps the sequence of $x$ or the choice of $x$,
-unless $x$ has the same value alone: a bottom, or for a choice an expression
-that `sameValueBare` accepts. So no rewrite changes a value that a predicate
-observes. This is the context condition of
+Each rewrite of the table of [Rewrites That Change
+Values](#rewrites-that-change-values) changes a value only where `depth` is zero
+and `observed` is false. For N9, N10, N11 and the left factoring, `observed` is
+checked on the expressions that $e$ is made of: both items (`adjacent`), the
+repetition (`nestedRepeat`), every alternative of the run (`factor`). So neither
+case holds, and these rewrites change no value that a predicate observes. In the
+first three rows, $e$ is a sequence or a choice of one expression $x$, besides
+the cuts that N6 drops, and $e'$ is $x$ itself (or a top); in the row of V1, $e$
+is $x$ with a recovery, whose skip has no captures, and $e'$ is $x$. The
+captures of $e$ are those of $x$, which keeps them and their values. Only the
+value of $e$ itself changes, and a predicate observes it only through a capture
+around $e$ or through the value of a rule whose body contains $e$. A capture
+around $e$ makes `depth` positive where the view rewrites $e$, except a capture
+inside the alternative from which N6 drops the cuts, which `looseCutsDropped`
+enters without changing `depth`; that capture makes `observed` true for the
+alternative, which is what `dropCuts` checks (line 736). A rule whose body
+contains $e$ and whose value a predicate reads is `valued`. For V1, `attributed`
+checks `depth` and `observed` of $x$ itself (`shaped`, line 878). In each case
+the view keeps the sequence of $x$, the choice of $x$ or the recovery, unless
+$x$ has the same value alone: a bottom, or for a choice an expression that
+`sameValueBare` accepts; a recovery it keeps even then. So no rewrite changes a
+value that a predicate observes. This is the context condition of
 [Normalization](grammar-laws.md#normalization).
 
 The other rewrites keep the value of $e$
@@ -304,15 +312,15 @@ the iterations of its bounded repetitions. The lines are those of
 | N3 drop an alternative that an earlier one equals or prefixes | `choice` 465, `subsumed` 541 | the earlier one is evaluated again cheaply; a literal prefix only between literals matched with case | 2 | $\ell$ for a literal prefix, 0 otherwise |
 | N4 drop a bottom alternative, cut a sequence after a bottom | `choice` 459, `seq` 297 | a bottom without `@error` (the attribute keeps it an `Attributed`) | 1 | 0 |
 | N5 stacked lookaheads (K1, K2) | `lookahead` 840 | K1 only when the expression binds nothing outside its calls | 1 | 0 |
-| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | `choice` 484, 492, `dropCuts` 732, `attributed` 879 | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
+| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | `choice` 484, 492, `dropCuts` 732, `attributed` 882 | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left and the recovery as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
 | N8 merge single characters (C9) | `mergeChars` 576, `singleChars` 608 | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
 | N9 `X* X*`, `X+ X*` to the first; `X X*` to `X+`; `X? X*` to `X*` | `adjacent` 327-346 | `depth` zero, neither item `observed`, `idempotent(X)`; for `X? X*` also X not nullable | 2 | 1 |
 | N10 `(X*)*`, `(X+)*`, `(X*)+` and `(X?)*` to `X*` | `nestedRepeat` 405 | unbounded repetitions, `depth` zero, not `observed`, `idempotent(X)`; for `(X?)*` X not nullable | 2 | 2 |
 | N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | `adjacent` 327, 347, `unroll` 364 | `depth` zero, neither item `observed`, X not nullable and without a loose cut, `idempotent(X)`; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
-| N12 `!X X` to `_|_` (K4) | `adjacent` 353, `boundedTerminal` 1116 | X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
+| N12 `!X X` to `_|_` (K4) | `adjacent` 353, `boundedTerminal` 1120 | X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
 | N12 left factoring (C6) | `factor` 636 | `depth` zero, no alternative of the run `observed`, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
 
-`idempotent(X)` (1067) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X
+`idempotent(X)` (1071) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X
 not nullable or binding nothing outside its calls.
 
 *Proof.* The matching part is the law of the rewrite
@@ -627,9 +635,12 @@ $n = 250$, 500 and 1,000, the written grammar and its view charge the same
 units on all four targets, ratio 1.000, and both grow as $n^2$ through the
 tail. The same holds with the cut in the last alternative,
 `("w" / x:("abc" #cut))`, and for a choice left with one alternative that is a
-sequence, `x:("a" ("b" "c" / _|_)) {len($x) == 2}`. A view that replaced the
-sequence by its item would reject the input at the predicate and skip the
-tail, and the ratio would grow linearly in $n$, to about 1,000 at
+sequence, `x:("a" ("b" "c" / _|_)) {len($x) == 2}`, and on `q` followed by
+$n$ times `x` for a recovery of a sequence that always succeeds,
+`x:("q" ("a"? "b"?) #recover(skip="z")) {len($x) == 2}`, whose recovery the
+view keeps. A view that replaced the sequence by its item, or dropped the
+recovery, would reject the input at the predicate and skip the tail, and the
+ratio would grow linearly in $n$, to about 1,000 at
 $n = 1000$. The formatted text of a view writes a sequence of one item and a
 choice of one alternative as the bare item, so this control compiles the
 syntax tree of the view instead of its text.
