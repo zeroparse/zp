@@ -11,6 +11,17 @@ import (
 // rule.
 func viewOf(t *testing.T, src string, opts viewOptions) (string, map[viewRule]int) {
 	t.Helper()
+	bodies, applied := viewBodies(t, src, opts)
+	body, ok := bodies["main"]
+	if !ok {
+		t.Fatal("no rule main")
+	}
+	return body, applied
+}
+
+// viewBodies returns the view of the body of every rule of src with opts, and the rewrites.
+func viewBodies(t *testing.T, src string, opts viewOptions) (map[string]string, map[viewRule]int) {
+	t.Helper()
 	g, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatal(err)
@@ -23,13 +34,11 @@ func viewOf(t *testing.T, src string, opts viewOptions) (string, map[viewRule]in
 	an := AnalyzeControlled(rules, nil)
 	memo, _ := memoizedRules(rules, an, nil)
 	v := normalizeRules(rules, an, memo, opts, nil)
+	bodies := map[string]string{}
 	for _, r := range v.rules {
-		if r.Name == "main" {
-			return grammar.FormatExpr(r.Expr), v.applied
-		}
+		bodies[r.Name] = grammar.FormatExpr(r.Expr)
 	}
-	t.Fatal("no rule main")
-	return "", nil
+	return bodies, v.applied
 }
 
 // TestNormalView checks each rule of the view: where its conditions hold it rewrites the
@@ -118,6 +127,52 @@ func TestNormalView(t *testing.T) {
 			}
 			if c.rule != "" && applied[c.rule] == 0 {
 				t.Errorf("view of %s: %s did not apply (%v)", c.body, c.rule, applied)
+			}
+		})
+	}
+}
+
+// TestNormalViewPredicateCaptures checks that the rules of the view that change values stay off
+// inside a capture that a predicate reads, and in the body of every rule whose value reaches such a
+// capture, and stay on elsewhere: the congruence ≡E,X of those rules does not hold in a context
+// that reads a value of the expression in a predicate.
+func TestNormalViewPredicateCaptures(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		src  string
+		want map[string]string // the view of each rule named
+	}{
+		{name: "a capture that a predicate reads keeps its repetitions",
+			src:  "rule main = x:(\"a\"* \"a\"*) {len($x) == 2} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"",
+			want: map[string]string{"main": `x:("a"* "a"*) {len($x) == 2} (e "q" / "x")* $$`}},
+		{name: "a capture that a predicate reads keeps its nested repetitions and factoring",
+			src:  "rule main = x:(\"a\"+ (\"b\"*)* / \"a\" \"c\" / \"a\" \"d\") {len($x) == 2}",
+			want: map[string]string{"main": `x:("a"+ "b"** / "a" "c" / "a" "d") {len($x) == 2}`}},
+		{name: "a capture that no predicate reads is normalized",
+			src:  "rule main = x:(\"a\"* \"a\"*) {true}",
+			want: map[string]string{"main": `x:"a"* {true}`}},
+		{name: "a capture that another capture's predicate reads is normalized",
+			src:  "rule main = x:(\"a\"* \"a\"*) y:(\"b\"* \"b\"*) {len($y) == 2}",
+			want: map[string]string{"main": `x:"a"* y:("b"* "b"*) {len($y) == 2}`}},
+		{name: "the rest of the rule is normalized",
+			src:  "rule main = x:(\"a\"* \"a\"*) {len($x) == 2} \"b\"* \"b\"*",
+			want: map[string]string{"main": `x:("a"* "a"*) {len($x) == 2} "b"*`}},
+		{name: "a rule whose value reaches the capture keeps its repetitions",
+			src:  "rule main = y:r {len($y) == 2}\nrule r = \"a\"* \"a\"*\nrule w = \"a\"* \"a\"*",
+			want: map[string]string{"main": `y:r {len($y) == 2}`, "r": `"a"* "a"*`, "w": `"a"*`}},
+		{name: "a rule called through value positions keeps its repetitions",
+			src:  "rule main = y:(\"q\" r / \"z\") {len($y) == 2}\nrule r = s\nrule s = \"a\"* \"a\"*",
+			want: map[string]string{"r": `s`, "s": `"a"* "a"*`}},
+		{name: "a rule called under a discard is normalized",
+			src:  "rule main = y:(\"q\" -r) {len($y) == 2}\nrule r = \"a\"* \"a\"*",
+			want: map[string]string{"r": `"a"*`}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got, _ := viewBodies(t, c.src+"\n", costView)
+			for name, want := range c.want {
+				if got[name] != want {
+					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
+				}
 			}
 		})
 	}

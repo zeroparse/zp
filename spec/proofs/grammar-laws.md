@@ -591,6 +591,12 @@ the [open steps of the linear cost proof](linear-cost.md#open-steps).
   characters without calls, and left-factors a run of alternatives only by
   its whole shared prefix, only when that prefix is cheap, and never when an
   alternative has a loose cut.
+- N9, N10, N11 and the left factoring of N12 are $\equiv_{E,X}$ at most, so
+  the view applies them only in a context that reads no value of the
+  rewritten expression in a predicate: not inside a capture whose name a
+  predicate of the rule reads, and not in the body of a rule whose value
+  reaches such a capture, through the rules it calls in positions that keep
+  their value, transitively.
 - N7 is off because `@error` and `@diagnostic` decide where the parser keeps
   repetition runs, and N13 is off because inlining changes which rules are
   memoized. For the same reason the classifier decides memoization, call

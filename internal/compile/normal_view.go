@@ -80,6 +80,14 @@ type normalView struct {
 	// the source text of the expressions that it stands for.
 	orig map[grammar.Expr]bool
 	text map[grammar.Expr]string
+	// reads are, for each rule, the names of its captures that a predicate of the rule reads, and
+	// valued the rules whose value reaches such a capture (valueReaders). Inside such a capture and
+	// in the body of such a rule, depth is positive and the rules that change values (N9, N10, N11
+	// and the left factoring of N12) are off.
+	reads  map[string]map[string]bool
+	valued map[string]bool
+	depth  int
+	cur    string // the rule whose body is being rewritten
 }
 
 // view is the normal view of a set of rules.
@@ -104,8 +112,13 @@ func normalizeRules(rules []*grammar.RuleDef, an *Analysis, memo map[string]bool
 		WalkExpr(r.Expr, func(x grammar.Expr) { v.orig[x] = true })
 	}
 	v.cheapRules(rules)
+	v.valueReaders(rules)
 	out := make([]*grammar.RuleDef, len(rules))
 	for i, r := range rules {
+		v.cur, v.depth = r.Name, 0
+		if v.valued[r.Name] {
+			v.depth = 1
+		}
 		body := v.fix(r.Expr)
 		if body == r.Expr {
 			out[i] = r
@@ -203,7 +216,14 @@ func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
 	case *grammar.Not:
 		return v.lookahead(x, x.Expr, true)
 	case *grammar.Capture:
+		read := v.reads[v.cur][x.Name]
+		if read {
+			v.depth++
+		}
 		inner := v.expr(x.Expr)
+		if read {
+			v.depth--
+		}
 		if inner == x.Expr {
 			return x
 		}
@@ -296,7 +316,7 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 func (v *normalView) adjacent(a, b grammar.Expr) grammar.Expr {
 	ra, aRep := a.(*grammar.Repeat)
 	rb, bRep := b.(*grammar.Repeat)
-	if bRep && rb.Max < 0 && rb.Min <= 1 {
+	if bRep && rb.Max < 0 && rb.Min <= 1 && v.depth == 0 {
 		x := rb.Expr
 		switch {
 		case aRep && ra.Max < 0 && ra.Min <= 1 && rb.Min == 0 && v.same(ra.Expr, x) && v.idempotent(x):
@@ -375,7 +395,7 @@ func (v *normalView) unroll(ra, rb *grammar.Repeat) grammar.Expr {
 
 // nestedRepeat applies R6 to a repetition whose element is a repetition, or returns nil.
 func (v *normalView) nestedRepeat(outer *grammar.Repeat, inner grammar.Expr) grammar.Expr {
-	if outer.Max >= 0 || outer.Min > 1 {
+	if outer.Max >= 0 || outer.Min > 1 || v.depth > 0 {
 		return nil
 	}
 	switch in := inner.(type) {
@@ -592,6 +612,9 @@ func singleChars(e grammar.Expr) ([]grammar.CharRange, bool) {
 // is not cheap as a whole is left as it is: factoring a part of it would hide from the classifier
 // the shared calls that it strips itself.
 func (v *normalView) factor(alts []grammar.Expr, ch *grammar.Choice) ([]grammar.Expr, bool) {
+	if v.depth > 0 {
+		return alts, false
+	}
 	var out []grammar.Expr
 	changed := false
 	for i := 0; i < len(alts); {
@@ -871,10 +894,92 @@ func (v *normalView) inline(r *grammar.Ref) grammar.Expr {
 		return nil
 	}
 	v.inlining[r.Name] = true
+	depth := v.depth
+	v.depth = 0
+	if v.valued[r.Name] {
+		v.depth = 1
+	}
 	body := v.fix(rd.Expr)
+	v.depth = depth
 	v.inlining[r.Name] = false
 	v.inlined[r.Name] = body
 	return body
+}
+
+// valueReaders computes the captures that a predicate reads (reads) and the rules whose value
+// reaches one (valued): the rules called, through positions that keep their value, from inside such
+// a capture, and so on from their bodies. The rules of the view that change values, which keep only
+// ≡E,X, are off there, because spec/proofs/grammar-laws.md states ≡E for an expression only in a
+// context that reads no value of it in a predicate. Elsewhere the rules apply.
+func (v *normalView) valueReaders(rules []*grammar.RuleDef) {
+	v.reads, v.valued = map[string]map[string]bool{}, map[string]bool{}
+	var work []string
+	mark := func(e grammar.Expr) {
+		for _, n := range valueCalls(e) {
+			if !v.valued[n] {
+				v.valued[n] = true
+				work = append(work, n)
+			}
+		}
+	}
+	for _, r := range rules {
+		reads := map[string]bool{}
+		WalkExpr(r.Expr, func(x grammar.Expr) {
+			if p, ok := x.(*grammar.Predicate); ok {
+				WalkTerm(p.Term, func(t grammar.Term) {
+					if c, ok := t.(*grammar.CaptureRef); ok && !c.Param && !c.Pragma {
+						reads[c.Name] = true
+					}
+				})
+			}
+		})
+		if len(reads) == 0 {
+			continue
+		}
+		v.reads[r.Name] = reads
+		WalkExpr(r.Expr, func(x grammar.Expr) {
+			if c, ok := x.(*grammar.Capture); ok && reads[c.Name] {
+				mark(c.Expr)
+			}
+		})
+	}
+	for len(work) > 0 {
+		n := work[len(work)-1]
+		work = work[:len(work)-1]
+		if rd := v.byName[n]; rd != nil {
+			mark(rd.Expr)
+		}
+	}
+}
+
+// valueCalls returns the rules that e calls in positions that can keep their value: all but those
+// under a discard or a lookahead.
+func valueCalls(e grammar.Expr) []string {
+	dropped := map[*grammar.Ref]bool{}
+	drop := func(x grammar.Expr) {
+		WalkExpr(x, func(y grammar.Expr) {
+			if r, ok := y.(*grammar.Ref); ok {
+				dropped[r] = true
+			}
+		})
+	}
+	WalkExpr(e, func(x grammar.Expr) {
+		switch x := x.(type) {
+		case *grammar.Discard:
+			drop(x.Expr)
+		case *grammar.And:
+			drop(x.Expr)
+		case *grammar.Not:
+			drop(x.Expr)
+		}
+	})
+	var out []string
+	WalkExpr(e, func(x grammar.Expr) {
+		if r, ok := x.(*grammar.Ref); ok && !dropped[r] {
+			out = append(out, r.Name)
+		}
+	})
+	return out
 }
 
 // cut reports whether e has a cut that would commit the choice, option or repetition around it.
