@@ -288,7 +288,10 @@ that case and backend, and later cases continue; syntax errors are represented b
 outcome and their locations.
 
 The `backends` list may be omitted to use the default backend. Equivalence is opt-in and compared separately from
-the expected outcome and goldens. The suite may select a `start` rule (by default, the grammar's default start rule) and a `unit` (`codepoints` or `bytes`). Expectations
+the expected outcome and goldens: the suite field `"equivalence": true` enables it, and `-equivalence` (or
+`-equivalence=false`) on the command line overrides the field. For each case, the selected backends must agree on the
+outcome, whether a runtime error occurred, the node, the root span and the syntax-error locations; the report lists
+the fields that differ. `-update` compares one backend only, so it cannot be combined with `-equivalence`. The suite may select a `start` rule (by default, the grammar's default start rule) and a `unit` (`codepoints` or `bytes`). Expectations
 may additionally include node JSON, root `start`/`end` positions, and ordered syntax-error locations.
 
 To refresh observed node and location goldens for one backend, select it explicitly:

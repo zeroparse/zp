@@ -123,6 +123,10 @@ input, but it goes further when the input requires it (a predicate that counts t
 | `-max-repeat` | `WithMaxRepeat` | 3 | Iterations a repetition aims for beyond its minimum, and operators in a chain of an Operators Rule |
 | `-max-len` | `WithMaxLen` | 512 | Length of the input in bytes |
 
+The defaults are the constants `sample.DefaultMaxDepth`, `sample.DefaultMaxRepeat` and `sample.DefaultMaxLen`.
+`sample.DefaultAttempts` (100) is the number of candidates tried for one input, set by `WithAttempts`, and
+`sample.DefaultBudget` (20000) is the number of steps one attempt may take, set by `WithBudget`.
+
 A repetition takes each further iteration with probability 1/2, so short lists are the most common. For readable
 calculator expressions:
 
@@ -491,11 +495,13 @@ The initial texts are the empty text and inputs generated from the grammar (see
 [sampling inputs](sampling-and-fuzzing.md)), or the files given with `-corpus` (a file, or a directory read in name
 order). Replacements mix parts of those texts with partial and complete multibyte characters and random bytes, so
 edits split, join and break UTF-8 sequences. `-backend` and `-unit` take comma-separated lists to narrow the run;
-`-sequences` and `-operations` set its size.
+`-sequences` (default 100) and `-operations` (default 32) set its size; in Go they are `Options.Sequences` and
+`Options.Operations`, and `editfuzz.DefaultSequences` and `editfuzz.DefaultOperations` are their defaults.
 
 A seed is not a reproducer: generation may change between releases. With `-save-failures dir`, the first failing
 sequence is saved as JSON, and `-minimize` then shrinks it, keeping the same kind of failure, and saves the result
-next to it. Without `-save-failures`, the message includes the failing sequence as JSON. Here a deliberately broken
+next to it. `-max-attempts n` bounds the candidate replays that `-minimize` tries (default 2000; in Go,
+`editfuzz.DefaultMaxAttempts`). Without `-save-failures`, the message includes the failing sequence as JSON. Here a deliberately broken
 `Document` fails:
 
 ```bash

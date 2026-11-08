@@ -66,7 +66,7 @@ zp parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check
 | `-max-input` | `0` | `Limits.Input`: the longest input accepted, in the position unit. `0` and `unlimited` accept any length |
 | `-max-depth` | `0` | `Limits.Depth`: the deepest nesting of recursive rule calls. `0` selects the backend's default (100,000; 10,000,000 for `bytecode-iterative`), and `unlimited`, accepted only with `bytecode-iterative`, disables the limit |
 
-`zp parse`, like `explain`, `trace`, `profile`, `test` and `editfuzz`, records [expectations](error-messages.md#recording-expectations), so a syntax error lists what was expected.
+`zp parse`, like `explain`, `trace`, `profile`, `test` and `edit-fuzz`, records [expectations](error-messages.md#recording-expectations), so a syntax error lists what was expected.
 
 A parse that reaches a limit prints the message of the `*zp.LimitError` (for example `parse compute limit exceeded: limit 1048576, used 1048576, requested 1`) to standard error and exits with status 1, like any other failed parse. See [cancellation-and-limits.md](cancellation-and-limits.md).
 

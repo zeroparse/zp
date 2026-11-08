@@ -6,13 +6,13 @@
 //	zp test -f suite.json [-format text|json] [-backend closure,bytecode] [-equivalence] [-update] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
 //	zp fmt [-w] [-l] [-check] [-syntax] [grammar.zp ...]
 //	zp convert [-to zp|json] [-o output] grammar.zp|grammar.json
-//	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-nodoc] [-max-depth n] [-source-info] [-default-value]
-//	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability]
+//	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-nodoc] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
+//	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
 //	zp compile -g grammar.zp [-s main] [-mode parse|recognize|document] [-source-info] [-default-value] -o grammar.zpc
 //	zp trace -g grammar.zp [-s main] [-i input] [-show-depth n] [-rule name] [-failures] [-f text|json] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
 //	zp profile -g grammar.zp [-s main] [-i input] [-sort column] [-n rows] [-f text|json] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
 //	zp explain -g grammar.zp [-s main] [-i input] [-n calls] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
-//	zp lint -g grammar.zp [-s main] [-f text|json] [-disable checks] [-strict] [-list]
+//	zp lint -g grammar.zp [-s main] [-f text|json] [-disable checks] [-strict] [-classify] [-list]
 //	zp sample -g grammar.zp [-s main] [-n 10] [-seed N] [-max-depth D] [-max-repeat R] [-max-len L] [-budget B]
 //	            [-coverage] [-invalid] [-f lines|json]
 //	zp schema -g grammar.zp [-s main] [-all-rules] [-o schema.json]
@@ -84,9 +84,11 @@ Commands:
 
   gen -g <grammar> -module <import path> -o <dir> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-types]
         [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-max-depth <n>] [-nodoc] [-source-info] [-default-value]
+        [-expectations] [-optimize <profile>] [-opt <names>] [-no-opt <names>] [-print-after <passes>]
   gen -runtime only -o <dir>
   gen -lang ts -g <grammar> -o <dir> [-runtime embed|import|only] [-runtime-module <specifier>] [-s <rule>] [-types]
         [-recognize] [-observability] [-max-depth <n>] [-source-info] [-default-value]
+        [-expectations] [-optimize <profile>] [-opt <names>] [-no-opt <names>] [-print-after <passes>]
   gen -lang ts -runtime only -o <dir>
       Generate a Go parser (or, with -lang ts, TypeScript modules) from a
       grammar. A Go parser is a package: parser.go, api.go and, with
@@ -136,7 +138,13 @@ Commands:
       -source-info makes the parser record the rule of each node and the
       names of captures. -default-value drops value actions and declared
       rule types, so the parser returns the default node tree; it cannot be
-      combined with -types.
+      combined with -types. -expectations makes the parser record what a
+      syntax error expects. -optimize selects an optimization profile
+      (speed, memory or size); -opt and -no-opt turn single optimizations
+      on, off or to a count after the profile is applied; -print-after
+      writes the Core IR to standard error after the named passes. No
+      optimization option changes what the parser returns: "zp gen -h"
+      lists the profiles, the optimizations and the pass names.
 
   compile -g <grammar> [-s <rule>] [-mode parse|recognize|document] [-source-info] [-default-value] -o <file.zpc>
       Compile a grammar and save the bytecode of one mode. The result runs
@@ -169,11 +177,13 @@ Commands:
       nested in.
 
   lint -g <grammar> [-s <rule>] [-f text|json] [-disable <checks>] [-strict]
-       [-list]
+       [-classify] [-list]
       Report likely mistakes in a grammar: alternatives and expressions
       that can never match or have no effect, unused captures and rules,
       and shapes that slow down incremental parsing. Fails if an error is
-      found (with -strict, also a warning). -list lists the checks.
+      found (with -strict, also a warning). -classify also classifies the
+      cost of the grammar from the start rule and runs the super-linear
+      check. -list lists the checks.
 
   sample -g <grammar> [-s <rule>] [-n <count>] [-seed <n>] [-max-depth <d>]
          [-max-repeat <r>] [-max-len <bytes>] [-budget <steps>] [-coverage] [-invalid]

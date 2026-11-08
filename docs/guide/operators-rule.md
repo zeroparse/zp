@@ -732,7 +732,7 @@ zp parse -g operand-lr.zp -s e -i '1'
 ```
 
 ```text
-zp: operand-lr.zp:3:20: operand of e calls e at its start (left recursion); use infix or postfix instead
+zp: operand-lr.zp:3:21: operand of e calls e at its start (left recursion); use infix or postfix instead
 ```
 
 Write `!` as a postfix operator instead.
@@ -870,18 +870,18 @@ quietly ends early. A cut (`#cut`) in the operator part commits to the operator:
 
 ```zp
 // cut.zp
-type Bin = { L E; Op node[(node[string],)]; R E }
+type Bin = { L E; R E }
 type E ~ node[string] | Bin
 
 rule plain E = #operators {
     skip ws
     operand num
-    level additive { infix left "+" => Bin{L: $lhs, Op: $op, R: $rhs} }
+    level additive { infix left "+" => Bin{L: $lhs, R: $rhs} }
 }
 rule committed E = #operators {
     skip ws
     operand num
-    level additive { infix left "+" #cut => Bin{L: $lhs, Op: $op, R: $rhs} }
+    level additive { infix left "+" #cut => Bin{L: $lhs, R: $rhs} }
 }
 
 @start(default)

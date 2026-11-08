@@ -182,6 +182,10 @@ one, and its findings for any other grammar are unspecified.
 A grammar decoded from JSON has no source positions; its findings have the zero
 `Pos` and name the rule they are in.
 
+`lint.Severity` is encoded as text (`"hint"`, `"warning"` or `"error"`), in the `-f json` output and by
+`MarshalText` and `UnmarshalText`. `lint.Rewrites` returns the automatic fix of each finding; `Rewrite.IsValid`
+reports whether a finding has one, since the rewrite of a finding without a fix is the zero value.
+
 ## Severities
 
 | Severity | Meaning |
