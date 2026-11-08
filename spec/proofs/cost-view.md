@@ -93,9 +93,14 @@ group creates no value; and a choice has the value of the alternative that
 matched, or `nil` when that alternative has none. A recovery makes an
 expression with a value one element (`attrElems` in
 `internal/compile/bcompile.go`), so a sequence gives its tuple node, and leaves
-an expression without a value without one
-([`#recover`](../language/pragmas.md#recover)). Measured by these rules, a
-rewrite of the view changes the value of the expression that it replaces only
+an expression without a value without one, except an expression of type `_|_`,
+whose recovery is the error value
+([`#recover`](../language/pragmas.md#recover)). A sequence with an element of
+type `_|_` has that type, as a choice whose alternatives all have it does
+([Top, Bottom, Join and
+Meet](../language/types.md#top-bottom-join-and-meet)), and a choice joins the
+types of its alternatives, so one of type `_|_` adds nothing to its value.
+Measured by these rules, a rewrite of the view changes the value of the expression that it replaces only
 in the cases of the table. `depth` is positive inside a capture that a
 predicate of the rule reads and in the whole body of a rule whose value reaches
 such a capture, and `observed` holds of an expression that contains such a
@@ -104,10 +109,10 @@ lines are those of `internal/compile/normal_view.go`.
 
 | Rewrite | How the value changes | Condition as the code checks it |
 |:--|:--|:--|
-| N1: a sequence of one item becomes the item (`seq` 303) | the tuple of one element becomes the value of the item | `depth` zero and the item not `observed`; or the item is a bottom, which never matches |
+| N1: a sequence of one item becomes the item (`seq` 303) | the tuple of one element becomes the value of the item | `depth` zero and the item not `observed`; or the item is a bottom: the sequence then has an element of type `_|_`, so it has that type, as the item does, and both have the same value, also under a recovery, which gives each the error value |
 | N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 732, `seqOf` 699) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
 | A choice left with one alternative becomes that alternative (`choice` 515), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence adds its elements to a sequence around the choice instead of being one element; one without a value loses the `nil` of the choice | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a call, a repetition, an optional, an `#atomic` or a bottom (`sameValueBare` 530), whose value alone is its value as the only alternative |
-| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 883) | an expression that is a sequence with a value adds its elements to a sequence around it instead of being one element | `depth` zero and the expression not `observed` (`shaped` 879); otherwise the recovery stays. An expression that is not a sequence, or has no value, has the same value either way |
+| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 883) | an expression with a value that a sequence around it splices (`isSeq` in `internal/compile/value_shape.go`: a sequence, grouped or with attributes other than recovery, or a call of a splice rule, a hidden rule without an action, whose body is one) adds its elements to that sequence instead of being one element | `depth` zero and the expression not `observed` (`shaped` 879); otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
 | N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | `depth` zero and no item `observed` (`adjacent` 327, `nestedRepeat` 405, `unroll` 364) |
 | The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 636) |
 | N13 | the body of the rule takes the place of the call | off in the cost view; in the view of matching, only where `depth` is zero (`rewrite` 253) |
@@ -119,9 +124,13 @@ either way. N2, N3 and N4 drop alternatives that never give the value of the
 choice: one after an alternative that always succeeds or begins with a cut is
 never tried, one that an earlier alternative subsumes fails wherever it is
 tried, and a bottom never matches; the alternatives left are unchanged (for
-the captures in the dropped ones, see Lemma 1). N4 replaces `_|_ a` by `_|_`,
-and K4 of N12 replaces `!X X` by `_|_`: neither matches. N5 changes only
-lookaheads, which have no value, and K1 only where the expression binds nothing
+the captures in the dropped ones, see Lemma 1). N4 replaces `_|_ a` by `_|_`:
+a sequence with an element of type `_|_` has that type, so both have the type
+`_|_` and never give a value, and wherever the value model looks at the type
+they agree: a recovery gives each the error value, an optional expression of
+either has no value, and a choice drops either from the join of its
+alternatives. K4 of N12 replaces `!X X` by `_|_`: neither matches. N5 changes
+only lookaheads, which have no value, and K1 only where the expression binds nothing
 outside its calls. N6 drops a cut, which has no value, so a sequence that keeps
 two items or more is the same tuple. N8 replaces literals of one code point by
 a class, and both give a string node of the matched text.
@@ -129,8 +138,8 @@ a class, and both give a string node of the matched text.
 A value is **reshaped** when it is the value of an expression that a rewrite of
 the table replaces where it changes that value (every case of the table but a
 bottom in the first row, the alternatives of `sameValueBare` in the third, and
-in the row of V1 an expression that is not a sequence with a value), or when
-it includes such a value: the value of a capture around it, of a sequence or
+in the row of V1 an expression that no sequence splices or that has no value),
+or when it includes such a value: the value of a capture around it, of a sequence or
 choice around it, of a rule whose body value includes it, and so on outward. By
 Lemma 1 no predicate reads a reshaped value; an action can, since the
 conditions of the table follow only the captures that predicates read.
@@ -219,9 +228,12 @@ alternative, which is what `dropCuts` checks (line 736). A rule whose body
 contains $e$ and whose value a predicate reads is `valued`. For V1, `attributed`
 checks `depth` and `observed` of $x$ itself (`shaped`, line 879). In each case
 the view keeps the sequence of $x$, the choice of $x$ or the recovery, unless
-$x$ has the same value alone: a bottom, or for a choice an expression that
-`sameValueBare` accepts; a recovery it keeps even then. So no rewrite changes a
-value that a predicate observes. This is the context condition of
+$x$ has the same value alone: a bottom, which has the type `_|_` as the
+sequence or the choice of it does, since a sequence with an element of that
+type and a choice of alternatives of that type have it, so a recovery around
+either gives the error value and an optional expression of either has none; or
+for a choice an expression that `sameValueBare` accepts. A recovery it keeps
+even then. So no rewrite changes a value that a predicate observes. This is the context condition of
 [Normalization](grammar-laws.md#normalization).
 
 The other rewrites keep the value of $e$
@@ -317,8 +329,8 @@ the iterations of its bounded repetitions. The lines are those of
 | N8 merge single characters (C9) | `mergeChars` 576, `singleChars` 608 | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
 | N9 `X* X*`, `X+ X*` to the first; `X X*` to `X+`; `X? X*` to `X*` | `adjacent` 327-346 | `depth` zero, neither item `observed`, `idempotent(X)`; for `X? X*` also X not nullable | 2 | 1 |
 | N10 `(X*)*`, `(X+)*`, `(X*)+` and `(X?)*` to `X*` | `nestedRepeat` 405 | unbounded repetitions, `depth` zero, not `observed`, `idempotent(X)`; for `(X?)*` X not nullable | 2 | 2 |
-| N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | `adjacent` 327, 347, `unroll` 364 | `depth` zero, neither item `observed`, X not nullable and without a loose cut, `idempotent(X)`; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
-| N12 `!X X` to `_|_` (K4) | `adjacent` 353, `boundedTerminal` 1121 | X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
+| N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | `adjacent` 327, 348, `unroll` 364 | `depth` zero, neither item `observed`, X not nullable and without a loose cut, `idempotent(X)`; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
+| N12 `!X X` to `_|_` (K4) | `adjacent` 354, `boundedTerminal` 1121 | X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
 | N12 left factoring (C6) | `factor` 636 | `depth` zero, no alternative of the run `observed`, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
 
 `idempotent(X)` (1072) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X

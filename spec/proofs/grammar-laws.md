@@ -514,12 +514,14 @@ is $\equiv_E$ `e`, and $\equiv_V$ `e` when its value stays the same; it is not
 $\equiv_X$, since a failure then also expects the first items of `s`.
 
 The value stays the same unless the recovery shapes it. A recovery makes an
-`e` with a value one element, so a sequence `e` gives its tuple node, where
-without the recovery a sequence around it adds the elements of `e`; a
-predicate that reads the capture `x:("q" ("a"? "b"?) #recover(skip="z"))` sees
-the difference, as `len($x) == 2`. An `e` that is not a sequence has the same
-value either way, and so does an `e` without a value, which the recovery
-leaves without one ([`#recover`](../language/pragmas.md#recover)).
+`e` with a value one element, so an `e` that a sequence around it splices (a
+sequence, grouped or with attributes other than recovery, or a call of a hidden
+rule without an action whose body is one) gives its tuple node, where without
+the recovery that sequence adds the elements of `e`; a predicate that reads
+the capture `x:("q" ("a"? "b"?) #recover(skip="z"))` sees the difference, as
+`len($x) == 2`. An `e` that no sequence splices has the same value either way,
+and so does an `e` without a value, which the recovery leaves without one
+([`#recover`](../language/pragmas.md#recover)).
 
 **Law (V2) Recovery in a Lookahead.** A lookahead, positive or negative,
 discards the errors recovered inside it when it ends: `&X` matches where `X`
@@ -649,8 +651,9 @@ conditions below let them change the value.
   with the body of its rule. The view applies them only where the conditions
   above hold, and otherwise keeps the sequence of one item or the choice of
   one alternative, and the call. Dropping the cut is not changing a value, so
-  it applies everywhere. A recovery that V1 drops makes a sequence with a
-  value one element; it stays where the conditions above do not hold.
+  it applies everywhere. A recovery that V1 drops makes an expression with
+  a value that a sequence splices one element; it stays where the conditions
+  above do not hold.
 - N2 and N3 drop alternatives that never give the value of the choice, but
   they can drop every alternative with a value and keep one without: the
   choice of `_ / "b"` is one element, `nil` or the string, and `_` alone none.
