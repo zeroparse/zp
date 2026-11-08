@@ -11,6 +11,7 @@ A `config.zp` grammar whose result is a `Config` with a list of `Entry` values, 
 ## Before You Start
 
 Complete [Parsing Structured Input](structured-input.md): you need `example.conf` from it.
+<!-- example: use docs/tutorial/structured-input.md -->
 
 ## Declaring Types and Actions
 
@@ -18,6 +19,7 @@ A `Config` has a list of `Entry` values, each with a key and a typed value. In Z
 grammar and construct them with actions. Save as `config.zp`:
 
 ```zp
+// config.zp
 package config
 
 type Key = node[string]
@@ -80,23 +82,25 @@ What is new:
 The compiler rejects ill-typed grammars with a position in the grammar file. In a copy of `config.zp`, swapping the
 arguments in the `entry` action:
 
+<!-- example: skip: a copy of config.zp with the arguments of the entry action swapped -->
 ```bash
 zp parse -g bad-type.zp -f sexpr -i 'a=1'   # ... Entry{Key: $v, Value: $k}
 ```
 
 ```text
-zp: bad-type.zp:21:60: cannot use Number | String | Bool as Key in field Key of Entry
-bad-type.zp:21:69: cannot use Key as Number | String | Bool in field Value of Entry
+zp: bad-type.zp:22:60: cannot use Number | String | Bool as Key in field Key of Entry
+bad-type.zp:22:69: cannot use Key as Number | String | Bool in field Value of Entry
 ```
 
 and misspelling a field name:
 
+<!-- example: skip: a copy of config.zp with a field name misspelled -->
 ```bash
 zp parse -g bad-field.zp -f sexpr -i 'a=1'   # ... Entry{Key: $k, Valu: $v}
 ```
 
 ```text
-zp: bad-field.zp:21:69: Entry has no field Valu
+zp: bad-field.zp:22:69: Entry has no field Valu
 ```
 
 ### Using the Tree From Go

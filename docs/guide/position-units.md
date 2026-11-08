@@ -6,6 +6,7 @@ it and what invalid UTF-8 does.
 The examples use `pairs.zp` and a parser `p` compiled as in [Running Parsers](running-parsers.md):
 
 ```zp
+// pairs.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start

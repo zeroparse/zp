@@ -16,6 +16,7 @@ Complete [Building Typed Trees](typed-trees.md). This lesson does not use the co
 Start with an Operators Rule. Save as `calc.zp`:
 
 ```zp
+// calc.zp
 type Number = node[string]
 type Binary = { Left Expr; Op node[string]; Right Expr }
 type Expr ~ Number | Binary
@@ -62,6 +63,7 @@ parentheses, a prefix operator and a right-associative one. **Levels declared ea
 of the `level` blocks is the precedence table, from loosest to tightest:
 
 ```zp
+// calc.zp
 type Number = node[string]
 type Binary = { Left Expr; Op node[string]; Right Expr }
 type Unary = { Op node[string]; X Expr }
@@ -115,6 +117,7 @@ A rule that starts by calling itself is **left recursive**, and ZeroParse accept
 rule per level, each defined in terms of the next tighter one:
 
 ```zp
+// calc-lr.zp
 type Number = node[string]
 type Binary = { Left Expr; Op node[string]; Right Expr }
 type Expr ~ Number | Binary
@@ -139,7 +142,7 @@ zp parse -g calc-lr.zp -f sexpr -i '1 + 2 * 3 - 4'
 ```
 
 ```text
-Binary{Left: Binary{Left: Number("1"), Op: "+", Right: Binary{Left: Number("2"), Op: "*", Right: Number("3")}}, Op: "-", Right: "4"}
+Binary{Left: Binary{Left: Number("1"), Op: "+", Right: Binary{Left: Number("2"), Op: "*", Right: Number("3")}}, Op: "-", Right: Number("4")}
 ```
 
 This produces the same trees as the Operators Rule version, with one rule per level instead of one line per level. Operators Rule

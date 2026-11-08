@@ -25,6 +25,7 @@ compiling from source at start-up.
 The examples use the grammar `pairs.zp` of the [Running Parsers](running-parsers.md):
 
 ```zp
+// pairs.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start(default)

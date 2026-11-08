@@ -125,6 +125,19 @@ Every example is run, and its output is pasted from that run. An example that a 
 
 - Put a command and its output in separate blocks, the command first, with no `$` prompt, so a reader can copy the
   command. `TestNoCommandPrompts` enforces this.
+- Name the file a grammar is saved under in the first line of its block: `// pairs.zp`. A block whose first line is
+  `// pairs.zp (changed rules)` replaces the rules of that name in the file that the page saved before. A block with
+  `@start` is a complete grammar. `TestDocumentationExamples` compiles every complete grammar and runs every command
+  block (lines that start with `zp`) against the output that follows it, in a directory per page, with the files of the
+  page saved in the order of the page. It takes about 4 seconds. A file that is not a grammar is saved from a `cat NAME`
+  block with the text block after it, or from a `cat > NAME <<'EOF'` block. In a shown output, a line of only `...`
+  stands for any number of lines. A command may show its standard output alone.
+- Mark what the test cannot know with an HTML comment on the line before the fence, which readers do not see:
+  `<!-- example: error -->` for a grammar that is rejected on purpose (it must not compile),
+  `<!-- example: file NAME -->` for any block that is a file to save (a JSON input, a text input),
+  `<!-- example: skip: reason -->` for a block that is not run, with the reason (a time of this machine, an output of a
+  fragment), and `<!-- example: use docs/tutorial/other.md -->` anywhere on the page for the files that another page
+  saves. Prefer a real example to a skip.
 - Write a complete `package main` program when the program is the point, and statement fragments otherwise, never half a
   function. Handle errors: `log.Fatal(err)` in programs, `return err` in fragments. Do not use `panic` and do not
   ignore errors.

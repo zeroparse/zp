@@ -41,6 +41,7 @@ A ZeroParse grammar is a set of **rules**. A rule has a name and a body that say
 a **start rule**, a rule marked with `@start` on the line before it. Save this as `hello.zp`:
 
 ```zp
+// hello.zp
 @start
 rule main = "hello" " " "world"
 ```

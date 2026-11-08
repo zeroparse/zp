@@ -18,6 +18,7 @@ Mark a repetition at the top level of the start rule with `#stream` and each ele
 forgotten, so memory depends on the size of one element and not on the size of the file. Save as `stream.zp`:
 
 ```zp
+// stream.zp
 type Key = node[string]
 type Number = node[string]
 type String = node[string]

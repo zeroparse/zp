@@ -65,6 +65,7 @@ undefined capture is a compile-time error (`undefined capture $z`).
 `T{Field: value, ...}` builds a struct. Field values are checked against the declared field types, so typos and
 mismatches are compile-time errors:
 
+<!-- example: error -->
 ```zp
 // field-errors.zp
 type Assign = { Name node[string]; Value node[string] }
@@ -385,6 +386,7 @@ Call{Args: [], Fn: "f"}
 `args_cst` shows what you would otherwise get: the first item followed by a list of `("," item)` tuples. Writing
 `Args: $args` directly does not compile, because `$args` is optional and the field is a plain list:
 
+<!-- example: error -->
 ```zp
 // args-optional.zp
 type Call = { Fn node[string]; Args []node[string] }

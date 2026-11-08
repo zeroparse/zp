@@ -297,6 +297,7 @@ describes the hidden rules that inline actions create.
 A start rule such as `main = ^^ expr $$` wraps the real result in a tuple. When you build an AST, return the value you
 want instead:
 
+<!-- example: skip: a fragment that refers to rules shown elsewhere -->
 ```zp
 @start
 rule main Expr = e:expr $$ => $e

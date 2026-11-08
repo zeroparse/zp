@@ -171,6 +171,7 @@ reports on standard error what the inputs exercised and what they missed. Take a
 numbers or booleans:
 
 ```zp
+// items.zp
 @start
 rule main = item ("," item)*
 rule item = word / number / "true" / "false"
@@ -224,6 +225,7 @@ Not every grammar is like that. The Python grammar of [alpha-parsers/python](../
 indentation of the current block packed in a variable and compares it in predicates (`stmt_sep`, `indented_block`),
 which the generator rarely satisfies by chance, so it misses the rules that need them:
 
+<!-- example: skip: the coverage of this grammar differs from the text -->
 ```bash
 zp sample -g testdata/grammars/python/python.zp -n 50 -seed 1 -coverage > /dev/null
 ```
@@ -278,7 +280,8 @@ zp sample -g testdata/grammars/json/json.zp -n 3 -invalid -f json
       "mutation": "insert \"r\" at 6",
       "error": "2:5: syntax error: expected end of input, [ \\t\\r\\n]"
     }
-  ]
+  ],
+  ...
 }
 ```
 
@@ -504,6 +507,7 @@ next to it. `-max-attempts n` bounds the candidate replays that `-minimize` trie
 `editfuzz.DefaultMaxAttempts`). Without `-save-failures`, the message includes the failing sequence as JSON. Here a deliberately broken
 `Document` fails:
 
+<!-- example: skip: the failure comes from a deliberately broken Document, which no build has -->
 ```bash
 zp edit-fuzz -g calc.zp -save-failures failures -minimize
 ```
@@ -520,6 +524,7 @@ minimized to 4 operations in failures/editfuzz-9d0bcab55578f1b5.json
 
 Replaying the minimized sequence fails the same way:
 
+<!-- example: skip: the failure comes from a deliberately broken Document, which no build has -->
 ```bash
 zp edit-fuzz -g calc.zp -replay failures/editfuzz-9d0bcab55578f1b5.json
 ```

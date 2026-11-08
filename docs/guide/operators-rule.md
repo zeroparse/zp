@@ -583,6 +583,7 @@ The default Operators Rule tree is a good starting point (nothing to write), but
 rule has a declared struct type, **every operator needs an action**, because the tuple is not assignable to a struct. A
 declared join that includes `node[_]` accepts the tuples, as `type E ~ node[_] | Bin` does:
 
+<!-- example: error -->
 ```zp
 // raw-typed.zp
 type Bin = { L node[string]; Op node[string]; R node[string] }
@@ -717,6 +718,7 @@ pick another name such as `atom`. The complete list is in
 
 **An operand cannot call its own rule at the start.** It would be left recursion inside the loop. The compiler says so:
 
+<!-- example: error -->
 ```zp
 // operand-lr.zp
 @start

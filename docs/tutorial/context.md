@@ -19,6 +19,7 @@ Captured values are read with `$name`, and `text($name)` gives the matched text.
 letters. Save as `names.zp`:
 
 ```zp
+// names.zp
 @start
 rule main = name ("," name)* $$
 
@@ -47,6 +48,7 @@ defines its own `tag`, and the definition disappears when the rule returns, so n
 as `tags.zp`:
 
 ```zp
+// tags.zp
 type Name = node[string]
 type Chars = node[string]
 type Element = { Name Name; Children []Content }

@@ -75,6 +75,7 @@ rule word = [a-z]+
 rule ws = [ \t]*
 ```
 
+<!-- example: skip: the output has timings of this machine -->
 ```bash
 zp profile -g fast.zp -n 3 < big.txt
 ```

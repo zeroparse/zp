@@ -30,6 +30,7 @@ saved in, and the commands that need the grammar itself (`convert`, `gen`, `lint
 The examples use the grammar `pairs.zp`:
 
 ```zp
+// pairs.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start(default)
@@ -204,8 +205,8 @@ zp fmt -w messy.zp && cat messy.zp
 ```text
 // A messy grammar.
 @start
-rule main =  ws "x"+ ws $$  // trailing comment
-rule ws =  [ \t\n]*
+rule main = ws "x"+ ws $$ // trailing comment
+rule ws = [ \t\n]*
 ```
 
 ```bash

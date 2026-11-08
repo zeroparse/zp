@@ -170,6 +170,7 @@ their types. See the [inference limits](../../spec/language/type-checking.md#typ
 Declare types on the rules whose values flow into struct fields, and on recursive rules; leave helpers inferred. The
 type shows up in the error messages, for example when a field expects an `int` and the rule returns a node:
 
+<!-- example: error -->
 ```zp
 // field-type.zp
 type Pair = { Key node[string]; Value int }

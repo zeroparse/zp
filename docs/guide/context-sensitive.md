@@ -94,6 +94,7 @@ zp: 1:7: syntax error: expected [a-z]
 
 A grammar that compares the nodes is rejected when it is compiled:
 
+<!-- example: error -->
 ```zp
 // nodes.zp
 @start(default)
@@ -118,6 +119,7 @@ Also remember that a mistake inside a predicate is not reported either: an evalu
 misspelled variable name is not such an error: every variable must be declared with `var`, so the compiler rejects an
 undeclared name when the grammar is compiled:
 
+<!-- example: error -->
 ```zp
 // typo.zp
 var indent int
@@ -686,6 +688,7 @@ technique:
 single iteration of a repetition. The body of the repetition is a new scope, so `$tag` is not defined there, and this is
 detected when the grammar is compiled:
 
+<!-- example: error -->
 ```zp
 // scope_bad.zp
 @start

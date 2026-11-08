@@ -25,6 +25,7 @@ more, `?` is zero or one). A rule can call another rule by name. Save as `kv.zp`
 contents with the next version:
 
 ```zp
+// kv.zp
 @start
 rule main = key "=" value
 rule key = [a-z]+
@@ -48,6 +49,7 @@ single-letter strings.
 part. `[a-z]+ #atomic` applies atomic construction suppression to the repeated character class:
 
 ```zp
+// kv.zp
 @start
 rule main = key "=" value
 rule key = [a-z]+ #atomic
@@ -64,6 +66,7 @@ The `=` is needed to parse the input but is of no interest in the tree. `-expr` 
 away:
 
 ```zp
+// kv.zp
 @start
 rule main = key -"=" value
 rule key = [a-z]+ #atomic
@@ -81,6 +84,7 @@ the sequence, but actions refer to it as `$name`, as the next step shows. The na
 source information with `-source-info`:
 
 ```zp
+// kv.zp
 @start
 rule main = k:key "=" v:value
 rule key = [a-z]+ #atomic
@@ -107,6 +111,7 @@ An **action** builds the value of a rule yourself. It is written after `=>` insi
 declared with `type`. This is the grammar from the README (`kv.zp`, final version):
 
 ```zp
+// kv.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start
@@ -157,6 +162,7 @@ EOF
 Save the following grammar as `config-cst.zp`. It produces plain syntax-tree nodes, with no actions; the next lesson adds types.
 
 ```zp
+// config-cst.zp
 @start
 rule main = -ws entry* $$
 
@@ -194,6 +200,7 @@ Without `-i`, `zp parse` reads the input from standard input. The new pieces:
   reconsidered.
 
   ```zp
+  // ab.zp
   @start
   rule main = ("a" / "ab") $$
   ```

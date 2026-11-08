@@ -12,6 +12,7 @@ generates itself.
 ## Before You Start
 
 Complete [Building Typed Trees](typed-trees.md): you need `config.zp`.
+<!-- example: use docs/tutorial/typed-trees.md -->
 
 ## Why Did It Fail?
 

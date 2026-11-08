@@ -304,9 +304,9 @@ zp lint -g scan-fast.zp -classify
 ```
 
 ```text
-scan.zp:4:10: hint: the cost can grow as n^2: after the alternative at 2:14 in rule main fails, the later alternative "a" at 2:18 in rule main can start again inside the input that the repetition "a"* at 4:10 in rule a examined; this repeats in the repetition (a / "a")* at 2:13 in rule main [super-linear]
+scan.zp:5:10: hint: the cost can grow as n^2: after the alternative at 3:14 in rule main fails, the later alternative "a" at 3:18 in rule main can start again inside the input that the repetition "a"* at 5:10 in rule a examined; this repeats in the repetition (a / "a")* at 3:13 in rule main [super-linear]
 scan.zp: the cost from start rule main is polynomial (n^2)
-	witness: scan.zp:4:10: the cost can grow as n^2: after the alternative at 2:14 in rule main fails, the later alternative "a" at 2:18 in rule main can start again inside the input that the repetition "a"* at 4:10 in rule a examined; this repeats in the repetition (a / "a")* at 2:13 in rule main
+	witness: scan.zp:5:10: the cost can grow as n^2: after the alternative at 3:14 in rule main fails, the later alternative "a" at 3:18 in rule main can start again inside the input that the repetition "a"* at 5:10 in rule a examined; this repeats in the repetition (a / "a")* at 3:13 in rule main
 scan-fast.zp: the cost from start rule main is linear
 ```
 

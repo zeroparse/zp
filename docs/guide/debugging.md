@@ -162,6 +162,7 @@ Other marks on a result:
 - `[3 evaluations]`: a left-recursive rule evaluated its body three times while growing its match. The recursive calls
   inside it show as memo hits that return the match so far:
 
+  <!-- example: skip: the grammar is given only in the comment of the command -->
   ```bash
   zp trace -g lr.zp -i '1+2'      # rule sum =  sum "+" n / n
   ```
@@ -265,6 +266,7 @@ on each backend, and results never differ.
 
 `zp profile` parses the input once with tracing and prints the cost of each rule. On 900 statements (35 KB):
 
+<!-- example: skip: the output has timings of this machine -->
 ```bash
 zp profile -g config.zp -n 5 < config.txt
 ```
@@ -303,6 +305,7 @@ rule update = "+=" ws value ";"
 rule call = "(" ws args? ws ")" ";"
 ```
 
+<!-- example: skip: the output has timings of this machine -->
 ```bash
 zp profile -g config_fast.zp -n 5 < config.txt
 ```

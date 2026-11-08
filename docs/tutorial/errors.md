@@ -9,6 +9,8 @@ A configuration parser that reports readable messages and keeps going after a ba
 
 ## Before You Start
 
+<!-- example: use docs/tutorial/typed-trees.md -->
+<!-- example: use docs/tutorial/structured-input.md -->
 Complete [Building Typed Trees](typed-trees.md): this lesson uses `config.zp` and `example.conf` from it.
 
 ## Reading the Messages
@@ -64,6 +66,7 @@ and continue. Here a bad entry skips the rest of its line. Save as `robust.zp`, 
 wrapped in `#recover`, and with the message of the previous section on `value`:
 
 ```zp
+// robust.zp
 type Key = node[string]
 type Number = node[string]
 type String = node[string]
@@ -173,6 +176,7 @@ entry: host
 Mistakes in the *grammar* are reported before any input is parsed, also with a position. For example, this
 `bad.zp` has an undefined rule:
 
+<!-- example: error -->
 ```zp
 // bad.zp
 @start

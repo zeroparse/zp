@@ -10,12 +10,15 @@ A fixture suite for the configuration grammar, a lint run that finds a real mist
 ## Before You Start
 
 Complete [Building Typed Trees](typed-trees.md) and [Reporting Errors](errors.md): you need `config.zp` and `robust.zp`.
+<!-- example: use docs/tutorial/typed-trees.md -->
+<!-- example: use docs/tutorial/errors.md -->
 
 ## A Fixture Suite
 
 A suite is a JSON file next to the grammar. Each case has an input and the outcome you expect: `accepted` for a clean
 match, `rejected` for a syntax error, and `recovered` for a match that needed `#recover`. Save as `suite.json`:
 
+<!-- example: file suite.json -->
 ```json
 {
   "version": 1,
@@ -65,6 +68,7 @@ continuous integration job as it is. Cases can also pin the tree, the root range
 `zp lint` examines a grammar without running it. Save a grammar with two mistakes as `buggy.zp`:
 
 ```zp
+// buggy.zp
 @start
 rule main = "a" ws op ws "b" $$
 rule op = "<" / "<="
@@ -77,9 +81,9 @@ zp lint -g buggy.zp
 ```
 
 ```text
-buggy.zp:3:17: error: alternative 2 (`"<="`) can never match: alternative 1 (`"<"` at 3:11) matches first wherever it could [shadowed-alternative]
+buggy.zp:4:17: error: alternative 2 (`"<="`) can never match: alternative 1 (`"<"` at 4:11) matches first wherever it could [shadowed-alternative]
 	fix: move it before alternative 1
-buggy.zp:5:1: warning: rule unused is never used: main does not call it, directly or indirectly [unreachable-rule]
+buggy.zp:6:1: warning: rule unused is never used: main does not call it, directly or indirectly [unreachable-rule]
 	fix: remove the rule, or call it from a rule that main reaches
 zp: lint: 1 error, 1 warning, 0 hints
 ```

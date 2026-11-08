@@ -31,6 +31,7 @@ design, and how the checks are kept free of false positives, is in
 Take a list whose items may be words, numbers or booleans:
 
 ```zp
+// items.zp
 @start
 rule main = item ("," item)*
 rule item = word / number / "true" / "false"
@@ -43,9 +44,9 @@ zp lint -g items.zp
 ```
 
 ```text
-items.zp:3:29: error: alternative 3 (`"true"`) can never match: alternative 1 (`word` at 3:13) matches first wherever it could [shadowed-alternative]
+items.zp:4:29: error: alternative 3 (`"true"`) can never match: alternative 1 (`word` at 4:13) matches first wherever it could [shadowed-alternative]
 	fix: move it before alternative 1
-items.zp:3:38: error: alternative 4 (`"false"`) can never match: alternative 1 (`word` at 3:13) matches first wherever it could [shadowed-alternative]
+items.zp:4:38: error: alternative 4 (`"false"`) can never match: alternative 1 (`word` at 4:13) matches first wherever it could [shadowed-alternative]
 	fix: move it before alternative 1
 zp: lint: 2 errors, 0 warnings, 0 hints
 ```
@@ -73,12 +74,12 @@ zp lint -g items.zp -f json
   "start": "main",
   "findings": [
     {
-      "line": 3,
+      "line": 4,
       "col": 29,
       "severity": "error",
       "check": "shadowed-alternative",
       "rule": "item",
-      "message": "alternative 3 (`\"true\"`) can never match: alternative 1 (`word` at 3:13) matches first wherever it could",
+      "message": "alternative 3 (`\"true\"`) can never match: alternative 1 (`word` at 4:13) matches first wherever it could",
       "fix": "move it before alternative 1"
     },
     ...
@@ -96,6 +97,7 @@ grammar a failed `A` gives its input back to the repetition in `main`, which tri
 character further on:
 
 ```zp
+// scan.zp
 @start
 rule main = (A / "a")* $$
 
@@ -107,9 +109,9 @@ zp lint -g scan.zp -classify
 ```
 
 ```text
-scan.zp:4:10: hint: the cost can grow as n^2: after the alternative at 2:14 in rule main fails, the later alternative "a" at 2:18 in rule main can start again inside the input that the repetition "a"* at 4:10 in rule A examined; this repeats in the repetition (A / "a")* at 2:13 in rule main [super-linear]
+scan.zp:5:10: hint: the cost can grow as n^2: after the alternative at 3:14 in rule main fails, the later alternative "a" at 3:18 in rule main can start again inside the input that the repetition "a"* at 5:10 in rule A examined; this repeats in the repetition (A / "a")* at 3:13 in rule main [super-linear]
 scan.zp: the cost from start rule main is polynomial (n^2)
-	witness: scan.zp:4:10: the cost can grow as n^2: after the alternative at 2:14 in rule main fails, the later alternative "a" at 2:18 in rule main can start again inside the input that the repetition "a"* at 4:10 in rule A examined; this repeats in the repetition (A / "a")* at 2:13 in rule main
+	witness: scan.zp:5:10: the cost can grow as n^2: after the alternative at 3:14 in rule main fails, the later alternative "a" at 3:18 in rule main can start again inside the input that the repetition "a"* at 5:10 in rule A examined; this repeats in the repetition (A / "a")* at 3:13 in rule main
 ```
 
 On `a` repeated n times, `"a"*` scans to the end of the input from every position. Each cause is a
@@ -449,6 +451,7 @@ partial run is reported with only its own letters.
 
 A comment that starts with `lint:ignore` and the names of checks suppresses their findings, with an optional reason:
 
+<!-- example: skip: a fragment that refers to rules shown elsewhere -->
 ```zp
 // lint:ignore unreachable-rule kept for the next version of the format
 rule expr_entry = expr $$

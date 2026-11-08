@@ -36,6 +36,7 @@ The examples use `pairs.zp` of the [Running Parsers](running-parsers.md), which 
 semicolons and whitespace:
 
 ```zp
+// pairs.zp
 type Pair = { Key node[string]; Value node[string] }
 
 @start
@@ -271,6 +272,7 @@ suite file; each case must provide an `input` string and an expected outcome:
 For example, `grammar.zp` can contain:
 
 ```zp
+// grammar.zp
 @start
 rule main = "a" #recover(skip=[^;]+ ";"?)
 ```
