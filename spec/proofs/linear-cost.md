@@ -11,12 +11,15 @@ part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
 Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemmas 13 and 15 are proved
-for the [cost view](#setting) that the classifier reads, given its condition,
-step 8 of [Open Steps](#open-steps). Lemma 6 is proved given the count
+for the [cost view](#setting) that the classifier reads, and the
+[Cost View](cost-view.md) proof transfers every bound on the view to the grammar
+as written, except for the values that actions build from values that the view
+reshapes and the run-time errors of those actions, step 8 of
+[Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
-5, which are outlines, on Lemma 6, which is proved given step 1, and on the
-condition of the cost view, step 8. Lemma 12
+5, which are outlines, on Lemma 6, which is proved given step 1, and, for the
+values that actions build from reshaped values, on step 8. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, in terms of what the
 Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
@@ -62,8 +65,11 @@ the left-recursion cycles, the variables and the run sites of the grammar as
 written. The proof reads that view as the grammar: its rule bodies match what the
 written ones match, and the written grammar costs at most a constant factor more
 on every input, which is the condition of the cost view. So a bound on the parse
-of the view is a bound on the parse of the grammar. That condition is not proved:
-it is step 8 of [Open Steps](#open-steps).
+of the view is a bound on the parse of the grammar. The [Cost View](cost-view.md)
+proof shows that condition for every rewrite that the view applies, with explicit
+constants, except for the values that actions build from a value that a rewrite
+reshapes and the run-time errors of those actions, which step 8 of
+[Open Steps](#open-steps) leaves open.
 
 **Cost.** By [Cost](../runtime/parsing.md#cost), the cost of a parse is
 $C = C_{\mathrm{body}} + C_{\mathrm{in}} + C_{\mathrm{it}} + C_{\mathrm{val}}$:
@@ -1710,8 +1716,8 @@ scan](../runtime/parsing.md#conditions-for-linear-cost) number at most a
 constant times $K \hat{n}$. The proof uses Lemma 3, Lemma 15 for the region
 bound, and the definitions: none of the conditions 1 to 5, and neither Lemma 4
 nor Lemma 5. It is a proof for the
-cost view, and holds of the written grammar given the condition of the cost view
-(step 8 of [Open Steps](#open-steps)).
+cost view, and holds of the written grammar by the [Cost View](cost-view.md)
+proof.
 
 Fix a set of characters $X$. For a position $p$, let $r(p)$ be the number of
 characters of $X$ directly before $p$, and let $\rho(p)$ be $-1$ when the
@@ -1850,9 +1856,9 @@ read what bodies match, in the rule bodies of the view. The activations that the
 parse of the written grammar makes are then counted by the
 [cost view](grammar-laws.md#normalization), which removes an evaluation only when
 making it again costs a constant factor. That the written grammar costs at most a
-constant factor more than the view is the condition of the cost view, which step 8
-of [Open Steps](#open-steps) leaves to prove; this lemma holds of the written
-grammar given it.
+constant factor more than the view is the condition of the cost view, which the
+[Cost View](cost-view.md) proof shows; the bounded scans make no value, so this
+lemma holds of the written grammar.
 
 **What the conditions leave out.** The conditions read a grammar as if a bounded
 scan were no scanning source. This cannot lose a cost, because the lemma counts
@@ -1993,9 +1999,9 @@ literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
-which is proved given step 1 of [Open Steps](#open-steps), and on the condition
-of the cost view, step 8; so the promises of the classes Linear and Linear Given
-an Environment Bound do too.
+which is proved given step 1 of [Open Steps](#open-steps), and, for the values
+that actions build from reshaped values, on step 8; so the promises of the
+classes Linear and Linear Given an Environment Bound do too.
 
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
 evaluation, the scanned cost of one, a call, or the walk cost. The body
@@ -2392,6 +2398,12 @@ step matrix. `classify` runs the checks in the order `checkUnits`,
   read with the run bound, and `countedWalk` and `rigid` the second bound:
   Lemma 13.
   `newViewClassifier` gives them the cost view that the Setting reads.
+- `normalizeRules` builds the cost view, with `cheapRules` and
+  `evaluatedAgainCheaply` for the evaluations that it may drop, `idempotent`
+  for the repetitions, `subsumed`, `factor` and `boundedTerminal` for the
+  choices and self exclusion, and `valueReaders` and `observed` for the
+  captures that predicates read: the [Cost View](cost-view.md) proof, which
+  transfers every bound on the view to the grammar as written.
 - `regionScans` chooses the region rules and drops those that fail a condition:
   `regionFree` decides fixed ends, `regionCheck` no nesting, disjoint openers
   and the crossings, `regionNFA` the openers and what can follow a text in a
@@ -2479,8 +2491,8 @@ A new condition enters the proof in one of two ways.
 
 ## Open Steps
 
-The outlines leave steps 1 to 7 to be made precise, and step 8 is a condition
-that the proof assumes of the cost view.
+The outlines leave steps 1 to 7 to be made precise, and step 8 is the part of the
+condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
    cost to the activations, show that the successful activations of a source
@@ -2584,12 +2596,17 @@ that the proof assumes of the cost view.
    the entries of earlier texts, the comparisons of a key with them, which are
    Document work, and the steps along their chains are bounded by the work of that
    window of edits, not by $n$, $K$ and $L$.
-8. **The condition of the cost view.** The classifier decides the conditions and
-   Lemmas 13 and 15 count on the [cost view](grammar-laws.md#normalization), and the
-   proof transfers each bound to the written grammar through one condition: on
-   every input, the parse of the written grammar costs at most a constant times
-   the parse of the view. The proof must show it for each rewrite that the view
-   applies, N1 to N12 without N7, under the further conditions that the view sets
-   on them: that a rewrite removes only evaluations that the original never makes
-   or makes again in the same state, and only cheap ones, and that N12 drops and
-   left-factors only what those conditions allow.
+8. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
+   bounds the cost of the written grammar by a constant times that of its view,
+   except for the values that actions build from a reshaped value: the value of
+   an expression that N9, N10, N11 or the left factoring of N12 replaces, or a
+   value that includes one through a capture, a sequence, a choice or the value
+   of a rule. Those rewrites preserve what the expression matches and its
+   recorded outcome, not its value, and the view applies them only where no
+   predicate reads such a value; an action of the written grammar can still read
+   one, and then reads another shape than the classifier sees in the view:
+   `x:("a"* "a"*) => concat($x[0], …)` copies a list where the view has an
+   element. Prove that the values which actions build from a value that N9, N10,
+   N11 or the left factoring of N12 reshapes, and the run-time errors of those
+   actions, stay within a constant factor of what the classifier bounds on the
+   view (or make the view keep the shape of every value that an action reads).

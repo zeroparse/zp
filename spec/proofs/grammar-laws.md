@@ -4,9 +4,11 @@ Arata Furukawa · Last revised 2026-11-08
 
 **Status:** Draft. The laws are proved as stated, except the law of
 [Free Variables](#free-variables), which is unproved in full. The
-confluence of the [Normalization](#normalization) is not proved, nor is the
+confluence of the [Normalization](#normalization) is not proved. The
 condition of its [cost view](#normalization), that the written grammar costs
-at most a constant factor more than the view.
+at most a constant factor more than the view, is proved in
+[Cost View](cost-view.md), except for the values that actions build from a
+value that the view reshapes and their run-time errors.
 
 This document states the equivalences ("laws") that hold between Rule
 Expressions of ZeroParse grammars, such as `X* X*` and `X*`, and a rewrite
@@ -594,9 +596,11 @@ parse costs: dropping or merging an expression drops evaluations that the
 original makes. An analysis of cost may read a view only when the original
 costs at most a constant factor more than the view on every input. The
 classifier reads a view that applies the rules of both levels except N7 and
-N13, under these further conditions, which are meant to give that bound. That
-they do, for each rule that the view applies, is not yet proved: it is step 8 of
-the [open steps of the linear cost proof](linear-cost.md#open-steps).
+N13, under these further conditions, which give that bound for each rule that
+the view applies ([Cost View](cost-view.md)), except for the values that actions
+build from a value that N9, N10, N11 or the left factoring of N12 reshapes and
+their run-time errors: step 8 of the
+[open steps of the linear cost proof](linear-cost.md#open-steps).
 
 - A rule removes an evaluation only when the original either never makes it
   or makes it again in the same state, and only when that evaluation is
