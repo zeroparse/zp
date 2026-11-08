@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -22,34 +23,68 @@ import (
 	"zeroparse.dev/zp/internal/limits"
 )
 
-// termDifferentialCases is the number of terms of each seed. The number of seeds is
-// termDifferentialSeeds; ZP_TERM_SEEDS raises it for a longer search.
+// termDifferentialCases is the number of terms of each seed. The tests that run in the process
+// (the reference evaluator and the engine's backends) read termProcessSeeds seeds, and the tests that
+// build generated parsers termGeneratedSeeds, which is larger under -tags zp_long; ZP_TERM_SEEDS
+// sets both for a longer search. The default of the first kills the mutants of the arithmetic that
+// the few seeds of a build did not reach (a floored remainder, a division that floors).
 const termDifferentialCases = 60
 
-var termDifferentialSeeds = func() uint64 {
+const termProcessSeedsDefault = 200
+
+func envSeeds(def uint64) uint64 {
 	if n, err := strconv.ParseUint(os.Getenv("ZP_TERM_SEEDS"), 10, 64); err == nil && n > 0 {
 		return n
 	}
-	return 3
-}()
+	return def
+}
+
+var (
+	termProcessSeeds   = envSeeds(termProcessSeedsDefault)
+	termBackendSeeds   = envSeeds(20)
+	termGeneratedSeeds = envSeeds(termGeneratedSeedsDefault)
+)
 
 // wellTypedTermCases returns the generated term cases of the seed that the compiler accepts, and the
-// number it rejected: the generator makes terms that are well typed by construction.
+// number it rejected, which fails the test: the generator makes terms that are well typed by construction.
 func wellTypedTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []gentest.TermCase, rejected int) {
 	t.Helper()
-	for _, c := range gentest.TermCases(seed, n, unset) {
+	return wellTypedCases(t, gentest.TermCases(seed, n, unset))
+}
+
+// wellTypedWideTermCases is wellTypedTermCases for the terms of gentest.TermCasesWide.
+func wellTypedWideTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []gentest.TermCase, rejected int) {
+	t.Helper()
+	return wellTypedCases(t, gentest.TermCasesWide(seed, n, unset))
+}
+
+func wellTypedCases(t *testing.T, all []gentest.TermCase) (cases []gentest.TermCase, rejected int) {
+	t.Helper()
+	for _, c := range all {
 		g, err := parseTest(c.Src)
 		if err == nil {
 			_, err = engine.Compile(g, compile.Options{})
 		}
 		if err != nil {
-			t.Logf("rejected: %v\n%s", err, c.Src)
+			// The generator makes terms that are well typed by construction: a rejection is a fault of it,
+			// in every test that reads its terms.
+			t.Errorf("rejected: %v\n%s", err, c.Src)
 			rejected++
 			continue
 		}
 		cases = append(cases, c)
 	}
 	return cases, rejected
+}
+
+// termSeedCases returns the well-typed terms of seed: the narrow terms for the seeds up to half, the
+// wide terms of gentest.TermCasesWide for the others, so that a test with 2*half seeds reads both.
+func termSeedCases(t *testing.T, seed, half uint64, unset bool) (cases []gentest.TermCase, rejected int) {
+	t.Helper()
+	if seed > half {
+		return wellTypedWideTermCases(t, seed-half, termDifferentialCases, unset)
+	}
+	return wellTypedTermCases(t, seed, termDifferentialCases, unset)
 }
 
 func termCaseList(cs []gentest.TermCase) []gentest.Case {
@@ -66,11 +101,8 @@ func termCaseList(cs []gentest.TermCase) []gentest.Case {
 // reports one and logs how far apart the backends are.
 func TestTermEngineBackends(t *testing.T) {
 	t.Parallel()
-	for seed := uint64(1); seed <= termDifferentialSeeds; seed++ {
-		cases, rejected := wellTypedTermCases(t, seed, termDifferentialCases, true)
-		if rejected > len(cases)/10 {
-			t.Errorf("seed %d: the compiler rejected %d of %d generated terms", seed, rejected, len(cases)+rejected)
-		}
+	for seed := uint64(1); seed <= 2*termBackendSeeds; seed++ {
+		cases, _ := termSeedCases(t, seed, termBackendSeeds, true)
 		for _, c := range cases {
 			g, _ := parseTest(c.Src)
 			prog, err := engine.Compile(g, compile.Options{})
@@ -113,11 +145,8 @@ func testTermGeneratedTargets(t *testing.T) {
 	}
 	list := func(unset bool) []gentest.Case {
 		var all []gentest.TermCase
-		for seed := uint64(1); seed <= termDifferentialSeeds; seed++ {
-			cases, rejected := wellTypedTermCases(t, seed, termDifferentialCases, unset)
-			if rejected > 0 {
-				t.Errorf("seed %d: the compiler rejected %d generated terms", seed, rejected)
-			}
+		for seed := uint64(1); seed <= 2*termGeneratedSeeds; seed++ {
+			cases, _ := termSeedCases(t, seed, termGeneratedSeeds, unset)
 			all = append(all, cases...)
 		}
 		cases := termCaseList(all)
@@ -232,8 +261,8 @@ func referenceTerm(t *testing.T, c gentest.TermCase) grammar.Term {
 func TestTermReferenceEvaluator(t *testing.T) {
 	t.Parallel()
 	checked := 0
-	for seed := uint64(1); seed <= termDifferentialSeeds; seed++ {
-		cases, _ := wellTypedTermCases(t, seed, termDifferentialCases, true)
+	for seed := uint64(1); seed <= 2*termProcessSeeds; seed++ {
+		cases, _ := termSeedCases(t, seed, termProcessSeeds, true)
 		for _, c := range cases {
 			g, _ := parseTest(c.Src)
 			prog, err := engine.Compile(g, compile.Options{})
@@ -242,11 +271,15 @@ func TestTermReferenceEvaluator(t *testing.T) {
 			}
 			term := referenceTerm(t, c)
 			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node("a", 0, 1)}, Bytes: unit == engine.Bytes, Start: 0, End: 1, Line: 1, Col: 1}
+				w := utf8.RuneCountInString(c.Lit)
+				if unit == engine.Bytes {
+					w = len(c.Lit)
+				}
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1}
 				v, msg := env.Eval(term)
 				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
 				if c.Kind == gentest.TermPredicate {
-					n, err := prog.ParseWith("main", "ab", opts)
+					n, err := prog.ParseWith("main", c.Lit+"b", opts)
 					held := err == nil && n != nil
 					if want := ref.Holds(v, msg); held != want {
 						t.Errorf("%s: unit %d: the engine holds the predicate: %v, the reference evaluator: %v (%s)", c.Name, unit, held, want, msg)
@@ -254,7 +287,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 					checked++
 					continue
 				}
-				n, err := prog.ParseWith("main", "a", opts)
+				n, err := prog.ParseWith("main", c.Lit, opts)
 				want := map[string]any{"node": nil}
 				if msg != "" {
 					want["err"] = "action in main: " + msg
