@@ -28,6 +28,7 @@ var goMutants = []goMutant{
 	{"the controlled equality ignores the content", "term_value.go", "strEq", "return p.TextEqual(ls, rs)", "return len(ls) == len(rs)"},
 	{"the controlled comparison orders a prefix after its extension", "budget.go", "compareTextControlled", "if len(l) < len(r) {\n\t\treturn -1", "if len(l) < len(r) {\n\t\treturn 1"},
 	{"the typed string fast path orders < as <=", "budget.go", "compareStrings", "return p.compareText(l, r) < 0, true", "return p.compareText(l, r) <= 0, true"},
+	{"the typed string fast path decides == without the budget control", "budget.go", "compareStrings", "case OpEq:\n\t\treturn p.TextEqual(l, r), true", "case OpEq:\n\t\treturn l == r, true"},
 	{"the typed string fast path negates ==", "budget.go", "compareStrings", "return p.TextEqual(l, r), true", "return !p.TextEqual(l, r), true"},
 	{"a remainder floors", "term_exec.go", "termBinary", `any(l.(int) % r.(int))`, `any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())`},
 	{"a division floors", "term_exec.go", "termBinary", `any(l.(int) / r.(int))`, `any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())`},

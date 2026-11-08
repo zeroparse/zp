@@ -221,8 +221,9 @@ func TestValueBoxedOperands(t *testing.T) {
 
 // TestValueCompareStrings holds the comparison of two unboxed strings of the typed runtime
 // (TActCtx.Compare, whose fast path decides in compareStrings) to the composition termBinary on
-// every pair of strings of the pool, for each comparison operator, with and without a budget
-// control: compareStrings is written by hand, so the composition is its reference.
+// every pair of strings of the pool, for each comparison operator: the same answer and, under a
+// budget control, the same units, which a fast path that skips the control would not charge.
+// compareStrings is written by hand, so the composition is its reference.
 func TestValueCompareStrings(t *testing.T) {
 	var strs []string
 	for _, v := range conform.ValuePool() {
@@ -230,19 +231,37 @@ func TestValueCompareStrings(t *testing.T) {
 			strs = append(strs, v.S)
 		}
 	}
-	control := newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
-	for name, tp := range map[string]*TParser{"plain": {Parser: &Parser{}}, "controlled": {Parser: &Parser{Control: control}}} {
-		c := &TActCtx{P: tp}
+	// Each side has its own parser, so that the units one charges do not hide in the other's.
+	newSide := func(controlled bool) *TParser {
+		p := &Parser{}
+		if controlled {
+			p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		}
+		return &TParser{Parser: p}
+	}
+	used := func(tp *TParser) uint64 {
+		if tp.Control == nil {
+			return 0
+		}
+		return uint64(tp.Control.budgetUsed())
+	}
+	for _, controlled := range []bool{false, true} {
+		fast, composed := newSide(controlled), newSide(controlled)
+		c := &TActCtx{P: fast}
 		for op := OpEq; op <= OpGe; op++ {
 			for _, l := range strs {
 				for _, r := range strs {
-					want, e := tp.termBinary(op, l, r)
+					beforeFast, beforeComposed := used(fast), used(composed)
+					want, e := composed.termBinary(op, l, r)
 					if e != nil {
-						t.Fatalf("%s: %q op %d %q fails: %v", name, l, op, r, e)
+						t.Fatalf("controlled=%v: %q op %d %q fails: %v", controlled, l, op, r, e)
 					}
 					got := c.Compare(op, TOperand{Str: l, IsStr: true}, TOperand{Str: r, IsStr: true})
 					if got != want {
-						t.Errorf("%s: %q op %d %q = %v, want %v", name, l, op, r, got, want)
+						t.Errorf("controlled=%v: %q op %d %q = %v, want %v", controlled, l, op, r, got, want)
+					}
+					if uf, uc := used(fast)-beforeFast, used(composed)-beforeComposed; uf != uc {
+						t.Errorf("controlled=%v: %q op %d %q charges %d, the composition charges %d", controlled, l, op, r, uf, uc)
 					}
 				}
 			}
