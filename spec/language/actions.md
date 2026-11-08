@@ -153,7 +153,8 @@ rule item Item = {depth := 1} n:name => Item{Depth: depth, Name: $n}
 Action Expressions operate on nodes, integers, strings, booleans, `nil`, and
 restricted lambda functions. String and integer literals use the same escapes
 and decimal syntax as grammar literals. `T{Field: value, ...}` constructs a
-node of struct type `T`; unset fields read as `nil`. `N{value}` constructs a named node type `N`
+node of struct type `T`; a field it leaves out reads as the
+[zero value](types.md#zero-values) of its declared type, and a field whose type has none must be set. `N{value}` constructs a named node type `N`
 from exactly one positional argument, converted as described in
 [Named Node Types](types.md#named-node-types). A typed node-list literal
 `[]T{value, ...}` constructs a list value whose element Type is explicitly `T`.
@@ -238,7 +239,8 @@ for comment and layout preservation.
 
 ## Field Access
 
-`x.Name` reads field `Name` from node `x`. An unset field reads as `nil`; a
+`x.Name` reads field `Name` from node `x`. An unset field reads as the [zero value](types.md#zero-values)
+of its declared type; a
 field that no member of the static type declares is a compile-time error. For
 a join type, every member must declare the field, and the result type is the join of the field types
 (a single type if they are equal). A field that only some members declare is a compile-time error naming the

@@ -567,6 +567,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		if st == nil {
 			return TyAny
 		}
+		v.unsetFields(t, st)
 		return NamedTy{name, 's'}
 	case *grammar.TupleLit:
 		elems := make([]Ty, len(t.Elems))

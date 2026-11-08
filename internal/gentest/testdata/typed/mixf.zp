@@ -1,5 +1,5 @@
 type Name = node[string]
-type Item = { N Name; Kids []It; Tag *node[string]; Cnt int; Txt string; Ok bool }
+type Item = { N *Name; Kids []It; Tag *node[string]; Cnt int; Txt string; Ok bool }
 type It ~ Item | error
 type Pair = { L It; R It }
 type Top ~ It | Pair

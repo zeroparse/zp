@@ -78,7 +78,7 @@ type StructLit = { Fields []StructField } // {'a': 1, b: 2}
 type StructField = { Name Ident; Value Expr }
 type MapLit = { Entries []MapEntry } // MAP {k: v}
 type MapEntry = { Key Expr; Value Expr }
-type ListComp = { Expr Expr; Vars []Ident; Source Expr; Cond Expr } // [x + 1 FOR x IN l IF x > 1]
+type ListComp = { Expr Expr; Vars []Ident; Source Expr; Cond *Expr } // [x + 1 FOR x IN l IF x > 1]
 type Lambda = { Params []Ident; Body Expr; Keyword bool }           // x -> body is a Binary; LAMBDA x: body
 type Subquery = { Query ParenQuery }                                // (SELECT ...)
 type Exists = { Query ParenQuery }
@@ -196,7 +196,7 @@ type ColDef = { Name Ident; Type Type; Collate *Name }
 type BaseTable = { Prefix *Ident; Name Name; Only bool; Star bool; Alias *TableAlias; At *AtClause; Sample *SampleClause }
 type FuncTable = {
     Prefix     *Ident // the alias in alias: f(x)
-    Func       Expr
+    Func       *Expr
     RowsFrom   []RowsFromItem
     Lateral    bool
     Ordinality bool

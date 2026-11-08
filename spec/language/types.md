@@ -230,6 +230,26 @@ to `T`; `nil` requires an optional element type, and nested lists are checked
 recursively, so `[]int{1, 2}` and `[](node[string], Item){}` are list values.
 Constructor fields and arguments use commas.
 
+#### Zero Values
+
+A field that a constructor does not set reads as the zero value of its declared type. A type has a
+zero value as follows:
+
+| Type | Zero value |
+|:--|:--|
+| `int`, `string`, `bool` | `0`, `""`, `false` |
+| `[]T` | the empty list |
+| `*T` and `_` | `nil` |
+| `(T, U, ...)` | the tuple of the zero values of its elements; `()` is its own zero value |
+| a struct type | the struct whose fields are all at their zero values, if every field has one |
+
+Every other type has no zero value: `node[T]`, a named node type, `error`, `missing`, a join, a
+meet, `_|_`, and a struct with a field that leads back to the struct through fields that are not
+optional. A constructor must set every field of such a type: leaving one out is a compile-time error
+that names the field and its type and suggests the optional type, as in `*node[string]`. So a field
+always reads as a value of its declared type, and the zero value of a struct is a value of that
+struct.
+
 ### Named Node Types
 
 A Type Definition `type N = node[U]` defines a named node type `N` whose underlying type is
