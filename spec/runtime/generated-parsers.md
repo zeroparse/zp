@@ -93,7 +93,7 @@ memory and time it needs, but not what it returns. It is either on or off, or it
 representation), `lowering` (an option of the step that lowers it toward the printers), `printer` (a choice
 of what the Go and TypeScript printers emit) or `runtime` (a control of the runtime structures that the
 printers emit). `zp gen -h` lists every optimization with its kind, its default and whether it takes a
-count; the [Code Generation guide](../../docs/guide/code-generation.md) describes what each does.
+count.
 
 - **No option changes what a parser returns.** For every accepted combination of `-optimize`, `-opt` and
   `-no-opt`, the generated parser accepts and rejects the same inputs and returns the same trees, typed
@@ -475,7 +475,7 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 A generated parser carries the runtime of the generator that produced it (`embed`) or imports it
 (`import`), and does not follow later changes of the grammar or of the generator.
 
-### Shared TypeScript runtime
+### Shared TypeScript Runtime
 
 With `-runtime import`, `parser.ts` and `types.ts` import the names they use from the module that
 `-runtime-module` names. The generator does not check that module. The contract is:
