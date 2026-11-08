@@ -121,6 +121,11 @@ func (c *bcompiler) compile() {
 			for _, f := range DefFields(spec) {
 				ti.Fields = append(ti.Fields, int(c.str(f.Name)))
 			}
+			if z := c.prog.StructZeroOf(td.DeclName()); z != nil {
+				for _, f := range z.Names {
+					ti.Zeros = append(ti.Zeros, int(c.str(z.Zeros[f])))
+				}
+			}
 			c.m.Types = append(c.m.Types, ti)
 		}
 	}

@@ -114,9 +114,9 @@ func init() {
 	*streamRule = *rules[0]
 	streamRule.Scope = []string{"rs"}
 	streamRule.Body = e16
-	zpGrammar.StructFields["File"] = map[string]bool{"Records": true}
+	zpGrammar.DeclareStruct("File", "Records", "l")
 	zpGrammar.TypeKinds["File"] = rt.KindOf("File", "")
-	zpGrammar.StructFields["Record"] = map[string]bool{"Fields": true}
+	zpGrammar.DeclareStruct("Record", "Fields", "l")
 	zpGrammar.TypeKinds["Record"] = rt.KindOf("Record", "")
 	zpGrammar.NodeTypes["Field"] = rt.NewNodeTypeKinds("Field")
 	zpGrammar.Starts = []string{"main"}
@@ -527,4 +527,4 @@ fail:
 
 var streamRule *rt.Rule
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

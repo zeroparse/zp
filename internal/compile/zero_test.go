@@ -70,3 +70,35 @@ type Kid = node[string]
 		t.Fatalf("a field that is set: %v", err)
 	}
 }
+
+// TestStructZeroDescriptors pins the descriptors that the runtimes build the zero value of an unset
+// field from, in declaration order.
+func TestStructZeroDescriptors(t *testing.T) {
+	t.Parallel()
+	g, err := parseTest(`type Inner = { N int; S string }
+type Loop = { Back *Loop; Tag int }
+type Alias ~ Inner
+type Z = { I int; S string; B bool; L []Inner; O *int; T (int, (string, bool)); U (); In Inner; A _; Lp Loop; Al Alias; K node[string] | error }
+@start
+rule main Z = k:"x" => Z{K: $k}
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prog, err := compileStatic(g, Options{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	z := prog.StructZeroOf("Z")
+	for _, f := range z.Names {
+		got = append(got, f+"="+z.Zeros[f])
+	}
+	want := "I=i S=s B=b L=l O=n T=(i(sb)) U=() In={Inner} A=n Lp={Loop} Al={Inner} K=-"
+	if s := strings.Join(got, " "); s != want {
+		t.Errorf("descriptors\n got %s\nwant %s", s, want)
+	}
+	if prog.StructZeroOf("Nope") != nil {
+		t.Error("a name that is not a struct type has descriptors")
+	}
+}

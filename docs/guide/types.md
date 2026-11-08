@@ -118,7 +118,9 @@ Program{Decls: [Decl{Name: "x", Value: "1"} Decl{Name: "y", Value: nil}]}
 ```
 
 A field that an action does not set is absent rather than `nil`; in JSON output it is omitted, while an explicit `nil`
-prints as `null`.
+prints as `null`. An action that reads such a field gets the zero value of its declared type: `0`, `""`, `false`, the
+empty list, `nil` for an optional type, and so on (see [Zero Values](../../spec/language/types.md#zero-values)). A field
+whose type has no zero value, such as `node[string]`, must be set by every constructor.
 
 ## Rule Result Types and Inference
 

@@ -346,12 +346,19 @@ func CanonicalDifferences(a, b any, path string, fieldsObject bool, out *[]strin
 }
 
 // canonicalUnsetZero reports whether a typed value is the zero value of its Go type that an unset
-// engine field reads as: null (a nil pointer, slice or interface), "", 0 or false. An empty list is
-// not, so an unset engine field never equals [].
+// engine field reads as: null (a nil pointer, slice or interface), "", 0, false, or a tuple of such
+// values. An empty list is not, so an unset engine field never equals [].
 func canonicalUnsetZero(x any) bool {
 	switch x := x.(type) {
 	case nil:
 		return true
+	case []any:
+		for _, e := range x {
+			if !canonicalUnsetZero(e) {
+				return false
+			}
+		}
+		return len(x) > 0
 	case string:
 		return x == ""
 	case float64:

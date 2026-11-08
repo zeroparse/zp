@@ -912,15 +912,14 @@ func (t *TypedGen) nodeMember(m *grammar.Member) bool {
 
 // readsFields reports whether an action or predicate may read a field of a struct: a member
 // access whose name is a field of some struct type. A typed value keeps its fields converted to
-// their Go types (a list as a slice, an Error where a struct is expected as nil, an omitted int as
-// 0), so reading them back would not give what the node's fields hold. A string, int or bool field
-// reads the same where every struct with a field of that name declares it with the same one of
-// these types and every constructor of those structs sets it.
+// their Go types (a list as a slice, an Error where a struct is expected as nil), so reading them
+// back would not give what the node's fields hold. A string, int or bool field reads the same where
+// every struct with a field of that name declares it with the same one of these types: a constructor
+// that leaves it out gives the Go zero value, which is the zero value of its type.
 func (t *TypedGen) readsFields() bool {
 	fields := map[string]bool{}
-	// owners maps a field name to the structs with a field of that name, and scalarField reports
-	// whether every one of them declares it with the same type, string, int or bool.
-	owners := map[string][]string{}
+	// scalarField reports whether every struct with a field of that name declares it with the same
+	// type, string, int or bool.
 	scalarField := map[string]bool{}
 	fieldType := map[string]compile.Ty{}
 	for _, name := range t.structs {
@@ -930,7 +929,6 @@ func (t *TypedGen) readsFields() bool {
 				fieldType[f.Name] = f.T
 			}
 			fields[f.Name] = true
-			owners[f.Name] = append(owners[f.Name], name)
 			scalarField[f.Name] = scalarField[f.Name] && f.T == fieldType[f.Name]
 		}
 	}
@@ -969,44 +967,7 @@ func (t *TypedGen) readsFields() bool {
 			terms = append(terms, r.Def.Action)
 		}
 	}
-	// set[s][f] reports whether every constructor of struct s sets field f; a struct built under
-	// another name, an alias, sets nothing it can vouch for.
-	set := map[string]map[string]bool{}
-	aliased := false
-	for _, x := range terms {
-		compile.WalkTerm(x, func(y grammar.Term) {
-			n, ok := y.(*grammar.New)
-			if !ok {
-				return
-			}
-			if _, ok := t.Info.Fields[n.Type]; !ok {
-				aliased = true
-				return
-			}
-			given := map[string]bool{}
-			for _, f := range n.Fields {
-				given[f.Name] = true
-			}
-			if set[n.Type] == nil {
-				set[n.Type] = given
-				return
-			}
-			for f := range set[n.Type] {
-				set[n.Type][f] = set[n.Type][f] && given[f]
-			}
-		})
-	}
-	faithful := func(field string) bool {
-		if aliased || !scalarField[field] {
-			return false
-		}
-		for _, s := range owners[field] {
-			if !set[s][field] {
-				return false
-			}
-		}
-		return true
-	}
+	faithful := func(field string) bool { return scalarField[field] }
 	found := false
 	for _, x := range terms {
 		compile.WalkTerm(x, func(y grammar.Term) {

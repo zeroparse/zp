@@ -397,12 +397,20 @@ export function joinValueStringsSpend(parts: readonly string[], control: BudgetC
 // Public Node.field stays a caller operation; parsing/conversion share this
 // internal visit counter and bounded string-name comparison.
 export function getFieldSpend(n: Node, name: string, control: BudgetControl | null): Value {
-  if (control === null) return n.field(name);
+  return findFieldSpend(n, name, control) ?? null;
+}
+
+// findFieldSpend is getFieldSpend that returns undefined for a field that the node does not have.
+export function findFieldSpend(n: Node, name: string, control: BudgetControl | null): Value | undefined {
   for (const field of n.fields) {
+    if (control === null) {
+      if (field.name === name) return field.value;
+      continue;
+    }
     control.charge(1);
     if (equalStringsSpend(field.name, name, control)) return field.value;
   }
-  return null;
+  return undefined;
 }
 
 // Reserve bounded logical visits before native hashing, which cannot be polled.

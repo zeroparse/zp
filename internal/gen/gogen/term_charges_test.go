@@ -65,8 +65,8 @@ func TestTermChargesAcrossTargets(t *testing.T) {
 
 // TestTermChargesAcrossTargetsWide pins the charges of the terms of gentest.TermCasesWide, which have
 // strings beyond the Basic Multilingual Plane, other literals, tuples, lists of structured values and
-// the errors of run time. The terms of seeds 5 to 12 leave struct fields unset, which read as nil, so
-// that the golden sees the errors of operators applied to nil. The targets charge them in their own
+// the errors of run time. The terms of seeds 5 to 12 leave struct fields unset, which read as their zero values, so
+// that the golden sees the operators applied to the zero values. The targets charge them in their own
 // ways, like the terms above.
 func TestTermChargesAcrossTargetsWide(t *testing.T) {
 	t.Parallel()

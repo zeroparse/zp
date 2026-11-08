@@ -1,4 +1,4 @@
-protocol 4
+protocol 5
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -378,6 +378,7 @@ method (*TypedDocumentCloneBase) Begin(*BudgetControl)
 method (*TypedDocumentCloneBase) ReleaseBase()
 method (*TypedDocumentCloneBase) Remember(any, any)
 method (*TypedDocumentCloneBase) Step(uint64)
+method (*grammar) DeclareStruct(string, ...string)
 method (*grammar) SetRules([]*Rule, int)
 method (*grammar) SetVars([]string, []any)
 method (*grammar) Share(*grammar)
@@ -469,7 +470,7 @@ type WalkTask struct{Visit WalkVisit; Exit bool; Identity any}
 type WalkVisit struct{Value any; Node *Node; Parent *Node; Depth int; Edge WalkEdge}
 type budgetControlSetter interface{SetBudgetControl(*BudgetControl)}
 type documentState struct{}
-type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]map[string]bool; TypeKinds map[string]*nodeKind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
+type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]*structFields; TypeKinds map[string]*nodeKind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
 type matcher = func(*Parser) (*Node, bool)
 type nodeJSONSliceID struct{}
 type nodeKind struct{Base int}
@@ -479,6 +480,7 @@ type parseOptions struct{}
 type recEntry struct{}
 type singleMode uint8
 type streamInput struct{Emit func(*Node, *BudgetControl) error}
+type structFields struct{}
 type tmatcher = func(*TParser) (any, bool)
 type tundo struct{}
 type typedDocumentState struct{}

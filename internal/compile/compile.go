@@ -55,6 +55,8 @@ type Program struct {
 	Vars *VarTable
 	// fieldTypes caches the types of casts (castType).
 	fieldTypes sync.Map
+	// structZeros caches the zero descriptors of the struct types (StructZeroOf) by name.
+	structZeros sync.Map
 	// Opts are the options the program was compiled with. The engine builds further programs from the
 	// same grammar later (the controlled closure graph and the recognizer) and derives their options
 	// from these, so that none is lost (engine.Program.lazyOptions).

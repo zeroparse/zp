@@ -255,9 +255,9 @@ func init() {
 	rules[9].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
 	rules[10].Body = e19
 	rules[10].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
-	zpGrammar.StructFields["Binary"] = map[string]bool{"Left": true, "Op": true, "Right": true}
+	zpGrammar.DeclareStruct("Binary", "Left", "-", "Op", "-", "Right", "-")
 	zpGrammar.TypeKinds["Binary"] = rt.KindOf("Binary", "")
-	zpGrammar.StructFields["Unary"] = map[string]bool{"Op": true, "X": true}
+	zpGrammar.DeclareStruct("Unary", "Op", "-", "X", "-")
 	zpGrammar.TypeKinds["Unary"] = rt.KindOf("Unary", "")
 	zpGrammar.NodeTypes["Number"] = rt.NewNodeTypeKinds("Number")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
@@ -1980,4 +1980,4 @@ func s13(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_a710b03a600590c2
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

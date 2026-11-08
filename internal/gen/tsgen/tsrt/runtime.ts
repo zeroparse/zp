@@ -1020,8 +1020,21 @@ export interface Grammar {
   // descs table). A parse records them only when it asks with ParseOptions.expectations; otherwise
   // it records the farthest failure position only.
   expectations: boolean;
-  // structFields holds the field names of each struct type.
-  readonly structFields: Map<string, Set<string>>;
+  // structFields holds the fields of each struct type: their names in declaration order and their
+  // zero descriptors (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for
+  // null; l for the empty list; the descriptors of the elements in parentheses for a tuple; {Name}
+  // for the struct type Name; and - for a type that has no zero value.
+  readonly structFields: Map<string, StructFields>;
+}
+
+export interface StructFields {
+  readonly names: string[];
+  readonly zeros: Map<string, string>;
+}
+
+// structFieldsOf returns the fields of a struct type from its name and zero descriptor pairs in declaration order.
+export function structFieldsOf(pairs: [string, string][]): StructFields {
+  return { names: pairs.map((p) => p[0]), zeros: new Map(pairs) };
 }
 
 export function mkGrammar(maxDepth: number, sparse: boolean, observable: boolean, controlled = true): Grammar {
@@ -4699,10 +4712,58 @@ export class Actx {
       }
       return unboxValue(getFieldSpend(x, name.slice(1), this.p.control));
     }
-    if (fields !== undefined && !fields.has(name)) {
+    if (fields === undefined) {
+      return getFieldSpend(x, name, this.p.control);
+    }
+    const zero = fields.zeros.get(name);
+    if (zero === undefined) {
       evalError(`${x.type} has no field ${name}`);
     }
-    return getFieldSpend(x, name, this.p.control);
+    const v = findFieldSpend(x, name, this.p.control);
+    if (v === undefined) {
+      // A field the constructor left unset reads as the zero value of its declared type.
+      return this.zeroValue(zero, 0)[0];
+    }
+    return v;
+  }
+
+  // zeroValue builds the zero value that the descriptor d describes from index i and returns it with
+  // the index after it.
+  zeroValue(d: string, i: number): [Value, number] {
+    switch (d[i]) {
+      case "i":
+        return [0, i + 1];
+      case "s":
+        return ["", i + 1];
+      case "b":
+        return [false, i + 1];
+      case "l":
+        return [this.list(), i + 1];
+      case "(": {
+        const elems: Value[] = [];
+        i++;
+        while (i < d.length && d[i] !== ")") {
+          let e: Value;
+          [e, i] = this.zeroValue(d, i);
+          elems.push(e);
+        }
+        return [this.tuple(...elems), i + 1];
+      }
+      case "{": {
+        const end = d.indexOf("}", i);
+        const name = d.slice(i + 1, end);
+        const sf = this.p.g.structFields.get(name);
+        if (sf === undefined) {
+          return [null, end + 1];
+        }
+        const kv: Value[] = [];
+        for (const f of sf.names) {
+          kv.push(f, this.zeroValue(sf.zeros.get(f)!, 0)[0]);
+        }
+        return [this.newStruct(name, ...kv), end + 1];
+      }
+    }
+    return [null, i + 1];
   }
 
   length(x: Value): Value {

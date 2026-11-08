@@ -273,37 +273,37 @@ func init() {
 	rules[37].Body = e53
 	rules[38].Body = e54
 	rules[39].Body = e55
-	zpGrammar.StructFields["ArrayLit"] = map[string]bool{"Elems": true}
+	zpGrammar.DeclareStruct("ArrayLit", "Elems", "l")
 	zpGrammar.TypeKinds["ArrayLit"] = rt.KindOf("ArrayLit", "")
-	zpGrammar.StructFields["Assign"] = map[string]bool{"Target": true, "Value": true}
+	zpGrammar.DeclareStruct("Assign", "Target", "-", "Value", "-")
 	zpGrammar.TypeKinds["Assign"] = rt.KindOf("Assign", "")
-	zpGrammar.StructFields["Binary"] = map[string]bool{"Left": true, "Op": true, "Right": true}
+	zpGrammar.DeclareStruct("Binary", "Left", "-", "Op", "-", "Right", "-")
 	zpGrammar.TypeKinds["Binary"] = rt.KindOf("Binary", "")
-	zpGrammar.StructFields["Block"] = map[string]bool{"Body": true}
+	zpGrammar.DeclareStruct("Block", "Body", "l")
 	zpGrammar.TypeKinds["Block"] = rt.KindOf("Block", "")
-	zpGrammar.StructFields["Call"] = map[string]bool{"Fn": true, "Args": true}
+	zpGrammar.DeclareStruct("Call", "Fn", "-", "Args", "l")
 	zpGrammar.TypeKinds["Call"] = rt.KindOf("Call", "")
-	zpGrammar.StructFields["Cond"] = map[string]bool{"Cond": true, "Then": true, "Else": true}
+	zpGrammar.DeclareStruct("Cond", "Cond", "-", "Then", "-", "Else", "-")
 	zpGrammar.TypeKinds["Cond"] = rt.KindOf("Cond", "")
-	zpGrammar.StructFields["ExprStmt"] = map[string]bool{"X": true}
+	zpGrammar.DeclareStruct("ExprStmt", "X", "-")
 	zpGrammar.TypeKinds["ExprStmt"] = rt.KindOf("ExprStmt", "")
-	zpGrammar.StructFields["Func"] = map[string]bool{"Name": true, "Params": true, "Body": true}
+	zpGrammar.DeclareStruct("Func", "Name", "-", "Params", "l", "Body", "{Block}")
 	zpGrammar.TypeKinds["Func"] = rt.KindOf("Func", "")
-	zpGrammar.StructFields["If"] = map[string]bool{"Cond": true, "Then": true, "Else": true}
+	zpGrammar.DeclareStruct("If", "Cond", "-", "Then", "{Block}", "Else", "n")
 	zpGrammar.TypeKinds["If"] = rt.KindOf("If", "")
-	zpGrammar.StructFields["Index"] = map[string]bool{"X": true, "Index": true}
+	zpGrammar.DeclareStruct("Index", "X", "-", "Index", "-")
 	zpGrammar.TypeKinds["Index"] = rt.KindOf("Index", "")
-	zpGrammar.StructFields["Let"] = map[string]bool{"Name": true, "Value": true}
+	zpGrammar.DeclareStruct("Let", "Name", "-", "Value", "-")
 	zpGrammar.TypeKinds["Let"] = rt.KindOf("Let", "")
-	zpGrammar.StructFields["Member"] = map[string]bool{"X": true, "Name": true}
+	zpGrammar.DeclareStruct("Member", "X", "-", "Name", "-")
 	zpGrammar.TypeKinds["Member"] = rt.KindOf("Member", "")
-	zpGrammar.StructFields["Program"] = map[string]bool{"Body": true}
+	zpGrammar.DeclareStruct("Program", "Body", "l")
 	zpGrammar.TypeKinds["Program"] = rt.KindOf("Program", "")
-	zpGrammar.StructFields["Return"] = map[string]bool{"Value": true}
+	zpGrammar.DeclareStruct("Return", "Value", "n")
 	zpGrammar.TypeKinds["Return"] = rt.KindOf("Return", "")
-	zpGrammar.StructFields["Unary"] = map[string]bool{"Op": true, "X": true}
+	zpGrammar.DeclareStruct("Unary", "Op", "-", "X", "-")
 	zpGrammar.TypeKinds["Unary"] = rt.KindOf("Unary", "")
-	zpGrammar.StructFields["While"] = map[string]bool{"Cond": true, "Body": true}
+	zpGrammar.DeclareStruct("While", "Cond", "-", "Body", "{Block}")
 	zpGrammar.TypeKinds["While"] = rt.KindOf("While", "")
 	zpGrammar.NodeTypes["Bool"] = rt.NewNodeTypeKinds("Bool")
 	zpGrammar.NodeTypes["Ident"] = rt.NewNodeTypeKinds("Ident")
@@ -2421,4 +2421,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

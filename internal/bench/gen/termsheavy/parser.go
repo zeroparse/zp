@@ -205,9 +205,9 @@ func init() {
 		return c.NewStruct("Line", "N", c.Length(c.Cap(0)), "Total", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_11 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_11), "$s"))) }), func(l_12, l_13 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_12), rt.UnboxValue(l_13)) }), "Long", c.Length(c.FilterList(c.MapList(c.Cap(0), func(l_14 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_14), "$s"))) }), func(l_15 any) any { return c.Binary(rt.OpGt, rt.UnboxValue(l_15), any(3)) })), "Longest", c.Fold("foldl", false, any(""), c.MapList(c.Cap(0), func(l_16 any) any { return c.Text(c.Member(rt.UnboxValue(l_16), "$s")) }), func(l_17, l_18 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_17), rt.UnboxValue(l_18)) }), "Wide", c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_19 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_19), "$s"))) }), func(l_20, l_21 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_20), rt.UnboxValue(l_21)) }), any(20)))
 	}
 	rules[2].Body = e7
-	zpGrammar.StructFields["Doc"] = map[string]bool{"Lines": true}
+	zpGrammar.DeclareStruct("Doc", "Lines", "l")
 	zpGrammar.TypeKinds["Doc"] = rt.KindOf("Doc", "")
-	zpGrammar.StructFields["Line"] = map[string]bool{"N": true, "Total": true, "Long": true, "Longest": true, "Wide": true}
+	zpGrammar.DeclareStruct("Line", "N", "i", "Total", "i", "Long", "i", "Longest", "s", "Wide", "b")
 	zpGrammar.TypeKinds["Line"] = rt.KindOf("Line", "")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
 	zpRecGrammar.SetRules(recRules, 0)
@@ -655,4 +655,4 @@ fail:
 
 const _ = types.ZPSchema_fc4e5afe12323557
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

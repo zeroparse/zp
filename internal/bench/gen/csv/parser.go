@@ -245,9 +245,9 @@ func init() {
 		c.PushItems(c.Cap(1))
 		return c.NewStruct("Record", "Fields", c.EndList(b_15))
 	}
-	zpGrammar.StructFields["File"] = map[string]bool{"Records": true}
+	zpGrammar.DeclareStruct("File", "Records", "l")
 	zpGrammar.TypeKinds["File"] = rt.KindOf("File", "")
-	zpGrammar.StructFields["Record"] = map[string]bool{"Fields": true}
+	zpGrammar.DeclareStruct("Record", "Fields", "l")
 	zpGrammar.TypeKinds["Record"] = rt.KindOf("Record", "")
 	zpGrammar.NodeTypes["Field"] = rt.NewNodeTypeKinds("Field")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
@@ -1270,4 +1270,4 @@ fail:
 
 const _ = types.ZPSchema_018a671e8765474e
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

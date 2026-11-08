@@ -19,6 +19,9 @@ type TermEnv struct {
 	Start, End int
 	// Pos, Line and Col are the input position where the evaluation started.
 	Pos, Line, Col int
+	// Zeros are the zero values of the fields of the struct types by type and field name: what a field
+	// that a constructor left unset reads as (spec/language/types.md#zero-values).
+	Zeros map[string]map[string]V
 }
 
 // Node returns the value of a string node of the input.
@@ -121,7 +124,15 @@ func (e *TermEnv) member(x V, name string) V {
 			return Int(int64(x.End))
 		}
 	case KStruct:
-		return x.Fields[name] // a field never set is nil
+		if v, ok := x.Fields[name]; ok {
+			return v
+		}
+		// A field never set reads as the zero value of its declared type.
+		z, ok := e.Zeros[x.Type][name]
+		if !ok {
+			fail("ref: the zero value of field %s of %s is not declared", name, x.Type)
+		}
+		return z
 	}
 	fail("cannot select %s from %s", name, x.TypeName())
 	return Nil

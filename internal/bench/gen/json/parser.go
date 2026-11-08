@@ -361,11 +361,11 @@ func init() {
 	}
 	rules[7].Body = e17
 	rules[7].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
-	zpGrammar.StructFields["Array"] = map[string]bool{"Elements": true}
+	zpGrammar.DeclareStruct("Array", "Elements", "l")
 	zpGrammar.TypeKinds["Array"] = rt.KindOf("Array", "")
-	zpGrammar.StructFields["Member"] = map[string]bool{"Key": true, "Value": true}
+	zpGrammar.DeclareStruct("Member", "Key", "-", "Value", "-")
 	zpGrammar.TypeKinds["Member"] = rt.KindOf("Member", "")
-	zpGrammar.StructFields["Object"] = map[string]bool{"Members": true}
+	zpGrammar.DeclareStruct("Object", "Members", "l")
 	zpGrammar.TypeKinds["Object"] = rt.KindOf("Object", "")
 	zpGrammar.NodeTypes["Bool"] = rt.NewNodeTypeKinds("Bool")
 	zpGrammar.NodeTypes["Null"] = rt.NewNodeTypeKinds("Null")
@@ -2972,4 +2972,4 @@ fail:
 
 const _ = types.ZPSchema_6f3389f1bda364ff
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

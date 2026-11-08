@@ -144,12 +144,84 @@ func (c *EvalCtx) Member(x any, name string) (any, error) {
 		v, _ := c.P.ValueField(value.D(n).Fields, capture)
 		return value.UnboxValue(v), nil
 	}
-	if st, ok := c.P.Prog.Types[n.Type()].(*grammar.TypeDef); ok && !c.P.HasValueField(st, name) {
+	st, ok := c.P.Prog.Types[n.Type()].(*grammar.TypeDef)
+	if !ok {
+		v, _ := c.P.ValueField(value.D(n).Fields, name)
+		return v, nil
+	}
+	if !c.P.HasValueField(st, name) {
 		return nil, c.P.ActionError(n.Type(), " has no field ", name)
 	}
-	// Unset fields and unmatched captures are nil.
-	v, _ := c.P.ValueField(value.D(n).Fields, name)
+	v, set := c.P.ValueField(value.D(n).Fields, name)
+	if !set {
+		// A field the constructor left unset reads as the zero value of its declared type.
+		return c.zeroValue(c.P.Prog.StructZeroOf(n.Type()).Zeros[name])
+	}
 	return v, nil
+}
+
+// zeroValue builds the zero value of the descriptor d (compile.Program.ZeroDesc).
+func (c *EvalCtx) zeroValue(d string) (any, error) {
+	v, _, err := c.zeroFrom(d)
+	return v, err
+}
+
+// zeroFrom builds the zero value that d starts with and returns it with the rest of d.
+func (c *EvalCtx) zeroFrom(d string) (any, string, error) {
+	if d == "" {
+		return nil, d, nil
+	}
+	switch d[0] {
+	case 'i':
+		return 0, d[1:], nil
+	case 's':
+		return "", d[1:], nil
+	case 'b':
+		return false, d[1:], nil
+	case 'l':
+		return c.ListNode(c.P.Kids(len(c.P.KidStack))), d[1:], nil
+	case '(':
+		p := c.P
+		kb := len(p.KidStack)
+		d = d[1:]
+		for d != "" && d[0] != ')' {
+			var e any
+			var err error
+			e, d, err = c.zeroFrom(d)
+			if err == nil {
+				p.Spend()
+				var n *value.Node
+				if n, err = c.Element("tuple", e); err == nil {
+					p.KidStack = append(p.KidStack, n)
+				}
+			}
+			if err != nil {
+				p.DropKids(kb)
+				return nil, d, err
+			}
+		}
+		return c.TupleNode(p.Kids(kb)), strings.TrimPrefix(d, ")"), nil
+	case '{':
+		name, rest, _ := strings.Cut(d[1:], "}")
+		sz := c.P.Prog.StructZeroOf(name)
+		if sz == nil {
+			return nil, rest, nil
+		}
+		vals := make([]any, len(sz.Names))
+		for i, f := range sz.Names {
+			v, err := c.zeroValue(sz.Zeros[f])
+			if err != nil {
+				return nil, rest, err
+			}
+			vals[i] = v
+		}
+		n, err := c.NewStruct(name, sz.Names, vals)
+		if err != nil {
+			return nil, rest, err
+		}
+		return n, rest, nil
+	}
+	return nil, d[1:], nil
 }
 
 // NewStruct creates a struct node. Its range covers the ranges of the fields whose values are

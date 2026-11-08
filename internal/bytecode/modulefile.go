@@ -51,6 +51,7 @@ func (w *Encoder) WriteModule(m *Module) {
 	for _, t := range m.Types {
 		w.Int(t.Name)
 		w.ints(t.Fields)
+		w.ints(t.Zeros)
 		w.Int(t.Node)
 	}
 	for _, lists := range [][][]int{m.FieldLists, m.Scopes} {
@@ -175,7 +176,7 @@ func (r *Decoder) ReadModule() *Module {
 	}
 	n = r.Count()
 	for i := 0; i < n && r.Err == nil; i++ {
-		m.Types = append(m.Types, TypeInfo{Name: int(r.int32()), Fields: r.ints(), Node: int(r.int32())})
+		m.Types = append(m.Types, TypeInfo{Name: int(r.int32()), Fields: r.ints(), Zeros: r.ints(), Node: int(r.int32())})
 	}
 	for _, lists := range []*[][]int{&m.FieldLists, &m.Scopes} {
 		n = r.Count()
@@ -262,6 +263,10 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	for _, t := range m.Types {
 		str(t.Name)
 		strs(t.Fields)
+		strs(t.Zeros)
+		if err == nil && len(t.Zeros) != len(t.Fields) {
+			fail("type %q has %d zero descriptors for %d fields", m.Strings[t.Name], len(t.Zeros), len(t.Fields))
+		}
 		opt("string", t.Node, len(m.Strings))
 		if err == nil && t.Node >= 0 && len(t.Fields) != 0 {
 			fail("node type %q has fields", m.Strings[t.Name])

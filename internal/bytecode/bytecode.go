@@ -70,6 +70,9 @@ func (cl *Class) Has(ch rune) bool {
 type TypeInfo struct {
 	Name   int   // string table index
 	Fields []int // struct field names (string table indices)
+	// Zeros holds the zero descriptor of each field (string table indices, parallel to Fields): how
+	// a field that a constructor left unset reads (compile.Program.ZeroDesc).
+	Zeros []int
 	// Node is, for a named node type, the underlying node type (string table index of its text,
 	// as ECAST writes types), and -1 for a struct type (instruction set 16).
 	Node int
@@ -408,4 +411,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 32
+const ISAVersion = 33

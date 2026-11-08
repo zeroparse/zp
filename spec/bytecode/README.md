@@ -45,7 +45,7 @@ A module consists of the following tables and code sequences.
 |:--|:--|
 | String table | Strings. All other tables and instructions refer to strings by index. |
 | Character class table | A list of ranges (pairs of lower and upper bounds), a negation flag, and an expectation string |
-| Type table | Type name, and either the field names of a struct type or, for a named node type `type N = node[T]`, the text of its underlying node type `node[T]` |
+| Type table | Type name, and either the field names and zero descriptors of a struct type or, for a named node type `type N = node[T]`, the text of its underlying node type `node[T]` |
 | Field-list table | Lists of field names used by `ENEW` |
 | Scope table | The capture names of a repetition element, in slot order |
 | Variable table | The declared variables: name, type (`int`, `string` or `bool`) and initial value. Every parse begins with the environment holding each variable bound to its initial value. |
@@ -275,7 +275,7 @@ Actions and predicates are evaluated by stack-based expression code. An evaluati
 | 105 | `EITEM` | A n | Push `$n`. For n = 0, push a list value of all items. An out-of-range n is an error. |
 | 106 | `ELOCAL` | A index | Push a local (a lambda parameter, `$lhs`, `$rhs`, `$op`, or `$value`). |
 | 107 | `EVAR` | A variable | Push the value of variable A, an index into the variable table. |
-| 108 | `EMEMBER` | A name | Pop a value and push its field. `Start`, `End` and `Value` are built in for a node with a range: the range, and the text of a string node or the elements of a tuple or list node. A field not declared by the struct type is an error; a declared field that is absent yields nil. A name `$y` reads capture `y`: it is an error on a struct value, and an unmatched capture yields nil. |
+| 108 | `EMEMBER` | A name | Pop a value and push its field. `Start`, `End` and `Value` are built in for a node with a range: the range, and the text of a string node or the elements of a tuple or list node. A field not declared by the struct type is an error; a declared field that is absent yields the zero value of its declared type (a field of a type that has none is always present). A name `$y` reads capture `y`: it is an error on a struct value, and an unmatched capture yields nil. |
 | 109 | `ENEW` | A type, B field list | Pop as many values as the field list has names, and push a struct node. |
 | 110 | `EBIN` | A operator | Pop two values and push the result of the operation. The operator `[]` indexes the list below with the `int` on top. |
 | 111 | `EUNARY` | A operator | Pop a value and push the result of the operation. |
@@ -322,7 +322,7 @@ A compiled grammar uses container version 8. It stores one execution-only compil
 | Magic | `ZPC\x00` (6 bytes) |
 | Version | 1 byte: 8. A loader refuses any other value. |
 | Mode | 1 byte: 0 parse, 1 recognize, 2 document. The module serves the operations of this mode only. A parse-mode or document-mode module is the module of the grammar; a recognize-mode module is the module of its recognizer. A loader refuses any other value. |
-| Instruction-set version | Unsigned integer for this module: 32. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
+| Instruction-set version | Unsigned integer for this module: 33. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
 | String table | Count, then each string (byte length and UTF-8 bytes), all unsigned. The module's string table is a prefix of this table. |
 | Start rule | String index, unsigned: the start rule the saved parser uses. It is a start rule of the module, or the empty string for the module's default start rule. |
 | Module | See below |
@@ -334,7 +334,7 @@ The module is laid out in the following order. A *list* is a count (unsigned) fo
 2. Source information, a boolean: whether the values a parse returns carry the rule names and capture names of the grammar. A loaded program keeps it.
 3. Default value, a boolean: whether the program was compiled with default values, which drop value actions and the declared types of rules (except for the rules that make values read by predicates) before compilation. A loaded program keeps it.
 4. Character class table: a list of (negated, expectation string, number of ranges (unsigned), followed by the lower and upper bound of each range).
-5. Type table: a list of (name, list of field names, underlying node type). The underlying node type is a string index, or -1 for a struct type.
+5. Type table: a list of (name, list of field names, list of the zero descriptors of the fields, underlying node type). A zero descriptor is a string index; it tells how a field that a constructor left unset reads (see `EMEMBER`), and is written as in the type chapter of the language specification: `i`, `s` and `b` for 0, `""` and false, `n` for nil, `l` for the empty list, the descriptors of the elements in parentheses for a tuple, `{Name}` for the zero value of the struct type Name, and `-` for a type that has no zero value. The underlying node type is a string index, or -1 for a struct type.
 6. Field-list table, then scope table: each a list of lists of string indices.
 7. Variable table: a list of (name, type, integer, string). The type is 0 for `int`, 1 for `string` and 2 for `bool`. The integer is the initial value of an `int` variable, and 0 or 1 for a `bool` variable. The string is the string table index of the initial value of a `string` variable, and -1 for the other types.
 8. Rule table: a list of (name, body, scope, action, node type, memoize, leader, member, cycle, position-dependent, Operators Rule, value-free twin, transient, recursive, where, splice, variables).

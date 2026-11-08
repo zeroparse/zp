@@ -275,7 +275,8 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				if unit == engine.Bytes {
 					w = len(c.Lit)
 				}
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1}
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1,
+					Zeros: map[string]map[string]ref.V{"R": {"A": ref.Int(0), "B": ref.Str(""), "C": ref.Bool(false)}}} // the fields of gentest's termPrelude
 				v, msg := env.Eval(term)
 				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
 				if c.Kind == gentest.TermPredicate {

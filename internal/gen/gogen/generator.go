@@ -826,7 +826,8 @@ func (g *Generator) rules() {
 	if g.Table != "rules" {
 		return // the recognizer shares the struct fields
 	}
-	// Struct fields, used to detect references to undeclared fields at run time.
+	// Struct fields, used to detect references to undeclared fields at run time and to read the
+	// fields that a constructor left unset.
 	var names []string
 	for name, spec := range g.Prog.Types {
 		if td, ok := spec.(*grammar.TypeDef); ok && td.Struct() != nil {
@@ -835,11 +836,12 @@ func (g *Generator) rules() {
 	}
 	sort.Strings(names)
 	for _, name := range names {
+		sz := g.Prog.StructZeroOf(name)
 		var fields []string
-		for _, f := range compile.DefFields(g.Prog.Types[name].(*grammar.TypeDef)) {
-			fields = append(fields, fmt.Sprintf("%q: true", f.Name))
+		for _, f := range sz.Names {
+			fields = append(fields, fmt.Sprintf("%q, %q", f, sz.Zeros[f]))
 		}
-		fmt.Fprintf(init, "\tzpGrammar.StructFields[%q] = map[string]bool{%s}\n", name, strings.Join(fields, ", "))
+		fmt.Fprintf(init, "\tzpGrammar.DeclareStruct(%q%s)\n", name, joinPrefixed(fields))
 		fmt.Fprintf(init, "\tzpGrammar.TypeKinds[%q] = KindOf(%q, \"\")\n", name, name)
 	}
 	// The kinds of the named node types, under their names and those of their aliases.
@@ -1859,4 +1861,12 @@ func (g *Generator) writeDescs(opts gen.GenOptions) {
 	}
 	fmt.Fprintf(&g.Init, "\tzpGrammar.Descs = %s\n", goStrings(g.Descs))
 	g.Init.WriteString("\tzpGrammar.Expectations = true\n")
+}
+
+// joinPrefixed returns the items separated by commas, with a comma before the first.
+func joinPrefixed(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+	return ", " + strings.Join(items, ", ")
 }

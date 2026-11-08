@@ -78,9 +78,17 @@ func TestNamedNodeTypeModuleValidation(t *testing.T) {
 			for i := range m.Types {
 				if m.Types[i].Node >= 0 {
 					m.Types[i].Fields = []int{str(m, "Text")}
+					m.Types[i].Zeros = []int{str(m, "Text")}
 				}
 			}
 		}, "has fields"},
+		"zeros": {func(m *bytecode.Module) {
+			for i := range m.Types {
+				if m.Types[i].Node < 0 && len(m.Types[i].Fields) > 0 {
+					m.Types[i].Zeros = m.Types[i].Zeros[1:]
+				}
+			}
+		}, "zero descriptors"},
 		"underlying": {func(m *bytecode.Module) {
 			for i := range m.Types {
 				if m.Types[i].Node >= 0 {

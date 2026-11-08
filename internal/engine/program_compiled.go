@@ -249,9 +249,14 @@ func moduleProgram(m *bytecode.Module) *Program {
 			continue
 		}
 		st := &grammar.StructType{}
-		for _, f := range t.Fields {
-			st.Fields = append(st.Fields, &grammar.Field{Name: m.Strings[f]})
+		z := &compile.StructZero{Zeros: map[string]string{}}
+		for i, f := range t.Fields {
+			name := m.Strings[f]
+			st.Fields = append(st.Fields, &grammar.Field{Name: name})
+			z.Names = append(z.Names, name)
+			z.Zeros[name] = m.Strings[t.Zeros[i]]
 		}
+		prog.SetStructZero(m.Strings[t.Name], z)
 		prog.Types[m.Strings[t.Name]] = &grammar.TypeDef{Name: m.Strings[t.Name], Type: st}
 	}
 	prog.Vars = compile.ModuleVarTable(m)

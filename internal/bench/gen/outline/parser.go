@@ -210,7 +210,7 @@ func init() {
 	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Item", "Text", c.Cap(1), "Children", c.Concat(c.Cap(2))) }
 	rules[3].Body = e5
 	rules[3].Action = func(c *rt.ActCtx) any { return c.Cap(1) }
-	zpGrammar.StructFields["Item"] = map[string]bool{"Text": true, "Children": true}
+	zpGrammar.DeclareStruct("Item", "Text", "-", "Children", "l")
 	zpGrammar.TypeKinds["Item"] = rt.KindOf("Item", "")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
 	zpRecGrammar.SetRules(recRules, 1)
@@ -1252,4 +1252,4 @@ fail:
 
 const _ = types.ZPSchema_932055d5f3ada458
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

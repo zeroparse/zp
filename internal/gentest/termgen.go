@@ -43,9 +43,8 @@ var TermInputs = []string{"a", "ab"}
 // division by zero, an index out of range, a cast that fails and a nil field often occur. The grammars
 // are well typed by construction; a caller drops any that the compiler rejects and counts them.
 //
-// With unset, a struct constructor may leave fields out. A field that is left out reads as nil in the
-// engine, in generated node parsers and in TypeScript, and as the zero value of its Type in generated
-// typed Go parsers.
+// With unset, a struct constructor may leave fields out. A field that is left out reads as the zero
+// value of its Type on every target.
 func TermCases(seed uint64, n int, unset bool) []TermCase {
 	g := &termGen{rng: rand.New(rand.NewPCG(seed, 0x7e12a)), unset: unset}
 	out := make([]TermCase, 0, n)
@@ -417,7 +416,7 @@ func (g *termGen) structTerm(depth int, s scope) string {
 		return g.cast("R", d, s)
 	}
 	var fields []string
-	if !g.unset || g.rng.IntN(5) != 0 { // a field left unset reads as nil
+	if !g.unset || g.rng.IntN(5) != 0 { // a field left unset reads as its zero value
 		fields = append(fields, "A: "+g.term("int", d, s))
 	}
 	if !g.unset || g.rng.IntN(5) != 0 {

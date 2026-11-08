@@ -12,8 +12,9 @@ import (
 )
 
 // stringFieldCases read struct fields in actions and predicates. direct reports whether the
-// typed runtime may build the values: a string field that every constructor of every struct with
-// that field sets reads the same from a typed value as from a node.
+// typed runtime may build the values: a string, int or bool field that every struct with that field
+// declares with the same type reads the same from a typed value as from a node, whether or not a
+// constructor sets it, since a field that is left out reads as the zero value of its type.
 func stringFieldCases() []struct {
 	gentest.Case
 	direct bool
@@ -56,12 +57,12 @@ rule name = t:[a-z]+ #atomic -" "? => Name{Text: text($t), Len: 1}`, Inputs: []s
 type A = { Text string }
 rule main = x:(a / e) $$ => Out{B: $x.Text == ""}
 rule a = t:[a-z]+ #atomic => A{Text: text($t)}
-rule e = "!" => A{}`, Inputs: []string{"ab", "!", ""}}, false},
+rule e = "!" => A{}`, Inputs: []string{"ab", "!", ""}}, true},
 		{gentest.Case{Name: "int field not always set", Src: `type Out = { V string; N int; B bool }
 type A = { Len int }
 rule main = x:(a / e) $$ => Out{B: $x.Len == 0}
 rule a = [a-z]+ => A{Len: 1}
-rule e = "!" => A{}`, Inputs: []string{"ab", "!", ""}}, false},
+rule e = "!" => A{}`, Inputs: []string{"ab", "!", ""}}, true},
 		{gentest.Case{Name: "string field shared with another type", Src: `type Out = { V string; N int; B bool }
 type A = { Text string }
 type B = { Text int }
@@ -78,7 +79,7 @@ type A = { Text string }
 type B ~ A
 rule main = x:(a / b) $$ => Out{V: $x.Text}
 rule a = t:[a-z]+ #atomic => A{Text: text($t)}
-rule b = t:[0-9]+ #atomic => B{Text: text($t)}`, Inputs: []string{"ab", "12", ""}}, false},
+rule b = t:[0-9]+ #atomic => B{Text: text($t)}`, Inputs: []string{"ab", "12", ""}}, true},
 	}
 }
 

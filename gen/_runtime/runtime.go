@@ -935,8 +935,8 @@ type grammar struct {
 	// Descs table). A parse records them only when it asks with WithExpectations; otherwise it records
 	// the farthest failure position only.
 	Expectations bool
-	// StructFields holds the field names of each struct type.
-	StructFields map[string]map[string]bool
+	// StructFields holds the fields of each struct type (DeclareStruct).
+	StructFields map[string]*structFields
 	// TypeKinds holds the node kinds of the struct types.
 	TypeKinds map[string]*nodeKind
 	// NodeTypes holds the kinds of the grammar's named node types, also under the names of the
@@ -1016,8 +1016,30 @@ func (g *grammar) indexInitVals() {
 //
 // NewGrammar is for generated parsers; not a stable API.
 func NewGrammar(maxDepth int) *grammar {
-	return &grammar{maxDepth: maxDepth, StructFields: map[string]map[string]bool{},
+	return &grammar{maxDepth: maxDepth, StructFields: map[string]*structFields{},
 		TypeKinds: map[string]*nodeKind{}, NodeTypes: map[string]*nodeTypeKinds{}}
+}
+
+// structFields holds the fields of a struct type in declaration order and the zero descriptor of
+// each (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for nil; l for the
+// empty list; the descriptors of the elements in parentheses for a tuple; {Name} for the struct type
+// Name; and - for a type that has no zero value.
+type structFields struct {
+	names []string
+	zeros map[string]string
+}
+
+// DeclareStruct declares the struct type name with the fields given as name and zero descriptor pairs,
+// in declaration order.
+//
+// DeclareStruct is for generated parsers; not a stable API.
+func (g *grammar) DeclareStruct(name string, fieldZeros ...string) {
+	sf := &structFields{zeros: make(map[string]string, len(fieldZeros)/2)}
+	for i := 0; i+1 < len(fieldZeros); i += 2 {
+		sf.names = append(sf.names, fieldZeros[i])
+		sf.zeros[fieldZeros[i]] = fieldZeros[i+1]
+	}
+	g.StructFields[name] = sf
 }
 
 // SetRules makes rules, of which nseen have rule.Seen set, the rule table of g.
@@ -3500,17 +3522,67 @@ func (c *ActCtx) Member(x any, name string) any {
 	}
 	if capture, ok := strings.CutPrefix(name, "$"); ok {
 		// x.$y reads a capture, which struct values do not have; an unmatched capture is nil.
-		if _, ok := c.P.g.StructFields[n.Type()]; ok {
+		if sf := c.P.g.StructFields[n.Type()]; sf != nil {
 			c.P.evalErrorf("%s has no capture %s", n.Type(), capture)
 		}
 		v, _ := c.P.valueField(n.RawFields, capture)
 		return UnboxValue(v)
 	}
-	if fields, ok := c.P.g.StructFields[n.Type()]; ok && !fields[name] {
+	sf := c.P.g.StructFields[n.Type()]
+	if sf == nil {
+		v, _ := c.P.valueField(n.RawFields, name)
+		return v
+	}
+	zero, ok := sf.zeros[name]
+	if !ok {
 		c.P.evalErrorf("%s has no field %s", n.Type(), name)
 	}
-	v, _ := c.P.valueField(n.RawFields, name)
+	v, set := c.P.valueField(n.RawFields, name)
+	if !set {
+		// A field the constructor left unset reads as the zero value of its declared type.
+		v, _ = c.zeroValue(zero)
+	}
 	return v
+}
+
+// zeroValue builds the zero value that the descriptor d describes and returns it with the rest of d.
+func (c *ActCtx) zeroValue(d string) (any, string) {
+	if d == "" {
+		return nil, d
+	}
+	switch d[0] {
+	case 'i':
+		return 0, d[1:]
+	case 's':
+		return "", d[1:]
+	case 'b':
+		return false, d[1:]
+	case 'l':
+		return c.List(), d[1:]
+	case '(':
+		var elems []any
+		d = d[1:]
+		for d != "" && d[0] != ')' {
+			var e any
+			e, d = c.zeroValue(d)
+			elems = append(elems, e)
+		}
+		return c.Tuple(elems...), strings.TrimPrefix(d, ")")
+	case '{':
+		name, rest, _ := strings.Cut(d[1:], "}")
+		sf := c.P.g.StructFields[name]
+		if sf == nil {
+			return nil, rest
+		}
+		kv := make([]any, 0, 2*len(sf.names))
+		for _, f := range sf.names {
+			var v any
+			v, _ = c.zeroValue(sf.zeros[f])
+			kv = append(kv, f, v)
+		}
+		return c.NewStruct(name, kv...), rest
+	}
+	return nil, d[1:]
 }
 
 func (c *ActCtx) Length(x any) any {

@@ -680,11 +680,12 @@ func (g *Generator) rules() {
 	}
 	sort.Strings(names)
 	for _, name := range names {
+		sz := g.Prog.StructZeroOf(name)
 		var fields []string
-		for _, f := range compile.DefFields(g.Prog.Types[name].(*grammar.TypeDef)) {
-			fields = append(fields, f.Name)
+		for _, f := range sz.Names {
+			fields = append(fields, "["+TsString(f)+", "+TsString(sz.Zeros[f])+"]")
 		}
-		fmt.Fprintf(init, "G.structFields.set(%s, new Set(%s));\n", TsString(name), TsStrings(fields))
+		fmt.Fprintf(init, "G.structFields.set(%s, structFieldsOf([%s]));\n", TsString(name), strings.Join(fields, ", "))
 	}
 }
 

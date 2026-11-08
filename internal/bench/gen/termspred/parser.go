@@ -192,9 +192,9 @@ func init() {
 	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Doc", "Lines", c.Member(c.Cap(0), "Value")) }
 	rules[1].Body = e5
 	rules[1].Action = func(c *rt.ActCtx) any { return c.NewStruct("Line", "N", c.Length(c.Cap(0))) }
-	zpGrammar.StructFields["Doc"] = map[string]bool{"Lines": true}
+	zpGrammar.DeclareStruct("Doc", "Lines", "l")
 	zpGrammar.TypeKinds["Doc"] = rt.KindOf("Doc", "")
-	zpGrammar.StructFields["Line"] = map[string]bool{"N": true}
+	zpGrammar.DeclareStruct("Line", "N", "i")
 	zpGrammar.TypeKinds["Line"] = rt.KindOf("Line", "")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
 	zpRecGrammar.SetRules(recRules, 0)
@@ -674,4 +674,4 @@ fail:
 
 const _ = types.ZPSchema_fd6c5f4b30383702
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

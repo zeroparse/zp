@@ -96,9 +96,9 @@ func init() {
 	}
 	rules[2].Body = e10
 	rules[4].Body = e13
-	zpGrammar.StructFields["File"] = map[string]bool{"Records": true}
+	zpGrammar.DeclareStruct("File", "Records", "l")
 	zpGrammar.TypeKinds["File"] = rt.KindOf("File", "")
-	zpGrammar.StructFields["Record"] = map[string]bool{"Fields": true}
+	zpGrammar.DeclareStruct("Record", "Fields", "l")
 	zpGrammar.TypeKinds["Record"] = rt.KindOf("Record", "")
 	zpGrammar.NodeTypes["Field"] = rt.NewNodeTypeKinds("Field")
 	zpGrammar.Starts = []string{"main"}
@@ -429,4 +429,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5

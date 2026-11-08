@@ -1177,41 +1177,41 @@ func init() {
 	rules[71].Body = e154
 	rules[76].Body = e156
 	rules[78].Body = e157
-	zpGrammar.StructFields["AttDef"] = map[string]bool{"Name": true, "Type": true, "Default": true, "Value": true}
+	zpGrammar.DeclareStruct("AttDef", "Name", "-", "Type", "-", "Default", "n", "Value", "n")
 	zpGrammar.TypeKinds["AttDef"] = rt.KindOf("AttDef", "")
-	zpGrammar.StructFields["AttlistDecl"] = map[string]bool{"Name": true, "Defs": true}
+	zpGrammar.DeclareStruct("AttlistDecl", "Name", "-", "Defs", "l")
 	zpGrammar.TypeKinds["AttlistDecl"] = rt.KindOf("AttlistDecl", "")
-	zpGrammar.StructFields["Attribute"] = map[string]bool{"Name": true, "Value": true}
+	zpGrammar.DeclareStruct("Attribute", "Name", "-", "Value", "-")
 	zpGrammar.TypeKinds["Attribute"] = rt.KindOf("Attribute", "")
-	zpGrammar.StructFields["Choice"] = map[string]bool{"Items": true, "Occur": true}
+	zpGrammar.DeclareStruct("Choice", "Items", "l", "Occur", "n")
 	zpGrammar.TypeKinds["Choice"] = rt.KindOf("Choice", "")
-	zpGrammar.StructFields["Doctype"] = map[string]bool{"Name": true, "ExternalID": true, "Subset": true}
+	zpGrammar.DeclareStruct("Doctype", "Name", "-", "ExternalID", "n", "Subset", "l")
 	zpGrammar.TypeKinds["Doctype"] = rt.KindOf("Doctype", "")
-	zpGrammar.StructFields["Document"] = map[string]bool{"Decl": true, "Prolog": true, "Doctype": true, "Root": true, "Epilog": true}
+	zpGrammar.DeclareStruct("Document", "Decl", "n", "Prolog", "l", "Doctype", "n", "Root", "-", "Epilog", "l")
 	zpGrammar.TypeKinds["Document"] = rt.KindOf("Document", "")
-	zpGrammar.StructFields["Element"] = map[string]bool{"Name": true, "Attrs": true, "Content": true}
+	zpGrammar.DeclareStruct("Element", "Name", "-", "Attrs", "l", "Content", "l")
 	zpGrammar.TypeKinds["Element"] = rt.KindOf("Element", "")
-	zpGrammar.StructFields["ElementDecl"] = map[string]bool{"Name": true, "Content": true}
+	zpGrammar.DeclareStruct("ElementDecl", "Name", "-", "Content", "-")
 	zpGrammar.TypeKinds["ElementDecl"] = rt.KindOf("ElementDecl", "")
-	zpGrammar.StructFields["EntityDecl"] = map[string]bool{"Parameter": true, "Name": true, "Value": true, "ExternalID": true, "NData": true}
+	zpGrammar.DeclareStruct("EntityDecl", "Parameter", "b", "Name", "-", "Value", "n", "ExternalID", "n", "NData", "n")
 	zpGrammar.TypeKinds["EntityDecl"] = rt.KindOf("EntityDecl", "")
-	zpGrammar.StructFields["Enumeration"] = map[string]bool{"Values": true}
+	zpGrammar.DeclareStruct("Enumeration", "Values", "l")
 	zpGrammar.TypeKinds["Enumeration"] = rt.KindOf("Enumeration", "")
-	zpGrammar.StructFields["ExternalID"] = map[string]bool{"Public": true, "System": true}
+	zpGrammar.DeclareStruct("ExternalID", "Public", "n", "System", "n")
 	zpGrammar.TypeKinds["ExternalID"] = rt.KindOf("ExternalID", "")
-	zpGrammar.StructFields["Mixed"] = map[string]bool{"Names": true}
+	zpGrammar.DeclareStruct("Mixed", "Names", "l")
 	zpGrammar.TypeKinds["Mixed"] = rt.KindOf("Mixed", "")
-	zpGrammar.StructFields["NameParticle"] = map[string]bool{"Name": true, "Occur": true}
+	zpGrammar.DeclareStruct("NameParticle", "Name", "-", "Occur", "n")
 	zpGrammar.TypeKinds["NameParticle"] = rt.KindOf("NameParticle", "")
-	zpGrammar.StructFields["NotationDecl"] = map[string]bool{"Name": true, "ExternalID": true}
+	zpGrammar.DeclareStruct("NotationDecl", "Name", "-", "ExternalID", "{ExternalID}")
 	zpGrammar.TypeKinds["NotationDecl"] = rt.KindOf("NotationDecl", "")
-	zpGrammar.StructFields["NotationType"] = map[string]bool{"Names": true}
+	zpGrammar.DeclareStruct("NotationType", "Names", "l")
 	zpGrammar.TypeKinds["NotationType"] = rt.KindOf("NotationType", "")
-	zpGrammar.StructFields["PI"] = map[string]bool{"Target": true, "Data": true}
+	zpGrammar.DeclareStruct("PI", "Target", "-", "Data", "n")
 	zpGrammar.TypeKinds["PI"] = rt.KindOf("PI", "")
-	zpGrammar.StructFields["Sequence"] = map[string]bool{"Items": true, "Occur": true}
+	zpGrammar.DeclareStruct("Sequence", "Items", "l", "Occur", "n")
 	zpGrammar.TypeKinds["Sequence"] = rt.KindOf("Sequence", "")
-	zpGrammar.StructFields["XMLDecl"] = map[string]bool{"Version": true, "Encoding": true, "Standalone": true}
+	zpGrammar.DeclareStruct("XMLDecl", "Version", "-", "Encoding", "n", "Standalone", "n")
 	zpGrammar.TypeKinds["XMLDecl"] = rt.KindOf("XMLDecl", "")
 	zpGrammar.NodeTypes["AttValue"] = rt.NewNodeTypeKinds("AttValue")
 	zpGrammar.NodeTypes["CDSect"] = rt.NewNodeTypeKinds("CDSect")
@@ -14210,4 +14210,4 @@ fail:
 
 const _ = types.ZPSchema_575020edd4a9b657
 
-const _ = rt.Protocol4
+const _ = rt.Protocol5
