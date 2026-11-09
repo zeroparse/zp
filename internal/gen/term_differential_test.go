@@ -276,7 +276,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 					w = len(c.Lit)
 				}
 				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1,
-					Zeros: map[string]map[string]ref.V{"R": {"A": ref.Int(0), "B": ref.Str(""), "C": ref.Bool(false)}}} // the fields of gentest's termPrelude
+					Zeros: referenceZeros(t, prog.Static(), "R")}
 				v, msg := env.Eval(term)
 				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
 				if c.Kind == gentest.TermPredicate {
@@ -308,4 +308,54 @@ func TestTermReferenceEvaluator(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("no case was checked")
 	}
+}
+
+// referenceZeros returns the zero values of the fields of the struct types names for the reference
+// evaluator, decoded from the zero descriptors that the compiled program holds
+// (compile.Program.StructZeroOf). A struct field holds the struct with no field set.
+func referenceZeros(t testing.TB, prog *compile.Program, names ...string) map[string]map[string]ref.V {
+	t.Helper()
+	var decode func(d string) (ref.V, string)
+	decode = func(d string) (ref.V, string) {
+		switch d[0] {
+		case 'i':
+			return ref.Int(0), d[1:]
+		case 's':
+			return ref.Str(""), d[1:]
+		case 'b':
+			return ref.Bool(false), d[1:]
+		case 'n':
+			return ref.Nil, d[1:]
+		case 'l':
+			return ref.List(), d[1:]
+		case '(':
+			var items []ref.V
+			d = d[1:]
+			for d[0] != ')' {
+				var e ref.V
+				e, d = decode(d)
+				items = append(items, e)
+			}
+			return ref.Tuple(items...), d[1:]
+		case '{':
+			name, rest, _ := strings.Cut(d[1:], "}")
+			return ref.V{Kind: ref.KStruct, Type: name, Fields: map[string]ref.V{}}, rest
+		}
+		t.Fatalf("unknown zero descriptor %q", d)
+		return ref.Nil, ""
+	}
+	zeros := map[string]map[string]ref.V{}
+	for _, name := range names {
+		sz := prog.StructZeroOf(name)
+		if sz == nil {
+			t.Fatalf("%s is not a struct type", name)
+		}
+		zeros[name] = map[string]ref.V{}
+		for _, f := range sz.Names {
+			if sz.Zeros[f] != compile.NoZeroDesc {
+				zeros[name][f], _ = decode(sz.Zeros[f])
+			}
+		}
+	}
+	return zeros
 }

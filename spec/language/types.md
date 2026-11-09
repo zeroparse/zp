@@ -241,14 +241,17 @@ zero value as follows:
 | `[]T` | the empty list; so is `[]_|_`, whose only value it is |
 | `*T` and `_` | `nil`; so is `*_|_`, which is the nil type |
 | `(T, U, ...)` | the tuple of the zero values of its elements; `()` is its own zero value |
-| a struct type | the struct whose fields are all at their zero values, if every field has one |
+| a struct type | the struct with no field set, if every field has a zero value; each of its fields reads as its own zero value |
 
 Every other type has no zero value: `node[T]`, a named node type, `error`, `missing`, a join, a
-meet, `_|_`, and a struct with a field that leads back to the struct through fields that are not
-optional. A constructor must set every field of such a type: leaving one out is a compile-time error
+meet, `_|_`, and a struct that leads back to itself through its fields and tuple elements, as in
+`type S = { Next S }` and `type P = { Pair (int, P) }`, but not through a list or an optional type, as in
+`type T = { Kids []T }` and `type L = { Back *L }`, which have zero values. A constructor must set every field of such a type: leaving one out is a compile-time error
 that names the field and its type and suggests the optional type, as in `*node[string]`. So a field
 always reads as a value of its declared type, and the zero value of a struct is a value of that
-struct.
+struct. The zero value of a struct is not filled in with the zero values of its fields: it is a struct
+with no field set, so that making it costs the same whatever the type holds, and it is printed as such,
+without fields, in the tree and JSON output. Reading a field of it gives the zero value of that field.
 
 ### Named Node Types
 

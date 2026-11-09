@@ -1028,13 +1028,12 @@ export interface Grammar {
 }
 
 export interface StructFields {
-  readonly names: string[];
   readonly zeros: Map<string, string>;
 }
 
-// structFieldsOf returns the fields of a struct type from its name and zero descriptor pairs in declaration order.
+// structFieldsOf returns the zero descriptors of the fields of a struct type from its name and zero descriptor pairs.
 export function structFieldsOf(pairs: [string, string][]): StructFields {
-  return { names: pairs.map((p) => p[0]), zeros: new Map(pairs) };
+  return { zeros: new Map(pairs) };
 }
 
 export function mkGrammar(maxDepth: number, sparse: boolean, observable: boolean, controlled = true): Grammar {
@@ -4715,16 +4714,17 @@ export class Actx {
     if (fields === undefined) {
       return getFieldSpend(x, name, this.p.control);
     }
+    // A field that a constructor set is read first: a struct holds only the fields of its type.
+    const v = findFieldSpend(x, name, this.p.control);
+    if (v !== undefined) {
+      return v;
+    }
     const zero = fields.zeros.get(name);
     if (zero === undefined) {
       evalError(`${x.type} has no field ${name}`);
     }
-    const v = findFieldSpend(x, name, this.p.control);
-    if (v === undefined) {
-      // A field the constructor left unset reads as the zero value of its declared type.
-      return this.zeroValue(zero, 0)[0];
-    }
-    return v;
+    // A field the constructor left unset reads as the zero value of its declared type.
+    return this.zeroValue(zero, 0)[0];
   }
 
   // zeroValue builds the zero value that the descriptor d describes from index i and returns it with
@@ -4750,17 +4750,10 @@ export class Actx {
         return [this.tuple(...elems), i + 1];
       }
       case "{": {
+        // The zero value of a struct type is a struct with no field set, whose fields read as their own
+        // zero values, so that making it costs the same whatever the type holds.
         const end = d.indexOf("}", i);
-        const name = d.slice(i + 1, end);
-        const sf = this.p.g.structFields.get(name);
-        if (sf === undefined) {
-          return [null, end + 1];
-        }
-        const kv: Value[] = [];
-        for (const f of sf.names) {
-          kv.push(f, this.zeroValue(sf.zeros.get(f)!, 0)[0]);
-        }
-        return [this.newStruct(name, ...kv), end + 1];
+        return [this.newStruct(d.slice(i + 1, end)), end + 1];
       }
     }
     return [null, i + 1];

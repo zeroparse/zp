@@ -1,8 +1,10 @@
 package compile
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestZeroValues holds the rule of definite assignment: a constructor may leave out a field only if
@@ -102,5 +104,42 @@ rule main Z = k:"x" => Z{K: $k}
 	}
 	if prog.StructZeroOf("Nope") != nil {
 		t.Error("a name that is not a struct type has descriptors")
+	}
+}
+
+// TestZeroValueOfDeepStructTypesIsLinear pins that the zero descriptors of a chain of struct types, each
+// holding the next twice, are found in time linear in the number of types: the same type is reached
+// by 2^depth paths, and visiting every path takes minutes at this depth.
+func TestZeroValueOfDeepStructTypesIsLinear(t *testing.T) {
+	t.Parallel()
+	const depth = 40
+	var src strings.Builder
+	for i := range depth {
+		fmt.Fprintf(&src, "type S%d = { X S%d; Y S%d }\n", i, i+1, i+1)
+	}
+	fmt.Fprintf(&src, "type S%d = { V int }\ntype Top = { K node[string]; In S0 }\n", depth)
+	src.WriteString("@start\nrule main Top = k:\"x\" => Top{K: $k}\n")
+	g, err := parseTest(src.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan *Program, 1)
+	go func() {
+		prog, err := compileStatic(g, Options{}, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		done <- prog
+	}()
+	select {
+	case prog := <-done:
+		if prog == nil {
+			return
+		}
+		if z := prog.StructZeroOf("Top"); z == nil || z.Zeros["In"] != "{S0}" || z.Zeros["K"] != NoZeroDesc {
+			t.Errorf("descriptors of Top: %+v", z)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("the zero descriptors of a chain of struct types take time that grows with the paths through it")
 	}
 }

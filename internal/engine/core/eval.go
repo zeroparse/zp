@@ -202,20 +202,10 @@ func (c *EvalCtx) zeroFrom(d string) (any, string, error) {
 		}
 		return c.TupleNode(p.Kids(kb)), strings.TrimPrefix(d, ")"), nil
 	case '{':
+		// The zero value of a struct type is a struct with no field set, whose fields read as their own
+		// zero values, so that making it costs the same whatever the type holds.
 		name, rest, _ := strings.Cut(d[1:], "}")
-		sz := c.P.Prog.StructZeroOf(name)
-		if sz == nil {
-			return nil, rest, nil
-		}
-		vals := make([]any, len(sz.Names))
-		for i, f := range sz.Names {
-			v, err := c.zeroValue(sz.Zeros[f])
-			if err != nil {
-				return nil, rest, err
-			}
-			vals[i] = v
-		}
-		n, err := c.NewStruct(name, sz.Names, vals)
+		n, err := c.NewStruct(name, nil, nil)
 		if err != nil {
 			return nil, rest, err
 		}

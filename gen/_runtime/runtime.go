@@ -1020,12 +1020,10 @@ func NewGrammar(maxDepth int) *grammar {
 		TypeKinds: map[string]*nodeKind{}, NodeTypes: map[string]*nodeTypeKinds{}}
 }
 
-// structFields holds the fields of a struct type in declaration order and the zero descriptor of
-// each (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for nil; l for the
+// structFields holds the zero descriptor of each field of a struct type (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for nil; l for the
 // empty list; the descriptors of the elements in parentheses for a tuple; {Name} for the struct type
 // Name; and - for a type that has no zero value.
 type structFields struct {
-	names []string
 	zeros map[string]string
 }
 
@@ -1036,7 +1034,6 @@ type structFields struct {
 func (g *grammar) DeclareStruct(name string, fieldZeros ...string) {
 	sf := &structFields{zeros: make(map[string]string, len(fieldZeros)/2)}
 	for i := 0; i+1 < len(fieldZeros); i += 2 {
-		sf.names = append(sf.names, fieldZeros[i])
 		sf.zeros[fieldZeros[i]] = fieldZeros[i+1]
 	}
 	g.StructFields[name] = sf
@@ -3533,15 +3530,16 @@ func (c *ActCtx) Member(x any, name string) any {
 		v, _ := c.P.valueField(n.RawFields, name)
 		return v
 	}
+	// A field that a constructor set is read first: a struct holds only the fields of its type.
+	if v, set := c.P.valueField(n.RawFields, name); set {
+		return v
+	}
 	zero, ok := sf.zeros[name]
 	if !ok {
 		c.P.evalErrorf("%s has no field %s", n.Type(), name)
 	}
-	v, set := c.P.valueField(n.RawFields, name)
-	if !set {
-		// A field the constructor left unset reads as the zero value of its declared type.
-		v, _ = c.zeroValue(zero)
-	}
+	// A field the constructor left unset reads as the zero value of its declared type.
+	v, _ := c.zeroValue(zero)
 	return v
 }
 
@@ -3569,18 +3567,10 @@ func (c *ActCtx) zeroValue(d string) (any, string) {
 		}
 		return c.Tuple(elems...), strings.TrimPrefix(d, ")")
 	case '{':
+		// The zero value of a struct type is a struct with no field set, whose fields read as their own
+		// zero values, so that making it costs the same whatever the type holds.
 		name, rest, _ := strings.Cut(d[1:], "}")
-		sf := c.P.g.StructFields[name]
-		if sf == nil {
-			return nil, rest
-		}
-		kv := make([]any, 0, 2*len(sf.names))
-		for _, f := range sf.names {
-			var v any
-			v, _ = c.zeroValue(sf.zeros[f])
-			kv = append(kv, f, v)
-		}
-		return c.NewStruct(name, kv...), rest
+		return c.NewStruct(name), rest
 	}
 	return nil, d[1:]
 }

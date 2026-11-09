@@ -1099,7 +1099,8 @@ a sum of terms $c \, q \, n^a Y_j^b$, with $c$ a constant and $q$ a quantity
 of the values that it is built from, or 1: a list, a tuple, `+` and `concat`
 hold their operands, and a concatenation is no larger than the sum of its
 operands; an element taken by an index, which is an int, is at most the
-largest element; a member is at most its value; a `filter` holds at most its
+largest element; a member is at most its value, or, for a field that was never set,
+a zero value, which is a term with $q = 1$ (see below); a `filter` holds at most its
 list; a `map` holds one value of its lambda, plus one, for each element of its
 list, and a term $\alpha E_i + \beta$ of the lambda in the size $E_i$ of the
 element sums over the elements to at most $\alpha S + (\beta - \alpha) N$,
@@ -1228,8 +1229,9 @@ from captures of $m$, and from the values of the calls that its body makes:
 - A capture that is not in a positive lookahead, and a call, is a match inside
   $m$, and the value of a call is own only when the value of its rule is,
   which no capture in a positive lookahead is part of, so that no call returns
-  input outside its match; a member and an element are parts of one, and a
-  `filter` keeps at most its list. A match of a rule outside $\mathcal{S}$
+  input outside its match; a member that reads a field that was set, and an element, are parts of one, and a
+  `filter` keeps at most its list; a member that reads a field that was never set
+  is a zero value, which holds no input (see below). A match of a rule outside $\mathcal{S}$
   lies in the own span, since a call on $\mathcal{S}$ inside it would put its
   rule in $\mathcal{S}$; by the induction its value is at most a constant
   times its input plus one, and distinct captures of one expression hold
@@ -1578,8 +1580,15 @@ operations, a list, a tuple and a constructor have a constant number of
 items; `+` and `concat` have a top size that is the sum of those of a constant
 number of operands; `map` and `filter` have at most the number of elements of
 their list; `text` has the top size of its operand; a fold has the value of
-its initial value or of its lambda; and an element or a member is a component
-of the value that it is taken from. So a component that one term builds has
+its initial value or of its lambda; an element, and a member of a field that
+was set, are components of the value that they are taken from; and a member of
+a field that was never set is a zero value of the declared type of the field
+(spec/language/types.md#zero-values), built by the operation. A zero value is
+a scalar, the empty list, nil, a struct with no field set, or a tuple of such
+values, so its size is at most the number of components of the declared type, a
+constant of the grammar, and it holds no input: making one costs that constant
+whatever the value that it is read from holds (`zeroFrom` in
+internal/engine/core/eval.go, `zeroValue` in gen/_runtime/runtime.go). So a component that one term builds has
 top size at most a constant $r$ times the largest top size of the
 components that it reads, and the terms of one action nest to a depth that is
 a constant of the grammar, the lambdas over bounded lists repeating them a

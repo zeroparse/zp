@@ -9,9 +9,10 @@ import (
 // HasZero reports whether the type t has a zero value, the value that an unset field of a struct
 // reads as (spec/language/types.md#zero-values). int, string and bool have 0, "" and false; a list
 // has the empty list; an optional type and _ have nil; a tuple has the tuple of the zero values of its
-// elements; a struct has the struct whose fields are all at their zero values, if every one has one.
-// Every other type has none: a node type, error, missing, a join, a meet, _|_, and a struct with a
-// field that leads back to the struct through fields that are not optional.
+// elements; a struct has the struct with no field set, whose fields read as their own zero values, if
+// every field has a zero value. Every other type has none: a node type, error, missing, a join, a
+// meet, _|_, and a struct that leads back to itself through its fields and tuple elements, but not
+// through a list or an optional type.
 func (p *Program) HasZero(t Ty) bool { return p.hasZero(t, map[string]bool{}) }
 
 func (p *Program) hasZero(t Ty, visiting map[string]bool) bool {
@@ -22,7 +23,17 @@ func (p *Program) hasZero(t Ty, visiting map[string]bool) bool {
 			return true
 		}
 	case NamedTy:
-		if t.Kind != 's' || visiting[t.Name] {
+		if t.Kind != 's' {
+			return false
+		}
+		// The answer for a struct type is kept: true is true wherever it is found, and false is false
+		// too, for a type found without a zero value because it reached a type that is being visited
+		// is on a cycle through that type, so it has none itself. Without it the same type is visited
+		// once for every path that leads to it, which grows exponentially with the depth of the types.
+		if zero, ok := p.structHasZero.Load(t.Name); ok {
+			return zero.(bool)
+		}
+		if visiting[t.Name] {
 			return false
 		}
 		_, st := p.StructType(t.Name)
@@ -32,12 +43,15 @@ func (p *Program) hasZero(t Ty, visiting map[string]bool) bool {
 		visiting[t.Name] = true
 		defer delete(visiting, t.Name)
 		k := &TypeResolver{Prog: p}
+		zero := true
 		for _, f := range DefFields(st) {
 			if !p.hasZero(k.Resolve(f.Type), visiting) {
-				return false
+				zero = false
+				break
 			}
 		}
-		return true
+		p.structHasZero.Store(t.Name, zero)
+		return zero
 	case TupleTy:
 		for _, e := range t.Elems {
 			if !p.hasZero(e, visiting) {
@@ -123,8 +137,9 @@ func (p *Program) StructZeroOf(name string) *StructZero {
 
 // ZeroDesc returns the descriptor of the zero value of the type t, which every runtime builds the
 // zero value from: i, s and b for 0, "" and false; n for nil; l for the empty list; (...) for the
-// tuple of the zero values of the elements, written one after the other; {Name} for the zero value of
-// the struct type Name; and NoZeroDesc for a type that has none (HasZero).
+// tuple of the zero values of the elements, written one after the other; {Name} for the struct type
+// Name with no field set (a runtime does not build the zero values of its fields, which a read of one of
+// them builds from the descriptor of the field); and NoZeroDesc for a type that has none (HasZero).
 func (p *Program) ZeroDesc(t Ty) string {
 	if !p.HasZero(t) {
 		return NoZeroDesc
