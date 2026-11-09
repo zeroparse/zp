@@ -26,6 +26,8 @@ type Kid = node[string]
 		{"list", "[]int", true},
 		{"list of nodes", "[]node[string]", true},
 		{"optional node", "*node[string]", true},
+		{"empty list type", "[]_|_", true},
+		{"nil type", "*_|_", true},
 		{"optional join", "*(Inner | Loop)", true},
 		{"top", "_", true},
 		{"tuple", "(int, string)", true},
@@ -78,7 +80,7 @@ func TestStructZeroDescriptors(t *testing.T) {
 	g, err := parseTest(`type Inner = { N int; S string }
 type Loop = { Back *Loop; Tag int }
 type Alias ~ Inner
-type Z = { I int; S string; B bool; L []Inner; O *int; T (int, (string, bool)); U (); In Inner; A _; Lp Loop; Al Alias; K node[string] | error }
+type Z = { I int; S string; B bool; L []Inner; O *int; T (int, (string, bool)); U (); In Inner; A _; Lp Loop; Al Alias; K node[string] | error; E []_|_; N *_|_ }
 @start
 rule main Z = k:"x" => Z{K: $k}
 `)
@@ -94,7 +96,7 @@ rule main Z = k:"x" => Z{K: $k}
 	for _, f := range z.Names {
 		got = append(got, f+"="+z.Zeros[f])
 	}
-	want := "I=i S=s B=b L=l O=n T=(i(sb)) U=() In={Inner} A=n Lp={Loop} Al={Inner} K=-"
+	want := "I=i S=s B=b L=l O=n T=(i(sb)) U=() In={Inner} A=n Lp={Loop} Al={Inner} K=- E=l N=n"
 	if s := strings.Join(got, " "); s != want {
 		t.Errorf("descriptors\n got %s\nwant %s", s, want)
 	}

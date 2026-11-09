@@ -238,8 +238,8 @@ zero value as follows:
 | Type | Zero value |
 |:--|:--|
 | `int`, `string`, `bool` | `0`, `""`, `false` |
-| `[]T` | the empty list |
-| `*T` and `_` | `nil` |
+| `[]T` | the empty list; so is `[]_|_`, whose only value it is |
+| `*T` and `_` | `nil`; so is `*_|_`, which is the nil type |
 | `(T, U, ...)` | the tuple of the zero values of its elements; `()` is its own zero value |
 | a struct type | the struct whose fields are all at their zero values, if every field has one |
 

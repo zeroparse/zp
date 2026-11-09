@@ -3,7 +3,7 @@ package gentest
 // UnsetZeroRules are the types of the tests of the fields that a constructor leaves unset, which
 // read as the zero value of their declared type (spec/language/types.md#zero-values).
 const UnsetZeroRules = `type In = { N int; S string }
-type Z = { I int; S string; B bool; L []int; O *int; T (int, string); In In; A _ }
+type Z = { I int; S string; B bool; L []int; O *int; T (int, string); In In; A _; E []_|_; N *_|_ }
 type Set = { I int; L []int }
 rule z Z = "z" => Z{}
 rule part Z = "p" => Z{I: 7, S: "s"}
@@ -22,6 +22,9 @@ func UnsetZeroCases() []Case {
 		{"list length", "int", "len($x.L)"},
 		{"list in a concat", "[]int", "concat($x.L, []int{1})"},
 		{"optional", "*int", "$x.O"},
+		{"empty list type", "[]_|_", "$x.E"},
+		{"empty list type length", "int", "len($x.E)"},
+		{"nil type", "*_|_", "$x.N"},
 		{"tuple", "(int, string)", "$x.T"},
 		{"struct field", "int", "$x.In.N"},
 		{"struct string field", "string", "$x.In.S"},
