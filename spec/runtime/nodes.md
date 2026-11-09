@@ -248,7 +248,6 @@ JSON and text renderings. See [Generated Parsers](generated-parsers.md).
 
 ## Conformance
 
-The tests of `internal/apitest` (`zp_test.go`, `traversal_test.go`) and the
-node JSON tests of the repository establish the model, the order of traversal
+The API tests and the node JSON tests of the repository establish the model, the order of traversal
 and the JSON form, and the backend equivalence tests require every backend to
 return identical nodes.

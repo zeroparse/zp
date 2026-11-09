@@ -215,8 +215,7 @@ parse evaluates every rule, as a parse from scratch does. The memo holds at most
 call of the parse before, so the edits between two parses cost at most 128 times the work of the parse
 before, whatever their number, and a sequence of an edit, a parse, an edit and a parse costs per round
 what its parse costs plus that bound. The number 128 is where reuse stops paying when the edits are
-spread over the whole text; it is a constant of the implementation, which the operations of
-`internal/ir/exec/ops` define once. The two forms differ in the statistics alone: the engine
+spread over the whole text; it is a constant of the specification. The two forms differ in the statistics alone: the engine
 counts the lag of each entry from the parse that stored it or last found it, and a generated parser
 counts the edits since the last parse for the whole memo, so either may reuse entries that the other
 treats as absent (`Reused` differs), and the results are the same.
@@ -298,8 +297,6 @@ Generated TypeScript parsers have no document. See
 
 ## Conformance
 
-The behavior is established by the tests of `internal/engine/document` (among
-them `document_edits_test.go`, `snapshot_test.go`, `document_changes_test.go`
-and `budget_document_test.go`), by `internal/engine/document_test.go`, which
-compares random edits with fresh parses, and by the edit fuzzer of
+The behavior is established by the document tests of the repository, which
+compare random edits with fresh parses, and by the edit fuzzer of
 `zp edit-fuzz`, which compares every reparse with a fresh parse.

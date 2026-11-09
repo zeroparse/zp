@@ -697,9 +697,8 @@ result of a pure scan rule and the input range it examines depend on the
 position and the input alone, so its records need no environment.
 
 A walk of a scan site charges and examines as an ordinary repetition for its
-first 16 characters, the constant `T` (`core.ScanHotSpan`, which is not the
-`core.RunHotSpan` of run sites: a site turns hot after walks of `T` characters
-that overlap, as a run site does after `RunHotSpan`). If the site is hot, the
+first 16 characters, the constant `T` (which is not the hot span of run sites: a site turns hot after walks of `T` characters
+that overlap, as a run site does after its own hot span). If the site is hot, the
 walk that has matched `T` characters looks for the record of its start. A scan site keeps at most one record for a walk, at
 the start of the walk, and none for the positions inside it. A record holds
 the position where the walk ended, the range of input the walk examined, the

@@ -97,5 +97,5 @@ supported `grammar` of a suite.
 
 ## Conformance
 
-The tests of `internal/fixture` and `editfuzz` cover the validation rules, the override and `clear` semantics, the
+The tests of the fixture format and of the edit fuzzer cover the validation rules, the override and `clear` semantics, the
 equivalence report, `-update` and the round trip of sequences.

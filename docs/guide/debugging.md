@@ -398,8 +398,7 @@ _, err = p.Parse("a=1;b=x", zp.WithTrace(func(e zp.TraceEvent) {
 }))
 ```
 
-For the grammar `main = pair (";" pair)* $$`, `pair = key "=" value` this prints (the full program is
-`ExampleWithTrace` in `example_debug_test.go`):
+For the grammar `main = pair (";" pair)* $$`, `pair = key "=" value` this prints:
 
 ```text
 main at 1:1

@@ -200,7 +200,5 @@ Grammars that use `#missing` cannot be used in a stream parse.
 
 ## Conformance
 
-The behavior is established by the stream tests of the repository
-in `internal/apitest` (`stream_iterator_test.go`, `stream_diagnostics_test.go`,
-`stream_diagnostic_tail_test.go`) and by the backend equivalence tests, which
+The behavior is established by the stream tests of the repository and by the backend equivalence tests, which
 require identical elements and errors from every backend.

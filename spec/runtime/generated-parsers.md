@@ -355,7 +355,7 @@ export function marshal(n: Node | null): string;
   `ProfileLocation`, `SkipReasonCount`, `RuleProfile` and `ProfileSnapshot`, and with `-limits` also
   `CancellationSignal`. Without `-limits` the exported `ParseOptions` and `Limits` are the forms without `signal` and
   `limits.compute`. `TraceKind` is `"enter"`, `"exit"` or `"skipped"`. The other exports of `runtime.ts`, such as
-  `captureLocations` and `ProfileData`, are the contract between the runtime and the generated code. They are not
+  `ProfileData`, are the contract between the runtime and the generated code. They are not
   public API and may change between versions.
 - `parse` does not throw for bad input: it returns `{ node, error }` with a node and
   no error; no node and an error; or, after `#recover`, a node and `SyntaxErrors`.

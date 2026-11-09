@@ -368,8 +368,7 @@ forget, and a seed reproduces any failure. Two kinds of checks work without know
 - **Properties** of your code that hold for every valid input: an evaluator does not panic and returns a value or a
   well-formed error; pretty-printing and parsing again gives the same tree; a converter's output is valid in the target
   format.
-- **Differential tests** against another implementation of the same language. This test (from
-  [sample/sample_test.go](../../sample/sample_test.go)) checks that the JSON grammar of [alpha-parsers/json](https://github.com/zeroparse/alpha-parsers/tree/main/json/) and Go's
+- **Differential tests** against another implementation of the same language. This test checks that the JSON grammar of [alpha-parsers/json](https://github.com/zeroparse/alpha-parsers/tree/main/json/) and Go's
   `encoding/json` agree, on 200 generated documents and on 200 near-miss invalid ones:
 
 ```go
@@ -453,7 +452,7 @@ func FuzzCalculator(f *testing.F) {
 }
 ```
 
-The test is [sample/example_test.go](../../sample/example_test.go). `go test` runs the fuzz target on its seeds only,
+`go test` runs this fuzz target on its seeds only,
 which makes it an ordinary test of the generated inputs; `-fuzz` starts fuzzing:
 
 ```bash

@@ -167,9 +167,7 @@ A parse-mode and a document-mode file of a grammar currently hold the same modul
 | yaml | 26,178 | 17,151 | 26,178 |
 
 The columns are the exact file sizes in bytes of `zp compile -mode parse|recognize|document` for the ready-made
-parsers. The benchmark that reproduces the serialization and load measurements is
-`go test -run '^$' -bench '^BenchmarkCompiledRecognitionSerialization$' -benchmem ./internal/engine`. The program below
-measures your grammar with the current writer; results depend on grammar size.
+parsers. The program below measures your grammar with the current writer; results depend on grammar size.
 
 The program (run it as `go run . grammar.zp 'input'` in a module that requires ZeroParse; the start rule is the grammar's
 default start rule):
