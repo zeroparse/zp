@@ -272,6 +272,9 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			fail("node type %q has fields", m.Strings[t.Name])
 		}
 	}
+	if err == nil {
+		err = validateZeros(m)
+	}
 	for _, l := range m.FieldLists {
 		strs(l)
 	}
@@ -621,3 +624,100 @@ func ValidateStreamRecovery(code []Instr) error {
 // the skip runs and run sites come first, at most one for each instruction, and then two for each
 // scan site.
 func scanSiteLimit(n int) int32 { return int32(min(3*n+2, 1<<30)) }
+
+// validateZeros checks the zero descriptors of the struct types of m (TypeInfo.Zeros): each is one
+// descriptor of the grammar in ZeroDesc, every {Name} names a struct type of the module, and no struct
+// type reaches itself through the {Name} of its descriptors, which a compiled module never has since
+// such a type has no zero value. The string table indices are already checked.
+func validateZeros(m *Module) error {
+	structs := map[string][]string{} // struct type -> struct types its descriptors refer to
+	for _, t := range m.Types {
+		if t.Node < 0 {
+			structs[m.Strings[t.Name]] = nil
+		}
+	}
+	for _, t := range m.Types {
+		if t.Node >= 0 {
+			continue
+		}
+		name := m.Strings[t.Name]
+		for i, z := range t.Zeros {
+			refs, ok := zeroRefs(m.Strings[z])
+			if !ok {
+				return fmt.Errorf("type %q has the malformed zero descriptor %q for field %q", name, m.Strings[z], m.Strings[t.Fields[i]])
+			}
+			for _, r := range refs {
+				if _, ok := structs[r]; !ok {
+					return fmt.Errorf("type %q has the zero descriptor %q for field %q, which names %q, not a struct type", name, m.Strings[z], m.Strings[t.Fields[i]], r)
+				}
+			}
+			structs[name] = append(structs[name], refs...)
+		}
+	}
+	const (
+		visiting = 1
+		done     = 2
+	)
+	state := map[string]int{}
+	var cyclic func(name string) bool
+	cyclic = func(name string) bool {
+		switch state[name] {
+		case visiting:
+			return true
+		case done:
+			return false
+		}
+		state[name] = visiting
+		for _, r := range structs[name] {
+			if cyclic(r) {
+				return true
+			}
+		}
+		state[name] = done
+		return false
+	}
+	for _, t := range m.Types {
+		if t.Node < 0 && cyclic(m.Strings[t.Name]) {
+			return fmt.Errorf("type %q reaches itself through its zero descriptors", m.Strings[t.Name])
+		}
+	}
+	return nil
+}
+
+// zeroRefs parses d as one zero descriptor and returns the struct type names it refers to, or false
+// if d is not exactly one descriptor: i, s, b, n, l or - alone, a tuple of descriptors in parentheses,
+// or a struct type name in braces. A - stands for a whole descriptor, never an element of a tuple.
+func zeroRefs(d string) ([]string, bool) {
+	var refs []string
+	var one func(i int, inTuple bool) (int, bool)
+	one = func(i int, inTuple bool) (int, bool) {
+		if i >= len(d) {
+			return i, false
+		}
+		switch d[i] {
+		case 'i', 's', 'b', 'n', 'l':
+			return i + 1, true
+		case '-':
+			return i + 1, !inTuple
+		case '(':
+			i++
+			for i < len(d) && d[i] != ')' {
+				var ok bool
+				if i, ok = one(i, true); !ok {
+					return i, false
+				}
+			}
+			return i + 1, i < len(d)
+		case '{':
+			end := strings.IndexByte(d[i:], '}')
+			if end <= 1 {
+				return i, false
+			}
+			refs = append(refs, d[i+1:i+end])
+			return i + end + 1, true
+		}
+		return i, false
+	}
+	end, ok := one(0, false)
+	return refs, ok && end == len(d)
+}
