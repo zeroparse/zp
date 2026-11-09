@@ -525,7 +525,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		// rewrites of its parts.
 		v.applied = applied
 		return ch
-	case len(alts) == 1 && (v.depth == 0 && !v.observed(alts[0]) || sameValueBare(alts[0])):
+	case len(alts) == 1 && (v.depth == 0 && !v.observed(alts[0]) || v.sameValueBare(alts[0])):
 		return alts[0]
 	case !changed:
 		return ch
@@ -536,17 +536,30 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 }
 
 // sameValueBare reports whether an expression has the same value alone as it has as the only
-// alternative of a choice. A sequence does not: it is one element of the sequence around the
-// choice as an alternative, and adds its elements to it alone. Neither does an expression without
-// a value, which a choice gives the value nil. Where a predicate can read the value, the choice of
-// one alternative stays.
-func sameValueBare(e grammar.Expr) bool {
+// alternative of a choice, where a sequence around the choice takes it. The expressions it accepts
+// are one element in both places, or a call of a splice rule whose body is not a sequence (isSeq),
+// which is one element or none in both. A sequence is not: as an alternative it is one element,
+// and alone it adds its elements to the sequence around it. Neither is a call of a splice rule
+// whose body is a sequence, which adds the elements of the body in the same way. Where a predicate
+// can read the value, a choice of one alternative that this does not accept stays.
+func (v *normalView) sameValueBare(e grammar.Expr) bool {
 	switch e.(type) {
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Ref, *grammar.Repeat,
-		*grammar.Optional, *grammar.Atomic, *grammar.Bottom:
+	case *grammar.Ref:
+		return !isSeqOf(v.spliceBody, e)
+	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Repeat, *grammar.Optional,
+		*grammar.Atomic, *grammar.Bottom:
 		return true
 	}
 	return false
+}
+
+// spliceBody returns the body of the rule name if it is a splice rule (Program.SpliceBody), as the
+// grammar writes it.
+func (v *normalView) spliceBody(name string) (grammar.Expr, bool) {
+	if rd := v.byName[name]; rd != nil && spliceRule(rd) {
+		return rd.Expr, true
+	}
+	return nil, false
 }
 
 // subsumed reports whether an earlier alternative covers alt: it equals alt or is a prefix of
