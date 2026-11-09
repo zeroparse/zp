@@ -633,6 +633,15 @@ the [open steps of the linear cost proof](linear-cost.md#open-steps).
   above hold, and otherwise keeps the sequence of one item or the choice of
   one alternative, and the call. Dropping the cut is not changing a value, so
   it applies everywhere.
+- N2 and N3 drop alternatives that never give the value of the choice, but
+  they can drop every alternative with a value and keep one without: the
+  choice of `_ / "b"` is one element, `nil` or the string, and `_` alone none.
+  N12 replaces `!X X`, which has the type of `X`, by `_|_`, which a choice
+  leaves out of the join of its alternatives, so `-"b" / !"a" "a"` is one
+  element and `-"b" / _|_` none. The view applies N2, N3 and the replacement
+  of `!X X` neither inside a capture whose name a predicate of the rule reads
+  nor in the body of a rule whose value reaches one. A `_|_` alternative adds
+  nothing to the value of the choice, so N4 applies everywhere.
 - N7 is off because `@error` and `@diagnostic` decide where the parser keeps
   repetition runs, and N13 is off because inlining changes which rules are
   memoized. For the same reason the classifier decides memoization, call

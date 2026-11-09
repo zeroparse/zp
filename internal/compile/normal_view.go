@@ -82,9 +82,9 @@ type normalView struct {
 	text map[grammar.Expr]string
 	// reads are, for each rule, the names of its captures that a predicate of the rule reads, and
 	// valued the rules whose value reaches such a capture (valueReaders). Inside such a capture and
-	// in the body of such a rule, depth is positive and the rules that change values (N9, N10, N11,
-	// the left factoring of N12, N13, and the parts of N1 and N6 that turn a sequence or a choice of
-	// one item into the item) are off.
+	// in the body of such a rule, depth is positive and the rules that change values (N2, N3, N9,
+	// N10, N11, N12, N13, and the parts of N1 and N6 that turn a sequence or a choice of one item
+	// into the item) are off.
 	reads  map[string]map[string]bool
 	valued map[string]bool
 	depth  int
@@ -351,9 +351,12 @@ func (v *normalView) adjacent(a, b grammar.Expr) grammar.Expr {
 			}
 		}
 	}
-	if n, ok := a.(*grammar.Not); ok && v.same(n.Expr, b) && boundedTerminal(b) {
+	if n, ok := a.(*grammar.Not); ok && v.depth == 0 && v.same(n.Expr, b) && boundedTerminal(b) {
 		// K4: !X X never matches. X examines a bounded amount of input, so the view drops a
-		// constant cost.
+		// constant cost. !X X has the type of X and _|_ has the type _|_, which a choice around it
+		// leaves out of its join: (-"b" / !"a" "a") is one element, nil or a string, and
+		// (-"b" / _|_) none. So the rewrite stays where a predicate can read the value. X makes
+		// no capture, so only depth decides.
 		v.count(ruleN12)
 		return &grammar.Bottom{SourceInfo: n.SourceInfo}
 	}
@@ -453,12 +456,22 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		}
 		alts = append(alts, n)
 	}
+	// C1, C3, C5 and T2 drop alternatives that never give the value of the choice, but they can
+	// drop every alternative with a value and keep one without: the choice that gave nil gives no
+	// element then, as (_ / "b") with "b" dropped. So they apply only where no predicate can read
+	// the value. A bottom alternative adds nothing to the value of the choice, which joins the
+	// types of its alternatives, so C4 applies everywhere.
+	drops := v.depth == 0
 	var kept []grammar.Expr
 	for i, alt := range alts {
 		if _, ok := alt.(*grammar.Bottom); ok {
 			// C4: a bottom alternative fails at once and records nothing.
 			v.count(ruleN4)
 			changed = true
+			continue
+		}
+		if !drops {
+			kept = append(kept, alt)
 			continue
 		}
 		if v.subsumed(alt, kept) {
