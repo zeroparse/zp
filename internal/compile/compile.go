@@ -22,7 +22,10 @@ type Program struct {
 	// shapeControl is the compilation's cancellation control while the program is being built, so that
 	// the shape analysis of rule bodies (shapeElems) polls it; nil otherwise.
 	shapeControl *Control
-	Grammar      *grammar.Grammar
+	// bottoms are the rules of type _|_ (bottomRules), computed once.
+	bottomsOnce sync.Once
+	bottoms     map[string]bool
+	Grammar     *grammar.Grammar
 	// Source is the grammar as written when Grammar is its lowering (inline actions replaced by
 	// hidden rules, inline_actions.go); nil when Grammar is the grammar itself.
 	Source *grammar.Grammar

@@ -413,6 +413,9 @@ type ValueInference struct {
 	// spliced holds the splice rules whose bodies are being expanded; a call inside them is an
 	// element of its own (Rule.Splice).
 	spliced map[string]bool
+	// bottoms, while not nil, are the rules of type _|_ as far as Program.bottomRules has found
+	// them.
+	bottoms map[string]bool
 	// nodeMembers, if not nil, receives the member accesses that read only node members.
 	nodeMembers map[*grammar.Member]bool
 	// rec, if not nil, receives the types of terms, scopes and rules.
@@ -777,6 +780,9 @@ func (v *ValueInference) ruleDef(rd *grammar.RuleDef) Ty {
 		}
 		v.spliced[rd.Name] = true
 		defer delete(v.spliced, rd.Name)
+		if v.bottom(rd.Expr) {
+			return TyBottom // a body that never matches gives no value
+		}
 		el, ok := v.single(rd.Expr)
 		if !ok {
 			return NodeTy{Value: TupleTy{Elems: []Ty{}}}
@@ -784,6 +790,9 @@ func (v *ValueInference) ruleDef(rd *grammar.RuleDef) Ty {
 		return el.t
 	}
 	if rd.Action == nil {
+		if rd.Type == nil && v.bottomRule(rd.Name) {
+			return TyBottom // a body that never matches gives no value
+		}
 		return v.declared(rd, v.ScopeValue(rd.Expr))
 	}
 	return v.declared(rd, v.term(rd.Action, env))
@@ -1108,11 +1117,13 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 // it never matches. The rules are those of the type system (spec/language/types.md): _|_ has it; a
 // sequence with an element of type _|_ has it, as a tuple of _|_ is _|_; a choice has the join of
 // its alternatives, _|_ only when each has it; a repetition of at least one element of type _|_
-// has it; a group, a label and a call of a splice rule have the type of the expression they stand
-// for, as in elems. A recovery joins the type with error, which is not _|_. Every other expression
-// has a type of its own whatever its operand is: no value (a lookahead, a discard, a predicate),
-// *_|_ (an optional, which matches the empty input), []_|_ (a repetition that may match no
-// element), a match, a capture, or a call of a rule as one element, the rule's node.
+// has it; a group and a label have the type of the expression they stand for, as in elems. A capture has the type node[T] of the type T of its operand, and node[_|_] is
+// _|_; an #atomic keeps the type of its operand; a call of another rule has the rule's type,
+// which is the type of its body for a rule without an action or a declared type (ruleDef), as for
+// a call of a splice rule (Program.bottomRules). A recovery joins the type with error, which
+// is not _|_. Every other expression has a type of its own whatever its operand is: no value (a
+// lookahead, a discard, a predicate), *_|_ (an optional, which matches the empty input), []_|_ (a
+// repetition that may match no element), a match.
 func (v *ValueInference) bottom(e grammar.Expr) bool {
 	v.control.poll()
 	switch e := e.(type) {
@@ -1133,19 +1144,60 @@ func (v *ValueInference) bottom(e grammar.Expr) bool {
 		return e.Min > 0 && v.bottom(e.Expr)
 	case *grammar.Attributed:
 		return !recovers(e) && v.bottom(e.Expr)
+	case *grammar.Capture:
+		return v.bottom(e.Expr)
+	case *grammar.Atomic:
+		return v.bottom(e.Expr)
 	case *grammar.Ref:
-		body, ok := v.Prog.SpliceBody(e.Name)
-		if !ok || v.spliced[e.Name] {
-			return false
-		}
-		if v.spliced == nil {
-			v.spliced = map[string]bool{}
-		}
-		v.spliced[e.Name] = true
-		defer delete(v.spliced, e.Name)
-		return v.bottom(body)
+		return v.bottomRule(e.Name)
 	}
 	return false
+}
+
+// bottomRule reports whether the rule name has the type _|_ (Program.bottomRules).
+func (v *ValueInference) bottomRule(name string) bool {
+	if v.bottoms != nil {
+		return v.bottoms[name]
+	}
+	return v.Prog.bottomRules(v.control)[name]
+}
+
+// bottomRules returns the rules of type _|_: those without an action or a declared type, whose
+// type is that of their body, with a body of type _|_. A body that calls such rules is decided
+// with the others, as the greatest set of rules whose bodies have the type _|_ when the calls of
+// the rules of the set do: a rule that only calls itself, as r = "a" r, never matches. The set is
+// computed once, from the rules that the program has when it is first asked.
+func (p *Program) bottomRules(control *Control) map[string]bool {
+	if p == nil {
+		return nil
+	}
+	p.bottomsOnce.Do(func() {
+		set := map[string]bool{}
+		var names []string
+		for name, r := range p.ByName {
+			if r != nil && r.Def != nil && r.Def.Action == nil && r.Def.Type == nil {
+				set[name] = true
+				names = append(names, name)
+			}
+		}
+		sort.Strings(names)
+		w := &ValueInference{Prog: p, control: control, bottoms: set}
+		for changed := true; changed; {
+			changed = false
+			for _, name := range names {
+				if set[name] && !w.bottom(p.ByName[name].Def.Expr) {
+					set[name], changed = false, true
+				}
+			}
+		}
+		for name, b := range set {
+			if !b {
+				delete(set, name)
+			}
+		}
+		p.bottoms = set
+	})
+	return p.bottoms
 }
 
 // neverMade returns the captures caps of an expression that never matches: they are never made, so
