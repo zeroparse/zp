@@ -17,14 +17,16 @@ import (
 // evaluates with logic.
 func addValue(m *Module) {
 	ops.AddValue(m)
-	datum := THandle(ops.Datum)
-	val := []Type{datum, datum}
+	datum, failT := THandle(ops.Datum), THandle(ops.Fail)
+	val := []Type{datum, failT}
 	l, r, x, op := L("l"), L("r"), L("x"), L("op")
 	kind := func(e Expr) Expr { return C("val.kind", e) }
 	k := func(n int) Expr { return Int(int64(n)) }
 	isKind := func(e Expr, n int) Expr { return Eq(kind(e), k(n)) }
 	failure := func(code int, a, b, o, n Expr) Expr { return C("val.fail", k(code), a, b, o, n) }
 	none := Null(datum)
+	// ok is the failure of a composition that does not fail.
+	ok := Null(failT)
 	// fail returns the failure code with the values a and b and the operator o; n is a count.
 	fail := func(b *Builder, code int, a, bb, o, n Expr) { b.Return(none, failure(code, a, bb, o, n)) }
 	opIs := func(c int) Expr { return Eq(op, k(c)) }
@@ -55,7 +57,7 @@ equality, which is every other pair.`
 		b.Let("n", C("seq.len", it[0]))
 		at := b.LetN([]string{"i", "inside"}, C("int.index", r, L("n")))
 		b.If(Not(at[1]), func(b *Builder) { fail(b, ops.ErrIndexRange, r, none, Int(0), L("n")) })
-		b.Return(C("seq.at", it[0], at[0]), none)
+		b.Return(C("seq.at", it[0], at[0]), ok)
 	})
 	index.Doc = `index returns element r of l, a list or a tuple (nil has no elements), with a box opened. It fails if l is
 another value, if r is not an int, and if r is not an index of l.`
@@ -75,7 +77,7 @@ another value, if r is not an int, and if r is not an index of l.`
 				})
 				b.Return(none, C("val.fail", L("code"), l, r, op, Int(0)))
 			})
-			b.Return(C("val.fromBool", Eq(eq[0], opIs(ops.OpEq))), none)
+			b.Return(C("val.fromBool", Eq(eq[0], opIs(ops.OpEq))), ok)
 		})
 		// ordered returns the result of the comparison op of two values whose order is c.
 		ordered := func(b *Builder, c Expr) {
@@ -83,9 +85,9 @@ another value, if r is not an int, and if r is not an index of l.`
 				code int
 				cmp  string
 			}{{ops.OpLt, "<"}, {ops.OpLe, "<="}, {ops.OpGt, ">"}} {
-				b.If(opIs(o.code), func(b *Builder) { b.Return(C("val.fromBool", Bin(o.cmp, c, Int(0))), none) })
+				b.If(opIs(o.code), func(b *Builder) { b.Return(C("val.fromBool", Bin(o.cmp, c, Int(0))), ok) })
 			}
-			b.Return(C("val.fromBool", Bin(">=", c, Int(0))), none)
+			b.Return(C("val.fromBool", Bin(">=", c, Int(0))), ok)
 		}
 		kl, kr := b.Let("kl", kind(l)), b.Let("kr", kind(r))
 		b.If(And(Eq(kl, k(ops.KindInt)), Eq(kr, k(ops.KindInt))), func(b *Builder) {
@@ -93,17 +95,17 @@ another value, if r is not an int, and if r is not an index of l.`
 				code int
 				fn   string
 			}{{ops.OpAdd, "int.add"}, {ops.OpSub, "int.sub"}, {ops.OpMul, "int.mul"}} {
-				b.If(opIs(o.code), func(b *Builder) { b.Return(C(o.fn, l, r), none) })
+				b.If(opIs(o.code), func(b *Builder) { b.Return(C(o.fn, l, r), ok) })
 			}
 			b.If(Bin("||", opIs(ops.OpQuo), opIs(ops.OpRem)), func(b *Builder) {
 				b.If(C("int.zero", r), func(b *Builder) { fail(b, ops.ErrDivZero, none, none, Int(0), Int(0)) })
-				b.If(opIs(ops.OpQuo), func(b *Builder) { b.Return(C("int.quo", l, r), none) })
-				b.Return(C("int.rem", l, r), none)
+				b.If(opIs(ops.OpQuo), func(b *Builder) { b.Return(C("int.quo", l, r), ok) })
+				b.Return(C("int.rem", l, r), ok)
 			})
 			ordered(b, C("int.cmp", l, r))
 		})
 		b.If(And(Eq(kl, k(ops.KindString)), Eq(kr, k(ops.KindString))), func(b *Builder) {
-			b.If(opIs(ops.OpAdd), func(b *Builder) { b.Return(C("str.add", l, r), none) })
+			b.If(opIs(ops.OpAdd), func(b *Builder) { b.Return(C("str.add", l, r), ok) })
 			b.If(Bin(">=", op, k(ops.OpLt)), func(b *Builder) { ordered(b, C("str.cmp", l, r)) })
 		})
 		fail(b, ops.ErrOperands, l, r, op, Int(0))
@@ -114,20 +116,20 @@ Strings concatenate with + and compare with < <= > >= by code point. == and != a
 no equality. [] is index. Any other operands fail.`
 
 	unary := m.AddFunc("unary", []Param{P("op", TInt), P("x", datum)}, val, nil, func(b *Builder) {
-		b.If(And(opIs(ops.OpNeg), isKind(x, ops.KindInt)), func(b *Builder) { b.Return(C("int.neg", x), none) })
+		b.If(And(opIs(ops.OpNeg), isKind(x, ops.KindInt)), func(b *Builder) { b.Return(C("int.neg", x), ok) })
 		b.If(And(opIs(ops.OpNot), isKind(x, ops.KindBool)), func(b *Builder) {
-			b.Return(C("val.fromBool", Not(C("val.toBool", x))), none)
+			b.Return(C("val.fromBool", Not(C("val.toBool", x))), ok)
 		})
 		fail(b, ops.ErrUnary, x, none, op, Int(0))
 	})
 	unary.Doc = `unary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
 wraparound, and ! negates a bool. Any other operand fails.`
 
-	logic := m.AddFunc("logic", []Param{P("op", TInt), P("x", datum)}, []Type{TBool, datum}, nil, func(b *Builder) {
+	logic := m.AddFunc("logic", []Param{P("op", TInt), P("x", datum)}, []Type{TBool, failT}, nil, func(b *Builder) {
 		b.If(Bin("!=", kind(x), k(ops.KindBool)), func(b *Builder) {
 			b.Return(BoolC(false), failure(ops.ErrLogical, x, none, op, Int(0)))
 		})
-		b.Return(C("val.toBool", x), none)
+		b.Return(C("val.toBool", x), ok)
 	})
 	member := m.AddFunc("member", []Param{P("c", THandle(ops.Act)), P("kind", TInt), P("x", datum), P("name", THandle(ops.Name)),
 		P("field", THandle(ops.Name))}, val, nil, func(b *Builder) {
@@ -138,9 +140,9 @@ wraparound, and ! negates a bool. Any other operand fails.`
 		// Start, End and Value are members of a node; of any other value they are fields.
 		b.If(And(Bin(">=", L("kind"), k(ops.MemberStart)), Bin("<=", L("kind"), k(ops.MemberValue))), func(b *Builder) {
 			b.If(C("node.isNode", n), func(b *Builder) {
-				b.If(kindIs(ops.MemberStart), func(b *Builder) { b.Return(C("node.start", n), none) })
-				b.If(kindIs(ops.MemberEnd), func(b *Builder) { b.Return(C("node.end", n), none) })
-				b.Return(C("node.value", n), none)
+				b.If(kindIs(ops.MemberStart), func(b *Builder) { b.Return(C("node.start", n), ok) })
+				b.If(kindIs(ops.MemberEnd), func(b *Builder) { b.Return(C("node.end", n), ok) })
+				b.Return(C("node.value", n), ok)
 			})
 		})
 		st := b.Let("st", C("node.isStruct", n))
@@ -148,15 +150,15 @@ wraparound, and ! negates a bool. Any other operand fails.`
 			// A struct has no captures; an unmatched capture is nil.
 			b.If(st, func(b *Builder) { fail(b, ops.ErrNoCapture, x, C("val.name", L("field")), Int(0), Int(0)) })
 			b.LetN([]string{"v", "held"}, C("node.field", n, L("field")))
-			b.Return(C("val.unbox", L("v")), none)
+			b.Return(C("val.unbox", L("v")), ok)
 		})
 		// A field that is set is read first: a struct holds only the fields of its type.
 		f := b.LetN([]string{"f", "set"}, C("node.field", n, L("field")))
-		b.If(f[1], func(b *Builder) { b.Return(f[0], none) })
-		b.If(Not(st), func(b *Builder) { b.Return(none, none) })
+		b.If(f[1], func(b *Builder) { b.Return(f[0], ok) })
+		b.If(Not(st), func(b *Builder) { b.Return(none, ok) })
 		// A field the constructor left unset reads as the zero value of its declared type.
 		z := b.LetN([]string{"z", "declared"}, C("node.zero", L("c"), n, L("field")))
-		b.If(z[1], func(b *Builder) { b.Return(z[0], none) })
+		b.If(z[1], func(b *Builder) { b.Return(z[0], ok) })
 		fail(b, ops.ErrNoField, x, C("val.name", L("field")), Int(0), Int(0))
 	})
 	member.Doc = `member reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or

@@ -203,6 +203,10 @@ func ValueModule() *exec.Module {
 // Seq is the handle type of the elements of a list or a tuple.
 const Seq = "Seq"
 
+// Fail is the handle type of the failure of a term, as val.fail makes it: a value of the target that
+// the caller reports, and null where a composition does not fail.
+const Fail = "Fail"
+
 // Obj is the handle type of a value that has members: a node, a list, a tuple or a struct, as node.of
 // returns it.
 const Obj = "Obj"
@@ -238,6 +242,7 @@ func AddValue(m *exec.Module) {
 	m.AddComponent(Val, `The operations on the values of terms. They read and write no state.`)
 	datum := exec.THandle(Datum)
 	items := m.AddHandle(Seq, Val, "The elements of a list or a tuple, as seq.items returns them.")
+	m.AddHandle(Fail, Val, "The failure of a term, as val.fail makes it: a value of the target that the caller reports.")
 	pure := func(o *exec.Op) {
 		o.Component = Val
 		m.AddOp(o)
@@ -257,13 +262,13 @@ for a bool and KindOther for every other value, a box that holds one of these in
 		Contract: `Returns the bool that x is.`, Requires: `x is a bool: val.kind(x) is KindBool.`})
 	pure(&exec.Op{Name: "val.fail", Params: []exec.Param{exec.P("code", exec.TInt), exec.P("a", datum), exec.P("b", datum),
 		exec.P("op", exec.TInt), exec.P("n", exec.TInt)},
-		Results: []exec.Type{datum}, NoReturn: true, Host: true,
+		Results: []exec.Type{exec.THandle(Fail)}, NoReturn: true, Host: true,
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 2, Quantity: QErrParts}}},
 		Contract: `Returns the failure with the message TermErrors[code]: {a} and {b} read as the names of the types of
 a and b, {op} as the name of the operator that op indexes (BinaryOps for ErrOperands and ErrCompare, UnaryOps for ErrUnary,
-LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a value of the target, which the caller returns
-and the term evaluation reports: it is not an int, a string, a bool or nil. A target that bounds the work assembles
-the text piece by piece, charging for each piece.`,
+LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a Fail, not a value of a term: the caller
+returns it and the term evaluation reports it, each target in its own form of failure. A target that bounds the work
+assembles the text piece by piece, charging for each piece.`,
 		Requires: `code indexes TermErrors, and the arguments are those its message names.`})
 	pure(&exec.Op{Name: "int.add", Params: []exec.Param{l, r}, Results: []exec.Type{datum},
 		Contract: `Returns l + r with 64-bit wraparound.`, Requires: `l and r are ints.`,

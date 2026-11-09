@@ -152,7 +152,7 @@ var tsTarget = &exects.Target{
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
-			ops.Obj: "Node", ops.Name: "string", ops.Act: "Actx",
+			ops.Obj: "Node", ops.Name: "string", ops.Act: "Actx", ops.Fail: "Value",
 		}[name]
 	},
 	FuncName: func(name string) string {

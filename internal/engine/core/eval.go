@@ -123,11 +123,7 @@ func TypeName(v any) string {
 // Member reads x.name, as the composition member (term_exec.go) does.
 func (c *EvalCtx) Member(x any, name string) (any, error) {
 	kind, field := memberKind(name)
-	v, e := c.P.termMember(c, kind, x, name, field)
-	if e != nil {
-		return nil, e.(error)
-	}
-	return v, nil
+	return c.P.termMember(c, kind, x, name, field)
 }
 
 // memberZero is the operation node.zero: the zero value of the declared type of the field name of the

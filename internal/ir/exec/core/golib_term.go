@@ -327,7 +327,7 @@ func EngineTerms() (string, error) {
 // text is that of ops.TermErrors, put together from the same fragments as the other runtimes charge.
 func engineTermError() string {
 	var b strings.Builder
-	b.WriteString("\n// termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the\n// caller returns.\nfunc (p *Parser) termError(code int, a, b any, op, n int) any {\n\tswitch code {\n")
+	b.WriteString("\n// termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the\n// caller returns.\nfunc (p *Parser) termError(code int, a, b any, op, n int) error {\n\tswitch code {\n")
 	for code, e := range ops.TermErrors {
 		fmt.Fprintf(&b, "\tcase %d: // %s\n", code, e.Name)
 		var parts []string

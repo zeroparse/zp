@@ -157,11 +157,7 @@ func (p *Parser) ValueBinary(op string, l, r any) (any, error) {
 	if !ok {
 		return nil, p.ActionError("unknown operator ", op)
 	}
-	v, e := p.termBinary(code, l, r)
-	if e != nil {
-		return nil, e.(error)
-	}
-	return v, nil
+	return p.termBinary(code, l, r)
 }
 
 // ValueUnary applies the unary operator op to x.
@@ -170,11 +166,7 @@ func (p *Parser) ValueUnary(op string, x any) (any, error) {
 	if !ok {
 		return nil, p.ActionError("unknown operator ", op)
 	}
-	v, e := p.termUnary(code, x)
-	if e != nil {
-		return nil, e.(error)
-	}
-	return v, nil
+	return p.termUnary(code, x)
 }
 
 // ValueLogic checks the operand x of the logical operator op and returns it.
@@ -183,11 +175,7 @@ func (p *Parser) ValueLogic(op string, x any) (bool, error) {
 	if !ok {
 		return false, p.ActionError("unknown operator ", op)
 	}
-	b, e := p.termLogic(code, x)
-	if e != nil {
-		return false, e.(error)
-	}
-	return b, nil
+	return p.termLogic(code, x)
 }
 
 func (p *Parser) ValueTextLen(s string) int {

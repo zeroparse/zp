@@ -79,7 +79,7 @@ func memberKind(name string) (int, string) {
 
 // termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the
 // caller returns.
-func (p *Parser) termError(code int, a, b any, op, n int) any {
+func (p *Parser) termError(code int, a, b any, op, n int) error {
 	switch code {
 	case 0: // division by zero
 		return p.ActionError("division by zero")
@@ -139,7 +139,7 @@ func (p *Parser) termEqual(l any, r any) (bool, bool) {
 // another value, if r is not an int, and if r is not an index of l.
 //
 // Printed from Exec IR function index of internal/ir/exec/core.
-func (p *Parser) termIndex(l any, r any) (any, any) {
+func (p *Parser) termIndex(l any, r any) (any, error) {
 	items, ok := valItems(l)
 	if !ok {
 		return nil, p.termError(5, l, nil, 11, 0)
@@ -161,7 +161,7 @@ func (p *Parser) termIndex(l any, r any) (any, any) {
 // no equality. [] is index. Any other operands fail.
 //
 // Printed from Exec IR function binary of internal/ir/exec/core.
-func (p *Parser) termBinary(op int, l any, r any) (any, any) {
+func (p *Parser) termBinary(op int, l any, r any) (any, error) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
 		return v, e
@@ -233,7 +233,7 @@ func (p *Parser) termBinary(op int, l any, r any) (any, any) {
 // wraparound, and ! negates a bool. Any other operand fails.
 //
 // Printed from Exec IR function unary of internal/ir/exec/core.
-func (p *Parser) termUnary(op int, x any) (any, any) {
+func (p *Parser) termUnary(op int, x any) (any, error) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
 	}
@@ -248,7 +248,7 @@ func (p *Parser) termUnary(op int, x any) (any, any) {
 // true and of || only if it is false, and checks each operand it evaluates.
 //
 // Printed from Exec IR function logic of internal/ir/exec/core.
-func (p *Parser) termLogic(op int, x any) (bool, any) {
+func (p *Parser) termLogic(op int, x any) (bool, error) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
 	}
@@ -262,7 +262,7 @@ func (p *Parser) termLogic(op int, x any) (bool, any) {
 // not declare fail.
 //
 // Printed from Exec IR function member of internal/ir/exec/core.
-func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field string) (any, any) {
+func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field string) (any, error) {
 	n, ok := nodeOf(x)
 	if !ok {
 		return nil, p.termError(8, x, any(name), 0, 0)

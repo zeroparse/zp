@@ -62,6 +62,9 @@ handle Err of recovered
 handle Seq of value
   // The elements of a list or a tuple, as seq.items returns them.
 
+handle Fail of value
+  // The failure of a term, as val.fail makes it: a value of the target that the caller reports.
+
 handle Obj of value
   // A value that has members: a node, a list, a tuple or a struct, as node.of returns it.
 
@@ -458,16 +461,16 @@ op val.toBool(x Datum) bool
   requires:
     // x is a bool: val.kind(x) is KindBool.
 
-host op val.fail(code int, a Datum, b Datum, op int, n int) Datum
+host op val.fail(code int, a Datum, b Datum, op int, n int) Fail
   component value
   noreturn
   cost <= 0 + 2*error_parts
   contract:
     // Returns the failure with the message TermErrors[code]: {a} and {b} read as the names of the types of
     // a and b, {op} as the name of the operator that op indexes (BinaryOps for ErrOperands and ErrCompare, UnaryOps for ErrUnary,
-    // LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a value of the target, which the caller returns
-    // and the term evaluation reports: it is not an int, a string, a bool or nil. A target that bounds the work assembles
-    // the text piece by piece, charging for each piece.
+    // LogicalOps for ErrLogical), {i} as a, an int, and {n} as n. A failure is a Fail, not a value of a term: the caller
+    // returns it and the term evaluation reports it, each target in its own form of failure. A target that bounds the work
+    // assembles the text piece by piece, charging for each piece.
   requires:
     // code indexes TermErrors, and the arguments are those its message names.
 
