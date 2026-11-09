@@ -26,8 +26,8 @@ Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
 Lemma 12 also proves that the units which the default budget counts for a Document parse are at most those of a parse of the same text from scratch.
 Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
 constant times $C$.
-[Correspondence](#correspondence) maps the checks of the classifier to the
-conditions and to the lemmas that use them. Lemmas 4 and 5 are given as
+[Correspondence](#correspondence) maps the conditions and terms of the
+specification to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
 proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
 proves a reduction and bounds the repetitions at one position: the scanned cost comes down to the number of activations, a failure
@@ -255,17 +255,16 @@ growing results differ, and a leader that grows again at its position inside
 another growth there grows once for each context; Lemma 5 bounds these under
 condition 5.
 
-In the reference implementation, `Parser.Memoizes` in `internal/engine/core`
-decides which calls the memo answers. It memoizes a leader in every parse, and
-a rule that `transientRules` in `internal/compile` marks transient only in a
-Document parse. A parse with missing-token insertion, which is outside the
-classes, memoizes no rule other than a leader that contains `#missing`,
-directly or through the rules it calls. `Parser.FirstCall` defers the memo
-entry of a rule other than a leader to the second call of the variant at a
-position, unless the rule has turned eager and stores at its first call, and
-`Parser.reusable` answers a call inside a lookahead from every entry and a
-call outside one only from an entry stored outside, which gives the three
-evaluations.
+The memo that this lemma counts is that of
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules). It memoizes
+a leader in every parse, and a [Document](../runtime/documents.md#reuse-model)
+also memoizes the transient rules. A parse with missing-token insertion, which
+is outside the classes, leaves unmemoized every rule other than a leader that
+contains `#missing`, directly or through the rules it calls. A first evaluation
+may leave no result, a result computed inside a lookahead or a `skip` answers
+only the calls inside them, and one computed outside them answers every call,
+so at most one evaluation in each of the two states stores a result, which
+gives the three evaluations.
 
 ## Lemma 4 (Scanned Cost)
 
@@ -320,11 +319,11 @@ and $M$ itself fails. If $M$ is a choice, a `#recover` or an Operators Rule,
 which tries another part at the same position after one fails, the part that
 contains $\alpha$ failed after $\alpha$, and the same argument applies inside
 it. In each case, inside the unit or in the body of a rule that it calls, this
-is one of the ways in which condition 2 lets a unit fail after a source. The
-classifier checks condition 2 in `checkUnits`, and the three ways of being
-committing in `committing`. It decides whether a unit can fail after a source in
-`unitFailsAfterSource`, which refines the answer for alternatives that are not
-growing, iterations and options, and returns true for every other kind of unit.
+is one of the ways in which condition 2 lets a unit fail after a source.
+Condition 2 is a property of every such unit, and the classifier, which
+over-approximates where it cannot be exact
+([Classification](../runtime/parsing.md#classification)), checks every unit that
+it cannot show to be unable to fail after a source.
 
 **Restarts.** An activation **succeeds** when it consumes input: its iteration,
 its operator part with its right operand, or its skip expression consumes input.
@@ -762,7 +761,7 @@ a context of growths.
 
 A growth at $p$ takes at most two more steps than the length it consumes
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). By
-condition 3, which the classifier checks in `checkGrowth`, no step evaluates a
+condition 3, no step evaluates a
 scanning source at $p$ itself outside the left call that grows and outside
 memoized calls of rules off the cycle. A step can still evaluate a scanning
 source at a position after $p$ that it reaches without reading the seed, as
@@ -779,16 +778,8 @@ $p$ except the first, the one whose seed is empty and, when $u$ is committing
 for $g$ by its words, a constant number of others, an evaluation of $u$ at $p$
 examines at most a constant amount of the input.
 
-The classifier finds no shared call for such a pair. `committing` removes the
-shared calls with `strip`, which removes a call or literal only when
-`commonLead` finds it first on every path of both, directly or, through
-`deepLeads`, inside the bodies of shareable calls. A path of $g$ begins with a
-left call that reaches a leader of the cycle. `leads` reports the call of the
-leader, which is memoized and so shareable, while $u$ does not begin with that
-call, as it is not a growing unit; and looking through the call, the body of the
-leader reaches the leader again by left calls without examining input, so the
-search ends only when its budget runs out, with a lead that is no call. A pair
-that shares a call under the definition of [Conditions for Linear
+The claim covers the pairs that share no call. A pair that shares a call under
+the definition of [Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost) is left to step 3 of
 [Open Steps](#open-steps).
 
@@ -1548,16 +1539,14 @@ covered by the same argument: each of its calls, in a context of growths or
 not, evaluates its body at most once, and the growth steps that evaluate its
 one place are in $B$.
 
-In the reference implementation, `transientRules` in `internal/compile` marks
-the rules that are not memoized. It counts the places that call each rule over
-the whole grammar, so a rule that the start rule does not reach can only add
-places and make a rule memoized. It exempts a rule marked `@start` when
-following the one caller of each rule from it returns to it. Every entry point admits only a rule marked `@start` as the
-rule where a parse begins: `Program.CheckStart` in the engine, for whole,
-stream, prefix and Document parses and for loaded modules, the runtime's
-`(*grammar).StartRule`, which a generated Go parser calls, and `startIn` in a
-generated TypeScript parser. `Parser.Memoizes` memoizes a leader whatever
-`transientRules` marks.
+The rules that are not memoized are those of the first exception of
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules). The places
+that call a rule are those in the grammar, so a rule that the start rule does
+not reach can only add places and make a rule memoized. A start rule that its
+own body calls, directly or through rules called from one place, is memoized,
+and a parse begins only at a start rule, on every interface
+([Start Rule](../runtime/parsing.md#start-rule)). A leader is memoized in every
+case.
 
 ## Lemma 11 (Sizes)
 
@@ -1587,13 +1576,13 @@ number of operands; `map` and `filter` have at most the number of elements of
 their list; `text` has the top size of its operand; a fold has the value of
 its initial value or of its lambda; an element, and a member of a field that
 was set, are components of the value that they are taken from; and a member of
-a field that was never set is a zero value of the declared type of the field
-(spec/language/types.md#zero-values), built by the operation. A zero value is
+a field that was never set is the [zero value](../language/types.md#zero-values)
+of the declared type of the field, built by the operation. A zero value is
 a scalar, the empty list, nil, a struct with no field set, or a tuple of such
-values, so its size is at most the number of components of the declared type, a
-constant of the grammar, and it holds no input: making one costs that constant
-whatever the value that it is read from holds (`zeroFrom` in
-internal/engine/core/eval.go, `zeroValue` in gen/_runtime/runtime.go). So a component that one term builds has
+values, and it depends on the declared type alone, so its size is at most the
+number of components of that type, a constant of the grammar, and it holds no
+input: making one costs that constant whatever the value that it is read from
+holds. So a component that one term builds has
 top size at most a constant $r$ times the largest top size of the
 components that it reads, and the terms of one action nest to a depth that is
 a constant of the grammar, the lambdas over bounded lists repeating them a
@@ -2368,113 +2357,63 @@ items cost less than five times the Compute.
 
 ## Correspondence
 
-The classifier in `internal/compile` decides the conditions, and the lemmas use
-them. Each entry names the functions that decide a term or condition of
-[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
-that term or condition, and the lemmas that use it. The list names the deciders,
-not every helper that they call: `collect` and the walks `walkRule`,
-`walkLookahead`, `walkRecovery` and `walkOperators` record the scanning sources,
-the units, the bindings and the copying operations; `sameCycle` and
-`onRecursion` tell the rules of one left-recursion cycle and the calls on a
-recursion; `computeFollow`, `followSets`, `followFor` and `keepFor` give what
-follows a call for the continuations; `consumesNothing` tells the expressions
-that never consume input; `matchesWord` and `wordExcludes` evaluate a word
-against a continuation; and `foldDegrees` gives the degrees of a fold from its
-step matrix. `classify` runs the checks in the order `checkUnits`,
-`checkGrowth`, `checkCarriedGrowth`, `checkNesting` and `checkValues`, after
-`collect` and `computeBoundedScans`.
+The classifier decides the conditions and terms of
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost) on the
+[cost view](../runtime/parsing.md#cost-view), over-approximating where it cannot
+be exact ([Classification](../runtime/parsing.md#classification)). Each entry
+names a term or condition of the specification and the lemmas that use it.
 
-- `computeBounded`, `bounded` and `nullable` decide the expressions whose
-  matches are bounded in length and those that can match nothing, which the
-  terms scanning source, bounded list and growing unit read; `computeFirst`
-  and `first` decide the first characters. Lemmas 1, 2, 4, 6 and 11 use the
-  bounds, and Lemma 4 the first characters.
-- `addSource`, `computeRuleSources` and `containsSource` decide the scanning
-  sources and what contains one: Lemmas 1, 2 and 4.
-- `computeBoundedScans` decides the bounded scans: `consumed` the alphabets,
-  `runAnalysis` the run bound, with `sure` for what surely consumes a
-  character, `regionScans` the region bound, which `firstBound` and `rigid`
-  read with the run bound, and `countedWalk` and `rigid` the second bound:
-  Lemma 13.
-  `newViewClassifier` gives them the cost view that the Setting reads.
-- `normalizeRules` builds the cost view, with `cheapRules` and
-  `evaluatedAgainCheaply` for the evaluations that it may drop, `idempotent`
-  for the repetitions, `subsumed`, `factor` and `boundedTerminal` for the
-  choices and self exclusion, and `valueReaders` and `observed` for the
-  captures that predicates read: the [Cost View](cost-view.md) proof, which
+- The expressions whose matches are bounded in length and those that can match
+  without consuming input, which the terms scanning source, bounded list and
+  growing unit read: Lemmas 1, 2, 4, 6 and 11. The first characters: Lemma 4.
+- Scanning sources, units and what contains a source: Lemmas 1, 2 and 4.
+- Bounded scans, with their alphabets, run bound, region bound and second
+  bound: Lemma 13. Region rules, with their fixed ends, nesting, openers,
+  crossings, settled rules and guards: Lemma 15.
+- The [cost view](../runtime/parsing.md#cost-view), with its rewrites, cheap
+  rules and value conditions: the [Cost View](cost-view.md) proof, which
   transfers every bound on the view to the grammar as written.
-- `regionScans` chooses the region rules and drops those that fail a condition:
-  `regionFree` decides fixed ends, `regionCheck` no nesting, disjoint openers
-  and the crossings, `regionNFA` the openers and what can follow a text in a
-  match, and `regionGuards` the settled rules, the next checks and the guarded
-  crossings: Lemma 15.
-- `reusedSkip`, `constantInput` and `costly` decide the reused skips of
-  [Skip Runs](../runtime/parsing.md#skip-runs), which are no scanning
-  source: Lemma 9, and Lemma 4 for the units whose only source was such a
-  skip.
-- `memoizedRules` decides the rules that are memoized, and `shareable` and
-  `memoAt` the calls that are shared and those memoized at the call, after
-  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules): Lemmas
-  3 and 10, and the shared calls of Lemma 4.
-- `checkUnits` decides condition 2, with `unitFailsAfterSource` and
-  `failsAfterSource` for a unit that can fail after a source, and `committing`
-  for the term committing, which removes shared calls through `leads` and
-  `commonLead`, keeps a call that `rescans` finds the continuation reaching
-  through a call that nests at one end (`nestsAt`) or after an operand of an
-  Operators Rule that nests (`nestsOps`, through its right operands or a call
-  from the rule that nests at one end), for which `addRetried` adds the operator
-  parts that an enclosing level tries again as a continuation of the operator
-  parts that `walkOperators` records, compares first characters, excludes by
-  words in `excludedByWord`, and drops the later alternatives after a `#cut` in
-  `cutCommits`: Lemma 4, its failure after a source, the cases of committing and
-  its claims on links.
-- `withoutReentry`, `fixedMemoized`, `memoOnly` and `restBounded` decide the
-  paths that enter the growth again: the fifth case of Lemma 4, with Lemma 5.
-- `checkGrowingUnit`, `startsGrowth` and `growthStarts` decide condition 2
-  for growing units, with their continuations: Lemma 5, *Sources at fixed
-  offsets*. `checkGrowingUnit` also checks a unit that `walk` marks `afterInput`,
-  and a unit of a rule that `startsGrowth` reaches from a call after something
-  that can match nothing, as a plain unit: the paths of Lemma 5 that consume
-  input before it.
-- `checkGrowth` decides condition 3, and `checkCarriedGrowth`, `dropsResult`,
-  `carryPaths` and `growthGoesOn` condition 5: Lemma 5.
-- `checkValues`, with `selfDependent` and `reaches`, decides condition 1, and
-  `constant` the bindings that bind a value that the input determines, which
-  give the class Linear given an environment bound: Lemma 3 through $K$, and
-  *Values of variables* in Lemma 11. `finiteVars`, `finiteBool`,
-  `finiteInt` and `constantValues` decide the variables with finite values,
-  and `guardOf` the guards of bindings: Lemma 8.
-- `walkTerm` finds the copying operations, `mayBeString` and `stringIn` tell
-  a string value from a node for `len`, and `copyOp` and `copied` decide
-  condition 4 for each copy from what `sizeOf`, `sizeOfAny`, `exprSize` and
-  `deepSize` say that it can copy: a call on the recursion, a fold
-  accumulator, a value from outside a lambda over a list that is not bounded,
-  a value of a variable, a capture in a positive lookahead, and the sum of
-  the elements that a lambda copies. `lambdaCtx` decides the bounded lists:
-  Lemmas 6, 7 and 11.
-- `checkFoldGrowth`, `growthOf`, `growthOrder` and `doubles` decide the step
-  matrix of condition 4: Lemma 7, after its proof.
-- `ownRules`, `ownExpr` and `recOnce` decide the own values and the size
-  degrees of the values of recursions, and `valueShape`, `ruleShape` and
-  `levelShape` the size degrees: Lemma 7, *Size degrees*, with Lemmas 6
-  and 11.
-- `lookCaptures`, `looks`, `inLook`, `exprLooks` and `termLooks` decide the
-  values whose size can come from a capture in a positive lookahead, which
-  condition 4 excludes from copies: Lemma 6 and the anchored values of
-  Lemma 11.
-- `checkNesting` and `leaf` give the degrees of the class polynomial and the
-  reasons for the class unknown of
-  [Classification](../runtime/parsing.md#classification). No lemma uses
-  them, since those classes carry no promise.
+- Reused skips of [Skip Runs](../runtime/parsing.md#skip-runs), which are no
+  scanning source: Lemma 9, and Lemma 4 for the units whose only source was
+  such a skip. Skip-run sites: the [Skip Runs proof](skip-runs.md), as the
+  case of Lemma 4 for those sites.
+- The memoized rules of
+  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules), and the
+  calls memoized at the call and shared: Lemmas 3 and 10, and the shared calls
+  of Lemma 4.
+- Condition 2 (Repeated scans), with a unit that can fail after a source, the
+  continuations, committing units, shared calls, calls that nest at one end,
+  Operators Rules that nest, words that exclude a continuation and
+  alternatives that can fail only after a `#cut`: Lemma 4, its failure after a source, the cases of
+  committing and its claims on links.
+- The paths that enter a growth again, for which an alternative is committing
+  when its sources lie in memoized calls and what follows the leader has no
+  source: the fifth case of Lemma 4, with Lemma 5.
+- Condition 2 for growing units and their continuations: Lemma 5,
+  *Sources at fixed offsets*.
+- Condition 3 (Growth) and condition 5 (Carried growth): Lemma 5.
+- Condition 1 (Variables), with the bindings that bind a value that the input
+  determines, which give the class Linear given an environment bound: Lemma 3
+  through $K$, and *Values of variables* in Lemma 11. The variables with
+  finite values and the guards of bindings: Lemma 8.
+- Condition 4 (Copies), with the copying operations, string values and nodes
+  for `len`, bounded lists, calls on a recursion, fold accumulators, values
+  from outside a lambda, values of variables, captures in a positive
+  lookahead and the elements that a lambda copies: Lemmas 6, 7 and 11. The
+  step matrix of a fold: Lemma 7, after its proof. Own values and size
+  degrees: Lemma 7, *Size degrees*, with Lemmas 6 and 11. Values whose size
+  can come from a capture in a positive lookahead: Lemma 6 and the anchored
+  values of Lemma 11.
+- The degrees of the class polynomial and the reasons for the class unknown
+  of [Classification](../runtime/parsing.md#classification): no lemma, since
+  those classes carry no promise.
 
-Every condition and term above has a check. Two parts of the proof have no
-check of their own, and need none: the factors $K$ and $L$, which are
-quantities of a parse that the classes carry rather than conditions, and the
-three evaluations at a position for each variant of a rule that the memo
-allows, which `Parser.FirstCall` and `Parser.reusable` in
-`internal/engine/core` give (Lemma 3). The checks that decide no
-condition are `growingBindings` and `canHoldNonEmpty`, which serve the
-`growing-variable` finding of `zp lint` rather than the classification.
+Every condition and term above is decided by the classifier. Two parts of the
+proof are no condition and need no check: the factors $K$ and $L$, which are
+quantities of a parse that the classes carry, and the three evaluations at a
+position for each variant of a rule that the memo of
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) allows
+(Lemma 3).
 
 ## Adding a Condition
 

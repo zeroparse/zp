@@ -210,8 +210,7 @@ those walks evaluate the element at most
 $2(n + 1) + (c_{\mathrm{hot}} + 1) W$ times.
 
 Here $c_{\mathrm{hot}}$ is the minimum length of
-[Run Sites](../runtime/parsing.md#run-sites), a constant (64 in the
-reference implementation).
+[Run Sites](../runtime/parsing.md#run-sites), a constant.
 
 *Proof.* A walk from $s$ that ends at $t$ evaluates the element at most
 $t - s + 1$ times: each iteration that matches consumes input, and the last
