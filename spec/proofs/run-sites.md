@@ -390,17 +390,18 @@ claimed.) With records a walk that matches fewer than $T$ characters
 is the same walk. A walk that reaches $T$ characters charges the first $T$ tests, then:
 
 - at a site that is not hot, nothing more than the rest of its tests: noting the walk in the cold
-  state (`walked`) charges no step, so it costs $k + 1$;
-- at a hot site with a record of its start, one step for the lookup and one for the slot
-  (`ScanLookup`), and one for the test of the character at the recorded end, which fails, so it
-  costs $T + 3 \le k + 3$;
+  state charges no step, so it costs $k + 1$;
+- at a hot site with a record of its start, one step for the lookup and one for the slot of the
+  record, and one for the test of the character at the recorded end, which fails, so it costs
+  $T + 3 \le k + 3$;
 - at a hot site with no record, one step for the lookup, the rest of its tests and one step for the
-  record that it makes (`ScanStore`), so it costs $k + 3$.
+  record that it makes, so it costs $k + 3$.
+
+These are the charges that [Scan Sites](../runtime/parsing.md#scan-sites) states for every
+backend that keeps records.
 
 Each case costs at most $k + 3$, which is two steps above $k + 1$. A walk that reaches $T$ characters costs at least
-$T + 1$ steps without records, which gives the ratio. The closure backend (`scanSite`,
-`scanSiteList`) and the bytecode backends (`OpScanSite`, and the iterations of `OpIter` at a scan
-site) charge in this way. $\square$
+$T + 1$ steps without records, which gives the ratio. $\square$
 
 The bound is per walk, so it needs no count of the walks: the walks that start at different
 positions of one run, which find no record, each pay at most the two steps, and the cold state,
