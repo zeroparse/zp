@@ -491,9 +491,10 @@ sequence of `a`) and to the bare item only where no predicate reads the value.
 The same holds for a choice that is left with one alternative after the others
 are dropped (C1 to C5, T2): that alternative is $\equiv_O$ to the choice of it,
 and to the alternative alone only where its value is the same alone as it is
-as the only alternative of a choice, that is, unless it is a sequence, which
-adds its elements to a sequence around it, or has no value, which the choice
-gives the value `nil`.
+as the only alternative of a choice, that is, unless it is a sequence, or a
+call of a splice rule (a hidden rule without an action) whose body is one,
+which adds its elements to a sequence around it, or has no value, which the
+choice gives the value `nil`.
 
 A choice of which one alternative is left after the others are dropped is
 replaced by that alternative only without its loose cuts: a loose cut left in
@@ -648,8 +649,9 @@ the value.
   sequence left with one item (or none) after N6 drops its cuts, or whose
   items N9 to N11 merged, would become the bare item, which has another
   value than the tuple of one element; a choice left with one alternative
-  that is a sequence or has no value would add its elements to the sequence
-  around it, or lose the element `nil`; an inlined call (N13) does the same
+  that is a sequence, or a call of a splice rule whose body is one, or that
+  has no value would add its elements to the sequence around it, or lose the
+  element `nil`; an inlined call (N13) does the same
   with the body of its rule. The view applies them only where the conditions
   above hold, and otherwise keeps the sequence of one item or the choice of
   one alternative, and the call. Dropping the cut is not changing a value, so

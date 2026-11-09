@@ -117,11 +117,11 @@ lines are those of `internal/compile/normal_view.go`.
 | N1: a sequence of one item becomes the item (`seq` 303) | the tuple of one element becomes the value of the item | `depth` zero and the item not `observed`; or the item is a bottom: the sequence then has an element of type `_|_`, so it has that type, as the item does, and both have the same value, also under a recovery, which gives each the error value, under an option, which makes each `nil`, and as an alternative, which a choice leaves out of its join either way |
 | N2, N3: the alternatives after one that always succeeds or begins with a cut, and an alternative that an earlier one subsumes, are dropped (`choice` 464, 473) | when every alternative with a value is dropped and one without stays, the choice, one element (`nil` when that alternative matched), gives none; otherwise only the type of the choice changes, not its value, since a dropped alternative never gives it | `depth` zero (`drops`); otherwise no alternative but a bottom is dropped |
 | K4 of N12: `!X X` becomes `_|_` (`adjacent` 354) | `!X X` has the type of `X`, and `_|_` the type `_|_`: a choice around it, directly or through sequences, groups, labels, captures, `#atomic` and calls of rules without an action or a declared type, that has another alternative without a value and none other with one gives no element in place of one | `depth` zero; `X` makes no capture (`boundedTerminal`), so no `observed` is needed |
-| N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 745, `seqOf` 712) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
-| A choice left with one alternative becomes that alternative (`choice` 528), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence adds its elements to a sequence around the choice instead of being one element; one without a value loses the `nil` of the choice | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a call, a repetition, an optional, an `#atomic` or a bottom (`sameValueBare` 543), whose value alone is its value as the only alternative |
-| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 896) | an expression with a value that a sequence around it splices (`isSeq` in `internal/compile/value_shape.go`: a sequence, grouped or with attributes other than recovery, or a call of a splice rule, a hidden rule without an action, whose body is one) adds its elements to that sequence instead of being one element | `depth` zero and the expression not `observed` (`shaped` 892); otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
+| N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 758, `seqOf` 725) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
+| A choice left with one alternative becomes that alternative (`choice` 528), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence, or a call of a splice rule (a hidden rule without an action) whose body is one, adds its elements to a sequence around the choice instead of being one element; one without a value loses the `nil` of the choice | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a repetition, an optional, an `#atomic` or a bottom, each one element alone and as the only alternative, or a call whose body is not spliced as a sequence (`isSeq`), one element or none in both places (`sameValueBare` 545) |
+| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 909) | an expression with a value that a sequence around it splices (`isSeq` in `internal/compile/value_shape.go`: a sequence, grouped or with attributes other than recovery, or a call of a splice rule, a hidden rule without an action, whose body is one) adds its elements to that sequence instead of being one element | `depth` zero and the expression not `observed` (`shaped` 905); otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
 | N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | `depth` zero and no item `observed` (`adjacent` 327, `nestedRepeat` 408, `unroll` 367) |
-| The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 649) |
+| The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 662) |
 | N13 | the body of the rule takes the place of the call | off in the cost view; in the view of matching, only where `depth` is zero (`rewrite` 253) |
 
 The other rewrites keep the value. N1 removes a group, which creates no value,
@@ -144,7 +144,7 @@ a class, and both give a string node of the matched text.
 A value is **reshaped** when it is the value of an expression that a rewrite of
 the table replaces where it changes that value (every case of the table but a
 bottom in the first row, the drops of N2 and N3 that keep an alternative with a
-value or drop none, the alternatives of `sameValueBare` in the row of the choice
+value or drop none, the alternatives that `sameValueBare` accepts in the row of the choice
 of one alternative, and in the row of V1 an expression that no sequence splices
 or that has no value),
 or when it includes such a value: the value of a capture around it, of a sequence or
@@ -246,15 +246,17 @@ around $e$ or through the value of a rule whose body contains $e$. A capture
 around $e$ makes `depth` positive where the view rewrites $e$, except a capture
 inside the alternative from which N6 drops the cuts, which `looseCutsDropped`
 enters without changing `depth`; that capture makes `observed` true for the
-alternative, which is what `dropCuts` checks (line 749). A rule whose body
+alternative, which is what `dropCuts` checks (line 762). A rule whose body
 contains $e$ and whose value a predicate reads is `valued`. For V1, `attributed`
-checks `depth` and `observed` of $x$ itself (`shaped`, line 892). In each case
+checks `depth` and `observed` of $x$ itself (`shaped`, line 905). In each case
 the view keeps the sequence of $x$, the choice of $x$ or the recovery, unless
 $x$ has the same value alone: a bottom, which has the type `_|_` as the
 sequence or the choice of it does, since a sequence with an element of that
 type and a choice of alternatives of that type have it, so a recovery around
 either gives the error value and an optional expression of either is `nil`; or
-for a choice an expression that `sameValueBare` accepts. A recovery it keeps
+for a choice an expression that `sameValueBare` accepts, which is one element
+alone and as the only alternative, or a call that is not spliced as a sequence
+(`isSeq`), which is one element or none in both places. A recovery it keeps
 even then. So no rewrite changes a value that a predicate observes. This is the context condition of
 [Normalization](grammar-laws.md#normalization).
 
@@ -264,7 +266,9 @@ N3 and N4, at any `depth` for N4, can drop
 the only occurrence of a capture: in an alternative after one that always
 succeeds or begins with a cut, which is never tried; in an alternative that an
 earlier one subsumes, which fails wherever it is tried; or after `_|_` in a
-sequence, which is never evaluated, or before it, in a sequence that fails. In
+sequence, which is never evaluated. No rewrite drops an item before `_|_`: N4
+keeps the items up to the bottom, and K4 replaces only `!X X`, whose `X` makes
+no capture. In
 each case the capture is never set in $G_i$, since a capture made in a match
 that backtracking undoes does not survive and one that did not match is `nil`
 ([Capture](../language/parser-expressions.md#capture)). Under the capture scopes
@@ -343,19 +347,19 @@ the iterations of its bounded repetitions. The lines are those of
 | Rewrite | Code | Condition as the code checks it | $a_\rho$ | $b_\rho$ |
 |:--|:--|:--|--:|--:|
 | N1 splice a group or a sequence in a sequence, flatten a choice, unwrap a sequence of one item; replace a choice of one alternative by it | `rewrite` (Group) 189, `seq` 278, 303, `choice` 449, 528 | a choice that is not the last alternative only without a loose cut in its alternatives; the unwrapping and the replacement as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
-| N2 drop the alternatives after one that always succeeds or begins with a cut | `choice` 464, 486 | `depth` zero; `AlwaysSucceeds`, `leadingCut` | 1 | 0 |
-| N3 drop an alternative that an earlier one equals or prefixes | `choice` 464, 478, `subsumed` 554 | `depth` zero; the earlier one is evaluated again cheaply; a literal prefix only between literals matched with case | 2 | $\ell$ for a literal prefix, 0 otherwise |
-| N4 drop a bottom alternative, cut a sequence after a bottom | `choice` 468, `seq` 297 | a bottom without `@error` (the attribute keeps it an `Attributed`) | 1 | 0 |
-| N5 stacked lookaheads (K1, K2) | `lookahead` 853 | K1 only when the expression binds nothing outside its calls | 1 | 0 |
-| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | `choice` 497, 505, `dropCuts` 745, `attributed` 896 | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left and the recovery as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
-| N8 merge single characters (C9) | `mergeChars` 589, `singleChars` 621 | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
+| N2 drop the alternatives after one that always succeeds or begins with a cut | `choice` 464, 485 | `depth` zero; `AlwaysSucceeds`, `leadingCut` | 1 | 0 |
+| N3 drop an alternative that an earlier one equals or prefixes | `choice` 464, 477, `subsumed` 567 | `depth` zero; the earlier one is evaluated again cheaply; a literal prefix only between literals matched with case | 2 | $\ell$ for a literal prefix, 0 otherwise |
+| N4 drop a bottom alternative, cut a sequence after a bottom | `choice` 467, `seq` 296 | a bottom without `@error` (the attribute keeps it an `Attributed`) | 1 | 0 |
+| N5 stacked lookaheads (K1, K2) | `lookahead` 866 | K1 only when the expression binds nothing outside its calls | 1 | 0 |
+| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | `choice` 498, 506, `dropCuts` 758, `attributed` 909 | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left and the recovery as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
+| N8 merge single characters (C9) | `mergeChars` 602, `singleChars` 634 | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
 | N9 `X* X*`, `X+ X*` to the first; `X X*` to `X+`; `X? X*` to `X*` | `adjacent` 327-346 | `depth` zero, neither item `observed`, `idempotent(X)`; for `X? X*` also X not nullable | 2 | 1 |
 | N10 `(X*)*`, `(X+)*`, `(X*)+` and `(X?)*` to `X*` | `nestedRepeat` 408 | unbounded repetitions, `depth` zero, not `observed`, `idempotent(X)`; for `(X?)*` X not nullable | 2 | 2 |
 | N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | `adjacent` 327, 348, `unroll` 367 | `depth` zero, neither item `observed`, X not nullable and without a loose cut, `idempotent(X)`; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
-| N12 `!X X` to `_|_` (K4) | `adjacent` 354, `boundedTerminal` 1134 | `depth` zero; X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
-| N12 left factoring (C6) | `factor` 649 | `depth` zero, no alternative of the run `observed`, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
+| N12 `!X X` to `_|_` (K4) | `adjacent` 354, `boundedTerminal` 1147 | `depth` zero; X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
+| N12 left factoring (C6) | `factor` 662 | `depth` zero, no alternative of the run `observed`, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
 
-`idempotent(X)` (1085) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X
+`idempotent(X)` (1098) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X
 not nullable or binding nothing outside its calls.
 
 *Proof.* The matching part is the law of the rewrite
@@ -626,8 +630,9 @@ The constant is a bound, not an estimate. Each grammar below makes one rewrite,
 or a few, repeat its work on every element of the input. The written grammar
 and its view, each compiled as a grammar of its own, parse the same input on the
 three backends of the engine and in generated Go, with $n = 500$, 1,000 and
-2,000 repetitions of the element; the cells give the least and the greatest
-ratio of the units that the written grammar charges to those of the view. No
+2,000 repetitions of the element. Each cell is a range that contains the ratio
+of the units that the written grammar charges to those of the view at every
+$n$, its bounds rounded down and up to two decimals. No
 grammar reads a value in a predicate, so the view keeps no sequence of one item
 and its formatted text is its syntax tree. Neither the written grammar nor its
 view memoizes a rule: `main` is called from nowhere and `k` calls no rule, so
@@ -637,19 +642,19 @@ $U_b(V)$ as the theorem describes.
 
 | Rewrites | Written grammar | Input | $3A$ | Closures | Bytecode | Iterative | Generated Go |
 |:--|:--|:--|--:|--:|--:|--:|--:|
-| N1, N8 ($k = 2$) | `(("a" ("b" "c")) / ("d" / "e"))* $$` | `abcde` | 6 | 1.07 | 1.07 | 1.07 | 1.10 |
+| N1, N8 ($k = 2$) | `(("a" ("b" "c")) / ("d" / "e"))* $$` | `abcde` | 6 | 1.07 to 1.08 | 1.07 to 1.08 | 1.07 to 1.08 | 1.09 to 1.11 |
 | N2, N1 | `("a"* / "b") "c" $$` | `a`, then `c` | 3 | 1.00 | 1.00 | 1.00 | 1.00 |
-| N3 | `("aaaaaaaa" "c" / "aaaaaaaa" "c" "d" / [a-z])* $$` | `a` | 6 | 1.56 | 1.69 | 1.69 | 1.58 to 1.59 |
-| N4 | `("x" _\|_ "y" / _\|_ / "a")* $$` | `a` | 3 | 1.00 | 1.17 | 1.17 | 1.00 |
+| N3 | `("aaaaaaaa" "c" / "aaaaaaaa" "c" "d" / [a-z])* $$` | `a` | 6 | 1.56 to 1.57 | 1.68 to 1.69 | 1.68 to 1.69 | 1.58 to 1.59 |
+| N4 | `("x" _\|_ "y" / _\|_ / "a")* $$` | `a` | 3 | 1.00 | 1.16 to 1.17 | 1.16 to 1.17 | 1.00 |
 | N5 | `(!!"b" "b" / &(&"a") "a")* $$` | `a` | 3 | 1.00 | 1.00 | 1.00 | 1.00 |
-| N6, N8 ($k = 2$) | `("a" #cut / "b" / "c" #cut "d")* $$` | `acd` | 6 | 1.00 | 1.23 to 1.24 | 1.23 to 1.24 | 1.05 |
-| N8 ($k = 8$) | `("a" / "b" / … / "h")* $$` | `h` | 24 | 1.17 | 2.40 | 2.40 | 1.17 |
-| N9 | `(k* k* [a-c])* $$` | `a` | 9 | 1.66 to 1.67 | 1.70 | 1.70 | 1.67 |
-| N10 | `((k*)* [a-c])* $$` | `aaaaaaaaaba` | 12 | 1.34 to 1.35 | 1.32 | 1.32 | 1.33 to 1.34 |
-| N11, unrolling | `(k* ("x"? k*)* [a-c])* $$` | `a` | 12 | 1.54 | 1.67 | 1.67 | 1.67 |
-| N11, absorption | `(k* (k / "x")* [a-c])* $$` | `a` | 12 | 1.63 | 1.61 | 1.61 | 1.64 |
-| K4 ($d = 8$), N4, N1 | `(!"aaaaaaaa" "aaaaaaaa" / "a")* $$` | `a` | 51 | 2.50 to 2.51 | 2.80 to 2.81 | 2.80 to 2.81 | 2.50 to 2.51 |
-| Left factoring ($j = 3$), N8 ($k = 3$) | `(k "x" / k "y" / k "z" / [a-c])* $$` | `aaaaaaaaab`, then `a` | 27 | 1.95 to 1.96 | 2.24 to 2.25 | 2.24 to 2.25 | 2.02 to 2.03 |
+| N6, N8 ($k = 2$) | `("a" #cut / "b" / "c" #cut "d")* $$` | `acd` | 6 | 1.00 | 1.23 to 1.24 | 1.23 to 1.24 | 1.05 to 1.06 |
+| N8 ($k = 8$) | `("a" / "b" / … / "h")* $$` | `h` | 24 | 1.16 to 1.17 | 2.39 to 2.40 | 2.39 to 2.40 | 1.16 to 1.17 |
+| N9 | `(k* k* [a-c])* $$` | `a` | 9 | 1.66 to 1.67 | 1.69 to 1.71 | 1.69 to 1.71 | 1.66 to 1.67 |
+| N10 | `((k*)* [a-c])* $$` | `aaaaaaaaaba` | 12 | 1.34 to 1.35 | 1.31 to 1.33 | 1.31 to 1.33 | 1.33 to 1.34 |
+| N11, unrolling | `(k* ("x"? k*)* [a-c])* $$` | `a` | 12 | 1.54 to 1.55 | 1.66 to 1.67 | 1.66 to 1.67 | 1.66 to 1.67 |
+| N11, absorption | `(k* (k / "x")* [a-c])* $$` | `a` | 12 | 1.63 to 1.64 | 1.60 to 1.61 | 1.60 to 1.61 | 1.63 to 1.64 |
+| K4 ($d = 8$), N4, N1 | `(!"aaaaaaaa" "aaaaaaaa" / "a")* $$` | `a` | 51 | 2.50 to 2.51 | 2.80 to 2.82 | 2.80 to 2.82 | 2.50 to 2.51 |
+| Left factoring ($j = 3$), N8 ($k = 3$) | `(k "x" / k "y" / k "z" / [a-c])* $$` | `aaaaaaaaab`, then `a` | 27 | 1.95 to 1.96 | 2.24 to 2.26 | 2.24 to 2.26 | 2.02 to 2.03 |
 
 Each grammar is the body of `rule main`, and `k` is `rule k = "aaaaaaaaab"`.
 The ratios do not grow with $n$ and stay below $3A$, since the evaluation that
@@ -676,8 +681,24 @@ $n$ times `x` for a recovery of a sequence that always succeeds,
 view keeps. A view that replaced the sequence by its item, or dropped the
 recovery, would reject the input at the predicate and skip the tail, and the
 ratio would grow linearly in $n$, to about 1,000 at
-$n = 1000$. The formatted text of a view writes a sequence of one item and a
-choice of one alternative as the bare item, so this control compiles the
+$n = 1000$. The same holds on `qab` followed by $n$ times `x` for a choice left
+with one call of a splice rule whose body is a sequence,
+
+```text
+rule main = x:("q" (_r / _|_)) {len($x) == 2} (e "q" / "x")* $$
+rule _r = "a" "b"
+```
+
+where the call as the only alternative is one element, the node of `("a" "b")`,
+and alone would add `"a"` and `"b"` to the tuple of `$x`: the view keeps the
+choice, and the ratio is 1.000 on all four targets. Measured on a view that
+replaces the choice by the call, the ratio grows linearly in $n$, to 671.576 on
+closures and 1,001.636 on the bytecode, the iterative backend and generated Go
+at $n = 1000$. With `rule _r = "a"`, whose call is one element in both places,
+the view replaces the choice by the call under the predicate, and without the
+predicate it does so for either body; the ratio is 1.000 in each case. The
+formatted text of a view writes a sequence of one item and a choice of one
+alternative so that they parse as the bare item, so this control compiles the
 syntax tree of the view instead of its text.
 
 A third control checks the drops of N2 and N3 and the replacement of K4 where a
@@ -697,6 +718,24 @@ written grammar and its view charge the same units on all four targets, ratio
 1.000. Without the predicate the view drops `"b"`, `-"c" "d"` and `!"a" "a"`,
 and the ratio is 1.000 as well. A view that dropped them under the predicate
 gives the choice no element, rejects the input at the predicate and skips the
-tail: measured on such a view, the ratio at $n = 1000$ is about 672 on closures
-and about 1,004 to 1,006 on the bytecode, the iterative backend and generated
-Go.
+tail: measured on such a view, the ratio at $n = 1000$ is between 671 and 673
+on closures and between 1,003 and 1,006 on the bytecode, the iterative backend
+and generated Go.
+
+The same control covers the drop of the alternatives after one that begins
+with a cut (T2 in N2) and the drop of an alternative equal to an earlier one
+(C1 in N3). In
+
+```text
+rule main = x:("q" (#cut -"b" / "c")) {len($x) == 2} (e "q" / "x")* $$
+rule main = x:("q" ("b" "c" / "b" "c" / -"d")) {len($x) == 2} (e "q" / "x")* $$
+```
+
+on `qb` and `qbc` followed by $n$ times `x`, the view keeps every alternative
+under the predicate and drops `"c"` and the second `"b" "c"` without it; the
+ratio is 1.000 on all four targets in each case. A view that drops `"c"` under
+the predicate gives the choice no element where it was `nil`, and its ratio
+grows to 672.914 on closures and 1,003.629 on the other targets at $n = 1000$.
+C1 cannot change the value, since the alternative it drops has the value of
+the one it equals: a view that drops the second `"b" "c"` under the predicate
+also measures 1.000, so the gate is conservative there.
