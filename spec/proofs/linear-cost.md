@@ -21,9 +21,12 @@ proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 5, which are outlines, on Lemma 6, which is proved given step 1, and, for the
 values that actions build from reshaped values, on step 8. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
-beyond the cost: they are proved given the same counts, in terms of what the
-Document retains, which step 7 of [Open Steps](#open-steps) leaves unbounded.
-Lemma 12 also proves that the units which the default budget counts for a Document parse are at most those of a parse of the same text from scratch.
+beyond the cost: they are proved given the same counts and the bounds of
+[Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse), in
+terms of what the Document retains, which step 7 of [Open Steps](#open-steps)
+leaves unbounded. After Lemma 12 an argument, not a proof, shows that the units
+which the default budget counts for a Document parse are at most those of a
+parse of the same text from scratch.
 Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
 constant times $C$.
 [Correspondence](#correspondence) maps the conditions and terms of the
@@ -85,15 +88,14 @@ parse $C$ counts these and nothing else of a lookup. What a
 elsewhere, is no part of $C$: Lemma 12 counts it as **Document units**.
 
 **Pending edits of a Document.** A lookup in the memo of a Document parse of
-the reference implementation also applies to the entry it finds the edits of
-the log that the entry has not accounted for since it was stored or last found,
-and charges one unit for each edit it applies, but never applies more than
-$T = 128$: an entry that lags behind by more edits is treated as absent, and
-the call evaluates its body again. Let $E$ be the length of the
-edit log at the parse: the reference implementation tests the length before it
-records an edit, and drops the memo and restarts the log at the edit that finds
-65,536 edits in it, so a parse can see a log of 65,536 edits, $E \le 2^{16}$
-there, and $E = 0$ outside a Document. Each lookup has at most $\min(E, T)$ of these
+the engine also applies to the entry it finds the edits of the log that the
+entry has not accounted for since it was stored or last found, and charges one
+unit for each edit it applies, but never applies more than $T = 128$: an entry
+that lags behind by more edits is treated as absent, and the call evaluates its
+body again ([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)).
+Let $E$ be the length of the edit log at the parse: the edit that finds 65,536
+edits in the log drops the memo and empties the log, so a parse can see a log of
+65,536 edits, $E \le 2^{16}$ there, and $E = 0$ outside a Document. Each lookup has at most $\min(E, T)$ of these
 units: an entry that edits dropped but that stays in its slot applies the edits
 up to the one that drops it again at each lookup that finds it, and an entry
 that stays valid applies them once.
@@ -2025,16 +2027,18 @@ names the check that decides each condition.
 
 Let a [Document](../runtime/documents.md) parse of the engine, on any of its
 backends, satisfy the setting. Its **Document units** are the units of Compute
-that it charges for the following work, which $C$ does not count: the edits that
-lookups apply; the walks and hash indexes of chains of more than 32 entries, the
-number `memoScan` of entries that a lookup walks; `doc.move`, whose declared
-charge is `2*moved + move_edits`, with the cleanup that ends a move; the
-operations of recorded runs; and the growth of the slots of the memo.
+that it charges for the work that
+[Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)
+bounds and that $C$ does not count: the edits that lookups apply; the steps along
+a chain beyond the entries that the lookup of $C$ compares, the removal of
+lagging entries, and the hashing and probing of the indexes of chains; the moves
+of reused values; the operations of the runs; and the growth of the slots of the
+memo.
 
 At the start of the parse, let the **retained size** $W$ be the sum of one plus
-the size of the key of each memo entry, the number of elements of the run
+the size of the key of each memo entry, the number of iterations of the run
 records, and one plus the number of children and fields of each distinct node
-that the values of those entries and elements reach. Let $G$ be the number of
+that the values of those entries and iterations reach. Let $G$ be the number of
 slots of the gap of the memo. Let $B$ be the greatest size of an empty node that
 those values reach, an **empty** node being one that starts where it ends and
 its **size** the sum of one plus the number of children and fields of each
@@ -2051,73 +2055,83 @@ activations of the parse. The proof of the theorem bounds $A$ by a constant
 times $K \hat{n}$, through Lemmas 2 to 5 and 10, each of which counts the parse
 itself, so no comparison with a parse of the same text from scratch is needed:
 a reused iteration is an activation ([Setting](#setting)), and the entries and
-runs of earlier parses evaluate nothing.
+runs of earlier parses evaluate nothing. Every charge below is a bound of
+[Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse),
+which the proof cites as that section.
 
-*Edits.* A call makes at most one lookup, in `CallBegin`, and a lookup has at
-most $\min(E, T)$ units ([Setting](#setting)), so the edits come to at most $A T$:
-a constant times the calls, whatever the length of the log.
+*Edits.* A call makes at most one lookup, and by that section a lookup applies
+at most $T$ edits, one unit each, so the edits come to at most $A T$: a constant
+times the calls, whatever the length of the log.
 
-*Long chains.* A lookup walks at most 32 entries before it consults the index,
-and comparing a stored key with the key of the call charges at most the size of
-the latter, since string values are compared only when their lengths are equal;
-this is the lookup of $C$. Past that, a lookup or a store hashes its key, at a
-charge of at most a constant times $L + 1$, and its probe compares at most the
-$Q$ entries of the chain. A store of a key that the chain holds also walks at
-most $Q$ entries to relink it. Together these charge at most a constant times
-$A (L + 1) Q$. Hashing the keys to build an index takes place at most once for
-each position in a parse, since only an edit drops the indexes. It charges the
-size of each key of the chain: at most $W$ for the entries that the parse found,
-and a constant times $L + 1$ for each of the at most $A$ entries that it stored.
+*Long chains.* A lookup compares at most 32 entries that do not lag before it
+consults the index, and comparing a stored key with the key of the call charges
+at most a constant times the size of the latter, since strings are compared only
+when their lengths are equal; this is the lookup of $C$. A lagging entry is
+removed where a walk meets it, at one unit, and is not compared. The parse
+stores no lagging entry and no entry starts to lag during it, since the log does
+not change, so each entry removed is one that the parse retained, at most $W$
+units in all. Past the 32 entries, a lookup or a store hashes its key, at most a
+constant times $L + 1$, and its probe compares at most the $Q$ entries of the
+chain. A store of a key that the chain holds beyond them also passes at most $Q$
+entries to reach it, and a store that replaces one of the first 32 entries of a
+chain with an index hashes the key it replaces, which equals its own. Together
+these charge at most a constant times $A (L + 1) (Q + 1)$. A parse builds the
+index of a position at most once, hashing each key of the chain: at most $W$ for
+the entries that the parse retained, and a constant times $L + 1$ for each of the
+at most $A$ entries that it stored.
 
-*Moves.* An entry is marked to move only when it applies edits. No edit comes
-during a parse, so once a lookup has applied the pending edits to an entry that
-stays valid it has none left, and an entry moves at most once, since
-`moveResult` clears the mark.
-An element of a run moves at most once: only a record of the previous parse
-moves its elements, and the parse takes over such a record at most once, by
-deleting it from the records that it can take over. So at most $W$ values move.
-A non-empty node moves at most once: each move tests that its generation is
-older than that of the parse, and sets it to that of the parse before it visits
-the children, and the nodes that the parse builds have that generation. Each
-node that moves charges one unit and one for each child and field, so these
-come to at most $W$. Each reference to an empty node, from a value that moves or
-from a child or field of a non-empty node that moves, copies at most what its
-size counts, with the second unit that the contract of `doc.move` declares, so
-at most a constant times $(B + 1) W$. The edits that `move_edits` counts are
-replayed at most once for each generation in a move, and only for a non-empty
-node that moves there, at most $E$ for each, so at most $E W$. The cleanup
-charges one unit for each copy and each generation that the move recorded,
-which the same counts bound.
+*Moves.* An entry moves at most once in a parse, after which it accounts for
+every edit. A parse resumes a record of the previous parse at most once, and
+only such a record moves its iterations, so each iteration moves at most once.
+So at most $W$ values move. A node that does not start where it ends moves at
+most once in a parse, and a move does not visit the nodes that the parse built,
+so the visits of such nodes and their children and fields come to at most $W$.
+A move visits an empty node once for each reference by which it reaches it,
+from a value that moves or from a child or field of a node that moves, and copies
+with it at most what its size counts, so at most a constant times $(B + 1) W$.
+A move charges at most two units for each of these and for each child and field,
+plus the edits it replays. It replays the edits for each group of nodes that
+account for the same number of edits once, at most $E$, and a group has a node
+that moves, so the replays come to at most $E W$.
 
 *Runs.* Each evaluation of a repetition makes a constant number of operations
-beyond those for its elements, and each element reused or evaluated is an
+beyond those for its iterations, and each iteration reused or evaluated is an
 activation or one of a constant number of iterations of a bounded repetition, so
-at most a constant times $A$ operations are made in all. `run.prefix`,
-`run.tail`, outside their moves, and `run.end` charge a constant and the
-expectations of an element, a set of the items of the grammar. The growth of the
-new elements that `run.end` charges doubles their storage, so it adds up to a
-constant times their number. `run.finish` charges one unit for each element of
-the run, and each is such an element of this evaluation. `run.resync` returns at
-once for a record of this parse, which no edit separates from it. For a record
-of the previous parse it searches at most $1 + \log_2 (W + 2)$ units for each
-element evaluated, and then scans elements. A scan that passes every element
-sets the run to reuse its tail, so it happens once for a record, and each such
-record is taken over once, at most $W$ elements in all. A scan that stops does so at an
-element that examined input before the end $b$ of the edit. The scan starts at
-an element that starts at or after $b$, the starts of the elements increase,
-apart from an empty last element, and an element examines no slot more than one
-before its start, so it stops within two elements. `ResumeRepeat` reserves the
-stack of values for the old elements, which grows it to at most its size plus
-$W$, doubling, so the part of that growth that comes from the reservation is at
-most a constant times $W + A$.
+at most a constant times $A$ operations are made in all. An attempt to reuse an
+iteration, the end of an evaluated iteration and the start of a run or of an
+iteration charge at most a constant, the moves of the values that the iterations
+reuse, and their expected items, a set of the items of the grammar. The growth of
+the storage of the new iterations at least doubles it, so it adds up to a
+constant times their number. Recording a run charges one unit for each of its
+iterations, and each is such an iteration of this evaluation. A record of this
+parse is resumed whole and needs no search, since no edit separates it from the
+parse. For a record of the previous parse, a search for a recorded iteration
+after the edit charges at most $1 + \log_2 (W + 2)$ units for each iteration
+evaluated, and then scans recorded iterations. A scan that passes every
+iteration makes the run reuse them, so it happens once for a record, and each
+such record is resumed once, at most $W$ iterations in all. A scan that stops
+does so at an iteration that examined input before the end $b$ of the edit. The
+scan starts at an iteration that starts at or after $b$, the starts of the
+iterations increase, apart from an empty last iteration, and an iteration
+examines no slot more than one before its start
+([Reuse Model](../runtime/documents.md#reuse-model)), so it stops within two
+iterations. Making room for the values of a record grows the stack of values to
+at most its size plus $W$, at least doubling, so the part of that growth that
+comes from the records is at most a constant times $W + A$.
 
-*Slots.* A store charges for the growth of the slots only where their length
-crosses a power of two, by the old length. So the charges of one parse add up
-to at most twice the last length, and a store at position $p$ needs at most
-$p + 1 + G$ slots, so at most $2 (\hat{n} + G)$.
+*Slots.* A store charges for the growth of the slots only where the number of
+binary digits of their length grows, by the old length. So the charges of one
+parse add up to at most twice the last length, and a store at position $p$ needs
+at most $p + 1 + G$ slots, so at most $2 (\hat{n} + G)$.
 
 Summing, with $A$ at most a constant times $K \hat{n}$ and $K \ge 1$, gives the
 bound. $\square$
+
+The bound counts what each operation charges at most, by
+[Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse); the
+operations of a parse are a function of the operations on the Document since
+its creation, and so are their charges
+([Reservations and Interruptions](../runtime/parsing.md#reservations-and-interruptions)).
 
 *The units that the default budget counts.* The default budget of a Document
 parse leaves out the Document units of Lemma 12 that the parse reserves in regions
@@ -2143,7 +2157,7 @@ on it, up to the constant of the lookup. The comparisons with entries of earlier
 work, which depends on what the Document retains and is bounded by the window of 128 edits
 (step 7 of [Open Steps](#open-steps)). The claim that the counted units of a
 Document parse are at most the units that a parse of the same text from scratch reserves is
-argued here, not proved by a lemma, and the tests of the reference implementation check it on
+argued here, not proved by a lemma, and the tests of the repository check it on
 random edits. The argument: each counted unit belongs to a call, to a
 body evaluation, to an examination of the input, to a value that the parse builds, or to the
 memo protocol of a rule that a parse from scratch memoizes. The Document parse makes each of these
@@ -2199,7 +2213,7 @@ $K \hat{n}$: the moves cost $(E + B + 1) W$, a term in the size $W$ that the Doc
 length $E$ of the log, and the walks, the growth of the slots and $G$ depend on what earlier texts left
 in the memo (step 7 of [Open Steps](#open-steps)). The total of a Document parse is therefore bounded by
 the displayed form, and the claim that it is within a constant factor of a parse from scratch holds for
-the part of the lookups and their edits only. The tests of the reference implementation measure the
+the part of the lookups and their edits only. The tests of the repository measure the
 whole for a grammar of 20,000 lines with 0 to 65,536 pending edits spread over the text: at most 4.3
 times the units of a parse from scratch on each backend, and 2.2 at 6,000 edits and above, where most
 entries lag behind by more than $T$ edits; the test enforces 6, and fails when a lookup applies the edits
@@ -2230,8 +2244,8 @@ has a constant number of keys.
 The corollary does not cover the work that follows the outcome in the same
 Control: the capture and sharing of `SnapshotWith`, the comparison of change
 notifications, and the publication of diagnostics. Nor does it cover the
-generated Document runtimes: they apply each edit to every entry at once, and a
-`doc.move` that copies does not move a node once for a parse.
+generated Document runtimes: they apply each edit to every entry at once, and
+they move a copy of a reused value, so a node is not moved once for a parse.
 
 ## Lemma 14 (Shared Recovered Errors)
 
@@ -2521,15 +2535,19 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    one, and entries joined by a deletion each keep their value, so the step must
    bound the evaluations of one key whose nodes stay reachable, which needs a
    form of Lemmas 4 and 5 local to a region of the text. An empty node is copied
-   for each reference to it, not once. And the replays of `move_edits` multiply
-   the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
+   for each reference to it, not once. And the replays of the edits in a move
+   multiply the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
    $W$ count what earlier texts left in the memo, which it keeps until a store,
-   an edit or the drop of the table removes it. An edit removes the entries that
-   no parse has stored or found to answer a lookup in the last 128 edits (a
-   lookup treats such an entry as a miss, and a walk of the engine drops it), so
-   the entries of earlier texts, the comparisons of a key with them, which are
-   Document work, and the steps along their chains are bounded by the work of that
-   window of edits, not by $n$, $K$ and $L$.
+   an edit, the walk of a chain or the drop of the table removes it. An entry
+   that no parse has stored or found to answer a lookup in the last 128 edits
+   lags: a lookup treats it as a miss, and a walk that meets it removes it
+   without comparing it
+   ([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
+   so the entries of earlier texts, the comparisons of a key with them, which
+   are Document work, and the steps along their chains are bounded by the work
+   of that window of edits, not by $n$, $K$ and $L$. The step is to bound these
+   terms, or to change what a Document retains so that they are bounded, and
+   then to restate that section with the tighter bounds.
 8. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
    bounds the cost of the written grammar by a constant times that of its view,
    except for the values that actions build from a reshaped value: the value of

@@ -1053,5 +1053,3 @@ docs/optimizations/mechanisms/R180-skip-run-records.md	gofile	runtime/skip_runs.
 docs/optimizations/mechanisms/R180-skip-run-records.md	qualified	core.SkipRecordsOff	1
 docs/performance.md	gofile	internal/gen/gogen/gogen_typed_output_retention_test.go	1
 docs/performance.md	internal	internal/bench/gen	1
-spec/proofs/linear-cost.md	unexport	memoScan	1
-spec/proofs/linear-cost.md	unexport	moveResult	1

@@ -398,9 +398,11 @@ measured.
 A parse of a Document also does work that the cost does not count: it applies pending
 edits to the memo entries it finds, moves the values it reuses, and works through
 what the Document retains from earlier parses. Its time and its compute units
-include that work, so they are not proportional to its cost; the
+include that work, so they are not proportional to its cost;
+[Work of a Document Parse](documents.md#work-of-a-document-parse) bounds what each
+of its operations charges, and the
 [linear cost proof](../proofs/linear-cost.md#corollary-compute-of-a-document-parse)
-states their bound. An explicit `Compute` limit caps the whole of it, and the default
+states the bound of their sum. An explicit `Compute` limit caps the whole of it, and the default
 limit caps the part that a parse from scratch also does
 ([Default Limits](#default-limits)). The [memory limit](#memory-limit) caps the storage a parse
 takes into use in bytes.

@@ -279,7 +279,9 @@ at once to the entries at the positions a to b, both included; the
 generated runtimes apply each edit to every entry at once. An entry found to be
 dropped may stay where it is, where no lookup returns it, until a store under
 its key replaces it, a later edit whose positions include its position drops
-it, or the whole memo is dropped. A batch is one edit for the text and drops
+it, a walk of its chain finds that it lags behind by more than 128 edits
+([Work of a Document Parse](#work-of-a-document-parse)), or the whole memo is
+dropped. A batch is one edit for the text and drops
 every entry and run ([Edits](#edits)).
 
 **Results that are stored.** A parse stores entries under the rules of
@@ -320,6 +322,108 @@ at least a minimum number of iterations.
   those iterations shifted by δ, which requires δ = 0 or
   position-free iterations. After the reused iterations it goes on as a
   repetition does.
+
+### Work of a Document Parse
+
+A Document parse of the engine, on each of its backends, does work that a parse
+of the same text from scratch does not: it applies pending edits, walks and
+indexes the chains of memo entries that earlier parses left, moves the values it
+reuses, works through the records of runs and grows the memo table. This
+section bounds the units of Compute that each of these operations charges, as an
+explicit `Compute` limit counts them; the default limit leaves most of them out
+([Default Limits](parsing.md#default-limits)). Each bound is an upper bound: an
+operation may charge less. The generated runtimes apply each edit to every
+entry at once and keep no runs ([Reuse](#reuse)), and are not covered here.
+
+The charges are those of a function of the logical state, as for every parse
+([Reservations and Interruptions](parsing.md#reservations-and-interruptions),
+"Charges depend on logical state only"): the same Document after the same
+operations charges the same units for its next parse.
+
+A **chain** is the sequence of memo entries at one position, live or dropped
+([Reuse Model](#reuse-model)), in the order a lookup passes them. An entry
+**lags** when it lags behind by more than 128 edits, the entry that a lookup
+treats as absent ([Reuse](#reuse)). The **size** of a key is one, plus one for each variable it
+holds, plus the length of each string among their values.
+
+**Edits.** An edit charges no Compute. A Document keeps a log of the edits since
+its memo was last dropped. The edit that finds 65,536 edits in the log drops the
+memo entries and the run records and empties the log instead of adding to it, so
+a parse finds at most 65,536 pending edits.
+
+**Lookups.** A lookup charges one unit, and then:
+
+- for each entry of the chain that it passes, one unit, and for an entry of the
+  same rule, the comparison of the keys: at most one unit for each variable,
+  and for a string compared with a string of the same length, at most twice its
+  length; a lookup of a rule that only a Document memoizes compares strings by
+  identity, at one unit for each variable;
+- for each lagging entry that it meets, one unit, and it removes the entry from
+  the chain without comparing it;
+- it compares at most 32 entries that do not lag; on a chain that holds more, a
+  lookup of a rule that a parse from scratch memoizes too then removes every
+  lagging entry of the chain, at one unit each, builds the index of the position
+  if it has none, hashes its own key and probes the index, comparing its key with
+  at most as many entries as the chain holds. A lookup of a rule that only a
+  Document memoizes stops after the 32 entries and misses;
+- building an index hashes the key of each entry of the chain, and hashing a key
+  charges its size. Only an edit and the removal of a lagging entry drop the
+  index of a position, so a parse builds the index of a position at most once;
+- when the entry it finds does not account for every edit of the log, it
+  applies the pending edits to the entry, one unit for each, at most 128
+  ([Reuse](#reuse)), since an entry that lags is never found.
+
+**Stores.** A store charges one unit, walks and indexes the chain as a lookup
+does to find the entry it replaces, and charges one more unit to link the new
+entry. When the entry it replaces lies beyond the first 32, it walks the chain
+up to it, one unit for each entry it passes; when it lies among them and the
+position has an index, it hashes the key it replaces. A store at a position
+beyond the slots of the memo table grows them: when the number of binary digits
+of the new length exceeds that of the old one, it charges the old length, and
+otherwise nothing.
+
+**Moves.** A lookup that finds an entry whose value an edit shifted
+([Reuse Model](#reuse-model)) moves the value, once: the entry then accounts for
+every pending edit. A move makes one pass over the value. It charges one unit
+for each node it visits and one for each child and field of it. It does not
+visit a node that starts where it ends (an **empty** node) in place: it copies it
+for the move, with the empty nodes below it, and charges the copy as a visit and
+at most one more unit to forget it at the end; a reference to a node that the
+move has already copied charges one unit and copies nothing. A node that does not start where it ends is moved in place, and a
+move does not visit a node that this parse built or has already moved, so such a
+node moves at most once in a parse. Each node of the value accounts for the
+edits up to the parse that last moved or built it. For the nodes that account
+for the same number of edits, the move replays the edits that they do not
+account for once, at one unit for each, and charges at most one unit to forget
+them at the end. A move therefore charges at most two units for each node it visits,
+counting an empty node once for each reference by which it reaches it, and for
+each child and field of those nodes, plus one unit for each edit it replays.
+
+**Runs.** The operations of a repetition that may resume a record
+([Reuse Model](#reuse-model)) charge:
+
+- starting the run, and starting the evaluation of an iteration: nothing;
+- each attempt to reuse the next recorded iteration: one unit, and when it
+  reuses one, the merge of its expected items, at most one unit for each, and,
+  for an iteration after the edit, the move of its value;
+- ending an evaluated iteration: the merge of its expected items, and, when it
+  matched, one unit for each expected item that it records and, when the storage
+  of the new iterations grows, the number of iterations it holds; the storage at
+  least doubles when it grows;
+- looking for a recorded iteration after the edit, before an iteration after the
+  edit is evaluated: a binary search over the recorded iterations that the run
+  has not passed, at most 1 + log₂(m + 1) units for m such iterations, then one
+  unit for each recorded iteration that it scans from the one it finds, which
+  stops at the first that examined input before the end of the edit or at the
+  end of the record; when it passes them all the run reuses them;
+- making room for the values of the record that it resumes: room for every
+  iteration of the record on the stack of values, and when the stack grows, one
+  unit for each value that it copies; the stack at least doubles when it grows;
+- recording the run when it ends: one unit for each iteration, and nothing for a
+  run too short to record.
+
+A parse resumes a record of the previous parse at most once: resuming it removes
+it from the records that the parse can resume.
 
 ## Change Notifications
 
