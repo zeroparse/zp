@@ -16,13 +16,13 @@ import (
 
 // termChargesGoldenFile returns the golden of the charges of the terms of the generator; what names it in
 // the header.
-func termChargesGoldenFile(path, what string) gentest.GoldenFile {
+func termChargesGoldenFile(path, what, unset string) gentest.GoldenFile {
 	return gentest.GoldenFile{Path: path, CaseOf: gentest.GoldenCaseBefore,
 		Header: "# The charges of the generated term differential cases (" + what + ") on every target: the units the\n" +
 			"# engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the\n" +
 			"# generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets\n" +
 			"# charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a\n" +
-			"# term's charges on one target is a stated change. Some terms leave struct fields unset.\n" + gentest.GoldenRules}
+			"# term's charges on one target is a stated change. " + unset + "\n" + gentest.GoldenRules}
 }
 
 // termChargeCases returns the term cases of the golden, which the compiler accepts.
@@ -60,7 +60,7 @@ func termOutcome(res string) string {
 // changes they make to them.
 func TestTermChargesAcrossTargets(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges.golden", "gentest.TermCases", "termcharges", gentest.TermCases(1, 40, false))
+	checkTermCharges(t, "testdata/term_charges.golden", "gentest.TermCases", "The terms leave no struct field unset.", "termcharges", gentest.TermCases(1, 40, false))
 }
 
 // TestTermChargesAcrossTargetsWide pins the charges of the terms of gentest.TermCasesWide, which have
@@ -74,10 +74,10 @@ func TestTermChargesAcrossTargetsWide(t *testing.T) {
 	for seed := uint64(1); seed <= 12; seed++ {
 		all = append(all, gentest.TermCasesWide(seed, 20, seed > 4)...)
 	}
-	checkTermCharges(t, "testdata/term_charges_wide.golden", "gentest.TermCasesWide, seeds 1 to 12", "termchargeswide", all)
+	checkTermCharges(t, "testdata/term_charges_wide.golden", "gentest.TermCasesWide, seeds 1 to 12", "Some terms leave struct fields unset.", "termchargeswide", all)
 }
 
-func checkTermCharges(t *testing.T, golden, what, prefix string, all []gentest.TermCase) {
+func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)
 	if testing.Short() {
@@ -165,7 +165,7 @@ func checkTermCharges(t *testing.T, golden, what, prefix string, all []gentest.T
 			got[key(i, in, "ts-node")] = n + " " + termOutcome(res)
 		}
 	}
-	termChargesGoldenFile(golden, what).Check(t, prefix+"/", got)
+	termChargesGoldenFile(golden, what, unset).Check(t, prefix+"/", got)
 }
 
 // tsChargeScript is a TypeScript consumer that prints, for each input, the least compute limit under which

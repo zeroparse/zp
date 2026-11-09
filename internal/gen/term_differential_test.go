@@ -276,7 +276,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 					w = len(c.Lit)
 				}
 				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1,
-					Zeros: referenceZeros(t, prog.Static(), "R")}
+					Zeros: referenceZeros(t, prog.Static(), "R", "Inner")}
 				v, msg := env.Eval(term)
 				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
 				if c.Kind == gentest.TermPredicate {
@@ -310,7 +310,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 	}
 }
 
-// referenceZeros returns the zero values of the fields of the struct types names for the reference
+// referenceZeros returns the zero values of the fields of the struct types names that the grammar declares for the reference
 // evaluator, decoded from the zero descriptors that the compiled program holds
 // (compile.Program.StructZeroOf). A struct field holds the struct with no field set.
 func referenceZeros(t testing.TB, prog *compile.Program, names ...string) map[string]map[string]ref.V {
@@ -348,7 +348,7 @@ func referenceZeros(t testing.TB, prog *compile.Program, names ...string) map[st
 	for _, name := range names {
 		sz := prog.StructZeroOf(name)
 		if sz == nil {
-			t.Fatalf("%s is not a struct type", name)
+			continue // the type is declared by the grammars of some generators only
 		}
 		zeros[name] = map[string]ref.V{}
 		for _, f := range sz.Names {

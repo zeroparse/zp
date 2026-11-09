@@ -34,6 +34,12 @@ var termTypes = []string{"int", "string", "bool", "[]int", "[]string", "R", "(in
 // termPrelude declares the struct type of the generated grammars.
 const termPrelude = "type R = { A int; B string; C bool }\n@start\n"
 
+// widePrelude declares the struct types of the grammars of TermCasesWide: R has a field of each kind
+// whose zero value is not a scalar, which a constructor may leave unset: a list, a tuple, an optional
+// string and a struct.
+const widePrelude = "type Inner = { N int }\n" +
+	"type R = { A int; B string; C bool; L []int; T (int, string); O *string; In Inner }\n@start\n"
+
 // TermInputs are the inputs of a generated case: "a" is what the rule main matches; "ab" shows
 // whether a predicate holds.
 var TermInputs = []string{"a", "ab"}
@@ -63,7 +69,8 @@ func TermCases(seed uint64, n int, unset bool) []TermCase {
 // that is not ASCII, tuple indexing, nil lists and nil elements, lists of bools, of structs, of lists
 // and of tuples, casts to bool and to a struct, and the errors that only run time can find (the
 // comparison of structured values, the operand of && that is not a bool, the filter that gives no
-// bool). TermCases is not changed by the forms, so that what the goldens pin stays the same.
+// bool), and a struct R with a list, a tuple, an optional string and a struct field, which a term
+// reads whether or not the constructor set them. TermCases is not changed by the forms, so that what the goldens pin stays the same.
 func TermCasesWide(seed uint64, n int, unset bool) []TermCase {
 	g := &termGen{rng: rand.New(rand.NewPCG(seed, 0x91de5)), unset: unset, wide: true}
 	out := make([]TermCase, 0, n)
@@ -95,7 +102,7 @@ func (g *termGen) actionCase(i int) TermCase {
 	term := g.term(typ, 3, nil)
 	return TermCase{
 		Case: Case{Name: fmt.Sprintf("term %d: %s", i, term),
-			Src: fmt.Sprintf("%srule main %s = x:%q \"b\"? $$ => %s\n", termPrelude, typ, lit, term), Inputs: []string{lit}},
+			Src: fmt.Sprintf("%srule main %s = x:%q \"b\"? $$ => %s\n", g.prelude(), typ, lit, term), Inputs: []string{lit}},
 		Term: term, Type: typ, Kind: TermAction, Lit: lit,
 	}
 }
@@ -108,9 +115,16 @@ func (g *termGen) predicateCase(i int) TermCase {
 	term := g.term("bool", 3, nil)
 	return TermCase{
 		Case: Case{Name: fmt.Sprintf("predicate %d: %s", i, term),
-			Src: fmt.Sprintf("%srule main int = x:%q ({%s} \"b\" / \"\") $$ => 1\n", termPrelude, lit, term), Inputs: []string{lit, lit + "b"}},
+			Src: fmt.Sprintf("%srule main int = x:%q ({%s} \"b\" / \"\") $$ => 1\n", g.prelude(), lit, term), Inputs: []string{lit, lit + "b"}},
 		Term: term, Kind: TermPredicate, Lit: lit,
 	}
+}
+
+func (g *termGen) prelude() string {
+	if g.wide {
+		return widePrelude
+	}
+	return termPrelude
 }
 
 type termGen struct {
@@ -191,7 +205,15 @@ func (g *termGen) intTerm(depth int, s scope) string {
 	}
 	d := depth - 1
 	if g.wide {
-		switch g.rng.IntN(14) {
+		switch g.rng.IntN(20) {
+		case 6:
+			return "len((" + g.term("R", d, s) + ").L)"
+		case 7:
+			return "(" + g.term("R", d, s) + ").T[0]"
+		case 8:
+			return "(" + g.term("R", d, s) + ").In.N"
+		case 9:
+			return "len((" + g.term("R", d, s) + ").O)"
 		case 0:
 			return "(" + g.term("(int, string)", d, s) + ")[0]"
 		case 1:
@@ -309,6 +331,9 @@ func (g *termGen) stringTerm(depth int, s scope) string {
 	if g.wide && g.rng.IntN(10) == 0 {
 		return "(" + g.term("(int, string)", d, s) + ")[1]"
 	}
+	if g.wide && g.rng.IntN(10) == 0 {
+		return "(" + g.term("R", d, s) + ").T[1]"
+	}
 	switch g.rng.IntN(9) {
 	case 0, 1, 2:
 		return "(" + g.term("string", d, s) + " + " + g.term("string", d, s) + ")"
@@ -343,6 +368,8 @@ func (g *termGen) boolTerm(depth int, s scope) string {
 				"(list(1, \"a\")[1] == list(1, \"a\")[1])", "(list() != nil)", "(list(nil)[0] == list(nil)[0])")
 		case 6:
 			return "(" + g.indexed("[]bool", d, s) + ")[" + g.term("int", d, s) + "]"
+		case 7:
+			return "((" + g.term("R", d, s) + ").O " + g.pick("==", "!=") + " nil)"
 		}
 	}
 	switch g.rng.IntN(12) {
@@ -377,6 +404,9 @@ func (g *termGen) listTerm(typ string, depth int, s scope) string {
 		return "list(" + strings.Join(items, ", ") + ")"
 	}
 	d := depth - 1
+	if g.wide && typ == "[]int" && g.rng.IntN(8) == 0 {
+		return "(" + g.term("R", d, s) + ").L"
+	}
 	switch g.rng.IntN(8) {
 	case 0, 1:
 		var items []string
@@ -424,6 +454,20 @@ func (g *termGen) structTerm(depth int, s scope) string {
 	}
 	if !g.unset || g.rng.IntN(5) != 0 {
 		fields = append(fields, "C: "+g.term("bool", d, s))
+	}
+	if g.wide {
+		if !g.unset || g.rng.IntN(5) != 0 {
+			fields = append(fields, "L: "+g.term("[]int", d, s))
+		}
+		if !g.unset || g.rng.IntN(5) != 0 {
+			fields = append(fields, "T: "+g.term("(int, string)", d, s))
+		}
+		if !g.unset || g.rng.IntN(5) != 0 {
+			fields = append(fields, "O: "+g.term("string", d, s))
+		}
+		if !g.unset || g.rng.IntN(5) != 0 {
+			fields = append(fields, "In: Inner{N: "+g.term("int", d, s)+"}")
+		}
 	}
 	return "R{" + strings.Join(fields, ", ") + "}"
 }

@@ -268,9 +268,12 @@ func (e *TermEnv) cast(c *grammar.Cast, x V) V {
 	return x
 }
 
-// Plain returns v as the plain Go value that a parse result shows in JSON: a struct is an object with
-// the range of the match.
-func (e *TermEnv) Plain(v V) any {
+// Plain returns v as the plain Go value that a parse result shows in JSON: a struct that is the result
+// is an object with the range of the match, and any other struct has the range of its fields
+// (structRange).
+func (e *TermEnv) Plain(v V) any { return e.plain(v, true) }
+
+func (e *TermEnv) plain(v V, result bool) any {
 	switch v.Kind {
 	case KNil:
 		return nil
@@ -283,17 +286,77 @@ func (e *TermEnv) Plain(v V) any {
 	case KList, KTuple:
 		out := make([]any, len(v.Items))
 		for i, x := range v.Items {
-			out[i] = e.Plain(x)
+			out[i] = e.plain(x, false)
 		}
 		return out
 	case KStruct:
 		fields := map[string]any{}
 		for k, x := range v.Fields {
-			fields[k] = e.Plain(x)
+			fields[k] = e.plain(x, false)
 		}
-		return map[string]any{"type": v.Type, "start": e.Start, "end": e.End, "fields": fields}
+		start, end := e.Start, e.End
+		if !result {
+			start, end = e.structRange(v)
+		}
+		return map[string]any{"type": v.Type, "start": start, "end": end, "fields": fields}
 	}
 	panic("ref: a node is not a result")
+}
+
+// structRange is the range of a struct: the range that covers the ranges of the fields whose values
+// are nodes, or the range of the rule if there are none (spec/runtime/nodes.md, Node Model).
+func (e *TermEnv) structRange(v V) (start, end int) {
+	first := true
+	for _, x := range v.Fields {
+		if x.Kind != KList && x.Kind != KTuple && x.Kind != KStruct && x.Kind != KNode {
+			continue // a scalar or nil field is not a node
+		}
+		s, t := e.nodeRange(x)
+		if first || s < start {
+			start = s
+		}
+		if first || t > end {
+			end = t
+		}
+		first = false
+	}
+	if first {
+		return e.Start, e.End
+	}
+	return start, end
+}
+
+// nodeRange is the range of a value as a node: the range of a capture, the range that covers the
+// elements of a list or a tuple that are not nil, which is empty at the start of the rule when there
+// are none, and the range of a struct. An int, a string or a bool, which an element holds as a node of
+// its own, has the range of the rule.
+func (e *TermEnv) nodeRange(v V) (start, end int) {
+	switch v.Kind {
+	case KNode:
+		return v.Start, v.End
+	case KStruct:
+		return e.structRange(v)
+	case KList, KTuple:
+		first := true
+		for _, x := range v.Items {
+			if x.Kind == KNil {
+				continue
+			}
+			s, t := e.nodeRange(x)
+			if first || s < start {
+				start = s
+			}
+			if first || t > end {
+				end = t
+			}
+			first = false
+		}
+		if first {
+			return e.Start, e.Start
+		}
+		return start, end
+	}
+	return e.Start, e.End
 }
 
 // Holds reports whether a predicate whose term gave v, or failed with the error msg, succeeds: it
