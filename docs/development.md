@@ -279,15 +279,30 @@ The guides show how to test a grammar in an application. The repository uses the
 | Compiled grammars, Documents and backend equivalence | `internal/engine/` tests such as `compiled_test.go` and `document_test.go`, and the tests of `internal/engine/document/` |
 | Generated Go against the engine and regression freezes of what the engine cannot say (observation, Documents, budget, streams, lowering decisions) | `internal/gen/gogen/` tests such as `gogen_flow_*_test.go` with `internal/gen/gogen/testdata/*.golden`, and `internal/engine/` tests `core_*_test.go` with `internal/engine/testdata/*.golden`; a change of what a golden freezes is rewritten with `go test <package> -run <test> -update` and its diff reviewed |
 
-Root `go test ./... ./runtime/...` covers the main module and the runtime module. Run `hack/test-alpha-parsers.sh` to vet and test the parsers of a neighboring alpha-parsers checkout against this tree; `cd site && go test ./...` covers the site module.
+Root `go test ./... ./runtime/...` covers the main module and the runtime module. Run `hack/test-alpha-parsers.sh` to vet and test the parsers of the alpha-parsers checkout against this tree (see [Ready-Made Parsers and Their Corpora](#ready-made-parsers-and-their-corpora)); `cd site && go test ./...` covers the site module.
 
 ### Ready-Made Parsers and Their Corpora
 
 The ready-made parsers are in the separate [alpha-parsers](https://github.com/zeroparse/alpha-parsers) repository
 (module `zeroparse.dev/alpha-parsers`), generated from `testdata/grammars/`. Its conformance suites use text from
 other projects, which it fetches and checks against pinned digests (see its README). To check a change of the generator
-or the engine against it, put a checkout next to this one and run `hack/test-alpha-parsers.sh`; the script joins both
-with a `go.work` file (the root module, the runtime module and the checkout) and skips with a message when there is no checkout (`$ZP_ALPHA_PARSERS` names another place).
+or the engine against it, keep a checkout next to this one (`../alpha-parsers`; in the layout `~/src/github.com/zeroparse/`
+that is `~/src/github.com/zeroparse/alpha-parsers`), or name another directory with `ZP_ALPHA_PARSERS`:
+
+```bash
+git clone https://github.com/zeroparse/alpha-parsers ../alpha-parsers
+hack/sync-alpha-parsers.sh     # copy the grammars, inputs and duckdb/inspect.go; regenerate every parser
+hack/test-alpha-parsers.sh     # check the checkout is in sync, then vet and test it
+```
+
+Both scripts join this tree, the runtime module and the checkout with a temporary `go.work` file, so they use the
+working tree they are run from, not a pushed commit: run them from the tree that holds the change. They print the
+checkout they use. `hack/test-alpha-parsers.sh` fails when there is no checkout, when a grammar, a sample input or
+`duckdb/inspect.go` differs from `testdata/grammars/`, and when the options of the checkout's `generate.go` differ from
+`testdata/grammars/generate.txt`; `ZP_ALPHA_PARSERS=skip` skips it on purpose. `hack/sync-alpha-parsers.sh` leaves the
+regenerated files uncommitted in the checkout and does not rewrite `generate.go`, whose options are edited by hand.
+Commit the result in the alpha-parsers repository whenever a change of the generator, the runtime or the grammars
+changes the generated files.
 
 ## Language Feature Status
 

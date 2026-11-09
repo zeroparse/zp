@@ -38,7 +38,8 @@ with implementation changes; regenerate generated files.
   `cd site && go test ./...` and the site build/check in `docs/site.md`. Code:
   `go vet` and the tests of the changed packages and their dependents. Engine,
   generator or runtime: also `go generate ./gen ./bench` and
-  `hack/test-alpha-parsers.sh`; budget-control code: also the reference build
+  `hack/test-alpha-parsers.sh` (it fails without an alpha-parsers checkout;
+  `hack/sync-alpha-parsers.sh` updates one); budget-control code: also the reference build
   in `docs/development.md`. The default root `go test ./... ./runtime/...` takes
   minutes; run it on the final commit of each landing batch, and add
   `-tags zp_long` (the long tier in `docs/development.md`) when the batch touches
