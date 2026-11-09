@@ -219,7 +219,7 @@ corpus/0/testdata/typed/element_scope_plain.zp	eef0d6fb8813e82c9f017993
 corpus/0/testdata/typed/element_scope_recover.zp	3fbff8e05f64961a780ad064
 corpus/0/testdata/typed/errlist.zp	97a38cde9a658fc678608e48
 corpus/0/testdata/typed/errlist2.zp	9242e35400934613cdd0df1f
-corpus/0/testdata/typed/fields.zp	81f0490c08c2d1d194faebac
+corpus/0/testdata/typed/fields.zp	91d6e39fc94bfa26c9fbe1c1
 corpus/0/testdata/typed/mix.zp	38a37921d26827ba960ced02
 corpus/0/testdata/typed/mixf.zp	3e6ac9d7a93f57aed6fa2f2f
 corpus/0/testdata/typed/operators_rule1.zp	4a5ca3531974c744e8053bc1
@@ -581,7 +581,7 @@ corpus/1/testdata/typed/element_scope_plain.zp	eef0d6fb8813e82c9f017993
 corpus/1/testdata/typed/element_scope_recover.zp	3fbff8e05f64961a780ad064
 corpus/1/testdata/typed/errlist.zp	97a38cde9a658fc678608e48
 corpus/1/testdata/typed/errlist2.zp	9242e35400934613cdd0df1f
-corpus/1/testdata/typed/fields.zp	81f0490c08c2d1d194faebac
+corpus/1/testdata/typed/fields.zp	91d6e39fc94bfa26c9fbe1c1
 corpus/1/testdata/typed/mix.zp	38a37921d26827ba960ced02
 corpus/1/testdata/typed/mixf.zp	3e6ac9d7a93f57aed6fa2f2f
 corpus/1/testdata/typed/operators_rule1.zp	4a5ca3531974c744e8053bc1
