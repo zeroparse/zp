@@ -3,7 +3,7 @@
 Arata Furukawa · Last revised 2026-11-09
 
 The classifier decides the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-on the [cost view](grammar-laws.md#normalization) of the rule bodies, and the
+on the [cost view](../runtime/parsing.md#cost-view) of the rule bodies, and the
 [Linear Cost](linear-cost.md) proof bounds a parse of that view. This proof
 transfers the bound to the grammar as written: on every input, the parse of the
 written grammar costs at most a constant times the parse of its view, in the

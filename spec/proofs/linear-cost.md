@@ -60,7 +60,7 @@ $\hat{n} = n + 1$. The parse is the memoized parse of the
 backend.
 
 The classifier decides the conditions on the [cost
-view](grammar-laws.md#normalization) of the rule bodies, with the memoized rules,
+view](../runtime/parsing.md#cost-view) of the rule bodies, with the memoized rules,
 the left-recursion cycles, the variables and the run sites of the grammar as
 written. The proof reads that view as the grammar: its rule bodies match what the
 written ones match, and the written grammar costs at most a constant factor more
@@ -1853,7 +1853,7 @@ view, and the claims hold of a parse of the view by the same proof: Lemma 3 read
 which rules are memoized, which the written grammar decides, and the other claims
 read what bodies match, in the rule bodies of the view. The activations that the
 parse of the written grammar makes are then counted by the
-[cost view](grammar-laws.md#normalization), which removes an evaluation only when
+[cost view](../runtime/parsing.md#cost-view), which removes an evaluation only when
 making it again costs a constant factor. That the written grammar costs at most a
 constant factor more than the view is the condition of the cost view, which the
 [Cost View](cost-view.md) proof shows; the bounded scans make no value, so this

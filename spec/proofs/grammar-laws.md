@@ -2,13 +2,13 @@
 
 Arata Furukawa · Last revised 2026-11-09
 
-**Status:** Draft. The laws are proved as stated, except the law of
-[Free Variables](#free-variables), which is unproved in full. The
-confluence of the [Normalization](#normalization) is not proved. The
-condition of its [cost view](#normalization), that the written grammar costs
-at most a constant factor more than the view, is proved in
-[Cost View](cost-view.md), except for the values that actions build from a
-value that the view reshapes and their run-time errors.
+**Status:** Draft. The laws are proved as stated, except the law of [Free
+Variables](#free-variables), which is unproved in full. The confluence of the
+[Normalization](#normalization) is not proved. The condition of its [cost
+view](../runtime/parsing.md#cost-view), that the written grammar costs at most
+a constant factor more than the view, is proved in [Cost View](cost-view.md),
+except for the values that actions build from a value that the view reshapes
+and their run-time errors.
 
 This document states the equivalences ("laws") that hold between Rule
 Expressions of ZeroParse grammars, such as `X* X*` and `X*`, and a rewrite
