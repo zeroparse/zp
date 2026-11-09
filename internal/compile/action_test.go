@@ -29,6 +29,16 @@ func TestCompileErrors(t *testing.T) {
 		{`rule main = x`, `1:13: undefined rule x`},
 		{`rule main = "a"
 rule main = "b"`, `2:1: rule main is already defined`},
+		// A rule declared again that calls rules is reported, not analysed: the redeclaration
+		// once sent the search for strongly connected components in a loop.
+		{`rule main = main "a" / "a"
+rule main = main "b" / "b"`, `2:1: rule main is already defined`},
+		{`rule main = a
+rule a = "a" main?
+rule main = a "b"`, `3:1: rule main is already defined`},
+		{`rule main = _x
+rule _x = "b"
+rule _x = "c" _x`, `3:1: rule _x is already defined`},
 		{`type Match = { Text string }`, `type Match is reserved`},
 		{`type foo = { Text string }
 rule main = "a"`, `type foo must start with an uppercase letter`},

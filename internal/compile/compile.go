@@ -436,20 +436,23 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 			prog.Types[td.DeclName()] = td
 		}
 	}
-	rules := control.rules(g)
-	for i, rd := range rules {
+	// A rule declared again is reported and then left out: the analyses below key rules by name
+	// and take each name once.
+	var rules []*grammar.RuleDef
+	for _, rd := range control.rules(g) {
 		control.poll()
 		if prog.ByName[rd.Name] != nil {
 			c.errorf(rd.Diagnostic(), "rule %s is already defined", rd.Name)
 			continue
 		}
-		r := &Rule{ID: i, Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
+		r := &Rule{ID: len(rules), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
 		if r.Splice && rd.Type != nil {
 			c.errorf(rd.Diagnostic(), "rule %s makes no node of its own, so it cannot have a result type", rd.Name)
 		}
 		if w := names.where(rd.Name); w != rd.Name {
 			r.Where = w
 		}
+		rules = append(rules, rd)
 		prog.RuleList = append(prog.RuleList, r)
 		prog.ByName[rd.Name] = r
 	}
