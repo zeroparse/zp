@@ -688,21 +688,77 @@ func TestRunOperationsChargeTheirDeclaredWork(t *testing.T) {
 		}
 	})
 	t.Run("run.end charges the merge and the growth", func(t *testing.T) {
+		for _, capacity := range []int{63, 1024} {
+			p := docParser()
+			var r RunState
+			r.J = -1
+			r.Mid = make([]RunElem, 63, capacity)
+			p.BeginElem(&r)
+			p.Exp = append(p.Exp, 1, 2, 3)
+			p.Pos = 2
+			// The 64th iteration makes the length a power of two, which charges the 63 before it
+			// whatever the capacity; keeping copies the three expectations, and merging them charges three.
+			got := spent(p, func() { p.EndElem(&r, true, nil) })
+			if want := uint64(63 + 3 + 3); got != want {
+				t.Fatalf("capacity %d: charged %d, want %d", capacity, got, want)
+			}
+			p.BeginElem(&r)
+			if got := spent(p, func() { p.EndElem(&r, true, nil) }); got != 0 {
+				t.Fatalf("capacity %d: no growth, no expectations: charged %d", capacity, got)
+			}
+		}
+		// A length that stays below a power of two charges no growth, though the storage is full.
 		p := docParser()
 		var r RunState
 		r.J = -1
-		r.Mid = make([]RunElem, 64)
+		r.Mid = make([]RunElem, 62)
+		p.BeginElem(&r)
+		if got := spent(p, func() { p.EndElem(&r, true, nil) }); got != 0 {
+			t.Fatalf("growth within the binary digits charged %d", got)
+		}
+	})
+	t.Run("run.end compares and copies the expected items it records", func(t *testing.T) {
+		p := docParser()
+		var r RunState
+		r.J = -1
+		r.Mid = make([]RunElem, 0, 64)
+		// The set kept last has as many items and differs at the last: keeping compares each item,
+		// then copies each, at most two units for each.
+		p.LastKept = []ExpID{1, 2, 4}
 		p.BeginElem(&r)
 		p.Exp = append(p.Exp, 1, 2, 3)
 		p.Pos = 2
-		// Keeping copies the three expectations, and merging them charges three.
-		got := spent(p, func() { p.EndElem(&r, true, nil) })
-		if want := uint64(64 + 3 + 3); got != want {
-			t.Fatalf("charged %d, want %d", got, want)
+		if got, want := spent(p, func() { p.EndElem(&r, true, nil) }), uint64(3+2*3); got != want {
+			t.Fatalf("charged %d, want the merge and two units for each of the 3 items, %d", got, want)
 		}
-		p.BeginElem(&r)
-		if got := spent(p, func() { p.EndElem(&r, true, nil) }); got != 0 {
-			t.Fatalf("no growth, no expectations: charged %d", got)
+		if !slices.Equal(p.LastKept, []ExpID{1, 2, 3}) {
+			t.Fatalf("kept %v", p.LastKept)
+		}
+	})
+	t.Run("run.prefix with expected items scans the record for each colliding item", func(t *testing.T) {
+		p := docParser()
+		p.Expectations = true
+		// The record at the farthest position holds distinct items until their bits fill the filter,
+		// so every item merged next collides and is looked for in the whole record.
+		id := ExpID(100)
+		for ; p.ExpBits != ^uint64(0); id++ {
+			p.Expect(2, id)
+		}
+		held := uint64(len(p.Exp) - p.ExpBase)
+		r := RunState{Old: oldRun(2, exp), J: -1, max: -1, edit: DocEdit{Start: 2, End: 3}}
+		// Each item charges one unit and one for each item that the record holds, which grows by
+		// the items merged before it: at most one plus the size of the record, for each.
+		n := uint64(len(exp))
+		want := 1 + n*(1+held) + n*(n-1)/2
+		if got := spent(p, func() {
+			if p.NextPrefix(&r) == nil {
+				t.Fatal("the element examined only input before the edit")
+			}
+		}); got != want || held < 64 {
+			t.Fatalf("a record of %d items: charged %d, want %d", held, got, want)
+		}
+		if got := uint64(len(p.Exp) - p.ExpBase); got != held+n {
+			t.Fatalf("the record holds %d items, want %d", got, held+n)
 		}
 	})
 	t.Run("run.finish charges the elements of the run", func(t *testing.T) {
@@ -716,4 +772,45 @@ func TestRunOperationsChargeTheirDeclaredWork(t *testing.T) {
 			t.Fatalf("a short run charged %d", got)
 		}
 	})
+}
+
+// Making room on the stack of values for a resumed record charges by the room that the parse paid
+// for, not by the capacity that the stack keeps from earlier parses of the Document, and the room
+// at least doubles, so a stack that shrinks and grows again within it charges nothing more.
+func TestGrowKidsChargesByTheRoomOfTheParse(t *testing.T) {
+	t.Parallel()
+	for _, capacity := range []int{100, 4096} {
+		p := docParser()
+		p.KidStack = make([]*value.Node, 100, capacity)
+		// resize sets the length of the stack, as the uncharged pushes and pops of a parse do.
+		resize := func(n int) { p.KidStack = slices.Grow(p.KidStack[:0], n)[:n] }
+		if got := spent(p, func() { p.growKids(50) }); got != 100 {
+			t.Fatalf("capacity %d: the first growth charged %d, want the 100 values", capacity, got)
+		}
+		if got := spent(p, func() { p.growKids(50) }); got != 0 {
+			t.Fatalf("capacity %d: a growth within the room charged %d", capacity, got)
+		}
+		resize(150)
+		if got := spent(p, func() { p.growKids(1) }); got != 150 {
+			t.Fatalf("capacity %d: a growth past the room of 150 charged %d, want the 150 values", capacity, got)
+		}
+		// The room is now 300: a stack that shrinks and grows again within it charges nothing.
+		for range 100 {
+			resize(299)
+			if got := spent(p, func() { p.growKids(1) }); got != 0 {
+				t.Fatalf("capacity %d: growing again within the room charged %d", capacity, got)
+			}
+		}
+		resize(300)
+		if got := spent(p, func() { p.growKids(1) }); got != 300 {
+			t.Fatalf("capacity %d: a growth past the room charged %d, want the 300 values", capacity, got)
+		}
+		if cap(p.KidStack) < 301 {
+			t.Fatalf("capacity %d: room for %d values", capacity, cap(p.KidStack))
+		}
+	}
+	p := docParser()
+	if got := spent(p, func() { p.growKids(1000) }); got != 0 {
+		t.Fatalf("an empty stack charged %d", got)
+	}
 }

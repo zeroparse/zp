@@ -18,8 +18,8 @@ const (
 	QRunSearch = "run_search"
 	// QRunScan is the number of old elements from the one the search finds to the end of the run.
 	QRunScan = "run_scan"
-	// QRunGrowth is the number of new elements the run holds, when one more makes the storage of
-	// those elements grow, and 0 otherwise.
+	// QRunGrowth is the number of new elements the run holds, when one more makes their count a power
+	// of two, and 0 otherwise: the copy that doubling storage stands for, whatever capacity it has.
 	QRunGrowth = "run_growth"
 	// QRunElems is the number of elements of the finished run.
 	QRunElems = "run_elems"

@@ -208,12 +208,12 @@ func (p *Parser) EndElem(r *RunState, ok bool, v *value.Node) {
 	el := RunElem{Start: r.elemStart, end: p.Pos, From: from, examined: examined, far: far, exp: exp, V: v}
 	if r.J < 0 {
 		if BudgetControlsEnabled && p.Control != nil {
-			r.Mid = GrowSpend(p, r.Mid, 1)
+			p.runListGrowth(len(r.Mid))
 		}
 		r.Mid = append(r.Mid, el)
 	} else {
 		if BudgetControlsEnabled && p.Control != nil {
-			r.Post = GrowSpend(p, r.Post, 1)
+			p.runListGrowth(len(r.Post))
 		}
 		r.Post = append(r.Post, el)
 	}
@@ -283,7 +283,7 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
 	base := len(p.KidStack)
 	if rs.Build {
 		m := p.FreeBegin(true)
-		p.KidStack = GrowSpend(p, p.KidStack, len(r.Old))
+		p.growKids(len(r.Old))
 		p.FreeEnd(m)
 	}
 	for el := p.NextPrefix(&r); el != nil; el = p.NextPrefix(&r) {
@@ -363,4 +363,26 @@ func (p *Parser) ReleaseRunLists(r *RunState) {
 	ClearSpend(p, r.Mid)
 	ClearSpend(p, r.Post)
 	p.FreeEnd(m)
+}
+
+// runListGrowth charges the growth of a list of new elements of a run from n to n + 1 elements. The
+// lists grow from empty in each run, so a charge by their length alone (growthSpend), not by the
+// capacity that a reused RunState keeps, adds up to less than their length. It is kept out of line
+// so that EndElem, which every evaluated element of a run calls, stays as small as it was.
+//
+//go:noinline
+func (p *Parser) runListGrowth(n int) { p.growthSpend(n, n+1) }
+
+// growKids makes room for extra more values on KidStack. It charges the copy that growing stands
+// for by kidRoom, not by the capacity of KidStack, which a Document keeps from its earlier parses: a
+// growth past the room charges the values on the stack, and the room then at least doubles, so the
+// charges are a function of the operations of the parse and add up to at most four times the
+// greatest length that a growth asks for. The charge falls before the stack changes.
+func (p *Parser) growKids(extra int) {
+	n := len(p.KidStack)
+	if BudgetControlsEnabled && p.Control != nil && extra > 0 && n+extra > p.kidRoom {
+		p.chargeValueBytes(n)
+		p.kidRoom = max(n+extra, 2*p.kidRoom)
+	}
+	p.KidStack = slices.Grow(p.KidStack, extra)
 }

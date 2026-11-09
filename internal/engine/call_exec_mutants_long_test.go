@@ -727,7 +727,7 @@ func TestDocumentReuseMutantsFail(t *testing.T) {
 	runPrintedMutants(t, "core/resume.go", []printedMutant{
 		{"prefix no charge", []printedEdit{{"func (p *Parser) NextPrefix(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextPrefix(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
 		{"tail no charge", []printedEdit{{"func (p *Parser) NextTail(r *RunState) *RunElem {\n\tp.Spend()\n", "func (p *Parser) NextTail(r *RunState) *RunElem {\n"}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
-		{"mid no growth charge", []printedEdit{{"\t\t\tr.Mid = GrowSpend(p, r.Mid, 1)\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
+		{"mid no growth charge", []printedEdit{{"\t\t\tp.runListGrowth(len(r.Mid))\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
 		{"elem tail merge skipped", []printedEdit{{"\t\tp.MergeExpected(el.far, el.exp)\n", ""}}, "^TestRunOperationsChargeTheirDeclaredWork$", []string{"./core"}},
 		{"end merge skipped", []printedEdit{{"\tp.MergeExpected(far, inner)\n", ""}}, "^TestDocumentBatchFreshParity$", []string{"."}},
 	})

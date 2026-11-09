@@ -43,6 +43,7 @@ func (d *Document) SetRuns(r map[core.RunKey]*core.RunRecord) {
 }
 func (d *Document) RunGen() uint32                          { return d.runGen }
 func (d *Document) Kids() []*value.Node                     { return d.kids }
+func (d *Document) SetKids(k []*value.Node)                 { d.kids = k }
 func (d *Document) Machine() core.BackendState              { return d.machine }
 func (d *Document) SetMachine(m core.BackendState)          { d.machine = m }
 func (d *Document) Input() *core.Input                      { return &d.in }

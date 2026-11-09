@@ -204,6 +204,7 @@ type Parser struct {
 	Saved      []*value.Node  // captures saved across a reset in longest
 	cutFailed  bool           // a candidate of the last longest match failed after a cut
 	nudBound   int            // the binding level above which no operator can follow the last start of an expression
+	kidRoom    int            // the room on KidStack that this parse has paid for (growKids), whatever its capacity
 }
 
 // BackendState is the state that a backend keeps beside the parser for the parse it runs, such
