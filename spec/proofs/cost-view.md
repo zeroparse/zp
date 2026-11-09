@@ -89,8 +89,11 @@ evaluations in context. A body evaluation costs at least 1.
 By [Values](../language/parser-expressions.md#values-and-the-concrete-syntax-tree),
 a sequence is a tuple of the values of its items that have one, even when there
 is only one; a parenthesized sequence in a sequence adds its elements to it; a
-group creates no value; and a choice has the value of the alternative that
-matched, or `nil` when that alternative has none. A recovery makes an
+group creates no value; and a choice of which some alternative has a value is
+one element, the value of the alternative that matched, or `nil` when that
+alternative has none, while a choice of which no alternative has a value has no
+value and adds no element, as an optional expression of an expression without a
+value does. A recovery makes an
 expression with a value one element (`attrElems` in
 `internal/compile/bcompile.go`), so a sequence gives its tuple node, and leaves
 an expression without a value without one, except an expression of type `_|_`,
@@ -118,7 +121,7 @@ lines are those of `internal/compile/normal_view.go`.
 | N2, N3: the alternatives after one that always succeeds or begins with a cut, and an alternative that an earlier one subsumes, are dropped (`choice` 464, 473) | when every alternative with a value is dropped and one without stays, the choice, one element (`nil` when that alternative matched), gives none; otherwise only the type of the choice changes, not its value, since a dropped alternative never gives it | `depth` zero (`drops`); otherwise no alternative but a bottom is dropped |
 | K4 of N12: `!X X` becomes `_|_` (`adjacent` 354) | `!X X` has the type of `X`, and `_|_` the type `_|_`: a choice around it, directly or through sequences, groups, labels, captures, `#atomic` and calls of rules without an action or a declared type, that has another alternative without a value and none other with one gives no element in place of one | `depth` zero; `X` makes no capture (`boundedTerminal`), so no `observed` is needed |
 | N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 758, `seqOf` 725) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
-| A choice left with one alternative becomes that alternative (`choice` 528), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence, or a call of a splice rule (a hidden rule without an action) whose body is one, adds its elements to a sequence around the choice instead of being one element; one without a value loses the `nil` of the choice | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a repetition, an optional, an `#atomic` or a bottom, each one element alone and as the only alternative, or a call whose body is not spliced as a sequence (`isSeq`), one element or none in both places (`sameValueBare` 545) |
+| A choice left with one alternative becomes that alternative (`choice` 528), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence, or a call of a splice rule (a hidden rule without an action) whose body is one, adds its elements to a sequence around the choice instead of being one element. One without a value has none in both places: the choice of it has no alternative with a value, so it adds no element, as the alternative alone does | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a repetition, an optional, an `#atomic` or a bottom, each one element alone and as the only alternative, or a call whose body is not spliced as a sequence (`isSeq`), one element or none in both places (`sameValueBare` 545) |
 | V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 909) | an expression with a value that a sequence around it splices (`isSeq` in `internal/compile/value_shape.go`: a sequence, grouped or with attributes other than recovery, or a call of a splice rule, a hidden rule without an action, whose body is one) adds its elements to that sequence instead of being one element | `depth` zero and the expression not `observed` (`shaped` 905); otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
 | N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | `depth` zero and no item `observed` (`adjacent` 327, `nestedRepeat` 408, `unroll` 367) |
 | The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 662) |
@@ -144,8 +147,8 @@ a class, and both give a string node of the matched text.
 A value is **reshaped** when it is the value of an expression that a rewrite of
 the table replaces where it changes that value (every case of the table but a
 bottom in the first row, the drops of N2 and N3 that keep an alternative with a
-value or drop none, the alternatives that `sameValueBare` accepts in the row of the choice
-of one alternative, and in the row of V1 an expression that no sequence splices
+value or drop none, the alternatives that `sameValueBare` accepts or that have
+no value in the row of the choice of one alternative, and in the row of V1 an expression that no sequence splices
 or that has no value),
 or when it includes such a value: the value of a capture around it, of a sequence or
 choice around it, of a rule whose body value includes it, and so on outward. By
@@ -237,7 +240,7 @@ through a capture around them in $r$, which makes `depth` positive there, or
 through the value of $r$, read directly or through the rules that call $r$ in
 value positions, which makes $r$ `valued` and `depth` positive in its whole
 body. In the
-first three rows, $e$ is a sequence or a choice of one expression $x$, besides
+rows of N1, N6 and the choice of one alternative, $e$ is a sequence or a choice of one expression $x$, besides
 the cuts that N6 drops, and $e'$ is $x$ itself (or a top); in the row of V1, $e$
 is $x$ with a recovery, whose skip has no captures, and $e'$ is $x$. The
 captures of $e$ are those of $x$, which keeps them and their values. Only the
@@ -256,8 +259,37 @@ type and a choice of alternatives of that type have it, so a recovery around
 either gives the error value and an optional expression of either is `nil`; or
 for a choice an expression that `sameValueBare` accepts, which is one element
 alone and as the only alternative, or a call that is not spliced as a sequence
-(`isSeq`), which is one element or none in both places. A recovery it keeps
-even then. So no rewrite changes a value that a predicate observes. This is the context condition of
+(`isSeq`), which is one element or none in both places. That last case rests
+on two facts. First, a call of a rule that is not a splice rule is one element,
+the value of the rule, in both places, and the body of a splice rule that is not
+a sequence by `isSeq` gives at most one element with a value: only a sequence, a
+group or an expression with attributes other than recovery of one, or a call of
+a splice rule whose body is one, gives several (`elems` in
+`internal/compile/value_types.go`). If the body gives one, it is the value of
+the call alone and of the choice of it. If it gives none, the call alone adds
+no element, and the choice of it, of which no alternative has a value, adds none
+either. So `(_r / _|_)` with `_r = -"a"` becomes `_r` at any `depth`: N4 drops
+`_|_`, which the choice leaves out of its join in any case, and neither the
+choice of `_r` nor `_r` alone adds an element. Second, `sameValueBare` applies
+`isSeq` to the bodies as the grammar writes them (`spliceBody`), while $G_i$
+runs them as rewritten so far. The test decides a value only where `depth` is
+positive or the call is `observed`, and only for a call in a value position:
+one under a discard, a negative lookahead or a positive lookahead outside its
+captures has no value either way. A call in a value position inside a capture
+that a predicate reads or in the body of a `valued` rule is found by
+`valueCalls`, and an `observed` call is one of a `valued` rule, so the callee is
+`valued`, and so is every splice rule that its body calls in a value position in
+turn: the view rewrites all their bodies at positive `depth`. There no rewrite
+makes a body that is not a sequence into one. N1 splices sequences only into
+sequences and removes groups, to which `isSeq` looks through; a sequence of one
+item becomes the item only if the item is a bottom (`seq` 303), and a choice of
+one sequence stays, since `sameValueBare` rejects a sequence; V1, the drops of
+cuts, N9 to N11 and the left factoring are off (`shaped` 905, `dropCuts` 762,
+`adjacent` 327, `nestedRepeat` 408, `unroll` 367, `factor` 662); and N4 and K4 make only
+`_|_`, which is not a sequence. A rewrite that makes a sequence into something
+else, as N4 does with `_|_ a`, can only make the test say that a body is a
+sequence where the rewritten body is not one, and then the choice stays, with
+the value it has in $G_i$. A recovery it keeps even then. So no rewrite changes a value that a predicate observes. This is the context condition of
 [Normalization](grammar-laws.md#normalization).
 
 The other rewrites keep the value of $e$

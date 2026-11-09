@@ -493,8 +493,12 @@ are dropped (C1 to C5, T2): that alternative is $\equiv_O$ to the choice of it,
 and to the alternative alone only where its value is the same alone as it is
 as the only alternative of a choice, that is, unless it is a sequence, or a
 call of a splice rule (a hidden rule without an action) whose body is one,
-which adds its elements to a sequence around it, or has no value, which the
-choice gives the value `nil`.
+which adds its elements to a sequence around it. An alternative without a value
+has none alone, and a choice of which it is the only alternative has none
+either: a choice of which no alternative has a value adds no element. So
+`(_r / _|_)` with `_r = -"a"` is $\equiv_O$ to `_r`, while a choice that keeps
+another alternative with a value, as `(-"a" / "b")`, is `nil` when the
+alternative without a value matched.
 
 A choice of which one alternative is left after the others are dropped is
 replaced by that alternative only without its loose cuts: a loose cut left in
