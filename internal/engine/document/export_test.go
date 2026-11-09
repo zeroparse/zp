@@ -35,6 +35,7 @@ func SetMaxEdits(n int) (restore func()) {
 }
 
 func (d *Document) Memo() *core.MemoTable                 { return d.memo }
+func (d *Document) PendingEdits() int                     { return len(d.edits) }
 func (d *Document) RetainedBytes() uint64                 { return d.retainedBytes() }
 func (d *Document) Runs() map[core.RunKey]*core.RunRecord { return d.runs }
 func (d *Document) SetRuns(r map[core.RunKey]*core.RunRecord) {

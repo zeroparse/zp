@@ -189,6 +189,84 @@ func TestMemoLookupChargesItsPendingEdits(t *testing.T) {
 			t.Fatalf("edit charged %d", got)
 		}
 	})
+	t.Run("a lookup applies at most the limit of pending edits", func(t *testing.T) {
+		// At the limit, the lookup applies every pending edit; one more and the entry lags: the lookup
+		// removes it at one unit, compares nothing, and misses.
+		// The specification fixes the limit at 128 edits.
+		const limit = 128
+		for _, lag := range []int{limit, limit + 1} {
+			p := docParser()
+			k := MemoKey{Rule: 1, Pos: 10, Env: []any{7}}
+			store(p, k, 10, 12)
+			for range lag {
+				edit(p, 20, 21, 0)
+			}
+			var found bool
+			got := spent(p, func() { found = lookup(p, k) })
+			// One unit; for the entry, a step and the comparison of its variable; and each pending edit.
+			want, wantFound := uint64(1+1+1+lag), true
+			if lag > limit {
+				want, wantFound = 1+1, false
+			}
+			if got != want || found != wantFound {
+				t.Fatalf("%d pending edits: charged %d and found %v, want %d and %v", lag, got, found, want, wantFound)
+			}
+		}
+	})
+}
+
+// TestMemoChainChargesAtItsBounds measures a lookup and a store on a chain longer than a lookup compares
+// before it consults the index of the position: the walk compares 32 entries, the index is built
+// once, hashing each key of the chain, and a store of a key held beyond the walk passes the chain up to it.
+func TestMemoChainChargesAtItsBounds(t *testing.T) {
+	t.Parallel()
+	// The specification fixes the walk at 32 entries.
+	const scan = 32
+	const chain = scan + 8
+	p := docParser()
+	key := func(v int) MemoKey { return MemoKey{Rule: 1, Pos: 5, Env: []any{v}} }
+	// Each entry passed is a step and the comparison of one variable; a key of one variable hashes at
+	// two units.
+	const walk, hash = 2 * scan, 2
+	for v := range chain {
+		// A store of a new key walks the chain, and links the entry; the first store that finds more
+		// entries than the walk compares builds the index, and later ones probe it.
+		want := uint64(1 + 2*min(v, scan) + 1)
+		switch {
+		case v == scan+1:
+			want += uint64(v*hash + hash)
+		case v > scan+1:
+			want += hash
+		}
+		got := spent(p, func() {
+			e := p.Memo.Alloc()
+			*e = MemoEntry{Ok: true, End: 6, From: 5, Examined: 6, Gen: p.Gen, Vgen: p.Gen}
+			p.MemoPut(key(v), e)
+		})
+		if got != want {
+			t.Fatalf("the store of key %d charged %d, want %d", v, got, want)
+		}
+	}
+	absent := key(-1)
+	for range 2 {
+		got := spent(p, func() {
+			if _, ok := p.MemoGet(absent); ok {
+				t.Fatal("found an absent key")
+			}
+		})
+		if want := uint64(1 + walk + hash); got != want {
+			t.Fatalf("a lookup with the index built charged %d, want %d", got, want)
+		}
+	}
+	// The chain holds the newest entry first, so the key stored first is the last of the chain.
+	got := spent(p, func() {
+		e := p.Memo.Alloc()
+		*e = MemoEntry{Ok: true, End: 6, From: 5, Examined: 6, Gen: p.Gen, Vgen: p.Gen}
+		p.MemoPut(key(0), e)
+	})
+	if want := uint64(1 + walk + hash + 1 + (chain - 1) + 1); got != want {
+		t.Fatalf("a store of the last key of the chain charged %d, want %d", got, want)
+	}
 }
 
 // TestMemoStoreChargesTheSlotsOfTheGap compares the slots that the model of a lazy memo counts with

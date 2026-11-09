@@ -115,6 +115,60 @@ rule line = x:[a-z]+ #atomic "\n"`)
 	}
 }
 
+// TestDocumentEditLogDropsTheMemoWhenFull checks the bound on the edits that a parse finds pending:
+// the edit that finds the log full drops the memo and the runs and leaves the log empty.
+func TestDocumentEditLogDropsTheMemoWhenFull(t *testing.T) {
+	const limit = 5
+	defer document.SetMaxEdits(limit)()
+	prog := mustCompile(t, `rule main = line* $$
+rule line = x:[a-z]+ #atomic "\n"`)
+	doc, err := prog.NewDocument("main", strings.Repeat("ab\n", 20))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := doc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	for i := range limit {
+		if err := doc.Edit(0, 1, "c"); err != nil {
+			t.Fatal(err)
+		}
+		if got := doc.PendingEdits(); got != i+1 {
+			t.Fatalf("after %d edits the log holds %d", i+1, got)
+		}
+	}
+	if doc.Memo().Len() == 0 {
+		t.Fatal("the memo was dropped before the log was full")
+	}
+	if err := doc.Edit(0, 1, "d"); err != nil {
+		t.Fatal(err)
+	}
+	if got := doc.PendingEdits(); got != 0 || doc.Memo().Len() != 0 || doc.Runs() != nil {
+		t.Fatalf("the edit that found the log full left %d edits, %d memo entries and runs %v", got, doc.Memo().Len(), doc.Runs() != nil)
+	}
+}
+
+// TestDocumentValueFreeTwinIsAnotherRule checks that a call whose value is not used evaluates the
+// value-free twin of the rule, which counts as another rule: its result does not answer a call of the
+// rule at the same position, so the rule is evaluated again, on every backend.
+func TestDocumentValueFreeTwinIsAnotherRule(t *testing.T) {
+	prog := mustCompile(t, `rule main = -r "!" / r $$
+rule r = [a-z]+`)
+	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		doc, err := prog.NewDocumentWith("main", "ab", ParseOptions{Backend: back})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := doc.Parse(); err != nil {
+			t.Fatal(err)
+		}
+		// main, the twin of r under the discard, and r.
+		if s := doc.Stats(); s.MemoHits != 0 || s.Evaluated != 3 {
+			t.Fatalf("%s: %d memo hits and %d evaluations, want 0 and 3", back, s.MemoHits, s.Evaluated)
+		}
+	}
+}
+
 // TestDocumentEditText compares edited text and random decoded spans with a
 // fresh flat input, including multi-byte characters and invalid UTF-8.
 func TestDocumentEditText(t *testing.T) {
