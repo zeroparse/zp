@@ -89,6 +89,11 @@ type Program struct {
 	// two numbers each, one for the walks that build a value and one for those that do not.
 	scanRepeats  map[*grammar.Repeat]int
 	NumScanSites int
+	// InsertionFlags are the rule flags of the parses with missing-token insertion enabled, in
+	// which left recursion through an insertion forms cycles of its own (AnalyzeInsertion), when
+	// they differ from the flags of the rules; nil otherwise. Such parses run a program built with
+	// them.
+	InsertionFlags []RuleFlags
 }
 
 // Options configures compilation.
@@ -296,6 +301,31 @@ type RuleFlags struct {
 	Twin bool
 }
 
+// insertionFlags returns the rule flags of prog under the insertion analysis ins, which the
+// compilation sets as it sets the rules' own from the analysis without insertion, or nil if they
+// equal the rules' own.
+func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.Control) []RuleFlags {
+	out := make([]RuleFlags, len(prog.RuleList))
+	differ := false
+	for i, r := range prog.RuleList {
+		control.Poll()
+		f := RuleFlags{Leader: ins.leaders[r.Name], Positional: r.Positional}
+		f.Member = ins.cyclic[r.Name] && !f.Leader
+		if ins.cyclic[r.Name] {
+			f.Cycle = ins.cycle[r.Name] + 1
+		}
+		f.Memo = !opts.DisableMemo && !f.Leader
+		_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
+		f.Twin = r.Action == nil && !isOperatorsRule && !ins.cyclic[r.Name] && !hasStream(r.Def.Expr, control)
+		out[i] = f
+		differ = differ || f != (RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Positional: r.Positional, Cycle: r.Cycle, Twin: r.TwinOK})
+	}
+	if !differ {
+		return nil
+	}
+	return out
+}
+
 // CompileProgram compiles the grammar to its static program. The walk of the rule bodies calls
 // the builder that builder returns for the compiler, which builds the bodies in a backend's form.
 // names receives the hidden rules that the lowering of inline actions generates. If flags is not
@@ -486,8 +516,19 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		}
 		r.TwinOK = twin
 	}
+	var ins *Analysis
+	if flags == nil && prog.HasMissing {
+		ins = AnalyzeInsertion(rules, control)
+		prog.InsertionFlags = insertionFlags(prog, ins, opts, control)
+	}
 	if flags == nil && !opts.LeftRecursionBindings {
-		c.checkLeftRecursionBindings(rules, vars)
+		// A grammar must be valid whether or not insertion is enabled, so the bindings are checked
+		// against the cycles of both analyses.
+		reported := map[*grammar.Bind]bool{}
+		c.checkLeftRecursionBindings(c.an, rules, vars, reported)
+		if ins != nil {
+			c.checkLeftRecursionBindings(ins, rules, vars, reported)
+		}
 	}
 	prog.markSkipSites(control)
 	if opts.Recognize {

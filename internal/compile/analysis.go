@@ -29,6 +29,10 @@ type Analysis struct {
 	// recovering maps each rule whose value can hold an error value of #recover to a rule that has
 	// such a #recover: the rule itself or one that it calls (recoveringRules).
 	recovering map[string]string
+	// insertion reports that the analysis is that of a parse with missing-token insertion enabled,
+	// where an expression with #missing succeeds without consuming input by inserting its literal
+	// (AnalyzeInsertion).
+	insertion bool
 }
 
 // analyze computes the Analysis of rules without a compilation control (AnalyzeControlled).
@@ -40,7 +44,20 @@ func analyze(rules []*grammar.RuleDef) *Analysis {
 // the left-recursion cycles and their leaders, and the rules that read positions. A non-nil
 // control polls for cancellation.
 func AnalyzeControlled(rules []*grammar.RuleDef, control *cancel.Control) *Analysis {
+	return analyzeMode(rules, control, false)
+}
+
+// AnalyzeInsertion is AnalyzeControlled for a parse with missing-token insertion enabled: an
+// expression with #missing is nullable, so its rule may call the rules after it before consuming
+// input, and left recursion through an insertion forms a cycle. The proofs of success are those
+// without insertion, which only adds left calls.
+func AnalyzeInsertion(rules []*grammar.RuleDef, control *cancel.Control) *Analysis {
+	return analyzeMode(rules, control, true)
+}
+
+func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bool) *Analysis {
 	a := &Analysis{
+		insertion:  insertion,
 		Control:    control,
 		nullable:   map[string]bool{},
 		leaders:    map[string]bool{},
@@ -207,7 +224,7 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 	case *grammar.Capture:
 		return a.isNullable(e.Expr)
 	case *grammar.Attributed:
-		return a.isNullable(e.Expr)
+		return a.insertion && hasPragma(e, "missing") || a.isNullable(e.Expr)
 	case *grammar.OperatorsRule:
 		for _, o := range e.Operands {
 			if a.isNullable(o.Expr) {

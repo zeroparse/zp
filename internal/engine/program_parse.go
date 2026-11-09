@@ -104,6 +104,18 @@ func (prog *Program) Recognizer() (*Program, error) {
 	return prog.rec, prog.recErr
 }
 
+// insertionProgram returns the program that the parses with missing-token insertion enabled run
+// when prog's grammar has left recursion through an insertion: the grammar built with the rule
+// flags of insertion (compile.Program.InsertionFlags), whose leaders grow the cycles that exist
+// only with insertion. It is built on first use. The parses without insertion keep running prog,
+// so they neither grow those rules nor lose the memoization of their members.
+func (prog *Program) insertionProgram() (*Program, error) {
+	prog.insOnce.Do(func() {
+		prog.ins, prog.insErr = build(prog.SourceGrammar(), prog.lazyOptions(func(*compile.Options) {}), prog.InsertionFlags)
+	})
+	return prog.ins, prog.insErr
+}
+
 // backend resolves backend b, choosing one based on the grammar when b is the default.
 func (prog *Program) backend(b Backend) Backend {
 	if b == Default {

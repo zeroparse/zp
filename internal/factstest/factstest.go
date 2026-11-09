@@ -149,6 +149,10 @@ type Rule struct {
 	Cyclic         bool
 	Cycle          int
 	Leader, Member bool
+	// InsCycle, InsLeader and InsMember are Cycle, Leader and Member with token insertion
+	// enabled. They are rendered only when they differ from those without.
+	InsCycle             int
+	InsLeader, InsMember bool
 	// Rec reports a rule on a cycle of the call graph.
 	Rec bool
 	// Positional reports a result that may depend on positions.
@@ -177,6 +181,16 @@ func Render(rules []Rule) string {
 			cycles[r.Cycle] = len(cycles) + 1
 		}
 	}
+	insCycles := map[int]int{}
+	for _, r := range rules {
+		if r.InsCycle != 0 && insCycles[r.InsCycle] == 0 {
+			insCycles[r.InsCycle] = len(insCycles) + 1
+		}
+	}
+	insDiffers := false
+	for _, r := range rules {
+		insDiffers = insDiffers || insCycles[r.InsCycle] != cycles[r.Cycle] || r.InsLeader != r.Leader || r.InsMember != r.Member
+	}
 	for _, r := range rules {
 		b.WriteString(r.Name)
 		flag := func(name string, v bool) {
@@ -202,6 +216,11 @@ func Render(rules []Rule) string {
 		flag("memo", r.Memo)
 		flag("transient", r.Transient)
 		flag("missing", r.Missing)
+		if insDiffers {
+			b.WriteString(" ins-cycle=" + strconv.Itoa(insCycles[r.InsCycle]))
+			flag("ins-leader", r.InsLeader)
+			flag("ins-member", r.InsMember)
+		}
 		b.WriteString(" first=" + r.First.String() + "\n")
 		for _, a := range r.Alts {
 			b.WriteString("  alt " + strconv.Itoa(a.Line) + ":" + strconv.Itoa(a.Col) + "/" + strconv.Itoa(a.Index) + " first=" + a.First.String() + "\n")
@@ -314,7 +333,7 @@ func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr
 		}
 		x := f.Rules[r.ID]
 		rule := Rule{Name: r.Name, Nullable: x.Nullable, Cyclic: x.Cyclic(), Cycle: x.Cycle, Leader: x.Leader,
-			Member: x.Member, Rec: x.Rec, Positional: x.Positional, Vars: x.Vars,
+			Member: x.Member, InsCycle: x.CycleIns, InsLeader: x.LeaderIns, InsMember: x.MemberIns, Rec: x.Rec, Positional: x.Positional, Vars: x.Vars,
 			Memo: x.Memo, Transient: x.Transient, Missing: x.Missing, First: terminal(r.Body)}
 		if x.Recovering >= 0 {
 			rule.Recovering = m.Rules[x.Recovering].Name

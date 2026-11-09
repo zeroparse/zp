@@ -215,6 +215,12 @@ charged synthesis without charging again. Budget exhaustion is a fatal
 never ordinary syntax failure. The limit bounds budget, not the final missing-node
 count, so abandoned alternatives can exhaust it.
 
+With insertion enabled, a literal that can be inserted consumes no input, so a
+rule may be left-recursive only through an insertion; such a rule is grown only
+in parses with insertion enabled ([Left Recursion](parser-expressions.md#left-recursion)).
+Each growth round attempts its insertions again, so its attempts count toward
+the limit like any other.
+
 Lookahead always disables insertion, including rule calls. Insertion consumes no
 input and does not change repetition or LR progress: one zero-progress repetition
 iteration counts once, then stops; later LR growth must advance input. Ordered

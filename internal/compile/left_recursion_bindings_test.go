@@ -30,6 +30,10 @@ func TestLeftRecursionBindingErrors(t *testing.T) {
 			`3:19: rule r binds variable k before its left-recursive call of r; the left recursion reads k`},
 		{"block", "var k int\nvar j int\nrule main = R $$\nrule R = {j := 1; k := 2} R \"x\" / \"x\" {k == 0}",
 			`4:19: rule R binds variable k before its left-recursive call of R; the left recursion reads k`},
+		// R is left-recursive only when "(" can be inserted; a grammar must be valid whether or not
+		// insertion is enabled.
+		{"cycle through an insertion", "var k int\nrule main = R $$\nrule R = {k := 1} \"(\" #missing R \"x\" / \"x\" {k == 1}",
+			`3:11: rule R binds variable k before its left-recursive call of R; the left recursion reads k`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := compileError(t, tc.src); !strings.Contains(got, tc.want) {
@@ -49,6 +53,7 @@ func TestLeftRecursionBindingErrors(t *testing.T) {
 		{"in a called rule", "var k int\nrule main = R $$\nrule R = b R \"x\" / \"x\" {k == 0}\nrule b = {k := 1}"},
 		{"negative lookahead", "var k int\nrule main = r $$\nrule r = !({k := 1} \"y\") r \"x\" / {k == 0} \"x\""},
 		{"call outside the cycle", "var k int\nrule main = R $$\nrule R = R \"x\" / {k := 1} c\nrule c = {k == 1} \"x\""},
+		{"after a literal without insertion", "var k int\nrule main = R $$\nrule R = {k := 1} \"(\" R \"x\" / \"x\" {k == 1}"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mustCompile(t, tc.src)

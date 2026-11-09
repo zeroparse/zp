@@ -382,7 +382,10 @@ The limit counts abandoned attempts too. Exhaustion returns
 Document, streams and compiled grammar serialization do not support this
 initial feature. The budget includes abandoned attempts and left-recursion seed
 replay, so a limit of 16 does not guarantee acceptance of a tree with 16 missing
-nodes. The [pragma
+nodes. An inserted literal consumes no input, so a rule such as
+`rule a = "(" #missing a "x" / "y"` is left-recursive when insertion is enabled
+and is grown only then; each growth round attempts its insertions again and
+charges them. The [pragma
 specification](../../spec/language/pragmas.md#missing) defines the full contract.
 
 ## Recipes

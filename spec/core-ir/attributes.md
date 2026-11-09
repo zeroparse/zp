@@ -55,6 +55,7 @@ first terminals and the effects are computed, since both depend on those policie
 | Left calls | The rules the body may call before it consumes input (below) |
 | Cycle | The rule's left-recursion cycle, if it is on one: a component of the graph of left calls with several rules, or a rule with a left call of itself |
 | Leader, Member | A rule on a cycle is a leader or a member. Until every cycle of left calls among the rules of a component passes through a leader, the rule declared first on a cycle that passes through none becomes one |
+| Left calls, Cycle, Leader and Member with insertion | The same facts for a parse with token insertion enabled: computed alike with NullableIns in place of Nullable, with proofs of success of their own. They differ only where a call may follow a `Missing` node before input is consumed |
 | Positional | The rule's action, predicates, bindings or Operators Rule line actions read `.Start` or `.End`, or a rule it calls is positional |
 | Recovering | A rule whose `Recover` can put an error value in the rule's value: the rule itself, if it has a `Recover` outside lookaheads and Operators Rule skip lines, or a recovering rule that it calls outside them |
 | Variables | The variables that the terms of the rule or of a rule it calls read |

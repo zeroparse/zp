@@ -28,3 +28,18 @@ rule main = "a"`)
 		t.Fatal("generated unsupported Missing type")
 	}
 }
+
+// TestMissingTokensInsertionOnlyLeftRecursionRejected checks that a grammar whose left recursion
+// exists only through an insertion is rejected like any grammar with #missing.
+func TestMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testMissingTokensInsertionOnlyLeftRecursionRejected)
+}
+
+func testMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
+	prog := mustCompile(t, `rule main = a $$
+rule a = "(" #missing a "x" / "y"`)
+	if _, err := gentest.GenerateCode(t, prog.Grammar, gen.GenOptions{Package: "example", Start: "main"}); err == nil {
+		t.Fatal("generated a parser for the grammar")
+	}
+}

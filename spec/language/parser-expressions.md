@@ -486,8 +486,18 @@ refining the proofs continues until the call graph stabilizes. Unknown paths
 remain in the graph, so removing an alternative whose unreachability is not
 proven by this analysis can still change how an indirect cycle is entered.
 
+A [`#missing`](pragmas.md#missing) literal consumes no input when it is
+inserted, so with token insertion enabled the calls after it may also run
+before consuming input. The analysis is made twice, without and with
+insertion, and a parse uses the one for its mode: a rule that is left-recursive
+only through an insertion, such as `a` in `rule a = "(" #missing a "x" / "y"`,
+is grown only when insertion is enabled, and parses without insertion evaluate
+it once. Its growth rounds attempt insertions like any other evaluation, so they
+count toward the limit of missing tokens.
+
 A left-recursion cycle is a set of rules that call one another before
-consuming input, as static analysis finds them. A binding of a variable that
+consuming input, as static analysis finds them, without or with insertion: a
+grammar must be valid in both modes. A binding of a variable that
 the rules of a cycle read, directly or through the rules they call, is a
 compile-time error if it may run before a call into the cycle that may run
 before consuming input, in the body of a rule of the cycle. Such a binding

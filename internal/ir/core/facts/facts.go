@@ -41,6 +41,13 @@ type Rule struct {
 	Cycle int
 	// Leader reports a left-recursion leader; Member, a rule on a cycle that is not one.
 	Leader, Member bool
+	// LeftCallsIns, CycleIns, LeaderIns and MemberIns are LeftCalls, Cycle, Leader and Member
+	// for a parse with token insertion enabled, where an insertion consumes no input: a rule may
+	// be left-recursive only through an insertion.
+	LeftCallsIns []int
+	CycleIns     int
+	LeaderIns    bool
+	MemberIns    bool
 	// Positional reports that the rule's actions or predicates, or those of a rule it calls, read
 	// positions.
 	Positional bool
@@ -75,7 +82,8 @@ func Compute(m *core.Module, control *cancel.Control) *Facts {
 		at := m.Rules[id].Body.Attrs()
 		c.rules[id].Nullable, c.rules[id].NullableIns = at.Nullable, at.NullableIns
 	}
-	c.leftRecursion()
+	c.leftRecursion(true)
+	c.leftRecursion(false)
 	c.positional()
 	c.recovering()
 	c.vars()
@@ -107,6 +115,9 @@ type computer struct {
 	calls [][]int
 	// sure holds the rules proven never to fail.
 	sure []bool
+	// inserts reports that the module has a Missing node, so that the left calls with token
+	// insertion enabled may differ from those without.
+	inserts bool
 }
 
 func newComputer(m *core.Module, control *cancel.Control) *computer {
@@ -130,6 +141,9 @@ func newComputer(m *core.Module, control *cancel.Control) *computer {
 		core.Walk(r.Body, func(n core.Node) {
 			if k, ok := c.callee(n); ok {
 				c.calls[r.ID] = append(c.calls[r.ID], k)
+			}
+			if _, ok := n.(*core.Missing); ok {
+				c.inserts = true
 			}
 		})
 	}
@@ -213,11 +227,17 @@ func (c *computer) components(edges [][]int) [][]int {
 // leftRecursion computes the left calls, the rules that always succeed, the left-recursion cycles
 // and their leaders. Left calls depend on which rules always succeed, and only a rule off every
 // cycle is proven to; so the cycles and the proofs are refined together until the left calls no
-// longer change. Each round only removes left calls, so the refinement ends.
-func (c *computer) leftRecursion() {
+// longer change. Each round only removes left calls, so the refinement ends. With ins it computes
+// the facts of a parse with token insertion enabled (LeftCallsIns, CycleIns, LeaderIns, MemberIns),
+// with proofs of success of its own; it must run before the run without, which owns Succeeds.
+func (c *computer) leftRecursion(ins bool) {
+	if ins && !c.inserts {
+		return // leftRecursion(false) copies its facts
+	}
+	clear(c.sure) // the analysis starts with no rule proven to succeed
 	left := make([][]int, len(c.m.Rules))
 	for _, id := range c.order {
-		left[id] = c.leftCalls(c.m.Rules[id].Body, nil)
+		left[id] = c.leftCalls(c.m.Rules[id].Body, nil, ins)
 	}
 	cyclic := make([]bool, len(c.m.Rules))
 	var comps [][]int
@@ -236,7 +256,7 @@ func (c *computer) leftRecursion() {
 		changed := false
 		next := make([][]int, len(c.m.Rules))
 		for _, id := range c.order {
-			next[id] = c.leftCalls(c.m.Rules[id].Body, nil)
+			next[id] = c.leftCalls(c.m.Rules[id].Body, nil, ins)
 			changed = changed || !slices.Equal(left[id], next[id])
 		}
 		if !changed {
@@ -244,10 +264,7 @@ func (c *computer) leftRecursion() {
 		}
 		left = next
 	}
-	for _, id := range c.order {
-		c.rules[id].LeftCalls = left[id]
-		c.rules[id].Succeeds = c.sure[id]
-	}
+	cycle := make([]int, len(c.m.Rules))
 	leaders := make([]bool, len(c.m.Rules))
 	for i, scc := range comps {
 		if !cyclic[scc[0]] {
@@ -256,19 +273,28 @@ func (c *computer) leftRecursion() {
 		in := make([]bool, len(c.m.Rules))
 		for _, id := range scc {
 			in[id] = true
-			c.rules[id].Cycle = i + 1
+			cycle[id] = i + 1
 		}
 		// Until every cycle passes through a leader, the rule declared first on a cycle that passes
 		// through none becomes a leader.
 		for {
-			cycle := c.findCycle(scc, left, in, leaders)
-			if cycle == nil {
+			found := c.findCycle(scc, left, in, leaders)
+			if found == nil {
 				break
 			}
-			leaders[slices.Min(cycle)] = true
+			leaders[slices.Min(found)] = true
 		}
-		for _, id := range scc {
-			c.rules[id].Leader, c.rules[id].Member = leaders[id], !leaders[id]
+	}
+	for _, id := range c.order {
+		r := &c.rules[id]
+		if ins {
+			r.LeftCallsIns, r.CycleIns, r.LeaderIns, r.MemberIns = left[id], cycle[id], leaders[id], cyclic[id] && !leaders[id]
+			continue
+		}
+		r.LeftCalls, r.Cycle, r.Leader, r.Member = left[id], cycle[id], leaders[id], cyclic[id] && !leaders[id]
+		r.Succeeds = c.sure[id]
+		if !c.inserts {
+			r.LeftCallsIns, r.CycleIns, r.LeaderIns, r.MemberIns = r.LeftCalls, r.Cycle, r.Leader, r.Member
 		}
 	}
 }
@@ -323,12 +349,13 @@ func (c *computer) succeeding(cyclic []bool) {
 	}
 }
 
-// leftCalls appends to acc the rules that n may call before it consumes input. A sequence goes on
-// past an item only if the item is nullable; a choice, past an alternative only if it can fail; a
+// leftCalls appends to acc the rules that n may call before it consumes input, with token
+// insertion enabled if ins. A sequence goes on past an item only if the item is nullable (NullableIns
+// if ins); a choice, past an alternative only if it can fail; a
 // recovery's skip runs only if its body can fail; a repetition of at most zero iterations calls
 // nothing. An Operators Rule may call its skip line, its operands up to one that always succeeds and
 // its prefix operators.
-func (c *computer) leftCalls(n core.Node, acc []int) []int {
+func (c *computer) leftCalls(n core.Node, acc []int, ins bool) []int {
 	c.control.Poll()
 	switch n := n.(type) {
 	case *core.Call, *core.Nest:
@@ -336,45 +363,45 @@ func (c *computer) leftCalls(n core.Node, acc []int) []int {
 		return append(acc, k)
 	case *core.Seq:
 		for _, it := range n.Items {
-			acc = c.leftCalls(it, acc)
-			if !it.Attrs().Nullable {
+			acc = c.leftCalls(it, acc, ins)
+			if at := it.Attrs(); !at.Nullable && !(ins && at.NullableIns) { // NullableIns holds every Nullable node
 				break
 			}
 		}
 	case *core.Choice:
 		for _, alt := range n.Alts {
-			acc = c.leftCalls(alt.Body, acc)
+			acc = c.leftCalls(alt.Body, acc, ins)
 			if c.alwaysSucceeds(alt.Body) {
 				break
 			}
 		}
 	case *core.Repeat:
 		if n.Max != 0 {
-			acc = c.leftCalls(n.Body, acc)
+			acc = c.leftCalls(n.Body, acc, ins)
 		}
 	case *core.Recover:
-		acc = c.leftCalls(n.Body, acc)
+		acc = c.leftCalls(n.Body, acc, ins)
 		if !c.alwaysSucceeds(n.Body) {
-			acc = c.leftCalls(n.Skip, acc)
+			acc = c.leftCalls(n.Skip, acc, ins)
 		}
 	case *core.OperatorsRule:
 		if n.Skip != nil {
-			acc = c.leftCalls(n.Skip.Body, acc)
+			acc = c.leftCalls(n.Skip.Body, acc, ins)
 		}
 		for _, l := range n.Operands {
-			acc = c.leftCalls(l.Body, acc)
+			acc = c.leftCalls(l.Body, acc, ins)
 			if c.alwaysSucceeds(l.Body) {
 				break
 			}
 		}
 		for _, op := range n.Ops {
 			if op.Kind == "prefix" {
-				acc = c.leftCalls(op.Line.Body, acc)
+				acc = c.leftCalls(op.Line.Body, acc, ins)
 			}
 		}
 	case *core.Opt, *core.Look, *core.Text, *core.Drop, *core.Capture, *core.Label, *core.Stream, *core.Terminal:
 		for _, x := range core.Children(n) {
-			acc = c.leftCalls(x, acc)
+			acc = c.leftCalls(x, acc, ins)
 		}
 	}
 	return acc

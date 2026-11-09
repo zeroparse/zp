@@ -466,9 +466,11 @@ memoized rule or of another rule of that kind, and following those calls ends at
 a memoized rule or at the start rule where the parse begins: when every rule of
 a cycle of calls is called from one place, that place is on the cycle, so a
 parse reaches the cycle only by beginning at a start rule on it, and that start
-rule is memoized. A parse with missing-token insertion also leaves unmemoized
-every rule other than a leader that contains `#missing`, directly or through the
-rules it calls; such a parse is outside the classes of
+rule is memoized. A parse with missing-token insertion takes its cycles and
+leaders from the analysis with insertion
+([Left Recursion](../language/parser-expressions.md#left-recursion)), and also
+leaves unmemoized every rule other than a leader that contains `#missing`,
+directly or through the rules it calls; such a parse is outside the classes of
 [Classification](#classification).
 
 ### Expressions That Repeat Cost

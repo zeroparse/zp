@@ -18,7 +18,8 @@ import (
 // TestFactsDifferential compares the grammar facts that compilation computes with those that
 // internal/ir/core/facts computes on the Core IR module, with the rules' policies cleared, on
 // random grammars: left recursion through options, lookaheads, recoveries, cuts and Operators
-// Rules, variables and positions read by actions and predicates, insertions and hidden rules.
+// Rules, variables and positions read by actions and predicates, insertions, cycles through them
+// that exist only with insertion enabled, and hidden rules.
 func TestFactsDifferential(t *testing.T) {
 	t.Parallel()
 	compiled := 0
@@ -112,9 +113,12 @@ func (g *factsGrammar) body(name string) string {
 	if g.r.IntN(2) == 0 {
 		call = name
 	}
-	switch g.r.IntN(8) {
+	switch g.r.IntN(9) {
 	case 0:
 		return call + " " + g.expr(d) + " / " + g.expr(d)
+	case 5:
+		// Left-recursive only through an insertion.
+		return `"y" #missing ` + call + " " + g.expr(d) + " / " + g.expr(d)
 	case 1:
 		return "(" + g.expr(d) + ")? " + call + " " + g.expr(d)
 	case 2:

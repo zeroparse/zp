@@ -404,8 +404,15 @@ rule main = ";" #missing => R{N: 1/0}`)
 
 func TestMissingTokensRetainedResultsAndLiteralRecursion(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, `rule main = e $$
+	// With insertion, e is left-recursive through the insertion of ";", and the growth of its seed
+	// "x" by an insertion that consumes nothing does not win: no token is inserted.
+	recursive := mustCompile(t, `rule main = e $$
 rule e = ";" #missing e / "x"`)
+	if n, err := recursive.ParseWith("main", "x", ParseOptions{Expectations: true, MissingTokens: 8}); err != nil || len(missingNodes(t, n)) != 0 {
+		t.Fatal("zero-width growth through an insertion won", n, err)
+	}
+	prog := mustCompile(t, `rule main = e $$
+rule e = ";" #missing e / "x" ";" #missing`)
 	n, errs := requireInsertions(t, prog, "x", ParseOptions{Expectations: true, MissingTokens: 8}, 1)
 	before, err := json.Marshal(n)
 	if err != nil {

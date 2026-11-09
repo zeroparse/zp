@@ -14,8 +14,9 @@ import (
 // The bindings before a call are found with the traversal of leftCalls: the calls that may run
 // before any input is consumed, and with each the bindings that may run before it in the same
 // rule body. Bindings in a called rule end with the call, so they never reach a caller's calls.
-func (c *Compiler) checkLeftRecursionBindings(rules []*grammar.RuleDef, vars map[string][]string) {
-	a := c.an
+// The cycles and left calls are those of a, the analysis with or without insertion; reported holds
+// the bindings already reported, so that a binding is reported once over both analyses.
+func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*grammar.RuleDef, vars map[string][]string, reported map[*grammar.Bind]bool) {
 	if len(a.cycle) == 0 {
 		return
 	}
@@ -26,7 +27,6 @@ func (c *Compiler) checkLeftRecursionBindings(rules []*grammar.RuleDef, vars map
 			continue
 		}
 		read := vars[r.Name]
-		reported := map[*grammar.Bind]bool{}
 		a.leftBindings(r.Expr, nil, func(callee string, bound []*grammar.Bind) {
 			if k, ok := a.cycle[callee]; !ok || k != cycle {
 				return

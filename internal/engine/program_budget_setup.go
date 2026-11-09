@@ -18,6 +18,13 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 	if err := prog.admitMissing(o, stream); err != nil {
 		return nil, nil, nil, err
 	}
+	if o.MissingTokens > 0 && prog.InsertionFlags != nil {
+		ins, err := prog.insertionProgram()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return ins.admitParse(start, o, stream, text)
+	}
 	if _, err := core.DepthLimit(o, prog.backend(o.Backend)); err != nil {
 		return nil, nil, nil, err
 	}

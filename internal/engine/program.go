@@ -39,6 +39,11 @@ type Program struct {
 	// parses of mode only (checkMode).
 	loaded bool
 	mode   CompiledMode
+	// ins is the program that the parses with missing-token insertion enabled run when the
+	// grammar has left recursion through an insertion (InsertionFlags); it is built on first use.
+	insOnce sync.Once
+	ins     *Program
+	insErr  error
 }
 
 // newProgram returns the program that runs the static program sp with the rules of the closure

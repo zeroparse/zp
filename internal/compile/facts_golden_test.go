@@ -48,6 +48,11 @@ func programFacts(prog *Program) []factstest.Rule {
 			Memo: r.Memo, Transient: r.Transient, Missing: r.Missing,
 			First: terminalFact(firstTerminal(prog, r.Def.Expr, 0, map[string]bool{})),
 		}
+		f.InsCycle, f.InsLeader, f.InsMember = f.Cycle, f.Leader, f.Member
+		if prog.InsertionFlags != nil {
+			ins := prog.InsertionFlags[r.ID]
+			f.InsCycle, f.InsLeader, f.InsMember = ins.Cycle, ins.Leader, ins.Member
+		}
 		WalkExpr(r.Def.Expr, func(e grammar.Expr) {
 			c, ok := e.(*grammar.Choice)
 			if !ok {
