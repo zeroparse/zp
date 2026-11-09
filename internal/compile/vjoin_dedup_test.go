@@ -9,11 +9,12 @@ import (
 )
 
 // vjoinReference is Vjoin as it was written when duplicates were found by printing every type with
-// fmt: the specification that the faster Vjoin must keep.
+// fmt: the specification that the faster Vjoin must keep. The empty list type []_|_ below another
+// type is removed after the duplicates, by the same rule as in Vjoin.
 func vjoinReference(ts ...Ty) Ty {
 	var alts []Ty
 	seen := map[string]bool{}
-	optional, null := false, false
+	optional := false
 	var add func(t Ty)
 	add = func(t Ty) {
 		switch u := t.(type) {
@@ -28,7 +29,7 @@ func vjoinReference(ts ...Ty) Ty {
 			return
 		case BasicTy:
 			if u == TyNil {
-				optional, null = true, true
+				optional = true
 				return
 			}
 		}
@@ -48,12 +49,12 @@ func vjoinReference(ts ...Ty) Ty {
 	if slices.Contains(alts, Ty(TyTop)) {
 		return TyTop
 	}
+	if len(alts) > 1 {
+		alts = dropEmptyBelow(alts)
+	}
 	if optional {
-		if len(alts) == 0 && null {
-			return TyNil
-		}
 		if len(alts) == 0 {
-			return TyBottom
+			return TyNil // *_|_
 		}
 		return OptTy{vjoinReference(alts...)}
 	}

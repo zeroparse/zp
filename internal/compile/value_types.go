@@ -116,11 +116,13 @@ func (t RuleTy) String() string { return t.Name }
 
 // Vjoin is the join of types in the value model: nested joins are flattened, duplicates and
 // _|_ removed, and a join with _ is _. Since T <= *T and nil <= *T, a join with an optional
-// argument or nil is the optional of the join of the other arguments without their *. A join
-// with a value not known yet (tyAny) is not known either.
+// argument or nil is the optional of the join of the other arguments without their *; *_|_ is
+// nil, the optional type whose only value is nil. A type that holds the empty list []_|_ where
+// another argument holds a list is removed, since []_|_ <= []T (belowByEmpty). A join with a
+// value not known yet (tyAny) is not known either.
 func Vjoin(ts ...Ty) Ty {
 	var leaves []Ty
-	optional, null := false, false
+	optional := false
 	var add func(t Ty)
 	add = func(t Ty) {
 		switch u := t.(type) {
@@ -135,7 +137,7 @@ func Vjoin(ts ...Ty) Ty {
 			return
 		case BasicTy:
 			if u == TyNil {
-				optional, null = true, true
+				optional = true
 				return
 			}
 		}
@@ -149,7 +151,7 @@ func Vjoin(ts ...Ty) Ty {
 	}
 	alts := leaves
 	if len(leaves) > 1 {
-		alts = dedupTys(leaves)
+		alts = dropEmptyBelow(dedupTys(leaves))
 	}
 	if slices.Contains(alts, Ty(TyAny)) {
 		return TyAny
@@ -158,11 +160,8 @@ func Vjoin(ts ...Ty) Ty {
 		return TyTop
 	}
 	if optional {
-		if len(alts) == 0 && null {
-			return TyNil
-		}
 		if len(alts) == 0 {
-			return TyBottom
+			return TyNil // *_|_, whose only value is nil
 		}
 		return OptTy{Vjoin(alts...)}
 	}
@@ -173,6 +172,72 @@ func Vjoin(ts ...Ty) Ty {
 		return alts[0]
 	}
 	return JoinTy{alts}
+}
+
+// dropEmptyBelow returns ts without the types that hold the empty list type []_|_ and are below
+// another type of ts, such as node[[]_|_] beside node[[]node[string]]: []_|_ is the least list
+// type, whose only value is the empty list.
+func dropEmptyBelow(ts []Ty) []Ty {
+	if !slices.ContainsFunc(ts, holdsEmptyList) {
+		return ts
+	}
+	var out []Ty
+next:
+	for i, t := range ts {
+		if holdsEmptyList(t) {
+			for j, u := range ts {
+				if j != i && belowByEmpty(t, u) {
+					continue next
+				}
+			}
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// holdsEmptyList reports whether t has the list type []_|_ in a list, a node, a tuple or an
+// optional type.
+func holdsEmptyList(t Ty) bool {
+	switch t := t.(type) {
+	case ListTy:
+		return t.Elem == TyBottom || holdsEmptyList(t.Elem)
+	case NodeTy:
+		return t.Name == "" && holdsEmptyList(t.Value)
+	case TupleTy:
+		return slices.ContainsFunc(t.Elems, holdsEmptyList)
+	case OptTy:
+		return holdsEmptyList(t.Elem)
+	}
+	return false
+}
+
+// belowByEmpty reports whether t is u with []_|_ in place of some of its list types, so that the
+// values of t are values of u. It compares the other parts by their text.
+func belowByEmpty(t, u Ty) bool {
+	switch t := t.(type) {
+	case ListTy:
+		ul, ok := u.(ListTy)
+		return ok && (t.Elem == TyBottom || belowByEmpty(t.Elem, ul.Elem))
+	case NodeTy:
+		un, ok := u.(NodeTy)
+		return ok && t.Name == "" && un.Name == "" && sameCaps(t.Caps, un.Caps) && belowByEmpty(t.Value, un.Value)
+	case TupleTy:
+		ut, ok := u.(TupleTy)
+		if !ok || len(t.Elems) != len(ut.Elems) {
+			return false
+		}
+		for i := range t.Elems {
+			if !belowByEmpty(t.Elems[i], ut.Elems[i]) {
+				return false
+			}
+		}
+		return true
+	case OptTy:
+		uo, ok := u.(OptTy)
+		return ok && belowByEmpty(t.Elem, uo.Elem)
+	}
+	return reflect.TypeOf(t) == reflect.TypeOf(u) && string(appendTyText(nil, t)) == string(appendTyText(nil, u))
 }
 
 // tyKey identifies a type for the removal of duplicates from a join: two types are the same if
@@ -308,9 +373,10 @@ func appendTyTerm(dst []byte, t Ty) []byte {
 	return appendTyText(dst, t)
 }
 
-// vopt is *t; an optional value of an optional type is not nested, and *_|_ is _|_.
+// vopt is *t; an optional value of an optional type is not nested, and *_|_ is nil, the optional
+// type whose only value is nil.
 func vopt(t Ty) Ty {
-	if t == TyTop || t == TyBottom {
+	if t == TyTop {
 		return t
 	}
 	return Vjoin(OptTy{t})
@@ -964,9 +1030,9 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 	case *grammar.Optional:
 		el, ok := v.single(e.Expr)
 		if v.bottom(e.Expr) {
-			// An operand of type _|_ never matches: a? matches the empty input, and has no value,
-			// as _|_? does, since its operand gives none.
-			el, ok = valueElem{caps: neverMade(el.caps)}, false
+			// An operand of type _|_ never matches: a? matches the empty input and is nil, of type
+			// *_|_, the optional type whose only value is nil. Its captures are never made.
+			el, ok = valueElem{t: TyBottom, caps: neverMade(el.caps)}, true
 		}
 		if !ok && len(el.caps) == 0 {
 			return nil
@@ -980,6 +1046,11 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 		}
 		return []valueElem{el}
 	case *grammar.Repeat:
+		if v.bottom(e.Expr) {
+			// An element of type _|_ never matches: a* is the empty list, of type []_|_, the list
+			// type whose only value is the empty list (a+ has the type _|_, see bottom).
+			return []valueElem{{t: NodeTy{Value: ListTy{TyBottom}}}}
+		}
 		return []valueElem{{t: NodeTy{Value: ListTy{v.ScopeValue(e.Expr)}}}}
 	case *grammar.Capture:
 		el, ok := v.single(e.Expr)
@@ -997,13 +1068,13 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			// What recovers is one element: its value or an error, which #missing makes a missing
 			// token. An expression without a value stays without one: its error is only recorded.
 			// An expression of type _|_ is no exception to the join: its recovery is only the
-			// error, since join(_|_, error) is error.
+			// error, since join(_|_, error) is error, whatever elements it would have if it
+			// matched. Its captures are never made.
 			el, ok := oneElem(elems, v.isSeq(e.Expr))
 			switch {
-			case ok:
 			case v.bottom(e.Expr):
-				el.t = TyBottom
-			default:
+				el = valueElem{t: TyBottom, caps: neverMade(el.caps)}
+			case !ok:
 				continue
 			}
 			if a.Name == "missing" {
@@ -1036,11 +1107,12 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 // bottom reports whether e has the type _|_, the type without values, which an expression has when
 // it never matches. The rules are those of the type system (spec/language/types.md): _|_ has it; a
 // sequence with an element of type _|_ has it, as a tuple of _|_ is _|_; a choice has the join of
-// its alternatives, _|_ only when each has it; a group, a label and a call of a splice rule have
-// the type of the expression they stand for, as in elems. A recovery joins the type with error,
-// which is not _|_. Every other expression has a type of its own whatever its operand is: no value
-// (an optional, which matches the empty input, a lookahead, a discard, a predicate), a match, a
-// list, a capture, or a call of a rule as one element, the rule's node.
+// its alternatives, _|_ only when each has it; a repetition of at least one element of type _|_
+// has it; a group, a label and a call of a splice rule have the type of the expression they stand
+// for, as in elems. A recovery joins the type with error, which is not _|_. Every other expression
+// has a type of its own whatever its operand is: no value (a lookahead, a discard, a predicate),
+// *_|_ (an optional, which matches the empty input), []_|_ (a repetition that may match no
+// element), a match, a capture, or a call of a rule as one element, the rule's node.
 func (v *ValueInference) bottom(e grammar.Expr) bool {
 	v.control.poll()
 	switch e := e.(type) {
@@ -1057,6 +1129,8 @@ func (v *ValueInference) bottom(e grammar.Expr) bool {
 			}
 		}
 		return true
+	case *grammar.Repeat:
+		return e.Min > 0 && v.bottom(e.Expr)
 	case *grammar.Attributed:
 		return !recovers(e) && v.bottom(e.Expr)
 	case *grammar.Ref:

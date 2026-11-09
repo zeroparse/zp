@@ -229,9 +229,25 @@ func TestValueActionTypes(t *testing.T) {
 		{"rule a = x:(_r #recover(skip=\"x\")) => $x\nrule _r = -\"a\" _|_", "a", `error`},
 		// A recovery of an expression without a value, also one around _|_, has no value.
 		{`rule a = x:("a" (-(_|_)) #recover(skip="x")) => $x`, "a", `node[(node[string],)]`},
-		{`rule a = x:("a" (_|_)? #recover(skip="x")) => $x`, "a", `node[(node[string],)]`},
-		// An optional expression whose operand has type _|_ has no value, as (_|_)? has none.
-		{`rule a = x:("a" (_|_ "b")?) => $x`, "a", `node[(node[string],)]`},
+		// An expression of type _|_ recovers to the error alone, whatever elements it would have.
+		{`rule a = x:(("a" _|_) #recover(skip="x")) => $x`, "a", `error`},
+		{`rule a = x:(("a" y:"b" _|_) #recover(skip="x")) {$y == nil} => $x`, "a", `error`},
+		{`rule a = x:(("a" _|_)+ #recover(skip="x")) => $x`, "a", `error`},
+		{`rule a = x:(("a" _|_) #repeat(2, 3) #recover(skip="x")) => $x`, "a", `error`},
+		// An optional expression whose operand has type _|_ is nil, of type *_|_, which is nil: one
+		// element, as any optional expression with a value. Its recovery is that of nil.
+		{`rule a = x:("a" (_|_)? #recover(skip="x")) => $x`, "a", `node[(node[string], *error)]`},
+		{`rule a = x:("a" (_|_ "b")?) => $x`, "a", `node[(node[string], nil)]`},
+		{`rule a = x:("a" (_|_ y:"b")?) => $y`, "a", `*node[string]`},
+		// A repetition of _|_ is the empty list, of type []_|_; with at least one element it has
+		// the type _|_. []_|_ is below every list type.
+		{`rule a = x:("a" (_|_)*) => $x`, "a", `node[(node[string], node[[]_|_])]`},
+		{`rule a = x:("a" (_|_ "b")*) => $x`, "a", `node[(node[string], node[[]_|_])]`},
+		{`rule a = x:("a" (_|_)* #recover(skip="x")) => $x`, "a", `node[(node[string], node[[]_|_] | error)]`},
+		{`rule a = x:("a" / "b" (_|_)+) => $x`, "a", `node[string]`},
+		{`rule a = x:("a"* / (_|_)*) => $x`, "a", `node[[]node[string]]`},
+		{`rule a = x:((_|_)* / "a"*) => $x`, "a", `node[[]node[string]]`},
+		{`rule a = x:((_|_)? / "a") => $x`, "a", `*node[string]`},
 		// nil joins as an optional type, and a value not known yet absorbs a union.
 		{`rule a = _ => list(nil)`, "a", `[]nil`},
 		{`rule a = x:"x" => list($x, nil, $x)`, "a", `[]*node[string]`},

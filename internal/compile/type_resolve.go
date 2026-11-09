@@ -45,12 +45,10 @@ func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
 	case *grammar.TypeGroup:
 		return k.Resolve(t.Type)
 	case *grammar.ListType:
-		// A constructor applied to _|_ is _|_.
-		if e := k.Resolve(t.Elem); e != TyBottom {
-			return ListTy{e}
-		}
-		return TyBottom
+		// []_|_ is the list type whose only value is the empty list.
+		return ListTy{k.Resolve(t.Elem)}
 	case *grammar.OptionalType:
+		// *_|_ is nil, the optional type whose only value is nil.
 		return vopt(k.Resolve(t.Elem))
 	case *grammar.JoinType:
 		ts := make([]Ty, len(t.Types))
@@ -115,10 +113,8 @@ func vmeet(a, b Ty) Ty {
 	switch x := a.(type) {
 	case ListTy:
 		if y, ok := b.(ListTy); ok {
-			if e := vmeet(x.Elem, y.Elem); e != TyBottom {
-				return ListTy{e}
-			}
-			return TyBottom
+			// Every list type has the empty list: the meet of two is a list type, []_|_ at least.
+			return ListTy{vmeet(x.Elem, y.Elem)}
 		}
 	case NodeTy:
 		if y, ok := b.(NodeTy); ok {

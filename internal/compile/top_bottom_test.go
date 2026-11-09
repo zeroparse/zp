@@ -14,13 +14,15 @@ func TestTopBottomTypes(t *testing.T) {
 		{"type T = { A _ }\ntype U = { B node[string] }\nrule main = x:\"a\" => U{B: T{A: $x}.A}", "_"},
 		// No value has type _|_.
 		{"type T = { A _|_ }\nrule main = \"a\"", "field A of T has type _|_, which has no values"},
-		{"type B ~ []_|_\nrule main B = \"a\"", "rule main has type _|_, which has no values"},
-		{"type B ~ *_|_\nrule main = x:\"a\" => $x.(B)", "the cast has type _|_, which has no values"},
+		{"type B ~ node[_|_]\nrule main B = \"a\"", "rule main has type _|_, which has no values"},
+		{"type B ~ (node[string], _|_)\nrule main = x:\"a\" => $x.(B)", "the cast has type _|_, which has no values"},
+		// []_|_ and *_|_ have one value each: the empty list and nil. No other value is assignable.
+		{"type T = { A []_|_ }\nrule main = x:\"a\"* => T{A: $x.Value}", "cannot use []node[string] as []_|_"},
+		{"type T = { A *_|_ }\nrule main = x:\"a\" => T{A: $x}", "cannot use node[string] as nil"},
 		{"rule main = \"a\" => []_|_{}", "the list element has type _|_, which has no values"},
 		{"type T = { A int & string }\nrule main = \"a\"", "field A of T has type _|_"},
 		{"type T = { A node[string] & []node[string] }\nrule main = \"a\"", "field A of T has type _|_"},
-		{"type T = { A []node[string] & []int }\nrule main = \"a\"", "field A of T has type _|_"},
-		{"type T = { A *[]node[string] & []int }\nrule main = \"a\"", "field A of T has type _|_"},
+		{"type T = { A node[string] & []int }\nrule main = \"a\"", "field A of T has type _|_"},
 		// A meet is the type assignable to both: here node[string], which an int is not.
 		{"type T = { A (node[string] | int) & node[_] }\nrule main = \"a\" => T{A: 1}", "cannot use int as node[string]"},
 		// Nodes meet in their values, and tuples element by element.
@@ -46,6 +48,14 @@ func TestTopBottomTypes(t *testing.T) {
 		"type T = { A node[string] & _ }\nrule main = x:\"a\" => T{A: $x}\nrule other = x:\"a\" => T{A: $x}.A",
 		"type T = { A _ }\nrule main = x:\"a\" => T{A: $x}.A.(node[string] | node[_])",
 		"type B ~ _|_\nrule main = \"a\"", // an alias is not a location
+		// []_|_ is the list type whose only value is the empty list, and *_|_ is nil. Every list type
+		// has the empty list, so lists meet in []_|_ at least.
+		"type T = { A []_|_ }\nrule main = x:(_|_)* => T{A: $x.Value}",
+		"type T = { A *_|_ }\nrule main = \"a\" => T{A: nil}",
+		"type T = { A []node[string] & []int }\nrule main = x:(_|_ \"a\")* => T{A: $x.Value}",
+		"type T = { A *[]node[string] & []int }\nrule main = x:(_|_)* => T{A: $x.Value}",
+		"type T = { A []_|_ | []node[string] }\nrule main = x:\"a\"* => T{A: $x.Value}",
+		"type T = { A []node[string] }\nrule main = x:(\"a\"* / (_|_)*) => T{A: $x.Value}",
 		// Meets look inside lists: []Seq is assignable to both.
 		"type T = { A [](node[string] | node[_]) & [](node[_] | node[_]) }\nrule main = x:(\"a\" \"b\")* => T{A: $x.Value}",
 		"type T = { A *node[string] & *node[_] }\nrule main = \"a\" => T{A: nil}",

@@ -149,12 +149,25 @@ func TestTopBottomSchema(t *testing.T) {
 		t.Fatalf("schema exports the alias U:\n%s", data)
 	}
 	// Aliases are not exported, and a field cannot have a type without values.
-	for _, src := range []string{"type B ~ _|_\nrule main = \"a\"", "type B ~ int & string\nrule main = \"a\"", "type B ~ *(int & string)\nrule main = \"a\""} {
+	for _, src := range []string{"type B ~ _|_\nrule main = \"a\"", "type B ~ int & string\nrule main = \"a\"", "type B ~ node[int & string]\nrule main = \"a\""} {
 		if _, err := outputSchemaPrototype(mustCompile(t, src), "main", false); err != nil {
 			t.Fatalf("%q schema: %v", src, err)
 		}
 		if message := compileError(t, strings.Replace(src, "rule main", "type T = { F B }\nrule main", 1)); !strings.Contains(message, "no values") {
 			t.Fatalf("%q field: %s", src, message)
+		}
+	}
+	// *_|_ is nil, the optional type whose only value is nil, and []_|_ the list type whose only
+	// value is the empty list: fields may have them.
+	program = mustCompile(t, "type T = { F *(int & string); G []_|_ }\nrule main = x:(_|_)* => T{F: nil, G: $x.Value}")
+	schema, err = outputSchemaPrototype(program, "main", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ = json.Marshal(schema)
+	for _, want := range []string{`{"name":"F","shape":{"kind":"nil"}}`, `{"name":"G","shape":{"kind":"list","element":{"kind":"join"}}}`} {
+		if !strings.Contains(string(data), want) {
+			t.Fatalf("schema lacks %s:\n%s", want, data)
 		}
 	}
 	// _|_ adds nothing to a union.

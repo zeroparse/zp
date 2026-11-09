@@ -130,10 +130,15 @@ compile, also when types are otherwise not checked.
 `_` is the top type: every value is a `_`, and `_ | T` is `_`. A value of type
 `_` is assignable only to `_`; a [cast](actions.md#casts) such as `x.(T)` checks it at
 run time and narrows it. No type is written `any`: the name is not a type, and the compiler
-asks for `_`. `_|_` is the bottom type, which has no values:
-`_|_ | T` is `T`, and `[]_|_` and `*_|_` are `_|_`. A struct field, a rule, a
-list element or a cast whose type resolves to `_|_` is an error, also when
-types are otherwise not checked.
+asks for `_`. `_|_` is the bottom type, which has no values and is assignable
+to every type: `_|_ | T` is `T`. A tuple with an element of type `_|_`, and
+`node[_|_]`, are `_|_` too. `[]_|_` is not: it is the list type whose only value
+is the empty list, and `*_|_` is the optional type whose only value is `nil`.
+They are the least list and optional types, since lists and optional types are
+covariant in their elements: `[]_|_ | []T` is `[]T`, `*_|_ | *T` is `*T`, and
+`[]T & []U` is `[](T & U)`, at least `[]_|_`. A struct field, a rule, a list
+element or a cast whose type resolves to `_|_` is an error, also when types are
+otherwise not checked; one of type `[]_|_` or `*_|_` is not.
 
 `T | U` is the join of `T` and `U`: its values are the values of either (see
 [Join Types](#join-types)). The type of a
