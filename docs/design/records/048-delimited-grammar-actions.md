@@ -103,7 +103,7 @@ own and may recur.
 
 ## Implementation
 
-`LowerInlineActions` (`internal/compile/inline_actions.go`) replaces each inline
+The desugaring step (`internal/desugar`) replaces each inline
 action by a reference to a hidden rule placed after the rule that holds it,
 before attribute normalization. It runs once, in the compiler, so the closure
 and bytecode VMs and the generated Go (generic, typed and direct) parsers need

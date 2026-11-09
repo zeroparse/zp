@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -72,7 +73,7 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 			})
 		}
 		runSitesOn = false
-		prog, err := CompileProgram(g, Options{}, nil, InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+		prog, err := CompileProgram(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

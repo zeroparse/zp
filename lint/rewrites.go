@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // A Rewrite is a change to the source of a grammar that fixes a finding without changing what the
@@ -57,7 +57,7 @@ func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []
 			}
 		}()
 	}
-	lowered, _, lowerErr := engine.LowerInlineActions(g)
+	lowered, _, lowerErr := desugar.LowerInlineActions(g)
 	if lowerErr != nil {
 		lowered = g
 	}

@@ -1,19 +1,17 @@
-package compile
+package desugar
 
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 )
 
-// defaultValueGrammar returns g without the value actions and without the declared types of rules,
-// so that every rule makes the default value of its expression (Options.DefaultValue). Predicates
-// stay as written, because they decide the match, and so do the type declarations, which
-// predicates can still use. A predicate can read the value of a capture, which an action may have
-// made, so the rules that make the values predicates read (valueNeededRules, as in
-// recognition) keep their actions and types. Unchanged declarations are shared with g; g itself
-// does not change.
-func defaultValueGrammar(g *grammar.Grammar, control *cancel.Control) *grammar.Grammar {
-	needed := valueNeededRules(control.Rules(g), control, false)
+// DefaultValueGrammar returns g without the value actions and without the declared types of rules,
+// so that every rule makes the default value of its expression (the compile option DefaultValue).
+// Predicates stay as written, because they decide the match, and so do the type declarations,
+// which predicates can still use. A predicate can read the value of a capture, which an action may
+// have made, so the rules in needed, which make the values predicates read, keep their actions and
+// types. Unchanged declarations are shared with g; g itself does not change.
+func DefaultValueGrammar(g *grammar.Grammar, needed map[string]bool, control *cancel.Control) *grammar.Grammar {
 	decls, changed := normalizeItems(g.File.Decls, false, func(d grammar.Decl) grammar.Decl {
 		control.Poll()
 		rd, ok := d.(*grammar.RuleDef)
@@ -41,12 +39,12 @@ func defaultValueGrammar(g *grammar.Grammar, control *cancel.Control) *grammar.G
 	return &copy
 }
 
-// sourceDefaultValueGrammar returns the grammar as written, source, with what defaultValueGrammar
-// dropped from its lowered form: dv is defaultValueGrammar(lowered), and names the inline actions
+// SourceDefaultValueGrammar returns the grammar as written, source, with what DefaultValueGrammar
+// dropped from its lowered form: dv is DefaultValueGrammar(lowered), and names the inline actions
 // that lowered was made with. Validating it reports a defect where the grammar as written has it,
 // with the paths and positions of that grammar, not of the lowered one, whose declarations are
 // numbered differently and whose generated rules the author never wrote.
-func sourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names InlineNames, control *cancel.Control) *grammar.Grammar {
+func SourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names InlineNames, control *cancel.Control) *grammar.Grammar {
 	dvRules := map[string]*grammar.RuleDef{}
 	for _, rd := range control.Rules(dv) {
 		dvRules[rd.Name] = rd

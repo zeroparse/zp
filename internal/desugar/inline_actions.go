@@ -1,4 +1,4 @@
-package compile
+package desugar
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 // An inline action (e => A) is an anonymous rule embedded at its position: it behaves exactly as a
-// reference to a rule whose body is e and whose action is A. lowerInlineActions makes that
+// reference to a rule whose body is e and whose action is A. LowerInlineActionsControlled makes that
 // explicit. It replaces each inline action by a reference to a hidden rule of that form, placed
 // after the rule that holds it, so that every backend runs the lowered grammar unchanged and the
 // semantics of captures, items, positions, cuts, recovery and recursion are those of a rule.
@@ -18,9 +18,9 @@ import (
 // The hidden rule of the nth inline action of a rule r is named _r_n, with a further underscore
 // added while a rule of that name exists. A name that begins with an underscore is a hidden rule,
 // so a declared rule can be hidden in the same way. The generated names belong to the lowered
-// grammar only: the grammar as written, which is what Program.SourceGrammar returns, holds the
+// grammar only: the grammar as written, which a compiled program keeps, holds the
 // inline actions, and the messages of the compiler and of a parse describe an inline action by the
-// rule that holds it (inlineNames).
+// rule that holds it (InlineNames).
 
 // HiddenRule reports whether the rule name is hidden: it begins with an underscore. A hidden rule
 // is not an entry point, and a hidden rule without an action makes no node of its own.
@@ -67,13 +67,20 @@ func (names InlineNames) describe(name string) (string, bool) {
 	return "the inline action in rule " + site.rule, true
 }
 
-// where names the rule name in the text of a failed action: an ordinary rule by its name and the
+// Where names the rule name in the text of a failed action: an ordinary rule by its name and the
 // hidden rule of an inline action by its place.
-func (names InlineNames) where(name string) string {
+func (names InlineNames) Where(name string) string {
 	if site, ok := names[name]; ok {
 		return fmt.Sprintf("%s (inline action %d)", site.rule, site.n)
 	}
 	return name
+}
+
+// Holder returns the rule that holds the inline action whose generated rule is name. ok is false
+// for any other name.
+func (names InlineNames) Holder(name string) (rule string, ok bool) {
+	site, ok := names[name]
+	return site.rule, ok
 }
 
 // Rewrite replaces the generated names in the messages of err, which a compile reports for the
@@ -136,17 +143,17 @@ func isNameByte(c byte) bool {
 	return c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
 }
 
-// undeclaredRules reports the references of g to a rule it does not declare. The lowering adds
+// UndeclaredRules reports the references of g to a rule it does not declare. The lowering adds
 // hidden rules, so a reference is checked against the grammar as written: a generated name can
 // never satisfy one.
-func undeclaredRules(g *grammar.Grammar, control *cancel.Control) diag.ErrorList {
+func UndeclaredRules(g *grammar.Grammar, control *cancel.Control) diag.ErrorList {
 	declared := map[string]bool{}
 	for _, rd := range control.Rules(g) {
 		declared[rd.Name] = true
 	}
 	var errs diag.ErrorList
 	for _, rd := range control.Rules(g) {
-		walkExprControlled(rd.Expr, func(e grammar.Expr) {
+		walkExpr(rd.Expr, func(e grammar.Expr) {
 			if ref, ok := e.(*grammar.Ref); ok && !declared[ref.Name] {
 				errs = append(errs, &diag.Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
 			}
@@ -155,14 +162,14 @@ func undeclaredRules(g *grammar.Grammar, control *cancel.Control) diag.ErrorList
 	return errs
 }
 
-// hasInlineAction reports whether g holds an inline action.
-func hasInlineAction(g *grammar.Grammar, control *cancel.Control) bool {
+// HasInlineAction reports whether g holds an inline action.
+func HasInlineAction(g *grammar.Grammar, control *cancel.Control) bool {
 	if g == nil {
 		return false
 	}
 	found := false
 	for _, rd := range control.Rules(g) {
-		walkExprControlled(rd.Expr, func(e grammar.Expr) {
+		walkExpr(rd.Expr, func(e grammar.Expr) {
 			if _, ok := e.(*grammar.InlineAction); ok {
 				found = true
 			}
@@ -188,9 +195,9 @@ type inlineLowerer struct {
 	keepInline func(e *grammar.InlineAction, inner grammar.Expr) grammar.Expr
 }
 
-// lowerInlineActions returns g with every inline action replaced by a reference to a hidden rule.
+// LowerInlineActionsControlled returns g with every inline action replaced by a reference to a hidden rule.
 // g itself does not change. Errors report inline actions in expressions that make no value.
-func lowerInlineActions(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diag.ErrorList) {
+func LowerInlineActionsControlled(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diag.ErrorList) {
 	var errs diag.ErrorList
 	taken := map[string]bool{}
 	for _, rd := range control.Rules(g) {
@@ -422,11 +429,11 @@ func rewrap(self, old, child grammar.Expr, make func(grammar.Expr) grammar.Expr)
 // input sampler, sees the rules the parser executes. g is not changed. The names tell the generated
 // rules from the declared ones, so that a tool reports an inline action as written.
 func LowerInlineActions(g *grammar.Grammar) (*grammar.Grammar, *InlineActionNames, error) {
-	if g == nil || !hasInlineAction(g, nil) {
+	if g == nil || !HasInlineAction(g, nil) {
 		return g, nil, nil
 	}
 	names := InlineNames{}
-	lowered, errs := lowerInlineActions(g, names, nil)
+	lowered, errs := LowerInlineActionsControlled(g, names, nil)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -478,8 +485,7 @@ func (n *InlineActionNames) Holder(name string) (rule string, ok bool) {
 	if n == nil {
 		return "", false
 	}
-	site, ok := n.names[name]
-	return site.rule, ok
+	return n.names.Holder(name)
 }
 
 // Message returns the message s, written for the lowered grammar, with each generated rule named as

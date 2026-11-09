@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
@@ -131,7 +132,7 @@ func build(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 }
 
 func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
-	names := compile.InlineNames{}
+	names := desugar.InlineNames{}
 	prog, err := buildNamed(g, opts, flags, names, control)
 	if err != nil {
 		return nil, names.Rewrite(err)
@@ -167,7 +168,7 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 
 // buildNamed is buildControlled; names receives the hidden rules that the lowering of inline actions
 // generates.
-func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names compile.InlineNames, control *cancel.Control) (*Program, error) {
+func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
 	var b *closure.Builder
 	prog, err := compile.CompileProgram(g, opts, flags, names, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
 		b = closure.NewBuilder(c, !opts.ControlledDispatch)

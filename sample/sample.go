@@ -35,7 +35,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // Defaults of the options.
@@ -117,7 +117,7 @@ type Generator struct {
 	stats Stats
 	// names tell the rules of the inline actions, which the generator works on as hidden rules, from
 	// the declared ones: reports show them as written.
-	names *engine.InlineActionNames
+	names *desugar.InlineActionNames
 }
 
 // Stats counts the work of a Generator.
@@ -155,7 +155,7 @@ func New(p *zp.Parser, opts ...Option) (*Generator, error) {
 		return nil, errors.New("sample: the parser has no grammar AST")
 	}
 	// The sampler works on the rules the parser runs, where an inline action is an anonymous rule.
-	g, names, err := engine.LowerInlineActions(g)
+	g, names, err := desugar.LowerInlineActions(g)
 	if err != nil {
 		return nil, fmt.Errorf("sample: %w", err)
 	}

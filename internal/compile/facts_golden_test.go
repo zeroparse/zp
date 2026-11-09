@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
@@ -21,7 +22,7 @@ func TestFactsGolden(t *testing.T) {
 				t.Fatal(err)
 			}
 			g = starttest.MarkAll(g)
-			names := InlineNames{}
+			names := desugar.InlineNames{}
 			prog, err := CompileProgram(g, Options{}, nil, names, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
 			if err != nil {
 				t.Fatal(names.Rewrite(err))

@@ -2,6 +2,7 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // ExprBuilder builds the executable form M of a program's rule bodies while the compiler walks them
@@ -411,7 +412,7 @@ func (c *Walker[M]) attributed(e *grammar.Attributed, s *Scope, build bool) M {
 		}
 		for name := range a.KwArgs {
 			if !validArg(a.Name, name) {
-				c.errorf(a.Diagnostic(), "%s%s has no argument %s", annotationMarker(a), a.Name, name)
+				c.errorf(a.Diagnostic(), "%s%s has no argument %s", desugar.AnnotationMarker(a), a.Name, name)
 			}
 		}
 	}

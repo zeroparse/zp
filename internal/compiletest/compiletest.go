@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -23,7 +24,7 @@ func Parse(src string) (*grammar.Grammar, error) {
 // Compile compiles g as the engine does, without building matchers. The errors name the hidden
 // rules of inline actions as the engine's do.
 func Compile(g *grammar.Grammar, opts compile.Options) (*compile.Program, error) {
-	names := compile.InlineNames{}
+	names := desugar.InlineNames{}
 	p, err := compile.CompileProgram(g, opts, nil, names, nil, func(*compile.Compiler) compile.ExprBuilder[struct{}] { return NoExprs{} })
 	if err != nil {
 		return nil, names.Rewrite(err)

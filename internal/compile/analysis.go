@@ -403,69 +403,13 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) 
 	return out
 }
 
-// walkExpr visits the expression and its subexpressions in preorder.
+// walkExprControlled is grammaranalysis.WalkExprWithPoll polling control.
 func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Control) {
 	if control == nil {
-		WalkExpr(e, f)
+		grammaranalysis.WalkExpr(e, f)
 		return
 	}
-	control.Poll()
-	if e == nil {
-		return
-	}
-	f(e)
-	switch e := e.(type) {
-	case *grammar.Group:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Seq:
-		for _, it := range e.Items {
-			walkExprControlled(it, f, control)
-		}
-	case *grammar.Choice:
-		for _, alt := range e.Alts {
-			walkExprControlled(alt, f, control)
-		}
-	case *grammar.Repeat:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.InlineAction:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Optional:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.And:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Not:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Atomic:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Stream:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Recovery:
-		walkExprControlled(e.Expr, f, control)
-		walkExprControlled(e.Skip, f, control)
-	case *grammar.Discard:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Capture:
-		walkExprControlled(e.Expr, f, control)
-	case *grammar.Attributed:
-		walkExprControlled(e.Expr, f, control)
-		for _, at := range e.Attrs {
-			control.Poll()
-			for _, arg := range expressionArgs(control, at) {
-				walkExprControlled(arg, f, control)
-			}
-		}
-	case *grammar.OperatorsRule:
-		walkExprControlled(e.Skip, f, control)
-		for _, o := range e.Operands {
-			walkExprControlled(o.Expr, f, control)
-		}
-		for _, l := range e.Levels {
-			control.Poll()
-			for _, op := range l.Operators {
-				walkExprControlled(op.Expr, f, control)
-			}
-		}
-	}
+	grammaranalysis.WalkExprWithPoll(e, f, control.Poll)
 }
 
 // WalkTerm visits the value expression and its subexpressions in preorder.
@@ -742,64 +686,8 @@ func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
 	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.succeeding, a.Control.Poll)
 }
 
-// WalkExpr visits the expression and its subexpressions in preorder, including the expression
-// arguments of attributes and the operand and operator expressions of an Operators Rule.
-func WalkExpr(e grammar.Expr, f func(grammar.Expr)) {
-	if e == nil {
-		return
-	}
-	f(e)
-	switch e := e.(type) {
-	case *grammar.Group:
-		WalkExpr(e.Expr, f)
-	case *grammar.Seq:
-		for _, it := range e.Items {
-			WalkExpr(it, f)
-		}
-	case *grammar.Choice:
-		for _, alt := range e.Alts {
-			WalkExpr(alt, f)
-		}
-	case *grammar.Repeat:
-		WalkExpr(e.Expr, f)
-	case *grammar.InlineAction:
-		WalkExpr(e.Expr, f)
-	case *grammar.Optional:
-		WalkExpr(e.Expr, f)
-	case *grammar.And:
-		WalkExpr(e.Expr, f)
-	case *grammar.Not:
-		WalkExpr(e.Expr, f)
-	case *grammar.Atomic:
-		WalkExpr(e.Expr, f)
-	case *grammar.Stream:
-		WalkExpr(e.Expr, f)
-	case *grammar.Recovery:
-		WalkExpr(e.Expr, f)
-		WalkExpr(e.Skip, f)
-	case *grammar.Discard:
-		WalkExpr(e.Expr, f)
-	case *grammar.Capture:
-		WalkExpr(e.Expr, f)
-	case *grammar.Attributed:
-		WalkExpr(e.Expr, f)
-		for _, at := range e.Attrs {
-			for _, arg := range at.ExpressionArgs() {
-				WalkExpr(arg, f)
-			}
-		}
-	case *grammar.OperatorsRule:
-		WalkExpr(e.Skip, f)
-		for _, o := range e.Operands {
-			WalkExpr(o.Expr, f)
-		}
-		for _, l := range e.Levels {
-			for _, op := range l.Operators {
-				WalkExpr(op.Expr, f)
-			}
-		}
-	}
-}
+// WalkExpr is grammaranalysis.WalkExpr.
+func WalkExpr(e grammar.Expr, f func(grammar.Expr)) { grammaranalysis.WalkExpr(e, f) }
 
 // walkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
 // operand and operator actions.

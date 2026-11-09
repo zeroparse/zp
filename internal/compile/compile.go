@@ -13,6 +13,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -49,7 +50,7 @@ type Program struct {
 	MakesDefaultValue bool
 	ByName            map[string]*Rule
 	// StartRules holds the start rules in declaration order and DefaultStartRule the default one
-	// (resolveStarts).
+	// (desugar.ResolveStarts).
 	StartRules       []string
 	DefaultStartRule string
 	Types            map[string]grammar.TypeDecl
@@ -275,25 +276,6 @@ func (c *Compiler) errorf(pos grammar.Pos, format string, args ...any) {
 	c.errs = append(c.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
-// uniqueRules returns the first declaration of each rule name of g in order, and an error for each
-// later declaration of a name. The analyses key rules by name and loop on a rule list that holds a
-// name twice, so every entry point that analyzes a grammar takes its rules from here.
-func uniqueRules(g *grammar.Grammar, control *cancel.Control) ([]*grammar.RuleDef, diag.ErrorList) {
-	var rules []*grammar.RuleDef
-	var errs diag.ErrorList
-	seen := map[string]bool{}
-	for _, rd := range control.Rules(g) {
-		control.Poll()
-		if seen[rd.Name] {
-			errs = append(errs, &diag.Error{Pos: rd.Diagnostic(), Msg: fmt.Sprintf("rule %s is already defined", rd.Name)})
-			continue
-		}
-		seen[rd.Name] = true
-		rules = append(rules, rd)
-	}
-	return rules, errs
-}
-
 // RuleFlags are rule properties determined by static analysis. They are saved in compiled
 // grammars so loading can skip the analysis.
 type RuleFlags struct {
@@ -333,7 +315,7 @@ func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.
 // the builder that builder returns for the compiler, which builds the bodies in a backend's form.
 // names receives the hidden rules that the lowering of inline actions generates. If flags is not
 // nil, it skips static analysis and type checking and uses flags instead.
-func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
+func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
 	control.Check()
 	if !opts.DefaultValue {
 		if err := validateGrammar(g, control); err != nil {
@@ -343,11 +325,11 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	// The inline actions are checked as written, then lowered to hidden rules. A program keeps
 	// the grammar as written, whatever its options, for Program.SourceGrammar.
 	source := g
-	if hasInlineAction(g, control) {
-		if errs := undeclaredRules(g, control); errs != nil {
+	if desugar.HasInlineAction(g, control) {
+		if errs := desugar.UndeclaredRules(g, control); errs != nil {
 			return nil, errs
 		}
-		lowered, errs := lowerInlineActions(g, names, control)
+		lowered, errs := desugar.LowerInlineActionsControlled(g, names, control)
 		if errs != nil {
 			return nil, errs
 		}
@@ -356,12 +338,12 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 	if opts.DefaultValue {
 		lowered := g
-		g = defaultValueGrammar(g, control)
+		g = desugar.DefaultValueGrammar(g, valueNeededRules(control.Rules(g), control, false), control)
 		control.Check()
 		// A defect is reported where the grammar as written has it.
 		valid := g
 		if lowered != source {
-			valid = sourceDefaultValueGrammar(source, lowered, g, names, control)
+			valid = desugar.SourceDefaultValueGrammar(source, lowered, g, names, control)
 		}
 		if err := validateGrammar(valid, control); err != nil {
 			return nil, err
@@ -413,13 +395,13 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 			}
 		}, control)
 	}
-	starts, defaultStart, startErrors := resolveStarts(control.Rules(g), control)
+	starts, defaultStart, startErrors := desugar.ResolveStarts(control.Rules(g), control)
 	control.Check()
 	if len(unsupported) != 0 {
 		return nil, unsupported
 	}
 	var normalizationError error
-	g, normalizationError = NormalizeAttributesControlled(g, opts.EagerAttributeCopies, control)
+	g, normalizationError = desugar.NormalizeAttributesControlled(g, opts.EagerAttributeCopies, control)
 	control.Check()
 	if normalizationError != nil {
 		return nil, normalizationError
@@ -428,7 +410,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		source = nil // the grammar as written is the one the program runs
 	} else {
 		// The grammar as written is kept beside the one the program runs.
-		if source, normalizationError = NormalizeAttributesControlled(source, opts.EagerAttributeCopies, control); normalizationError != nil {
+		if source, normalizationError = desugar.NormalizeAttributesControlled(source, opts.EagerAttributeCopies, control); normalizationError != nil {
 			return nil, normalizationError
 		}
 	}
@@ -469,7 +451,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 	// A rule declared again is reported and then left out: the analyses below key rules by name
 	// and take each name once.
-	rules, redeclared := uniqueRules(g, control)
+	rules, redeclared := desugar.UniqueRules(g, control)
 	c.errs = append(c.errs, redeclared...)
 	for _, rd := range rules {
 		control.Poll()
@@ -477,7 +459,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		if r.Splice && rd.Type != nil {
 			c.errorf(rd.Diagnostic(), "rule %s makes no node of its own, so it cannot have a result type", rd.Name)
 		}
-		if w := names.where(rd.Name); w != rd.Name {
+		if w := names.Where(rd.Name); w != rd.Name {
 			r.Where = w
 		}
 		prog.RuleList = append(prog.RuleList, r)
@@ -740,7 +722,7 @@ func transientRules(rules []*grammar.RuleDef, control *cancel.Control) map[strin
 	for _, rd := range rules {
 		control.Poll()
 		calls := len(allCallsControlled(rd.Expr, nil, control))
-		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(startMarked(rd) && selfCalled(rd.Name))
+		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(desugar.StartMarked(rd) && selfCalled(rd.Name))
 	}
 	return out
 }
@@ -1184,7 +1166,7 @@ func (r *Rule) WhereName() string {
 // (not even => ...), and its body is not an Operators Rule. A call of it contributes the elements
 // of its body, as a group does.
 func spliceRule(rd *grammar.RuleDef) bool {
-	if !HiddenRule(rd.Name) || rd.Action != nil || rd.DefaultAction {
+	if !desugar.HiddenRule(rd.Name) || rd.Action != nil || rd.DefaultAction {
 		return false
 	}
 	_, operators := rd.Expr.(*grammar.OperatorsRule)

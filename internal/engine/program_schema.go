@@ -2,7 +2,7 @@ package engine
 
 import (
 	"zeroparse.dev/zp/internal/compile"
-
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/core"
 )
 
@@ -18,7 +18,7 @@ func (p *Program) SchemaProgram(start string) (*compile.Program, error) {
 	if p == nil {
 		return nil, compile.ErrSchemaUnavailable
 	}
-	if err := compile.EntryError(start); err != nil {
+	if err := desugar.EntryError(start); err != nil {
 		return nil, err
 	}
 	if p.Grammar == nil {

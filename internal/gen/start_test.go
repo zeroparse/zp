@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
@@ -61,7 +61,7 @@ func testStartHiddenRule(t *testing.T) {
 	}
 	var helpers []string
 	for _, r := range prog.RuleList {
-		if compile.HiddenRule(r.Name) {
+		if desugar.HiddenRule(r.Name) {
 			helpers = append(helpers, r.Name)
 		}
 	}

@@ -1,4 +1,4 @@
-package compile
+package desugar
 
 import (
 	"zeroparse.dev/zp/grammar"

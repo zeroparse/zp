@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/gentest"
 )
 
@@ -39,8 +40,8 @@ rule main (Alias) = n:([0-9]+) => (T{Text: (text($n))})`,
 			for _, eager := range []bool{false, true} {
 				ctx, stop := context.WithCancel(context.Background())
 				defer stop()
-				got, gotErr := compile.NormalizeAttributesControlled(g, eager, &cancel.Control{Ctx: ctx})
-				want, wantErr := compile.NormalizeAttributesWithCopies(g, eager)
+				got, gotErr := desugar.NormalizeAttributesControlled(g, eager, &cancel.Control{Ctx: ctx})
+				want, wantErr := desugar.NormalizeAttributesWithCopies(g, eager)
 				if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(gotErr, wantErr) {
 					t.Fatalf("context changed normalized result: %v / %v", gotErr, wantErr)
 				}

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/lint"
 )
 
@@ -352,11 +352,11 @@ func commentLinesAbove(text string, lastStart, end int) int {
 // name that does not depend on the edit (the holder and its number), and the lowered grammars are
 // compared like the declared ones. The inline actions of removed are gone and are not compared.
 func (d *document) inlineActionsAgree(ctx context.Context, candidate *analysis, removed string, control *renderControl) bool {
-	before, names, err := engine.LowerInlineActions(d.analysis().g)
+	before, names, err := desugar.LowerInlineActions(d.analysis().g)
 	if err != nil {
 		return false
 	}
-	after, afterNames, err := engine.LowerInlineActions(candidate.g)
+	after, afterNames, err := desugar.LowerInlineActions(candidate.g)
 	if err != nil {
 		return false
 	}

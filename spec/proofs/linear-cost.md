@@ -1551,9 +1551,8 @@ one place are in $B$.
 In the reference implementation, `transientRules` in `internal/compile` marks
 the rules that are not memoized. It counts the places that call each rule over
 the whole grammar, so a rule that the start rule does not reach can only add
-places and make a rule memoized. It exempts a rule marked `@start`, which
-`startMarked` reports, when following the one caller of each rule from it
-returns to it. Every entry point admits only a rule marked `@start` as the
+places and make a rule memoized. It exempts a rule marked `@start` when
+following the one caller of each rule from it returns to it. Every entry point admits only a rule marked `@start` as the
 rule where a parse begins: `Program.CheckStart` in the engine, for whole,
 stream, prefix and Document parses and for loaded modules, the runtime's
 `(*grammar).StartRule`, which a generated Go parser calls, and `startIn` in a

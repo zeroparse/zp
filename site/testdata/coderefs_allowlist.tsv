@@ -191,7 +191,6 @@ docs/design/records/045-compiled-grammar-recognition.md	gofile	program_parse.go	
 docs/design/records/045-compiled-grammar-recognition.md	unexport	valueNeededRules	1
 docs/design/records/046-position-maps-and-fragment-parsing.md	unexport	parseOptions	1
 docs/design/records/046-position-maps-and-fragment-parsing.md	unexport	textIndex	1
-docs/design/records/048-delimited-grammar-actions.md	gofile	internal/compile/inline_actions.go	1
 docs/design/records/048-delimited-grammar-actions.md	gofile	value_shape.go	1
 docs/design/records/050-operators-rule-skip-control.md	gofile	internal/engine/core/operators_rule.go	1
 docs/design/records/050-operators-rule-skip-control.md	unexport	operatorsRuleNud	1
@@ -707,12 +706,8 @@ docs/optimizations/mechanisms/G020-lazy-backend-preparation.md	gofile	internal/e
 docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	codelink	sample/analysis.go	1
 docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	gofile	sample/analysis.go	1
 docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	codelink	internal/compile/compile.go	1
-docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	codelink	internal/compile/normalize_attributes.go	1
-docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	codelink	internal/compile/normalize_attributes_test.go	1
 docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	gofile	internal/compile/compile.go	1
-docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	gofile	internal/compile/normalize_attributes.go	1
-docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	gofile	internal/compile/normalize_attributes_test.go	1
-docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	unexport	normalizeAttributes	2
+docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	unexport	normalizeAttributes	1
 docs/optimizations/mechanisms/G050-generated-budget-control-specialization.md	codelink	internal/gen/gogen/flow.go	1
 docs/optimizations/mechanisms/G050-generated-budget-control-specialization.md	codelink	internal/gen/gogen/helper_names.go	1
 docs/optimizations/mechanisms/G050-generated-budget-control-specialization.md	codelink	runtime/budget.go	1
@@ -1212,7 +1207,6 @@ spec/proofs/linear-cost.md	unexport	sameCycle	1
 spec/proofs/linear-cost.md	unexport	selfDependent	1
 spec/proofs/linear-cost.md	unexport	sizeOf	1
 spec/proofs/linear-cost.md	unexport	sizeOfAny	1
-spec/proofs/linear-cost.md	unexport	startMarked	1
 spec/proofs/linear-cost.md	unexport	startsGrowth	2
 spec/proofs/linear-cost.md	unexport	stringIn	1
 spec/proofs/linear-cost.md	unexport	termLooks	1

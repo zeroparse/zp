@@ -1,4 +1,4 @@
-package compile
+package desugar
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func TestNormalizationContextCancellation(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				ctx := compileTestContext(t, 3)
+				ctx := pollTestContext(t, 3)
 				var result *grammar.Grammar
 				var diagnostics error
 				defer func() {
@@ -104,7 +104,7 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx := compileTestContext(t, 3)
+			ctx := pollTestContext(t, 3)
 			control := &cancel.Control{Ctx: ctx}
 			defer func() {
 				failure := recover()
@@ -137,7 +137,7 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 func TestNormalizationFinalCheckpoint(t *testing.T) {
 	t.Parallel()
 	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}}}}}
-	ctx := compileTestContext(t, 2)
+	ctx := pollTestContext(t, 2)
 	defer func() {
 		cancelled, ok := recover().(cancel.Cancellation)
 		if !ok || !errors.Is(cancelled.Err, context.Canceled) || ctx.left != 0 {
@@ -146,4 +146,27 @@ func TestNormalizationFinalCheckpoint(t *testing.T) {
 	}()
 	NormalizeAttributesControlled(g, false, &cancel.Control{Ctx: ctx})
 	t.Fatal("normalization returned a cancelled result")
+}
+
+// pollContext cancels at a deterministic poll, without timing or global hooks.
+type pollContext struct {
+	context.Context
+	cancel context.CancelFunc
+	left   int
+}
+
+func (c *pollContext) Err() error {
+	c.left--
+	if c.left == 0 {
+		c.cancel()
+	}
+	return c.Context.Err()
+}
+
+// pollTestContext returns a context that is cancelled at its polls-th check.
+func pollTestContext(t *testing.T, polls int) *pollContext {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	return &pollContext{Context: ctx, cancel: cancel, left: polls}
 }

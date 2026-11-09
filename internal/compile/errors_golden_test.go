@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -33,7 +34,7 @@ func TestErrorsGolden(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
-		names := InlineNames{}
+		names := desugar.InlineNames{}
 		_, err = CompileProgram(g, Options{}, nil, names, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
 		if err == nil {
 			t.Fatalf("%s: compiled", tc.name)

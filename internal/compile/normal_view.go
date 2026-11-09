@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
@@ -1208,18 +1209,18 @@ func exprSource(e grammar.Expr) grammar.SourceInfo {
 // classifier reads. g must compile.
 func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*grammar.Grammar, error) {
 	control.Check()
-	if hasInlineAction(g, control) {
-		lowered, errs := lowerInlineActions(g, InlineNames{}, control)
+	if desugar.HasInlineAction(g, control) {
+		lowered, errs := desugar.LowerInlineActionsControlled(g, desugar.InlineNames{}, control)
 		if errs != nil {
 			return nil, errs
 		}
 		g = lowered
 	}
-	g, err := NormalizeAttributesControlled(g, false, control)
+	g, err := desugar.NormalizeAttributesControlled(g, false, control)
 	if err != nil {
 		return nil, err
 	}
-	rules, errs := uniqueRules(g, control)
+	rules, errs := desugar.UniqueRules(g, control)
 	if len(errs) > 0 {
 		return nil, errs
 	}

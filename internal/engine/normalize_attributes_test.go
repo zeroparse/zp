@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 )
@@ -42,8 +43,8 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, gotErr := compile.NormalizeAttributesWithCopies(g, false)
-			want, wantErr := compile.NormalizeAttributesWithCopies(g, true)
+			got, gotErr := desugar.NormalizeAttributesWithCopies(g, false)
+			want, wantErr := desugar.NormalizeAttributesWithCopies(g, true)
 			if !reflect.DeepEqual(gotErr, wantErr) || !reflect.DeepEqual(got, want) {
 				t.Fatalf("normalization differs: got %#v / %v; want %#v / %v", got, gotErr, want, wantErr)
 			}

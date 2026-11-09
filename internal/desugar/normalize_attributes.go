@@ -1,4 +1,4 @@
-package compile
+package desugar
 
 import (
 	"strings"
@@ -101,7 +101,7 @@ func normalizeItems[T comparable](items []T, eager bool, normalize func(T) T, co
 }
 
 func (n *attributeNormalizer) error(a *grammar.Attribute, message string) {
-	n.errors = append(n.errors, &diag.Error{Pos: a.Diagnostic(), Msg: annotationMarker(a) + a.Name + ": " + message})
+	n.errors = append(n.errors, &diag.Error{Pos: a.Diagnostic(), Msg: AnnotationMarker(a) + a.Name + ": " + message})
 }
 
 func (n *attributeNormalizer) value(value any) (any, bool) {
@@ -465,7 +465,9 @@ func AttributeDiagnosticName(a *grammar.Attribute) string {
 	return value.(*grammar.Literal).Value
 }
 
-func annotationMarker(a *grammar.Attribute) string {
+// AnnotationMarker returns the marker written before the attribute a: "#" for a pragma and "@"
+// otherwise.
+func AnnotationMarker(a *grammar.Attribute) string {
 	if a.Pragma {
 		return "#"
 	}

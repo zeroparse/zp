@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // BytecodeModule is Module.
@@ -644,9 +645,9 @@ func hasRecover(attrs []*grammar.Attribute) bool {
 // label emits the LABEL of @error or @diagnostic.
 func (c *bcompiler) label(a *grammar.Attribute) {
 	if a.Name == "error" {
-		c.emit(bytecode.OpLabel, c.str(AttributeMessage(a)), 0, 0)
+		c.emit(bytecode.OpLabel, c.str(desugar.AttributeMessage(a)), 0, 0)
 	} else {
-		c.emit(bytecode.OpLabel, c.str(AttributeDiagnosticName(a)), 1, 0)
+		c.emit(bytecode.OpLabel, c.str(desugar.AttributeDiagnosticName(a)), 1, 0)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/limits"
@@ -137,7 +138,7 @@ func (prog *Program) closureRule(name string) *core.Rule {
 
 // rule returns the rule name for backend b.
 func (prog *Program) rule(b Backend, name string) (*core.Rule, error) {
-	if err := compile.EntryError(name); err != nil {
+	if err := desugar.EntryError(name); err != nil {
 		return nil, err
 	}
 	if prog.HasMissing && prog.backend(b) != Closure {
@@ -249,7 +250,7 @@ func (prog *Program) Rules() []string {
 		var names []string
 		seen := map[string]bool{}
 		for _, r := range m.Rules {
-			if name := m.Strings[r.Name]; !seen[name] && !compile.HiddenRule(name) { // value-free twins follow the original rules
+			if name := m.Strings[r.Name]; !seen[name] && !desugar.HiddenRule(name) { // value-free twins follow the original rules
 				seen[name] = true
 				names = append(names, name)
 			}
@@ -258,7 +259,7 @@ func (prog *Program) Rules() []string {
 	}
 	names := make([]string, 0, len(prog.RuleList))
 	for _, r := range prog.RuleList {
-		if !compile.HiddenRule(r.Name) {
+		if !desugar.HiddenRule(r.Name) {
 			names = append(names, r.Name)
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // ComplexityClass is the class of the cost of a parse from a start rule (see "Classification" in
@@ -128,9 +129,9 @@ func GrowingBindings(g *grammar.Grammar, start string, control *cancel.Control) 
 // prepareTypedClassifier is prepareClassifier with the value types of the terms of g, which tell
 // a node from a string value. It compiles g, without building matchers, for them, and returns nil
 // if g does not compile.
-func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames) {
+func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
 	control.Check()
-	names := InlineNames{}
+	names := desugar.InlineNames{}
 	prog, err := CompileProgram(g, Options{}, nil, names, control, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
 	if err != nil {
 		return nil, nil
@@ -145,7 +146,7 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Co
 
 // prepareClassifier lowers and normalizes g as the compiler does and returns a classifier of it
 // from start, with the names of the hidden rules of its inline actions.
-func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames, error) {
+func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newViewClassifier)
 }
 
@@ -154,29 +155,29 @@ func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control
 // that check how it compares the alternatives of a choice read the rules as written, since the
 // normal view left-factors alternatives that begin alike (N12) and leaves no shared prefix to
 // compare.
-func prepareBaseClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames, error) {
+func prepareBaseClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newClassifier)
 }
 
-func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *cancel.Control) *classifier) (*classifier, InlineNames, error) {
+func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *cancel.Control) *classifier) (*classifier, desugar.InlineNames, error) {
 	control.Check()
-	names := InlineNames{}
-	if hasInlineAction(g, control) {
-		lowered, errs := lowerInlineActions(g, names, control)
+	names := desugar.InlineNames{}
+	if desugar.HasInlineAction(g, control) {
+		lowered, errs := desugar.LowerInlineActionsControlled(g, names, control)
 		if errs != nil {
 			return nil, nil, errs
 		}
 		g = lowered
 	}
-	g, err := NormalizeAttributesControlled(g, false, control)
+	g, err := desugar.NormalizeAttributesControlled(g, false, control)
 	if err != nil {
 		return nil, nil, err
 	}
-	rules, errs := uniqueRules(g, control)
+	rules, errs := desugar.UniqueRules(g, control)
 	if len(errs) > 0 {
 		return nil, nil, errs
 	}
-	starts, def, errs := resolveStarts(rules, control)
+	starts, def, errs := desugar.ResolveStarts(rules, control)
 	if len(errs) > 0 {
 		return nil, nil, errs
 	}
@@ -207,13 +208,13 @@ func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start strin
 
 // written describes the causes as the grammar is written: a cause in the hidden rule of an inline
 // action is in the rule that holds it, and the messages name the inline action.
-func (c *Complexity) written(names InlineNames) *Complexity {
+func (c *Complexity) written(names desugar.InlineNames) *Complexity {
 	if len(names) == 0 {
 		return c
 	}
 	rule := func(r string) string {
-		if site, ok := names[r]; ok {
-			return site.rule
+		if holder, ok := names.Holder(r); ok {
+			return holder
 		}
 		return r
 	}

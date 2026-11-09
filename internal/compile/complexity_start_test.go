@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -57,7 +58,7 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prog, err := CompileProgram(g, Options{}, nil, InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
+		prog, err := CompileProgram(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -28,7 +29,7 @@ func parseLegacyTest(src string) (*grammar.Grammar, error) {
 // compileStatic compiles g as the engine does, without building matchers; flags, if not nil,
 // replace static analysis and type checking.
 func compileStatic(g *grammar.Grammar, opts Options, flags []RuleFlags) (*Program, error) {
-	names := InlineNames{}
+	names := desugar.InlineNames{}
 	p, err := CompileProgram(g, opts, flags, names, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
 	if err != nil {
 		return nil, names.Rewrite(err)

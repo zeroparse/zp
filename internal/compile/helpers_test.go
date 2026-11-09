@@ -6,6 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -153,7 +154,7 @@ func compileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 			}
 		}
 	}()
-	names := InlineNames{}
+	names := desugar.InlineNames{}
 	prog, err = CompileProgram(g, opts, nil, names, &cancel.Control{Ctx: ctx}, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
 	if err != nil {
 		return nil, names.Rewrite(err)

@@ -25,6 +25,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -579,9 +580,9 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		}
 		n := &core.Label{Body: x, Diagnostic: a.Name == "diagnostic"}
 		if n.Diagnostic {
-			n.Exp = b.exp(compile.AttributeDiagnosticName(a))
+			n.Exp = b.exp(desugar.AttributeDiagnosticName(a))
 		} else {
-			n.Exp = b.exp(compile.AttributeMessage(a))
+			n.Exp = b.exp(desugar.AttributeMessage(a))
 		}
 		// The value of a label is that of its operand: the attributed expression once it recovers.
 		shaped := grammar.Expr(e.Expr)

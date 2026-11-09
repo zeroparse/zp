@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine"
 )
 
@@ -223,7 +224,7 @@ func run(g *grammar.Grammar, start string, opts options, control *lintControl) [
 	control.check()
 	// Each inline action is a rule of its own with its captures and cuts: lint the grammar with
 	// them lowered to hidden rules, and report their findings as the inline actions written.
-	lowered, names, err := engine.LowerInlineActions(g)
+	lowered, names, err := desugar.LowerInlineActions(g)
 	if err != nil {
 		lowered, names = g, nil // a grammar that does not compile is not linted properly
 	}
@@ -293,7 +294,7 @@ func (l *linter) report(check string, sev Severity, pos grammar.Pos, fix, format
 // a finding in the hidden rule of an inline action is in the rule that holds it, a generated name
 // in a message or a suggestion becomes the inline action, and the rule of an inline action is not
 // reported as unreachable apart from the rule that holds it.
-func (l *linter) written(names *engine.InlineActionNames) []Finding {
+func (l *linter) written(names *desugar.InlineActionNames) []Finding {
 	if names == nil {
 		return l.findings
 	}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -26,7 +27,7 @@ func viewBodies(t *testing.T, src string, opts viewOptions) (map[string]string, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err = NormalizeAttributesControlled(g, false, nil)
+	g, err = desugar.NormalizeAttributesControlled(g, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -338,7 +339,7 @@ func TestNormalViewCutKeepsTuple(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err = NormalizeAttributesControlled(g, false, nil)
+			g, err = desugar.NormalizeAttributesControlled(g, false, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
