@@ -1,6 +1,6 @@
 # Run Sites
 
-Arata Furukawa · Last revised 2026-11-08
+Arata Furukawa · Last revised 2026-11-09
 
 This proof covers the records of [run sites](../runtime/parsing.md#run-sites).
 A reused record gives what the rest of the walk would have given, in the
@@ -344,27 +344,27 @@ minimum uses the count $k$. The walk that went on and the walk that took the rec
 result.
 
 It remains that a node a record holds is not changed. The elements are nodes that the repetition made
-for the characters, and a rule changes a node only if the node is marked fresh (`Fresh`) when it
-receives it as the value of its body, to label it or to attach captures; a node that the rule that
-made it may still change is marked final before another holder can see it (as `SkipValue` does for the
-elements of run sites). A walk marks every element final when it stores its record, before any other
+for the characters, and a rule changes a node only if the node is still fresh when it receives it as
+the value of its body, to label it or to attach captures; a node that the rule that made it may still
+change is final before another holder can see it, as the elements of the records of run sites are
+([Run Sites](../runtime/parsing.md#run-sites)). A walk marks every element final when it stores its record, before any other
 walk can reach the record, and a walk that takes a record gets elements that are final already. The
 element of a scan site is never the value of a rule body in any case: a pure scan rule has no capture and
 no action, so the value of the rule is the list node that the walk makes or a node that holds it, never
 one of its elements. The list node is new for each walk (it is the node a rule labels) and holds the
-shared elements as children only. The same holds for the list under `FinishScanList`: the node is made after the elements
+shared elements as children only. The same holds for the list node that a walk of a scan site makes at its end: it is made after the elements
 are marked, and shares nothing else. So the lists of two walks share nodes that nothing changes, and the
 sharing changes no list.
 
 Last, the sharing across [document](../runtime/documents.md) parses. The records are in the tables of
 one parse and are dropped with it; no record is carried to the next parse. What persists is a tree,
-whose lists may share elements. A reused tree is moved in place (`MoveTree`) when an edit comes before
+whose lists may share elements. A reused tree is moved in place when an edit comes before
 it, and a node moves only if its generation is below the current one and takes the current one when it
 moves, so a node that two lists share moves once. Both lists cover the same range, as the walks began
 at one position and ended at one, so the shift that an edit gives to the one is the shift it gives to
 the other (the nodes of a reused result move together; an edit never falls inside the input that a
 reused result examined). The elements are not empty (a character is at least one unit), so none is
-copied by `MoveEmpty`, which would break the sharing, and the write of the moved pointer into the
+copied as an empty node is, which would break the sharing, and the write of the moved pointer into the
 shared slice of children stores the pointer already there. The same sharing of elements between lists
 already happens for the nodes that rule memo entries and the records of run sites share. $\square$
 

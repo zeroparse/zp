@@ -47,8 +47,7 @@ the captures $C'$ in which the next element of a sequence is evaluated, and
 whether a `#cut` that it passed commits the enclosing choice, option or
 repetition (the cut **escapes**). A cut **is loose** in an expression when it
 can escape from it: a cut outside every choice, option, repetition, lookahead
-and rule call within the expression, as `HasLooseCut` in
-`internal/grammaranalysis/success.go` decides.
+and rule call within the expression.
 
 **Scope.** The laws hold for parses that no limit stops (no nesting limit,
 cancellation or compute limit) and that insert no `#missing` tokens, as for
@@ -166,8 +165,8 @@ intersection of the alternatives' bindings) and repetitions (none of the
 element's bindings count after it).
 
 **Used.** Not used. The memo key and the classifier take every variable that
-a rule reads directly or through its callees (`ruleVariables` in
-`internal/compile/analysis.go`).
+a rule reads directly or through its callees
+([Interaction With Memoization](../language/predicates.md#interaction-with-memoization)).
 
 ## Sequences
 
@@ -194,7 +193,7 @@ escaping, the second `a` fails in the same state with the same outcome
 (F4). If a cut escapes before `a` fails, the choice fails at once, as `a`
 alone does. The second attempt at most doubles the cost of the site.
 
-**Used.** `shadowed-alternative`, case 3 (`covers` in `lint/checks.go`).
+**Used.** [`shadowed-alternative`](../runtime/lint.md#shadowed-alternative), case 3.
 
 **Law (C2) Associativity.** `a / (b / c)` $\equiv_O$ `a / b / c` always.
 `(a / b) / c` $\equiv_O$ `a / b / c` when neither `a` nor `b` has a loose
@@ -209,9 +208,10 @@ the inner choice, and `c` is still tried.
 `"a" #cut "b" / "x" / "a" "c"` does not.
 
 **Law (C3) Dead Suffix.** If `a` always succeeds, `a / b` $\equiv_O$ `a`.
-Always succeeding is decided by `AlwaysSucceeds`
-(`internal/grammaranalysis/success.go`), which treats an alternative that
-can fail after a loose cut as not proving success.
+Whether `a` always succeeds is decided as in
+[Left Recursion](../language/parser-expressions.md#left-recursion), where
+success proofs respect cut scopes, so an alternative that can fail after a
+loose cut does not prove success.
 
 **Used.** `shadowed-alternative`, case 1; the left-recursion analysis, which
 leaves out choice suffixes after an alternative that always succeeds
@@ -226,7 +226,7 @@ whose message it records ($\equiv_V$ only).
 `a / b` $\equiv_O$ `a` when every input on which `b` matches begins with
 input on which `a` matches, as for `"=" / "=="`.
 
-**Used.** `shadowed-alternative`, case 2 (`covers`, `matchPrefix`).
+**Used.** `shadowed-alternative`, case 2.
 
 **Law (C6) Left Factoring.** `a b / a c` $\equiv_X$ `a (b / c)` when `a`, `b`
 and `c` have no loose cut. It is $\equiv_O$ when moreover `b` and `c` are each
@@ -281,11 +281,9 @@ cut. A loose cut makes them fail when an iteration fails after it
 ([Cut](../language/parser-expressions.md#cut)): `("a" #cut "b")* "a" "c"`
 rejects `ac`, while `("a" "b")* "a" "c"` accepts it.
 
-**Used.** `AlwaysSucceeds` checks loose cuts for options and repetitions. The
-effect summary of Core IR (`Analyze` in `internal/ir/core/attrs.go`) clears
-the effect "may fail" of every option, every repetition with a minimum of 0
-and every `#recover`, whatever cuts or skips they contain, so it
-under-approximates failure there; nothing reads that effect today.
+**Used.** The success proofs of
+[Left Recursion](../language/parser-expressions.md#left-recursion) check loose
+cuts for options and repetitions.
 
 **Law (R2) Greedy Maximality.** `X* X` $\equiv_E$ `_|_` when `X` cannot match
 without consuming input.
@@ -386,8 +384,8 @@ which exclude `ident = !keyword [a-z]+` after a word `"let" !idchar`.
 `_|_`, and `&X` $\equiv_O$ `_` when `X` makes no capture or binding. If `X`
 never matches, `!X` $\equiv_O$ `_`.
 
-**Used.** `useless-lookahead` and its rewrite (`lint/rewrites.go`), which
-removes such a positive lookahead only where the shape of `X` proves the
+**Used.** [`useless-lookahead`](../runtime/lint.md#useless-lookahead) and its rewrite,
+which removes such a positive lookahead only where the shape of `X` proves the
 condition.
 
 ## First Characters
@@ -397,7 +395,9 @@ and the character $c$ at $p$ is not one of the first characters of `e`, then
 `e` fails at $p$, examining only $c$, and records the failures of its first
 terminals at $p$.
 
-**Used.** `Guards` in `internal/ir/core/passes.go` skips an alternative whose
+**Used.** The choice guards of Core IR
+([Guards and Optimized Forms](../core-ir/invariants.md#guards-and-optimized-forms))
+skip an alternative whose
 first terminal cannot match, recording the expectation of that terminal and
 entering the calls of recursive rules that the evaluation would enter, so
 that the nesting limit is kept ($\equiv_O$).
@@ -411,8 +411,7 @@ continuations may therefore use the intersection with the first character of
 `L` in place of the union.
 
 **Used.** Not used. The classifier takes the first characters of `&L e` as
-the union of those of `L` and `e` (`first` in
-`internal/compile/complexity_chars.go`), which is needed for a lookahead that
+the union of those of `L` and `e`, which is needed for a lookahead that
 examines more than one character.
 
 ## Rule Calls
@@ -657,8 +656,8 @@ the value.
   its elements to the sequence around it; an inlined call (N13) does the same
   with the body of its rule. The view applies them only where the conditions
   above hold, and otherwise keeps the sequence of one item, the choice of one
-  alternative, except one whose alternative has the same value alone
-  (`sameValueBare`), and the call. Dropping the cut is not changing a value, so
+  alternative, except one whose alternative has the same value alone, and the
+  call. Dropping the cut is not changing a value, so
   it applies everywhere. A recovery that V1 drops makes an expression with
   a value that a sequence splices one element; it stays where the conditions
   above do not hold.

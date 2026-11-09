@@ -1,6 +1,6 @@
 # Conditional Laws
 
-Arata Furukawa · Last revised 2026-11-04
+Arata Furukawa · Last revised 2026-11-09
 
 **Status:** Draft.
 
@@ -151,7 +151,8 @@ fixed set; bounding it limits the inputs, as bounded nesting does.
 
 **Condition.** A rule always matches. (C3) and (R1) then hold for its calls.
 
-**Checked:** statically by `AlwaysSucceeds` where the shape proves it, and at
+**Checked:** statically by the success proofs of
+[Left Recursion](../language/parser-expressions.md#left-recursion) where the shape proves it, and at
 run time by failing with a run-time error where a declared rule fails.
 
 **Author cost:** none when the shape proves it.
