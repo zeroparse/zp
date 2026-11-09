@@ -471,3 +471,52 @@ func (g *termGen) structTerm(depth int, s scope) string {
 	}
 	return "R{" + strings.Join(fields, ", ") + "}"
 }
+
+// MemberTermCases returns fixed terms that read every kind of member on the struct types of
+// TermCasesWide: the range of a node, a capture of a node, and each field of R and Inner, set by the
+// constructor or left unset so that it reads as its zero value, alone and as the operand of an
+// operator, an index or len. Unlike the generated cases, each read is sure to occur.
+func MemberTermCases() []TermCase {
+	actions := []struct{ typ, term string }{
+		{"int", "$x.Start"},
+		{"int", "$x.End"},
+		{"int", "$x.End - $x.Start"},
+		{"int", "(R{}).A"},
+		{"string", "(R{}).B"},
+		{"bool", "(R{}).C"},
+		{"[]int", "(R{}).L"},
+		{"int", "len((R{}).L)"},
+		{"(int, string)", "(R{}).T"},
+		{"int", "(R{}).T[0]"},
+		{"string", "(R{}).T[1]"},
+		{"bool", "(R{}).O == nil"},
+		{"Inner", "(R{}).In"},
+		{"int", "(R{}).In.N"},
+		{"int", "(R{A: 7}).A"},
+		{"string", "(R{B: text($x)}).B"},
+		{"[]int", "(R{L: list(1, 2, 3)}).L"},
+		{"int", "(R{L: list($x.Start, 2)}).L[1]"},
+		{"(int, string)", "(R{T: ($x.End, \"t\")}).T"},
+		{"string", "(R{O: \"o\"}).O.(string)"},
+		{"int", "(R{In: Inner{N: $x.End}}).In.N"},
+		{"int", "(Inner{}).N"},
+		{"int", "list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L)"},
+		{"[]int", "map(list(R{}, R{L: list(4)}), (r) => len(r.L))"},
+		{"int", "foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0])"},
+	}
+	var out []TermCase
+	for _, a := range actions {
+		for _, lit := range []string{"a", "😀"} {
+			out = append(out, TermCase{
+				Case: Case{Name: "member: " + a.term,
+					Src: fmt.Sprintf("%srule main %s = x:%q \"b\"? $$ => %s\n", widePrelude, a.typ, lit, a.term), Inputs: []string{lit}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+	}
+	// A capture of a node, matched and unmatched, read directly and by a predicate.
+	capture := widePrelude + "rule main string = x:sub $$ => text($x.$y) + text($x.$z)\nrule sub = y:\"a\" z:\"b\"?\n"
+	out = append(out, TermCase{Case: Case{Name: "member: capture", Src: capture, Inputs: []string{"a", "ab"}},
+		Term: "text($x.$y) + text($x.$z)", Type: "string", Kind: TermAction, Lit: "a"})
+	return out
+}

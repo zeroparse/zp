@@ -77,6 +77,14 @@ func TestTermChargesAcrossTargetsWide(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_wide.golden", "gentest.TermCasesWide, seeds 1 to 12", "Some terms leave struct fields unset.", "termchargeswide", all)
 }
 
+// TestTermChargesMember pins the charges of gentest.MemberTermCases, whose terms read every kind of
+// member, set fields and the zero values of unset lists, tuples, optionals and structs among them, so
+// that a change in how a target reads a member shows as a stated change of the units it charges.
+func TestTermChargesMember(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_member.golden", "gentest.MemberTermCases", "Some terms leave struct fields unset.", "termchargesmember", gentest.MemberTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)
