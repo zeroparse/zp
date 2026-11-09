@@ -3,6 +3,7 @@ package compile
 import (
 	"slices"
 	"sort"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/grammaranalysis"
@@ -10,7 +11,7 @@ import (
 
 // Analysis is the result of static analysis across rules.
 type Analysis struct {
-	Control    *Control
+	Control    *cancel.Control
 	nullable   map[string]bool
 	succeeding map[string]bool
 	// leaders are the rules that break left-recursion cycles. These rules are evaluated with
@@ -38,7 +39,7 @@ func analyze(rules []*grammar.RuleDef) *Analysis {
 // AnalyzeControlled computes the Analysis of rules: the nullable and always-succeeding rules,
 // the left-recursion cycles and their leaders, and the rules that read positions. A non-nil
 // control polls for cancellation.
-func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
+func AnalyzeControlled(rules []*grammar.RuleDef, control *cancel.Control) *Analysis {
 	a := &Analysis{
 		Control:    control,
 		nullable:   map[string]bool{},
@@ -49,16 +50,16 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 	}
 	byName := map[string]*grammar.RuleDef{}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		byName[r.Name] = r
 	}
 
 	// Fixed-point computation of nullability.
 	for changed := true; changed; {
-		control.poll()
+		control.Poll()
 		changed = false
 		for _, r := range rules {
-			control.poll()
+			control.Poll()
 			if !a.nullable[r.Name] && a.isNullable(r.Expr) {
 				a.nullable[r.Name] = true
 				changed = true
@@ -69,11 +70,11 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 	// Propagate variable reads.
 	calls := map[string][]string{}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		calls[r.Name] = allCallsControlled(r.Expr, nil, control)
 	}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		if ruleUsesPositions(r, control) {
 			a.positional[r.Name] = true
 		}
@@ -85,10 +86,10 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 	order := map[string]int{}
 	left := map[string][]string{}
 	for i, r := range rules {
-		control.poll()
+		control.Poll()
 		order[r.Name] = i
 		for _, c := range a.leftCalls(r.Expr, nil) {
-			control.poll()
+			control.Poll()
 			if _, ok := byName[c]; ok {
 				left[r.Name] = append(left[r.Name], c)
 			}
@@ -99,14 +100,14 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 	// removes edges, so there are finitely many refinements.
 	var components [][]string
 	for {
-		control.poll()
+		control.Poll()
 		components = Tarjan(rules, left, control)
 		clear(a.cyclic)
 		for _, scc := range components {
-			control.poll()
+			control.Poll()
 			if len(scc) > 1 || contains(left[scc[0]], scc[0]) {
 				for _, n := range scc {
-					control.poll()
+					control.Poll()
 					a.cyclic[n] = true
 				}
 			}
@@ -114,14 +115,14 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 		if control == nil {
 			a.succeeding = grammaranalysis.SucceedingRules(rules, a.cyclic)
 		} else {
-			a.succeeding = grammaranalysis.SucceedingRulesWithPoll(rules, a.cyclic, control.poll)
+			a.succeeding = grammaranalysis.SucceedingRulesWithPoll(rules, a.cyclic, control.Poll)
 		}
 		next := map[string][]string{}
 		changed := false
 		for _, r := range rules {
-			control.poll()
+			control.Poll()
 			for _, n := range a.leftCalls(r.Expr, nil) {
-				control.poll()
+				control.Poll()
 				if byName[n] != nil {
 					next[r.Name] = append(next[r.Name], n)
 				}
@@ -134,27 +135,27 @@ func AnalyzeControlled(rules []*grammar.RuleDef, control *Control) *Analysis {
 		left = next
 	}
 	for i, scc := range components {
-		control.poll()
+		control.Poll()
 		if len(scc) == 1 && !contains(left[scc[0]], scc[0]) {
 			continue
 		}
 		in := map[string]bool{}
 		for _, n := range scc {
-			control.poll()
+			control.Poll()
 			in[n] = true
 			a.cyclic[n] = true
 			a.cycle[n] = i
 		}
 		// Until every cycle passes through some leader, make the first rule of a found cycle a leader.
 		for {
-			control.poll()
+			control.Poll()
 			cycle := findCycle(scc, left, in, a.leaders, control)
 			if cycle == nil {
 				break
 			}
 			best := cycle[0]
 			for _, n := range cycle {
-				control.poll()
+				control.Poll()
 				if order[n] < order[best] {
 					best = n
 				}
@@ -175,7 +176,7 @@ func contains(xs []string, x string) bool {
 }
 
 func (a *Analysis) isNullable(e grammar.Expr) bool {
-	a.Control.poll()
+	a.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		return a.nullable[e.Name]
@@ -222,7 +223,7 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 
 // leftCalls returns the rules that may be called before any input is consumed.
 func (a *Analysis) leftCalls(e grammar.Expr, acc []string) []string {
-	a.Control.poll()
+	a.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		return append(acc, e.Name)
@@ -293,9 +294,9 @@ func AllCalls(e grammar.Expr, acc []string) []string {
 	return allCallsControlled(e, acc, nil)
 }
 
-func allCallsControlled(e grammar.Expr, acc []string, control *Control) []string {
+func allCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) []string {
 	walkExprControlled(e, func(x grammar.Expr) {
-		control.poll()
+		control.Poll()
 		if r, ok := x.(*grammar.Ref); ok {
 			acc = append(acc, r.Name)
 		}
@@ -312,13 +313,13 @@ func ruleVariables(rules []*grammar.RuleDef) map[string][]string {
 	return ruleVariablesControlled(rules, nil)
 }
 
-func ruleVariablesControlled(rules []*grammar.RuleDef, control *Control) map[string][]string {
+func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) map[string][]string {
 	direct := map[string]map[string]bool{}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		var set map[string]bool
 		walkRuleTermsControlled(r, func(t grammar.Term) {
-			control.poll()
+			control.Poll()
 			if v, ok := t.(*grammar.VarRef); ok {
 				if set == nil {
 					set = map[string]bool{}
@@ -340,7 +341,7 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *Control) map[str
 	}
 	calls := make(map[string][]string, len(rules))
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		calls[r.Name] = allCallsControlled(r.Expr, nil, control)
 	}
 	// Tarjan emits callees before their callers. Every rule in a recursive
@@ -348,20 +349,20 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *Control) map[str
 	// A worklist repeatedly copying evolving sets is costly when many peers
 	// introduce different variables, including in long acyclic chains.
 	for _, component := range Tarjan(rules, calls, control) {
-		control.poll()
+		control.Poll()
 		all := map[string]bool{}
 		for _, name := range component {
-			control.poll()
+			control.Poll()
 			for v := range direct[name] {
-				control.poll()
+				control.Poll()
 				all[v] = true
 			}
 			for _, callee := range calls[name] {
-				control.poll()
+				control.Poll()
 				// Internal edges have no published result yet; direct peer reads
 				// above already account for them. Missing rules contribute nothing.
 				for _, v := range out[callee] {
-					control.poll()
+					control.Poll()
 					all[v] = true
 				}
 			}
@@ -371,14 +372,14 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *Control) map[str
 		}
 		names := make([]string, 0, len(all))
 		for v := range all {
-			control.poll()
+			control.Poll()
 			names = append(names, v)
 		}
 		sort.Strings(names)
 		// Rule metadata only reads these sorted keys. Share the immutable
 		// result within the component, rather than allocating it per peer.
 		for _, name := range component {
-			control.poll()
+			control.Poll()
 			out[name] = names
 		}
 	}
@@ -386,12 +387,12 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *Control) map[str
 }
 
 // walkExpr visits the expression and its subexpressions in preorder.
-func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *Control) {
+func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Control) {
 	if control == nil {
 		WalkExpr(e, f)
 		return
 	}
-	control.poll()
+	control.Poll()
 	if e == nil {
 		return
 	}
@@ -431,8 +432,8 @@ func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *Control) 
 	case *grammar.Attributed:
 		walkExprControlled(e.Expr, f, control)
 		for _, at := range e.Attrs {
-			control.poll()
-			for _, arg := range control.expressionArgs(at) {
+			control.Poll()
+			for _, arg := range expressionArgs(control, at) {
 				walkExprControlled(arg, f, control)
 			}
 		}
@@ -442,7 +443,7 @@ func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *Control) 
 			walkExprControlled(o.Expr, f, control)
 		}
 		for _, l := range e.Levels {
-			control.poll()
+			control.Poll()
 			for _, op := range l.Operators {
 				walkExprControlled(op.Expr, f, control)
 			}
@@ -501,7 +502,7 @@ func WalkTerm(t grammar.Term, f func(grammar.Term)) {
 // Tarjan returns the strongly connected components of the graph of edges, starting from the
 // rules in order. A component comes after every component it reaches, so callees come before
 // their callers. A non-nil control polls for cancellation.
-func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *Control) [][]string {
+func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *cancel.Control) [][]string {
 	index := map[string]int{}
 	low := map[string]int{}
 	onStack := map[string]bool{}
@@ -510,14 +511,14 @@ func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *Contro
 	next := 0
 	var visit func(v string)
 	visit = func(v string) {
-		control.poll()
+		control.Poll()
 		index[v] = next
 		low[v] = next
 		next++
 		stack = append(stack, v)
 		onStack[v] = true
 		for _, w := range edges[v] {
-			control.poll()
+			control.Poll()
 			if _, seen := index[w]; !seen {
 				visit(w)
 				low[v] = min(low[v], low[w])
@@ -528,7 +529,7 @@ func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *Contro
 		if low[v] == index[v] {
 			var scc []string
 			for {
-				control.poll()
+				control.Poll()
 				w := stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
 				onStack[w] = false
@@ -541,7 +542,7 @@ func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *Contro
 		}
 	}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		if _, seen := index[r.Name]; !seen {
 			visit(r.Name)
 		}
@@ -549,23 +550,23 @@ func Tarjan(rules []*grammar.RuleDef, edges map[string][]string, control *Contro
 	return sccs
 }
 
-func findCycle(scc []string, edges map[string][]string, in, leaders map[string]bool, control *Control) []string {
+func findCycle(scc []string, edges map[string][]string, in, leaders map[string]bool, control *cancel.Control) []string {
 	state := map[string]int{} // 0: unvisited, 1: in progress, 2: done
 	var path []string
 	var found []string
 	var visit func(v string) bool
 	visit = func(v string) bool {
-		control.poll()
+		control.Poll()
 		state[v] = 1
 		path = append(path, v)
 		for _, w := range edges[v] {
-			control.poll()
+			control.Poll()
 			if !in[w] || leaders[w] {
 				continue
 			}
 			if state[w] == 1 {
 				for i, p := range path {
-					control.poll()
+					control.Poll()
 					if p == w {
 						found = append([]string(nil), path[i:]...)
 						return true
@@ -581,7 +582,7 @@ func findCycle(scc []string, edges map[string][]string, in, leaders map[string]b
 		return false
 	}
 	for _, v := range scc {
-		control.poll()
+		control.Poll()
 		if !leaders[v] && state[v] == 0 && visit(v) {
 			return found
 		}
@@ -594,11 +595,11 @@ func findCycle(scc []string, edges map[string][]string, in, leaders map[string]b
 // Recoveries and calls inside lookaheads and Operators Rule skips do not count, since their values
 // do not reach the rule's value and their ends discard the recovered errors; nor does #missing,
 // which a lookahead disables.
-func recoveringRules(rules []*grammar.RuleDef, control *Control) map[string]string {
+func recoveringRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]string {
 	witness := map[string]string{}
 	calls := map[string][]string{}
 	for _, r := range rules {
-		control.poll()
+		control.Poll()
 		direct, cs := valueRecovery(r.Expr, control)
 		if direct {
 			witness[r.Name] = r.Name
@@ -606,10 +607,10 @@ func recoveringRules(rules []*grammar.RuleDef, control *Control) map[string]stri
 		calls[r.Name] = cs
 	}
 	for changed := true; changed; {
-		control.poll()
+		control.Poll()
 		changed = false
 		for _, r := range rules {
-			control.poll()
+			control.Poll()
 			if witness[r.Name] != "" {
 				continue
 			}
@@ -627,7 +628,7 @@ func recoveringRules(rules []*grammar.RuleDef, control *Control) map[string]stri
 
 // valueRecovery reports whether e has a #recover outside lookaheads and Operators Rule skips, and
 // returns the rules that it calls outside them (recoveringRules).
-func valueRecovery(e grammar.Expr, control *Control) (bool, []string) {
+func valueRecovery(e grammar.Expr, control *cancel.Control) (bool, []string) {
 	silent := map[grammar.Expr]bool{}
 	mark := func(x grammar.Expr) {
 		walkExprControlled(x, func(y grammar.Expr) { silent[y] = true }, control)
@@ -660,17 +661,17 @@ func valueRecovery(e grammar.Expr, control *Control) (bool, []string) {
 	return found, calls
 }
 
-func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[string]bool, control *Control) {
+func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[string]bool, control *cancel.Control) {
 	for changed := true; changed; {
-		control.poll()
+		control.Poll()
 		changed = false
 		for _, r := range rules {
-			control.poll()
+			control.Poll()
 			if set[r.Name] {
 				continue
 			}
 			for _, c := range calls[r.Name] {
-				control.poll()
+				control.Poll()
 				if set[c] {
 					set[r.Name] = true
 					changed = true
@@ -682,8 +683,8 @@ func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[stri
 }
 
 // walkRuleTermsControlled is walkRuleTerms polling control for cancellation.
-func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *Control) {
-	control.poll()
+func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *cancel.Control) {
+	control.Poll()
 	WalkTerm(r.Action, f)
 	walkExprControlled(r.Expr, func(e grammar.Expr) {
 		switch e := e.(type) {
@@ -691,13 +692,13 @@ func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *
 			WalkTerm(e.Term, f)
 		case *grammar.OperatorsRule:
 			for _, o := range e.Operands {
-				control.poll()
+				control.Poll()
 				WalkTerm(o.Action, f)
 			}
 			for _, l := range e.Levels {
-				control.poll()
+				control.Poll()
 				for _, op := range l.Operators {
-					control.poll()
+					control.Poll()
 					WalkTerm(op.Action, f)
 				}
 			}
@@ -705,10 +706,10 @@ func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *
 	}, control)
 }
 
-func ruleUsesPositions(r *grammar.RuleDef, control *Control) bool {
+func ruleUsesPositions(r *grammar.RuleDef, control *cancel.Control) bool {
 	found := false
 	walkRuleTermsControlled(r, func(x grammar.Term) {
-		control.poll()
+		control.Poll()
 		if m, ok := x.(*grammar.Member); ok && (m.Name == "Start" || m.Name == "End") {
 			found = true
 		}
@@ -721,7 +722,7 @@ func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
 	if a.Control == nil {
 		return grammaranalysis.AlwaysSucceeds(e, a.succeeding)
 	}
-	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.succeeding, a.Control.poll)
+	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.succeeding, a.Control.Poll)
 }
 
 // WalkExpr visits the expression and its subexpressions in preorder, including the expression

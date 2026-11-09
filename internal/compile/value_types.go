@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -396,7 +398,7 @@ type valueElem struct {
 // references are computed together as the least fixed point of their values.
 type ValueInference struct {
 	Prog    *Program
-	control *Control
+	control *cancel.Control
 	Rules   map[string]*grammar.RuleDef
 	Out     map[string]Ty
 	// cycle maps each rule that refers to itself, directly or through other rules, to the rules
@@ -407,7 +409,7 @@ type ValueInference struct {
 	// Computing holds the rules outside cycles that are being computed.
 	Computing map[string]bool
 	// errs holds the type errors of the rule being computed, and final those of computed rules.
-	errs, final ErrorList
+	errs, final diag.ErrorList
 	Quiet       bool // while a lambda body is typed again with a wider parameter type
 	Rule        *grammar.RuleDef
 	// spliced holds the splice rules whose bodies are being expanded; a call inside them is an
@@ -479,7 +481,7 @@ func (p *Program) ValueType(name string) (string, bool) {
 }
 
 // valueErrors returns the errors of actions in the value model of a type-checked program.
-func (p *Program) valueErrors() ErrorList {
+func (p *Program) valueErrors() diag.ErrorList {
 	if p.ValueTypes() == nil {
 		return nil
 	}
@@ -487,13 +489,13 @@ func (p *Program) valueErrors() ErrorList {
 }
 
 // ValueTypes returns the value type of each rule, and the errors of the actions.
-func ValueTypes(p *Program, control *Control) (map[string]Ty, ErrorList) {
+func ValueTypes(p *Program, control *cancel.Control) (map[string]Ty, diag.ErrorList) {
 	return valueTypesChecked(p, control, nil, nil)
 }
 
 // valueTypesChecked is valueTypes recording the node member accesses in nodeMembers and the
 // types of the program's parts in rec, each if not nil.
-func valueTypesChecked(p *Program, control *Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, ErrorList) {
+func valueTypesChecked(p *Program, control *cancel.Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, diag.ErrorList) {
 	v := &ValueInference{Prog: p, control: control, Rules: map[string]*grammar.RuleDef{}, Out: map[string]Ty{}, Approx: map[string]Ty{}, Computing: map[string]bool{}, nodeMembers: nodeMembers, rec: rec}
 	rules := p.Grammar.Rules()
 	for _, rd := range rules {
@@ -501,7 +503,7 @@ func valueTypesChecked(p *Program, control *Control, nodeMembers map[*grammar.Me
 	}
 	v.cycle = ruleCycles(rules, v.Rules, control)
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		v.ruleValue(rd.Name)
 	}
 	if rec != nil {
@@ -621,12 +623,12 @@ func mapTy(t Ty, f func(Ty) (Ty, bool)) Ty {
 // ruleCycles returns the strongly connected components of the references between rules that
 // have a cycle, for each of their rules. The value of a rule can only depend on the rules it
 // refers to, directly or through other rules, since a rule type comes from a reference.
-func ruleCycles(rules []*grammar.RuleDef, byName map[string]*grammar.RuleDef, control *Control) map[string][]string {
+func ruleCycles(rules []*grammar.RuleDef, byName map[string]*grammar.RuleDef, control *cancel.Control) map[string][]string {
 	refs := map[string][]string{}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		walkExprControlled(rd.Expr, func(e grammar.Expr) {
-			control.poll()
+			control.Poll()
 			if r, ok := e.(*grammar.Ref); ok && byName[r.Name] != nil {
 				refs[rd.Name] = append(refs[rd.Name], r.Name)
 			}
@@ -639,7 +641,7 @@ func ruleCycles(rules []*grammar.RuleDef, byName map[string]*grammar.RuleDef, co
 	out := map[string][]string{}
 	var visit func(n string)
 	visit = func(n string) {
-		control.poll()
+		control.Poll()
 		index[n], low[n] = len(index), len(index)
 		stack = append(stack, n)
 		onStack[n] = true
@@ -716,7 +718,7 @@ func (v *ValueInference) ruleValue(name string) Ty {
 	for _, m := range cycle {
 		v.Approx[m] = TyBottom
 	}
-	var mine ErrorList
+	var mine diag.ErrorList
 	for round := 0; ; round++ {
 		next := make(map[string]Ty, len(cycle))
 		mine = nil
@@ -802,7 +804,7 @@ func (v *ValueInference) ruleDef(rd *grammar.RuleDef) Ty {
 // element with a scope of its own, and the body of an inline action, see their own captures before
 // those of the enclosing scope.
 func (v *ValueInference) predicates(e grammar.Expr, env *valueEnv) {
-	v.control.poll()
+	v.control.Poll()
 	inner := func(body grammar.Expr) *valueEnv {
 		caps := tupleNode(v.elems(body)).Caps
 		v.scope(body, caps)
@@ -862,8 +864,8 @@ func (v *ValueInference) predicates(e grammar.Expr, env *valueEnv) {
 		v.predicates(e.Expr, env)
 		// An expression argument, such as the skip expression of #recover, is a scope of its own.
 		for _, a := range e.Attrs {
-			v.control.poll()
-			for _, arg := range v.control.expressionArgs(a) {
+			v.control.Poll()
+			for _, arg := range expressionArgs(v.control, a) {
 				v.predicates(arg, &valueEnv{caps: tupleNode(v.elems(arg)).Caps})
 			}
 		}
@@ -970,7 +972,7 @@ func (v *ValueInference) isSeq(e grammar.Expr) bool {
 
 // elems returns the elements e contributes to the tuple of its scope.
 func (v *ValueInference) elems(e grammar.Expr) []valueElem {
-	v.control.poll()
+	v.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Group:
 		return v.elems(e.Expr)
@@ -1127,7 +1129,7 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 // operand is: no value (a lookahead, a discard, a predicate), *_|_ (an optional, which matches the
 // empty input), []_|_ (a repetition that may match no element), a match.
 func (v *ValueInference) bottom(e grammar.Expr) bool {
-	v.control.poll()
+	v.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Bottom:
 		return true
@@ -1169,7 +1171,7 @@ func (v *ValueInference) bottomRule(name string) bool {
 // with the others, as the greatest set of rules whose bodies have the type _|_ when the calls of
 // the rules of the set do: a rule that only calls itself, as r = "a" r, never matches. The set is
 // computed once, from the rules that the program has when it is first asked.
-func (p *Program) bottomRules(control *Control) map[string]bool {
+func (p *Program) bottomRules(control *cancel.Control) map[string]bool {
 	if p == nil {
 		return nil
 	}
@@ -1369,7 +1371,7 @@ func (v *ValueInference) operatorsLines(rd *grammar.RuleDef, pr *grammar.Operato
 	}
 	for _, l := range pr.Levels {
 		for _, o := range l.Operators {
-			v.control.poll()
+			v.control.Poll()
 			op, ok := v.single(o.Expr)
 			if !ok {
 				op = valueElem{t: NodeTy{Value: TupleTy{Elems: []Ty{}}}}

@@ -2,6 +2,7 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
@@ -33,12 +34,12 @@ import (
 
 // markSkipSites numbers the skip-run sites of the program from 1, in the order of the rules and of
 // the expressions in them.
-func (prog *Program) markSkipSites(control *Control) {
+func (prog *Program) markSkipSites(control *cancel.Control) {
 	defs := make([]*grammar.RuleDef, 0, len(prog.RuleList))
 	calls := map[string][]string{}
 	recovers, recursive := map[string]bool{}, map[string]bool{}
 	for _, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		defs = append(defs, r.Def)
 		calls[r.Name] = allCallsControlled(r.Def.Expr, nil, control)
 		if r.Leader || r.Member {
@@ -97,7 +98,7 @@ func (prog *Program) markSkipSites(control *Control) {
 	}
 	prog.skipSites, prog.inSite = map[*grammar.Repeat]int{}, map[*grammar.Repeat]bool{}
 	for _, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			if skip := skipOf(x); skip != nil {
 				mark(skip)

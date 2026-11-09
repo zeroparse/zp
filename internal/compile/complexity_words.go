@@ -51,7 +51,7 @@ func (k *classifier) unitWords(u []*cont) ([]word, bool) {
 	var visit func(p *cont)
 	visit = func(p *cont) {
 		for ok {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 || p == nil || len(words) > leadMax {
 				ok = false
@@ -178,7 +178,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) 
 	var visit func(p *cont, at int)
 	visit = func(p *cont, at int) {
 		for !live {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 {
 				live = true

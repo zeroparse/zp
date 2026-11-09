@@ -249,7 +249,7 @@ func (k *classifier) consumesNothing(e grammar.Expr) bool {
 }
 
 func (k *classifier) walk(e grammar.Expr, c wctx) {
-	k.control.poll()
+	k.control.Poll()
 	switch e.(type) {
 	case *grammar.Seq, *grammar.Choice, *grammar.Group, *grammar.Optional, *grammar.Capture, *grammar.Discard,
 		*grammar.Atomic, *grammar.Ref, *grammar.Predicate:
@@ -753,7 +753,7 @@ func (k *classifier) firstItems(items []grammar.Expr) (charset, bool) {
 func (k *classifier) firstCont(c *cont, follow func(string) charset, ends map[string]bool) charset {
 	var s charset
 	for c != nil {
-		k.control.poll()
+		k.control.Poll()
 		t, null := k.firstItems(c.items)
 		s = s.union(t)
 		if !null {
@@ -814,7 +814,7 @@ func (k *classifier) followSets(keep func(*site) bool) map[string]charset {
 	for changed := true; changed; {
 		changed = false
 		for callee, cs := range byCallee {
-			k.control.poll()
+			k.control.Poll()
 			s := out[callee]
 			for _, c := range cs {
 				s = s.union(c.static)
@@ -902,7 +902,7 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 	var visit func(p *cont, up bool)
 	visit = func(p *cont, up bool) {
 		for {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 || len(out) > leadMax {
 				out = append(out, lead{})
@@ -1077,7 +1077,7 @@ func (k *classifier) nestsAt(s *site) bool {
 // endsEmpty reports whether the path c can reach its end without consuming input.
 func (k *classifier) endsEmpty(c *cont) bool {
 	for ; c != nil; c = c.next {
-		k.control.poll()
+		k.control.Poll()
 		if _, null := k.firstItems(c.items); !null {
 			return false
 		}
@@ -1375,7 +1375,7 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
 		for {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 || p == nil || len(p.items) == 0 {
 				ok = false
@@ -1578,7 +1578,7 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
 		for ok {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 || depth > len(k.rules) {
 				ok = false
@@ -1674,7 +1674,7 @@ func (k *classifier) checkGrowth() {
 				degreeText(ClassPoly, 2), s, r.Name)
 		}
 		visit = func(e grammar.Expr) bool {
-			k.control.poll()
+			k.control.Poll()
 			switch e := e.(type) {
 			case *grammar.Ref:
 				if k.byName[e.Name] == nil {
@@ -1827,7 +1827,7 @@ func (k *classifier) checkNesting() {
 	unbounded := map[*unit]bool{}
 	var dfs func(u *unit) bool
 	dfs = func(u *unit) bool {
-		k.control.poll()
+		k.control.Poll()
 		switch state[u] {
 		case 1:
 			return true

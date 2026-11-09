@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 	"weak"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -36,34 +37,34 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 	}
 	for _, phase := range []struct {
 		name string
-		run  func(*compile.Control)
+		run  func(*cancel.Control)
 	}{
-		{"descriptor", func(c *compile.Control) { compile.CharClassStringControlled(cl, c) }},
-		{"copy", func(c *compile.Control) { compile.CopyClassRanges(cl.Ranges, c) }},
-		{"bitmap", func(c *compile.Control) { compile.ClassASCII(cl.Ranges, false, c) }},
-		{"accept-construction", func(c *compile.Control) { closure.ClassAcceptControlled(cl, c) }},
-		{"matcher", func(c *compile.Control) {
+		{"descriptor", func(c *cancel.Control) { compile.CharClassStringControlled(cl, c) }},
+		{"copy", func(c *cancel.Control) { compile.CopyClassRanges(cl.Ranges, c) }},
+		{"bitmap", func(c *cancel.Control) { compile.ClassASCII(cl.Ranges, false, c) }},
+		{"accept-construction", func(c *cancel.Control) { closure.ClassAcceptControlled(cl, c) }},
+		{"matcher", func(c *cancel.Control) {
 			newClosureWalker(&compile.Compiler{Control: c}, false).Expr(cl, compile.NewScope(), true)
 		}},
-		{"choice-guard", func(c *compile.Control) {
+		{"choice-guard", func(c *cancel.Control) {
 			closure.NewBuilder(&compile.Compiler{Control: c}, false).Guard(compile.First{Term: cl})
 		}},
-		{"scan-repeat", func(c *compile.Control) {
+		{"scan-repeat", func(c *cancel.Control) {
 			closure.NewBuilder(&compile.Compiler{Control: c}, false).ScanRepeat(&grammar.Repeat{Expr: cl, Max: -1}, 0, 0)
 		}},
-		{"guard-extraction", func(c *compile.Control) {
+		{"guard-extraction", func(c *cancel.Control) {
 			compile.FirstTerminalControlled(&compile.Program{}, deep, 0, map[string]bool{}, c)
 		}},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
-			c := &compile.Control{Ctx: compileTestContext(t, 1)}
+			c := &cancel.Control{Ctx: compileTestContext(t, 1)}
 			defer func() {
 				failure := recover()
-				stop, ok := failure.(compile.Cancellation)
+				stop, ok := failure.(cancel.Cancellation)
 				if !ok || !errors.Is(stop.Err, context.Canceled) {
 					t.Fatalf("class phase did not cancel internally: %v", failure)
 				}
-				if c.Steps != compile.PollStride {
+				if c.Steps != cancel.PollStride {
 					t.Fatalf("poll outside class traversal: %d", c.Steps)
 				}
 				if !reflect.DeepEqual(before, cl.Ranges) {
@@ -82,7 +83,7 @@ func TestClassConstructionContextFacts(t *testing.T) {
 		for _, neg := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%d/%t", i, neg), func(t *testing.T) {
 				cl := &grammar.CharClass{Ranges: rs, Negated: neg}
-				c := &compile.Control{Ctx: context.Background()}
+				c := &cancel.Control{Ctx: context.Background()}
 				if got := compile.CharClassStringControlled(cl, c); got != compile.CharClassString(cl) {
 					t.Fatalf("descriptor %s", got)
 				}
@@ -115,12 +116,12 @@ func TestClassConstructionContextFacts(t *testing.T) {
 		}
 	}
 	cl := &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: '-', Hi: '-'}, {Lo: '[', Hi: '['}, {Lo: ']', Hi: ']'}, {Lo: '^', Hi: '^'}, {Lo: '\\', Hi: '\\'}}}
-	if got := compile.CharClassStringControlled(cl, &compile.Control{Ctx: context.Background()}); got != `[\-\[\]\^\\]` {
+	if got := compile.CharClassStringControlled(cl, &cancel.Control{Ctx: context.Background()}); got != `[\-\[\]\^\\]` {
 		t.Fatalf("escaped descriptor %q", got)
 	}
 	rs := contextClassRanges()
 	cl = &grammar.CharClass{Ranges: rs}
-	accept := closure.ClassAcceptControlled(cl, &compile.Control{Ctx: context.Background()})
+	accept := closure.ClassAcceptControlled(cl, &cancel.Control{Ctx: context.Background()})
 	rs[0] = grammar.CharRange{Lo: 'a', Hi: 'a'}
 	if !accept(&core.Parser{}, 256) || accept(&core.Parser{}, 'a') {
 		t.Fatal("matcher aliases source range slice")

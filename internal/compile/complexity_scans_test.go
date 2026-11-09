@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/starttest"
@@ -257,7 +258,7 @@ func TestScanWork(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c := &Control{Ctx: compileTestContext(t, 1<<26/PollStride)}
+		c := &cancel.Control{Ctx: compileTestContext(t, 1<<26/cancel.PollStride)}
 		if _, err := ClassifyComplexity(starttest.MarkAll(g), "", c); err != nil {
 			t.Fatalf("after %d steps: %v", c.Steps, err)
 		}

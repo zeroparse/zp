@@ -2,6 +2,7 @@ package compile
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
@@ -9,10 +10,10 @@ import (
 
 // markMissingRules records transitive insertion dependencies before matchers or
 // value-free twins are compiled. Unrelated rules retain completed memo reuse.
-func (prog *Program) markMissingRules(control *Control) {
+func (prog *Program) markMissingRules(control *cancel.Control) {
 	var usesMissingType func(grammar.TypeExpr) bool
 	usesMissingType = func(t grammar.TypeExpr) bool {
-		control.poll()
+		control.Poll()
 		switch t := t.(type) {
 		case *grammar.TypeRef:
 			return t.Name == value.TypeMissing
@@ -55,7 +56,7 @@ func (prog *Program) markMissingRules(control *Control) {
 		}
 		return false
 	}
-	for _, td := range control.types(prog.Grammar) {
+	for _, td := range control.Types(prog.Grammar) {
 		switch t := td.(type) {
 		case *grammar.TypeDef:
 			for _, f := range DefFields(t) {
@@ -75,7 +76,7 @@ func (prog *Program) markMissingRules(control *Control) {
 			prog.HasMissing = true
 		}
 		walkExprControlled(r.Def.Expr, func(e grammar.Expr) {
-			control.poll()
+			control.Poll()
 			switch e := e.(type) {
 			case *grammar.Attributed:
 				for _, a := range e.Attrs {
@@ -92,12 +93,12 @@ func (prog *Program) markMissingRules(control *Control) {
 	for changed := true; changed; {
 		changed = false
 		for _, r := range prog.RuleList {
-			control.poll()
+			control.Poll()
 			if r.Missing {
 				continue
 			}
 			for _, name := range refs[r] {
-				control.poll()
+				control.Poll()
 				if callee := prog.ByName[name]; callee != nil && callee.Missing {
 					r.Missing = true
 					changed = true

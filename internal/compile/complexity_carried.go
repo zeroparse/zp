@@ -84,7 +84,7 @@ func (k *classifier) carryPaths(r, s string, cycle int) (paths []*cont, ok bool)
 	var visit func(p *cont, depth int)
 	visit = func(p *cont, depth int) {
 		for {
-			k.control.poll()
+			k.control.Poll()
 			budget--
 			if budget < 0 {
 				ok = false

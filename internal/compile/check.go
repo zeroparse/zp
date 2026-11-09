@@ -2,6 +2,8 @@ package compile
 
 import (
 	"sync"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -9,7 +11,7 @@ import (
 // dropRepeatedErrors removes the errors after the first from that repeat an earlier one at the same
 // position. A type is resolved wherever it is used, so an undefined name inside an alias would be
 // reported once per use of the alias.
-func dropRepeatedErrors(errs *ErrorList, from int) {
+func dropRepeatedErrors(errs *diag.ErrorList, from int) {
 	type key struct {
 		pos grammar.Pos
 		msg string
@@ -27,19 +29,19 @@ func dropRepeatedErrors(errs *ErrorList, from int) {
 }
 
 // CheckTypes checks the types of the whole grammar.
-func CheckTypes(prog *Program, errs *ErrorList) {
+func CheckTypes(prog *Program, errs *diag.ErrorList) {
 	CheckTypesControlled(prog, errs, nil)
 }
 
 // CheckTypesControlled is CheckTypes polling control for cancellation; a nil control never
 // cancels.
-func CheckTypesControlled(prog *Program, errs *ErrorList, control *Control) {
+func CheckTypesControlled(prog *Program, errs *diag.ErrorList, control *cancel.Control) {
 	defer dropRepeatedErrors(errs, len(*errs))
 	k := &TypeResolver{control: control, Prog: prog, errs: errs, report: true}
 	k.checkTypeDefinitions()
-	rules := control.rules(prog.Grammar)
+	rules := control.Rules(prog.Grammar)
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		if rd.Type != nil {
 			k.resolveLocation(rd.Type, rd.Diagnostic(), "rule "+rd.Name)
 		}
@@ -55,12 +57,12 @@ func CheckTypesControlled(prog *Program, errs *ErrorList, control *Control) {
 	info.valuesOnce.Do(func() {})
 	info.shown = shownRuleTypes(prog, rules, values, control)
 	k.report = false
-	for _, td := range control.types(prog.Grammar) {
-		control.poll()
+	for _, td := range control.Types(prog.Grammar) {
+		control.Poll()
 		switch spec := td.(type) {
 		case *grammar.TypeDef:
 			for _, f := range DefFields(spec) {
-				control.poll()
+				control.Poll()
 				info.Fields[td.DeclName()] = append(info.Fields[td.DeclName()], typedField{f.Name, k.Resolve(f.Type)})
 			}
 		case *grammar.TypeAlias:
@@ -74,8 +76,8 @@ func CheckTypesControlled(prog *Program, errs *ErrorList, control *Control) {
 type TypeInfo struct {
 	// Values holds the type of each rule's value in the value model (Program.ValueTypes).
 	Values     map[string]Ty
-	valueErrs  ErrorList     // the errors of actions in the value model
-	shown      map[string]Ty // the type of each rule as RuleType shows it (shownRuleTypes)
+	valueErrs  diag.ErrorList // the errors of actions in the value model
+	shown      map[string]Ty  // the type of each rule as RuleType shows it (shownRuleTypes)
 	valuesOnce sync.Once
 	Fields     map[string][]typedField // the fields of each struct type, in declaration order
 	Aliases    map[string]Ty           // the type each alias stands for

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/grammaranalysis"
@@ -73,7 +74,7 @@ type normalView struct {
 	// cheap are the rules whose calls evaluated again cost at most a constant factor of their first
 	// evaluation (cheapRules).
 	cheap   map[string]bool
-	control *Control
+	control *cancel.Control
 	// applied counts the rewrites by rule.
 	applied map[viewRule]int
 	// orig are the expressions of the rules, and text gives, for an expression that the view builds,
@@ -104,7 +105,7 @@ type view struct {
 // normalizeRules returns the view of rules. The rules that no rewrite changes are returned as they
 // are. memo is the memoization of the grammar
 // (memoizedRules) and an its analysis, which the view does not change.
-func normalizeRules(rules []*grammar.RuleDef, an *Analysis, memo map[string]bool, opts viewOptions, control *Control) *view {
+func normalizeRules(rules []*grammar.RuleDef, an *Analysis, memo map[string]bool, opts viewOptions, control *cancel.Control) *view {
 	v := &normalView{opts: opts, an: an, memo: memo, orig: map[grammar.Expr]bool{}, text: map[grammar.Expr]string{},
 		byName: map[string]*grammar.RuleDef{}, inlined: map[string]grammar.Expr{}, inlining: map[string]bool{},
 		control: control, applied: map[viewRule]int{}}
@@ -184,7 +185,7 @@ func (v *normalView) textOfAll(es []grammar.Expr, sep string) string {
 }
 
 func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
-	v.control.poll()
+	v.control.Poll()
 	switch x := e.(type) {
 	case *grammar.Group:
 		v.count(ruleN1)
@@ -1114,7 +1115,7 @@ func (v *normalView) cheapRules(rules []*grammar.RuleDef) {
 	for changed := true; changed; {
 		changed = false
 		for _, r := range rules {
-			v.control.poll()
+			v.control.Poll()
 			if !v.cheap[r.Name] && !v.an.cyclic[r.Name] && r.Action == nil && v.evaluatedAgainCheaply(r.Expr) {
 				v.cheap[r.Name], changed = true, true
 			}
@@ -1205,8 +1206,8 @@ func exprSource(e grammar.Expr) grammar.SourceInfo {
 // what a parse matches and where it ends (≡E), which is what an analysis of matching, such as the
 // exclusion of alternatives, needs. Without matching it is the view that the complexity
 // classifier reads. g must compile.
-func NormalView(g *grammar.Grammar, matching bool, control *Control) (*grammar.Grammar, error) {
-	control.check()
+func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*grammar.Grammar, error) {
+	control.Check()
 	if hasInlineAction(g, control) {
 		lowered, errs := lowerInlineActions(g, InlineNames{}, control)
 		if errs != nil {

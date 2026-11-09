@@ -6,6 +6,8 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -76,10 +78,10 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
-			control := &compile.Control{Ctx: ctx}
+			control := &cancel.Control{Ctx: ctx}
 			defer func() {
 				failure := recover()
-				cancelled, ok := failure.(compile.Cancellation)
+				cancelled, ok := failure.(cancel.Cancellation)
 				if !ok || !errors.Is(cancelled.Err, context.Canceled) {
 					t.Fatalf("unexpected unwind: %v", failure)
 				}
@@ -112,7 +114,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				}
 				compile.Tarjan(g.Rules(), edges, control)
 			case "type-checking":
-				var diagnostics compile.ErrorList
+				var diagnostics diag.ErrorList
 				compile.CheckTypesControlled(p.Static(), &diagnostics, control)
 			case "type-inference":
 				compile.ValueTypes(p.Static(), control)

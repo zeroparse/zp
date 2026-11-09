@@ -1,6 +1,9 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+)
 
 // defaultValueGrammar returns g without the value actions and without the declared types of rules,
 // so that every rule makes the default value of its expression (Options.DefaultValue). Predicates
@@ -9,10 +12,10 @@ import "zeroparse.dev/zp/grammar"
 // made, so the rules that make the values predicates read (valueNeededRules, as in
 // recognition) keep their actions and types. Unchanged declarations are shared with g; g itself
 // does not change.
-func defaultValueGrammar(g *grammar.Grammar, control *Control) *grammar.Grammar {
-	needed := valueNeededRules(control.rules(g), control, false)
+func defaultValueGrammar(g *grammar.Grammar, control *cancel.Control) *grammar.Grammar {
+	needed := valueNeededRules(control.Rules(g), control, false)
 	decls, changed := normalizeItems(g.File.Decls, false, func(d grammar.Decl) grammar.Decl {
-		control.poll()
+		control.Poll()
 		rd, ok := d.(*grammar.RuleDef)
 		if !ok || needed[rd.Name] {
 			return d
@@ -43,9 +46,9 @@ func defaultValueGrammar(g *grammar.Grammar, control *Control) *grammar.Grammar 
 // that lowered was made with. Validating it reports a defect where the grammar as written has it,
 // with the paths and positions of that grammar, not of the lowered one, whose declarations are
 // numbered differently and whose generated rules the author never wrote.
-func sourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names InlineNames, control *Control) *grammar.Grammar {
+func sourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names InlineNames, control *cancel.Control) *grammar.Grammar {
 	dvRules := map[string]*grammar.RuleDef{}
-	for _, rd := range control.rules(dv) {
+	for _, rd := range control.Rules(dv) {
 		dvRules[rd.Name] = rd
 	}
 	// An inline action keeps its action when the rule it was lowered to does.
@@ -71,7 +74,7 @@ func sourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names Inlin
 	decls := make([]grammar.Decl, len(source.File.Decls))
 	j := 0
 	for i, d := range source.File.Decls {
-		control.poll()
+		control.Poll()
 		decls[i] = d
 		lowRule, _ := lowered.File.Decls[j].(*grammar.RuleDef)
 		dvRule, _ := dv.File.Decls[j].(*grammar.RuleDef)
@@ -103,7 +106,7 @@ func sourceDefaultValueGrammar(source, lowered, dv *grammar.Grammar, names Inlin
 
 // defaultValueExpr drops the actions of the Operators Rule at the root of a rule body, the only
 // expression that has actions of its own (inline actions are lowered to rules before this runs).
-func defaultValueExpr(e grammar.Expr, control *Control) grammar.Expr {
+func defaultValueExpr(e grammar.Expr, control *cancel.Control) grammar.Expr {
 	switch e := e.(type) {
 	case *grammar.Group:
 		inner := defaultValueExpr(e.Expr, control)
@@ -115,7 +118,7 @@ func defaultValueExpr(e grammar.Expr, control *Control) grammar.Expr {
 		return &copy
 	case *grammar.OperatorsRule:
 		operands, operandsChanged := normalizeItems(e.Operands, false, func(o *grammar.OperatorsRuleOperand) *grammar.OperatorsRuleOperand {
-			control.poll()
+			control.Poll()
 			if o.Action == nil && !o.DefaultAction {
 				return o
 			}
@@ -125,7 +128,7 @@ func defaultValueExpr(e grammar.Expr, control *Control) grammar.Expr {
 		}, control)
 		levels, levelsChanged := normalizeItems(e.Levels, false, func(l *grammar.OperatorsRuleLevel) *grammar.OperatorsRuleLevel {
 			operators, changed := normalizeItems(l.Operators, false, func(o *grammar.OperatorsRuleOperator) *grammar.OperatorsRuleOperator {
-				control.poll()
+				control.Poll()
 				if o.Action == nil && !o.DefaultAction {
 					return o
 				}

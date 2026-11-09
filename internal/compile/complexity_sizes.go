@@ -119,7 +119,7 @@ func (k *classifier) captureShape(rule, name string) growthShape {
 // each iteration; a call has the value of its rule; any other match is a node, whose text is part
 // of the input and whose members are the values of the captures, calls and repetitions in it.
 func (k *classifier) exprShape(e grammar.Expr, rule string) growthShape {
-	k.control.poll()
+	k.control.Poll()
 	if k.ownExpr(e, rule, k.ownRules()) {
 		return ownShape
 	}
@@ -374,7 +374,7 @@ func (k *classifier) ownRules() map[string]bool {
 
 // ownRule reports whether the value of r is own when the rules in own are.
 func (k *classifier) ownRule(r *grammar.RuleDef, own map[string]bool) bool {
-	k.control.poll()
+	k.control.Poll()
 	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
 		for _, o := range ops.Operands {
 			if !k.ownExpr(o.Expr, r.Name, own) || o.Action != nil && !o.DefaultAction && !k.ownTerm(o.Action, r.Name, own) {
@@ -520,7 +520,7 @@ func (k *classifier) ruleLooksIn(r *grammar.RuleDef, mode sizeMode) bool {
 // ruleLooks reports whether the value of r can hold a capture in a positive lookahead, when the
 // rules in lookedRules can.
 func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
-	k.control.poll()
+	k.control.Poll()
 	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
 		for _, o := range ops.Operands {
 			if k.exprLooks(o.Expr, r.Name) || o.Action != nil && !o.DefaultAction && k.termLooks(o.Action, r.Name) {

@@ -20,7 +20,7 @@ func (c *Compiler) checkLeftRecursionBindings(rules []*grammar.RuleDef, vars map
 		return
 	}
 	for _, r := range rules {
-		a.Control.poll()
+		a.Control.Poll()
 		cycle, ok := a.cycle[r.Name]
 		if !ok || len(vars[r.Name]) == 0 {
 			continue
@@ -47,7 +47,7 @@ func (c *Compiler) checkLeftRecursionBindings(rules []*grammar.RuleDef, vars map
 // alternative or an optional counts even when input is consumed or the binding is undone before
 // the call runs.
 func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(string, []*grammar.Bind)) []*grammar.Bind {
-	a.Control.poll()
+	a.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		visit(e.Name, in)

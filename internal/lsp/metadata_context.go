@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
@@ -65,7 +65,7 @@ func (a *analysis) mapSyntaxDiagnostics(control *renderControl) {
 		a.diag(r, e.Msg)
 	}
 }
-func (a *analysis) mapCompileDiagnostics(list engine.ErrorList, control *renderControl) {
+func (a *analysis) mapCompileDiagnostics(list diag.ErrorList, control *renderControl) {
 	control.poll()
 	for i, e := range list {
 		control.poll()

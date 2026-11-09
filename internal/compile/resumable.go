@@ -1,6 +1,9 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+)
 
 // resumable reports whether a repetition with the element e can be resumed. An element whose
 // captures are written to the enclosing scope (those inside &, when the element has no captures of
@@ -22,8 +25,8 @@ func (c *Compiler) resumable(e grammar.Expr) bool {
 }
 
 // anyCapture reports whether e contains a capture anywhere, lookaheads included.
-func anyCapture(e grammar.Expr, control *Control) bool {
-	control.poll()
+func anyCapture(e grammar.Expr, control *cancel.Control) bool {
+	control.Poll()
 	found := false
 	walkExprControlled(e, func(x grammar.Expr) {
 		if _, ok := x.(*grammar.Capture); ok {

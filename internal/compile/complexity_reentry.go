@@ -87,7 +87,7 @@ func (k *classifier) memoOnly(e grammar.Expr, cycle int) bool {
 // checks, and it returns whether e always evaluates one; without it, a left call of the cycle
 // clears ok.
 func (k *classifier) visitFixed(e grammar.Expr, cycle int, leaders bool, ok *bool) bool {
-	k.control.poll()
+	k.control.Poll()
 	if !*ok {
 		return false
 	}
@@ -184,7 +184,7 @@ func (k *classifier) restBounded(paths []*cont) bool {
 	var visit func(p *cont) bool
 	visit = func(p *cont) bool {
 		for ; p != nil; p = p.next {
-			k.control.poll()
+			k.control.Poll()
 			if budget--; budget < 0 {
 				return false
 			}

@@ -156,7 +156,7 @@ func constantValue(t grammar.Term) (v any, ok bool) {
 // declareVars records the variables of the grammar and reports the invalid declarations.
 func (c *Compiler) declareVars(g *grammar.Grammar) {
 	for _, d := range g.File.Decls {
-		c.Control.poll()
+		c.Control.Poll()
 		vd, ok := d.(*grammar.VarDef)
 		if !ok {
 			continue

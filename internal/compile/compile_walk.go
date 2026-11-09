@@ -103,7 +103,7 @@ type Walker[M any] struct {
 
 func (c *Walker[M]) compileRule(r *Rule) {
 	control := c.Control
-	c.Control.poll()
+	c.Control.Poll()
 	c.rule = r
 	if p, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
 		c.compileOperatorsRule(r, p)
@@ -129,7 +129,7 @@ func (c *Walker[M]) compileRule(r *Rule) {
 
 // Expr walks the expression. If build is false, its form only matches without building values.
 func (c *Walker[M]) Expr(e grammar.Expr, s *Scope, build bool) M {
-	c.Control.poll()
+	c.Control.Poll()
 	control := c.Control
 	switch e := e.(type) {
 	case *grammar.Literal:

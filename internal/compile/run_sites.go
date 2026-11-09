@@ -1,6 +1,9 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+)
 
 // Run sites.
 //
@@ -33,7 +36,7 @@ import "zeroparse.dev/zp/grammar"
 // measurements that compare parses with and without them.
 var NoRunSites = false
 
-func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, calls map[string][]string, recursive map[string]bool) {
+func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleDef, calls map[string][]string, recursive map[string]bool) {
 	prog.runSites = map[*grammar.Repeat]int{}
 	if NoRunSites {
 		return
@@ -43,7 +46,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 		bad[name] = true
 	}
 	for _, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			if blocksCallee(x) {
 				bad[r.Name] = true
@@ -96,7 +99,7 @@ func (prog *Program) markRunSites(control *Control, defs []*grammar.RuleDef, cal
 		return ok
 	}
 	for _, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			rep, ok := x.(*grammar.Repeat)
 			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || isScan(rep) {

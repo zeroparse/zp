@@ -35,7 +35,7 @@ import (
 func (k *classifier) regionScans() map[*grammar.Repeat]bool {
 	regions := map[string]bool{} // the region rules; true for a trivia rule
 	for _, r := range k.rules {
-		k.control.poll()
+		k.control.Poll()
 		if !k.reach[r.Name] || r.Name == k.start || k.triviaParts(r.Expr) == nil || !k.regionFree(r.Name) {
 			continue
 		}
@@ -46,7 +46,7 @@ func (k *classifier) regionScans() map[*grammar.Repeat]bool {
 	}
 	tried := map[string]bool{} // the rules that were made auxiliary regions once
 	for hasTrivia(regions) {
-		k.control.poll()
+		k.control.Poll()
 		drop, add := k.regionCheck(regions, tried)
 		if len(drop) == 0 && len(add) == 0 {
 			break
@@ -305,7 +305,7 @@ func (k *classifier) regionNFA(names []string, inner map[string]map[string]bool)
 	for changed := true; changed; {
 		changed = false
 		for _, r := range rules {
-			k.control.poll()
+			k.control.Poll()
 			info := n.info(k.byName[r].Expr, false)
 			old := n.rules[r]
 			c := old.first.or(info.first)
@@ -392,7 +392,7 @@ func literalChar(l *grammar.Literal, c rune) charset {
 // edges, it also adds the edges inside e.
 func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 	k := n.k
-	k.control.poll()
+	k.control.Poll()
 	empty := nfaInfo{newBitset(n.size), newBitset(n.size), true}
 	one := func(p int) nfaInfo {
 		i := nfaInfo{newBitset(n.size), newBitset(n.size), false}
@@ -601,7 +601,7 @@ func (k *classifier) regionGuards(regions map[string]bool, names []string, outer
 func (g *guardPass) each(f func(*grammar.RuleDef)) {
 	for _, r := range g.k.rules {
 		if _, ok := g.regions[r.Name]; g.outer[r.Name] && !ok {
-			g.k.control.poll()
+			g.k.control.Poll()
 			f(r)
 		}
 	}
@@ -640,7 +640,7 @@ func isCheck(e grammar.Expr) bool {
 // follows e when e ends where the check is evaluated, or nil.
 func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 	k := g.k
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Literal, *grammar.CharClass, *grammar.Any:
 		if g.checking {

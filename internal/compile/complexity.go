@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -96,7 +97,7 @@ type Complexity struct {
 // name that is not defined or not a start rule, is the error that parsing gives. It analyzes the grammar that the compiler runs: inline actions are
 // lowered to hidden rules and attributes are normalized. A non-nil control polls for
 // cancellation.
-func ClassifyComplexity(g *grammar.Grammar, start string, control *Control) (*Complexity, error) {
+func ClassifyComplexity(g *grammar.Grammar, start string, control *cancel.Control) (*Complexity, error) {
 	k, names, err := prepareClassifier(g, start, control)
 	if err != nil {
 		return nil, err
@@ -114,7 +115,7 @@ func ClassifyComplexity(g *grammar.Grammar, start string, control *Control) (*Co
 
 // GrowingBindings returns the Growing member of the classification of g from start, without the
 // rest of the classification, which costs more. It has the preconditions of ClassifyComplexity.
-func GrowingBindings(g *grammar.Grammar, start string, control *Control) ([]GrowingBinding, error) {
+func GrowingBindings(g *grammar.Grammar, start string, control *cancel.Control) ([]GrowingBinding, error) {
 	k, names, err := prepareClassifier(g, start, control)
 	if err != nil {
 		return nil, err
@@ -127,8 +128,8 @@ func GrowingBindings(g *grammar.Grammar, start string, control *Control) ([]Grow
 // prepareTypedClassifier is prepareClassifier with the value types of the terms of g, which tell
 // a node from a string value. It compiles g, without building matchers, for them, and returns nil
 // if g does not compile.
-func prepareTypedClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames) {
-	control.check()
+func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames) {
+	control.Check()
 	names := InlineNames{}
 	prog, err := CompileProgram(g, Options{}, nil, names, control, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
 	if err != nil {
@@ -137,14 +138,14 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *Control) 
 	if start == "" {
 		start = prog.DefaultStartRule
 	}
-	k := newViewClassifier(prog.Grammar, control.rules(prog.Grammar), start, control)
+	k := newViewClassifier(prog.Grammar, control.Rules(prog.Grammar), start, control)
 	k.types = prog.ValueRecord()
 	return k, names
 }
 
 // prepareClassifier lowers and normalizes g as the compiler does and returns a classifier of it
 // from start, with the names of the hidden rules of its inline actions.
-func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames, error) {
+func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newViewClassifier)
 }
 
@@ -153,12 +154,12 @@ func prepareClassifier(g *grammar.Grammar, start string, control *Control) (*cla
 // that check how it compares the alternatives of a choice read the rules as written, since the
 // normal view left-factors alternatives that begin alike (N12) and leaves no shared prefix to
 // compare.
-func prepareBaseClassifier(g *grammar.Grammar, start string, control *Control) (*classifier, InlineNames, error) {
+func prepareBaseClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newClassifier)
 }
 
-func prepareClassifierWith(g *grammar.Grammar, start string, control *Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *Control) *classifier) (*classifier, InlineNames, error) {
-	control.check()
+func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *cancel.Control) *classifier) (*classifier, InlineNames, error) {
+	control.Check()
 	names := InlineNames{}
 	if hasInlineAction(g, control) {
 		lowered, errs := lowerInlineActions(g, names, control)
@@ -195,7 +196,7 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *Control, b
 // What the runtime decides by the grammar as it is written stays decided by rules: the
 // left-recursion cycles and their leaders, the memoized rules, the variables that key the memo, and
 // the run sites.
-func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *Control) *classifier {
+func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *cancel.Control) *classifier {
 	an := AnalyzeControlled(rules, control)
 	memo, _ := memoizedRules(rules, an, control)
 	v := normalizeRules(rules, an, memo, costView, control)
@@ -233,7 +234,7 @@ func (c *Complexity) written(names InlineNames) *Complexity {
 const rhsLevel = "\x00right operand"
 
 type classifier struct {
-	control *Control
+	control *cancel.Control
 	g       *grammar.Grammar
 	rules   []*grammar.RuleDef
 	byName  map[string]*grammar.RuleDef
@@ -319,13 +320,13 @@ type classifier struct {
 	viewText map[grammar.Expr]string
 }
 
-func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *Control) *classifier {
+func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *cancel.Control) *classifier {
 	return newClassifierOf(g, rules, rules, AnalyzeControlled(rules, control), start, control)
 }
 
 // newClassifierOf returns a classifier of the bodies of rules, which are those of base or a view
 // of them. The analysis an of base, its variables and its memoization stand for the grammar.
-func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Analysis, start string, control *Control) *classifier {
+func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Analysis, start string, control *cancel.Control) *classifier {
 	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*grammar.RuleDef{},
 		calls: map[string][]string{}, scc: map[string]int{}, recursive: map[string]bool{}, memo: map[string]bool{},
 		varType: map[string]string{}, nullRule: map[string]bool{}, firstRule: map[string]charset{},
@@ -375,7 +376,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 // rule that
 // contains #missing, directly or through its callees, is not memoized when missing tokens are
 // enabled, so it counts as not memoized unless it is a leader.
-func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *Control) (out, members map[string]bool) {
+func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *cancel.Control) (out, members map[string]bool) {
 	transient := transientRules(rules, control)
 	missing := missingRules(rules, control)
 	out, members = map[string]bool{}, map[string]bool{}
@@ -387,7 +388,7 @@ func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *Control) (ou
 }
 
 // missingRules returns the rules that contain #missing, directly or through their callees.
-func missingRules(rules []*grammar.RuleDef, control *Control) map[string]bool {
+func missingRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
 	out := map[string]bool{}
 	calls := map[string][]string{}
 	for _, r := range rules {
@@ -429,7 +430,7 @@ func (k *classifier) reachable(from string) map[string]bool {
 		}
 		seen[n] = true
 		for _, c := range k.calls[n] {
-			k.control.poll()
+			k.control.Poll()
 			visit(c)
 		}
 	}

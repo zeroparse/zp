@@ -146,7 +146,7 @@ func recoverSkip(e *grammar.Attributed) grammar.Expr {
 // with #missing can be inserted, and a repetition of a nullable element is nullable whatever its
 // minimum.
 func (k *classifier) nullable(e grammar.Expr) bool {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return true
@@ -214,7 +214,7 @@ func (k *classifier) nullable(e grammar.Expr) bool {
 // input examines them. Characters that follow e when it matches without consuming input are not
 // included; firstCont adds them.
 func (k *classifier) first(e grammar.Expr) charset {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return nil
@@ -358,7 +358,7 @@ func (k *classifier) computeFirst() {
 
 // bounded reports whether every match of e is shorter than a constant of the grammar.
 func (k *classifier) bounded(e grammar.Expr) bool {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case nil, *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Predicate, *grammar.Cut,
 		*grammar.Top, *grammar.Bottom, *grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine,

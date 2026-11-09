@@ -10,9 +10,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -167,7 +167,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 		for i := range n {
 			a.defs = append(a.defs, &definition{kwStart: i + 1})
 		}
-		list := engine.ErrorList{&engine.Error{Msg: "undefined"}}
+		list := diag.ErrorList{&diag.Error{Msg: "undefined"}}
 		assertMetadataPhaseCancels(t, func(c *renderControl) { a.mapCompileDiagnostics(list, c) })
 	})
 	t.Run("definition-range", func(t *testing.T) {

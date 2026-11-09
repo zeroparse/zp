@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -124,7 +125,7 @@ func build(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 	return buildControlled(g, opts, flags, nil)
 }
 
-func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *compile.Control) (*Program, error) {
+func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
 	names := compile.InlineNames{}
 	prog, err := buildNamed(g, opts, flags, names, control)
 	if err != nil {
@@ -149,19 +150,19 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 	}
 	defer func() {
 		if failure := recover(); failure != nil {
-			if cancelled, ok := failure.(compile.Cancellation); ok {
+			if cancelled, ok := failure.(cancel.Cancellation); ok {
 				prog, err = nil, cancelled.Err
 			} else {
 				panic(failure)
 			}
 		}
 	}()
-	return buildControlled(g, opts, nil, &compile.Control{Ctx: ctx})
+	return buildControlled(g, opts, nil, &cancel.Control{Ctx: ctx})
 }
 
 // buildNamed is buildControlled; names receives the hidden rules that the lowering of inline actions
 // generates.
-func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names compile.InlineNames, control *compile.Control) (*Program, error) {
+func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names compile.InlineNames, control *cancel.Control) (*Program, error) {
 	var b *closure.Builder
 	prog, err := compile.CompileProgram(g, opts, flags, names, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
 		b = closure.NewBuilder(c, !opts.ControlledDispatch)

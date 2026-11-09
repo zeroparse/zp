@@ -2,6 +2,7 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/internal/value"
 )
@@ -12,7 +13,7 @@ import (
 // shapeElems returns the elements e contributes to the tuple of its scope, without types of rule
 // calls (they do not change the shape).
 func shapeElems(p *Program, e grammar.Expr) []valueElem {
-	var control *Control
+	var control *cancel.Control
 	if p != nil {
 		control = p.shapeControl
 	}

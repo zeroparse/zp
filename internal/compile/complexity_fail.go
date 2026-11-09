@@ -38,7 +38,7 @@ func (k *classifier) computeFailRules() {
 	for changed := true; changed; {
 		changed = false
 		for _, r := range k.rules {
-			k.control.poll()
+			k.control.Poll()
 			if !k.reach[r.Name] || k.failRule[r.Name] {
 				continue
 			}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -15,17 +17,17 @@ import (
 // Every declaration attribute other than @start and @start(default) is an
 // error, and so is @start on a hidden rule. A grammar needs a start rule;
 // with several, one of them must be the default.
-func resolveStarts(rules []*grammar.RuleDef, control *Control) (starts []string, def string, errs ErrorList) {
+func resolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []string, def string, errs diag.ErrorList) {
 	errorf := func(pos grammar.Pos, format string, args ...any) {
-		errs = append(errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+		errs = append(errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 	}
 	var second *grammar.Attribute
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		var start *grammar.Attribute
 		isDefault := false
 		for _, a := range rd.Attrs {
-			control.poll()
+			control.Poll()
 			if a.Pragma || a.Name != "start" {
 				errorf(a.Diagnostic(), "unknown declaration attribute %s%s", annotationMarker(a), a.Name)
 				continue

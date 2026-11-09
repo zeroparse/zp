@@ -3,6 +3,8 @@ package compile
 import (
 	"strings"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
@@ -22,14 +24,14 @@ func NormalizeAttributesWithCopies(g *grammar.Grammar, eager bool) (*grammar.Gra
 
 // NormalizeAttributesControlled is NormalizeAttributesWithCopies polling control for
 // cancellation; a nil control never cancels.
-func NormalizeAttributesControlled(g *grammar.Grammar, eager bool, control *Control) (*grammar.Grammar, error) {
-	control.check()
+func NormalizeAttributesControlled(g *grammar.Grammar, eager bool, control *cancel.Control) (*grammar.Grammar, error) {
+	control.Check()
 	n := &attributeNormalizer{eager: eager, control: control}
 	if control != nil {
-		n.poll = control.poll
+		n.poll = control.Poll
 	}
 	statements, changed := normalizeItems(g.File.Decls, eager, n.decl, control)
-	control.check()
+	control.Check()
 	if len(n.errors) != 0 {
 		return nil, n.errors
 	}
@@ -44,9 +46,9 @@ func NormalizeAttributesControlled(g *grammar.Grammar, eager bool, control *Cont
 // attributeNormalizer binds and lowers the attributes of a grammar, collecting the errors of
 // invalid ones. An eager normalizer copies every attribute it visits.
 type attributeNormalizer struct {
-	errors  ErrorList
+	errors  diag.ErrorList
 	eager   bool
-	control *Control
+	control *cancel.Control
 	poll    func()
 }
 
@@ -71,19 +73,19 @@ func (n *attributeNormalizer) decl(decl grammar.Decl) grammar.Decl {
 
 // Changed containers are copied before their first write. Nil input containers
 // still become nonnil empty slices, matching the executable AST representation.
-func normalizeItems[T comparable](items []T, eager bool, normalize func(T) T, control *Control) ([]T, bool) {
+func normalizeItems[T comparable](items []T, eager bool, normalize func(T) T, control *cancel.Control) ([]T, bool) {
 	var normalized []T
 	changed := eager || items == nil
 	if changed {
-		control.check()
+		control.Check()
 		normalized = make([]T, len(items))
 		normalizationCopy(normalized, items, control)
 	}
 	for i, item := range items {
-		control.poll()
+		control.Poll()
 		child := normalize(item)
 		if child != item && !changed {
-			control.check()
+			control.Check()
 			normalized = make([]T, len(items))
 			normalizationCopy(normalized, items, control)
 			changed = true
@@ -99,7 +101,7 @@ func normalizeItems[T comparable](items []T, eager bool, normalize func(T) T, co
 }
 
 func (n *attributeNormalizer) error(a *grammar.Attribute, message string) {
-	n.errors = append(n.errors, &Error{Pos: a.Diagnostic(), Msg: annotationMarker(a) + a.Name + ": " + message})
+	n.errors = append(n.errors, &diag.Error{Pos: a.Diagnostic(), Msg: annotationMarker(a) + a.Name + ": " + message})
 }
 
 func (n *attributeNormalizer) value(value any) (any, bool) {
@@ -115,16 +117,16 @@ func (n *attributeNormalizer) value(value any) (any, bool) {
 // attribute returns a with its arguments normalized; it returns a itself when nothing changes and
 // the normalizer is not eager.
 func (n *attributeNormalizer) attribute(a *grammar.Attribute) *grammar.Attribute {
-	n.control.poll()
+	n.control.Poll()
 	copy := *a
 	changed := n.eager || a.Args == nil || (len(a.KeywordOrder) == 0 && a.KeywordOrder != nil)
 	argsCopied := n.eager || a.Args == nil
 	if argsCopied {
-		n.control.check()
+		n.control.Check()
 		copy.Args = make([]any, len(a.Args))
 	}
 	for i, value := range a.Args {
-		n.control.poll()
+		n.control.Poll()
 		child, lowered := n.value(value)
 		if lowered && !argsCopied {
 			copy.Args = normalizationClone(a.Args, n.control)
@@ -136,11 +138,11 @@ func (n *attributeNormalizer) attribute(a *grammar.Attribute) *grammar.Attribute
 	}
 	keywordsCopied := n.eager && a.KwArgs != nil
 	if keywordsCopied {
-		n.control.check()
+		n.control.Check()
 		copy.KwArgs = make(map[string]any, len(a.KwArgs))
 	}
 	for name, value := range a.KwArgs {
-		n.control.poll()
+		n.control.Poll()
 		child, lowered := n.value(value)
 		if lowered && !keywordsCopied {
 			copy.KwArgs = cloneAttributeKeywords(a.KwArgs, n.control)
@@ -163,11 +165,11 @@ func (n *attributeNormalizer) attribute(a *grammar.Attribute) *grammar.Attribute
 
 // cloneAttributeKeywords returns a copy of the keyword arguments values, polling control per
 // entry.
-func cloneAttributeKeywords(values map[string]any, control *Control) map[string]any {
-	control.check()
+func cloneAttributeKeywords(values map[string]any, control *cancel.Control) map[string]any {
+	control.Check()
 	copy := make(map[string]any, len(values))
 	for name, value := range values {
-		control.poll()
+		control.Poll()
 		copy[name] = value
 	}
 	return copy
@@ -243,7 +245,7 @@ func (n *attributeNormalizer) repeat(e grammar.Expr, a *grammar.Attribute) gramm
 }
 
 func (n *attributeNormalizer) expr(expr grammar.Expr) grammar.Expr {
-	n.control.poll()
+	n.control.Poll()
 	switch e := expr.(type) {
 	case *grammar.Group:
 		return n.expr(e.Expr)
@@ -350,7 +352,7 @@ func (n *attributeNormalizer) expr(expr grammar.Expr) grammar.Expr {
 		inner := n.expr(e.Expr)
 		seenDiagnostic := false
 		for _, source := range e.Attrs {
-			n.control.poll()
+			n.control.Poll()
 			a := n.attribute(source)
 			pragma := a.Name == "repeat" || a.Name == "atomic" || a.Name == "recover" || a.Name == "stream" || a.Name == "missing" || a.Name == "ignorecase"
 			if pragma && !a.Pragma {
@@ -505,7 +507,7 @@ func (n *attributeNormalizer) typeDecl(td grammar.TypeDecl) grammar.TypeDecl {
 		}
 		var fields []*grammar.Field
 		for i, f := range st.Fields {
-			n.control.poll()
+			n.control.Poll()
 			child := grammaranalysis.UngroupTypeWithPoll(f.Type, n.poll)
 			if child == f.Type {
 				continue

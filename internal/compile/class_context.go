@@ -3,6 +3,7 @@ package compile
 import (
 	"strconv"
 	"strings"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -10,11 +11,11 @@ import (
 // FirstTerminalControlled is firstTerminal polling control. Ordinary compilation and code
 // generation keep their existing construction path. Controlled construction polls without
 // capturing the compile context in the returned parser-time matchers.
-func FirstTerminalControlled(prog *Program, e grammar.Expr, depth int, seen map[string]bool, control *Control) (grammar.Expr, int) {
+func FirstTerminalControlled(prog *Program, e grammar.Expr, depth int, seen map[string]bool, control *cancel.Control) (grammar.Expr, int) {
 	if control == nil {
 		return firstTerminal(prog, e, depth, seen)
 	}
-	control.poll()
+	control.Poll()
 	switch e := e.(type) {
 	case *grammar.Literal:
 		if e.Value != "" {
@@ -48,7 +49,7 @@ func FirstTerminalControlled(prog *Program, e grammar.Expr, depth int, seen map[
 
 // CharClassStringControlled is CharClassString polling control for cancellation; a nil control
 // never cancels.
-func CharClassStringControlled(e *grammar.CharClass, control *Control) string {
+func CharClassStringControlled(e *grammar.CharClass, control *cancel.Control) string {
 	if control == nil {
 		return CharClassString(e)
 	}
@@ -66,7 +67,7 @@ func CharClassStringControlled(e *grammar.CharClass, control *Control) string {
 		return s[1 : len(s)-1]
 	}
 	for _, rg := range e.Ranges {
-		control.poll()
+		control.Poll()
 		b.WriteString(esc(rg.Lo))
 		if rg.Hi != rg.Lo {
 			b.WriteString("-" + esc(rg.Hi))
@@ -79,13 +80,13 @@ func CharClassStringControlled(e *grammar.CharClass, control *Control) string {
 // CopyClassRanges returns a copy of ranges, polling control. Copies and bitmap construction share
 // the compiler invocation's polling counter. Only immutable range data and bitmap values reach
 // runtime closures.
-func CopyClassRanges(ranges []grammar.CharRange, control *Control) []grammar.CharRange {
+func CopyClassRanges(ranges []grammar.CharRange, control *cancel.Control) []grammar.CharRange {
 	var result []grammar.CharRange
 	if len(ranges) != 0 {
 		result = make([]grammar.CharRange, len(ranges))
 	}
 	for i, rg := range ranges {
-		control.poll()
+		control.Poll()
 		result[i] = rg
 	}
 	return result
@@ -94,7 +95,7 @@ func CopyClassRanges(ranges []grammar.CharRange, control *Control) []grammar.Cha
 // ClassASCII returns the bitmap of the ASCII characters that ranges match, or that they do not
 // match if neg is set: bit r&63 of ascii[r>>6] is set for a matching r. A non-nil control polls
 // for cancellation.
-func ClassASCII(ranges []grammar.CharRange, neg bool, control *Control) (ascii [2]uint64) {
+func ClassASCII(ranges []grammar.CharRange, neg bool, control *cancel.Control) (ascii [2]uint64) {
 	for r := rune(0); r < 128; r++ {
 		matched := false
 		for at := 0; at < len(ranges); {
@@ -102,7 +103,7 @@ func ClassASCII(ranges []grammar.CharRange, neg bool, control *Control) (ascii [
 			// range scan free of a function call per comparison, without
 			// allowing more than compilePollStride visits between context checks.
 			start := at
-			end := min(len(ranges), at+PollStride-int(control.Steps%PollStride))
+			end := min(len(ranges), at+cancel.PollStride-int(control.Steps%cancel.PollStride))
 			for at < end {
 				rg := ranges[at]
 				at++
@@ -112,8 +113,8 @@ func ClassASCII(ranges []grammar.CharRange, neg bool, control *Control) (ascii [
 				}
 			}
 			control.Steps += uint32(at - start)
-			if control.Steps%PollStride == 0 {
-				control.check()
+			if control.Steps%cancel.PollStride == 0 {
+				control.Check()
 			}
 			if matched {
 				break

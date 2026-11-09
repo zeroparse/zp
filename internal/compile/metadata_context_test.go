@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -18,22 +19,22 @@ func TestCompileMetadataCollectionCancellation(t *testing.T) {
 	expr := &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{a}}
 	for _, phase := range []struct {
 		name string
-		run  func(*Control)
+		run  func(*cancel.Control)
 	}{
-		{"rules", func(c *Control) { c.rules(g) }},
-		{"types", func(c *Control) { c.types(g) }},
-		{"arguments", func(c *Control) { c.expressionArgs(a) }},
-		{"call-walk", func(c *Control) { allCallsControlled(expr, nil, c) }},
-		{"type-check-arguments", func(c *Control) {
+		{"rules", func(c *cancel.Control) { c.Rules(g) }},
+		{"types", func(c *cancel.Control) { c.Types(g) }},
+		{"arguments", func(c *cancel.Control) { expressionArgs(c, a) }},
+		{"call-walk", func(c *cancel.Control) { allCallsControlled(expr, nil, c) }},
+		{"type-check-arguments", func(c *cancel.Control) {
 			(&ValueInference{control: c}).predicates(expr, &valueEnv{})
 		}},
-		{"stream-walk", func(c *Control) { (&Compiler{Control: c}).checkStream(expr) }},
+		{"stream-walk", func(c *cancel.Control) { (&Compiler{Control: c}).checkStream(expr) }},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
-			control := &Control{Ctx: compileTestContext(t, 2)}
+			control := &cancel.Control{Ctx: compileTestContext(t, 2)}
 			defer func() {
 				failure := recover()
-				stopped, ok := failure.(Cancellation)
+				stopped, ok := failure.(cancel.Cancellation)
 				if !ok || !errors.Is(stopped.Err, context.Canceled) {
 					t.Fatalf("collection did not unwind as compilation cancellation: %v", failure)
 				}
@@ -52,19 +53,19 @@ func TestProjectionMetadataCancellation(t *testing.T) {
 	}
 	for _, phase := range []struct {
 		name string
-		run  func(*Control)
+		run  func(*cancel.Control)
 	}{
-		{"candidate-walk", func(c *Control) {
+		{"candidate-walk", func(c *cancel.Control) {
 			ruleProjectionsControlled(&Program{}, &Rule{Def: &grammar.RuleDef{Expr: expr}, Action: &grammar.StringLit{}}, c)
 		}},
-		{"action-use", func(c *Control) { markProjectedMaps(term, nil, map[*grammar.Call]bool{}, c) }},
-		{"action-indices", func(c *Control) { usesItems(term, c) }},
+		{"action-use", func(c *cancel.Control) { markProjectedMaps(term, nil, map[*grammar.Call]bool{}, c) }},
+		{"action-indices", func(c *cancel.Control) { usesItems(term, c) }},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
-			control := &Control{Ctx: compileTestContext(t, 1)}
+			control := &cancel.Control{Ctx: compileTestContext(t, 1)}
 			defer func() {
 				failure := recover()
-				stopped, ok := failure.(Cancellation)
+				stopped, ok := failure.(cancel.Cancellation)
 				if !ok || !errors.Is(stopped.Err, context.Canceled) {
 					t.Fatalf("projection metadata did not stop: %v", failure)
 				}
@@ -79,10 +80,10 @@ func TestTypeCheckEmptyAttributeCancellation(t *testing.T) {
 	for i := range attrs {
 		attrs[i] = &grammar.Attribute{Name: "error"}
 	}
-	control := &Control{Ctx: compileTestContext(t, 1)}
+	control := &cancel.Control{Ctx: compileTestContext(t, 1)}
 	defer func() {
 		failure := recover()
-		stopped, ok := failure.(Cancellation)
+		stopped, ok := failure.(cancel.Cancellation)
 		if !ok || !errors.Is(stopped.Err, context.Canceled) {
 			t.Fatalf("empty attribute rows did not stop: %v", failure)
 		}

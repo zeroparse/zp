@@ -8,12 +8,6 @@ import (
 // Options configures compilation.
 type Options = compile.Options
 
-// Error is a compile error.
-type Error = compile.Error
-
-// ErrorList is a list of compile errors.
-type ErrorList = compile.ErrorList
-
 // InlineActionNames maps the hidden rules that LowerInlineActions generated to the inline actions of
 // the grammar as written. A nil value describes a grammar without inline actions.
 type InlineActionNames = compile.InlineActionNames

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -21,7 +23,7 @@ type Program struct {
 	HasMissing bool // immutable syntax metadata; bytecode/generation are unsupported
 	// shapeControl is the compilation's cancellation control while the program is being built, so that
 	// the shape analysis of rule bodies (shapeElems) polls it; nil otherwise.
-	shapeControl *Control
+	shapeControl *cancel.Control
 	// bottoms are the rules of type _|_ (bottomRules), computed once.
 	bottomsOnce sync.Once
 	bottoms     map[string]bool
@@ -213,35 +215,9 @@ func (s *Scope) Slot(name string) int {
 	return s.Slots[name]
 }
 
-// Error is a compile error.
-type Error struct {
-	Pos grammar.Pos
-	Msg string
-}
-
-// Error returns the message, prefixed with the line and column when the position is known.
-func (e *Error) Error() string {
-	if e.Pos.IsValid() {
-		return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg)
-	}
-	return e.Msg
-}
-
 // ErrSchemaUnavailable reports that the checked grammar metadata an output schema is exported
 // from is unavailable.
 var ErrSchemaUnavailable = errors.New("output schema unavailable")
-
-// ErrorList is a list of compile errors.
-type ErrorList []*Error
-
-// Error returns the messages of the errors, one per line.
-func (l ErrorList) Error() string {
-	msgs := make([]string, len(l))
-	for i, e := range l {
-		msgs[i] = e.Error()
-	}
-	return strings.Join(msgs, "\n")
-}
 
 // Reserved type names.
 var builtinTypes = map[string]bool{
@@ -253,12 +229,12 @@ var builtinTypes = map[string]bool{
 // options, expectation table and errors. Walker embeds it to walk rule bodies for a backend.
 // A nil Control never cancels.
 type Compiler struct {
-	Control        *Control
+	Control        *cancel.Control
 	Prog           *Program
 	proj           map[string]string // projected captures of the rule being compiled (ruleProjections)
 	an             *Analysis
 	opts           Options
-	errs           ErrorList
+	errs           diag.ErrorList
 	rule           *Rule
 	descIDs        map[string]ExpID
 	missingSites   int
@@ -288,20 +264,20 @@ func (c *Compiler) desc(s string) ExpID {
 }
 
 func (c *Compiler) errorf(pos grammar.Pos, format string, args ...any) {
-	c.errs = append(c.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	c.errs = append(c.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // uniqueRules returns the first declaration of each rule name of g in order, and an error for each
 // later declaration of a name. The analyses key rules by name and loop on a rule list that holds a
 // name twice, so every entry point that analyzes a grammar takes its rules from here.
-func uniqueRules(g *grammar.Grammar, control *Control) ([]*grammar.RuleDef, ErrorList) {
+func uniqueRules(g *grammar.Grammar, control *cancel.Control) ([]*grammar.RuleDef, diag.ErrorList) {
 	var rules []*grammar.RuleDef
-	var errs ErrorList
+	var errs diag.ErrorList
 	seen := map[string]bool{}
-	for _, rd := range control.rules(g) {
-		control.poll()
+	for _, rd := range control.Rules(g) {
+		control.Poll()
 		if seen[rd.Name] {
-			errs = append(errs, &Error{Pos: rd.Diagnostic(), Msg: fmt.Sprintf("rule %s is already defined", rd.Name)})
+			errs = append(errs, &diag.Error{Pos: rd.Diagnostic(), Msg: fmt.Sprintf("rule %s is already defined", rd.Name)})
 			continue
 		}
 		seen[rd.Name] = true
@@ -324,8 +300,8 @@ type RuleFlags struct {
 // the builder that builder returns for the compiler, which builds the bodies in a backend's form.
 // names receives the hidden rules that the lowering of inline actions generates. If flags is not
 // nil, it skips static analysis and type checking and uses flags instead.
-func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names InlineNames, control *Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
-	control.check()
+func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
+	control.Check()
 	if !opts.DefaultValue {
 		if err := validateGrammar(g, control); err != nil {
 			return nil, err
@@ -343,12 +319,12 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 			return nil, errs
 		}
 		g = lowered
-		control.check()
+		control.Check()
 	}
 	if opts.DefaultValue {
 		lowered := g
 		g = defaultValueGrammar(g, control)
-		control.check()
+		control.Check()
 		// A defect is reported where the grammar as written has it.
 		valid := g
 		if lowered != source {
@@ -359,29 +335,29 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		}
 	}
 	keepSource := source != g
-	var unsupported ErrorList
+	var unsupported diag.ErrorList
 	for _, comment := range g.File.HeaderComments {
-		control.poll()
-		unsupported = append(unsupported, &Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
+		control.Poll()
+		unsupported = append(unsupported, &diag.Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
 	}
 	checkBlocks := func(term grammar.Term) {
 		WalkTerm(term, func(t grammar.Term) {
-			control.poll()
+			control.Poll()
 			if block, ok := t.(*grammar.Block); ok {
-				unsupported = append(unsupported, &Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
+				unsupported = append(unsupported, &diag.Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
 			}
 		})
 	}
-	for _, rd := range control.rules(g) {
-		control.poll()
+	for _, rd := range control.Rules(g) {
+		control.Poll()
 		checkBlocks(rd.Action)
 		walkExprControlled(rd.Expr, func(e grammar.Expr) {
-			control.poll()
+			control.Poll()
 			switch e := e.(type) {
 			case *grammar.Predicate:
 				if block, ok := e.Term.(*grammar.Block); ok && len(block.Statements) > 0 {
 					for _, statement := range block.Statements {
-						control.poll()
+						control.Poll()
 						checkBlocks(statement)
 					}
 				} else {
@@ -391,27 +367,27 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 				checkBlocks(e.Action)
 			case *grammar.OperatorsRule:
 				for _, operand := range e.Operands {
-					control.poll()
+					control.Poll()
 					checkBlocks(operand.Action)
 				}
 				for _, level := range e.Levels {
-					control.poll()
+					control.Poll()
 					for _, operator := range level.Operators {
-						control.poll()
+						control.Poll()
 						checkBlocks(operator.Action)
 					}
 				}
 			}
 		}, control)
 	}
-	starts, defaultStart, startErrors := resolveStarts(control.rules(g), control)
-	control.check()
+	starts, defaultStart, startErrors := resolveStarts(control.Rules(g), control)
+	control.Check()
 	if len(unsupported) != 0 {
 		return nil, unsupported
 	}
 	var normalizationError error
 	g, normalizationError = NormalizeAttributesControlled(g, opts.EagerAttributeCopies, control)
-	control.check()
+	control.Check()
 	if normalizationError != nil {
 		return nil, normalizationError
 	}
@@ -442,8 +418,8 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	prog.RecordsSourceInfo = opts.SourceInfo
 	prog.MakesDefaultValue = opts.DefaultValue
 
-	for _, td := range control.types(g) {
-		control.poll()
+	for _, td := range control.Types(g) {
+		control.Poll()
 		switch {
 		case builtinTypes[td.DeclName()]:
 			c.errorf(td.Diagnostic(), "type %s is reserved", td.DeclName())
@@ -460,7 +436,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	rules, redeclared := uniqueRules(g, control)
 	c.errs = append(c.errs, redeclared...)
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		r := &Rule{ID: len(prog.RuleList), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
 		if r.Splice && rd.Type != nil {
 			c.errorf(rd.Diagnostic(), "rule %s makes no node of its own, so it cannot have a result type", rd.Name)
@@ -484,7 +460,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	vars := ruleVariablesControlled(rules, control)
 	recursive := ruleCycles(rules, prog.defsByName(), control)
 	for i, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		twin := false
 		if flags != nil {
 			r.Memo, r.Leader, r.Member, r.Positional, twin = flags[i].Memo, flags[i].Leader, flags[i].Member, flags[i].Positional, flags[i].Twin
@@ -520,7 +496,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		// a stream hands to its caller, unless the program is the recognizer, which only recognizes.
 		needed := valueNeededRules(rules, control, !opts.Recognizer)
 		for _, r := range prog.RuleList {
-			control.poll()
+			control.Poll()
 			if !needed[r.Name] {
 				r.Novalue, r.Action, r.TwinOK = true, nil, false
 				r.PredCaps = predicateCaptures(r.Def.Expr, control)
@@ -529,16 +505,16 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 	w := &Walker[M]{Compiler: c, Builder: builder(c)}
 	for _, r := range prog.RuleList {
-		control.poll()
+		control.Poll()
 		w.compileRule(r)
 	}
 	// Value-free twins can be assembled the same way if the original rules have no errors. New twins
 	// may be added during assembly.
 	for i := 0; i < len(prog.Twins) && len(c.errs) == 0; i++ {
-		control.poll()
+		control.Poll()
 		w.compileRule(prog.Twins[i])
 	}
-	control.check()
+	control.Check()
 	if len(c.errs) > 0 {
 		return nil, c.errs
 	}
@@ -547,7 +523,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	prog.typeKinds = map[string]*value.NodeKind{}
 	prog.NodeKinds = map[string]*value.NodeTypeKinds{}
 	for name, spec := range prog.Types {
-		control.poll()
+		control.Poll()
 		if n, ok := prog.NodeTypeOf(name); ok {
 			if prog.NodeKinds[n.Name] == nil {
 				prog.NodeKinds[n.Name] = value.NewNodeTypeKinds(n.Name)
@@ -568,9 +544,9 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		}
 	}
 	for _, rs := range [][]*Rule{prog.RuleList, prog.Twins} {
-		control.poll()
+		control.Poll()
 		for _, r := range rs {
-			control.poll()
+			control.Poll()
 			r.Plain = !r.Leader && (!r.Memo || r.Transient) && len(r.Scope.Names) == 0
 			if n, ok := prog.ruleNodeType(r.Def); ok && !r.Novalue {
 				r.NodeType = n.Name
@@ -582,7 +558,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 	if flags == nil {
 		CheckTypesControlled(prog, &c.errs, control)
-		control.check()
+		control.Check()
 		if len(c.errs) > 0 {
 			return nil, c.errs
 		}
@@ -592,22 +568,22 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		return nil, startErrors
 	}
 
-	control.check()
+	control.Check()
 	return prog, nil
 }
 
 // validateGrammar returns the validation error of g as a compile error.
-func validateGrammar(g *grammar.Grammar, control *Control) error {
+func validateGrammar(g *grammar.Grammar, control *cancel.Control) error {
 	var validationError error
 	if control == nil {
 		validationError = grammar.Validate(g)
 	} else {
 		validationError = grammar.ValidateContext(control.Ctx, g)
 	}
-	control.check()
+	control.Check()
 	if validationError != nil {
 		e := validationError.(*grammar.ValidationError)
-		return ErrorList{&Error{Pos: e.Pos, Msg: e.Path + ": " + e.Msg}}
+		return diag.ErrorList{&diag.Error{Pos: e.Pos, Msg: e.Path + ": " + e.Msg}}
 	}
 	return nil
 }
@@ -690,11 +666,11 @@ func (c *Compiler) twinOf(r *Rule) *Rule {
 // and those called from at most one place, except a start rule on a cycle of calls whose rules are
 // each called from one place. A parse can enter such a start rule without a call, and its body
 // calls it again, so it is memoized; no rule outside the cycle calls a rule of it.
-func transientRules(rules []*grammar.RuleDef, control *Control) map[string]bool {
+func transientRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
 	refs := map[string]int{}
 	caller := map[string]string{}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		for _, name := range allCallsControlled(rd.Expr, nil, control) {
 			refs[name]++
 			caller[name] = rd.Name
@@ -704,7 +680,7 @@ func transientRules(rules []*grammar.RuleDef, control *Control) map[string]bool 
 	selfCalled := func(name string) bool {
 		seen := map[string]bool{}
 		for r := name; refs[r] == 1 && !seen[r]; r = caller[r] {
-			control.poll()
+			control.Poll()
 			seen[r] = true
 			if caller[r] == name {
 				return true
@@ -714,7 +690,7 @@ func transientRules(rules []*grammar.RuleDef, control *Control) map[string]bool 
 	}
 	out := map[string]bool{}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		calls := len(allCallsControlled(rd.Expr, nil, control))
 		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(startMarked(rd) && selfCalled(rd.Name))
 	}
@@ -722,13 +698,13 @@ func transientRules(rules []*grammar.RuleDef, control *Control) map[string]bool 
 }
 
 // predicateCaptures returns the names of the captures referenced by predicates in the expression.
-func predicateCaptures(e grammar.Expr, control *Control) map[string]bool {
-	control.poll()
+func predicateCaptures(e grammar.Expr, control *cancel.Control) map[string]bool {
+	control.Poll()
 	names := map[string]bool{}
 	walkExprControlled(e, func(x grammar.Expr) {
 		if pr, ok := x.(*grammar.Predicate); ok {
 			WalkTerm(pr.Term, func(t grammar.Term) {
-				control.poll()
+				control.Poll()
 				if cr, ok := t.(*grammar.CaptureRef); ok {
 					names[cr.Name] = true
 				}
@@ -741,11 +717,11 @@ func predicateCaptures(e grammar.Expr, control *Control) map[string]bool {
 // valueNeededRules returns the rules that must build values even in a program that builds no
 // tree: the rules called within captures referenced by predicates, and every rule they call. With
 // streams, also the rules with a #stream repetition (see Program.ParseStream) and every rule they call.
-func valueNeededRules(rules []*grammar.RuleDef, control *Control, streams bool) map[string]bool {
-	control.poll()
+func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams bool) map[string]bool {
+	control.Poll()
 	byName := map[string]*grammar.RuleDef{}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		byName[rd.Name] = rd
 	}
 	needed := map[string]bool{}
@@ -756,12 +732,12 @@ func valueNeededRules(rules []*grammar.RuleDef, control *Control, streams bool) 
 		}
 		needed[name] = true
 		for _, callee := range allCallsControlled(byName[name].Expr, nil, control) {
-			control.poll()
+			control.Poll()
 			mark(callee)
 		}
 	}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		if streams && hasStream(rd.Expr, control) {
 			mark(rd.Name)
 		}
@@ -769,7 +745,7 @@ func valueNeededRules(rules []*grammar.RuleDef, control *Control, streams bool) 
 		walkExprControlled(rd.Expr, func(x grammar.Expr) {
 			if cp, ok := x.(*grammar.Capture); ok && pc[cp.Name] {
 				for _, callee := range allCallsControlled(cp.Expr, nil, control) {
-					control.poll()
+					control.Poll()
 					mark(callee)
 				}
 			}
@@ -786,8 +762,8 @@ func startsUpper(name string) bool {
 }
 
 // hasStream reports whether the expression contains #stream.
-func hasStream(e grammar.Expr, control *Control) bool {
-	control.poll()
+func hasStream(e grammar.Expr, control *cancel.Control) bool {
+	control.Poll()
 	found := false
 	walkExprControlled(e, func(x grammar.Expr) {
 		if IsStream(x) {
@@ -800,7 +776,7 @@ func hasStream(e grammar.Expr, control *Control) bool {
 // noCaptures reports captures inside value-free expressions (#atomic, -, !, skip) as errors.
 func (c *Compiler) noCaptures(e grammar.Expr) {
 	control := c.Control
-	c.Control.poll()
+	c.Control.Poll()
 	walkExprControlled(e, func(x grammar.Expr) {
 		if cp, ok := x.(*grammar.Capture); ok {
 			c.errorf(cp.Diagnostic(), "capture %s inside #atomic, -, or ! has no effect", cp.Name)
@@ -818,7 +794,7 @@ func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
 		return // a compiled grammar, checked when it was compiled
 	}
 	control := c.Control
-	c.Control.poll()
+	c.Control.Poll()
 	// A nested positive lookahead checks its own captures.
 	nested := map[grammar.Expr]bool{}
 	walkExprControlled(e, func(x grammar.Expr) {
@@ -873,19 +849,19 @@ func visible(e grammar.Expr) bool {
 // can then only be its own (made inside &) or, an error, those of the enclosing scope. Every
 // backend and generator must decide the same way, since the scope decides where captures are
 // written.
-func elementScopedControlled(e grammar.Expr, control *Control) bool {
-	control.poll()
+func elementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
+	control.Poll()
 	return hasCapturesControlled(e, control) || predicatesReadCaptures(e, control)
 }
 
 // predicatesReadCaptures reports whether a predicate in e refers to a capture.
-func predicatesReadCaptures(e grammar.Expr, control *Control) bool {
-	control.poll()
+func predicatesReadCaptures(e grammar.Expr, control *cancel.Control) bool {
+	control.Poll()
 	found := false
 	walkExprControlled(e, func(x grammar.Expr) {
 		if p, ok := x.(*grammar.Predicate); ok {
 			WalkTerm(p.Term, func(t grammar.Term) {
-				control.poll()
+				control.Poll()
 				if _, ok := t.(*grammar.CaptureRef); ok {
 					found = true
 				}
@@ -895,21 +871,21 @@ func predicatesReadCaptures(e grammar.Expr, control *Control) bool {
 	return found
 }
 
-func hasCapturesControlled(e grammar.Expr, control *Control) bool {
-	control.poll()
+func hasCapturesControlled(e grammar.Expr, control *cancel.Control) bool {
+	control.Poll()
 	switch e := e.(type) {
 	case *grammar.Capture:
 		return true
 	case *grammar.Seq:
 		for _, it := range e.Items {
-			control.poll()
+			control.Poll()
 			if hasCapturesControlled(it, control) {
 				return true
 			}
 		}
 	case *grammar.Choice:
 		for _, alt := range e.Alts {
-			control.poll()
+			control.Poll()
 			if hasCapturesControlled(alt, control) {
 				return true
 			}
@@ -1196,7 +1172,7 @@ func (c *Compiler) checkSpliceCycles(rules []*grammar.RuleDef) {
 		return false
 	}
 	for _, rd := range rules {
-		c.Control.poll()
+		c.Control.Poll()
 		if _, ok := flat[rd.Name]; ok && state[rd.Name] == 0 && visit(rd.Name) {
 			c.errorf(rd.Diagnostic(), "rule %s contains itself in its sequence of elements, so it has no fixed number of them", rd.Name)
 			return

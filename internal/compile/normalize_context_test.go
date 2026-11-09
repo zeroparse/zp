@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -63,7 +64,7 @@ func TestNormalizationContextCancellation(t *testing.T) {
 				var diagnostics error
 				defer func() {
 					failure := recover()
-					cancelled, ok := failure.(Cancellation)
+					cancelled, ok := failure.(cancel.Cancellation)
 					if !ok || !errors.Is(cancelled.Err, context.Canceled) || ctx.left != 0 {
 						t.Fatalf("normalization did not cancel during traversal: %v", failure)
 					}
@@ -75,7 +76,7 @@ func TestNormalizationContextCancellation(t *testing.T) {
 						t.Fatalf("cancelled normalization changed source: %v", err)
 					}
 				}()
-				result, diagnostics = NormalizeAttributesControlled(g, eager, &Control{Ctx: ctx})
+				result, diagnostics = NormalizeAttributesControlled(g, eager, &cancel.Control{Ctx: ctx})
 				t.Fatal("normalization finished without cancellation")
 			})
 		}
@@ -104,10 +105,10 @@ func TestNormalizationCopiesObserveCancellation(t *testing.T) {
 				t.Fatal(err)
 			}
 			ctx := compileTestContext(t, 3)
-			control := &Control{Ctx: ctx}
+			control := &cancel.Control{Ctx: ctx}
 			defer func() {
 				failure := recover()
-				cancelled, ok := failure.(Cancellation)
+				cancelled, ok := failure.(cancel.Cancellation)
 				if !ok || !errors.Is(cancelled.Err, context.Canceled) || ctx.left != 0 {
 					t.Fatalf("copy did not cancel: %v", failure)
 				}
@@ -138,11 +139,11 @@ func TestNormalizationFinalCheckpoint(t *testing.T) {
 	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}}}}}
 	ctx := compileTestContext(t, 2)
 	defer func() {
-		cancelled, ok := recover().(Cancellation)
+		cancelled, ok := recover().(cancel.Cancellation)
 		if !ok || !errors.Is(cancelled.Err, context.Canceled) || ctx.left != 0 {
 			t.Fatal("short normalization ignored final cancellation")
 		}
 	}()
-	NormalizeAttributesControlled(g, false, &Control{Ctx: ctx})
+	NormalizeAttributesControlled(g, false, &cancel.Control{Ctx: ctx})
 	t.Fatal("normalization returned a cancelled result")
 }

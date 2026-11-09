@@ -2,6 +2,7 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 )
 
 // Scan sites.
@@ -28,7 +29,7 @@ import (
 var NoScanSites bool
 
 // scanRules returns the names of the rules whose single-character repetitions are scan sites.
-func (prog *Program) scanRules(control *Control, defs []*grammar.RuleDef, calls map[string][]string) map[string]bool {
+func (prog *Program) scanRules(control *cancel.Control, defs []*grammar.RuleDef, calls map[string][]string) map[string]bool {
 	out := map[string]bool{}
 	if NoScanSites || NoRunSites {
 		return out
@@ -40,7 +41,7 @@ func (prog *Program) scanRules(control *Control, defs []*grammar.RuleDef, calls 
 		}
 	}
 	for _, rd := range defs {
-		control.poll()
+		control.Poll()
 		if refs[rd.Name] >= 2 && !hasAttrsBesidesStart(rd) && rd.Type == nil && rd.Action == nil && len(calls[rd.Name]) == 0 && pureScan(rd.Expr, control) {
 			out[rd.Name] = true
 		}
@@ -49,7 +50,7 @@ func (prog *Program) scanRules(control *Control, defs []*grammar.RuleDef, calls 
 }
 
 // markScanSites numbers the single-character repetitions of the rules in scanRules.
-func (prog *Program) markScanSites(control *Control, scanRules map[string]bool) {
+func (prog *Program) markScanSites(control *cancel.Control, scanRules map[string]bool) {
 	prog.scanRepeats = map[*grammar.Repeat]int{}
 	for _, r := range prog.RuleList {
 		if !scanRules[r.Name] {
@@ -69,7 +70,7 @@ func (prog *Program) markScanSites(control *Control, scanRules map[string]bool) 
 func (prog *Program) ScanSite(e *grammar.Repeat) int { return prog.scanRepeats[e] }
 
 // pureScan reports whether e is made only of the forms of the body of a scan site.
-func pureScan(e grammar.Expr, control *Control) bool {
+func pureScan(e grammar.Expr, control *cancel.Control) bool {
 	ok := true
 	walkExprControlled(e, func(x grammar.Expr) {
 		switch x.(type) {

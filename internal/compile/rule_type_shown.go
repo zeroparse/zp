@@ -1,23 +1,26 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+)
 
 // shownRuleTypes returns the type of each rule as Program.RuleType shows it: the declared type of
 // a rule with one, and otherwise the rule's value type, in which a reference to a rule with a
 // declared type is that type. A reference to a rule without one keeps the rule's name, which
 // keeps recursive and large values short.
-func shownRuleTypes(prog *Program, rules []*grammar.RuleDef, values map[string]Ty, control *Control) map[string]Ty {
+func shownRuleTypes(prog *Program, rules []*grammar.RuleDef, values map[string]Ty, control *cancel.Control) map[string]Ty {
 	k := &TypeResolver{Prog: prog}
 	declared := map[string]Ty{}
 	for _, rd := range rules {
-		control.poll()
+		control.Poll()
 		if rd.Type != nil {
 			declared[rd.Name] = k.Resolve(rd.Type)
 		}
 	}
 	var show func(t Ty) Ty
 	show = func(t Ty) Ty {
-		control.poll()
+		control.Poll()
 		switch t := t.(type) {
 		case RuleTy:
 			if d, ok := declared[t.Name]; ok {

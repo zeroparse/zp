@@ -176,7 +176,7 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 	if t == nil {
 		return
 	}
-	k.control.poll()
+	k.control.Poll()
 	switch t := t.(type) {
 	case *grammar.TermGroup:
 		k.walkTerm(t.Term, tc)

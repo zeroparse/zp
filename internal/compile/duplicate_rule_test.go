@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -20,13 +21,13 @@ func TestAnalysisEntryPointsReportDuplicateRule(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		control := &Control{Ctx: ctx}
+		ctx, stop := context.WithTimeout(context.Background(), 10*time.Second)
+		control := &cancel.Control{Ctx: ctx}
 		_, errClassify := ClassifyComplexity(g, "", control)
 		_, errGrowing := GrowingBindings(g, "", control)
 		_, errView := NormalView(g, false, control)
 		_, errMatching := NormalView(g, true, control)
-		cancel()
+		stop()
 		for name, err := range map[string]error{"ClassifyComplexity": errClassify, "GrowingBindings": errGrowing, "NormalView": errView, "NormalView matching": errMatching} {
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("%s(%q) error = %v, want %s", name, tc.src, err, tc.want)

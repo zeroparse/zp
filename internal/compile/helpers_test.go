@@ -3,6 +3,7 @@ package compile
 import (
 	"context"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
@@ -145,7 +146,7 @@ func compileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 	}
 	defer func() {
 		if failure := recover(); failure != nil {
-			if cancelled, ok := failure.(Cancellation); ok {
+			if cancelled, ok := failure.(cancel.Cancellation); ok {
 				prog, err = nil, cancelled.Err
 			} else {
 				panic(failure)
@@ -153,7 +154,7 @@ func compileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 		}
 	}()
 	names := InlineNames{}
-	prog, err = CompileProgram(g, opts, nil, names, &Control{Ctx: ctx}, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+	prog, err = CompileProgram(g, opts, nil, names, &cancel.Control{Ctx: ctx}, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}

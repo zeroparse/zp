@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -36,9 +37,9 @@ rule main (Alias) = n:([0-9]+) => (T{Text: (text($n))})`,
 				t.Fatal(err)
 			}
 			for _, eager := range []bool{false, true} {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				got, gotErr := compile.NormalizeAttributesControlled(g, eager, &compile.Control{Ctx: ctx})
+				ctx, stop := context.WithCancel(context.Background())
+				defer stop()
+				got, gotErr := compile.NormalizeAttributesControlled(g, eager, &cancel.Control{Ctx: ctx})
 				want, wantErr := compile.NormalizeAttributesWithCopies(g, eager)
 				if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(gotErr, wantErr) {
 					t.Fatalf("context changed normalized result: %v / %v", gotErr, wantErr)

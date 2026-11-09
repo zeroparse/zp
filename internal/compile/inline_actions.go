@@ -3,6 +3,8 @@ package compile
 import (
 	"fmt"
 	"strings"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -78,11 +80,11 @@ func (names InlineNames) where(name string) string {
 // lowered grammar, by the description of the inline action, so that no message names a rule that the
 // grammar does not declare.
 func (names InlineNames) Rewrite(err error) error {
-	list, ok := err.(ErrorList)
+	list, ok := err.(diag.ErrorList)
 	if !ok || len(names) == 0 {
 		return err
 	}
-	out := make(ErrorList, len(list))
+	out := make(diag.ErrorList, len(list))
 	for i, e := range list {
 		copy := *e
 		copy.Msg = names.Text(e.Msg)
@@ -137,16 +139,16 @@ func isNameByte(c byte) bool {
 // undeclaredRules reports the references of g to a rule it does not declare. The lowering adds
 // hidden rules, so a reference is checked against the grammar as written: a generated name can
 // never satisfy one.
-func undeclaredRules(g *grammar.Grammar, control *Control) ErrorList {
+func undeclaredRules(g *grammar.Grammar, control *cancel.Control) diag.ErrorList {
 	declared := map[string]bool{}
-	for _, rd := range control.rules(g) {
+	for _, rd := range control.Rules(g) {
 		declared[rd.Name] = true
 	}
-	var errs ErrorList
-	for _, rd := range control.rules(g) {
+	var errs diag.ErrorList
+	for _, rd := range control.Rules(g) {
 		walkExprControlled(rd.Expr, func(e grammar.Expr) {
 			if ref, ok := e.(*grammar.Ref); ok && !declared[ref.Name] {
-				errs = append(errs, &Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
+				errs = append(errs, &diag.Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
 			}
 		}, control)
 	}
@@ -154,12 +156,12 @@ func undeclaredRules(g *grammar.Grammar, control *Control) ErrorList {
 }
 
 // hasInlineAction reports whether g holds an inline action.
-func hasInlineAction(g *grammar.Grammar, control *Control) bool {
+func hasInlineAction(g *grammar.Grammar, control *cancel.Control) bool {
 	if g == nil {
 		return false
 	}
 	found := false
-	for _, rd := range control.rules(g) {
+	for _, rd := range control.Rules(g) {
 		walkExprControlled(rd.Expr, func(e grammar.Expr) {
 			if _, ok := e.(*grammar.InlineAction); ok {
 				found = true
@@ -179,8 +181,8 @@ type inlineLowerer struct {
 	names   InlineNames
 	hidden  []grammar.Decl
 	unused  int // depth of the expressions whose value is not used: lookaheads and discards
-	errs    ErrorList
-	control *Control
+	errs    diag.ErrorList
+	control *cancel.Control
 	// keepInline, when set, makes the walk keep the inline actions: it returns the inline action e
 	// whose expression is now inner, as it should stay in the result.
 	keepInline func(e *grammar.InlineAction, inner grammar.Expr) grammar.Expr
@@ -188,15 +190,15 @@ type inlineLowerer struct {
 
 // lowerInlineActions returns g with every inline action replaced by a reference to a hidden rule.
 // g itself does not change. Errors report inline actions in expressions that make no value.
-func lowerInlineActions(g *grammar.Grammar, names InlineNames, control *Control) (*grammar.Grammar, ErrorList) {
-	var errs ErrorList
+func lowerInlineActions(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diag.ErrorList) {
+	var errs diag.ErrorList
 	taken := map[string]bool{}
-	for _, rd := range control.rules(g) {
+	for _, rd := range control.Rules(g) {
 		taken[rd.Name] = true
 	}
 	decls := make([]grammar.Decl, 0, len(g.File.Decls))
 	for _, d := range g.File.Decls {
-		control.poll()
+		control.Poll()
 		rd, ok := d.(*grammar.RuleDef)
 		if !ok {
 			decls = append(decls, d)
@@ -247,14 +249,14 @@ func (l *inlineLowerer) quiet(e grammar.Expr) grammar.Expr {
 }
 
 func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
-	l.control.poll()
+	l.control.Poll()
 	switch e := e.(type) {
 	case *grammar.InlineAction:
 		if l.keepInline != nil {
 			return l.keepInline(e, l.expr(e.Expr))
 		}
 		if l.unused > 0 {
-			l.errs = append(l.errs, &Error{Pos: e.Diagnostic(), Msg: "an inline action is not allowed in a lookahead or a discard, whose value is not used"})
+			l.errs = append(l.errs, &diag.Error{Pos: e.Diagnostic(), Msg: "an inline action is not allowed in a lookahead or a discard, whose value is not used"})
 		}
 		inner := l.expr(e.Expr)
 		l.count++

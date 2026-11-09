@@ -2,6 +2,8 @@ package compile
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
@@ -10,9 +12,9 @@ import (
 // TypeResolver turns the type expressions of a grammar into types. It reports undefined names,
 // aliases that refer to themselves and type syntax that is not supported yet.
 type TypeResolver struct {
-	control *Control
+	control *cancel.Control
 	Prog    *Program
-	errs    *ErrorList
+	errs    *diag.ErrorList
 	report  bool
 	// sawUnsupported records that a resolved type used syntax that is not supported yet, whether
 	// or not it was reported here, so that checks of the type are not reported on top.
@@ -33,12 +35,12 @@ func (k *TypeResolver) errorf(pos grammar.Pos, format string, args ...any) {
 	if !pos.IsValid() && k.rule != nil {
 		pos = k.rule.Diagnostic()
 	}
-	*k.errs = append(*k.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	*k.errs = append(*k.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // Resolve turns a type expression into a value type.
 func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
-	k.control.poll()
+	k.control.Poll()
 	switch t := t.(type) {
 	case *grammar.TypeRef:
 		return k.ResolveNamed(t.Name, t.Diagnostic())
@@ -195,7 +197,7 @@ func (k *TypeResolver) defined(name string) bool {
 	if _, ok := k.Prog.Types[name]; ok {
 		return true
 	}
-	r := &TypeResolver{Prog: k.Prog, errs: &ErrorList{}, report: true}
+	r := &TypeResolver{Prog: k.Prog, errs: &diag.ErrorList{}, report: true}
 	r.ResolveNamed(name, grammar.Pos{})
 	return len(*r.errs) == 0
 }
@@ -214,7 +216,7 @@ func (k *TypeResolver) resolveLocation(t grammar.TypeExpr, pos grammar.Pos, what
 // ResolveNamed resolves the type name written at pos: a built-in type, a reserved node kind or a
 // declared type, reporting names that are undefined or used without a required argument.
 func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
-	k.control.poll()
+	k.control.Poll()
 	switch name {
 	case "int":
 		return TyInt
@@ -247,7 +249,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 		if k.inNode {
 			return NodeTy{Value: TyTop, Name: name}
 		}
-		k.control.poll()
+		k.control.Poll()
 		resolving := k.resolving
 		k.resolving, k.inNode = nil, true
 		v := k.Resolve(val)
@@ -301,8 +303,8 @@ func DefFields(spec *grammar.TypeDef) []*grammar.Field {
 // that do not start with an uppercase letter, and types that do not resolve (undefined names,
 // aliases that refer to themselves, unsupported syntax and fields of type _|_).
 func (k *TypeResolver) checkTypeDefinitions() {
-	for _, td := range k.control.types(k.Prog.Grammar) {
-		k.control.poll()
+	for _, td := range k.control.Types(k.Prog.Grammar) {
+		k.control.Poll()
 		switch spec := td.(type) {
 		case *grammar.TypeDef:
 			if val := spec.NodeValue(); val != nil {
@@ -311,7 +313,7 @@ func (k *TypeResolver) checkTypeDefinitions() {
 			}
 			seen := map[string]bool{}
 			for _, f := range DefFields(spec) {
-				k.control.poll()
+				k.control.Poll()
 				if seen[f.Name] {
 					k.errorf(f.Diagnostic(), "duplicate field %s in %s", f.Name, td.DeclName())
 				}

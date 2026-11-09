@@ -2,6 +2,7 @@ package closure
 
 import (
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -14,7 +15,7 @@ import (
 type Builder struct {
 	prog *compile.Program
 	// control is the budget control of the compilation, or nil.
-	control *compile.Control
+	control *cancel.Control
 	// plainDispatch leaves out the budget charge of the loop iterations (Options.ControlledDispatch
 	// builds the metered closure graph).
 	plainDispatch bool

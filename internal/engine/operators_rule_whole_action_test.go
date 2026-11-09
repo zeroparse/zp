@@ -3,6 +3,7 @@ package engine
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -90,7 +91,7 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 								}
 								return
 							}
-							errs, ok := err.(compile.ErrorList)
+							errs, ok := err.(diag.ErrorList)
 							if !ok || len(errs) == 0 || !strings.Contains(errs[0].Msg, want.message) {
 								t.Fatalf("got %v; want an error containing %q", err, want.message)
 							}

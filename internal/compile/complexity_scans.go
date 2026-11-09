@@ -143,7 +143,7 @@ func (r *runAnalysis) clears(e grammar.Expr) bool {
 
 func (r *runAnalysis) compute(e grammar.Expr) runFlow {
 	k := r.k
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return runID
@@ -294,7 +294,7 @@ func (r *runAnalysis) solve() {
 // visit carries the run before e into e, recording it at calls and repetitions.
 func (r *runAnalysis) visit(e grammar.Expr, in int, changed *bool) {
 	k := r.k
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		if k.byName[e.Name] == nil {
@@ -370,7 +370,7 @@ func (k *classifier) sureOf(e grammar.Expr) charset {
 
 // looseCut reports whether e has a cut that commits the choice, option or repetition around it.
 func (k *classifier) looseCut(e grammar.Expr) bool {
-	return grammaranalysis.HasLooseCutWithPoll(e, k.control.poll)
+	return grammaranalysis.HasLooseCutWithPoll(e, k.control.Poll)
 }
 
 // sure returns characters on which e surely consumes: an evaluation of e where the next character
@@ -383,7 +383,7 @@ func (k *classifier) looseCut(e grammar.Expr) bool {
 // answers nothing for and AlwaysSucceeds does not prove, so the answer holds whatever the variables
 // that a rule reads hold, as it does for the input.
 func (k *classifier) sure(e grammar.Expr) charset {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case *grammar.CharClass:
 		return classChars(e)
@@ -545,7 +545,7 @@ func (k *classifier) computeBoundedScans() {
 	for changed := true; changed; {
 		changed = false
 		for _, r := range k.rules {
-			k.control.poll()
+			k.control.Poll()
 			if !k.reach[r.Name] {
 				continue
 			}
@@ -623,7 +623,7 @@ func (k *classifier) firstBound(rep *grammar.Repeat) bool {
 // rigid reports whether a constant bounds the positions from which e can match up to any one
 // position. A rule takes one answer, found once: only rules that are not recursive have one to find.
 func (k *classifier) rigid(e grammar.Expr) bool {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		if e.Level == rhsLevel || k.byName[e.Name] == nil || k.recursive[e.Name] {
@@ -678,7 +678,7 @@ func (k *classifier) rigid(e grammar.Expr) bool {
 // number there, marks the repetitions for which that holds, and clears the rules called where it
 // does not hold.
 func (k *classifier) countedWalk(e grammar.Expr, ok bool, counted map[string]bool, changed *bool) {
-	k.control.poll()
+	k.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		if !ok && counted[e.Name] && !k.memo[e.Name] {

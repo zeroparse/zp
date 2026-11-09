@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -63,14 +64,14 @@ func classifyComplexity(ctx context.Context, g *grammar.Grammar, start string) (
 	}
 	defer func() {
 		if failure := recover(); failure != nil {
-			if cancelled, ok := failure.(compile.Cancellation); ok {
+			if cancelled, ok := failure.(cancel.Cancellation); ok {
 				c, err = nil, cancelled.Err
 			} else {
 				panic(failure)
 			}
 		}
 	}()
-	return compile.ClassifyComplexity(g, start, &compile.Control{Ctx: ctx})
+	return compile.ClassifyComplexity(g, start, &cancel.Control{Ctx: ctx})
 }
 
 // GrowingBindings returns the Growing member of ClassifyComplexity(ctx, g, start) at a lower
@@ -84,12 +85,12 @@ func GrowingBindings(ctx context.Context, g *grammar.Grammar, start string) (b [
 	}
 	defer func() {
 		if failure := recover(); failure != nil {
-			if cancelled, ok := failure.(compile.Cancellation); ok {
+			if cancelled, ok := failure.(cancel.Cancellation); ok {
 				b, err = nil, cancelled.Err
 			} else {
 				panic(failure)
 			}
 		}
 	}()
-	return compile.GrowingBindings(g, start, &compile.Control{Ctx: ctx})
+	return compile.GrowingBindings(g, start, &cancel.Control{Ctx: ctx})
 }

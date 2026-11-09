@@ -2,15 +2,16 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
-func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *Control) grammar.Expr {
+func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *cancel.Control) grammar.Expr {
 	var poll func()
 	if control != nil {
-		poll = control.poll
+		poll = control.Poll
 	}
-	control.check()
+	control.Check()
 	if len(block.Statements) == 1 {
 		copy := *e
 		copy.Term = grammaranalysis.UngroupTermWithPoll(block.Statements[0], poll)
@@ -18,7 +19,7 @@ func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *Control
 	}
 	items := make([]grammar.Expr, len(block.Statements))
 	for i, statement := range block.Statements {
-		control.poll()
+		control.Poll()
 		items[i] = &grammar.Predicate{
 			SourceInfo: *statement.(grammar.SourceNode).Source(),
 			Term:       grammaranalysis.UngroupTermWithPoll(statement, poll),
@@ -34,10 +35,10 @@ func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *Control
 // list, and reports whether any block was expanded. normalized[i] is the normalized form of
 // source[i], and a normalized block is the sequence of its predicates. It returns normalized
 // itself when no block has more than one statement.
-func expandPredicateBlocks(source, normalized []grammar.Expr, control *Control) ([]grammar.Expr, bool) {
+func expandPredicateBlocks(source, normalized []grammar.Expr, control *cancel.Control) ([]grammar.Expr, bool) {
 	expanded := 0
 	for _, item := range source {
-		control.poll()
+		control.Poll()
 		if count := predicateStatementCount(item); count > 1 {
 			expanded += count - 1
 		}
@@ -45,10 +46,10 @@ func expandPredicateBlocks(source, normalized []grammar.Expr, control *Control) 
 	if expanded == 0 {
 		return normalized, false
 	}
-	control.check()
+	control.Check()
 	items := make([]grammar.Expr, 0, len(normalized)+expanded)
 	for i, item := range normalized {
-		control.poll()
+		control.Poll()
 		if predicateStatementCount(source[i]) > 1 {
 			items = appendNormalizedPredicates(items, item.(*grammar.Seq).Items, control)
 		} else {

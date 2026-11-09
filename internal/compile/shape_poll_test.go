@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -38,12 +39,12 @@ func TestShapeAnalysisPollsContext(t *testing.T) {
 		t.Fatalf("shape has %d elements, want %d", want, items)
 	}
 	ctx := compileTestContext(t, 1<<20)
-	prog.shapeControl = &Control{Ctx: ctx}
+	prog.shapeControl = &cancel.Control{Ctx: ctx}
 	if got := len(shapeElems(prog, expr)); got != want {
 		t.Fatalf("shape with a control has %d elements, want %d", got, want)
 	}
-	if got := checks(ctx); got < items/PollStride {
-		t.Errorf("the shape analysis of %d items made %d checks, want at least %d", items, got, items/PollStride)
+	if got := checks(ctx); got < items/cancel.PollStride {
+		t.Errorf("the shape analysis of %d items made %d checks, want at least %d", items, got, items/cancel.PollStride)
 	}
 	prog.shapeControl = nil
 	ctx = compileTestContext(t, 1<<20)
@@ -69,11 +70,11 @@ func TestRuleCyclesPollsContext(t *testing.T) {
 		byName[rd.Name] = rd
 	}
 	ctx := compileTestContext(t, 1<<20)
-	cycles := ruleCycles(defs, byName, &Control{Ctx: ctx})
+	cycles := ruleCycles(defs, byName, &cancel.Control{Ctx: ctx})
 	if len(cycles) != rules || len(cycles["r0"]) != rules {
 		t.Fatalf("cycles for %d rules, the first of %d", len(cycles), len(cycles["r0"]))
 	}
-	if got := checks(ctx); got < rules/PollStride {
-		t.Errorf("%d rules made %d checks, want at least %d", rules, got, rules/PollStride)
+	if got := checks(ctx); got < rules/cancel.PollStride {
+		t.Errorf("%d rules made %d checks, want at least %d", rules, got, rules/cancel.PollStride)
 	}
 }

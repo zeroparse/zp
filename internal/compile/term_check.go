@@ -13,7 +13,7 @@ var builtins = map[string]int{
 
 // CheckTerm resolves the names in a value expression and reports statically detectable errors.
 func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
-	c.Control.poll()
+	c.Control.Poll()
 	switch t := t.(type) {
 	case *grammar.CaptureRef:
 		if contains(locals, t.Name) {

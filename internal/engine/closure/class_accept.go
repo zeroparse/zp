@@ -2,6 +2,7 @@ package closure
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/engine/core"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -51,7 +52,7 @@ func ClassAccept(e *grammar.CharClass) func(*core.Parser, rune) bool {
 	}
 }
 
-func ClassAcceptControlled(e *grammar.CharClass, control *compile.Control) func(*core.Parser, rune) bool {
+func ClassAcceptControlled(e *grammar.CharClass, control *cancel.Control) func(*core.Parser, rune) bool {
 	if control == nil || len(e.Ranges) <= 2 {
 		return ClassAccept(e)
 	}

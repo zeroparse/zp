@@ -681,7 +681,7 @@ func (x excl) nextMatch(q []sym, j int) (int, bool) {
 func (x excl) excludes(s exclState) (ok bool, item, n int) {
 	k := x.k
 	for {
-		k.control.poll()
+		k.control.Poll()
 		if x.spend(1) {
 			return x.no("budget", sym{}, nil)
 		}

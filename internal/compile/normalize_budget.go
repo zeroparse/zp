@@ -1,16 +1,19 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+)
 
 // Copies use private destination storage, so cancellation never changes the
 // source AST. Allocations themselves remain nonpreemptible.
-func normalizationCopy[T any](dst, src []T, control *Control) {
+func normalizationCopy[T any](dst, src []T, control *cancel.Control) {
 	if control == nil {
 		copy(dst, src)
 		return
 	}
 	for off, end := 0, min(len(dst), len(src)); off < end; {
-		control.check()
+		control.Check()
 		next := min(off+256, end)
 		copy(dst[off:next], src[off:next])
 		off = next
@@ -18,11 +21,11 @@ func normalizationCopy[T any](dst, src []T, control *Control) {
 }
 
 // normalizationClone returns a copy of src, polling control while copying.
-func normalizationClone[T any](src []T, control *Control) []T {
+func normalizationClone[T any](src []T, control *cancel.Control) []T {
 	if control == nil {
 		return append([]T(nil), src...)
 	}
-	control.check()
+	control.Check()
 	if len(src) == 0 {
 		return nil
 	}
@@ -32,23 +35,23 @@ func normalizationClone[T any](src []T, control *Control) []T {
 }
 
 // appendNormalizedAttribute returns a copy of src with a appended, polling control while copying.
-func appendNormalizedAttribute(src []*grammar.Attribute, a *grammar.Attribute, control *Control) []*grammar.Attribute {
+func appendNormalizedAttribute(src []*grammar.Attribute, a *grammar.Attribute, control *cancel.Control) []*grammar.Attribute {
 	if control == nil {
 		return append(append([]*grammar.Attribute(nil), src...), a)
 	}
-	control.check()
+	control.Check()
 	out := make([]*grammar.Attribute, len(src)+1)
 	normalizationCopy(out, src, control)
 	out[len(src)] = a
 	return out
 }
 
-func appendNormalizedPredicates(dst, src []grammar.Expr, control *Control) []grammar.Expr {
+func appendNormalizedPredicates(dst, src []grammar.Expr, control *cancel.Control) []grammar.Expr {
 	if control == nil {
 		return append(dst, src...)
 	}
 	for off := 0; off < len(src); {
-		control.check()
+		control.Check()
 		next := min(off+256, len(src))
 		dst = append(dst, src[off:next]...)
 		off = next
