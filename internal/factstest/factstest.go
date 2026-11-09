@@ -16,6 +16,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/core/facts"
 )
 
 var update = flag.Bool("update-facts", false, "rewrite the grammar facts golden files")
@@ -285,4 +289,47 @@ func lineDiff(want, got string) string {
 		}
 	}
 	return b.String()
+}
+
+// CoreRules returns the facts that internal/ir/core/facts computed for the rules of a module that
+// are not value-free twins, in the form Render writes. origin maps the module's nodes to the
+// expressions they were built from, which name the choices of the alternatives.
+func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr) []Rule {
+	twin := map[int]bool{}
+	for _, r := range m.Rules {
+		if r.Twin != nil {
+			twin[r.Twin.ID] = true
+		}
+	}
+	terminal := func(n core.Node) Terminal {
+		if f := n.Attrs().First; f != nil {
+			return Terminal{Exp: m.Exps[f.Exp], Depth: f.Depth}
+		}
+		return Terminal{}
+	}
+	var out []Rule
+	for _, r := range m.Rules {
+		if twin[r.ID] {
+			continue
+		}
+		x := f.Rules[r.ID]
+		rule := Rule{Name: r.Name, Nullable: x.Nullable, Cyclic: x.Cyclic(), Cycle: x.Cycle, Leader: x.Leader,
+			Member: x.Member, Rec: x.Rec, Positional: x.Positional, Vars: x.Vars,
+			Memo: x.Memo, Transient: x.Transient, Missing: x.Missing, First: terminal(r.Body)}
+		if x.Recovering >= 0 {
+			rule.Recovering = m.Rules[x.Recovering].Name
+		}
+		core.Walk(r.Body, func(n core.Node) {
+			c, ok := n.(*core.Choice)
+			if !ok {
+				return
+			}
+			pos := origin[c].(*grammar.Choice).Diagnostic()
+			for i, alt := range c.Alts {
+				rule.Alts = append(rule.Alts, Alt{Line: pos.Line, Col: pos.Col, Index: i, First: terminal(alt.Body)})
+			}
+		})
+		out = append(out, rule)
+	}
+	return out
 }

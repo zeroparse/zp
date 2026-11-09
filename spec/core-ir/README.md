@@ -23,7 +23,7 @@ Details that this specification does not state are defined by the code.
 | 1 | [Modules and Rules](modules.md) | The module, its rules, scopes and call graph, and how a rule makes its value |
 | 2 | [Nodes](nodes.md) | The kinds of expression node and what each one matches |
 | 3 | [Terms](terms.md) | The typed language of actions, predicates and bindings |
-| 4 | [Attributes and Effects](attributes.md) | The attributes of a node, nullability, first terminals and the effects |
+| 4 | [Attributes and Effects](attributes.md) | The attributes of a node, nullability, first terminals, the effects and the facts of the rules |
 | 5 | [Invariants](invariants.md) | What a well-formed module guarantees and what verification checks |
 | 6 | [Text Form](text-form.md) | The printed form of a module, with a worked example |
 
