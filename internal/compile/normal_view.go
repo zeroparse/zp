@@ -1218,7 +1218,10 @@ func NormalView(g *grammar.Grammar, matching bool, control *Control) (*grammar.G
 	if err != nil {
 		return nil, err
 	}
-	rules := control.rules(g)
+	rules, errs := uniqueRules(g, control)
+	if len(errs) > 0 {
+		return nil, errs
+	}
 	an := AnalyzeControlled(rules, control)
 	memo, _ := memoizedRules(rules, an, control)
 	opts := costView

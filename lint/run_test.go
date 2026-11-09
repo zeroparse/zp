@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine"
@@ -181,5 +182,27 @@ func TestChecksReturnsACopy(t *testing.T) {
 	checks[0].Name = "changed"
 	if lint.Checks()[0].Name == "changed" {
 		t.Error("Checks shares its slice with the package")
+	}
+}
+
+// TestRunUncheckedDuplicateRule checks that a grammar that declares a rule twice, which does not
+// compile, is not looped on by the analyses that RunUnchecked runs.
+func TestRunUncheckedDuplicateRule(t *testing.T) {
+	for _, src := range []string{
+		"@start\nrule main = main \"a\" / \"a\"\nrule main = main \"b\" / \"b\"",
+		"@start\nrule main = a\nrule a = \"a\" main?\nrule main = a \"b\"",
+	} {
+		g, err := zp.ParseGrammar(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, classify := range []bool{false, true} {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_, err = (lint.Config{Classify: classify}).RunUnchecked(ctx, g, "main")
+			if ctx.Err() != nil {
+				t.Errorf("RunUnchecked(%q, Classify %v) did not return before the deadline: %v", src, classify, err)
+			}
+			cancel()
+		}
 	}
 }

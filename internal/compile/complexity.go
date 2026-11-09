@@ -171,7 +171,10 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *Control, b
 	if err != nil {
 		return nil, nil, err
 	}
-	rules := control.rules(g)
+	rules, errs := uniqueRules(g, control)
+	if len(errs) > 0 {
+		return nil, nil, errs
+	}
 	starts, def, errs := resolveStarts(rules, control)
 	if len(errs) > 0 {
 		return nil, nil, errs

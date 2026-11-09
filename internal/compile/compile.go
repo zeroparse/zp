@@ -291,6 +291,25 @@ func (c *Compiler) errorf(pos grammar.Pos, format string, args ...any) {
 	c.errs = append(c.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
+// uniqueRules returns the first declaration of each rule name of g in order, and an error for each
+// later declaration of a name. The analyses key rules by name and loop on a rule list that holds a
+// name twice, so every entry point that analyzes a grammar takes its rules from here.
+func uniqueRules(g *grammar.Grammar, control *Control) ([]*grammar.RuleDef, ErrorList) {
+	var rules []*grammar.RuleDef
+	var errs ErrorList
+	seen := map[string]bool{}
+	for _, rd := range control.rules(g) {
+		control.poll()
+		if seen[rd.Name] {
+			errs = append(errs, &Error{Pos: rd.Diagnostic(), Msg: fmt.Sprintf("rule %s is already defined", rd.Name)})
+			continue
+		}
+		seen[rd.Name] = true
+		rules = append(rules, rd)
+	}
+	return rules, errs
+}
+
 // RuleFlags are rule properties determined by static analysis. They are saved in compiled
 // grammars so loading can skip the analysis.
 type RuleFlags struct {
@@ -438,21 +457,17 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 	// A rule declared again is reported and then left out: the analyses below key rules by name
 	// and take each name once.
-	var rules []*grammar.RuleDef
-	for _, rd := range control.rules(g) {
+	rules, redeclared := uniqueRules(g, control)
+	c.errs = append(c.errs, redeclared...)
+	for _, rd := range rules {
 		control.poll()
-		if prog.ByName[rd.Name] != nil {
-			c.errorf(rd.Diagnostic(), "rule %s is already defined", rd.Name)
-			continue
-		}
-		r := &Rule{ID: len(rules), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
+		r := &Rule{ID: len(prog.RuleList), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
 		if r.Splice && rd.Type != nil {
 			c.errorf(rd.Diagnostic(), "rule %s makes no node of its own, so it cannot have a result type", rd.Name)
 		}
 		if w := names.where(rd.Name); w != rd.Name {
 			r.Where = w
 		}
-		rules = append(rules, rd)
 		prog.RuleList = append(prog.RuleList, r)
 		prog.ByName[rd.Name] = r
 	}
