@@ -263,12 +263,12 @@ func (p *tsFlowPrinter) read(xs ...flow.Expr) {
 	}
 }
 
-// tsSpend returns the statement that charges n steps.
+// tsSpend returns the statement that charges n steps, as n one-unit charges.
 func tsSpend(n int) string {
 	if n == 1 {
 		return "p.spend();\n"
 	}
-	return fmt.Sprintf("p.spend(%d);\n", n)
+	return fmt.Sprintf("p.spendUnits(%d);\n", n)
 }
 
 // isRead reports whether v is read, by the previous pass.

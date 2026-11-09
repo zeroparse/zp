@@ -343,7 +343,8 @@ func goTarget(s goSpec) *execgo.Target {
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "p.Spend()"
 			}
-			return "p.Control.Charge(" + a[0] + ")"
+			// A charge of n is n one-unit reservations (Take).
+			return "p.Control.Take(" + a[0] + ")"
 		case "budget.freeBegin":
 			return "p.Control.FreeBegin(" + a[0] + ")"
 		case "budget.freeEnd":

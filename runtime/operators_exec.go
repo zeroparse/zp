@@ -163,7 +163,7 @@ func (p *Parser) longest(l []*OperatorsRuleOp) operatorsRuleAttempt {
 	var i int
 	m0 := p.Mark()
 	start := m0.Pos
-	p.Control.Charge(uint64(len(l)))
+	p.Control.Take(uint64(len(l)))
 	for i = 0; i < len(l); i++ {
 		op := l[i]
 		prevFrame := p.Frame
@@ -389,7 +389,7 @@ func (p *TParser) longest(l []*TOperatorsRuleOp) toperatorsRuleAttempt {
 	var i int
 	m0 := p.Mark()
 	start := m0.Pos
-	p.Control.Charge(uint64(len(l)))
+	p.Control.Take(uint64(len(l)))
 	for i = 0; i < len(l); i++ {
 		op := l[i]
 		prevFrame := p.Frame

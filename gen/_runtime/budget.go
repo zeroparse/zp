@@ -336,8 +336,10 @@ func (c *BudgetControl) Charge(n uint64) {
 	c.chargeSlow(n)
 }
 
-// Take is Charge for a condition: it reserves n units and returns true. It
-// does nothing on a nil receiver.
+// Take reserves n compute units one at a time, as n one-unit reservations do, and returns true so
+// that it can end a condition. A run that fits without reaching a poll boundary is reserved at once;
+// otherwise takeSlow reserves each unit, so that a failed run reports the unit that does not fit:
+// Used is the limit and Requested one. It does nothing on a nil receiver.
 func (c *BudgetControl) Take(n uint64) bool {
 	if c == nil {
 		return true
@@ -416,8 +418,8 @@ func (c *BudgetControl) resumeFree(held bool) {
 	}
 }
 
-// takeSlow charges n units one at a time, the reference charge, so that exhaustion and polls
-// fall where they do for the matcher that charges its input unit by unit.
+// takeSlow reserves n units one at a time, so that exhaustion and polls fall where they do for the
+// matcher that charges its input unit by unit.
 func (c *BudgetControl) takeSlow(n uint64) {
 	for ; n > 0; n-- {
 		c.chargeStep()

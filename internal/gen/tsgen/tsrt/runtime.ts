@@ -2095,6 +2095,8 @@ export class Parser {
   readonly control: BudgetControl | null;
 
   spend(n = 1): void { this.control?.charge(n); }
+  // spendUnits charges n units as n calls of spend() do (BudgetControl.chargeUnits).
+  spendUnits(n: number): void { this.control?.chargeUnits(n); }
 
   constructor(g: Grammar, input: string | Uint8Array, unit: Unit, stride: number, maxDepth: number, control: BudgetControl | null = null) {
     this.g = g;

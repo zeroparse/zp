@@ -245,8 +245,9 @@ many rule bodies run, which the statistics report, so every target follows it ex
 	m.AddOp(&exec.Op{Name: "budget.charge", Component: Bud, Params: []exec.Param{exec.P("n", exec.TU64)},
 		Reads: []string{Bud}, Writes: []string{Bud}, Features: []string{Budget}, NoReturn: true,
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QN}}},
-		Contract: `Charges n units. When the limit is not zero and the units used plus n exceed it, the parse
-ends with a limit interruption and the units used are unchanged; otherwise n is added to them.
+		Contract: `Charges n units, as n charges of one unit do. When the limit is not zero and the units used
+plus n exceed it, the parse ends with a limit interruption at the first unit that does not fit, which
+reports the limit as the units used and one unit requested; otherwise n is added to them.
 Charges are never rolled back. A target may also observe cancellation here, at intervals of its
 choice, and end the parse with a cancellation interruption.`,
 		Laws: []string{"charge(a); charge(b) may merge into charge(a+b) when nothing observable lies between them and no commit separates them"}})

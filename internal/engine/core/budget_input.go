@@ -22,10 +22,11 @@ func (p *Parser) Spend() {
 	}
 }
 
-// SpendN charges n units at once, as n calls of Spend do, behind the same statically removable boundary.
+// SpendN charges n units as n calls of Spend do (BudgetControl.ChargeUnits), behind the same
+// statically removable boundary.
 func (p *Parser) SpendN(n uint64) {
 	if BudgetControlsEnabled && p.Control != nil {
-		p.Control.Charge(n)
+		p.Control.ChargeUnits(n)
 	}
 }
 
@@ -100,13 +101,6 @@ func NewControlledTextInput(s string, unit PositionUnit, offsets bool, sc *scrat
 func (p *Parser) SpendDoc() {
 	if BudgetControlsEnabled && p.Control != nil {
 		p.Control.ChargeDoc(1)
-	}
-}
-
-// SpendDocN charges n units as n calls of SpendDoc do.
-func (p *Parser) SpendDocN(n uint64) {
-	if BudgetControlsEnabled && p.Control != nil {
-		p.Control.ChargeDoc(n)
 	}
 }
 

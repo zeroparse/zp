@@ -211,6 +211,13 @@ func RunTSGrammarScriptRaw(t *testing.T, g *grammar.Grammar, script string, opts
 	return runTSGrammarScript(t, g, script, opts, GenerateTSBundleRaw)
 }
 
+// RunTSGrammarScriptBundle is RunTSGrammarScriptWith with the bundle that bundle generates, such as
+// a patched GenerateTSBundle.
+func RunTSGrammarScriptBundle(t *testing.T, g *grammar.Grammar, script string, opts gen.GenOptions, bundle func(*grammar.Grammar, gen.GenOptions) ([]byte, error)) string {
+	t.Helper()
+	return runTSGrammarScript(t, g, script, opts, bundle)
+}
+
 func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts gen.GenOptions, bundle func(*grammar.Grammar, gen.GenOptions) ([]byte, error)) string {
 	t.Helper()
 	if testing.Short() {

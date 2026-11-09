@@ -86,6 +86,18 @@ export class BudgetControl {
     if (this.budget !== 0) this.budgetUsed += n;
     this.sinceCheck = n >= 256 ? 0 : this.sinceCheck + n;
   }
+
+  // chargeUnits reserves n units as n charges of one unit do. A run that fits without reaching a poll
+  // is reserved at once; otherwise each unit is, so that a failed run reports the unit that does not
+  // fit: used is the limit and requested one.
+  chargeUnits(n: number): void {
+    if (n < 256 - this.sinceCheck && (this.budget === 0 || n <= this.budget - this.budgetUsed)) {
+      if (this.budget !== 0) this.budgetUsed += n;
+      this.sinceCheck += n;
+      return;
+    }
+    for (; n > 0; n--) this.charge(1);
+  }
 }
 
 export function withBudgetControl<T>(o: ResolvedParseOptions, body: (control: BudgetControl | null) => T, interrupted: (error: Error) => T): T {

@@ -401,7 +401,8 @@ export function marshal(n: Node | null): string;
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits).
 - An interrupted parse returns `node` as `null` and `error` as a `ParseInterruptionError`
   whose `kind` is `"canceled"`, `"compute-limit"` or `"input-limit"`. For a limit,
-  `limit`, `used` and `requested` give the accounting; for cancellation, `cause` is the
+  `limit`, `used` and `requested` give the accounting, with the meaning that
+  [a `LimitError` reports](parsing.md#cancellation-and-compute-limits); for cancellation, `cause` is the
   `reason` of the signal. Recovery does not turn an interruption into a partial result,
   and the parser keeps no reference to the signal after the call returns. Typed
   conversion (`parseAST`) and recognition report interruptions the same way.

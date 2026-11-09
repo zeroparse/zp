@@ -202,7 +202,10 @@ loudly on a Core construct it does not support rather than guess, and a verifier
 tests.
 
 Optimization at this level only chooses representation: what state to save and restore, which variables to use and where
-the budget charges go. It never changes meaning. Decisions about meaning are made on Core IR, and Flow IR optimizations may
+the budget charges go. It never changes meaning. A charge of one step is one reservation of one unit, so a printer that
+charges several steps, or the code points of a literal, with one call keeps them separate reservations: the runtime
+reserves a run that fits at once and, when the run does not fit, fails at the unit that does not, as the separate charges
+would, and reports that unit as the reservation that failed. Decisions about meaning are made on Core IR, and Flow IR optimizations may
 use the effects that Core IR computed to know what must be kept.
 
 ## How Targets Use the Result

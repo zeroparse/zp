@@ -161,6 +161,24 @@ func (c *BudgetControl) Charge(n uint64) {
 	c.SinceCheck = limits.SaturatingAdd(c.SinceCheck, n)
 }
 
+// ChargeUnits reserves n compute units one at a time, as n calls of Charge(1) do. A run that fits
+// without reaching a poll boundary is reserved at once; otherwise each unit is, so that polls fall
+// where they do for the units and a failed run reports the unit that does not fit: Used is the
+// limit and Requested one. It is safe on a nil receiver.
+func (c *BudgetControl) ChargeUnits(n uint64) {
+	if c == nil {
+		return
+	}
+	if !limits.ExceedsLimit(c.Used, n, c.Limits.Compute) && !limits.ReachesInterval(c.SinceCheck, n, BudgetCheckInterval) {
+		c.Used = limits.SaturatingAdd(c.Used, n)
+		c.SinceCheck = limits.SaturatingAdd(c.SinceCheck, n)
+		return
+	}
+	for ; n > 0; n-- {
+		c.Charge(1)
+	}
+}
+
 // noFree is the mark that FreeBegin returns when it opens no region.
 const noFree = ^uint64(0)
 

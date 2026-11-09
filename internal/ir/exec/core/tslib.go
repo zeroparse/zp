@@ -296,7 +296,7 @@ var tsTarget = &exects.Target{
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "this.spend()"
 			}
-			return "this.spend(Number(" + a[0] + "))"
+			return "this.spendUnits(Number(" + a[0] + "))"
 		case "call.first":
 			return "this.firstCall(" + a[0] + ")"
 		case "rule.memo", "rule.leader", "rule.id":

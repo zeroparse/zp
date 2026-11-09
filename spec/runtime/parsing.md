@@ -1844,6 +1844,19 @@ context returns the error of the context (`errors.Is(err, context.Canceled)` or
 details. Stream parses and documents are specified in [Streaming](streaming.md)
 and [Incremental Documents](documents.md).
 
+A `LimitError` of kind `LimitCompute` reports the reservation that failed:
+`Requested` is the units of that reservation and `Used` the units reserved
+before it, so `Used` is at most `Limit` and `Used + Requested` exceeds it. Every
+backend reserves the examination of the input (each code point of a literal and
+each character it reads), the test of each range of a character class, each
+operator that an Operators Rule tries, and each execution step one unit at a
+time, also where it charges several of them together; a failure there reports
+`Requested` 1 and `Used` equal to `Limit`. Work that the cost model charges as one
+reservation, such as a chunk of the preparation of the input, the copy of a text
+or an operation on a list, is reserved at once, and a failure there reports the
+whole reservation in `Requested` and the units before it in `Used`. Where two
+backends make the same charges, they report the same `Used` and `Requested`.
+
 ### Memory Limit
 
 `Memory` bounds the storage a parse takes into use, in bytes. The count is
