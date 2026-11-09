@@ -137,9 +137,14 @@ func TestLeftRecursionDependencyMemoRandom(t *testing.T) {
 func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 	seeds := 400
 	if testing.Short() {
+		// A smaller search, with the grammars known to detect the check that the search does not
+		// reach in so few seeds (gentest.DependencyMemoControlSeeds).
 		seeds = 120
 	}
 	cases := depMemoGrammars(seeds)
+	if testing.Short() {
+		cases = append(cases, gentest.DependencyMemoControlCases()...)
+	}
 	for _, m := range []struct {
 		name       string
 		mutation   int

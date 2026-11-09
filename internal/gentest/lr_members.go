@@ -217,6 +217,28 @@ func LeftRecursionMemberDocumentCases() []Case {
 	return cases
 }
 
+// DependencyMemoControlSeeds are the seeds, of RandomCycleGrammar with cuts and of
+// RandomRecoveringCycleGrammar, whose grammars give a different result when the dependency memo
+// ignores the growths present at a call (core.CtxIgnorePresent): the first of each kind above the
+// first 120 seeds, which the short tier searches. The short tier compares them in addition, so
+// that the control of that check is deterministic; the full tier finds them in its search.
+var DependencyMemoControlSeeds = struct{ Cuts, Recovering []int64 }{
+	Cuts:       []int64{341},
+	Recovering: []int64{267},
+}
+
+// DependencyMemoControlCases returns the grammars of DependencyMemoControlSeeds.
+func DependencyMemoControlCases() []Case {
+	var cases []Case
+	for _, s := range DependencyMemoControlSeeds.Cuts {
+		cases = append(cases, RandomCycleGrammar(s, true))
+	}
+	for _, s := range DependencyMemoControlSeeds.Recovering {
+		cases = append(cases, RandomRecoveringCycleGrammar(s))
+	}
+	return cases
+}
+
 // DependencyMemoCases returns the grammars that the tests of the dependency memo of left recursion
 // compare: a grammar where one growth step of a leader at a position has two different results
 // with the same end, in two growths of the leader within the growth of another leader there (B at

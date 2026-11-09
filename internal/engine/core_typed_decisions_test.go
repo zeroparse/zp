@@ -272,6 +272,20 @@ func (gd *decisionsGolden) write(t *testing.T, modes []string, fresh map[string]
 	}
 }
 
+// staleEntries returns the grammars of the golden in the mode that are not among the grammars
+// that ran (a stale entry), in sorted order. A grammar the tier left out of the run (skipped) is
+// not stale: it was not checked.
+func (gd *decisionsGolden) staleEntries(mode string, ran map[string][]string, skipped map[string]bool) []string {
+	var stale []string
+	for k := range gd.lines {
+		if _, ok := ran[k.grammar]; k.mode == mode && !ok && !skipped[k.grammar] {
+			stale = append(stale, k.grammar)
+		}
+	}
+	sort.Strings(stale)
+	return stale
+}
+
 // freeze runs one frozen-decisions test over the cases of each mode: it compares the cases with the
 // golden (compareCoreDecisions) and the grammars of the golden with the cases (a missing or a stale
 // entry fails), or with -update rewrites the golden from the cases. cases builds the Core IR of the
@@ -292,10 +306,8 @@ func (gd *decisionsGolden) freeze(t *testing.T, modes []coreGenMode, cases func(
 			}
 			if !*gentest.UpdateGoldens {
 				gd.read()
-				for k := range gd.lines {
-					if _, ok := fresh[mode.name][k.grammar]; k.mode == mode.name && !ok {
-						t.Errorf("%s: %s: stale entry in %s", mode.name, k.grammar, gd.path)
-					}
+				for _, g := range gd.staleEntries(mode.name, fresh[mode.name], gentest.CorpusWithParsersSkipped(t)) {
+					t.Errorf("%s: %s: stale entry in %s", mode.name, g, gd.path)
 				}
 			}
 			check(t, mode, &n)

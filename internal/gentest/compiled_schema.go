@@ -20,12 +20,37 @@ func CorpusWithParsers(t *testing.T) []Case {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if testing.Short() && len(src) > 20000 {
+		name := "grammars/" + filepath.Base(filepath.Dir(path))
+		if shortSkips(src) {
 			continue
 		}
-		cases = append(cases, Case{Name: "grammars/" + filepath.Base(filepath.Dir(path)), Src: string(src)})
+		cases = append(cases, Case{Name: name, Src: string(src)})
 	}
 	return cases
+}
+
+// shortSkips reports whether the short tier leaves a grammar source out of CorpusWithParsers.
+func shortSkips(src []byte) bool { return testing.Short() && len(src) > 20000 }
+
+// CorpusWithParsersSkipped returns the names of the grammars of testdata/grammars that
+// CorpusWithParsers leaves out in this run (in the short tier, the large ones), so that a test
+// that compares the corpus with a stored list can tell a stale entry from a grammar not run.
+func CorpusWithParsersSkipped(t *testing.T) map[string]bool {
+	paths, err := filepath.Glob(path(t, "../../testdata/grammars/*/*.zp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	skipped := map[string]bool{}
+	for _, path := range paths {
+		src, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if shortSkips(src) {
+			skipped["grammars/"+filepath.Base(filepath.Dir(path))] = true
+		}
+	}
+	return skipped
 }
 
 // SchemaCorpus returns the grammars of GenCorpus and of the constructor, field check and result check

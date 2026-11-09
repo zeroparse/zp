@@ -15,6 +15,12 @@ import (
 // accepts to local functions, and the bodies of the other rules and the lines of Operators Rules
 // to framed ones.
 func TestFlowVerifiesCorpus(t *testing.T) {
+	// The short tier leaves out the grammars over 20000 bytes (gentest.CorpusWithParsers), which
+	// hold most of the rules (952 of 4209 lowered rules remain), so it has its own floor.
+	minLowered, minFramed := 1000, 100
+	if testing.Short() {
+		minLowered = 900
+	}
 	for _, mode := range coreGenModes {
 		t.Run(mode.name, func(t *testing.T) {
 			lowered, framed, observed, skips := 0, 0, 0, 0
@@ -64,8 +70,8 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 				}
 			}
 			t.Logf("lowered %d rules and %d framed bodies; %d grammars observed, %d observed skips", lowered, framed, observed, skips)
-			if lowered < 1000 || framed < 100 {
-				t.Errorf("lowered %d rules and %d framed bodies", lowered, framed)
+			if lowered < minLowered || framed < minFramed {
+				t.Errorf("lowered %d rules and %d framed bodies, want at least %d and %d", lowered, framed, minLowered, minFramed)
 			}
 			if mode.opts.Observability && (observed < 100 || skips < 100) || !mode.opts.Observability && skips != 0 {
 				t.Errorf("lowered %d grammars with observation, with %d observed skips", observed, skips)
