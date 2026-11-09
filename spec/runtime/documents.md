@@ -230,9 +230,9 @@ parse reuses read no such growing result.
 ### Reuse Model
 
 The engine and the generated runtimes reuse the results of a Document parse in
-the following way. Each rule here only keeps less than evaluating again would
-give, or keeps what evaluating again gives; [Reuse](#reuse) states the
-guarantee that results do not change.
+the following way. Wherever a rule below keeps a result, evaluating again would
+give the same result; wherever it does not, the parse evaluates again.
+[Reuse](#reuse) states the guarantee that results do not change.
 
 **Slots.** Slot i of a text of length n is the character at position i
 when i < n, and the end of the text when i = n. A terminal, a character
@@ -268,6 +268,10 @@ length of the text by δ, a memo entry with recorded range [l, h) is:
 - shifted by δ, together with its position and its range, if l ≥ b
   and its evaluation was position-free;
 - dropped otherwise.
+
+A backend may drop an entry that these rules would shift: a generated Go
+parser drops one whose value holds a host value other than a node or a basic
+value, which it cannot move.
 
 Edits are applied to an entry in order, either all at once or when the entry is
 next looked up. The engine applies them to an entry when a lookup finds it, and
@@ -307,8 +311,8 @@ at least a minimum number of iterations.
   the same position, stored earlier in the same parse, or by an earlier parse
   of the same text with no edit since; it reuses every recorded iteration.
   **Across one edit**: the record of the previous parse when exactly one edit
-  of [a, b) by δ came since, stored at p, or at p − δ when
-  p ≥ b + δ. It reuses the recorded iterations from the first on
+  of [a, b) by δ came since, stored at p when p ≤ a, or at p − δ when
+  p ≥ b + δ; at a position between them no record is resumed. It reuses the recorded iterations from the first on
   while their examined range ends at or before a, whatever δ is. It
   then evaluates iterations, possibly none. When the current position is
   s + δ for the start s of a recorded iteration j such that every
