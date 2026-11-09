@@ -215,7 +215,7 @@ parse evaluates every rule, as a parse from scratch does. The memo holds at most
 call of the parse before, so the edits between two parses cost at most 128 times the work of the parse
 before, whatever their number, and a sequence of an edit, a parse, an edit and a parse costs per round
 what its parse costs plus that bound. The number 128 is where reuse stops paying when the edits are
-spread over the whole text; it is a constant of the specification. The two forms differ in the statistics alone: the engine
+spread over the whole text; it is one constant shared by every backend. The two forms differ in the statistics alone: the engine
 counts the lag of each entry from the parse that stored it or last found it, and a generated parser
 counts the edits since the last parse for the whole memo, so either may reuse entries that the other
 treats as absent (`Reused` differs), and the results are the same.
@@ -226,6 +226,93 @@ while the growth at its position lasts (see
 [Evaluations of Rules](parsing.md#evaluations-of-rules)), so a later parse
 evaluates it again, even when the text is unchanged. A result that a later
 parse reuses read no such growing result.
+
+### Reuse Model
+
+The engine and the generated runtimes reuse the results of a Document parse in
+the following way. Each rule here only keeps less than evaluating again would
+give, or keeps what evaluating again gives; [Reuse](#reuse) states the
+guarantee that results do not change.
+
+**Slots.** Slot i of a text of length n is the character at position i
+when i < n, and the end of the text when i = n. A terminal, a character
+class, `.`, an anchor or the decoding of a character **examines** a slot when
+its result depends on what the slot holds:
+
+- matching a character examines its slot, and rejecting one examines it too;
+- testing for the end of the input or of a line at i examines slot i;
+- testing for the beginning of a line (`^`) or of the input (`^^`) at i
+  examines slot i − 1, or at i = 0 the absence of one, written slot -1;
+- decoding the character at position i in bytes examines every byte that it
+  reads, and reads no byte before i.
+
+**Examined range.** The examined range of an evaluation is the interval
+[l, h) from the least to one past the greatest slot that it, or a call
+within it, examined. For an evaluation at p, l ≤ p. Every failure that
+an evaluation records is at a slot that it examined. A Document may keep a
+larger interval in place of [l, h), such as the `Examined` frontier of
+[Generated Go Document Tracing and Profiling](observability.md#generated-go-document-tracing-and-profiling);
+a larger interval only drops more entries and resumes fewer iterations.
+
+**Position-free evaluations.** An evaluation is **position-free** when no
+action or predicate in it, or in a call within it, reads a position (the
+`.Start` and `.End` members), and its outcome has no recovered errors, whose
+lines and columns depend on positions. **Shifting** the outcome of a
+position-free evaluation by δ adds δ to its end, to the ranges
+of its nodes and to its farthest failure.
+
+**Entries under edits.** At each edit that replaces [a, b) and changes the
+length of the text by δ, a memo entry with recorded range [l, h) is:
+
+- kept unchanged if h ≤ a;
+- shifted by δ, together with its position and its range, if l ≥ b
+  and its evaluation was position-free;
+- dropped otherwise.
+
+Edits are applied to an entry in order, either all at once or when the entry is
+next looked up. The engine applies them to an entry when a lookup finds it, and
+at once to the entries at the positions a to b, both included; the
+generated runtimes apply each edit to every entry at once. An entry found to be
+dropped may stay where it is, where no lookup returns it, until a store under
+its key replaces it, a later edit whose positions include its position drops
+it, or the whole memo is dropped. A batch is one edit for the text and drops
+every entry and run ([Edits](#edits)).
+
+**Results that are stored.** A parse stores entries under the rules of
+[Evaluations of Rules](parsing.md#evaluations-of-rules): a result that read the
+growing result of a left recursion is dropped within the parse and never
+reaches a later one. A parse that does not complete, because it is
+[interrupted](#interruption) or aborted by a run-time error of an action, the
+nesting limit or another fatal error, drops the memo entries and the runs, and
+publishes no partial table.
+
+**Runs.** A **run record** of a repetition at p holds, for each iteration
+that matched, its start, its end, its examined range, its value, and its
+farthest failure with its expected items. A Document may record only runs of
+at least a minimum number of iterations.
+
+- *Recording.* A run is recorded for a repetition that matched outside a
+  lookahead and a `skip`, whose element has no predicate, calls no rule that
+  reads variables, and writes no capture to an enclosing scope. No recovered
+  error remains at the end of the run. During the run no call read the
+  current result of a growth, directly or through an entry stored by a call
+  that did, even of a growth that started and ended within the run, nor
+  reused a result that read one; a run during which such a read or reuse
+  happened is not recorded.
+- *Resuming.* A repetition resumes a record only outside a lookahead and a
+  `skip`, in one of two ways. **Whole**: the record of the same repetition at
+  the same position, stored earlier in the same parse, or by an earlier parse
+  of the same text with no edit since; it reuses every recorded iteration.
+  **Across one edit**: the record of the previous parse when exactly one edit
+  of [a, b) by δ came since, stored at p, or at p − δ when
+  p ≥ b + δ. It reuses the recorded iterations from the first on
+  while their examined range ends at or before a, whatever δ is. It
+  then evaluates iterations, possibly none. When the current position is
+  s + δ for the start s of a recorded iteration j such that every
+  recorded iteration from j on examined only slots at or after b, it reuses
+  those iterations shifted by δ, which requires δ = 0 or
+  position-free iterations. After the reused iterations it goes on as a
+  repetition does.
 
 ## Change Notifications
 

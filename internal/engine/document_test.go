@@ -27,6 +27,9 @@ func dump(t *testing.T, n *value.Node, err error) string {
 	return s
 }
 
+// TestDocumentMatchesFreshParse checks the guarantee of "Reuse" and the rules of "Reuse Model" in
+// spec/runtime/documents.md that keep it: entries kept, shifted or dropped at each edit, and runs
+// resumed whole or across one edit, give what a parse of the current text from scratch gives.
 func TestDocumentMatchesFreshParse(t *testing.T) {
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) { testDocumentMatchesFreshParse(t, b) })
@@ -101,7 +104,8 @@ func TestDocumentReusesResults(t *testing.T) {
 }
 
 // TestDocumentPositionalActions checks that results of position-dependent actions are
-// recomputed rather than shifted past an edit.
+// recomputed rather than shifted past an edit: only a position-free evaluation is shifted ("Reuse
+// Model" in spec/runtime/documents.md).
 func TestDocumentPositionalActions(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.IncrementalGrammar)
@@ -133,7 +137,8 @@ func TestDocumentEditErrors(t *testing.T) {
 }
 
 // TestDocumentInputStartAnchors checks that results that depend on being at the start of the
-// input (^^) or of a line (^) are not reused after text is inserted before them.
+// input (^^) or of a line (^) are not reused after text is inserted before them: such a test
+// examines the slot before its position ("Reuse Model" in spec/runtime/documents.md).
 func TestDocumentInputStartAnchors(t *testing.T) {
 	t.Parallel()
 	for _, anchor := range []string{"^^", "^"} {
@@ -237,7 +242,7 @@ rule junk = [^;]* #atomic ";"`, "ab;cd;", []string{"a", "b", ";", "x;", "", "1"}
 }
 
 // TestDocumentResumeEdges checks what a resumed repetition takes from the elements it reuses
-// besides their values.
+// besides their values (the resuming of runs in "Reuse Model" in spec/runtime/documents.md).
 func TestDocumentResumeEdges(t *testing.T) {
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) { testDocumentResumeEdges(t, b) })

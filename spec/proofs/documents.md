@@ -1,6 +1,6 @@
 # Documents
 
-Arata Furukawa · Last revised 2026-11-02
+Arata Furukawa · Last revised 2026-11-09
 
 This proof shows that a parse of a [Document](../runtime/documents.md) after
 any sequence of edits returns what a parse of the current text from scratch
@@ -23,84 +23,36 @@ scope and assumptions are as in the [memoization proof](memoization.md#setting),
 on the text at hand. A Document does not support `#missing`
 ([Construction and Ownership](../runtime/documents.md#construction-and-ownership)).
 
-**Slots.** Slot $i$ of a text $t$ of length $n$ is the character at position
-$i$ when $i < n$, and the end of the text when $i = n$. A terminal, a character
-class, `.`, an anchor or the decoding of a character **examines** a slot when
-its result depends on what the slot holds: matching a character examines its
-slot, rejecting one examines it too, and testing for the end of the input at
-$i$ examines slot $i$. Decoding the character at position $i$ in bytes examines
-every byte that it reads, and reads no byte before $i$. Testing for the
-beginning of a line or of the input at $i$ examines slot $i - 1$, or the
-absence of one at $i = 0$, written slot $-1$.
+**Slots, examined ranges and position-free evaluations** are those of
+[Reuse Model](../runtime/documents.md#reuse-model). In particular, for an
+evaluation at $p$ with examined range $[l, h)$, $l \le p$, and every failure
+that it records is at an examined slot, so its farthest failure $f$ satisfies
+$l \le f < h$ whenever it recorded one. A larger interval kept in place of
+$[l, h)$ only makes the conditions below drop more entries and resume fewer
+iterations, and the proofs hold for it unchanged, since they use the recorded
+range only through the invariant (I2) of the memoization proof, that it
+contains the range in $\mathcal{R}$. Shifting an outcome by $\delta$ adds
+$\delta$ to its end, the ranges of its nodes and its farthest failure.
 
-**Examined range.** The examined range of an evaluation is the interval
-$[l, h)$ of the least and one past the greatest slot that it, or a call within
-it, examined. For an evaluation at $p$, $l \le p$. Every failure that the
-evaluation records is at an examined slot, so its farthest failure $f$
-satisfies $l \le f < h$ whenever it recorded one. A Document may keep a larger
-interval in place of $[l, h)$, such as the conservative `Examined` frontier of
-[Generated Go Document Tracing and Profiling](../runtime/observability.md#generated-go-document-tracing-and-profiling).
-A larger interval only makes the conditions below drop more entries and resume
-fewer iterations, and the proofs hold for it unchanged, since they use the
-recorded range only through the invariant (I2) of the memoization proof, that
-it contains the range in $\mathcal{R}$.
+**Reuse state.** The proof cites the following rules of
+[Reuse Model](../runtime/documents.md#reuse-model), named as the proofs below
+use them.
 
-**Position-free evaluations.** An evaluation is **position-free** when no
-action or predicate in it, or in a call within it, reads a position (the
-`.Start` and `.End` members), and its outcome has no recovered errors, whose
-lines and columns depend on positions. Positions still occur in the outcome of
-a position-free evaluation as its end, the ranges of its nodes and its farthest
-failure. **Shifting** an outcome by $\delta$ adds $\delta$ to each of these.
-
-**Reuse state.** The proof assumes that the reuse state of a Document has the
-following properties. The [Incremental Documents](../runtime/documents.md)
-chapter states the guarantee and not this mechanism.
-
-- **(E) Edits.** At each edit $[a, b)$ with $\delta$, a memo entry with recorded
-  range $[l, h)$ is kept unchanged if $h \le a$; it is shifted by $\delta$,
-  together with its key position and its range, if $l \ge b$ and its call was
-  position-free; otherwise it is dropped. Edits are applied to an entry in
-  order, either at once or when it is next looked up. The engine applies them
-  when it finds an entry, and at once to the entries at the positions $a$ to
-  $b$, both included (the positions the edit replaces and the one after them),
-  in both cases from one printed composition. The generated runtimes apply each
-  edit to every entry at once. An entry found to be dropped may stay in its
-  slot, where no lookup returns it, until a store under its key replaces it, a
-  later edit whose positions include its position drops it, or the whole memo
-  table is dropped.
-- **(P) Parses.** Entries are stored under the conditions of $\mathcal{M}$;
-  what (D) keeps is dropped within the parse and never reaches a later one. A
-  parse that does not complete, because it is interrupted
-  ([Interruption](../runtime/documents.md#interruption)) or aborted by a
-  run-time error of an action, the nesting limit or another fatal error,
-  clears the memo entries and the runs, and publishes no partial table.
-- **(R) Runs.** A **run record** of a repetition at $p$ holds, for each
-  iteration that matched, its start, end, recorded range, value, and farthest
-  failure with its expected items.
-  - *Recording.* A run is recorded for a repetition that matched outside a
-    lookahead and a `skip`. Its element has no predicate, calls no rule that
-    reads variables, and writes no capture to an enclosing scope. No
-    recovered error remains at the end of the run. During the run no call
-    read the current result of a growth, directly or through an entry stored
-    by a call that did, even of a growth that started and ended within the
-    run, nor reused a result that (D) of the memoization proof keeps. The
-    reference implementation counts these reads and reuses and refuses a run
-    during which the count changed.
-  - *Resuming.* A repetition resumes a record only outside a lookahead and a
-    `skip`. It resumes in one of two ways. **Whole**: the record of the same
-    repetition at the same position, stored earlier in the same parse, or by
-    an earlier parse of the same text with no edit since; it reuses every
-    recorded iteration. **Across one
-    edit**: the record of the previous parse when exactly one edit $[a, b)$
-    with $\delta$ came since, stored at $p$, or at $p - \delta$ when
-    $p \ge b + \delta$. It reuses the recorded iterations from the first on
-    while their range ends at or before $a$, whatever $\delta$ is. It then
-    evaluates iterations, possibly none. When the current position is
-    $r_j + \delta$ for a recorded iteration $j$ such that every recorded
-    iteration from $j$ on examined only slots at or after $b$, it reuses
-    those iterations shifted by $\delta$, which requires $\delta = 0$ or
-    position-free iterations. After the reused iterations it goes on as a
-    repetition does.
+- **(E) Edits.** The rule for *Entries under edits*: at each edit $[a, b)$
+  with $\delta$, an entry with recorded range $[l, h)$ is kept if $h \le a$,
+  shifted by $\delta$ with its position and range if $l \ge b$ and its call
+  was position-free, and dropped otherwise; edits apply to an entry in order,
+  at once or when it is next looked up, and a dropped entry is never returned
+  by a lookup.
+- **(P) Parses.** The rule for *Results that are stored*: entries are stored
+  under the conditions of $\mathcal{M}$, what (D) keeps never reaches a later
+  parse, and a parse that does not complete drops the memo entries and the
+  runs and publishes no partial table.
+- **(R) Runs.** The rules for *Runs*: what a run record holds, when a run is
+  *recorded*, and the two ways of *resuming* one, **whole** and **across one
+  edit**, the second with the iterations before the edit, new iterations, and
+  the iterations from a recorded iteration $j$ on, starting at $r_j + \delta$
+  where $r_j$ is the recorded start of iteration $j$.
 
 ## Lemma 1 (Locality)
 
@@ -289,9 +241,9 @@ and reads the current result of that growth. `main` then evaluates `m` at 0,
 which reaches `r` at 0 again within a growth at 0 that is open, so the first
 iteration reads the current result of that growth instead. Resuming the run
 recorded the first time there returns a syntax error at line 1, column 4,
-where $\mathcal{R}$ matches the whole text. The reference implementation
-records only runs of at least a minimum number of iterations, so this short
-example shows the mismatch only with that minimum set to 1, as its test does.
+where $\mathcal{R}$ matches the whole text. A Document may record only runs
+of at least a minimum number of iterations, so this short example shows the
+mismatch only where that minimum is 1.
 
 ## Theorem (Document Parses Equal Fresh Parses)
 

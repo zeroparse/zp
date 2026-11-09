@@ -60,6 +60,9 @@ func TestPrivateDocumentPrefixReuseAndFreshResult(t *testing.T) {
 	}
 }
 
+// TestPrivateDocumentExaminedSuffixAndEOF checks that an entry whose evaluation examined the slot
+// after its end is dropped by an edit of that slot, after which the slot is the end of the text
+// ("Reuse Model" in spec/runtime/documents.md: the examined range covers every slot examined).
 func TestPrivateDocumentExaminedSuffixAndEOF(t *testing.T) {
 	item := &Rule{Id: 1, Name: "item", Memo: true, DocMemo: true, Seen: -1}
 	item.Body = func(p *Parser, _ int) (*Node, bool) {
