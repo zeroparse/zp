@@ -538,22 +538,27 @@ $$U'_b(G) \le 3A\,u_b \cdot U_b(V),$$
 where $U_b(G)$ is the units that $b$ charges for the parse of $G$, $U'_b(G)$ is
 $U_b(G)$ less the units that it charges for the values that actions build from
 reshaped values, and $u_b$ is the largest number of units that $b$ charges for
-one unit of the cost, a constant of the grammar and the backend.
+one unit of the cost, counting the steps that records add as the scope does, a
+constant of the grammar and the backend.
 
 $U_b(V)$ is a definition, not a quantity that a backend measures: the units that
 $b$ would charge for the parse of $V$, with the rule bodies of $V$ and the
-memoized and transient rules, left-recursion leaders and run sites of $G$. No
+memoized and transient rules, left-recursion leaders and run sites of $G$, and
+with every walk of a skip run, a run site or a scan site charged as a walk
+without records, as the cost counts it. No
 backend runs that parse, since a parser never runs the view
 ([Cost View](../runtime/parsing.md#cost-view)), and a compilation of $V$ would
 decide those for $V$.
 The proof uses only that $U_b(V) \ge C_V + I_b$, with $I_b$ as below, which holds
-because $b$ charges at least one unit for each unit of the cost of a parse. A
-measurement approximates $U_b(V)$ by compiling $V$ as a grammar of its own, as
+because, without records, $b$ charges at least one unit for each unit of the
+cost of a parse. A measurement approximates $U_b(V)$ by compiling $V$ as a grammar of its own, as
 the [measured controls](#measured-controls) do. Where the compiler decides the
 same memoized and transient rules, leaders and run sites for $V$ as for $G$, the
 parse of the compiled $V$ is the parse of $V$ and the measurement is $U_b(V)$;
 where it decides otherwise, the measurement can differ from $U_b(V)$ in either
-direction, and the measured ratio is evidence, not a check of the bound.
+direction, and so can the records that the measured parse uses, which leave
+out the charges of the walks they skip; the measured ratio is evidence, not a
+check of the bound.
 
 *Proof.* Every unit of $C'_G$ is in the own cost of exactly one keyed evaluation,
 growth run, or of the evaluation of the start rule where the parse begins. The
@@ -579,10 +584,14 @@ answers the calls in both states. By *Keys of the view* the parse of $V$
 makes at least one with each such key. The evaluation where the parse begins is
 one in both. Summing gives $C'_G \le 3A \cdot C_V$.
 
-By [Cost](../runtime/parsing.md#cost), each backend charges at least one unit
-for each unit of the cost of a parse (a call, a character that a terminal
-examines, an iteration, an operator applied and each value that an action
-builds) and at most $u_b$ units for each. The units that it charges for the
+By [Cost](../runtime/parsing.md#cost), each backend charges at most $u_b$
+units for each unit of the cost of a parse (a call, a character that a terminal
+matches or rejects, an iteration, an operator applied and each value that an
+action builds), with the steps that records add counted as the scope counts
+them; a walk that takes the rest of a walk from a record charges nothing for
+what it skips, so the records only lower the charges of $G$. Without records it
+charges at least one unit for each unit of the cost, which gives the bound on
+$U_b(V)$ above. The units that it charges for the
 input as a whole, before the parse, are the same for $G$ and $V$; call them
 $I_b$. So
 $U'_b(G) \le u_b C'_G + I_b \le 3A\,u_b C_V + I_b \le 3A\,u_b (C_V + I_b) \le 3A\,u_b\,U_b(V)$,

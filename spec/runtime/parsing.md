@@ -354,12 +354,17 @@ when its recovered errors are listed, because each memo entry, node and value
 is built by cost that is counted, except in a parse with missing-token
 insertion, as below. The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
-[compute limits](#cancellation-and-compute-limits) caps it. Each backend, the
-engine's closure backend and bytecode machines as well as generated Go parsers,
-charges at least one unit for each call, each character that a terminal
-examines, each iteration, each operator applied and each value that an action
-builds, and at most a constant of the grammar and the backend for each of them,
-besides the units that it charges for the input as a whole before the parse.
+[compute limits](#cancellation-and-compute-limits) caps it. Each backend that
+counts compute units, the engine's closure backend and bytecode machines as
+well as Go parsers generated with limit controls, charges at least one unit for
+each call, each character that a terminal matches or rejects, each iteration
+that it evaluates, each operator applied and each value that an action builds,
+and at most a constant of the grammar and the backend for each of them, besides
+the units that it charges for the input as a whole before the parse. A walk that
+takes the rest of a walk from a record of a [skip run](#skip-runs), a
+[run site](#run-sites) or a [scan site](#scan-sites) neither evaluates nor
+charges the iterations and characters that it skips. A parser generated without
+limit controls counts no units.
 
 Compute units also count work that the cost does not, and the budget caps it too.
 In a parse that recovers errors, a memo entry, a result of a growth or an
