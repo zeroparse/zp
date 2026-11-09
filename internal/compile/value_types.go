@@ -1117,13 +1117,15 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 // it never matches. The rules are those of the type system (spec/language/types.md): _|_ has it; a
 // sequence with an element of type _|_ has it, as a tuple of _|_ is _|_; a choice has the join of
 // its alternatives, _|_ only when each has it; a repetition of at least one element of type _|_
-// has it; a group and a label have the type of the expression they stand for, as in elems. A capture has the type node[T] of the type T of its operand, and node[_|_] is
-// _|_; an #atomic keeps the type of its operand; a call of another rule has the rule's type,
-// which is the type of its body for a rule without an action or a declared type (ruleDef), as for
-// a call of a splice rule (Program.bottomRules). A recovery joins the type with error, which
-// is not _|_. Every other expression has a type of its own whatever its operand is: no value (a
-// lookahead, a discard, a predicate), *_|_ (an optional, which matches the empty input), []_|_ (a
-// repetition that may match no element), a match.
+// has it; a group and a label have the type of the expression they stand for, as in elems. A
+// capture has the type node[T] of the type T of its operand, and node[_|_] is _|_. An #atomic,
+// otherwise of type node[string], matches only where its operand does, so an #atomic of an
+// expression that never matches never matches and has no value: its type is _|_. A call of another
+// rule has the rule's type, which is the type of its body for a rule without an action or a
+// declared type (ruleDef), as for a call of a splice rule (Program.bottomRules). A recovery joins
+// the type with error, which is not _|_. Every other expression has a type of its own whatever its
+// operand is: no value (a lookahead, a discard, a predicate), *_|_ (an optional, which matches the
+// empty input), []_|_ (a repetition that may match no element), a match.
 func (v *ValueInference) bottom(e grammar.Expr) bool {
 	v.control.poll()
 	switch e := e.(type) {

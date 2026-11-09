@@ -235,8 +235,8 @@ func TestValueActionTypes(t *testing.T) {
 		{`rule a = x:(("a" _|_)+ #recover(skip="x")) => $x`, "a", `error`},
 		{`rule a = x:(("a" _|_) #repeat(2, 3) #recover(skip="x")) => $x`, "a", `error`},
 		// A capture has the type node[T] of its operand's type T, and node[_|_] is _|_; an #atomic
-		// keeps its operand's type; a call has its rule's type, which is _|_ for a rule without an
-		// action or a declared type whose body has it.
+		// of an expression that never matches never matches, so it has the type _|_; a call has its
+		// rule's type, which is _|_ for a rule without an action or a declared type whose body has it.
 		{`rule a = x:((y:_|_) #recover(skip="x")) => $x`, "a", `error`},
 		{`rule a = x:((_|_ "b") #atomic #recover(skip="x")) => $x`, "a", `error`},
 		{"rule a = x:(r #recover(skip=\"x\")) => $x\nrule r = -\"a\" _|_", "a", `error`},
