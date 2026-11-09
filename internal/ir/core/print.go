@@ -235,6 +235,8 @@ func attrString(m *Module, a *Attrs) string {
 	}
 	if a.Nullable {
 		xs = append(xs, "nullable")
+	} else if a.NullableIns {
+		xs = append(xs, "nullable-ins")
 	}
 	if a.First != nil {
 		xs = append(xs, "first="+firstString(m, a.First))

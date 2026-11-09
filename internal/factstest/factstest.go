@@ -4,9 +4,9 @@
 // positions, recovery, variables) and the first terminal of the rule and of every alternative of
 // its choices. Every producer of these facts renders them through Render, so that their outputs
 // compare byte for byte against one golden file per grammar in testdata. The other golden files
-// (GoldenFile) hold the rules on which Core IR's analysis differs from these facts, the cost
-// class of every corpus grammar, the lint findings on the example grammars and the error lists
-// of grammars with errors of several kinds; the tests that write them live with the analyses.
+// (GoldenFile) hold the cost class of every corpus grammar, the lint findings on the example
+// grammars and the error lists of grammars with errors of several kinds; the tests that write
+// them live with the analyses.
 package factstest
 
 import (

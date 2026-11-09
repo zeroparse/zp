@@ -15,8 +15,12 @@ type Attrs struct {
 	// node takes one element. A node that builds no value has the shape of its expression too: its
 	// value is nil, converted like any other.
 	Shape Shape
-	// Nullable reports that the node can succeed without consuming input.
+	// Nullable reports that the node can succeed without consuming input when no token is
+	// inserted.
 	Nullable bool
+	// NullableIns reports that the node can succeed without consuming input when token insertion
+	// is enabled: as Nullable, except that a Missing literal can be inserted.
+	NullableIns bool
 	// First is the terminal the node must begin with, if it has one (see First).
 	First *First
 	// Eff summarizes the node's effects.

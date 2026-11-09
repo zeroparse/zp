@@ -37,8 +37,9 @@ The shape is written `(elems,k=n,mode=n,tuple,shared)`, with the parts that do n
 ## Attributes
 
 With attributes, a node line ends with `[` and the following that apply, separated by spaces, and `]`: `want` and the
-shape; `nullable`; `first=` and the first terminal; and the effects, separated by commas, named `consume`, `fail`,
-`expect`, `capture[slots]`, `bind`, `recover`, `cut`, `raise`, `call` and `commit`.
+shape; `nullable`, or `nullable-ins` for a node that is NullableIns but not Nullable; `first=` and the first terminal;
+and the effects, separated by commas, named `consume`, `fail`, `expect`, `capture[slots]`, `bind`, `recover`, `cut`,
+`raise`, `call` and `commit`.
 
 ## Terms
 

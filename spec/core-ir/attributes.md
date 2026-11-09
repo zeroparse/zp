@@ -7,20 +7,25 @@ recomputes them after a rewrite.
 |:--|:--|:--|
 | Want | Building | The node's value is used. A node with Want false builds no value |
 | Shape | Building | The static [shape](modules.md#shape) of the node's value |
-| Nullable | Analysis | The node can succeed without consuming input |
+| Nullable | Analysis | The node can succeed without consuming input when no token is inserted |
+| NullableIns | Analysis | The node can succeed without consuming input when token insertion is enabled |
 | First | Analysis | The terminal the node must begin with, if it has one |
 | Effects | Analysis | A summary of what the node can do |
 
 ## Nullability
 
-Nullability is the least fixed point over the rules. In summary:
+Nullability is the least fixed point over the rules. There are two: Nullable, for a parse that inserts no token, and
+NullableIns, for a parse with token insertion enabled. They differ only through `Missing`. In summary:
 
 - `Lit` is nullable if its text is empty; classes, `Any` and `Scan` with a positive minimum are not. Anchors, `Cut`,
-  `Succeed`, `Look`, `Opt`, `Pred`, `BindNode`, `Recover`, `Missing` and a `Scan` with minimum 0 are.
+  `Succeed`, `Look`, `Opt`, `Pred`, `BindNode` and a `Scan` with minimum 0 are.
 - `Seq` is nullable if every item is; `Choice` if any alternative is. `Repeat` is nullable if its minimum is 0, or is 1
   and its body is nullable.
 - `Call` is nullable as the callee is; `Nest` as its body is. An `OperatorsRule` is nullable if an operand line's body
   is. `Text`, `Drop`, `Capture`, `Label`, `Terminal` and `Stream` are nullable as their bodies are.
+- `Recover` is nullable as its body is: when the body fails, a skip that consumes nothing is no recovery, so the node
+  succeeds without consuming input only through its body.
+- `Missing` is nullable as its literal is, and NullableIns: an insertion consumes no input.
 - `FailNode` and `ClassRun` are not.
 
 ## First Terminals
