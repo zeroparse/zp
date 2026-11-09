@@ -1555,9 +1555,9 @@ places and make a rule memoized. It exempts a rule marked `@start`, which
 `startMarked` reports, when following the one caller of each rule from it
 returns to it. Every entry point admits only a rule marked `@start` as the
 rule where a parse begins: `Program.CheckStart` in the engine, for whole,
-stream, prefix and Document parses and for loaded modules,
-`grammar.StartRule` in a generated Go parser, and `startIn` in a generated
-TypeScript parser. `Parser.Memoizes` memoizes a leader whatever
+stream, prefix and Document parses and for loaded modules, the runtime's
+`(*grammar).StartRule`, which a generated Go parser calls, and `startIn` in a
+generated TypeScript parser. `Parser.Memoizes` memoizes a leader whatever
 `transientRules` marks.
 
 ## Lemma 11 (Sizes)
