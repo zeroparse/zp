@@ -45,6 +45,7 @@ var tsSpecs = []struct {
 	{fn: "binary", name: "termBinary"},
 	{fn: "unary", name: "termUnary"},
 	{fn: "logic", name: "termLogic"},
+	{fn: "member", name: "termMember"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -62,7 +63,9 @@ func TSMethods() ([]TSMethod, error) {
 		}
 		out = append(out, TSMethod{Name: s.name, Text: src})
 	}
-	out = append(out, TSMethod{Name: "termError", Text: tsTermError()})
+	kind, name := tsMemberKind()
+	out = append(out, TSMethod{Name: "termError", Text: tsTermError()}, TSMethod{Name: "memberKind", Text: kind},
+		TSMethod{Name: "memberName", Text: name})
 	return out, nil
 }
 
@@ -82,6 +85,24 @@ func tsOpTable(code int) string {
 	return "[" + strings.Join(q, ", ") + "]"
 }
 
+// tsMemberKind returns the methods that classify a member name by ops.MemberKinds: memberKind returns
+// its kind, and memberName the name of the field or capture that a member of that kind reads.
+func tsMemberKind() (kind, name string) {
+	var b strings.Builder
+	b.WriteString("  // memberKind returns the kind of the member read name (ops.MemberKinds).\n  memberKind(name: string): number {\n    switch (name) {\n")
+	for code, k := range ops.MemberKinds {
+		if code != ops.MemberCapture && k.Spelling != "" {
+			fmt.Fprintf(&b, "      case %q:\n        return %d; // %s\n", k.Spelling, code, k.Name)
+		}
+	}
+	b.WriteString("    }\n")
+	k := ops.MemberKinds[ops.MemberCapture]
+	fmt.Fprintf(&b, "    if (name.startsWith(%q)) {\n      return %d; // %s\n    }\n", k.Spelling, ops.MemberCapture, k.Name)
+	fmt.Fprintf(&b, "    return %d; // %s\n  }", ops.MemberField, ops.MemberKinds[ops.MemberField].Name)
+	return b.String(), fmt.Sprintf("  // memberName returns the name of the field or capture that the member read name of the kind reads.\n  memberName(kind: number, name: string): string {\n    return kind === %d ? name.slice(%d) : name;\n  }",
+		ops.MemberCapture, len(k.Spelling))
+}
+
 // tsTermError returns the method that makes the text of a failure of a term from ops.TermErrors.
 func tsTermError() string {
 	var b strings.Builder
@@ -96,6 +117,8 @@ func tsTermError() string {
 				t.WriteString("${typeName(" + seg.hole + ")}")
 			case "op":
 				t.WriteString("${" + tsOpTable(code) + "[op]}")
+			case "name":
+				t.WriteString("${b as string}")
 			case "i":
 				t.WriteString("${a}")
 			case "n":
@@ -129,6 +152,7 @@ var tsTarget = &exects.Target{
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
+			ops.Obj: "Node", ops.Name: "string", ops.Act: "Actx",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -181,6 +205,16 @@ var tsTarget = &exects.Target{
 			return a[0] + ".length"
 		case "seq.at":
 			return "unboxValue(" + a[0] + "[" + a[1] + "]!)"
+		case "val.name":
+			return a[0]
+		case "node.isNode":
+			return "isValueNode(" + a[0] + ")"
+		case "node.start", "node.end":
+			return a[0] + "." + c.Callee[5:]
+		case "node.value":
+			return "this.nodeValue(" + a[0] + ")"
+		case "node.isStruct":
+			return "(this.g.structFields.get(" + a[0] + ".type) !== undefined)"
 		case "depth.exit":
 			return "this.depth--"
 		case "frame.markPos", "frame.markEnv", "frame.markTrail", "frame.markRec":
@@ -370,7 +404,25 @@ var tsTarget = &exects.Target{
 		entry := func(e, node, ok, end, silent, errs string) string {
 			return fmt.Sprintf("%s = newEntry(%s, %s, %s, %s, %s);\nthis.memoPut(%s, %s);", lhs(e), node, ok, end, silent, errs, key(), e)
 		}
+		// absent prints an operation whose result is undefined where it has none as its two results.
+		absent := func(call string) string {
+			if dst[1] == "_" {
+				return fmt.Sprintf("%s = %s ?? null;", lhs(dst[0]), call)
+			}
+			h := dst[0] + "Held"
+			return fmt.Sprintf("const %[1]s = %[2]s;\n%[3]s = %[1]s !== undefined;\n%[4]s = %[1]s ?? null;", h, call, lhs(dst[1]), lhs(dst[0]))
+		}
 		switch c.Callee {
+		case "node.of":
+			s := fmt.Sprintf("%s = %s as Node;", lhs(dst[0]), a[0])
+			if dst[1] != "_" {
+				s += fmt.Sprintf("\n%s = %s instanceof Node;", lhs(dst[1]), a[0])
+			}
+			return s, true
+		case "node.field":
+			return absent(fmt.Sprintf("findFieldSpend(%s, %s, this.control)", a[0], a[1])), true
+		case "node.zero":
+			return absent(fmt.Sprintf("%s.memberZero(%s, %s)", a[0], a[1], a[2])), true
 		case "depth.enter":
 			return "if (++this.depth > this.maxDepth) {\n  this.tooDeep();\n}", true
 		case "frame.mark":

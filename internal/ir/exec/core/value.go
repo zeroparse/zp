@@ -129,6 +129,42 @@ wraparound, and ! negates a bool. Any other operand fails.`
 		})
 		b.Return(C("val.toBool", x), none)
 	})
+	member := m.AddFunc("member", []Param{P("c", THandle(ops.Act)), P("kind", TInt), P("x", datum), P("name", THandle(ops.Name)),
+		P("field", THandle(ops.Name))}, val, nil, func(b *Builder) {
+		kindIs := func(c int) Expr { return Eq(L("kind"), k(c)) }
+		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
+		b.If(Not(o[1]), func(b *Builder) { fail(b, ops.ErrMemberOf, x, C("val.name", L("name")), Int(0), Int(0)) })
+		n := o[0]
+		// Start, End and Value are members of a node; of any other value they are fields.
+		b.If(And(Bin(">=", L("kind"), k(ops.MemberStart)), Bin("<=", L("kind"), k(ops.MemberValue))), func(b *Builder) {
+			b.If(C("node.isNode", n), func(b *Builder) {
+				b.If(kindIs(ops.MemberStart), func(b *Builder) { b.Return(C("node.start", n), none) })
+				b.If(kindIs(ops.MemberEnd), func(b *Builder) { b.Return(C("node.end", n), none) })
+				b.Return(C("node.value", n), none)
+			})
+		})
+		st := b.Let("st", C("node.isStruct", n))
+		b.If(kindIs(ops.MemberCapture), func(b *Builder) {
+			// A struct has no captures; an unmatched capture is nil.
+			b.If(st, func(b *Builder) { fail(b, ops.ErrNoCapture, x, C("val.name", L("field")), Int(0), Int(0)) })
+			b.LetN([]string{"v", "held"}, C("node.field", n, L("field")))
+			b.Return(C("val.unbox", L("v")), none)
+		})
+		// A field that is set is read first: a struct holds only the fields of its type.
+		f := b.LetN([]string{"f", "set"}, C("node.field", n, L("field")))
+		b.If(f[1], func(b *Builder) { b.Return(f[0], none) })
+		b.If(Not(st), func(b *Builder) { b.Return(none, none) })
+		// A field the constructor left unset reads as the zero value of its declared type.
+		z := b.LetN([]string{"z", "declared"}, C("node.zero", L("c"), n, L("field")))
+		b.If(z[1], func(b *Builder) { b.Return(z[0], none) })
+		fail(b, ops.ErrNoField, x, C("val.name", L("field")), Int(0), Int(0))
+	})
+	member.Doc = `member reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
+opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
+type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
+not declare fail.`
+
 	logic.Doc = `logic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 true and of || only if it is false, and checks each operand it evaluates.`

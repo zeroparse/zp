@@ -67,6 +67,29 @@ func tvalItems(x any) ([]any, bool) {
 	return nil, false
 }
 
+// nodeOf is the operation node.of in the node runtime: x as a node, list, tuple or struct.
+func nodeOf(x any) (*Node, bool) {
+	n, ok := x.(*Node)
+	return n, ok && n != nil
+}
+
+// tnodeOf is the operation node.of in the typed runtime.
+func tnodeOf(x any) (TVal, bool) {
+	n := AsTval(x)
+	return n, n != nil
+}
+
+// tnodeStart and tnodeEnd are the operations node.start and node.end in the typed runtime.
+func tnodeStart(n TVal) any {
+	s, _ := n.TSpan()
+	return s
+}
+
+func tnodeEnd(n TVal) any {
+	_, e := n.TSpan()
+	return e
+}
+
 // strAdd is the operation str.add. Under budget controls it copies the bytes in chunks, charging each.
 func (p *Parser) strAdd(l, r any) any {
 	ls, rs := l.(string), r.(string)

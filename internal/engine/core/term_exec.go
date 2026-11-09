@@ -5,6 +5,7 @@ package core
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"zeroparse.dev/zp/internal/value"
 )
@@ -50,6 +51,32 @@ const (
 	valKindOther  = 4
 )
 
+// The codes of the kinds of member reads.
+const (
+	memberField   = 0
+	memberStart   = 1
+	memberEnd     = 2
+	memberValue   = 3
+	memberCapture = 4
+)
+
+// memberKind returns the kind of the member read name and the name of the field or capture that it
+// reads.
+func memberKind(name string) (int, string) {
+	switch name {
+	case "Start":
+		return memberStart, name
+	case "End":
+		return memberEnd, name
+	case "Value":
+		return memberValue, name
+	}
+	if field, ok := strings.CutPrefix(name, "$"); ok {
+		return memberCapture, field
+	}
+	return memberField, name
+}
+
 // termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the
 // caller returns.
 func (p *Parser) termError(code int, a, b any, op, n int) any {
@@ -70,6 +97,12 @@ func (p *Parser) termError(code int, a, b any, op, n int) any {
 		return p.ActionError("index must be int, got ", TypeName(a))
 	case 7: // index out of range
 		return p.ActionError("index ", strconv.Itoa(a.(int)), " out of range for ", strconv.Itoa(n), " elements")
+	case 8: // no members
+		return p.ActionError("cannot access .", b.(string), " of ", TypeName(a))
+	case 9: // no capture
+		return p.ActionError(TypeName(a), " has no capture ", b.(string))
+	case 10: // no field
+		return p.ActionError(TypeName(a), " has no field ", b.(string))
 	}
 	return errors.New("core: no term failure")
 }
@@ -220,4 +253,49 @@ func (p *Parser) termLogic(op int, x any) (bool, any) {
 		return false, p.termError(4, x, nil, op, 0)
 	}
 	return x.(bool), nil
+}
+
+// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
+// opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
+// type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
+// not declare fail.
+//
+// Printed from Exec IR function member of internal/ir/exec/core.
+func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field string) (any, any) {
+	n, ok := nodeOf(x)
+	if !ok {
+		return nil, p.termError(8, x, any(name), 0, 0)
+	}
+	if kind >= 1 && kind <= 3 {
+		if value.IsNode(n) {
+			if kind == 1 {
+				return any(int(value.D(n).Start)), nil
+			}
+			if kind == 2 {
+				return any(int(value.D(n).End)), nil
+			}
+			return p.nodeValue(n), nil
+		}
+	}
+	st := p.isStruct(n)
+	if kind == 4 {
+		if st {
+			return nil, p.termError(9, x, any(field), 0, 0)
+		}
+		v, _ := p.ValueField(value.D(n).Fields, field)
+		return unboxed(v), nil
+	}
+	f, set := p.ValueField(value.D(n).Fields, field)
+	if set {
+		return f, nil
+	}
+	if !st {
+		return nil, nil
+	}
+	z, declared := p.memberZero(c, n, field)
+	if declared {
+		return z, nil
+	}
+	return nil, p.termError(10, x, any(field), 0, 0)
 }

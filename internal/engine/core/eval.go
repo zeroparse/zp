@@ -120,44 +120,29 @@ func TypeName(v any) string {
 	return fmt.Sprintf("%T", v)
 }
 
-// Member reads x.name.
+// Member reads x.name, as the composition member (term_exec.go) does.
 func (c *EvalCtx) Member(x any, name string) (any, error) {
-	n, ok := x.(*value.Node)
-	if !ok || n == nil {
-		return nil, c.P.ActionError("cannot access .", name, " of ", TypeName(x))
-	}
-	if value.IsNode(n) {
-		switch name {
-		case "Start":
-			return int(value.D(n).Start), nil
-		case "End":
-			return int(value.D(n).End), nil
-		case "Value":
-			return c.P.nodeValue(n), nil
-		}
-	}
-	if capture, ok := strings.CutPrefix(name, "$"); ok {
-		// x.$y reads a capture, which struct values do not have; an unmatched capture is nil.
-		if _, ok := c.P.Prog.Types[n.Type()].(*grammar.TypeDef); ok {
-			return nil, c.P.ActionError(n.Type(), " has no capture ", capture)
-		}
-		v, _ := c.P.ValueField(value.D(n).Fields, capture)
-		return value.UnboxValue(v), nil
-	}
-	st, ok := c.P.Prog.Types[n.Type()].(*grammar.TypeDef)
-	if !ok {
-		v, _ := c.P.ValueField(value.D(n).Fields, name)
-		return v, nil
-	}
-	if !c.P.HasValueField(st, name) {
-		return nil, c.P.ActionError(n.Type(), " has no field ", name)
-	}
-	v, set := c.P.ValueField(value.D(n).Fields, name)
-	if !set {
-		// A field the constructor left unset reads as the zero value of its declared type.
-		return c.zeroValue(c.P.Prog.StructZeroOf(n.Type()).Zeros[name])
+	kind, field := memberKind(name)
+	v, e := c.P.termMember(c, kind, x, name, field)
+	if e != nil {
+		return nil, e.(error)
 	}
 	return v, nil
+}
+
+// memberZero is the operation node.zero: the zero value of the declared type of the field name of the
+// struct n, and false if its type declares no such field. Under budget controls it charges for the
+// declared fields it scans, and for the values it makes.
+func (p *Parser) memberZero(c *EvalCtx, n *value.Node, name string) (any, bool) {
+	if !p.HasValueField(p.Prog.Types[n.Type()].(*grammar.TypeDef), name) {
+		return nil, false
+	}
+	v, err := c.zeroValue(p.Prog.StructZeroOf(n.Type()).Zeros[name])
+	if err != nil {
+		// Making a zero value fails only on a function, which no zero value holds.
+		panic("core: zero value of " + n.Type() + "." + name + ": " + err.Error())
+	}
+	return v, true
 }
 
 // zeroValue builds the zero value of the descriptor d (compile.Program.ZeroDesc).

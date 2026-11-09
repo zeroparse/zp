@@ -108,7 +108,8 @@ const (
 )
 
 // TermError is a failure that a term reports. Text is its message with the placeholders {a} and
-// {b}, the type names of the first and second value; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
+// {b}, the type names of the first and second value; {name}, the second value as a string, a member
+// name; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
 // value as an int; and {n}, a count. Hint ends the message of a failure that has one. Every target
 // prints these messages and puts the text of a failure together from them, so that they read the
 // same on all targets.
@@ -137,6 +138,15 @@ const (
 	ErrIndexType
 	// ErrIndexRange is an index out of range (i is the index, n the length).
 	ErrIndexRange
+	// ErrMemberOf is a member read of a value that has no members (a is the value, name the member as
+	// the term spells it).
+	ErrMemberOf
+	// ErrNoCapture is the read of a capture of a struct, which has none (a is the struct, name the
+	// capture).
+	ErrNoCapture
+	// ErrNoField is the read of a field that a struct type does not declare (a is the struct, name the
+	// field).
+	ErrNoField
 )
 
 // TermErrors are the messages of the failures of a term.
@@ -149,6 +159,37 @@ var TermErrors = []TermError{
 	ErrNotList:    {Name: "not a list", Text: "{op}: expected a list, got {a}"},
 	ErrIndexType:  {Name: "index not an int", Text: "index must be int, got {a}"},
 	ErrIndexRange: {Name: "index out of range", Text: "index {i} out of range for {n} elements"},
+	ErrMemberOf:   {Name: "no members", Text: "cannot access .{name} of {a}"},
+	ErrNoCapture:  {Name: "no capture", Text: "{a} has no capture {name}"},
+	ErrNoField:    {Name: "no field", Text: "{a} has no field {name}"},
+}
+
+// Kinds of a member read, by the code the composition member takes. A member name of a term is the
+// name of a field, a range or value member of a node (Start, End, Value), or a capture ($ and the name
+// of the capture). A range or value member reads the node itself only if the value is a node; of a
+// struct or a list it is the field of that name.
+const (
+	// MemberField reads a field.
+	MemberField = iota
+	// MemberStart reads the start of the range of a node.
+	MemberStart
+	// MemberEnd reads the end of the range of a node.
+	MemberEnd
+	// MemberValue reads the value of a node.
+	MemberValue
+	// MemberCapture reads a capture.
+	MemberCapture
+)
+
+// MemberKinds names the kinds of member reads, by code, with the spelling that selects each: the
+// whole name for the members of a node, the prefix of the name for a capture, and none for a field,
+// which every other name is. Every target classifies a name from this table.
+var MemberKinds = []struct{ Name, Spelling string }{
+	MemberField:   {"Field", ""},
+	MemberStart:   {"Start", "Start"},
+	MemberEnd:     {"End", "End"},
+	MemberValue:   {"Value", "Value"},
+	MemberCapture: {"Capture", "$"},
 }
 
 // ValueModule returns the pilot declarations with the value primitives. The primitives are not part
@@ -161,6 +202,23 @@ func ValueModule() *exec.Module {
 
 // Seq is the handle type of the elements of a list or a tuple.
 const Seq = "Seq"
+
+// Obj is the handle type of a value that has members: a node, a list, a tuple or a struct, as node.of
+// returns it.
+const Obj = "Obj"
+
+// Name is the handle type of the name of a member, a string of the target.
+const Name = "Name"
+
+// Act is the handle type of the context of the term being evaluated, in which a value is made.
+const Act = "Act"
+
+// QFieldsRead is the number of fields of a value that a read of one of them scans.
+const QFieldsRead = "fields_read"
+
+// QZeroParts is the number of values of which a zero value is made, and, in a target that looks the
+// field up among the declared ones, the declared fields it scans.
+const QZeroParts = "zero_parts"
 
 // QValueBytes is the number of bytes of the string operands of a primitive, which it reads and, for a
 // concatenation, copies.
@@ -253,6 +311,38 @@ compares.`,
 	pure(&exec.Op{Name: "seq.items", Params: []exec.Param{x}, Results: []exec.Type{exec.THandle(Seq), exec.TBool},
 		Contract: `Returns the elements of x and true if x is nil (no elements), a list or a tuple, and false otherwise.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
+	obj := m.AddHandle(Obj, Val, "A value that has members: a node, a list, a tuple or a struct, as node.of returns it.")
+	name := m.AddHandle(Name, Val, "The name of a member: a string of the target.")
+	act := m.AddHandle(Act, Val, "The context of the term being evaluated, in which a value is made.")
+	n, nm := exec.P("n", obj), exec.P("name", name)
+	pure(&exec.Op{Name: "node.of", Params: []exec.Param{x}, Results: []exec.Type{exec.THandle(Obj), exec.TBool},
+		Contract: `Returns x and true if x is a value that has members (a node, a list, a tuple or a struct), and
+false for every other value: nil, an int, a string and a bool.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "node.isNode", Params: []exec.Param{n}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether n is a node, which has a range and a value: a value of a node type, a string
+node or an error, and not a struct, a list value or a tuple value.`})
+	pure(&exec.Op{Name: "node.start", Params: []exec.Param{n}, Results: []exec.Type{datum},
+		Contract: `Returns the start of the range of n as an int.`, Requires: `node.isNode(n).`})
+	pure(&exec.Op{Name: "node.end", Params: []exec.Param{n}, Results: []exec.Type{datum},
+		Contract: `Returns the end of the range of n as an int.`, Requires: `node.isNode(n).`})
+	pure(&exec.Op{Name: "node.value", Params: []exec.Param{n}, Results: []exec.Type{datum},
+		Contract: `Returns the value of n: its text, or the value its node type holds.`, Requires: `node.isNode(n).`})
+	pure(&exec.Op{Name: "node.isStruct", Params: []exec.Param{n}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether n is a value of a struct type.`})
+	pure(&exec.Op{Name: "node.field", Params: []exec.Param{n, nm}, Results: []exec.Type{datum, exec.TBool},
+		Host: true, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 2, Quantity: QFieldsRead}, {Coef: 4, Quantity: QValueBytes}}},
+		Contract: `Returns the field name of n and true if n holds it, and nil and false otherwise. A struct of a
+target that represents it with every field holds them all. A target that bounds the work charges for the fields
+it scans and the bytes of the names it compares.`})
+	pure(&exec.Op{Name: "node.zero", Params: []exec.Param{exec.P("c", act), n, nm}, Results: []exec.Type{datum, exec.TBool},
+		Host: true, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 2, Quantity: QZeroParts}}},
+		Contract: `Returns the zero value of the declared type of the field name of the struct n, made in c, and
+true, or nil and false if the type of n declares no such field or the target holds every field of a struct
+(node.field then holds it). A target that bounds the work charges for the values it makes.`,
+		Requires: `node.isStruct(n).`})
+	pure(&exec.Op{Name: "val.name", Params: []exec.Param{nm}, Results: []exec.Type{datum},
+		Contract: `Returns name as a string value, as the {name} of a failure reads it.`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

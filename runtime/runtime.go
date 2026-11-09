@@ -3501,46 +3501,25 @@ func (o TOperand) value() any {
 	return o.V
 }
 
-// Member reads x.Name.
+// Member reads x.name, as the composition member (term_exec.go) does.
 func (c *ActCtx) Member(x any, name string) any {
-	n, ok := x.(*Node)
-	if !ok || n == nil {
-		c.P.evalErrorf("cannot access .%s of %s", name, typeName(x))
+	kind, field := memberKind(name)
+	v, e := c.P.termMember(c, kind, x, name, field)
+	if e != nil {
+		panic(e)
 	}
-	if n.isNode() {
-		switch name {
-		case "Start":
-			return int(n.RawStart)
-		case "End":
-			return int(n.RawEnd)
-		case "Value":
-			return c.P.nodeValue(n)
-		}
-	}
-	if capture, ok := strings.CutPrefix(name, "$"); ok {
-		// x.$y reads a capture, which struct values do not have; an unmatched capture is nil.
-		if sf := c.P.g.StructFields[n.Type()]; sf != nil {
-			c.P.evalErrorf("%s has no capture %s", n.Type(), capture)
-		}
-		v, _ := c.P.valueField(n.RawFields, capture)
-		return UnboxValue(v)
-	}
-	sf := c.P.g.StructFields[n.Type()]
-	if sf == nil {
-		v, _ := c.P.valueField(n.RawFields, name)
-		return v
-	}
-	// A field that a constructor set is read first: a struct holds only the fields of its type.
-	if v, set := c.P.valueField(n.RawFields, name); set {
-		return v
-	}
-	zero, ok := sf.zeros[name]
-	if !ok {
-		c.P.evalErrorf("%s has no field %s", n.Type(), name)
-	}
-	// A field the constructor left unset reads as the zero value of its declared type.
-	v, _ := c.zeroValue(zero)
 	return v
+}
+
+// memberZero is the operation node.zero: the zero value of the declared type of the field name of the
+// struct n, and false if its type declares no such field.
+func (p *Parser) memberZero(c *ActCtx, n *Node, name string) (any, bool) {
+	zero, ok := p.g.StructFields[n.Type()].zeros[name]
+	if !ok {
+		return nil, false
+	}
+	v, _ := c.zeroValue(zero)
+	return v, true
 }
 
 // zeroValue builds the zero value that the descriptor d describes and returns it with the rest of d.

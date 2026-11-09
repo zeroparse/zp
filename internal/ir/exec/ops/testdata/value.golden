@@ -62,6 +62,15 @@ handle Err of recovered
 handle Seq of value
   // The elements of a list or a tuple, as seq.items returns them.
 
+handle Obj of value
+  // A value that has members: a node, a list, a tuple or a struct, as node.of returns it.
+
+handle Name of value
+  // The name of a member: a string of the target.
+
+handle Act of value
+  // The context of the term being evaluated, in which a value is made.
+
 op memo.lookup(rule int, pos int, level int, key Values, docOnly bool) (Entry, bool)
   component memo
   reads memo
@@ -577,6 +586,77 @@ op seq.items(x Datum) (Seq, bool)
   contract:
     // Returns the elements of x and true if x is nil (no elements), a list or a tuple, and false otherwise.
   law: pure: equal arguments give equal results
+
+op node.of(x Datum) (Obj, bool)
+  component value
+  cost <= 0
+  contract:
+    // Returns x and true if x is a value that has members (a node, a list, a tuple or a struct), and
+    // false for every other value: nil, an int, a string and a bool.
+  law: pure: equal arguments give equal results
+
+op node.isNode(n Obj) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether n is a node, which has a range and a value: a value of a node type, a string
+    // node or an error, and not a struct, a list value or a tuple value.
+
+op node.start(n Obj) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the start of the range of n as an int.
+  requires:
+    // node.isNode(n).
+
+op node.end(n Obj) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the end of the range of n as an int.
+  requires:
+    // node.isNode(n).
+
+op node.value(n Obj) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the value of n: its text, or the value its node type holds.
+  requires:
+    // node.isNode(n).
+
+op node.isStruct(n Obj) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether n is a value of a struct type.
+
+host op node.field(n Obj, name Name) (Datum, bool)
+  component value
+  noreturn
+  cost <= 0 + 2*fields_read + 4*value_bytes
+  contract:
+    // Returns the field name of n and true if n holds it, and nil and false otherwise. A struct of a
+    // target that represents it with every field holds them all. A target that bounds the work charges for the fields
+    // it scans and the bytes of the names it compares.
+
+host op node.zero(c Act, n Obj, name Name) (Datum, bool)
+  component value
+  noreturn
+  cost <= 0 + 2*zero_parts
+  contract:
+    // Returns the zero value of the declared type of the field name of the struct n, made in c, and
+    // true, or nil and false if the type of n declares no such field or the target holds every field of a struct
+    // (node.field then holds it). A target that bounds the work charges for the values it makes.
+  requires:
+    // node.isStruct(n).
+
+op val.name(name Name) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns name as a string value, as the {name} of a failure reads it.
 
 op seq.len(items Seq) int
   component value

@@ -4311,6 +4311,24 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termMember reads a member of a value; it returns the value and the failure, null if there is none.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termMember(c: Actx, kind: number, x: Value, name: string, field: string): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // memberKind returns the kind of the member read name.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  memberKind(name: string): number {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // memberName returns the name of the field or capture that the member read name of the kind reads.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  memberName(kind: number, name: string): string {
+    throw new Error("the printed method replaces this one");
+  }
+
   // termError returns the text of a failure of a term.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   termError(code: number, a: Value, b: Value, op: number, n: number): string {
@@ -4689,42 +4707,21 @@ export class Actx {
     return n;
   }
 
+  // member reads x.name, as the composition member does.
   member(x: Value, name: string): Value {
-    if (!(x instanceof Node)) {
-      return evalError(`cannot access .${name} of ${typeName(x)}`);
+    const kind = this.p.memberKind(name);
+    const [v, e] = this.p.termMember(this, kind, x, name, this.p.memberName(kind, name));
+    if (e !== null) {
+      return evalError(e as string);
     }
-    if (isValueNode(x)) {
-      switch (name) {
-        case "Start":
-          return x.start;
-        case "End":
-          return x.end;
-        case "Value":
-          return this.p.nodeValue(x);
-      }
-    }
-    const fields = this.p.g.structFields.get(x.type);
-    if (name.startsWith("$")) {
-      // x.$y reads a capture, which struct values do not have; an unmatched capture is null.
-      if (fields !== undefined) {
-        evalError(`${x.type} has no capture ${name.slice(1)}`);
-      }
-      return unboxValue(getFieldSpend(x, name.slice(1), this.p.control));
-    }
-    if (fields === undefined) {
-      return getFieldSpend(x, name, this.p.control);
-    }
-    // A field that a constructor set is read first: a struct holds only the fields of its type.
-    const v = findFieldSpend(x, name, this.p.control);
-    if (v !== undefined) {
-      return v;
-    }
-    const zero = fields.zeros.get(name);
-    if (zero === undefined) {
-      evalError(`${x.type} has no field ${name}`);
-    }
-    // A field the constructor left unset reads as the zero value of its declared type.
-    return this.zeroValue(zero, 0)[0];
+    return v;
+  }
+
+  // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
+  // struct n, or undefined if its type declares no such field.
+  memberZero(n: Node, name: string): Value | undefined {
+    const zero = this.p.g.structFields.get(n.type)!.zeros.get(name);
+    return zero === undefined ? undefined : this.zeroValue(zero, 0)[0];
   }
 
   // zeroValue builds the zero value that the descriptor d describes from index i and returns it with

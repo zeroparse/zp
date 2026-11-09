@@ -2,7 +2,10 @@
 
 package runtime
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // The codes of the binary operators, as the compositions of terms take them.
 const (
@@ -45,6 +48,32 @@ const (
 	valKindOther  = 4
 )
 
+// The codes of the kinds of member reads.
+const (
+	memberField   = 0
+	memberStart   = 1
+	memberEnd     = 2
+	memberValue   = 3
+	memberCapture = 4
+)
+
+// memberKind returns the kind of the member read name and the name of the field or capture that it
+// reads.
+func memberKind(name string) (int, string) {
+	switch name {
+	case "Start":
+		return memberStart, name
+	case "End":
+		return memberEnd, name
+	case "Value":
+		return memberValue, name
+	}
+	if field, ok := strings.CutPrefix(name, "$"); ok {
+		return memberCapture, field
+	}
+	return memberField, name
+}
+
 // termError returns the failure of a term with the message ops.TermErrors[code]; it is a value that the
 // caller raises.
 func (p *Parser) termError(code int, a, b any, op, n int) any {
@@ -68,6 +97,12 @@ func (p *Parser) termError(code int, a, b any, op, n int) any {
 		return p.evalErrorValue("index must be int, got %s", typeName(a))
 	case 7: // index out of range
 		return p.evalErrorValue("index %d out of range for %d elements", a.(int), n)
+	case 8: // no members
+		return p.evalErrorValue("cannot access .%s of %s", b.(string), typeName(a))
+	case 9: // no capture
+		return p.evalErrorValue("%s has no capture %s", typeName(a), b.(string))
+	case 10: // no field
+		return p.evalErrorValue("%s has no field %s", typeName(a), b.(string))
 	}
 	panic("runtime: no term failure")
 }
@@ -95,6 +130,12 @@ func (p *TParser) termError(code int, a, b any, op, n int) any {
 		return p.evalErrorValue("index must be int, got %s", ttypeName(a))
 	case 7: // index out of range
 		return p.evalErrorValue("index %d out of range for %d elements", a.(int), n)
+	case 8: // no members
+		return p.evalErrorValue("cannot access .%s of %s", b.(string), ttypeName(a))
+	case 9: // no capture
+		return p.evalErrorValue("%s has no capture %s", ttypeName(a), b.(string))
+	case 10: // no field
+		return p.evalErrorValue("%s has no field %s", ttypeName(a), b.(string))
 	}
 	panic("runtime: no term failure")
 }
@@ -247,6 +288,51 @@ func (p *Parser) termLogic(op int, x any) (bool, any) {
 	return x.(bool), nil
 }
 
+// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
+// opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
+// type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
+// not declare fail.
+//
+// Printed from Exec IR function member of internal/ir/exec/core.
+func (p *Parser) termMember(c *ActCtx, kind int, x any, name string, field string) (any, any) {
+	n, ok := nodeOf(x)
+	if !ok {
+		return nil, p.termError(8, x, any(name), 0, 0)
+	}
+	if kind >= 1 && kind <= 3 {
+		if n.isNode() {
+			if kind == 1 {
+				return any(int(n.RawStart)), nil
+			}
+			if kind == 2 {
+				return any(int(n.RawEnd)), nil
+			}
+			return p.nodeValue(n), nil
+		}
+	}
+	st := p.g.StructFields[n.Type()] != nil
+	if kind == 4 {
+		if st {
+			return nil, p.termError(9, x, any(field), 0, 0)
+		}
+		v, _ := p.valueField(n.RawFields, field)
+		return UnboxValue(v), nil
+	}
+	f, set := p.valueField(n.RawFields, field)
+	if set {
+		return f, nil
+	}
+	if !st {
+		return nil, nil
+	}
+	z, declared := p.memberZero(c, n, field)
+	if declared {
+		return z, nil
+	}
+	return nil, p.termError(10, x, any(field), 0, 0)
+}
+
 // termEqual applies == to l and r: it compares two ints, two strings or two bools, and any value with nil,
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
@@ -393,4 +479,49 @@ func (p *TParser) termLogic(op int, x any) (bool, any) {
 		return false, p.termError(4, x, nil, op, 0)
 	}
 	return x.(bool), nil
+}
+
+// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
+// opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
+// type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
+// not declare fail.
+//
+// Printed from Exec IR function member of internal/ir/exec/core.
+func (p *TParser) termMember(c *TActCtx, kind int, x any, name string, field string) (any, any) {
+	n, ok := tnodeOf(x)
+	if !ok {
+		return nil, p.termError(8, x, any(name), 0, 0)
+	}
+	if kind >= 1 && kind <= 3 {
+		if tisNode(n) {
+			if kind == 1 {
+				return tnodeStart(n), nil
+			}
+			if kind == 2 {
+				return tnodeEnd(n), nil
+			}
+			return p.nodeValue(n), nil
+		}
+	}
+	st := n.TStruct()
+	if kind == 4 {
+		if st {
+			return nil, p.termError(9, x, any(field), 0, 0)
+		}
+		v, _ := p.valueField(n, field)
+		return v, nil
+	}
+	f, set := p.valueField(n, field)
+	if set {
+		return f, nil
+	}
+	if !st {
+		return nil, nil
+	}
+	z, declared := p.memberZero(c, n, field)
+	if declared {
+		return z, nil
+	}
+	return nil, p.termError(10, x, any(field), 0, 0)
 }

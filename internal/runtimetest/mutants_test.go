@@ -35,11 +35,18 @@ var goMutants = []goMutant{
 	{"a box is not opened", "term_exec.go", "termEqual", "a := UnboxValue(l)", "a := l"},
 	{"! of a bool does not negate", "term_exec.go", "termUnary", "return any(!x.(bool)), nil", "return any(x.(bool)), nil"},
 	{"a logical operand need not be a bool", "term_exec.go", "termLogic", "if valKind(x) != 3 {", "if false {"},
+	{"Start reads the value", "term_exec.go", "termMember", "if kind == 1 {", "if kind == 0 {"},
+	{"an unset field of a struct is nil", "term_exec.go", "termMember", "if !st {\n\t\treturn nil, nil\n\t}", "if true {\n\t\treturn nil, nil\n\t}"},
+	{"a struct has captures", "term_exec.go", "termMember", "if st {\n\t\t\treturn nil, p.termError(9", "if false {\n\t\t\treturn nil, p.termError(9"},
+	{"a set field of a struct reads as its zero", "term_exec.go", "termMember", "if set {\n\t\treturn f, nil\n\t}", "if set && !st {\n\t\treturn f, nil\n\t}"},
+	{"a capture keeps its box", "term_exec.go", "termMember", "return UnboxValue(v), nil", "return v, nil"},
+	{"End is a field", "term_exec.go", "memberKind", "return memberEnd, name", "return memberField, name"},
 }
 
 // TestPrintedOperatorMutants is the proof that the value conformance holds the printed code of the
-// operators of terms in the generated Go runtime: with the source of each mutant, TestValueConformance
-// fails. A mutant that no test notices would be one that the model and the code do not both bound.
+// operators of terms and of the member reads in the generated Go runtime: with the source of each
+// mutant, TestValueConformance or TestValueMemberTable fails. A mutant that no test notices would be
+// one that the model and the code do not both bound.
 func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
@@ -47,7 +54,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 	for _, m := range goMutants {
 		// The compositions are printed for each runtime; the primitives are plain functions.
 		heads := []string{"func (p *Parser) ", "func (p *TParser) "}
-		if m.file == "term_value.go" {
+		if m.file == "term_value.go" || m.fn == "memberKind" {
 			heads = []string{"func "}
 		}
 		if m.file == "budget.go" || m.fn == "strAdd" || m.fn == "strEq" {
@@ -82,7 +89,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the runtime has no %s%s with %q", head, m.fn, m.old)
 				}
-				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings)$", ".")
+				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable)$", ".")
 				cmd.Dir = dir
 				cmd.Env = append(cmd.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
 				out, err := cmd.CombinedOutput()

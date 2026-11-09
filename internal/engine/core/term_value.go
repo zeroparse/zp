@@ -3,6 +3,7 @@ package core
 import (
 	"strings"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -162,4 +163,16 @@ func (p *Parser) strCmp(l, r any) int {
 // strEq is the operation str.eq.
 func (p *Parser) strEq(l, r any) bool {
 	return p.equalText(l.(string), r.(string))
+}
+
+// nodeOf is the operation node.of: x as a node, list, tuple or struct.
+func nodeOf(x any) (*value.Node, bool) {
+	n, ok := x.(*value.Node)
+	return n, ok && n != nil
+}
+
+// isStruct is the operation node.isStruct.
+func (p *Parser) isStruct(n *value.Node) bool {
+	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
+	return ok
 }

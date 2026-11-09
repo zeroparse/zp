@@ -15,10 +15,11 @@ typed `memoGet` and `memoPut`, `valueField`, `setValueField`, the typed and node
 compares an expectation set with the set kept last, charges each comparison through `Spend`,
 whose inlined test of the control does the same.
 
-The operators of terms (`Binary`, `Unary`, `And`, `Or`) are not split. Each is a composition
-printed once into `term_exec.go`, with one body for both cases; the only tests of the control are
-in the string primitives `strCmp` and `strEq`, which charge a comparison of two strings, and in
-the error constructor, which charges the pieces of a message.
+The operators of terms (`Binary`, `Unary`, `And`, `Or`) and the member reads (`Member`) are not
+split. Each is a composition printed once into `term_exec.go`, with one body for both cases; the
+only tests of the control are in the string primitives `strCmp` and `strEq`, which charge a
+comparison of two strings, in the field read, which charges the fields it scans, and in the error
+constructor, which charges the pieces of a message.
 
 `FirstCall` runs the ordinary body itself after `controlledFirstCallPrepare`, which does the
 controlled charges and growth, so a controlled parse executes the same steps. The Operators

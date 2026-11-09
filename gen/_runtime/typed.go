@@ -1923,41 +1923,19 @@ func (c *TActCtx) Compare(op int, l, r TOperand) any {
 	return c.Binary(op, l.value(), r.value())
 }
 
+// Member reads x.name, as the composition member (term_exec.go) does.
 func (c *TActCtx) Member(x any, name string) any {
-	n := AsTval(x)
-	if n == nil {
-		c.P.evalErrorf("cannot access .%s of %s", name, ttypeName(x))
+	kind, field := memberKind(name)
+	v, e := c.P.termMember(c, kind, x, name, field)
+	if e != nil {
+		panic(e)
 	}
-	if tisNode(n) {
-		switch name {
-		case "Start":
-			s, _ := n.TSpan()
-			return s
-		case "End":
-			_, e := n.TSpan()
-			return e
-		case "Value":
-			return c.P.nodeValue(n)
-		}
-	}
-	if len(name) > 1 && name[0] == '$' {
-		capture := name[1:]
-		// x.$y reads a capture, which struct values do not have; an unmatched capture is nil.
-		v, ok := c.P.valueField(n, capture)
-		if n.TStruct() {
-			c.P.evalErrorf("%s has no capture %s", n.TName(), capture)
-		}
-		if !ok {
-			return nil
-		}
-		return tvalOrNil(v)
-	}
-	v, ok := c.P.valueField(n, name)
-	if !ok {
-		c.P.evalErrorf("%s has no field %s", n.TName(), name)
-	}
-	return tvalOrNil(v)
+	return v
 }
+
+// memberZero is the operation node.zero, which has no zero value to make in the typed runtime: a typed
+// struct holds every field of its type, which node.field reads.
+func (p *TParser) memberZero(*TActCtx, TVal, string) (any, bool) { return nil, false }
 
 func (c *TActCtx) Length(x any) any {
 	switch x := x.(type) {

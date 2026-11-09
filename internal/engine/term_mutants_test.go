@@ -36,10 +36,18 @@ var engineMutants = []engineMutant{
 	{"a remainder floors", "term_exec.go", "termBinary", `any(l.(int) % r.(int))`, `any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())`},
 	{"a division floors", "term_exec.go", "termBinary", `any(l.(int) / r.(int))`, `any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())`},
 	{"a box is not opened", "term_value.go", "unboxed", "return unboxed(value.D(n).Box)", "return v"},
+	{"Start reads the value", "term_exec.go", "termMember", "if kind == 1 {", "if kind == 0 {"},
+	{"an unset field of a struct is nil", "term_exec.go", "termMember", "if !st {\n\t\treturn nil, nil\n\t}", "if true {\n\t\treturn nil, nil\n\t}"},
+	{"a struct has captures", "term_exec.go", "termMember", "if st {\n\t\t\treturn nil, p.termError(9", "if false {\n\t\t\treturn nil, p.termError(9"},
+	{"a set field of a struct reads as its zero", "term_exec.go", "termMember", "if set {\n\t\treturn f, nil\n\t}", "if set && !st {\n\t\treturn f, nil\n\t}"},
+	{"a capture keeps its box", "term_exec.go", "termMember", "return unboxed(v), nil", "return v, nil"},
+	{"End is a field", "term_exec.go", "memberKind", "return memberEnd, name", "return memberField, name"},
+	{"a struct declares every field", "eval.go", "memberZero", "if !p.HasValueField(", "if false && !p.HasValueField("},
 }
 
-// TestPrintedOperatorMutants is the proof that TestEngineValueConformance and TestEngineValueBoxedOperands hold the printed code of the
-// operators of terms in the engine: with a source overlay of each mutant, it fails.
+// TestPrintedOperatorMutants is the proof that TestEngineValueConformance, TestEngineValueBoxedOperands and
+// TestEngineValueMemberTable hold the printed code of the operators and the member reads of terms in the
+// engine: with a source overlay of each mutant, one of them fails.
 func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
@@ -67,7 +75,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

@@ -271,6 +271,10 @@ var siteCost = map[string][]string{
 	"Parser.actionErrorText":     {ops.QErrParts},
 	"Parser.writeDiagnosticText": {ops.QErrParts},
 
+	// The reads of fields.
+	"Parser.valueFieldControlled":  {ops.QFieldsRead},
+	"TParser.valueFieldControlled": {ops.QFieldsRead},
+
 	// The capture frames.
 	"Parser.undoCaptures":  {ops.QTrail},
 	"TParser.undoCaptures": {ops.QTrail},
@@ -327,6 +331,12 @@ var runsGrammar = map[string]bool{"rule.invoke": true, "rule.invokePlain": true,
 	// The grammar code of an Operators Rule, and the actions that make the values of its lines.
 	"opr.skip": true, "opr.match": true, "opr.lineValue": true, "opr.build": true, "opr.buildTyped": true}
 
+// makesValues are the host operations that make a value of a term with the constructors that terms call
+// (List, Tuple, NewStruct). The static calls of a constructor reach the charges of all its uses, the field
+// writes and failures that the operation never makes among them, so the audit cannot attribute them;
+// the term charge goldens (TestTermChargesMember) hold what the operation charges.
+var makesValues = map[string]bool{"node.zero": true}
+
 // TestTransitionalAndHostCostsMatchCharges checks the cost declarations of the transitional and host
 // operations against the Go runtime that implements them, through its static calls (calls through interfaces
 // and function values are not followed, so the cost of a host callback such as the delivery of an
@@ -337,7 +347,7 @@ var runsGrammar = map[string]bool{"rule.invoke": true, "rule.invokePlain": true,
 func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 	pkg, callees, charges := runtimeCalls(t)
 	for _, op := range Build().Ops {
-		if !op.Transitional && !op.Host || runsGrammar[op.Name] {
+		if !op.Transitional && !op.Host || runsGrammar[op.Name] || makesValues[op.Name] {
 			continue
 		}
 		found := false
