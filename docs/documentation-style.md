@@ -29,14 +29,40 @@ alone, a guide can be read with the specification, and so on. `TestDocumentLinkD
 | A page of this kind | May link to |
 |:--|:--|
 | Specification | The specification, and standards (`rfc-editor.org`) |
-| Guide | The specification, guides, design and optimization records, `docs/performance.md`, `docs/benchmarks.md` and code |
-| Cookbook | The specification, guides, other recipes and code |
-| Tutorial | Anything |
+| Guide | The specification, guides, design and optimization records, `docs/performance.md` and `docs/benchmarks.md` |
+| Cookbook | The specification, guides and other recipes |
+| Tutorial | Anything but code |
 
 Guides and recipes do not link to project documents (the other files of `docs/` and the Markdown files of the
 repository root) or to the tutorial. No guide links to the cookbook, and no recipe links to design records or
 performance documents. A link to a section names its heading, so a renamed heading breaks the link, and the site check
 reports it. Keep headings stable, and when a page is split or renamed, update the links in the same commit.
+
+### Code References
+
+The specification is the source, and the code depends on it: the specification defines the language, the
+runtime contract and the public API, the code implements them, and conformance tests pin the code to the
+sections they name. A page that refers to code depends on the code instead, and code changes, so every such
+reference is a cost of keeping it in sync. `TestDocumentCodeReferences` enforces the following.
+
+| A page of this kind | May refer to code |
+|:--|:--|
+| Specification, including the proofs | Never. A public API element appears only as the specification defines it; that is a definition, not a reference |
+| Guide, cookbook, tutorial, README | Never, and no links to code. Public API names cite the specification that defines them |
+| Design pages and records, optimization records, performance documents | Only at the level of packages, such as "the cost view lives in the compiler package". No functions, types, fields, files or lines. Optimization records may link to commits, which never change |
+
+No page cites a line number: lines move with every edit. A reference to code in a reader-facing page is any link to
+a file or directory of the repository's code (the programs of `examples/` are written for readers and are not code in
+this sense), any name of a Go file of the repository, any path under `internal/`, a line of a source file and any
+identifier that matches an unexported Go declaration or an exported name that an internal package qualifies. The names
+of files that a reader creates or that `zp gen` writes (`main.go`, `parser.go`, `types/types.go`), the line numbers of
+error-message examples and public API names are not references.
+
+The test also checks the internal documents: a link to a file of the code, a Go file name, a path below a package, a
+line number and an unexported identifier are violations there too. Violations that existed when the rule was adopted
+are listed in `site/testdata/coderefs_allowlist.tsv`, with the number of references per file, category and
+token. The list only shrinks: a reference that is not listed fails the test, and so does an entry whose references have
+gone, until the entry is removed or lowered. Rewrite the page, then lower the entry.
 
 ### Indexes
 

@@ -17,7 +17,7 @@ import (
 // Documentation kinds. Links may only point in the directions of linkAllowed: the
 // specification is self-contained, guides rest on the specification, the design
 // records and the performance documents, recipes on guides and the specification,
-// and tutorials may link anywhere.
+// and tutorials may link anywhere but to code. No reader-facing page links to code.
 const (
 	kindSpec     = "specification"
 	kindGuide    = "guide"
@@ -27,7 +27,8 @@ const (
 	kindOptim    = "optimization record"
 	kindPerf     = "performance document" // docs/performance.md and docs/benchmarks.md
 	kindProject  = "project document"     // everything else under docs/, and README.md
-	kindOther    = "other"                // source files, parsers, examples, external links
+	kindCode     = "code"                 // Go and TypeScript sources and the directories that hold them
+	kindOther    = "other"                // examples, data files, external links
 )
 
 // externalAllowlist names the hosts that the specification may link to: the
@@ -93,6 +94,8 @@ func linkAllowed(from, to string) bool {
 			return true
 		}
 		return false
+	case kindTutorial:
+		return to != kindCode
 	}
 	return true
 }
@@ -341,6 +344,7 @@ func documentDestinations(text string) []destAt {
 // docLinkViolations returns one message per link that points in a forbidden direction.
 func docLinkViolations(t *testing.T, repo string) []string {
 	t.Helper()
+	code := loadRepoCode(t, repo)
 	var problems []string
 	for _, dir := range []string{"docs", "spec"} {
 		err := filepath.WalkDir(filepath.Join(repo, dir), func(p string, d fs.DirEntry, err error) error {
@@ -367,7 +371,13 @@ func docLinkViolations(t *testing.T, repo string) []string {
 					}
 					continue
 				}
-				if to := docKind(rp); !linkAllowed(from, to) {
+				to := docKind(rp)
+				if to == kindOther {
+					if isCode, _ := code.isCodeTarget(rp); isCode {
+						to = kindCode
+					}
+				}
+				if !linkAllowed(from, to) {
 					problems = append(problems, rel+":"+line+": "+from+" page links to "+to+" "+d.dest)
 				}
 			}
@@ -384,7 +394,8 @@ func docLinkViolations(t *testing.T, repo string) []string {
 // TestDocumentLinkDirections enforces the reading order of the documentation: the
 // specification links only to the specification (and to standards), guides and recipes
 // link neither to project documents nor to the tutorial, guides never link to the
-// cookbook, and the cookbook links only to guides, the specification and code.
+// cookbook, and the cookbook links only to guides, the specification and other recipes.
+// No page of these kinds links to code.
 func TestDocumentLinkDirections(t *testing.T) {
 	for _, p := range docLinkViolations(t, "..") {
 		t.Error(p)
@@ -409,12 +420,17 @@ func TestLinkAllowed(t *testing.T) {
 		{kindGuide, kindPerf, true},
 		{kindGuide, kindProject, false},
 		{kindGuide, kindOther, true},
+		{kindGuide, kindCode, false},
 		{kindGuide, kindCookbook, false},
 		{kindGuide, kindTutorial, false},
 		{kindCookbook, kindGuide, true},
 		{kindCookbook, kindSpec, true},
 		{kindCookbook, kindCookbook, true},
 		{kindCookbook, kindOther, true},
+		{kindCookbook, kindCode, false},
+		{kindSpec, kindCode, false},
+		{kindTutorial, kindCode, false},
+		{kindDesign, kindCode, true},
 		{kindCookbook, kindDesign, false},
 		{kindCookbook, kindOptim, false},
 		{kindCookbook, kindPerf, false},
