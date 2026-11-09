@@ -110,8 +110,9 @@ The summary of a node is the union of its children's, with these differences.
   expect, call and raise, and the effects of its lines.
 - `Capture` adds Capture and its slot. `BindNode` is Bind. `Pred` is Fail. A `Pred`, a `BindNode`, a rule's action and
   an `OperatorsRule` line's action add Raise when their term can raise.
-- `Recover` passes on Fail from neither body nor skip, and adds Recover. `Missing` is consume, expect, recover and raise:
-  an insertion can exceed the limit of missing tokens. `Stream` adds Commit.
+- `Recover` can fail only when its body can fail and its skip can fail or match without consuming input, and adds
+  Recover. `Missing` is consume, fail, expect, recover and raise: its literal fails where it may not be inserted, and an
+  insertion can exceed the limit of missing tokens. `Stream` adds Commit.
 - `Scan` consumes and expects, and can fail if its minimum is positive.
 
 A rule's own effects, as its callers see them, are those of its body without Capture, Bind and Cut.

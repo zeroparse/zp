@@ -180,11 +180,12 @@ func (a *analyzer) node(n Node) (bool, bool, Effects) {
 		}
 		e.Set |= EffRecover
 	case *Missing:
-		// An insertion consumes no input; without insertion the literal must match. An insertion
-		// can exceed the limit of missing tokens.
+		// An insertion consumes no input; without insertion the literal must match, and with it the
+		// literal fails where it was already inserted at the same position. An insertion can exceed
+		// the limit of missing tokens.
 		null, _, _ = a.node(n.Lit)
 		ins = true
-		e.Set = EffConsume | EffExpect | EffRecover | EffRaise
+		e.Set = EffConsume | EffFail | EffExpect | EffRecover | EffRaise
 	case *Stream:
 		null, ins, e = a.node(n.Repeat)
 		e.Set |= EffCommit
