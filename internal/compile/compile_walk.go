@@ -430,8 +430,10 @@ func (c *Walker[M]) compileOperatorsRule(r *Rule, e *grammar.OperatorsRule) {
 	}
 	var operands, operators []OpLine[M]
 	for _, o := range e.Operands {
-		// A loaded compiled grammar (c.an is nil) has already been checked.
-		if c.an != nil && contains(c.an.leftCalls(o.Expr, nil), r.Name) {
+		// A loaded compiled grammar (c.an is nil) has already been checked. A grammar must be valid
+		// whether or not insertion is enabled, so the left calls are also those with insertion.
+		if c.an != nil && (contains(c.an.leftCalls(o.Expr, nil), r.Name) ||
+			c.ins != nil && contains(c.ins.leftCalls(o.Expr, nil), r.Name)) {
 			c.errorf(e.Diagnostic(), "operand of %s calls %s at its start (left recursion); use infix or postfix instead", r.Name, r.Name)
 		}
 		line := c.operatorsRuleLine(o.Expr, o.Action, nil, o)

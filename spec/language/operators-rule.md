@@ -113,7 +113,11 @@ An `operand` action can use the captures of its line.
 
 An `operand` MUST NOT call its own rule at its start, since that would be left
 recursion. Write constructs that take an expression on their left as `infix` or
-`postfix` operators instead.
+`postfix` operators instead. The calls at the start are those that may run before
+consuming input, as [left recursion](parser-expressions.md#left-recursion) finds
+them, without or with token insertion: an inserted [`#missing`](pragmas.md#missing)
+literal consumes no input, so `operand "(" #missing e ")"` calls `e` at its start
+and is an error in the Operators Rule of `e`.
 
 ### `level`
 

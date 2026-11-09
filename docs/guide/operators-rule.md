@@ -737,7 +737,9 @@ zp parse -g operand-lr.zp -s e -i '1'
 zp: operand-lr.zp:3:21: operand of e calls e at its start (left recursion); use infix or postfix instead
 ```
 
-Write `!` as a postfix operator instead.
+Write `!` as a postfix operator instead. A call after a [`#missing`](../../spec/language/pragmas.md#missing) literal
+counts as a call at the start too, because an inserted literal consumes no input: `operand "(" #missing e ")"` is the
+same error.
 
 **A cut can prevent prefix-to-operand fallback.** If no prefix part matches and a candidate failed after `#cut`, the
 Operators Rule fails: `prefix "-" #cut "z"` does not fall back to `operand "-x"` on `-x`. A mismatch before a cut still

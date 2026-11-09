@@ -11,6 +11,11 @@ func TestOperatorsRuleCompileErrors(t *testing.T) {
 		{`rule e = #operators {
     operand e "x" / "1"
 }`, `operand of e calls e at its start (left recursion)`},
+		// With insertion enabled, the inserted "(" consumes no input, so e is called at the start.
+		{`rule e = #operators {
+    operand "(" #missing e ")"
+    operand "1"
+}`, `operand of e calls e at its start (left recursion)`},
 		{`rule e = #operators {
     operand "1"
     level { infix left lhs:"+" }

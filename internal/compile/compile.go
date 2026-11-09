@@ -234,10 +234,13 @@ var builtinTypes = map[string]bool{
 // options, expectation table and errors. Walker embeds it to walk rule bodies for a backend.
 // A nil Control never cancels.
 type Compiler struct {
-	Control        *cancel.Control
-	Prog           *Program
-	proj           map[string]string // projected captures of the rule being compiled (ruleProjections)
-	an             *Analysis
+	Control *cancel.Control
+	Prog    *Program
+	proj    map[string]string // projected captures of the rule being compiled (ruleProjections)
+	an      *Analysis
+	// ins is the analysis with missing-token insertion enabled (AnalyzeInsertion) when the grammar
+	// has an insertion, and nil otherwise or for a loaded compiled grammar.
+	ins            *Analysis
 	opts           Options
 	errs           diag.ErrorList
 	rule           *Rule
@@ -440,6 +443,9 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 			if c.an != nil {
 				c.an.Control = nil
 			}
+			if c.ins != nil {
+				c.ins.Control = nil
+			}
 		}()
 	}
 	prog.StartRules, prog.DefaultStartRule = starts, defaultStart
@@ -519,6 +525,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	var ins *Analysis
 	if flags == nil && prog.HasMissing {
 		ins = AnalyzeInsertion(rules, control)
+		c.ins = ins
 		prog.InsertionFlags = insertionFlags(prog, ins, opts, control)
 	}
 	if flags == nil && !opts.LeftRecursionBindings {
