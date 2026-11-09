@@ -108,6 +108,11 @@ the deploy instead of publishing it. Cloudflare serves directory index files wit
 (`html_handling` is `auto-trailing-slash`); the site emits no `404.html`, so unknown paths get Cloudflare's plain 404
 response (`not_found_handling` is `none`).
 
+Every document page names its own URL in `<link rel="canonical">` and `og:url`, the absolute `https://zeroparse.dev/...`
+URL with a trailing slash that the sitemap lists, so that the `http://` form, the form without the slash and
+`.../index.html`, which Cloudflare also answers, all consolidate to one URL for search engines. A site test checks that
+each page's canonical URL equals its sitemap entry.
+
 ### Go Vanity Imports
 
 The module path is `zeroparse.dev/zp`, and `zeroparse.dev/X` resolves to `github.com/zeroparse/X` for the repositories of

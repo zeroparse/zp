@@ -340,6 +340,9 @@ type layoutData struct {
 	// ViewStyles and ViewScripts are the page-relative assets that the ZeroSite view adds to the
 	// page, such as the math loader on a page with a formula.
 	ViewStyles, ViewScripts []string
+	// Canonical is the absolute URL of the page under siteURL, the one URL the sitemap lists for it.
+	Canonical string
+	NoIndex   bool // the page asks crawlers not to index it
 }
 
 // URL returns the relative URL of a site path from the page.

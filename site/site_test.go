@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"html"
 	"io/fs"
 	"maps"
@@ -951,6 +952,123 @@ func TestHasMermaidFence(t *testing.T) {
 	} {
 		if got := hasMermaidFence([]byte(src)); got != want {
 			t.Errorf("hasMermaidFence(%q) = %v, want %v", src, got, want)
+		}
+	}
+}
+
+var (
+	canonicalTagRe = regexp.MustCompile(`<link rel="canonical" href="([^"]*)">`)
+	ogURLTagRe     = regexp.MustCompile(`<meta property="og:url" content="([^"]*)">`)
+	sitemapLocRe   = regexp.MustCompile(`<loc>([^<]*)</loc>`)
+)
+
+// checkCanonicalPages verifies, for the HTML pages under out, that each page names exactly one
+// absolute https URL ending in a slash as its canonical URL and og:url, that the sitemap lists that
+// URL, and that pages asking not to be indexed are the ones the sitemap omits. It returns the
+// number of pages that carry a canonical tag.
+func checkCanonicalPages(t *testing.T, out string) (int, []string) {
+	t.Helper()
+	var problems []string
+	problem := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
+	data, err := os.ReadFile(filepath.Join(out, "sitemap.xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sitemap := map[string]bool{}
+	for _, m := range sitemapLocRe.FindAllStringSubmatch(string(data), -1) {
+		sitemap[html.UnescapeString(m[1])] = true
+	}
+	listed := map[string]bool{}
+	pages := 0
+	err = filepath.WalkDir(out, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Base(p) != "index.html" {
+			return err
+		}
+		page, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(out, p)
+		rel = filepath.ToSlash(rel)
+		if !strings.Contains(string(page), `<article class="prose">`) {
+			return nil // the landing page and the playground are not documents
+		}
+		m := canonicalTagRe.FindStringSubmatch(string(page))
+		if m == nil {
+			problem("%s: no canonical link", rel)
+			return nil
+		}
+		pages++
+		canonical := html.UnescapeString(m[1])
+		if !strings.HasPrefix(canonical, "https://") || !strings.HasSuffix(canonical, "/") {
+			problem("%s: canonical %q is not an absolute https URL ending in a slash", rel, canonical)
+		}
+		if want := "https://zeroparse.dev/" + strings.TrimSuffix(rel, "index.html"); canonical != want {
+			problem("%s: canonical %q, want %q", rel, canonical, want)
+		}
+		if og := ogURLTagRe.FindStringSubmatch(string(page)); og == nil || html.UnescapeString(og[1]) != canonical {
+			problem("%s: og:url %v differs from canonical %q", rel, og, canonical)
+		}
+		noindex := strings.Contains(string(page), `<meta name="robots" content="noindex">`)
+		if noindex == sitemap[canonical] {
+			problem("%s: noindex=%v but the sitemap lists it=%v", rel, noindex, sitemap[canonical])
+		}
+		if !noindex {
+			listed[canonical] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for loc := range sitemap {
+		if !listed[loc] && loc != "https://zeroparse.dev/" && !strings.HasPrefix(loc, "https://zeroparse.dev/playground") {
+			problem("sitemap lists %s, which no document page names as its canonical URL", loc)
+		}
+	}
+	return pages, problems
+}
+
+// TestCanonicalURLs builds the site without the WebAssembly binary and checks that every document
+// page's canonical URL is the URL the sitemap lists, so that search engines see one URL per page.
+func TestCanonicalURLs(t *testing.T) {
+	out := siteTestOutput(t)
+	if _, err := Build(Config{Repo: "..", Out: out, GitHub: "https://github.com/zeroparse/zp", Ref: "main"}); err != nil {
+		t.Fatal(err)
+	}
+	n, problems := checkCanonicalPages(t, out)
+	for _, p := range problems {
+		t.Error(p)
+	}
+	if n < 30 {
+		t.Fatalf("checked only %d pages", n)
+	}
+}
+
+// TestCanonicalURLCheckDetectsMissingTag is the negative control of TestCanonicalURLs: the same
+// check must fail on a page whose canonical link is removed or whose URL is not the sitemap's.
+func TestCanonicalURLCheckDetectsMissingTag(t *testing.T) {
+	out := siteTestOutput(t)
+	if _, err := Build(Config{Repo: "..", Out: out, GitHub: "https://github.com/zeroparse/zp", Ref: "main"}); err != nil {
+		t.Fatal(err)
+	}
+	page := filepath.Join(out, "spec", "index.html")
+	data, err := os.ReadFile(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, mutate := range map[string]func(string) string{
+		"removed": func(s string) string { return canonicalTagRe.ReplaceAllString(s, "") },
+		"http": func(s string) string {
+			return strings.Replace(s, `rel="canonical" href="https://`, `rel="canonical" href="http://`, 1)
+		},
+		"no slash": func(s string) string { return strings.Replace(s, `/spec/">`, `/spec">`, 1) },
+	} {
+		if err := os.WriteFile(page, []byte(mutate(string(data))), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, problems := checkCanonicalPages(t, out); len(problems) == 0 {
+			t.Errorf("mutation %q went undetected", name)
 		}
 	}
 }
