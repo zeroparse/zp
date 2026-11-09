@@ -42,9 +42,9 @@ func viewBodies(t *testing.T, src string, opts viewOptions) (map[string]string, 
 	return bodies, v.applied
 }
 
-// TestNormalView checks each rule of the view: where its conditions hold it rewrites the
-// expression as its law says, and where one of them fails, as in the counterexamples of
-// spec/proofs/grammar-laws.md, it leaves the expression as it is.
+// TestNormalView checks each rewrite of spec/runtime/parsing.md (Cost View): where its conditions
+// hold it rewrites the expression as its law says, and where one of them fails, as in the
+// counterexamples of spec/proofs/grammar-laws.md, it leaves the expression as it is.
 func TestNormalView(t *testing.T) {
 	const helpers = "\nrule r = \"r\" \"r\"\nrule p = {true} \"p\"\n"
 	for _, c := range []struct {
@@ -118,6 +118,7 @@ func TestNormalView(t *testing.T) {
 		{name: "C6 keeps a predicate prefix", body: `{true} "xy" / {true} "zw"`, want: `{true} "xy" / {true} "zw"`},
 		{name: "C6 keeps a prefix that calls a rule with a predicate", body: `p "xy" / p "zw"`, want: `p "xy" / p "zw"`},
 		{name: "P1 inlines a rule that is not memoized", rule: ruleN13, body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
+		{name: "N13 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 		{name: "P1 keeps a rule with a capture", body: `a "x"` + "\nrule a = c:\"y\" \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
 		{name: "P1 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 	} {
@@ -136,7 +137,8 @@ func TestNormalView(t *testing.T) {
 // TestNormalViewPredicateCaptures checks that the rules of the view that change values stay off
 // inside a capture that a predicate reads, and in the body of every rule whose value reaches such a
 // capture, and stay on elsewhere: the congruence ≡E,X of those rules does not hold in a context
-// that reads a value of the expression in a predicate.
+// that reads a value of the expression in a predicate. These are the value conditions of
+// spec/runtime/parsing.md (Cost View).
 func TestNormalViewPredicateCaptures(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -303,7 +305,8 @@ func TestNormalViewText(t *testing.T) {
 
 // TestNormalViewCutKeepsTuple checks that dropping the cuts of a sequence leaves a sequence of one
 // item, a tuple of one element, where a predicate can read its value, and the bare item where none
-// can: `a #cut` is a tuple of one element, and `len($x)` tells it from the item.
+// can: `a #cut` is a tuple of one element, and `len($x)` tells it from the item (N6 in
+// spec/runtime/parsing.md, Cost View).
 func TestNormalViewCutKeepsTuple(t *testing.T) {
 	const tail = " (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"\n"
 	for _, c := range []struct {

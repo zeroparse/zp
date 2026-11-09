@@ -279,7 +279,10 @@ it, or the whole memo is dropped. A batch is one edit for the text and drops
 every entry and run ([Edits](#edits)).
 
 **Results that are stored.** A parse stores entries under the rules of
-[Evaluations of Rules](parsing.md#evaluations-of-rules): a result that read the
+[Evaluations of Rules](parsing.md#evaluations-of-rules), except that it also
+memoizes the rules that the first exception there leaves unmemoized in an
+ordinary parse (the transient rules); since a leader is memoized in every
+case, no leader is memoized only by a Document. A result that read the
 growing result of a left recursion is dropped within the parse and never
 reaches a later one. A parse that does not complete, because it is
 [interrupted](#interruption) or aborted by a run-time error of an action, the

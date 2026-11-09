@@ -610,8 +610,9 @@ that it does not bind, is idempotent by (P2). `[ \t]+ / ^` and
 parse costs: dropping or merging an expression drops evaluations that the
 original makes. An analysis of cost may read a view only when the original
 costs at most a constant factor more than the view on every input. The
-classifier reads a view that applies the rules of both levels except N7 and
-N13, under these further conditions, which give that bound for each rule that
+classifier reads the [cost view](../runtime/parsing.md#cost-view), which
+applies the rules of both levels except N7 and N13, under these further
+conditions, which give that bound for each rule that
 the view applies ([Cost View](cost-view.md)), except for the values that actions
 build from a value that a rewrite reshapes, and their run-time errors: step 8 of
 the [open steps of the linear cost proof](linear-cost.md#open-steps). The

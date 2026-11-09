@@ -545,3 +545,22 @@ rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: limits.Limi
 		}
 	}
 }
+
+// TestDocumentMemoizesTransientRules checks the rule of spec/runtime/documents.md (Reuse Model,
+// Results that are stored) that a Document parse memoizes the rules that an ordinary parse leaves
+// unmemoized: x calls no rule, so a parse from scratch evaluates it at 0 for each alternative of
+// main, and a Document parse evaluates it once and answers the other calls from the memo.
+func TestDocumentMemoizesTransientRules(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, "rule main = x \"a\" / x \"b\" / x \"c\"\nrule x = \"x\"+")
+	doc, err := prog.NewDocument("main", "xxc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := doc.Parse(); err != nil {
+		t.Fatal(err)
+	}
+	if st := doc.Stats(); st.MemoHits < 2 {
+		t.Errorf("a Document parse answered %d calls of the transient rule from the memo, want 2: %+v", st.MemoHits, st)
+	}
+}

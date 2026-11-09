@@ -354,7 +354,12 @@ when its recovered errors are listed, because each memo entry, node and value
 is built by cost that is counted, except in a parse with missing-token
 insertion, as below. The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
-[compute limits](#cancellation-and-compute-limits) caps it.
+[compute limits](#cancellation-and-compute-limits) caps it. Each backend, the
+engine's closure backend and bytecode machines as well as generated Go parsers,
+charges at least one unit for each call, each character that a terminal
+examines, each iteration, each operator applied and each value that an action
+builds, and at most a constant of the grammar and the backend for each of them,
+besides the units that it charges for the input as a whole before the parse.
 
 Compute units also count work that the cost does not, and the budget caps it too.
 In a parse that recovers errors, a memo entry, a result of a growth or an
@@ -407,7 +412,13 @@ calls inside them, and a result computed outside them answers every call,
 whether or not it has recovered errors, so at most one evaluation in each of
 the two states stores a result. Whether a call is inside a lookahead or a
 `skip` is thus part of the key of a result computed there, and not of one
-computed outside them. A rule and
+computed outside them. A rule without an action that is on no left-recursion
+cycle can have a **value-free twin**, which matches as the rule does and builds
+no value; a call whose value is not used, such as a call inside a discard, a
+negative lookahead or an `#atomic`, evaluates the twin. Which of the two a call
+evaluates depends only on the discards, lookaheads, `#atomic`s and captures
+around the call in its rule body, on the action of that rule, and on which of
+the two the body is evaluated for. A rule and
 its value-free twin count as two rules. The exceptions are these.
 
 - A rule that calls no rule, itself included, or that is called from at most
@@ -1042,7 +1053,7 @@ The conditions below use these terms.
   and n spaces.
 
   The classifier decides both bounds, as it does the conditions, on the
-  [cost view](../proofs/grammar-laws.md#normalization) of the rule bodies, a rewriting that keeps
+  [cost view](#cost-view) of the rule bodies, a rewriting that keeps
   what they match and keeps their cost within a constant factor, apart from the
   values that actions build from a value that the view reshapes
   ([Cost View](../proofs/cost-view.md); those values, and the run-time errors of
@@ -1585,6 +1596,100 @@ necessary.
    and what follows the reads of the growing results of the cycle outside the
    body of R can begin with the same character. Otherwise R grows past the
    result of S only where the growth of S stops.
+
+### Cost View
+
+The classifier decides the [Conditions for Linear Cost](#conditions-for-linear-cost)
+on the **cost view** of the grammar, not on its rule bodies as written. A
+parser never runs the view.
+
+**Grammar.** The view starts from the grammar with each
+[inline value action](../language/actions.md#inline-value-actions) replaced by
+a call of its [hidden rule](../language/actions.md#hidden-rules) and each
+built-in attribute replaced by the construct that it denotes (a recovery for
+`#recover`, a stream for `#stream`, and so on). The view has the rules of that
+grammar, with other bodies. Which rules are memoized, the left-recursion cycles
+and their leaders, the variables and the run sites are those of the grammar,
+not of the view.
+
+**Rewrites.** Each body is rewritten from the inside out until no rewrite
+applies. A rewrite replaces one expression by another; it removes or regroups
+parts of the expression and adds none: no call, predicate, action, recovery,
+stream, Operators Rule or `#missing`, and a call is inside a discard, a
+lookahead or an `#atomic` after a rewrite exactly when it was before. Every rewrite shortens the expression or lowers its number of
+alternatives, repetitions or attributes, so rewriting ends. The rewrites are
+these, each only under the conditions given here and below.
+
+| Rewrite | Replaces | Conditions |
+|:--|:--|:--|
+| N1 | a group by its expression; a sequence in a sequence by its items; a choice that is an alternative of a choice by its alternatives; a sequence of one item by the item | a choice that is not the last alternative only when none of its alternatives has a loose cut; a sequence of one item only when the item is `_|_` or the sequence is free (below) |
+| N2 | the alternatives after one that always succeeds, or after one that begins with a cut, by nothing | the choice is free of value conditions |
+| N3 | an alternative by nothing when an earlier alternative is the same expression, has items that are a proper prefix of its items, or is a case-sensitive literal that is a proper prefix of it, a case-sensitive literal | the earlier alternative is evaluated again cheaply; the choice is free of value conditions |
+| N4 | a `_|_` alternative without attributes by nothing; the items after a `_|_` item of a sequence by nothing; a choice left with no alternative by `_|_` | none |
+| N5 | `&&X` and `!&X` by `&X` and `!X`, `&!X` by `!X`, `!!X` by `&X` | `!!X` only when `X` makes no binding outside the rules it calls |
+| N6 | a cut that ends an alternative of a choice, every loose cut of the last alternative of a choice outside the skips of recoveries, and a recovery of an expression that always succeeds, by nothing | a sequence left with one item or none becomes the item, or `_` for none, only when the alternative is free; otherwise it stays a sequence of the item, or of `_`. A recovery is dropped only when its expression is free |
+| N8 | a run of two or more alternatives that each match one character (a class without negation, or a case-sensitive literal of one code point, neither of which matches U+FFFD) by one class of their characters | none |
+| N9 | `X* X*` and `X+ X*` by the first repetition, `X X*` by `X+`, and `X? X*`, for an `X` that cannot match without consuming input, by `X*` | `X` repeats safely; both items are free |
+| N10 | `(X*)*`, `(X+)*` and `(X*)+` by `X*`, and `(X?)*`, for an `X` that cannot match without consuming input, by `X*` | `X` repeats safely; the outer repetition is free |
+| N11 | `X* (Y X*)*` by `(X / Y)*`, and `X* (X / Y ...)*` by `(X / Y ...)*` | `X` cannot match without consuming input, has no loose cut and repeats safely; `Y` has no loose cut and makes no binding outside the rules it calls; both items are free |
+| N12 | `!X X` by `_|_`; a run of two or more adjacent alternatives of at least two items each that begin with the same item by their longest shared prefix followed by the choice of what follows it in each | `!X X` only when `X` is a bounded terminal and the sequence is free of value conditions; a run only when the prefix as a whole is evaluated again cheaply, no alternative of the run has a loose cut, and the choice is free of value conditions and no alternative of the run is observed |
+| (choice of one) | a choice left with one alternative by that alternative | the choice is free and the alternative is not observed, or the alternative has the same value alone; never when the alternative has a loose cut, in which case the choice stays as written, with none of the rewrites of its parts |
+
+In these conditions:
+
+- A **loose cut** of an expression is a cut in it that would commit a
+  choice, option or repetition around the expression ([Cut](../language/parser-expressions.md#cut)).
+- An expression **always succeeds** when the classifier shows that it matches
+  wherever it is evaluated; the classifier may fail to show it, and then the
+  rewrite does not apply.
+- A **bounded terminal** is built only of literals, classes, `.`, sequences,
+  choices, groups and repetitions with an upper bound: it calls no rule,
+  makes no capture and examines a bounded amount of input.
+- An expression is **evaluated again cheaply** when every rule that it calls
+  is cheap and called without a binding level, and it contains no predicate,
+  inline action, recovery, stream, Operators Rule or `#missing`. The **cheap**
+  rules are the least set that holds every memoized rule on no left-recursion
+  cycle and every rule on no such cycle, without an action, whose body is
+  evaluated again cheaply.
+- `X` **repeats safely** when it has no loose cut, either cannot match without
+  consuming input or makes no binding outside the rules it calls, and is
+  evaluated again cheaply.
+
+**Value conditions.** Some rewrites change the value of the expression that they
+replace ([Values](../language/parser-expressions.md#values-and-the-concrete-syntax-tree)):
+a sequence of one item has a tuple of one element where the item has its own
+value, N9 to N11 and the left factoring of N12 regroup lists and tuples, N2 and
+N3 can drop every alternative with a value and keep one without, and `_|_` has
+the type `_|_` where `!X X` has the type of `X`. The view applies them only
+where no predicate can read the value:
+
+- A **read capture** of a rule is a capture of the rule whose name a predicate
+  of the rule names, as `$x` or `$x.$y`; a lambda parameter is not one.
+- A call is in a **value position** unless it is inside a discard, a negative
+  lookahead, or a positive lookahead and outside every capture in that
+  lookahead.
+- A rule is **value-read** when it is called in a value position inside a read
+  capture, or in a value position in the body of a value-read rule.
+- An expression is **free of value conditions** when it is neither inside a
+  read capture of its rule nor in the body of a value-read rule.
+- An expression is **observed** when it contains a read capture of its rule,
+  or calls a value-read rule in a value position.
+- An expression is **free** when it is free of value conditions and is not
+  observed.
+- An expression has the **same value alone** as the only alternative of a
+  choice when it is a literal, a class, `.`, a repetition, an option, an
+  `#atomic`, `_|_`, or a call that is not spliced. A **splice rule** is a
+  [hidden rule](../language/actions.md#hidden-rules) without an action, not
+  even `=> ...`, whose body is not an Operators Rule. An expression is
+  **sequence-shaped** when it is a sequence, a group of a sequence-shaped
+  expression, an expression with attributes of which none is a recovery
+  around a sequence-shaped expression, or a spliced call; a call is
+  **spliced** when it calls a splice rule whose body as written is
+  sequence-shaped, read without following a call of a splice rule that the
+  same reading already followed.
+
+N4, N5 and N8 do not change a value, and N1 changes one only in a sequence of
+one item; the rewrites that change a value have the conditions above.
 
 ### Classification
 

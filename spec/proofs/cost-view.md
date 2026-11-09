@@ -24,46 +24,41 @@ are not covered: [Scope](#scope) states what is left open.
 
 ## Setting
 
-Fix a grammar $G$ as the classifier reads it: inline actions lowered to hidden
-rules and attributes normalized, as `prepareClassifier` in `internal/compile`
-does. Its **view** $V$ is what `normalizeRules` in
-`internal/compile/normal_view.go` gives with the options `costView`. $V$ has the
-rules of $G$ with other bodies; the memoized rules, the left-recursion cycles and
-their leaders, the variables and the run sites are those of $G$
-(`newViewClassifier`). The **parse of $V$** is the parse with the rule bodies of
-$V$ and those decisions of $G$, as the [Setting](linear-cost.md#setting) of the
-Linear Cost proof reads it, and with the capture scopes of $G$: a name that a
-predicate or an action of $V$ reads denotes the capture of that name in $G$.
-States, outcomes and the facts (F1) to (F5) are those of
-[Grammar Laws](grammar-laws.md#setting), and the memo is that of
-[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules).
+Fix a grammar $G$ as the classifier reads it, with inline actions replaced by
+calls of their hidden rules and built-in attributes by their constructs, and let
+$V$ be its [cost view](../runtime/parsing.md#cost-view). $V$ has the rules of
+$G$ with other bodies; the memoized rules, the left-recursion cycles and their
+leaders, the variables and the run sites are those of $G$. The **parse of $V$**
+is the parse with the rule bodies of $V$ and those decisions of $G$, as the
+[Setting](linear-cost.md#setting) of the Linear Cost proof reads it, and with
+the capture scopes of $G$: a name that a predicate or an action of $V$ reads
+denotes the capture of that name in $G$. States, outcomes and the facts (F1) to
+(F5) are those of [Grammar Laws](grammar-laws.md#setting), and the memo is that
+of [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules).
 
-**Rewrites.** `normalizeRules` rewrites each body from the inside out until no
-rule applies (`fix`). Each change replaces one expression $e$ of a body by an
-expression $e'$, under conditions that it checks on $e$ as the earlier changes
-left it. So $V$ is reached from $G = G_0$ by a sequence
-$G_0, G_1, \ldots, G_m = V$ in which $G_{i+1}$ differs from $G_i$ only in one
-occurrence of one body, and $m$ depends only on $G$, since `fix` makes at most 64
-passes over each body and each pass a bounded number of changes. A rewrite only
-removes or regroups parts of $e$: no rewrite adds a call, a predicate, an
-action, a recovery, a stream, an Operators Rule or a `#missing`, and none copies
-a part, so the parts that $e$ and $e'$ share are the same expressions in $G_i$ and
-$G_{i+1}$. No rewrite adds or removes a discard, a lookahead or an `#atomic`
-around a call, the constructs that make a call one of the value-free twin of
-its rule (`void` in `internal/compile/bcompile.go`): K1 and K2 replace a
-lookahead by a lookahead. So every call that the two share calls the same
-variant of its rule.
+**Rewrites.** The view rewrites each body from the inside out until no rewrite
+applies. Each change replaces one expression $e$ of a body by an expression
+$e'$, under conditions that hold of $e$ as the earlier changes left it. So $V$
+is reached from $G = G_0$ by a sequence $G_0, G_1, \ldots, G_m = V$ in which
+$G_{i+1}$ differs from $G_i$ only in one occurrence of one body, and $m$ depends
+only on $G$, since every rewrite lowers the measure of
+[Normalization](grammar-laws.md#normalization) (Termination). A rewrite only
+removes or regroups parts of $e$: by [Cost View](../runtime/parsing.md#cost-view)
+no rewrite adds a call, a predicate, an action, a recovery, a stream, an
+Operators Rule or a `#missing`, and none copies a part, so the parts that $e$
+and $e'$ share are the same expressions in $G_i$ and $G_{i+1}$. A call is
+inside a discard, a lookahead or an `#atomic` after a rewrite exactly when it
+was before, and these are the constructs that make a call one of the value-free
+twin of its rule ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)):
+K1 and K2 replace a lookahead by a lookahead. So every call that the two share
+calls the same variant of its rule.
 
-**Cheap expressions.** `cheapRules` computes the **cheap** rules of $G$: the least
-set that holds every memoized rule that is on no left-recursion cycle, and every
-rule on no such cycle, without an action, whose body is evaluated again
-cheaply. An expression is **evaluated again cheaply** (`evaluatedAgainCheaply`)
-when every rule that it calls is cheap and called without a level, and it
-contains no predicate, inline action, recovery, stream, Operators Rule or
-`#missing`. Since the set is the least one, a cheap rule that is not memoized
-calls only cheap rules, and the calls of cheap rules that are not memoized form
-no cycle: they nest at most $|\text{rules}|$ deep. The bodies of the $G_i$ keep
-the property, since no rewrite adds what it excludes.
+**Cheap expressions.** The **cheap** rules and the expressions **evaluated
+again cheaply** are those of [Cost View](../runtime/parsing.md#cost-view).
+Since the set of cheap rules is the least one, a cheap rule that is not
+memoized calls only cheap rules, and the calls of cheap rules that are not
+memoized form no cycle: they nest at most $|\text{rules}|$ deep. The bodies of
+the $G_i$ keep the property, since no rewrite adds what it excludes.
 
 **Own cost.** A **keyed evaluation** is a body evaluation of a memoized rule that
 is neither a growth step nor in a context of growths: the evaluations that
@@ -94,8 +89,8 @@ one element, the value of the alternative that matched, or `nil` when that
 alternative has none, while a choice of which no alternative has a value has no
 value and adds no element, as an optional expression of an expression without a
 value does. A recovery makes an
-expression with a value one element (`attrElems` in
-`internal/compile/bcompile.go`), so a sequence gives its tuple node, and leaves
+expression with a value one element ([`#recover`](../language/pragmas.md#recover)),
+so a sequence gives its tuple node, and leaves
 an expression without a value without one, except an expression of type `_|_`,
 whose recovery is the error value alone, whatever elements the expression would
 have if it matched ([`#recover`](../language/pragmas.md#recover)). A sequence
@@ -109,23 +104,22 @@ expression of an expression of type `_|_` is `nil`, of type `*_|_`, one element
 as for any optional expression with a value; and a repetition of it that may
 match no element is the empty list, of type `[]_|_`.
 Measured by these rules, a rewrite of the view changes the value of the expression that it replaces only
-in the cases of the table. `depth` is positive inside a capture that a
-predicate of the rule reads and in the whole body of a rule whose value reaches
-such a capture, and `observed` holds of an expression that contains such a
-capture or calls such a rule in a position that keeps its value (Lemma 1). The
-lines are those of `internal/compile/normal_view.go`.
+in the cases of the table. The conditions are those of
+[Cost View](../runtime/parsing.md#cost-view): an expression is **guarded** when
+it is not free of value conditions, that is, inside a read capture of its rule
+or in the body of a value-read rule, and **observed** as defined there (Lemma 1).
 
-| Rewrite | How the value changes | Condition as the code checks it |
+| Rewrite | How the value changes | Condition |
 |:--|:--|:--|
-| N1: a sequence of one item becomes the item (`seq` 303) | the tuple of one element becomes the value of the item | `depth` zero and the item not `observed`; or the item is a bottom: the sequence then has an element of type `_|_`, so it has that type, as the item does, and both have the same value, also under a recovery, which gives each the error value, under an option, which makes each `nil`, and as an alternative, which a choice leaves out of its join either way |
-| N2, N3: the alternatives after one that always succeeds or begins with a cut, and an alternative that an earlier one subsumes, are dropped (`choice` 464, 473) | when every alternative with a value is dropped and one without stays, the choice, one element (`nil` when that alternative matched), gives none; otherwise only the type of the choice changes, not its value, since a dropped alternative never gives it | `depth` zero (`drops`); otherwise no alternative but a bottom is dropped |
-| K4 of N12: `!X X` becomes `_|_` (`adjacent` 354) | `!X X` has the type of `X`, and `_|_` the type `_|_`: a choice around it, directly or through sequences, groups, labels, captures, `#atomic` and calls of rules without an action or a declared type, that has another alternative without a value and none other with one gives no element in place of one | `depth` zero; `X` makes no capture (`boundedTerminal`), so no `observed` is needed |
-| N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top (`dropCuts` 758, `seqOf` 725) | as in N1; a tuple of no elements becomes no value | `depth` zero and the alternative whose cuts are dropped not `observed`; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
-| A choice left with one alternative becomes that alternative (`choice` 528), after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence, or a call of a splice rule (a hidden rule without an action) whose body is one, adds its elements to a sequence around the choice instead of being one element. One without a value has none in both places: the choice of it has no alternative with a value, so it adds no element, as the alternative alone does | `depth` zero and the alternative not `observed`; or the alternative is a literal, a class, `.`, a repetition, an optional, an `#atomic` or a bottom, each with the same value alone and as the only alternative (one element, or none for an optional without a value), or a call whose body is not spliced as a sequence (`isSeq`), one element or none in both places (`sameValueBare` 545) |
-| V1 of N6: a recovery of an expression that always succeeds is dropped (`attributed` 909) | an expression with a value that a sequence around it splices (`isSeq` in `internal/compile/value_shape.go`: a sequence, grouped or with attributes other than recovery, or a call of a splice rule, a hidden rule without an action, whose body is one) adds its elements to that sequence instead of being one element | `depth` zero and the expression not `observed` (`shaped` 905); otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
-| N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | `depth` zero and no item `observed` (`adjacent` 327, `nestedRepeat` 408, `unroll` 367) |
-| The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | `depth` zero and no alternative of the run `observed` (`factor` 662) |
-| N13 | the body of the rule takes the place of the call | off in the cost view; in the view of matching, only where `depth` is zero (`rewrite` 253) |
+| N1: a sequence of one item becomes the item | the tuple of one element becomes the value of the item | not guarded and the item not observed; or the item is a bottom: the sequence then has an element of type `_|_`, so it has that type, as the item does, and both have the same value, also under a recovery, which gives each the error value, under an option, which makes each `nil`, and as an alternative, which a choice leaves out of its join either way |
+| N2, N3: the alternatives after one that always succeeds or begins with a cut, and an alternative that an earlier one subsumes, are dropped | when every alternative with a value is dropped and one without stays, the choice, one element (`nil` when that alternative matched), gives none; otherwise only the type of the choice changes, not its value, since a dropped alternative never gives it | not guarded; otherwise no alternative but a bottom is dropped |
+| K4 of N12: `!X X` becomes `_|_` | `!X X` has the type of `X`, and `_|_` the type `_|_`: a choice around it, directly or through sequences, groups, labels, captures, `#atomic` and calls of rules without an action or a declared type, that has another alternative without a value and none other with one gives no element in place of one | not guarded; `X` makes no capture, so no observed is needed |
+| N6: a sequence left with one item, or none, once its cuts are dropped becomes the item, or a top | as in N1; a tuple of no elements becomes no value | not guarded and the alternative whose cuts are dropped not observed; otherwise it stays a sequence of the item, or of a top, which keeps the tuple |
+| A choice left with one alternative becomes that alternative, after N2, N3, N4, N6 or N8 dropped or merged the others | an alternative that is a sequence, or a call of a splice rule (a hidden rule without an action) whose body is one, adds its elements to a sequence around the choice instead of being one element. One without a value has none in both places: the choice of it has no alternative with a value, so it adds no element, as the alternative alone does | not guarded and the alternative not observed; or the alternative is a literal, a class, `.`, a repetition, an optional, an `#atomic` or a bottom, each with the same value alone and as the only alternative (one element, or none for an optional without a value), or a call whose body is not spliced as a sequence, one element or none in both places |
+| V1 of N6: a recovery of an expression that always succeeds is dropped | an expression with a value that a sequence around it splices (one that is sequence-shaped by [Cost View](../runtime/parsing.md#cost-view): a sequence, grouped or with attributes other than recovery, or a call of a splice rule whose body is one) adds its elements to that sequence instead of being one element | not guarded and the expression not observed; otherwise the recovery stays. An expression that no sequence splices, or that has no value, has the same value either way |
+| N9, N10, N11 | one list replaces a tuple that holds a list, or a list of lists | not guarded and no item observed |
+| The left factoring of N12 | the rests of the alternatives become one element after the shared prefix | not guarded and no alternative of the run observed |
+| N13 | the body of the rule takes the place of the call | off in the cost view |
 
 The other rewrites keep the value. N1 removes a group, which creates no value,
 splices a sequence into a sequence, which adds the same elements, and flattens a
@@ -147,7 +141,7 @@ a class, and both give a string node of the matched text.
 A value is **reshaped** when it is the value of an expression that a rewrite of
 the table replaces where it changes that value (every case of the table but a
 bottom in the first row, the drops of N2 and N3 that keep an alternative with a
-value or drop none, the alternatives that `sameValueBare` accepts or that have
+value or drop none, the alternatives that have the same value alone or that have
 no value in the row of the choice of one alternative, and in the row of V1 an expression that no sequence splices
 or that has no value),
 or when it includes such a value: the value of a capture around it, of a sequence or
@@ -210,83 +204,84 @@ keeps its value beside the tuple of its scope
 value positions. So either $r = r_0$ and
 $c$ lies around $e$ or inside $e$, or $c$ lies around a call, in a value position,
 of a rule $r_1$ whose body calls in a value position $r_2$, and so on to $r$.
-`valueReaders` (`normal_view.go`) collects in `reads` the names of the captures
-that the predicates of each rule name, and marks `valued` every rule that
-`valueCalls` finds inside such a capture, and transitively inside the bodies of
-the marked rules. `valueCalls` drops only the calls under a discard, a negative
-lookahead, and a positive lookahead outside its captures, so it finds every call
-in a value position, and the calls under an `#atomic` besides. In
-the first case, $c$ around $e$ makes `depth` positive while the view rewrites
-inside $c$ (the `Capture` case of `rewrite`, line 219), and $c$ inside $e$
-makes `observed` true for $e$. In the second, $r$ is `valued`, so `depth` is
-positive in the whole body of $r$ (`normalizeRules`, line 121).
+By [Cost View](../runtime/parsing.md#cost-view), $c$ is a read
+capture of $r_0$, a call in a value position inside $c$ is a call of a
+value-read rule, and so is a call in a value position in the body of a
+value-read rule. Every position through which a value passes outward is a value
+position there; a position under an `#atomic` is one too, which only adds
+value-read rules. In the first
+case, $c$ around $e$ makes $e$ guarded, and $c$ inside $e$ makes $e$ observed.
+In the second, $r$ is value-read, so its whole body is guarded.
 
 Each rewrite of the table of [Rewrites That Change
-Values](#rewrites-that-change-values) changes a value only where `depth` is zero
-and `observed` is false. For N9, N10, N11 and the left factoring, `observed` is
-checked on the expressions that $e$ is made of: both items (`adjacent`), the
-repetition (`nestedRepeat`), every alternative of the run (`factor`). So neither
+Values](#rewrites-that-change-values) changes a value only where the expression is
+neither guarded nor observed. For N9, N10, N11 and the left factoring, the view
+checks that the expressions that $e$ is made of are not observed: both items,
+the repetition, every alternative of the run. So neither
 case holds, and these rewrites change no value that a predicate observes. For
-the drops of N2 and N3 and for K4, `depth` alone is checked (`drops` in
-`choice`, `adjacent`), and it suffices. N2 and N3 leave the alternatives that
+the drops of N2 and N3 and for K4, the view checks only that the expression is
+not guarded, and it suffices. N2 and N3 leave the alternatives that
 stay as they are, and K4 replaces `!X X`, in which `X` makes no capture
-(`boundedTerminal` admits none), by `_|_`, which makes none: the captures that
+(a bounded terminal makes none), by `_|_`, which makes none: the captures that
 remain keep their values, and those that are dropped are never set (below). What
 changes is the value of the choice from which alternatives are dropped, or of the
 expressions whose type follows the type of `!X X`: the sequences, choices,
 groups, labels, captures and `#atomic`s around it in the body of $r$, and the
 value of $r$ when its body takes the type `_|_`. A predicate observes these only
-through a capture around them in $r$, which makes `depth` positive there, or
+through a capture around them in $r$, which makes them guarded, or
 through the value of $r$, read directly or through the rules that call $r$ in
-value positions, which makes $r$ `valued` and `depth` positive in its whole
+value positions, which makes $r$ value-read and its whole
 body. In the
 rows of N1, N6 and the choice of one alternative, $e$ is a sequence or a choice of one expression $x$, besides
 the cuts that N6 drops, and $e'$ is $x$ itself (or a top); in the row of V1, $e$
 is $x$ with a recovery, whose skip has no captures, and $e'$ is $x$. The
 captures of $e$ are those of $x$, which keeps them and their values. Only the
 value of $e$ itself changes, and a predicate observes it only through a capture
-around $e$ or through the value of a rule whose body contains $e$. A capture
-around $e$ makes `depth` positive where the view rewrites $e$, except a capture
-inside the alternative from which N6 drops the cuts, which `looseCutsDropped`
-enters without changing `depth`; that capture makes `observed` true for the
-alternative, which is what `dropCuts` checks (line 762). A rule whose body
-contains $e$ and whose value a predicate reads is `valued`. For V1, `attributed`
-checks `depth` and `observed` of $x$ itself (`shaped`, line 905). In each case
+around $e$ or through the value of a rule whose body contains $e$. A read
+capture around $e$ makes $e$ guarded, and a read capture inside the alternative
+from which N6 drops the cuts makes that alternative observed; N6 requires the
+alternative to be free ([Cost View](../runtime/parsing.md#cost-view)). A rule
+whose body contains $e$ and whose value a predicate reads is value-read. For V1,
+the view requires $x$ itself to be free. In each case
 the view keeps the sequence of $x$, the choice of $x$ or the recovery, unless
 $x$ has the same value alone: a bottom, which has the type `_|_` as the
 sequence or the choice of it does, since a sequence with an element of that
 type and a choice of alternatives of that type have it, so a recovery around
 either gives the error value and an optional expression of either is `nil`; or
-for a choice an expression that `sameValueBare` accepts, which has the same
+for a choice an expression with the same value alone: a literal, a class,
+`.`, a repetition, an option, an `#atomic` or a bottom, which has the same
 value alone and as the only alternative (one element, or none for an optional
-without a value), or a call that is not spliced as a sequence
-(`isSeq`), which is one element or none in both places. That last case rests
+without a value), or a call that is not spliced, which is one element or none
+in both places. That last case rests
 on two facts. First, a call of a rule that is not a splice rule is one element,
 the value of the rule, in both places, and the body of a splice rule that is not
-a sequence by `isSeq` gives at most one element with a value: only a sequence, a
+sequence-shaped gives at most one element with a value: only a sequence, a
 group or an expression with attributes other than recovery of one, or a call of
-a splice rule whose body is one, gives several (`elems` in
-`internal/compile/value_types.go`). If the body gives one, it is the value of
+a splice rule whose body is one, gives several
+([Values](../language/parser-expressions.md#values-and-the-concrete-syntax-tree),
+[Hidden Rules](../language/actions.md#hidden-rules), and a recovery makes one
+element by [`#recover`](../language/pragmas.md#recover)). If the body gives one, it is the value of
 the call alone and of the choice of it. If it gives none, the call alone adds
 no element, and the choice of it, of which no alternative has a value, adds none
-either. So `(_r / _|_)` with `_r = -"a"` becomes `_r` at any `depth`: N4 drops
+either. So `(_r / _|_)` with `_r = -"a"` becomes `_r` whether or not it is guarded: N4 drops
 `_|_`, which the choice leaves out of its join in any case, and neither the
-choice of `_r` nor `_r` alone adds an element. Second, `sameValueBare` applies
-`isSeq` to the bodies as the grammar writes them (`spliceBody`), while $G_i$
-runs them as rewritten so far. The test decides a value only where `depth` is
-positive or the call is `observed`, and only for a call in a value position:
+choice of `_r` nor `_r` alone adds an element. Second, whether a call is spliced is
+decided on the bodies as the grammar writes them, while $G_i$
+runs them as rewritten so far. The test decides a value only where the call is
+guarded or observed, and only for a call in a value position:
 one under a discard, a negative lookahead or a positive lookahead outside its
 captures has no value either way. A call in a value position inside a capture
-that a predicate reads or in the body of a `valued` rule is found by
-`valueCalls`, and an `observed` call is one of a `valued` rule, so the callee is
-`valued`, and so is every splice rule that its body calls in a value position in
-turn: the view rewrites all their bodies at positive `depth`. There no rewrite
+that a predicate reads or in the body of a value-read rule is a call of a
+value-read rule, and an observed call is one of a value-read rule, so the callee is
+value-read, and so is every splice rule that its body calls in a value position in
+turn: all their bodies are guarded. There no rewrite
 makes a body that is not a sequence into one. N1 splices sequences only into
-sequences and removes groups, to which `isSeq` looks through; a sequence of one
-item becomes the item only if the item is a bottom (`seq` 303), and a choice of
-one sequence stays, since `sameValueBare` rejects a sequence; V1, the drops of
-cuts, N9 to N11, K4 and the left factoring are off (`shaped` 905, `dropCuts` 762,
-`adjacent` 327 and 354, `nestedRepeat` 408, `unroll` 367, `factor` 662); and N4
+sequences and removes groups, through which sequence-shaped looks; a sequence of one
+item becomes the item only if the item is a bottom, and a choice of
+one sequence stays, since a sequence does not have the same value alone; V1, the
+drops of cuts that leave fewer than two items, N9 to N11, K4 and the left
+factoring are off on guarded expressions
+([Cost View](../runtime/parsing.md#cost-view)); and N4
 makes only `_|_`, which is not a sequence. A rewrite that makes a sequence into something
 else, as N4 does with `_|_ a`, can only make the test say that a body is a
 sequence where the rewritten body is not one, and then the choice stays, with
@@ -295,7 +290,7 @@ the value it has in $G_i$. A recovery it keeps even then. So no rewrite changes 
 
 The other rewrites keep the value of $e$
 ([Rewrites That Change Values](#rewrites-that-change-values)), except that N2,
-N3 and N4, at any `depth` for N4, can drop
+N3 and N4, guarded or not for N4, can drop
 the only occurrence of a capture: in an alternative after one that always
 succeeds or begins with a cut, which is never tried; in an alternative that an
 earlier one subsumes, which fails wherever it is tried; or after `_|_` in a
@@ -374,29 +369,29 @@ $(a_\rho - 1) \cdot \mathrm{own}_{G_{i+1}}(e', \sigma) + b_\rho$, with the
 constants of the table, where $k$ is the number of alternatives that N8 merges,
 $j$ the number of alternatives that N12 factors, $\ell$ the length of the literal
 that N3 drops, and $d$ the most input that the expression of K4 can examine plus
-the iterations of its bounded repetitions. The lines are those of
-`internal/compile/normal_view.go`.
+the iterations of its bounded repetitions. The conditions are those of
+[Cost View](../runtime/parsing.md#cost-view).
 
-| Rewrite | Code | Condition as the code checks it | $a_\rho$ | $b_\rho$ |
-|:--|:--|:--|--:|--:|
-| N1 splice a group or a sequence in a sequence, flatten a choice, unwrap a sequence of one item; replace a choice of one alternative by it | `rewrite` (Group) 189, `seq` 278, 303, `choice` 449, 528 | a choice that is not the last alternative only without a loose cut in its alternatives; the unwrapping and the replacement as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
-| N2 drop the alternatives after one that always succeeds or begins with a cut | `choice` 464, 485 | `depth` zero; `AlwaysSucceeds`, `leadingCut` | 1 | 0 |
-| N3 drop an alternative that an earlier one equals or prefixes | `choice` 464, 477, `subsumed` 567 | `depth` zero; the earlier one is evaluated again cheaply; a literal prefix only between literals matched with case | 2 | $\ell$ for a literal prefix, 0 otherwise |
-| N4 drop a bottom alternative, cut a sequence after a bottom | `choice` 467, `seq` 296 | a bottom without `@error` (the attribute keeps it an `Attributed`) | 1 | 0 |
-| N5 stacked lookaheads (K1, K2) | `lookahead` 866 | K1 only when the expression binds nothing outside its calls | 1 | 0 |
-| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | `choice` 498, 506, `dropCuts` 758, `attributed` 909 | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left and the recovery as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
-| N8 merge single characters (C9) | `mergeChars` 602, `singleChars` 634 | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
-| N9 `X* X*`, `X+ X*` to the first; `X X*` to `X+`; `X? X*` to `X*` | `adjacent` 327-346 | `depth` zero, neither item `observed`, `idempotent(X)`; for `X? X*` also X not nullable | 2 | 1 |
-| N10 `(X*)*`, `(X+)*`, `(X*)+` and `(X?)*` to `X*` | `nestedRepeat` 408 | unbounded repetitions, `depth` zero, not `observed`, `idempotent(X)`; for `(X?)*` X not nullable | 2 | 2 |
-| N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | `adjacent` 327, 348, `unroll` 367 | `depth` zero, neither item `observed`, X not nullable and without a loose cut, `idempotent(X)`; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
-| N12 `!X X` to `_|_` (K4) | `adjacent` 354, `boundedTerminal` 1147 | `depth` zero; X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
-| N12 left factoring (C6) | `factor` 662 | `depth` zero, no alternative of the run `observed`, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
+| Rewrite | Condition | $a_\rho$ | $b_\rho$ |
+|:--|:--|--:|--:|
+| N1 splice a group or a sequence in a sequence, flatten a choice, unwrap a sequence of one item; replace a choice of one alternative by it | a choice that is not the last alternative only without a loose cut in its alternatives; the unwrapping and the replacement as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
+| N2 drop the alternatives after one that always succeeds or begins with a cut | not guarded; an alternative that always succeeds or begins with a cut | 1 | 0 |
+| N3 drop an alternative that an earlier one equals or prefixes | not guarded; the earlier one is evaluated again cheaply; a literal prefix only between literals matched with case | 2 | $\ell$ for a literal prefix, 0 otherwise |
+| N4 drop a bottom alternative, cut a sequence after a bottom | a `_|_` without attributes, so a labelled `_|_` stays | 1 | 0 |
+| N5 stacked lookaheads (K1, K2) | K1 only when the expression binds nothing outside its calls | 1 | 0 |
+| N6 cuts that cannot commit, recoveries that never fire (T2, V1) | a cut that ends an alternative, any loose cut of the last alternative; a base that always succeeds; the sequence that is left and the recovery as in [Rewrites That Change Values](#rewrites-that-change-values) | 1 | 0 |
+| N8 merge single characters (C9) | classes without negation or U+FFFD, literals of one code point with case | $k$ | 0 |
+| N9 `X* X*`, `X+ X*` to the first; `X X*` to `X+`; `X? X*` to `X*` | not guarded, neither item observed, X repeats safely; for `X? X*` also X not nullable | 2 | 1 |
+| N10 `(X*)*`, `(X+)*`, `(X*)+` and `(X?)*` to `X*` | unbounded repetitions, not guarded, not observed, X repeats safely; for `(X?)*` X not nullable | 2 | 2 |
+| N11 `X* (Y X*)*` and `X* (X / Y)*` to `(X / Y)*` (R7) | not guarded, neither item observed, X not nullable and without a loose cut, X repeats safely; for the unrolling also Y without a loose cut and binding nothing outside its calls | 2 | 2 |
+| N12 `!X X` to `_|_` (K4) | not guarded; X made of literals, classes, `.`, sequences, choices, groups and bounded repetitions, without calls | 1 | $2d$ |
+| N12 left factoring (C6) | not guarded, no alternative of the run observed, at least two alternatives without a loose cut, factored by their whole shared prefix, which is evaluated again cheaply | $j$ | 0 |
 
-`idempotent(X)` (1098) is `evaluatedAgainCheaply(X)`, no loose cut in X, and X
-not nullable or binding nothing outside its calls.
+X **repeats safely** when it is evaluated again cheaply, has no loose cut, and
+cannot match without consuming input or binds nothing outside its calls.
 
 *Proof.* The matching part is the law of the rewrite
-([Grammar Laws](grammar-laws.md)) under the condition that the code checks, which
+([Grammar Laws](grammar-laws.md)) under the condition of the view, which
 the table shows to imply the condition of the law, in a context that Lemma 1
 allows. The parts of $e$ that $e'$ keeps are the same expressions, evaluated in
 $G_{i+1}$ in the states in which $G_i$ evaluates them, by the law; so an
@@ -434,7 +429,7 @@ case by case.
   examines any.
 - *N9.* `X* X*` and `X+ X*`: the first repetition stops at $q$ because X failed
   there, which leaves the state as it was (F2), or matched without consuming
-  input, and then X binds nothing outside its calls (`idempotent`); the second
+  input, and then X binds nothing outside its calls; the second
   evaluates X at $q$ in that state, so by Lemma 2 at most the own cost of the
   evaluation of X at $q$ that the view makes, plus one failed iteration.
   `X X*` and `X+` make the same evaluations. `X? X*`: when X fails at the start,
@@ -548,8 +543,9 @@ one unit of the cost, a constant of the grammar and the backend.
 $U_b(V)$ is a definition, not a quantity that a backend measures: the units that
 $b$ would charge for the parse of $V$, with the rule bodies of $V$ and the
 memoized and transient rules, left-recursion leaders and run sites of $G$. No
-backend runs that parse, since the view is never compiled (the comment at the
-head of `normal_view.go`), and a compilation of $V$ would decide those for $V$.
+backend runs that parse, since a parser never runs the view
+([Cost View](../runtime/parsing.md#cost-view)), and a compilation of $V$ would
+decide those for $V$.
 The proof uses only that $U_b(V) \ge C_V + I_b$, with $I_b$ as below, which holds
 because $b$ charges at least one unit for each unit of the cost of a parse. A
 measurement approximates $U_b(V)$ by compiling $V$ as a grammar of its own, as
@@ -583,21 +579,14 @@ answers the calls in both states. By *Keys of the view* the parse of $V$
 makes at least one with each such key. The evaluation where the parse begins is
 one in both. Summing gives $C'_G \le 3A \cdot C_V$.
 
-Each backend charges at least one unit for each unit of the cost of a parse: a
-call (`Parser.Call`, `InvokePlain`), a character that a terminal examines
-(`Input.Decode`, `MatchLiteral`), an iteration, an operator applied and each
-value that an action builds (`SpendValue`). It charges at most $u_b$ units for
-each: the expressions between two charges are bounded by the grammar, and the
-recording of an expectation compares at most the expected items of the grammar.
-The units that it charges for the input as a whole, before the parse, are the same
-for $G$ and $V$; call them $I_b$. So
+By [Cost](../runtime/parsing.md#cost), each backend charges at least one unit
+for each unit of the cost of a parse (a call, a character that a terminal
+examines, an iteration, an operator applied and each value that an action
+builds) and at most $u_b$ units for each. The units that it charges for the
+input as a whole, before the parse, are the same for $G$ and $V$; call them
+$I_b$. So
 $U'_b(G) \le u_b C'_G + I_b \le 3A\,u_b C_V + I_b \le 3A\,u_b (C_V + I_b) \le 3A\,u_b\,U_b(V)$,
 the last by the definition of $U_b(V)$.
-The four backends charge in this way: the closure backend with the charging
-graph that a budget selects, the recursive and the iterative bytecode machines,
-which share the step of `vm.go`, and the generated Go parsers, which charge the
-calls, the iterations and the reads of the input through `runtime/` and leave
-straight-line code between charges that the grammar bounds.
 
 **Streams.** A stream parse is a parse in which the streaming repetition of the
 start rule delivers its elements and discards the input, the memo entries
@@ -605,16 +594,15 @@ before them, and their values. It evaluates what an ordinary parse evaluates
 ([Lemma 15](linear-cost.md#lemma-15-regions), *The reference parse*), Lemma 3 of
 the Linear Cost proof holds of it, and Lemma 2 holds of it by the remark after
 Lemma 2, so the count above holds. The evaluations that the view drops contain
-no stream (`evaluatedAgainCheaply`) and build no value, so the input that `text`
+no stream and build no value, so the input that `text`
 copies in a stream is copied by actions, which the theorem covers when they read
 no reshaped value.
 
 **Documents.** Let $P$ be a parse of a [Document](../runtime/documents.md). It
 memoizes the rules that a parse from scratch memoizes and also the transient
-rules that lead no cycle (`memoized` and `docOnlyMemo` in
-`internal/engine/core/call_ops.go`), whereas the parse of $V$ takes the memoized
-rules of a parse of $G$ from scratch (`memoizedRules` in
-`internal/compile/complexity.go`, through `newViewClassifier`). Split the cost
+rules ([Reuse Model](../runtime/documents.md#reuse-model), *Results that are
+stored*), whereas the parse of $V$ takes the memoized rules of a parse of $G$
+from scratch ([Cost View](../runtime/parsing.md#cost-view)). Split the cost
 of $P$ by the decisions of a parse from scratch: its keyed evaluations and
 growth runs are those of the rules that a parse from scratch memoizes, and a
 call of a rule that only a Document memoizes counts, in the own cost of its
@@ -642,7 +630,7 @@ The calls of $P$ have the keys of calls of that reference parse, which the proof
 of Lemma 4 gives to the parse of $V$. Lemma 3 of the Linear Cost proof counts
 the parse itself, and the proof of Lemma 12 applies it to a Document parse: at
 most three keyed evaluations with one key. No leader is memoized only by a
-Document (`docOnlyMemo`), and a carried entry holds no result that read a
+Document, and a carried entry holds no result that read a
 growing result, so a growth run with a key is started at most once in each
 lookahead state, as above. The count above gives
 $C'_P - D \le 3A \cdot C_V$, with $C_V$ of the parse of $V$ from scratch.

@@ -89,6 +89,10 @@ A capture inside a positive lookahead cannot hold a recovered value
 ([Lookahead](parser-expressions.md#lookahead)). A recovered expression's type is the join
 of its original type and `error`, and an error value is assignable only to a type that admits `error`
 (see [Type System](types.md#assignability)).
+A recovery of an expression with a value is one element of the sequence around it, the value of the
+expression or the error value, also when the expression is a sequence or a call of a hidden rule whose
+elements would otherwise be elements of that sequence: `"x" ("a" "b") #recover(skip="z")` has two
+elements, the second a tuple or an error value.
 `Parser.Parse` returns a recovered value together with a `SyntaxErrors` error
 listing the diagnostics. If parsing later fails, only the final syntax error
 is returned. A no-value expression, including lookahead or a predicate,

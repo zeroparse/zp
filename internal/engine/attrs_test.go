@@ -189,6 +189,34 @@ func TestRecoverWithoutValueAddsNoElement(t *testing.T) {
 	}
 }
 
+// TestRecoverWithValueIsOneElement checks the rule of spec/language/pragmas.md (`#recover`) that a
+// recovery of an expression with a value is one element of the sequence around it, also when the
+// expression is a sequence or a call of a hidden rule that would splice its elements, whether it
+// matches or recovers, on every backend.
+func TestRecoverWithValueIsOneElement(t *testing.T) {
+	t.Parallel()
+	for _, c := range []struct {
+		src    string
+		inputs []string // the expression matches on the first and recovers on the second
+	}{
+		{"rule main = x:(\"q\" (\"a\" \"b\") #recover(skip=\"z\")) {len($x) == 2} $$", []string{"qab", "qz"}},
+		{"rule main = x:(\"q\" _r #recover(skip=\"z\")) {len($x) == 2} $$\nrule _r = \"a\" \"b\"", []string{"qab", "qz"}},
+	} {
+		prog := mustCompile(t, c.src)
+		for i, in := range c.inputs {
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
+				var errs SyntaxErrors
+				recovered := errors.As(err, &errs) && len(errs) == 1
+				if n == nil || (i == 0) != (err == nil) || i == 1 && !recovered {
+					t.Errorf("%v, %q: got %v, %v\n%s", b, in, n, err, c.src)
+				}
+			}
+			checkBackends(t, prog, "main", in)
+		}
+	}
+}
+
 // TestRecoverBottomGivesError checks that a recovery of an expression of type _|_ is an error
 // value, one element, on every backend, while an expression without a value, also one around _|_,
 // stays without one: each grammar's predicate sees the elements in the length of a capture.
