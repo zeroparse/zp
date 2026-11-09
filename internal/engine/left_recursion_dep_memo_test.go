@@ -106,6 +106,9 @@ func countNonEmpty(s []string) int {
 
 // TestLeftRecursionDependencyMemoRandom compares the results of random grammars with left
 // recursion through several leaders with the results of evaluating every call in a context again.
+// It pins "Evaluations of Rules" and the rule of "Growths of Left Recursion" in
+// spec/runtime/parsing.md that a run of steps taken at once holds only steps whose result became the
+// current result: a run that held the stopping step would end a growth farther than evaluating it.
 func TestLeftRecursionDependencyMemoRandom(t *testing.T) {
 	t.Parallel()
 	seeds := 800

@@ -134,6 +134,11 @@ func TestLookahead(t *testing.T) {
 	check(t, `rule main = !"x" "y"`,
 		fails("z", `1:1: syntax error: expected "y"`),
 	)
+	// Nor do they move the farthest failure ("Syntax Errors" in spec/runtime/parsing.md): "abc"
+	// fails at the third character inside the lookahead, and the error is where "x" fails.
+	check(t, `rule main = !"abc" "x"`,
+		fails("abd", `1:1: syntax error: expected "x"`),
+	)
 }
 
 func TestAtomicAndDiscard(t *testing.T) {

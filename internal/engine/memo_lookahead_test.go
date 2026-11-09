@@ -9,7 +9,8 @@ import (
 
 // TestMemoLookaheadStateEvaluations checks that calls that alternate between lookahead states
 // evaluate a rule at most three times per variant, whether or not its result has recovered errors:
-// an entry computed outside a lookahead answers the calls in both states.
+// an entry computed outside a lookahead answers the calls in both states ("Evaluations of Rules" in
+// spec/runtime/parsing.md).
 func TestMemoLookaheadStateEvaluations(t *testing.T) {
 	t.Parallel()
 	for _, c := range gentest.MemoLookaheadCases() {

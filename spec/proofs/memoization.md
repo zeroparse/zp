@@ -1,6 +1,6 @@
 # Memoization
 
-Arata Furukawa · Last revised 2026-11-04
+Arata Furukawa · Last revised 2026-11-09
 
 This proof shows that [memoization](../runtime/parsing.md#memoization) never
 changes the result of a parse. A parse that answers calls from the memo returns
@@ -113,14 +113,14 @@ concerns the table, and (C) and (D) state the item on contexts; (L) is
 assumption (A2) below. Which outcomes $\mathcal{M}$ stores, and when it uses
 them, is otherwise free. Storing none, storing from the second call at a
 position, or not storing the results of some rules are all instances of
-$\mathcal{M}$. The reference implementation decides that two current results
-are equal by their identities: a step result gets the identity of an earlier
-equal result of the same growth key at the same position, compared by a
-bounded structural comparison of the nodes, and a new identity otherwise.
+$\mathcal{M}$. A test of equality of two current results that only ever
+claims equality for equal results, such as one that compares identities given
+to equal results, is an instance too: it can only make $\mathcal{M}$ reuse less.
 
 **Parses that record no range.** Examined ranges matter only where a parse
-records them: in a [Document](../runtime/documents.md) parse, and in every parse
-of the reference implementation, whose trace reports them. A parse that records
+records them, as [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
+lists: in every parse of the engine, whose traces report them, and in a
+[Document](../runtime/documents.md) parse of a generated Go parser. A parse that records
 no range may, in (D), take two observations to be the same when the
 expressions of both lookaheads matched or both failed, and two current results
 to be equal whatever their ranges. Lemma 4 then gives $y$ the outcome $\omega$
@@ -146,15 +146,12 @@ each walk as evaluated in full in both parses.
 
 ## Assumptions
 
-The proof relies on the following. The specification does not state (A1); it
-states (A2) and (A3), which are cited here.
+The proof relies on the following rules of the specification, which it cites.
 
 - **(A1) Recording in a lookahead.** Inside a lookahead or the `skip` of an
   Operators Rule, an evaluation records neither expected items nor its
-  farthest failure, so recording an outcome there is the identity.
-  [Syntax Errors](../runtime/parsing.md#syntax-errors) states this for the
-  expected items only. The reference implementation also does not track the
-  farthest failure there.
+  farthest failure, so recording an outcome there is the identity
+  ([Syntax Errors](../runtime/parsing.md#syntax-errors)).
 - **(A2) Reuse across lookahead states.** Condition (L), which
   [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) states.
 - **(A3) Comparisons.** `==` and `!=` never compare nodes: they compare two

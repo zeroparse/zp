@@ -11,6 +11,10 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
+// TestLeftRecursionRetainsReachableSuffixes pins the rule of "Growths of Left Recursion" in
+// spec/runtime/parsing.md that every call made at the position where its body started is found as a
+// call that may run before consuming input: the calls of r2 after a prior that may match without
+// consuming input stay in the analysis, so the parse of the empty input keeps its result.
 func TestLeftRecursionRetainsReachableSuffixes(t *testing.T) {
 	t.Parallel()
 	for _, prior := range []string{

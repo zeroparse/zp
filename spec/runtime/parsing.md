@@ -212,8 +212,10 @@ and anchors (`beginning of input`, `end of input`, `beginning of line`,
   1:1: syntax error: expected end of input, "(", "-", "[", "false", "null", "true", "{", [ \t\r\n], [0-9], ... and 2 more
   ```
 - Failures inside [lookahead](../language/parser-expressions.md#lookahead) and inside the
-  [`skip` of an Operators Rule](../language/operators-rule.md#skip) are not included. Predicates
-  and bottom (`_|_`) contribute no expected items.
+  [`skip` of an Operators Rule](../language/operators-rule.md#skip) are not included: an
+  evaluation there records neither expected items nor a farthest failure, so it moves neither
+  the farthest position nor the items expected there. Predicates and bottom (`_|_`) contribute
+  no expected items.
 - If the start rule matches but input remains, `end of input` is expected at the
   position where the start rule stopped (see [Whole input](#whole-input)).
 - If nothing was expected at the farthest position, or the parse does not record
@@ -401,8 +403,11 @@ evaluated at most three times at a position for each binding level and each
 combination of the values of the variables that the rule reads, with the
 exceptions below. A first evaluation may leave no result in the memo. A result
 computed inside a lookahead or the `skip` of an Operators Rule answers only the
-calls inside them, and a result computed outside them answers every call, so
-at most one evaluation in each of the two states stores a result. A rule and
+calls inside them, and a result computed outside them answers every call,
+whether or not it has recovered errors, so at most one evaluation in each of
+the two states stores a result. Whether a call is inside a lookahead or a
+`skip` is thus part of the key of a result computed there, and not of one
+computed outside them. A rule and
 its value-free twin count as two rules. The exceptions are these.
 
 - A rule that calls no rule, itself included, or that is called from at most
@@ -472,6 +477,45 @@ leaders from the analysis with insertion
 leaves unmemoized every rule other than a leader that contains `#missing`,
 directly or through the rules it calls; such a parse is outside the classes of
 [Classification](#classification).
+
+### Growths of Left Recursion
+
+The growth of a left-recursive rule (see
+[Left Recursion](../language/parser-expressions.md#left-recursion)) and the
+rules above for the memo and the contexts of growths rest on the following,
+which every backend keeps.
+
+- **Calls before consuming input are found.** Every call that an evaluation
+  makes at the position where the body of its rule started is one that the
+  analysis of [Left Recursion](../language/parser-expressions.md#left-recursion)
+  finds as a call that may run before consuming input. The analysis includes
+  the calls in lookaheads, repetitions, options and `#recover(skip=...)`, and
+  leaves out only the calls that it proves cannot run there. A call of a rule
+  of the caller's left-recursion cycle found in this way is a left call (see
+  [Conditions for Linear Cost](#conditions-for-linear-cost)).
+- **Every cycle passes through a leader.** The leaders are chosen until every
+  cycle of left calls passes through one, so no cycle of left calls is left
+  without a leader.
+- **Positions do not decrease.** A call is made at a position that is not
+  before the start of the body that contains it. A choice, a lookahead, a
+  repetition and a recovery go back only to a position where one of their
+  subexpressions started, never to one before the body began.
+- **A growth is kept for each binding level.** A growth is told apart by its
+  leader, its position and its binding level: a call without a level, and
+  each level of a call with a level restriction `level(e, name)`, which is a
+  call of `e`. A call reads the current result only of the growth of its own
+  leader and level at its position; a left call of the same leader at another
+  level starts a growth of its own there. The values of variables do not tell
+  growths apart (see [Left Recursion](../language/parser-expressions.md#left-recursion)).
+- **A leader grows at every call.** A leader is memoized in every case (see
+  [Evaluations of Rules](#evaluations-of-rules)), whatever the number of
+  places that call it, so a call of a leader whose result at the position is
+  not yet in the memo grows it there.
+- **Runs taken at once hold adopted steps.** A run of steps that a growth
+  takes at once (see [Evaluations of Rules](#evaluations-of-rules)) consists
+  only of steps whose result became the current result. The step that stops a
+  growth is evaluated, or answered from an earlier step under the same
+  condition, on its own.
 
 ### Expressions That Repeat Cost
 

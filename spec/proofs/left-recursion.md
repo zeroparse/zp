@@ -1,6 +1,6 @@
 # Left-Recursion Growth
 
-Arata Furukawa · Last revised 2026-11-03
+Arata Furukawa · Last revised 2026-11-09
 
 This proof shows that the growth of a left-recursive rule at a position ends,
 after a number of steps that the input it consumes bounds, and that its result
@@ -12,11 +12,9 @@ position, the members of a cycle that are not leaders, and the dependency memo
 that [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
 describes, with its jumps over runs of steps. The definitions are those of the
 [Memoization proof](memoization.md#setting), which this proof extends, and its
-scope carries over: the proof is about the reference implementation, and a
-generated Go or TypeScript parser is covered as far as it evaluates what the
-reference evaluates. Where a parser has more than 64 leaders, or turns context
-memoization off, it skips the memoization of calls in a context and evaluates
-them; that is a subset of what $\mathcal{M}$ may do, so the proof covers it.
+scope carries over. A parser that does not memoize a call in a context
+evaluates it, as [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
+allows; that is a subset of what $\mathcal{M}$ may do, so the proof covers it.
 
 ## Definitions From the Specification
 
@@ -96,44 +94,31 @@ The result of the call is the value, end and recovered errors of $r_k$: the
 recovered errors of the step that stopped the growth are dropped, and its
 farthest failure and examined range are kept.
 
-## Assumptions
+## Growth Rules
 
-The specification states (A1) to (A3) in part and (A6) in full, and the
-reference implementation applies (A4) and (A5) without the specification
-stating them.
+The proof cites the following rules of
+[Growths of Left Recursion](../runtime/parsing.md#growths-of-left-recursion),
+numbered as the proofs below use them.
 
 - **(A1) Left calls are complete.** Every call that an evaluation makes at the
-  position where the body of its rule started is an edge of $G$. The analysis
-  of [Left Recursion](../language/parser-expressions.md#left-recursion)
-  includes the calls that may run before consuming input, in lookaheads,
-  repetitions, options and `#recover(skip=...)`, and excludes only calls that
-  it proves cannot run there.
+  position where the body of its rule started is found by the analysis of
+  [Left Recursion](../language/parser-expressions.md#left-recursion) as a call
+  that may run before consuming input, so each such call of a rule of the
+  caller's cycle is an edge of $G$.
 - **(A2) Leaders cut every cycle.** Every cycle of $G$ passes through a
-  leader. (G3) states it by construction; the implementation repeats the
-  search for a cycle among the rules that are not leaders until it finds none.
+  leader.
 - **(A3) Positions do not decrease.** A call is made at a position that is not
-  before the start of the body that contains it. A choice, a lookahead, a
-  repetition and a recovery return to a position that one of their
-  subexpressions started at, never to one before the body began. Memoization
-  Lemma 2 takes the same.
+  before the start of the body that contains it. Memoization Lemma 2 takes the
+  same.
 - **(A4) Growths are keyed per level.** A call reads the current result of a
-  growth only if it has the same rule and the same binding level. The
-  specification says "a call of $R$ at $p$" and calls a `level(e, name)` call a
-  call of `e`; the implementation keeps one growth for each level.
+  growth only if it has the same leader and the same binding level.
 - **(A5) Runs taken at once consist of steps that adopted their result.**
   A run of steps that (G5) allows to be taken at once contains only steps
   whose result became the current result. The step that stops a growth is
-  evaluated, or answered from a memoized step, singly: the implementation
-  records a step in a run only if its result became the current result.
-- **(A6) A leader always grows.** A rule that is a leader grows at every call,
-  whatever the number of places that call it:
-  [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) memoizes
-  a leader in every case, and its exception for a rule called from at most
-  one place does not apply to a leader. A memoized leader whose result at the
-  position is not yet in the memo grows there, as
-  [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-  states of a call of a leader. In the reference implementation,
-  `Parser.Memoizes` memoizes a leader whatever `transientRules` marks.
+  evaluated, or answered from a memoized step, singly.
+- **(A6) A leader always grows.** A leader is memoized whatever the number of
+  places that call it, so a call of a leader whose result at the position is
+  not yet in the memo grows there.
 
 ## Lemma 1 (Chains at One Position)
 
