@@ -2209,7 +2209,7 @@ without the limit.
 those of the recovered errors, which $C$ does not count, and the Document units.
 The theorem bounds the first by a constant times $K (L + 1) \hat{n}$. Lemma 14
 bounds the second by a constant times $C$, and so by the same bound: they are
-the units that `rec.since` charges, and no list moves in a Document. Lemma 12
+the units that the takes charge, and no list moves in a Document. Lemma 12
 bounds the third.
 The part of the lookups is the theorem's bound of the calls, plus the edits and
 the walks of Lemma 12. $\square$
@@ -2235,44 +2235,46 @@ generated Document runtimes: they apply each edit to every entry at once, and a
 
 ## Lemma 14 (Shared Recovered Errors)
 
-The recovered-error list of a parse is a sequence of **entries**: errors that
-`rec.push` recorded, and lists that `rec.add` recorded or `rec.since` made, as
-the operations of the recovered errors in the Exec IR (`addRecovery` in
-`internal/ir/exec/ops/ops.go`) state them. A **list** is an error alone, or the
-entries that one call of `rec.since` took; it never changes once made, and
-entries anywhere may share it. A call `rec.since(m)` charges one unit for each
-entry after the mark $m$. When there is none it returns an empty list, when
-there is one it returns that entry, and otherwise it makes a list of the entries
-after $m$ and puts it in their place. `rec.add` records a list that is not
-empty as one entry and an empty one not at all, and charges nothing;
-`rec.truncate` and `stream.settleErrors` only remove entries. Let $P$, $A$ and
-$S$ be the numbers of calls of `rec.push`, of `rec.add` with a list that is not
-empty, and of `rec.since` in a parse. The **unrolled size** of a list is 1 for
-an error, and 1 plus the unrolled sizes of its entries for any other list: the
-number of lists that listing its errors visits, a shared list counted where it
-occurs.
+The recovered errors of a parse are the sequence of **entries** of
+[Cost](../runtime/parsing.md#cost): errors that recoveries recorded, and lists
+that reuses recorded or that stores took. A **list** is an error alone, or the
+entries that one store took; it never changes once made, and entries anywhere
+may share it. A **take** of the entries after a mark $m$, made where a memo
+entry, a result of a growth or an attempt of an Operators Rule is stored,
+charges one unit for each entry after $m$. When there is none it gives an empty
+list, when there is one it gives that entry, and otherwise it makes a list of
+the entries after $m$ and puts it in their place. Recording a list that is not
+empty adds it as one entry, an empty one not at all, and charges nothing. A
+step of a growth takes the entries after the mark where the growth began, and a
+growth that ends removes the entries after that mark and records the list of
+its result; backtracking and a stream that forgets delivered errors only remove
+entries. Let $P$, $A$ and $S$ be the numbers of errors recorded, of lists that
+are not empty recorded, and of takes in a parse. The **unrolled size** of a
+list is 1 for an error, and 1 plus the unrolled sizes of its entries for any
+other list: the number of lists that listing its errors visits, a shared list
+counted where it occurs.
 
 **Lemma 14.** In every parse:
 
-1. the units that `rec.since` charges add up to at most $P + A + S$, and so do
-   the entries of the lists that it makes;
+1. the units that the takes charge add up to at most $P + A + S$, and so do
+   the entries of the lists that they make;
 2. a list of $k \ge 1$ errors, an error counted as often as it occurs, has an
    unrolled size of at most $2k - 1$, and listing $k$ recovered errors visits
    at most $2k$ lists.
 
 *Proof.* (1) Let $\Phi$ be the number of entries, 0 at the start of the parse
-and never negative. `rec.push`, and `rec.add` with a list that is not empty,
-add one entry each, and no other operation adds one. A call of `rec.since`
+and never negative. Recording an error, and recording a list that is not
+empty, add one entry each, and nothing else adds one. A take
 with $s$ entries after its mark charges $s$ units. With $s \le 1$ it leaves the
 entries as they are and charges at most 1. With $s \ge 2$ it puts one entry in
 place of $s$, so that $\Phi$ falls by $s - 1$, and it charges
 $1 + (s - 1)$. The falls of $\Phi$ add up to at most its rises, which are at
 most $P + A$, so the charges add up to at most $S + P + A$. A list that
-`rec.since` makes holds the $s$ entries it charged for, so its entries add up
+a take makes holds the $s$ entries it charged for, so its entries add up
 to the same bound.
 
 (2) By induction on the order in which the lists are made. An error is a list
-of $k = 1$ with unrolled size $1 = 2k - 1$. A list that `rec.since` makes holds
+of $k = 1$ with unrolled size $1 = 2k - 1$. A list that a take makes holds
 $s \ge 2$ entries made before it, of $k_1, \ldots, k_s \ge 1$ errors, since an
 empty list is never an entry; with $k = \sum_i k_i$ its unrolled size is
 $1 + \sum_i (2 k_i - 1) = 2k - s + 1 \le 2k - 1$. The bound holds wherever a
@@ -2290,23 +2292,17 @@ recovered errors does not move after an edit. It stays if it examined only
 input before the edit, and otherwise stops being valid, so a list holds its
 errors at the positions where they were made.
 
-**Units of recovered errors.** In the compositions of the Exec IR,
-`rec.push` records an error where a recovery makes it, `rec.add` replays a list
-where a call that a memo entry answers, a result of a growth or an attempt of
-an Operators Rule replays the errors that it holds, and `rec.since` makes a list
-where such an entry, result or attempt is stored. The operations of a growth
-state the same work: `grow.step` takes the errors of a step as `rec.since` does
-for the mark that the growth took when it began, and drops them as
-`rec.truncate` does when it returns to the start, and outside the missing-token
-mode `ctx.replay` and `grow.end` record those of a result as `rec.add` does, so
-the lemma counts them as calls of those operations. Each of these is part of a
-step that $C$ counts with at least one unit, so by the lemma the units that the
-operations charge and the entries of their lists are at most a constant times
-$C$, and listing the errors of the outcome visits at most twice as many lists
-as there are errors. That each call belongs to a step that $C$ counts is a
-reading of the compositions, as the reading of the charges in the corollary is.
-The lemma does not cover the missing-token mode, which records the errors of
-every reused result one by one.
+**Units of recovered errors.** By [Cost](../runtime/parsing.md#cost), a recovery records its error,
+a call that reuses a memo entry, a result of a growth or an attempt of an
+Operators Rule records the list of that result, a store of one of them takes
+the entries after the mark where its evaluation began, and a growth that ends
+replaces the entries recorded since it began by the list of its result. Each
+of these is part of a step that $C$ counts with at least one unit: a recovery,
+a call, a store, or a growth step. So by the lemma the units that the takes
+charge and the entries of their lists are at most a constant times $C$, and
+listing the errors of the outcome visits at most twice as many lists as there
+are errors. The lemma does not cover the missing-token mode, which records the
+errors of every reused result one by one.
 
 **Measured controls.** The engine on its three backends and the generated Go
 and TypeScript runtimes implement these operations. Two grammars of the class

@@ -364,9 +364,25 @@ besides the units that it charges for the input as a whole before the parse.
 Compute units also count work that the cost does not, and the budget caps it too.
 In a parse that recovers errors, a memo entry, a result of a growth or an
 attempt of an Operators Rule shares the list of the errors recovered in it, and
-a call that reuses the result records that list as one entry. Making a list
-charges a unit for each entry that it takes, which adds up to at most a constant
-times the cost
+a call that reuses the result records that list as one entry. On every
+backend, the recovered errors of a parse are a sequence of **entries**, each an
+error or a list of entries, and a list never changes once made:
+
+- a recovery records the error that it makes as one entry;
+- where a memo entry, a result of a growth or an attempt of an Operators Rule
+  is stored, the entries recorded since its evaluation began are taken as its
+  list: none give an empty list, one is taken as it is, an error or a list, and
+  two or more become a new list that takes their place in the sequence; taking
+  them charges one unit for each entry taken;
+- a call that reuses such a result records its list as one entry, and an
+  empty list not at all, and a growth that ends puts the list of its result in
+  place of the entries recorded since it began in the same way; neither
+  charges a unit for the list;
+- backtracking drops the entries recorded after the point that it returns to,
+  a [stream](streaming.md) forgets the entries whose errors it has delivered,
+  and listing the errors of the outcome charges no unit.
+
+These charges add up to at most a constant times the cost
 ([linear cost proof](../proofs/linear-cost.md#lemma-14-shared-recovered-errors)),
 except in a parse with missing-token insertion, which records the errors of
 every reused result one by one. A store under a key
