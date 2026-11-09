@@ -1754,6 +1754,58 @@ most 4 bytes) and must precede storing or using that character. Compute counts
 are implementation-specific and are not elapsed-time, memory, or buffered-input
 limits; the [memory limit](#memory-limit) counts bytes.
 
+### Reservations and Interruptions
+
+The engine and generated Go parsers with limit controls count the work of an
+invocation (one call of an entry point) as follows; a cancellation or an
+exhausted limit is an **interruption**, which ends the invocation with its
+error.
+
+- **Reservations are atomic.** A reservation of n units either proceeds and
+  adds n to the units used, or interrupts with a limit error, or interrupts
+  with the error of the context. An interruption leaves the units used, and
+  the units since the context was last observed, as they were.
+- **Observing the context.** A reservation observes the context when the
+  units reserved since it was last observed reach the polling interval of 256
+  units, or when the reservation would exceed the limit; a checkpoint observes
+  it without reserving. When a reservation observes a context that has an
+  error, that error wins over an exhausted limit. An observation that finds no
+  error starts the interval again.
+- **Generated Go keeps the same count.** The runtime of generated Go reaches
+  the same sums, and so exhausts a limit at the same reservation, as the
+  procedure above. It may make a reservation of n units that would poll or
+  exceed as n reservations of one unit, so the amount requested in its limit
+  error can be 1 where the engine reports n.
+- **A reservation precedes its work.** Each unit of work that the budget
+  counts is covered by a reservation made before it: in the same
+  straight-line work, or before a bounded loop whose number of steps depends
+  only on the grammar and which ends early only by an interruption or a fatal
+  error. The units of the steps that such an end leaves undone stay counted.
+  Allocation, runtime growth, garbage collection and the callbacks of the
+  caller are outside the budget.
+- **Streams.** In a stream, an error other than the end of the input that a
+  reader returns together with data wins over a cancellation first observed
+  after that read. The emission of an element observes the context before it
+  calls the callback and again after the callback returns, and the commit of
+  the element follows, demands no input and makes its reservations after that
+  second observation, on every backend.
+- **Nothing absorbs an interruption.** `#recover`, ordered choice, lookaheads
+  and repetitions are evaluated by failing, not by catching an interruption;
+  predicates and bindings of typed parsers catch only the run-time error of an
+  action; tracing passes an interruption on. An interruption therefore
+  reaches the boundary of the invocation unchanged.
+- **Input caches are published complete.** A cache of a Document's input, such
+  as a table built from its text, is published only after the reservations
+  that cover building it, and no reservation or checkpoint comes between the
+  steps that publish it, so a cache is complete or absent.
+- **Charges depend on logical state only.** The size of each reservation
+  follows from the grammar, the input, the options and the values of the
+  parse, never from the address, capacity or contents of reusable storage,
+  the order of iteration over a map, or time. The reusable state of a
+  Document is part of its input: the charges of a Document parse are a
+  function of the operations on it since its creation, provided that no
+  earlier operation was interrupted by a context.
+
 ### Default Limits
 
 `Limits` has four fields, and a zero value selects the default of its field:

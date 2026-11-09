@@ -1,6 +1,6 @@
 # Interruptions
 
-Arata Furukawa · Last revised 2026-11-06
+Arata Furukawa · Last revised 2026-11-09
 
 This proof shows that an interruption of a parse is atomic, and what is the
 same for every run of a backend. An interruption is a
@@ -12,7 +12,7 @@ could read, that a stream keeps what it delivered, and that the reservations of
 a backend, and so the point where a budget stops a parse and the error it
 reports, are a function of the grammar, the input and the options.
 
-It covers the reference implementation's three backends (closure, recursive
+It covers the engine's three backends (closure, recursive
 bytecode, iterative bytecode) and generated Go, for batch parses, recognition,
 typed parses, [streams](../runtime/streaming.md) and
 [Documents](../runtime/documents.md). Generated TypeScript has its own counter,
@@ -58,8 +58,10 @@ The proof cites the following, and no other rule about interruptions.
   limit, the amount used and the amount requested. An input over `Input`
   fails with `LimitInput` before a context is consulted.
 
-The specification does not define the word atomic. This proof uses it for the
-conjunction of the following, each of which is stated or implied above.
+[Reservations and Interruptions](../runtime/parsing.md#reservations-and-interruptions)
+states when a reservation is atomic. This proof uses the word for an
+interruption as the conjunction of the following, each of which is stated or
+implied above.
 
 1. **Atomic reservation.** A reservation is performed whole, with the work it
    covers, or not at all and with its work not performed, and a failed
@@ -105,7 +107,9 @@ shrinks, and a constant for every other invocation.
 
 A **reservation** of $n$ units is made before the work it covers. A
 **checkpoint** observes the context without reserving. The interval of polling
-is $I = 256$ units. The reference reservation $\mathrm{Charge}(n)$ is:
+is $I = 256$ units. The reference reservation $\mathrm{Charge}(n)$, which
+[Reservations and Interruptions](../runtime/parsing.md#reservations-and-interruptions)
+states, is:
 
 1. $\mathrm{poll}$ holds if $s + n \ge I$, and $\mathrm{exceed}$ holds if
    $u + n > B$ (computed without overflow).
@@ -125,73 +129,48 @@ The charge sequence of an invocation is the sequence $n_1, n_2, \dots$ of its
 reservations, in order, together with the positions of its checkpoints among
 them and, for a Document, which of the reservations are of Document units.
 
-## Assumptions
+## Rules of Reservations
 
-The specification does not state these. The reference implementation applies
-them, and its tests check them.
+The proof also cites the following rules of [Reservations and Interruptions](../runtime/parsing.md#reservations-and-interruptions),
+numbered as the proofs below use them.
 
-- **(A1) Precedence.** When several interruptions can apply at one place, one
-  is chosen as follows. A context error observed at a reservation that polls
+- **(A1) Precedence.** A context error observed at a reservation that polls
   or exceeds wins over exhaustion (step 2 before step 3). A non-end-of-input
   error that a reader returns together with data wins over a cancellation
-  first observed after that read. The specification states only that
-  `LimitInput` precedes the context (C7).
+  first observed after that read. `LimitInput` precedes the context (C7).
 - **(A2) The generated counter is the reference counter.** The runtime of
-  generated Go keeps the units reserved as a base and the part of a grant that
-  its fast path has taken, and reserves on the fast path by one subtraction
-  when $n < \mathrm{room}$, where room is the smallest request that would poll
-  or exceed, computed from the settled counters. A request that is not below
-  room, and a checkpoint, settle the counters and take the reference path. A
-  take of $n$ units whose $n$ is not below room is made there as $n$
-  reservations of one unit, so the charge sequence of generated Go has $n$
-  entries where the reference has one; the sum, and so the point where the
-  budget is exceeded, is the same, but the requested amount in a limit error
-  is 1 and not $n$.
+  generated Go reaches the same sums as $\mathrm{Charge}$, and so the same
+  point where the budget is exceeded. It may make a reservation of $n$ units
+  that would poll or exceed as $n$ reservations of one unit, so its charge
+  sequence then has $n$ entries where the reference has one, and the requested
+  amount in a limit error is 1 and not $n$.
 - **(A3) Reservation precedes work.** Each unit of work that (C6) counts is
-  covered by a reservation made before it, in the same straight-line code or
-  before a bounded loop that runs all of its lines unless it is interrupted, so
-  that an interruption raised by the reservation precedes the work. The number
-  of lines of such a loop depends only on the grammar, so the reservation is a
-  function of the logical state (A6), and the loop has no exit other than an
-  interruption or a fatal error inside a line. The units of the lines that
-  such an exit leaves unperformed stay reserved and counted in the units used,
-  as (C7) permits. Charges may be combined within straight-line code without
-  moving across a publication (A5). The reservation of such a loop only moves
-  earlier, before the loop, so it never comes between the work of a
-  publication and its assignment (A5).
-  Allocation, runtime growth, garbage collection and the callbacks of the
-  caller are outside the budget, as (C4) says for callbacks.
-- **(A4) Reachable recovery.** The only `recover` calls on the path of an
-  evaluation are those at the boundary of an invocation, those that classify
-  and re-raise, and those of predicates and bindings in typed parsers, which
-  absorb only the panic of a run-time error of an action. Tracing also
-  re-raises fatal errors and wraps other panics, and does not absorb an
-  interruption. `#recover`, ordered choice, lookaheads and repetitions are
-  evaluated by returning a failure, not by recovering a panic.
-- **(A5) Publication of input caches.** A cache of a Document's input, such
-  as a table built from its text, is assigned in statements between which no
-  reservation or checkpoint is made, after the reservations that cover the
-  work that builds it, so that it is published only when complete.
-- **(A6) Charges depend on logical state.** The size of each reservation is
-  computed from the grammar, the input, the options and the values of the
-  parse, never from the address, capacity or contents of reusable storage, the
-  order of iteration over a map, or time. (C6) requires it for reused parsers; a
-  test of generated parsers and the budget golden files check it. A Document's
-  reusable state is part of its input to a parse: the charge sequence of a
-  Document parse is a function of the sequence of its operations from its
-  creation, provided that no earlier operation on it was interrupted by a
-  context. A context cancellation arrives at a time that the charges do not
-  fix, and what it leaves in the memo and in the tables, although complete,
-  changes later charges. An interruption by a limit is a function of the
-  charges, and does not have this effect.
-  On the backends of the engine, a stream's commit clears the inactive capacity
-  of the trail, of the stack of the bytecode backends and of the scratch of
-  recovered errors, and charges for it. That storage is not reusable across
-  invocations: every stream parse builds its own parser and machine, so the
-  capacity follows from the appends of that parse, on a given build of the
-  backend. Generated Go clears the capacity of the trail and of the scratch of
-  recovered errors without a charge, so its charges do not depend on them at
-  all, and a test keeps those operations free of charges in the Go runtime.
+  covered by a reservation made before it, in the same straight-line work or
+  before a bounded loop whose number of steps depends only on the grammar and
+  which has no exit other than an interruption or a fatal error inside a step.
+  So an interruption raised by the reservation precedes the work, and the
+  reservation of such a loop is a function of the logical state (A6). The
+  units of the steps that such an exit leaves unperformed stay reserved and
+  counted in the units used, as (C7) permits. Combining charges within
+  straight-line work moves no reservation across a publication (A5): the
+  reservation of a loop only moves earlier, before the loop. Allocation,
+  runtime growth, garbage collection and the callbacks of the caller are
+  outside the budget, as (C4) says for callbacks.
+- **(A4) Nothing absorbs an interruption.** `#recover`, ordered choice,
+  lookaheads and repetitions are evaluated by failing, not by catching an
+  interruption; predicates and bindings in typed parsers catch only the
+  run-time error of an action; tracing passes an interruption on.
+- **(A5) Publication of input caches.** A cache of a Document's input is
+  published only after the reservations that cover building it, with no
+  reservation or checkpoint between the steps that publish it.
+- **(A6) Charges depend on logical state.** The size of each reservation is a
+  function of the grammar, the input, the options and the values of the
+  parse, and the charge sequence of a Document parse is a function of the
+  sequence of its operations from its creation, provided that no earlier
+  operation on it was interrupted by a context. A context cancellation arrives
+  at a time that the charges do not fix, and what it leaves in the memo and in
+  the tables, although complete, changes later charges. An interruption by a
+  limit is a function of the charges, and does not have this effect.
 
 ## Lemma 1 (Atomic Reservation)
 
@@ -209,12 +188,10 @@ some of its units.
 is reached only if neither interruption applied, so they are unchanged by the
 others. In steps 2 and 3 the panic leaves the reservation before it returns,
 so the statements after it, which are the work (A3), do not run. In step 4,
-$\mathrm{exceed}$ was false, so $u + n \le B$. For the generated counter (A2),
-the fast path is taken only when $n < \mathrm{room}$. Room is the smallest
-request that polls or exceeds from the settled counters, minus what the fast
-path has taken since, so a request below it neither polls nor exceeds, and
-$u' = u + n$ with the effect of step 4. Any other request settles the counters
-and takes the reference path. $\square$
+$\mathrm{exceed}$ was false, so $u + n \le B$. The generated counter reaches
+the same sums, with a reservation that would poll or exceed possibly made as
+reservations of one unit, each of which is a reservation of this procedure
+(A2). $\square$
 
 The case of a charge that covers decoding is the exception of (C1): the
 reservation of the bytes of a chunk precedes the decoding of the chunk, and
@@ -227,11 +204,11 @@ reservation fails.
 After a reservation or checkpoint interrupts, no further step of the parse
 runs, and no construct of the grammar absorbs it.
 
-*Proof.* The interruption is a panic. It propagates up the stack of the
-evaluation until a `recover`. By (A4) the recovers on the way are the ones
-that re-raise a panic that is not a run-time error of an action, and the
-boundary of the invocation. The reservations and checkpoints themselves do
-not recover. So the panic reaches the boundary. Between the interruption and
+*Proof.* The interruption leaves the reservation or checkpoint that raised it
+before it returns, so the work after it does not run (A3). By (A4) no
+construct on the way absorbs it: the only constructs that catch anything
+catch a run-time error of an action, and the others fail without catching.
+So the interruption reaches the boundary of the invocation. Between the interruption and
 the boundary only deferred cleanup runs, and it holds no reservation: its cost
 is not charged, because it must not be interrupted (the release of pooled
 scratch, the transfer of state after a Document parse, and the discarding of a
@@ -276,9 +253,9 @@ delivered, nothing is delivered after it, and the state of a commit cut short
 is the invocation's own, which nothing reads again (Lemma 5). The commit
 demands no input, so the default budget of a stream does not grow between its
 reservations. It evaluates no grammar code, and it publishes no cache (A5),
-because a stream keeps no input cache past the invocation. Every backend of the
-engine runs this sequence from one printed composition, and generated Go prints
-the same composition, so none of them orders these steps differently. The
+because a stream keeps no input cache past the invocation. Every backend orders
+these steps in this way
+([Reservations and Interruptions](../runtime/parsing.md#reservations-and-interruptions)). The
 nodes that were delivered are owned by the caller, and the parser's discarding
 of its own state does not change them. A reader that is blocked is not
 preempted; the checkpoint after its return observes the cancellation (C4).
@@ -315,9 +292,9 @@ Let an invocation be interrupted. The state that outlives it is one of:
    before the entry changes (an entry that is a seed of a growth is returned
    as invalid without a charge, and no edit is applied to it), so a reservation
    that interrupts it leaves the entry as it was, in a table that is discarded
-   in any case. Moving a value in place has no such order: `moveResult` first
-   records in the entry that its value is current, and an interruption can then
-   leave some nodes of the value moved and others not, so the entry claims
+   in any case. Moving a value in place has no such order: an interruption can
+   leave a result that was being moved in place partly moved
+   ([Interruption](../runtime/documents.md#interruption)), so the entry claims
    positions that its value does not all have. The interrupted parse therefore discards the
    table and the runs, as it does for the entries that depend on a growth that
    had not ended (C5), and no later parse reads a node that was moved in part.
@@ -330,7 +307,7 @@ Let an invocation be interrupted. The state that outlives it is one of:
    of the Document, and a later parse moves the nodes it reuses in place. A
    parse that is interrupted inside that move leaves some nodes of such a tree
    moved by the edits since and others not. Take a tree $T$ from `Parse`, then
-   `Edit`, then a `ParseWith` whose compute limit is small enough to stop
+   `Edit`, then a `Parse` with a compute limit small enough to stop
    inside the move of a reused value: $T$ is left partly moved, and since the
    interrupted parse discards the table, no later parse moves it again. The
    interruption promises the caller nothing about the positions in $T$ (the
@@ -411,9 +388,9 @@ invocation that is controlled.
    stream's charge sequence depends also on how its reader splits its input
    into reads (C6).
 
-*Proof.* Lemmas 1 to 6. The reservations of the three backends of the engine
-are made by one implementation of $\mathrm{Charge}$, and those of generated
-Go by the runtime's counter, which Lemma 1 shows equal to it (A2). $\square$
+*Proof.* Lemmas 1 to 6. The reservations of every backend follow
+$\mathrm{Charge}$, those of generated Go with the splitting that (A2) allows,
+which Lemma 1 covers. $\square$
 
 ## What the Proof Does Not Show
 

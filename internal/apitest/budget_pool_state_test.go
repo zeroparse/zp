@@ -42,7 +42,8 @@ func leastSteps(t *testing.T, p *zp.Parser, in string) (uint64, string) {
 
 // TestBudgetChargeIndependentOfPoolState checks that the spend a parse is charged does not depend on
 // the memo storage that an earlier parse left in a pooled parser, nor on when a collection empties
-// the pool.
+// the pool ("Charges depend on logical state only" of "Reservations and Interruptions" in
+// spec/runtime/parsing.md).
 func TestBudgetChargeIndependentOfPoolState(t *testing.T) {
 	p, err := zp.CompileSource(`@start
 rule main = (pair / item ","?)* $$

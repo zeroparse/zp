@@ -83,6 +83,8 @@ func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
 	}
 }
 
+// TestBudgetTakeAndClassChargeUnitByUnit pins "Generated Go keeps the same count" of
+// "Reservations and Interruptions" in spec/runtime/parsing.md: a take of n units reaches the sums of n reservations of one unit.
 func TestBudgetTakeAndClassChargeUnitByUnit(t *testing.T) {
 	// Take charges n units; where the grant ends inside n it charges the way n steps do.
 	for _, limit := range []uint64{1, 5, 9, 10, 11} {
@@ -241,6 +243,8 @@ func pollsOf(limit uint64, f func(*BudgetControl)) (polls int, used uint64, err 
 	return
 }
 
+// TestTakeAndClassPollLikeOneByOne pins "Generated Go keeps the same count" of
+// "Reservations and Interruptions" in spec/runtime/parsing.md at the polling interval.
 func TestTakeAndClassPollLikeOneByOne(t *testing.T) {
 	// Charges that start at every offset in a poll interval and cross one or more boundaries.
 	for _, prefix := range []uint64{0, 1, 100, 250, 255, 256, 257, 300} {

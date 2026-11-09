@@ -137,6 +137,8 @@ func TestStreamReaderObserverOneShortFailsBeforeCallerRead(t *testing.T) {
 	}
 }
 
+// TestStreamReaderObserverCancellationAndReadErrorPrecedence pins the reader rule of "Streams" in
+// "Reservations and Interruptions" in spec/runtime/parsing.md.
 func TestStreamReaderObserverCancellationAndReadErrorPrecedence(t *testing.T) {
 	t.Parallel()
 	t.Run("cancellation before exhausted reservation", func(t *testing.T) {
