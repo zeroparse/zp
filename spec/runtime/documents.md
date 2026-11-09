@@ -328,7 +328,8 @@ at least a minimum number of iterations.
 A Document parse of the engine, on each of its backends, does work that a parse
 of the same text from scratch does not: it applies pending edits, walks and
 indexes the chains of memo entries that earlier parses left, moves the values it
-reuses, works through the records of runs and grows the memo table. This
+reuses, works through the records of runs, grows the memo table and decodes the
+characters of its text. This
 section bounds the units of Compute that each of these operations charges, as an
 explicit `Compute` limit counts them; the default limit leaves most of them out
 ([Default Limits](parsing.md#default-limits)). Each bound is an upper bound: an
@@ -377,7 +378,9 @@ a parse finds at most 65,536 pending edits.
 does to find the entry it replaces, and charges one more unit to link the new
 entry. When the entry it replaces lies beyond the first 32, it walks the chain
 up to it, one unit for each entry it passes; when it lies among them and the
-position has an index, it hashes the key it replaces. A store at a position
+position has an index, it hashes the key it replaces. A store of a rule that only a Document memoizes walks at most
+32 entries, as its lookup does, and when none of them is the entry it replaces,
+it links the new entry in front of the chain and replaces none. A store at a position
 beyond the slots of the memo table grows them: when the number of binary digits
 of the new length exceeds that of the old one, it charges the old length, and
 otherwise nothing.
@@ -400,16 +403,24 @@ counting an empty node once for each reference by which it reaches it, and for
 each child and field of those nodes, plus one unit for each edit it replays.
 
 **Runs.** The operations of a repetition that may resume a record
-([Reuse Model](#reuse-model)) charge:
+([Reuse Model](#reuse-model)) merge the expected items of an iteration into
+those of the farthest failure. A **merge** charges one unit for each item, and,
+when the Document records expected items (`WithExpectations`), at most one more
+unit for each item that the record of the farthest failure holds when it adds
+the item: it may look for the item among them. That record holds each item at
+most once, so a merge charges at most one plus the number of distinct expected
+items of the grammar for each item it merges. The operations charge:
 
 - starting the run, and starting the evaluation of an iteration: nothing;
 - each attempt to reuse the next recorded iteration: one unit, and when it
-  reuses one, the merge of its expected items, at most one unit for each, and,
-  for an iteration after the edit, the move of its value;
+  reuses one, the merge of its expected items, and, for an iteration after the
+  edit, the move of its value;
 - ending an evaluated iteration: the merge of its expected items, and, when it
-  matched, one unit for each expected item that it records and, when the storage
-  of the new iterations grows, the number of iterations it holds; the storage at
-  least doubles when it grows;
+  matched, at most two units for each expected item that it records (it
+  compares them with the last set of expected items that the parse kept and
+  copies them unless the two are the same) and, when the number of new
+  iterations that it then holds is a power of two, the number that it held
+  before;
 - looking for a recorded iteration after the edit, before an iteration after the
   edit is evaluated: a binary search over the recorded iterations that the run
   has not passed, at most 1 + log₂(m + 1) units for m such iterations, then one
@@ -417,13 +428,26 @@ each child and field of those nodes, plus one unit for each edit it replays.
   stops at the first that examined input before the end of the edit or at the
   end of the record; when it passes them all the run reuses them;
 - making room for the values of the record that it resumes: room for every
-  iteration of the record on the stack of values, and when the stack grows, one
-  unit for each value that it copies; the stack at least doubles when it grows;
+  iteration of the record on the stack of values. The parse keeps an amount of
+  room that it has paid for, zero when it starts. When the values on the stack
+  and the room asked for exceed it, the parse charges the number of values on
+  the stack, and the room paid for becomes at least twice what it was and at
+  least what is asked for; otherwise nothing;
 - recording the run when it ends: one unit for each iteration, and nothing for a
   run too short to record.
 
 A parse resumes a record of the previous parse at most once: resuming it removes
 it from the records that the parse can resume.
+
+These charges for growing storage, like those of the slots of the memo table,
+are functions of lengths and of the operations of the parse: the capacity that
+earlier parses left in storage that the Document keeps for its next parse
+changes no charge.
+
+**Decoding.** A parse in `Bytes` positions that decodes a character of the text
+of a Document charges, besides the unit of a parse from scratch, one unit for
+each further byte that it reads for the decoding: at most three more units for
+each examination of the input.
 
 ## Change Notifications
 

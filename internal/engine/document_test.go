@@ -330,7 +330,10 @@ rule rest = [^\n]* #atomic`)
 	})
 	// Two runs of a parse that both map to the same old run: an insertion at its start puts one run
 	// at the old position and the other where the edit moved it (the elements look behind, so the
-	// old result of list is not moved there). Only one of them takes the old run over.
+	// old result of list is not moved there). Only one of them takes the old run over. This pins the
+	// rule of the specification that a parse resumes a record of the previous parse at most once
+	// (spec/runtime/documents.md, Work of a Document Parse): resuming the record twice breaks the
+	// parse on the closure backend.
 	t.Run("two runs", func(t *testing.T) {
 		prog := mustCompile(t, `rule main = list "!" / "bb" list "?"
 rule list = item*

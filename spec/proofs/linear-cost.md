@@ -85,7 +85,9 @@ lookup of its key, which costs in proportion to the size of the key
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). In every
 parse $C$ counts these and nothing else of a lookup. What a
 [Document](../runtime/documents.md) parse does beyond them, at a lookup or
-elsewhere, is no part of $C$: Lemma 12 counts it as **Document units**.
+elsewhere, is no part of $C$: Lemma 12 counts it as **Document units**, apart
+from the extra units of decoding the characters of its text, which the corollary
+of Lemma 12 counts with $C$.
 
 **Pending edits of a Document.** A lookup in the memo of a Document parse of
 the engine also applies to the entry it finds the edits of the log that the
@@ -107,13 +109,17 @@ entries at the two ends of the edit can stay, since an entry at $p$ examined a
 range $[l, h)$ with $l \le p \le h$: an entry kept unchanged has $h \le a$, so
 $p = a$ among the positions $a$ to $b$ that the edit decides, and an entry that
 moves has $l \ge b$, so $p = b$. They come to one slot when $b + \delta = a$, a
-deletion that inserts nothing. So one edit joins at most two slots, a store
-under a key that the slot holds adds no entry, and by induction on the edits a
-slot holds at most one entry under a key plus one for each edit that joined
-slots into it, at most $E + 1$. Only one of them matters in a parse: a lookup
-returns the first entry of the chain under its key, through the chain or the
-index alike, and a store replaces that entry in its place, so the others are
-not seen until a later edit relinks them. A lookup compares at most 32 entries
+deletion that inserts nothing. So one edit joins at most two slots. A store of
+a rule that a parse from scratch memoizes too, under a key that the slot holds,
+adds no entry, and by induction on the edits a slot holds at most one entry
+under such a key plus one for each edit that joined slots into it, at most
+$E + 1$. A store of a rule that only a Document memoizes looks at the first 32
+entries of the chain only, and when the key is not among them it adds an entry
+in front, so a chain of more than 32 entries can hold more entries under such a
+key. Only one entry under a key matters in a parse: a lookup returns the first
+entry of the chain under its key, through the chain or the index alike, and a
+store replaces that entry in its place or puts the new entry in front of it, so
+the others are not seen until a later edit relinks them. A lookup compares at most 32 entries
 of a chain before it consults an index, and Lemma 12 counts the walks and
 indexes of longer chains. Calls outside a Document have none of these
 units, and the memoization, the evaluations and the other costs are those of
@@ -2029,7 +2035,8 @@ Let a [Document](../runtime/documents.md) parse of the engine, on any of its
 backends, satisfy the setting. Its **Document units** are the units of Compute
 that it charges for the work that
 [Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)
-bounds and that $C$ does not count: the edits that lookups apply; the steps along
+bounds and that $C$ does not count, apart from the decoding of characters, which
+the corollary counts with $C$: the edits that lookups apply; the steps along
 a chain beyond the entries that the lookup of $C$ compares, the removal of
 lagging entries, and the hashing and probing of the indexes of chains; the moves
 of reused values; the operations of the runs; and the growth of the slots of the
@@ -2100,9 +2107,13 @@ activation or one of a constant number of iterations of a bounded repetition, so
 at most a constant times $A$ operations are made in all. An attempt to reuse an
 iteration, the end of an evaluated iteration and the start of a run or of an
 iteration charge at most a constant, the moves of the values that the iterations
-reuse, and their expected items, a set of the items of the grammar. The growth of
-the storage of the new iterations at least doubles it, so it adds up to a
-constant times their number. Recording a run charges one unit for each of its
+reuse, and, for their expected items, a set of the items of the grammar, at
+most two units for each item that an iteration records and the merge of each
+item, which charges at most one plus the number of the items of the grammar.
+These are constants of the grammar. The growth of the list of the new
+iterations of a run charges the number that it held before where their number
+reaches a power of two; the list starts empty in each run, so the charges add
+up to less than its length. Recording a run charges one unit for each of its
 iterations, and each is such an iteration of this evaluation. A record of this
 parse is resumed whole and needs no search, since no edit separates it from the
 parse. For a record of the previous parse, a search for a recorded iteration
@@ -2115,9 +2126,14 @@ scan starts at an iteration that starts at or after $b$, the starts of the
 iterations increase, apart from an empty last iteration, and an iteration
 examines no slot more than one before its start
 ([Reuse Model](../runtime/documents.md#reuse-model)), so it stops within two
-iterations. Making room for the values of a record grows the stack of values to
-at most its size plus $W$, at least doubling, so the part of that growth that
-comes from the records is at most a constant times $W + A$.
+iterations. Making room for the values of a record charges the values on the
+stack only when the stack with the room asked for passes the room that the parse
+has paid for, which then at least doubles and covers what was asked. So the
+charges add up to at most twice the last room paid for, which is at most twice
+the greatest length that the stack with the room asked for reaches. The stack
+holds a value for each iteration of the repetitions in progress, and the room
+asked for is the iterations of one record, so that length is at most a constant
+times $W + A$, and so are the charges.
 
 *Slots.* A store charges for the growth of the slots only where the number of
 binary digits of their length grows, by the old length. So the charges of one
@@ -2184,9 +2200,11 @@ proportion to that work. $\square$
 A node counts in $W$ whichever text it was built for, and whether or not a call
 of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 7 of
 [Open Steps](#open-steps). A chain has at most $E + 1$ entries under one key
-([Setting](#setting)), so $Q$ is at most $E + 1$ times the number of keys at
-its position; these include keys of earlier texts, which the $K$ of the parse
-does not count. $G$ grows with deletions and shrinks with insertions.
+of a rule that a parse from scratch memoizes too ([Setting](#setting)), so $Q$ is
+at most $E + 1$ times the number of such keys at its position, plus the entries
+of rules that only a Document memoizes, which can be several under one key on a
+chain of more than 32 entries; these include keys of earlier texts, which the
+$K$ of the parse does not count. $G$ grows with deletions and shrinks with insertions.
 
 ## Corollary (Compute of a Document Parse)
 
@@ -2220,11 +2238,15 @@ entries lag behind by more than $T$ edits; the test enforces 6, and fails when a
 without the limit.
 
 *Proof.* The units of Compute of a parse are those of the steps that $C$ counts,
-those of the recovered errors, which $C$ does not count, and the Document units.
-The theorem bounds the first by a constant times $K (L + 1) \hat{n}$. Lemma 14
+those of the recovered errors, which $C$ does not count, the extra units of
+decoding the characters of the text, and the Document units. The theorem bounds
+the first by a constant times $K (L + 1) \hat{n}$. Lemma 14
 bounds the second by a constant times $C$, and so by the same bound: they are
-the units that the takes charge, and no list moves in a Document. Lemma 12
-bounds the third.
+the units that the takes charge, and no list moves in a Document. Decoding a
+character charges at most three units beyond the examination of the input that
+$C$ counts for it
+([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
+so the third is at most $3C$. Lemma 12 bounds the fourth.
 The part of the lookups is the theorem's bound of the calls, plus the edits and
 the walks of Lemma 12. $\square$
 
@@ -2234,7 +2256,7 @@ occur; no lemma bounds that number by $C$. In the missing-token mode, the parse
 records the errors of every reused result one by one, and no lemma bounds those
 units.
 
-That these three are all the units of a parse is a reading of the charges of the
+That these four are all the units of a parse is a reading of the charges of the
 engine, not a derivation: no lemma relates a charge to $C$ in general.
 A store of a key that a chain holds walks the chain to relink it. Here $Q$ counts
 that walk; outside a Document no bound of this proof does, and it has not been
