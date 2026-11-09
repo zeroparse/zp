@@ -653,12 +653,12 @@ the value.
   sequence left with one item (or none) after N6 drops its cuts, or whose
   items N9 to N11 merged, would become the bare item, which has another
   value than the tuple of one element; a choice left with one alternative
-  that is a sequence, or a call of a splice rule whose body is one, or that
-  has no value would add its elements to the sequence around it, or lose the
-  element `nil`; an inlined call (N13) does the same
+  that is a sequence, or a call of a splice rule whose body is one, would add
+  its elements to the sequence around it; an inlined call (N13) does the same
   with the body of its rule. The view applies them only where the conditions
-  above hold, and otherwise keeps the sequence of one item or the choice of
-  one alternative, and the call. Dropping the cut is not changing a value, so
+  above hold, and otherwise keeps the sequence of one item, the choice of one
+  alternative, except one whose alternative has the same value alone
+  (`sameValueBare`), and the call. Dropping the cut is not changing a value, so
   it applies everywhere. A recovery that V1 drops makes an expression with
   a value that a sequence splices one element; it stays where the conditions
   above do not hold.
