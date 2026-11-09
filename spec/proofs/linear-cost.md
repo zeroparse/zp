@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-08
+Arata Furukawa · Last revised 2026-11-09
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -2603,10 +2603,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    that includes one through a capture, a sequence, a choice or the value of a
    rule. The rewrites that change a value are listed in
    [Rewrites That Change Values](cost-view.md#rewrites-that-change-values):
-   N9, N10, N11, the left factoring of N12, and the replacement of a sequence of
-   one item, or of a choice of one alternative, by its item, which N1, N6 and
-   the drop of the other alternatives make, and the drop by V1 of a recovery
-   that makes its expression one element. They preserve what the expression
+   N9, N10, N11, the left factoring of N12, the replacement of `!X X` by `_|_`
+   (N12), the drop of every alternative with a value of a choice that keeps one
+   without (N2, N3), the replacement of a sequence of one item, or of a choice
+   of one alternative, by its item, which N1, N6 and the drop of the other
+   alternatives make, and the drop by V1 of a recovery that makes its
+   expression one element. They preserve what the expression
    matches and its recorded outcome, not its value, and the view applies them
    only where no predicate reads such a value; an action of the written grammar
    can still read one, and then reads another shape than the classifier sees in
