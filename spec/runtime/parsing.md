@@ -1329,9 +1329,11 @@ necessary.
    can see: the text of an expression that matches a bounded number of characters, a list
    or tuple with a bounded number of elements, or the value of a rule whose
    action gives such a value. The tuple of a sequence has at most one element
-   for each item, where a plain group of a sequence splices its own elements
-   into it, so `x:("#" ("a" "b"))` has 3, while a capture, an option, a choice,
-   a repetition or a call is at most one element. It combines them with `+`, `-`, `*`, `/`, `%`,
+   for each item, where a plain group of a sequence and a call of a splice rule
+   whose body is a sequence splice their own elements into it, so
+   `x:("#" ("a" "b"))` has 3, and so has `x:("#" _r)` with `_r = "a" "b"`,
+   while a capture, an option, a choice, a repetition or a call of any other
+   rule is at most one element. It combines them with `+`, `-`, `*`, `/`, `%`,
    comparisons, `&&`, `||`, unary `-` and `!` and parentheses. The binding is
    evaluated at every length of each operand up to its bound, at most 4096
    combinations, and a value whose evaluation is an error, as a division by

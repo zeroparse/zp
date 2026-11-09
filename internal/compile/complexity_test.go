@@ -10,6 +10,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -313,6 +314,9 @@ func TestClassifyComplexity(t *testing.T) {
 		{"guard after the call", "var v int\nrule main = r $$\nrule r = \"#\" {v := v + 1} r {v < 3} / \"y\" {v >= 0}\n", ClassExp, 0},
 		// A plain group of a sequence splices its elements into the tuple of the sequence around it.
 		{"counter that reads the length of a spliced tuple", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" (\"a\" \"b\")) {v := v + len($x) / 3} r / \"y\" {v >= 0}\n", ClassExp, 0},
+		{"counter that reads the length of a tuple spliced by a call", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" _s) {v := v + len($x) / 3} r / \"y\" {v >= 0}\nrule _s = \"a\" \"b\"\n", ClassExp, 0},
+		{"counter that reads the length of a tuple spliced by nested calls", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" _s) {v := v + len($x) / 4} r / \"y\" {v >= 0}\nrule _s = \"a\" _t\nrule _t = \"b\" \"c\"\n", ClassExp, 0},
+		{"counter that reads the length of a tuple spliced by a call below its step", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" _s) {v := v + len($x) / 4} r / \"y\" {v >= 0}\nrule _s = \"a\" \"b\"\n", ClassLinear, 0},
 		{"counter that reads the length of a spliced tuple below its step", "var v int\nrule main = (r / .)* $$\nrule r = x:(\"#\" (\"a\" \"b\")) {v := v + len($x) / 4} r / \"y\" {v >= 0}\n", ClassLinear, 0},
 		// The values of all the variables with finite values combine, and the product is the bound
 		// on K that the class reports (see TestComplexityCombinations). One variable has at most
@@ -644,4 +648,41 @@ func sliceSet(xs []string) map[string]bool {
 		out[x] = true
 	}
 	return out
+}
+
+// TestSplicedLen checks the number of tuple items of a sequence, where a call of a splice rule adds
+// the items of its body and a splice rule that calls itself among its items has no bound.
+func TestSplicedLen(t *testing.T) {
+	for _, tc := range []struct {
+		name, src string
+		want      int
+		bounded   bool
+	}{
+		{"plain items", "rule main = x:(\"a\" \"b\") $$\n", 2, true},
+		{"group", "rule main = x:(\"a\" (\"b\" \"c\")) $$\n", 3, true},
+		{"call of a splice rule", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" \"b\"\n", 3, true},
+		{"nested calls", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" _s\nrule _s = \"b\" (\"c\" \"d\")\n", 5, true},
+		{"call of a splice rule that is not a sequence", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\"+\n", 2, true},
+		{"call of a splice rule that is a choice", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" / \"b\" \"c\"\n", 2, true},
+		{"call of a rule that makes a node", "rule main = x:(\"q\" r) $$\nrule r = \"a\" \"b\"\n", 2, true},
+		{"recursive splice rule", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" _r\n", 0, false},
+		{"mutually recursive splice rules", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" _s\nrule _s = \"b\" _r\n", 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, err := syntax.Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			k, _, err := prepareClassifier(starttest.MarkAll(g), "", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := k.byName["main"].Expr.(*grammar.Seq).Items[0].(*grammar.Capture)
+			seq := ungroupExpr(c.Expr).(*grammar.Seq)
+			got, ok := k.splicedLen(seq, map[string]bool{})
+			if ok != tc.bounded || got != tc.want {
+				t.Errorf("splicedLen = %d, %v; want %d, %v", got, ok, tc.want, tc.bounded)
+			}
+		})
+	}
 }

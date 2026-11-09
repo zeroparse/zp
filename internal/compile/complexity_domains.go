@@ -486,8 +486,12 @@ func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) 
 		return m, true
 	case *grammar.Seq:
 		// A tuple with at most one element for each item, where a plain group of a sequence
-		// splices its own elements into the tuple, or the value of a single item.
-		m := splicedLen(e)
+		// and a call of a splice rule splice their elements into the tuple, or the value of a
+		// single item.
+		m, ok := k.splicedLen(e, map[string]bool{})
+		if !ok {
+			return 0, false
+		}
 		for _, it := range e.Items {
 			n, ok := k.valueLen(it, seen)
 			if !ok {
@@ -519,25 +523,59 @@ func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) 
 }
 
 // splicedLen returns the number of items of the tuple of the sequence e: a plain group of a
-// sequence adds its own items, and every other item, such as a capture, an option, a choice, a
-// repetition or a call, adds one.
-func splicedLen(e *grammar.Seq) int {
+// sequence adds its own items, a call of a splice rule whose body is a sequence adds the items of
+// that body, and every other item, such as a capture, an option, a choice, a repetition or any
+// other call, adds one. It reports false if the items have no bound: a splice rule that calls
+// itself among its own items.
+func (k *classifier) splicedLen(e *grammar.Seq, seen map[string]bool) (int, bool) {
 	n := 0
 	for _, it := range e.Items {
-		for {
-			g, ok := it.(*grammar.Group)
-			if !ok {
-				break
-			}
-			it = g.Expr
+		m, ok := k.itemLen(it, seen)
+		if !ok {
+			return 0, false
 		}
-		if s, ok := it.(*grammar.Seq); ok {
-			n += splicedLen(s)
-		} else {
-			n++
+		n += m
+	}
+	return n, true
+}
+
+// itemLen returns the number of tuple items that the sequence item it adds, as splicedLen counts.
+func (k *classifier) itemLen(it grammar.Expr, seen map[string]bool) (int, bool) {
+	for {
+		switch x := ungroupExpr(it).(type) {
+		case *grammar.Seq:
+			return k.splicedLen(x, seen)
+		case *grammar.Attributed:
+			// An attribute other than recovery only labels its expression (isSeqOf).
+			if recovers(x) {
+				return 1, true
+			}
+			it = x.Expr
+		case *grammar.Ref:
+			if !isSeqOf(k.spliceBody, x) {
+				return 1, true
+			}
+			if seen[x.Name] {
+				return 0, false
+			}
+			body, _ := k.spliceBody(x.Name)
+			seen[x.Name] = true
+			n, ok := k.itemLen(body, seen)
+			delete(seen, x.Name)
+			return n, ok
+		default:
+			return 1, true
 		}
 	}
-	return n
+}
+
+// spliceBody returns the body of the rule name if it is a splice rule (Program.SpliceBody), as the
+// grammar writes it.
+func (k *classifier) spliceBody(name string) (grammar.Expr, bool) {
+	if rd := k.byName[name]; rd != nil && spliceRule(rd) {
+		return rd.Expr, true
+	}
+	return nil, false
 }
 
 // termLen bounds what len gives for the value of the action term t of rule.
