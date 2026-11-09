@@ -1,0 +1,10 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=indent memo=true transient=true missing=false first=-
+block null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=indent memo=true transient=false missing=false first=-
+item null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=indent memo=true transient=true missing=false first=-
+children null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=indent memo=true transient=true missing=false first=-
+spaces null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+line null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+eol null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 35:12/0 first="\n"@0
+  alt 35:12/1 first=-
+blank null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

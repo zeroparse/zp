@@ -1,0 +1,4 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+_t null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 2:11/0 first="x"@0
+  alt 2:11/1 first="("@0

@@ -1,0 +1,13 @@
+# type error
+4:19: cannot use int as string in field A of T
+# type error and left-recursion binding
+5:11: rule R binds variable k before its left-recursive call of R; the left recursion reads k
+# type error and stream on a cycle
+3:19: #stream cannot be used in rule main, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered
+# splice cycle and redeclared rule
+4:1: rule main is already defined
+3:1: rule _a contains itself in its sequence of elements, so it has no fixed number of them
+# every kind
+9:1: rule t is already defined
+7:1: rule _a contains itself in its sequence of elements, so it has no fixed number of them
+5:11: rule R binds variable k before its left-recursive call of R; the left recursion reads k

@@ -1,0 +1,1589 @@
+main null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 480:25/0 first="\x00"@0
+  alt 480:25/1 first=-
+sourceFile null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+topLevelStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 488:36/0 first=-
+  alt 488:36/1 first=-
+otherTopLevelStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+awaitFreeTopLevelStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+topLevelAwaitFreeStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 493:55/0 first="import"@0
+  alt 493:55/1 first="export"@0
+  alt 493:55/2 first=-
+  alt 493:108/0 first=-
+  alt 493:108/1 first=-
+  alt 493:139/0 first="default"@0
+  alt 493:139/1 first="as"@0
+  alt 493:169/0 first="enum"@0
+  alt 493:169/1 first="namespace"@0
+  alt 493:169/2 first="module"@0
+  alt 493:169/3 first="global"@0
+endOfFile null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hashbang null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="#!"@0
+statement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 504:5/0 first=-
+  alt 504:5/1 first=-
+specialStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 510:5/0 first="{"@1
+  alt 510:5/1 first=";"@0
+  alt 510:5/2 first=-
+  alt 510:5/3 first=-
+  alt 510:5/4 first=-
+  alt 510:5/5 first="if"@1
+  alt 510:5/6 first="do"@1
+  alt 510:5/7 first="while"@1
+  alt 510:5/8 first=-
+  alt 510:5/9 first="continue"@0
+  alt 510:5/10 first="break"@0
+  alt 510:5/11 first="return"@1
+  alt 510:5/12 first="with"@1
+  alt 510:5/13 first="switch"@1
+  alt 510:5/14 first="throw"@1
+  alt 510:5/15 first="try"@1
+  alt 510:5/16 first="debugger"@0
+  alt 510:5/17 first=-
+  alt 510:5/18 first=-
+  alt 510:5/19 first=-
+statementSpecialStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 515:30/0 first=[{;@]@0
+  alt 515:30/1 first=-
+  alt 515:62/0 first=-
+  alt 515:62/1 first=-
+statementKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 517:5/0 first="var"@0
+  alt 517:5/1 first="let"@0
+  alt 517:5/2 first="using"@0
+  alt 517:5/3 first="await"@0
+  alt 517:5/4 first="function"@0
+  alt 517:5/5 first="class"@0
+  alt 517:5/6 first="if"@0
+  alt 517:5/7 first="do"@0
+  alt 517:5/8 first="while"@0
+  alt 517:5/9 first="for"@0
+  alt 517:5/10 first="continue"@0
+  alt 517:5/11 first="break"@0
+  alt 517:5/12 first="return"@0
+  alt 517:5/13 first="with"@0
+  alt 517:5/14 first="switch"@0
+  alt 517:5/15 first="throw"@0
+  alt 517:5/16 first="try"@0
+  alt 517:5/17 first="debugger"@0
+plainStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 521:36/0 first=-
+  alt 521:36/1 first=-
+plainFunctionDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+plainClassDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+decoratedDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+contextualDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+declarationKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 527:5/0 first="async"@0
+  alt 527:5/1 first="interface"@0
+  alt 527:5/2 first="type"@0
+  alt 527:5/3 first="module"@0
+  alt 527:5/4 first="namespace"@0
+  alt 527:5/5 first="declare"@0
+  alt 527:5/6 first="const"@0
+  alt 527:5/7 first="enum"@0
+  alt 527:5/8 first="export"@0
+  alt 527:5/9 first="import"@0
+  alt 527:5/10 first="private"@0
+  alt 527:5/11 first="protected"@0
+  alt 527:5/12 first="public"@0
+  alt 527:5/13 first="abstract"@0
+  alt 527:5/14 first="accessor"@0
+  alt 527:5/15 first="static"@0
+  alt 527:5/16 first="readonly"@0
+  alt 527:5/17 first="global"@0
+block null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="{"@0
+emptyStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=";"@0
+variableStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+variableStatementStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 541:5/0 first="var"@0
+  alt 541:5/1 first="let"@0
+  alt 541:5/2 first="using"@0
+  alt 541:5/3 first="await"@0
+letFollows null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 545:24/0 first=-
+  alt 545:24/1 first=[\[{]@0
+usingFollows null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 547:25/0 first=-
+  alt 547:25/1 first="{"@0
+ifStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="if"@0
+doStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="do"@0
+whileStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="while"@0
+withStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="with"@0
+forStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 566:31/0 first="for"@1
+  alt 566:31/1 first="for"@1
+  alt 566:31/2 first="for"@1
+forOfStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="for"@0
+forInStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="for"@0
+forClassicStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="for"@0
+awaitToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="await"@0
+forInitializer null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 581:76/0 first=-
+  alt 581:76/1 first=-
+forDeclarationList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 583:7/0 first=-
+  alt 583:7/1 first="using"@0
+  alt 583:7/2 first="await"@0
+  alt 583:8/0 first="var"@0
+  alt 583:8/1 first="let"@0
+  alt 583:8/2 first="const"@0
+forUsingFollows null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 587:24/0 first=-
+  alt 587:24/1 first=-
+  alt 587:73/0 first=-
+  alt 587:73/1 first="{"@0
+continueStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="continue"@0
+breakStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="break"@0
+returnStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="return"@0
+throwStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="throw"@0
+  alt 599:22/0 first=-
+  alt 599:22/1 first=-
+  alt 600:6/0 first=-
+  alt 600:6/1 first=-
+missingIdentifier null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+debuggerStatement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="debugger"@0
+switchStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="switch"@0
+caseBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+caseOrDefaultClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 611:48/0 first="case"@1
+  alt 611:48/1 first="default"@1
+caseClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="case"@0
+defaultClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="default"@0
+clauseStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 618:37/0 first="case"@0
+  alt 618:37/1 first="default"@0
+tryStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="try"@0
+catchClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="catch"@0
+expressionOrLabeledStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 633:31/0 first=[{@]@0
+  alt 633:31/1 first=-
+  alt 633:39/0 first="function"@0
+  alt 633:39/1 first="class"@0
+  alt 634:8/0 first=-
+  alt 634:8/1 first=-
+  alt 634:8/2 first=-
+labeledStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+expressionStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+declareStatement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+declareIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="declare"@0
+eos null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 648:12/0 first=-
+  alt 648:12/1 first=-
+canParseSemicolon null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 649:30/0 first=[;}\n\r\u2028\u2029]@0
+  alt 649:30/1 first="/*"@0
+  alt 649:30/2 first=-
+nlAhead null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 651:20/0 first=[\n\r\u2028\u2029]@0
+  alt 651:20/1 first="/*"@0
+declarationStart null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 661:5/0 first=-
+  alt 661:5/1 first="using"@0
+  alt 661:5/2 first="await"@0
+  alt 661:5/3 first=-
+  alt 661:5/4 first=-
+  alt 661:5/5 first="declare"@0
+  alt 661:5/6 first=-
+  alt 661:5/7 first="global"@0
+  alt 661:5/8 first="import"@0
+  alt 661:5/9 first="export"@0
+  alt 661:5/10 first="export"@0
+  alt 661:5/11 first="static"@0
+  alt 661:6/0 first="var"@0
+  alt 661:6/1 first="let"@0
+  alt 661:6/2 first="const"@0
+  alt 661:6/3 first="function"@0
+  alt 661:6/4 first="class"@0
+  alt 661:6/5 first="enum"@0
+  alt 664:8/0 first="interface"@0
+  alt 664:8/1 first="type"@0
+  alt 664:8/2 first="defer"@0
+  alt 665:8/0 first="module"@0
+  alt 665:8/1 first="namespace"@0
+  alt 665:44/0 first=-
+  alt 665:44/1 first=["\']@0
+  alt 667:8/0 first="abstract"@0
+  alt 667:8/1 first="accessor"@0
+  alt 667:8/2 first="async"@0
+  alt 667:8/3 first="declare"@0
+  alt 667:8/4 first="private"@0
+  alt 667:8/5 first="protected"@0
+  alt 667:8/6 first="public"@0
+  alt 667:8/7 first="readonly"@0
+  alt 669:29/0 first="{"@0
+  alt 669:29/1 first=-
+  alt 669:29/2 first="export"@0
+  alt 670:29/0 first="defer"@0
+  alt 670:29/1 first=["\'*{#]@0
+  alt 670:29/2 first=-
+  alt 671:51/0 first=[=*{@]@0
+  alt 671:51/1 first=-
+  alt 671:61/0 first="default"@0
+  alt 671:61/1 first="as"@0
+declaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 677:5/0 first=-
+  alt 677:5/1 first=-
+  alt 677:5/2 first=-
+  alt 677:5/3 first=-
+  alt 677:5/4 first=-
+  alt 677:5/5 first=-
+  alt 677:5/6 first=-
+  alt 677:5/7 first=-
+  alt 677:5/8 first=-
+  alt 677:5/9 first=-
+  alt 677:5/10 first=-
+  alt 677:5/11 first=-
+variableStatementWithModifiers null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 685:7/0 first=-
+  alt 685:7/1 first="await"@0
+  alt 685:8/0 first="var"@0
+  alt 685:8/1 first="let"@0
+  alt 685:8/2 first="const"@0
+  alt 685:8/3 first="using"@0
+variableDeclarationList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 693:6/0 first=-
+  alt 693:6/1 first=-
+  alt 693:6/2 first=-
+  alt 693:130/0 first=[{\[#]@0
+  alt 693:130/1 first=-
+declarationListKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 695:32/0 first=-
+  alt 695:32/1 first="await"@0
+  alt 695:33/0 first="var"@0
+  alt 695:33/1 first="let"@0
+  alt 695:33/2 first="const"@0
+  alt 695:33/3 first="using"@0
+variableDeclarations null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 698:21/0 first=[{\[#]@0
+  alt 698:21/1 first=-
+variableDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 702:6/0 first=-
+  alt 702:6/1 first=-
+  alt 703:13/0 first="in"@0
+  alt 703:13/1 first="of"@0
+initializer null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+typeAnnotation null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+bindingName null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 709:32/0 first=-
+  alt 709:32/1 first=-
+bindingPattern null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 710:35/0 first="{"@1
+  alt 710:35/1 first="["@1
+objectBindingPattern null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+bindingElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 715:38/0 first=-
+  alt 715:38/1 first=-
+bindingElementWithPropertyName null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+bindingElementShorthand null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+arrayBindingPattern null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="["@0
+arrayBindingElement null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 727:48/0 first=-
+  alt 727:48/1 first=-
+omittedExpression null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+functionDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 738:66/0 first=-
+  alt 738:66/1 first=-
+defaultModifierScan null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 741:28/0 first="@"@1
+  alt 741:28/1 first=-
+  alt 741:28/2 first="static"@0
+asyncModifierScan null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 744:26/0 first="@"@1
+  alt 744:26/1 first=-
+  alt 744:26/2 first="static"@0
+parameterList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="("@0
+parameters null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+parameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 751:28/0 first="this"@1
+  alt 751:28/1 first=-
+thisParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="this"@0
+thisIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="this"@0
+regularParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+returnType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+classDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+classExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+className null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+heritageClauses null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+heritageClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 777:9/0 first="extends"@0
+  alt 777:9/1 first="implements"@0
+  alt 778:6/0 first=-
+  alt 778:6/1 first=-
+heritageElementStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 782:5/0 first="{"@0
+  alt 782:5/1 first=-
+  alt 782:26/0 first=[,{]@0
+  alt 782:26/1 first=-
+  alt 782:34/0 first="extends"@0
+  alt 782:34/1 first="implements"@0
+  alt 783:15/0 first="extends"@0
+  alt 783:15/1 first="implements"@0
+leftHandSideExpressionStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 787:5/0 first=[0-9"\'`(\[{/]@0
+  alt 787:5/1 first="."@0
+  alt 787:5/2 first=-
+  alt 787:5/3 first="import"@0
+  alt 787:5/4 first=-
+  alt 788:8/0 first="this"@0
+  alt 788:8/1 first="super"@0
+  alt 788:8/2 first="null"@0
+  alt 788:8/3 first="true"@0
+  alt 788:8/4 first="false"@0
+  alt 788:8/5 first="function"@0
+  alt 788:8/6 first="class"@0
+  alt 788:8/7 first="new"@0
+heritageTypes null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+expressionWithTypeArguments null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 799:8/0 first="extends"@0
+  alt 799:8/1 first="implements"@0
+  alt 800:26/0 first=[,{]@0
+  alt 800:26/1 first=-
+  alt 800:34/0 first="extends"@0
+  alt 800:34/1 first="implements"@0
+classMembers null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 804:27/0 first=-
+  alt 804:27/1 first=";"@0
+classMemberStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 809:5/0 first="@"@0
+  alt 809:5/1 first=-
+  alt 809:5/2 first=-
+  alt 810:33/0 first=-
+  alt 810:33/1 first=[*\[]@0
+  alt 810:33/2 first=-
+  alt 810:33/3 first=-
+  alt 810:33/4 first=-
+  alt 810:33/5 first=-
+  alt 810:94/0 first="get"@0
+  alt 810:94/1 first="set"@0
+nonMemberModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 813:27/0 first="abstract"@0
+  alt 813:27/1 first="async"@0
+  alt 813:27/2 first="const"@0
+  alt 813:27/3 first="declare"@0
+  alt 813:27/4 first="default"@0
+  alt 813:27/5 first="export"@0
+  alt 813:27/6 first="in"@0
+  alt 813:27/7 first="out"@0
+memberModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 814:24/0 first="public"@0
+  alt 814:24/1 first="private"@0
+  alt 814:24/2 first="protected"@0
+  alt 814:24/3 first="readonly"@0
+  alt 814:24/4 first="static"@0
+  alt 814:24/5 first="override"@0
+  alt 814:24/6 first="accessor"@0
+classMemberNameFollows null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 815:31/0 first=-
+  alt 815:31/1 first=-
+classElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 816:34/0 first=";"@0
+  alt 816:34/1 first=-
+  alt 816:34/2 first=-
+  alt 816:34/3 first=-
+classAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 817:72/0 first=-
+  alt 817:72/1 first=-
+classMemberNotAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 820:8/0 first=-
+  alt 820:8/1 first=-
+  alt 820:8/2 first=-
+  alt 820:8/3 first=-
+accessorKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 823:25/0 first="get"@0
+  alt 823:25/1 first="set"@0
+semicolonClassElement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=";"@0
+classStaticBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+getAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 831:90/0 first=-
+  alt 831:90/1 first=-
+setAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 835:90/0 first=-
+  alt 835:90/1 first=-
+canFollowGetOrSet null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 837:26/0 first="["@0
+  alt 837:26/1 first=-
+constructorDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 841:66/0 first=-
+  alt 841:66/1 first=-
+constructorName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 843:24/0 first="constructor"@0
+  alt 843:24/1 first=-
+  alt 843:49/0 first="\"constructor\""@0
+  alt 843:49/1 first="'constructor'"@0
+classIndexSignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+methodDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 852:77/0 first=-
+  alt 852:77/1 first=-
+  alt 854:66/0 first=-
+  alt 854:66/1 first=-
+propertyDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 860:6/0 first=-
+  alt 860:6/1 first=-
+interfaceDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeAliasDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 872:45/0 first="intrinsic"@0
+  alt 872:45/1 first=-
+intrinsicKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="intrinsic"@0
+enumDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+enumMember null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+moduleDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 884:44/0 first=-
+  alt 884:44/1 first=-
+  alt 884:44/2 first=-
+namespaceDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 886:18/0 first="namespace"@0
+  alt 886:18/1 first="module"@0
+namespaceBody null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 889:33/0 first=-
+  alt 889:33/1 first=-
+nestedNamespace null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+externalModuleDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 893:6/0 first=-
+  alt 893:6/1 first=-
+globalDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 896:37/0 first=-
+  alt 896:37/1 first=-
+globalIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="global"@0
+moduleBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="{"@0
+importEqualsDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+moduleReference null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 907:40/0 first="require"@1
+  alt 907:40/1 first=-
+externalModuleReference null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="require"@0
+importDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 913:6/0 first=-
+  alt 913:6/1 first="defer"@0
+  alt 913:6/2 first=-
+  alt 913:69/0 first=-
+  alt 913:69/1 first=[*{,=]@0
+importClause null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 918:28/0 first=-
+  alt 918:28/1 first=-
+importPhase null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 920:21/0 first="type"@0
+  alt 920:21/1 first="defer"@0
+  alt 920:43/0 first="from"@0
+  alt 920:43/1 first=-
+  alt 920:63/0 first="from"@0
+  alt 920:63/1 first="="@0
+  alt 920:111/0 first=-
+  alt 920:111/1 first=[*{]@0
+  alt 920:157/0 first="from"@0
+  alt 920:157/1 first=-
+namedImportBindings null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 921:48/0 first="*"@0
+  alt 921:48/1 first="{"@0
+namespaceImport null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="*"@0
+namedImports null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+importSpecifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 928:5/0 first="type"@0
+  alt 928:5/1 first="type"@0
+  alt 928:5/2 first="type"@0
+  alt 928:5/3 first="type"@0
+  alt 928:5/4 first=-
+importSpecifierTypeAsAs null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="type"@0
+importSpecifierTypeAsName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="type"@0
+importSpecifierTypeAs null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="type"@0
+importSpecifierType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="type"@0
+  alt 942:6/0 first=-
+  alt 942:6/1 first=-
+importSpecifierPlain null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 945:5/0 first=-
+  alt 945:5/1 first=-
+typeIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="type"@0
+importedName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 948:33/0 first=-
+  alt 948:33/1 first="#"@0
+privateName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="#"@0
+  alt 949:37/0 first=[a-zA-Z$_]@0
+  alt 949:37/1 first=-
+asIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="as"@0
+moduleExportName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 951:42/0 first=-
+  alt 951:42/1 first=-
+moduleExportNameStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 952:30/0 first=-
+  alt 952:30/1 first="#"@0
+  alt 952:30/2 first=["\']@0
+moduleSpecifier null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 953:35/0 first=-
+  alt 953:35/1 first=-
+importAttributes null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 956:9/0 first="with"@0
+  alt 956:9/1 first="assert"@0
+importAttributesBraces null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="{"@0
+importAttribute null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 962:8/0 first=-
+  alt 962:8/1 first=-
+exportAssignment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 968:41/0 first="="@0
+  alt 968:41/1 first="default"@0
+namespaceExportDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+exportDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 975:44/0 first=-
+  alt 975:44/1 first=-
+exportStarDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 978:6/0 first="*"@0
+  alt 978:6/1 first="*"@0
+exportNamedDeclaration null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+namespaceExport null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+namedExports null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@0
+exportSpecifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 990:5/0 first="type"@0
+  alt 990:5/1 first="type"@0
+  alt 990:5/2 first="type"@0
+  alt 990:5/3 first="type"@0
+  alt 990:5/4 first=-
+exportSpecifierTypeAsAs null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="type"@0
+exportSpecifierTypeAsName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="type"@0
+exportSpecifierTypeAs null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="type"@0
+exportSpecifierType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="type"@0
+  alt 1005:6/0 first=-
+  alt 1005:6/1 first=-
+exportSpecifierPlain null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1008:5/0 first=-
+  alt 1008:5/1 first=-
+modifiers null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+decoratorList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+modifierList null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+staticModifierList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+modifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1028:5/0 first="export"@0
+  alt 1028:5/1 first="default"@0
+  alt 1028:5/2 first="const"@0
+  alt 1028:5/3 first=-
+  alt 1031:8/0 first="abstract"@0
+  alt 1031:8/1 first="accessor"@0
+  alt 1031:8/2 first="async"@0
+  alt 1031:8/3 first="declare"@0
+  alt 1031:8/4 first="in"@0
+  alt 1031:8/5 first="out"@0
+  alt 1031:8/6 first="override"@0
+  alt 1031:8/7 first="private"@0
+  alt 1031:8/8 first="protected"@0
+  alt 1031:8/9 first="public"@0
+  alt 1031:8/10 first="readonly"@0
+staticModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="static"@0
+exportModifierFollows null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1035:5/0 first="default"@0
+  alt 1035:5/1 first="type"@0
+  alt 1035:5/2 first=-
+  alt 1037:10/0 first="default"@0
+  alt 1037:10/1 first="type"@0
+canFollowExportModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1039:32/0 first="@"@0
+  alt 1039:32/1 first=-
+  alt 1039:40/0 first=[*{]@0
+  alt 1039:40/1 first="as"@0
+defaultModifierFollows null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1041:5/0 first=-
+  alt 1041:5/1 first="@"@0
+  alt 1041:5/2 first="abstract"@0
+  alt 1041:5/3 first="async"@0
+  alt 1041:6/0 first="class"@0
+  alt 1041:6/1 first="function"@0
+  alt 1041:6/2 first="interface"@0
+canFollowModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1044:26/0 first=[\[{*]@0
+  alt 1044:26/1 first="..."@0
+  alt 1044:26/2 first=-
+literalPropertyNameStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1045:33/0 first=-
+  alt 1045:33/1 first="#"@0
+  alt 1045:33/2 first=["\'0-9]@0
+  alt 1045:33/3 first="."@0
+classModifiers null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+classModifierList null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+classStaticModifierList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+classModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1056:32/0 first="const"@0
+  alt 1056:32/1 first=-
+classStaticModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="static"@0
+typeMemberModifiers null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+typeParameterModifiers null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+decorator null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="@"@0
+expression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+expressionAllowIn null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+commaExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+assignmentExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+assignmentExpressionAllowIn null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+assignmentExpressionInner null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1088:45/0 first=-
+  alt 1088:45/1 first=-
+  alt 1088:45/2 first=-
+  alt 1088:45/3 first=-
+  alt 1088:45/4 first=-
+  alt 1088:45/5 first=-
+  alt 1088:76/0 first="async"@0
+  alt 1088:76/1 first=[(<]@0
+yieldExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="yield"@0
+  alt 1093:22/0 first=-
+  alt 1093:22/1 first=-
+identifierOrKeywordOrLiteralStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1096:42/0 first=-
+  alt 1096:42/1 first="#"@0
+  alt 1096:42/2 first=[0-9"\']@0
+  alt 1096:42/3 first="."@0
+nlStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1097:16/0 first=[\n\r\u2028\u2029]@0
+  alt 1097:16/1 first="/*"@0
+assignment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+assignmentOperator null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1103:5/0 first=">>>="@0
+  alt 1103:5/1 first="**="@0
+  alt 1103:5/2 first="<<="@0
+  alt 1103:5/3 first=">>="@0
+  alt 1103:5/4 first="&&="@0
+  alt 1103:5/5 first="||="@0
+  alt 1103:5/6 first="??="@0
+  alt 1103:5/7 first="+="@0
+  alt 1103:5/8 first="-="@0
+  alt 1103:5/9 first="*="@0
+  alt 1103:5/10 first="/="@0
+  alt 1103:5/11 first="%="@0
+  alt 1103:5/12 first="&="@0
+  alt 1103:5/13 first="|="@0
+  alt 1103:5/14 first="^="@0
+  alt 1103:5/15 first="="@0
+conditionalOrBinaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+conditionalWhenTrue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+conditionalWhenFalse null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+conditionalQuestionToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="?"@0
+arrowFunction null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1122:47/0 first=-
+  alt 1122:47/1 first=-
+  alt 1122:47/2 first=-
+arrowAsyncModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="async"@0
+asyncKeywordModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="async"@0
+arrowTypeParameters null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1127:16/0 first="const"@0
+  alt 1127:16/1 first=-
+  alt 1127:48/0 first=-
+  alt 1127:48/1 first=-
+tsxArrowTypeParametersStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="<"@0
+  alt 1132:6/0 first="extends"@0
+  alt 1132:6/1 first=[,=]@0
+arrowParenthesisIsNotParameterList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first="("@0
+  alt 1135:52/0 first="yield"@0
+  alt 1135:52/1 first="await"@0
+  alt 1135:52/2 first=-
+  alt 1135:176/0 first=-
+  alt 1135:176/1 first="this"@0
+simpleArrowFunction null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+simpleArrowParameter null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+asyncSimpleArrowFunction null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="async"@0
+arrowBody null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1147:30/0 first="{"@1
+  alt 1147:30/1 first=-
+binaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+coalesceOrToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1197:31/0 first="??"@0
+  alt 1197:31/1 first="||"@0
+ampersandAmpersandToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="&&"@0
+barToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="|"@0
+caretToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="^"@0
+ampersandToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="&"@0
+equalityToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1202:29/0 first="==="@0
+  alt 1202:29/1 first="!=="@0
+  alt 1202:29/2 first="=="@0
+  alt 1202:29/3 first="!="@0
+relationalToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1205:5/0 first="<="@0
+  alt 1205:5/1 first=">="@0
+  alt 1205:5/2 first="<"@0
+  alt 1205:5/3 first=">"@0
+  alt 1205:5/4 first="instanceof"@0
+  alt 1205:5/5 first=-
+shiftToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1208:26/0 first=">>>"@0
+  alt 1208:26/1 first=">>"@0
+  alt 1208:26/2 first="<<"@0
+additiveToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1209:29/0 first="+"@0
+  alt 1209:29/1 first="-"@0
+multiplicativeToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1210:35/0 first="*"@0
+  alt 1210:35/1 first="/"@0
+  alt 1210:35/2 first="%"@0
+asteriskAsteriskToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="**"@0
+binaryOperatorStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1214:5/0 first=-
+  alt 1214:5/1 first="&&"@0
+  alt 1214:5/2 first="|"@0
+  alt 1214:5/3 first="^"@0
+  alt 1214:5/4 first="&"@0
+  alt 1214:5/5 first=-
+  alt 1214:5/6 first=-
+  alt 1214:5/7 first=-
+  alt 1214:5/8 first=-
+  alt 1214:5/9 first=-
+  alt 1214:5/10 first="**"@0
+  alt 1214:5/11 first=-
+  alt 1216:8/0 first="as"@0
+  alt 1216:8/1 first="satisfies"@0
+unaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1221:35/0 first=-
+  alt 1221:35/1 first=-
+unaryOperatorStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1224:6/0 first="+"@0
+  alt 1224:6/1 first="-"@0
+  alt 1224:6/2 first=[~!]@0
+  alt 1224:6/3 first=-
+  alt 1224:6/4 first=-
+  alt 1224:36/0 first="delete"@0
+  alt 1224:36/1 first="typeof"@0
+  alt 1224:36/2 first="void"@0
+  alt 1224:36/3 first="await"@0
+simpleUnaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1227:5/0 first=-
+  alt 1227:5/1 first="delete"@1
+  alt 1227:5/2 first="typeof"@1
+  alt 1227:5/3 first="void"@1
+  alt 1227:5/4 first=-
+  alt 1227:5/5 first=-
+  alt 1227:5/6 first="await"@1
+  alt 1227:5/7 first=-
+prefixUnaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1231:8/0 first="+"@0
+  alt 1231:8/1 first="-"@0
+  alt 1231:8/2 first="~"@0
+  alt 1231:8/3 first="!"@0
+deleteExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="delete"@0
+typeOfExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="typeof"@0
+voidExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="void"@0
+awaitExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="await"@0
+  alt 1238:22/0 first=-
+  alt 1238:22/1 first=-
+typeAssertion null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsxUnaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+updateExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1248:36/0 first=-
+  alt 1248:36/1 first=-
+  alt 1248:36/2 first=-
+postfixOrLeftHandSideExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1251:43/0 first="++"@0
+  alt 1251:43/1 first="--"@0
+prefixUpdateExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1255:8/0 first="++"@0
+  alt 1255:8/1 first="--"@0
+jsxPrimaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1259:28/0 first=-
+  alt 1259:28/1 first=">"@0
+leftHandSideExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+heritageExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+newTarget null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+memberName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1320:30/0 first="#"@0
+  alt 1320:30/1 first=-
+questionDotToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="?."@0
+typeArgumentsInExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="<"@0
+typeArgumentsCanFollow null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1331:5/0 first=-
+  alt 1331:5/1 first=-
+  alt 1332:14/0 first="<"@0
+  alt 1332:14/1 first=">"@0
+  alt 1332:14/2 first="+"@0
+  alt 1332:14/3 first="-"@0
+  alt 1332:14/4 first="."@0
+  alt 1332:14/5 first="?."@0
+  alt 1333:8/0 first=-
+  alt 1333:8/1 first=-
+  alt 1333:8/2 first=-
+expressionStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1337:5/0 first=[0-9"\'`(\[{/~!#@]@0
+  alt 1337:5/1 first="<"@0
+  alt 1337:5/2 first="+"@0
+  alt 1337:5/3 first="-"@0
+  alt 1337:5/4 first="."@0
+  alt 1337:5/5 first=-
+  alt 1337:5/6 first="import"@0
+  alt 1337:5/7 first=-
+  alt 1337:5/8 first=-
+  alt 1338:8/0 first="this"@0
+  alt 1338:8/1 first="super"@0
+  alt 1338:8/2 first="null"@0
+  alt 1338:8/3 first="true"@0
+  alt 1338:8/4 first="false"@0
+  alt 1338:8/5 first="function"@0
+  alt 1338:8/6 first="class"@0
+  alt 1338:8/7 first="new"@0
+  alt 1338:8/8 first="delete"@0
+  alt 1338:8/9 first="typeof"@0
+  alt 1338:8/10 first="void"@0
+arguments null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="("@0
+argumentList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+argument null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1349:28/0 first="..."@1
+  alt 1349:28/1 first=-
+spreadElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="..."@0
+superExpression null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="super"@0
+superKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="super"@0
+importCallee null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="import"@0
+importMetaProperty null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="import"@0
+primaryExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1365:6/0 first=-
+  alt 1365:6/1 first=-
+wordPrimary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1368:31/0 first=-
+  alt 1368:31/1 first="this"@0
+  alt 1368:31/2 first="null"@0
+  alt 1368:31/3 first=-
+  alt 1368:31/4 first=-
+  alt 1368:31/5 first=-
+  alt 1368:31/6 first=-
+symbolPrimary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1370:5/0 first=-
+  alt 1370:5/1 first=-
+  alt 1370:5/2 first="`"@0
+  alt 1370:5/3 first="`"@1
+  alt 1370:5/4 first="("@1
+  alt 1370:5/5 first="["@1
+  alt 1370:5/6 first="{"@1
+  alt 1370:5/7 first=-
+  alt 1370:5/8 first="/"@0
+  alt 1370:5/9 first="#"@0
+numericOrBigIntLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1374:53/0 first=-
+  alt 1374:53/1 first=-
+thisKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="this"@0
+nullKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="null"@0
+booleanKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1377:40/0 first="true"@0
+  alt 1377:40/1 first="false"@0
+parenthesizedExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="("@0
+arrayLiteralExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="["@0
+arrayElement null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1386:32/0 first="..."@1
+  alt 1386:32/1 first=-
+  alt 1386:32/2 first=-
+objectLiteralExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+objectLiteralElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1392:50/0 first="..."@1
+  alt 1392:50/1 first=-
+  alt 1392:50/2 first=-
+objectAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1393:76/0 first=-
+  alt 1393:76/1 first=-
+objectMemberNotAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1396:8/0 first=-
+  alt 1396:8/1 first=-
+  alt 1396:8/2 first=-
+objectLiteralElementStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1398:34/0 first=[\[*.]@0
+  alt 1398:34/1 first=-
+spreadAssignment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="..."@0
+objectGetAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1402:90/0 first=-
+  alt 1402:90/1 first=-
+objectSetAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1406:90/0 first=-
+  alt 1406:90/1 first=-
+objectMethod null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1410:57/0 first=-
+  alt 1410:57/1 first=-
+  alt 1412:66/0 first=-
+  alt 1412:66/1 first=-
+shorthandPropertyAssignment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+propertyAssignment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+functionExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+asyncFunctionModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="async"@0
+classExpressionPrimary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1431:49/0 first="class"@0
+  alt 1431:49/1 first="@"@0
+newExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1435:33/0 first="new"@0
+  alt 1435:33/1 first="new"@1
+newTargetMetaProperty null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="new"@0
+newExpressionWithTarget null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="new"@0
+templateExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="`"@0
+templateSpans null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+templateSpanMiddle null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+templateSpanTail null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+taggedTemplate null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1452:39/0 first="`"@0
+  alt 1452:39/1 first="`"@1
+rawTemplateExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="`"@0
+rawTemplateSpans null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+rawTemplateSpanMiddle null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+rawTemplateSpanTail null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsxElementOrFragment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1468:40/0 first="<"@1
+  alt 1468:40/1 first=-
+  alt 1468:40/2 first="<"@1
+jsxSelfClosingElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="<"@0
+jsxElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+jsxOpeningElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="<"@0
+jsxClosingElement null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="</"@0
+jsxFragment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="<"@0
+jsxOpeningFragment null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="<"@0
+jsxClosingFragment null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="</"@0
+jsxElementName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1490:34/0 first=-
+  alt 1490:34/1 first=-
+jsxMemberName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+jsxTagNameStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1494:40/0 first="this"@0
+  alt 1494:40/1 first=-
+jsxThis null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="this"@0
+  alt 1495:41/0 first=-
+  alt 1495:41/1 first="-"@0
+jsxIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1496:48/0 first=-
+  alt 1496:48/1 first="-"@0
+jsxNamespacedName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+jsxAttributes null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+jsxAttributeLike null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1504:42/0 first="{"@1
+  alt 1504:42/1 first=-
+jsxAttribute null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsxAttributeName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1508:42/0 first=-
+  alt 1508:42/1 first=-
+jsxAttributeValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1509:44/0 first=-
+  alt 1509:44/1 first="{"@1
+  alt 1509:44/2 first=-
+jsxElementOrFragmentValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1510:52/0 first="<"@1
+  alt 1510:52/1 first=-
+  alt 1510:52/2 first="<"@1
+jsxAttributeString null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1511:42/0 first="\""@0
+  alt 1511:42/1 first="'"@0
+jsxAttributeExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+jsxSpreadAttribute null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+jsxChild null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1518:26/0 first=-
+  alt 1518:26/1 first="{"@1
+  alt 1518:26/2 first=-
+jsxText null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+jsxChildExpression null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@0
+jsxChildElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1523:42/0 first="<"@1
+  alt 1523:42/1 first=-
+  alt 1523:42/2 first="<"@1
+typeNode null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+typeInner null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1531:27/0 first=-
+  alt 1531:27/1 first=-
+  alt 1531:27/2 first=-
+typeNoConditional null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+typeAllowConditional null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+conditionalOrHigher null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeOrTypePredicate null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1540:37/0 first=-
+  alt 1540:37/1 first=-
+typePredicate null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+functionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1546:12/0 first=-
+  alt 1546:12/1 first=-
+constructorType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1550:8/0 first="abstract"@0
+  alt 1550:8/1 first="new"@0
+abstractModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="abstract"@0
+abstractKeywordModifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="abstract"@0
+returnTypeOfType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+unionOrHigher null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1559:31/0 first="|"@1
+  alt 1559:31/1 first=-
+leadingUnionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="|"@0
+plainOrUnionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+intersectionOrHigher null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1568:38/0 first="&"@1
+  alt 1568:38/1 first=-
+leadingIntersectionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="&"@0
+plainOrIntersectionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeOperatorOrHigher null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1579:5/0 first=-
+  alt 1579:5/1 first=-
+  alt 1579:8/0 first="keyof"@0
+  alt 1579:8/1 first="unique"@0
+  alt 1579:8/2 first="readonly"@0
+  alt 1579:8/3 first="infer"@0
+  alt 1579:63/0 first=-
+  alt 1579:63/1 first="infer"@1
+  alt 1579:94/0 first="keyof"@0
+  alt 1579:94/1 first="unique"@0
+  alt 1579:94/2 first="readonly"@0
+  alt 1579:94/3 first="infer"@0
+postfixTypeAllowConditional null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeOperator null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1583:9/0 first="keyof"@0
+  alt 1583:9/1 first="unique"@0
+  alt 1583:9/2 first="readonly"@0
+inferType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="infer"@0
+inferTypeParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1589:54/0 first=-
+  alt 1589:54/1 first=-
+postfixType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+postfixTypeNoQuestion null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+nonArrayType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1617:6/0 first=-
+  alt 1617:6/1 first=-
+wordType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1622:26/0 first=-
+  alt 1622:26/1 first=-
+  alt 1622:29/0 first="any"@0
+  alt 1622:29/1 first="unknown"@0
+  alt 1622:29/2 first="string"@0
+  alt 1622:29/3 first="number"@0
+  alt 1622:29/4 first="bigint"@0
+  alt 1622:29/5 first="symbol"@0
+  alt 1622:29/6 first="boolean"@0
+  alt 1622:29/7 first="undefined"@0
+  alt 1622:29/8 first="never"@0
+  alt 1622:29/9 first="object"@0
+  alt 1622:29/10 first="void"@0
+  alt 1622:29/11 first="true"@0
+  alt 1622:29/12 first="false"@0
+  alt 1622:29/13 first="null"@0
+  alt 1622:29/14 first="this"@0
+  alt 1622:29/15 first="typeof"@0
+  alt 1622:29/16 first="import"@0
+  alt 1622:29/17 first="asserts"@0
+  alt 1622:29/18 first="function"@0
+specialWordType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1624:5/0 first=-
+  alt 1624:5/1 first=-
+  alt 1624:5/2 first="this"@1
+  alt 1624:5/3 first="this"@0
+  alt 1624:5/4 first=-
+  alt 1624:5/5 first="typeof"@1
+  alt 1624:5/6 first="asserts"@1
+  alt 1624:5/7 first="function"@1
+  alt 1624:5/8 first="function"@0
+  alt 1624:5/9 first=-
+symbolType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1628:5/0 first=-
+  alt 1628:5/1 first=-
+  alt 1628:5/2 first=-
+  alt 1628:5/3 first="["@1
+  alt 1628:5/4 first=-
+  alt 1628:5/5 first="`"@1
+  alt 1628:5/6 first="*"@0
+  alt 1628:5/7 first="?"@0
+  alt 1628:5/8 first="?"@1
+  alt 1628:5/9 first="!"@1
+  alt 1628:5/10 first=-
+keywordType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1633:5/0 first=-
+  alt 1633:5/1 first="void"@0
+  alt 1633:6/0 first="any"@0
+  alt 1633:6/1 first="unknown"@0
+  alt 1633:6/2 first="string"@0
+  alt 1633:6/3 first="number"@0
+  alt 1633:6/4 first="bigint"@0
+  alt 1633:6/5 first="symbol"@0
+  alt 1633:6/6 first="boolean"@0
+  alt 1633:6/7 first="undefined"@0
+  alt 1633:6/8 first="never"@0
+  alt 1633:6/9 first="object"@0
+literalType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1636:35/0 first=-
+  alt 1636:35/1 first=-
+  alt 1636:35/2 first=-
+  alt 1636:35/3 first=-
+  alt 1636:35/4 first="null"@0
+  alt 1636:35/5 first="`"@0
+  alt 1636:35/6 first="-"@0
+negativeLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="-"@0
+  alt 1638:16/0 first=-
+  alt 1638:16/1 first=-
+thisType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="this"@0
+thisTypePredicate null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="this"@0
+assertsTypePredicate null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="asserts"@0
+  alt 1647:8/0 first="this"@0
+  alt 1647:8/1 first=-
+assertsToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="asserts"@0
+identifierOrKeywordStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1650:33/0 first=-
+  alt 1650:33/1 first="#"@0
+typeQuery null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="typeof"@0
+importType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1656:27/0 first="with"@0
+  alt 1656:27/1 first="assert"@0
+importTypeAttributes null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="{"@1
+typeReference null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1662:8/0 first="typeof"@0
+  alt 1662:8/1 first="void"@0
+  alt 1662:8/2 first="this"@0
+  alt 1662:8/3 first="import"@0
+  alt 1662:8/4 first="true"@0
+  alt 1662:8/5 first="false"@0
+  alt 1662:8/6 first="null"@0
+  alt 1662:8/7 first="keyof"@0
+  alt 1662:8/8 first="unique"@0
+  alt 1662:8/9 first="readonly"@0
+  alt 1662:8/10 first="infer"@0
+  alt 1662:8/11 first="new"@0
+  alt 1662:8/12 first="function"@0
+  alt 1663:54/0 first=-
+  alt 1663:54/1 first=-
+functionTypeReference null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="function"@0
+functionIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="function"@0
+parenthesizedType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+unambiguousFunctionTypeStart null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="("@0
+  alt 1671:46/0 first=")"@0
+  alt 1671:46/1 first="..."@0
+  alt 1671:46/2 first=-
+  alt 1671:81/0 first=-
+  alt 1671:81/1 first="this"@0
+  alt 1671:81/2 first=-
+  alt 1671:132/0 first=[:,?=]@0
+  alt 1671:132/1 first=")"@0
+templateLiteralType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="`"@0
+templateTypeSpans null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+templateTypeSpanMiddle null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+templateTypeSpanTail null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsdocAllType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+jsdocUnknownType null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="?"@0
+jsdocNullableType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="?"@0
+jsdocNonNullableType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="!"@0
+jsdocFunctionType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="function"@0
+jsdocParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+jsdocParameterName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1695:40/0 first="this"@0
+  alt 1695:40/1 first="new"@0
+entityName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+entityNameAllowReserved null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+typeArguments null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="<"@0
+typeList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+typeParameters null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="<"@0
+typeParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1716:33/0 first=-
+  alt 1716:33/1 first=-
+  alt 1716:35/0 first=-
+  alt 1716:35/1 first=-
+tupleType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="["@0
+tupleElement null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1724:30/0 first=-
+  alt 1724:30/1 first=-
+namedTupleMember null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+tupleElementType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1730:34/0 first="..."@1
+  alt 1730:34/1 first=-
+  alt 1730:34/2 first=-
+restType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="..."@0
+optionalType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeLiteral null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+objectTypeMembers null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first="{"@0
+typeMemberStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1740:5/0 first=[(<]@0
+  alt 1740:5/1 first=-
+  alt 1740:5/2 first=-
+  alt 1740:5/3 first=-
+  alt 1740:5/4 first=-
+  alt 1740:13/0 first="get"@0
+  alt 1740:13/1 first="set"@0
+typeMemberNameFollows null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1745:30/0 first=-
+  alt 1745:30/1 first=-
+  alt 1745:45/0 first=[(<?:,;}]@0
+  alt 1745:45/1 first=-
+literalPropertyNameToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1746:33/0 first=-
+  alt 1746:33/1 first="#"@0
+  alt 1746:33/2 first=-
+  alt 1746:33/3 first=-
+  alt 1746:33/4 first=-
+mappedTypeStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first="{"@0
+  alt 1748:33/0 first=[+\-]@0
+  alt 1748:33/1 first=-
+mappedType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+mappedTypeParameter null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+mappedReadonlyToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1757:37/0 first=[+\-]@0
+  alt 1757:37/1 first="readonly"@0
+mappedPlusMinusReadonly null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[+\-]@0
+mappedQuestionToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1759:37/0 first=[+\-]@0
+  alt 1759:37/1 first="?"@0
+mappedPlusMinusQuestion null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[+\-]@0
+plusMinusToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[+\-]@0
+readonlyToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="readonly"@0
+typeMember null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1765:31/0 first=-
+  alt 1765:31/1 first="new"@1
+  alt 1765:31/2 first=-
+  alt 1765:31/3 first=-
+typeAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1766:75/0 first=-
+  alt 1766:75/1 first=-
+typeMemberNotAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1769:8/0 first=-
+  alt 1769:8/1 first=-
+  alt 1769:8/2 first=-
+callSignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+constructSignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="new"@0
+typeGetAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1780:66/0 first=-
+  alt 1780:66/1 first=-
+typeSetAccessor null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+  alt 1784:66/0 first=-
+  alt 1784:66/1 first=-
+typeIndexSignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+indexSignatureStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first="["@0
+  alt 1791:37/0 first="..."@0
+  alt 1791:37/1 first="]"@0
+  alt 1791:37/2 first=-
+  alt 1791:37/3 first=-
+  alt 1791:100/0 first=[:,]@0
+  alt 1791:100/1 first="?"@0
+modifierKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1792:25/0 first="abstract"@0
+  alt 1792:25/1 first="accessor"@0
+  alt 1792:25/2 first="async"@0
+  alt 1792:25/3 first="const"@0
+  alt 1792:25/4 first="declare"@0
+  alt 1792:25/5 first="default"@0
+  alt 1792:25/6 first="export"@0
+  alt 1792:25/7 first="in"@0
+  alt 1792:25/8 first="out"@0
+  alt 1792:25/9 first="override"@0
+  alt 1792:25/10 first="private"@0
+  alt 1792:25/11 first="protected"@0
+  alt 1792:25/12 first="public"@0
+  alt 1792:25/13 first="readonly"@0
+  alt 1792:25/14 first="static"@0
+methodSignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+propertySignature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeMemberSemicolon null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1802:28/0 first=-
+  alt 1802:28/1 first=-
+typeStart null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1807:5/0 first=-
+  alt 1807:5/1 first=[{\[<|&"\'0-9*?!`]@0
+  alt 1807:5/2 first="..."@0
+  alt 1807:5/3 first="."@0
+  alt 1807:5/4 first="-"@0
+  alt 1807:5/5 first="("@0
+  alt 1807:5/6 first=-
+  alt 1807:6/0 first="any"@0
+  alt 1807:6/1 first="unknown"@0
+  alt 1807:6/2 first="string"@0
+  alt 1807:6/3 first="number"@0
+  alt 1807:6/4 first="bigint"@0
+  alt 1807:6/5 first="boolean"@0
+  alt 1807:6/6 first="readonly"@0
+  alt 1807:6/7 first="symbol"@0
+  alt 1807:6/8 first="unique"@0
+  alt 1807:6/9 first="void"@0
+  alt 1807:6/10 first="undefined"@0
+  alt 1807:6/11 first="null"@0
+  alt 1807:6/12 first="this"@0
+  alt 1807:6/13 first="typeof"@0
+  alt 1807:6/14 first="never"@0
+  alt 1807:6/15 first="true"@0
+  alt 1807:6/16 first="false"@0
+  alt 1807:6/17 first="object"@0
+  alt 1807:6/18 first="new"@0
+  alt 1807:6/19 first="infer"@0
+  alt 1807:6/20 first="import"@0
+  alt 1807:6/21 first="asserts"@0
+  alt 1807:6/22 first="function"@0
+  alt 1809:16/0 first=[0-9]@0
+  alt 1809:16/1 first="."@0
+  alt 1810:16/0 first=[)\[{@.#]@0
+  alt 1810:16/1 first=-
+  alt 1810:16/2 first=-
+  alt 1810:16/3 first=-
+propertyName null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1819:5/0 first=-
+  alt 1819:5/1 first=-
+  alt 1819:5/2 first=-
+  alt 1819:5/3 first="["@1
+  alt 1819:5/4 first="#"@0
+  alt 1819:5/5 first=-
+computedPropertyName null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first="["@0
+questionToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="?"@0
+exclamationToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="!"@0
+asteriskToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+dotDotDotToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="..."@0
+equalsGreaterThanToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="=>"@0
+colonToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=":"@0
+equalsToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="="@0
+commaToken null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=","@0
+identifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+bindingIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+identifierName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1844:36/0 first=[a-zA-Z$_]@0
+  alt 1844:36/1 first=-
+privateIdentifier null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="#"@0
+  alt 1845:50/0 first=[a-zA-Z$_]@0
+  alt 1845:50/1 first=-
+identifierNameOrPrivate null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1846:50/0 first=[a-zA-Z$_]@0
+  alt 1846:50/1 first=-
+anyKeyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1848:20/0 first="abstract"@0
+  alt 1848:20/1 first="accessor"@0
+  alt 1848:20/2 first="any"@0
+  alt 1848:20/3 first="asserts"@0
+  alt 1848:20/4 first="assert"@0
+  alt 1848:20/5 first="async"@0
+  alt 1848:20/6 first="as"@0
+  alt 1848:20/7 first="await"@0
+  alt 1848:20/8 first="bigint"@0
+  alt 1848:20/9 first="boolean"@0
+  alt 1848:20/10 first="break"@0
+  alt 1848:20/11 first="case"@0
+  alt 1848:20/12 first="catch"@0
+  alt 1848:20/13 first="class"@0
+  alt 1848:20/14 first="constructor"@0
+  alt 1848:20/15 first="const"@0
+  alt 1848:20/16 first="continue"@0
+  alt 1848:20/17 first="debugger"@0
+  alt 1848:20/18 first="declare"@0
+  alt 1848:20/19 first="default"@0
+  alt 1848:20/20 first="defer"@0
+  alt 1848:20/21 first="delete"@0
+  alt 1848:20/22 first="do"@0
+  alt 1848:20/23 first="else"@0
+  alt 1848:20/24 first="enum"@0
+  alt 1848:20/25 first="export"@0
+  alt 1848:20/26 first="extends"@0
+  alt 1848:20/27 first="false"@0
+  alt 1848:20/28 first="finally"@0
+  alt 1848:20/29 first="for"@0
+  alt 1848:20/30 first="from"@0
+  alt 1848:20/31 first="function"@0
+  alt 1848:20/32 first="get"@0
+  alt 1848:20/33 first="global"@0
+  alt 1848:20/34 first="if"@0
+  alt 1848:20/35 first="implements"@0
+  alt 1848:20/36 first="import"@0
+  alt 1848:20/37 first="infer"@0
+  alt 1848:20/38 first="instanceof"@0
+  alt 1848:20/39 first="interface"@0
+  alt 1848:20/40 first="intrinsic"@0
+  alt 1848:20/41 first="in"@0
+  alt 1848:20/42 first="is"@0
+  alt 1848:20/43 first="keyof"@0
+  alt 1848:20/44 first="let"@0
+  alt 1848:20/45 first="module"@0
+  alt 1848:20/46 first="namespace"@0
+  alt 1848:20/47 first="never"@0
+  alt 1848:20/48 first="new"@0
+  alt 1848:20/49 first="null"@0
+  alt 1848:20/50 first="number"@0
+  alt 1848:20/51 first="object"@0
+  alt 1848:20/52 first="of"@0
+  alt 1848:20/53 first="out"@0
+  alt 1848:20/54 first="override"@0
+  alt 1848:20/55 first="package"@0
+  alt 1848:20/56 first="private"@0
+  alt 1848:20/57 first="protected"@0
+  alt 1848:20/58 first="public"@0
+  alt 1848:20/59 first="readonly"@0
+  alt 1848:20/60 first="require"@0
+  alt 1848:20/61 first="return"@0
+  alt 1848:20/62 first="satisfies"@0
+  alt 1848:20/63 first="set"@0
+  alt 1848:20/64 first="static"@0
+  alt 1848:20/65 first="string"@0
+  alt 1848:20/66 first="super"@0
+  alt 1848:20/67 first="switch"@0
+  alt 1848:20/68 first="symbol"@0
+  alt 1848:20/69 first="this"@0
+  alt 1848:20/70 first="throw"@0
+  alt 1848:20/71 first="true"@0
+  alt 1848:20/72 first="try"@0
+  alt 1848:20/73 first="typeof"@0
+  alt 1848:20/74 first="type"@0
+  alt 1848:20/75 first="undefined"@0
+  alt 1848:20/76 first="unique"@0
+  alt 1848:20/77 first="unknown"@0
+  alt 1848:20/78 first="using"@0
+  alt 1848:20/79 first="var"@0
+  alt 1848:20/80 first="void"@0
+  alt 1848:20/81 first="while"@0
+  alt 1848:20/82 first="with"@0
+  alt 1848:20/83 first="yield"@0
+reservedWord null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1850:22/0 first=-
+  alt 1850:22/1 first=-
+  alt 1850:22/2 first=-
+  alt 1850:22/3 first=-
+  alt 1850:22/4 first=-
+  alt 1850:22/5 first=-
+  alt 1850:22/6 first=-
+  alt 1850:22/7 first=-
+  alt 1850:22/8 first=-
+  alt 1850:22/9 first=-
+  alt 1850:22/10 first=-
+  alt 1850:22/11 first=-
+  alt 1850:43/0 first="case"@0
+  alt 1850:43/1 first="catch"@0
+  alt 1850:43/2 first="class"@0
+  alt 1850:43/3 first="const"@0
+  alt 1850:43/4 first="continue"@0
+  alt 1850:102/0 first="debugger"@0
+  alt 1850:102/1 first="default"@0
+  alt 1850:102/2 first="delete"@0
+  alt 1850:102/3 first="do"@0
+  alt 1850:152/0 first="else"@0
+  alt 1850:152/1 first="enum"@0
+  alt 1850:152/2 first="export"@0
+  alt 1850:152/3 first="extends"@0
+  alt 1850:200/0 first="false"@0
+  alt 1850:200/1 first="finally"@0
+  alt 1850:200/2 first="for"@0
+  alt 1850:200/3 first="function"@0
+  alt 1850:250/0 first="if"@0
+  alt 1850:250/1 first="import"@0
+  alt 1850:250/2 first="instanceof"@0
+  alt 1850:250/3 first="in"@0
+  alt 1850:297/0 first="new"@0
+  alt 1850:297/1 first="null"@0
+  alt 1850:337/0 first="super"@0
+  alt 1850:337/1 first="switch"@0
+  alt 1850:365/0 first="this"@0
+  alt 1850:365/1 first="throw"@0
+  alt 1850:365/2 first="true"@0
+  alt 1850:365/3 first="try"@0
+  alt 1850:365/4 first="typeof"@0
+  alt 1850:419/0 first="var"@0
+  alt 1850:419/1 first="void"@0
+  alt 1850:443/0 first="while"@0
+  alt 1850:443/1 first="with"@0
+identifierRest null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1853:63/0 first="\\u"@0
+  alt 1853:63/1 first=-
+idStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1854:16/0 first=[a-zA-Z$_]@0
+  alt 1854:16/1 first=-
+idStartOther null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1855:21/0 first="\\u"@0
+  alt 1855:21/1 first=-
+idPart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1856:15/0 first=[a-zA-Z0-9$_]@0
+  alt 1856:15/1 first="\\u"@0
+  alt 1856:15/2 first=-
+identifierStartEscape null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1860:5/0 first="00"@0
+  alt 1860:5/1 first=-
+  alt 1860:5/2 first="00"@0
+  alt 1860:5/3 first="{"@0
+  alt 1861:17/0 first=-
+  alt 1861:17/1 first=-
+identifierPartEscape null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1864:5/0 first="00"@0
+  alt 1864:5/1 first=-
+  alt 1864:5/2 first="00"@0
+  alt 1864:5/3 first="{"@0
+  alt 1864:11/0 first=-
+  alt 1864:11/1 first="3"@0
+  alt 1865:17/0 first=-
+  alt 1865:17/1 first="3"@0
+  alt 1865:17/2 first=-
+surrogate null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[dD]@0
+asciiIdentifierStartHex null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1869:32/0 first="24"@0
+  alt 1869:32/1 first="4"@0
+  alt 1869:32/2 first="5"@0
+  alt 1869:32/3 first="5"@0
+  alt 1869:32/4 first="6"@0
+  alt 1869:32/5 first="7"@0
+nonASCIIBraced null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1871:23/0 first=[89a-fA-F]@0
+  alt 1871:23/1 first=[1-9a-fA-F]@0
+  alt 1871:23/2 first="10"@0
+unicodeEscape null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1872:22/0 first=[0-9a-fA-F]@0
+  alt 1872:22/1 first="{"@0
+unicodeBraced null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@0
+  alt 1874:27/0 first=-
+  alt 1874:27/1 first=-
+  alt 1874:27/2 first=-
+hex null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-9a-fA-F]@0
+numericLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1880:40/0 first="0"@0
+  alt 1880:40/1 first="0"@0
+  alt 1880:40/2 first="0"@0
+  alt 1880:40/3 first=-
+bigIntLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1881:38/0 first="0"@0
+  alt 1881:38/1 first="0"@0
+  alt 1881:38/2 first="0"@0
+  alt 1881:38/3 first=-
+decimalLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1882:23/0 first=-
+  alt 1882:23/1 first="."@0
+decimalInteger null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1883:23/0 first="0"@0
+  alt 1883:23/1 first=[1-9]@0
+decimalDigits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-9]@0
+exponentPart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=[eE]@0
+hexLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="0"@0
+binaryLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="0"@0
+octalLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="0"@0
+stringLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1892:37/0 first="\""@0
+  alt 1892:37/1 first="'"@0
+  alt 1892:43/0 first=-
+  alt 1892:43/1 first="\\"@0
+  alt 1892:86/0 first=-
+  alt 1892:86/1 first="\\"@0
+escapeSequence null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="\\"@0
+  alt 1893:29/0 first=[^0-9xu\n\r\u2028\u2029]@0
+  alt 1893:29/1 first="0"@0
+  alt 1893:29/2 first="x"@0
+  alt 1893:29/3 first="u"@0
+  alt 1893:29/4 first="\r\n"@0
+  alt 1893:29/5 first=[\n\r\u2028\u2029]@0
+noSubstitutionTemplateLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="`"@0
+templateHead null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="`"@0
+templateMiddle null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="}"@0
+templateTail null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="}"@0
+templateCharacters null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 1900:28/0 first=-
+  alt 1900:28/1 first="$"@0
+  alt 1900:28/2 first="\\"@0
+rawNoSubstitutionTemplateLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="`"@0
+rawTemplateHead null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="`"@0
+rawTemplateMiddle null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="}"@0
+rawTemplateTail null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="}"@0
+rawTemplateCharacters null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1905:31/0 first=-
+  alt 1905:31/1 first="$"@0
+  alt 1905:31/2 first="\\"@0
+regularExpressionLiteral null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="/"@0
+  alt 1910:70/0 first=-
+  alt 1910:70/1 first="\\"@0
+  alt 1910:70/2 first="["@0
+  alt 1910:138/0 first=-
+  alt 1910:138/1 first="\\"@0
+  alt 1910:211/0 first=[a-zA-Z0-9$_]@0
+  alt 1910:211/1 first=-
+ws null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1915:120/0 first=-
+  alt 1915:120/1 first="//"@0
+  alt 1915:120/2 first="/*"@0
+sp null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 1916:100/0 first=-
+  alt 1916:100/1 first="//"@0
+  alt 1916:100/2 first="/*"@0
+arrayBindingElementList null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+arrayElementList null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+bindingElementList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+enumMemberList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+exportSpecifierList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+importAttributeList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+importSpecifierList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsdocParameterList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+jsxAttributeLikeList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+objectLiteralElementList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+tupleElementList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeParameterList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=ctx memo=true transient=true missing=false first=-
+typeParameterStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=ctx memo=true transient=false missing=false first=-
+  alt 1936:27/0 first=-
+  alt 1936:27/1 first=-
+  alt 1936:28/0 first="in"@0
+  alt 1936:28/1 first="const"@0
+uniIdStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+uniIdPart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

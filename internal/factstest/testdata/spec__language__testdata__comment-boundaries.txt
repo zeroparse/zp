@@ -1,0 +1,80 @@
+owner_example null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+start null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+after null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+after_boundary null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 39:5/0 first=-
+  alt 39:5/1 first=-
+  alt 39:5/2 first=-
+  alt 39:5/3 first=-
+  alt 39:5/4 first=-
+inline_line_boundary null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+inline_block_boundary null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 46:47/0 first=-
+  alt 46:47/1 first=-
+  alt 46:47/2 first=-
+ambiguous_block_boundary null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+newline_boundary null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 54:36/0 first=-
+  alt 54:36/1 first=-
+first_trailing null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 60:5/0 first="//"@0
+  alt 60:5/1 first="/*"@1
+remaining null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 62:34/0 first=-
+  alt 62:34/1 first=-
+scope_tail null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+next_boundary null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 67:56/0 first=-
+  alt 67:56/1 first=-
+empty_comment null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+detached_group null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 71:5/0 first="//"@0
+  alt 71:5/1 first="/*"@1
+leading_group null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+line_flush null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 74:31/0 first=-
+  alt 74:31/1 first="/*"@0
+  alt 74:31/2 first=-
+block_flush null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 75:32/0 first=-
+  alt 75:32/1 first=-
+  alt 75:32/2 first=-
+  alt 75:47/0 first=-
+  alt 75:47/1 first=-
+  alt 75:47/2 first=-
+next_token null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 76:21/0 first=-
+  alt 76:21/1 first=-
+  alt 76:21/2 first=-
+scope_end null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 77:18/0 first=")"@0
+  alt 77:18/1 first="]"@0
+  alt 77:18/2 first="}"@0
+  alt 77:18/3 first=-
+comment_start null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 78:22/0 first="//"@0
+  alt 78:22/1 first="/*"@0
+comment null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 79:28/0 first="//"@0
+  alt 79:28/1 first="/*"@1
+line_group null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="//"@0
+line_comment null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="//"@0
+block_comment null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="/*"@0
+block_star null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+block_line null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+block_piece null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 89:32/0 first="/*"@2
+  alt 89:32/1 first=-
+nested_piece null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="/*"@1
+character_piece null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 91:41/0 first=-
+  alt 91:41/1 first="*/"@0
+  alt 91:41/2 first="/*"@0
+nl null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 92:11/0 first="\r\n"@0
+  alt 92:11/1 first=[\r\n]@0
+horizontal null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+horizontal_char null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[ \t\v\f\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]@0
+space null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 95:14/0 first=[ \t\v\f\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]@0
+  alt 95:14/1 first=-

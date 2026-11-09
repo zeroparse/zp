@@ -1,0 +1,30 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+expr null=false cyclic=true cycle=1 leader=true member=false rec=true positional=false recovering=- vars=- memo=false transient=false missing=false first=-
+  alt 22:18/0 first=-
+  alt 22:18/1 first=-
+add null=false cyclic=true cycle=1 leader=false member=true rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 23:31/0 first="+"@0
+  alt 23:31/1 first="-"@0
+term null=false cyclic=true cycle=2 leader=true member=false rec=true positional=false recovering=- vars=- memo=false transient=false missing=false first=-
+  alt 25:18/0 first=-
+  alt 25:18/1 first=-
+mul null=false cyclic=true cycle=2 leader=false member=true rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 26:31/0 first="*"@0
+  alt 26:31/1 first="/"@0
+  alt 26:31/2 first="%"@0
+unary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 28:19/0 first=-
+  alt 28:19/1 first=-
+neg null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 29:24/0 first="-"@0
+  alt 29:24/1 first="+"@0
+power null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 32:19/0 first=-
+  alt 32:19/1 first=-
+pow null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+primary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 35:27/0 first=-
+  alt 35:27/1 first="("@1
+group null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+number null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+ws null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

@@ -1,0 +1,14 @@
+main null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=bad vars=- memo=true transient=true missing=false first=-
+top null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=bad vars=- memo=true transient=true missing=false first=-
+  alt 9:16/0 first=-
+  alt 9:16/1 first=-
+pair null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=bad vars=- memo=true transient=true missing=false first=-
+item null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=bad vars=- memo=true transient=false missing=false first=-
+  alt 11:16/0 first=-
+  alt 11:16/1 first="<"@1
+  alt 11:16/2 first=-
+item1 null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=bad vars=- memo=true transient=true missing=false first=-
+item2 null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=bad vars=- memo=true transient=true missing=false first="<"@0
+bad null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=bad vars=- memo=true transient=true missing=false first=-
+name null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+digits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

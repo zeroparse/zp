@@ -1,0 +1,9 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 6:8/0 first="é"@0
+  alt 6:8/1 first="ab"@0
+  alt 6:23/0 first="→→"@0
+  alt 6:23/1 first="→"@0
+  alt 6:38/0 first="abcd"@0
+  alt 6:38/1 first="abc"@0
+  alt 6:57/0 first="abcde"@0
+  alt 6:57/1 first="ab"@0

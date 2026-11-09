@@ -1,0 +1,821 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+topDecl null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 116:21/0 first="func"@0
+  alt 116:21/1 first="const"@1
+  alt 116:21/2 first="var"@1
+  alt 116:21/3 first="type"@1
+importDecl null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="import"@0
+  alt 122:45/0 first="("@0
+  alt 122:45/1 first=-
+importOne null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+importGroup null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+importSpec null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+importName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 126:25/0 first=-
+  alt 126:25/1 first="."@0
+dotName null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="."@0
+constDecl null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="const"@0
+  alt 129:43/0 first="("@1
+  alt 129:43/1 first=-
+constOne null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+constGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+constSpec null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+typeSp null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+identList null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+valuesSp null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+varDecl null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="var"@0
+  alt 139:39/0 first="("@1
+  alt 139:39/1 first=-
+varOne null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+varGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+varSpec null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 142:26/0 first=-
+  alt 142:26/1 first=-
+varSpecTyped null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+varSpecUntyped null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+typeDecl null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="type"@0
+  alt 146:41/0 first="("@1
+  alt 146:41/1 first=-
+typeOne null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+typeGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+typeSpec null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 158:26/0 first=-
+  alt 158:26/1 first=-
+  alt 158:26/2 first=-
+typeSpecGeneric null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+typeSpecArray null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+typeSpecPlain null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+aliasEq null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="="@0
+genericStart null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 166:21/0 first="["@0
+  alt 166:21/1 first="["@0
+  alt 166:21/2 first="["@0
+generalStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="["@0
+  alt 167:41/0 first="]"@0
+  alt 167:41/1 first=-
+  alt 167:41/2 first="."@0
+  alt 167:41/3 first="("@0
+  alt 167:41/4 first="{"@0
+  alt 167:41/5 first="["@0
+genericParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 168:32/0 first=-
+  alt 168:32/1 first=-
+  alt 168:32/2 first=-
+splitParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+splitType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+splitHead null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 178:23/0 first="*"@1
+  alt 178:23/1 first="("@1
+splitStar null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+splitParen null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+splitDecision null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 184:5/0 first=-
+  alt 184:5/1 first=-
+  alt 184:5/2 first=-
+splitHeadShape null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 189:23/0 first="*"@0
+  alt 189:23/1 first="("@0
+splitHeadTE null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 191:5/0 first="*"@0
+  alt 191:5/1 first="("@0
+unaryTE null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 198:5/0 first="~"@0
+  alt 198:5/1 first="<-"@2
+  alt 198:5/2 first=-
+  alt 198:5/3 first=-
+  alt 198:5/4 first="("@0
+  alt 200:8/0 first="["@1
+  alt 200:8/1 first="struct"@1
+  alt 200:8/2 first="func"@1
+  alt 200:8/3 first="map"@1
+  alt 201:8/0 first="interface"@1
+  alt 201:8/1 first=-
+exprTE null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+termTE null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+funcDecl null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="func"@0
+  alt 209:6/0 first=-
+  alt 209:6/1 first=-
+recvSp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="("@1
+typeParamsSp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+bodySp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+params null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="("@0
+paramList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 222:18/0 first=-
+  alt 222:18/1 first=-
+namedParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+paramGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 226:25/0 first=-
+  alt 226:25/1 first=-
+variadicGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+namedGroup null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+namedParamType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 229:28/0 first="["@1
+  alt 229:28/1 first=-
+variadicType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="..."@0
+unnamedParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+unnamedParam null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 234:27/0 first="..."@1
+  alt 234:27/1 first=-
+unnamedType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 237:25/0 first=-
+  alt 237:25/1 first=-
+  alt 237:25/2 first=-
+  alt 237:25/3 first=-
+  alt 237:25/4 first=-
+  alt 237:83/0 first="["@0
+  alt 237:83/1 first="."@0
+resultsSp null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+results null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 241:26/0 first="("@1
+  alt 241:26/1 first=-
+resultType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+resultParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+resultList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 244:19/0 first=-
+  alt 244:19/1 first=-
+namedResults null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+unnamedResults null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+unnamedResult null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+typeParams null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="["@0
+typeParam null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+constraint null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+constraintFirst null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 261:29/0 first="~"@1
+  alt 261:29/1 first="["@1
+  alt 261:29/2 first=-
+embeddedTerm null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 262:26/0 first="~"@1
+  alt 262:26/1 first=-
+tildeTerm null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="~"@0
+arrayFieldType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="["@0
+exprSp null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+identIndex null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+identIndexList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+typ null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 280:28/0 first=-
+  alt 280:28/1 first="["@1
+  alt 280:28/2 first="struct"@1
+  alt 280:28/3 first="*"@1
+  alt 280:28/4 first="func"@1
+  alt 280:28/5 first="interface"@1
+  alt 280:28/6 first="map"@1
+  alt 280:28/7 first=-
+  alt 280:28/8 first="("@1
+typeGuard null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 282:18/0 first=-
+  alt 282:18/1 first=-
+typeStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 284:18/0 first=-
+  alt 284:18/1 first="["@0
+  alt 284:18/2 first="struct"@0
+  alt 284:18/3 first="*"@0
+  alt 284:18/4 first="func"@0
+  alt 284:18/5 first="interface"@0
+  alt 284:18/6 first="map"@0
+  alt 284:18/7 first="chan"@0
+  alt 284:18/8 first="<-"@0
+  alt 284:18/9 first="("@0
+parenType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+pointerType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+typeName null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 290:22/0 first=-
+  alt 290:22/1 first=-
+qualifiedInstance null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 291:31/0 first=-
+  alt 291:31/1 first=-
+typeInstance null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+typeInstanceList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+qualifiedIdent null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 296:28/0 first=-
+  alt 296:28/1 first=-
+selectorIdent null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+arrayType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="["@0
+arrayLen null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 301:22/0 first="..."@0
+  alt 301:22/1 first=-
+ellipsisLen null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="..."@0
+mapType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="map"@0
+chanType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 307:26/0 first="chan"@1
+  alt 307:26/1 first="chan"@1
+  alt 307:26/2 first="<-"@1
+sendChanType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="chan"@0
+bothChanType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="chan"@0
+recvChanTypeT null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="<-"@0
+funcType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="func"@0
+  alt 315:42/0 first=-
+  alt 315:42/1 first=-
+structType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="struct"@0
+fieldBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@0
+fieldDecl null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 322:24/0 first=-
+  alt 322:24/1 first="*"@2
+  alt 322:24/2 first=-
+  alt 322:24/3 first=-
+  alt 322:24/4 first=-
+  alt 322:24/5 first=-
+embeddedField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 323:41/0 first="."@0
+  alt 323:41/1 first="\""@0
+  alt 323:41/2 first="`"@0
+  alt 323:41/3 first=-
+  alt 323:41/4 first="}"@0
+starField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@1
+starEmbedded null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+multiNameField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+arrayNameField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+oneNameField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+instanceField null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 331:31/0 first=-
+  alt 331:31/1 first=-
+tagSp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+interfaceType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="interface"@0
+methodBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@0
+interfaceElem null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 336:28/0 first=-
+  alt 336:28/1 first=-
+methodSpec null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+signature null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="("@1
+  alt 338:52/0 first=-
+  alt 338:52/1 first=-
+embeddedElem null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+embeddedFirst null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 344:27/0 first=-
+  alt 344:27/1 first=-
+  alt 344:27/2 first=-
+embeddedIndex null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+embeddedIndexList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+block null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="{"@0
+stmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 357:18/0 first=";"@0
+  alt 357:18/1 first=-
+  alt 357:18/2 first=-
+terminatedStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 358:31/0 first=-
+  alt 358:31/1 first=-
+emptyStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=";"@0
+implicitEmpty null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+labeledEmpty null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 363:33/0 first=-
+  alt 363:33/1 first=";"@0
+  alt 363:33/2 first=-
+labeledStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 365:60/0 first=-
+  alt 365:60/1 first=-
+clauseBody null=true cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+clauseStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 371:27/0 first=";"@0
+  alt 371:27/1 first=-
+  alt 371:27/2 first=-
+clauseTerminated null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 372:33/0 first=-
+  alt 372:33/1 first=-
+lastClauseStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 374:30/0 first=";"@0
+  alt 374:30/1 first=-
+  alt 374:30/2 first=-
+lastClauseTerminated null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 375:37/0 first=-
+  alt 375:37/1 first=-
+clauseEnd null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 376:18/0 first="case"@0
+  alt 376:18/1 first="default"@0
+  alt 376:18/2 first="}"@0
+plainStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 381:23/0 first=-
+  alt 381:23/1 first="{"@1
+  alt 381:23/2 first=-
+  alt 381:35/0 first=-
+  alt 381:35/1 first="go"@1
+  alt 381:35/2 first="defer"@1
+  alt 381:35/3 first="return"@1
+  alt 381:35/4 first=-
+  alt 381:35/5 first="if"@1
+  alt 381:35/6 first=-
+  alt 381:35/7 first="select"@1
+  alt 381:35/8 first=-
+declStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 383:29/0 first="const"@1
+  alt 383:29/1 first="var"@1
+  alt 383:29/2 first="type"@1
+simpleStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 386:24/0 first=-
+  alt 386:24/1 first=-
+  alt 386:24/2 first=-
+  alt 386:24/3 first=-
+assignStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+sendStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+incDecStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+exprStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+hsimpleStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 393:25/0 first=-
+  alt 393:25/1 first=-
+  alt 393:25/2 first=-
+  alt 393:25/3 first=-
+hassignStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hsendStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hincDecStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hexprStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+goStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="go"@0
+deferStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="defer"@0
+goCall null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 403:24/0 first=-
+  alt 403:24/1 first=-
+goCallEmpty null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+goCallArgs null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+dotsWs null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="..."@0
+returnStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="return"@0
+returnValues null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+branchStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 413:30/0 first="break"@0
+  alt 413:30/1 first="continue"@0
+  alt 413:30/2 first="goto"@0
+  alt 413:30/3 first="fallthrough"@0
+breakStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="break"@0
+continueStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="continue"@0
+gotoStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="goto"@0
+fallthroughStmt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="fallthrough"@0
+labelSp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+ifStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="if"@0
+  alt 422:16/0 first=-
+  alt 422:16/1 first=";"@0
+hsimpleSemi null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+elseSp null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 425:39/0 first="if"@1
+  alt 425:39/1 first="{"@1
+switchStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 427:24/0 first="switch"@1
+  alt 427:24/1 first="switch"@1
+switchInit null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+exprSwitchStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="switch"@0
+typeSwitchStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="switch"@0
+typeSwitchGuard null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 437:29/0 first=-
+  alt 437:29/1 first=-
+guardAssign null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+guardExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+guardAssert null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+caseBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="{"@0
+caseClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 442:30/0 first="case"@1
+  alt 442:30/1 first="default"@1
+caseClauseList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="case"@0
+caseClauseDefault null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="default"@0
+selectStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="select"@0
+commBlock null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@0
+commClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 448:30/0 first="case"@1
+  alt 448:30/1 first="default"@1
+commClauseCase null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="case"@0
+commClauseDefault null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="default"@0
+commStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 452:22/0 first=-
+  alt 452:22/1 first=-
+  alt 452:22/2 first=-
+commRecv null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 454:61/0 first=":="@0
+  alt 454:61/1 first="="@0
+forStmt null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 457:21/0 first="for"@1
+  alt 457:21/1 first="for"@1
+  alt 457:21/2 first="for"@1
+  alt 457:21/3 first="for"@1
+forInfinite null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="for"@0
+forCond null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="for"@0
+forClause null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="for"@0
+forRange null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="for"@0
+  alt 465:46/0 first=":="@0
+  alt 465:46/1 first="="@0
+rangeValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+expr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 475:18/0 first=-
+  alt 475:18/1 first=-
+exprList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+orExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+andExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+cmpExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+addExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+mulExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+unaryExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 496:23/0 first=-
+  alt 496:23/1 first=-
+  alt 496:40/0 first="<-"@2
+  alt 496:40/1 first="<-"@1
+  alt 496:40/2 first=-
+  alt 496:40/3 first="*"@1
+recvChanType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="<-"@1
+recvExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="<-"@0
+unaryOpExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+starExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+primaryExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 506:25/0 first=-
+  alt 506:25/1 first=-
+operatorsExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+primaryOperand null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 524:42/0 first=-
+  alt 524:42/1 first=-
+  alt 524:42/2 first="["@1
+  alt 524:42/3 first="struct"@1
+  alt 524:42/4 first="map"@1
+operandGuard null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 529:21/0 first=-
+  alt 529:21/1 first=-
+literalOperand null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 530:28/0 first=-
+  alt 530:28/1 first="("@1
+  alt 530:28/2 first="func"@2
+  alt 530:28/3 first="func"@1
+  alt 530:28/4 first=-
+  alt 530:28/5 first="interface"@1
+indexList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+parenExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="("@0
+funcLit null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="func"@1
+litValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="{"@0
+elements null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+element null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 538:21/0 first=-
+  alt 538:21/1 first=-
+keyValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+elementValue null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 540:26/0 first="{"@2
+  alt 540:26/1 first=-
+elidedLit null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="{"@1
+goPrimary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 555:36/0 first="{"@0
+  alt 555:36/1 first=-
+  alt 556:73/0 first="{"@0
+  alt 556:73/1 first=-
+goEnd null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 560:14/0 first=-
+  alt 560:14/1 first="}"@0
+  alt 560:14/2 first=")"@0
+hexpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 566:19/0 first=-
+  alt 566:19/1 first=-
+hexprList null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+horExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+handExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+hcmpExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+haddExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+hmulExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+hunaryExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 585:24/0 first=-
+  alt 585:24/1 first=-
+  alt 585:41/0 first="<-"@2
+  alt 585:41/1 first="<-"@1
+  alt 585:41/2 first=-
+  alt 585:41/3 first="*"@1
+hrecvExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="<-"@0
+hunaryOpExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hstarExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first="*"@0
+hprimaryExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 592:26/0 first=-
+  alt 592:26/1 first=-
+hoperatorsExpr null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+hoperand null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 608:36/0 first=-
+  alt 608:36/1 first=-
+  alt 608:36/2 first=-
+  alt 608:36/3 first="func"@2
+  alt 608:36/4 first="func"@1
+  alt 608:36/5 first=-
+  alt 608:36/6 first="["@1
+  alt 608:36/7 first="struct"@1
+  alt 608:36/8 first="map"@1
+  alt 608:36/9 first=-
+  alt 608:36/10 first="interface"@1
+compositeLitH null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 609:38/0 first="["@1
+  alt 609:38/1 first="struct"@1
+  alt 609:38/2 first="map"@1
+parenCompositeType null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=false missing=false first="("@0
+  alt 610:36/0 first="("@1
+  alt 610:36/1 first="["@1
+  alt 610:36/2 first="struct"@1
+  alt 610:36/3 first="map"@1
+guardPrimary null=false cyclic=false cycle=0 leader=false member=false rec=true positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+dot null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="."@0
+binaryOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 638:36/0 first=-
+  alt 638:36/1 first=-
+  alt 638:36/2 first=-
+  alt 638:36/3 first=-
+  alt 638:36/4 first=-
+orOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+andOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+relOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 641:23/0 first="=="@0
+  alt 641:23/1 first="!="@0
+  alt 641:23/2 first="<="@0
+  alt 641:23/3 first=">="@0
+  alt 641:23/4 first="<"@0
+  alt 641:23/5 first=">"@0
+addOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 642:25/0 first="+"@0
+  alt 642:25/1 first="-"@0
+  alt 642:25/2 first="|"@0
+  alt 642:25/3 first="^"@0
+mulOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 643:25/0 first="*"@0
+  alt 643:25/1 first="/"@0
+  alt 643:25/2 first="%"@0
+  alt 643:25/3 first="<<"@0
+  alt 643:25/4 first=">>"@0
+  alt 643:25/5 first="&^"@0
+  alt 643:25/6 first="&"@0
+unaryOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 644:29/0 first="+"@0
+  alt 644:29/1 first="-"@0
+  alt 644:29/2 first="!"@0
+  alt 644:29/3 first="^"@0
+  alt 644:29/4 first="&"@0
+  alt 644:29/5 first="~"@0
+assignOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 645:36/0 first="="@0
+  alt 645:36/1 first=":="@0
+  alt 645:36/2 first="+="@0
+  alt 645:36/3 first="-="@0
+  alt 645:36/4 first="*="@0
+  alt 645:36/5 first="/="@0
+  alt 645:36/6 first="%="@0
+  alt 645:36/7 first="&="@0
+  alt 645:36/8 first="|="@0
+  alt 645:36/9 first="^="@0
+  alt 645:36/10 first="<<="@0
+  alt 645:36/11 first=">>="@0
+  alt 645:36/12 first="&^="@0
+incDecOp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 646:25/0 first="++"@0
+  alt 646:25/1 first="--"@0
+semi null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 654:13/0 first=";"@0
+  alt 654:13/1 first="\n"@0
+  alt 654:13/2 first="/*"@0
+  alt 654:13/3 first=-
+stmtTerm null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 656:17/0 first=-
+  alt 656:17/1 first=-
+fieldTerm null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 657:18/0 first=-
+  alt 657:18/1 first=-
+groupTerm null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 658:18/0 first=-
+  alt 658:18/1 first=-
+hsemi null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 660:14/0 first=";"@0
+  alt 660:14/1 first="\n"@0
+  alt 660:14/2 first="/*"@0
+sp null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 672:23/0 first=[ \t\r]@0
+  alt 672:23/1 first="//"@0
+  alt 672:23/2 first=-
+  alt 672:59/0 first=-
+  alt 672:59/1 first="�"@0
+  alt 672:146/0 first="line "@0
+  alt 672:146/1 first=-
+  alt 672:155/0 first=-
+  alt 672:155/1 first=-
+  alt 672:155/2 first=-
+  alt 672:156/0 first=-
+  alt 672:156/1 first="*"@0
+  alt 672:156/2 first="�"@0
+  alt 672:234/0 first=-
+  alt 672:234/1 first="*"@0
+  alt 672:259/0 first=-
+  alt 672:259/1 first="*"@0
+  alt 672:286/0 first=[^*\x00\ufeff�]@0
+  alt 672:286/1 first="*"@0
+  alt 672:286/2 first="�"@0
+  alt 672:352/0 first=-
+  alt 672:352/1 first=-
+  alt 672:352/2 first=-
+  alt 672:691/0 first=-
+  alt 672:691/1 first="*"@0
+  alt 672:691/2 first="�"@0
+  alt 672:974/0 first=-
+  alt 672:974/1 first="*"@0
+  alt 672:974/2 first="�"@0
+  alt 672:1266/0 first=-
+  alt 672:1266/1 first="*"@0
+  alt 672:1266/2 first="�"@0
+ws null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 673:25/0 first=[ \t\r\n]@0
+  alt 673:25/1 first=-
+  alt 673:25/2 first=-
+  alt 673:25/3 first="/*"@0
+  alt 673:74/0 first=-
+  alt 673:74/1 first=-
+  alt 673:74/2 first=-
+  alt 673:75/0 first=-
+  alt 673:75/1 first="\r"@0
+  alt 673:75/2 first="�"@0
+  alt 673:108/0 first="\n"@0
+  alt 673:108/1 first=-
+  alt 673:157/0 first="\n"@0
+  alt 673:157/1 first=-
+  alt 673:178/0 first=-
+  alt 673:178/1 first="\r"@0
+  alt 673:197/0 first="\n"@0
+  alt 673:197/1 first=-
+  alt 673:215/0 first=-
+  alt 673:215/1 first="\r"@0
+  alt 673:234/0 first="\n"@0
+  alt 673:234/1 first=-
+  alt 673:255/0 first="\n"@0
+  alt 673:255/1 first=-
+  alt 673:268/0 first=[^\n\x00\ufeff�]@0
+  alt 673:268/1 first="�"@0
+  alt 673:324/0 first=-
+  alt 673:324/1 first=-
+  alt 673:324/2 first=-
+  alt 673:663/0 first=-
+  alt 673:663/1 first="\r"@0
+  alt 673:663/2 first="�"@0
+  alt 673:696/0 first="\n"@0
+  alt 673:696/1 first=-
+  alt 673:781/0 first="\n"@0
+  alt 673:781/1 first=-
+  alt 673:971/0 first=-
+  alt 673:971/1 first="\r"@0
+  alt 673:971/2 first="�"@0
+  alt 673:1004/0 first="\n"@0
+  alt 673:1004/1 first=-
+  alt 673:1088/0 first="\n"@0
+  alt 673:1088/1 first=-
+  alt 673:1299/0 first=-
+  alt 673:1299/1 first="�"@0
+  alt 673:1358/0 first="line "@0
+  alt 673:1358/1 first=-
+  alt 673:1367/0 first=-
+  alt 673:1367/1 first=-
+  alt 673:1367/2 first=-
+  alt 673:1368/0 first=-
+  alt 673:1368/1 first="*"@0
+  alt 673:1368/2 first="�"@0
+  alt 673:1446/0 first=-
+  alt 673:1446/1 first="*"@0
+  alt 673:1471/0 first=-
+  alt 673:1471/1 first="*"@0
+  alt 673:1498/0 first=[^*\x00\ufeff�]@0
+  alt 673:1498/1 first="*"@0
+  alt 673:1498/2 first="�"@0
+  alt 673:1564/0 first=-
+  alt 673:1564/1 first=-
+  alt 673:1564/2 first=-
+  alt 673:1903/0 first=-
+  alt 673:1903/1 first="*"@0
+  alt 673:1903/2 first="�"@0
+  alt 673:2186/0 first=-
+  alt 673:2186/1 first="*"@0
+  alt 673:2186/2 first="�"@0
+  alt 673:2478/0 first=-
+  alt 673:2478/1 first="*"@0
+  alt 673:2478/2 first="�"@0
+blockComment null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="/*"@0
+  alt 676:27/0 first="line "@0
+  alt 676:27/1 first=-
+blockText null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 677:19/0 first=-
+  alt 677:19/1 first="*"@0
+  alt 677:19/2 first="�"@0
+validFFFD null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="�"@0
+dirBlock null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 686:5/0 first=-
+  alt 686:5/1 first=-
+  alt 686:5/2 first=-
+dirCharBlock null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 690:21/0 first=[^*\x00\ufeff�]@0
+  alt 690:21/1 first="*"@0
+  alt 690:21/2 first="�"@0
+dirSegBlock null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 691:21/0 first=-
+  alt 691:21/1 first="*"@0
+  alt 691:21/2 first="�"@0
+dirMidBlock null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 692:20/0 first=-
+  alt 692:20/1 first=-
+dirNum null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+dirUint null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+ident null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+idStart null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 706:16/0 first=[a-zA-Z_]@0
+  alt 706:16/1 first=-
+idRest null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 707:48/0 first=[a-zA-Z0-9_]@0
+  alt 707:48/1 first=-
+  alt 707:48/2 first=-
+idChar null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[a-zA-Z0-9_\u0080-\U0010ffff]@0
+keyword null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 711:17/0 first="break"@0
+  alt 711:17/1 first="case"@0
+  alt 711:17/2 first="chan"@0
+  alt 711:17/3 first="const"@0
+  alt 711:17/4 first="continue"@0
+  alt 711:17/5 first="default"@0
+  alt 711:17/6 first="defer"@0
+  alt 711:17/7 first="else"@0
+  alt 711:17/8 first="fallthrough"@0
+  alt 711:17/9 first="for"@0
+  alt 711:17/10 first="func"@0
+  alt 711:17/11 first="goto"@0
+  alt 711:17/12 first="go"@0
+  alt 711:17/13 first="if"@0
+  alt 711:17/14 first="import"@0
+  alt 711:17/15 first="interface"@0
+  alt 711:17/16 first="map"@0
+  alt 711:17/17 first="package"@0
+  alt 711:17/18 first="range"@0
+  alt 711:17/19 first="return"@0
+  alt 711:17/20 first="select"@0
+  alt 711:17/21 first="struct"@0
+  alt 711:17/22 first="switch"@0
+  alt 711:17/23 first="type"@0
+  alt 711:17/24 first="var"@0
+kw_break null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="break"@0
+kw_case null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="case"@0
+kw_chan null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="chan"@0
+kw_const null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="const"@0
+kw_continue null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="continue"@0
+kw_default null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="default"@0
+kw_defer null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="defer"@0
+kw_else null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="else"@0
+kw_fallthrough null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="fallthrough"@0
+kw_for null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="for"@0
+kw_func null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="func"@0
+kw_go null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="go"@0
+kw_goto null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="goto"@0
+kw_if null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="if"@0
+kw_import null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="import"@0
+kw_interface null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="interface"@0
+kw_map null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="map"@0
+kw_package null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="package"@0
+kw_range null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="range"@0
+kw_return null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="return"@0
+kw_select null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="select"@0
+kw_struct null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="struct"@0
+kw_switch null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="switch"@0
+kw_type null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="type"@0
+kw_var null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="var"@0
+basicLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 743:22/0 first=-
+  alt 743:22/1 first=-
+  alt 743:22/2 first=-
+  alt 743:22/3 first="'"@0
+  alt 743:22/4 first=-
+intLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 748:24/0 first="0"@0
+  alt 748:24/1 first="0"@0
+  alt 748:24/2 first="0"@0
+  alt 748:24/3 first="0"@0
+  alt 748:24/4 first=[1-9]@0
+floatLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 749:28/0 first=-
+  alt 749:28/1 first="0"@0
+imagLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 750:26/0 first=-
+  alt 750:26/1 first="0"@0
+  alt 750:26/2 first=-
+imagInt null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 753:16/0 first="0"@0
+  alt 753:16/1 first="0"@0
+  alt 753:16/2 first=[0-9]@0
+decimalFloat null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 754:21/0 first=[0-9]@0
+  alt 754:21/1 first=[0-9]@0
+  alt 754:21/2 first="."@0
+decimalExp null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=[eE]@0
+hexFloat null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first="0"@0
+  alt 756:27/0 first=-
+  alt 756:27/1 first="."@0
+decDigits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-9]@0
+hexDigits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-9a-fA-F]@0
+octDigits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-7]@0
+binDigits null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[01]@0
+charLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="'"@0
+  alt 762:30/0 first="\\"@0
+  alt 762:30/1 first=-
+stringLit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 763:29/0 first="`"@0
+  alt 763:29/1 first="\""@0
+  alt 763:61/0 first=-
+  alt 763:61/1 first="\\"@0
+  alt 763:61/2 first="�"@0
+srcChar null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 765:16/0 first=[^\x00\ufeff�]@0
+  alt 765:16/1 first="�"@0
+charEscape null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="\\"@0
+  alt 766:25/0 first=[abfnrtv\\\']@0
+  alt 766:25/1 first=-
+stringEscape null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="\\"@0
+  alt 767:27/0 first=[abfnrtv\\"]@0
+  alt 767:27/1 first=-
+escapeValue null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=false missing=false first=-
+  alt 770:5/0 first=[0-3]@0
+  alt 770:5/1 first="x"@0
+  alt 770:5/2 first="u"@0
+  alt 770:5/3 first="U"@0
+  alt 771:17/0 first="0"@0
+  alt 771:17/1 first="10"@0
+hexDigit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=[0-9a-fA-F]@0
+uLetter null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+uDigit null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

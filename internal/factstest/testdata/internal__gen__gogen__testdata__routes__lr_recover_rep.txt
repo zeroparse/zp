@@ -1,0 +1,6 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=_e_1 vars=- memo=true transient=true missing=false first=-
+e null=false cyclic=true cycle=1 leader=true member=false rec=true positional=false recovering=_e_1 vars=- memo=false transient=false missing=false first=-
+  alt 3:17/0 first=-
+  alt 3:17/1 first=-
+_e_1 null=false cyclic=true cycle=1 leader=false member=true rec=true positional=false recovering=_e_1 vars=- memo=true transient=true missing=false first=-
+_e_2 null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-

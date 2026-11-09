@@ -1,0 +1,9 @@
+main null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+record null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+field null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 29:5/0 first="\""@0
+  alt 29:5/1 first=-
+eol null=true cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first=-
+  alt 33:12/0 first="\r\n"@0
+  alt 33:12/1 first="\n"@0
+  alt 33:12/2 first=-

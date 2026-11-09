@@ -1,0 +1,3 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=- vars=- memo=true transient=true missing=false first="("@0
+  alt 2:25/0 first="a"@0
+  alt 2:25/1 first="b"@0

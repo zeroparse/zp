@@ -1,0 +1,12 @@
+main null=false cyclic=false cycle=0 leader=false member=false rec=false positional=false recovering=b vars=- memo=true transient=true missing=false first=-
+a null=false cyclic=true cycle=1 leader=true member=false rec=true positional=false recovering=- vars=- memo=false transient=false missing=false first=-
+  alt 4:10/0 first=-
+  alt 4:10/1 first="("@0
+  alt 4:10/2 first=[0-9]@0
+b null=false cyclic=true cycle=2 leader=true member=false rec=true positional=false recovering=b vars=- memo=false transient=false missing=false first=-
+  alt 5:10/0 first=-
+  alt 5:10/1 first=-
+  alt 5:10/2 first=[0-9]@0
+c null=false cyclic=true cycle=3 leader=true member=false rec=true positional=false recovering=- vars=- memo=false transient=false missing=false first=-
+  alt 6:18/0 first=-
+  alt 6:18/1 first=[0-9]@0
