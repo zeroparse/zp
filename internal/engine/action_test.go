@@ -95,6 +95,20 @@ rule main *C = xs:"a"* => foldr(nil, $xs, (acc, x) => C{X: x, Next: acc})`,
 	)
 }
 
+// TestChoiceElements checks that a choice is one element when some alternative has a value, nil
+// when the alternative that matched has none, and no element when no alternative has a value.
+func TestChoiceElements(t *testing.T) {
+	t.Parallel()
+	check(t, `rule main = x:("q" (-"a" / "b")) $$`,
+		ok("qa", `(x:("q" nil))@main`),
+		ok("qb", `(x:("q" "b"))@main`),
+	)
+	check(t, `rule main = x:("q" (-"a" / -"b")) $$`,
+		ok("qa", `(x:("q"))@main`),
+		ok("qb", `(x:("q"))@main`),
+	)
+}
+
 func TestFold(t *testing.T) {
 	t.Parallel()
 	src := `type Op = { Left Node; Op node[string]; Right Node }

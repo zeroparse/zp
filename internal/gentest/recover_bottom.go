@@ -17,7 +17,8 @@ type RecoverBottomCase struct {
 // body, also one that only calls itself; a capture or an #atomic of such an expression), and
 // whatever elements it would have if it matched. The cases
 // whose names start with "no value" are their controls: an expression without a value stays
-// without one, also when its operand is _|_. Those whose names start with "container" check the
+// without one, also when its operand is _|_, and a choice is one element only when some
+// alternative has a value. Those whose names start with "container" check the
 // types []_|_ and *_|_: an optional expression whose operand has type _|_ is nil, one element as
 // for any optional expression, and a repetition of _|_ matches the empty input and is the empty
 // list; a recovery of either keeps that value.
@@ -55,6 +56,8 @@ rule r = y:"b" _|_ => $y`, []string{"qa", "qb"}}, []bool{true, false}},
 	{Case{"container/optional bottom in a choice", `rule main = x:("q" ((_|_)? / -"a")) {len($x) == 2} $$`, []string{"q", "qa"}}, []bool{true, false}},
 	{Case{"container/repetition of bare bottom", `rule main = x:("q" (_|_)* "r") {len($x) == 3 && len($x.Value[1].Value) == 0} $$`, []string{"qr", "q"}}, []bool{true, false}},
 	{Case{"no value/sequence", `rule main = x:("q" (-"a" -"b") #recover(skip="z")) {len($x) == 1} $$`, []string{"qab", "qz", "q"}}, []bool{true, true, false}},
+	{Case{"no value/choice", `rule main = x:("q" (-"a" / -"b")) {len($x) == 1} $$`, []string{"qa", "qb", "q"}}, []bool{true, true, false}},
+	{Case{"no value/choice with a valued alternative", `rule main = x:("q" (-"a" / "b")) {len($x) == 2} $$`, []string{"qa", "qb", "q"}}, []bool{true, true, false}},
 	{Case{"container/optional of a bottom with a value", `rule main = x:("q" (_|_ y:"a")? #recover(skip="z")) {len($x) == 2 && $y == nil} $$`, []string{"q", "qa", "qz"}}, []bool{true, false, false}},
 	{Case{"container/repetition of bottom", `rule main = x:("q" (_|_ -"a")* #recover(skip="z")) {len($x) == 2} $$`, []string{"q", "qz"}}, []bool{true, false}},
 }

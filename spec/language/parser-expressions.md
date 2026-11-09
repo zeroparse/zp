@@ -38,7 +38,7 @@ produces the value of its body.
 | Literal, `[...]`, `.`, `a #atomic` | A string node: the matched text, with the range that it matched |
 | `_` | No value |
 | `a b` | A tuple node whose elements are the values of the elements of the sequence that have a value, in order |
-| `a / b` | The value of the alternative that matched; the choice itself creates no node. If that alternative has no value, the value is `nil` |
+| `a / b` | The value of the alternative that matched; the choice itself creates no node. If that alternative has no value, the value is `nil` when another alternative has one; when no alternative has a value, the choice has none |
 | `a*`, `a+`, `a #repeat(n,m)` | A list node whose elements are the values of the iterations |
 | `a?` | The value of `a`, or `nil` if `a` did not match |
 | `label:a` | The value of `a` |
@@ -60,9 +60,11 @@ The following rules determine the shape of the tree.
    the values of the elements that have a value, even when there is only one:
    `-ws b $$` is a tuple of one element. A parenthesized sequence in a sequence adds its
    elements to the surrounding tuple, so `a (b c)` and `(a b) c` both have the elements
-   of `a b c`; a group creates no value. A choice, an optional expression and a
-   repetition are each one element, and a sequence inside one of them forms a tuple
-   of its own: `("a" "b")? "c"` is a tuple of an optional tuple and `"c"`.
+   of `a b c`; a group creates no value. A choice of which some alternative has a
+   value, an optional expression of an expression with a value and a repetition are
+   each one element, and a sequence inside one of them forms a tuple of its own:
+   `("a" "b")? "c"` is a tuple of an optional tuple and `"c"`. A choice or an optional
+   expression without a value adds no element (rule 5).
 3. **Repetition iterations.** An iteration is the value of the repeated expression.
    An iteration that has no value is the unit with the range that it matched.
 4. **Rule names.** With [source information](../runtime/nodes.md#source-information), a node
@@ -78,7 +80,7 @@ The following rules determine the shape of the tree.
      [predicates](predicates.md).
 
    An optional expression `a?` that does not match does have a value, `nil`,
-   which appears as an element when `a` has a value, and so does a choice whose alternative has no value. When `a` has no value and is not of type `_|_`, `a?` has no value either and adds no element. When `a` has the [type `_|_`](types.md#top-bottom-join-and-meet), such as `_|_` or `_|_ "b"`, it never matches, so `a?` matches only the empty input and is `nil`, of type `*_|_`, one element as for any `a` with a value; `a*` is the empty list, of type `[]_|_`, and `a+` never matches and has the type `_|_`. A choice joins the types of its alternatives, so an alternative of type `_|_` adds nothing to its value, and a capture in it is never made and reads as `nil`.
+   which appears as an element when `a` has a value. When `a` has no value and is not of type `_|_`, `a?` has no value either and adds no element. A choice is alike: when some alternative has a value, the choice is one element, which is `nil` when the alternative that matched has no value; when no alternative has a value, the choice has no value and adds no element. So on the input `qa`, `x:("q" (-"a" / "b"))` gives `(("q" nil))`, while `x:("q" (-"a" / -"b"))` gives `(("q"))`. When `a` has the [type `_|_`](types.md#top-bottom-join-and-meet), such as `_|_` or `_|_ "b"`, it never matches, so `a?` matches only the empty input and is `nil`, of type `*_|_`, one element as for any `a` with a value; `a*` is the empty list, of type `[]_|_`, and `a+` never matches and has the type `_|_`. A choice joins the types of its alternatives, so an alternative of type `_|_` adds nothing to its value, and a capture in it is never made and reads as `nil`.
 6. **Suppressed construction.** Atomic (`a #atomic`) and discard (`-a`) do not build
    the values of their operands, which saves work and keeps the tree small.
 7. **Whole input.** A parse succeeds only if the [start rule](../runtime/parsing.md#start-rule)

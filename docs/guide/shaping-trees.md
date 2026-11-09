@@ -120,7 +120,7 @@ to memorize:
 |:--|:--|
 | `"x"`, `[a-z]`, `.`, `a #atomic` | A string node holding the matched text |
 | `a b` | A tuple of the values of the elements that **have** a value; a group `(a b)` inside it does not nest |
-| `a / b` | The value of the alternative that matched; the choice adds no node |
+| `a / b` | The value of the alternative that matched, or `nil` if it has none; the choice adds no node, and no element when no alternative has a value |
 | `a*`, `a+`, `a #repeat(n,m)` | A list, one element per iteration |
 | `a?` | The value of `a`, or `nil`; it is not a list (`a #repeat(0,1)` is) |
 | `label:a` | The value of `a` (and a name for it, see below) |
