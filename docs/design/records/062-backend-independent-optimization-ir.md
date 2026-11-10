@@ -4,6 +4,9 @@
 - **Author**: @ornew
 - **Date**: 2026-10-22
 
+The [Flow IR specification](../../../spec/flow-ir/README.md) defines the statements, expressions and
+invariants of Flow IR as they stand; this record keeps the decision and its rationale.
+
 ## Summary
 
 Every backend of ZeroParse lowers the grammar AST (`grammar.Expr`) by itself, so every optimization is written

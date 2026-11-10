@@ -4,6 +4,9 @@
 - **Author**: @ornew
 - **Date**: 2026-10-31
 
+The [Exec IR specification](../../../spec/exec-ir/README.md) defines the parser VM, its operations and
+compositions as they stand; this record keeps the decision, the measurements and the rollout.
+
 ## Summary
 
 The algorithmic core of a ZeroParse parse — memoization, left-recursion growth, expected-set merging, recovery bookkeeping,
