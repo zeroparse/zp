@@ -841,7 +841,17 @@ memoizes, which either evaluates or the memo answers, corresponds to a call
 with a key of the same class inside the same lookaheads of the body.
 
 *Proof.* $M$ and $M_0$ are made by calls with keys of one class that read no
-growth open at their start, so their counterparts in $\mathcal{R}$ take the
+growth open at their start in the parse, and so in $\mathcal{R}$. A growth
+open at the start of $M$ is read in $\mathcal{R}(M)$ by a call or step that
+the parse evaluates inside $M$, or answers with the current result of that
+growth, and then $M$ reads it too; or inside a call $y$ that the parse answers
+from an entry, whose call read no growth open at its start ((S)), so that
+$\mathcal{R}(y)$, which takes its steps ([Lemma 3 of the memoization
+proof](memoization.md#lemma-3-answering-from-a-sound-entry)), reads only
+growths that start inside $y$, after the start of $M$; or inside a call or step
+that the parse answers from what it keeps or takes in a run of steps, which
+counts as reading what it reads in $\mathcal{R}$ ((D)), so that $M$ reads it
+too. So their counterparts in $\mathcal{R}$ take the
 same steps up to the variants of their calls. Of two corresponding calls, one is
 of a rule and the other of the same rule or of its twin, so the parse memoizes
 both or neither. In an own region every call is of a rule that the parse does
@@ -2818,7 +2828,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    memoization proof leaves out. Such a link can lead to
    an activation held by a head. The activations include
    those of the copying operations, the units of the own spans that they read
-   (Lemma 6). Three points of the claims proved in step 1 are left to make
+   (Lemma 6). Two points of the claims proved in step 1 are left to make
    precise. The covered keys list the ways in which the parse does not
    evaluate a call: it also skips calls by the first character, which
    [Observability](../runtime/observability.md) reports, and iterations by
@@ -2827,10 +2837,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    that both evaluations of a link skip alike; the replays must show their
    correspondence of own regions where one region reuses a run record, and the
    statement that the bounds hold whether or not a parse keeps the records
-   must be argued. The replays use that a call reads no growth open at its
-   start in $\mathcal{R}$ as well as in the parse, which the covered keys
-   argue through Lemma 3 and (D) of the memoization proof and the replays must
-   argue too. And the statement on twins that the counterparts take over is
+   must be argued. And the statement on twins that the counterparts take over is
    tested on the Core IR of the generated parsers and on the calls and their
    outcomes in the engine, for rules on no cycle that read no variable, and
    not for the values that a twin builds for its predicates and bindings.
