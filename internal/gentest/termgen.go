@@ -769,3 +769,60 @@ func CastTermCases() []TermCase {
 	}
 	return out
 }
+
+// hullPrelude declares the struct type of HullTermCases: S has a list and a tuple field.
+const hullPrelude = "type S = { L []node[string]; T (int, string) }\n@start\n"
+
+// HullTermCases returns fixed terms that make a list value or a tuple value: of no element, of nodes in
+// either order, of nodes with one that did not match (nil), of ints, strings and bools (which the node
+// runtimes box in nodes), and of lists and tuples of them, alone, as a field of a struct and under len,
+// an index, map and concat. The range of such a value covers the elements that are nodes, which the value
+// model does not show, so the cases pin what making the value charges for each element, whatever its kind,
+// each on a literal of one byte and one beyond the Basic Multilingual Plane. The rule captures two nodes,
+// of one literal each, and a third that does not match.
+func HullTermCases() []TermCase {
+	cases := []struct{ typ, term string }{
+		{"int", "len(list())"},
+		{"int", "len(list($x))"},
+		{"int", "len(list($y, $x))"},
+		{"int", "len(list($z))"},
+		{"int", "len(list($z, $y))"},
+		{"int", "len(list($y, $z, $x))"},
+		{"int", "len(list(1))"},
+		{"int", "len(list($y, 1))"},
+		{"int", `len(list("s", $x))`},
+		{"int", "len(list(true, $y, 1))"},
+		{"int", "len(list(1, 2, 3, 4))"},
+		{"int", "len(list(list($y), $x))"},
+		{"int", "len(list(($y, 1), $x))"},
+		{"int", "len(list(list(), list(), $z))"},
+		{"int", "len(list($x, 1, $y))"},
+		{"int", "len(($x, $y, 2))"},
+		{"int", "len(($x,))"},
+		{"int", "list($x, $y)[1].End"},
+		{"int", "($y, $x)[0].Start"},
+		{"int", "($z, $y)[1].End"},
+		{"int", "(1, $y)[1].End"},
+		{"int", `("s", 2, true)[1]`},
+		{"int", "(list($y), ($x, 1))[1][0].Start"},
+		{"int", "len(S{L: list($y)}.L)"},
+		{"int", "len(S{L: list($y, $x), T: (1, \"s\")}.L)"},
+		{"int", "S{L: list($y, $x), T: (1, \"s\")}.T[0]"},
+		{"int", "len(S{}.L)"},
+		{"int", "len(map(list($x, $y), (n) => n.End))"},
+		{"int", "len(concat(list($x), list($y, 1)))"},
+		{"int", "len(concat(list($x), list($y, $z)))"},
+	}
+	var out []TermCase
+	for _, a := range cases {
+		for _, lit := range []string{"a", "😀"} {
+			out = append(out, TermCase{
+				Case: Case{Name: "hull: " + a.term,
+					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:%[3]q z:\"c\"? $$ => %[4]s\n", hullPrelude, a.typ, lit, a.term),
+					Inputs: []string{lit + lit}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+	}
+	return out
+}

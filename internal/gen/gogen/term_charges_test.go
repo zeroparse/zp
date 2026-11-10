@@ -109,6 +109,14 @@ func TestTermChargesCast(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_cast.golden", "gentest.CastTermCases", "The terms make no struct value.", "termchargescast", gentest.CastTermCases())
 }
 
+// TestTermChargesHull pins the charges of gentest.HullTermCases, whose terms make list and tuple values and read
+// the range that covers their elements, so that a change in how a target makes them and sets the range shows as a
+// stated change of the units it charges.
+func TestTermChargesHull(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_hull.golden", "gentest.HullTermCases", "The terms make no struct value that leaves a field unset.", "termchargeshull", gentest.HullTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)
