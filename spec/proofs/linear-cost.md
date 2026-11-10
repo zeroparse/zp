@@ -53,8 +53,8 @@ variant and through the growths that the later one makes again, apart from the
 activations that a dropped step of a growth or a path that enters the growth
 again repeats, which Lemma 5 counts before it, and with no count of the
 evaluations in a context of growths. It leaves the sum open for the sources of rules that call no rule and are not
-memoized, for the links of a leader whose growth reads another growth of its
-cycle, and, in a Document parse or through results kept in a context of
+memoized, for the links of a leader with a growth of its cycle open at the
+start of only one of the two evaluations, and, in a Document parse or through results kept in a context of
 growths, for the links that the comparison leaves out. Lemmas 2 and 10 and the
 bound of Lemma 4 on the activations that do not succeed leave out the operands
 and the operator parts that an Operators Rule tries outside its activations,
@@ -957,7 +957,8 @@ start: one that started inside $y'$ started inside $y$ too, where $z$ reads
 none, and $y'$ reads none that was open at its own start. If the parse answers
 $y$ from what it keeps, or takes it in a run of steps at once, the result is
 that of an evaluation $y'$ of the parse that ended before $y$, with the same
-key and present set, which found each growth that it read with an equal
+key and present set (for a step, which (D) treats as a call, the same leader,
+position and level and an equal current result to start from), which found each growth that it read with an equal
 current result and each lookahead that it observed with the same observation;
 outside case (b) it is in the same lookahead state.
 By the argument of [Lemma 4 of the memoization
@@ -973,8 +974,8 @@ $y'$ gives an evaluation of the key of $z$ before $y'$ ended, and so before $x$
 ends. What remains is case (a). $\square$
 
 **Links lead to repeated evaluations.** Let the $i$-th link of $\sigma$ at $q$
-be memoized, and let neither $e_i$ nor $e'_i$ read a growth open at its start.
-If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
+be memoized, and let every growth open at the start of $e_i$ or of $e'_i$ be
+open at the start of both. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
 class, unless case (a) or (b) of the covered keys arises on the path from
 $\mathcal{R}(e_i)$ down to the call that corresponds to $Z$. Case (a) arises
 only at a call that is in a context of growths, or inside a lookahead while
@@ -987,15 +988,31 @@ either way is in a context of growths.
 *Proof.* $e_i$ and $e'_i$ are evaluations of one call at one position, of a
 rule that reads no variable, so their calls have keys of one class: the call
 in a committing unit and the call in its continuation can differ in variant, one
-evaluating the twin where its value is discarded and the other the rule. They
-read no growth open at their start, so $\mathcal{R}(e_i)$ and
-$\mathcal{R}(e'_i)$ take the same steps up to the variants of their calls
-(*Counterparts*). $Z$ holds $\alpha_i$, which lies in $e'_i$, and $e'_i$ is
+evaluating the twin where its value is discarded and the other the rule. A
+growth open at the start of both contains both, and so the innermost
+evaluation that contains $\alpha_{i-1}$ and $\alpha_i$, which is no growth
+(*Restarts*), so that evaluation lies in one step of the growth, during which
+its current result does not change. So the two calls find the same growths
+open with the same current results. When neither reads one,
+$\mathcal{R}(e_i)$ and $\mathcal{R}(e'_i)$ take the same steps up to the
+variants of their calls (*Counterparts*). Otherwise the rule of the link is a leader, which
+has no twin, and they take the same steps by the argument of [Lemma 4 of the
+memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result): the state
+that their steps read differs at most in the lookahead state, which reaches no
+decision of the parser (*Counterparts*), and the growths open at their start,
+which are the same with the same current results. $Z$ holds $\alpha_i$, which lies in $e'_i$, and $e'_i$ is
 made by a call of a rule that the parse memoizes, so $Z$ is $e'_i$ or is
 evaluated inside it. So $Z$ is the counterpart of $\mathcal{R}(e'_i)$ or of a
 call $z$ inside it, and $\mathcal{R}(e_i)$, or a call $z^\circ$ at the same
-place in it, has a key of the class of $Z$ and reads no growth open at its
-start, as in the proof above. $\mathcal{R}(Z)$ holds the counterpart of
+place in it, has a key of the class of $Z$. $Z$ is not $e'_i$ when the rule of
+the link is a leader, since an evaluation of a key is of no leader, and $z$
+reads no growth open at its start, since the call of $Z$ reads none.
+$z^\circ$ reads none either: a growth open at its start was open at the start
+of $e_i$, and so at that of $e'_i$ with the same current result, or started
+inside $\mathcal{R}(e_i)$ and corresponds to one that started at the same
+place inside $\mathcal{R}(e'_i)$, and $z$, which takes the same steps, reads
+neither. $\mathcal{R}(Z)$ holds the counterpart of
 $\alpha_i$, and $\mathcal{R}(e_i)$ takes the steps of $\mathcal{R}(e'_i)$ up to the variants of its calls, so the call
 that corresponds to $Z$ holds an activation at the same place, and case (c) of
 the covered keys does not arise. By the covered keys, outside cases (a) and (b),
@@ -1034,12 +1051,16 @@ memoized at a call only when the call is not a left call, which has no growth
 in its context (case 2). A call of a leader that is evaluated, as the calls of
 $e_i$ and $e'_i$ are, grows it, since a growth of the leader open at the
 position would answer it, so it can read only another growth of its cycle at
-the position.
+the position. A growth open at the start of both evaluations contains the
+innermost evaluation that contains $\alpha_{i-1}$ and $\alpha_i$, so a growth
+open at the start of only one of them started inside that evaluation, at the
+position of the link (Lemma 2 of the memoization proof): on the way to $e_i$,
+ending before $e'_i$, or on the way to $e'_i$ after $e_i$ ended.
 
 So by the claim above every $\alpha_i$ other than $\alpha_1$ that is held by
 a head follows a link of one of two kinds: a link of a leader with a growth
-that reads another growth of its cycle open at its start, or a link with case
-(a) or (b) of the covered keys on its path. When no link of $\sigma$ at $q$ is
+open at the start of one of its evaluations and not at that of the other, or a
+link with case (a) or (b) of the covered keys on its path. When no link of $\sigma$ at $q$ is
 of these kinds, at most one of the $\alpha_i$ is held by a head, memoized or
 in a context of growths. This claim counts nothing: it rests on the links and
 on the claims before it other than *Activations that do not succeed*, and holds
@@ -1056,7 +1077,8 @@ evaluations own, apart from those that case 5 or a dropped step repeats, which
 Lemma 5 counts. The comparison with $\mathcal{R}$ needs no order between the
 lookahead states of $e_i$ and $e'_i$ and no common variant, and passes through
 the growths that $e'_i$ makes again outside lookaheads after $e_i$ made them
-inside one, and through those that the leader of the link makes again there.
+inside one, through those that the leader of the link makes again there, and
+through the growths open at the start of both evaluations of the link.
 
 This gives the case that the comparison misses without the classes: in
 `main = (-r "x" / r "y")* $$; r = [a-c]* t?; t = "d"` on `abcy`, the first
@@ -1071,9 +1093,14 @@ no rule and is not memoized at its calls, the $\alpha_i$ held by heads are at
 most one more than the leaf links that lead to one, and a leaf link can leave a
 memoized evaluation that is not a head through the end of its body and reach
 the call again in the evaluation around it, which can be a head. A link of a
-leader whose growth reads another growth of its cycle open at its start
-compares two growths whose steps read growing results that can differ, which
-Lemma 5 counts in its contexts (step 4). And in a Document parse a link can
+leader with a growth open at the start of only one of its evaluations compares
+two growths whose steps read different results of another leader of the
+cycle: the unit can reach $e_i$ inside a step of a growth of that leader which
+it starts at the position, from a shorter growing result than the last, and
+the continuation reach $e'_i$ after that growth has ended, where the memo
+answers the call of that leader with the final result, so that the calls
+inside $e'_i$ after it are made at other positions than those inside $e_i$.
+And in a Document parse a link can
 meet an entry of an earlier parse that answers a call in a context of growths,
 or a call whose corresponding call in the later evaluation is in a smaller
 lookahead state, in a context of growths or of the other variant, and a link
@@ -2827,8 +2854,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the head, which can be in a context of growths and of either variant, and
    show, by comparing the two evaluations of a memoized link in the reference
    parse, in either lookahead state and either variant, that the link leads to
-   an activation held by an evaluation that is not a head, when neither
-   evaluation reads a growth open at its start and the comparison meets no
+   an activation held by an evaluation that is not a head, when every growth
+   open at the start of one evaluation is open at the start of the other and
+   the comparison meets no
    entry of an earlier Document parse that answers a call in a context of
    growths, or a call whose corresponding call in the later evaluation is in a
    smaller lookahead state, in a context of growths or of the other variant,
@@ -2857,9 +2885,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    to the leaf links between which the parser leaves or starts, at their
    position, a growth step or an evaluation in a context of growths, which that
    claim leaves out. Third, the
-   memoized links that the comparison leaves out: a link of a leader whose
-   growth reads another growth of its cycle open at its start, when the two
-   growths read growing results that can differ; in a Document parse, a link
+   memoized links that the comparison leaves out: a link of a leader with a
+   growth of its cycle open at the start of only one of its two evaluations,
+   which then read different results of another leader of the cycle; in a Document parse, a link
    whose comparison meets an entry of an earlier parse that answers a call in
    a context of growths, or a call whose corresponding call in the later
    evaluation is in a smaller lookahead state, in a context of growths or of
