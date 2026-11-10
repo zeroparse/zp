@@ -812,9 +812,20 @@ theorem](memoization.md#theorem-memoization-never-changes-the-result), each
 evaluation of the parse has the outcome of its counterpart in that state, or in
 lookahead state $1$ one that agrees with it and differs only in what reaches no
 decision of the parser, so, by induction along the steps of $x$, the parse evaluates what $\mathcal{R}(x)$
-evaluates, except inside the calls that it answers and the steps of a growth
-that it does not evaluate, and each evaluation that it makes inside $x$ is the
-counterpart of one inside $\mathcal{R}(x)$. By [Lemma 1 of the memoization
+evaluates, except inside the calls that it answers, the steps of a growth
+that it does not evaluate and the alternatives that it skips by the next
+character, and each evaluation that it makes inside $x$ is the counterpart of
+one inside $\mathcal{R}(x)$. An alternative that the parse skips fails in
+$\mathcal{R}(x)$ at its position without consuming input, inside a lookahead
+or not, enters no repetition and makes no call other than those of rules that
+are neither leaders nor Operators Rules on the way to a terminal that fails
+there, each of which fails there in the same way ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)). So it holds no activation:
+no iteration, no operator of an Operators Rule, no skip of a `#recover` and no
+step of a growth or copying operation, at any depth of calls. Hence an
+evaluation in $\mathcal{R}$ that holds an activation at any depth, such as a
+call whose body evaluation holds one, lies in no alternative that the parse
+skips. By [Lemma 1 of the memoization
 proof](memoization.md#lemma-1-context), the evaluation in $\mathcal{R}$ of a
 call that reads no growth open at its start depends only on its key and its
 lookahead state, and the state reaches no decision of the parser, so by the
@@ -835,7 +846,9 @@ call of a rule of a cycle is the same in both.
 **Replays.** Let $M$ and $M_0$ be evaluations of keys of one class, $M_0$ the
 earlier, in lookahead states and variants that may differ. The evaluations in
 the own region of $M$ correspond one to one, in order, to those in the own
-region of $M_0$: each is an evaluation of the same expression at the same
+region of $M_0$, apart from those inside an alternative that the parse skips by
+the next character in one of the two and evaluates in the other, which holds no
+activation: each is an evaluation of the same expression at the same
 position, with the same success and end, and a call of a rule that the parse
 memoizes, which either evaluates or the memo answers, corresponds to a call
 with a key of the same class inside the same lookaheads of the body.
@@ -857,13 +870,19 @@ of a rule and the other of the same rule or of its twin, so the parse memoizes
 both or neither. In an own region every call is of a rule that the parse does
 not memoize, which it evaluates, so the own regions of $M$ and $M_0$ are the
 counterparts of the parts of $\mathcal{R}(M)$ and $\mathcal{R}(M_0)$ outside
-their calls of rules that the parse memoizes, which take the same steps.
-$\square$
+their calls of rules that the parse memoizes and outside the alternatives that
+the parse skips, and those parts take the same steps. An alternative that the
+parse skips in one region and evaluates in the other fails in both at the same
+position, and its evaluation in $\mathcal{R}$ holds no activation
+(*Counterparts*). $\square$
 
-An activation held by a memoized evaluation $M$ lies in its own region, so it
+An activation held by a memoized evaluation $M$ lies in its own region, outside
+the alternatives that the parse skips in it or in the region of the head $H$ of
+its class: the alternatives around it hold an activation in $\mathcal{R}(M)$,
+and so in $\mathcal{R}(H)$, which takes the same steps. So it
 corresponds to an activation of the same source at the same position, which
-succeeds when it does, in the own region of the head $H$ of the class of $M$,
-and so held by $H$. Distinct activations held by $M$ correspond to distinct
+succeeds when it does, in the own region of $H$, and so held by $H$. Distinct
+activations held by $M$ correspond to distinct
 ones, and a class has at most six memoized evaluations, so the successful
 activations of a source at a position held by memoized evaluations are at most
 six times those held by heads, whether a head is a memoized evaluation or in a
@@ -901,10 +920,17 @@ parse of a [Document](../runtime/documents.md), or (b) the parse answers a call
 or step, or takes it in a run of steps, from what it keeps apart from the
 table, (D) of the [memoization proof](memoization.md#setting), and $z$ lies
 inside a lookahead that it observed, or the result was kept in a smaller
-lookahead state, which the open gap stated with (D) leaves out.
+lookahead state, which the open gap stated with (D) leaves out, or (c) the
+parse skips by the next character an alternative on the path. Case (c) does
+not arise when $z$ holds an activation in $\mathcal{R}$.
 
 *Proof.* By induction on the order in which the parse completes its
-evaluations. If the parse evaluates every call and step on the path, $z$
+evaluations. Each call $z'$ that the path below reaches in place of $z$ has the
+key of $z$ and reads no growth open at its start, so it takes the steps of $z$
+in $\mathcal{R}$ (*Counterparts*); when $z$ holds an activation, so does $z'$,
+and the alternatives on the path around $z'$ hold it, so the parse skips none
+of them (*Counterparts*). Outside case (c), if the parse evaluates every call
+and step on the path, $z$
 included, its evaluation of $z$ is the counterpart of $z$, made before $x$
 ends. It reads what $z$ reads, since a call that the parse answers from what it
 keeps counts as reading what it reads in $\mathcal{R}$ ((D)), so it reads no
@@ -961,7 +987,10 @@ made by a call of a rule that the parse memoizes, so $Z$ is $e'_i$ or is
 evaluated inside it. So $Z$ is the counterpart of $\mathcal{R}(e'_i)$ or of a
 call $z$ inside it, and $\mathcal{R}(e_i)$, or a call $z^\circ$ at the same
 place in it, has a key of the class of $Z$ and reads no growth open at its
-start, as in the proof above. By the covered keys, outside cases (a) and (b),
+start, as in the proof above. $\mathcal{R}(Z)$ holds the counterpart of
+$\alpha_i$, and $\mathcal{R}(e_i)$ takes the steps of $\mathcal{R}(e'_i)$ up to the variants of its calls, so the call
+that corresponds to $Z$ holds an activation at the same place, and case (c) of
+the covered keys does not arise. By the covered keys, outside cases (a) and (b),
 the parse made an evaluation of that key before $e_i$ ended, so before $e'_i$
 started, which is made after the unit that contains $e_i$ is abandoned
 (*Repeats*), and $Z$ is not the head of its class.
@@ -2753,12 +2782,14 @@ names a term or condition of the specification and the lemmas that use it.
   of [Classification](../runtime/parsing.md#classification): no lemma, since
   those classes carry no promise.
 
-Every condition and term above is decided by the classifier. Two parts of the
-proof are no condition and need no check: the factors $K$ and $L$, which are
-quantities of a parse that the classes carry, and the three evaluations at a
+Every condition and term above is decided by the classifier. Three parts of
+the proof are no condition and need no check: the factors $K$ and $L$, which
+are quantities of a parse that the classes carry, the three evaluations at a
 position for each variant of a rule that the memo of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) allows
-(Lemma 3).
+(Lemma 3), and the alternatives that a parser skips by the next character,
+which that section limits to those that hold no activation (Lemma 4,
+*Counterparts in the reference parse*).
 
 ## Adding a Condition
 
@@ -2830,11 +2861,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    those of the copying operations, the units of the own spans that they read
    (Lemma 6). Two points of the claims proved in step 1 are left to make
    precise. The covered keys list the ways in which the parse does not
-   evaluate a call: it also skips calls by the first character, which
-   [Observability](../runtime/observability.md) reports, and iterations by
-   reusing a [run-site](../runtime/parsing.md#run-sites) record, so the claim
-   must add these cases, and *Links lead to repeated evaluations* must show
-   that both evaluations of a link skip alike; the replays must show their
+   evaluate what the reference parse evaluates: it also leaves out the
+   iterations that a [run-site](../runtime/parsing.md#run-sites) record
+   covers, so the claim must add this case, and *Links lead to repeated
+   evaluations* must show that it does not end a link's comparison; the replays must show their
    correspondence of own regions where one region reuses a run record, and the
    statement that the bounds hold whether or not a parse keeps the records
    must be argued. And the statement on twins that the counterparts take over is

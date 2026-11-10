@@ -17,7 +17,8 @@ Tracing works with every backend, with `Parse`, `ParsePrefix`, recognition,
 options defined below.
 
 The engine reports the calls that its backend makes. A call that is skipped
-because the next character cannot start the rule (first-character dispatch) is
+because the next character cannot start the rule (first-character dispatch,
+which [Evaluations of Rules](parsing.md#evaluations-of-rules) limits) is
 not reported, and the backends do not skip the same calls, so event streams of
 different backends MAY differ in the calls that cannot match.
 

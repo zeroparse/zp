@@ -524,6 +524,25 @@ leaves unmemoized every rule other than a leader that contains `#missing`,
 directly or through the rules it calls; such a parse is outside the classes of
 [Classification](#classification).
 
+A parser may skip an alternative of a choice by the next character, without
+evaluating it, only where the alternative must begin with a terminal, a
+non-empty literal or a character class, reached through expressions that begin
+by evaluating it and fail when it fails: the first item of a sequence, a
+capture, a discard, an `#atomic` and a call of a rule other than a leader or an
+Operators Rule. It skips the alternative only where that terminal cannot match
+there, by the next character or, for a literal that may insert its text, by an
+insertion, or where no character remains, and only where the calls on the way
+stay within the nesting limit. The evaluation that it skips would fail at the
+position, inside a lookahead or not: it would consume no input, enter no
+repetition, make no call other than those on the way to the terminal, each of
+which would fail there, and record only the expectation of the terminal, which
+the skip records. A lookahead, an option, a repetition, a choice, a predicate
+or an attributed expression is not on the way: an alternative that begins with
+`&([a-z]*) "q"` is evaluated where the next character is not `q`, and its
+lookahead consumes input inside it. Parsers need not skip the same
+alternatives, so they can differ in the calls that they make
+([Observability](observability.md)) but not in the outcome of any evaluation.
+
 ### Growths of Left Recursion
 
 The growth of a left-recursive rule (see
