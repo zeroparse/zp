@@ -1,0 +1,161 @@
+package gen_test
+
+import (
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/internal/gen"
+	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/ir/exec/conform"
+)
+
+// builtinScript runs the calls of calls.json on the TypeScript runtime (Actx.length, textStr, element and
+// listItems, over the printed methods termLength, termText, termElement and termItems) and prints the
+// canonical result of each (conform.MemberCanon), in order. The input of the parser is input.txt.
+const builtinScript = `import { readFileSync } from "node:fs";
+import * as p from "./parser.ts";
+const CONTROLLED = false;
+const P = Object.create(p.Parser.prototype);
+P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 0 } as unknown as p.ResolvedParseOptions) : null;
+P.created = [];
+P.kidStack = [];
+P.src = readFileSync("input.txt", "utf8");
+P.offs = null;
+P.unit = p.Bytes;
+const c = new p.Actx(P);
+const text = new p.Node("string", "", 2, 4, "xyz", p.noNodes, p.noFields, false, true);
+const values: Record<string, p.Value> = {
+  "nil": null, "1": 1, '"ab"': "ab", "true": true, "text": text,
+  "node": new p.Node("tuple", "", 2, 5, "", [text, text], p.noFields, false, false),
+  "[1, 2]": c.list(1, 2), "[]": c.list(), "func": ((x: p.Value) => x) as unknown as p.Value,
+};
+const canon = (v: p.Value): string => {
+  if (v === null || v === undefined) return "nil";
+  if (typeof v === "number" || typeof v === "bigint" || typeof v === "boolean") return String(v);
+  if (typeof v === "string") return JSON.stringify(v);
+  if (v instanceof p.Node) {
+    if (v.type === p.typeBox) return "box " + canon(v.box);
+    const elems = v.children.map((k) => canon(p.unboxNode(k)));
+    if (v.type === p.typeListValue) return "[" + elems.join(", ") + "]";
+    if (v.type === p.typeTupleValue) return "(" + elems.join(", ") + ")";
+    return v.type;
+  }
+  return "not a value: " + String(v);
+};
+const call = (fn: string, v: p.Value): p.Value => {
+  switch (fn) {
+    case "len": return c.length(v);
+    case "text": return c.textStr(v);
+    case "element": return c.element("list", v);
+  }
+  return c.listNode([...c.listItems("concat", v)]);
+};
+const calls: [string, string][] = JSON.parse(readFileSync("calls.json", "utf8"));
+console.log(JSON.stringify(calls.map(([fn, v]) => {
+  try {
+    return canon(call(fn, values[v]!));
+  } catch (x) {
+    return x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x);
+  }
+})));
+`
+
+// runTSBuiltins runs the built-in table on the TypeScript runtime after mutate changed its source, with a
+// budget control if controlled, and returns the result of each call by its call and value.
+func runTSBuiltins(t *testing.T, controlled bool, mutate func(string) string) map[[2]string]string {
+	t.Helper()
+	node := gentest.RequireNode(t)
+	g, err := parseTest("@start\nrule main = \"a\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(code)
+	if mutate != nil {
+		src = mutate(src)
+	}
+	var calls [][2]string
+	for _, c := range conform.BuiltinCases {
+		calls = append(calls, [2]string{c.Call, c.Value})
+	}
+	cj, _ := json.Marshal(calls)
+	dir := t.TempDir()
+	script := strings.Replace(builtinScript, "const CONTROLLED = false;", "const CONTROLLED = "+strconv.FormatBool(controlled)+";", 1)
+	for name, content := range map[string]string{"package.json": `{"type": "module"}`, "parser.ts": src, "main.ts": script,
+		"calls.json": string(cj), "input.txt": conform.BuiltinInput} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd := exec.Command(node, "main.ts")
+	cmd.Dir = dir
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, gentest.Clip(stderr.String(), 0))
+	}
+	var results []string
+	if err := json.Unmarshal(out, &results); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	if len(results) != len(calls) {
+		t.Fatalf("%d results for %d calls", len(results), len(calls))
+	}
+	got := map[[2]string]string{}
+	for i, c := range calls {
+		got[c] = results[i]
+	}
+	return got
+}
+
+// TestValueBuiltinTableTypeScript runs the built-in table (conform.BuiltinCases) on the TypeScript runtime.
+func TestValueBuiltinTableTypeScript(t *testing.T) {
+	t.Parallel()
+	for _, controlled := range []bool{false, true} {
+		got := runTSBuiltins(t, controlled, nil)
+		if err := conform.RunBuiltins("typescript controlled="+strconv.FormatBool(controlled), func(call, v string) string { return got[[2]string{call, v}] }); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+// TestPrintedBuiltinMutantsTypeScript is the proof that the built-in table holds the printed code of the
+// built-in functions of the TypeScript runtime: with the source of each mutant, it fails.
+func TestPrintedBuiltinMutantsTypeScript(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs the tests on mutated sources")
+	}
+	t.Parallel()
+	mutants := []struct{ name, sig, old, new string }{
+		{"nil has length 1", "termLength(x: Value)", "return [0, null];", "return [1, null];"},
+		{"the length of a string node is that of its text", "termLength(x: Value)", "if (n.terminal) {", "if (false) {"},
+		{"a bool is not an element", "termElement(c: Actx", "k === 1 || k === 2 || k === 3", "k === 1 || k === 2"},
+		{"a function is an element", "termElement(c: Actx", "return [null, this.termError(11, v, fn, 0, 0)];", "return [null, null];"},
+		{"concat takes any value", "termItems(fn: string", "return [items, this.termError(12, v, fn, 0, 0)];", "return [items, null];"},
+		{"the text of a string is empty", "termText(x: Value)", "return [(x as string), null];", "return [\"\", null];"},
+	}
+	for _, m := range mutants {
+		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+			got := runTSBuiltins(t, false, func(src string) string {
+				out, ok := mutateTSFunc(src, m.sig, m.old, m.new, false)
+				if !ok {
+					t.Fatalf("the runtime has no %s with %q", m.sig, m.old)
+				}
+				return out
+			})
+			if conform.RunBuiltins(m.name, func(call, v string) string { return got[[2]string{call, v}] }) == nil {
+				t.Error("the built-in table did not notice")
+			}
+		})
+	}
+}

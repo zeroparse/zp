@@ -264,22 +264,7 @@ func (c *EvalCtx) valueNode(kind *value.NodeKind, kids []*value.Node) *value.Nod
 func (c *EvalCtx) Builtin(fn string, args []any) (any, error) {
 	switch fn {
 	case "len":
-		switch x := args[0].(type) {
-		case string:
-			return c.P.ValueTextLen(x), nil
-		case *value.Node:
-			if x == nil {
-				return 0, nil
-			}
-			if d := value.D(x); d.Terminal {
-				// The text of a string node is the input of its range, whose length the range
-				// holds in the position unit.
-				return int(d.End - d.Start), nil
-			}
-			return len(value.D(x).Children), nil
-		case nil:
-			return 0, nil
-		}
+		return c.P.termLength(args[0])
 	case "text":
 		s, err := c.TextString(args[0])
 		if err != nil {
@@ -315,29 +300,13 @@ func (c *EvalCtx) Builtin(fn string, args []any) (any, error) {
 			return nil, err
 		}
 		return c.ListNode(c.P.Kids(base)), nil
-	default:
-		return nil, c.P.ActionError("unknown function ", fn)
 	}
-	return nil, c.P.ActionError(fn, ": invalid argument ", TypeName(args[0]))
+	return nil, c.P.ActionError("unknown function ", fn)
 }
 
 // TextString returns text(v) (the built-in) as a string.
 func (c *EvalCtx) TextString(v any) (string, error) {
-	switch v := v.(type) {
-	case nil:
-		return "", nil
-	case string:
-		return v, nil
-	case *value.Node:
-		if v == nil {
-			return "", nil
-		}
-		if value.D(v).Terminal {
-			return value.D(v).Text, nil
-		}
-		return c.P.Text(int(value.D(v).Start), int(value.D(v).End)), nil
-	}
-	return "", c.P.ActionError("text: invalid argument ", TypeName(v))
+	return c.P.termText(v)
 }
 
 // PushElems pushes onto KidStack the elements of the list that the list built-in fn (map, list
@@ -392,33 +361,13 @@ func (c *EvalCtx) PushElems(fn string, args []any) error {
 // ValueListItems returns the items of the list node v that the built-in fn reads: none for nil, and
 // an error for a value that is not a list.
 func (p *Parser) ValueListItems(fn string, v any) ([]*value.Node, error) {
-	switch x := v.(type) {
-	case nil:
-		return nil, nil
-	case *value.Node:
-		if x == nil {
-			return nil, nil
-		}
-		return value.D(x).Children, nil
-	}
-	if BudgetControlsEnabled && p != nil && p.Control != nil {
-		return nil, p.ActionError(fn, ": expected a list, got ", TypeName(v))
-	}
-	return nil, fmt.Errorf("%s: expected a list, got %s", fn, TypeName(v))
+	return p.termItems(fn, v)
 }
 
 // Element returns v as an element of a list that the list built-in fn makes. An int, string or
 // bool travels boxed, with the range of the action's input, as the result of an action does.
 func (c *EvalCtx) Element(fn string, v any) (*value.Node, error) {
-	switch x := v.(type) {
-	case nil:
-		return nil, nil
-	case *value.Node:
-		return x, nil
-	case int, string, bool:
-		return c.P.NewNode(value.Data{Kind: value.BoxKind, Box: x, Start: int32(c.Start), End: int32(c.End)}), nil
-	}
-	return nil, c.P.ActionError(fn, ": elements must be values, got ", TypeName(v))
+	return c.P.termElement(c, fn, v)
 }
 
 // Keep returns c, or a copy of c on the heap if it belongs to a lambda call (closure.apply),

@@ -209,7 +209,7 @@ func engineTarget() *execgo.Target {
 		ops.Frame: "*Frame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt",
 		ops.Seq: "[]*value.Node", ops.Datum: "any", ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
-		ops.Obj: "*value.Node", ops.Name: "string", ops.Act: "*EvalCtx", ops.Fail: "error",
+		ops.Obj: "*value.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*EvalCtx", ops.Fail: "error", ops.Elem: "*value.Node",
 	}
 	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
 		"expect": "Expect", "keep": "Keep",

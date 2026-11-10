@@ -912,10 +912,10 @@ func (g *Generator) termBody(t grammar.Term, s *compile.Scope, locals map[string
 		case "text":
 			return "c.text(" + args[0] + ")"
 		case "foldl", "foldr":
-			return fmt.Sprintf("rtFold(%s, %v, %s, %s, %s, c.p.control)", TsString(t.Func), t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
+			return fmt.Sprintf("rtFold(c, %s, %v, %s, %s, %s)", TsString(t.Func), t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
 		case "map":
 			if x, ok := g.Projected(t, locals); ok {
-				return "c.newList(listItems(\"map\", " + g.term(x, s, locals) + "))"
+				return "c.newList(c.listItems(\"map\", " + g.term(x, s, locals) + "))"
 			}
 			return fmt.Sprintf("c.mapList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
 		case "filter":

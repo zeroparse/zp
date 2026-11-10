@@ -167,6 +167,64 @@ opened, nil if it did not match; a field reads what the value holds, and of a st
 type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
 not declare fail.`
 
+	fn, act := P("fn", THandle(ops.Name)), P("c", THandle(ops.Act))
+	isScalar := func(e Expr) Expr {
+		return Bin("||", Bin("||", Eq(e, k(ops.KindInt)), Eq(e, k(ops.KindString))), Eq(e, k(ops.KindBool)))
+	}
+	elem := THandle(ops.Elem)
+	element := m.AddFunc("element", []Param{act, fn, P("v", datum)}, []Type{elem, failT}, nil, func(b *Builder) {
+		kv := b.Let("k", kind(L("v")))
+		b.If(Eq(kv, k(ops.KindNil)), func(b *Builder) { b.Return(Null(elem), ok) })
+		b.If(isScalar(kv), func(b *Builder) { b.Return(C("val.box", L("c"), L("v")), ok) })
+		o := b.LetN([]string{"n", "ok"}, C("node.of", L("v")))
+		b.If(o[1], func(b *Builder) { b.Return(C("node.elem", o[0]), ok) })
+		b.Return(Null(elem), failure(ops.ErrElement, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+	})
+	element.Doc = `element returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil,
+a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such
+as a function, fails.`
+
+	items := m.AddFunc("items", []Param{fn, P("v", datum)}, []Type{THandle(ops.Seq), failT}, nil, func(b *Builder) {
+		it := b.LetN([]string{"items", "ok"}, C("seq.items", L("v")))
+		b.If(it[1], func(b *Builder) { b.Return(it[0], ok) })
+		b.Return(it[0], failure(ops.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+	})
+	items.Doc = `items returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
+and those of a list or a tuple. Any other value fails.`
+
+	length := m.AddFunc("length", []Param{P("x", datum)}, val, nil, func(b *Builder) {
+		kx := b.Let("k", kind(x))
+		b.If(Eq(kx, k(ops.KindString)), func(b *Builder) { b.Return(C("str.len", x), ok) })
+		b.If(Eq(kx, k(ops.KindNil)), func(b *Builder) { b.Return(C("val.fromInt", Int(0)), ok) })
+		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
+		b.If(o[1], func(b *Builder) {
+			// The text of a string node is the input of its range, whose length the range holds in the
+			// position unit.
+			b.If(C("node.hasText", o[0]), func(b *Builder) { b.Return(C("node.width", o[0]), ok) })
+			b.Return(C("node.count", o[0]), ok)
+		})
+		fail(b, ops.ErrLenArg, x, none, Int(0), Int(0))
+	})
+	length.Doc = `length is the built-in function len: the length of a string in the position unit, of the range of a string
+node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails.`
+
+	text := m.AddFunc("text", []Param{P("x", datum)}, []Type{THandle(ops.Str), failT}, nil, func(b *Builder) {
+		kx := b.Let("k", kind(x))
+		b.If(Eq(kx, k(ops.KindNil)), func(b *Builder) { b.Return(C("str.empty"), ok) })
+		b.If(Eq(kx, k(ops.KindString)), func(b *Builder) { b.Return(C("str.of", x), ok) })
+		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
+		b.If(o[1], func(b *Builder) {
+			// A string node or an error holds its text; the text of any other node is the input of its
+			// range.
+			h := b.LetN([]string{"t", "held"}, C("node.heldText", o[0]))
+			b.If(h[1], func(b *Builder) { b.Return(h[0], ok) })
+			b.Return(C("node.rangeText", o[0]), ok)
+		})
+		b.Return(C("str.empty"), failure(ops.ErrTextArg, x, none, Int(0), Int(0)))
+	})
+	text.Doc = `text is the built-in function text: a string itself, the text that a string node or an error holds,
+the input of the range of any other node, and the empty string for nil. Any other value fails.`
+
 	logic.Doc = `logic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 true and of || only if it is false, and checks each operand it evaluates.`

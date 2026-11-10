@@ -257,8 +257,9 @@ var siteCost = map[string][]string{
 	"Parser.nodesEqual":            {""},
 	"Parser.valuesEqual":           {""},
 	"Parser.advance":               {ops.QSteps, ""},
-	// The moves of the values of memo entries after Document edits.
-	"Parser.NewNode":    {ops.QMoved},
+	// The moves of the values of memo entries after Document edits, and the box that val.box makes:
+	// one unit for each node made.
+	"Parser.NewNode":    {ops.QMoved, ""},
 	"Parser.movable":    {ops.QMoved},
 	"Parser.moveNode":   {ops.QMoved},
 	"Parser.moveShared": {ops.QMoved},
@@ -267,7 +268,13 @@ var siteCost = map[string][]string{
 	"Parser.streamLineCol": {ops.QStreamScan},
 
 	// The values of terms: the bytes of a string operation, and the fragments of the text of a failure.
-	"Parser.strAdd":              {ops.QValueBytes},
+	"Parser.strAdd":  {ops.QValueBytes},
+	"Parser.unitLen": {ops.QValueBytes},
+	// The text of a range of a stream, which node.text reads.
+	"Parser.streamText":          {ops.QValueBytes},
+	"Parser.streamCopy":          {ops.QValueBytes},
+	"Parser.detachedText":        {ops.QValueBytes},
+	"Parser.decodeSource":        {ops.QValueBytes},
 	"Parser.actionErrorText":     {ops.QErrParts},
 	"Parser.writeDiagnosticText": {ops.QErrParts},
 

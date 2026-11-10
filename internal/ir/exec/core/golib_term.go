@@ -17,7 +17,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 // termFuncs are the compositions of the operators of terms, in the order they are printed.
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
-	{"member", "termMember"},
+	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"length", "termLength"}, {"text", "termText"},
 }
 
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.
@@ -260,8 +260,46 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		return t + "valItems(" + a[0] + ")", true
 	case "seq.len":
 		return "len(" + a[0] + ")", true
-	case "val.name":
+	case "val.name", "val.fromInt":
 		return "any(" + a[0] + ")", true
+	case "node.elem":
+		return a[0], true
+	case "val.box":
+		if typed {
+			return a[1], true
+		}
+		return fmt.Sprintf("p.NewNode(Node{RawKind: kindBox, box: %[2]s, RawStart: int32(%[1]s.start), RawEnd: int32(%[1]s.end)})", a[0], a[1]), true
+	case "node.hasText":
+		if typed {
+			return "tnodeHasText(" + a[0] + ")", true
+		}
+		return a[0] + ".RawTerminal", true
+	case "node.width":
+		if typed {
+			return "tnodeWidth(" + a[0] + ")", true
+		}
+		return fmt.Sprintf("any(int(%[1]s.RawEnd - %[1]s.RawStart))", a[0]), true
+	case "node.count":
+		if typed {
+			return "any(len(" + a[0] + ".TKids()))", true
+		}
+		return "any(len(" + a[0] + ".RawChildren))", true
+	case "node.heldText":
+		if typed {
+			return a[0] + ".TText()", true
+		}
+		return a[0] + ".RawText, " + a[0] + ".RawTerminal", true
+	case "node.rangeText":
+		if typed {
+			return "p.Text(" + a[0] + ".TSpan())", true
+		}
+		return fmt.Sprintf("p.Text(int(%[1]s.RawStart), int(%[1]s.RawEnd))", a[0]), true
+	case "str.len":
+		return "any(p.unitLen(" + a[0] + ".(string)))", true
+	case "str.of":
+		return a[0] + ".(string)", true
+	case "str.empty":
+		return `""`, true
 	case "node.of":
 		return t + "nodeOf(" + a[0] + ")", true
 	case "node.isNode":
@@ -386,6 +424,20 @@ func engineValueOp(callee string, a []string) (string, bool) {
 		return "p.isStruct(" + a[0] + ")", true
 	case "node.field":
 		return fmt.Sprintf("p.ValueField(value.D(%s).Fields, %s)", a[0], a[1]), true
+	case "val.box":
+		return fmt.Sprintf("p.NewNode(value.Data{Kind: value.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
+	case "node.hasText":
+		return "value.D(" + a[0] + ").Terminal", true
+	case "node.heldText":
+		return fmt.Sprintf("value.D(%[1]s).Text, value.D(%[1]s).Terminal", a[0]), true
+	case "node.rangeText":
+		return fmt.Sprintf("p.Text(int(value.D(%[1]s).Start), int(value.D(%[1]s).End))", a[0]), true
+	case "node.width":
+		return fmt.Sprintf("any(int(value.D(%[1]s).End - value.D(%[1]s).Start))", a[0]), true
+	case "node.count":
+		return "any(len(value.D(" + a[0] + ").Children))", true
+	case "str.len":
+		return "any(p.ValueTextLen(" + a[0] + ".(string)))", true
 	}
 	// The remaining primitives read the same in every Go runtime.
 	for _, typed := range []bool{false} {

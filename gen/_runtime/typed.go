@@ -1937,71 +1937,36 @@ func (c *TActCtx) Member(x any, name string) any {
 // struct holds every field of its type, which node.field reads.
 func (p *TParser) memberZero(*TActCtx, TVal, string) (any, bool) { return nil, false }
 
+// Length is the built-in function len, as the composition length (term_exec.go) makes it.
 func (c *TActCtx) Length(x any) any {
-	switch x := x.(type) {
-	case string:
-		return c.P.unitLen(x)
-	case nil:
-		return 0
+	v, e := c.P.termLength(x)
+	if e != nil {
+		panic(e)
 	}
-	if n, ok := x.(TVal); ok {
-		if _, ok := n.TText(); ok {
-			// The text of a string node or an error value is the input of its range, whose
-			// length the range holds in the position unit.
-			start, end := n.TSpan()
-			return end - start
-		}
-		return len(n.TKids())
-	}
-	c.P.evalErrorf("len: invalid argument %s", ttypeName(x))
-	return nil
+	return v
 }
 
-func (c *TActCtx) Text(x any) any { return c.TextStr(x) }
+// Text is the built-in function text, as the composition text (term_exec.go) makes it.
+func (c *TActCtx) Text(x any) any {
+	s, e := c.P.termText(x)
+	if e != nil {
+		panic(e)
+	}
+	return s
+}
+
+// TextStr returns text(x) as a string. Comparisons of two texts use it directly, since storing a
+// string in an interface allocates.
 
 func (c *TActCtx) TextStr(x any) string {
-	switch x := x.(type) {
-	case nil:
-		return ""
-	case string:
-		return x
+	s, e := c.P.termText(x)
+	if e != nil {
+		panic(e)
 	}
-	if n, ok := x.(TVal); ok {
-		if text, ok := n.TText(); ok {
-			return text
-		}
-		s, e := n.TSpan()
-		return c.P.Text(s, e)
-	}
-	c.P.evalErrorf("text: invalid argument %s", ttypeName(x))
-	return ""
+	return s
 }
 
-func tlistItems(fn string, v any) []any {
-	if v == nil {
-		return nil
-	}
-	if n, ok := v.(TVal); ok {
-		return n.TKids()
-	}
-	evalErrorf("%s: expected a list, got %s", fn, ttypeName(v))
-	return nil
-}
-
-func tasNode(fn string, v any) any {
-	if v == nil {
-		return nil
-	}
-	switch v.(type) {
-	case TVal, int, string, bool:
-		return v
-	}
-	evalErrorf("%s: elements must be values, got %s", fn, ttypeName(v))
-	return nil
-}
-
-func trtFold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	items := tlistItems(fn, list)
+func trtFold(right bool, acc any, items []any, f func(acc, item any) any) any {
 	for i := range items {
 		it := items[i]
 		if right {
@@ -2271,7 +2236,7 @@ func (c *TActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item an
 	if c.P.Control != nil {
 		return c.foldControlled(fn, right, acc, list, f)
 	}
-	return trtFold(fn, right, acc, list, f)
+	return trtFold(right, acc, c.ListItems(fn, list), f)
 }
 
 func (c *TActCtx) foldControlled(fn string, right bool, acc, list any, f func(acc, item any) any) any {
@@ -2310,29 +2275,6 @@ func (p *TParser) ListField(kids []any) any {
 	return n
 }
 
-func tlistItemsSpend(p *Parser, fn string, v any) []any {
-	if v == nil {
-		return nil
-	}
-	if n, ok := v.(TVal); ok {
-		return n.TKids()
-	}
-	p.evalErrorf("%s: expected a list, got %s", fn, ttypeName(v))
-	return nil
-}
-
-func tasNodeSpend(p *Parser, fn string, v any) any {
-	if v == nil {
-		return nil
-	}
-	switch v.(type) {
-	case TVal, int, string, bool:
-		return v
-	}
-	p.evalErrorf("%s: elements must be values, got %s", fn, ttypeName(v))
-	return nil
-}
-
 // Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
 func (c *TActCtx) Unary(op int, v any) any {
 	r, e := c.P.termUnary(op, v)
@@ -2366,23 +2308,23 @@ func (c *TActCtx) Or(l any, r func() any) any {
 	}
 	return c.P.logical(OpOr, r())
 }
+
+// ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
+// the composition items (term_exec.go) reads them.
 func (c *TActCtx) ListItems(fn string, v any) []any {
-	if c.P.Control != nil {
-		return c.listItemsControlled(fn, v)
+	items, e := c.P.termItems(fn, v)
+	if e != nil {
+		panic(e)
 	}
-	return tlistItems(fn, v)
+	return items
 }
 
-func (c *TActCtx) listItemsControlled(fn string, v any) []any {
-	return tlistItemsSpend(c.P.Parser, fn, v)
-}
+// asNode returns v as an element of a list or a tuple that fn makes, as the composition element
+// (term_exec.go) makes it.
 func (c *TActCtx) asNode(fn string, v any) any {
-	if c.P.Control != nil {
-		return c.asNodeControlled(fn, v)
+	e, f := c.P.termElement(c, fn, v)
+	if f != nil {
+		panic(f)
 	}
-	return tasNode(fn, v)
-}
-
-func (c *TActCtx) asNodeControlled(fn string, v any) any {
-	return tasNodeSpend(c.P.Parser, fn, v)
+	return e
 }

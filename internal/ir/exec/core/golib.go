@@ -171,7 +171,7 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
 		ops.Term: "func(*ActCtx) any", ops.Datum: "any", ops.Seq: "[]*Node",
-		ops.Obj: "*Node", ops.Name: "string", ops.Act: "*ActCtx", ops.Fail: "any",
+		ops.Obj: "*Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*Node",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
@@ -196,7 +196,7 @@ func goTarget(s goSpec) *execgo.Target {
 		handles[ops.Frame], handles[ops.Operators], handles[ops.Operator] = "*TCaptureFrame", "[]*TOperatorsRuleOp", "*TOperatorsRuleOp"
 		handles[ops.Line], handles[ops.Attempt] = "*TOperatorsRuleLine", "toperatorsRuleAttempt"
 		handles[ops.Term] = "func(*TActCtx) any"
-		handles[ops.Seq], handles[ops.Obj], handles[ops.Act] = "[]any", "TVal", "*TActCtx"
+		handles[ops.Seq], handles[ops.Obj], handles[ops.Act], handles[ops.Elem] = "[]any", "TVal", "*TActCtx", "any"
 		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {

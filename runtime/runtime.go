@@ -3554,77 +3554,35 @@ func (c *ActCtx) zeroValue(d string) (any, string) {
 	return nil, d[1:]
 }
 
+// Length is the built-in function len, as the composition length (term_exec.go) makes it.
 func (c *ActCtx) Length(x any) any {
-	switch x := x.(type) {
-	case string:
-		return c.P.unitLen(x)
-	case *Node:
-		if x == nil {
-			return 0
-		}
-		if x.RawTerminal {
-			// The text of a string node is the input of its range, whose length the range holds
-			// in the position unit.
-			return int(x.RawEnd - x.RawStart)
-		}
-		return len(x.RawChildren)
-	case nil:
-		return 0
+	v, e := c.P.termLength(x)
+	if e != nil {
+		panic(e)
 	}
-	c.P.evalErrorf("len: invalid argument %s", typeName(x))
-	return nil
+	return v
 }
 
-func (c *ActCtx) Text(x any) any { return c.TextStr(x) }
+// Text is the built-in function text, as the composition text (term_exec.go) makes it.
+func (c *ActCtx) Text(x any) any {
+	s, e := c.P.termText(x)
+	if e != nil {
+		panic(e)
+	}
+	return s
+}
 
 // TextStr returns text(x) as a string. Comparisons of two texts use it directly, since storing a
 // string in an interface allocates.
 func (c *ActCtx) TextStr(x any) string {
-	switch x := x.(type) {
-	case nil:
-		return ""
-	case string:
-		return x
-	case *Node:
-		if x == nil {
-			return ""
-		}
-		if x.RawTerminal {
-			return x.RawText
-		}
-		return c.P.Text(int(x.RawStart), int(x.RawEnd))
+	s, e := c.P.termText(x)
+	if e != nil {
+		panic(e)
 	}
-	c.P.evalErrorf("text: invalid argument %s", typeName(x))
-	return ""
+	return s
 }
 
-func listItems(fn string, v any) []*Node {
-	switch x := v.(type) {
-	case nil:
-		return nil
-	case *Node:
-		if x == nil {
-			return nil
-		}
-		return x.RawChildren
-	}
-	evalErrorf("%s: expected a list, got %s", fn, typeName(v))
-	return nil
-}
-
-func asNode(fn string, v any) *Node {
-	switch x := v.(type) {
-	case nil:
-		return nil
-	case *Node:
-		return x
-	}
-	evalErrorf("%s: elements must be values, got %s", fn, typeName(v))
-	return nil
-}
-
-func rtFold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	items := listItems(fn, list)
+func rtFold(right bool, acc any, items []*Node, f func(acc, item any) any) any {
 	for i := range items {
 		it := items[i]
 		if right {
@@ -3836,31 +3794,6 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	}
 	n := p.NewNode(Node{RawKind: kind, RawStart: int32(start), RawEnd: int32(end), RawChildren: kids, RawFields: fields, labeled: p.sourceInfo})
 	return n
-}
-
-func listItemsSpend(p *Parser, fn string, v any) []*Node {
-	switch x := v.(type) {
-	case nil:
-		return nil
-	case *Node:
-		if x == nil {
-			return nil
-		}
-		return x.RawChildren
-	}
-	p.evalErrorf("%s: expected a list, got %s", fn, typeName(v))
-	return nil
-}
-
-func asNodeSpend(p *Parser, fn string, v any) *Node {
-	switch x := v.(type) {
-	case nil:
-		return nil
-	case *Node:
-		return x
-	}
-	p.evalErrorf("%s: elements must be values, got %s", fn, typeName(v))
-	return nil
 }
 
 // --- Iterative tree API: node_json (mirrors internal/value/node_json.go) ---

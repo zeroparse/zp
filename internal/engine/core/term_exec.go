@@ -103,6 +103,14 @@ func (p *Parser) termError(code int, a, b any, op, n int) error {
 		return p.ActionError(TypeName(a), " has no capture ", b.(string))
 	case 10: // no field
 		return p.ActionError(TypeName(a), " has no field ", b.(string))
+	case 11: // not an element
+		return p.ActionError(b.(string), ": elements must be values, got ", TypeName(a))
+	case 12: // argument not a list
+		return p.ActionError(b.(string), ": expected a list, got ", TypeName(a))
+	case 13: // invalid len argument
+		return p.ActionError("len: invalid argument ", TypeName(a))
+	case 14: // invalid text argument
+		return p.ActionError("text: invalid argument ", TypeName(a))
 	}
 	return errors.New("core: no term failure")
 }
@@ -298,4 +306,81 @@ func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field stri
 		return z, nil
 	}
 	return nil, p.termError(10, x, any(field), 0, 0)
+}
+
+// termElement returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil,
+// a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such
+// as a function, fails.
+//
+// Printed from Exec IR function element of internal/ir/exec/core.
+func (p *Parser) termElement(c *EvalCtx, fn string, v any) (*value.Node, error) {
+	k := valKind(v)
+	if k == 0 {
+		return nil, nil
+	}
+	if k == 1 || k == 2 || k == 3 {
+		return p.NewNode(value.Data{Kind: value.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}), nil
+	}
+	n, ok := nodeOf(v)
+	if ok {
+		return n, nil
+	}
+	return nil, p.termError(11, v, any(fn), 0, 0)
+}
+
+// termItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
+// and those of a list or a tuple. Any other value fails.
+//
+// Printed from Exec IR function items of internal/ir/exec/core.
+func (p *Parser) termItems(fn string, v any) ([]*value.Node, error) {
+	items, ok := valItems(v)
+	if ok {
+		return items, nil
+	}
+	return items, p.termError(12, v, any(fn), 0, 0)
+}
+
+// termLength is the built-in function len: the length of a string in the position unit, of the range of a string
+// node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails.
+//
+// Printed from Exec IR function length of internal/ir/exec/core.
+func (p *Parser) termLength(x any) (any, error) {
+	k := valKind(x)
+	if k == 2 {
+		return any(p.ValueTextLen(x.(string))), nil
+	}
+	if k == 0 {
+		return any(0), nil
+	}
+	n, ok := nodeOf(x)
+	if ok {
+		if value.D(n).Terminal {
+			return any(int(value.D(n).End - value.D(n).Start)), nil
+		}
+		return any(len(value.D(n).Children)), nil
+	}
+	return nil, p.termError(13, x, nil, 0, 0)
+}
+
+// termText is the built-in function text: a string itself, the text that a string node or an error holds,
+// the input of the range of any other node, and the empty string for nil. Any other value fails.
+//
+// Printed from Exec IR function text of internal/ir/exec/core.
+func (p *Parser) termText(x any) (string, error) {
+	k := valKind(x)
+	if k == 0 {
+		return "", nil
+	}
+	if k == 2 {
+		return x.(string), nil
+	}
+	n, ok := nodeOf(x)
+	if ok {
+		t, held := value.D(n).Text, value.D(n).Terminal
+		if held {
+			return t, nil
+		}
+		return p.Text(int(value.D(n).Start), int(value.D(n).End)), nil
+	}
+	return "", p.termError(14, x, nil, 0, 0)
 }

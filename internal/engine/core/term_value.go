@@ -176,3 +176,5 @@ func (p *Parser) isStruct(n *value.Node) bool {
 	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
 	return ok
 }
+
+

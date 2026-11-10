@@ -109,7 +109,7 @@ const (
 
 // TermError is a failure that a term reports. Text is its message with the placeholders {a} and
 // {b}, the type names of the first and second value; {name}, the second value as a string, a member
-// name; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
+// name or the name of a built-in function; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
 // value as an int; and {n}, a count. Hint ends the message of a failure that has one. Every target
 // prints these messages and puts the text of a failure together from them, so that they read the
 // same on all targets.
@@ -147,6 +147,16 @@ const (
 	// ErrNoField is the read of a field that a struct type does not declare (a is the struct, name the
 	// field).
 	ErrNoField
+	// ErrElement is an element of a list or a tuple that is not a value, such as a function (a is the
+	// element, name the built-in function or literal that makes the list).
+	ErrElement
+	// ErrArgList is an argument of a built-in function that takes a list and is not one (a is the
+	// argument, name the function).
+	ErrArgList
+	// ErrLenArg is an argument of len that has no length (a is the argument).
+	ErrLenArg
+	// ErrTextArg is an argument of text that has no text (a is the argument).
+	ErrTextArg
 )
 
 // TermErrors are the messages of the failures of a term.
@@ -162,6 +172,10 @@ var TermErrors = []TermError{
 	ErrMemberOf:   {Name: "no members", Text: "cannot access .{name} of {a}"},
 	ErrNoCapture:  {Name: "no capture", Text: "{a} has no capture {name}"},
 	ErrNoField:    {Name: "no field", Text: "{a} has no field {name}"},
+	ErrElement:    {Name: "not an element", Text: "{name}: elements must be values, got {a}"},
+	ErrArgList:    {Name: "argument not a list", Text: "{name}: expected a list, got {a}"},
+	ErrLenArg:     {Name: "invalid len argument", Text: "len: invalid argument {a}"},
+	ErrTextArg:    {Name: "invalid text argument", Text: "text: invalid argument {a}"},
 }
 
 // Kinds of a member read, by the code the composition member takes. A member name of a term is the
@@ -217,6 +231,14 @@ const Name = "Name"
 // Act is the handle type of the context of the term being evaluated, in which a value is made.
 const Act = "Act"
 
+// Elem is the handle type of an element of a list or a tuple that a term makes, as Seq holds it: a node
+// or nil in a target whose elements are nodes, and any value in a target whose elements are any values.
+const Elem = "Elem"
+
+// Str is the handle type of a string of the target that is not a value, such as the result of text,
+// which a comparison of texts reads without making a value of it.
+const Str = "Str"
+
 // QFieldsRead is the number of fields of a value that a read of one of them scans.
 const QFieldsRead = "fields_read"
 
@@ -258,6 +280,8 @@ for a bool and KindOther for every other value, a box that holds one of these in
 		Laws:     []string{"pure: equal arguments give equal results"}})
 	pure(&exec.Op{Name: "val.fromBool", Params: []exec.Param{exec.P("b", exec.TBool)}, Results: []exec.Type{datum},
 		Contract: `Returns the bool value b.`})
+	pure(&exec.Op{Name: "val.fromInt", Params: []exec.Param{exec.P("i", exec.TInt)}, Results: []exec.Type{datum},
+		Contract: `Returns the int value i.`})
 	pure(&exec.Op{Name: "val.toBool", Params: []exec.Param{x}, Results: []exec.Type{exec.TBool},
 		Contract: `Returns the bool that x is.`, Requires: `x is a bool: val.kind(x) is KindBool.`})
 	pure(&exec.Op{Name: "val.fail", Params: []exec.Param{exec.P("code", exec.TInt), exec.P("a", datum), exec.P("b", datum),
@@ -348,6 +372,39 @@ true, or nil and false if the type of n declares no such field or the target hol
 		Requires: `node.isStruct(n).`})
 	pure(&exec.Op{Name: "val.name", Params: []exec.Param{nm}, Results: []exec.Type{datum},
 		Contract: `Returns name as a string value, as the {name} of a failure reads it.`})
+	m.AddHandle(Str, Val, "A string of the target that is not a value, as text returns it.")
+	m.AddHandle(Elem, Val, "An element of a list or a tuple that a term makes, as a Seq holds it.")
+	pure(&exec.Op{Name: "node.elem", Params: []exec.Param{n}, Results: []exec.Type{exec.THandle(Elem)},
+		Contract: `Returns n as an element of a list or a tuple: n itself.`,
+		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "val.box", Params: []exec.Param{exec.P("c", act), x}, Results: []exec.Type{exec.THandle(Elem)},
+		Host: true, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Contract: `Returns x as an element of a list or a tuple: in a target whose elements are nodes, a box that holds x
+with the range of the input of c, made in c, and x itself in a target whose elements are any values. A target that
+bounds the work charges for the box it makes.`,
+		Requires: `x is an int, a string or a bool.`})
+	pure(&exec.Op{Name: "node.hasText", Params: []exec.Param{n}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether n is a string node or an error, whose text is the input of its range.`})
+	pure(&exec.Op{Name: "node.width", Params: []exec.Param{n}, Results: []exec.Type{datum},
+		Contract: `Returns the length of the range of n, in the position unit, as an int.`})
+	pure(&exec.Op{Name: "node.count", Params: []exec.Param{n}, Results: []exec.Type{datum},
+		Contract: `Returns the number of elements or children of n as an int.`})
+	pure(&exec.Op{Name: "node.heldText", Params: []exec.Param{n}, Results: []exec.Type{exec.THandle(Str), exec.TBool},
+		Contract: `Returns the text that n holds and true if n is a string node or an error, and false otherwise; the
+text is then not meaningful.`})
+	pure(&exec.Op{Name: "node.rangeText", Params: []exec.Param{n}, Results: []exec.Type{exec.THandle(Str)},
+		Host: true, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
+		Contract: `Returns the input of the range of n. A target that bounds the work may charge for the read of the
+input, and for the bytes it copies out of a stream.`})
+	pure(&exec.Op{Name: "str.len", Params: []exec.Param{x}, Results: []exec.Type{datum},
+		Host: true, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QValueBytes}}},
+		Contract: `Returns the length of the string x in the position unit as an int. A target that bounds the work and
+counts characters charges for the bytes it reads.`,
+		Requires: `x is a string.`})
+	pure(&exec.Op{Name: "str.of", Params: []exec.Param{x}, Results: []exec.Type{exec.THandle(Str)},
+		Contract: `Returns the string x.`, Requires: `x is a string.`})
+	pure(&exec.Op{Name: "str.empty", Results: []exec.Type{exec.THandle(Str)},
+		Contract: `Returns the empty string.`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

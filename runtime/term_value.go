@@ -121,3 +121,18 @@ func (p *Parser) strEq(l, r any) bool {
 	}
 	return p.TextEqual(ls, rs)
 }
+
+
+
+// tnodeHasText is the operation node.hasText in the typed runtime.
+func tnodeHasText(n TVal) bool {
+	_, ok := n.TText()
+	return ok
+}
+
+// tnodeWidth is the operation node.width in the typed runtime.
+func tnodeWidth(n TVal) any {
+	start, end := n.TSpan()
+	return end - start
+}
+

@@ -46,6 +46,10 @@ var tsSpecs = []struct {
 	{fn: "unary", name: "termUnary"},
 	{fn: "logic", name: "termLogic"},
 	{fn: "member", name: "termMember"},
+	{fn: "element", name: "termElement"},
+	{fn: "items", name: "termItems"},
+	{fn: "length", name: "termLength"},
+	{fn: "text", name: "termText"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -152,7 +156,7 @@ var tsTarget = &exects.Target{
 			ops.Frame: "Frame", ops.Scope: "Env | null", ops.Operators: "OperatorsRuleOp[]", ops.Operator: "OperatorsRuleOp",
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
-			ops.Obj: "Node", ops.Name: "string", ops.Act: "Actx", ops.Fail: "Value",
+			ops.Obj: "Node", ops.Name: "string", ops.Str: "string", ops.Act: "Actx", ops.Fail: "Value", ops.Elem: "Node | null",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -205,8 +209,26 @@ var tsTarget = &exects.Target{
 			return a[0] + ".length"
 		case "seq.at":
 			return "unboxValue(" + a[0] + "[" + a[1] + "]!)"
-		case "val.name":
+		case "val.name", "val.fromInt":
 			return a[0]
+		case "node.elem":
+			return a[0]
+		case "val.box":
+			return a[0] + ".box(" + a[1] + ")"
+		case "node.hasText":
+			return a[0] + ".terminal"
+		case "node.width":
+			return "(" + a[0] + ".end - " + a[0] + ".start)"
+		case "node.count":
+			return a[0] + ".children.length"
+		case "node.rangeText":
+			return "this.text(" + a[0] + ".start, " + a[0] + ".end)"
+		case "str.len":
+			return "this.unitLen(" + a[0] + " as string)"
+		case "str.of":
+			return "(" + a[0] + " as string)"
+		case "str.empty":
+			return `""`
 		case "node.isNode":
 			return "isValueNode(" + a[0] + ")"
 		case "node.start", "node.end":
@@ -414,11 +436,23 @@ var tsTarget = &exects.Target{
 		}
 		switch c.Callee {
 		case "node.of":
-			s := fmt.Sprintf("%s = %s as Node;", lhs(dst[0]), a[0])
-			if dst[1] != "_" {
-				s += fmt.Sprintf("\n%s = %s instanceof Node;", lhs(dst[1]), a[0])
+			var lines []string
+			if dst[0] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s as Node;", lhs(dst[0]), a[0]))
 			}
-			return s, true
+			if dst[1] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s instanceof Node;", lhs(dst[1]), a[0]))
+			}
+			return strings.Join(lines, "\n"), true
+		case "node.heldText":
+			var lines []string
+			if dst[0] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s.text;", lhs(dst[0]), a[0]))
+			}
+			if dst[1] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s.terminal;", lhs(dst[1]), a[0]))
+			}
+			return strings.Join(lines, "\n"), true
 		case "node.field":
 			return absent(fmt.Sprintf("findFieldSpend(%s, %s, this.control)", a[0], a[1])), true
 		case "node.zero":

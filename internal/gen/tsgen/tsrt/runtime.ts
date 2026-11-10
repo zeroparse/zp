@@ -4319,6 +4319,30 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termElement returns a value as an element of a list or a tuple that fn makes, and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termElement(c: Actx, fn: string, v: Value): [Node | null, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termItems returns the elements of an argument of the built-in function fn that takes a list, and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termItems(fn: string, v: Value): [readonly (Node | null)[], Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termLength is the built-in function len; it returns the length and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termLength(x: Value): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termText is the built-in function text; it returns the text and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termText(x: Value): [string, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
   // memberKind returns the kind of the member read name.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   memberKind(name: string): number {
@@ -4758,43 +4782,44 @@ export class Actx {
     return [null, i + 1];
   }
 
+  // length is the built-in function len, as the composition length makes it.
   length(x: Value): Value {
-    if (typeof x === "string") {
-      return this.p.unitLen(x);
+    const [v, e] = this.p.termLength(x);
+    if (e !== null) {
+      return evalError(e as string);
     }
-    if (x === null) {
-      return 0;
-    }
-    if (x instanceof Node) {
-      if (x.terminal) {
-        // The text of a string node is the input of its range, whose length the range holds in
-        // the position unit.
-        return x.end - x.start;
-      }
-      return x.children.length;
-    }
-    return evalError(`len: invalid argument ${typeName(x)}`);
+    return v;
   }
 
   text(x: Value): Value {
     return this.textStr(x);
   }
 
-  // textStr returns text(x) as a string.
+  // textStr returns text(x) as a string, as the composition text makes it.
   textStr(x: Value): string {
-    if (x === null) {
-      return "";
+    const [s, e] = this.p.termText(x);
+    if (e !== null) {
+      return evalError(e as string);
     }
-    if (typeof x === "string") {
-      return x;
+    return s;
+  }
+
+  // listItems returns the elements of v, an argument of the built-in function fn that takes a list,
+  // as the composition items reads them.
+  listItems(fn: string, v: Value): readonly (Node | null)[] {
+    const [items, e] = this.p.termItems(fn, v);
+    if (e !== null) {
+      return evalError(e as string);
     }
-    if (x instanceof Node) {
-      if (x.terminal) {
-        return x.text;
-      }
-      return this.p.text(x.start, x.end);
-    }
-    return evalError(`text: invalid argument ${typeName(x)}`);
+    return items;
+  }
+
+  // box is the operation val.box: x boxed with the range of the input, as the result of an action
+  // travels.
+  box(x: Value): Node {
+    const b = new Node(typeBox, "", this.start, this.end, "", noNodes, noFields, false, false);
+    b.box = x;
+    return b;
   }
 
   // The list built-ins gather the elements on kidStack (lambdas that build lists push above them)
@@ -4809,7 +4834,7 @@ export class Actx {
 
   filterList(list: Value, f: (item: Value) => Value): Value {
     const base = this.p.kidStack.length;
-    for (const item of listItems("filter", list)) {
+    for (const item of this.listItems("filter", list)) {
       this.spend();
       const value = f(unboxValue(item));
       if (typeof value !== "boolean") {
@@ -4843,27 +4868,21 @@ export class Actx {
 
   pushMap(list: Value, f: (item: Value) => Value): void {
     this.spend();
-    for (const it of listItems("map", list)) {
+    for (const it of this.listItems("map", list)) {
       this.spend();
       const v = this.element("map", f(unboxValue(it)));
       this.p.kidStack.push(v);
     }
   }
 
-  // element returns v as an element of a list that the list built-in fn makes. An int, string
-  // or bool travels boxed, with the range of the action's input, as the result of an action does.
+  // element returns v as an element of a list or a tuple that fn makes, as the composition element
+  // makes it.
   element(fn: string, v: Value): Node | null {
-    switch (typeof v) {
-      case "number":
-      case "bigint":
-      case "string":
-      case "boolean": {
-        const b = new Node(typeBox, "", this.start, this.end, "", noNodes, noFields, false, false);
-        b.box = v;
-        return b;
-      }
+    const [n, e] = this.p.termElement(this, fn, v);
+    if (e !== null) {
+      return evalError(e as string);
     }
-    return asNode(fn, v);
+    return n;
   }
 
   pushList(...args: Value[]): void {
@@ -4877,7 +4896,7 @@ export class Actx {
 
   pushItems(v: Value): void {
     this.spend();
-    for (const it of listItems("concat", v)) {
+    for (const it of this.listItems("concat", v)) {
       this.spend();
       this.p.kidStack.push(it);
     }
@@ -4940,25 +4959,9 @@ export function tupleTerm(n: number): string {
   return n === 1 ? "(_,)" : `(${Array<string>(n).fill("_").join(", ")})`;
 }
 
-export function listItems(fn: string, v: Value): readonly (Node | null)[] {
-  if (v === null) {
-    return noNodes;
-  }
-  if (v instanceof Node) {
-    return v.children;
-  }
-  return evalError(`${fn}: expected a list, got ${typeName(v)}`);
-}
-
-export function asNode(fn: string, v: Value): Node | null {
-  if (v === null || v instanceof Node) {
-    return v;
-  }
-  return evalError(`${fn}: elements must be values, got ${typeName(v)}`);
-}
-
-export function rtFold(fn: string, right: boolean, acc: Value, list: Value, f: (acc: Value, item: Value) => Value, control: BudgetControl | null = null): Value {
-  const items = listItems(fn, list);
+export function rtFold(c: Actx, fn: string, right: boolean, acc: Value, list: Value, f: (acc: Value, item: Value) => Value): Value {
+  const control = c.p.control;
+  const items = c.listItems(fn, list);
   for (let i = 0; i < items.length; i++) {
     control?.charge(1);
     acc = f(acc, unboxValue(items[right ? items.length - 1 - i : i]!));

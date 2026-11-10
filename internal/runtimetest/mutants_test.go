@@ -41,11 +41,17 @@ var goMutants = []goMutant{
 	{"a set field of a struct reads as its zero", "term_exec.go", "termMember", "if set {\n\t\treturn f, nil\n\t}", "if set && !st {\n\t\treturn f, nil\n\t}"},
 	{"a capture keeps its box", "term_exec.go", "termMember", "return UnboxValue(v), nil", "return v, nil"},
 	{"End is a field", "term_exec.go", "memberKind", "return memberEnd, name", "return memberField, name"},
+	{"nil has length 1", "term_exec.go", "termLength", "return any(0), nil", "return any(1), nil"},
+	{"a string has no length", "term_exec.go", "termLength", "if k == 2 {", "if false {"},
+	{"a bool is not an element", "term_exec.go", "termElement", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
+	{"a function is an element", "term_exec.go", "termElement", "return nil, p.termError(11, v, any(fn), 0, 0)", "return nil, nil"},
+	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
+	{"the text of a string is empty", "term_exec.go", "termText", "return x.(string), nil", "return \"\", nil"},
 }
 
 // TestPrintedOperatorMutants is the proof that the value conformance holds the printed code of the
 // operators of terms and of the member reads in the generated Go runtime: with the source of each
-// mutant, TestValueConformance or TestValueMemberTable fails. A mutant that no test notices would be
+// mutant, TestValueConformance, TestValueMemberTable or TestValueBuiltinTable fails. A mutant that no test notices would be
 // one that the model and the code do not both bound.
 func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {
@@ -89,7 +95,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the runtime has no %s%s with %q", head, m.fn, m.old)
 				}
-				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable)$", ".")
+				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable|BuiltinTable)$", ".")
 				cmd.Dir = dir
 				cmd.Env = append(cmd.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
 				out, err := cmd.CombinedOutput()

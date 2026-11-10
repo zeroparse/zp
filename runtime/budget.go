@@ -1524,7 +1524,7 @@ func (c *ActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any
 	if c.P.Control != nil {
 		return c.foldControlled(fn, right, acc, list, f)
 	}
-	return rtFold(fn, right, acc, list, f)
+	return rtFold(right, acc, c.ListItems(fn, list), f)
 }
 
 func (c *ActCtx) foldControlled(fn string, right bool, acc, list any, f func(acc, item any) any) any {
@@ -1641,24 +1641,23 @@ func (c *ActCtx) Or(l any, r func() any) any {
 	}
 	return c.P.logical(OpOr, r())
 }
+
+// ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
+// the composition items (term_exec.go) reads them.
 func (c *ActCtx) ListItems(fn string, v any) []*Node {
-	if c.P.Control != nil {
-		return c.listItemsControlled(fn, v)
+	items, e := c.P.termItems(fn, v)
+	if e != nil {
+		panic(e)
 	}
-	return listItems(fn, v)
+	return items
 }
 
-func (c *ActCtx) listItemsControlled(fn string, v any) []*Node {
-	return listItemsSpend(c.P, fn, v)
-}
+// asNode returns v as an element of a list or a tuple that fn makes, as the composition element
+// (term_exec.go) makes it.
 func (c *ActCtx) asNode(fn string, v any) *Node {
-	switch v.(type) {
-	case int, string, bool:
-		// An int, string or bool element travels boxed, as the result of an action does.
-		return c.P.NewNode(Node{RawKind: kindBox, box: v, RawStart: int32(c.start), RawEnd: int32(c.end)})
+	n, f := c.P.termElement(c, fn, v)
+	if f != nil {
+		panic(f)
 	}
-	if c.P.Control == nil {
-		return asNode(fn, v)
-	}
-	return asNodeSpend(c.P, fn, v)
+	return n
 }

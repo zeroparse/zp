@@ -74,6 +74,12 @@ handle Name of value
 handle Act of value
   // The context of the term being evaluated, in which a value is made.
 
+handle Str of value
+  // A string of the target that is not a value, as text returns it.
+
+handle Elem of value
+  // An element of a list or a tuple that a term makes, as a Seq holds it.
+
 op memo.lookup(rule int, pos int, level int, key Values, docOnly bool) (Entry, bool)
   component memo
   reads memo
@@ -454,6 +460,12 @@ op val.fromBool(b bool) Datum
   contract:
     // Returns the bool value b.
 
+op val.fromInt(i int) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the int value i.
+
 op val.toBool(x Datum) bool
   component value
   cost <= 0
@@ -661,6 +673,81 @@ op val.name(name Name) Datum
   cost <= 0
   contract:
     // Returns name as a string value, as the {name} of a failure reads it.
+
+op node.elem(n Obj) Elem
+  component value
+  cost <= 0
+  contract:
+    // Returns n as an element of a list or a tuple: n itself.
+  law: pure: equal arguments give equal results
+
+host op val.box(c Act, x Datum) Elem
+  component value
+  noreturn
+  cost <= 1
+  contract:
+    // Returns x as an element of a list or a tuple: in a target whose elements are nodes, a box that holds x
+    // with the range of the input of c, made in c, and x itself in a target whose elements are any values. A target that
+    // bounds the work charges for the box it makes.
+  requires:
+    // x is an int, a string or a bool.
+
+op node.hasText(n Obj) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether n is a string node or an error, whose text is the input of its range.
+
+op node.width(n Obj) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the length of the range of n, in the position unit, as an int.
+
+op node.count(n Obj) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns the number of elements or children of n as an int.
+
+op node.heldText(n Obj) (Str, bool)
+  component value
+  cost <= 0
+  contract:
+    // Returns the text that n holds and true if n is a string node or an error, and false otherwise; the
+    // text is then not meaningful.
+
+host op node.rangeText(n Obj) Str
+  component value
+  noreturn
+  cost <= 1 + 1*value_bytes
+  contract:
+    // Returns the input of the range of n. A target that bounds the work may charge for the read of the
+    // input, and for the bytes it copies out of a stream.
+
+host op str.len(x Datum) Datum
+  component value
+  noreturn
+  cost <= 0 + 1*value_bytes
+  contract:
+    // Returns the length of the string x in the position unit as an int. A target that bounds the work and
+    // counts characters charges for the bytes it reads.
+  requires:
+    // x is a string.
+
+op str.of(x Datum) Str
+  component value
+  cost <= 0
+  contract:
+    // Returns the string x.
+  requires:
+    // x is a string.
+
+op str.empty() Str
+  component value
+  cost <= 0
+  contract:
+    // Returns the empty string.
 
 op seq.len(items Seq) int
   component value
