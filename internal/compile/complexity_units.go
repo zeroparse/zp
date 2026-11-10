@@ -87,9 +87,6 @@ func (u unitKind) String() string {
 type contSpec struct {
 	paths []*cont
 	what  string
-	// growth: the continuation follows the growth of a left-recursion cycle, so it reads the
-	// FOLLOW sets without the seed reads of that cycle.
-	growth bool
 }
 
 type unit struct {
@@ -837,11 +834,16 @@ func (k *classifier) followSets(keep func(*site) bool) map[string]charset {
 	return out
 }
 
-// keepFor returns the call sites through which a continuation of a unit continues at the end of
-// a rule body: every site, or, after a growth, the sites other than the seed reads of the cycle.
-// A call of a leader of the cycle at the position where it grows reads the seed and is part of the
-// growth; after the growth the parser continues after the call that started it, which is such a
-// call in the body of a rule of the cycle other than a leader that starts growths (startsGrowth).
+// keepFor returns the call sites through which a later step of a growth of the cycle continues at
+// the end of a rule body (growthGoesOn): every site, or, with growth, the sites other than the
+// seed reads of the cycle. A call of a leader of the cycle at the position where it grows reads
+// the seed and is part of the growth; the step goes on after the call that started it, which is
+// such a call in the body of a rule of the cycle other than a leader that starts growths
+// (startsGrowth).
+//
+// The continuations of units do not drop the seed reads: after a growth that a call in the body
+// of a leader of the cycle started, the end of that body is followed by the next step of the
+// leader's own growth, which reads its seed there.
 func (k *classifier) keepFor(cycle int, growth bool) func(*site) bool {
 	if !growth {
 		return nil
@@ -852,7 +854,7 @@ func (k *classifier) keepFor(cycle int, growth bool) func(*site) bool {
 	}
 }
 
-// followFor returns the FOLLOW function of a continuation of a unit.
+// followFor returns the FOLLOW function of the sites that keepFor keeps.
 func (k *classifier) followFor(cycle int, growth bool) func(string) charset {
 	if !growth {
 		return func(r string) charset { return k.follow[r] }
@@ -876,7 +878,7 @@ type lead struct {
 	rest *cont
 	done bool
 	// up: the path reaches the lead after the end of a rule body, in what follows a call whose
-	// evaluations can nest without a bound and end at one position (nestsAt, nestsOps).
+	// evaluations can nest without a bound and end at one position (nestsEnd, nestsOps).
 	up bool
 	// left: the path reaches the lead after the end of the body in which it started.
 	left bool
@@ -902,11 +904,11 @@ const (
 
 // leads finds the first calls of the paths. It looks through calls that are not shared, by
 // evaluating their bodies, through expressions that examine no input, and through the ends of rule
-// bodies, by the call sites that keep accepts. With only set, it looks through every call but one
+// bodies, by every call site of the rule. With only set, it looks through every call but one
 // of that rule, and records in seen the shareable calls that it looks through. A path whose entry
 // in ups is true has already left a body through a call that nests (see lead.up), before the
 // shared calls that strip removed from it.
-func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, only *string, seen map[string]bool) []lead {
+func (k *classifier) leads(paths []*cont, ups []bool, only *string, seen map[string]bool) []lead {
 	budget := leadBudget
 	var out []lead
 	// ended are the rule ends already followed: the paths after them are the same each time. The
@@ -959,9 +961,9 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 					out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
 				case endOps:
 					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), left, st.via}) })
-					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, state{k.nestsAt(s), left, st.via}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), left, st.via}) })
 				case endRule:
-					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, state{k.nestsAt(s), left, st.via}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), left, st.via}) })
 				}
 				return
 			}
@@ -1057,12 +1059,12 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 
 // endLeads continues a path at the end of the body of rule, after each call of the rule, with the
 // call site; at the end of the start rule the parse ends, without a site.
-func (k *classifier) endLeads(rule string, keep func(*site) bool, visit func(*cont, *site)) {
+func (k *classifier) endLeads(rule string, visit func(*cont, *site)) {
 	if rule == k.start {
 		visit(nil, nil)
 	}
 	for _, s := range k.sites {
-		if s.callee == rule && (keep == nil || keep(s)) {
+		if s.callee == rule {
 			visit(s.cont, s)
 		}
 	}
@@ -1209,12 +1211,12 @@ func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visi
 // A shared call can be the first thing that a call of another shareable rule evaluates, as ws is
 // in primary = ws number: when the first calls of the two differ, the classifier looks through
 // them, by evaluating their bodies, for a call that both evaluate first.
-func (k *classifier) strip(u, c []*cont, keep func(*site) bool, owner *unit) ([]*cont, []*cont) {
+func (k *classifier) strip(u, c []*cont, owner *unit) ([]*cont, []*cont) {
 	var ups []bool // for each path of c, whether it left a body through a call that nests
 	for range 16 {
-		lu, lc := k.leads(u, nil, nil, nil, nil), k.leads(c, ups, keep, nil, nil)
+		lu, lc := k.leads(u, nil, nil, nil), k.leads(c, ups, nil, nil)
 		if !commonLead(lu, lc) {
-			lu, lc = k.deepLeads(u, c, ups, keep)
+			lu, lc = k.deepLeads(u, c, ups)
 			if lu == nil {
 				return u, c
 			}
@@ -1247,11 +1249,11 @@ func (k *classifier) rescans(lc []lead) bool {
 // deepLeads looks for a shareable call that the unit and the continuation both evaluate first,
 // through the bodies of the shareable calls that they evaluate first, and returns the leads of
 // both at it, or nil.
-func (k *classifier) deepLeads(u, c []*cont, ups []bool, keep func(*site) bool) ([]lead, []lead) {
+func (k *classifier) deepLeads(u, c []*cont, ups []bool) ([]lead, []lead) {
 	none := ""
 	su, sc := map[string]bool{}, map[string]bool{}
-	k.leads(u, nil, nil, &none, su)
-	k.leads(c, ups, keep, &none, sc)
+	k.leads(u, nil, &none, su)
+	k.leads(c, ups, &none, sc)
 	var both []string
 	for n := range su {
 		if sc[n] {
@@ -1260,7 +1262,7 @@ func (k *classifier) deepLeads(u, c []*cont, ups []bool, keep func(*site) bool) 
 	}
 	slices.Sort(both)
 	for _, n := range both {
-		lu, lc := k.leads(u, nil, nil, &n, nil), k.leads(c, ups, keep, &n, nil)
+		lu, lc := k.leads(u, nil, &n, nil), k.leads(c, ups, &n, nil)
 		if commonLead(lu, lc) {
 			return lu, lc
 		}
@@ -1313,17 +1315,16 @@ func rests(ls []lead) ([]*cont, []bool) {
 // committing reports whether, after the shared calls are removed, the first characters of the
 // unit paths and of each continuation are disjoint, or the words with which the unit paths begin
 // exclude the continuation. It returns the first continuation that is neither.
-func (k *classifier) committing(owner *unit, self []*cont, conts []contSpec, cycle int) (bool, string) {
+func (k *classifier) committing(owner *unit, self []*cont, conts []contSpec) (bool, string) {
 	for _, cs := range conts {
-		keep := k.keepFor(cycle, cs.growth)
-		u, c := k.strip(self, cs.paths, keep, owner)
+		u, c := k.strip(self, cs.paths, owner)
 		// A unit whose sources all lie in the shared calls repeats nothing beyond their cost.
 		if !k.pathsContainSource(u) {
 			continue
 		}
 		fu := k.firstPaths(u, nil)
-		fc := k.firstPaths(c, k.followFor(cycle, cs.growth))
-		if fu.intersects(fc) && !k.excludedByWord(u, c, keep) {
+		fc := k.firstPaths(c, func(r string) charset { return k.follow[r] })
+		if fu.intersects(fc) && !k.excludedByWord(u, c) {
 			return false, cs.what
 		}
 	}
@@ -1349,7 +1350,7 @@ func (k *classifier) checkUnits() {
 			continue
 		}
 		conts := k.withoutReentry(u)
-		if ok, what := k.committing(u, u.self, conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, conts); !ok {
 			if decidedUnitsOn && k.unitDecided(u, conts) {
 				continue
 			}
@@ -1467,12 +1468,12 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 		return
 	}
 	conts = append(conts, starts...)
-	if ok, what := k.committing(u, self, conts, u.cycle); !ok {
+	if ok, what := k.committing(u, self, conts); !ok {
 		u.nc, u.witness = true, what
 		return
 	}
 	if u.afterInput {
-		if ok, what := k.committing(u, u.self, u.conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, u.conts); !ok {
 			u.nc, u.witness = true, what
 			return
 		}
@@ -1483,11 +1484,11 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 	// not grow, as an alternative that is not growing, after the leaders that it calls have grown.
 	switch {
 	case grower != "" && len(first) > 0:
-		if ok, what := k.committing(u, first, u.conts, 0); !ok {
+		if ok, what := k.committing(u, first, u.conts); !ok {
 			u.nc, u.witness = true, what
 		}
 	case grower == "" && (len(first) > 0 || k.startsGrowth(u.rule)):
-		if ok, what := k.committing(u, u.self, u.conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, u.conts); !ok {
 			u.nc, u.witness = true, what
 		}
 	}
@@ -1535,7 +1536,7 @@ func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 		if !ok {
 			return nil, false
 		}
-		out = append(out, contSpec{paths: paths, growth: true, what: "what follows the start of the parse"})
+		out = append(out, contSpec{paths: paths, what: "what follows the start of the parse"})
 	}
 	for _, s := range k.sites {
 		if !k.an.cyclic[s.callee] || k.an.cycle[s.callee] != cycle {
@@ -1551,7 +1552,7 @@ func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 				return nil, false
 			}
 		}
-		out = append(out, contSpec{paths: paths, growth: true,
+		out = append(out, contSpec{paths: paths,
 			what: fmt.Sprintf("what follows the call %s at %s", s.callee, at(s.caller, exprPos(s.ref)))})
 	}
 	return out, true

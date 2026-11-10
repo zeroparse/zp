@@ -116,3 +116,42 @@ func TestNestingRestartsUsed(t *testing.T) {
 		}
 	}
 }
+
+// nestingGrowths are grammars whose cost is quadratic because the evaluations of a left-recursive
+// rule nest and end at one position: each of them grows there, and the next step of its growth
+// scans R after its seed at that position again.
+var nestingGrowths = []struct{ name, src string }{
+	{"growth after a nesting", "rule main = e\nrule e = e R \"x\" / \"(\" e / \".\"\nrule R = &\"\" [ ]*\n"},
+	{"growth after a nesting, pure scan", "rule main = e\nrule e = e R \"x\" / \"(\" e / \".\"\nrule R = [ ]*\n"},
+	{"two growing alternatives", "rule main = e\nrule e = e R \"x\" / e \"+\" / \"(\" e / \".\"\nrule R = &\"\" [ ]*\n"},
+	{"nesting through another rule", "rule main = e\nrule e = e R \"x\" / \"(\" f / \".\"\nrule f = e\nrule R = &\"\" [ ]*\n"},
+	{"growing alternative in a member", "rule main = e\nrule e = a / \"(\" e / \".\"\nrule a = e R \"x\"\nrule R = &\"\" [ ]*\n"},
+}
+
+// TestNestingGrowths checks that the classifier counts the steps of the growths of nested
+// evaluations that end at one position, and keeps the grammars whose nesting consumes input after
+// the nested call, or that scan nothing after a seed, linear.
+func TestNestingGrowths(t *testing.T) {
+	for _, h := range nestingHooks {
+		t.Run(h.name, func(t *testing.T) {
+			defer h.hooks.Set()()
+			cutPrefixesOn = h.cut
+			for _, tc := range nestingGrowths {
+				if h.hooks.Memo && !strings.Contains(tc.src, "&\"\"") {
+					continue
+				}
+				if c := classifySource(t, "@start\n"+tc.src); c.Class == ClassLinear {
+					t.Errorf("%s: class linear, want the growths after the nesting found", tc.name)
+				}
+			}
+			for _, tc := range []struct{ name, src string }{
+				{"nesting consumes after the call", "rule main = e\nrule e = e R \"x\" / e \"+\" / \"(\" e \")\" / \".\"\nrule R = &\"\" [ ]*\n"},
+				{"no scan after the seed", "rule main = e\nrule e = e \"+\" / \"(\" e / \".\"\n"},
+			} {
+				if c := classifySource(t, "@start\n"+tc.src); c.Class != ClassLinear {
+					t.Errorf("%s: class %v, want linear: %v %v", tc.name, c.Class, c.Reasons, c.Causes)
+				}
+			}
+		})
+	}
+}

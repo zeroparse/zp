@@ -57,6 +57,31 @@ func (k *classifier) nestsAt(s *site) bool {
 	return k.nestSites[s]
 }
 
+// nestsEnd reports whether what follows the call s can be evaluated at one position once for each
+// of unboundedly many evaluations of its callee that end there: s nests at one end, or s is a left
+// call in a left-recursion cycle (a seed read) and the evaluations of the rules of that cycle can
+// nest and end at one position: a call of a rule of the cycle nests at one end. Each evaluation of
+// a leader of the cycle that ends at a position grows there: the next step of its growth evaluates
+// what follows the left calls of the cycle at that position again, after its seed.
+func (k *classifier) nestsEnd(s *site) bool {
+	if s == nil {
+		return false
+	}
+	if k.nestsAt(s) {
+		return true
+	}
+	if !s.mayStart || !k.an.cyclic[s.callee] || !k.sameCycle(s.caller, s.callee) || k.nestDry {
+		return false
+	}
+	k.computeNesting()
+	for t, nests := range k.nestSites {
+		if nests && k.sameCycle(t.callee, s.callee) {
+			return true
+		}
+	}
+	return false
+}
+
 // computeNesting computes the call sites that nest at one end, once.
 func (k *classifier) computeNesting() {
 	if k.nestSites == nil {
@@ -92,7 +117,7 @@ func (k *classifier) collectRestarts() {
 			conts = append(conts, k.withoutReentry(u)...)
 		}
 		for _, cs := range conts {
-			k.strip(u.self, cs.paths, k.keepFor(0, cs.growth), u)
+			k.strip(u.self, cs.paths, u)
 		}
 	}
 }
@@ -159,7 +184,7 @@ func (k *classifier) endsBody(c *cont, owner *unit) bool {
 			if c.end == endOps {
 				k.opsLeads(c.rule, true, func(n *cont) { found = found || walk(n) })
 			}
-			k.endLeads(c.rule, nil, func(n *cont, _ *site) { found = found || walk(n) })
+			k.endLeads(c.rule, func(n *cont, _ *site) { found = found || walk(n) })
 			return found
 		}
 		return true

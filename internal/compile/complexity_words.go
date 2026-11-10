@@ -28,13 +28,13 @@ const wordBudget = leadBudget
 // its start begins with that word, and each path of the continuation fails at a cost that the
 // word bounds: it fails on the text of the word, or it evaluates a negative lookahead of a rule
 // that is proven to match there. Either way the continuation repeats no scan of u.
-func (k *classifier) excludedByWord(u, c []*cont, keep func(*site) bool) bool {
+func (k *classifier) excludedByWord(u, c []*cont) bool {
 	words, ok := k.unitWords(u)
 	if !ok {
 		return false
 	}
 	for _, w := range words {
-		if !k.wordExcludes(c, w, keep) {
+		if !k.wordExcludes(c, w) {
 			return false
 		}
 	}
@@ -171,7 +171,7 @@ type wordKey struct {
 // wordExcludes reports whether every path of the continuation fails at bounded cost at a position
 // where the input begins with the word w. A path reads the text of w as it consumes it; past the
 // text, nothing is known and the path is not excluded.
-func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) bool {
+func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 	budget := wordBudget
 	live := false
 	ended := map[wordKey]bool{}
@@ -204,9 +204,9 @@ func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) 
 				switch p.end {
 				case endOps:
 					k.opsLeads(p.rule, p.inner, next)
-					k.endLeads(p.rule, keep, func(c *cont, _ *site) { next(c) })
+					k.endLeads(p.rule, func(c *cont, _ *site) { next(c) })
 				case endRule:
-					k.endLeads(p.rule, keep, func(c *cont, _ *site) { next(c) })
+					k.endLeads(p.rule, func(c *cont, _ *site) { next(c) })
 				}
 				return
 			}

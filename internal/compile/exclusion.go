@@ -57,7 +57,7 @@ const (
 	// the input there, which costs a constant, and prefix parsing stops.
 	symEnd
 	// symUp consumes nothing and marks the point where a continuation leaves a rule body through
-	// a call whose evaluations can nest without a bound and end at one position (nestsAt,
+	// a call whose evaluations can nest without a bound and end at one position (nestsEnd,
 	// nestsOps). Each nested evaluation that ends there evaluates what follows again, so a call
 	// after the mark that the memo does not answer and that scans is not cheap.
 	symUp
@@ -452,7 +452,7 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 			after = append(after, []sym{{kind: symStop, e: stopFollow}})
 			continue
 		}
-		y, nest := x, x.k.nestsAt(s)
+		y, nest := x, x.k.nestsEnd(s)
 		y.up = x.up || nest
 		ps, ok := y.contPaths(s.cont, depth+1)
 		if !ok {
