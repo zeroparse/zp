@@ -486,6 +486,17 @@ ints.`})
 	m.AddOp(&exec.Op{Name: "act.made", Component: Host, Params: []exec.Param{exec.P("c", act), n}, Writes: []string{Host}, NoReturn: true,
 		Contract: `Records n as a value that c made, which the parser drops with the values of a term that it abandons.`,
 		Requires: `n is a struct that c made and has not recorded.`})
+	pure(&exec.Op{Name: "val.seq", Params: []exec.Param{exec.P("c", act), exec.P("tuple", exec.TBool), exec.P("kids", items)},
+		Results: []exec.Type{exec.THandle(Obj)}, Host: true, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Contract: `Returns a new tuple value if tuple and a new list value otherwise, made in c, whose elements are kids, which it
+takes over, and whose range is empty. A target that bounds the work charges for the value it makes.`})
+	pure(&exec.Op{Name: "seq.span", Params: []exec.Param{exec.P("c", act), exec.P("items", items), exec.P("i", exec.TInt)},
+		Results: []exec.Type{exec.TInt, exec.TInt, exec.TBool},
+		Contract: `Returns the start and the end of the range that element i of a list value or a tuple value being made in c
+adds to the range of the value, as ints, and true if it adds one, and false (and no meaningful range) if it adds none.
+An element that is a node, a list, a tuple or a struct adds its own range. An int, a string or a bool adds the range of
+the rule c evaluates the term of, which a target whose elements are nodes has given its box; nil adds none.`,
+		Requires: `items came from seq.items or is the element list of a value being made in c, and 0 <= i < seq.len(items).`})
 	ft := exec.P("t", m.AddHandle(FType, Val, "The type that a cast checks a value against."))
 	pure(&exec.Op{Name: "ftype.kind", Params: []exec.Param{ft}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the kind of the type t: the code of the letter of FtInt, FtString and the others.`,

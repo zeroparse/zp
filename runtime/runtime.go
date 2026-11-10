@@ -3455,7 +3455,7 @@ func (c *ActCtx) NewList(items []*Node) *Node {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *ActCtx) listNode(kids []*Node) *Node { return c.valueNode(kindListValue, kids) }
+func (c *ActCtx) listNode(kids []*Node) *Node { return c.P.termHull(c, false, kids) }
 
 // Tuple returns a tuple value of the arguments, as a tuple literal builds it.
 func (c *ActCtx) Tuple(args ...any) any {
@@ -3464,26 +3464,7 @@ func (c *ActCtx) Tuple(args ...any) any {
 		c.P.Spend()
 		c.P.KidStack = append(c.P.KidStack, c.asNode("tuple", a))
 	}
-	return c.valueNode(kindTupleValue, c.P.Kids(base))
-}
-
-func (c *ActCtx) valueNode(kind *nodeKind, kids []*Node) *Node {
-	n := c.P.NewNode(Node{RawKind: kind, RawChildren: kids, RawStart: int32(c.start), RawEnd: int32(c.start)})
-	first := true
-	for _, it := range kids {
-		c.P.Spend()
-		if it == nil {
-			continue
-		}
-		if first || it.RawStart < n.RawStart {
-			n.RawStart = it.RawStart
-		}
-		if first || it.RawEnd > n.RawEnd {
-			n.RawEnd = it.RawEnd
-		}
-		first = false
-	}
-	return n
+	return c.P.termHull(c, true, c.P.Kids(base))
 }
 
 // TOperand is an operand of a comparison: a string field read without boxing it (Str, with

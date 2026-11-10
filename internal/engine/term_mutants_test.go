@@ -57,6 +57,12 @@ var engineMutants = []engineMutant{
 	{"a later node replaces the range", "term_exec.go", "termCover", "if first || cs < ns {", "if true {"},
 	{"a struct without a node keeps no range", "term_exec.go", "termMade", "if first {", "if false {"},
 	{"a struct is not recorded", "term_exec.go", "termMade", "c.made(n)", ""},
+	{"an element of a hull charges no step", "term_exec.go", "termHull", "p.Spend()", ""},
+	{"an element that adds no range widens the range", "term_exec.go", "termHull", "if has {", "if has || true {"},
+	{"the start of a hull is the latest", "term_exec.go", "termHull", "es < lo", "es > lo"},
+	{"the end of a hull is the earliest", "term_exec.go", "termHull", "ee > hi", "ee < hi"},
+	{"a later element replaces the range of a hull", "term_exec.go", "termHull", "if first || es < lo {", "if true {"},
+	{"an empty hull is not at the start of the rule", "term_exec.go", "termHull", "lo := rs", "lo := 0"},
 	{"an element of a list charges no step", "term_exec.go", "termElemsConform", "p.Spend()", ""},
 	{"an element of a tuple charges no step", "term_exec.go", "termTupleConform", "p.Spend()", ""},
 	{"a tuple of another length conforms", "term_exec.go", "termTupleConform", "if count != len(t.Alts) {", "if count > len(t.Alts) {"},
@@ -100,7 +106,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|CastTable)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|CastTable)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

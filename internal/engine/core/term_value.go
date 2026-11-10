@@ -171,6 +171,23 @@ func nodeOf(x any) (*value.Node, bool) {
 	return n, ok && n != nil
 }
 
+// seqKind is the kind of a tuple value or a list value.
+func seqKind(tuple bool) *value.NodeKind {
+	if tuple {
+		return value.TupleValueKind
+	}
+	return value.ListValueKind
+}
+
+// elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
+// and nil adds no range.
+func elemSpan(it *value.Node) (int, int, bool) {
+	if it == nil {
+		return 0, 0, false
+	}
+	return int(value.D(it).Start), int(value.D(it).End), true
+}
+
 // setSpan is the operation node.setSpan.
 func setSpan(n *value.Node, start, end int) {
 	value.D(n).Start, value.D(n).End = int32(start), int32(end)

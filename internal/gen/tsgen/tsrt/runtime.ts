@@ -4373,6 +4373,12 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termHull makes the tuple value, if tuple, or the list value of the elements kids, with the range that covers them. Its
+  // text is printed from Exec IR (internal/ir/exec/core).
+  termHull(c: Actx, tuple: boolean, kids: readonly (Node | null)[]): Node {
+    throw new Error("the printed method replaces this one");
+  }
+
   // fieldConforms returns whether v is a value of the type t of a cast in the value model, charging a step for
   // each element of a list or a tuple it examines. Its text is printed from Exec IR (internal/ir/exec/core).
   fieldConforms(t: FieldType, v: Value): boolean {
@@ -4743,7 +4749,7 @@ export class Actx {
   // listNode returns a list value with the child list kids (which it takes over). Its range, which
   // the value model does not show, covers the elements that are nodes.
   listNode(kids: (Node | null)[]): Node {
-    return this.valueNode(typeListValue, kids);
+    return this.p.termHull(this, false, kids);
   }
 
   // tuple returns a tuple value of the arguments, as a tuple literal builds it.
@@ -4755,26 +4761,7 @@ export class Actx {
       const v = this.element("tuple", a);
       this.p.kidStack.push(v);
     }
-    return this.valueNode(typeTupleValue, this.p.kids(base));
-  }
-
-  valueNode(type: string, kids: (Node | null)[]): Node {
-    const n = new Node(type, "", this.start, this.start, "", kids, noFields, false, false);
-    let first = true;
-    for (const it of kids) {
-      this.spend();
-      if (it === null) {
-        continue;
-      }
-      if (first || it.start < n.start) {
-        n.start = it.start;
-      }
-      if (first || it.end > n.end) {
-        n.end = it.end;
-      }
-      first = false;
-    }
-    return n;
+    return this.p.termHull(this, true, this.p.kids(base));
   }
 
   // member reads x.name, as the composition member does.

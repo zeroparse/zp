@@ -808,6 +808,25 @@ op act.made(c Act, n Obj)
   requires:
     // n is a struct that c made and has not recorded.
 
+host op val.seq(c Act, tuple bool, kids Seq) Obj
+  component value
+  noreturn
+  cost <= 1
+  contract:
+    // Returns a new tuple value if tuple and a new list value otherwise, made in c, whose elements are kids, which it
+    // takes over, and whose range is empty. A target that bounds the work charges for the value it makes.
+
+op seq.span(c Act, items Seq, i int) (int, int, bool)
+  component value
+  cost <= 0
+  contract:
+    // Returns the start and the end of the range that element i of a list value or a tuple value being made in c
+    // adds to the range of the value, as ints, and true if it adds one, and false (and no meaningful range) if it adds none.
+    // An element that is a node, a list, a tuple or a struct adds its own range. An int, a string or a bool adds the range of
+    // the rule c evaluates the term of, which a target whose elements are nodes has given its box; nil adds none.
+  requires:
+    // items came from seq.items or is the element list of a value being made in c, and 0 <= i < seq.len(items).
+
 op ftype.kind(t FType) int
   component value
   cost <= 0

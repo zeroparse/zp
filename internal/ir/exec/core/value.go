@@ -265,6 +265,33 @@ whether it had none before, and the first node gives n its range.`
 	made.Doc = `made finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 rule if no field value is a node, and c records n.`
 
+	hull := m.AddFunc("hull", []Param{P("c", THandle(ops.Act)), P("tuple", TBool), P("kids", THandle(ops.Seq))}, []Type{THandle(ops.Obj)}, nil, func(b *Builder) {
+		b.Let("n", C("val.seq", L("c"), L("tuple"), L("kids")))
+		// The range starts empty at the start of the rule, and the first element that adds a range gives
+		// it that range.
+		r := b.LetN([]string{"rs", "re"}, C("act.span", L("c")))
+		b.Let("lo", r[0])
+		b.Let("hi", r[0])
+		b.Let("first", BoolC(true))
+		b.Let("count", C("seq.len", L("kids")))
+		b.Var("j", TInt)
+		b.For("kids", Assign("j", Int(0)), Lt(L("j"), L("count")), Assign("j", Add(L("j"), Int(1))), func(b *Builder) {
+			b.Do("seq.step")
+			e := b.LetN([]string{"es", "ee", "has"}, C("seq.span", L("c"), L("kids"), L("j")))
+			b.If(e[2], func(b *Builder) {
+				b.If(Bin("||", L("first"), Bin("<", e[0], L("lo"))), func(b *Builder) { b.Set("lo", e[0]) })
+				b.If(Bin("||", L("first"), Bin(">", e[1], L("hi"))), func(b *Builder) { b.Set("hi", e[1]) })
+				b.Set("first", BoolC(false))
+			})
+		})
+		b.Do("node.setSpan", L("n"), L("lo"), L("hi"))
+		b.Return(L("n"))
+	})
+	hull.Doc = `hull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
+gives it its range: the one that covers the ranges that the elements add (seq.span), and the empty range at the start
+of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a
+struct that holds one covers it.`
+
 	// The cast: the check of a value against a type, over the accessors of the type (ftype.*) and the
 	// primitives of the values it checks.
 	ftype, seqT := THandle(ops.FType), THandle(ops.Seq)

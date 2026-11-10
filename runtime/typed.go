@@ -1856,7 +1856,7 @@ func (c *TActCtx) NewList(items []any) any {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *TActCtx) listNode(kids []any) *TSeq { return c.valueNode(TypeListValue, kids) }
+func (c *TActCtx) listNode(kids []any) TVal { return c.P.termHull(c, false, kids) }
 
 // Tuple returns a tuple value of the arguments, as a tuple literal builds it.
 func (c *TActCtx) Tuple(args ...any) any {
@@ -1865,33 +1865,17 @@ func (c *TActCtx) Tuple(args ...any) any {
 		c.P.Spend()
 		c.P.KidStack = append(c.P.KidStack, c.asNode("tuple", a))
 	}
-	return c.valueNode(TypeTupleValue, c.P.Kids(base))
+	return c.P.termHull(c, true, c.P.Kids(base))
 }
 
-func (c *TActCtx) valueNode(typ string, kids []any) *TSeq {
-	n := c.P.NewNode(typ, c.Start, c.Start, kids)
-	n.fresh = false
-	first := true
-	for _, it := range kids {
-		c.P.Spend()
-		var s, e int
-		if t := AsTval(it); t != nil {
-			s, e = t.TSpan()
-		} else if k := valKind(it); k >= 1 && k <= 3 {
-			// An int, a string or a bool is an element that the node runtimes box in a node with the range
-			// of the rule, which the range of the list or tuple covers.
-			s, e = c.Start, c.End
-		} else {
-			continue
-		}
-		if first || s < n.Start {
-			n.Start = s
-		}
-		if first || e > n.End {
-			n.End = e
-		}
-		first = false
+// newSeq is the operation val.seq.
+func (c *TActCtx) newSeq(tuple bool, kids []any) TVal {
+	typ := TypeListValue
+	if tuple {
+		typ = TypeTupleValue
 	}
+	n := c.P.NewNode(typ, 0, 0, kids)
+	n.fresh = false
 	return n
 }
 

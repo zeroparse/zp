@@ -53,6 +53,7 @@ var tsSpecs = []struct {
 	{fn: "convert", name: "termConvert"},
 	{fn: "cover", name: "termCover"},
 	{fn: "made", name: "termMade"},
+	{fn: "hull", name: "termHull"},
 	{fn: "conforms", name: "fieldConforms"},
 	{fn: "valueConforms", name: "valueConforms"},
 	{fn: "elemsConform", name: "elemsConform"},
@@ -267,6 +268,8 @@ var tsTarget = &exects.Target{
 			return a[0] + ".children"
 		case "seq.step":
 			return "this.spend()"
+		case "val.seq":
+			return fmt.Sprintf("new Node(%s ? typeTupleValue : typeListValue, \"\", 0, 0, \"\", %s, noFields, false, false)", a[1], a[2])
 		case "node.typeName":
 			return a[0]
 		case "node.hasBase":
@@ -487,6 +490,18 @@ var tsTarget = &exects.Target{
 			}
 			if dst[1] != "_" {
 				lines = append(lines, fmt.Sprintf("%s = %s.terminal;", lhs(dst[1]), a[0]))
+			}
+			return strings.Join(lines, "\n"), true
+		case "seq.span":
+			var lines []string
+			if dst[0] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s[%s]?.start ?? 0;", lhs(dst[0]), a[1], a[2]))
+			}
+			if dst[1] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s[%s]?.end ?? 0;", lhs(dst[1]), a[1], a[2]))
+			}
+			if dst[2] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s[%s] !== null;", lhs(dst[2]), a[1], a[2]))
 			}
 			return strings.Join(lines, "\n"), true
 		case "node.span", "act.span":

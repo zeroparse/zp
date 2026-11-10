@@ -438,6 +438,37 @@ func (p *Parser) termMade(c *EvalCtx, n *value.Node, first bool) {
 	c.made(n)
 }
 
+// termHull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
+// gives it its range: the one that covers the ranges that the elements add (seq.span), and the empty range at the start
+// of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a
+// struct that holds one covers it.
+//
+// Printed from Exec IR function hull of internal/ir/exec/core.
+func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*value.Node) *value.Node {
+	var j int
+	n := p.NewNode(value.Data{Kind: seqKind(tuple), Children: kids})
+	rs, _ := c.Start, c.End
+	lo := rs
+	hi := rs
+	first := true
+	count := len(kids)
+	for j = 0; j < count; j++ {
+		p.Spend()
+		es, ee, has := elemSpan(kids[j])
+		if has {
+			if first || es < lo {
+				lo = es
+			}
+			if first || ee > hi {
+				hi = ee
+			}
+			first = false
+		}
+	}
+	setSpan(n, lo, hi)
+	return n
+}
+
 // termConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
 // element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
 // (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,

@@ -222,31 +222,12 @@ func (c *EvalCtx) NewList(items []*value.Node) *value.Node {
 // ListNode returns a list value with the child slice kids (which it takes over). Its range,
 // which the value model does not show, covers the elements that are nodes.
 func (c *EvalCtx) ListNode(kids []*value.Node) *value.Node {
-	return c.valueNode(value.ListValueKind, kids)
+	return c.P.termHull(c, false, kids)
 }
 
 // TupleNode is ListNode for a tuple value.
 func (c *EvalCtx) TupleNode(kids []*value.Node) *value.Node {
-	return c.valueNode(value.TupleValueKind, kids)
-}
-
-func (c *EvalCtx) valueNode(kind *value.NodeKind, kids []*value.Node) *value.Node {
-	n := c.P.NewNode(value.Data{Kind: kind, Children: kids, Start: int32(c.Start), End: int32(c.Start)})
-	first := true
-	for _, it := range kids {
-		c.P.Spend()
-		if it == nil {
-			continue
-		}
-		if first || value.D(it).Start < value.D(n).Start {
-			value.D(n).Start = value.D(it).Start
-		}
-		if first || value.D(it).End > value.D(n).End {
-			value.D(n).End = value.D(it).End
-		}
-		first = false
-	}
-	return n
+	return c.P.termHull(c, true, kids)
 }
 
 // Builtin calls the built-in function fn with evaluated arguments.

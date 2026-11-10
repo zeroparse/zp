@@ -18,7 +18,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
 	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"length", "termLength"}, {"text", "termText"},
-	{"convert", "termConvert"}, {"cover", "termCover"}, {"made", "termMade"},
+	{"convert", "termConvert"}, {"cover", "termCover"}, {"made", "termMade"}, {"hull", "termHull"},
 	{"conforms", "termConforms"}, {"valueConforms", "termValueConforms"}, {"elemsConform", "termElemsConform"},
 	{"tupleConform", "termTupleConform"},
 }
@@ -339,6 +339,16 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 			return fmt.Sprintf("%s.TSetSpan(%s, %s)", a[0], a[1], a[2]), true
 		}
 		return fmt.Sprintf("%s.setSpan(%s, %s)", a[0], a[1], a[2]), true
+	case "val.seq":
+		if typed {
+			return fmt.Sprintf("%s.newSeq(%s, %s)", a[0], a[1], a[2]), true
+		}
+		return fmt.Sprintf("p.NewNode(Node{RawKind: seqKind(%s), RawChildren: %s})", a[1], a[2]), true
+	case "seq.span":
+		if typed {
+			return fmt.Sprintf("%s.elemSpan(%s[%s])", a[0], a[1], a[2]), true
+		}
+		return fmt.Sprintf("elemSpan(%s[%s])", a[1], a[2]), true
 	case "act.span":
 		if typed {
 			return fmt.Sprintf("%[1]s.Start, %[1]s.End", a[0]), true
@@ -504,6 +514,10 @@ func engineValueOp(callee string, a []string) (string, bool) {
 		return fmt.Sprintf("int(value.D(%[1]s).Start), int(value.D(%[1]s).End)", a[0]), true
 	case "node.setSpan":
 		return fmt.Sprintf("setSpan(%s, %s, %s)", a[0], a[1], a[2]), true
+	case "val.seq":
+		return fmt.Sprintf("p.NewNode(value.Data{Kind: seqKind(%s), Children: %s})", a[1], a[2]), true
+	case "seq.span":
+		return fmt.Sprintf("elemSpan(%s[%s])", a[1], a[2]), true
 	case "act.span":
 		return fmt.Sprintf("%[1]s.Start, %[1]s.End", a[0]), true
 	case "act.made":

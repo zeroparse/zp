@@ -73,6 +73,36 @@ func nodeOf(x any) (*Node, bool) {
 	return n, ok && n != nil
 }
 
+// seqKind is the kind of a tuple value or a list value.
+func seqKind(tuple bool) *nodeKind {
+	if tuple {
+		return kindTupleValue
+	}
+	return kindListValue
+}
+
+// elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
+// and nil adds no range.
+func elemSpan(it *Node) (int, int, bool) {
+	if it == nil {
+		return 0, 0, false
+	}
+	return int(it.RawStart), int(it.RawEnd), true
+}
+
+// elemSpan is the operation seq.span: a node adds its range, and an int, a string or a bool adds the range
+// of the rule, which the node runtimes give the box they hold it in.
+func (c *TActCtx) elemSpan(it any) (int, int, bool) {
+	switch t := it.(type) {
+	case TVal:
+		s, e := t.TSpan()
+		return s, e, true
+	case int, string, bool:
+		return c.Start, c.End, true
+	}
+	return 0, 0, false
+}
+
 // setSpan is the operation node.setSpan.
 func (n *Node) setSpan(start, end int) { n.RawStart, n.RawEnd = int32(start), int32(end) }
 

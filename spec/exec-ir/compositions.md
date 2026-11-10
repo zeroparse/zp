@@ -107,6 +107,7 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func convert(t NodeType, x Datum) (Datum, Fail)` | The conversion `T{x}` to the named node type t: a string, tuple or list node, of a named node type or not, becomes a node of t. Any other value fails. |
 | `func cover(n Obj, v Datum, first bool) bool` | Widens the range of the struct n, which a term is making, to cover the range of the field value v if v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is whether it had none before, and the first node gives n its range. |
 | `func made(c Act, n Obj, first bool)` | Finishes the struct n that c made of field values that cover has gone over: n takes the range of the rule if no field value is a node, and c records n. |
+| `func hull(c Act, tuple bool, kids Seq) Obj` | Makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and gives it its range: the one that covers the ranges that the elements add (seq.span), and the empty range at the start of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a struct that holds one covers it. |
 | `func conforms(t FType, v Datum) bool` | Returns whether v is of the type t of a cast (see [Cast Types](values.md#cast-types)), a box counting as the value it holds. A list type takes a list value and a tuple type a tuple value, not the node of a repetition or a sequence; a node of a type takes a node whose value is of its element type. It charges a step for each element of a list or a tuple that it examines. |
 | `func valueConforms(t FType, n Obj, shape int) bool` | Returns whether the value of the node n, whose shape is shape, is of the type t: a string node has a string, and a tuple node or a list node its elements as value. |
 | `func elemsConform(t FType, items Seq) bool` | Returns whether every element of items, the elements of a list, is of the element type t of the list, charging a step for each element it examines; the type top takes every element and charges nothing. |
@@ -187,6 +188,7 @@ row includes what its backends print into packages of their own.
 | convert | `[]` | `[]` | `[]` | `[]` |
 | cover | `[]` | `[]` | `[]` | `[]` |
 | made | `[]` | `[]` | `[]` | `[]` |
+| hull | `[]` | `[]` | `[]` | `[]` |
 | conforms | `[]` | `[]` | `[]` | `[]` |
 | valueConforms | `[]` | `[]` | `[]` | `[]` |
 | elemsConform | `[]` | `[]` | `[]` | `[]` |
