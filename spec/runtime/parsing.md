@@ -545,8 +545,9 @@ position, inside a lookahead or not: it would consume no input, enter no
 repetition, make no call other than those on the way to the terminal, each of
 which would fail there, and record only the expectation of the terminal. The
 skip records that expectation too, though it need not where recording it
-could not change the expectations that the parse reports: inside a lookahead,
-whose failures are not reported, or before the farthest failure. A lookahead, an option, a
+could not change the expectations that the parse reports, as inside a
+lookahead or the `skip` of an Operators Rule, whose failures are not reported,
+before the farthest failure, or in a parse that does not record expectations. A lookahead, an option, a
 repetition, a choice, a predicate or an expression with an `@` attribute or
 the pragma `#recover` or `#stream` is not on the way: an alternative that
 begins with `&([a-z]*) "q"` is evaluated where the next character is not `q`,
