@@ -695,13 +695,29 @@ contains an activation is the innermost call evaluation that contains it, so
 $e_{l+1} = e'_l$ for $i \le l < k$, and every link evaluates $r$ at one
 position $p$. As the shared call is the first, $w_l$ starts examining the
 input at $p$, and $\kappa_l$ reaches $e'_l$ from $p$ without consuming input.
-Call the body evaluations in progress the frames. From the end of $w_l$ to
-$e'_l$, the parser leaves some of the frames that enclose $w_l$, at their ends,
-all at $p$, and then starts frames at $p$ through calls on the way to $e'_l$.
-A frame is left once. When a frame is left at $p$, what follows, in its body,
-the call of the frame inside it that was left before, or that holds $w_l$,
-matched without consuming input, so that call place is followed in its caller
-by what can match without consuming input.
+Call the body evaluations in progress the frames. Let $N_l$ be the innermost
+evaluation that contains $\alpha_{l-1}$ and $\alpha_l$. Since $w_l$ is the
+first abandoned evaluation below $N_l$ on the path to $\alpha_{l-1}$, every
+evaluation above $w_l$ on that path, up to $N_l$, succeeds and is not the
+expression of a lookahead (*Restarts*). $e'_l$, which starts after $w_l$ ends
+and contains $\alpha_l$, lies in $N_l$. When the child of $N_l$ that contains
+$w_l$ is not $w_l$, it succeeded, $N_l$ went on at its end, and $e'_l$ lies in
+a later child, so that child ends at or before $p$. From the end
+of $w_l$ to $e'_l$, the parser leaves the frames that enclose $w_l$ inside
+$N_l$, and then starts frames at $p$ through calls on the way to $e'_l$. Each
+frame that it leaves succeeds and ends at $p$: no later than that child, which
+contains it, and no earlier than $p$, before which the parser starts nothing
+after $w_l$. A frame is left once. In a frame that it leaves, the call of the
+frame inside it, if $w_l$ is not directly in its body, lies on the path and
+ends at $p$, and what follows that call in the body, up to the end of the
+frame, lies on the path too, since a failure there would make an evaluation
+on the path that encloses the call fail. So it matched from $p$ to $p$, and
+the call place is followed in its caller by what can match without consuming
+input. The unit is the first abandoned evaluation, not one inside it: with
+`X = (Y "x" / "")` and `Y = (R "a")?` at $p$, and the scan in `R`, the unit is
+the alternative `Y "x"`, which lies directly in the body of `X`, so `X` is left
+through no call that holds the unit, and the call of `Y` is not a place
+through which a frame is left.
 
 Frames started at $p$ nest, through calls made before input is consumed, at
 most $|\text{rules}|$ deep. A rule that recurs among them recurs through a
