@@ -63,7 +63,8 @@ func TestSuperLinear(t *testing.T) {
 }
 
 // TestExampleClassifications pins the classes of the example grammars from their default start
-// rules, which zp lint -classify shows.
+// rules, which zp lint -classify shows, with the degree of a polynomial class or the witnessed
+// degree of the class unknown.
 func TestExampleClassifications(t *testing.T) {
 	for _, tc := range []struct {
 		file   string
@@ -72,8 +73,8 @@ func TestExampleClassifications(t *testing.T) {
 	}{
 		{"calculator/calc.zp", engine.ClassUnknown, 0},
 		{"calculator/calc_lr.zp", engine.ClassLinear, 0},
-		{"minilang/minilang.zp", engine.ClassPoly, 2},
-		{"outline/outline.zp", engine.ClassPoly, 3},
+		{"minilang/minilang.zp", engine.ClassUnknown, 2},
+		{"outline/outline.zp", engine.ClassUnknown, 3},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			src, err := os.ReadFile("../examples/" + tc.file)
@@ -88,8 +89,12 @@ func TestExampleClassifications(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if c.Class != tc.class || c.Degree != tc.degree {
-				t.Errorf("class %v degree %d, want %v degree %d\ncauses %v\nreasons %v", c.Class, c.Degree, tc.class, tc.degree, c.Causes, c.Reasons)
+			degree := c.Degree
+			if c.Class == engine.ClassUnknown {
+				degree = c.WitnessedDegree
+			}
+			if c.Class != tc.class || degree != tc.degree {
+				t.Errorf("class %v degree %d, want %v degree %d\ncauses %v\nreasons %v", c.Class, degree, tc.class, tc.degree, c.Causes, c.Reasons)
 			}
 		})
 	}

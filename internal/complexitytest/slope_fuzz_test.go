@@ -21,9 +21,8 @@ import (
 // The slope gate holds the classifier to what it says against measured cost. It writes random
 // grammars from fixed seeds, classifies each and measures it on every backend on inputs made of
 // repeated fragments. A grammar of the class Linear whose cost grows faster than the input fails the
-// gate, and so does a polynomial one without reasons that grows clearly faster than its degree. The
-// degree of a grammar with reasons covers only its causes, and the gate does not hold it. The
-// default tier runs a few seeds and those of slopeCaught; the tag zp_long runs many more. The gate
+// gate, and so does a polynomial one that grows clearly faster than its degree, or that has reasons
+// for the class unknown, which leave its cost open. The default tier runs a few seeds and those of slopeCaught; the tag zp_long runs many more. The gate
 // holds the classifier only where its grammars reach: some checks (the cut of a choice in what an
 // expression surely consumes, counted rules off every cycle, the repetition depth of nesting) are
 // held by the class tests and controls instead.
@@ -259,8 +258,10 @@ func slopeCheck(seed uint64, inputs int) string {
 		return ""
 	}
 	limit, class := slopeLimit(src)
-	// The degree of a grammar with reasons covers its causes only, so its cost can pass it.
-	if limit == 0 || class.Class == ClassPoly && len(class.Reasons) > 0 {
+	if class != nil && class.Class == ClassPoly && len(class.Reasons) > 0 {
+		return fmt.Sprintf("seed %d: polynomial of degree %d with %d reasons for the class unknown\n%s", seed, class.Degree, len(class.Reasons), src)
+	}
+	if limit == 0 {
 		return ""
 	}
 	for range inputs {
@@ -318,6 +319,21 @@ func TestSlopeGateGrowth(t *testing.T) {
 		{"restarted scan up to the cap",
 			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
 			func(n int) string { return rep("a", n) }, 2},
+		// Units that are not committing nest without bound around the scans that each step of the
+		// growth of r evaluates, so the cost passes the degree 2 of the causes: a reason must make
+		// the class unknown.
+		{"nesting without bound around a growth",
+			"rule main = r* $$\nrule r = ([ab]? (r / [a-c]) (w [ ]))*\nrule w = [ab]*\n",
+			func(n int) string { return " " + rep("a ", n/8) + rep("a", n/8) + "c" }, 2 + slopeMargin + 0.05},
+		// The same, where the cycle can also grow from a call of a rule that is not a leader.
+		{"nesting without bound around a growth from a rule that is not a leader",
+			"rule main = r $$\nrule p = (!\"a\" \"b\")?\nrule f = r / [a-c]\nrule r = (p f (w [ ] [b]))*\nrule w = [^ ]*\n",
+			func(n int) string { return "aab" + rep("a b", n/8) + rep("b", n/8) + "a" }, 2 + slopeMargin + 0.05},
+		// The inner map copies $y for each element of each element, which the degree 2 of the
+		// restarted scan in B does not cover.
+		{"copies of an outer value",
+			"rule main = v:V (B / \"a\")* $$ => $v\nrule V = xs:\"x\"* y:\"y\"* => map($xs, (p) => map($xs, (q) => text($y) + \"!\"))\nrule B = \"a\"* \"c\"\n",
+			func(n int) string { return rep("x", n/6) + rep("y", n/6) + "a" }, 2 + slopeMargin + 0.05},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

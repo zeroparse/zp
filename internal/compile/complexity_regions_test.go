@@ -190,8 +190,8 @@ func TestRegionScanClasses(t *testing.T) {
 	}{
 		{"comments in blanks", regionSource("", ""), ClassLinear},
 		// The blanks are not memoized, so the second bound fails.
-		{"blanks that are not memoized", strings.Replace(regionSource("", ""), "rule ws = [ ]* (c [ ]*)*", "rule ws = [ ]*", 1), ClassPoly},
-		{"a token that a comment begins with", regionSource(" / \"/\" id", ""), ClassPoly},
+		{"blanks that are not memoized", strings.Replace(regionSource("", ""), "rule ws = [ ]* (c [ ]*)*", "rule ws = [ ]*", 1), ClassUnknown},
+		{"a token that a comment begins with", regionSource(" / \"/\" id", ""), ClassUnknown},
 		// The repetition of an unclosed comment scans to the end of the input from each opener.
 		{"nested comments that are not closed", "rule main = ws \"x\" $$\nrule ws = (\" \" / c)*\nrule c = \"/*\" (c / !\"*/\" .)* \"*/\"\n", ClassUnknown},
 		// The blanks have the region bound, but a comment that is not closed is no match of them: a

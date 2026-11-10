@@ -1,4 +1,4 @@
-# minilang: polynomial (degree 2), 1 witnesses, 10 reasons
+# minilang: unknown (degree 0, witnessed degree 2), 1 witnesses, 10 reasons
 
 ## recover (2) -> F100
 0:0 stmt: the base of the #recover at rule stmt is not committing against the skip expression [^;{}\n]+ ";"?, and units that are not committing are nested in it without bound through a recursion of rule calls

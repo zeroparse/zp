@@ -50,13 +50,16 @@ linter, identified by a name.
   nothing otherwise. After the findings, the text output prints
   `file: the cost from start rule main is class`, where the class is `linear`,
   `linear (K <= N)` when the bound on K that the classification reports is N
-  greater than 1, `linear-env`, `unknown`, `polynomial (n^k)` or
-  `exponential`, followed by
-  the first three witnesses of a polynomial or exponential class and the first
+  greater than 1, `linear-env`, `polynomial (n^k)`, `unknown`,
+  `unknown (witnessed n^k)` when the class unknown has polynomial causes of
+  witnessed degree k, or `exponential`, followed by
+  the first three polynomial or exponential witnesses and the first
   three reasons for the class unknown, each on a line
   `witness: file:line:col: message` or `reason: file:line:col: message`, and a
   line `... and N more` for those not shown. With `-f json` the document has a
   member `classification` with `class`, `degree` (for a polynomial class),
+  `witnessedDegree` (the witnessed degree of a class unknown, when it has
+  polynomial causes),
   `combinations` (the bound N on K of a class `linear`, when it is greater
   than 1), and
   every witness and reason in `witnesses` and `reasons`, each with `line`,
@@ -253,14 +256,14 @@ the finding is at `"a"*` in `A` and says that the cost can grow as n²: when
 `"c"` fails, the repetition in `main` evaluates `A` again inside the input that
 `"a"*` examined.
 
-Only causes of the classes polynomial and exponential are reported: a
+Only polynomial and exponential causes are reported, whatever the class: a
 witness that the cost can grow faster than the input, such as a growing
 variable, a copy of a value of its own recursion, or a scan that can start
 again inside the input that it examined. The finding is a hint because these
-classes can be pessimistic: no slow input need exist. The class unknown is not
-reported, because the classifier then has no such witness, only a condition
-for linear cost that it cannot establish; its reasons are shown with the
-classification.
+causes can be pessimistic: no slow input need exist. A reason for the class
+unknown is not reported, because it is no such witness, only a condition for
+linear cost that the classifier cannot establish; the reasons are shown with
+the classification.
 
 The check runs only when the classification is requested, with `-classify` or
 `lint.Config.Classify`; otherwise it reports nothing, whatever the class. The

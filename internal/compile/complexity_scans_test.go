@@ -289,9 +289,9 @@ func TestBoundedScanClasses(t *testing.T) {
 		{"scan restarted by a repetition", "rule main = (a \"y\" / \"q\" a / .)* $$\nrule a = x+\nrule x = \"x\"\n", ClassPoly},
 		{"scan restarted through a memoized recursion", "rule main = t a? $$\nrule t = a t \"!\" / . t / \"\"\nrule a = x+\nrule x = \"x\"\n", ClassUnknown},
 		{"scan at the end of a nest", "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n", ClassPoly},
-		{"cut in a repetition before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n", ClassPoly},
+		{"cut in a repetition before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n", ClassUnknown},
 		{"cut under a lookahead before a scan", "rule main = (!(\"aa\" #cut $$ / \"a\") (s \"z\")? \"a\")* \"aa\"? $$\nrule s = [a]+\n", ClassPoly},
-		{"cut in a called rule before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n", ClassPoly},
+		{"cut in a called rule before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n", ClassUnknown},
 		{"scan behind a recovery", "rule main = ((\"q\" #recover(skip=[ab]+)) sp \"!\" / [ab])* sp $$\nrule sp = [ ]*\n", ClassPoly},
 		{"nested comments that are not closed", "rule main = ws \"x\" $$\nrule ws = (\" \" / c)*\nrule c = \"/*\" (c / !\"*/\" .)* \"*/\"\n", ClassUnknown},
 	} {

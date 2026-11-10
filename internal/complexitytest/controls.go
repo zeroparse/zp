@@ -86,7 +86,7 @@ func Controls() []Control {
 			Name: "E9 lookahead over scans", Family: "E9",
 			Source: "rule main = (\"a\" !rest)* \"a\"* $$\nrule rest = \"a\"* \"c\"\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// The lookahead is linear, since w is memoized, but each iteration copies the rest of the
 		// input, which the capture in the lookahead holds.
@@ -318,7 +318,7 @@ func Controls() []Control {
 			Name: "Operators Rule part shared by operator parts that nest", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    level { postfix \"(\" x? }\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("a(", n) + "a" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Operators Rule memoized part shared by nested operands", Family: "rescanned calls", Positive: true,
@@ -521,7 +521,7 @@ func Controls() []Control {
 			Name: "Growth restarting a scan at a fixed position", Family: "growth steps",
 			Source: "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n",
 			Input:  func(n int) string { return "(" + rep("z", n) + "?" + rep("+", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		// The start rule is called only from its own body, but a parse can begin at it, so it is
 		// memoized (Evaluations of Rules): the second iteration of the repetition, which
@@ -549,7 +549,7 @@ func Controls() []Control {
 			Name: "Scan restarted inside a rule called from one place", Family: "nested scans",
 			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n",
 			Input:  func(n int) string { return rep("(", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// Two callers of one repetition: both alternatives call b after the "(" they share, so b
 		// walks from the same position twice, and its iterations begin with "(" as the callers do,
@@ -559,7 +559,7 @@ func Controls() []Control {
 			Name: "Scan restarted from two callers", Family: "nested scans",
 			Source: "@start\nrule main = (\"(\" b \")!\" / \"(\" b \")?\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n",
 			Input:  func(n int) string { return rep("(", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// A literal that both alternatives begin with puts the memoized call after it at the same
 		// position in both, so the second alternative reuses its result.
@@ -642,7 +642,7 @@ func Controls() []Control {
 			Name: "Fold adding an outside value", Family: "bounded lambda",
 			Source: "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(text($a), $b, (acc, y) => acc + text($c))\n",
 			Input:  func(n int) string { return "x" + rep("y", n) + rep("z", n) },
-			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassPoly,
+			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassUnknown,
 		},
 		// Measuring the first element, of n characters, for each of n elements examines n^2
 		// characters on each of n steps.
@@ -666,7 +666,7 @@ func Controls() []Control {
 			Name: "Fold over a capture in a lookahead of each element", Family: "bounded lambda",
 			Source: "rule main = items:item* => map($items, (it) => foldl(\"\", it.$c, (s, l) => s + text(l)))\nrule item = &(c:\"x\"*) \"x\"\n",
 			Input:  func(n int) string { return rep("x", n) },
-			Sizes:  double(90), ShortSizes: double(80), Order: Poly(3), Class: ClassPoly,
+			Sizes:  double(90), ShortSizes: double(80), Order: Poly(3), Class: ClassUnknown,
 		},
 		// A map that extends every element of an accumulator of n elements on each of n steps
 		// costs n per step for each element.
@@ -683,7 +683,7 @@ func Controls() []Control {
 			Name: "Fold adding a quadratic value of a rule", Family: "value sizes",
 			Source: "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => foldl(\"\", $a, (s, z) => s + text($a))\n",
 			Input:  func(n int) string { return rep("x", n) + rep("y", n) },
-			Sizes:  double(12), ShortSizes: double(10), Order: Poly(4), Class: ClassPoly,
+			Sizes:  double(12), ShortSizes: double(10), Order: Poly(4), Class: ClassUnknown,
 		},
 		// The inner map holds the text of the whole list once for each element, so the elements
 		// add up to n^2 characters, which the outer map copies.
@@ -876,7 +876,7 @@ func Controls() []Control {
 			Name: "Scan after a repetition that a cut stops", Family: "bounded scans",
 			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		{
 			Name: "Scan after a lookahead that a cut passes", Family: "bounded scans",
@@ -888,7 +888,7 @@ func Controls() []Control {
 			Name: "Scan after a repetition of a rule with a cut", Family: "bounded scans",
 			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		// The call of t inside the growth of r reads the failing seed, so t* stops at once, whatever
 		// its rule would consume, and u scans from every position of the run.
@@ -896,7 +896,7 @@ func Controls() []Control {
 			Name: "Scan after a repetition of a left call", Family: "bounded scans",
 			Source: "rule main = (r / \"b\")* $$\nrule r = t* u / \"b\"\nrule t = r\nrule u = s \"x\"\nrule s = [b]*\n",
 			Input:  func(n int) string { return rep("b", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		// A recovery ends after its skip, which reaches sp from every position of a run of letters.
 		{

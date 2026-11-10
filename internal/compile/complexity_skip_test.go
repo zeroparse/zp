@@ -37,7 +37,7 @@ func TestClassifyReusedSkips(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)
-			if c.Class != tc.class || c.Degree != tc.degree {
+			if c.Class != tc.class || classDegree(c) != tc.degree {
 				t.Fatalf("class %v degree %d, want %v degree %d\ncauses %v\nreasons %v", c.Class, c.Degree, tc.class, tc.degree, c.Causes, c.Reasons)
 			}
 		})

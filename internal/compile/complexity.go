@@ -12,9 +12,9 @@ import (
 )
 
 // ComplexityClass is the class of the cost of a parse from a start rule (see "Classification" in
-// spec/runtime/parsing.md). The classes are ordered by what the classifier knows: Linear and
-// LinearEnv are guarantees, Unknown is no claim, and Poly and Exp are estimates that come with a
-// witness.
+// spec/runtime/parsing.md). The classes are ordered from the strongest claim to the weakest:
+// Linear and LinearEnv are guarantees, Poly estimates a bound, Unknown is no bound, and Exp is an
+// estimate of growth that no polynomial bounds.
 type ComplexityClass int
 
 const (
@@ -22,10 +22,11 @@ const (
 	ClassLinear ComplexityClass = iota
 	// ClassLinearEnv promises a cost of at most c · K · (L + 1) · (n + 1).
 	ClassLinearEnv
-	// ClassUnknown makes no claim: a condition for linear cost fails without a witness.
-	ClassUnknown
-	// ClassPoly estimates a cost that grows as n^Degree.
+	// ClassPoly estimates a cost that grows as n^Degree: every condition for linear cost that
+	// fails has a witnessed cause, and Degree bounds them all.
 	ClassPoly
+	// ClassUnknown makes no claim: a condition for linear cost fails that no cause accounts for.
+	ClassUnknown
 	// ClassExp estimates a cost that can double when n grows by a constant.
 	ClassExp
 )
@@ -46,7 +47,7 @@ func (c ComplexityClass) String() string {
 	return fmt.Sprintf("ComplexityClass(%d)", int(c))
 }
 
-// ComplexityCause is one cause of a polynomial or exponential class, at the scanning source,
+// ComplexityCause is one polynomial or exponential cause, at the scanning source,
 // binding or operation that causes it, or one reason for the class unknown.
 type ComplexityCause struct {
 	Class ComplexityClass
@@ -74,10 +75,15 @@ type Complexity struct {
 	Class ComplexityClass
 	// Degree is the largest degree of the causes of a polynomial class, and zero for any other class.
 	Degree int
-	// Causes are the causes of the classes polynomial and exponential, sorted by position.
+	// WitnessedDegree is the largest degree of the polynomial causes of the class unknown, and zero
+	// for any other class. It is a lower estimate from the witnesses, not a bound: the reasons
+	// leave the cost open.
+	WitnessedDegree int
+	// Causes are the polynomial and exponential causes, sorted by position. A grammar of the class
+	// unknown can have them too.
 	Causes []ComplexityCause
-	// Reasons are the reasons for the class unknown, sorted by position. A grammar of another
-	// class can have them too; they are shown only when the classification is requested.
+	// Reasons are the reasons for the class unknown, sorted by position. Only an exponential
+	// grammar has them besides; they are shown only when the classification is requested.
 	Reasons []ComplexityCause
 	// Env says why the class is at least linear given an environment bound, or is empty.
 	Env []ComplexityCause
@@ -507,19 +513,24 @@ func (k *classifier) result() *Complexity {
 	}
 	c.Causes, c.Reasons, c.Env = sortCauses(k.causes), sortCauses(k.reasons), sortCauses(k.env)
 	c.Growing = k.growingBindings()
+	// A reason leaves the cost open, so a degree of the causes bounds it only without reasons; an
+	// exponential cause is evidence of growth that no polynomial bounds, so it outranks them.
 	switch {
 	case slices.ContainsFunc(c.Causes, func(x ComplexityCause) bool { return x.Class == ClassExp }):
 		c.Class = ClassExp
-	case len(c.Causes) > 0:
-		c.Class = ClassPoly
 	case len(c.Reasons) > 0:
 		c.Class = ClassUnknown
+	case len(c.Causes) > 0:
+		c.Class = ClassPoly
 	case len(c.Env) > 0:
 		c.Class = ClassLinearEnv
 	}
 	for _, x := range c.Causes {
-		if c.Class == ClassPoly {
+		switch c.Class {
+		case ClassPoly:
 			c.Degree = max(c.Degree, x.Degree)
+		case ClassUnknown:
+			c.WitnessedDegree = max(c.WitnessedDegree, x.Degree)
 		}
 	}
 	return c

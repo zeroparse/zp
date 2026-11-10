@@ -1,4 +1,4 @@
-# cue: exponential (degree 0), 51 witnesses, 55 reasons
+# cue: exponential (degree 0, witnessed degree 0), 51 witnesses, 55 reasons
 
 ## whitespace (12) -> F97
 113:11 sp: the cost can grow as n^2: after the lookahead at 141:69 in rule embed_tail fails, what follows the lookahead &tail_mark_end can start again inside the input that the repetition [ \t\r]* at 113:11 in rule sp examined; this repeats in the recursion of rule embed_tail

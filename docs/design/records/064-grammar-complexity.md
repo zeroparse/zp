@@ -192,6 +192,9 @@ Linear  <  Linear·Env(vars)  <  Unknown(reason)  <  Poly(k, witness)  <  Exp(wi
 - `Unknown` is assigned when a condition fails without a witness of growth, as when units that are not committing nest
   without bound through a recursion of rule calls. A witnessed `Poly` or `Exp` cause outranks it: a witness is evidence
   of growth, while `Unknown` is only the absence of a proof.
+  [Record 070](070-unknown-outranks-polynomial.md) revises this chain: a reason outranks polynomial causes, so that
+  the degree of `Poly(k)` bounds every condition that fails, and `Unknown` reports the largest degree of its
+  polynomial witnesses only as a lower estimate.
 
 - `Poly(k)` is assigned when L3 or L4 fails. k is one more than the deepest nesting of unsafe scanning constructs along a
   path of the call graph: E1 has k = 2 and E7 has k = 3. Each unsafe level multiplies the input positions where an

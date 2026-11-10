@@ -81,6 +81,15 @@ func TestComplexityMemoPolicy(t *testing.T) {
 	}
 }
 
+// classDegree returns the degree of a polynomial class and the witnessed degree of the class
+// unknown, which the class tests pin in one column.
+func classDegree(c *Complexity) int {
+	if c.Class == ClassUnknown {
+		return c.WitnessedDegree
+	}
+	return c.Degree
+}
+
 func classifySource(t *testing.T, src string) *Complexity {
 	t.Helper()
 	g, err := syntax.Parse(src)
@@ -108,8 +117,8 @@ func TestClassifyComplexity(t *testing.T) {
 		{"left call after an option that consumed input", "rule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", ClassUnknown, 0},
 		{"left call after an option, behind a call", "rule main = r $$\nrule r = [ab]? f (w [ ] [b])\nrule f = r / [a-c]\nrule w = [^a]* $$\n", ClassUnknown, 0},
 		{"left call after an option rule, behind two calls", "rule main = r $$\nrule r = p f (w [ ] [b])\nrule p = [ab]?\nrule f = g / [a-c]\nrule g = r\nrule w = [^a]* $$\n", ClassUnknown, 0},
-		{"restarted scan in a repetition of each growth step", "rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassPoly, 3},
-		{"restarted scan in a rule that the repetition calls indirectly", "rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassPoly, 3},
+		{"restarted scan in a repetition of each growth step", "rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassUnknown, 3},
+		{"restarted scan in a rule that the repetition calls indirectly", "rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* \"ab\"+ \" \"*)?\n", ClassUnknown, 3},
 		// The iteration fails only at "\"\"", before its scan, so it need not be committing.
 		{"unit failing before its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\"\n", ClassLinear, 0},
 		{"unit failing after its source", "rule main = (s \";\")* $$\nrule s = \"\\\"\" [^\"]* (\"\\\"\" [^\"]* \"!\")* \"\\\"\"\n", ClassPoly, 2},
@@ -187,10 +196,10 @@ func TestClassifyComplexity(t *testing.T) {
 		{"fold that extends each element", "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => map(acc, (e) => e + \"x\"))\n", ClassPoly, 3},
 		// A value read from outside the fold can add up to the input on every step, and a part of it
 		// for each element multiplies the number of elements.
-		{"fold that adds an outside value on each step", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(text($a), $b, (acc, y) => acc + text($c))\n", ClassPoly, 3},
-		{"fold that appends an outside list on each step", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(list(text($a)), $b, (acc, y) => concat(acc, map($c, (z) => text(z))))\n", ClassPoly, 3},
-		{"fold that adds an outside value to every element", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => map(acc, (e) => e + text($c)))\n", ClassPoly, 4},
-		{"fold that extends every element and appends an outside list", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => concat(map(acc, (e) => e + \"x\"), map($c, (z) => text(z))))\n", ClassPoly, 4},
+		{"fold that adds an outside value on each step", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(text($a), $b, (acc, y) => acc + text($c))\n", ClassUnknown, 3},
+		{"fold that appends an outside list on each step", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(list(text($a)), $b, (acc, y) => concat(acc, map($c, (z) => text(z))))\n", ClassUnknown, 3},
+		{"fold that adds an outside value to every element", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => map(acc, (e) => e + text($c)))\n", ClassUnknown, 4},
+		{"fold that extends every element and appends an outside list", "rule main = a:\"x\"* b:\"y\"* c:\"z\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => concat(map(acc, (e) => e + \"x\"), map($c, (z) => text(z))))\n", ClassUnknown, 4},
 		// An index is an int and adds nothing to the element it takes; a map that keeps every element
 		// rebuilds the list without growing it.
 		{"fold that appends its last element", "rule main = a:\"x\"* b:\"y\"* => foldl(list(text($a)), $b, (acc, y) => concat(acc, list(acc[len(acc) - 1])))\n", ClassPoly, 2},
@@ -211,16 +220,16 @@ func TestClassifyComplexity(t *testing.T) {
 		// whose sizes add up to the input.
 		{"fold inside a map over the same list", "rule main = b:\"y\"* => map($b, (y) => foldl(\"\", $b, (s, l) => s + text(l)))\n", ClassPoly, 3},
 		{"fold inside a filter over the same list", "rule main = b:\"y\"* => filter($b, (y) => len(foldl(\"\", $b, (s, l) => s + text(l))) > 0)\n", ClassPoly, 3},
-		{"fold inside two maps", "rule main = b:\"y\"* => map($b, (y) => map($b, (z) => foldl(\"\", $b, (s, l) => s + text(l))))\n", ClassPoly, 4},
+		{"fold inside two maps", "rule main = b:\"y\"* => map($b, (y) => map($b, (z) => foldl(\"\", $b, (s, l) => s + text(l))))\n", ClassUnknown, 4},
 		// Elements whose values hold more than the input they consume, through a capture in a
 		// lookahead or an action, need not add up to the input.
-		{"fold over a capture in a lookahead of the elements of a map", "rule main = items:item* => map($items, (it) => foldl(\"\", it.$c, (s, l) => s + text(l)))\nrule item = &(c:\"x\"*) \"x\"\n", ClassPoly, 3},
-		{"fold over elements built by an action", "rule main = items:item* => map($items, (it) => foldl(\"\", it, (s, l) => s + text(l)))\nrule item = &(c:\"x\"*) \"x\" => $c\n", ClassPoly, 3},
-		{"fold over a capture in a lookahead inside a fold step", "rule main = items:item* => foldl(0, $items, (acc, it) => len(foldl(\"\", it.$c, (s, l) => s + text(l))))\nrule item = &(c:\"x\"*) \"x\"\n", ClassPoly, 3},
+		{"fold over a capture in a lookahead of the elements of a map", "rule main = items:item* => map($items, (it) => foldl(\"\", it.$c, (s, l) => s + text(l)))\nrule item = &(c:\"x\"*) \"x\"\n", ClassUnknown, 3},
+		{"fold over elements built by an action", "rule main = items:item* => map($items, (it) => foldl(\"\", it, (s, l) => s + text(l)))\nrule item = &(c:\"x\"*) \"x\" => $c\n", ClassUnknown, 3},
+		{"fold over a capture in a lookahead inside a fold step", "rule main = items:item* => foldl(0, $items, (acc, it) => len(foldl(\"\", it.$c, (s, l) => s + text(l))))\nrule item = &(c:\"x\"*) \"x\"\n", ClassUnknown, 3},
 		{"fold over the captures of elements of a rule", "rule main = items:item* => map($items, (it) => foldl(\"\", it.$c, (s, l) => s + text(l)))\nrule item = c:\"x\"+\n", ClassPoly, 2},
 		{"fold over the elements of a map over copies of a list", "rule main = b:\"y\"* => map(map($b, (q) => $b), (y) => foldl(\"\", y, (s, l) => s + text(l)))\n", ClassPoly, 3},
-		{"fold adding an outside value inside a map", "rule main = a:\"x\"* b:\"y\"* => map($b, (z) => foldl(text($a), $b, (acc, y) => acc + text($a)))\n", ClassPoly, 4},
-		{"fold that measures its first element for every element inside a map", "rule main = a:\"x\"* b:\"y\"* => map($b, (z) => foldl(concat(list(text($a)), map($a, (q) => text(q))), $b, (acc, y) => filter(acc, (e) => len(acc[0]) > 0)))\n", ClassPoly, 4},
+		{"fold adding an outside value inside a map", "rule main = a:\"x\"* b:\"y\"* => map($b, (z) => foldl(text($a), $b, (acc, y) => acc + text($a)))\n", ClassUnknown, 4},
+		{"fold that measures its first element for every element inside a map", "rule main = a:\"x\"* b:\"y\"* => map($b, (z) => foldl(concat(list(text($a)), map($a, (q) => text(q))), $b, (acc, y) => filter(acc, (e) => len(acc[0]) > 0)))\n", ClassUnknown, 4},
 		{"fold that appends its first element inside a map", "rule main = a:\"x\"* b:\"y\"* => map($b, (z) => foldl(list(text($a)), $b, (acc, y) => concat(list(acc[0]), acc)))\n", ClassPoly, 3},
 		{"fold over the elements of a map", "rule main = b:(c:\"y\"*)* => map($b, (y) => foldl(\"\", y.$c, (s, l) => s + text(l)))\n", ClassPoly, 2},
 		{"fold that appends its first element", "rule main = a:\"x\"* b:\"y\"* => foldl(list(text($a)), $b, (acc, y) => concat(list(acc[0]), acc))\n", ClassPoly, 2},
@@ -241,27 +250,27 @@ func TestClassifyComplexity(t *testing.T) {
 		// that is own, at most a constant times the input its match consumes, has degree 1, and
 		// own elements add up to at most the input.
 		// The control of the same name measures n^4 on every backend.
-		{"fold adding a quadratic value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => foldl(\"\", $a, (s, z) => s + text($a))\n", ClassPoly, 4},
-		{"fold adding an own value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => text($a)\n", ClassPoly, 3},
-		{"fold adding a quadratic list of a rule", "rule main = c:sq b:\"y\"* => foldl(list(), $b, (acc, y) => concat(acc, $c))\nrule sq = a:\"x\"* => map($a, (z) => text($a))\n", ClassPoly, 3},
+		{"fold adding a quadratic value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => foldl(\"\", $a, (s, z) => s + text($a))\n", ClassUnknown, 4},
+		{"fold adding an own value of a rule", "rule main = c:sq b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule sq = a:\"x\"* => text($a)\n", ClassUnknown, 3},
+		{"fold adding a quadratic list of a rule", "rule main = c:sq b:\"y\"* => foldl(list(), $b, (acc, y) => concat(acc, $c))\nrule sq = a:\"x\"* => map($a, (z) => text($a))\n", ClassUnknown, 3},
 		// The control of the same name measures n^2, and the one of their own text linear.
 		{"map copying elements that add up to more than the input", "rule main = b:\"y\"* => map(map($b, (q) => text($b)), (y) => y + \"x\")\n", ClassPoly, 2},
 		{"map copying elements of their own text", "rule main = b:\"y\"* => map(map($b, (q) => text(q)), (y) => y + \"x\")\n", ClassLinear, 0},
 		{"map copying elements of a quadratic rule value", "rule main = c:sq => map($c, (y) => y + \"x\")\nrule sq = a:\"x\"* => map($a, (z) => text($a))\n", ClassPoly, 2},
 		{"map copying elements built by own actions", "rule main = items:item* => map($items, (it) => it + \"x\")\nrule item string = c:\"x\"+ \",\" => text($c)\n", ClassLinear, 0},
-		{"map copying captures in a lookahead of its elements", "rule main = items:item* => map($items, (it) => map(it.$c, (y) => text(y) + \"x\"))\nrule item = &(c:\"x\"*) \"x\"\n", ClassPoly, 2},
+		{"map copying captures in a lookahead of its elements", "rule main = items:item* => map($items, (it) => map(it.$c, (y) => text(y) + \"x\"))\nrule item = &(c:\"x\"*) \"x\"\n", ClassUnknown, 2},
 		// A fold over a repetition that holds each element, and so each value of the recursion in
 		// it, at most once builds an own value, as a left-associative expression does.
-		{"fold adding an own value of a left-associative fold", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + \"+\" + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassPoly, 3},
-		{"fold adding an own value of a left-associative fold over two members", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassPoly, 3},
+		{"fold adding an own value of a left-associative fold", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + \"+\" + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassUnknown, 3},
+		{"fold adding an own value of a left-associative fold over two members", "rule main = c:e b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + $c)\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassUnknown, 3},
 		// The control of the same name measures n^3.
 		{"fold from a quadratic initial value", "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text($a)), $b, (acc, y) => filter(acc, (e) => len(e) > 0))\n", ClassPoly, 3},
 		{"fold from an own initial value", "rule main = a:\"x\"* b:\"y\"* => foldl(map($a, (z) => text(z)), $b, (acc, y) => filter(acc, (e) => len(e) > 0))\n", ClassPoly, 2},
 		// A rule whose value includes its own recursion twice has no size degree that the
 		// classifier knows, and one that includes it once is own.
 		{"map over a value that doubles over a recursion", "rule main = c:l => map($c, (e) => e + \"x\")\nrule l = x:\"a\" t:l? => list($t, $t)\n", ClassUnknown, 0},
-		{"fold adding the text of a capture of a value that doubles", "rule main = c:l b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + text($c))\nrule l = x:\"a\" t:l? => list($t, $t)\n", ClassPoly, 3},
-		{"fold adding a value of a right recursion", "rule main = c:l b:\"y\"* => foldl(list(), $b, (acc, y) => concat(acc, map($c, (e) => e)))\nrule l = x:\"a\" t:l? => list(text($x), $t)\n", ClassPoly, 3},
+		{"fold adding the text of a capture of a value that doubles", "rule main = c:l b:\"y\"* => foldl(\"\", $b, (acc, y) => acc + text($c))\nrule l = x:\"a\" t:l? => list($t, $t)\n", ClassUnknown, 3},
+		{"fold adding a value of a right recursion", "rule main = c:l b:\"y\"* => foldl(list(), $b, (acc, y) => concat(acc, map($c, (e) => e)))\nrule l = x:\"a\" t:l? => list(text($x), $t)\n", ClassUnknown, 3},
 		// Comparing two strings examines the shorter one: against a literal it is bounded, between
 		// two values of the recursion it is not.
 		{"comparison with a literal", "rule main = l $$\nrule l string = (\"(\" x:l \")\" {$x != \"\"} => $x) / a\nrule a string = \"a\" => \"a\"\n", ClassLinear, 0},
@@ -372,12 +381,12 @@ func TestClassifyComplexity(t *testing.T) {
 		// with which the iterations of b begin, so the comparison looks inside b, past the start
 		// of its repetition: what remains of the alternative still contains that repetition, and
 		// the later alternative "(" starts again inside the input that it examined.
-		{"scan restarted inside a rule called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
-		{"scan restarted inside a rule called from one place, without a call after the literal", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
-		{"scan restarted inside a rule called from one place, through a bounded call", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" (c)#repeat(0,2) \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		{"scan restarted inside a rule called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassUnknown, 2},
+		{"scan restarted inside a rule called from one place, without a call after the literal", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassUnknown, 2},
+		{"scan restarted inside a rule called from one place, through a bounded call", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" (c)#repeat(0,2) \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassUnknown, 2},
 		// The outer repetition runs at most twice, so the restarted scan does not compound, but
 		// condition 2 does not look at the bound of the outer repetition: the class is loose here.
-		{"scan restarted inside a rule called from one place, under a bounded outer repetition", "@start\nrule main = (\"(\" b \")!\" / \"(\")#repeat(2,2) \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassPoly, 2},
+		{"scan restarted inside a rule called from one place, under a bounded outer repetition", "@start\nrule main = (\"(\" b \")!\" / \"(\")#repeat(2,2) \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassUnknown, 2},
 		{"bounded repetition inside a rule called from one place", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = (\"(\" c \")!\" / \"(\")#repeat(0,3) $$\nrule c = \"(\" c / \"x\"\n", ClassLinear, 0},
 		{"rule called from one place that begins apart", "@start\nrule main = (\"(\" b \")!\" / \"(\")+ \"(\"*\nrule b = \"x\" (\"(\" c \")!\" / \"(\")* $$\nrule c = \"(\" c / \"x\"\n", ClassLinear, 0},
 		{"rule called from one place by a memoized caller", "@start\nrule top = main $$\nrule main = (\"(\" main \")!\" / \"(\")#repeat(1,2)\n", ClassLinear, 0},
@@ -390,8 +399,8 @@ func TestClassifyComplexity(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)
-			if c.Class != tc.class || c.Degree != tc.degree {
-				t.Errorf("class %v degree %d, want %v degree %d\ncauses %v\nreasons %v", c.Class, c.Degree, tc.class, tc.degree, c.Causes, c.Reasons)
+			if c.Class != tc.class || classDegree(c) != tc.degree {
+				t.Errorf("class %v degree %d, want %v degree %d\ncauses %v\nreasons %v", c.Class, classDegree(c), tc.class, tc.degree, c.Causes, c.Reasons)
 			}
 			if tc.class == ClassPoly || tc.class == ClassExp {
 				if len(c.Causes) == 0 {
@@ -402,6 +411,41 @@ func TestClassifyComplexity(t *testing.T) {
 				t.Error("no reason")
 			}
 		})
+	}
+}
+
+// TestComplexityReasonsOutrankPolynomialCauses checks that a reason for the class unknown outranks
+// polynomial causes: each grammar has causes of degree 2 and reasons whose places multiply the
+// cost, which TestSlopeGateGrowth measures as cubic on every backend. The class is unknown, the
+// causes stay as witnesses, and their largest degree is the witnessed degree, not a degree of the
+// class.
+func TestComplexityReasonsOutrankPolynomialCauses(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ name, src string }{
+		// Units that are not committing nest without bound around the scans that each step of the
+		// growth of r evaluates.
+		{"nesting without bound around a growth", "rule main = r* $$\nrule r = ([ab]? (r / [a-c]) (w [ ]))*\nrule w = [ab]*\n"},
+		// The same, and the cycle can grow from a call of a rule that is not a leader.
+		{"growth from a rule that is not a leader", "rule main = r $$\nrule p = (!\"a\" \"b\")?\nrule f = r / [a-c]\nrule r = (p f (w [ ] [b]))*\nrule w = [^ ]*\n"},
+		// The inner map copies $y for each element of each element; a scan restarted in a
+		// repetition is the polynomial cause.
+		{"copies of an outer value", "rule main = v:V (B / \"a\")* $$ => $v\nrule V = xs:\"x\"* y:\"y\"* => map($xs, (p) => map($xs, (q) => text($y) + \"!\"))\nrule B = \"a\"* \"c\"\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := classifySource(t, tc.src)
+			if c.Class != ClassUnknown || c.Degree != 0 || c.WitnessedDegree != 2 {
+				t.Errorf("class %v degree %d witnessed degree %d, want unknown degree 0 witnessed degree 2\ncauses %v\nreasons %v",
+					c.Class, c.Degree, c.WitnessedDegree, c.Causes, c.Reasons)
+			}
+			if len(c.Causes) == 0 || len(c.Reasons) == 0 {
+				t.Errorf("%d causes and %d reasons, want both", len(c.Causes), len(c.Reasons))
+			}
+		})
+	}
+	// Without reasons the class is polynomial and has no witnessed degree.
+	c := classifySource(t, "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n")
+	if c.Class != ClassPoly || c.Degree != 2 || c.WitnessedDegree != 0 || len(c.Reasons) != 0 {
+		t.Errorf("class %v degree %d witnessed degree %d with %d reasons, want polynomial degree 2", c.Class, c.Degree, c.WitnessedDegree, len(c.Reasons))
 	}
 }
 
@@ -477,7 +521,7 @@ func TestClassifyMemoizedMembers(t *testing.T) {
 		{"E2 through a memoized call that reads a variable", "var v string\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" d \")\" \"y\" / \"(\" d \")\" \"z\" / a\nrule d = c {len(v) >= 0}\n", ClassUnknown, "later alternative a"},
 		{"E2 with a scanning source after the growth", "rule main = c [a-z]* $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassUnknown, "later alternative a"},
 		// Each step evaluates [a-z]* after "(" again.
-		{"growth restarting a scan at a fixed position", "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n", ClassPoly, ""},
+		{"growth restarting a scan at a fixed position", "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n", ClassUnknown, ""},
 		{"E2 with diverging variables", "var v string\nrule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" {v := v + \"0\"} c \")\" \"y\" / \"(\" {v := v + \"1\"} c \")\" \"z\" / a {len(v) >= 0}\n", ClassExp, ""},
 		{"member alternatives before its left call", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"[\" c \"]\" / a\n", ClassLinear, ""},
 	} {

@@ -30,10 +30,13 @@ type lintClassification struct {
 	Class string `json:"class"`
 	// Degree is the degree of a polynomial class.
 	Degree int `json:"degree,omitempty"`
+	// WitnessedDegree is the largest degree of the polynomial witnesses of an unknown class, a
+	// lower estimate rather than a bound.
+	WitnessedDegree int `json:"witnessedDegree,omitempty"`
 	// Combinations bounds K for a linear class whose variables with finite values have more than
 	// one combination of values.
 	Combinations int `json:"combinations,omitempty"`
-	// Witnesses are the causes of a polynomial or exponential class.
+	// Witnesses are the polynomial and exponential causes, which an unknown class can have too.
 	Witnesses []lintCause `json:"witnesses"`
 	// Reasons are the conditions for linear cost that the classifier cannot establish.
 	Reasons []lintCause `json:"reasons"`
@@ -66,7 +69,7 @@ func lintClassificationOf(c *engine.Complexity) *lintClassification {
 		}
 		return out
 	}
-	out := &lintClassification{Class: classNames[c.Class], Degree: c.Degree, Witnesses: causes(c.Causes), Reasons: causes(c.Reasons)}
+	out := &lintClassification{Class: classNames[c.Class], Degree: c.Degree, WitnessedDegree: c.WitnessedDegree, Witnesses: causes(c.Causes), Reasons: causes(c.Reasons)}
 	if c.Class == engine.ClassLinear && c.Combinations > 1 {
 		out.Combinations = c.Combinations
 	}
@@ -79,6 +82,9 @@ func printClassification(w io.Writer, path, start string, c *lintClassification)
 	class := c.Class
 	if c.Degree > 0 {
 		class = fmt.Sprintf("%s (n^%d)", class, c.Degree)
+	}
+	if c.WitnessedDegree > 0 {
+		class = fmt.Sprintf("%s (witnessed n^%d)", class, c.WitnessedDegree)
 	}
 	if c.Combinations > 0 {
 		class = fmt.Sprintf("%s (K <= %d)", class, c.Combinations)

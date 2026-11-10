@@ -24,8 +24,9 @@ are estimates that come with a witness.
 |:--|:--|
 | Linear | the cost is at most a constant times the length of the input; a promise |
 | Linear given an environment bound | linear, with a constant that grows with the number of values the variables can take; a promise |
-| Unknown | no claim: a condition of the proof fails and there is no evidence of growth |
-| Polynomial, Exponential | an estimate, with a witness: the path of calls and expressions that shows the cause |
+| Polynomial | an estimate of a bound, with a witness for every condition that fails: the path of calls and expressions that shows each cause |
+| Unknown | no claim: a condition of the proof fails that no witness accounts for; witnesses of growth it has give only a lower estimate |
+| Exponential | an estimate of growth, with a witness |
 
 The asymmetry is deliberate. A promise that is wrong costs a user an outage; an estimate that is pessimistic costs a
 user a look at a grammar. Where the analysis cannot be exact it over-approximates: it assumes that every predicate can

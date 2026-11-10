@@ -12,8 +12,8 @@ import (
 // compile.ClassifyComplexity).
 type Complexity = compile.Complexity
 
-// ComplexityCause is a witness of a polynomial or exponential class, or a reason for the class
-// unknown.
+// ComplexityCause is a polynomial or exponential cause, which the classes polynomial,
+// unknown and exponential can have, or a reason for the class unknown.
 type ComplexityCause = compile.ComplexityCause
 
 // GrowingBinding is a binding that the growing-variable lint check reports.
@@ -26,8 +26,8 @@ type ComplexityClass = compile.ComplexityClass
 const (
 	ClassLinear    = compile.ClassLinear
 	ClassLinearEnv = compile.ClassLinearEnv
-	ClassUnknown   = compile.ClassUnknown
 	ClassPoly      = compile.ClassPoly
+	ClassUnknown   = compile.ClassUnknown
 	ClassExp       = compile.ClassExp
 )
 

@@ -82,7 +82,7 @@ func TestTriageCoverage(t *testing.T) {
 				}
 			}
 			var b strings.Builder
-			fmt.Fprintf(&b, "# %s: %v (degree %d), %d witnesses, %d reasons\n", tg.Name, c.Class, c.Degree, len(c.Causes), len(c.Reasons))
+			fmt.Fprintf(&b, "# %s: %v (degree %d, witnessed degree %d), %d witnesses, %d reasons\n", tg.Name, c.Class, c.Degree, c.WitnessedDegree, len(c.Causes), len(c.Reasons))
 			for _, g := range mine {
 				if len(members[g.ID]) == 0 {
 					t.Errorf("group %s holds no cause", g.ID)

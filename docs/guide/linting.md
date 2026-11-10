@@ -119,15 +119,18 @@ On `a` repeated n times, `"a"*` scans to the end of the input from every positio
 the grammar linear: a failed `A` then gives back one character, and the class line reads
 `the cost from start rule main is linear`.
 
-The classes are `linear`, `linear-env` (linear given a bound on the values of the variables), `unknown`, `polynomial`
+The classes are `linear`, `linear-env` (linear given a bound on the values of the variables), `polynomial`, `unknown`
 and `exponential`. When variables take a bounded set of values, the class `linear` shows the bound on the number of
 their combinations at a position, as in `linear (K <= 4)`: the memo can keep that many results of one rule at one
 position. Only the first two are promises; the conditions behind them, and what each class means, are in
 [Classification](../../spec/runtime/parsing.md#classification). A polynomial or exponential class is an estimate
-with a witness, and can be pessimistic: the input that makes it slow may not exist. The class `unknown` means that
-the linter could not establish linear cost and has no witness of growth either; its first reasons are shown in place
-of witnesses. With `-f json`, the document gets a `classification` member with the class, the degree of a polynomial class, and every
-witness and reason.
+with a witness, and can be pessimistic: the input that makes it slow may not exist. The degree of a polynomial class
+covers every condition that fails. The class `unknown` means that the linter could not establish linear cost and has a
+reason that no witness of growth accounts for; its first reasons are shown after its witnesses, if any. When it has
+polynomial witnesses, the class line shows the largest of their degrees, as in `unknown (witnessed n^3)`: the cost
+grows at least that fast on the witnessed inputs, as far as the estimate goes, and the reasons leave the rest open.
+With `-f json`, the document gets a `classification` member with the class, the degree of a polynomial class, the
+witnessed degree of an unknown one, and every witness and reason.
 
 Without `-classify` the linter does not classify the cost and reports no `super-linear` hint, so the default output
 stays free of estimates. The [`growing-variable`](#growing-variable) warning needs no request.
@@ -427,7 +430,7 @@ anywhere in what it examined invalidates the rule's results in a `Document`. Loo
 ### `super-linear`
 
 Reported only with `-classify` (see [Classifying the parse cost](#classifying-the-parse-cost)): one hint for each
-cause of a polynomial or exponential class, at the scan, binding or operation that causes it. A scan that can start
+polynomial or exponential cause, whatever the class, at the scan, binding or operation that causes it. A scan that can start
 again inside the input it examined is the most common cause: a repetition or a `#recover` skip in an alternative that
 can fail after it, when a later alternative or what follows can consume the same characters. Make the alternatives
 start differently, add a `#cut` after the part that decides, or move the scan out of the alternative. A scan needs none

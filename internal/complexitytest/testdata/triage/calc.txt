@@ -1,4 +1,4 @@
-# calc: unknown (degree 0), 0 witnesses, 3 reasons
+# calc: unknown (degree 0, witnessed degree 0), 0 witnesses, 3 reasons
 
 ## nested-operators (3) -> O75
 26:24 expr: the operator part at 26:24 in rule expr is not committing against the operator parts that the enclosing operator parts of expr try again, and units that are not committing are nested in it without bound through a recursion of rule calls

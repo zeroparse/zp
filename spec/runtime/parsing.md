@@ -822,7 +822,7 @@ describes the worst input of each length.
 |:--|:--|:--|:--|
 | Linear | At most proportional to n | `main = (A / "a")* $$; A = "a" "c"` | `a` repeated n times |
 | Linear given an environment bound | Proportional to n times the number of combinations of variable values that occur at one position and the size of the strings they hold | A rule that reads `indent`, bound from the length of a captured run of spaces | Lines of increasing indentation |
-| Polynomial of degree k | Proportional to n^k on its worst inputs, for the causes; a grammar that also has [reasons](#classification) for the class unknown can cost more where they apply | `main = (A / "a")* $$; A = "a"* "c"` (k = 2) | `a` repeated n times |
+| Polynomial of degree k | Proportional to n^k on its worst inputs | `main = (A / "a")* $$; A = "a"* "c"` (k = 2) | `a` repeated n times |
 | Exponential | Can double when n grows by a constant | `var v string`; `R = "(" {v := v + "0"} R ")" "y" / "(" {v := v + "1"} R ")" "z" / "n" {len(v) >= 0}` | `(` n times, `n`, then `)z` n times |
 
 The following grammars have the class shown on the inputs shown.
@@ -1719,23 +1719,26 @@ one item; the rewrites that change a value have the conditions above.
 `zp lint -classify` (`lint.Config.Classify` in Go) classifies the cost of
 the start rule that it checks and shows the class. The classes are ordered
 from best to worst, as in the table: each is a weaker claim than the classes
-before it. A grammar has the worst class of its causes. A witnessed
-polynomial or exponential cause outranks a reason for the class unknown,
-because it is evidence of growth, while unknown is only the absence of a
-proof. So the degree of a polynomial grammar that also has such reasons is the
-degree of its causes, and what the reasons leave open can cost more. The
-classes polynomial and exponential produce a
-[`super-linear`](lint.md#super-linear) hint at each cause, with its witness.
-The other classes produce no finding; the reasons for the class unknown are
-shown with the classification. Without the request, there is no
-classification and no `super-linear` finding.
+before it. A grammar has the worst class of its causes and reasons. A
+polynomial grammar has causes and no reason, so every condition for linear cost
+that fails has a witnessed cause, and its degree is the largest degree of
+those causes. A reason for the class unknown outranks polynomial causes,
+because the reason leaves the cost open where the degree of the causes cannot
+bound it. An exponential cause outranks a reason, because it is evidence of
+growth that no polynomial bounds. A grammar of the class unknown that has
+polynomial causes reports the largest of their degrees as its **witnessed
+degree**: a lower estimate from the witnesses, not a bound. Each polynomial or
+exponential cause produces a [`super-linear`](lint.md#super-linear) hint, with
+its witness, whatever the class; the reasons for the class unknown are shown
+with the classification and produce no finding. Without the request, there is
+no classification and no `super-linear` finding.
 
 | Class | Promise |
 |:--|:--|
 | Linear | Every parse from the start rule has a cost of at most c · (n + 1) |
 | Linear given an environment bound | Every parse has a cost of at most c · K · (L + 1) · (n + 1) |
+| Polynomial of degree k | None; an estimate of a bound |
 | Unknown | None; the classifier cannot bound the cost |
-| Polynomial of degree k | None; an estimate |
 | Exponential | None; an estimate |
 
 In a [stream](streaming.md), where `text` costs the length of its result (see
@@ -1772,9 +1775,9 @@ that first characters do not depend on the path that reaches an expression.
 
 The other classes carry no promise. Deciding the cost of a grammar exactly is
 impossible, because it would decide whether a grammar's language is empty, so
-a class worse than linear can be pessimistic: no slow input need exist. The
-classes polynomial and exponential come with a **witness**, a path of rule
-calls and expressions that shows the cause, and the class unknown comes with a
+a class worse than linear can be pessimistic: no slow input need exist. Each
+polynomial or exponential cause comes with a **witness**, a path of rule calls
+and expressions that shows the cause, and the class unknown comes with a
 reason:
 
 - **Polynomial.** A scanning source in a unit that is not committing, the
@@ -1804,9 +1807,9 @@ reason:
   copying operation copies it twice, as by duplicating its elements and
   joining them. The step matrix bounds the growth from above, so a fold that
   it classes exponential can grow more slowly.
-- **Unknown.** A condition for linear cost fails without a witness of a
-  polynomial or exponential cause, as when sources that are not committing are nested in one
-  another without bound through a recursion of rule calls. Memoized calls in
+- **Unknown.** A condition for linear cost fails that no polynomial or
+  exponential cause accounts for, as when sources that are not committing are
+  nested in one another without bound through a recursion of rule calls. Memoized calls in
   the recursion can keep such a grammar linear, which the classifier does not
   decide. Its reason is the first unit that is not committing, or the
   condition that fails, with the expression where it fails.
