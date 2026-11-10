@@ -105,6 +105,8 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func length(x Datum) (Datum, Fail)` | The built-in function len: the length of a string in the position unit, of the range of a string node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails. |
 | `func text(x Datum) (Str, Fail)` | The built-in function text: a string itself, the text that a string node or an error holds, the input of the range of any other node, and the empty string for nil. Any other value fails. |
 | `func convert(t NodeType, x Datum) (Datum, Fail)` | The conversion `T{x}` to the named node type t: a string, tuple or list node, of a named node type or not, becomes a node of t. Any other value fails. |
+| `func cover(n Obj, v Datum, first bool) bool` | Widens the range of the struct n, which a term is making, to cover the range of the field value v if v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is whether it had none before, and the first node gives n its range. |
+| `func made(c Act, n Obj, first bool)` | Finishes the struct n that c made of field values that cover has gone over: n takes the range of the rule if no field value is a node, and c records n. |
 | `func predicate(t Term) bool` | Evaluates the term of a predicate, which fails on the boolean false and on a term that fails, and holds on every other value. |
 | `func bind(slot int, t Term) bool` | Binds the value of the term of a binding to the variable in slot. A term that fails and a function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the value fits the variable. |
 
@@ -179,5 +181,7 @@ row includes what its backends print into packages of their own.
 | length | `[]` | `[]` | `[]` | `[]` |
 | text | `[]` | `[]` | `[]` | `[]` |
 | convert | `[]` | `[]` | `[]` | `[]` |
+| cover | `[]` | `[]` | `[]` | `[]` |
+| made | `[]` | `[]` | `[]` | `[]` |
 | predicate | `[]` | `[]` | `[]` | `[]` |
 | bind | `[]` | `[]` | `[]` | `[]` |
