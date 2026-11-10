@@ -70,6 +70,11 @@ func specRows(t *testing.T, file, head string) [][]string {
 // the specification lists, got.
 func kindErrors(kind string, want, got []string) []string {
 	var errs []string
+	for i, w := range want {
+		if slices.Contains(want[:i], w) {
+			errs = append(errs, fmt.Sprintf("%s %s: named twice by the code, so one has no name of its own", kind, w))
+		}
+	}
 	seen := map[string]bool{}
 	for _, g := range got {
 		if seen[g] {
@@ -117,8 +122,8 @@ func kinds(t *testing.T, method string) []string {
 	for _, f := range packageFiles(t) {
 		for _, d := range f.Decls {
 			fn, ok := d.(*ast.FuncDecl)
-			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 {
-				// Not the marker method of a kind: a method of another name or with parameters.
+			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 || fn.Type.Results != nil {
+				// Not the marker method of a kind: a method of another name or with parameters or results.
 				continue
 			}
 			switch x := fn.Recv.List[0].Type.(type) {
@@ -261,6 +266,15 @@ func TestSpecFieldsNegative(t *testing.T) {
 		if !strings.Contains(errs, want) {
 			t.Errorf("no error %q in:\n%s", want, errs)
 		}
+	}
+}
+
+// TestSpecNamesNegative is the permanent negative control for a register that the printer does not
+// name: it prints as another register, which kindErrors reports.
+func TestSpecNamesNegative(t *testing.T) {
+	errs := strings.Join(kindErrors("register", []string{"pos", "env", "pos"}, []string{"pos", "env"}), "\n")
+	if !strings.Contains(errs, "register pos: named twice by the code") {
+		t.Errorf("no error for the duplicate name in:\n%s", errs)
 	}
 }
 

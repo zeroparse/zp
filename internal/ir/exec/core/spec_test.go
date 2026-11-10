@@ -220,13 +220,9 @@ func opEntry(o *exec.Op) string {
 	return decl + " | " + strings.Join(state, "; ") + " | " + o.Cost.String()
 }
 
-// mixedSections are the sections of the catalog that hold the operations of more than one component,
-// with the components they may hold, by chapter and heading.
-var mixedSections = map[string][]string{"values.md/Operations on Values": {ops.Val, ops.Host}}
-
 // sectionErrors returns the operations that sit in a section of the catalog with operations of another
-// component: a section holds the operations of one component, or of the components that mixedSections
-// allows it, so that where an operation sits tells which component it belongs to.
+// component: a section holds the operations of one component, so that where an operation sits tells
+// which component it belongs to.
 func sectionErrors(m *exec.Module, spec map[string][]specTable) []string {
 	comp := map[string]string{}
 	for _, o := range m.Ops {
@@ -260,9 +256,8 @@ func sectionErrors(m *exec.Module, spec map[string][]specTable) []string {
 					order = append(order, c)
 				}
 			}
-			allowed, mixed := mixedSections[file+"/"+tb.section]
 			for i, c := range order {
-				if (mixed && !slices.Contains(allowed, c)) || (!mixed && i > 0) {
+				if i > 0 {
 					errs = append(errs, fmt.Sprintf("%s, section %q: the operation %s of the component %s sits with operations of the component %s", file, tb.section, first[c], c, order[0]))
 				}
 			}
@@ -366,8 +361,8 @@ func irKinds(t *testing.T, method string) map[string]string {
 		}
 		for _, d := range f.Decls {
 			fn, ok := d.(*ast.FuncDecl)
-			// The marker method of a kind has no parameters; a method of another type with the same name may have some.
-			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 {
+			// The marker method of a kind has no parameters and no results; a method of another type with the same name may have some.
+			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 || fn.Type.Results != nil {
 				continue
 			}
 			if star, ok := fn.Recv.List[0].Type.(*ast.StarExpr); ok {
@@ -424,6 +419,18 @@ func TestSpecSectionsNegative(t *testing.T) {
 	errs := strings.Join(sectionErrors(m, readSpec(t)), "\n")
 	if !strings.Contains(errs, `section "Recovered Errors"`) {
 		t.Errorf("no error for the section of the changed operation in:\n%s", errs)
+	}
+}
+
+// TestSpecSectionsHostNegative is the permanent negative control for a host operation among the
+// operations of the value component: an operation of the section of values whose component becomes
+// host is reported, as a host operation listed in that section would be.
+func TestSpecSectionsHostNegative(t *testing.T) {
+	m := Build()
+	m.Op("val.kind").Component = ops.Host
+	errs := strings.Join(sectionErrors(m, readSpec(t)), "\n")
+	if !strings.Contains(errs, `section "Operations on Values"`) {
+		t.Errorf("no error for the section of values in:\n%s", errs)
 	}
 }
 
