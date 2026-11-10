@@ -559,3 +559,45 @@ func ConvertTermCases() []TermCase {
 	}
 	return out
 }
+
+// structPrelude declares the struct types of StructTermCases: S has two fields that hold nodes, an int, a
+// struct and a list.
+const structPrelude = "type Inner = { N int }\n" +
+	"type S = { A *node[string]; B *node[string]; K int; I Inner; L []node[string] }\n@start\n"
+
+// StructTermCases returns fixed terms that make a struct value whose fields hold nodes: none, one, two,
+// a struct, a list and a node that did not match (nil), as the value of a rule and under a read of a field.
+// The range of a struct covers the ranges of the field values that are nodes and is the range of the rule if
+// there is none, so each of the cases shows the range logic through the units it charges. The rule captures
+// two nodes, of one literal each, and a third that does not match, each on a literal of one byte and one
+// beyond the Basic Multilingual Plane.
+func StructTermCases() []TermCase {
+	cases := []struct{ typ, term string }{
+		{"S", "S{K: 1}"},
+		{"S", "S{A: $y, K: 1}"},
+		{"S", "S{A: $x, B: $y}"},
+		{"S", "S{A: $y, B: $x}"},
+		{"S", "S{A: $z, K: 2}"},
+		{"S", "S{A: $z, B: $y}"},
+		{"S", "S{I: Inner{N: 1}}"},
+		{"S", "S{L: list($y, $x)}"},
+		{"S", "S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)}"},
+		{"int", "S{K: 1}.K"},
+		{"int", "S{A: $y, K: 1}.K"},
+		{"int", "S{I: Inner{N: 1}}.I.N"},
+		{"int", "len(S{L: list($y, $x)}.L)"},
+		{"bool", "S{A: $z, K: 2}.A == nil"},
+	}
+	var out []TermCase
+	for _, a := range cases {
+		for _, lit := range []string{"a", "😀"} {
+			out = append(out, TermCase{
+				Case: Case{Name: "struct: " + a.term,
+					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:%[3]q z:\"c\"? $$ => %[4]s\n", structPrelude, a.typ, lit, a.term),
+					Inputs: []string{lit + lit}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+	}
+	return out
+}
