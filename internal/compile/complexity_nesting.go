@@ -29,6 +29,11 @@ import (
 // of E_t needs no clause of its own: the continuation's call of that rule is followed, up to the
 // end of the body of A, by what can match without consuming input, so E2 adds A.
 //
+// What follows a left call is evaluated again in each step of a growth, at the end of the seed,
+// so a path that continues at a left call past the end of a body is evaluated once for each
+// evaluation of the cycle that ends there; nestsEnd counts those as nesting when a call of a rule
+// of the cycle nests at one end.
+//
 // The calls that units evaluate alike come from the analyses that rely on them: the shared calls
 // of strip and the calls that the exclusion analysis passes alike. nestsAt computes the set from
 // the shared calls of every unit of a recursion against each of its continuations before the
@@ -74,12 +79,7 @@ func (k *classifier) nestsEnd(s *site) bool {
 		return false
 	}
 	k.computeNesting()
-	for t, nests := range k.nestSites {
-		if nests && k.sameCycle(t.callee, s.callee) {
-			return true
-		}
-	}
-	return false
+	return k.nestCycles[k.an.cycle[s.callee]]
 }
 
 // computeNesting computes the call sites that nest at one end, once.
@@ -91,6 +91,12 @@ func (k *classifier) computeNesting() {
 			k.nestDry = false
 		}
 		k.nestSites = k.nestSet(k.restarts)
+		k.nestCycles = map[int]bool{}
+		for t, nests := range k.nestSites {
+			if nests && k.an.cyclic[t.callee] {
+				k.nestCycles[k.an.cycle[t.callee]] = true
+			}
+		}
 	}
 }
 
@@ -106,7 +112,7 @@ func (k *classifier) collectRestarts() {
 		k.control.Poll()
 		// A unit restarts a nesting only if it fails after the scans of nested evaluations, so
 		// only after a scanning source (see unitFailsAfterSource); the checks analyze no other.
-		if !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.unitFailsAfterSource(u) {
+		if !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.callsRecursion(u) || !k.unitFailsAfterSource(u) {
 			continue
 		}
 		conts := slices.Clone(u.conts)
@@ -120,6 +126,18 @@ func (k *classifier) collectRestarts() {
 			k.strip(u.self, cs.paths, u)
 		}
 	}
+}
+
+// callsRecursion reports whether the unit calls a rule of the recursion of its rule. A restart
+// needs a call of the recursion among the calls that the unit evaluates alike or looks through,
+// and the bodies of other rules call no rule of the recursion, or they would be in it.
+func (k *classifier) callsRecursion(u *unit) bool {
+	for n := range u.calls {
+		if k.scc[n] == k.scc[u.rule] {
+			return true
+		}
+	}
+	return false
 }
 
 // recordShared records a shared call of owner, a unit, and its continuation (see restart). lu are

@@ -280,6 +280,7 @@ type classifier struct {
 
 	sites           []*site
 	nestSites       map[*site]bool // the call sites whose evaluations can nest and end at one position (nestsAt)
+	nestCycles      map[int]bool   // the left-recursion cycles with a call of a rule that nests at one end (nestsEnd)
 	nestDry         bool           // nestsAt is being computed: no call site nests yet
 	restarts        []restart      // the shared calls that nestsAt reads (recordShared)
 	usedRestarts    []restart      // the shared calls that the checks of the units relied on
