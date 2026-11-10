@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-10
+Arata Furukawa · Last revised 2026-11-11
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -20,7 +20,8 @@ reshapes and the run-time errors of those actions, step 7 of
 [Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
-5, which are outlines, on Lemma 6, which is proved given step 1, and, for the
+5, which are outlines, on Lemma 6, which is proved given step 1, on step 3, for
+the tries of an Operators Rule that Lemmas 2 and 10 leave out, and, for the
 values that actions build from reshaped values, on step 7. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts and the bounds of
@@ -49,9 +50,9 @@ the activations of each later evaluation of a rule or its twin at a position to
 the first, and by comparing the two evaluations of each memoized link in the
 reference parse of the memoization proof, in either lookahead state, either
 variant and through the growths that the later one makes again, apart from the
-activations that a dropped step of a growth repeats, which Lemma 5 counts
-before it, and with no count of the evaluations in a context of growths. It
-leaves the sum open for the sources of rules that call no rule and are not
+activations that a dropped step of a growth or a path that enters the growth
+again repeats, which Lemma 5 counts before it, and with no count of the
+evaluations in a context of growths. It leaves the sum open for the sources of rules that call no rule and are not
 memoized, for the links of a leader whose growth reads another growth of its
 cycle, and, in a Document parse or through results kept in a context of
 growths, for the links that the comparison leaves out. Lemmas 2 and 10 and the
@@ -220,8 +221,11 @@ describes. Let $|\text{levels}|$ be the number of binding levels of the
 grammar, counting the absence of a level as one. A call where the value of a
 rule is discarded calls the value-free **twin** of the rule, which has calls,
 keys and memo entries of its own; this proof counts a rule and its twin as two
-**variants** of the rule. The **lookahead state** of an evaluation is $\lambda$
-of the [memoization proof](memoization.md#setting): $1$ inside a lookahead and
+**variants** of the rule. The parse memoizes a twin exactly when it memoizes
+its rule, whatever the number of places that call the twin
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), so the
+exceptions above decide it for both variants. The **lookahead state** of an
+evaluation is $\lambda$ of the [memoization proof](memoization.md#setting): $1$ inside a lookahead and
 $0$ elsewhere.
 
 The number of body evaluations of memoized rules that are neither growth
@@ -497,8 +501,8 @@ number of evaluations, which gives the bound. $\square$
 
 **Order of the bounds.** The bounds follow one another in this order, and none
 rests on a later one. First, the claims of this lemma from *Failure after a
-source* to *Links lead to repeated evaluations* count nothing: they rest on the
-conditions, the memo of Lemma 3 and the memoization proof, and hold of every
+source* to *Links to heads*, other than *Activations that do not succeed*,
+count nothing: they rest on the conditions, the memo of Lemma 3 and the memoization proof, and hold of every
 activation, including those of growth steps and of evaluations in a context of
 growths. Second, Lemma 5 bounds $B$, the evaluations in a context of growths,
 the activations that growth steps and those evaluations own, and the successful
@@ -506,7 +510,8 @@ activations that a dropped step of a growth or a path that enters the growth
 again (case 5 below) repeats, from those claims, Lemmas 1 to 3 and conditions 3
 and 5; it must not use the bounds that come after it (step 4 of [Open
 Steps](#open-steps)). Third, *Activations held by heads* bounds the successful
-activations owned by memoized evaluations from Lemma 3 and the links, with no
+activations owned by memoized evaluations from Lemma 3, the replays and *Links
+to heads*, with no
 count of the evaluations in a context of growths, and with the second bound
 gives $A_s$. Last, this claim bounds the evaluations of the rules that are not
 memoized and $A_f$.
@@ -657,9 +662,11 @@ $\alpha_i$ started. So the links that use one rule, position and level have
 distinct $e'_i$, none of which is the earliest of the evaluations. $\square$
 
 **Calls that call no rule.** Let the rule $r$ of the links $i$ to $k$ call no
-rule, read no variable and not be memoized at its calls, and let the shared
-call of each link be the first call that its unit and continuation share. Then
-$k - i$ is at most a constant.
+rule, read no variable and not be memoized at its calls, let the shared
+call of each link be the first call that its unit and continuation share, and
+let no body evaluation that the parser leaves or starts at the position of the
+links, from the end of $w_i$ to $e'_k$, be a growth step or in a context of
+growths. Then $k - i$ is at most a constant.
 
 *Proof.* Since $r$ calls no rule, the evaluation of a call of $r$ that
 contains an activation is the innermost call evaluation that contains it, so
@@ -675,8 +682,12 @@ matched without consuming input, so that call place is followed in its caller
 by what can match without consuming input.
 
 Frames started at $p$ nest, through calls made before input is consumed, at
-most $|\text{rules}|$ deep outside left-recursion cycles, whose growths and
-contexts are Lemma 5's. A link that leaves no frame evaluates $r$ again in a
+most $|\text{rules}|$ deep. A rule that recurs among them recurs through a
+cycle of left calls, which passes through a leader ([Growths of Left
+Recursion](../runtime/parsing.md#growths-of-left-recursion)), and a call of
+that leader at $p$ is answered from the memo or by the current result of its
+growth, which starts no frame, or grows it, which starts a growth step, which
+the claim leaves out. A link that leaves no frame evaluates $r$ again in a
 frame in progress or one started at $p$ inside it, at a later place of its
 body; by the argument of Lemma 1, and since an iteration that starts at $p$
 either consumes input or ends its repetition, the links between two that leave
@@ -958,7 +969,7 @@ $\hat{u}$, so $\hat{u}$ is in a smaller state, in a context of growths or of
 the other variant, which only a link whose evaluations differ in variant can
 reach. $\square$
 
-**Activations held by heads.** Let $\alpha_1, \alpha_2, \ldots$
+**Links to heads.** Let $\alpha_1, \alpha_2, \ldots$
 be the successful activations of $\sigma$ at $q$ outside case 5 and dropped
 steps, as above. Every link is memoized at both calls or a call of a rule that
 calls no rule and is not memoized at its calls, a **leaf link**. The rule $r$
@@ -981,8 +992,12 @@ a head follows a link of one of two kinds: a link of a leader with a growth
 that reads another growth of its cycle open at its start, or a link with case
 (a) or (b) of the covered keys on its path. When no link of $\sigma$ at $q$ is
 of these kinds, at most one of the $\alpha_i$ is held by a head, memoized or
-in a context of growths. By the replays, the successful activations of
-$\sigma$ at $q$ held by memoized evaluations are then at most six times those
+in a context of growths. This claim counts nothing: it rests on the links and
+the claims before it, and holds whoever owns the $\alpha_i$.
+
+**Activations held by heads.** When no link of $\sigma$ at $q$ is of the two
+kinds above, by the replays, the successful activations of
+$\sigma$ at $q$ held by memoized evaluations are at most six times those
 held by heads, which are $\alpha_1$ and those that case 5 or a dropped step
 repeats. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
@@ -1008,8 +1023,9 @@ the call again in the evaluation around it, which can be a head. A link of a
 leader whose growth reads another growth of its cycle open at its start
 compares two growths whose steps read growing results that can differ, which
 Lemma 5 counts in its contexts (step 4). And in a Document parse a link can
-meet an entry of an earlier parse that answers a call inside a lookahead, in a
-context of growths or of the other variant than its counterpart, and a link
+meet an entry of an earlier parse that answers a call in a context of growths,
+or a call whose corresponding call in the later evaluation is in a smaller
+lookahead state, in a context of growths or of the other variant, and a link
 that meets a result kept in a context of growths can lead into a lookahead that
 the result observed, or meet one kept in a smaller lookahead state, which the
 open gap stated with (D) of the memoization proof leaves out; such a link can
@@ -1031,10 +1047,10 @@ a context of growths, and the successful activations that a dropped step of a
 growth or a path that enters the growth again repeats. Its bounds come before
 the count of Lemma 4 on the activations that memoized evaluations own, in the
 order that [Lemma 4](#lemma-4-scanned-cost) states, so they must not rest on
-it: they rest on the claims of Lemma 4 from *Failure after a source* to *Links
-lead to repeated evaluations*, which count nothing, on Lemmas 1 to 3 and on the
-memo. Outside contexts of growths, the memo bounds the growths of a leader at
-one position, level and combination of the values of the variables that it
+it: they rest on the claims of Lemma 4 that count nothing, from *Failure after
+a source* to *Links to heads* other than *Activations that do not succeed*, on
+Lemmas 1 to 3 and on the memo. Outside contexts of growths, the memo bounds the
+growths of a leader at one position, level and combination of the values of the variables that it
 reads by two, one inside a lookahead and one outside them, since a growth
 stores its result ([Evaluations of
 Rules](../runtime/parsing.md#evaluations-of-rules)), which answers the later
@@ -1080,18 +1096,23 @@ most $|w|$ such steps, and in every other step $u$ fails within its word, after
 examining at most the word and the character after it. $\square$
 
 So outside a constant number of steps of each growth, such a unit costs a
-constant at $p$, and in those steps it costs what an
-evaluation of it at $p$ costs, which Lemma 4 charges as for any evaluation of a
-body.
+constant at $p$. In those steps the activations of $u$ are owned by the growth
+step that evaluates it or by an evaluation in a context of growths inside that
+step, apart from those inside a memoized evaluation there, which Lemma 4
+counts. This lemma counts the others (step 4 of [Open Steps](#open-steps)), from
+the claims of Lemma 4 that count nothing and not from its count of the
+activations that memoized evaluations own.
 
 The growing units of a step examine the input from the end of the seed. The
 input from the end of one seed to the end of the next is examined by one
 step, and what a step examines beyond the end of its own result is the
 failure of a growing unit after a scanning source, which condition 2 checks.
 A growth is itself a scanning source at each call of a rule of its cycle
-other than a left call, so its repetition at another position is bounded as
-that of a scanning source, by the restarts and links of Lemma 4, which count
-nothing (step 4 of [Open Steps](#open-steps)).
+other than a left call, so its repetitions are those of a scanning source: the
+restarts and the links of Lemma 4, which count nothing, relate the repetitions
+at one position, and *Memoized links* bounds the links of one leader at one
+position and level; the sum over the positions is step 4 of [Open
+Steps](#open-steps).
 
 After a growing unit fails in a step, a later growing unit of the step can
 succeed. The step then ends with a longer result, and the next step reads it
@@ -2273,12 +2294,14 @@ literal or a variable with finite values, $K$ is a constant by Lemma 8 and
 $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
-which is proved given step 1 of [Open Steps](#open-steps), and, for the values
-that actions build from reshaped values, on step 7; so the promises of the
-classes Linear and Linear Given an Environment Bound do too.
+which is proved given step 1 of [Open Steps](#open-steps), on step 3, since
+Lemmas 2 and 10, which its proof uses, leave out the tries of an Operators Rule
+outside its activations, and, for the values that actions build from reshaped
+values, on step 7; so the promises of the classes Linear and Linear Given an
+Environment Bound do too.
 
-*Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
-evaluation, the scanned cost of one, a call, or the walk cost. The body
+*Proof, given Lemmas 4 to 6 and step 3.* Each unit of $C$ is the local cost of
+a body evaluation, the scanned cost of one, a call, or the walk cost. The body
 evaluations of memoized rules are at most a constant times $K \hat{n}$: by
 Lemma 3 outside the growth steps and the contexts of growths, and by Lemma 5
 for the growth steps and the evaluations in a context of growths. By Lemmas 4
@@ -2754,8 +2777,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    an activation held by an evaluation that is not a head, when neither
    evaluation reads a growth open at its start and the comparison meets no
    entry of an earlier Document parse that answers a call in a context of
-   growths, or one inside a lookahead or of the other variant than the call
-   that corresponds to it in the later evaluation, and no result kept in a
+   growths, or a call whose corresponding call in the later evaluation is in a
+   smaller lookahead state, in a context of growths or of the other variant,
+   and no result kept in a
    context of growths that was kept in a smaller lookahead state or whose
    observed lookahead it enters. So the sum over the positions is proved for the
    activations owned by memoized evaluations of every source in a rule that
@@ -2776,13 +2800,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    that the continuation leaves are then left at the start of the unit, before
    the shared calls, or after some of them, so the frames left between two
    links need not be followed by what matches without consuming input, and the
-   cycle argument of *Calls that call no rule* must be carried over. Third, the
+   cycle argument of *Calls that call no rule* must be carried over; so must it
+   to the leaf links between which the parser leaves or starts, at their
+   position, a growth step or an evaluation in a context of growths, which that
+   claim leaves out. Third, the
    memoized links that the comparison leaves out: a link of a leader whose
    growth reads another growth of its cycle open at its start, when the two
    growths read growing results that can differ; in a Document parse, a link
-   whose comparison meets an entry of an earlier parse that answers a call
-   inside a lookahead, where the call that corresponds to it is outside them,
-   or a call in a context of growths; and a link whose comparison enters a
+   whose comparison meets an entry of an earlier parse that answers a call in
+   a context of growths, or a call whose corresponding call in the later
+   evaluation is in a smaller lookahead state, in a context of growths or of
+   the other variant; and a link whose comparison enters a
    lookahead that a result kept in a context of growths observed, or meets a
    result kept in a smaller lookahead state, which the open gap of the
    memoization proof leaves out. Such a link can lead to
@@ -2843,10 +2871,21 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    a dropped step or a path that enters the growth again repeats must be bounded
    from the claims of Lemma 4 that count nothing, Lemmas 1 to 3, the memo and
    conditions 3 and 5, and not from the count of Lemma 4 on the activations
-   owned by memoized evaluations. The growths that start at many positions, each
-   at a call of a rule of the cycle that is not a left call, must be bounded in
-   this way as the repetitions of a scanning source, by the restarts and links
-   of Lemma 4 applied to the steps of a growth.
+   owned by memoized evaluations. The claims that count nothing are *Failure
+   after a source*, the restarts, *Direct activations*, *Repeats*, *Memoized
+   links*, *Calls that call no rule*, *Own regions*, *Counterparts in the
+   reference parse*, *Replays*, *Answered calls*, *Covered keys*, *Links lead
+   to repeated evaluations* and *Links to heads*, with the definitions between
+   them; *Activations that do not succeed* and *Activations held by heads* come
+   after this step. The links and *Memoized links* bound the repetitions of an
+   activation at one position through one rule, position and level; the sum
+   over the positions, which *Activations held by heads* makes for the
+   activations that memoized evaluations own by charging them to the heads,
+   must be made here for those that growth steps own, which are not
+   evaluations of a key, and those that evaluations in a context of growths
+   own, and for the growths
+   that start at many positions, each at a call of a rule of the cycle that is
+   not a left call, as the repetitions of a scanning source.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
