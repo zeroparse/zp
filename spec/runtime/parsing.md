@@ -450,7 +450,11 @@ the two the body is evaluated for. A rule and
 its value-free twin count as two rules, with memo entries of their own: an entry
 of one answers no call of the other. The twin is memoized exactly when its rule
 is, as the exceptions below decide for the rule, even where the twin is called
-from fewer places. The exceptions are these.
+from fewer places. A recognition builds the value of a rule only where a
+predicate reads it, through a capture and the rules that the capture calls;
+every other rule builds no value there and has no twin, so its calls, whether
+their value is used or not, evaluate the rule itself, with one memo entry. The
+exceptions are these.
 
 - A rule that calls no rule, itself included, or that is called from at most
   one place in the grammar, its own body included, is not memoized in an

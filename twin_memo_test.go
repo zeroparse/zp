@@ -5,48 +5,70 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestTwinMemo checks, on both engine backends, the two facts about value-free twins that the
 // charging of Lemma 4 in spec/proofs/linear-cost.md rests on (Evaluations of Rules in
 // spec/runtime/parsing.md): a twin has memo entries of its own, so an entry of the twin answers
 // no call of the rule, and a twin is memoized exactly when its rule is, even where it is called
-// from one place only. In each case the rule r is called from two places, so it is memoized, and
-// its twin only from `-r`. The first case is the one where the iterations of `[a-c]*` at 0 are
-// direct in an evaluation of the twin and in a later one of the rule, which are both the first
-// evaluations of their keys: the proof charges the later to the earlier through their class.
-// The test records, for each call of r at 0 from main, whether the memo answered it.
+// from one place only. In each case the rule r is called from two places or more, so it is
+// memoized. The first case is the one where the iterations of `[a-c]*` at 0 are direct in an
+// evaluation of the twin and in a later one of the rule, which are both the first evaluations of
+// their keys: the proof charges the later to the earlier through their class. In the last case the
+// twin of r is called from one place only, `-r` in w, whose value is never discarded, so that w has
+// no twin and the place is the only one of the twin of r in the compiled program too; w at 0 and
+// at 1 call it at 1, and the memo answers the third call. The test records, for each call
+// of r at the position from the caller, whether the memo answered it, in a parse and in a
+// recognition.
 func TestTwinMemo(t *testing.T) {
 	cases := []struct {
-		src, input, want string
+		src, input, caller string
+		pos                int
+		// want is the sequence in a parse, recognize the one in a recognition, where a rule whose
+		// value no predicate reads builds no value and has no twin, so the calls of r and -r
+		// evaluate one rule with one memo entry.
+		want, recognize string
 	}{
-		{"@start\nrule main = (-r \"x\" / r \"y\")* $$\nrule r = [a-c]* t?\nrule t = \"d\"\n", "abcy", "eval eval"},
+		{"@start\nrule main = (-r \"x\" / r \"y\")* $$\nrule r = [a-c]* t?\nrule t = \"d\"\n", "abcy", "main", 0, "eval eval", "eval eval"},
 		// The twin is evaluated twice, its first evaluation leaving no result, and then answered;
 		// the rule is then evaluated twice as if the twin had not been, and then answered.
-		{"@start\nrule main = -r \"1\" / -r \"2\" / -r \"3\" / r \"4\" / r \"5\" / r \"6\" / r \"y\"\nrule r = [a-c]* t?\nrule t = \"d\"\n", "abcy", "eval eval memo eval eval memo memo"},
+		{gentest.TwinOwnEntriesSrc, "abcy", "main", 0, "eval eval memo eval eval memo memo", "eval eval memo memo memo memo memo"},
+		// The twin of r is called from one place only; the first two calls evaluate it, and the
+		// second stores its result, which answers the call of w at 1.
+		{gentest.TwinOnePlaceSrc, "abcy", "w", 1, "eval eval memo", "eval eval memo"},
 	}
 	type frame struct {
-		rule     string
-		pos      int
-		fromMain bool
+		rule       string
+		pos        int
+		fromCaller bool
 	}
 	for i, c := range cases {
 		p, err := zp.CompileSource(c.src, "")
 		if err != nil {
 			t.Fatalf("case %d: %v", i, err)
 		}
-		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode} {
+		for _, run := range []struct {
+			backend   zp.Backend
+			recognize bool
+		}{{zp.Closure, false}, {zp.Bytecode, false}, {zp.Closure, true}, {zp.Bytecode, true}} {
+			backend, want := run.backend, c.want
+			opts := []zp.ParseOption{zp.WithBackend(backend)}
+			if run.recognize {
+				want = c.recognize
+				opts = append(opts, zp.RecognizeOnly())
+			}
 			var stack []frame
 			var got []string
-			_, _ = p.Parse(c.input, zp.WithBackend(backend), zp.WithTrace(func(e zp.TraceEvent) {
+			_, _ = p.Parse(c.input, append(opts, zp.WithTrace(func(e zp.TraceEvent) {
 				if e.Kind == zp.TraceEnter {
-					fromMain := len(stack) > 0 && stack[len(stack)-1].rule == "main"
-					stack = append(stack, frame{e.Rule, e.Pos, fromMain})
+					fromCaller := len(stack) > 0 && stack[len(stack)-1].rule == c.caller
+					stack = append(stack, frame{e.Rule, e.Pos, fromCaller})
 					return
 				}
 				f := stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
-				if f.rule != "r" || f.pos != 0 || !f.fromMain {
+				if f.rule != "r" || f.pos != c.pos || !f.fromCaller {
 					return
 				}
 				how := "eval"
@@ -54,9 +76,9 @@ func TestTwinMemo(t *testing.T) {
 					how = "memo"
 				}
 				got = append(got, how)
-			}))
-			if s := strings.Join(got, " "); s != c.want {
-				t.Errorf("case %d %v: calls of r at 0 from main were %q, want %q", i, backend, s, c.want)
+			}))...)
+			if s := strings.Join(got, " "); s != want {
+				t.Errorf("case %d %v recognize=%v: calls of r at %d from %s were %q, want %q", i, backend, run.recognize, c.pos, c.caller, s, want)
 			}
 		}
 	}
