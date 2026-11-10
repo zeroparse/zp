@@ -24,7 +24,7 @@ proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 the tries of an Operators Rule that Lemmas 2 and 10 leave out, and, for the
 values that actions build from reshaped values, on step 7. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
-beyond the cost: they are proved given the same counts and the bounds of
+beyond the cost: they are proved given the same counts, step 3 and the bounds of
 [Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse), in
 terms of what the Document retains, which step 6 of [Open Steps](#open-steps)
 leaves unbounded. After Lemma 12 an argument, not a proof, shows that the units
@@ -513,8 +513,8 @@ activations that a dropped step of a growth or a path that enters the growth
 again (case 5 below) repeats, from those claims, Lemmas 1 to 3 and conditions 3
 and 5; it must not use the bounds that come after it (step 4 of [Open
 Steps](#open-steps)). Third, *Activations held by heads* bounds the successful
-activations owned by memoized evaluations from Lemma 3, the replays and *Links
-to heads*, with no
+activations owned by memoized evaluations from Lemma 3, *Replayed activations*
+and *Links to heads*, with no
 count of the evaluations in a context of growths, and with the second bound
 gives $A_s$. Last, this claim bounds the evaluations of the rules that are not
 memoized and $A_f$.
@@ -538,7 +538,8 @@ a unit is committing give the following cases.
    it again at the position, so a call of it is not shared where the
    continuation reaches it after leaving a body through a call that nests at one
    end, and *Calls that call no rule* below bounds its re-evaluations at one
-   position. A rule of a cycle other than a leader is memoized at a call that is
+   position where the parser leaves or starts no growth step and no evaluation
+   in a context of growths between them. A rule of a cycle other than a leader is memoized at a call that is
    not a left call: a growth of its cycle at the position of the call that was
    in progress would be evaluating, at that position, every rule from the
    growing leader to the caller, so each of them would have a left call of the
@@ -724,7 +725,8 @@ such calls, which nests at one end and makes the rule nest.
 
 These claims bound the links of one source at one position, memoized links by
 the memo and the links of a rule that calls no rule by the cycles of nesting
-calls. The claims below sum them over the positions, by charging the
+calls, where the parser leaves or starts no growth step and no evaluation in a
+context of growths at the position between them. The claims below sum them over the positions, by charging the
 activations of each later evaluation of a memoized rule at a position to an
 earlier one.
 
@@ -865,7 +867,9 @@ proof](memoization.md#lemma-3-answering-from-a-sound-entry)), reads only
 growths that start inside $y$, after the start of $M$; or inside a call or step
 that the parse answers from what it keeps or takes in a run of steps, which
 counts as reading what it reads in $\mathcal{R}$ ((D)), so that $M$ reads it
-too. So their counterparts in $\mathcal{R}$ take the
+too. An alternative that the parse skips by the next character reads no growth
+in $\mathcal{R}$: the only calls that it makes there are of rules that are not
+leaders, on the way to a terminal that fails at once (*Counterparts*). So their counterparts in $\mathcal{R}$ take the
 same steps up to the variants of their calls. Of two corresponding calls, one is
 of a rule and the other of the same rule or of its twin, so the parse memoizes
 both or neither. In an own region every call is of a rule that the parse does
@@ -877,21 +881,24 @@ parse skips in one region and evaluates in the other fails in both at the same
 position, and its evaluation in $\mathcal{R}$ holds no activation
 (*Counterparts*). $\square$
 
-An activation held by a memoized evaluation $M$ lies in its own region, outside
-the alternatives that the parse skips in it or in the region of the head $H$ of
-its class: the alternatives around it hold an activation in $\mathcal{R}(M)$,
-and so in $\mathcal{R}(H)$, which takes the same steps. So it
+**Replayed activations.** An activation held by a memoized evaluation $M$
 corresponds to an activation of the same source at the same position, which
-succeeds when it does, in the own region of $H$, and so held by $H$. Distinct
-activations held by $M$ correspond to distinct
-ones, and a class has at most six memoized evaluations, so the successful
-activations of a source at a position held by memoized evaluations are at most
-six times those held by heads, whether a head is a memoized evaluation or in a
-context of growths. *Activations held by heads* below bounds the latter at each
-position by the links, with no count of the evaluations in a context of growths
-or of the rules that are not memoized, so this bound rests neither on Lemma 10,
-which rests on the activations, nor on the counts of Lemma 5 for the contexts of
-growths.
+succeeds when it does, held by the head $H$ of the class of $M$, and distinct
+activations held by $M$ correspond to distinct ones.
+
+*Proof.* The activation lies in the own region of $M$, outside the alternatives
+that the parse skips in it or in the own region of $H$: the alternatives around
+it hold an activation in $\mathcal{R}(M)$, and so in $\mathcal{R}(H)$, which
+takes the same steps (*Counterparts*). The replays then give the activation at
+the same place in the own region of $H$. $\square$
+
+This claim counts nothing. *Activations held by heads* below sums it over the
+at most six memoized evaluations of a class, whether the head is a memoized
+evaluation or in a context of growths, and bounds the activations held by heads
+at each position by the links, with no count of the evaluations in a context of
+growths or of the rules that are not memoized, so that bound rests neither on
+Lemma 10, which rests on the activations, nor on the counts of Lemma 5 for the
+contexts of growths.
 
 **Answered calls.** Once the memo answers a call outside contexts of growths,
 or stores the result of one, it answers every later call with the same key
@@ -1035,10 +1042,12 @@ that reads another growth of its cycle open at its start, or a link with case
 (a) or (b) of the covered keys on its path. When no link of $\sigma$ at $q$ is
 of these kinds, at most one of the $\alpha_i$ is held by a head, memoized or
 in a context of growths. This claim counts nothing: it rests on the links and
-the claims before it, and holds whoever owns the $\alpha_i$.
+on the claims before it other than *Activations that do not succeed*, and holds
+whoever owns the $\alpha_i$.
 
 **Activations held by heads.** When no link of $\sigma$ at $q$ is of the two
-kinds above, by the replays, the successful activations of
+kinds above, by the replayed activations and since a class has at most six
+memoized evaluations, the successful activations of
 $\sigma$ at $q$ held by memoized evaluations are at most six times those
 held by heads, which are $\alpha_1$ and those that case 5 or a dropped step
 repeats. Every activation owned by a memoized evaluation is held by it, so
@@ -2394,7 +2403,7 @@ those values reach, an **empty** node being one that starts where it ends and
 its **size** the sum of one plus the number of children and fields of each
 empty node reachable from it through empty nodes. Let $Q$ be the greatest length
 of a chain during the parse if it exceeds 32, and $0$ otherwise. Given Lemmas 4
-and 5, the Document units number at most
+and 5 and step 3 of [Open Steps](#open-steps), the Document units number at most
 
 $$c \cdot \big( K \big( (L + 1)(Q + 1) + T + \log_2 (W + 2) \big) \hat{n} + (E + B + 1) W + G \big)$$
 
@@ -2551,7 +2560,7 @@ $K$ of the parse does not count. $G$ grows with deletions and shrinks with inser
 
 ## Corollary (Compute of a Document Parse)
 
-Under the conditions of the theorem and given Lemmas 4 to 6, a parse of a
+Under the conditions of the theorem and given Lemmas 4 to 6 and step 3, a parse of a
 Document on a backend of the engine, outside the missing-token mode, charges at
 most
 
@@ -2866,8 +2875,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    iterations that a [run-site](../runtime/parsing.md#run-sites) record
    covers, so the claim must add this case, and *Links lead to repeated
    evaluations* must show that it does not end a link's comparison; the replays must show their
-   correspondence of own regions where one region reuses a run record, and the
-   statement that the bounds hold whether or not a parse keeps the records
+   correspondence of own regions where one region reuses a run record, and
+   their argument that a growth read in the reference parse inside $M$ is read
+   by $M$ must cover the iterations that a run record answers and the calls
+   that an entry of an earlier Document parse answers, for which it cites (S)
+   of the memoization proof without showing that such an entry satisfies it;
+   and the statement that the bounds hold whether or not a parse keeps the records
    must be argued. And the statement on twins that the counterparts take over is
    tested on the Core IR of the generated parsers and on the calls and their
    outcomes in the engine, for rules on no cycle that read no variable, and
@@ -2914,7 +2927,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    owned by memoized evaluations. The claims that count nothing are *Failure
    after a source*, the restarts, *Direct activations*, *Repeats*, *Memoized
    links*, *Calls that call no rule*, *Own regions*, *Counterparts in the
-   reference parse*, *Replays*, *Answered calls*, *Covered keys*, *Links lead
+   reference parse*, *Replays*, *Replayed activations*, *Answered calls*, *Covered keys*, *Links lead
    to repeated evaluations* and *Links to heads*, with the definitions between
    them; *Activations that do not succeed* and *Activations held by heads* come
    after this step. The links and *Memoized links* bound the repetitions of an
