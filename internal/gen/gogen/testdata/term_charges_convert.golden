@@ -1,0 +1,167 @@
+# The charges of the generated term differential cases (gentest.ConvertTermCases) on every target: the units the
+# engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the
+# generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets
+# charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a
+# term's charges on one target is a stated change. The terms make no struct value.
+# A run checks every entry of its scope: an entry that is missing, stale or different fails. -update replaces the
+# entries of the scope, drops stale ones and logs a summary per case. Review the diff: it is a regression freeze.
+termchargesconvert/term 0: text(N{$x}) | a engine-closure	7 ok
+termchargesconvert/term 0: text(N{$x}) | a engine-iterative	7 ok
+termchargesconvert/term 0: text(N{$x}) | a engine-vm	7 ok
+termchargesconvert/term 0: text(N{$x}) | a go-node	7 ok
+termchargesconvert/term 0: text(N{$x}) | a go-node-recognize	5 ok
+termchargesconvert/term 0: text(N{$x}) | a go-typed	5 ok
+termchargesconvert/term 0: text(N{$x}) | a go-typed-recognize	5 ok
+termchargesconvert/term 0: text(N{$x}) | a ts-node	10 ok
+termchargesconvert/term 10: N{$x} | a engine-closure	7 ok
+termchargesconvert/term 10: N{$x} | a engine-iterative	7 ok
+termchargesconvert/term 10: N{$x} | a engine-vm	7 ok
+termchargesconvert/term 10: N{$x} | a go-node	6 ok
+termchargesconvert/term 10: N{$x} | a go-node-recognize	5 ok
+termchargesconvert/term 10: N{$x} | a go-typed	6 ok
+termchargesconvert/term 10: N{$x} | a go-typed-recognize	5 ok
+termchargesconvert/term 10: N{$x} | a ts-node	9 ok
+termchargesconvert/term 11: N{$x} | 😀 engine-closure	13 ok
+termchargesconvert/term 11: N{$x} | 😀 engine-iterative	13 ok
+termchargesconvert/term 11: N{$x} | 😀 engine-vm	13 ok
+termchargesconvert/term 11: N{$x} | 😀 go-node	12 ok
+termchargesconvert/term 11: N{$x} | 😀 go-node-recognize	11 ok
+termchargesconvert/term 11: N{$x} | 😀 go-typed	12 ok
+termchargesconvert/term 11: N{$x} | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 11: N{$x} | 😀 ts-node	12 ok
+termchargesconvert/term 12: len(P{$x}) | aa engine-closure	10 ok
+termchargesconvert/term 12: len(P{$x}) | aa engine-iterative	12 ok
+termchargesconvert/term 12: len(P{$x}) | aa engine-vm	12 ok
+termchargesconvert/term 12: len(P{$x}) | aa go-node	12 ok
+termchargesconvert/term 12: len(P{$x}) | aa go-node-recognize	8 ok
+termchargesconvert/term 12: len(P{$x}) | aa go-typed	10 ok
+termchargesconvert/term 12: len(P{$x}) | aa go-typed-recognize	8 ok
+termchargesconvert/term 12: len(P{$x}) | aa ts-node	15 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 engine-closure	22 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 engine-iterative	24 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 engine-vm	24 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 go-node	24 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 go-node-recognize	20 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 go-typed	22 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 go-typed-recognize	20 ok
+termchargesconvert/term 13: len(P{$x}) | 😀😀 ts-node	20 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa engine-closure	10 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa engine-iterative	12 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa engine-vm	12 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa go-node	13 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa go-node-recognize	8 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa go-typed	11 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa go-typed-recognize	8 ok
+termchargesconvert/term 14: text(P{$x}.Value[1]) | aa ts-node	18 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 engine-closure	22 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 engine-iterative	24 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 engine-vm	24 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 go-node	25 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 go-node-recognize	20 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 go-typed	23 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 go-typed-recognize	20 ok
+termchargesconvert/term 15: text(P{$x}.Value[1]) | 😀😀 ts-node	23 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa engine-closure	18 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa engine-iterative	17 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa engine-vm	17 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa go-node	18 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa go-node-recognize	12 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa go-typed	18 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa go-typed-recognize	12 ok
+termchargesconvert/term 16: len(Ls{$x}) | aa ts-node	22 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 engine-closure	30 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 engine-iterative	29 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 engine-vm	29 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 go-node	30 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 go-node-recognize	24 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 go-typed	30 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 go-typed-recognize	24 ok
+termchargesconvert/term 17: len(Ls{$x}) | 😀😀 ts-node	27 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa engine-closure	18 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa engine-iterative	17 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa engine-vm	17 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa go-node	19 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa go-node-recognize	12 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa go-typed	19 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa go-typed-recognize	12 ok
+termchargesconvert/term 18: len(Ls{Ls{$x}}.Value) | aa ts-node	24 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 engine-closure	30 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 engine-iterative	29 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 engine-vm	29 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 go-node	31 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 go-node-recognize	24 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 go-typed	31 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 go-typed-recognize	24 ok
+termchargesconvert/term 19: len(Ls{Ls{$x}}.Value) | 😀😀 ts-node	29 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 engine-closure	13 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 engine-iterative	13 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 engine-vm	13 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 go-node	13 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 go-node-recognize	11 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 go-typed	11 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 1: text(N{$x}) | 😀 ts-node	13 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a engine-closure	7 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a engine-iterative	7 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a engine-vm	7 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a go-node	7 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a go-node-recognize	5 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a go-typed	5 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a go-typed-recognize	5 ok
+termchargesconvert/term 2: N{$x}.End - N{$x}.Start | a ts-node	14 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 engine-closure	13 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 engine-iterative	13 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 engine-vm	13 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 go-node	13 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 go-node-recognize	11 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 go-typed	11 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 3: N{$x}.End - N{$x}.Start | 😀 ts-node	17 ok
+termchargesconvert/term 4: N{$x}.Value | a engine-closure	7 ok
+termchargesconvert/term 4: N{$x}.Value | a engine-iterative	7 ok
+termchargesconvert/term 4: N{$x}.Value | a engine-vm	7 ok
+termchargesconvert/term 4: N{$x}.Value | a go-node	7 ok
+termchargesconvert/term 4: N{$x}.Value | a go-node-recognize	5 ok
+termchargesconvert/term 4: N{$x}.Value | a go-typed	5 ok
+termchargesconvert/term 4: N{$x}.Value | a go-typed-recognize	5 ok
+termchargesconvert/term 4: N{$x}.Value | a ts-node	10 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 engine-closure	13 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 engine-iterative	13 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 engine-vm	13 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 go-node	13 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 go-node-recognize	11 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 go-typed	11 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 5: N{$x}.Value | 😀 ts-node	13 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a engine-closure	7 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a engine-iterative	7 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a engine-vm	7 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a go-node	7 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a go-node-recognize	5 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a go-typed	5 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a go-typed-recognize	5 ok
+termchargesconvert/term 6: text(M{N{$x}}) | a ts-node	11 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 engine-closure	13 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 engine-iterative	13 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 engine-vm	13 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 go-node	13 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 go-node-recognize	11 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 go-typed	11 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 7: text(M{N{$x}}) | 😀 ts-node	14 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a engine-closure	7 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a engine-iterative	7 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a engine-vm	7 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a go-node	7 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a go-node-recognize	5 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a go-typed	5 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a go-typed-recognize	5 ok
+termchargesconvert/term 8: len(N{N{$x}}) | a ts-node	11 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 engine-closure	13 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 engine-iterative	13 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 engine-vm	13 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 go-node	13 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 go-node-recognize	11 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 go-typed	11 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 go-typed-recognize	11 ok
+termchargesconvert/term 9: len(N{N{$x}}) | 😀 ts-node	14 ok

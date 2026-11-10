@@ -85,6 +85,14 @@ func TestTermChargesMember(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_member.golden", "gentest.MemberTermCases", "Some terms leave struct fields unset.", "termchargesmember", gentest.MemberTermCases())
 }
 
+// TestTermChargesConvert pins the charges of gentest.ConvertTermCases, whose terms convert string, tuple
+// and list nodes and nodes of named node types to a named node type, so that a change in how a target
+// converts a value shows as a stated change of the units it charges.
+func TestTermChargesConvert(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_convert.golden", "gentest.ConvertTermCases", "The terms make no struct value.", "termchargesconvert", gentest.ConvertTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)

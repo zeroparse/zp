@@ -520,3 +520,42 @@ func MemberTermCases() []TermCase {
 		Term: "text($x.$y) + text($x.$z)", Type: "string", Kind: TermAction, Lit: "a"})
 	return out
 }
+
+// convertPrelude declares the named node types of ConvertTermCases: two of string nodes, one of the tuple
+// node of a sequence of two literals and one of the list node of a repetition of a literal.
+const convertPrelude = "type N = node[string]\ntype M = node[string]\ntype P = node[(node[string], node[string])]\n" +
+	"type Ls = node[[]node[string]]\n@start\n"
+
+// ConvertTermCases returns fixed terms that convert a value to a named node type: a string node, a node
+// of another named node type, a node that already has the type, a tuple node and a list node, alone and
+// as the operand of a member read, len or text, and the value of a rule of the named node type. Each
+// conversion is sure to occur.
+func ConvertTermCases() []TermCase {
+	actions := []struct{ typ, body, term string }{
+		{"string", "x:%[1]q", "text(N{$x})"},
+		{"int", "x:%[1]q", "N{$x}.End - N{$x}.Start"},
+		{"string", "x:%[1]q", "N{$x}.Value"},
+		{"string", "x:%[1]q", "text(M{N{$x}})"},
+		{"int", "x:%[1]q", "len(N{N{$x}})"},
+		{"N", "x:%[1]q", "N{$x}"},
+		{"int", "x:(%[1]q %[1]q)", "len(P{$x})"},
+		{"string", "x:(%[1]q %[1]q)", "text(P{$x}.Value[1])"},
+		{"int", "x:%[1]q+", "len(Ls{$x})"},
+		{"int", "x:%[1]q+", "len(Ls{Ls{$x}}.Value)"},
+	}
+	var out []TermCase
+	for _, a := range actions {
+		for _, lit := range []string{"a", "😀"} {
+			input := lit
+			if strings.Contains(a.body, "%[1]q %[1]q") || strings.HasSuffix(a.body, "+") {
+				input = lit + lit
+			}
+			out = append(out, TermCase{
+				Case: Case{Name: "convert: " + a.term,
+					Src: fmt.Sprintf("%srule main %s = %s $$ => %s\n", convertPrelude, a.typ, fmt.Sprintf(a.body, lit), a.term), Inputs: []string{input}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+	}
+	return out
+}
