@@ -454,8 +454,9 @@ from fewer places. A recognition builds values only for the rules that a call
 inside a capture that a predicate can read reaches, directly or through other
 rules, and builds them there as a parse does, with their twins, even where no
 predicate reads the value of such a rule. A predicate can read a capture of its
-own [scope](../language/parser-expressions.md#capture) whose name it reads and
-whose value that name can hold when the predicate runs: not one in another
+own [scope](../language/parser-expressions.md#capture) whose name it reads, other
+than as the parameter of a lambda, and whose value that name can hold when the
+predicate runs: not one in another
 alternative of a choice, which backtracking undoes, nor one made after the
 predicate, nor one that a later capture of the same name replaces on every way
 to the predicate. Every other rule builds no value

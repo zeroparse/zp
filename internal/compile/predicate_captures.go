@@ -27,7 +27,8 @@ func (p *PredicateCaptures) Slotted(c *grammar.Capture) bool { return p.Names[c.
 
 // predicateCaptures returns the captures of the expression that a predicate can read, and the
 // names that predicates read. A predicate can read the captures of its scope of a name that it
-// reads which can hold the value of that name when the predicate runs. A capture made in another
+// reads which can hold the value of that name when the predicate runs; a lambda parameter of the
+// same name reads no capture. A capture made in another
 // alternative, after the predicate, in another scope, or replaced by a later capture of the same
 // name on every way to the predicate is not one of them.
 func predicateCaptures(e grammar.Expr, control *cancel.Control) *PredicateCaptures {
@@ -37,7 +38,7 @@ func predicateCaptures(e grammar.Expr, control *cancel.Control) *PredicateCaptur
 		if pr, ok := x.(*grammar.Predicate); ok {
 			WalkTerm(pr.Term, func(t grammar.Term) {
 				control.Poll()
-				if cr, ok := t.(*grammar.CaptureRef); ok {
+				if cr, ok := t.(*grammar.CaptureRef); ok && !cr.Param {
 					p.Names[cr.Name] = true
 				}
 			})
@@ -102,7 +103,7 @@ func reachingCaptures(e grammar.Expr, before captureSet, read map[*grammar.Captu
 	case *grammar.Predicate:
 		WalkTerm(e.Term, func(t grammar.Term) {
 			control.Poll()
-			if cr, ok := t.(*grammar.CaptureRef); ok {
+			if cr, ok := t.(*grammar.CaptureRef); ok && !cr.Param {
 				for _, c := range before[cr.Name] {
 					read[c] = true
 				}

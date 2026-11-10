@@ -66,6 +66,7 @@ func TestGeneratedTSTwinMemo(t *testing.T) {
 		{tsRunCase{"own entries", gentest.TwinOwnEntriesSrc, "abcy"}, 4, 2},
 		{tsRunCase{"one place", gentest.TwinOnePlaceSrc, "abcy"}, 3, 3},
 		{tsRunCase{"scoped capture", gentest.TwinScopedCaptureSrc, "aa5"}, 4, 2},
+		{tsRunCase{"lambda parameter", gentest.TwinLambdaParamSrc, "aa5"}, 4, 2},
 	}
 	var tc []tsRunCase
 	for _, c := range cases {

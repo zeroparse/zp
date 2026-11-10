@@ -49,6 +49,8 @@ func testGeneratedTwinMemo(t *testing.T) {
 		// the rule in a parse, and in a recognition, where r has no twin, two evaluations whose
 		// second stores the result that answers the calls of -r.
 		{"scoped capture", gentest.TwinScopedCaptureSrc, "aa5", 4, 2},
+		// The x that the predicate names is a lambda parameter, which reads no capture: as above.
+		{"lambda parameter", gentest.TwinLambdaParamSrc, "aa5", 4, 2},
 	}
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {

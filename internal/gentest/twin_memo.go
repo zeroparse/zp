@@ -23,3 +23,10 @@ const TwinOwnEntriesSrc = "@start\nrule main = -r \"1\" / -r \"2\" / -r \"3\" / 
 // rule with one memo entry: on "aa5" the first two calls evaluate it, the second storing its
 // result, which answers the other two. A parse evaluates r twice and its twin twice.
 const TwinScopedCaptureSrc = "@start\nrule main = x:r \"1\" / x:r \"2\" / -r \"3\" / -r \"4\" / x:c { len($x) > 0 }\nrule r = t*\nrule t = \"a\"\nrule c = \"z\" t*\n"
+
+// TwinLambdaParamSrc is a grammar in which the memoized rule r is called inside captures named x,
+// one of them before a predicate, which reads no capture named x: its x is a lambda parameter. So
+// a recognition builds no value for r and gives it no twin, as for TwinScopedCaptureSrc: on "aa5"
+// the first two calls of r at 0 evaluate it, the second storing its result, which answers the
+// others. On "aaz6" the predicate runs its lambda and the parse succeeds.
+const TwinLambdaParamSrc = "@start\nrule main = x:r \"1\" / x:r \"2\" / -r \"3\" / -r \"4\" / x:r ys:c* { len(map($ys, (x) => x)) > 0 } \"6\"\nrule r = t*\nrule t = \"a\"\nrule c = \"z\" t*\n"

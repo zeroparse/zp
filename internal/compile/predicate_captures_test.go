@@ -36,6 +36,8 @@ func TestPredicateCaptures(t *testing.T) {
 		{`x:a y:b`, nil},
 		// A predicate that reads a name no capture of which can hold a value when it runs.
 		{`"+" b:a / "-" { len(text($b)) == 0 }`, nil},
+		// A lambda parameter reads no capture of its name.
+		{`x:a ys:b* { len(map($ys, (x) => x)) > 0 }`, []int{1}},
 	}
 	for _, c := range cases {
 		g, err := parseTest("rule main = " + c.body + "\nrule a = \"a\"\nrule b = \"b\"\n")

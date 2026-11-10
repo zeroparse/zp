@@ -1,6 +1,7 @@
 package zp_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -44,6 +45,9 @@ func TestTwinMemo(t *testing.T) {
 		// that call r are in other alternatives, where no predicate can read them, so a
 		// recognition gives r no twin: two evaluations, then the memo answers the calls of -r.
 		{gentest.TwinScopedCaptureSrc, "aa5", "main", 0, "eval eval eval eval", "eval eval memo memo"},
+		// The x that the predicate names is a lambda parameter, which reads no capture, so a
+		// recognition gives r no twin although a capture named x calls r before the predicate.
+		{gentest.TwinLambdaParamSrc, "aa5", "main", 0, "eval eval eval eval memo", "eval eval memo memo memo"},
 		{"@start\nrule main = s:d { len($s) > 0 }\nrule d = x:\"c\" (y:r \"1\" / y:r \"2\" / -r \"3\" / -r \"4\" / y:r) => $x\nrule r = t*\nrule t = \"a\"\n", "caa", "d", 1, "eval eval eval eval memo", "eval eval eval eval memo"},
 	}
 	type frame struct {
@@ -87,6 +91,28 @@ func TestTwinMemo(t *testing.T) {
 			}))...)
 			if s := strings.Join(got, " "); s != want {
 				t.Errorf("case %d %v recognize=%v: calls of r at %d from %s were %q, want %q", i, backend, run.recognize, c.pos, c.caller, s, want)
+			}
+		}
+	}
+}
+
+// TestRecognizeLambdaParameter checks, on both engine backends, that a recognition in which a
+// capture named x records nothing, since the only x that a predicate names is a lambda parameter,
+// has the outcome of a parse, the lambda reading its parameter and not the capture.
+func TestRecognizeLambdaParameter(t *testing.T) {
+	p, err := zp.CompileSource(gentest.TwinLambdaParamSrc, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, input := range []string{"aaz6", "aazz6", "aa6", "aa5"} {
+		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode} {
+			_, perr := p.Parse(input, zp.WithBackend(backend))
+			_, rerr := p.Parse(input, zp.WithBackend(backend), zp.RecognizeOnly())
+			if fmt.Sprint(perr) != fmt.Sprint(rerr) {
+				t.Errorf("%q %v: parse error %v, recognition error %v", input, backend, perr, rerr)
+			}
+			if wantOK := strings.HasSuffix(input, "z6") || strings.HasSuffix(input, "zz6"); (perr == nil) != wantOK {
+				t.Errorf("%q %v: parse error %v, want success %v", input, backend, perr, wantOK)
 			}
 		}
 	}
