@@ -203,7 +203,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word, keep func(*site) bool) 
 				next := func(c *cont) { visit(c, at) }
 				switch p.end {
 				case endOps:
-					k.opsLeads(p.rule, next)
+					k.opsLeads(p.rule, p.inner, next)
 					k.endLeads(p.rule, keep, func(c *cont, _ *site) { next(c) })
 				case endRule:
 					k.endLeads(p.rule, keep, func(c *cont, _ *site) { next(c) })

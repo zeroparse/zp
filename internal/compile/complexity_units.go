@@ -27,13 +27,19 @@ type cont struct {
 	next  *cont
 	end   endKind
 	rule  string
+	// inner marks the end of a body that a path entered by looking through a call of the rule,
+	// after which the path continues after that call: it does not leave the body in which the
+	// path started.
+	inner bool
 }
 
 // then returns the continuation that evaluates items and then c.
 func (c *cont) then(items ...grammar.Expr) *cont { return &cont{items: items, next: c} }
 
 // rest returns the continuation after the first item of c.
-func (c *cont) rest() *cont { return &cont{items: c.items[1:], next: c.next, end: c.end, rule: c.rule} }
+func (c *cont) rest() *cont {
+	return &cont{items: c.items[1:], next: c.next, end: c.end, rule: c.rule, inner: c.inner}
+}
 
 // source is a scanning source.
 type source struct {
@@ -872,6 +878,16 @@ type lead struct {
 	// up: the path reaches the lead after the end of a rule body, in what follows a call whose
 	// evaluations can nest without a bound and end at one position (nestsAt, nestsOps).
 	up bool
+	// left: the path reaches the lead after the end of the body in which it started.
+	left bool
+	// via: the calls whose bodies the path looked through to reach the lead.
+	via *refList
+}
+
+// refList is a list of calls, the last one looked through first.
+type refList struct {
+	ref  *grammar.Ref
+	next *refList
 }
 
 type endKey struct {
@@ -893,14 +909,22 @@ const (
 func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, only *string, seen map[string]bool) []lead {
 	budget := leadBudget
 	var out []lead
-	// ended are the rule ends already followed: the paths after them are the same each time.
+	// ended are the rule ends already followed: the paths after them are the same each time. The
+	// end of a body that the path looked into is followed once for each list of calls through
+	// which the path entered it, which the leads after it carry.
 	type upKey struct {
 		endKey
-		up bool
+		up, left bool
+		via      *refList
 	}
 	ended := map[upKey]bool{}
-	var visit func(p *cont, up bool)
-	visit = func(p *cont, up bool) {
+	type state struct {
+		up, left bool
+		via      *refList
+	}
+	var visit func(p *cont, st state)
+	visit = func(p *cont, st state) {
+		up := st.up
 		for {
 			k.control.Poll()
 			budget--
@@ -909,7 +933,7 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 				return
 			}
 			if p == nil {
-				out = append(out, lead{done: true, up: up})
+				out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
 				return
 			}
 			if len(p.items) == 0 {
@@ -918,20 +942,26 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 					continue
 				}
 				if p.end != endNone {
-					key := upKey{endKey{p.end, p.rule}, up}
+					key := upKey{endKey: endKey{p.end, p.rule}, up: up, left: st.left}
+					if p.inner {
+						key.via = st.via
+					}
 					if ended[key] {
 						return
 					}
 					ended[key] = true
 				}
+				// Past the end of a body that the path looked into, it is still in the body in
+				// which it started.
+				left := st.left || !p.inner
 				switch p.end {
 				case endNone:
-					out = append(out, lead{done: true, up: up})
+					out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
 				case endOps:
-					k.opsLeads(p.rule, func(c *cont) { visit(c, k.nestsOps(p.rule)) })
-					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, k.nestsAt(s)) })
+					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), left, st.via}) })
+					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, state{k.nestsAt(s), left, st.via}) })
 				case endRule:
-					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, k.nestsAt(s)) })
+					k.endLeads(p.rule, keep, func(c *cont, s *site) { visit(c, state{k.nestsAt(s), left, st.via}) })
 				}
 				return
 			}
@@ -963,12 +993,12 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 				p = rest
 			case *grammar.EndInput:
 				// At the end of the input nothing more is examined.
-				out = append(out, lead{done: true, up: up})
+				out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
 				return
 			case *grammar.Literal:
 				if e.Value != "" {
 					if only == nil {
-						out = append(out, lead{lit: e, rest: rest, up: up})
+						out = append(out, lead{lit: e, rest: rest, up: up, left: st.left, via: st.via})
 					} else {
 						out = append(out, lead{})
 					}
@@ -977,12 +1007,12 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 				p = rest
 			case *grammar.Choice:
 				for _, alt := range e.Alts {
-					visit(rest.then(alt), up)
+					visit(rest.then(alt), st)
 				}
 				return
 			case *grammar.Optional:
-				visit(rest.then(e.Expr), up)
-				visit(rest, up)
+				visit(rest.then(e.Expr), st)
+				visit(rest, st)
 				return
 			case *grammar.Repeat:
 				if e.Max == 0 {
@@ -990,9 +1020,9 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 					continue
 				}
 				again := k.againOf(e)
-				visit(rest.then(e.Expr, again), up)
+				visit(rest.then(e.Expr, again), st)
 				if e.Min == 0 {
-					visit(rest, up)
+					visit(rest, st)
 				}
 				return
 			case *grammar.Ref:
@@ -1001,14 +1031,15 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 					return
 				}
 				if k.shareable(e) && (only == nil || *only == e.Name) {
-					out = append(out, lead{call: e, rest: rest, up: up})
+					out = append(out, lead{call: e, rest: rest, up: up, left: st.left, via: st.via})
 					return
 				}
 				if k.shareable(e) && seen != nil {
 					seen[e.Name] = true
 				}
+				st.via = &refList{e, st.via}
 				if pr := k.operatorsBody(e.Name); pr != nil {
-					k.operatorsLeads(pr, e.Name, func(c *cont) { visit(c, up) })
+					k.operatorsLeads(pr, e.Name, func(c *cont) { visit(c, st) })
 					return
 				}
 				p = rest.then(k.byName[e.Name].Expr)
@@ -1019,7 +1050,7 @@ func (k *classifier) leads(paths []*cont, ups []bool, keep func(*site) bool, onl
 		}
 	}
 	for i, p := range paths {
-		visit(p, ups != nil && ups[i])
+		visit(p, state{up: ups != nil && ups[i]})
 	}
 	return out
 }
@@ -1035,43 +1066,6 @@ func (k *classifier) endLeads(rule string, keep func(*site) bool, visit func(*co
 			visit(s.cont, s)
 		}
 	}
-}
-
-// nestsAt reports whether the evaluations of the callee of s can nest without a bound and end at
-// one position: s lies on a cycle of calls each of which is followed, in its caller, by what can
-// match without consuming input, so the nested evaluations of the cycle all end where the
-// innermost one ends.
-func (k *classifier) nestsAt(s *site) bool {
-	if s == nil {
-		return false
-	}
-	if k.nestSites == nil {
-		k.nestSites = map[*site]bool{}
-		next := map[string][]string{}
-		for _, t := range k.sites {
-			if k.recursive[t.callee] && k.scc[t.caller] == k.scc[t.callee] && k.endsEmpty(t.cont) {
-				next[t.caller] = append(next[t.caller], t.callee)
-				k.nestSites[t] = true
-			}
-		}
-		for t := range k.nestSites {
-			// t is on a cycle when its callee reaches its caller.
-			seen := map[string]bool{t.callee: true}
-			work := []string{t.callee}
-			for len(work) > 0 && !seen[t.caller] {
-				r := work[len(work)-1]
-				work = work[:len(work)-1]
-				for _, c := range next[r] {
-					if !seen[c] {
-						seen[c] = true
-						work = append(work, c)
-					}
-				}
-			}
-			k.nestSites[t] = seen[t.caller]
-		}
-	}
-	return k.nestSites[s]
 }
 
 // endsEmpty reports whether the path c can reach its end without consuming input.
@@ -1134,13 +1128,13 @@ func (k *classifier) nestsOps(rule string) bool {
 }
 
 // opsLeads continues a path after an operand of the Operators Rule of rule, with its operator
-// parts.
-func (k *classifier) opsLeads(rule string, visit func(*cont)) {
+// parts. inner tells that the path looked into the rule through a call (cont.inner).
+func (k *classifier) opsLeads(rule string, inner bool, visit func(*cont)) {
 	pr := k.operators(rule)
 	if pr == nil {
 		return
 	}
-	end := &cont{end: endOps, rule: rule}
+	end := &cont{end: endOps, rule: rule, inner: inner}
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
 			if op.Kind == grammar.Prefix {
@@ -1187,7 +1181,7 @@ func (k *classifier) skipItem(pr *grammar.OperatorsRule) grammar.Expr {
 // parts, then continues as after its calls: the path continues at the end of the rule body, which
 // includes the path that called it.
 func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visit func(*cont)) {
-	end := &cont{end: endOps, rule: rule}
+	end := &cont{end: endOps, rule: rule, inner: true}
 	start := func(e grammar.Expr, more ...grammar.Expr) {
 		items := []grammar.Expr{}
 		if pr.Skip != nil {
@@ -1208,12 +1202,14 @@ func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visi
 }
 
 // strip removes the calls that a unit and a continuation share from their starts, one after
-// another, and returns what remains of both. Paths that examine nothing more take no part.
+// another, and returns what remains of both. Paths that examine nothing more take no part. It
+// records the shared calls of owner, the unit, for the restart clause of nestsAt
+// (recordShared).
 //
 // A shared call can be the first thing that a call of another shareable rule evaluates, as ws is
 // in primary = ws number: when the first calls of the two differ, the classifier looks through
 // them, by evaluating their bodies, for a call that both evaluate first.
-func (k *classifier) strip(u, c []*cont, keep func(*site) bool) ([]*cont, []*cont) {
+func (k *classifier) strip(u, c []*cont, keep func(*site) bool, owner *unit) ([]*cont, []*cont) {
 	var ups []bool // for each path of c, whether it left a body through a call that nests
 	for range 16 {
 		lu, lc := k.leads(u, nil, nil, nil, nil), k.leads(c, ups, keep, nil, nil)
@@ -1226,6 +1222,7 @@ func (k *classifier) strip(u, c []*cont, keep func(*site) bool) ([]*cont, []*con
 		if k.rescans(lc) {
 			return u, c
 		}
+		k.recordShared(owner, lu, lc)
 		u, _ = rests(lu)
 		c, ups = rests(lc)
 	}
@@ -1316,10 +1313,10 @@ func rests(ls []lead) ([]*cont, []bool) {
 // committing reports whether, after the shared calls are removed, the first characters of the
 // unit paths and of each continuation are disjoint, or the words with which the unit paths begin
 // exclude the continuation. It returns the first continuation that is neither.
-func (k *classifier) committing(self []*cont, conts []contSpec, cycle int) (bool, string) {
+func (k *classifier) committing(owner *unit, self []*cont, conts []contSpec, cycle int) (bool, string) {
 	for _, cs := range conts {
 		keep := k.keepFor(cycle, cs.growth)
-		u, c := k.strip(self, cs.paths, keep)
+		u, c := k.strip(self, cs.paths, keep, owner)
 		// A unit whose sources all lie in the shared calls repeats nothing beyond their cost.
 		if !k.pathsContainSource(u) {
 			continue
@@ -1352,7 +1349,7 @@ func (k *classifier) checkUnits() {
 			continue
 		}
 		conts := k.withoutReentry(u)
-		if ok, what := k.committing(u.self, conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, conts, 0); !ok {
 			if decidedUnitsOn && k.unitDecided(u, conts) {
 				continue
 			}
@@ -1470,12 +1467,12 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 		return
 	}
 	conts = append(conts, starts...)
-	if ok, what := k.committing(self, conts, u.cycle); !ok {
+	if ok, what := k.committing(u, self, conts, u.cycle); !ok {
 		u.nc, u.witness = true, what
 		return
 	}
 	if u.afterInput {
-		if ok, what := k.committing(u.self, u.conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, u.conts, 0); !ok {
 			u.nc, u.witness = true, what
 			return
 		}
@@ -1486,11 +1483,11 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 	// not grow, as an alternative that is not growing, after the leaders that it calls have grown.
 	switch {
 	case grower != "" && len(first) > 0:
-		if ok, what := k.committing(first, u.conts, 0); !ok {
+		if ok, what := k.committing(u, first, u.conts, 0); !ok {
 			u.nc, u.witness = true, what
 		}
 	case grower == "" && (len(first) > 0 || k.startsGrowth(u.rule)):
-		if ok, what := k.committing(u.self, u.conts, 0); !ok {
+		if ok, what := k.committing(u, u.self, u.conts, 0); !ok {
 			u.nc, u.witness = true, what
 		}
 	}

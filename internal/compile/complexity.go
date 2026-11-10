@@ -280,6 +280,9 @@ type classifier struct {
 
 	sites           []*site
 	nestSites       map[*site]bool // the call sites whose evaluations can nest and end at one position (nestsAt)
+	nestDry         bool           // nestsAt is being computed: no call site nests yet
+	restarts        []restart      // the shared calls that nestsAt reads (recordShared)
+	usedRestarts    []restart      // the shared calls that the checks of the units relied on
 	retried         []retriedPart  // the operator parts after operands (addRetried)
 	units           []*unit
 	walked          map[string][]*source // the scanning sources that the walk found in each rule
@@ -472,7 +475,9 @@ func (k *classifier) classify() *Complexity {
 	k.computeRuleSources()
 	k.computeFailRules()
 	k.computeFollow()
+	k.addRetried()
 	k.checkUnits()
+	k.checkRestarts()
 	k.checkGrowth()
 	k.checkCarriedGrowth()
 	k.checkNesting()
@@ -496,7 +501,6 @@ func (k *classifier) collect() {
 			k.walkRule(r)
 		}
 	}
-	k.addRetried()
 }
 
 func (k *classifier) result() *Complexity {

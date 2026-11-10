@@ -87,7 +87,15 @@ type excl struct {
 	follow int               // the most rule and operand ends through which contPaths follows a continuation
 	cheapR map[cheapKey]int8 // 1 while computed, 2 cheap, 3 not
 	work   *int              // the steps left of exclBudget, shared by the copies of x
+	// owner, when set, is the unit whose continuations the comparison reads: the paths of a
+	// continuation mark the end of the body of its rule (exitMark), and the comparison records the
+	// calls that both evaluate alike for nestsAt (checkRestarts).
+	owner *unit
 }
+
+// exitMark marks, in a path of a continuation, the end of the body of the rule of the unit, as a
+// symbol that consumes nothing and tells nothing (symSkip). It does not count toward exclLen.
+var exitMark = &grammar.Bottom{}
 
 type cheapKey struct {
 	rule    string
@@ -348,7 +356,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 			next = append(next, p)
 			continue
 		}
-		if len(p) >= exclLen {
+		if pathLen(p) >= exclLen {
 			next = append(next, append(slices.Clip(p), sym{kind: symStop, e: stopLength}))
 			continue
 		}
@@ -357,6 +365,17 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 		}
 	}
 	return next, len(next) <= exclPaths
+}
+
+// pathLen is the number of symbols of p that count toward exclLen.
+func pathLen(p []sym) int {
+	n := len(p)
+	for _, s := range p {
+		if s.kind == symSkip && s.e == exitMark {
+			n--
+		}
+	}
+	return n
 }
 
 // contPaths returns the paths of a continuation, through the calls of a rule at its end, as far
@@ -388,6 +407,11 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 		}
 		if !ok {
 			return nil, false
+		}
+		if depth == 0 && x.owner != nil {
+			for i, p := range after {
+				after[i] = append([]sym{{symSkip, exitMark, 0}}, p...)
+			}
 		}
 		return concatPaths(paths, after)
 	}
@@ -464,7 +488,7 @@ func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
 	ok := true
 	y, nest := x, x.k.nestsOps(rule)
 	y.up = x.up || nest
-	x.k.opsLeads(rule, func(c *cont) {
+	x.k.opsLeads(rule, false, func(c *cont) {
 		if !ok {
 			return
 		}
@@ -641,6 +665,8 @@ type exclState struct {
 	// scope since the position where both start, with the same variables.
 	boundP, boundQ bool
 	upQ            bool // q passed a symUp mark
+	// viaP are the calls that p was expanded through so far.
+	viaP *refList
 }
 
 // zeroBinds reports whether the symbols of p from i up to the first one that consumes input
@@ -803,6 +829,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		// Two calls of one trivia rule at one position end alike, so they do not count toward the
 		// bound; in strict mode the second must be cheap, as the memo of a trivia rule makes it.
 		if x.triviaCall(a) && x.sameSym(a.e, b.e) && (!x.strict || x.cheap(a.e)) {
+			x.recordAlike(s, a)
 			s.i, s.j = s.i+1, s.j+1
 			continue
 		}
@@ -813,6 +840,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				}
 				return x.no("same-notcheap", a, &b)
 			}
+			x.recordAlike(s, a)
 			s.i, s.j, s.steps = s.i+1, s.j+1, s.steps+1
 			continue
 		}
@@ -886,7 +914,12 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		// Expand a call or a repetition into its paths; every path must be excluded. The side
 		// whose callee reaches the other callee is expanded first.
 		expandP := func() (bool, int, int) {
-			return x.expand(s, s.p, s.i, func(t *exclState, p []sym) { t.p = p })
+			return x.expand(s, s.p, s.i, func(t *exclState, p []sym) {
+				t.p = p
+				if r, ok := a.e.(*grammar.Ref); ok {
+					t.viaP = &refList{r, s.viaP}
+				}
+			})
 		}
 		expandQ := func() (bool, int, int) {
 			return x.expand(s, s.q, s.j, func(t *exclState, q []sym) { t.q = q })
@@ -900,6 +933,38 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			return true, item, n
 		}
 		return expandQ()
+	}
+}
+
+// recordAlike records, for checkRestarts, the call a of the unit that the continuation evaluates
+// alike at s.q[s.j], when the continuation can then reach the end of the body of the rule of the
+// unit without consuming input (restart).
+func (x excl) recordAlike(s exclState, a sym) {
+	r, ok := a.e.(*grammar.Ref)
+	if x.owner == nil || !ok || !x.k.recursive[x.owner.rule] {
+		return
+	}
+	for _, b := range s.q[s.j+1:] {
+		switch b.kind {
+		case symSkip:
+			if b.e == exitMark {
+				x.k.addRestart(restart{x.owner.rule, r, s.viaP})
+				return
+			}
+		case symUp, symBind, symEnv, symNot, symAnd:
+		case symMatch:
+			if !x.k.nullable(b.e) {
+				return
+			}
+		default:
+			// A path that the analysis does not follow further, or the end of the parse, which
+			// comes after the end of the body.
+			x.k.addRestart(restart{x.owner.rule, r, s.viaP})
+			return
+		}
+	}
+	if x.owner.kind == unitOperand || x.owner.kind == unitOperator {
+		x.k.addRestart(restart{x.owner.rule, r, s.viaP})
 	}
 }
 
@@ -1164,6 +1229,7 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 		return false
 	}
 	x := newExcl(k, true, decidedUnitsK)
+	x.owner = u
 	var ps [][]sym
 	for _, c := range u.self {
 		p, ok := x.followPaths(c)
