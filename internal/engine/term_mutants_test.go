@@ -51,11 +51,17 @@ var engineMutants = []engineMutant{
 	{"the text of a string node is the input", "term_exec.go", "termText", "if held {", "if held && false {"},
 	{"a list value converts", "term_exec.go", "termConvert", "if value.HasBase(n) {", "if true {"},
 	{"a value that does not convert is nil", "term_exec.go", "termConvert", "return nil, p.termError(15, x, any(t[0].Type), 0, 0)", "return nil, nil"},
+	{"a node field value does not cover", "term_exec.go", "termCover", "if !ok {\n\t\treturn first", "if !ok && false {\n\t\treturn first"},
+	{"the start of the range is the latest", "term_exec.go", "termCover", "cs < ns", "cs > ns"},
+	{"the end of the range is the earliest", "term_exec.go", "termCover", "ce > ne", "ce < ne"},
+	{"a later node replaces the range", "term_exec.go", "termCover", "if first || cs < ns {", "if true {"},
+	{"a struct without a node keeps no range", "term_exec.go", "termMade", "if first {", "if false {"},
+	{"a struct is not recorded", "term_exec.go", "termMade", "c.made(n)", ""},
 }
 
 // TestPrintedOperatorMutants is the proof that TestEngineValueConformance, TestEngineValueBoxedOperands,
-// TestEngineValueMemberTable and TestEngineValueBuiltinTable hold the printed code of the operators, the
-// member reads, the built-in functions and the conversions of terms in the engine: with a source overlay of each mutant, one
+// TestEngineValueMemberTable, TestEngineValueBuiltinTable and TestEngineValueStructTable hold the printed code of the operators,
+// the member reads, the built-in functions, the conversions and the ranges of structs of terms in the engine: with a source overlay of each mutant, one
 // of them fails.
 func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {
@@ -84,7 +90,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

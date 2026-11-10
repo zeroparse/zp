@@ -229,6 +229,12 @@ export function retypeNode(v: Node, typ: string): Node {
   return n;
 }
 
+// setNodeSpan is the operation node.setSpan.
+export function setNodeSpan(n: Node, start: number, end: number): void {
+  n.start = start;
+  n.end = end;
+}
+
 // Shapes of a Node: what it stands for in the value model.
 export const shapeString = 0; // a node whose value is a string (text)
 export const shapeTuple = 1; // a node whose value is a tuple (children)
@@ -4352,6 +4358,18 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termCover widens the range of the struct n to cover the field value v; it returns whether n still has
+  // no node among its field values. Its text is printed from Exec IR (internal/ir/exec/core).
+  termCover(n: Node, v: Value, first: boolean): boolean {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termMade finishes the struct n that c made: n takes the range of the rule if no field value is a node,
+  // and c records n. Its text is printed from Exec IR (internal/ir/exec/core).
+  termMade(c: Actx, n: Node, first: boolean): void {
+    throw new Error("the printed method replaces this one");
+  }
+
   // memberKind returns the kind of the member read name.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   memberKind(name: string): number {
@@ -4685,21 +4703,9 @@ export class Actx {
       this.spend();
       const v = kv[i + 1];
       setField(n, kv[i] as string, v!, this.p.control);
-      if (v instanceof Node) {
-        if (first || v.start < n.start) {
-          n.start = v.start;
-        }
-        if (first || v.end > n.end) {
-          n.end = v.end;
-        }
-        first = false;
-      }
+      first = this.p.termCover(n, v!, first);
     }
-    if (first) {
-      n.start = this.start;
-      n.end = this.end;
-    }
-    this.p.created.push(n);
+    this.p.termMade(this, n, first);
     return n;
   }
 

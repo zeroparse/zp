@@ -444,6 +444,42 @@ func (p *Parser) termConvert(t *nodeTypeKinds, x any) (any, any) {
 	return nil, p.termError(15, x, any(t[0].typ), 0, 0)
 }
 
+// termCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+// v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
+// whether it had none before, and the first node gives n its range.
+//
+// Printed from Exec IR function cover of internal/ir/exec/core.
+func (p *Parser) termCover(n *Node, v any, first bool) bool {
+	k, ok := nodeOf(v)
+	if !ok {
+		return first
+	}
+	cs, ce := int(k.RawStart), int(k.RawEnd)
+	ns, ne := int(n.RawStart), int(n.RawEnd)
+	lo := ns
+	hi := ne
+	if first || cs < ns {
+		lo = cs
+	}
+	if first || ce > ne {
+		hi = ce
+	}
+	n.setSpan(lo, hi)
+	return false
+}
+
+// termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+// rule if no field value is a node, and c records n.
+//
+// Printed from Exec IR function made of internal/ir/exec/core.
+func (p *Parser) termMade(c *ActCtx, n *Node, first bool) {
+	if first {
+		rs, re := c.start, c.end
+		n.setSpan(rs, re)
+	}
+	c.made(n)
+}
+
 // termEqual applies == to l and r: it compares two ints, two strings or two bools, and any value with nil,
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
@@ -726,4 +762,40 @@ func (p *TParser) termConvert(t uint16, x any) (any, any) {
 		}
 	}
 	return nil, p.termError(15, x, any(tnodeTypeOf(t).name), 0, 0)
+}
+
+// termCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+// v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
+// whether it had none before, and the first node gives n its range.
+//
+// Printed from Exec IR function cover of internal/ir/exec/core.
+func (p *TParser) termCover(n TVal, v any, first bool) bool {
+	k, ok := tnodeOf(v)
+	if !ok {
+		return first
+	}
+	cs, ce := k.TSpan()
+	ns, ne := n.TSpan()
+	lo := ns
+	hi := ne
+	if first || cs < ns {
+		lo = cs
+	}
+	if first || ce > ne {
+		hi = ce
+	}
+	n.TSetSpan(lo, hi)
+	return false
+}
+
+// termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+// rule if no field value is a node, and c records n.
+//
+// Printed from Exec IR function made of internal/ir/exec/core.
+func (p *TParser) termMade(c *TActCtx, n TVal, first bool) {
+	if first {
+		rs, re := c.Start, c.End
+		n.TSetSpan(rs, re)
+	}
+	c.made(n)
 }

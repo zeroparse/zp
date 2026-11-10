@@ -51,6 +51,8 @@ var tsSpecs = []struct {
 	{fn: "length", name: "termLength"},
 	{fn: "text", name: "termText"},
 	{fn: "convert", name: "termConvert"},
+	{fn: "cover", name: "termCover"},
+	{fn: "made", name: "termMade"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -239,6 +241,10 @@ var tsTarget = &exects.Target{
 			return "this.nodeValue(" + a[0] + ")"
 		case "node.isStruct":
 			return "(this.g.structFields.get(" + a[0] + ".type) !== undefined)"
+		case "node.setSpan":
+			return fmt.Sprintf("setNodeSpan(%s, %s, %s)", a[0], a[1], a[2])
+		case "act.made":
+			return "this.created.push(" + a[1] + ")"
 		case "node.typeName":
 			return a[0]
 		case "node.hasBase":
@@ -459,6 +465,15 @@ var tsTarget = &exects.Target{
 			}
 			if dst[1] != "_" {
 				lines = append(lines, fmt.Sprintf("%s = %s.terminal;", lhs(dst[1]), a[0]))
+			}
+			return strings.Join(lines, "\n"), true
+		case "node.span", "act.span":
+			var lines []string
+			if dst[0] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s.start;", lhs(dst[0]), a[0]))
+			}
+			if dst[1] != "_" {
+				lines = append(lines, fmt.Sprintf("%s = %s.end;", lhs(dst[1]), a[0]))
 			}
 			return strings.Join(lines, "\n"), true
 		case "node.field":

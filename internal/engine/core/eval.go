@@ -207,20 +207,9 @@ func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*value.Node
 			return nil, c.P.ActionError("field ", name, ": cannot store a function")
 		}
 		c.P.SetValueField(&value.D(n).Fields, name, v)
-		if child, ok := v.(*value.Node); ok && child != nil {
-			if first || value.D(child).Start < value.D(n).Start {
-				value.D(n).Start = value.D(child).Start
-			}
-			if first || value.D(child).End > value.D(n).End {
-				value.D(n).End = value.D(child).End
-			}
-			first = false
-		}
+		first = c.P.termCover(n, v, first)
 	}
-	if first {
-		value.D(n).Start, value.D(n).End = int32(c.Start), int32(c.End)
-	}
-	c.P.Created = append(c.P.Created, n)
+	c.P.termMade(c, n, first)
 	return n, nil
 }
 

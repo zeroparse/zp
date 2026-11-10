@@ -171,10 +171,16 @@ func nodeOf(x any) (*value.Node, bool) {
 	return n, ok && n != nil
 }
 
+// setSpan is the operation node.setSpan.
+func setSpan(n *value.Node, start, end int) {
+	value.D(n).Start, value.D(n).End = int32(start), int32(end)
+}
+
+// made is the operation act.made.
+func (c *EvalCtx) made(n *value.Node) { c.P.Created = append(c.P.Created, n) }
+
 // isStruct is the operation node.isStruct.
 func (p *Parser) isStruct(n *value.Node) bool {
 	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
 	return ok
 }
-
-

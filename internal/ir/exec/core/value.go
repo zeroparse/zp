@@ -237,6 +237,34 @@ the input of the range of any other node, and the empty string for nil. Any othe
 	convert.Doc = `convert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
 type or not, becomes a node of t. Any other value fails.`
 
+	cover := m.AddFunc("cover", []Param{P("n", THandle(ops.Obj)), P("v", datum), P("first", TBool)}, []Type{TBool}, nil, func(b *Builder) {
+		o := b.LetN([]string{"k", "ok"}, C("node.of", L("v")))
+		// A field value that is not a node, nil among them, adds nothing to the range.
+		b.If(Not(o[1]), func(b *Builder) { b.Return(L("first")) })
+		c := b.LetN([]string{"cs", "ce"}, C("node.span", o[0]))
+		w := b.LetN([]string{"ns", "ne"}, C("node.span", L("n")))
+		b.Let("lo", w[0])
+		b.Let("hi", w[1])
+		b.If(Bin("||", L("first"), Bin("<", c[0], w[0])), func(b *Builder) { b.Set("lo", c[0]) })
+		b.If(Bin("||", L("first"), Bin(">", c[1], w[1])), func(b *Builder) { b.Set("hi", c[1]) })
+		b.Do("node.setSpan", L("n"), L("lo"), L("hi"))
+		b.Return(BoolC(false))
+	})
+	cover.Doc = `cover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
+whether it had none before, and the first node gives n its range.`
+
+	made := m.AddFunc("made", []Param{P("c", THandle(ops.Act)), P("n", THandle(ops.Obj)), P("first", TBool)}, nil, nil, func(b *Builder) {
+		// A struct with no field value that is a node takes the range of the rule.
+		b.If(L("first"), func(b *Builder) {
+			r := b.LetN([]string{"rs", "re"}, C("act.span", L("c")))
+			b.Do("node.setSpan", L("n"), r[0], r[1])
+		})
+		b.Do("act.made", L("c"), L("n"))
+	})
+	made.Doc = `made finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+rule if no field value is a node, and c records n.`
+
 	logic.Doc = `logic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 true and of || only if it is false, and checks each operand it evaluates.`

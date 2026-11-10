@@ -1840,26 +1840,11 @@ func ttypeName(v any) string {
 //
 // MadeOf is for generated parsers; not a stable API.
 func (c *TActCtx) MadeOf(n TVal, fields ...any) any {
-	first, start, end := true, 0, 0
+	first := true
 	for _, f := range fields {
-		child := AsTval(f)
-		if child == nil {
-			continue
-		}
-		s, e := child.TSpan()
-		if first || s < start {
-			start = s
-		}
-		if first || e > end {
-			end = e
-		}
-		first = false
+		first = c.P.termCover(n, f, first)
 	}
-	if first {
-		start, end = c.Start, c.End
-	}
-	n.TSetSpan(start, end)
-	c.P.Created = append(c.P.Created, n)
+	c.P.termMade(c, n, first)
 	return n
 }
 

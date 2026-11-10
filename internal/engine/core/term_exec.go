@@ -400,3 +400,39 @@ func (p *Parser) termConvert(t *value.NodeTypeKinds, x any) (any, error) {
 	}
 	return nil, p.termError(15, x, any(t[0].Type), 0, 0)
 }
+
+// termCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+// v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
+// whether it had none before, and the first node gives n its range.
+//
+// Printed from Exec IR function cover of internal/ir/exec/core.
+func (p *Parser) termCover(n *value.Node, v any, first bool) bool {
+	k, ok := nodeOf(v)
+	if !ok {
+		return first
+	}
+	cs, ce := int(value.D(k).Start), int(value.D(k).End)
+	ns, ne := int(value.D(n).Start), int(value.D(n).End)
+	lo := ns
+	hi := ne
+	if first || cs < ns {
+		lo = cs
+	}
+	if first || ce > ne {
+		hi = ce
+	}
+	setSpan(n, lo, hi)
+	return false
+}
+
+// termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+// rule if no field value is a node, and c records n.
+//
+// Printed from Exec IR function made of internal/ir/exec/core.
+func (p *Parser) termMade(c *EvalCtx, n *value.Node, first bool) {
+	if first {
+		rs, re := c.Start, c.End
+		setSpan(n, rs, re)
+	}
+	c.made(n)
+}

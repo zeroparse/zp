@@ -422,6 +422,17 @@ a conversion converts: not an error, a box, a list value, a tuple value or a str
 		Contract: `Returns n as a node of the named node type t: n itself if it has the type, and otherwise a new node with
 the range, the value and the captures of n, the type t and no rule name, which keeps what n holds now.`,
 		Requires: `node.hasBase(n).`})
+	pure(&exec.Op{Name: "node.span", Params: []exec.Param{n}, Results: []exec.Type{exec.TInt, exec.TInt},
+		Contract: `Returns the start and the end of the range of n, a node, a struct, a list value or a tuple value, as
+ints.`})
+	m.AddOp(&exec.Op{Name: "node.setSpan", Component: Host, Params: []exec.Param{n, exec.P("start", exec.TInt), exec.P("end", exec.TInt)},
+		Writes: []string{Host}, NoReturn: true,
+		Contract: `Sets the range of n to start and end. It is for a value that a term is making, which no one has read.`})
+	pure(&exec.Op{Name: "act.span", Params: []exec.Param{exec.P("c", act)}, Results: []exec.Type{exec.TInt, exec.TInt},
+		Contract: `Returns the start and the end of the range of the rule that c evaluates the term of, as ints.`})
+	m.AddOp(&exec.Op{Name: "act.made", Component: Host, Params: []exec.Param{exec.P("c", act), n}, Writes: []string{Host}, NoReturn: true,
+		Contract: `Records n as a value that c made, which the parser drops with the values of a term that it abandons.`,
+		Requires: `n is a struct that c made and has not recorded.`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

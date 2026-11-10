@@ -73,6 +73,15 @@ func nodeOf(x any) (*Node, bool) {
 	return n, ok && n != nil
 }
 
+// setSpan is the operation node.setSpan.
+func (n *Node) setSpan(start, end int) { n.RawStart, n.RawEnd = int32(start), int32(end) }
+
+// made is the operation act.made.
+func (c *ActCtx) made(n *Node) { c.P.created = append(c.P.created, n) }
+
+// made is the operation act.made in the typed runtime.
+func (c *TActCtx) made(n TVal) { c.P.Created = append(c.P.Created, n) }
+
 // tnodeOf is the operation node.of in the typed runtime.
 func tnodeOf(x any) (TVal, bool) {
 	n := AsTval(x)
@@ -122,8 +131,6 @@ func (p *Parser) strEq(l, r any) bool {
 	return p.TextEqual(ls, rs)
 }
 
-
-
 // tnodeHasText is the operation node.hasText in the typed runtime.
 func tnodeHasText(n TVal) bool {
 	_, ok := n.TText()
@@ -135,4 +142,3 @@ func tnodeWidth(n TVal) any {
 	start, end := n.TSpan()
 	return end - start
 }
-

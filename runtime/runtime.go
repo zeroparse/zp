@@ -3441,20 +3441,9 @@ func (c *ActCtx) NewStruct(typ string, kv ...any) any {
 		c.P.Spend()
 		v := kv[i+1]
 		c.P.setValueField(&n.RawFields, kv[i].(string), v)
-		if child, ok := v.(*Node); ok && child != nil {
-			if first || child.RawStart < n.RawStart {
-				n.RawStart = child.RawStart
-			}
-			if first || child.RawEnd > n.RawEnd {
-				n.RawEnd = child.RawEnd
-			}
-			first = false
-		}
+		first = c.P.termCover(n, v, first)
 	}
-	if first {
-		n.RawStart, n.RawEnd = int32(c.start), int32(c.end)
-	}
-	c.P.created = append(c.P.created, n)
+	c.P.termMade(c, n, first)
 	return n
 }
 

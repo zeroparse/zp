@@ -774,6 +774,37 @@ op node.convert(n Obj, t NodeType) Datum
   requires:
     // node.hasBase(n).
 
+op node.span(n Obj) (int, int)
+  component value
+  cost <= 0
+  contract:
+    // Returns the start and the end of the range of n, a node, a struct, a list value or a tuple value, as
+    // ints.
+
+op node.setSpan(n Obj, start int, end int)
+  component host
+  writes host
+  noreturn
+  cost <= 0
+  contract:
+    // Sets the range of n to start and end. It is for a value that a term is making, which no one has read.
+
+op act.span(c Act) (int, int)
+  component value
+  cost <= 0
+  contract:
+    // Returns the start and the end of the range of the rule that c evaluates the term of, as ints.
+
+op act.made(c Act, n Obj)
+  component host
+  writes host
+  noreturn
+  cost <= 0
+  contract:
+    // Records n as a value that c made, which the parser drops with the values of a term that it abandons.
+  requires:
+    // n is a struct that c made and has not recorded.
+
 op seq.len(items Seq) int
   component value
   cost <= 0

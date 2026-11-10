@@ -18,7 +18,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
 	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"length", "termLength"}, {"text", "termText"},
-	{"convert", "termConvert"},
+	{"convert", "termConvert"}, {"cover", "termCover"}, {"made", "termMade"},
 }
 
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.
@@ -327,6 +327,23 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		return fmt.Sprintf("p.valueField(%s.RawFields, %s)", a[0], a[1]), true
 	case "node.zero":
 		return fmt.Sprintf("p.memberZero(%s, %s, %s)", a[0], a[1], a[2]), true
+	case "node.span":
+		if typed {
+			return a[0] + ".TSpan()", true
+		}
+		return fmt.Sprintf("int(%[1]s.RawStart), int(%[1]s.RawEnd)", a[0]), true
+	case "node.setSpan":
+		if typed {
+			return fmt.Sprintf("%s.TSetSpan(%s, %s)", a[0], a[1], a[2]), true
+		}
+		return fmt.Sprintf("%s.setSpan(%s, %s)", a[0], a[1], a[2]), true
+	case "act.span":
+		if typed {
+			return fmt.Sprintf("%[1]s.Start, %[1]s.End", a[0]), true
+		}
+		return fmt.Sprintf("%[1]s.start, %[1]s.end", a[0]), true
+	case "act.made":
+		return fmt.Sprintf("%s.made(%s)", a[0], a[1]), true
 	case "node.typeName":
 		if typed {
 			return "tnodeTypeOf(" + a[0] + ").name", true
@@ -454,6 +471,14 @@ func engineValueOp(callee string, a []string) (string, bool) {
 		return "any(len(value.D(" + a[0] + ").Children))", true
 	case "str.len":
 		return "any(p.ValueTextLen(" + a[0] + ".(string)))", true
+	case "node.span":
+		return fmt.Sprintf("int(value.D(%[1]s).Start), int(value.D(%[1]s).End)", a[0]), true
+	case "node.setSpan":
+		return fmt.Sprintf("setSpan(%s, %s, %s)", a[0], a[1], a[2]), true
+	case "act.span":
+		return fmt.Sprintf("%[1]s.Start, %[1]s.End", a[0]), true
+	case "act.made":
+		return fmt.Sprintf("%s.made(%s)", a[0], a[1]), true
 	case "node.typeName":
 		return a[0] + "[0].Type", true
 	case "node.hasBase":
