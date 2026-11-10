@@ -197,6 +197,17 @@ the call after leaving a body through a call that nests at one end. The continua
 an end, and after it a call that the memo does not answer and that scans is not cheap: each nested evaluation that
 ends at the position evaluates it again, which no constant bounds, as in `e = "(" e? (ws ")")?`.
 
+Whether a call nests at one end depends on this comparison too. A unit that fails after its call of a rule ended at a
+position, and a continuation that passes the same call alike and then ends the rule body without consuming input,
+restart the nesting there: in `e = "(" (e R "x" / e) / "."` every level ends where the innermost one ends, through the
+memo answer of the call that the failed alternative made. The calls that the comparison passes alike therefore take part
+in the definition of nesting at one end in
+[Conditions for Linear Cost](../../../spec/runtime/parsing.md#conditions-for-linear-cost). The classifier reads them from every unit of a
+recursion before the checks, and records the calls that each comparison passed alike; one that would make a call nest
+where the classifier assumed it did not becomes a reason, so no decision rests on a nesting that was missed. A left call
+of a left-recursion cycle nests at one end when a call of a rule of the cycle does, since each nested evaluation of a
+leader that ends at the position grows there and evaluates what follows its left calls again.
+
 Let a unit U and a continuation C start at position s, let U fail, and let the strict comparison of every path of U
 with every path of C pass the symbols σ_1, ..., σ_m alike, with m < k, and part at a decisive symbol d. Then:
 

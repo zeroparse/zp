@@ -1149,10 +1149,16 @@ The conditions below use these terms.
     of rules of the cycle and then by what follows the call. Such a left call
     of a leader starts the growth when that call evaluates it, and reads the
     seed only in the steps of a growth, so at the end of the body of a leader
-    what follows the growth continues after it too. A later growing unit
-    that succeeds ends the step with a longer result, which the next step
-    reads as the seed, so at the end of a rule body it continues through every
-    call of the rule, the reads of the seed included: as in
+    what follows the growth continues after it too. What follows a call
+    that starts the growth continues at the end of a rule body through every
+    call of the rule, the reads of the seed included: when that call lies in
+    the body of a leader of the cycle, as `"(" e` in
+    `e = e R "x" / "(" e / "."`, the end of that body is followed by the
+    next step of the leader's own growth, which reads its seed there. A
+    later growing unit that succeeds ends the step with a longer result,
+    which the next step reads as the seed, so at the end of a rule body it
+    continues through every call of the rule, the reads of the seed
+    included: as in
     `A = A S [^!]* "!" / A S / "n"`, the next step can scan again, from the
     end of the new seed, the input that the unit examined. What the step
     evaluates after the unit fails runs at the position where the rule grows,
@@ -1228,12 +1234,29 @@ The conditions below use these terms.
   A call of a rule that is not memoized at the call and contains a scanning
   source is not shared either when the continuation reaches it after the end
   of a rule body, in what follows a call that **nests at one end**, or after
-  an operand of an Operators Rule that nests. A call nests at one end when it
-  is a call of a rule from a rule of its recursion that lies on a cycle of
-  such calls, each followed in its caller by what can match without consuming
-  input, so that the nested evaluations of the cycle can all end where the
-  innermost one ends. Each of them that ends at the position then evaluates
-  the call there again: in `e = "(" e? (ws ")")?` with `ws = [ ]*`, the
+  an operand of an Operators Rule that nests. A call nests at one end when
+  the evaluations of its caller can nest through it without a bound, each in
+  the call of the one around it, with all of those calls ending where the
+  innermost one ends. A call `t` of a rule `Y` from a rule `Z` of its
+  recursion does so when `Y` is in the smallest set of rules of the
+  recursion that contains `Z` when what follows `t` can match without
+  consuming input, each rule that calls a rule of the set at a call that
+  what can match without consuming input follows, and each rule with a unit
+  and a continuation that share calls, as below or as the comparison of a
+  decided unit passes them alike, one of which, in the unit, is `t` itself
+  or a call in the body that `t` evaluates, which the unit reaches by
+  looking through `t`, after which the continuation can reach the end of the rule body without
+  consuming input. The last case is a **restart**: in
+  `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, the alternative `e R "x"`
+  fails after its call of `e` ended at a position, and the alternative `e`
+  ends `e` at the same position through the memo answer of the same call,
+  so every level of the nesting ends there and scans the spaces in `R`
+  again. A left call of a rule of a left-recursion cycle nests at one end
+  too when a call of a rule of that cycle does: each evaluation of a leader
+  of the cycle that ends at a position grows there, and the next step of its
+  growth evaluates what follows the left calls there again, after its seed,
+  as `R` in `e = e R "x" / "(" e / "."`. Each of the nested evaluations that
+  ends at the position then evaluates the call there again: in `e = "(" e? (ws ")")?` with `ws = [ ]*`, the
   option at each level fails after `ws` and the option of the level around it
   evaluates `ws` again over the same spaces, so the continuations together pay
   for the call once for each level. The same holds when the continuation
