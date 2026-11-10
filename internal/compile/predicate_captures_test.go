@@ -51,11 +51,15 @@ func TestPredicateCaptures(t *testing.T) {
 				all = append(all, cp)
 			}
 		}, nil)
-		read := predicateCaptures(body, nil).Read
+		pc := predicateCaptures(body, nil)
+		read := pc.Read
 		var got []int
 		for i, cp := range all {
 			if read[cp] {
 				got = append(got, i)
+			}
+			if pc.Records(cp) != read[cp] {
+				t.Errorf("%s: capture %d records %v, read %v", c.body, i, pc.Records(cp), read[cp])
 			}
 		}
 		if len(read) != len(got) {
@@ -64,5 +68,27 @@ func TestPredicateCaptures(t *testing.T) {
 		if !slices.Equal(got, c.want) {
 			t.Errorf("%s: captures read %v, want %v", c.body, got, c.want)
 		}
+	}
+}
+
+// TestValueNeededRulesScoped checks that the rules which build values in a program that builds no
+// tree are those that a call inside a capture that a predicate can read reaches, by the scoped
+// analysis and not by name: b is called inside a capture named x made after the predicate that
+// reads $x, and c inside a capture named y where the predicate names only a lambda parameter y.
+func TestValueNeededRulesScoped(t *testing.T) {
+	g, err := parseTest("rule main = x:a { len($x) > 0 } x:b / y:c ys:d* { len(map($ys, (y) => y)) > 0 }\nrule a = \"a\" e\nrule b = \"b\"\nrule c = \"c\"\nrule d = \"d\"\nrule e = \"e\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	needed := valueNeededRules(g.Rules(), nil, false)
+	var got []string
+	for name, ok := range needed {
+		if ok {
+			got = append(got, name)
+		}
+	}
+	slices.Sort(got)
+	if want := []string{"a", "d", "e"}; !slices.Equal(got, want) {
+		t.Errorf("value-needed rules %v, want %v", got, want)
 	}
 }
