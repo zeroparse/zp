@@ -224,7 +224,8 @@ The operations of the component `rules`.
 
 ## Host
 
-The operations of the component `host`.
+The operations of the component `host`. The operations that write the range of a node and the values that an action made are specified with the
+values in [Operations That Write Host State](values.md#operations-that-write-host-state).
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
