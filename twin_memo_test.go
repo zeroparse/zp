@@ -25,9 +25,9 @@ func TestTwinMemo(t *testing.T) {
 	cases := []struct {
 		src, input, caller string
 		pos                int
-		// want is the sequence in a parse, recognize the one in a recognition, where a rule whose
-		// value no predicate reads builds no value and has no twin, so the calls of r and -r
-		// evaluate one rule with one memo entry.
+		// want is the sequence in a parse, recognize the one in a recognition, where a rule that
+		// no call inside a capture that a predicate reads reaches builds no value and has no twin,
+		// so the calls of r and -r evaluate one rule with one memo entry.
 		want, recognize string
 	}{
 		{"@start\nrule main = (-r \"x\" / r \"y\")* $$\nrule r = [a-c]* t?\nrule t = \"d\"\n", "abcy", "main", 0, "eval eval", "eval eval"},
@@ -37,6 +37,10 @@ func TestTwinMemo(t *testing.T) {
 		// The twin of r is called from one place only; the first two calls evaluate it, and the
 		// second stores its result, which answers the call of w at 1.
 		{gentest.TwinOnePlaceSrc, "abcy", "w", 1, "eval eval memo", "eval eval memo"},
+		// r is reached through d, which a capture that a predicate reads calls, so a recognition
+		// builds its value and keeps its twin although no predicate reads the value of r: d calls
+		// the rule twice and the twin twice at 1, each evaluated twice and then answered.
+		{"@start\nrule main = s:d { len($s) > 0 }\nrule d = x:\"c\" (y:r \"1\" / y:r \"2\" / -r \"3\" / -r \"4\" / y:r) => $x\nrule r = t*\nrule t = \"a\"\n", "caa", "d", 1, "eval eval eval eval memo", "eval eval eval eval memo"},
 	}
 	type frame struct {
 		rule       string

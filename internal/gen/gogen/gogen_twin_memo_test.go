@@ -19,8 +19,9 @@ import (
 // twin have memo entries of their own, and a twin is memoized exactly when its rule is, even where
 // the twin is called from one place only. Parse and ParseAST, without and with limit controls,
 // evaluate the body of r, the twin and the rule together, as often as each grammar of gentest says.
-// Recognize builds no value that no predicate reads, so r has no twin there: the calls of r and -r
-// evaluate one rule with one memo entry.
+// Recognize builds values only for the rules that a call inside a capture that a predicate reads
+// reaches, which r is not, so r has no twin there: the calls of r and -r evaluate one rule with one
+// memo entry.
 func TestGeneratedTwinMemo(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testGeneratedTwinMemo)

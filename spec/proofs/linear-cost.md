@@ -224,8 +224,9 @@ keys and memo entries of its own; this proof counts a rule and its twin as two
 **variants** of the rule. The parse memoizes a twin exactly when it memoizes
 its rule, whatever the number of places that call the twin
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), so the
-exceptions above decide it for both variants. In a recognition, a rule whose
-value no predicate reads has no twin, and all its calls are of one variant. The
+exceptions above decide it for both variants. In a recognition, a rule that no call
+inside a capture that a predicate reads reaches has no twin, and all its calls
+are of one variant. The
 **lookahead state** of an
 evaluation is $\lambda$ of the [memoization proof](memoization.md#setting): $1$ inside a lookahead and
 $0$ elsewhere.
