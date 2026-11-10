@@ -1021,17 +1021,29 @@ lies in $w$. So $\beta'$ is that activation. $\square$
 **Heads in the reference parse.** Let $Z$ be an evaluation of a key in the
 parse, the head of its class. Then, outside cases (a) and (b) of the covered
 keys, no evaluation in $\mathcal{R}$ of a key of that class that reads no
-growth open at its start ends before $\mathcal{R}(Z)$ starts.
+growth open at its start and holds an activation at any depth ends before
+$\mathcal{R}(Z)$ starts.
 
 *Proof.* Let $z$ be one. Follow the path from the evaluation of $\mathcal{R}$
-where the parse begins down to $z$. If the parse evaluates every call and step
+where the parse begins down to $z$. Every alternative on it encloses $z$,
+which holds an activation, so the parse skips none of them (*Counterparts*).
+If the parse evaluates every call and step
 on it, its evaluation of $z$ is an evaluation of a key of the class that ends
-before $Z$ starts. Otherwise let $y$ be the first that it does not evaluate.
+before $Z$ starts. Otherwise let $y$ be the first call or step that it does not
+evaluate, which it answers.
 $\mathcal{R}(y)$ contains $z$ and not $\mathcal{R}(Z)$, whose call the parse
 evaluates, so $\mathcal{R}(y)$ ends before $\mathcal{R}(Z)$ starts, and the
-parse answers $y$ before $Z$ starts. By the covered keys with $x = y$, the
+parse answers $y$ before $Z$ starts. By the covered keys with $x = y$, where
+case (c) does not arise since $z$ holds an activation, the
 parse made an evaluation of the key of $z$ before $y$ was answered. Either way
 $Z$ is not the first of its class. $\square$
+
+The claim needs the activation. In
+`main = (a "x" / "") a? "y"; a = "q" b; b = [a-z]*` on `y`, the parse skips the
+alternative `a "x"` by the next character, so its first evaluation of `a` at
+$0$ is the one that `a?` makes, the head of its class, while $\mathcal{R}$
+evaluates `a` at $0$ in the skipped alternative first, reading no growth and
+holding no activation, and ends that evaluation before the head starts.
 
 **Reference links lead to repeated evaluations.** Let the reference link
 $(e^k, e^{k\prime})$ of $\beta'$ be of a rule that the parse memoizes, let
@@ -1043,7 +1055,8 @@ holds whether or not the parse evaluates the call of $e^{k\prime}$.
 *Proof.* $\mathcal{R}(Z)$ holds $\beta'$, which lies in $e^{k\prime}$, made by a
 call of a rule that the parse memoizes, so $\mathcal{R}(Z)$ is $e^{k\prime}$ or
 lies inside it, and the call $z^\circ$ at the same place in $e^k$, which takes
-the same steps up to variants, has a key of the class of $Z$. It reads no
+the same steps up to variants, has a key of the class of $Z$ and holds an
+activation at the place of $\beta'$. It reads no
 growth open at its start, by the argument for $z^\circ$ in the claim below, and
 it ends before $e^{k\prime}$ starts, so before $\mathcal{R}(Z)$ starts. By the
 heads in the reference parse, $Z$ is not the head of its class. $\square$
@@ -1180,9 +1193,12 @@ it ends before $e_i$ ends, so before $\alpha_i$ starts. $\square$
 
 **Nothing in a memoized link is a head.** Under the hypotheses of *Links lead
 to repeated evaluations*, outside cases (a) and (b) of the covered keys, no
-evaluation of a key that is $e'_i$ or lies inside it is the head of
-its class. *Proof.* The proof of *Links lead to repeated evaluations* uses of
-$Z$ only that it is $e'_i$ or inside it. $\square$
+evaluation of a key that is $e'_i$ or lies inside it and holds an activation
+at any depth is the head of its class. *Proof.* The proof of *Links lead to
+repeated evaluations* uses of $Z$ only that it is $e'_i$ or inside it and that
+it holds an activation, $\alpha_i$ there, whose counterpart at the same place
+in $\mathcal{R}(e_i)$ excludes case (c) of the covered keys. Another
+activation at any depth of $Z$ does the same. $\square$
 
 So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
 position for each free $i$ and each link of the two kinds that *Links to
