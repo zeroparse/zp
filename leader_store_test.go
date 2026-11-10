@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestLeaderGrowthStoresResult checks, on both engine backends, that a growth of a leader stores
@@ -26,6 +27,9 @@ func TestLeaderGrowthStoresResult(t *testing.T) {
 		{"@start\nrule main = &(e \";\") e \";\" / e \"!\" / e \"?\"\nrule e = e \"+\" \"x\" / \"x\"\n", "x+x?", "1:grow 0:grow 0:memo"},
 		// Outside, then inside, then outside twice: the entry stored outside answers every later call.
 		{"@start\nrule main = e \";\" / &(e \"?\") e \"!\" / e \"?\"\nrule e = e \"+\" \"x\" / \"x\"\n", "x+x?", "0:grow 1:memo 0:memo 0:memo"},
+		// Twice inside a lookahead, then outside: the growth inside a lookahead stores its result
+		// too, so the second call inside is answered and only the call outside grows again.
+		{"@start\nrule main = &(e \"?\") &(e \"?\") e \"?\"\nrule e = e \"+\" \"x\" / \"x\"\n", "x+x?", "1:grow 1:memo 0:grow"},
 	}
 	type frame struct {
 		rule     string
@@ -62,6 +66,31 @@ func TestLeaderGrowthStoresResult(t *testing.T) {
 			}))
 			if s := strings.Join(got, " "); s != c.want {
 				t.Errorf("case %d %v: calls of e at 0 from main were %q, want %q", i, backend, s, c.want)
+			}
+		}
+	}
+}
+
+// TestLeaderGrowthEvals checks, on both engine backends, that the leader e of
+// gentest.LeaderStoreCases evaluates its body as often as the growths that the memo allows take
+// steps; the generated parsers are held to the same counts by TestGeneratedLeaderStore.
+func TestLeaderGrowthEvals(t *testing.T) {
+	for _, c := range gentest.LeaderStoreCases() {
+		p, err := zp.CompileSource(c.Src, "")
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode} {
+			var prof zp.Profile
+			_, _ = p.Parse(c.Input, zp.WithBackend(backend), zp.WithProfile(&prof))
+			got := -1
+			for _, r := range prof.Rules {
+				if r.Rule == "e" {
+					got = r.Evals
+				}
+			}
+			if got != c.Evals {
+				t.Errorf("%s %v: e evaluated %d times, want %d", c.Name, backend, got, c.Evals)
 			}
 		}
 	}

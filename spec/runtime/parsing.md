@@ -447,7 +447,10 @@ negative lookahead or an `#atomic`, evaluates the twin. Which of the two a call
 evaluates depends only on the discards, lookaheads, `#atomic`s and captures
 around the call in its rule body, on the action of that rule, and on which of
 the two the body is evaluated for. A rule and
-its value-free twin count as two rules. The exceptions are these.
+its value-free twin count as two rules, with memo entries of their own: an entry
+of one answers no call of the other. The twin is memoized exactly when its rule
+is, as the exceptions below decide for the rule, even where the twin is called
+from fewer places. The exceptions are these.
 
 - A rule that calls no rule, itself included, or that is called from at most
   one place in the grammar, its own body included, is not memoized in an
