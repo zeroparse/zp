@@ -36,8 +36,10 @@ const termPrelude = "type R = { A int; B string; C bool }\n@start\n"
 
 // widePrelude declares the struct types of the grammars of TermCasesWide: R has a field of each kind
 // whose zero value is not a scalar, which a constructor may leave unset: a list, a tuple, an optional
-// string and a struct.
-const widePrelude = "type Inner = { N int }\n" +
+// string and a struct, which holds a struct in turn, so that a term reads fields of structs nested
+// more than one level deep.
+const widePrelude = "type Leaf = { V int; S string }\n" +
+	"type Inner = { N int; Q Leaf }\n" +
 	"type R = { A int; B string; C bool; L []int; T (int, string); O *string; In Inner }\n@start\n"
 
 // TermInputs are the inputs of a generated case: "a" is what the rule main matches; "ab" shows
@@ -85,7 +87,7 @@ func TermCasesWide(seed uint64, n int, unset bool) []TermCase {
 }
 
 // wideTypes are the Types of the values a term of TermCasesWide may have, besides termTypes.
-var wideTypes = []string{"[]bool", "[]R", "[][]int", "[](int, string)"}
+var wideTypes = []string{"[]bool", "[]R", "[][]int", "[](int, string)", "Inner", "Leaf", "*string"}
 
 // wideLits are the literals the rule main may match in a term of TermCasesWide.
 var wideLits = []string{"a", "é", "😀"}
@@ -175,6 +177,12 @@ func (g *termGen) term(typ string, depth int, s scope) string {
 		return g.listTerm(typ, depth, s)
 	case "R":
 		return g.structTerm(depth, s)
+	case "Inner":
+		return g.innerTerm(depth, s)
+	case "Leaf":
+		return g.leafTerm(depth, s)
+	case "*string":
+		return g.optionalTerm(depth, s)
 	case "(int, string)":
 		return "(" + g.term("int", depth-1, s) + ", " + g.term("string", depth-1, s) + ")"
 	}
@@ -211,7 +219,7 @@ func (g *termGen) intTerm(depth int, s scope) string {
 		case 7:
 			return "(" + g.term("R", d, s) + ").T[0]"
 		case 8:
-			return "(" + g.term("R", d, s) + ").In.N"
+			return "(" + g.term("R", d, s) + g.pick(").In.N", ").In.Q.V")
 		case 9:
 			return "len((" + g.term("R", d, s) + ").O)"
 		case 0:
@@ -333,6 +341,12 @@ func (g *termGen) stringTerm(depth int, s scope) string {
 	}
 	if g.wide && g.rng.IntN(10) == 0 {
 		return "(" + g.term("R", d, s) + ").T[1]"
+	}
+	if g.wide && g.rng.IntN(10) == 0 {
+		return "(" + g.term("R", d, s) + ").In.Q.S"
+	}
+	if g.wide && g.rng.IntN(12) == 0 {
+		return "(" + g.term("Leaf", d, s) + ").S"
 	}
 	switch g.rng.IntN(9) {
 	case 0, 1, 2:
@@ -466,10 +480,69 @@ func (g *termGen) structTerm(depth int, s scope) string {
 			fields = append(fields, "O: "+g.term("string", d, s))
 		}
 		if !g.unset || g.rng.IntN(5) != 0 {
-			fields = append(fields, "In: Inner{N: "+g.term("int", d, s)+"}")
+			fields = append(fields, "In: "+g.term("Inner", d, s))
 		}
 	}
 	return "R{" + strings.Join(fields, ", ") + "}"
+}
+
+// innerTerm returns a term of Type Inner: a constructor, which may leave fields unset, or the field In
+// of a struct R.
+func (g *termGen) innerTerm(depth int, s scope) string {
+	d := depth - 1
+	if depth <= 0 {
+		return "Inner{N: " + g.term("int", 0, s) + ", Q: " + g.term("Leaf", 0, s) + "}"
+	}
+	if g.rng.IntN(4) == 0 {
+		return "(" + g.term("R", d, s) + ").In"
+	}
+	var fields []string
+	if !g.unset || g.rng.IntN(5) != 0 {
+		fields = append(fields, "N: "+g.term("int", d, s))
+	}
+	if !g.unset || g.rng.IntN(5) != 0 {
+		fields = append(fields, "Q: "+g.term("Leaf", d, s))
+	}
+	return "Inner{" + strings.Join(fields, ", ") + "}"
+}
+
+// leafTerm returns a term of Type Leaf: a constructor, which may leave fields unset, or the field Q of
+// a struct Inner, which is nested two levels below a struct R.
+func (g *termGen) leafTerm(depth int, s scope) string {
+	d := depth - 1
+	if depth <= 0 {
+		return "Leaf{V: " + g.term("int", 0, s) + ", S: " + g.term("string", 0, s) + "}"
+	}
+	switch g.rng.IntN(4) {
+	case 0:
+		return "(" + g.term("Inner", d, s) + ").Q"
+	case 1:
+		return "(" + g.term("R", d, s) + ").In.Q"
+	}
+	var fields []string
+	if !g.unset || g.rng.IntN(5) != 0 {
+		fields = append(fields, "V: "+g.term("int", d, s))
+	}
+	if !g.unset || g.rng.IntN(5) != 0 {
+		fields = append(fields, "S: "+g.term("string", d, s))
+	}
+	return "Leaf{" + strings.Join(fields, ", ") + "}"
+}
+
+// optionalTerm returns a term of Type *string, an optional string used as a value: the field O of a
+// struct R, which a constructor may leave unset (nil), nil, or a string.
+func (g *termGen) optionalTerm(depth int, s scope) string {
+	if depth <= 0 {
+		return g.pick("nil", g.stringTerm(0, s))
+	}
+	d := depth - 1
+	switch g.rng.IntN(4) {
+	case 0:
+		return "(" + g.term("R", d, s) + ").O"
+	case 1:
+		return "nil"
+	}
+	return g.term("string", d, s)
 }
 
 // MemberTermCases returns fixed terms that read every kind of member on the struct types of
@@ -492,6 +565,16 @@ func MemberTermCases() []TermCase {
 		{"bool", "(R{}).O == nil"},
 		{"Inner", "(R{}).In"},
 		{"int", "(R{}).In.N"},
+		{"int", "(R{}).In.Q.V"},
+		{"string", "(R{}).In.Q.S"},
+		{"Leaf", "(R{}).In.Q"},
+		{"Leaf", "(Inner{}).Q"},
+		{"Leaf", "(R{In: Inner{Q: Leaf{V: 3}}}).In.Q"},
+		{"int", "(R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V"},
+		{"bool", "(R{}).L == nil"},
+		{"bool", "(R{L: list()}).L != nil"},
+		{"*string", "(R{}).O"},
+		{"*string", "(R{O: text($x)}).O"},
 		{"int", "(R{A: 7}).A"},
 		{"string", "(R{B: text($x)}).B"},
 		{"[]int", "(R{L: list(1, 2, 3)}).L"},

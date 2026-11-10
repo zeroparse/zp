@@ -149,7 +149,8 @@ func testTermGeneratedTargets(t *testing.T) {
 			cases, _ := termSeedCases(t, seed, termGeneratedSeeds, unset)
 			all = append(all, cases...)
 		}
-		cases := termCaseList(all)
+		// The fixed terms read every kind of member, whether or not the constructor set it.
+		cases := append(termCaseList(all), termCaseList(gentest.MemberTermCases())...)
 		for i := range cases {
 			cases[i].Name = fmt.Sprintf("%d %s", i, cases[i].Name)
 		}
@@ -276,7 +277,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 					w = len(c.Lit)
 				}
 				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1,
-					Zeros: referenceZeros(t, prog.Static(), "R", "Inner")}
+					Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
 				v, msg := env.Eval(term)
 				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
 				if c.Kind == gentest.TermPredicate {
