@@ -936,8 +936,9 @@ not arise when $z$ holds an activation in $\mathcal{R}$.
 evaluations. Each call $z'$ that the path below reaches in place of $z$ has the
 key of $z$ and reads no growth open at its start, so it takes the steps of $z$
 in $\mathcal{R}$ (*Counterparts*); when $z$ holds an activation, so does $z'$,
-and the alternatives on the path around $z'$ hold it, so the parse skips none
-of them (*Counterparts*). Outside case (c), if the parse evaluates every call
+and so does every alternative on each segment of the path, which encloses
+$z'$ or a call whose evaluation in $\mathcal{R}$ contains the counterpart of
+that activation, so the parse skips none of them (*Counterparts*). Outside case (c), if the parse evaluates every call
 and step on the path, $z$
 included, its evaluation of $z$ is the counterpart of $z$, made before $x$
 ends. It reads what $z$ reads, since a call that the parse answers from what it
@@ -2825,7 +2826,7 @@ are quantities of a parse that the classes carry, the three evaluations at a
 position for each variant of a rule that the memo of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) allows
 (Lemma 3), and the alternatives that a parser skips by the next character,
-which that section limits to those that hold no activation (Lemma 4,
+which that section limits so that they hold no activation (Lemma 4,
 *Counterparts in the reference parse*).
 
 ## Adding a Condition
