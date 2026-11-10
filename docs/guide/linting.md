@@ -439,6 +439,10 @@ cannot extend the characters it reads, as a quoted body after its opening quote,
 through a fixed prefix. Blanks with comments, such as `ws = [ ]* (c [ ]*)*`, read any character, yet they can be a bounded
 scan too when nothing outside them consumes a blank or the opener of a comment except a token that a call of `ws`
 just ended before, or one that a negative lookahead after it stops from reading on into a comment, such as `"/" !"*"`. A copy of a value that grows with a recursion, such as `text` of a capture of the rule's own recursive call, is another cause.
+It costs n² however many times an action copies that value, unless the copies become part of the rule's own value
+and so grow again at the next level: `("(" x:L ")" => $x + "," + $x)` in `L` doubles its value at each level, which
+is exponential, while copying it twice in a predicate, as `{len($x + $x) >= 0}` does, or into a value that the next
+level does not read, stays quadratic. Build each level's value from the one inside it at most once.
 
 ### `case-insensitive-literal`
 

@@ -907,6 +907,21 @@ The conditions below use these terms.
   lambdas or as the list of such a lambda over a repetition. Such a value is
   a tree whose nodes are distinct matches, at most a constant times n of
   them. Otherwise their size degree is not known.
+- A value **holds** another when it is that value, passes it on, or builds a
+  string or a list from it: by `+`, `text`, `list` or `concat` from their
+  operands, by `filter` from its list, by `map` from the values of its lambda,
+  and by `foldl` or `foldr` from the initial value and the values of the
+  lambda, but not from the list that the fold visits. A member of a node
+  holds what the capture that it names holds. A comparison, an arithmetic
+  operation, `len`, a predicate and a binding hold none of what they read. The **value of a rule** is the value of its action, of
+  the actions of an Operators Rule, or, in a rule without an action, of an
+  inline action that is its expression or an alternative of it, through
+  groups. A capture holds the value of what it captures, through choices,
+  options and groups; the node of a sequence holds only the input that it
+  matches, and so does its text, not the values of the calls in it. The value
+  of a call on a recursion with a rule **feeds back** into the rule when it
+  holds the value of the rule, directly or through the values of the rules
+  that it holds; the value of a call of the rule itself does.
 - A **left call** is a call of a rule of a left-recursion cycle, in the body
   of a rule of the same cycle, that can run before that body consumes input.
   The rules that grow are the **leaders**, fixed by the grammar: until every
@@ -1786,7 +1801,11 @@ reason:
   nested in one another through rule calls, so that a repetition restarted
   inside a restarted repetition gives 3. A copying operation whose size
   includes the value of a call on its own recursion, or a fold accumulator,
-  gives 2, and so does a scanning source evaluated in each step of
+  gives 2, however many times it copies the value of the call, unless it
+  doubles the value of its rule (see Exponential below): each copy costs the
+  size of a value that grows by what one level adds, so the copies add up to
+  n² over the levels, as for `{len($x + $x) >= 0}` in a predicate or
+  `text($s) + text($s)` of a node `s`. So does a scanning source evaluated in each step of
   a growth. A fold over a list that is not bounded gives the degree in the size
   of the input of the cost of all its steps, which the step matrix of
   condition 4 bounds, when that is 3 or more: a term of the cost adds the
@@ -1801,12 +1820,23 @@ reason:
   describes, so that `map(map($b, (q) => text($b)), (y) => y + "x")` gives
   2.
 - **Exponential.** A binding that makes a variable depend on its own earlier
-  value, or a copying operation that copies a value of its own recursion, or a
-  fold accumulator, more than once, as `s + s` does, or a fold whose step
+  value; a copying operation that copies a fold accumulator more than once,
+  as `s + s` does; a copying operation whose result the value of its rule
+  holds and that copies, more than once, the value of a call on a recursion
+  with the rule that feeds back into the rule; or a fold whose step
   matrix of condition 4 can double its first parameter, though no single
   copying operation copies it twice, as by duplicating its elements and
   joining them. The step matrix bounds the growth from above, so a fold that
-  it classes exponential can grow more slowly.
+  it classes exponential can grow more slowly. A copy into the value of the
+  rule makes the value of each level of the recursion at least twice the
+  value of the level inside it: with
+  `E = l:A rest:(o:"+" r:A)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)`
+  and `A = ("x" => "x") / ("(" v:E ")" => $v)`, the value of `E` holds the
+  value of the `E` nested in it twice, and each level of `x+(` doubles it. The
+  same copies made outside the value of the rule, or of a value that does not
+  feed back into the rule, as when `A` returns a literal, give 2 (see
+  Polynomial above). Like the step matrix, this cause takes the values to be
+  non-empty: copies of an empty value do not grow.
 - **Unknown.** A condition for linear cost fails that no polynomial or
   exponential cause accounts for, as when sources that are not committing are
   nested in one another without bound through a recursion of rule calls. Memoized calls in

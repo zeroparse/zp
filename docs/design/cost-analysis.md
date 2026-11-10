@@ -159,3 +159,4 @@ Operators Rule, a size argument for copying, runs in the generated runtimes) are
 - [Linear Rewrites](../cookbook/linear-rewrites.md): turning a cause into a linear grammar.
 - [Record 064](records/064-grammar-complexity.md): the cost model, the classifier and its safeguards.
 - [Record 066](records/066-limits-by-purpose.md): the limits that bound what the classifier cannot.
+- [Record 071](records/071-doubled-recursion-values.md): when copies of a value of a recursion make it exponential.

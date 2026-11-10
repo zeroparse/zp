@@ -179,7 +179,8 @@ A start rule is `Linear` when every rule reachable from it satisfies these four 
   `s + s` on a value that flows back into the same binding (E4), and `acc + acc` or `concat(acc, acc)` on a fold
   accumulator (E5). An
   accumulator extended by bounded pieces (`acc + text(x)`) is quadratic in time because strings are copied, and gives
-  `Poly(2)` for that action.
+  `Poly(2)` for that action. [Record 071](071-doubled-recursion-values.md) states when copies of a value of a
+  recursion double it: only when they become part of the value of the rule that the next level copies again.
 
 ### Classifier
 
