@@ -10,6 +10,9 @@ type LeaderStoreCase struct {
 	// Evals is the number of body evaluations of e, the steps of its growths: Steps for each
 	// growth that the calls make.
 	Evals int
+	// Calls lists, for each call of e at position 0 from main in order, "grow" when the call grows
+	// e and "memo" when the memo answers it.
+	Calls string
 }
 
 // leaderStoreSteps is the number of steps of a growth of e at 0 on "x+x?": the failed seed,
@@ -20,22 +23,22 @@ const leaderStoreSteps = 3
 func LeaderStoreCases() []LeaderStoreCase {
 	const e = "\nrule e = e \"+\" \"x\" / \"x\"\n"
 	cases := []struct {
-		name, main string
-		growths    int
+		name, main, calls string
+		growths           int
 	}{
 		// Three calls outside lookaheads: only the first grows.
-		{"outside", `e ";" / e "!" / e "?"`, 1},
+		{"outside", `e ";" / e "!" / e "?"`, "grow memo memo", 1},
 		// Inside a lookahead, then outside twice: the entry stored inside answers only calls
 		// inside, so the first call outside grows again.
-		{"inside then outside", `&(e ";") e ";" / e "!" / e "?"`, 2},
+		{"inside then outside", `&(e ";") e ";" / e "!" / e "?"`, "grow grow memo", 2},
 		// Outside, then inside, then outside: the entry stored outside answers every later call.
-		{"outside then inside", `e ";" / &(e "?") e "!" / e "?"`, 1},
+		{"outside then inside", `e ";" / &(e "?") e "!" / e "?"`, "grow memo memo memo", 1},
 		// Twice inside a lookahead, then outside: the second call inside is answered.
-		{"inside twice", `&(e "?") &(e "?") e "?"`, 2},
+		{"inside twice", `&(e "?") &(e "?") e "?"`, "grow memo grow", 2},
 	}
 	out := make([]LeaderStoreCase, len(cases))
 	for i, c := range cases {
-		out[i] = LeaderStoreCase{Name: c.name, Src: "@start\nrule main = " + c.main + e, Input: "x+x?", Evals: c.growths * leaderStoreSteps}
+		out[i] = LeaderStoreCase{Name: c.name, Src: "@start\nrule main = " + c.main + e, Input: "x+x?", Evals: c.growths * leaderStoreSteps, Calls: c.calls}
 	}
 	return out
 }
