@@ -22,6 +22,9 @@ export type Value = Node | number | bigint | string | boolean | null;
 
 /** The unit of input positions. */
 export type Unit = 0 | 1;
+
+/** @internal The type that a cast checks a value against; generated code declares one for each cast. */
+export type FieldType = { kind: string; name: string; elem: FieldType | null; alts: readonly FieldType[]; text: string };
 /** CodePoints counts Unicode code points. It is the default. */
 export const CodePoints: Unit = 0;
 /** Bytes counts UTF-8 bytes. */
@@ -4367,6 +4370,30 @@ export class Parser {
   // termMade finishes the struct n that c made: n takes the range of the rule if no field value is a node,
   // and c records n. Its text is printed from Exec IR (internal/ir/exec/core).
   termMade(c: Actx, n: Node, first: boolean): void {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // fieldConforms returns whether v is a value of the type t of a cast in the value model, charging a step for
+  // each element of a list or a tuple it examines. Its text is printed from Exec IR (internal/ir/exec/core).
+  fieldConforms(t: FieldType, v: Value): boolean {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // valueConforms returns whether the value of the node n, whose shape is shape, is of the type t. Its text is
+  // printed from Exec IR (internal/ir/exec/core).
+  valueConforms(t: FieldType, n: Node, shape: number): boolean {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // elemsConform returns whether every element of items is of the element type of the list type t. Its text is
+  // printed from Exec IR (internal/ir/exec/core).
+  elemsConform(t: FieldType, items: readonly (Node | null)[]): boolean {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // tupleConform returns whether the elements items of a tuple are of the element types of the tuple type t. Its
+  // text is printed from Exec IR (internal/ir/exec/core).
+  tupleConform(t: FieldType, items: readonly (Node | null)[]): boolean {
     throw new Error("the printed method replaces this one");
   }
 

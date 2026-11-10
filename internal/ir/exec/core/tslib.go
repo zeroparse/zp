@@ -53,6 +53,10 @@ var tsSpecs = []struct {
 	{fn: "convert", name: "termConvert"},
 	{fn: "cover", name: "termCover"},
 	{fn: "made", name: "termMade"},
+	{fn: "conforms", name: "fieldConforms"},
+	{fn: "valueConforms", name: "valueConforms"},
+	{fn: "elemsConform", name: "elemsConform"},
+	{fn: "tupleConform", name: "tupleConform"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -160,7 +164,7 @@ var tsTarget = &exects.Target{
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
 			ops.Obj: "Node", ops.Name: "string", ops.Str: "string", ops.Act: "Actx", ops.Fail: "Value", ops.Elem: "Node | null",
-			ops.NodeType: "string",
+			ops.NodeType: "string", ops.FType: "FieldType",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -245,6 +249,24 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("setNodeSpan(%s, %s, %s)", a[0], a[1], a[2])
 		case "act.made":
 			return "this.created.push(" + a[1] + ")"
+		case "ftype.kind":
+			return a[0] + ".kind.charCodeAt(0)"
+		case "ftype.elem":
+			return a[0] + ".elem!"
+		case "ftype.count":
+			return a[0] + ".alts.length"
+		case "ftype.alt":
+			return a[0] + ".alts[" + a[1] + "]!"
+		case "node.shape":
+			return "nodeShape(" + a[0] + ")"
+		case "node.isType":
+			return "(" + a[0] + ".type === " + a[1] + ".name)"
+		case "node.isMissing":
+			return "false"
+		case "node.children":
+			return a[0] + ".children"
+		case "seq.step":
+			return "this.spend()"
 		case "node.typeName":
 			return a[0]
 		case "node.hasBase":

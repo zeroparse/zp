@@ -480,6 +480,170 @@ func (p *Parser) termMade(c *ActCtx, n *Node, first bool) {
 	c.made(n)
 }
 
+// termConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
+// element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
+// (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
+// not the node of a repetition or a sequence.
+//
+// Printed from Exec IR function conforms of internal/ir/exec/core.
+func (p *Parser) termConforms(t *FieldType, v any) bool {
+	var i int
+	kt := int(t.Kind)
+	x := UnboxValue(v)
+	kx := valKind(x)
+	// The type _ takes every value.
+	if kt == 95 {
+		return true
+	}
+	// The scalar types and nil take the value of their kind.
+	if kt == 105 {
+		return kx == 1
+	}
+	if kt == 115 {
+		return kx == 2
+	}
+	if kt == 98 {
+		return kx == 3
+	}
+	if kt == 122 {
+		return kx == 0
+	}
+	// An optional type takes nil and the values of its type; a join the values of an alternative.
+	if kt == 111 {
+		return kx == 0 || p.termConforms(t.Elem, x)
+	}
+	if kt == 117 {
+		count := len(t.Alts)
+		for i = 0; i < count; i++ {
+			if p.termConforms(t.Alts[i], x) {
+				return true
+			}
+		}
+		return false
+	}
+	// Every other type takes a node, a list value, a tuple value or a struct.
+	n, ok := nodeOf(x)
+	if !ok {
+		return false
+	}
+	shape := int(n.shape())
+	// node[_] takes a node whose value is a string, a tuple or a list; node[string] one whose value is a string.
+	if kt == 110 {
+		return shape == 0 || shape == 1 || shape == 2
+	}
+	if kt == 83 {
+		return shape == 0
+	}
+	// error takes an error value, and missing the error value of a missing token.
+	if kt == 69 {
+		return shape == 3
+	}
+	if kt == 77 {
+		return shape == 3 && false
+	}
+	// A struct type or a named node type takes the values that have its name.
+	if kt == 78 {
+		return n.Type() == t.Name
+	}
+	// A list type takes a list value, and a tuple type a tuple value, whose elements are of its types.
+	if kt == 108 {
+		if !(shape == 6) {
+			return false
+		}
+		return p.termElemsConform(t.Elem, n.RawChildren)
+	}
+	if kt == 116 {
+		if !(shape == 5) {
+			return false
+		}
+		return p.termTupleConform(t, n.RawChildren)
+	}
+	// node[T] takes a node whose value is of type T.
+	if kt == 118 {
+		return p.termValueConforms(t.Elem, n, shape)
+	}
+	return false
+}
+
+// termValueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
+// node has a string, and a tuple node or a list node its elements as value.
+//
+// Printed from Exec IR function valueConforms of internal/ir/exec/core.
+func (p *Parser) termValueConforms(t *FieldType, n *Node, shape int) bool {
+	var i int
+	kt := int(t.Kind)
+	// A node of a type whose value is a string, a tuple or a list.
+	if kt == 95 {
+		return shape == 0 || shape == 1 || shape == 2
+	}
+	if kt == 115 {
+		return shape == 0
+	}
+	if kt == 108 {
+		if !(shape == 2) {
+			return false
+		}
+		return p.termElemsConform(t.Elem, n.RawChildren)
+	}
+	if kt == 116 {
+		if !(shape == 1) {
+			return false
+		}
+		return p.termTupleConform(t, n.RawChildren)
+	}
+	if kt == 111 {
+		return p.termValueConforms(t.Elem, n, shape)
+	}
+	if kt == 117 {
+		count := len(t.Alts)
+		for i = 0; i < count; i++ {
+			if p.termValueConforms(t.Alts[i], n, shape) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
+// termElemsConform returns whether every element of items, the elements of a list, is of the element type t
+// of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
+//
+// Printed from Exec IR function elemsConform of internal/ir/exec/core.
+func (p *Parser) termElemsConform(t *FieldType, items []*Node) bool {
+	var j int
+	if int(t.Kind) == 95 {
+		return true
+	}
+	count := len(items)
+	for j = 0; j < count; j++ {
+		p.Spend()
+		if !p.termConforms(t, UnboxNode(items[j])) {
+			return false
+		}
+	}
+	return true
+}
+
+// termTupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
+// as many, and each of its own type, charging a step for each element it examines.
+//
+// Printed from Exec IR function tupleConform of internal/ir/exec/core.
+func (p *Parser) termTupleConform(t *FieldType, items []*Node) bool {
+	var j int
+	count := len(items)
+	if count != len(t.Alts) {
+		return false
+	}
+	for j = 0; j < count; j++ {
+		p.Spend()
+		if !p.termConforms(t.Alts[j], UnboxNode(items[j])) {
+			return false
+		}
+	}
+	return true
+}
+
 // termEqual applies == to l and r: it compares two ints, two strings or two bools, and any value with nil,
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
@@ -798,4 +962,168 @@ func (p *TParser) termMade(c *TActCtx, n TVal, first bool) {
 		n.TSetSpan(rs, re)
 	}
 	c.made(n)
+}
+
+// termConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
+// element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
+// (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
+// not the node of a repetition or a sequence.
+//
+// Printed from Exec IR function conforms of internal/ir/exec/core.
+func (p *TParser) termConforms(t *FieldType, v any) bool {
+	var i int
+	kt := int(t.Kind)
+	x := v
+	kx := valKind(x)
+	// The type _ takes every value.
+	if kt == 95 {
+		return true
+	}
+	// The scalar types and nil take the value of their kind.
+	if kt == 105 {
+		return kx == 1
+	}
+	if kt == 115 {
+		return kx == 2
+	}
+	if kt == 98 {
+		return kx == 3
+	}
+	if kt == 122 {
+		return kx == 0
+	}
+	// An optional type takes nil and the values of its type; a join the values of an alternative.
+	if kt == 111 {
+		return kx == 0 || p.termConforms(t.Elem, x)
+	}
+	if kt == 117 {
+		count := len(t.Alts)
+		for i = 0; i < count; i++ {
+			if p.termConforms(t.Alts[i], x) {
+				return true
+			}
+		}
+		return false
+	}
+	// Every other type takes a node, a list value, a tuple value or a struct.
+	n, ok := tnodeOf(x)
+	if !ok {
+		return false
+	}
+	shape := int(tshape(n))
+	// node[_] takes a node whose value is a string, a tuple or a list; node[string] one whose value is a string.
+	if kt == 110 {
+		return shape == 0 || shape == 1 || shape == 2
+	}
+	if kt == 83 {
+		return shape == 0
+	}
+	// error takes an error value, and missing the error value of a missing token.
+	if kt == 69 {
+		return shape == 3
+	}
+	if kt == 77 {
+		return shape == 3 && false
+	}
+	// A struct type or a named node type takes the values that have its name.
+	if kt == 78 {
+		return n.TName() == t.Name
+	}
+	// A list type takes a list value, and a tuple type a tuple value, whose elements are of its types.
+	if kt == 108 {
+		if !(shape == 6) {
+			return false
+		}
+		return p.termElemsConform(t.Elem, n.TKids())
+	}
+	if kt == 116 {
+		if !(shape == 5) {
+			return false
+		}
+		return p.termTupleConform(t, n.TKids())
+	}
+	// node[T] takes a node whose value is of type T.
+	if kt == 118 {
+		return p.termValueConforms(t.Elem, n, shape)
+	}
+	return false
+}
+
+// termValueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
+// node has a string, and a tuple node or a list node its elements as value.
+//
+// Printed from Exec IR function valueConforms of internal/ir/exec/core.
+func (p *TParser) termValueConforms(t *FieldType, n TVal, shape int) bool {
+	var i int
+	kt := int(t.Kind)
+	// A node of a type whose value is a string, a tuple or a list.
+	if kt == 95 {
+		return shape == 0 || shape == 1 || shape == 2
+	}
+	if kt == 115 {
+		return shape == 0
+	}
+	if kt == 108 {
+		if !(shape == 2) {
+			return false
+		}
+		return p.termElemsConform(t.Elem, n.TKids())
+	}
+	if kt == 116 {
+		if !(shape == 1) {
+			return false
+		}
+		return p.termTupleConform(t, n.TKids())
+	}
+	if kt == 111 {
+		return p.termValueConforms(t.Elem, n, shape)
+	}
+	if kt == 117 {
+		count := len(t.Alts)
+		for i = 0; i < count; i++ {
+			if p.termValueConforms(t.Alts[i], n, shape) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
+// termElemsConform returns whether every element of items, the elements of a list, is of the element type t
+// of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
+//
+// Printed from Exec IR function elemsConform of internal/ir/exec/core.
+func (p *TParser) termElemsConform(t *FieldType, items []any) bool {
+	var j int
+	if int(t.Kind) == 95 {
+		return true
+	}
+	count := len(items)
+	for j = 0; j < count; j++ {
+		p.Spend()
+		if !p.termConforms(t, items[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+// termTupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
+// as many, and each of its own type, charging a step for each element it examines.
+//
+// Printed from Exec IR function tupleConform of internal/ir/exec/core.
+func (p *TParser) termTupleConform(t *FieldType, items []any) bool {
+	var j int
+	count := len(items)
+	if count != len(t.Alts) {
+		return false
+	}
+	for j = 0; j < count; j++ {
+		p.Spend()
+		if !p.termConforms(t.Alts[j], items[j]) {
+			return false
+		}
+	}
+	return true
 }

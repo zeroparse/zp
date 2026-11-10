@@ -172,7 +172,7 @@ func goTarget(s goSpec) *execgo.Target {
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
 		ops.Term: "func(*ActCtx) any", ops.Datum: "any", ops.Seq: "[]*Node",
 		ops.Obj: "*Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*Node",
-		ops.NodeType: "*nodeTypeKinds",
+		ops.NodeType: "*nodeTypeKinds", ops.FType: "*FieldType",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",

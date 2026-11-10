@@ -265,6 +265,122 @@ whether it had none before, and the first node gives n its range.`
 	made.Doc = `made finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 rule if no field value is a node, and c records n.`
 
+	// The cast: the check of a value against a type, over the accessors of the type (ftype.*) and the
+	// primitives of the values it checks.
+	ftype, seqT := THandle(ops.FType), THandle(ops.Seq)
+	t, v, n := L("t"), L("v"), L("n")
+	shape := L("shape")
+	shapeIs := func(c int) Expr { return Eq(shape, k(c)) }
+	// forAlts returns whether pred holds of an alternative of the join t, and false if it holds of none.
+	forAlts := func(b *Builder, pred func(alt Expr) Expr) {
+		b.Let("count", C("ftype.count", t))
+		b.Var("i", TInt)
+		b.For("alts", Assign("i", Int(0)), Lt(L("i"), L("count")), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
+			b.If(pred(C("ftype.alt", t, L("i"))), func(b *Builder) { b.Return(BoolC(true)) })
+		})
+		b.Return(BoolC(false))
+	}
+	elems := m.AddFunc("elemsConform", []Param{P("t", ftype), P("items", seqT)}, []Type{TBool}, nil, func(b *Builder) {
+		b.If(Eq(C("ftype.kind", t), k(ops.FtTop)), func(b *Builder) { b.Return(BoolC(true)) })
+		b.Let("count", C("seq.len", L("items")))
+		b.Var("j", TInt)
+		b.For("elems", Assign("j", Int(0)), Lt(L("j"), L("count")), Assign("j", Add(L("j"), Int(1))), func(b *Builder) {
+			b.Do("seq.step")
+			b.If(Not(C("conforms", t, C("seq.at", L("items"), L("j")))), func(b *Builder) { b.Return(BoolC(false)) })
+		})
+		b.Return(BoolC(true))
+	})
+	elems.Doc = `elemsConform returns whether every element of items, the elements of a list, is of the element type t
+of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.`
+	tuple := m.AddFunc("tupleConform", []Param{P("t", ftype), P("items", seqT)}, []Type{TBool}, nil, func(b *Builder) {
+		b.Let("count", C("seq.len", L("items")))
+		b.If(Bin("!=", L("count"), C("ftype.count", t)), func(b *Builder) { b.Return(BoolC(false)) })
+		b.Var("j", TInt)
+		b.For("elems", Assign("j", Int(0)), Lt(L("j"), L("count")), Assign("j", Add(L("j"), Int(1))), func(b *Builder) {
+			b.Do("seq.step")
+			b.If(Not(C("conforms", C("ftype.alt", t, L("j")), C("seq.at", L("items"), L("j")))), func(b *Builder) { b.Return(BoolC(false)) })
+		})
+		b.Return(BoolC(true))
+	})
+	tuple.Doc = `tupleConform returns whether the elements items of a tuple are of the element types of the tuple type t:
+as many, and each of its own type, charging a step for each element it examines.`
+	valueConforms := m.AddFunc("valueConforms", []Param{P("t", ftype), P("n", THandle(ops.Obj)), P("shape", TInt)}, []Type{TBool}, nil, func(b *Builder) {
+		kt := b.Let("kt", C("ftype.kind", t))
+		isKind := func(c int) Expr { return Eq(kt, k(c)) }
+		b.Comment("A node of a type whose value is a string, a tuple or a list.")
+		b.If(isKind(ops.FtTop), func(b *Builder) {
+			b.Return(Bin("||", Bin("||", shapeIs(ops.ShapeString), shapeIs(ops.ShapeTuple)), shapeIs(ops.ShapeList)))
+		})
+		b.If(isKind(ops.FtString), func(b *Builder) { b.Return(shapeIs(ops.ShapeString)) })
+		b.If(isKind(ops.FtList), func(b *Builder) {
+			b.If(Not(shapeIs(ops.ShapeList)), func(b *Builder) { b.Return(BoolC(false)) })
+			b.Return(C("elemsConform", C("ftype.elem", t), C("node.children", n)))
+		})
+		b.If(isKind(ops.FtTuple), func(b *Builder) {
+			b.If(Not(shapeIs(ops.ShapeTuple)), func(b *Builder) { b.Return(BoolC(false)) })
+			b.Return(C("tupleConform", t, C("node.children", n)))
+		})
+		// A node always has a value.
+		b.If(isKind(ops.FtOptional), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
+		b.If(isKind(ops.FtJoin), func(b *Builder) {
+			forAlts(b, func(alt Expr) Expr { return C("valueConforms", alt, n, shape) })
+		})
+		// No node has a value of another type yet.
+		b.Return(BoolC(false))
+	})
+	valueConforms.Doc = `valueConforms returns whether the value of the node n, whose shape is shape, is of the type t: a string
+node has a string, and a tuple node or a list node its elements as value.`
+	conforms := m.AddFunc("conforms", []Param{P("t", ftype), P("v", datum)}, []Type{TBool}, nil, func(b *Builder) {
+		kt := b.Let("kt", C("ftype.kind", t))
+		isKind := func(c int) Expr { return Eq(kt, k(c)) }
+		// A box stands for the value it holds, and a nil node for nil.
+		b.Let("x", C("val.unbox", v))
+		kx := b.Let("kx", kind(L("x")))
+		b.Comment("The type _ takes every value.")
+		b.If(isKind(ops.FtTop), func(b *Builder) { b.Return(BoolC(true)) })
+		b.Comment("The scalar types and nil take the value of their kind.")
+		for _, s := range []struct{ ft, kind int }{{ops.FtInt, ops.KindInt}, {ops.FtString, ops.KindString}, {ops.FtBool, ops.KindBool}, {ops.FtNil, ops.KindNil}} {
+			b.If(isKind(s.ft), func(b *Builder) { b.Return(Eq(kx, k(s.kind))) })
+		}
+		b.Comment("An optional type takes nil and the values of its type; a join the values of an alternative.")
+		b.If(isKind(ops.FtOptional), func(b *Builder) {
+			b.Return(Bin("||", Eq(kx, k(ops.KindNil)), C("conforms", C("ftype.elem", t), L("x"))))
+		})
+		b.If(isKind(ops.FtJoin), func(b *Builder) {
+			forAlts(b, func(alt Expr) Expr { return C("conforms", alt, L("x")) })
+		})
+		b.Comment("Every other type takes a node, a list value, a tuple value or a struct.")
+		o := b.LetN([]string{"n", "ok"}, C("node.of", L("x")))
+		b.If(Not(o[1]), func(b *Builder) { b.Return(BoolC(false)) })
+		b.Let("shape", C("node.shape", n))
+		b.Comment("node[_] takes a node whose value is a string, a tuple or a list; node[string] one whose value is a string.")
+		b.If(isKind(ops.FtNode), func(b *Builder) {
+			b.Return(Bin("||", Bin("||", shapeIs(ops.ShapeString), shapeIs(ops.ShapeTuple)), shapeIs(ops.ShapeList)))
+		})
+		b.If(isKind(ops.FtStringNode), func(b *Builder) { b.Return(shapeIs(ops.ShapeString)) })
+		b.Comment("error takes an error value, and missing the error value of a missing token.")
+		b.If(isKind(ops.FtError), func(b *Builder) { b.Return(shapeIs(ops.ShapeError)) })
+		b.If(isKind(ops.FtMissing), func(b *Builder) { b.Return(And(shapeIs(ops.ShapeError), C("node.isMissing", n))) })
+		b.Comment("A struct type or a named node type takes the values that have its name.")
+		b.If(isKind(ops.FtNamed), func(b *Builder) { b.Return(C("node.isType", n, t)) })
+		b.Comment("A list type takes a list value, and a tuple type a tuple value, whose elements are of its types.")
+		b.If(isKind(ops.FtList), func(b *Builder) {
+			b.If(Not(shapeIs(ops.ShapeListValue)), func(b *Builder) { b.Return(BoolC(false)) })
+			b.Return(C("elemsConform", C("ftype.elem", t), C("node.children", n)))
+		})
+		b.If(isKind(ops.FtTuple), func(b *Builder) {
+			b.If(Not(shapeIs(ops.ShapeTupleValue)), func(b *Builder) { b.Return(BoolC(false)) })
+			b.Return(C("tupleConform", t, C("node.children", n)))
+		})
+		b.Comment("node[T] takes a node whose value is of type T.")
+		b.If(isKind(ops.FtNodeOf), func(b *Builder) { b.Return(C("valueConforms", C("ftype.elem", t), n, shape)) })
+		b.Return(BoolC(false))
+	})
+	conforms.Doc = `conforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
+element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
+(node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
+not the node of a repetition or a sequence.`
+
 	logic.Doc = `logic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 true and of || only if it is false, and checks each operand it evaluates.`

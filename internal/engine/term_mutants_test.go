@@ -57,6 +57,16 @@ var engineMutants = []engineMutant{
 	{"a later node replaces the range", "term_exec.go", "termCover", "if first || cs < ns {", "if true {"},
 	{"a struct without a node keeps no range", "term_exec.go", "termMade", "if first {", "if false {"},
 	{"a struct is not recorded", "term_exec.go", "termMade", "c.made(n)", ""},
+	{"an element of a list charges no step", "term_exec.go", "termElemsConform", "p.Spend()", ""},
+	{"an element of a tuple charges no step", "term_exec.go", "termTupleConform", "p.Spend()", ""},
+	{"a tuple of another length conforms", "term_exec.go", "termTupleConform", "if count != len(t.Alts) {", "if count > len(t.Alts) {"},
+	{"a list type takes any value", "term_exec.go", "termConforms", "if !(shape == 6) {", "if false {"},
+	{"a tuple type takes a list value", "term_exec.go", "termConforms", "if !(shape == 5) {", "if !(shape == 5 || shape == 6) {"},
+	{"an optional type does not take nil", "term_exec.go", "termConforms", "return kx == 0 || p.termConforms(t.Elem, x)", "return p.termConforms(t.Elem, x)"},
+	{"a join takes the value of no alternative", "term_exec.go", "termConforms", "if p.termConforms(t.Alts[i], x) {", "if !p.termConforms(t.Alts[i], x) {"},
+	{"a named type takes any value", "term_exec.go", "termConforms", "return n.Type() == t.Name", "return true"},
+	{"a node whose value is a list has any elements", "term_exec.go", "termValueConforms", "if !(shape == 2) {", "if false {"},
+	{"a box is not opened by a cast", "term_exec.go", "termConforms", "x := unboxed(v)", "x := v"},
 }
 
 // TestPrintedOperatorMutants is the proof that TestEngineValueConformance, TestEngineValueBoxedOperands,
@@ -90,7 +100,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|CastTable)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

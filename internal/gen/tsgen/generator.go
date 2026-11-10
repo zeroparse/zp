@@ -290,13 +290,10 @@ var TsPrintRuns = sync.OnceValue(func() string {
 	return b.String()
 })
 
-// fieldCheckSource returns the run-time type checks the parser uses, as runtime/fieldcheck.go
-// declares them: tsFieldCheckSource with castValue if called.
+// fieldCheckSource returns the run-time type checks the parser uses: castValue if called, which the
+// runtime's fieldConforms serves.
 func (g *Generator) fieldCheckSource() string {
-	src := tsFieldCheckSource
-	if g.NoBudget {
-		src = strings.ReplaceAll(src, "    p.spend();\n", "")
-	}
+	src := ""
 	for _, f := range []string{"castValue"} {
 		if strings.Contains(g.Init.String(), f+"(") || strings.Contains(g.Vars.String(), f+"(") || strings.Contains(g.Methods.String(), f+"(") {
 			src += tsCheckSources[f]
@@ -312,7 +309,7 @@ var tsCheckSources = map[string]string{
 // The error names the input position where the action started and, when gline is positive, the
 // grammar position of the cast.
 function castValue(c: Actx, v: Value, t: FieldType, gline: number, gcol: number): Value {
-  if (!fieldConforms(c.p, t, v)) {
+  if (!c.p.fieldConforms(t, v)) {
     const e = c.p.makeError(c.start, []);
     return evalError(` + "`cannot cast ${typeName(v)} to ${t.text} at input position ${c.start} (line ${e.line}, column ${e.col})${gline > 0 ? `; cast at grammar position ${gline}:${gcol}` : \"\"}`" + `);
   }
@@ -320,109 +317,6 @@ function castValue(c: Actx, v: Value, t: FieldType, gline: number, gcol: number)
 }
 `,
 }
-
-// tsFieldCheckSource declares the check types and fieldConforms, which checks constructed field
-// values and rule results, as runtime/fieldcheck.go does.
-const tsFieldCheckSource = `
-// --- Run-time type checks ---
-
-type FieldType = { kind: string; name: string; elem: FieldType | null; alts: readonly FieldType[]; text: string };
-
-// fieldConforms reports whether v is a value of type t in the value model, charging a step for
-// each list or tuple element it examines. node[T] is a node whose value is of type T (node[_] any
-// node with a value), and error an error value; a list or tuple type takes a list or tuple value,
-// not the node of a repetition or sequence.
-function fieldConforms(p: Parser, t: FieldType, v: Value | undefined): boolean {
-  if (v instanceof Node && nodeShape(v) === shapeBox) {
-    return fieldConforms(p, t, v.box);
-  }
-  switch (t.kind) {
-    case "_":
-      return true;
-    case "i":
-      return typeof v === "number" || typeof v === "bigint";
-    case "s":
-      return typeof v === "string";
-    case "b":
-      return typeof v === "boolean";
-    case "z":
-      return v === null || v === undefined;
-    case "o":
-      return v === null || v === undefined || fieldConforms(p, t.elem!, v);
-    case "u":
-      for (const a of t.alts) {
-        if (fieldConforms(p, a, v)) return true;
-      }
-      return false;
-  }
-  if (!(v instanceof Node)) return false;
-  const shape = nodeShape(v);
-  const valueNode = shape === shapeString || shape === shapeTuple || shape === shapeList;
-  switch (t.kind) {
-    case "n":
-      return valueNode;
-    case "S":
-      return shape === shapeString;
-    case "E":
-      return shape === shapeError;
-    case "N":
-      return v.type === t.name;
-    case "l":
-      return shape === shapeListValue && elemsConform(p, t.elem!, v.children);
-    case "t":
-      return shape === shapeTupleValue && tupleConforms(p, t.alts, v.children);
-    case "v":
-      return nodeValueConforms(p, t.elem!, v, shape);
-  }
-  return false;
-}
-
-// nodeValueConforms reports whether the value of node n, of shape shape, is of type t: a string
-// node's value is a string, and a tuple or list node's value its elements.
-function nodeValueConforms(p: Parser, t: FieldType, n: Node, shape: number): boolean {
-  switch (t.kind) {
-    case "_":
-      return shape === shapeString || shape === shapeTuple || shape === shapeList;
-    case "s":
-      return shape === shapeString;
-    case "l":
-      return shape === shapeList && elemsConform(p, t.elem!, n.children);
-    case "t":
-      return shape === shapeTuple && tupleConforms(p, t.alts, n.children);
-    case "o":
-      return nodeValueConforms(p, t.elem!, n, shape); // a node always has a value
-    case "u":
-      for (const a of t.alts) {
-        if (nodeValueConforms(p, a, n, shape)) return true;
-      }
-      return false;
-  }
-  // No node has a value of another type yet.
-  return false;
-}
-
-// elemsConform reports whether every element of a list is of type t, charging a step for each.
-function elemsConform(p: Parser, t: FieldType, elems: readonly (Node | null)[]): boolean {
-  if (t.kind === "_") return true;
-  for (const k of elems) {
-    p.spend();
-    if (!fieldConforms(p, t, k)) return false;
-  }
-  return true;
-}
-
-// tupleConforms reports whether the elements of a tuple are of the types ts, charging a step for
-// each.
-function tupleConforms(p: Parser, ts: readonly FieldType[], elems: readonly (Node | null)[]): boolean {
-  if (elems.length !== ts.length) return false;
-  for (let i = 0; i < elems.length; i++) {
-    p.spend();
-    if (!fieldConforms(p, ts[i]!, elems[i])) return false;
-  }
-  return true;
-}
-
-`
 
 // tsFieldTypeDecl declares the check type variable v.
 func tsFieldTypeDecl(v string, t *compile.FieldType) string {

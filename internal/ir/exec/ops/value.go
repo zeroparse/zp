@@ -107,6 +107,54 @@ const (
 	KindOther
 )
 
+// Kinds of the type a cast checks a value against (FType), as ftype.kind returns them: the letter that the
+// declaration of the type in the target spells the kind with, as an int.
+const (
+	// FtInt is int, FtString string, FtBool bool and FtNil nil.
+	FtInt    = 'i'
+	FtString = 's'
+	FtBool   = 'b'
+	FtNil    = 'z'
+	// FtNode is node[_], a node whose value is a string, a tuple or a list.
+	FtNode = 'n'
+	// FtStringNode is node[string], FtError error, the error value of recovery, and FtMissing the error value
+	// of a missing token, which only the closure backend of the engine makes.
+	FtStringNode = 'S'
+	FtError      = 'E'
+	FtMissing    = 'M'
+	// FtNamed is a struct type or a named node type, which a value has by its type name.
+	FtNamed = 'N'
+	// FtList is a list type, whose element type is its Elem, and FtTuple a tuple type, whose element types
+	// are its Alts.
+	FtList  = 'l'
+	FtTuple = 't'
+	// FtNodeOf is node[T] for a T other than string and _: a node whose value is of type Elem.
+	FtNodeOf = 'v'
+	// FtOptional is an optional type of Elem, and FtJoin a join of Alts.
+	FtOptional = 'o'
+	FtJoin     = 'u'
+	// FtTop is the type _, which every value fits.
+	FtTop = '_'
+)
+
+// Shapes of a node, as node.shape returns them: what the node stands for in the value model.
+const (
+	// ShapeString is a node whose value is a string.
+	ShapeString = iota
+	// ShapeTuple and ShapeList are nodes whose value is a tuple or a list of its children.
+	ShapeTuple
+	ShapeList
+	// ShapeError is an error value of recovery.
+	ShapeError
+	// ShapeBox is a box that carries a value other than a node.
+	ShapeBox
+	// ShapeTupleValue and ShapeListValue are a tuple value and a list value, of the elements that are its children.
+	ShapeTupleValue
+	ShapeListValue
+	// ShapeStruct is a struct value.
+	ShapeStruct
+)
+
 // TermError is a failure that a term reports. Text is its message with the placeholders {a} and
 // {b}, the type names of the first and second value; {name}, the second value as a string, a member
 // name or the name of a built-in function; {op}, the name of the operator that op indexes in BinaryOps for ErrOperands, ErrCompare and ErrNotList, in UnaryOps for ErrUnary and in LogicalOps for ErrLogical; {i}, the first
@@ -245,6 +293,11 @@ const NodeType = "NodeType"
 // Str is the handle type of a string of the target that is not a value, such as the result of text,
 // which a comparison of texts reads without making a value of it.
 const Str = "Str"
+
+// FType is the handle type of the type that a cast checks a value against, which the target declares for
+// each cast: its kind (the constants FtInt and the like), and the element type, the alternatives and the
+// name that its kind uses.
+const FType = "FType"
 
 // QFieldsRead is the number of fields of a value that a read of one of them scans.
 const QFieldsRead = "fields_read"
@@ -433,6 +486,34 @@ ints.`})
 	m.AddOp(&exec.Op{Name: "act.made", Component: Host, Params: []exec.Param{exec.P("c", act), n}, Writes: []string{Host}, NoReturn: true,
 		Contract: `Records n as a value that c made, which the parser drops with the values of a term that it abandons.`,
 		Requires: `n is a struct that c made and has not recorded.`})
+	ft := exec.P("t", m.AddHandle(FType, Val, "The type that a cast checks a value against."))
+	pure(&exec.Op{Name: "ftype.kind", Params: []exec.Param{ft}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the kind of the type t: the code of the letter of FtInt, FtString and the others.`,
+		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "ftype.elem", Params: []exec.Param{ft}, Results: []exec.Type{exec.THandle(FType)},
+		Contract: `Returns the element type of the list type, the optional type or the node type t whose value has a type.`,
+		Requires: `t is of kind FtList, FtOptional or FtNodeOf.`, Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "ftype.count", Params: []exec.Param{ft}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the number of the alternatives of the join type or the element types of the tuple type t.`,
+		Requires: `t is of kind FtJoin or FtTuple.`, Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "ftype.alt", Params: []exec.Param{ft, exec.P("i", exec.TInt)}, Results: []exec.Type{exec.THandle(FType)},
+		Contract: `Returns alternative i of the join type or element type i of the tuple type t.`,
+		Requires: `t is of kind FtJoin or FtTuple, and 0 <= i < ftype.count(t).`, Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "node.shape", Params: []exec.Param{n}, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the shape of n: ShapeString, ShapeTuple, ShapeList, ShapeError, ShapeBox, ShapeTupleValue,
+ShapeListValue or ShapeStruct, which a value of a node type has by its base.`,
+		Laws: []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "node.isType", Params: []exec.Param{n, ft}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether the type name of n is the name of the type t: a struct type or a named node type.`,
+		Requires: `t is of kind FtNamed.`})
+	pure(&exec.Op{Name: "node.isMissing", Params: []exec.Param{n}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether n is the error value of a missing token. A target that has no missing tokens reports false.`})
+	pure(&exec.Op{Name: "node.children", Params: []exec.Param{n}, Results: []exec.Type{exec.THandle(Seq)},
+		Contract: `Returns the elements of the list value or the tuple value n, and the children of any other node.`,
+		Laws:     []string{"pure: equal arguments give equal results"}})
+	pure(&exec.Op{Name: "seq.step", Host: true, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Contract: `Charges the step of examining one element of a list or a tuple against its type. A target that bounds
+the work charges one unit; a target that does not charges nothing.`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

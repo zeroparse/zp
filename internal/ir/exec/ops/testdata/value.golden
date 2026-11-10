@@ -83,6 +83,9 @@ handle Elem of value
 handle NodeType of value
   // A named node type, to which a conversion converts a value.
 
+handle FType of value
+  // The type that a cast checks a value against.
+
 op memo.lookup(rule int, pos int, level int, key Values, docOnly bool) (Entry, bool)
   component memo
   reads memo
@@ -804,6 +807,77 @@ op act.made(c Act, n Obj)
     // Records n as a value that c made, which the parser drops with the values of a term that it abandons.
   requires:
     // n is a struct that c made and has not recorded.
+
+op ftype.kind(t FType) int
+  component value
+  cost <= 0
+  contract:
+    // Returns the kind of the type t: the code of the letter of FtInt, FtString and the others.
+  law: pure: equal arguments give equal results
+
+op ftype.elem(t FType) FType
+  component value
+  cost <= 0
+  contract:
+    // Returns the element type of the list type, the optional type or the node type t whose value has a type.
+  requires:
+    // t is of kind FtList, FtOptional or FtNodeOf.
+  law: pure: equal arguments give equal results
+
+op ftype.count(t FType) int
+  component value
+  cost <= 0
+  contract:
+    // Returns the number of the alternatives of the join type or the element types of the tuple type t.
+  requires:
+    // t is of kind FtJoin or FtTuple.
+  law: pure: equal arguments give equal results
+
+op ftype.alt(t FType, i int) FType
+  component value
+  cost <= 0
+  contract:
+    // Returns alternative i of the join type or element type i of the tuple type t.
+  requires:
+    // t is of kind FtJoin or FtTuple, and 0 <= i < ftype.count(t).
+  law: pure: equal arguments give equal results
+
+op node.shape(n Obj) int
+  component value
+  cost <= 0
+  contract:
+    // Returns the shape of n: ShapeString, ShapeTuple, ShapeList, ShapeError, ShapeBox, ShapeTupleValue,
+    // ShapeListValue or ShapeStruct, which a value of a node type has by its base.
+  law: pure: equal arguments give equal results
+
+op node.isType(n Obj, t FType) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether the type name of n is the name of the type t: a struct type or a named node type.
+  requires:
+    // t is of kind FtNamed.
+
+op node.isMissing(n Obj) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether n is the error value of a missing token. A target that has no missing tokens reports false.
+
+op node.children(n Obj) Seq
+  component value
+  cost <= 0
+  contract:
+    // Returns the elements of the list value or the tuple value n, and the children of any other node.
+  law: pure: equal arguments give equal results
+
+host op seq.step()
+  component value
+  noreturn
+  cost <= 1
+  contract:
+    // Charges the step of examining one element of a list or a tuple against its type. A target that bounds
+    // the work charges one unit; a target that does not charges nothing.
 
 op seq.len(items Seq) int
   component value
