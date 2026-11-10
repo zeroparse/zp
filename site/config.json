@@ -414,6 +414,39 @@
       ]
     },
     {
+      "title": "Flow IR",
+      "match": [
+        "spec/flow-ir/*.md"
+      ],
+      "index": "spec/flow-ir/README.md",
+      "first": [
+        "spec/flow-ir/functions.md",
+        "spec/flow-ir/statements.md",
+        "spec/flow-ir/expressions.md",
+        "spec/flow-ir/invariants.md",
+        "spec/flow-ir/text-form.md"
+      ]
+    },
+    {
+      "title": "Exec IR",
+      "match": [
+        "spec/exec-ir/*.md"
+      ],
+      "index": "spec/exec-ir/README.md",
+      "first": [
+        "spec/exec-ir/machine.md",
+        "spec/exec-ir/functions.md",
+        "spec/exec-ir/operations.md",
+        "spec/exec-ir/values.md",
+        "spec/exec-ir/compositions.md",
+        "spec/exec-ir/invariants.md",
+        "spec/exec-ir/passes.md",
+        "spec/exec-ir/lowering.md",
+        "spec/exec-ir/printing.md",
+        "spec/exec-ir/text-form.md"
+      ]
+    },
+    {
       "title": "Bytecode",
       "match": [
         "spec/bytecode/*.md"
