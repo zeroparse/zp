@@ -1,8 +1,10 @@
 package complexitytest
 
 // nestedPattern matches the reasons for the class unknown whose units are nested without bound
-// through a recursion of rule calls, other than at a #recover base.
-const nestedPattern = `^(the alternative|the option|an iteration|the operator part|the operand|the lookahead|the expression)[^#]* is not committing against .*, and units that are not committing are nested in it without bound through a recursion of rule calls$`
+// through a recursion of rule calls, other than at a #recover base, and the reasons for a call of
+// such a recursion whose evaluations can nest and end at one position.
+const nestedPattern = `^(the alternative|the option|an iteration|the operator part|the operand|the lookahead|the expression)[^#]* is not committing against .*, and units that are not committing are nested in it without bound through a recursion of rule calls$` +
+	`|^the evaluations of the call of [^ ]+ at [^ ]+ in rule [^ ]+ can nest without a bound and end at one position, `
 
 // triageSmall is the triage table of csv, xml, cel, minilang, outline and calc.
 func triageSmall() []TriageGroup {

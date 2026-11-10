@@ -29,6 +29,7 @@ func tsNestings() []TriageFamily {
 		{Name: "nested conditional types", Build: func(n int) string { return "let x: " + rep("A extends B ? ", n) + "C" + rep(" : D", n) + ";\n" }, Sizes: doubling(300, 3), Order: Linear},
 		{Name: "nested function types", Build: func(n int) string { return "let x: " + rep("(a: A) => ", n) + "B;\n" }, Sizes: doubling(300, 3), Order: Linear},
 		{Name: "nested object types", Build: func(n int) string { return "let x: " + nest("{ a: ", "B", " }")(n) + ";\n" }, Sizes: doubling(500, 3), Order: Linear},
+		{Name: "nested mapped types", Build: func(n int) string { return "let x: " + nest("{ [K in T]: ", "B", " }")(n) + ";\n" }, Sizes: doubling(300, 3), Order: Linear},
 		{Name: "nested classes", Build: tsStmt(nest("class extends B { m() { return ", "1", "; } }")), Sizes: doubling(200, 3), Order: Linear},
 		{Name: "nested blocks and for loops", Build: nest("for (let i = 0; i < n; i++) { ", "f();", " }\n"), Sizes: doubling(300, 3), Order: Linear},
 		{Name: "nested destructuring parameters", Build: tsStmt(func(n int) string { return "(" + nest("{a: [", "b", "]}")(n) + ") => 0" }), Sizes: doubling(300, 3), Order: Linear},

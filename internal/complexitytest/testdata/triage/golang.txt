@@ -1,4 +1,4 @@
-# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 147 reasons
+# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 148 reasons
 
 ## comments (16) -> F97
 672:119 sp: the cost can grow as n^5: after the lookahead at 672:112 in rule sp fails, what follows the lookahead !("/*" (!"*/" [^\n])* "\n") can start again inside the input that the repetition (!"*/" [^\n])* at 672:119 in rule sp examined; it is evaluated again inside an iteration of the repetition at 672:11 in rule sp; it is evaluated again inside the lookahead at 555:29 in rule goPrimary; it is evaluated again inside the operator part at 555:17 in rule goPrimary; this repeats in the recursion of rule goPrimary
@@ -32,7 +32,7 @@
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:26 in rule imagLit fails, the later alternative hexFloat "i" at 750:45 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:45 in rule imagLit fails, the later alternative imagInt "i" at 750:60 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 
-## nested (147) -> F100
+## nested (148) -> F100
 134:43 constSpec: the option at 134:43 in rule constSpec is not committing against what follows the option typeSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 134:54 constSpec: the option at 134:54 in rule constSpec is not committing against what follows the option valuesSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 142:26 varSpec: the alternative at 142:26 in rule varSpec is not committing against the later alternative varSpecUntyped at 142:41 in rule varSpec, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -130,6 +130,7 @@
 506:25 primaryExpr: the alternative at 506:25 in rule primaryExpr is not committing against the later alternative o:operatorsExpr at 506:59 in rule primaryExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 513:17 operatorsExpr: the operator part at 513:17 in rule operatorsExpr is not committing against the operator part dot -ws s:ident at 511:17 in rule operatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 514:17 operatorsExpr: the operator part at 514:17 in rule operatorsExpr is not committing against the operator part "[" -ws i:indexList "]" at 515:17 in rule operatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
+514:27 operatorsExpr: the evaluations of the call of expr at 514:27 in rule operatorsExpr can nest without a bound and end at one position, through a unit that evaluates calls alike with a continuation, which the classifier found only after it relied on the call
 515:17 operatorsExpr: the operator part at 515:17 in rule operatorsExpr is not committing against the operator part "[" -ws i:expr -sp ("," -ws)? "]" at 514:17 in rule operatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 516:17 operatorsExpr: the operator part at 516:17 in rule operatorsExpr is not committing against the operator part "[" -ws i:expr -sp ("," -ws)? "]" at 514:17 in rule operatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 516:27 operatorsExpr: the option at 516:27 in rule operatorsExpr is not committing against what follows the option exprSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
