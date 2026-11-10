@@ -437,7 +437,11 @@ the two states stores a result. Whether a call is inside a lookahead or a
 `skip` is thus part of the key of a result computed there, and not of one
 computed outside them. A rule without an action that is on no left-recursion
 cycle can have a **value-free twin**, which matches as the rule does and builds
-no value; a call whose value is not used, such as a call inside a discard, a
+no value beyond those that its predicates and bindings read. It evaluates the
+body of the rule as the rule does: the same expressions at the same positions,
+with the same matches and ends, its predicates and bindings reading the same
+values, and at each call the rule that the rule calls there or the twin of that
+rule. A call whose value is not used, such as a call inside a discard, a
 negative lookahead or an `#atomic`, evaluates the twin. Which of the two a call
 evaluates depends only on the discards, lookaheads, `#atomic`s and captures
 around the call in its rule body, on the action of that rule, and on which of
