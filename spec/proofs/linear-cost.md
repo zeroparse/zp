@@ -2113,7 +2113,7 @@ item, which charges at most one plus the number of the items of the grammar.
 These are constants of the grammar. The growth of the list of the new
 iterations of a run charges the number that it held before where their number
 reaches a power of two; the list starts empty in each run, so the charges add
-up to less than its length. Recording a run charges one unit for each of its
+up to less than twice its length. Recording a run charges one unit for each of its
 iterations, and each is such an iteration of this evaluation. A record of this
 parse is resumed whole and needs no search, since no edit separates it from the
 parse. For a record of the previous parse, a search for a recorded iteration

@@ -367,7 +367,7 @@ func (p *Parser) ReleaseRunLists(r *RunState) {
 
 // runListGrowth charges the growth of a list of new elements of a run from n to n + 1 elements. The
 // lists grow from empty in each run, so a charge by their length alone (growthSpend), not by the
-// capacity that a reused RunState keeps, adds up to less than their length. It is kept out of line
+// capacity that a reused RunState keeps, adds up to less than twice their length. It is kept out of line
 // so that EndElem, which every evaluated element of a run calls, stays as small as it was.
 //
 //go:noinline
