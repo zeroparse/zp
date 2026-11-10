@@ -701,6 +701,29 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("x", n) + rep("y", n) },
 			Sizes:  double(40), ShortSizes: double(25), Order: Poly(3), Class: ClassPoly,
 		},
+		// The value of e holds the value of the a inside it twice, and that value is the value of
+		// the e inside it, so the value doubles on each level of the nesting.
+		{
+			Name: "Fold holding a recursive value twice", Family: "value sizes",
+			Source: "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n",
+			Input:  func(n int) string { return rep("x+(", n) + "x" + rep(")", n) },
+			Sizes:  double(3), ShortSizes: double(3), Order: Exp, Class: ClassExp,
+		},
+		// The same with a constant value of a: the copies hold nothing of the nesting.
+		{
+			Name: "Fold holding twice a value that does not hold the recursion", Family: "value sizes",
+			Source: "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" e \")\" => \"v\")\n",
+			Input:  func(n int) string { return rep("x+(", n) + "x" + rep(")", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+		},
+		// The predicate joins the value of the l inside it to itself on each level, which costs
+		// that value twice but leaves the value of l one character longer per level: n^2.
+		{
+			Name: "Predicate copying a recursive value twice", Family: "value sizes",
+			Source: "rule main = l $$\nrule l string = (\"(\" x:l \")\" {len($x + $x) >= 0} => $x + \"y\") / (\"a\" => \"a\")\n",
+			Input:  func(n int) string { return rep("(", n) + "a" + rep(")", n) },
+			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+		},
 		// Elements of their own text add up to the input, so copying each of them is linear.
 		{
 			Name: "Map copying elements of their own text", Family: "value sizes", Positive: true,

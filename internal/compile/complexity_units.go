@@ -165,7 +165,7 @@ func (k *classifier) walkRule(r *grammar.RuleDef) {
 	c := wctx{rule: r.Name, cont: &cont{end: endRule, rule: r.Name}, mayStart: true, mustStart: true}
 	k.walk(r.Expr, c)
 	if r.Action != nil {
-		k.walkTerm(r.Action, termCtx{rule: r.Name, c: c, action: true})
+		k.walkTerm(r.Action, termCtx{rule: r.Name, c: c, action: true, value: true})
 	}
 }
 
@@ -353,7 +353,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 	case *grammar.InlineAction:
 		k.walk(e.Expr, c)
 		if e.Action != nil {
-			k.walkTerm(e.Action, termCtx{rule: c.rule, c: c, action: true, holder: e})
+			k.walkTerm(e.Action, termCtx{rule: c.rule, c: c, action: true, holder: e, value: k.ruleValue(c.rule, e)})
 		}
 	case *grammar.Predicate:
 		k.walkTerm(e.Term, termCtx{rule: c.rule, c: c, pred: e})
@@ -575,7 +575,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			operandUnits = append(operandUnits, k.units[before-1])
 		}
 		if o.Action != nil {
-			k.walkTerm(o.Action, termCtx{rule: c.rule, c: inside, action: true})
+			k.walkTerm(o.Action, termCtx{rule: c.rule, c: inside, action: true, value: true})
 		}
 	}
 	type part struct {
@@ -652,7 +652,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 		}
 		k.walk(p.op.Expr, cc)
 		if p.op.Action != nil {
-			k.walkTerm(p.op.Action, termCtx{rule: c.rule, c: inside, action: true})
+			k.walkTerm(p.op.Action, termCtx{rule: c.rule, c: inside, action: true, value: true})
 		}
 	}
 }

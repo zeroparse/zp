@@ -334,6 +334,11 @@ func TestSlopeGateGrowth(t *testing.T) {
 		{"copies of an outer value",
 			"rule main = v:V (B / \"a\")* $$ => $v\nrule V = xs:\"x\"* y:\"y\"* => map($xs, (p) => map($xs, (q) => text($y) + \"!\"))\nrule B = \"a\"* \"c\"\n",
 			func(n int) string { return rep("x", n/6) + rep("y", n/6) + "a" }, 2 + slopeMargin + 0.05},
+		// The value of e holds the value of the e nested inside it twice, so it doubles on each
+		// level: the slope passes any that a copy outside the value, of degree 2, allows.
+		{"fold holding a recursive value twice",
+			"rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n",
+			func(n int) string { return rep("x+(", n/12) + "x" + rep(")", n/12) }, 4},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

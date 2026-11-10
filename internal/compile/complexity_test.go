@@ -279,6 +279,17 @@ func TestClassifyComplexity(t *testing.T) {
 		// copies it.
 		{"text of a recursive capture", "rule main = a $$\nrule a = s:(\"(\" a \")\" / \"x\") => text($s)\n", ClassLinear, 0},
 		{"join of the text of a recursive capture", "rule main = a $$\nrule a = s:(\"(\" a \")\" / \"x\") => text($s) + \"!\"\n", ClassPoly, 2},
+		// A value of the recursion that the value of the rule holds twice, where that value holds
+		// the value of the rule in turn, doubles on each level of the recursion. Copied twice
+		// anywhere else, it costs its size twice, which adds up to n^2 over the levels.
+		// The controls of the same names measure exponential growth and n^2.
+		{"fold holding a recursive value twice", "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassExp, 0},
+		{"fold holding a recursive value once", "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => $v)\n", ClassPoly, 2},
+		{"fold holding twice a recursive value that holds the text of the recursion", "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" v:e \")\" => text($v))\n", ClassExp, 0},
+		{"fold holding twice a value that does not hold the recursion", "rule main = e $$\nrule e string = l:a rest:(o:\"+\" r:a)* => foldl($l, $rest, (acc, i) => acc + text(i.$o) + i.$r + i.$r)\nrule a string = (\"x\" => \"x\") / (\"(\" e \")\" => \"v\")\n", ClassPoly, 2},
+		{"join holding a recursive value twice", "rule main = l $$\nrule l string = (\"(\" x:l \")\" => $x + \"(\" + $x) / (\"a\" => \"a\")\n", ClassExp, 0},
+		{"predicate copying a recursive value twice", "rule main = l $$\nrule l string = (\"(\" x:l \")\" {len($x + $x) >= 0} => $x + \"y\") / (\"a\" => \"a\")\n", ClassPoly, 2},
+		{"join of the text of a recursive capture twice", "rule main = n $$\nrule n = s:(\"(\" n \")\" / \"a\") => text($s) + text($s)\n", ClassPoly, 2},
 		// An element of a list holds anything the list can, so indexing keeps the size.
 		{"element of a recursive list", "rule main = r $$\nrule r []string = (\"a\" x:r => list($x[0] + \"a\")) / (\"\" => list(\"\"))\n", ClassPoly, 2},
 		{"list of literal elements", "rule main = r $$\nrule r []string = (\"a\" x:r => list(\"a\")) / (\"\" => list(\"\"))\n", ClassLinear, 0},

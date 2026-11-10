@@ -295,6 +295,8 @@ type classifier struct {
 	runRestart      map[*grammar.Repeat]bool
 	runBad          map[string]bool
 	includesMemo    map[sizeKey]bool
+	feedsMemo       map[feedKey]bool
+	heldMemo        map[sizeKey][]sizeKey
 	sizes           sizeMemo              // the size degrees of the values of rules (complexity_sizes.go)
 	srcExprs        map[grammar.Expr]bool // the expressions that are scanning sources
 	failRule        map[string]bool       // rules that can fail after a scanning source examined input
@@ -340,7 +342,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 		boundedRule: map[string]bool{}, reachFrom: map[string]map[string]bool{}, local: map[string]*source{}, walked: map[string][]*source{},
 		ruleSrc: map[string]*source{}, follow: map[string]charset{}, growing: map[int]map[string]charset{},
 		captures: map[string]map[string][]grammar.Expr{}, sourceIndex: map[sourceKey]*source{},
-		predicateSource: map[*grammar.Predicate]*source{}, includesMemo: map[sizeKey]bool{},
+		predicateSource: map[*grammar.Predicate]*source{}, includesMemo: map[sizeKey]bool{}, feedsMemo: map[feedKey]bool{}, heldMemo: map[sizeKey][]sizeKey{},
 		srcExprs: map[grammar.Expr]bool{}, srcMemo: map[grammar.Expr]bool{}, again: map[*grammar.Repeat]*grammar.Repeat{}}
 	for _, r := range rules {
 		k.byName[r.Name] = r

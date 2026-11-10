@@ -16,7 +16,10 @@ type termCtx struct {
 	c      wctx
 	pred   *grammar.Predicate // the predicate that holds the term, or nil for an action
 	action bool
-	holder grammar.Expr     // the inline action that holds the term, or nil
+	holder grammar.Expr // the inline action that holds the term, or nil
+	// value reports a term whose value the value of the rule holds: an action of the rule, or an
+	// inline action that is its value, and the parts of such a term that its value holds.
+	value  bool
 	params map[string]param // the parameters of the enclosing lambdas
 	lambda bool             // inside a lambda
 	// repeat reports a lambda that runs once for each element of a list whose number of elements
@@ -63,9 +66,12 @@ type content struct {
 	unbounded bool           // larger than a constant of the grammar, other than through variables
 	vars      bool           // the value of a variable
 	rec       map[string]int // captures that hold a call on a recursion with the rule, with counts
-	acc       map[string]int // fold accumulators, with counts
-	outer     bool           // from outside a lambda that repeats, and unbounded
-	look      bool           // can hold a capture made in a positive lookahead
+	// held are the captures of rec whose values hold the value of the rule in turn (see feeds), so
+	// that holding one twice in the value of the rule doubles it on each level of the recursion.
+	held  map[string]int
+	acc   map[string]int // fold accumulators, with counts
+	outer bool           // from outside a lambda that repeats, and unbounded
+	look  bool           // can hold a capture made in a positive lookahead
 	// sum is the largest degree of the sum of the sizes of the elements of a list that is not
 	// bounded, over the evaluations of its lambda, that the value can hold one of.
 	sum int
@@ -88,6 +94,12 @@ func (c *content) add(d content) {
 		}
 		c.rec[n] += v
 	}
+	for n, v := range d.held {
+		if c.held == nil {
+			c.held = map[string]int{}
+		}
+		c.held[n] += v
+	}
 	for n, v := range d.acc {
 		if c.acc == nil {
 			c.acc = map[string]int{}
@@ -100,14 +112,14 @@ func (c *content) add(d content) {
 func (c content) join(d content) content {
 	j := content{unbounded: c.unbounded || d.unbounded, vars: c.vars || d.vars, outer: c.outer || d.outer, look: c.look || d.look,
 		sum: max(c.sum, d.sum)}
-	j.rec, j.acc = maxCounts(c.rec, d.rec), maxCounts(c.acc, d.acc)
+	j.rec, j.held, j.acc = maxCounts(c.rec, d.rec), maxCounts(c.held, d.held), maxCounts(c.acc, d.acc)
 	return j
 }
 
 // atMostTwo caps the counts of c at 2: a count only says whether a part is copied more than once.
 func (c content) atMostTwo() content {
-	c.rec, c.acc = maxCounts(c.rec, nil), maxCounts(c.acc, nil)
-	for _, m := range []map[string]int{c.rec, c.acc} {
+	c.rec, c.held, c.acc = maxCounts(c.rec, nil), maxCounts(c.held, nil), maxCounts(c.acc, nil)
+	for _, m := range []map[string]int{c.rec, c.held, c.acc} {
 		for n, v := range m {
 			m[n] = min(v, 2)
 		}
@@ -117,7 +129,7 @@ func (c content) atMostTwo() content {
 
 func (c content) equal(d content) bool {
 	return c.unbounded == d.unbounded && c.vars == d.vars && c.outer == d.outer && c.look == d.look && c.sum == d.sum &&
-		maps.Equal(c.rec, d.rec) && maps.Equal(c.acc, d.acc)
+		maps.Equal(c.rec, d.rec) && maps.Equal(c.held, d.held) && maps.Equal(c.acc, d.acc)
 }
 
 // maxCounts returns a new map with the larger count of each name in a or b, or nil for none.
@@ -182,17 +194,17 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 		k.walkTerm(t.Term, tc)
 	case *grammar.Block:
 		for _, s := range t.Statements {
-			k.walkTerm(s, tc)
+			k.walkTerm(s, tc.part(false))
 		}
 	case *grammar.Bind:
 		k.binds = append(k.binds, &binding{rule: tc.rule, b: t, c: tc.c, p: tc.pred})
-		k.walkTerm(t.Value, tc)
+		k.walkTerm(t.Value, tc.part(false))
 	case *grammar.Member:
-		k.walkTerm(t.X, tc)
+		k.walkTerm(t.X, tc.part(false))
 	case *grammar.Cast:
 		k.walkTerm(t.X, tc)
 	case *grammar.Unary:
-		k.walkTerm(t.X, tc)
+		k.walkTerm(t.X, tc.part(false))
 	case *grammar.New:
 		for _, f := range t.Fields {
 			k.walkTerm(f.Value, tc)
@@ -217,6 +229,9 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 			}
 			return
 		}
+		// A comparison or an arithmetic operation builds an int or a Boolean, which holds none of
+		// its operands.
+		tc := tc.part(false)
 		if compareOps[t.Op] && !k.isInt(t.L, tc) && !k.isInt(t.R, tc) {
 			// Comparing two strings examines the characters of the shorter one, which is no
 			// larger than either: count the operand that weighs less.
@@ -232,11 +247,12 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 		k.walkTerm(t.R, tc)
 	case *grammar.Call:
 		for i, a := range t.Args {
+			held := tc.value && heldArg(t.Func, i)
 			if lam, ok := a.(*grammar.Lambda); ok {
-				k.walkTerm(lam.Body, k.lambdaCtx(t, i, lam, tc))
+				k.walkTerm(lam.Body, k.lambdaCtx(t, i, lam, tc).part(held))
 				continue
 			}
-			k.walkTerm(a, tc)
+			k.walkTerm(a, tc.part(held))
 		}
 		if lam, ok := lambdaArg(t, 2); ok && (t.Func == "foldl" || t.Func == "foldr") && len(lam.Params) > 0 {
 			k.checkFoldGrowth(t, lam, tc)
@@ -253,13 +269,39 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 			if k.types == nil && !size.bounded() {
 				k.stringLen = true
 			}
-			k.copied(t, termPosOf(t), tc, size)
+			// The length is an int, which holds none of what it examines.
+			k.copied(t, termPosOf(t), tc.part(false), size)
 		case copyFuncs[t.Func]:
 			k.copyOp(t, termPosOf(t), tc)
 		}
 	case *grammar.Lambda:
 		k.walkTerm(t.Body, tc)
 	}
+}
+
+// part returns the context of a part of the term of tc, whose value the value of the term holds
+// when held is set.
+func (tc termCtx) part(held bool) termCtx {
+	tc.value = tc.value && held
+	return tc
+}
+
+// heldArg reports whether the value of a call of the built-in function fn holds the value of its
+// argument i, a lambda standing for the values it builds: text returns a string unchanged, concat
+// joins its lists, filter keeps elements of its list and map holds the values of its lambda, and
+// a fold holds its initial value and the values of its lambda, but not the list it visits.
+func heldArg(fn string, i int) bool {
+	switch fn {
+	case "text", "concat", "list":
+		return true
+	case "filter":
+		return i == 0
+	case "map":
+		return i == 1
+	case "foldl", "foldr":
+		return i != 1
+	}
+	return false
 }
 
 // mayBeString reports whether the value of t may be a string value rather than a node, a list or
@@ -824,6 +866,9 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 		c := content{unbounded: !k.bounded(e) || look, look: look}
 		if k.onRecursion(tc.rule, x.Name) && k.includes(x.Name, mode) {
 			c.rec = map[string]int{name: 1}
+			if k.feeds(x.Name, mode, tc.rule) {
+				c.held = map[string]int{name: 1}
+			}
 		}
 		return c
 	}
@@ -911,6 +956,11 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 		}
 		return best, count
 	}
+	// A copy that the value of the rule holds and that holds the value of a call on the recursion
+	// more than once, where that value holds the value of the rule in turn, makes the value of
+	// each level at least twice the value of the level inside it, and the copy costs that size.
+	_, held := worst(all.held)
+	doubles := held > 1 && tc.value
 	if all.sum >= unknownDeg {
 		k.reason(tc.rule, pos, "%s at %s copies, for each element, a value whose size the classifier does not bound",
 			text, at(tc.rule, pos))
@@ -934,13 +984,17 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 			k.cause(class, degree, tc.rule, pos, "%s: %s at %s copies the fold accumulator %s%s",
 				degreeText(class, degree), text, at(tc.rule, pos), n, times(count))
 		}
-	} else if n, count := worst(all.rec); count > 0 {
-		class, degree := ClassPoly, 2
-		if count > 1 {
-			class, degree = ClassExp, 0
-		}
-		k.cause(class, degree, tc.rule, pos, "%s: %s at %s copies %s, which holds a call on a recursion with rule %s%s",
-			degreeText(class, degree), text, at(tc.rule, pos), n, tc.rule, times(count))
+	} else if n, count := worst(all.rec); count > 0 && !doubles {
+		// A copy of the value of a call on the recursion costs its size, which adds up over the
+		// levels of the recursion to at most its size degree plus one, however many times it is
+		// copied, unless the copies double the value itself (below).
+		k.cause(ClassPoly, 2, tc.rule, pos, "%s: %s at %s copies %s, which holds a call on a recursion with rule %s%s",
+			degreeText(ClassPoly, 2), text, at(tc.rule, pos), n, tc.rule, times(count))
+	}
+	if doubles {
+		n, count := worst(all.held)
+		k.cause(ClassExp, 0, tc.rule, pos, "%s: %s at %s copies %s%s into the value of rule %s, and %s holds a call on a recursion whose value holds the value of rule %s, so the value can double on each level of the recursion",
+			degreeText(ClassExp, 0), text, at(tc.rule, pos), n, times(count), tc.rule, n, tc.rule)
 	}
 	if all.outer {
 		k.reason(tc.rule, pos, "%s at %s copies, for each element, a value from outside its lambda that is not bounded by a constant",
