@@ -40,8 +40,10 @@ proves a reduction and bounds the repetitions at one position: the scanned cost 
 after a source passes through the forms that condition 2 checks, an activation
 is repeated at a position only after an abandoned committing unit or a dropped
 growth step, at most one successful activation of a source at a position is
-direct in one body evaluation, and every other lies in a re-evaluation of a call
-that a committing unit shares with its continuation, which the memo bounds for a
+direct in one body evaluation, and every other follows a call that a
+committing unit shares with its continuation, which, in the reference parse of
+the memoization proof, is evaluated again and repeats the first activation at
+the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
 calls no rule when the call is the first that the two share. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
@@ -504,7 +506,7 @@ number of evaluations, which gives the bound. $\square$
 
 **Order of the bounds.** The bounds follow one another in this order, and none
 rests on a later one. First, the claims of this lemma from *Failure after a
-source* to *Links to heads*, other than *Activations that do not succeed*,
+source* to *Nothing in a memoized link is a head*, other than *Activations that do not succeed*,
 count nothing: they rest on the conditions, the memo of Lemma 3 and the memoization proof, and hold of every
 activation, including those of growth steps and of evaluations in a context of
 growths. Second, Lemma 5 bounds $B$, the evaluations in a context of growths,
@@ -620,27 +622,43 @@ continues from its start.
 at $q$, $\alpha$ first, direct in different body evaluations of $R$, and let
 no dropped step of a growth and no path that enters the growth again lead from
 the abandoned unit to $\alpha'$. With $w$ and $\kappa$ as above, $\alpha$ lies
-in the evaluation $e$ of a call that $w$ and $\kappa$ share, and $\alpha'$ in
-an evaluation $e'$ of the same call at the same position, made by $\kappa$
-after $w$ is abandoned.
+in the evaluation inside $w$ of a call that $w$ and $\kappa$ share, which
+starts at or before $q$.
 
 *Proof.* If $\alpha$ is in none of the shared calls, the proof above applies:
 $\alpha$ is in $w$ after the shared calls, inside a call of $w$ or not, so the
 character at $t$ is a first character of both, and a call of $w$ after the
 shared calls that contains $\alpha$ contains a scanning source, so case 3 does
-not hold either. So $\alpha$ is in the shared call that starts at $t_{j-1}$ and
-ends at $t_j$, with $t_{j-1} \le q < t_j \le t$. After $w$, the parser
-evaluates what of $\kappa$ starts before $t$ only as the shared calls or as
-expressions of $\kappa$ that begin with them, and $\alpha'$, which consumes the
-character at $q$, is in an evaluation of the $j$-th shared call, the only one
-that covers $q$. $\square$
+not hold either. So $\alpha$ is in a shared call, which starts at or before
+$q$. $\square$
+
+The claim does not place $\alpha'$ in an evaluation of the same call. The part
+of the shared call that holds $\alpha$ can be an abandoned unit that examined
+input past the end of the call, and the memo can then answer the call in
+$\kappa$:
+
+```zp
+@start
+rule main = s "x" / s "w" / s (R "b")? "y"
+rule s = "." (R "a")?
+rule R = [ ]*
+```
+
+On `.` followed by spaces and `y`, the second activation of the repetition of
+`R` at a space lies in the second evaluation of `s`, inside the unit `s "w"`,
+whose continuation `s (R "b")? "y"` shares the call of `s` at $0$. The memo
+answers that call, and the next activation at the space lies in the call of
+`R` that `main` makes after it, in no evaluation of `s`.
 
 So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
 in the order in which they start, outside case 5 and dropped steps, are direct
-in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_i$ lies in an
-evaluation $e'_i$ of a call shared by a committing unit $w_i$, made after $w_i$
-is abandoned, and $\alpha_{i-1}$ in the evaluation $e_i$ of the same call at
-the same position inside $w_i$. The pair $(e_i, e'_i)$ is the $i$-th **link**.
+in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
+the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
+continuation, inside $w_i$. When $\alpha_i$ lies in an evaluation $e'_i$ of the
+same call at the same position, made after $w_i$ is abandoned, $i$ is
+**linked**, and the pair $(e_i, e'_i)$ is the $i$-th **link**; otherwise $i$ is
+**free**, as is $i = 1$. *Reference links* below gives each activation of the
+reference parse such a pair, which the free ones lack in the parse.
 
 **Memoized links.** If the rule of the $i$-th link is memoized at both calls
 and neither $e_i$ nor $e'_i$ is in a context of growths, then either the rule is
@@ -974,6 +992,62 @@ $y$ finds open with the current result that $y'$ found. In both cases the induct
 $y'$ gives an evaluation of the key of $z$ before $y'$ ended, and so before $x$
 ends. What remains is case (a). $\square$
 
+**Reference links.** $\mathcal{R}$ is the instance of the parse that stores
+nothing, so the restarts, *Direct activations* and *Repeats* hold of it, with
+its own dropped steps and its own paths that enter a growth again. Let $\beta'$
+be a successful activation of $\sigma$ at $q$ in $\mathcal{R}$, $\beta$ the one
+before it, and $w$ and $\kappa$ as in the restarts, with no dropped step and no
+path that enters the growth again of $\mathcal{R}$ leading from $w$ to
+$\beta'$. Let $e^k$ be the first of the calls that $w$ and $\kappa$ share whose
+evaluation inside $w$ holds a successful activation of $\sigma$ at $q$, let
+$\beta_f$ be the first such activation in it, and let neither $e^k$ nor a
+shared call before it read a growth open at its start. Then $\kappa$ evaluates the call of $e^k$ again at its position,
+as $e^{k\prime}$, which takes the steps of $e^k$ up to the variants of its
+calls, and $\beta'$ is the activation of $e^{k\prime}$ that corresponds to
+$\beta_f$. The pair $(e^k, e^{k\prime})$ is the **reference link** of $\beta'$;
+it joins $\beta'$ to $\beta_f$, which need not be $\beta$.
+
+*Proof.* By *Repeats*, $\beta$ lies in a shared call, so $e^k$ exists.
+$\mathcal{R}$ evaluates every call, and $\kappa$, every path of which that
+examines the input begins with the shared calls, evaluates them in order, each
+at the position where it ends in $w$ (case 2). A shared call before $e^k$
+reads no growth open at its start, so it takes the steps of its evaluation
+inside $w$ (*Counterparts*), and holds no successful activation of $\sigma$ at
+$q$. Nor does $e^{k\prime}$ before the activation that corresponds to
+$\beta_f$. Nothing that the parser evaluates between the end of $w$ and that
+activation holds one either, since $\beta'$ is the first after $\beta$, which
+lies in $w$. So $\beta'$ is that activation. $\square$
+
+**Heads in the reference parse.** Let $Z$ be an evaluation of a key in the
+parse, the head of its class. Then, outside cases (a) and (b) of the covered
+keys, no evaluation in $\mathcal{R}$ of a key of that class that reads no
+growth open at its start ends before $\mathcal{R}(Z)$ starts.
+
+*Proof.* Let $z$ be one. Follow the path from the evaluation of $\mathcal{R}$
+where the parse begins down to $z$. If the parse evaluates every call and step
+on it, its evaluation of $z$ is an evaluation of a key of the class that ends
+before $Z$ starts. Otherwise let $y$ be the first that it does not evaluate.
+$\mathcal{R}(y)$ contains $z$ and not $\mathcal{R}(Z)$, whose call the parse
+evaluates, so $\mathcal{R}(y)$ ends before $\mathcal{R}(Z)$ starts, and the
+parse answers $y$ before $Z$ starts. By the covered keys with $x = y$, the
+parse made an evaluation of the key of $z$ before $y$ was answered. Either way
+$Z$ is not the first of its class. $\square$
+
+**Reference links lead to repeated evaluations.** Let the reference link
+$(e^k, e^{k\prime})$ of $\beta'$ be of a rule that the parse memoizes, let
+$e^{k\prime}$ read no growth open at its start, and let an evaluation $Z$ of a
+key in the parse hold the activation whose counterpart is $\beta'$. Then $Z$ is
+not the head of its class, outside cases (a) and (b) of the covered keys. This
+holds whether or not the parse evaluates the call of $e^{k\prime}$.
+
+*Proof.* $\mathcal{R}(Z)$ holds $\beta'$, which lies in $e^{k\prime}$, made by a
+call of a rule that the parse memoizes, so $\mathcal{R}(Z)$ is $e^{k\prime}$ or
+lies inside it, and the call $z^\circ$ at the same place in $e^k$, which takes
+the same steps up to variants, has a key of the class of $Z$. It reads no
+growth open at its start, by the argument for $z^\circ$ in the claim below, and
+it ends before $e^{k\prime}$ starts, so before $\mathcal{R}(Z)$ starts. By the
+heads in the reference parse, $Z$ is not the head of its class. $\square$
+
 **Links lead to repeated evaluations.** Let the $i$-th link of $\sigma$ at $q$
 be memoized, and let every growth open at the start of $e_i$ or of $e'_i$ be
 open at the start of both. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
@@ -1041,8 +1115,10 @@ be the successful activations of $\sigma$ at $q$ outside case 5 and dropped
 steps, as above. Every link is memoized at both calls or a call of a rule that
 calls no rule and is not memoized at its calls, a **leaf link**. The rule $r$
 of a leaf link calls no rule, so the body evaluation of $R$ that contains
-$\alpha_{i-1}$, which lies in $e_i$, is $e_i$ itself, and $r = R$. Let $R$ call
-a rule or be memoized at its calls, so that every link is memoized.
+$\alpha_{i-1}$, which lies in $e_i$, is $e_i$ itself, and $r = R$; a memoized
+link between two leaf links returns to the position of an earlier activation
+(*Memoized links keep positions* below). Let $R$ call a rule or be memoized at
+its calls, so that every link is memoized.
 
 An evaluation of a memoized link reads a growth open at its start only when the
 rule of the link is a leader that grows inside a growth of its cycle at the
@@ -1058,21 +1134,76 @@ open at the start of only one of them started inside that evaluation, at the
 position of the link (Lemma 2 of the memoization proof): on the way to $e_i$,
 ending before $e'_i$, or on the way to $e'_i$ after $e_i$ ended.
 
-So by the claim above every $\alpha_i$ other than $\alpha_1$ that is held by
-a head follows a link of one of two kinds: a link of a leader with a growth
-open at the start of one of its evaluations and not at that of the other, or a
-link with case (a) or (b) of the covered keys on its path. When no link of $\sigma$ at $q$ is
-of these kinds, at most one of the $\alpha_i$ is held by a head, memoized or
-in a context of growths. This claim counts nothing: it rests on the links and
+So by the claim above every linked $\alpha_i$ that is held by a head follows a
+link of one of two kinds: a link of a leader with a growth open at the start of
+one of its evaluations and not at that of the other, or a link with case (a) or
+(b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
+is the counterpart of an activation of $\mathcal{R}$ whose reference link is
+of a memoized rule, and by *Reference links lead to repeated evaluations* it is
+held by a head only when that link reads a growth open at its start, or with
+case (a) or (b) on its path, or when it has no reference link, because a
+dropped step or a path that enters a growth again of $\mathcal{R}$ leads to
+it.
+When no link of $\sigma$ at $q$ is of these kinds and every free $\alpha_i$
+other than $\alpha_1$ has a reference link of a memoized rule that reads no
+growth open at its start, with neither case on its path, at most one of the
+$\alpha_i$ is held by a head, memoized or in a context of growths. This claim counts nothing: it rests on the links and
 on the claims before it other than *Activations that do not succeed*, and holds
 whoever owns the $\alpha_i$.
+
+**Memoized links keep positions.** Let $R$ call no rule and not be memoized at
+its calls, and let $P_i$ be the body evaluation of $R$ or of its twin in which
+$\alpha_i$ is direct, at $p_i$. Let $i$ be linked by a memoized link, let
+neither $e_i$ nor $e'_i$ read a growth open at its start, and let case (a) or
+(b) of the covered keys not arise on the path from $\mathcal{R}(e_i)$ to the
+evaluation named below. Then before $e_i$ ended the parse made a body
+evaluation of $R$ or of its twin at $p_i$ with a successful activation of
+$\sigma$ at $q$ direct in it, so $p_i = p_m$ for some $m < i$. If $i$ is linked
+by a leaf link, $p_i = p_{i-1}$.
+
+*Proof.* A leaf link has $e_i = P_{i-1}$ and $e'_i = P_i$. For a memoized link,
+as in *Links lead to repeated evaluations*, $\mathcal{R}(e_i)$ and
+$\mathcal{R}(e'_i)$ take the same steps up to the variants of their calls, and
+$P_i$, evaluated inside $e'_i$, is the counterpart of a body evaluation of $R$
+or its twin at $p_i$ inside $\mathcal{R}(e'_i)$ with a successful activation of
+$\sigma$ at $q$, so $\mathcal{R}(e_i)$ holds one, $\rho$, at the same place. By
+the induction of the covered keys with $\rho$ in the place of $z$, the parse
+makes, before $e_i$ ends, a body evaluation of $R$ or its twin at $p_i$ with a
+successful activation of $\sigma$ at $q$: where it evaluates every call and
+step on the path it evaluates the call of $\rho$ too, since the memo answers no
+call of a rule that it does not memoize; a call on the path answered with the
+current result of an open growth makes no call in $\mathcal{R}$ and holds no
+body evaluation of $R$; an entry or a kept result leads to an earlier
+evaluation of a key of the class, as in the covered keys; and a skipped
+alternative holds no activation. That activation is one of the $\alpha_m$, and
+it ends before $e_i$ ends, so before $\alpha_i$ starts. $\square$
+
+**Nothing in a memoized link is a head.** Under the hypotheses of *Links lead
+to repeated evaluations*, outside cases (a) and (b) of the covered keys, no
+evaluation of a key that is $e'_i$ or lies inside it is the head of
+its class. *Proof.* The proof of *Links lead to repeated evaluations* uses of
+$Z$ only that it is $e'_i$ or inside it. $\square$
+
+So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
+position for each free $i$ and each link of the two kinds that *Links to
+heads* leaves out. For a leaf link $j$ whose shared call is the first, so that
+$w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
+it. The heads that start at $p_j$ are of the classes at $p_j$, one head each.
+Those that start before $p_j$ enclose $w_j$, and the frames between are left at
+$p_j$; for two of them, the later is in progress at the earlier's activation
+and encloses it, or it starts after that activation and strictly encloses
+$e'_i$ for a memoized link $i$ between the two, by the restarts and the claim
+above. Bounding these, and the activations that one head holds, is part of
+step 1 of [Open Steps](#open-steps).
 
 **Activations held by heads.** When no link of $\sigma$ at $q$ is of the two
 kinds above, by the replayed activations and since a class has at most six
 memoized evaluations, the successful activations of
 $\sigma$ at $q$ held by memoized evaluations are at most six times those
-held by heads, which are $\alpha_1$ and those that case 5 or a dropped step
-repeats. Every activation owned by a memoized evaluation is held by it, so
+held by heads, which are $\alpha_1$, those that case 5 or a dropped step
+repeats, and the free ones that a dropped step or a path that enters a growth
+again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
+leaves to count. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
 evaluations own, apart from those that case 5 or a dropped step repeats, which
 Lemma 5 counts. The comparison with $\mathcal{R}$ needs no order between the
@@ -1127,7 +1258,7 @@ growth or a path that enters the growth again repeats. Its bounds come before
 the count of Lemma 4 on the activations that memoized evaluations own, in the
 order that [Lemma 4](#lemma-4-scanned-cost) states, so they must not rest on
 it: they rest on the claims of Lemma 4 that count nothing, from *Failure after
-a source* to *Links to heads* other than *Activations that do not succeed*, on
+a source* to *Nothing in a memoized link is a head* other than *Activations that do not succeed*, on
 Lemmas 1 to 3 and on the memo. Outside contexts of growths, the memo bounds the
 growths of a leader at one position, level and combination of the values of the variables that it
 reads by two, one inside a lookahead and one outside them, since a growth
@@ -2872,20 +3003,31 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    do not succeed, and the evaluations of the rules that are not memoized,
    follow from the successful ones and the body evaluations of memoized rules
    (*Activations that do not succeed*), so what is open concerns the successful
-   activations alone. Three parts are open. The first two are for a source in
-   a rule that calls no rule and is not memoized at its calls. First, the leaf
-   links that lead to an activation held by a head: such a link
-   can leave a memoized evaluation that is not a head through the end of its
-   body, and the claims
-   bound the leaf links in a row but not those between memoized links. Second,
-   the leaf links when the shared call follows other shared calls: the frames
-   that the continuation leaves are then left at the start of the unit, before
-   the shared calls, or after some of them, so the frames left between two
-   links need not be followed by what matches without consuming input, and the
-   cycle argument of *Calls that call no rule* must be carried over; so must it
-   to the leaf links between which the parser leaves or starts, at their
-   position, a growth step or an evaluation in a context of growths, which that
-   claim leaves out. Third, the
+   activations alone. An activation need not follow a link of the parse: the
+   memo can answer the shared call in the continuation (*Repeats*), and the
+   claims follow it through its reference link instead. The activations of the
+   reference parse that a dropped step or a path that enters a growth again of
+   the reference parse leads to, which have no reference link, are more than
+   those of the parse, and Lemma 5 must count those that are counterparts of
+   activations of the parse; this is not shown. Nor are the reference links
+   whose shared calls read a growth open at their start. Three parts are open.
+   The first two are for a source in a rule that calls no rule and is not
+   memoized at its calls, and both wait on a corrected condition of nesting at
+   one end: `main = e; e = "(" (e R "x" / e) / "."; R = [ ]*`, which the
+   conditions accept, costs time quadratic in n on `(`^n `.` followed
+   by n spaces, so the cycle argument of *Calls that call no rule* does not carry
+   over as the condition stands. First, the leaf links that lead to an
+   activation held by a head: such a link can leave a memoized evaluation that
+   is not a head through the end of its body. The heads that start at the
+   position of the scan are bounded by the classes there (*Memoized links keep
+   positions*); those that start before it, and the activations that one head
+   holds, are not. Second, the leaf links when the shared call follows other
+   shared calls: the frames that the continuation leaves are then left at the
+   start of the unit, before the shared calls, or after some of them, so the
+   frames left between two links need not be followed by what matches without
+   consuming input; and the leaf links between which the parser leaves or
+   starts, at their position, a growth step or an evaluation in a context of
+   growths, which that claim leaves out. Third, the
    memoized links that the comparison leaves out: a link of a leader with a
    growth of its cycle open at the start of only one of its two evaluations,
    which then read different results of another leader of the cycle; in a Document parse, a link
@@ -2956,9 +3098,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    owned by memoized evaluations. The claims that count nothing are *Failure
    after a source*, the restarts, *Direct activations*, *Repeats*, *Memoized
    links*, *Calls that call no rule*, *Own regions*, *Counterparts in the
-   reference parse*, *Replays*, *Replayed activations*, *Answered calls*, *Covered keys*, *Links lead
-   to repeated evaluations* and *Links to heads*, with the definitions between
-   them; *Activations that do not succeed* and *Activations held by heads* come
+   reference parse*, *Replays*, *Replayed activations*, *Answered calls*, *Covered keys*,
+   *Reference links*, *Heads in the reference parse*, *Reference links lead to
+   repeated evaluations*, *Links lead to repeated evaluations*, *Links to heads*,
+   *Memoized links keep positions* and *Nothing in a memoized link is a head*,
+   with the definitions between them; *Activations that do not succeed* and *Activations held by heads* come
    after this step. The links and *Memoized links* bound the repetitions of an
    activation at one position through one rule, position and level; the sum
    over the positions, which *Activations held by heads* makes for the
