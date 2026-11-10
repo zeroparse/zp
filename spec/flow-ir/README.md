@@ -6,7 +6,8 @@ points, the values of captures, intermediate values and flags, and a body of sta
 branches, exits and assignments, and primitives that match terminals, record expectations, call rules, build values,
 evaluate terms and charge the budget. It holds no text of a target language, so a backend has little to decide.
 
-Flow IR is lowered from [Core IR](../core-ir/README.md), and lowered in turn to [Exec IR](../exec-ir/README.md) (see
+Flow IR is lowered from [Core IR](../core-ir/README.md); that lowering is not specified here, so this specification
+does not say which functions a grammar produces. Flow IR is lowered in turn to [Exec IR](../exec-ir/README.md) (see
 [Lowering From Flow IR](../exec-ir/lowering.md)), from which the backends print the rules of generated parsers.
 This specification defines the functions, their statements and expressions, the invariants that the verifier enforces
 and the text form. Flow IR is internal to the ZeroParse engine and written for engine maintainers and backend authors:

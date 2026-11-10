@@ -1,6 +1,7 @@
 # Functions
 
-A function of Flow IR is the body of one rule variant. Its parts are the following.
+A function of Flow IR is the body of one rule variant: a rule, or a part of its body that runs as a function of its own,
+lowered for one combination of the options below (Node, Budget and Document). Its parts are the following.
 
 | Part | Meaning |
 |:--|:--|

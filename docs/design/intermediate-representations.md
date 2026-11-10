@@ -6,7 +6,7 @@ deliberately omits field tables, node inventories and call sites: those change o
 package comments of `internal/ir/core`, `internal/ir/flow` and `internal/ir/exec`, is their source of truth. The reasons behind the design are in
 [record 062](records/062-backend-independent-optimization-ir.md) (Core and Flow IR) and
 [record 065](records/065-exec-ir-parser-vm.md) (Exec IR); the whole system is in
-[Architecture](architecture.md). The exact definitions are in the [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md), which prints the module of this page's example in full, the [Flow IR Specification](../../spec/flow-ir/README.md), which defines every statement and expression of a rule's body,, and the [Exec IR Specification](../../spec/exec-ir/README.md), which defines the parser VM, every operation with its contract, the compositions and their lowering, passes and printing. Nothing here is a public API.
+[Architecture](architecture.md). The exact definitions are in the [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md), which prints the module of this page's example in full, the [Flow IR Specification](../../spec/flow-ir/README.md), which defines every statement and expression of a rule's body, and the [Exec IR Specification](../../spec/exec-ir/README.md), which defines the parser VM, every operation with its contract, the compositions and their lowering, passes and printing. Nothing here is a public API.
 
 ## Three Levels
 

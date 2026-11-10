@@ -105,4 +105,4 @@ of their own moved onto it.
 
 Results print bare when there is one and in parentheses when there are several. A specialization of a composition is
 written as the composition's name followed by the set of features it is specialized for in brackets, as in
-`call [document, budget]`, with `[]` for the specialization with no feature on.
+`call [budget, document]`, with `[]` for the specialization with no feature on.

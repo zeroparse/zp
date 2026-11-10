@@ -13,7 +13,12 @@ Counter x and a Max n or `while` and the condition, in braces. A label without a
 number in the order of the listing. An If prints as `if`, its Init followed by `;` if it has one, and its condition, then
 its branches in braces. An Exit and a Continue print as `exit` and `continue` with their labels, and an assignment as
 its places, `=` and its values, a discard as `_` and a register by its name. Every other statement prints as a short
-lowercase word for its kind and its fields, such as `step`, `advance n` or `restore x1, r`.
+lowercase word for its kind and its fields, such as `step`, `advance n` or `restore x1, r`, except an increment, which
+prints as its variable and `++`.
+
+The listing below is the function of a rule that is a choice of the literal "a", a term that always succeeds and the
+literal "b", lowered with no budget controls, no Document and no recovery. The second alternative cannot fail, so the
+third is not lowered.
 
 ```text
 func r
