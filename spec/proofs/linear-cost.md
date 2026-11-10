@@ -3067,10 +3067,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    of the covered keys. Three parts are open.
    The first two are for a source in a rule that calls no rule and is not
    memoized at its calls, and both wait on a corrected condition of nesting at
-   one end: `main = e; e = "(" (e R "x" / e) / "."; R = [ ]*`, which the
-   conditions accept, costs time quadratic in n on `(`^n `.` followed
-   by n spaces, so the cycle argument of *Calls that call no rule* does not carry
-   over as the condition stands. First, the leaf links that lead to an
+   one end. The condition is being corrected because of
+   `main = e; e = "(" (e R "x" / e) / "."; R = [ ]*`, which the conditions
+   accept as they stand and which costs time quadratic in n on `(`^n `.`
+   followed by n spaces: each evaluation of `e` holds a scan of the spaces
+   after the first call of `e` and ends where that scan starts through the
+   second, so
+   the call of `R` is shared although the call of `e` before it is followed by
+   what cannot match without consuming input. The cycle argument of *Calls that
+   call no rule* does not carry over to it. First, the leaf links that lead to an
    activation held by a head: such a link can leave a memoized evaluation that
    is not a head through the end of its body. The heads that start at the
    position of the scan are bounded by the classes there (*Memoized links keep
