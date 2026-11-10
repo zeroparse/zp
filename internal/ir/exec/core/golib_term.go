@@ -18,6 +18,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
 	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"length", "termLength"}, {"text", "termText"},
+	{"convert", "termConvert"},
 }
 
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.
@@ -326,6 +327,21 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		return fmt.Sprintf("p.valueField(%s.RawFields, %s)", a[0], a[1]), true
 	case "node.zero":
 		return fmt.Sprintf("p.memberZero(%s, %s, %s)", a[0], a[1], a[2]), true
+	case "node.typeName":
+		if typed {
+			return "tnodeTypeOf(" + a[0] + ").name", true
+		}
+		return a[0] + "[0].typ", true
+	case "node.hasBase":
+		if typed {
+			return "tnodeHasBase(" + a[0] + ")", true
+		}
+		return a[0] + ".hasBase()", true
+	case "node.convert":
+		if typed {
+			return fmt.Sprintf("p.tretype(%s, %s)", a[0], a[1]), true
+		}
+		return fmt.Sprintf("%s.retype(%s)", a[1], a[0]), true
 	case "seq.at":
 		if typed {
 			return fmt.Sprintf("%s[%s]", a[0], a[1]), true
@@ -438,6 +454,12 @@ func engineValueOp(callee string, a []string) (string, bool) {
 		return "any(len(value.D(" + a[0] + ").Children))", true
 	case "str.len":
 		return "any(p.ValueTextLen(" + a[0] + ".(string)))", true
+	case "node.typeName":
+		return a[0] + "[0].Type", true
+	case "node.hasBase":
+		return "value.HasBase(" + a[0] + ")", true
+	case "node.convert":
+		return fmt.Sprintf("%s.Retype(%s)", a[1], a[0]), true
 	}
 	// The remaining primitives read the same in every Go runtime.
 	for _, typed := range []bool{false} {

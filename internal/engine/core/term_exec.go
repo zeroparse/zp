@@ -111,6 +111,8 @@ func (p *Parser) termError(code int, a, b any, op, n int) error {
 		return p.ActionError("len: invalid argument ", TypeName(a))
 	case 14: // invalid text argument
 		return p.ActionError("text: invalid argument ", TypeName(a))
+	case 15: // not convertible
+		return p.ActionError("cannot convert ", TypeName(a), " to ", b.(string))
 	}
 	return errors.New("core: no term failure")
 }
@@ -383,4 +385,18 @@ func (p *Parser) termText(x any) (string, error) {
 		return p.Text(int(value.D(n).Start), int(value.D(n).End)), nil
 	}
 	return "", p.termError(14, x, nil, 0, 0)
+}
+
+// termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+// type or not, becomes a node of t. Any other value fails.
+//
+// Printed from Exec IR function convert of internal/ir/exec/core.
+func (p *Parser) termConvert(t *value.NodeTypeKinds, x any) (any, error) {
+	n, ok := nodeOf(x)
+	if ok {
+		if value.HasBase(n) {
+			return t.Retype(n), nil
+		}
+	}
+	return nil, p.termError(15, x, any(t[0].Type), 0, 0)
 }

@@ -210,18 +210,21 @@ export class TypedNode extends Node {
 // the same range and content, or v itself if it already has the type. It returns null if v is not
 // a string, tuple or list node.
 export function convertNode(typ: string, v: Value): Node | null {
-  if (!(v instanceof Node)) {
+  if (!(v instanceof Node) || nodeShape(v) > shapeList) {
     return null;
   }
-  const shape = nodeShape(v);
-  if (shape > shapeList) {
-    return null;
-  }
+  return retypeNode(v, typ);
+}
+
+// retypeNode is the operation node.convert: it returns v, a string, tuple or list node, as a node of
+// the named node type typ: a copy of v with the same range and content, or v itself if it already has
+// the type.
+export function retypeNode(v: Node, typ: string): Node {
   if (v.type === typ) {
     return v;
   }
   // The node keeps what it holds now: the rule that made a fresh node may still change it.
-  const n = new TypedNode(typ, v.start, v.end, v.text, v.fresh ? v.children.slice() : v.children, v.fields.slice(), v.terminal, shape);
+  const n = new TypedNode(typ, v.start, v.end, v.text, v.fresh ? v.children.slice() : v.children, v.fields.slice(), v.terminal, nodeShape(v));
   n.labeled = v.labeled;
   return n;
 }
@@ -4343,6 +4346,12 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termConvert is the conversion T{x} to the named node type typ; it returns the node and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termConvert(typ: string, x: Value): [Value, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
   // memberKind returns the kind of the member read name.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   memberKind(name: string): number {
@@ -4662,9 +4671,11 @@ export class Actx {
 
   // convert evaluates a node type constructor T{v}: it converts v to the named node type typ.
   convert(typ: string, v: Value): Value {
-    const u = unboxValue(v);
-    const n = convertNode(typ, u);
-    return n === null ? evalError(`cannot convert ${typeName(u)} to ${typ}`) : n;
+    const [n, e] = this.p.termConvert(typ, v);
+    if (e !== null) {
+      return evalError(e as string);
+    }
+    return n;
   }
 
   newStruct(typ: string, ...kv: Value[]): Value {

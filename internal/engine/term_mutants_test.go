@@ -49,11 +49,13 @@ var engineMutants = []engineMutant{
 	{"a function is an element", "term_exec.go", "termElement", "return nil, p.termError(11, v, any(fn), 0, 0)", "return nil, nil"},
 	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
 	{"the text of a string node is the input", "term_exec.go", "termText", "if held {", "if held && false {"},
+	{"a list value converts", "term_exec.go", "termConvert", "if value.HasBase(n) {", "if true {"},
+	{"a value that does not convert is nil", "term_exec.go", "termConvert", "return nil, p.termError(15, x, any(t[0].Type), 0, 0)", "return nil, nil"},
 }
 
 // TestPrintedOperatorMutants is the proof that TestEngineValueConformance, TestEngineValueBoxedOperands,
 // TestEngineValueMemberTable and TestEngineValueBuiltinTable hold the printed code of the operators, the
-// member reads and the built-in functions of terms in the engine: with a source overlay of each mutant, one
+// member reads, the built-in functions and the conversions of terms in the engine: with a source overlay of each mutant, one
 // of them fails.
 func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {

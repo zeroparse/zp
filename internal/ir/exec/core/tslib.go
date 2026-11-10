@@ -50,6 +50,7 @@ var tsSpecs = []struct {
 	{fn: "items", name: "termItems"},
 	{fn: "length", name: "termLength"},
 	{fn: "text", name: "termText"},
+	{fn: "convert", name: "termConvert"},
 }
 
 // TSMethods returns the printed methods of the TypeScript runtime.
@@ -157,6 +158,7 @@ var tsTarget = &exects.Target{
 			ops.Line: "OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt | null",
 			ops.Term: "Action", ops.Datum: "Value", ops.Seq: "readonly (Node | null)[]",
 			ops.Obj: "Node", ops.Name: "string", ops.Str: "string", ops.Act: "Actx", ops.Fail: "Value", ops.Elem: "Node | null",
+			ops.NodeType: "string",
 		}[name]
 	},
 	FuncName: func(name string) string {
@@ -237,6 +239,12 @@ var tsTarget = &exects.Target{
 			return "this.nodeValue(" + a[0] + ")"
 		case "node.isStruct":
 			return "(this.g.structFields.get(" + a[0] + ".type) !== undefined)"
+		case "node.typeName":
+			return a[0]
+		case "node.hasBase":
+			return "(nodeShape(" + a[0] + ") <= shapeList)"
+		case "node.convert":
+			return fmt.Sprintf("retypeNode(%s, %s)", a[0], a[1])
 		case "depth.exit":
 			return "this.depth--"
 		case "frame.markPos", "frame.markEnv", "frame.markTrail", "frame.markRec":

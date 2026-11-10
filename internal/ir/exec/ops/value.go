@@ -157,6 +157,9 @@ const (
 	ErrLenArg
 	// ErrTextArg is an argument of text that has no text (a is the argument).
 	ErrTextArg
+	// ErrConvert is the conversion to a named node type of a value that is not a string, tuple or list
+	// node (a is the value, name the named node type).
+	ErrConvert
 )
 
 // TermErrors are the messages of the failures of a term.
@@ -176,6 +179,7 @@ var TermErrors = []TermError{
 	ErrArgList:    {Name: "argument not a list", Text: "{name}: expected a list, got {a}"},
 	ErrLenArg:     {Name: "invalid len argument", Text: "len: invalid argument {a}"},
 	ErrTextArg:    {Name: "invalid text argument", Text: "text: invalid argument {a}"},
+	ErrConvert:    {Name: "not convertible", Text: "cannot convert {a} to {name}"},
 }
 
 // Kinds of a member read, by the code the composition member takes. A member name of a term is the
@@ -234,6 +238,9 @@ const Act = "Act"
 // Elem is the handle type of an element of a list or a tuple that a term makes, as Seq holds it: a node
 // or nil in a target whose elements are nodes, and any value in a target whose elements are any values.
 const Elem = "Elem"
+
+// NodeType is the handle type of a named node type, to which a conversion converts a value.
+const NodeType = "NodeType"
 
 // Str is the handle type of a string of the target that is not a value, such as the result of text,
 // which a comparison of texts reads without making a value of it.
@@ -405,6 +412,16 @@ counts characters charges for the bytes it reads.`,
 		Contract: `Returns the string x.`, Requires: `x is a string.`})
 	pure(&exec.Op{Name: "str.empty", Results: []exec.Type{exec.THandle(Str)},
 		Contract: `Returns the empty string.`})
+	nt := exec.P("t", m.AddHandle(NodeType, Val, "A named node type, to which a conversion converts a value."))
+	pure(&exec.Op{Name: "node.typeName", Params: []exec.Param{nt}, Results: []exec.Type{exec.THandle(Name)},
+		Contract: `Returns the name of the named node type t, as the {name} of a failure reads it.`})
+	pure(&exec.Op{Name: "node.hasBase", Params: []exec.Param{n}, Results: []exec.Type{exec.TBool},
+		Contract: `Reports whether n is a string node, a tuple node or a list node, of a named node type or not, which
+a conversion converts: not an error, a box, a list value, a tuple value or a struct.`})
+	pure(&exec.Op{Name: "node.convert", Params: []exec.Param{n, nt}, Results: []exec.Type{datum},
+		Contract: `Returns n as a node of the named node type t: n itself if it has the type, and otherwise a new node with
+the range, the value and the captures of n, the type t and no rule name, which keeps what n holds now.`,
+		Requires: `node.hasBase(n).`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

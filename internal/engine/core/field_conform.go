@@ -7,9 +7,10 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// ConvertError reports a value that does not convert to the named node type typ.
-func (p *Parser) ConvertError(v any, typ string) error {
-	return p.ActionError("cannot convert ", TypeName(v), " to ", typ)
+// Convert evaluates a node type constructor T{v}: it converts v to the named node type of ks, as the
+// composition convert (term_exec.go) does.
+func (p *Parser) Convert(ks *value.NodeTypeKinds, v any) (any, error) {
+	return p.termConvert(ks, v)
 }
 
 // FieldConforms reports whether v is a value of type t in the value model. It charges a step for

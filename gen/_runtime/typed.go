@@ -1400,31 +1400,48 @@ func tnamed(n TVal) bool {
 // the named node type nt that v converts to (a copy of v with the same range and content, or v
 // itself if it already has the type), and reports false if v is not a string, tuple or list node.
 func (p *TParser) tconvert(nt uint16, v any) (any, bool) {
-	switch x := v.(type) {
-	case *TMatch:
-		if x.Nt == nt {
-			return x, true
-		}
-		m := &TMatch{TNode: x.TNode, Nt: nt}
-		return m, true
-	case *TSeq:
-		if x.Typ != "tuple" && x.Typ != "list" {
-			return nil, false
-		}
-		if x.nt == nt {
-			return x, true
-		}
-		c := p.nodes.one()
-		*c = *x
-		c.nt, c.fresh = nt, false
-		if x.fresh {
-			// The rule that made x may still change it; the copy keeps what it holds now.
-			c.Kids = append([]any(nil), x.Kids...)
-		}
-		c.fields = append([]tfield(nil), x.fields...)
-		return c, true
+	n, ok := tnodeOf(v)
+	if !ok || !tnodeHasBase(n) {
+		return nil, false
 	}
-	return nil, false
+	return p.tretype(n, nt), true
+}
+
+// tnodeHasBase is the operation node.hasBase in the typed runtime: it reports whether n is a string,
+// tuple or list node, of a named node type or not.
+func tnodeHasBase(n TVal) bool {
+	switch x := n.(type) {
+	case *TMatch:
+		return true
+	case *TSeq:
+		return x.Typ == "tuple" || x.Typ == "list"
+	}
+	return false
+}
+
+// tretype is the operation node.convert in the typed runtime: it returns n, a string, tuple or list
+// node, as a node of the named node type nt: a copy of n with the same range and content, or n
+// itself if it already has the type.
+func (p *TParser) tretype(n TVal, nt uint16) any {
+	if x, ok := n.(*TMatch); ok {
+		if x.Nt == nt {
+			return x
+		}
+		return &TMatch{TNode: x.TNode, Nt: nt}
+	}
+	x := n.(*TSeq)
+	if x.nt == nt {
+		return x
+	}
+	c := p.nodes.one()
+	*c = *x
+	c.nt, c.fresh = nt, false
+	if x.fresh {
+		// The rule that made x may still change it; the copy keeps what it holds now.
+		c.Kids = append([]any(nil), x.Kids...)
+	}
+	c.fields = append([]tfield(nil), x.fields...)
+	return c
 }
 
 // TConvertResult converts v, the value of rule r, to the rule's named node type.
@@ -1439,9 +1456,9 @@ func (p *TParser) TConvertResult(r *TRule, v any) any {
 // Convert evaluates a node type constructor T{v} (ActCtx.Convert): it converts v to the named node
 // type with the index nt.
 func (c *TActCtx) Convert(nt uint16, v any) any {
-	n, ok := c.P.tconvert(nt, v)
-	if !ok {
-		c.P.evalErrorf("cannot convert %s to %s", ttypeName(v), tnodeTypeOf(nt).name)
+	n, e := c.P.termConvert(nt, v)
+	if e != nil {
+		panic(e)
 	}
 	return n
 }

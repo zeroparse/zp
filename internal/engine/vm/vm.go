@@ -32,7 +32,7 @@ type Program struct {
 	fieldTypes []*compile.FieldType
 	typeNames  map[string]bool
 	// nodeKinds holds the kinds of the module's named node types by the string index of their
-	// names (nil when the module has none).
+	// names, at every index of the name (nil when the module has none).
 	nodeKinds []*value.NodeTypeKinds
 	// vars is the module's variable table (nil when it declares none).
 	vars *compile.VarTable
@@ -142,12 +142,21 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 			vm.checkType(int(in.A))
 		}
 	}
+	var nodeTypes map[string]*value.NodeTypeKinds
 	for _, t := range m.Types {
 		if t.Node >= 0 {
-			if vm.nodeKinds == nil {
-				vm.nodeKinds = make([]*value.NodeTypeKinds, len(m.Strings))
+			if nodeTypes == nil {
+				nodeTypes = map[string]*value.NodeTypeKinds{}
 			}
-			vm.nodeKinds[t.Name] = value.NewNodeTypeKinds(m.Strings[t.Name])
+			nodeTypes[m.Strings[t.Name]] = value.NewNodeTypeKinds(m.Strings[t.Name])
+		}
+	}
+	if nodeTypes != nil {
+		// The module file checks the type of an ENODE by its name, which the string table may hold at
+		// more than one index.
+		vm.nodeKinds = make([]*value.NodeTypeKinds, len(m.Strings))
+		for i, s := range m.Strings {
+			vm.nodeKinds[i] = nodeTypes[s]
 		}
 	}
 	vtable := compile.ModuleVarTable(m)
@@ -300,20 +309,9 @@ func (vm *Program) cast(p *core.Parser, v any, pos, ip int) (any, error) {
 //
 //go:noinline
 func (vm *Program) convert(p *core.Parser, v any, ip int) (any, error) {
-	in := &vm.m.Exprs[ip]
-	name := vm.m.Strings[in.A]
-	var ks *value.NodeTypeKinds
-	if vm.nodeKinds != nil {
-		ks = vm.nodeKinds[in.A]
-	}
-	if ks == nil {
-		return nil, p.ConvertError(v, name)
-	}
-	n, ok := ks.Convert(v)
-	if !ok {
-		return nil, p.ConvertError(v, name)
-	}
-	return n, nil
+	// The module file checks that the type of every ENODE is a declared node type, whose kinds
+	// nodeKinds holds at the index of its name.
+	return p.Convert(vm.nodeKinds[vm.m.Exprs[ip].A], v)
 }
 
 func (vm *Program) operatorsRule(pi *bytecode.OperatorsRuleInfo) *core.OperatorsRule {

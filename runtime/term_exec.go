@@ -111,6 +111,8 @@ func (p *Parser) termError(code int, a, b any, op, n int) any {
 		return p.evalErrorValue("len: invalid argument %s", typeName(a))
 	case 14: // invalid text argument
 		return p.evalErrorValue("text: invalid argument %s", typeName(a))
+	case 15: // not convertible
+		return p.evalErrorValue("cannot convert %s to %s", typeName(a), b.(string))
 	}
 	panic("runtime: no term failure")
 }
@@ -152,6 +154,8 @@ func (p *TParser) termError(code int, a, b any, op, n int) any {
 		return p.evalErrorValue("len: invalid argument %s", ttypeName(a))
 	case 14: // invalid text argument
 		return p.evalErrorValue("text: invalid argument %s", ttypeName(a))
+	case 15: // not convertible
+		return p.evalErrorValue("cannot convert %s to %s", ttypeName(a), b.(string))
 	}
 	panic("runtime: no term failure")
 }
@@ -426,6 +430,20 @@ func (p *Parser) termText(x any) (string, any) {
 	return "", p.termError(14, x, nil, 0, 0)
 }
 
+// termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+// type or not, becomes a node of t. Any other value fails.
+//
+// Printed from Exec IR function convert of internal/ir/exec/core.
+func (p *Parser) termConvert(t *nodeTypeKinds, x any) (any, any) {
+	n, ok := nodeOf(x)
+	if ok {
+		if n.hasBase() {
+			return t.retype(n), nil
+		}
+	}
+	return nil, p.termError(15, x, any(t[0].typ), 0, 0)
+}
+
 // termEqual applies == to l and r: it compares two ints, two strings or two bools, and any value with nil,
 // which equals only nil, a box counting as the value it holds. It returns false for ok when the pair has no
 // equality, which is every other pair.
@@ -694,4 +712,18 @@ func (p *TParser) termText(x any) (string, any) {
 		return p.Text(n.TSpan()), nil
 	}
 	return "", p.termError(14, x, nil, 0, 0)
+}
+
+// termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+// type or not, becomes a node of t. Any other value fails.
+//
+// Printed from Exec IR function convert of internal/ir/exec/core.
+func (p *TParser) termConvert(t uint16, x any) (any, any) {
+	n, ok := tnodeOf(x)
+	if ok {
+		if tnodeHasBase(n) {
+			return p.tretype(n, t), nil
+		}
+	}
+	return nil, p.termError(15, x, any(tnodeTypeOf(t).name), 0, 0)
 }

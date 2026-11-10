@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// The built-in table: calls of the built-in functions len and text, and of the compositions element
-// and items, which every list, tuple and list-taking built-in function applies to its arguments, on the
-// values of one fixture, and what each returns in the canonical form of MemberCanon. Each target builds
+// The built-in table: calls of the built-in functions len and text, of the compositions element and
+// items, which every list, tuple and list-taking built-in function applies to its arguments, and of the
+// conversion to a named node type, on the values of one fixture, and what each returns in the canonical form of MemberCanon. Each target builds
 // the fixture over the input BuiltinInput and runs the calls through its printed compositions; the
 // tests that do are the ones the mutants of that code name.
 
@@ -31,6 +31,19 @@ const (
 	BuiltinPair = "[1, 2]"
 	// BuiltinFunc is a function, which is not a value of a term.
 	BuiltinFunc = "func"
+	// BuiltinTyped is BuiltinText converted to the named node type BuiltinOther, a node of a named node
+	// type that another conversion converts.
+	BuiltinTyped = "typed"
+	// BuiltinBox is the int 1 as a list holds it: a box in a target whose elements are nodes, and the
+	// int itself in the others.
+	BuiltinBox = "box"
+)
+
+// BuiltinType and BuiltinOther are the named node types of the fixture, of string nodes: CallConvert
+// converts to BuiltinType, and BuiltinTyped has the type BuiltinOther.
+const (
+	BuiltinType  = "N"
+	BuiltinOther = "M"
 )
 
 // The calls of the table, by the name a case calls.
@@ -45,11 +58,13 @@ const (
 	// CallItems is the composition items for the built-in function concat, which returns the elements
 	// of x as a list.
 	CallItems = "items"
+	// CallConvert is the conversion BuiltinType{x}, whose node reads as the name of its type.
+	CallConvert = "convert"
 )
 
 // BuiltinCase is a call Call of the value Value of the fixture, which returns Want: a value in the form
-// of MemberCanon, or "error: " and the text of the failure. A Want that ends with "got " is a prefix: the
-// name of the type of a function differs between targets.
+// of MemberCanon, or "error: " and the text of the failure. A Want that ends with "..." is a prefix of a
+// longer result: the names of the types of a function and of a list value differ between targets.
 type BuiltinCase struct{ Call, Value, Want string }
 
 // BuiltinCases are the calls of the built-in table.
@@ -72,12 +87,20 @@ var BuiltinCases = []BuiltinCase{
 	{CallElement, BuiltinString, `box "ab"`},
 	{CallElement, BuiltinBool, "box true"},
 	{CallElement, BuiltinPair, "[1, 2]"},
-	{CallElement, BuiltinFunc, "error: list: elements must be values, got "},
+	{CallElement, BuiltinFunc, "error: list: elements must be values, got ..."},
 	{CallItems, MemberNil, "[]"},
 	{CallItems, BuiltinPair, "[1, 2]"},
 	{CallItems, MemberList, "[]"},
 	{CallItems, MemberInt, "error: concat: expected a list, got int"},
 	{CallItems, BuiltinString, "error: concat: expected a list, got string"},
+	{CallConvert, BuiltinText, BuiltinType},
+	{CallConvert, BuiltinNode, BuiltinType},
+	{CallConvert, BuiltinTyped, BuiltinType},
+	{CallConvert, MemberNil, "error: cannot convert nil to N"},
+	{CallConvert, MemberInt, "error: cannot convert int to N"},
+	{CallConvert, BuiltinBox, "error: cannot convert int to N"},
+	{CallConvert, BuiltinString, "error: cannot convert string to N"},
+	{CallConvert, BuiltinPair, "error: cannot convert [..."},
 }
 
 // BuiltinFn is the name of the built-in function that a call of CallElement or CallItems passes to the
@@ -96,8 +119,8 @@ func RunBuiltins(target string, call func(call, value string) string) error {
 	for _, c := range BuiltinCases {
 		got := call(c.Call, c.Value)
 		ok := got == c.Want
-		if strings.HasSuffix(c.Want, "got ") {
-			ok = strings.HasPrefix(got, c.Want) && len(got) > len(c.Want)
+		if prefix, cut := strings.CutSuffix(c.Want, "..."); cut {
+			ok = strings.HasPrefix(got, prefix) && len(got) > len(prefix)
 		}
 		if !ok {
 			bad = append(bad, fmt.Sprintf("%s: %s(%s) = %s, want %s", target, c.Call, c.Value, got, c.Want))

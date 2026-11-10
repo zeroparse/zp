@@ -222,12 +222,24 @@ func NewNodeTypeKinds(typ string) *NodeTypeKinds {
 // v is not a string, tuple or list node.
 func (ks *NodeTypeKinds) Convert(v any) (*Node, bool) {
 	n, ok := v.(*Node)
-	if !ok || n == nil || n.d.Kind == nil || n.d.Kind.Base < 0 || n.d.Kind.Base > BaseList {
+	if !ok || n == nil || !HasBase(n) {
 		return nil, false
 	}
+	return ks.Retype(n), true
+}
+
+// HasBase reports whether n is a string, tuple or list node, of a named node type or not: a node that
+// a conversion converts.
+func HasBase(n *Node) bool {
+	return n.d.Kind != nil && n.d.Kind.Base >= 0 && n.d.Kind.Base <= BaseList
+}
+
+// Retype returns n, a string, tuple or list node (HasBase), as a node of the named node type of ks: a
+// copy of n with the same range and content, or n itself if it already has the type.
+func (ks *NodeTypeKinds) Retype(n *Node) *Node {
 	k := ks[n.d.Kind.Base]
 	if n.d.Kind == k {
-		return n, true
+		return n
 	}
 	c := *n
 	c.d.Kind, c.d.Fresh = k, false
@@ -236,13 +248,13 @@ func (ks *NodeTypeKinds) Convert(v any) (*Node, bool) {
 		c.d.Children = slices.Clone(n.d.Children)
 	}
 	c.d.Fields = slices.Clone(n.d.Fields)
-	return &c, true
+	return &c
 }
 
 // ConvertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
 func (ks *NodeTypeKinds) ConvertOwned(n *Node) bool {
-	if n == nil || n.d.Kind == nil || n.d.Kind.Base < 0 || n.d.Kind.Base > BaseList {
+	if n == nil || !HasBase(n) {
 		return false
 	}
 	n.d.Kind = ks[n.d.Kind.Base]

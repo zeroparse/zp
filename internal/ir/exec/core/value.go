@@ -225,6 +225,18 @@ node, and the number of elements of a list, a tuple or another node; nil has len
 	text.Doc = `text is the built-in function text: a string itself, the text that a string node or an error holds,
 the input of the range of any other node, and the empty string for nil. Any other value fails.`
 
+	convert := m.AddFunc("convert", []Param{P("t", THandle(ops.NodeType)), P("x", datum)}, val, nil, func(b *Builder) {
+		o := b.LetN([]string{"n", "ok"}, C("node.of", x))
+		b.If(o[1], func(b *Builder) {
+			b.If(C("node.hasBase", o[0]), func(b *Builder) { b.Return(C("node.convert", o[0], L("t")), ok) })
+		})
+		// A box holds an int, a string or a bool, which has no base, and the failure names the type of
+		// the value it holds.
+		fail(b, ops.ErrConvert, x, C("val.name", C("node.typeName", L("t"))), Int(0), Int(0))
+	})
+	convert.Doc = `convert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+type or not, becomes a node of t. Any other value fails.`
+
 	logic.Doc = `logic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 true and of || only if it is false, and checks each operand it evaluates.`

@@ -219,13 +219,26 @@ func NewNodeTypeKinds(typ string) *nodeTypeKinds {
 // v with the same range and content, or v itself if it already has the type. It reports false if
 // v is not a string, tuple or list node.
 func (ks *nodeTypeKinds) convert(v any) (*Node, bool) {
-	n, ok := v.(*Node)
-	if !ok || n == nil || n.RawKind == nil || n.RawKind.Base < 0 || n.RawKind.Base > baseList {
+	n, ok := nodeOf(v)
+	if !ok || !n.hasBase() {
 		return nil, false
 	}
+	return ks.retype(n), true
+}
+
+// hasBase reports whether n is a string, tuple or list node, of a named node type or not: a node
+// that a conversion converts. It is the operation node.hasBase.
+func (n *Node) hasBase() bool {
+	return n.RawKind != nil && n.RawKind.Base >= 0 && n.RawKind.Base <= baseList
+}
+
+// retype returns n, a string, tuple or list node, as a node of the named node type of ks: a copy of
+// n with the same range and content, or n itself if it already has the type. It is the operation
+// node.convert.
+func (ks *nodeTypeKinds) retype(n *Node) *Node {
 	k := ks[n.RawKind.Base]
 	if n.RawKind == k {
-		return n, true
+		return n
 	}
 	c := *n
 	c.RawKind, c.RawFresh = k, false
@@ -234,13 +247,13 @@ func (ks *nodeTypeKinds) convert(v any) (*Node, bool) {
 		c.RawChildren = append([]*Node(nil), n.RawChildren...)
 	}
 	c.RawFields = append(Fields(nil), n.RawFields...)
-	return &c, true
+	return &c
 }
 
 // convertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
 func (ks *nodeTypeKinds) convertOwned(n *Node) bool {
-	if n == nil || n.RawKind == nil || n.RawKind.Base < 0 || n.RawKind.Base > baseList {
+	if n == nil || !n.hasBase() {
 		return false
 	}
 	n.RawKind = ks[n.RawKind.Base]
@@ -258,12 +271,12 @@ func (n *Node) BaseNode() *Node {
 	return &c
 }
 
-// Convert evaluates a node type constructor T{v}: it converts v to the named node type typ.
+// Convert evaluates a node type constructor T{v}: it converts v to the named node type typ, as the
+// composition convert (term_exec.go) does.
 func (c *ActCtx) Convert(typ string, v any) any {
-	v = UnboxValue(v)
-	n, ok := c.P.g.NodeTypes[typ].convert(v)
-	if !ok {
-		c.P.evalErrorf("cannot convert %s to %s", typeName(v), typ)
+	n, e := c.P.termConvert(c.P.g.NodeTypes[typ], v)
+	if e != nil {
+		panic(e)
 	}
 	return n
 }

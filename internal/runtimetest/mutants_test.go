@@ -47,6 +47,8 @@ var goMutants = []goMutant{
 	{"a function is an element", "term_exec.go", "termElement", "return nil, p.termError(11, v, any(fn), 0, 0)", "return nil, nil"},
 	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
 	{"the text of a string is empty", "term_exec.go", "termText", "return x.(string), nil", "return \"\", nil"},
+	{"a list value converts", "term_exec.go", "termConvert", "if ok {\n\t\tif ", "if ok {\n\t\tif true || "},
+	{"a value that does not convert is nil", "term_exec.go", "termConvert", "return nil, p.termError(15, ", "return nil, nil\n\treturn nil, p.termError(15, "},
 }
 
 // TestPrintedOperatorMutants is the proof that the value conformance holds the printed code of the

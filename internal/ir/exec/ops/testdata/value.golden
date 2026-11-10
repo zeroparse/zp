@@ -80,6 +80,9 @@ handle Str of value
 handle Elem of value
   // An element of a list or a tuple that a term makes, as a Seq holds it.
 
+handle NodeType of value
+  // A named node type, to which a conversion converts a value.
+
 op memo.lookup(rule int, pos int, level int, key Values, docOnly bool) (Entry, bool)
   component memo
   reads memo
@@ -748,6 +751,28 @@ op str.empty() Str
   cost <= 0
   contract:
     // Returns the empty string.
+
+op node.typeName(t NodeType) Name
+  component value
+  cost <= 0
+  contract:
+    // Returns the name of the named node type t, as the {name} of a failure reads it.
+
+op node.hasBase(n Obj) bool
+  component value
+  cost <= 0
+  contract:
+    // Reports whether n is a string node, a tuple node or a list node, of a named node type or not, which
+    // a conversion converts: not an error, a box, a list value, a tuple value or a struct.
+
+op node.convert(n Obj, t NodeType) Datum
+  component value
+  cost <= 0
+  contract:
+    // Returns n as a node of the named node type t: n itself if it has the type, and otherwise a new node with
+    // the range, the value and the captures of n, the type t and no rule name, which keeps what n holds now.
+  requires:
+    // node.hasBase(n).
 
 op seq.len(items Seq) int
   component value

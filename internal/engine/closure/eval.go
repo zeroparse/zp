@@ -102,17 +102,8 @@ func (cm *Machine) convert(c *core.EvalCtx, t *grammar.New) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := c.P
-	ks := p.Prog.NodeKinds[t.Type]
-	if ks == nil {
-		return nil, p.ConvertError(x, t.Type)
-	}
-	name := ks[0].Type // the type's own name, also for an alias of it
-	n, ok := ks.Convert(x)
-	if !ok {
-		return nil, p.ConvertError(x, name)
-	}
-	return n, nil
+	// The kinds of an alias are those of the type itself, which a failure names.
+	return c.P.Convert(c.P.Prog.NodeKinds[t.Type], x)
 }
 
 func (cm *Machine) Eval(c *core.EvalCtx, t grammar.Term) (any, error) {

@@ -17,8 +17,8 @@ func (builtinFunc) Arity() int                  { return 1 }
 func (builtinFunc) Apply(x, _ any) (any, error) { return x, nil }
 
 // TestEngineValueBuiltinTable runs the built-in table (conform.BuiltinCases) on the engine's compositions
-// length, text, element and items (termLength, termText, termElement and termItems, printed from Exec IR),
-// through the methods that the backends call.
+// length, text, element, items and convert (termLength, termText, termElement, termItems and termConvert,
+// printed from Exec IR), through the methods that the backends call.
 func TestEngineValueBuiltinTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
@@ -38,10 +38,13 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			conform.BuiltinNode:   p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
 			conform.MemberList:    c.ListNode(nil),
 			conform.BuiltinFunc:   builtinFunc{},
+			conform.BuiltinTyped:  value.NewNodeTypeKinds(conform.BuiltinOther).Retype(text),
 		}
+		nt := value.NewNodeTypeKinds(conform.BuiltinType)
 		one, _ := c.Element("list", 1)
 		two, _ := c.Element("list", 2)
 		vals[conform.BuiltinPair] = c.ListNode([]*value.Node{one, two})
+		vals[conform.BuiltinBox] = one
 		err := conform.RunBuiltins("engine", func(call, v string) string {
 			var got any
 			var err error
@@ -55,6 +58,8 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 				if n, err = c.Element(conform.BuiltinFn(call), vals[v]); n != nil {
 					got = n
 				}
+			case conform.CallConvert:
+				got, err = p.Convert(nt, vals[v])
 			default:
 				var items []*value.Node
 				items, err = p.ValueListItems(conform.BuiltinFn(call), vals[v])

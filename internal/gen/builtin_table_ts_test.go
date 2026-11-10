@@ -14,9 +14,9 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// builtinScript runs the calls of calls.json on the TypeScript runtime (Actx.length, textStr, element and
-// listItems, over the printed methods termLength, termText, termElement and termItems) and prints the
-// canonical result of each (conform.MemberCanon), in order. The input of the parser is input.txt.
+// builtinScript runs the calls of calls.json on the TypeScript runtime (Actx.length, textStr, element,
+// listItems and convert, over the printed methods termLength, termText, termElement, termItems and
+// termConvert) and prints the canonical result of each (conform.MemberCanon), in order. The input of the parser is input.txt.
 const builtinScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
 const CONTROLLED = false;
@@ -33,6 +33,7 @@ const values: Record<string, p.Value> = {
   "nil": null, "1": 1, '"ab"': "ab", "true": true, "text": text,
   "node": new p.Node("tuple", "", 2, 5, "", [text, text], p.noFields, false, false),
   "[1, 2]": c.list(1, 2), "[]": c.list(), "func": ((x: p.Value) => x) as unknown as p.Value,
+  "typed": p.convertNode("M", text), "box": c.element("list", 1),
 };
 const canon = (v: p.Value): string => {
   if (v === null || v === undefined) return "nil";
@@ -52,6 +53,7 @@ const call = (fn: string, v: p.Value): p.Value => {
     case "len": return c.length(v);
     case "text": return c.textStr(v);
     case "element": return c.element("list", v);
+    case "convert": return c.convert("N", v);
   }
   return c.listNode([...c.listItems("concat", v)]);
 };
@@ -142,6 +144,8 @@ func TestPrintedBuiltinMutantsTypeScript(t *testing.T) {
 		{"a function is an element", "termElement(c: Actx", "return [null, this.termError(11, v, fn, 0, 0)];", "return [null, null];"},
 		{"concat takes any value", "termItems(fn: string", "return [items, this.termError(12, v, fn, 0, 0)];", "return [items, null];"},
 		{"the text of a string is empty", "termText(x: Value)", "return [(x as string), null];", "return [\"\", null];"},
+		{"a list value converts", "termConvert(t: string", "if ((nodeShape(n) <= shapeList)) {", "if (true) {"},
+		{"a value that does not convert is nil", "termConvert(t: string", "return [null, this.termError(15, x, t, 0, 0)];", "return [null, null];"},
 	}
 	for _, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {

@@ -7,20 +7,27 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// The built-in table (conform.BuiltinCases) on the compositions length, text, element and items of the
-// node and the typed runtime (termLength, termText, termElement and termItems, printed from Exec IR),
-// through the methods that a generated parser calls.
+// The built-in table (conform.BuiltinCases) on the compositions length, text, element, items and convert
+// of the node and the typed runtime (termLength, termText, termElement, termItems and termConvert,
+// printed from Exec IR), through the methods that a generated parser calls.
 
 // nodeBuiltinFixture returns the context of a node parser over conform.BuiltinInput, with a budget
 // control if controlled, and the values of the fixture.
 func nodeBuiltinFixture(controlled bool) (*ActCtx, map[string]any) {
-	p := &Parser{g: NewGrammar(100), unit: Bytes, bs: conform.BuiltinInput}
+	g := NewGrammar(100)
+	for _, typ := range []string{conform.BuiltinType, conform.BuiltinOther} {
+		g.NodeTypes[typ] = NewNodeTypeKinds(typ)
+	}
+	p := &Parser{g: g, unit: Bytes, bs: conform.BuiltinInput}
 	if controlled {
 		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
 	}
 	c := &ActCtx{P: p}
 	text := &Node{RawKind: RawKindMatch, RawTerminal: true, RawText: "xyz", RawStart: 2, RawEnd: 4}
+	typed, _ := g.NodeTypes[conform.BuiltinOther].convert(text)
 	return c, map[string]any{
+		conform.BuiltinTyped:  typed,
+		conform.BuiltinBox:    &Node{RawKind: kindBox, box: 1},
 		conform.MemberNil:     nil,
 		conform.MemberInt:     1,
 		conform.BuiltinString: "ab",
@@ -43,6 +50,8 @@ func typedBuiltinFixture(controlled bool) (*TActCtx, map[string]any) {
 	c := &TActCtx{P: &TParser{Parser: p}}
 	text := &TMatch{TNode: TNode[string]{Span: Span{2, 4}, Value: "xyz"}}
 	return c, map[string]any{
+		conform.BuiltinTyped:  &TMatch{TNode: text.TNode, Nt: builtinOtherNt},
+		conform.BuiltinBox:    1,
 		conform.MemberNil:     nil,
 		conform.MemberInt:     1,
 		conform.BuiltinString: "ab",
@@ -54,6 +63,13 @@ func typedBuiltinFixture(controlled bool) (*TActCtx, map[string]any) {
 		conform.BuiltinFunc:   func(x any) any { return x },
 	}
 }
+
+// builtinTypeNt and builtinOtherNt are the indexes of the named node types of the fixture in the typed
+// runtime.
+var (
+	builtinTypeNt  = TRegisterNodeType(conform.BuiltinType, nil)
+	builtinOtherNt = TRegisterNodeType(conform.BuiltinOther, nil)
+)
 
 func TestValueBuiltinTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
@@ -71,6 +87,8 @@ func TestValueBuiltinTable(t *testing.T) {
 						return n
 					}
 					return nil
+				case conform.CallConvert:
+					return c.Convert(conform.BuiltinType, v)
 				}
 				return c.listNode(c.ListItems(conform.BuiltinFn(call), v))
 			}, memberCanon)
@@ -93,6 +111,8 @@ func TestValueBuiltinTable(t *testing.T) {
 						return builtinBox{e}
 					}
 					return e
+				case conform.CallConvert:
+					return tc.Convert(builtinTypeNt, v)
 				}
 				return &TSeq{Typ: TypeListValue, Kids: tc.ListItems(conform.BuiltinFn(call), v)}
 			}, func(x any) string {
