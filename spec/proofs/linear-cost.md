@@ -1199,7 +1199,9 @@ neither $e_i$ nor $e'_i$ read a growth open at its start, and let case (a) or
 (b) of the covered keys not arise on the path from $\mathcal{R}(e_i)$ to the
 evaluation named below. Then before $e_i$ ended the parse made a body
 evaluation of $R$ or of its twin at $p_i$ with a successful activation of
-$\sigma$ at $q$ direct in it, so $p_i = p_m$ for some $m < i$. If $i$ is linked
+$\sigma$ at $q$ direct in it, so $p_i$ is the position of the body evaluation
+of an earlier successful activation of $\sigma$ at $q$: $p_i = p_m$ for some
+$m < i$, or the position of one that case 5 or a dropped step repeats. If $i$ is linked
 by a leaf link, $p_i = p_{i-1}$.
 
 *Proof.* A leaf link has $e_i = P_{i-1}$ and $e'_i = P_i$. For a memoized link,
@@ -1216,8 +1218,10 @@ call of a rule that it does not memoize; a call on the path answered with the
 current result of an open growth makes no call in $\mathcal{R}$ and holds no
 body evaluation of $R$; an entry or a kept result leads to an earlier
 evaluation of a key of the class, as in the covered keys; and a skipped
-alternative holds no activation. That activation is one of the $\alpha_m$, and
-it ends before $e_i$ ends, so before $\alpha_i$ starts. $\square$
+alternative holds no activation. That activation is one of the $\alpha_m$ or
+one that case 5 or a dropped step repeats, which the $\alpha_m$ leave out, and
+it ends before $e_i$ ends, so before $\alpha_i$ starts, and $m < i$ in the
+first case. $\square$
 
 **Nothing in a memoized link is a head.** Under the hypotheses of *Links lead
 to repeated evaluations*, outside cases (a) and (b) of the covered keys, no
@@ -1229,16 +1233,19 @@ in $\mathcal{R}(e_i)$ excludes case (c) of the covered keys. Another
 activation at any depth of $Z$ does the same. $\square$
 
 So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
-position for each free $i$ and each link of the two kinds that *Links to
-heads* leaves out. For a leaf link $j$ whose shared call is the first, so that
+position for each free $i$, each link of the two kinds that *Links to
+heads* leaves out, each memoized link whose two evaluations read a growth open
+at their start, which *Memoized links keep positions* leaves out, and each
+activation that case 5 or a dropped step repeats. For a leaf link $j$ whose shared call is the first, so that
 $w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
 it. The heads that start at $p_j$ are of the classes at $p_j$, one head each.
 Those that start before $p_j$ enclose $w_j$, and the frames between are left at
 $p_j$; for two of them, the later is in progress at the earlier's activation
 and encloses it, or it starts after that activation and strictly encloses
-$e'_i$ for a memoized link $i$ between the two, by the restarts and the claim
-above. Bounding these, and the activations that one head holds, is part of
-step 1 of [Open Steps](#open-steps).
+$e'_i$ for a memoized link $i$ between the two. This alternative is stated
+here without its proof, which would rest on the restarts and the claim above.
+Its proof, a bound on these heads and a bound on the activations that one head
+holds are part of step 1 of [Open Steps](#open-steps).
 
 **Activations held by heads.** Let no link of $\sigma$ at $q$ be of the two
 kinds above, and let every free $\alpha_i$ other than $\alpha_1$ be the
@@ -1272,7 +1279,8 @@ activations are charged to those of the first.
 
 Three parts remain part of step 1 of [Open Steps](#open-steps). When $R$ calls
 no rule and is not memoized at its calls, the $\alpha_i$ held by heads are at
-most one more than the leaf links that lead to one, and a leaf link can leave a
+most the free ones, $\alpha_1$ among them, the links of the two kinds and the
+leaf links that lead to one, and a leaf link can leave a
 memoized evaluation that is not a head through the end of its body and reach
 the call again in the evaluation around it, which can be a head. A link of a
 leader with a growth open at the start of only one of its evaluations compares
