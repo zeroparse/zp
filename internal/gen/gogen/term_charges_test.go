@@ -101,6 +101,14 @@ func TestTermChargesStruct(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_struct.golden", "gentest.StructTermCases", "Some terms leave struct fields unset.", "termchargesstruct", gentest.StructTermCases())
 }
 
+// TestTermChargesCast pins the charges of gentest.CastTermCases, whose terms cast values to types of every
+// kind, the lists and tuples of them among them, so that a change in how a target checks a value against a
+// type shows as a stated change of the units it charges.
+func TestTermChargesCast(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_cast.golden", "gentest.CastTermCases", "The terms make no struct value.", "termchargescast", gentest.CastTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)

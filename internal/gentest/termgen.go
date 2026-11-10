@@ -601,3 +601,88 @@ func StructTermCases() []TermCase {
 	}
 	return out
 }
+
+// castPrelude declares the types of CastTermCases: the named node type Num of string nodes, the named
+// types Pair and Many of tuple and list nodes, and the struct Inner.
+const castPrelude = "type Inner = { N int }\ntype Num = node[string]\ntype Pair = node[(node[string], node[string])]\n" +
+	"type Many = node[[]node[string]]\n"
+
+// CastTermCases returns fixed terms that cast a value to a type, each with the type it checks against and
+// the value it checks. The rule captures a string node $x, a tuple node $y of two string nodes, a list node
+// $z of one or more string nodes and an optional node $w that does not match, and each case runs with one and
+// two elements of $z. A cast
+// charges one step for each element of a list or a tuple it examines, up to the first that fails, so the
+// terms cast lists and tuples of the values of the rule, and of literals, that are of the type, of another
+// type at the first, the middle and the last element, of another length and of another shape, besides
+// every other type of a cast: the scalars, an optional, a join, the top type, the nodes of each shape, the
+// named node types and a struct.
+//
+// Each term puts the value in a list with a field of a struct of the type, which a cast needs to accept a
+// value whose static type it does not know to be of the type; the field is never cast.
+func CastTermCases() []TermCase {
+	casts := []struct{ typ, value string }{
+		{"int", "1"}, {"int", `"s"`}, {"int", "true"}, {"string", `"s"`}, {"string", "1"}, {"bool", "true"}, {"bool", "1"},
+		{"_", "1"}, {"_", `"s"`},
+		{"*int", "1"}, {"*int", `"s"`}, {"*Num", "$w"}, {"Num", "$w"}, {"*Num", "$x"},
+		{"int | string", "1"}, {"int | string", `"s"`}, {"int | string", "true"}, {"Num | int", "$x"},
+		{"node[string]", "$x"}, {"node[string]", "$y"}, {"node[string]", "1"},
+		{"node[_]", "$x"}, {"node[_]", "$y"}, {"node[_]", "$z"}, {"node[_]", "1"}, {"node[_]", "$z.Value"},
+		{"error", "$x"},
+		{"Num", "$x"}, {"Num", "Num{$x}"}, {"Num", "$y"}, {"Num", "1"},
+		{"Pair", "$y"}, {"Pair", "Pair{$y}"}, {"Many", "Many{$z}"}, {"Many", "$z"},
+		{"Inner", "Inner{N: 1}"}, {"Inner", "Num{$x}"}, {"Inner", "1"},
+		{"[]Inner", "list(Inner{N: 1}, Inner{N: 2})"}, {"[]Inner", "list(Inner{N: 1}, 2)"},
+		// Nodes whose value has a type.
+		{"node[(node[string], node[string])]", "$y"}, {"node[(node[string], int)]", "$y"}, {"node[(int, node[string])]", "$y"},
+		{"node[(node[string], node[string], node[string])]", "$y"}, {"node[(node[string], node[string])]", "$x"},
+		{"node[[]node[string]]", "$z"}, {"node[[]int]", "$z"}, {"node[[]_]", "$z"}, {"node[[]node[string]]", "$y"},
+		{"node[*string]", "$x"}, {"node[*string]", "$y"}, {"node[string | []node[string]]", "$z"},
+		{"node[string | []node[string]]", "$y"}, {"node[int]", "$x"},
+		// Lists and tuples of values.
+		{"[]node[string]", "$z.Value"}, {"[]int", "$z.Value"}, {"[]_", "$z.Value"}, {"[][]int", "$z.Value"},
+		{"[]int", "list(1, 2, 3)"}, {"[]int", `list("s", 2, 3)`}, {"[]int", `list(1, "s", 3)`}, {"[]int", `list(1, 2, "s")`},
+		{"[]string", "list(1, 2)"}, {"[]_", "list(1, true)"}, {"[]int", "list(1, true)"},
+		{"[](int | string)", `list(1, "s", 2)`}, {"[](int | string)", "list(1, true)"}, {"[]*int", "list(1, 2)"},
+		{"[][]int", "list(list(1, 2), list(3))"}, {"[][]int", `list(list(1, 2), list(3, "s"))`}, {"[][]int", "list(list(1, 2), 3)"},
+		{"[]int", "list(list(1))"}, {"int", "list(1)"},
+		{"(Num, Num)", "$y.Value"}, {"(Num, int)", "$y.Value"}, {"(int, Num)", "$y.Value"}, {"(Num, Num, Num)", "$y.Value"},
+		{"(Num)", "$y.Value"}, {"(_, _)", "$y.Value"}, {"(Num, Num)", "$z.Value"},
+		{"(int, string)", `(1, "a")`}, {"(int, string)", `(1, 2)`}, {"(int, string)", `("a", "b")`},
+		{"(int, string)", `(1, "a", true)`}, {"(int, string)", `(1,)`},
+		{"(int, []int)", "(1, list(2, 3))"}, {"(int, []int)", `(1, list(2, "s"))`}, {"([]int, string)", `(list(1, 2), "a")`},
+		{"(int, (int, string))", `(1, (2, "a"))`}, {"(int, (int, string))", `(1, (2, 3))`},
+		{"[](int, string)", `list((1, "a"), (2, "b"))`}, {"[](int, string)", `list((1, "a"), (2, 3))`},
+		{"(int, string)", "list(1, 2)"}, {"[]int", "(1, 2)"},
+	}
+	// The struct F has a field of each type that a case casts to, or an optional one where the type has no
+	// zero value.
+	var fieldOf = map[string]int{}
+	var fields []string
+	for _, a := range casts {
+		if _, ok := fieldOf[a.typ]; !ok {
+			typ := a.typ
+			if strings.ContainsAny(typ, "|") || strings.Contains(typ, "node") || strings.Contains(typ, "Num") ||
+				strings.Contains(typ, "Pair") || strings.Contains(typ, "Many") || typ == "error" {
+				if !strings.HasPrefix(typ, "*") {
+					typ = "*(" + typ + ")"
+				}
+			}
+			fieldOf[a.typ] = len(fields)
+			fields = append(fields, fmt.Sprintf("F%d %s", len(fields), typ))
+		}
+	}
+	prelude := castPrelude + "type F = { " + strings.Join(fields, "; ") + " }\n@start\n"
+	var out []TermCase
+	for _, a := range casts {
+		for _, lit := range []string{"a"} {
+			term := fmt.Sprintf("list(%s, (F{}).F%d)[0].(%s)", a.value, fieldOf[a.typ], a.typ)
+			out = append(out, TermCase{
+				Case: Case{Name: "cast: " + term,
+					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:(%[3]q %[3]q) z:%[3]q+ w:\"c\"? $$ => %[4]s\n", prelude, a.typ, lit, term),
+					Inputs: []string{strings.Repeat(lit, 4), strings.Repeat(lit, 5)}},
+				Term: term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+	}
+	return out
+}
