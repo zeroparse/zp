@@ -87,6 +87,7 @@ A handle type is a type of opaque values. Its component is the state component w
 | `Datum` | `host` | A value that a variable holds or a term produces, which only the host reads. |
 | `Scope` | `env` | A variable environment, which bindings replace and never change. |
 | `Rule` | `rules` | A rule's descriptor. |
+| `FType` | `value` | The type that a cast checks a value against. |
 | `NodeType` | `value` | A named node type, to which a conversion converts a value. |
 | `Err` | `recovered` | A syntax error that a recovery made. |
 | `Body` | `rules` | The invocation of a rule's body that a generated call passes. |

@@ -79,6 +79,34 @@ count. A hint, where a failure has one, ends its message.
 | 14 | invalid text argument | `text: invalid argument {a}` | | An argument of `text` that has no text |
 | 15 | not convertible | `cannot convert {a} to {name}` | | The conversion to a named node type of a value that is not a string, tuple or list node |
 
+## Cast Types
+
+The type that a cast `v.(T)` checks a value against is a tree of kinds, each with a code, the code of its letter. The
+composition `conforms` decides whether a value is of a type; the shape of a node, as `node.shape` returns it, tells
+which kind of value a node is.
+
+| Letter | Kind | Takes |
+|:--|:--|:--|
+| `i` | int | an int |
+| `s` | string | a string |
+| `b` | bool | a bool |
+| `z` | nil | nil |
+| `_` | top | every value |
+| `o` | optional | nil and the values of its element type |
+| `u` | join | the values of one of its alternatives |
+| `n` | node | a node whose value is a string, a tuple or a list |
+| `S` | string node | a node whose value is a string |
+| `E` | error | an error value |
+| `M` | missing | the error value of a missing token, where the target has one |
+| `N` | named | a struct or a node of the type of its name |
+| `l` | list | a list value whose elements are of its element type |
+| `t` | tuple | a tuple value with as many elements as it has element types, each of its type |
+| `v` | node of a type | a node whose value is of its element type |
+
+The shapes are 0 string, 1 tuple, 2 list, 3 error, 4 box, 5 tuple value, 6 list value and 7 struct. A box stands for the
+value it holds. Each element of a list or a tuple that the check examines charges one step (`seq.step`); the list type
+whose element type is top charges none, and a tuple of another length is refused before any.
+
 ## Operations on Values
 
 | Declaration | State | Cost | Contract |
@@ -126,6 +154,15 @@ count. A hint, where a failure has one, ends its message.
 | `host op str.len(x Datum) Datum noreturn` | none | `0 + 1*value_bytes` | Returns the length of the string x in the position unit as an int. A target that bounds the work and counts characters charges for the bytes it reads. Requires: x is a string. |
 | `op str.of(x Datum) Str` | none | `0` | Returns the string x. Requires: x is a string. |
 | `op str.empty() Str` | none | `0` | Returns the empty string. |
+| `op ftype.kind(t FType) int` | none | `0` | Returns the kind of the type t: the code of the letter of the [type kinds](#cast-types). Law: pure: equal arguments give equal results. |
+| `op ftype.elem(t FType) FType` | none | `0` | Returns the element type of the list type, the optional type or the node type t whose value has a type. Requires: t is of kind list, optional or node of a type. Law: pure: equal arguments give equal results. |
+| `op ftype.count(t FType) int` | none | `0` | Returns the number of the alternatives of the join type or the element types of the tuple type t. Requires: t is of kind join or tuple. Law: pure: equal arguments give equal results. |
+| `op ftype.alt(t FType, i int) FType` | none | `0` | Returns alternative i of the join type or element type i of the tuple type t. Requires: t is of kind join or tuple, and 0 <= i < ftype.count(t). Law: pure: equal arguments give equal results. |
+| `op node.shape(n Obj) int` | none | `0` | Returns the [shape](#cast-types) of n: string, tuple, list, error, box, tuple value, list value or struct, which a value of a node type has by its base. Law: pure: equal arguments give equal results. |
+| `op node.isType(n Obj, t FType) bool` | none | `0` | Reports whether the type name of n is the name of the type t: a struct type or a named node type. Requires: t is of kind named. |
+| `op node.isMissing(n Obj) bool` | none | `0` | Reports whether n is the error value of a missing token. A target that has no missing tokens reports false. |
+| `op node.children(n Obj) Seq` | none | `0` | Returns the elements of the list value or the tuple value n, and the children of any other node. Law: pure: equal arguments give equal results. |
+| `host op seq.step() noreturn` | none | `1` | Charges the step of examining one element of a list or a tuple against its type. A target that bounds the work charges one unit; a target that does not charges nothing. |
 | `op seq.len(items Seq) int` | none | `0` | Returns the number of elements. Requires: items came from seq.items. |
 | `op seq.at(items Seq, i int) Datum` | none | `0` | Returns element i as a value: the value a box holds, and nil for a missing element. Requires: items came from seq.items, and 0 <= i < seq.len(items). |
 

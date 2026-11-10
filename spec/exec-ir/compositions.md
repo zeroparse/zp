@@ -107,6 +107,10 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func convert(t NodeType, x Datum) (Datum, Fail)` | The conversion `T{x}` to the named node type t: a string, tuple or list node, of a named node type or not, becomes a node of t. Any other value fails. |
 | `func cover(n Obj, v Datum, first bool) bool` | Widens the range of the struct n, which a term is making, to cover the range of the field value v if v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is whether it had none before, and the first node gives n its range. |
 | `func made(c Act, n Obj, first bool)` | Finishes the struct n that c made of field values that cover has gone over: n takes the range of the rule if no field value is a node, and c records n. |
+| `func conforms(t FType, v Datum) bool` | Returns whether v is of the type t of a cast (see [Cast Types](values.md#cast-types)), a box counting as the value it holds. A list type takes a list value and a tuple type a tuple value, not the node of a repetition or a sequence; a node of a type takes a node whose value is of its element type. It charges a step for each element of a list or a tuple that it examines. |
+| `func valueConforms(t FType, n Obj, shape int) bool` | Returns whether the value of the node n, whose shape is shape, is of the type t: a string node has a string, and a tuple node or a list node its elements as value. |
+| `func elemsConform(t FType, items Seq) bool` | Returns whether every element of items, the elements of a list, is of the element type t of the list, charging a step for each element it examines; the type top takes every element and charges nothing. |
+| `func tupleConform(t FType, items Seq) bool` | Returns whether the elements items of a tuple are of the element types of the tuple type t: as many, and each of its own type, charging a step for each element it examines. |
 | `func predicate(t Term) bool` | Evaluates the term of a predicate, which fails on the boolean false and on a term that fails, and holds on every other value. |
 | `func bind(slot int, t Term) bool` | Binds the value of the term of a binding to the variable in slot. A term that fails and a function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the value fits the variable. |
 
@@ -183,5 +187,9 @@ row includes what its backends print into packages of their own.
 | convert | `[]` | `[]` | `[]` | `[]` |
 | cover | `[]` | `[]` | `[]` | `[]` |
 | made | `[]` | `[]` | `[]` | `[]` |
+| conforms | `[]` | `[]` | `[]` | `[]` |
+| valueConforms | `[]` | `[]` | `[]` | `[]` |
+| elemsConform | `[]` | `[]` | `[]` | `[]` |
+| tupleConform | `[]` | `[]` | `[]` | `[]` |
 | predicate | `[]` | `[]` | `[]` | `[]` |
 | bind | `[]` | `[]` | `[]` | `[]` |
