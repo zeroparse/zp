@@ -38,9 +38,6 @@ func TestTwinMemo(t *testing.T) {
 		// The twin of r is called from one place only; the first two calls evaluate it, and the
 		// second stores its result, which answers the call of w at 1.
 		{gentest.TwinOnePlaceSrc, "abcy", "w", 1, "eval eval memo", "eval eval memo"},
-		// r is reached through d, which a capture that a predicate reads calls, so a recognition
-		// builds its value and keeps its twin although no predicate reads the value of r: d calls
-		// the rule twice and the twin twice at 1, each evaluated twice and then answered.
 		// The predicate reads only the x of its own alternative, which calls c; the captures named x
 		// that call r are in other alternatives, where no predicate can read them, so a
 		// recognition gives r no twin: two evaluations, then the memo answers the calls of -r.
@@ -48,6 +45,9 @@ func TestTwinMemo(t *testing.T) {
 		// The x that the predicate names is a lambda parameter, which reads no capture, so a
 		// recognition gives r no twin although a capture named x calls r before the predicate.
 		{gentest.TwinLambdaParamSrc, "aa5", "main", 0, "eval eval eval eval memo", "eval eval memo memo memo"},
+		// r is reached through d, which a capture that a predicate reads calls, so a recognition
+		// builds its value and keeps its twin although no predicate reads the value of r: d calls
+		// the rule twice and the twin twice at 1, each evaluated twice and then answered.
 		{"@start\nrule main = s:d { len($s) > 0 }\nrule d = x:\"c\" (y:r \"1\" / y:r \"2\" / -r \"3\" / -r \"4\" / y:r) => $x\nrule r = t*\nrule t = \"a\"\n", "caa", "d", 1, "eval eval eval eval memo", "eval eval eval eval memo"},
 	}
 	type frame struct {
