@@ -104,6 +104,7 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func items(fn Name, v Datum) (Seq, Fail)` | Returns the elements of v, an argument of the built-in function fn that takes a list: none for nil, and those of a list or a tuple. Any other value fails. |
 | `func length(x Datum) (Datum, Fail)` | The built-in function len: the length of a string in the position unit, of the range of a string node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails. |
 | `func text(x Datum) (Str, Fail)` | The built-in function text: a string itself, the text that a string node or an error holds, the input of the range of any other node, and the empty string for nil. Any other value fails. |
+| `func convert(t NodeType, x Datum) (Datum, Fail)` | The conversion `T{x}` to the named node type t: a string, tuple or list node, of a named node type or not, becomes a node of t. Any other value fails. |
 | `func predicate(t Term) bool` | Evaluates the term of a predicate, which fails on the boolean false and on a term that fails, and holds on every other value. |
 | `func bind(slot int, t Term) bool` | Binds the value of the term of a binding to the variable in slot. A term that fails and a function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the value fits the variable. |
 
@@ -177,5 +178,6 @@ row includes what its backends print into packages of their own.
 | items | `[]` | `[]` | `[]` | `[]` |
 | length | `[]` | `[]` | `[]` | `[]` |
 | text | `[]` | `[]` | `[]` | `[]` |
+| convert | `[]` | `[]` | `[]` | `[]` |
 | predicate | `[]` | `[]` | `[]` | `[]` |
 | bind | `[]` | `[]` | `[]` | `[]` |

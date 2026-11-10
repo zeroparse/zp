@@ -3,7 +3,7 @@
 The component `value` holds the operations on the values of terms: actions, predicates and the values of bindings.
 They read and write no state of the parse. A value is a datum of the host, opaque to the rest of the parser VM; these
 operations look inside it. Each acts on one kind of value and has none of the policy of an operator of the grammar:
-the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `element`, `items`, `length` and `text` (see
+the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `element`, `items`, `length`, `text` and `convert` (see
 [Compositions](compositions.md#terms)) decide which operation applies, which operands are valid and which failure a term
 reports. The tables of this chapter are shared by every target: a target numbers the operators, kinds and failures as
 they are numbered here, and prints the messages of the failures as they are written here, so that they read the same
@@ -77,6 +77,7 @@ count. A hint, where a failure has one, ends its message.
 | 12 | argument not a list | `{name}: expected a list, got {a}` | | An argument of a built-in function that takes a list and is not one |
 | 13 | invalid len argument | `len: invalid argument {a}` | | An argument of `len` that has no length |
 | 14 | invalid text argument | `text: invalid argument {a}` | | An argument of `text` that has no text |
+| 15 | not convertible | `cannot convert {a} to {name}` | | The conversion to a named node type of a value that is not a string, tuple or list node |
 
 ## Operations on Values
 
@@ -109,6 +110,9 @@ count. A hint, where a failure has one, ends its message.
 | `op node.isStruct(n Obj) bool` | none | `0` | Reports whether n is a value of a struct type. |
 | `host op node.field(n Obj, name Name) (Datum, bool) noreturn` | none | `0 + 2*fields_read + 4*value_bytes` | Returns the field name of n and true if n holds it, and nil and false otherwise. A struct of a target that represents it with every field holds them all. A target that bounds the work charges for the fields it scans and the bytes of the names it compares. |
 | `host op node.zero(c Act, n Obj, name Name) (Datum, bool) noreturn` | none | `0 + 2*zero_parts` | Returns the zero value of the declared type of the field name of the struct n, made in c, and true, or nil and false if the type of n declares no such field or the target holds every field of a struct (node.field then holds it). A target that bounds the work charges for the values it makes. Requires: node.isStruct(n). |
+| `op node.typeName(t NodeType) Name` | none | `0` | Returns the name of the named node type t, as the {name} of a failure reads it. Law: pure: equal arguments give equal results. |
+| `op node.hasBase(n Obj) bool` | none | `0` | Reports whether n is a string node, a tuple node or a list node, of a named node type or not, which a conversion converts: not an error, a box, a list value, a tuple value or a struct. Law: pure: equal arguments give equal results. |
+| `op node.convert(n Obj, t NodeType) Datum` | none | `0` | Returns n as a node of the named node type t: n itself if it has the type, and otherwise a new node with the range, the value and the captures of n, the type t and no rule name, which keeps what n holds now. Requires: node.hasBase(n). |
 | `op val.name(name Name) Datum` | none | `0` | Returns name as a string value, as the {name} of a failure reads it. |
 | `op node.elem(n Obj) Elem` | none | `0` | Returns n as an element of a list or a tuple: n itself. Law: pure: equal arguments give equal results. |
 | `host op val.box(c Act, x Datum) Elem noreturn` | none | `1` | Returns x as an element of a list or a tuple: in a target whose elements are nodes, a box that holds x with the range of the input of c, made in c, and x itself in a target whose elements are any values. A target that bounds the work charges for the box it makes. Requires: x is an int, a string or a bool. |
