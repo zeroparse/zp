@@ -429,7 +429,8 @@ No bound that is a polynomial in n holds for every grammar.
 In the reference implementation and the generated parsers, a rule body is
 evaluated at most three times at a position for each binding level and each
 combination of the values of the variables that the rule reads, with the
-exceptions below. A first evaluation may leave no result in the memo. A result
+exceptions below. A first evaluation may leave no result in the memo, except a
+growth of a leader, which stores its result as a later one does. A result
 computed inside a lookahead or the `skip` of an Operators Rule answers only the
 calls inside them, and a result computed outside them answers every call,
 whether or not it has recovered errors, so at most one evaluation in each of
