@@ -298,7 +298,6 @@ docs/design/records/065-exec-ir-parser-vm.md	gofile	typed.go	1
 docs/design/records/065-exec-ir-parser-vm.md	gofile	typed_document.go	1
 docs/design/records/065-exec-ir-parser-vm.md	gofile	value_runtime.go	1
 docs/design/records/065-exec-ir-parser-vm.md	qualified	flow.DropKids	1
-docs/design/records/065-exec-ir-parser-vm.md	qualified	ref.Config	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callBody	4
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callDocument	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	callFrame	1
@@ -310,7 +309,6 @@ docs/design/records/065-exec-ir-parser-vm.md	unexport	envValues	2
 docs/design/records/065-exec-ir-parser-vm.md	unexport	firstCall	2
 docs/design/records/065-exec-ir-parser-vm.md	unexport	frameScratch	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	growNext	1
-docs/design/records/065-exec-ir-parser-vm.md	unexport	lineValue	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	markSeen	2
 docs/design/records/065-exec-ir-parser-vm.md	unexport	markSparseSeen	2
 docs/design/records/065-exec-ir-parser-vm.md	unexport	memoEntry	1

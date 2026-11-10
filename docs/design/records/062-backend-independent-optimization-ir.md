@@ -15,12 +15,12 @@ representations between the checked grammar and the backends:
 
 - **Core IR**: typed parsing expressions whose observable effects are explicit, built once from the
   grammar and the existing analyses. Optimizations are rewrites of Core IR with stated preconditions.
-- **Flow IR**: one function per rule variant, with explicit state (position, value slots, saved state),
-  structured blocks and exits, built from Core IR for the host-language emitters. State and code-shape
-  optimizations happen here.
+- **Flow IR**: one function per rule variant, with explicit state (position, variables for saved state,
+  captures and intermediate values), structured blocks and exits, built from Core IR for the host-language
+  emitters. Lowering from Core IR decides the state and the code shape; Flow IR has no pass of its own yet.
 
 Each target declares the Core nodes it can execute, and the Core pass pipeline runs per target. Generated
-Go and TypeScript are printed from Flow IR. Bytecode and the closure backend are built from Core IR: the
+Go and TypeScript are printed from Flow IR through Exec IR ([record 065](065-exec-ir-parser-vm.md)). Bytecode and the closure backend are built from Core IR: the
 bytecode instruction set is a choice-point machine that matches Core IR, not Flow IR. Closures and
 bytecode compile each program in two families, each built on first use: an inlined family for parses
 without per-call events or Document memoization, and a call-preserving family for traced, profiled and
@@ -29,8 +29,8 @@ Document parses. Each existing lowering is removed in the stage that replaces it
 ```text
                                                    ┌─ closure pipeline ──▶ closures (Closure backend)
 grammar.Grammar ──check, analyze──▶ Core IR ───────┼─ bytecode pipeline ─▶ bytecode module (RVM, IVM, .zpc)
-                                                   └─ generated pipeline ▶ Flow IR ──▶ Go
-                                                                                   └──▶ TypeScript
+                                                   └─ generated pipeline ▶ Flow IR ──▶ Exec IR ──▶ Go
+                                                                                                └──▶ TypeScript
 ```
 
 ## Motivation
@@ -245,7 +245,7 @@ s and 412 MB of resident memory for a 6.9 MB `parser.go`.
   Operators Rule loop, Document splicing, stream buffers and slabs stay runtime services that the IR calls.
 - Changes to the grammar language or the public API. The bytecode instruction set gains only the scope
   instructions of `Nest`; other new instructions need a design of their own (see [Decisions](#decisions)).
-- A serialized or public IR. Core IR and Flow IR are internal to `internal/engine`.
+- A serialized or public IR. Core IR and Flow IR are internal to the compiler and the generators.
 - `#missing` support in backends other than Closure; Core IR represents it, and the other backends keep
   rejecting it.
 
@@ -331,7 +331,8 @@ Every node carries attributes computed once and cached: **want** (whether its va
 shape (none, one value, or elements spliced into the enclosing tuple, which is what `isElems` and
 `valuedCount` compute today), whether it is nullable, its first terminal, and an **effect summary**. Terms,
 capture slots and rule values carry their checked types; the value types of nodes are not attributes, and
-are added to them before Flow IR declares typed value slots.
+are not carried further: a Flow IR variable that holds a value has the one type `value`, which each target prints
+as its runtime's value type.
 
 | Effect | Meaning |
 |:--|:--|
@@ -414,7 +415,7 @@ context and budget control before and after the build, outside the `sync.Once`, 
 `prepareControlledProgram` does today. The build itself is not interrupted, so a cancelled parse never
 leaves an interrupted build cached in the shared `Program`; its duration is part of the first-use cost
 that [Performance and Results](#performance-and-results) measures. In the budget-controlled program, entering a `Nest` charges at least one step, as a call does, so the
-progress invariants of [Flow IR](#flow-ir) hold.
+budget invariants of the [Flow IR specification](../../../spec/flow-ir/invariants.md#budget) hold.
 
 The family is independent of the other variants, which gives this matrix:
 
@@ -462,79 +463,93 @@ A pass enabled for a target later is measured on that target. Closure support fo
 ### Flow IR
 
 Flow IR is built per rule variant from Core IR optimized by the generated pipeline, for the host-language
-emitters. A function has:
+emitters. The [Flow IR specification](../../../spec/flow-ir/README.md) defines its functions, statements,
+expressions and invariants. The choices behind them:
 
-- registers: the position, the saved state of each backtracking point (position, recovered-error count,
-  environment, cut flag, capture values or trail length), and the silent depth;
-- typed value slots: captures, intermediate values and the rule value, with Go and TypeScript types derived
-  from the checked types;
-- structured blocks with an exit label; `exit L` leaves block `L` (success or failure continuation), `loop`
-  and `if` are the only other control; primitive operations (peek, literal and class tests, expect, call,
-  build, evaluate term, spend budget, trace) mirror runtime helpers.
+- **State is explicit and typed by the runtime, not by the grammar.** The saved state of a backtracking
+  point (position, recovered-error count, environment, cut flag, capture values or trail length), the
+  captures, the intermediate values and the rule value are variables of the function, with the position, the
+  environment, the capture frame and the cut flag as the only registers
+  ([Functions](../../../spec/flow-ir/functions.md)). Variable types are a small fixed set of runtime types, so
+  a variable that holds a value is `any` in typed Go and `*Node` in Node Go whatever type the checker gave
+  it. Carrying the checked types would let a target name concrete locals but multiplies the kinds of
+  variable that every printer and the verifier must handle, and it is not done.
+- **Control is structured.** A block has a label and `Exit` leaves it, with `Loop`, `If` and `Continue` as the
+  rest, so that Go prints a block with a `goto` and TypeScript a labeled block. The primitives (peek,
+  literal and class tests, expect, call, build, evaluate term, spend budget, trace) mirror runtime helpers
+  and keep no text of a target.
+- **Lowering threads a failure exit through each Core node.** A `Choice` is a block per alternative whose
+  failure exit restores and falls to the next, a `Repeat` is a loop whose element failure restores and leaves
+  the loop, and a `Nest` is a block that saves and restores the caller's environment, cut flag and recovered
+  count, and has its own slots. The lowering from Core IR is not specified yet.
+- **A body whose captures the runtime owns lowers to a framed function.** These are the body of a
+  left-recursion leader, whose growth the runtime drives, the body of a rule that recovers, and each line of
+  an Operators Rule: the runtime keeps the frame, the action and the rule's finish, and the function returns
+  its value to it. A capture sets its slot of the current frame; a repetition element with captures of its
+  own runs under a new frame, and a projected repetition reuses one frame that it clears for each element;
+  a backtracking point marks the whole parser state and resets to the mark when its body fails.
+  `#recover` lowers only inside framed functions: it isolates the expectations of its body and, when the
+  body fails, resets to its mark, skips at least one character, records the error and makes it the value.
 
-Lowering threads a failure exit through each Core node: a `Choice` is a block per alternative whose failure
-exit restores and falls to the next, a `Repeat` is a loop whose element failure restores and leaves the
-loop, and a `Nest` is a block that saves and restores the caller's environment, cut flag and recovered
-count, and has its own slots.
+**Where the optimizations are made.** Flow IR has no pass pipeline. Lowering makes the decisions that this
+record planned as Flow IR passes, from the Core effect summary and the options:
 
-A body whose captures live in frames that the runtime owns lowers to a framed function instead: the body
-of a left-recursion leader, whose growth the runtime drives, the body of a rule that recovers, and each
-line of an Operators Rule. A capture sets its slot of the current frame; a repetition element with
-captures of its own runs under a new frame, and a projected repetition reuses one frame that it clears for
-each element; a backtracking point marks the whole parser state and resets to the mark when its body
-fails. The function returns its value to the runtime, which keeps the frame, the action and the rule's
-finish; its outermost scope reads the caller's cut flag on entry and publishes it on return. `#recover`
-lowers only inside framed functions: it isolates the expectations of its body and, when the body fails,
-resets to its mark, skips at least one character, records the error and makes it the value.
+- **Save/restore elision.** A backtracking point saves only what its body may change: no environment
+  without bind, no recovered count without recover, only the capture slots in capture. This generalizes what
+  [record 110](../../optimizations/110-no-recovered-rollback-without-recovery.md) does case by case.
+- **Mode lowering.** A generated parser has one form of each function, chosen by the options (Node,
+  budget controls, Documents): the ordinary form without budget controls and Documents, the controlled
+  form otherwise. The places where they differ (charges, control reads, the helper names, peeks) are
+  printed from the same Flow IR by one printer; a parser that needs both forms is two generated parsers.
+  Batch and Document input access and position-unit fast paths (such as reading decoded code points in
+  place) are lowered as separate Flow IR functions selected by the caller.
+- **Charge placement.** Without budget controls, charges are not lowered at all. The terms of an action
+  are straight-line code run once per matched rule, so they carry no charge; only repetition is charged, by
+  the runtime built-ins that call lambdas (`map`, `filter`, `foldl`, `foldr`): each charges one step per
+  element, so nested lambdas charge once per call. Charges in a row are merged by the backend that prints
+  them, not by a pass of Flow IR.
+- **Dead stores and unused variables.** The Exec IR pass that finds dead stores leaves out the variables
+  that nothing reads when a rule is printed.
 
-Flow IR passes:
+The planned passes that nothing implements are slot allocation (variables whose live ranges do not overlap
+share one when their types are equal), block merging and jump threading, and the move of charges within
+straight-line code under the invariants that each loop iteration charges, that each call charges at least
+one step, that input spend is charged before the input is inspected and that no charge moves across a
+commit. They need a pass pipeline on Flow IR, which does not exist. A pass must keep the invariants of
+the specification, which verification checks for the charging of loops and of input.
 
-- **Save/restore elision**: a backtracking point saves only what its body may change according to the Core
-  effect summary (no environment without bind, no recovered count without recover, only the capture slots
-  in capture). This generalizes what
-  [record 110](../../optimizations/110-no-recovered-rollback-without-recovery.md) do case by case.
-- **Slot allocation**: liveness over the block tree; slots whose live ranges do not overlap share a
-  variable when their types are equal; slots never read are not declared.
-- **Block merging and jump threading**: an exit to a block that only exits again goes to the outer label;
-  empty blocks and unused labels disappear.
-- **Charge placement**: charges coalesce within straight-line code, under the invariants that each loop
-  iteration charges a step or the input spend of a character it reads, that each call charges at least one step,
-  that input spend is charged before the input is inspected, and that no charge moves across a commit. Without budget controls, charges are not lowered at
-  all. The terms of an action are straight-line code run once per matched rule, so they carry no charge;
-  only repetition is charged, by the runtime built-ins that call lambdas (`map`, `filter`, `foldl`,
-  `foldr`): each charges one step per element, so nested lambdas charge once per call.
-- **Mode lowering**: a generated parser has one form of each function, chosen by the options: the ordinary
-  form without budget controls and Documents, the controlled form otherwise. The places where they differ
-  (charges, control reads, the helper names, peeks) are printed from the same Flow IR by the one printer;
-  a parser that needs both forms is two generated parsers. Batch and Document input
-  access and position-unit fast paths (such as reading decoded code points in place) are lowered as
-  separate Flow IR functions selected by the caller.
-
-Flow IR invariants: every slot is declared in the innermost block that contains all its uses and is
-assigned before it is read; an exit names an enclosing block; every loop iteration consumes input, exits,
-or charges; in a Document variant every input read goes through a recording primitive.
+**Invariants.** The specification states them: structure (exits name enclosing labels), variables, the
+values of one runtime per function, the charging of the budget and the recording of input reads in a
+Document function. Variables belong to the whole function, so an exit may go to any enclosing label, and a rule printed to Go
+declares its variables at the top, in `var` lines grouped by type, so that no `goto` skips a declaration.
 
 ### Emission
 
-**Go.** A block becomes a Go block; `exit L` becomes `goto L` where the label is placed directly after the
-block. A jump out of a block skips only declarations inside it, so slots use `:=` with concrete types.
-Go 1.27.1 accepts this and rejects a `goto` that jumps over a declaration in the same block
-(`goto fail jumps over declaration of n`), which is why today's code hoists every variable. Labels are
-printed only when used. Pure terms print as Go expressions; a term that needs statements (the fused
-`concat`, which pushes its elements one by one, and the temporaries of a typed constructor whose fields are
-written out of order) prints them before the expression instead of a function literal: in the body of a rule
-action or predicate, or in a block of its own where Flow IR assigns the value of an action, so that the
-temporaries are not declared across a `goto`. If an operand needs statements, the operands before it are
-assigned to temporaries first, ahead of those statements, so they are still evaluated first and the first
-error wins. Function literals remain only where evaluation is on demand: the right operand of `&&` and `||`,
-the bodies of lambdas, and the functions of rule actions, predicates and bindings that the runtime calls; the
-`switch` of a predicate on literal texts is statements in its body. Runtime names are qualified while
-printing, and the source passes through `go/format` once. Values cross rule boundaries as `any`, because
-`TRule.Body`, `TParser.Call` and the typed memo entries hold `any` (see [Decisions](#decisions)).
+A rule that Flow IR holds is lowered to a function of Exec IR, which one printer per language prints as it
+prints the compositions of the runtime ([Lowering From Flow IR](../../../spec/exec-ir/lowering.md),
+[Printing](../../../spec/exec-ir/printing.md)). Each primitive of Flow IR is a transitional operation
+there, whose code the backend of the target writes. The printing of structure, labels and unused locals is
+the specification's; the following is what this record decides for the code of the rules.
 
-**TypeScript.** A block becomes a labeled block (`L: { … break L; }`), which TypeScript supports; loops
-become `for (;;)`. Conditions are Flow IR expressions printed by the TypeScript printer, not rewritten Go
-text.
+**Go.** Go rejects a `goto` that jumps over a declaration in the same block
+(`goto fail jumps over declaration of n`), which is why the code of the direct printer hoisted every
+variable and why the variables of a rule are still declared at the top, those that nothing reads left
+out; the locals of a composition are declared where they are first needed, in braces that end before the
+label of a jump over them. Pure terms print as Go
+expressions; a term that needs statements (the fused `concat`, which pushes its elements one by one, and
+the temporaries of a typed constructor whose fields are written out of order) prints them before the
+expression instead of a function literal: in the body of a rule action or predicate, or in a block of its
+own where Flow IR assigns the value of an action, so that the temporaries are not declared across a
+`goto`. If an operand needs statements, the operands before it are assigned to temporaries first, ahead of
+those statements, so they are still evaluated first and the first error wins. Function literals remain
+only where evaluation is on demand: the right operand of `&&` and `||`, the bodies of lambdas, and the
+functions of rule actions, predicates and bindings that the runtime calls; the `switch` of a predicate on
+literal texts is statements in its body. Runtime names are qualified while printing, and the source passes
+through `go/format` once. Values cross rule boundaries as `any`, because `TRule.Body`, `TParser.Call` and
+the typed memo entries hold `any` (see [Decisions](#decisions)).
+
+**TypeScript.** A block becomes a labeled block, which TypeScript supports, and loops become `for (;;)`.
+Conditions are Flow IR expressions printed by the TypeScript printer, not rewritten Go text.
 
 **Bytecode.** Bytecode is emitted from Core IR optimized by the bytecode pipeline. The instruction set is a
 choice-point machine: `CHOICE` saves the whole state (position, value-stack and entry-stack heights,
@@ -710,7 +725,8 @@ the hoisted `any` variables or the missing analyses behind them.
 
 ## Testing
 
-- **Verifier.** Core IR and Flow IR invariants are checked after every pass in tests.
+- **Verifier.** Core IR invariants are checked after every pass in tests, and Flow IR invariants on every
+  function that lowering produces.
 - **Rewrite differential.** For each pass, its private switch runs the corpora with the pass on and off on
   every target that consumes it; results, errors, expected sets, recovered errors and positions in both
   units must match. Corpora: the repository grammars with their golden files, the specification test data,
@@ -791,7 +807,7 @@ Each enabled pass records its measured effect in the [optimization catalog](../.
    lowering ships and every backend has the Core passes. The stages are ordered so that a release can be
    cut after any completed stage.
 8. **Budget counts.** Charge placement may change the budget counts of generated artifacts under the progress
-   invariants of [Flow IR](#flow-ir), as the specification makes counts implementation-specific; tests that
+   invariants of the [Flow IR specification](../../../spec/flow-ir/invariants.md#budget), as the runtime specification makes counts implementation-specific; tests that
    pin counts are updated. The step counts of generated parsers do not include the terms of actions and the
    fields of typed constructors, and the closure backend and the bytecode VMs charge them differently.
 9. **Overlap within a stage.** The old and the new path run side by side behind a private switch only
@@ -812,3 +828,7 @@ The following are predictions to be measured by the gates in
   mode;
 - the speed and size of generated Go and TypeScript printed from Flow IR, and the cost of `any` at rule
   boundaries.
+
+One goal is not met: the variables of a rule that hold values have the type `value`, which typed Go prints
+as `any`, so no local is declared with the concrete type that the checker gave it, and the rule's variables
+are declared at the top of the function.

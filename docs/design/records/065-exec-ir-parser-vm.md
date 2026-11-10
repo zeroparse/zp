@@ -129,7 +129,8 @@ already exists in each copy; it is not written down.
 
 ## Non-Goals
 
-- Changing Core IR, Flow IR or their passes. Flow IR gains a lowering into Exec IR; its passes still run before it.
+- Changing Core IR or Flow IR. Flow IR gains a lowering into Exec IR; the decisions that lowering from Core IR
+  makes stay where they are.
 - Changing the grammar language, the public API, the bytecode instruction set or the specification of any mechanism.
 - Adding Document or stream parsing to TypeScript. A shared composition makes it cheaper; whether to add it is a
   separate product decision.
@@ -146,8 +147,8 @@ already exists in each copy; it is not written down.
 |:--|:--|:--|:--|
 | Question it answers | What does this rule mean? | How does a parser run this rule? | Which operations of the parser VM run, in what order, and what does each do? |
 | Written by | The Core IR builder, from the grammar | Lowering, from Core IR | Lowering, from Flow IR; compositions written with Go builders |
-| Content | Parsing expressions with effects | Registers, slots, blocks, parse primitives | Operations with contracts over an abstract parser state, and their composition |
-| Optimized by | Grammar rewrites | Save/restore elision, slot allocation, charge placement | Feature specialization, operation elimination, charge coalescing, inlining |
+| Content | Parsing expressions with effects | Variables, registers, structured blocks, parse primitives | Operations with contracts over an abstract parser state, and their composition |
+| Optimized by | Grammar rewrites | Lowering decides save and restore, charges and mode; no passes | Feature specialization, constant folding, dead-store analysis |
 | Turned into code by | — | — | One backend per target language |
 
 The names say what each level holds. Core IR is the core language of a grammar: what remains of its meaning once the
@@ -158,40 +159,36 @@ parser VM and the program that drives them. Its package is `internal/ir/exec`, b
 [Record 062](062-backend-independent-optimization-ir.md) keeps runtime algorithms out of Core IR and Flow IR: Flow IR
 calls them as runtime services (`CallRule`, `Isolate`, `MergeExpected`, `StreamStart`) and rejected a third level
 without passes of its own. Exec IR keeps that boundary for Flow IR and gives those services a home with passes of
-their own: a Flow IR primitive lowers into a call of an Exec IR composition or operation, and the composition is
-where the service's algorithm is written once.
+their own: a Flow IR primitive lowers into a call of a transitional operation that holds the primitive
+([Lowering From Flow IR](../../../spec/exec-ir/lowering.md)), and a mechanism moves from such an operation into a
+composition, where its algorithm is written once, as it migrates. The [specification](../../../spec/exec-ir/README.md)
+owns what the levels contain; the [intermediate representations](../intermediate-representations.md) page
+explains how they fit together.
 
 ### The Parser VM
 
 A **parser VM** is the abstract machine that runs a parse. It is not the bytecode VM: the bytecode VMs, the closure
-backend and every generated parser are hosts of the same parser VM. Exec IR specifies it in three parts.
+backend and every generated parser are hosts of the same parser VM. Exec IR specifies it in three parts, which
+[The Parser VM](../../../spec/exec-ir/machine.md) and [Functions](../../../spec/exec-ir/functions.md) define:
 
-- **Abstract state.** Registers — the position, the examined bounds, the silent depth, the cut flag, the nesting
-  depth, the counters of provisional reads — and state components: the memo table, the seen set of deferred
-  memoization, the expectation record, the recovered-error list, the variable environment, the capture frames, the
-  budget, the statistics, the stream window and the Document generation. The state is abstract: a contract talks
-  about it, a target chooses how to represent it.
-- **Operations.** Each operation is a transition of the abstract state with a declared signature, a behavior
-  contract, a precondition (`Requires`) that its callers guarantee, the state components it reads and writes, its
-  cost contract, the features it belongs to and the laws that passes may use. Behavior outside the precondition is
-  unspecified, and conformance never exercises it: two implementations may differ on states that no composition
-  reaches. Handles that operations return (a memo entry, an expectation mark, a recovery mark, a frame)
-  are opaque; a memo entry exposes its specified attributes (outcome, end, examined bounds, silent, recovered errors,
-  growing, provisional) through accessor operations.
-- **Composition.** Exec IR functions that sequence operations under structured control: blocks, `if`, `loop` with
-  labeled `break` and `continue`, `return`, labeled block exits, calls to functions, operations, rule bodies and host
-  primitives. There is no `goto` and no exception; a fatal condition is an operation that does not return. A function
-  may end with a protected region, `protect { body } finally { cleanup }`, whose cleanup runs however the body ends:
-  at its end, on a return, and when an operation ends the parse or the host unwinds. The cleanup restores state that
-  the body saved, so it neither branches out, reads or writes registers, calls functions nor ends the parse; a target
-  prints it as its unwinding cleanup, a deferred call in Go and `try`/`finally` in TypeScript. Locals are
-  scalars (`bool`, `int`, sized `i32`, `u32`, `u64` with defined wraparound) and handles. Compositions have no
-  records, arrays or maps of their own: data structures live inside operations, where targets choose them.
+- **Abstract state**: a few scalar registers and state components such as the memo table, the expectation
+  record, the variable environment and the budget. The state is abstract: a contract talks about it, a target
+  chooses how to represent it.
+- **Operations**: each a transition of the abstract state with a signature, a behavior contract, a
+  precondition that its callers guarantee, the state it reads and writes, a cost bound, the features it belongs
+  to and laws that passes may use. Behavior outside the precondition is unspecified, and conformance never
+  exercises it: two implementations may differ on states that no composition reaches. Handles that operations
+  return are opaque, and only operations look inside.
+- **Functions**: structured code over the operations, with no `goto` and no exception; a fatal condition is an
+  operation that does not return, and a protected region runs its cleanup however its body ends, which a
+  target prints as its unwinding cleanup (a deferred call in Go, `try`/`finally` in TypeScript). Locals are
+  scalars and handles, and functions have no records, arrays or maps: data structures live inside operations,
+  where targets choose them.
 
 The host is what touches a value, an input encoding, the user or the platform: input decoding, value and node
 construction, value equality, error text, readers, edits and snapshots, cancellation, tracing sinks and the public
-API. Host primitives are declared in Exec IR with typed signatures and implemented once per target; values and nodes
-are opaque to the parser VM.
+API. Host operations are declared in Exec IR with typed signatures and implemented once per target; values and
+nodes are opaque to the parser VM.
 
 ### The Operation Boundary
 
@@ -212,7 +209,9 @@ An operation is placed by four rules.
    one data structure. Its implementation is where a target picks slot arrays or hash maps, slabs or the garbage
    collector, the word size of a bit page, a membership filter.
 4. **No re-entry.** An operation does not run grammar code. Where a mechanism must run a rule body in the middle — a
-   memoized call, a growth step — it is a composition, or a begin and an end operation around the body.
+   memoized call, a growth step — it is a composition, or a begin and an end operation around the body. The
+   transitional operations that invoke a rule's body, a line of an Operators Rule or a term are the exception
+   until their mechanism is a composition; their contracts say so ([Operations](../../../spec/exec-ir/machine.md#operations)).
 
 The measured history supports these rules. Each of the 22 core commits of [Changes Paid Several
 Times](#changes-paid-several-times) is placed below by the part of this design it would change (classified by hand
@@ -232,178 +231,132 @@ a re-derivation of an algorithm.
 
 ### Operations
 
-The operations, grouped by the state they own. Each entry gives the contract, what is shared, what a target chooses
-and how conformance is tested. Costs follow [Cost Contracts](#cost-contracts).
+[Operations](../../../spec/exec-ir/operations.md) and [Values](../../../spec/exec-ir/values.md) of the
+specification declare every operation with its contract, state, cost bound and kind. This section keeps, for each
+group, what the design shares across targets, what a target chooses and how the group is checked; costs follow
+[Cost Contracts](#cost-contracts). An operation is one of three kinds: an operation with a reference model and
+conformance cases, a host operation whose effect lies outside the parser VM's state, and a transitional
+operation that stands for a runtime function until its mechanism is a composition. A group is under
+conformance only where the specification declares its operations of the first kind.
 
-**Input** (`peek`, `matchLiteral`, `matchClass`, `matchAny`, `advance`, `text`). Reads at the position in the
-parse's position unit, advance by characters, and, in a Document, extend the examined bound to every element read.
-*Shared*: the meaning of positions in both units and of the examined bound. *Target*: decoding, buffers, fast paths
-for ASCII or decoded code points, literal matching by machine word. *Conformance*: inputs at UTF-8 and UTF-16
-boundaries, invalid sequences, both units, the examined bound after each read, and the input charge.
+**Input.** Reading the input is not an operation of Exec IR. Peeking, matching and advancing are primitives of
+Flow IR, which lower to transitional operations that each target implements over its own input
+representation, and the examined bound of a Document is kept by the operations of the call bookkeeping. *Shared*:
+the meaning of positions in both units, by the runtime specification. *Target*: decoding, buffers, fast paths
+for ASCII or decoded code points, literal matching by machine word.
 
-**Memo table** (`memo.lookup`, `memo.store`, `memo.setPresent`, `memo.prune`). `lookup` returns the most recent entry
-stored for a key (rule, position, binding level, variable values, missing-token mode), or none; `store` adds an entry
-that later lookups of its key return, with an end at or after its position; `setPresent` records the leaders of the
-call's left-recursion cycle that grew at the position when the result was evaluated; `prune` drops entries below a
-position. The memo holds only results that read no growing seed, so a lookup is exact on every target. Both
-operations take the rule's `docOnly` property (a rule that only a Document memoizes): such a lookup matches by
-identity of the key's values and walks a bounded part of the chain, a miss that is always sound. *Shared*:
-keys, the specified entry attributes, which entry a lookup returns, the storage charge. *Target*: slot arrays or maps,
-chaining, slab allocation and free lists, entry layout and packing. *Conformance*: random sequences of stores, lookups
-and prunes compared with a reference model; storage charges that do not depend on storage left by an earlier parse, as
+**Memo table and deferred memoization.** The operations that look up, store, prune and splice entries are under
+conformance with a reference model of the memo, with random sequences of stores, lookups and prunes and storage
+charges that do not depend on storage left by an earlier parse, as
 [Cancellation and Budget Limits](../../../spec/runtime/parsing.md#cancellation-and-compute-limits) requires.
+The memo holds only results that read no growing seed, so a lookup is exact on every target. A rule that only a
+Document memoizes is looked up by identity of the key's values over a bounded part of the chain, a miss that is
+always sound. *Shared*: keys, the entry attributes, which entry a lookup returns, the storage charge. *Target*:
+slot arrays or maps, chaining, slab allocation and free lists, entry layout and packing. The adaptive policy of
+deferred memoization (per-rule counters and the switch to eager memoization) is part of its contract, because
+it decides how many bodies run, which `Evaluated` reports; *shared*: the policy and its thresholds; *target*:
+dense or sparse pages, word size, counter width.
 
-**Left-recursion contexts** (`ctx.enter`, `ctx.allows`, `ctx.active`, `ctx.lookup`, `ctx.replay`, `ctx.push`,
-`ctx.pop`, `ctx.keep`, `ctx.done`; `grow.begin`, `grow.next`, `grow.step`, `grow.end`). The dependency memo of
-[Evaluations of Rules](../../../spec/runtime/parsing.md#evaluations-of-rules). `ctx.enter` computes the context of a
-call of a rule of a cycle, the growths of its cycle at the position, and returns the seed when the rule is a leader
-that grows there; `ctx.allows` tells whether a memo entry answers the call by its present set; `ctx.lookup` returns a
-result kept in the context, matched by the identities of the seeds it read and the outcomes of the lookaheads it
-observed; `ctx.push` and `ctx.pop` record the dependencies of the call and tell whether its result goes to the memo or
-to the context (`ctx.keep`); `ctx.done` passes the dependencies to the enclosing call. The growth operations grow a
-leader from failure; in a context they reuse the memoized steps and the jumps over runs of steps. *Shared*: what a
-result depends on and when it is reused, the seed identities, the present sets. *Target*: table layout, keys and
-hashing, allocation of results. *Conformance*: the differential tests against the engine on random cycle grammars,
-with negative controls that break each check, and the linearity tests of the growth shapes.
+**Left-recursion contexts and growth.** The dependency memo of
+[Evaluations of Rules](../../../spec/runtime/parsing.md#evaluations-of-rules) is declared as transitional
+operations, with the cost bounds that a static test requires, and has no reference model. *Shared*: what a result
+depends on and when it is reused, the seed identities, the present sets. *Target*: table layout, keys and hashing,
+allocation of results. The differential tests against the engine on random cycle grammars, with negative controls
+that break each check, and the linearity tests of the growth shapes are the checks.
 
-**Deferred memoization** (`seen.first`). Records a call of a memoized rule at a position and reports whether it is
-the first, under the adaptive policy: per-rule counters and the switch to eager memoization. The policy is part of the
-contract, because it decides how many bodies run, which `Evaluated` reports. *Shared*: the policy and its thresholds.
-*Target*: dense or sparse pages, word size, counter width. *Conformance*: call sequences over many rules and positions,
-counter saturation, pages created on demand.
+**Expectations.** The expectation record is an insertion-ordered set of expectation identifiers at the farthest
+position. Recording an expectation, keeping a set (which reuses the set kept last when it holds the same
+expectations) and merging a set at a position are compositions over the operations of the record. `isolate` and
+`unisolate` stay operations because what they save and restore is the layout of the record, which differs by
+target. The operations of the record are transitional today and have no reference model; the observable
+contract is the farthest position and the exact order of the set, which error messages expose. *Target*:
+membership filters, stack layout, where kept sets live and how their memory is accounted.
 
-**Expectations** (`expect`, `exp.isolate`, `exp.unisolate`, `exp.copy`, `exp.rename`, `silent.enter`,
-`silent.exit`). The expectation record is an insertion-ordered set of expectation identifiers at the farthest
-position; `expect` at a position beyond it starts a new set, below it does nothing, and inside a silent scope does
-nothing. `isolate` starts a separate record and `unisolate` ends it, returning its farthest position and set; `copy`
-makes a set that outlives the record. Keeping a set, which reuses the set kept last when it holds the same
-expectations, and merging a set at a position are compositions over these operations. `isolate` and `unisolate`
-stay operations: what they save and restore is the layout of the record, which differs by target. *Shared*: the set
-algebra and its order, which error messages expose. *Target*: membership filters, stack layout, where kept sets live
-and how their memory is accounted. *Conformance*: random sequences against the reference model, compared by farthest
-position and exact order.
+**Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that
+a replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists
+([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry
+that holds recovered errors stops being valid where an edit would move it. The operations are under
+conformance, with the identity of each error and of each list compared after every write, on generated Go and
+the engine; TypeScript stays on its parity tests. The missing-token operations of the engine are
+transitional. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
+that make an error record it: grammar code and the recovery of each engine write the push in their own language.
 
-**Recovery** (`rec.mark`, `rec.push`, `rec.truncate`, `rec.since`, `rec.add`, `rec.none`, `stream.settleErrors`; with
-`#missing` in the engine, `missing.mark`, `missing.reset`, `missing.replay`). An ordered list of entries with marks:
-errors that `push` records, and immutable lists that entries share. `truncate` removes the entries after a mark,
-`since` makes a list of them for a memo entry and puts it in their place, charging one unit for each, `add` records a
-list again as one entry, for nothing, and `settleErrors` forgets what a stream has delivered. Where one entry follows
-the mark, `since` returns it, so that nested calls share one list instead of wrapping it.
-The steps of a left-recursion growth and the results that a context keeps make and replay their lists the same way.
-A replay then costs a
-constant however many errors it brings back, the lists hold no more entries than the steps that made them, and
-listing k errors visits fewer than 2k lists ([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)).
-No list moves: a memo entry that holds recovered errors stops being valid where an edit would move it. *Shared*: order,
-truncation, which errors survive and when a list is shared. *Target*: the representation of entries and lists, the
-scratch a stream keeps, how the outcome lists the errors, and where the sites that make an error record it: grammar
-code and the recovery of each engine write `rec.push` in their own language. *Conformance*: interleaved pushes, marks,
-truncations, lists and replays, compared by the identity of each error and of each list after every write, with the
-lists that listing the errors visits held below twice their number, on generated Go and the engine; TypeScript stays on
-its parity tests.
+**Variable environment.** A persistent environment: a binding makes a new environment that shares what it can,
+and an equal binding keeps the environment it is, so that what depends on its identity stays valid. The
+operations are under conformance, with nested scopes, shadowing, vectors of one and of several levels and keys
+of equal and unequal values, on generated Go and the engine; TypeScript stays on its parity tests. *Shared*:
+scoping, equal bindings, key equality by the host's value equality. *Target*: the representation of the
+environment, and a key shared for the initial environment.
 
-**Variable environment** (`env.bind`, `env.lookup`, `env.scope`, `env.restore`, `env.key`). A persistent environment:
-one current value for each declared variable, in a slot the grammar fixes. A binding makes a new environment that
-shares what it can, and bindings made after a mark are gone after `restore` of the environment that the mark holds; an
-equal binding keeps the environment it is, so what depends on its identity stays valid. `env.key` returns the values of
-a rule's variables for its memo key, and two keys are equal when the host's value equality says so.
-*Shared*: scoping, equal bindings, key equality. *Target*: the representation of the environment, and a key shared
-for the initial environment. *Conformance*: nested scopes, shadowing, vectors of one and of several levels, keys of
-equal and unequal values, on generated Go and the engine; TypeScript stays on its parity tests.
+**Terms.** Evaluating a term stays a transitional operation of each runtime, since it reads the value model;
+what surrounds it, the predicate and the binding, is one composition on every runtime. On either, a term that
+fails is an ordinary failure of the expression: what it gathered and created is dropped, and the parse goes on to
+its next alternative. The operators, member reads and built-in functions of terms are compositions over value
+operations ([Values](../../../spec/exec-ir/values.md)), with tables that every target shares and runs on fixed
+fixtures; term evaluation itself is not yet written on them.
 
-**Terms** (`predicate`, `bind`). Evaluating a term stays a host primitive of each runtime (`term.eval`), since it
-reads the value model; what surrounds it is one composition on every runtime. A predicate holds when its term
-succeeds with a value that is not false. A binding binds the value of its term, and refuses a function, which no
-variable holds. On either, a term that fails is an ordinary failure of the expression: what it gathered and created
-is dropped, and the parse goes on to its next alternative.
+**Capture frames.** Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark
+is the position, the environment, the recovered errors and the length of the trail; what a reset restores from it
+is the composition `reset`. The operations are transitional, and a static test follows their charges. *Target*:
+the representation of a mark (a struct in Go, four numbers in TypeScript), pooling and scratch reuse, and, until the
+charges below settle it, whether opening a frame charges for its slots (see [Cost Contracts](#cost-contracts)).
 
-**Capture frames** (`frame.open`, `frame.set`, `frame.mark`, `frame.undo`, `frame.save`, `frame.restore`,
-`frame.close`). Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. `frame.set`
-writes a slot and records the write on the trail, and `frame.close` releases a frame. A mark is the
-position, the environment, the recovered errors and the length of the trail; what a reset restores from it is the
-composition `reset`, and `frame.undo` undoes the writes of the trail after its length, charging one unit for each.
-`frame.save` and `frame.restore` keep the captures of a line across a reset, as the longest operator match needs.
-*Shared*: what a reset restores. *Target*: the representation of a mark (a struct in Go, four numbers in TypeScript),
-pooling and scratch reuse, and, until the charges below settle it, whether opening a frame charges for its slots
-(TypeScript does; see [Cost Contracts](#cost-contracts)). *Conformance*: nested frames, resets across repetitions.
+**Budget, nesting and observation.** Charging adds to the one work budget, checks the limit and, at intervals the
+target chooses, cancellation through a host operation; it does not return when the parse is interrupted, and charges
+are never rolled back. The nesting limit is fatal when exceeded. Observation reports go to a host sink. The
+silent depth is a register that functions assign, not an operation. *Shared*: when a charge interrupts and when
+each event reports. *Target*: counter representation, the cancellation interval and the sink.
 
-**Budget** (`charge`). Adds units to the one work budget, checks the limit and, at intervals the target chooses,
-cancellation through a host primitive; it does not return when the parse is interrupted. Charges are never rolled
-back. *Shared*: when a charge interrupts. *Target*: counter representation and the cancellation interval.
-*Conformance*: interruption exactly at the limit, with and without a cancellation signal.
+**Stream window.** A commit is the composition `streamCommit`: it makes everything before a position final.
+Discarding input, releasing the scratch and the node memory of the delivered elements, and dropping the records
+below the floor are host operations of the window, and pruning the memo is the specified `memo.prune`, under
+conformance together with the floor of the memo. The position the parse needs, which the default budget of a
+stream follows ([Streaming](../../../spec/runtime/streaming.md)), is reported by the input reader. *Shared*: what a
+commit releases and finalizes, and when it prunes. *Target*: buffers and the representation of the pruned memo.
 
-**Nesting, statistics and observation** (`depth.enter`, `depth.exit`, `stats.count`, `trace.event`). The nesting
-limit is fatal when exceeded; statistics are counters; trace events go to a host sink. *Shared*: when each counts or
-reports. *Target*: the sink. *Conformance*: the limit at its boundary; event sequences of small compositions.
+**Counting in a region of Document work.** The memo operations of a rule that a parse from scratch memoizes too run
+in a region of Document work, where the steps of a walk along the chain and the growth of the table are not counted
+against the default limit. The charges that a parse from scratch makes for the same lookup are lifted out of the
+region and counted: the hash of the key, and its comparison with each entry of this parse that the walk compares it
+with. The comparison with an entry of an earlier text is Document work: a parse from scratch has no such entry.
 
-**Stream window** (`stream.discard`, `stream.release`, `stream.dropRecords`, with `memo.prune` and `memo.floor`).
-A commit is the composition `streamCommit`: it makes everything before a position final. `discard` drops the input
-before it, `release` lets go of the scratch and the node memory of the delivered elements, and, once a window of
-input was committed since the floor of the memo, `dropRecords` and `memo.prune` drop the records and the memo
-entries before it. The position the parse needs, which the default budget of a stream follows
-([Streaming](../../../spec/runtime/streaming.md)), is reported by the input reader, a host primitive. *Shared*: what
-a commit releases and finalizes, and when it prunes. *Target*: buffers and the representation of the pruned memo.
-*Conformance*: `memo.prune` and `memo.floor` with the memo operations: lookups and stores below and at the floor,
-entries that a prune removes, and handles of removed entries that an implementation reuses.
-
-**Counting in a region of Document work.** The memo operations of a rule that a parse from scratch memoizes too
-run in a region of Document work (`budget.freeBegin`), where the steps of a walk along the chain and the growth of
-the table are not counted against the default limit. The charges that a parse from scratch makes for the same
-lookup are lifted out of the region and counted: the hash of the key, and its comparison with each entry of this
-parse that the walk compares it with. The comparison with an entry that this parse has not stored or found to answer a
-lookup (an entry of an earlier text) is Document work: a parse from scratch has no such entry. The region itself does not nest, so a charge that is counted ends it and reopens it.
-
-**Document reuse** (`memo.examine`, `memo.examined`, `memo.before`, `memo.pin`, `memo.splice`, `doc.move`). A call
-records with its entry the input it examined: from its position, or from the unit before it, which a line start
-reads, to an end (`examine`). `pin` marks an entry of a rule whose results read positions. `splice` applies an edit,
-the range it replaces and its change in length: an entry that examined only input before the range stays, one that
-examined only input after it moves by the change unless it is pinned or holds recovered errors, and every other
-entry goes. The value of a moved entry moves when the entry is reused, through `doc.move`, a host operation because
-the positions in a value lie outside the parser VM's state; the target may refuse a value it cannot move, and the
-call evaluates the rule again. The cost of `doc.move` is twice the number of nodes, fields and children it covers
-(`QMoved`): a target checks that a value is movable and then copies it, and charges both passes. A target that moves
-in place makes one pass, and spends the second unit on the empty nodes it copies and the copies it forgets; replaying
-the edits for a node that another result moved adds one unit for each (`QMoveEdits`). Which entry is reused stays in
-the composition. `splice` charges nothing, and a target may apply it lazily: the engine logs the edit, decides the
-entries at the replaced positions at once, and applies the log to any other entry when `memo.lookup` finds it, through
-the composition `memoAdvance` and the host operations it reads (`memo.seed`, `memo.from`, `memo.advance`, `edit.start`
-and the others), which exist on that target only. `memo.lookup` pays one unit for each edit it applies
-(`QPending`), and its scan counts the entries such a target still holds (`QKeyScan`); the model states both, and
-the slots of the engine's gap in `QSlotGrowth`, under `ref.Config.LazyEdits`. An entry that lags behind more than
-`PendingEditLimit` edits is a miss, so a target drops it where it meets it: the engine unlinks it in a walk of the
-chain, and a target that rebuilds its table at an edit leaves it out of the new table, which bounds the comparisons
-with the entries of earlier texts, Document work, by the work of that window of edits. The repetition runs are host operations
-of the engine (`run.start` to `run.finish`). None of them runs grammar code: a backend drives a run and evaluates its
-elements between `run.begin` and `run.end`, and charges its own steps, and no composition calls them, so the backends
-need no split form. *Shared*: which entries stay, move or go, and the positions after a move. *Target*: tables rebuilt
-or relinked at an edit, side tables of pending moves, copying or moving nodes in place, and repetition runs.
-*Conformance*: the memo operations under random edits on both Go runtimes and on the engine's Document memo, and the
-Document differential tests, which compare every result after an edit with a parse from scratch. Runs and moves have
-no reference model; tests of the engine measure their charges.
+**Document reuse.** A call records with its entry the input it examined, and an edit is applied by `memo.splice`: an
+entry that examined only input before the edit stays, one that examined only input after it moves by the change
+unless it is pinned or holds recovered errors, and every other entry goes. The value of a moved entry moves when
+the entry is reused, through `doc.move`, a host operation because the positions in a value lie outside the parser
+VM's state; the target may refuse a value it cannot move, and the call evaluates the rule again. Which entry is
+reused stays in the composition. A target may apply `splice` lazily: the engine logs the edit, decides the entries
+at the replaced positions at once, and applies the log to any other entry when a lookup finds it, through the
+composition `memoAdvance`; an entry that lags behind more than a limit of edits is a miss, so a target drops it
+where it meets it, which bounds the comparisons with the entries of earlier texts by the work of that window of
+edits. The cost bounds state the extra work of such a target alone (pending edits and a key scan over the
+entries it still holds), so the bounds of the generated runtimes are those of an eager memo. The repetition runs
+are host operations of the engine: a backend drives a run and evaluates its elements between its begin and end,
+and charges its own steps, and no composition calls them, so the backends need no split form. *Shared*: which
+entries stay, move or go, and the positions after a move. *Target*: tables rebuilt or relinked at an edit, side
+tables of pending moves, copying or moving nodes in place, and repetition runs. *Conformance*: the memo operations
+under random edits on both Go runtimes and on the engine's Document memo, and the Document differential tests,
+which compare every result after an edit with a parse from scratch. Runs and moves have no reference model; tests
+of the engine measure their charges.
 
 The Operators Rule loop has no operation of its own: the longest operator match, the loop, binding powers, prefix
 commitment and the application order are composition, which is where all three of its core changes landed. The
-operations it calls read the rule's descriptors (`opr.led`, `opr.level`, `opr.right` and the others), run the grammar
-code of a line (`opr.match`, `opr.skip`), make the values of lines and applications as host primitives
-(`opr.lineValue`, `opr.build`), and hold a match of an operator (`opr.attempt`). Term evaluation and the value model
-join in a second wave as host primitives ([Decisions](#decisions)).
+operations it calls read the rule's descriptors, run the grammar code of a line, make the values of lines and
+applications as host primitives and hold a match of an operator. Term evaluation and the value model join in a
+second wave ([Decisions](#decisions)).
 
 ### Compositions
 
-The compositions written once in Exec IR are the algorithms that the copies re-implemented:
+The [compositions](../../../spec/exec-ir/compositions.md) are the algorithms that the copies re-implemented: the
+call protocol (deferred memoization, memo lookup and the reuse conditions, store, restore on failure, nesting and
+statistics), left-recursion growth, rule completion, Document calls, the expectation record, the Operators Rule
+loop, stream delivery and commitment points and parse entry. The specification lists them with the feature sets
+that each runtime prints.
 
-- the call protocol: deferred memoization, memo lookup and the reuse conditions (silent results, the left-recursion
-  context, the missing-token mode), store, restore on failure, nesting and statistics;
-- left-recursion growth: the growth from failure, its stop condition and its steps in a context;
-- rule completion: the rule's value, captures and hidden rules spliced into their caller;
-- Document calls: validation, reuse and the examined bound of each result;
-- the expectation record: recording an expectation, keeping a set and merging a set at a position;
-- the Operators Rule loop;
-- stream delivery and commitment points;
-- parse entry: start rule, default budgets and the input limit.
-
-Grammar code is composition too: a rule body lowered from Flow IR calls the same operations. A composition that must
-suspend while a rule body runs, as the iterative VM needs, is also available as a begin, step and end split over a
-small state record; a backend that recurses fuses them back into one function.
+A rule body lowered from Flow IR calls the same operations through the transitional operations that hold its
+primitives. A composition that must suspend while a rule body runs, as the iterative VM needs, is also written as a begin, step and end split over a
+small state record, from the same builder functions as the whole composition: the generated runtimes print the
+whole call, the engine the split forms.
 
 ### Cost Contracts
 
@@ -434,23 +387,15 @@ generated Go charges an expectation scan only after its membership filter matche
 it scans. An operation's cost contract is therefore a deterministic count per target within a declared bound
 ([Decisions](#decisions)).
 
-A bound is a constant plus a sum of terms, each a positive coefficient times an abstract quantity: a measure of the
-state before the call that the reference model of the component defines and computes, such as the key values of the
-entries at the call's position, or the positions a position-indexed memo copies when it doubles. A bound is the worst
+A bound is a constant plus a sum of terms, each a positive coefficient times an abstract quantity that the reference
+model of the component defines ([Costs](../../../spec/exec-ir/machine.md#costs) lists them). A bound is the worst
 case over the representations a target may choose: deferred memoization is bounded both by the regions a sparse
-record allocates and by the size of a dense record of calls in position order.
-
-An operation that copies a set or a list declares the copy in its bound: `exp.copy` one unit per expectation of the
-set, the recovery operations that keep or record errors again one unit per error. A transitional operation that
-charges declares a bound too, over quantities that its declaration defines: the left-recursion operations count the
-dependencies they pass on, the work of their context-table lookups, the runs of growth steps they record as jumps and
-what the expectation compositions they run charge. A host operation, which a target implements with host
-facilities outside the parser VM's state (input buffers, memory, callbacks, cancellation), declares a bound in the
-same way. With no reference model, neither bound is measured; a test follows the static calls of the Go runtime from
-each transitional and host operation and requires a quantity of its bound for every
-charge it can reach, so that a charge added to the runtime is accounted for when it is added. The operations that run
-a rule body or a term declare none: what they charge includes the grammar code or the term they run, which no bound
-of theirs can state.
+record allocates and by the size of a dense record of calls in position order. An operation that copies a set or a
+list declares the copy in its bound. A transitional or host operation that charges declares a bound too, with no
+reference model to measure it against; a test instead follows the static calls of the Go runtime from each such
+operation and requires a quantity of its bound for every charge it can reach, so that a charge added to the
+runtime is accounted for when it is added. The operations that run a rule body or a term declare none: what they
+charge includes the grammar code or the term they run, which no bound of theirs can state.
 
 Charges inside an operation spend the same budget that `budget.charge` and `budget.used` see. The conformance suite
 measures what an implementation charges in each call, checks it against the bound and adds it to the model's budget;
@@ -460,36 +405,41 @@ bound could exceed the limit.
 ### Authoring
 
 Compositions, operation declarations and conformance cases are written with Go builder functions in
-`internal/ir/exec`. A builder returns Exec IR that the verifier checks: types, definite assignment, that every exit
-names an enclosing block, that operations are called with their signatures and features, that each state component is
-written only by the operations that declare it, and that a specialization leaves no reference to a folded feature.
-The IR has a text dump for tests, golden files and error messages, and an interpreter that runs a function against a
-machine of operations, which is how Go runs conformance cases until a backend prints them. A textual syntax, parsed
-by a ZeroParse grammar, can be added later without changing the IR.
+`internal/ir/exec`. A builder returns Exec IR that the verifier checks against the
+[invariants](../../../spec/exec-ir/invariants.md). The IR has a text form for tests, golden files and error
+messages ([Text Form](../../../spec/exec-ir/text-form.md)), which nothing parses, and an interpreter that runs a
+function against a machine of operations, which is how Go runs conformance cases until a backend prints them. A
+textual syntax, parsed by a ZeroParse grammar, can be added later without changing the IR.
 
 ### Passes
 
-Exec IR passes know operations by their declarations, not by name:
+Exec IR passes know operations by their declarations, not by name. The
+[specification](../../../spec/exec-ir/passes.md) defines the passes that exist: **specialization** (features are
+constants; a function specialized for a set of them folds the constants and removes dead code, so that the
+hand-written `…Ordinary`, `…Controlled` and `…Spend` variants and the node and typed copies become
+specializations of one composition), **simplification** and **dead-store analysis**, which tells a printer which
+locals nothing reads. The design plans more that no code implements yet:
 
-- **Feature specialization.** Features (`budget`, `document`, `observe`, `missing`, `stream`, `typed`) are constants;
-  a function specialized for a set of them folds the constants and removes dead code. The hand-written `…Ordinary`,
-  `…Controlled` and `…Spend` variants and the node and typed copies become specializations of one composition.
-- **Operation elimination.** An operation whose effect is unobserved is removed, using the declared reads and writes
-  and the declared laws: a save and restore of a component that nothing between them writes; an `isolate` and
-  `unisolate` pair around code that records no expectation; examined-bound recording outside a Document; trace
-  events outside an observable build.
-- **Charge coalescing.** Charges in straight-line code merge, under the invariants of record 062: each loop iteration
-  charges, input is charged before it is inspected, and no charge moves across a commit. Budget counts stay as
-  `budget.golden` pins them unless a stage states otherwise.
+- **Operation elimination.** An operation whose effect is unobserved is removed, using the declared reads and
+  writes and the declared laws: a save and restore of a component that nothing between them writes; an
+  `isolate` and `unisolate` pair around code that records no expectation; examined-bound recording outside a
+  Document; trace events outside an observable build.
+- **Charge coalescing.** Charges in straight-line code merge, under the invariants of record 062: each loop
+  iteration charges, input is charged before it is inspected, and no charge moves across a commit. Budget counts
+  stay as `budget.golden` pins them unless a stage states otherwise. The TypeScript backend merges the charges in
+  a row of a rule before it prints them; that is not a pass of Exec IR.
 - **Inlining** of compositions into callers, within a budget that the backend sets per target.
-- **Cold-path marking** of error paths, growth and Document bookkeeping, which a backend may outline.
+- **Cold-path marking** of error paths, growth and Document bookkeeping, which a backend may outline. A function
+  that is marked no-inline exists today.
 - **Protocol fusion**: begin, body and end fused where the target recurses.
 
-Flow IR keeps its own passes; they run before lowering.
+Flow IR has no passes: lowering makes the decisions that record 062 planned for them, before the function reaches
+Exec IR.
 
 ### Target Backends
 
-A backend turns Exec IR into code for one language. It has three parts:
+A backend turns Exec IR into code for one language; [Printing](../../../spec/exec-ir/printing.md) defines what
+it prints. It has three parts:
 
 - an **operation library**: the implementation of every operation and of the parser state, written in the target
   language and tuned for it;
@@ -530,14 +480,12 @@ TypeScript printer's formatter.
 
 ### Testing
 
-- **Conformance suite.** Every operation has conformance cases: small Exec IR functions, written with builders, that
-  call operations and state the expected results, abstract state, statistics and charges. Each backend prints them
-  into a test program in its language and runs it, so that a case runs the same way on every target; until a
-  backend exists, the interpreter runs them in Go. A case runs in lock-step on the reference model and on the
-  implementation, and fails at the first call where they differ in results, in which handle a result is, in whether
-  the parse ends, or in charges beyond the bound. Randomized sequences draw arguments from small domains, so that keys
-  collide, and keep to every precondition by consulting the model while they are drawn. A conformance case is added
-  with every contract change and every bug found in an implementation.
+- **Conformance suite.** Every operation of the first kind has conformance cases, which the
+  [specification](../../../spec/exec-ir/printing.md#conformance) defines. Each backend prints them into a test
+  program in its language and runs it, so that a case runs the same way on every target; until a backend exists,
+  the interpreter runs them in Go. Randomized sequences draw arguments from small domains, so that keys collide,
+  and keep to every precondition by consulting the model while they are drawn. A conformance case is added with
+  every contract change and every bug found in an implementation.
 - **Bindings of existing runtimes.** Before a backend prints an operation library, an existing runtime is checked
   through a test binding that calls its functions. Where an operation is inline code of a composition, the binding
   does what that code does: in the generated Go runtime, `memo.store` allocates an entry and stores it with
@@ -613,7 +561,7 @@ move to Exec IR at once while mechanisms move one at a time.
    compositions exist, passes have nothing to transform, a printer test has no backend to run, and no composition
    calls a mechanism that has not migrated.
 3. **Every mode of grammar code.** Budget controls, observable builds, Document and stream variants print through the
-   Exec IR backend over transitional operations; the default flips and the Flow IR printers are removed.
+   Exec IR backend over transitional operations; the default flips and the Flow IR printers of structure are removed.
 4. **Expected sets, recovery bookkeeping and the variable environment.**
 5. **Budget charges and mode specialization.** The charges of compositions go through `budget.charge`, so that a
    form specialized without a budget leaves them out; keeping and merging expectations become compositions on every
@@ -937,8 +885,9 @@ These stay transitional, each declared with its contract and cost bound and impl
   tests bind what they do;
 - the primitives of grammar code, which reach each runtime's helpers through the lowering of Flow IR, among them the
   sites that make a recovered error;
-- evaluating a term and the values it reads (`term.eval`), which is the following work: term evaluation and the value
-  model, with value operations as host primitives. It takes in the function values that bindings refuse today;
+- evaluating a term (`term.eval`), which is the following work: term evaluation written on the value operations that
+  the specification already declares with tables that every target shares. It takes in the function values that
+  bindings refuse today;
 - TypeScript's conformance: a runner of the suite in TypeScript does not exist, so TypeScript stays on its parity
   tests and on the printed forms it shares.
 
@@ -1006,11 +955,11 @@ These are settled.
    generated runtime moves as the engine does, the specification makes reuse visible only through the
    statistics ([Reuse](../../../spec/runtime/documents.md#reuse)), so results do not change.
 7. **Printed code is checked in**, with a drift test, as `gen/_runtime` is today.
-8. **Term evaluation and the value model are a second wave**, with value operations as host primitives. They account
-   for 35 of the 79 multi-copy commits.
+8. **Term evaluation and the value model are a second wave.** The value operations and their tables are specified
+   first; term evaluation moves onto them afterwards. They account for 35 of the 79 multi-copy commits.
 
 9. **Cost contracts are deterministic per target, within a declared bound.** Each operation's contract states an
-   upper bound on its charges in abstract terms (for `expect`, at most one unit per element of the current record)
+   upper bound on its charges in abstract terms (for `exp.copy`, at most one unit per expectation of the set)
    and requires determinism; the exact count belongs to the target and is pinned by that target's golden counts.
    The budget bounds work, and a bound is what a user relies on; an exact cross-language count would forbid the
    representation choices this design exists to allow, and the specification already lets counts depend on the
@@ -1018,8 +967,9 @@ These are settled.
 10. **Each state component has a reference model**: a small, deliberately naive Go implementation of its contract,
     against which randomized operation sequences are compared on every target. It finds what handwritten cases miss
     (counter overflow, page boundaries) and is never printed or optimized, so it does not become another copy to tune.
-11. **The Flow IR printers are removed after stage 3**, once every mode of grammar code prints through Exec IR. Each
-    language has one backend early; transitional operations live until their mechanism migrates.
+11. **The Flow IR printers of structure are removed after stage 3**, once every mode of grammar code prints through
+    Exec IR. Each language has one backend early; transitional operations live until their mechanism migrates, and
+    each target still writes the code of the primitive that each `flow.` operation holds.
 12. **A slowdown counts only when a second interleaved run reproduces it.** With hundreds of benchmark rows some cross
     p < 0.05 by chance; a reproduced slowdown fails the stage.
 
@@ -1046,10 +996,11 @@ changes — is still paid on every copy. This design keeps the suite and removes
 lookup and call would cross the WebAssembly boundary, and values in the JavaScript heap need handles. Go's WebAssembly
 output adds megabytes to every parser, and the Go targets keep their copies.
 
-**Extending Flow IR with data structures instead of a third level.** Flow IR's invariants — every loop iteration
-consumes input, exits or charges; every Document read is recorded — do not hold for runtime loops such as a memo
-chain walk, so they would have to be scoped by function kind, and Flow IR's passes would have to skip or understand
-the runtime's state. Exec IR keeps Flow IR's invariants and gives the runtime's mechanisms passes of their own.
+**Extending Flow IR with data structures instead of a third level.** Flow IR's invariants (every loop iteration of
+a budget-controlled function charges, every Document read is recorded) do not hold for runtime loops such as a
+memo chain walk, so they would have to be scoped by function kind, and any pass of Flow IR would have to skip or
+understand the runtime's state. Exec IR leaves Flow IR's invariants as they are and gives the runtime's mechanisms
+passes of their own.
 
 **Generics to merge only the node and typed Go copies.** It removes one copy of four, pays dictionary calls where the
 instantiations share a GC shape, and does not help TypeScript or the engine.
