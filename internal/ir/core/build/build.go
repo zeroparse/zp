@@ -350,7 +350,10 @@ func coreLayout(prog *compile.Program, r *compile.Rule, proj map[string]string, 
 	visit = func(e grammar.Expr, build bool) {
 		switch e := e.(type) {
 		case *grammar.Capture:
-			if !build && r.PredCaps != nil && !r.PredCaps[e.Name] {
+			if !build && r.PredCaps != nil && !r.PredCaps.Records(e) {
+				if r.PredCaps.Slotted(e) {
+					s.slot(e.Name)
+				}
 				visit(e.Expr, false)
 				return
 			}
@@ -497,8 +500,12 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		return b.set(&core.Drop{Body: x}, e, false), nil
 	case *grammar.Capture:
-		if !build && b.cur.PredCaps != nil && !b.cur.PredCaps[e.Name] {
-			// Captures that no predicate reads build nothing where no value is wanted.
+		if pc := b.cur.PredCaps; !build && pc != nil && !pc.Records(e) {
+			// Captures that no predicate can read build nothing where no value is wanted; one of a
+			// name that a predicate reads keeps its slot, which it leaves unset.
+			if pc.Slotted(e) {
+				s.slot(e.Name)
+			}
 			return b.expr(e.Expr, s, false)
 		}
 		slot := s.slot(e.Name)

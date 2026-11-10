@@ -451,9 +451,14 @@ its value-free twin count as two rules, with memo entries of their own: an entry
 of one answers no call of the other. The twin is memoized exactly when its rule
 is, as the exceptions below decide for the rule, even where the twin is called
 from fewer places. A recognition builds values only for the rules that a call
-inside a capture that a predicate reads reaches, directly or through other
+inside a capture that a predicate can read reaches, directly or through other
 rules, and builds them there as a parse does, with their twins, even where no
-predicate reads the value of such a rule; every other rule builds no value
+predicate reads the value of such a rule. A predicate can read a capture of its
+own [scope](../language/parser-expressions.md#capture) whose name it reads and
+whose value that name can hold when the predicate runs: not one in another
+alternative of a choice, which backtracking undoes, nor one made after the
+predicate, nor one that a later capture of the same name replaces on every way
+to the predicate. Every other rule builds no value
 there and has no twin, so its calls, whether their value is used or not,
 evaluate the rule itself, with one memo entry. The
 exceptions are these.

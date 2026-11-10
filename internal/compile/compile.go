@@ -189,10 +189,10 @@ type Rule struct {
 	Rec bool
 	// Novalue reports that this is a value-free twin (its value is always nil).
 	Novalue bool
-	// PredCaps holds, for value-free rules in a program that builds no tree, the names of the
-	// captures referenced by predicates (other captures build no values). It is nil for ordinary
-	// rules.
-	PredCaps map[string]bool
+	// PredCaps tells, for value-free rules in a program that builds no tree, which captures
+	// record their values: those that predicates can read (other captures build no values). It
+	// is nil for ordinary rules.
+	PredCaps *PredicateCaptures
 	// Lean reports that the body's value is unused (an action, which reads captures only), so the
 	// body runs value-free. Captures still build values.
 	Lean bool
@@ -727,25 +727,8 @@ func transientRules(rules []*grammar.RuleDef, control *cancel.Control) map[strin
 	return out
 }
 
-// predicateCaptures returns the names of the captures referenced by predicates in the expression.
-func predicateCaptures(e grammar.Expr, control *cancel.Control) map[string]bool {
-	control.Poll()
-	names := map[string]bool{}
-	walkExprControlled(e, func(x grammar.Expr) {
-		if pr, ok := x.(*grammar.Predicate); ok {
-			WalkTerm(pr.Term, func(t grammar.Term) {
-				control.Poll()
-				if cr, ok := t.(*grammar.CaptureRef); ok {
-					names[cr.Name] = true
-				}
-			})
-		}
-	}, control)
-	return names
-}
-
 // valueNeededRules returns the rules that must build values even in a program that builds no
-// tree: the rules called within captures referenced by predicates, and every rule they call. With
+// tree: the rules called within captures that predicates can read, and every rule they call. With
 // streams, also the rules with a #stream repetition (see Program.ParseStream) and every rule they call.
 func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams bool) map[string]bool {
 	control.Poll()
@@ -771,15 +754,12 @@ func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams
 		if streams && hasStream(rd.Expr, control) {
 			mark(rd.Name)
 		}
-		pc := predicateCaptures(rd.Expr, control)
-		walkExprControlled(rd.Expr, func(x grammar.Expr) {
-			if cp, ok := x.(*grammar.Capture); ok && pc[cp.Name] {
-				for _, callee := range allCallsControlled(cp.Expr, nil, control) {
-					control.Poll()
-					mark(callee)
-				}
+		for cp := range predicateCaptures(rd.Expr, control).Read {
+			for _, callee := range allCallsControlled(cp.Expr, nil, control) {
+				control.Poll()
+				mark(callee)
 			}
-		}, control)
+		}
 	}
 	return needed
 }

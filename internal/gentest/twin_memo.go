@@ -15,3 +15,11 @@ const TwinOnePlaceSrc = "@start\nrule main = w \"1\" / w \"2\" / \"a\" w \"3\" /
 // and the second stores its result, which answers the later calls of the same variant: the body
 // of r is evaluated four times, twice for each variant.
 const TwinOwnEntriesSrc = "@start\nrule main = -r \"1\" / -r \"2\" / -r \"3\" / r \"4\" / r \"5\" / r \"6\" / r \"y\"\nrule r = [a-c]* t?\nrule t = \"d\"\n"
+
+// TwinScopedCaptureSrc is a grammar in which the memoized rule r is called inside captures named x
+// that no predicate can read: the predicate of the last alternative reads only the x of its own
+// alternative, which calls c, not r. So a recognition builds no value for r and gives it no twin
+// (Evaluations of Rules in spec/runtime/parsing.md), and the calls of r and -r at 0 evaluate one
+// rule with one memo entry: on "aa5" the first two calls evaluate it, the second storing its
+// result, which answers the other two. A parse evaluates r twice and its twin twice.
+const TwinScopedCaptureSrc = "@start\nrule main = x:r \"1\" / x:r \"2\" / -r \"3\" / -r \"4\" / x:c { len($x) > 0 }\nrule r = t*\nrule t = \"a\"\nrule c = \"z\" t*\n"

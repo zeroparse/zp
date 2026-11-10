@@ -490,8 +490,12 @@ func (c *bcompiler) void(e grammar.Expr, s *Scope) {
 
 // capture emits a capture, leaving its value pushed if keep.
 func (c *bcompiler) capture(e *grammar.Capture, s *Scope, keep bool) {
-	if !keep && c.cur.PredCaps != nil && !c.cur.PredCaps[e.Name] {
-		c.void(e.Expr, s) // a capture not referenced by the predicate, in a program that builds no tree
+	if pc := c.cur.PredCaps; !keep && pc != nil && !pc.Records(e) {
+		// A capture that no predicate can read, in a program that builds no tree.
+		if pc.Slotted(e) {
+			s.Slot(e.Name)
+		}
+		c.void(e.Expr, s)
 		return
 	}
 	slot := s.Slot(e.Name)

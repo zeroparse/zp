@@ -202,8 +202,12 @@ func (c *Walker[M]) Expr(e grammar.Expr, s *Scope, build bool) M {
 		return c.Builder.Discard(c.Expr(e.Expr, s, false))
 
 	case *grammar.Capture:
-		if !build && c.rule != nil && c.rule.PredCaps != nil && !c.rule.PredCaps[e.Name] {
-			// In a program that builds no tree, captures not referenced by predicates are not recorded.
+		if !build && c.rule != nil && c.rule.PredCaps != nil && !c.rule.PredCaps.Records(e) {
+			pc := c.rule.PredCaps
+			// In a program that builds no tree, captures that no predicate can read are not recorded.
+			if pc.Slotted(e) {
+				s.Slot(e.Name)
+			}
 			return c.Expr(e.Expr, s, false)
 		}
 		// Even inside a value-free body (leanBody), captures build and record their values.

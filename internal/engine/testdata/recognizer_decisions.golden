@@ -15392,7 +15392,6 @@ grammar	lean,controlled	"projected repetition clears its frame"
 guard	0	11	1	0	0	"\"-\""	193
 guard	0	7	1	0	0	"\"+\""	191
 scan	1	1
-scan	2	1
 scope	0	3	b
 grammar	lean,controlled	"recognizer action over a projected repetition"
 scan	5	1

@@ -55,8 +55,8 @@ func TestGeneratedTSLeaderStore(t *testing.T) {
 // TestGeneratedTSTwinMemo checks the memo of value-free twins in a generated TypeScript parser, as
 // TestGeneratedTwinMemo does for Go: a rule and its twin have memo entries of their own, and a twin
 // is memoized exactly when its rule is, even where the twin is called from one place only. A
-// recognition builds values only for the rules that a call inside a capture that a predicate reads
-// reaches, which r is not, so r has no twin there.
+// recognition builds values only for the rules that a call inside a capture that a predicate can
+// read reaches, which r is not, so r has no twin there.
 func TestGeneratedTSTwinMemo(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -65,6 +65,7 @@ func TestGeneratedTSTwinMemo(t *testing.T) {
 	}{
 		{tsRunCase{"own entries", gentest.TwinOwnEntriesSrc, "abcy"}, 4, 2},
 		{tsRunCase{"one place", gentest.TwinOnePlaceSrc, "abcy"}, 3, 3},
+		{tsRunCase{"scoped capture", gentest.TwinScopedCaptureSrc, "aa5"}, 4, 2},
 	}
 	var tc []tsRunCase
 	for _, c := range cases {

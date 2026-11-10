@@ -26,7 +26,7 @@ func TestTwinMemo(t *testing.T) {
 		src, input, caller string
 		pos                int
 		// want is the sequence in a parse, recognize the one in a recognition, where a rule that
-		// no call inside a capture that a predicate reads reaches builds no value and has no twin,
+		// no call inside a capture that a predicate can read reaches builds no value and has no twin,
 		// so the calls of r and -r evaluate one rule with one memo entry.
 		want, recognize string
 	}{
@@ -40,6 +40,10 @@ func TestTwinMemo(t *testing.T) {
 		// r is reached through d, which a capture that a predicate reads calls, so a recognition
 		// builds its value and keeps its twin although no predicate reads the value of r: d calls
 		// the rule twice and the twin twice at 1, each evaluated twice and then answered.
+		// The predicate reads only the x of its own alternative, which calls c; the captures named x
+		// that call r are in other alternatives, where no predicate can read them, so a
+		// recognition gives r no twin: two evaluations, then the memo answers the calls of -r.
+		{gentest.TwinScopedCaptureSrc, "aa5", "main", 0, "eval eval eval eval", "eval eval memo memo"},
 		{"@start\nrule main = s:d { len($s) > 0 }\nrule d = x:\"c\" (y:r \"1\" / y:r \"2\" / -r \"3\" / -r \"4\" / y:r) => $x\nrule r = t*\nrule t = \"a\"\n", "caa", "d", 1, "eval eval eval eval memo", "eval eval eval eval memo"},
 	}
 	type frame struct {
