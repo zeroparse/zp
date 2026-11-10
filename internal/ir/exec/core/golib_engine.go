@@ -118,6 +118,10 @@ func EngineVMTerms() (string, error) {
 	return engineTerms("vm", &execgo.Target{Recv: "vm *Program", Params: "p *core.Parser"}, "int", "", "vm.eval(ctx, t, nil)")
 }
 
+// engineBackendFuncs are the compositions that each backend of the engine prints into its own
+// package, without features, by engineTerms.
+var engineBackendFuncs = []string{"predicate", "bind"}
+
 // engineTerms prints the term compositions into a backend's own package, over what the backend
 // calls a term: a backend evaluates terms in its own form, so a printed function reaches the
 // evaluation with a direct call, and the composition costs no indirection on the path of a matcher.
@@ -156,7 +160,7 @@ func engineTerms(pkg string, t *execgo.Target, term, scope, eval string) (string
 		}
 		panic("core: no engine term implementation of " + c.Callee)
 	}
-	for _, fn := range []string{"predicate", "bind"} {
+	for _, fn := range engineBackendFuncs {
 		f, err := pass.Specialize(m, m.Func(fn), fn, nil)
 		if err != nil {
 			return "", err
