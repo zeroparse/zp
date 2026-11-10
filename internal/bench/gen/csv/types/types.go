@@ -59,6 +59,9 @@ func (v *File) TSetFresh(bool)        {}
 func (v *File) TField(name string) (any, bool) {
 	switch name {
 	case "Records":
+		if v.Records == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Records == nil {
 				return nil
@@ -76,6 +79,9 @@ func (v *File) TField(name string) (any, bool) {
 func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	switch name {
 	case "Records":
+		if v.Records == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Records == nil {
 				return nil
@@ -91,6 +97,14 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *File) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Records":
+		return c.NewList(nil), true
+	}
+	return nil, false
+}
+
 func (v *Record) TName() string         { return "Record" }
 func (v *Record) TText() (string, bool) { return "", false }
 func (v *Record) TKids() []any          { return nil }
@@ -100,6 +114,9 @@ func (v *Record) TSetFresh(bool)        {}
 func (v *Record) TField(name string) (any, bool) {
 	switch name {
 	case "Fields":
+		if v.Fields == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Fields == nil {
 				return nil
@@ -117,6 +134,9 @@ func (v *Record) TField(name string) (any, bool) {
 func (v *Record) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	switch name {
 	case "Fields":
+		if v.Fields == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Fields == nil {
 				return nil
@@ -132,6 +152,14 @@ func (v *Record) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *Record) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Fields":
+		return c.NewList(nil), true
+	}
+	return nil, false
+}
+
 func tb0(v *Field) any {
 	if v == nil {
 		return nil
@@ -143,7 +171,7 @@ func tb0(v *Field) any {
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [2]uint16
 
-// ZPSchema_018a671e8765474e ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_e70ab694b3604300 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_018a671e8765474e = 0
+const ZPSchema_e70ab694b3604300 = 0

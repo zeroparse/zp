@@ -53,6 +53,9 @@ func (v *Item) TField(name string) (any, bool) {
 	case "Text":
 		return rt.TBack(ZPHooks, v.Text), true
 	case "Children":
+		if v.Children == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Children == nil {
 				return nil
@@ -72,6 +75,9 @@ func (v *Item) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	case "Text":
 		return rt.TBack(ZPHooks, v.Text), true
 	case "Children":
+		if v.Children == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Children == nil {
 				return nil
@@ -87,7 +93,15 @@ func (v *Item) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
-// ZPSchema_932055d5f3ada458 ties the parser package to this package: the parser refers to it once, so a
+func (v *Item) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Children":
+		return c.NewList(nil), true
+	}
+	return nil, false
+}
+
+// ZPSchema_3851c59bf7b450ca ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_932055d5f3ada458 = 0
+const ZPSchema_3851c59bf7b450ca = 0

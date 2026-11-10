@@ -1874,11 +1874,16 @@ func (c *TActCtx) valueNode(typ string, kids []any) *TSeq {
 	first := true
 	for _, it := range kids {
 		c.P.Spend()
-		t := AsTval(it)
-		if t == nil {
+		var s, e int
+		if t := AsTval(it); t != nil {
+			s, e = t.TSpan()
+		} else if k := valKind(it); k >= 1 && k <= 3 {
+			// An int, a string or a bool is an element that the node runtimes box in a node with the range
+			// of the rule, which the range of the list or tuple covers.
+			s, e = c.Start, c.End
+		} else {
 			continue
 		}
-		s, e := t.TSpan()
 		if first || s < n.Start {
 			n.Start = s
 		}
@@ -1935,9 +1940,22 @@ func (c *TActCtx) Member(x any, name string) any {
 	return v
 }
 
-// memberZero is the operation node.zero, which has no zero value to make in the typed runtime: a typed
-// struct holds every field of its type, which node.field reads.
-func (p *TParser) memberZero(*TActCtx, TVal, string) (any, bool) { return nil, false }
+// memberZero is the operation node.zero: a typed struct holds every field of its type, and makes the zero
+// value of a list or struct field that it holds as nil (unset) when it is read.
+func (p *TParser) memberZero(c *TActCtx, n TVal, name string) (any, bool) {
+	if z, ok := n.(tzeroFields); ok {
+		return z.TZeroField(c, name)
+	}
+	return nil, false
+}
+
+// tzeroFields is implemented by the generated struct types: TZeroField returns the zero value of a list
+// or struct field that the value leaves unset (a nil slice or pointer), which a read makes then.
+//
+// TZeroField is for generated parsers; not a stable API.
+type tzeroFields interface {
+	TZeroField(c *TActCtx, name string) (any, bool)
+}
 
 // Length is the built-in function len, as the composition length (term_exec.go) makes it.
 func (c *TActCtx) Length(x any) any {

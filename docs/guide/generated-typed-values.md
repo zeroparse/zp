@@ -120,7 +120,7 @@ stars text 42
 - **Errors.** `ParseAST` returns the errors of `Parse`. After `#recover`, an `Error` in a list of a join type stays
   in the list as `*Error`; where a struct type is expected it becomes `nil` (it is among the returned
   `SyntaxErrors` anyway).
-- **Speed.** When no action reads a field of a struct value, the generated
+- **Speed.** When no action reads a field of a struct value that has no plain form (a node, a named node type, a join, an `any` or a record), the generated
   parser builds the values directly, without the
   nodes `Parse` makes: on the benchmarks `ParseAST` then takes a half to two thirds of the time of `Parse` and a quarter
   to a third of the memory (JSON 6.7 → 3.1 ms and 10.4 → 2.4 MB on a 262 KB input, less than `Recognize`; XML, the

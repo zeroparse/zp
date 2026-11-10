@@ -91,6 +91,12 @@ func (v *Binary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *Binary) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
 func (v *Unary) TName() string         { return "Unary" }
 func (v *Unary) TText() (string, bool) { return "", false }
 func (v *Unary) TKids() []any          { return nil }
@@ -117,11 +123,17 @@ func (v *Unary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *Unary) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
 // ZPNodeTypes holds the registered indexes of the named node types by their generated index; index 0
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [2]uint16
 
-// ZPSchema_a710b03a600590c2 ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_0f42d2a8b4d24bd6 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_a710b03a600590c2 = 0
+const ZPSchema_0f42d2a8b4d24bd6 = 0

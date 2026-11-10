@@ -49,8 +49,8 @@ func testGeneratedTypedOnlyConvertedEntries(t *testing.T) {
 	if out["full"] != out["only"] {
 		t.Errorf("the typed-only parser differs from the full one:\n%s", gentest.FirstTranscriptDifference(out["full"], out["only"]))
 	}
-	if !strings.Contains(out["only"], `"Names":["abc"]`) || !strings.Contains(out["only"], "syntax error") {
-		t.Error("the transcript has neither a value nor a syntax error")
+	if !strings.Contains(out["only"], `"Names":[{"Start":0,"End":3,"Value":[`) || !strings.Contains(out["only"], "syntax error") {
+		t.Errorf("the transcript has neither a value nor a syntax error: %.300s", out["only"])
 	}
 	if out["mutated"] == out["only"] {
 		t.Error("the transcripts of a mutated grammar are the same: the comparison cannot fail")

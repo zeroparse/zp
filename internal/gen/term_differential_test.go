@@ -161,9 +161,9 @@ func testTermGeneratedTargets(t *testing.T) {
 	if node, err := exec.LookPath("node"); err == nil {
 		gentest.TSParsersCorpus(t, node, cases, gen.GenOptions{})
 	}
-	// A typed parser reads an unset field as the zero value of its Type, not as nil, so the typed
-	// comparison leaves unset fields out.
-	gentest.GeneratedTypesCorpus(t, goBin, list(false), gen.GenOptions{ConvertTypes: true}, 0)
+	// A typed parser reads a field that a constructor leaves out as the zero value of its Type, like the
+	// others, so the typed comparison reads unset fields too.
+	gentest.GeneratedTypesCorpus(t, goBin, list(true), gen.GenOptions{ConvertTypes: true}, 0)
 }
 
 // TestTermDifferentialDetectsBrokenTargets is the negative control of TestTermGeneratedTargets: with an

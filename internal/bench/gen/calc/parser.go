@@ -1305,6 +1305,6 @@ func s4(p *rt.TParser) (any, bool) {
 	return v, true
 }
 
-const _ = types.ZPSchema_a710b03a600590c2
+const _ = types.ZPSchema_0f42d2a8b4d24bd6
 
 const _ = rt.Protocol5

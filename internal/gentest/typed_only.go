@@ -1,15 +1,15 @@
 package gentest
 
-// OrdinaryOnlyConverted needs the Node result of its rules: an action reads a field of a struct, so the
-// typed entry points convert the Node that the rule functions build instead of building the values
+// OrdinaryOnlyConverted needs the Node result of its rules: an action reads a field of a struct that has no
+// plain form (a node), so the typed entry points convert the Node that the rule functions build instead of building the values
 // directly.
-const OrdinaryOnlyConverted = `type Item = { Names []string; N int }
+const OrdinaryOnlyConverted = `type Item = { Names []node[_]; N int }
 rule main Item = i:item "!" => Item{Names: $i.Names, N: len($i.Names)}
-rule item Item = n:[a-z]+ => Item{Names: list(text($n)), N: 0}`
+rule item Item = n:[a-z]+ => Item{Names: list($n), N: 0}`
 
 var OrdinaryOnlyConvertedInputs = []string{"abc!", "!", "abc", "", "é!", "ab\xff!", "abc!x", "a!b!", "ab !"}
 
-// TypedOnlyConverted are grammars whose typed entry points convert Nodes (an action reads a field of a struct), so
+// TypedOnlyConverted are grammars whose typed entry points convert Nodes (an action reads a field of a struct that holds a node), so
 // that a typed-only parser keeps the Node rules and its entry points run them: a plain sequence, recovery, a
 // fold, a left-recursive leader, a cut with an environment and an Operators Rule.
 var TypedOnlyConverted = []Case{
@@ -43,14 +43,14 @@ rule main R = i:item "!" => R{Names: $i.Names, N: n}
 rule item R = ("a" #cut {n := n + 1} xs:name+ => R{Names: $xs, N: 0}) / ("b" {n := n + 2} xs:name* => R{Names: $xs, N: 0})
 rule name = [a-z] #atomic ","?`,
 		Inputs: []string{"ab,c,!", "b!", "bx!", "a!", "a", "c!", "bxy,z!", ""}},
-	{Name: "operators", Src: `type It = { L []string }
-rule main It = e:expr $$ => It{L: concat($e.L, list("!"))}
+	{Name: "operators", Src: `type It = { L []node[_] }
+rule main It = e:expr $$ => It{L: concat($e.L, list($e.L[0]))}
 rule expr It = #operators {
     skip " "*
     operand x:num => $x
-    level { infix left o:("+" / "-") => It{L: concat($lhs.L, list(text($o)), $rhs.L)} }
-    level { infix right o:("*" / "/") => It{L: concat(list("["), $lhs.L, list(text($o)), $rhs.L, list("]"))} }
+    level { infix left o:("+" / "-") => It{L: concat($lhs.L, list($o), $rhs.L)} }
+    level { infix right o:("*" / "/") => It{L: concat($lhs.L, list($o), $rhs.L)} }
 }
-rule num It = d:[0-9]+ #atomic => It{L: list(text($d))}`,
+rule num It = d:[0-9]+ #atomic => It{L: list($d)}`,
 		Inputs: []string{"1", "1 + 2", "1 - 2 * 3", "1 * 2 / 3 + 4", "1 +", "", " 1  *  2", "1 + 2 +"}},
 }

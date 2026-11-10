@@ -49,9 +49,12 @@ list. Where a struct or terminal type is expected, an `Error` node becomes `nil`
 
 When every value `ParseAST` can return has a Go type of its own (`runtimeOK`: no `Seq`, `List`, `Operator`, record,
 `node`, `terminal` or `_` in the result type or in any struct field) and no action or predicate reads a field of a
-struct (a typed value keeps its fields converted, so reading one back would differ from the node's field: a list
-would be a new list, an omitted `int` 0 rather than nil, an `Error` nil), the generated parser builds the values
-directly. `runtime/typed.go` is a second runtime that mirrors `runtime/runtime.go` step by step, with values of type
+struct whose type has no plain form (a typed value keeps its fields converted, so reading back a `node`, a named node
+type, a join, an `any` or a record would differ from the node's field), the generated parser builds the values
+directly. A field of a plain type (an `int`, `string` or `bool`, an optional one, a struct, and a tuple or list of
+these, declared with one type by every struct that has a field of the name) reads as it does from a node: a list or
+struct field that a constructor leaves out is a nil slice or pointer, which a read turns into the zero value of the
+type, an empty list or the struct with no field set. `runtime/typed.go` is a second runtime that mirrors `runtime/runtime.go` step by step, with values of type
 `any` instead of `*Node`: a value is a pointer to a struct or terminal type, `*Match`, `*Error`, an int, string or
 bool, nil, or a `*tnode` for the CST values that actions consume (Seq, List and Operator nodes, which never reach the
 result). `tparser` embeds the parser and redefines only the methods that handle values, so matching, expectations,

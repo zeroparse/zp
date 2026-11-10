@@ -41,7 +41,7 @@ calls. The second pass prints only the entered (rule, slot or wrapper) pairs:
 The second pass fails generation if a printed call reaches a rule that was left out, and if an
 entered slot has no printed `Body`, so a missing root cannot become a nil `Body` at run time.
 A typed-only parser has no Node or recognizer rule to leave out when its entry points do not convert Nodes. When they
-do (an action reads a field of a struct), it prints the Node rules that the entry points reach, under the same checks as
+do (an action reads a field of a struct that has no plain Go form), it prints the Node rules that the entry points reach, under the same checks as
 any other output, and the typed rules that nothing enters are left out.
 
 ## Results

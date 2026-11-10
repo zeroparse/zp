@@ -140,7 +140,7 @@ node, err := pairsparser.Parse(input,
 ```
 
 `Parse`, `ParseRule`, `Recognize` (when generated) and `ParseAST`/`ParseRuleAST` (with `-types`) accept the same functional options.
-With `-typed-only` (`TypedOnly` of `gen.Go`, which needs `-types`) the package has only `ParseAST` and `ParseRuleAST`: `Parse`, `ParseRule`, `Recognize` and the code that builds `*Node` values are not generated, and `-recognize`, `-document` and `-stream` are rejected. When a typed entry point converts the Node of its rule (an action reads a field of a struct, or a result type has no Go type of its own), the generated package keeps the unexported Node rule functions that conversion runs, so the saving is smaller for such a grammar.
+With `-typed-only` (`TypedOnly` of `gen.Go`, which needs `-types`) the package has only `ParseAST` and `ParseRuleAST`: `Parse`, `ParseRule`, `Recognize` and the code that builds `*Node` values are not generated, and `-recognize`, `-document` and `-stream` are rejected. When a typed entry point converts the Node of its rule (an action reads a field of a struct that has no plain Go form, such as a node, or a result type has no Go type of its own), the generated package keeps the unexported Node rule functions that conversion runs, so the saving is smaller for such a grammar.
 No options preserves CodePoints and the generated depth default, normally 100,000. A positive `Limits.Depth`
 overrides that default for one invocation, including typed direct parsing and node conversion. Zero selects the
 generated default. Options apply in order; `Depth: Unlimited` returns a configuration error before matching, actions

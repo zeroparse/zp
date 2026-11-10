@@ -86,6 +86,9 @@ func (v *Array) TSetFresh(bool)        {}
 func (v *Array) TField(name string) (any, bool) {
 	switch name {
 	case "Elements":
+		if v.Elements == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Elements == nil {
 				return nil
@@ -103,6 +106,9 @@ func (v *Array) TField(name string) (any, bool) {
 func (v *Array) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	switch name {
 	case "Elements":
+		if v.Elements == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Elements == nil {
 				return nil
@@ -114,6 +120,14 @@ func (v *Array) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			return p.ListField(kids)
 		}(), true
+	}
+	return nil, false
+}
+
+func (v *Array) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Elements":
+		return c.NewList(nil), true
 	}
 	return nil, false
 }
@@ -144,6 +158,12 @@ func (v *Member) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *Member) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
 func (v *Object) TName() string         { return "Object" }
 func (v *Object) TText() (string, bool) { return "", false }
 func (v *Object) TKids() []any          { return nil }
@@ -153,6 +173,9 @@ func (v *Object) TSetFresh(bool)        {}
 func (v *Object) TField(name string) (any, bool) {
 	switch name {
 	case "Members":
+		if v.Members == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Members == nil {
 				return nil
@@ -170,6 +193,9 @@ func (v *Object) TField(name string) (any, bool) {
 func (v *Object) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	switch name {
 	case "Members":
+		if v.Members == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Members == nil {
 				return nil
@@ -185,6 +211,14 @@ func (v *Object) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
+func (v *Object) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Members":
+		return c.NewList(nil), true
+	}
+	return nil, false
+}
+
 func tb0(v *String) any {
 	if v == nil {
 		return nil
@@ -196,7 +230,7 @@ func tb0(v *String) any {
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [5]uint16
 
-// ZPSchema_6f3389f1bda364ff ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_341a4aaa83c568ba ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_6f3389f1bda364ff = 0
+const ZPSchema_341a4aaa83c568ba = 0

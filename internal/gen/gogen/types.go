@@ -378,7 +378,7 @@ type listConv struct {
 // it, and the name of the embedded Span; a field of the same name gets a "_" suffix in Go.
 var RuntimeMethodNames = map[string]bool{
 	"TName": true, "TText": true, "TKids": true, "TStruct": true, "TFresh": true, "TSetFresh": true,
-	"TField": true, "TFieldSpend": true, "TStrField": true, "TSpan": true, "TSetSpan": true, "Range": true,
+	"TField": true, "TFieldSpend": true, "TStrField": true, "TZeroField": true, "TSpan": true, "TSetSpan": true, "Range": true,
 	"Span": true, "Start": true, "End": true,
 }
 
@@ -905,6 +905,31 @@ func (t *TypedGen) runtimeOK(st compile.Ty) bool {
 	return true
 }
 
+// plainField reports whether a field of type x reads from a typed value as it reads from a node: an int,
+// string or bool, an optional one, a struct, and a tuple or list of these. A node, a named node type, a
+// join, an any or a record has a Go form that differs from its value in a node.
+func (t *TypedGen) plainField(x compile.Ty) bool {
+	switch x := x.(type) {
+	case compile.BasicTy:
+		return x == compile.TyInt || x == compile.TyString || x == compile.TyBool
+	case compile.NamedTy:
+		return x.Kind == 's'
+	case compile.OptTy:
+		b, ok := x.Elem.(compile.BasicTy)
+		return ok && t.plainField(b)
+	case compile.TupleTy:
+		for _, e := range x.Elems {
+			if !t.plainField(e) {
+				return false
+			}
+		}
+		return true
+	case compile.ListTy:
+		return t.plainField(x.Elem)
+	}
+	return false
+}
+
 // nodeMember reports whether the member access m reads only .Start, .End or .Value of nodes.
 func (t *TypedGen) nodeMember(m *grammar.Member) bool {
 	return t.Info.NodeMembers[m]
@@ -913,23 +938,23 @@ func (t *TypedGen) nodeMember(m *grammar.Member) bool {
 // readsFields reports whether an action or predicate may read a field of a struct: a member
 // access whose name is a field of some struct type. A typed value keeps its fields converted to
 // their Go types (a list as a slice, an Error where a struct is expected as nil), so reading them
-// back would not give what the node's fields hold. A string, int or bool field reads the same where
-// every struct with a field of that name declares it with the same one of these types: a constructor
-// that leaves it out gives the Go zero value, which is the zero value of its type.
+// back would not give what the node's fields hold. A field of a plain type (see plainField) reads the
+// same where every struct with a field of that name declares it with the same plain type: a constructor that
+// leaves it out gives the Go zero value, a nil list or struct, which the typed runtime reads as the zero
+// value of the type (TZeroField).
 func (t *TypedGen) readsFields() bool {
 	fields := map[string]bool{}
-	// scalarField reports whether every struct with a field of that name declares it with the same
-	// type, string, int or bool.
-	scalarField := map[string]bool{}
-	fieldType := map[string]compile.Ty{}
+	// plain reports whether every struct with a field of that name declares it with the same plain type.
+	plain := map[string]bool{}
+	fieldType := map[string]string{}
 	for _, name := range t.structs {
 		for _, f := range t.Info.Fields[name] {
 			if !fields[f.Name] {
-				scalarField[f.Name] = f.T == compile.TyString || f.T == compile.TyInt || f.T == compile.TyBool
-				fieldType[f.Name] = f.T
+				plain[f.Name] = true
+				fieldType[f.Name] = f.T.String()
 			}
 			fields[f.Name] = true
-			scalarField[f.Name] = scalarField[f.Name] && f.T == fieldType[f.Name]
+			plain[f.Name] = plain[f.Name] && t.plainField(f.T) && f.T.String() == fieldType[f.Name]
 		}
 	}
 	var terms []grammar.Term
@@ -967,7 +992,7 @@ func (t *TypedGen) readsFields() bool {
 			terms = append(terms, r.Def.Action)
 		}
 	}
-	faithful := func(field string) bool { return scalarField[field] }
+	faithful := func(field string) bool { return plain[field] }
 	found := false
 	for _, x := range terms {
 		compile.WalkTerm(x, func(y grammar.Term) {
@@ -1036,7 +1061,7 @@ func (t *TypedGen) valueMethods(b *strings.Builder) {
 		fmt.Fprintf(b, "func (v *%s) TField(name string) (any, bool) {\n\tswitch name {\n", g)
 		for _, f := range t.Info.Fields[name] {
 			if t.representable(f.T) {
-				fmt.Fprintf(b, "\tcase %q:\n\t\treturn %s, true\n", f.Name, t.back(f.T, "v."+t.fieldGo(f.Name)))
+				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.back(f.T, "v."+t.fieldGo(f.Name)))
 			} else {
 				fmt.Fprintf(b, "\tcase %q:\n\t\treturn nil, true\n", f.Name)
 			}
@@ -1058,13 +1083,49 @@ func (t *TypedGen) valueMethods(b *strings.Builder) {
 		fmt.Fprintf(b, "func (v *%s) TFieldSpend(p *"+runtimeAlias+".TParser, name string) (any, bool) {\n\tswitch name {\n", g)
 		for _, f := range t.Info.Fields[name] {
 			if t.representable(f.T) {
-				fmt.Fprintf(b, "\tcase %q:\n\t\treturn %s, true\n", f.Name, t.backSpend(f.T, "v."+t.fieldGo(f.Name)))
+				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.backSpend(f.T, "v."+t.fieldGo(f.Name)))
 			} else {
 				fmt.Fprintf(b, "\tcase %q:\n\t\treturn nil, true\n", f.Name)
 			}
 		}
 		b.WriteString("\t}\n\treturn nil, false\n}\n\n")
+		fmt.Fprintf(b, "func (v *%s) TZeroField(c *"+runtimeAlias+".TActCtx, name string) (any, bool) {\n\tswitch name {\n", g)
+		for _, f := range t.Info.Fields[name] {
+			if !t.representable(f.T) {
+				continue
+			}
+			switch t.zeroKind(f.T) {
+			case "list":
+				fmt.Fprintf(b, "\tcase %q:\n\t\treturn c.NewList(nil), true\n", f.Name)
+			case "struct":
+				fmt.Fprintf(b, "\tcase %q:\n\t\treturn c.MadeOf(new(%s)), true\n", f.Name, t.ref(f.T.(compile.NamedTy).Name))
+			}
+		}
+		b.WriteString("\t}\n\treturn nil, false\n}\n\n")
 	}
+}
+
+// unsetField returns the statement that makes a read of a list or struct field report the field as not
+// set while it is nil, which the runtime reads as the zero value of the field's type (TZeroField).
+func (t *TypedGen) unsetField(name string, ty compile.Ty) string {
+	if t.zeroKind(ty) == "" {
+		return ""
+	}
+	return fmt.Sprintf("\t\tif v.%s == nil {\n\t\t\treturn nil, false\n\t\t}\n", t.fieldGo(name))
+}
+
+// zeroKind returns "list" or "struct" for a field type whose Go type is nil when the field is unset and
+// whose zero value is made on a read, and "" for any other.
+func (t *TypedGen) zeroKind(ty compile.Ty) string {
+	switch x := ty.(type) {
+	case compile.ListTy:
+		return "list"
+	case compile.NamedTy:
+		if x.Kind == 's' {
+			return "struct"
+		}
+	}
+	return ""
 }
 
 // back returns a Go expression converting x, an expression of the Go type of type ty, into a

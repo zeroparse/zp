@@ -144,7 +144,7 @@ func TestTypedFieldMaterialization(t *testing.T){
  }
  p:=graphParser(32);tp:=&zprt.TParser{Parser:p};empty:=&Bag{Items:[]*Leaf{},Nested:nil}
  if got:=(&zprt.TActCtx{P:tp}).Member(empty,"Items");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("empty field changed")}
- if got:=(&zprt.TActCtx{P:tp}).Member(empty,"Nested");got!=nil{t.Fatal("nil field changed")}
+ if got:=(&zprt.TActCtx{P:tp}).Member(empty,"Nested");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("nil field is not the empty list")}
 }
 func TestGraphFoldOrderAndBudget(t *testing.T){
  nodes,values:=graphKids()

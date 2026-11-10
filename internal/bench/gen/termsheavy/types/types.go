@@ -60,6 +60,9 @@ func (v *Doc) TSetFresh(bool)        {}
 func (v *Doc) TField(name string) (any, bool) {
 	switch name {
 	case "Lines":
+		if v.Lines == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Lines == nil {
 				return nil
@@ -77,6 +80,9 @@ func (v *Doc) TField(name string) (any, bool) {
 func (v *Doc) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	switch name {
 	case "Lines":
+		if v.Lines == nil {
+			return nil, false
+		}
 		return func() any {
 			if v.Lines == nil {
 				return nil
@@ -88,6 +94,14 @@ func (v *Doc) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			return p.ListField(kids)
 		}(), true
+	}
+	return nil, false
+}
+
+func (v *Doc) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	case "Lines":
+		return c.NewList(nil), true
 	}
 	return nil, false
 }
@@ -138,7 +152,13 @@ func (v *Line) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 	return nil, false
 }
 
-// ZPSchema_fc4e5afe12323557 ties the parser package to this package: the parser refers to it once, so a
+func (v *Line) TZeroField(c *rt.TActCtx, name string) (any, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// ZPSchema_e363e9a5033ad260 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_fc4e5afe12323557 = 0
+const ZPSchema_e363e9a5033ad260 = 0

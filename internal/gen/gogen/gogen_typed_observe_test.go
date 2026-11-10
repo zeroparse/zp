@@ -65,7 +65,7 @@ rule cst = part ";"`, input: "a", checks: `if count("part",TraceEnter)!=1 {t.Fat
 type N = { Value W }
 rule main W = n:box => $n.Value
 rule box N = p:part => N{Value:$p}
-rule part W = t:("a") #atomic => W{Text: text($t)}`, input: "a", fallback: true, checks: `if count("box",TraceEnter)!=1 {t.Fatal(events)}`},
+rule part W = t:("a") #atomic => W{Text: text($t)}`, input: "a", checks: `if count("box",TraceEnter)!=1 {t.Fatal(events)}`},
 		{name: "unicode", grammar: `type W = { Text string }
 rule main W = t:(part part) #atomic => W{Text: text($t)}
 rule part W = t:("é") #atomic => W{Text: text($t)}`, input: "éé", checks: `last:=events[len(events)-1];end:=2;if unit==Bytes {end=4};if last.End!=end {t.Fatal(last)}`},
