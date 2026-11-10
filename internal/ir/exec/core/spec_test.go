@@ -28,9 +28,10 @@ const specDir = "../../../../spec/exec-ir"
 // specTable is a Markdown table of a chapter: its header cells and its rows of cells. A cell that is
 // one code span is its content.
 type specTable struct {
-	file string
-	head []string
-	rows [][]string
+	file    string
+	section string // the heading of the section that holds the table
+	head    []string
+	rows    [][]string
 }
 
 // readSpec returns the tables of the chapters of the specification.
@@ -56,9 +57,13 @@ func parseTables(file, src string) []specTable {
 	var out []specTable
 	var cur *specTable
 	fenced := false
+	section := ""
 	for _, line := range strings.Split(src, "\n") {
 		if strings.HasPrefix(line, "```") {
 			fenced = !fenced
+		}
+		if !fenced && strings.HasPrefix(line, "## ") {
+			section = strings.TrimPrefix(line, "## ")
 		}
 		if fenced || !strings.HasPrefix(line, "|") {
 			cur = nil
@@ -67,7 +72,7 @@ func parseTables(file, src string) []specTable {
 		cells := splitRow(line)
 		switch {
 		case cur == nil:
-			out = append(out, specTable{file: file, head: cells})
+			out = append(out, specTable{file: file, section: section, head: cells})
 			cur = &out[len(out)-1]
 		case strings.HasPrefix(line, "|:") || strings.HasPrefix(line, "|-"):
 		default:
@@ -215,6 +220,57 @@ func opEntry(o *exec.Op) string {
 	return decl + " | " + strings.Join(state, "; ") + " | " + o.Cost.String()
 }
 
+// mixedSections are the sections of the catalog that hold the operations of more than one component,
+// with the components they may hold, by chapter and heading.
+var mixedSections = map[string][]string{"values.md/Operations on Values": {ops.Val, ops.Host}}
+
+// sectionErrors returns the operations that sit in a section of the catalog with operations of another
+// component: a section holds the operations of one component, or of the components that mixedSections
+// allows it, so that where an operation sits tells which component it belongs to.
+func sectionErrors(m *exec.Module, spec map[string][]specTable) []string {
+	comp := map[string]string{}
+	for _, o := range m.Ops {
+		comp[o.Name] = o.Component
+	}
+	var errs []string
+	for _, file := range slices.Sorted(func(yield func(string) bool) {
+		for f := range spec {
+			if !yield(f) {
+				return
+			}
+		}
+	}) {
+		for _, tb := range spec[file] {
+			if len(tb.head) == 0 || tb.head[0] != "Declaration" {
+				continue
+			}
+			first := map[string]string{} // component to the first operation of the section that has it
+			var order []string
+			for _, r := range tb.rows {
+				if !strings.HasPrefix(r[0], "op ") && !strings.HasPrefix(r[0], "host op ") && !strings.HasPrefix(r[0], "transitional op ") {
+					continue
+				}
+				name := declName(r[0])
+				c, ok := comp[name]
+				if !ok {
+					continue // reported by moduleErrors
+				}
+				if _, seen := first[c]; !seen {
+					first[c] = name
+					order = append(order, c)
+				}
+			}
+			allowed, mixed := mixedSections[file+"/"+tb.section]
+			for i, c := range order {
+				if (mixed && !slices.Contains(allowed, c)) || (!mixed && i > 0) {
+					errs = append(errs, fmt.Sprintf("%s, section %q: the operation %s of the component %s sits with operations of the component %s", file, tb.section, first[c], c, order[0]))
+				}
+			}
+		}
+	}
+	return errs
+}
+
 // declName returns the name in a catalog declaration: the word before its parameters.
 func declName(decl string) string {
 	head, _, _ := strings.Cut(decl, "(")
@@ -291,28 +347,38 @@ func moduleErrors(m *exec.Module, spec map[string][]specTable) []string {
 	return errs
 }
 
-// irKinds returns the names of the types of package exec that implement the interface method
+// irKinds returns the names of the types of package exec, in any file, that implement the interface method
 // method: the statements (stmt) or the expressions (expr).
 func irKinds(t *testing.T, method string) map[string]string {
 	t.Helper()
-	f, err := parser.ParseFile(token.NewFileSet(), "../exec.go", nil, 0)
-	if err != nil {
-		t.Fatal(err)
+	names, err := filepath.Glob("../*.go")
+	if err != nil || len(names) == 0 {
+		t.Fatalf("no files in package exec: %v", err)
 	}
 	out := map[string]string{}
-	for _, d := range f.Decls {
-		fn, ok := d.(*ast.FuncDecl)
-		if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 {
+	for _, name := range names {
+		if strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		if star, ok := fn.Recv.List[0].Type.(*ast.StarExpr); ok {
-			if id, ok := star.X.(*ast.Ident); ok {
-				out[id.Name] = id.Name
+		f, err := parser.ParseFile(token.NewFileSet(), name, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, d := range f.Decls {
+			fn, ok := d.(*ast.FuncDecl)
+			// The marker method of a kind has no parameters; a method of another type with the same name may have some.
+			if !ok || fn.Recv == nil || fn.Name.Name != method || len(fn.Recv.List) != 1 || fn.Type.Params.NumFields() != 0 {
+				continue
+			}
+			if star, ok := fn.Recv.List[0].Type.(*ast.StarExpr); ok {
+				if id, ok := star.X.(*ast.Ident); ok {
+					out[id.Name] = id.Name
+				}
 			}
 		}
 	}
 	if len(out) == 0 {
-		t.Fatalf("no %s methods in ../exec.go", method)
+		t.Fatalf("no %s methods in package exec", method)
 	}
 	return out
 }
@@ -320,7 +386,8 @@ func irKinds(t *testing.T, method string) map[string]string {
 // TestSpecModule checks the declarations of the parser VM, the operations and the compositions
 // against the specification.
 func TestSpecModule(t *testing.T) {
-	for _, e := range moduleErrors(Build(), readSpec(t)) {
+	spec := readSpec(t)
+	for _, e := range append(moduleErrors(Build(), spec), sectionErrors(Build(), spec)...) {
 		t.Error(e)
 	}
 }
@@ -346,6 +413,17 @@ func TestSpecModuleNegative(t *testing.T) {
 		if !strings.Contains(errs, want) {
 			t.Errorf("no error %q in:\n%s", want, errs)
 		}
+	}
+}
+
+// TestSpecSectionsNegative is the permanent negative control of the section check: an operation whose
+// component is changed to another sits among the operations of its section and is reported.
+func TestSpecSectionsNegative(t *testing.T) {
+	m := Build()
+	m.Op("rec.push").Component = "depth"
+	errs := strings.Join(sectionErrors(m, readSpec(t)), "\n")
+	if !strings.Contains(errs, `section "Recovered Errors"`) {
+		t.Errorf("no error for the section of the changed operation in:\n%s", errs)
 	}
 }
 
@@ -471,6 +549,43 @@ func TestSpecSpecializationsNegative(t *testing.T) {
 	}
 }
 
+// valueKinds are the kinds of a value as val.kind returns them, by code, with the name that the
+// specification gives each.
+var valueKinds = []struct {
+	code int
+	name string
+}{{ops.KindNil, "nil"}, {ops.KindInt, "int"}, {ops.KindString, "string"}, {ops.KindBool, "bool"}, {ops.KindOther, "other"}}
+
+// kindErrors returns the differences between the rows of the table of value kinds and the kinds of
+// the code: the number of rows, and the code and the name of each.
+func kindErrors(rows [][]string) []string {
+	var errs []string
+	if len(rows) != len(valueKinds) {
+		errs = append(errs, fmt.Sprintf("value kinds: %d rows, want %d", len(rows), len(valueKinds)))
+	}
+	for i, r := range rows {
+		if i >= len(valueKinds) {
+			break
+		}
+		if k := valueKinds[i]; r[0] != fmt.Sprint(k.code) || r[1] != k.name {
+			errs = append(errs, fmt.Sprintf("value kind %d: the specification has %q %q, the code has %d %q", i, r[0], r[1], k.code, k.name))
+		}
+	}
+	return errs
+}
+
+// TestSpecValueKindsNegative is the permanent negative control of the value-kinds check: a renamed
+// kind and two kinds swapped are each reported.
+func TestSpecValueKindsNegative(t *testing.T) {
+	rows := [][]string{{"0", "nil"}, {"1", "int"}, {"2", "text"}, {"4", "bool"}, {"3", "other"}}
+	errs := strings.Join(kindErrors(rows), "\n")
+	for _, want := range []string{`value kind 2: the specification has "2" "text"`, `value kind 3:`, `value kind 4:`} {
+		if !strings.Contains(errs, want) {
+			t.Errorf("no error %q in:\n%s", want, errs)
+		}
+	}
+}
+
 // TestSpecValues checks the tables of Values against the tables that every target shares.
 func TestSpecValues(t *testing.T) {
 	spec := readSpec(t)
@@ -478,8 +593,8 @@ func TestSpecValues(t *testing.T) {
 	for _, tb := range spec["values.md"] {
 		tables[strings.Join(tb.head, " ")] = tb
 	}
-	if n := len(tables["Code Kind Values"].rows); n != ops.KindOther+1 {
-		t.Errorf("value kinds: %d rows, want %d", n, ops.KindOther+1)
+	for _, e := range kindErrors(tables["Code Kind Values"].rows) {
+		t.Error(e)
 	}
 	groups := map[string]struct{ syms, names []string }{
 		"Binary":  {ops.BinaryOps, ops.BinaryNames},
