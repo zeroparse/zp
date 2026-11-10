@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-10
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -14,16 +14,16 @@ Lemmas 1, 2, 3, 7, 8, 9, 10, 11 and 14 are proved. Lemmas 13 and 15 are proved
 for the [cost view](#setting) that the classifier reads, and the
 [Cost View](cost-view.md) proof transfers every bound on the view to the grammar
 as written, except for the values that actions build from values that the view
-reshapes and the run-time errors of those actions, step 8 of
+reshapes and the run-time errors of those actions, step 7 of
 [Open Steps](#open-steps). Lemma 6 is proved given the count
 of activations of Lemma 4 (step 1 of [Open Steps](#open-steps)). The theorem is
 proved from the others, so the promise of the class Linear rests on Lemmas 4 and
 5, which are outlines, on Lemma 6, which is proved given step 1, and, for the
-values that actions build from reshaped values, on step 8. Lemma 12
+values that actions build from reshaped values, on step 7. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts and the bounds of
 [Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse), in
-terms of what the Document retains, which step 7 of [Open Steps](#open-steps)
+terms of what the Document retains, which step 6 of [Open Steps](#open-steps)
 leaves unbounded. After Lemma 12 an argument, not a proof, shows that the units
 which the default budget counts for a Document parse are at most those of a
 parse of the same text from scratch.
@@ -33,7 +33,7 @@ constant times $C$.
 specification to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
 proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
-proves a reduction and bounds the repetitions at one position: the scanned cost comes down to the number of activations, a failure
+proves a reduction and bounds the repetitions at one position: the scanned cost comes down to the number of activations, those that do not succeed come down to those that do and to the body evaluations of memoized rules, without resting on Lemma 10, a failure
 after a source passes through the forms that condition 2 checks, an activation
 is repeated at a position only after an abandoned committing unit or a dropped
 growth step, at most one successful activation of a source at a position is
@@ -71,7 +71,7 @@ on every input, which is the condition of the cost view. So a bound on the parse
 of the view is a bound on the parse of the grammar. The [Cost View](cost-view.md)
 proof shows that condition for every rewrite that the view applies, with explicit
 constants, except for the values that actions build from a value that a rewrite
-reshapes and the run-time errors of those actions, which step 8 of
+reshapes and the run-time errors of those actions, which step 7 of
 [Open Steps](#open-steps) leaves open.
 
 **Cost.** By [Cost](../runtime/parsing.md#cost), the cost of a parse is
@@ -423,11 +423,65 @@ consumes no input ends its repetition, an operator applied without consuming
 input ends the expression that applies it, and an evaluation of a skip
 expression is one activation. The evaluations of a source are made by the body
 evaluations and the activations of the sources that enclose it, a constant
-number of times by each. The sources of a body nest to a depth that is a
-constant of the grammar, so by induction on that depth the activations that do
-not succeed are at most a constant times the body evaluations and the successful
-activations. It is left to bound the successful activations that start at one
-position. By the restarts above, a successful activation is repeated at a
+number of times by each, so the activations that do not succeed are bounded by
+the body evaluations and the successful activations, as the following claim
+shows without resting on a bound on the evaluations of the rules that are not
+memoized. It is left to bound the successful activations that start at one
+position.
+
+**Activations that do not succeed.** In this claim an activation is an
+iteration, an operator applied or an evaluation of a skip expression; the
+copying operations, whose activations Lemma 6 counts, and the growths, which
+have none, are left out. Let $A_s$ and $A_f$ be the numbers of these
+activations that succeed and that do not, and $B$ the number of body
+evaluations of memoized rules, growth steps included. Then
+$A_f \le c_4 (B + A_s + 1)$ for a constant $c_4$, and the body evaluations of
+the rules that are not memoized number at most a constant times
+$B + A_s + 1$.
+
+*Proof.* Write $E(Q)$ for the number of body evaluations of a rule $Q$, growth
+steps included, and $s(\sigma)$ and $f(\sigma)$ for the activations of a
+scanning source $\sigma$ that succeed and that do not, in all the body
+evaluations of the rule whose body holds $\sigma$; an activation inside a call
+belongs to the body of the callee. Each evaluation of $\sigma$ has at most one
+activation that does not succeed, its last, as above, so $f(\sigma)$ is at most
+the number of evaluations of $\sigma$. An evaluation of $\sigma$ lies either
+outside every other source of the body, where it is made at most a constant
+number of times in one body evaluation, by the argument of Lemma 1, or inside
+an activation of the innermost source $\sigma'$ of the body that encloses it,
+where it is made at most a constant number of times in that activation, by the
+same argument, since an activation evaluates a fixed part of the grammar once.
+A copying operation and a growth evaluate no part of a body inside their
+activations, so $\sigma'$ is a repetition, an Operators Rule or a skip
+expression. So for a constant $c$,
+$f(\sigma) \le c\,(E(Q) + s(\sigma') + f(\sigma'))$, or
+$f(\sigma) \le c\,E(Q)$ when no source encloses $\sigma$. The sources of a body
+nest to a depth that is a constant of the grammar, so unfolding the inequality
+along the sources that enclose $\sigma$ gives
+$f(\sigma) \le c' (E(Q) + \sum_{\sigma'} s(\sigma'))$ over those sources, and
+summing over the constant number of sources of the body,
+$A_f(Q) \le c'' (E(Q) + A_s(Q))$, where $A_s(Q)$ and $A_f(Q)$ sum $s$ and $f$
+over the sources of the body of $Q$.
+
+The proof of Lemma 10 bounds the evaluations of the rules that are not memoized
+through the quantities $E(Q) + A_Q$, where $A_Q$ counts every activation of the
+sources of the body of $Q$, and through nothing else that depends on the
+activations. Its activations of copying operations are no evaluation of a place,
+since a copy evaluates no part of the grammar, so its argument for one place
+holds with $A_Q$ replaced by $A_s(Q) + A_f(Q)$, and by the inequality above
+$E(Q) + A_s(Q) + A_f(Q) \le (1 + c'')(E(Q) + A_s(Q))$. Each step of that proof
+then holds with $A$ replaced by $A_s$ and its constants multiplied by
+$1 + c''$, so the body evaluations of the rules that are not memoized number at
+most a constant times $B + A_s + 1$. Summing $A_f(Q)$ over the rules,
+$A_f \le c'' (B + E_{\mathrm{nm}} + A_s)$, where $E_{\mathrm{nm}}$ is that
+number of evaluations, which gives the bound. $\square$
+
+The bound on $A_s$ that the claims below give rests on the memo of Lemma 3, on
+the call places of the grammar and on Lemma 5, and on no bound on the
+evaluations of the rules that are not memoized, so the bounds follow one
+another in this order without closing on themselves: $B$ by Lemmas 3 and 5,
+$A_s$ by the claims below, and then the evaluations of the rules that are not
+memoized and $A_f$ by this claim. By the restarts above, a successful activation is repeated at a
 position only after a dropped step of a growth, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
 not return before the start of that unit until the repetition. The ways in which
@@ -788,7 +842,7 @@ examines at most a constant amount of the input.
 
 The claim covers the pairs that share no call. A pair that shares a call under
 the definition of [Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost) is left to step 3 of
+Cost](../runtime/parsing.md#conditions-for-linear-cost) is left to step 2 of
 [Open Steps](#open-steps).
 
 *Proof.* As a continuation of $u$, $g$ examines the input from $p$ through the
@@ -1700,7 +1754,7 @@ $\hat{n}$. $\square$
 The assumption is what condition 1 states for a binding whose value can
 reach a later evaluation of the same binding, through the forms that the
 condition lists; that those forms are the only ways in which the value
-reaches it is step 6 of [Open Steps](#open-steps). The theorem does not use
+reaches it is step 5 of [Open Steps](#open-steps). The theorem does not use
 the bound on $L$: its cost carries the factor $L + 1$, and
 [Classification](../runtime/parsing.md#classification) derives from the
 bound that the second class costs at most a constant times $K \cdot n^2$.
@@ -1996,7 +2050,7 @@ $L = 0$, so the cost is at most $c' \cdot (n + 1)$.
 
 The theorem rests on Lemmas 4 and 5, which are outlines, on Lemma 6,
 which is proved given step 1 of [Open Steps](#open-steps), and, for the values
-that actions build from reshaped values, on step 8; so the promises of the
+that actions build from reshaped values, on step 7; so the promises of the
 classes Linear and Linear Given an Environment Bound do too.
 
 *Proof, given Lemmas 4 to 6.* Each unit of $C$ is the local cost of a body
@@ -2171,7 +2225,7 @@ So the work on the keys of this parse is not left out of the count: it
 depends on the grammar and the text, and a Document does at most the work of a parse from scratch
 on it, up to the constant of the lookup. The comparisons with entries of earlier texts are Document
 work, which depends on what the Document retains and is bounded by the window of 128 edits
-(step 7 of [Open Steps](#open-steps)). The claim that the counted units of a
+(step 6 of [Open Steps](#open-steps)). The claim that the counted units of a
 Document parse are at most the units that a parse of the same text from scratch reserves is
 argued here, not proved by a lemma, and the tests of the repository check it on
 random edits. The argument: each counted unit belongs to a call, to a
@@ -2189,16 +2243,16 @@ same rules as a parse from scratch plus those that only a Document memoizes. So 
 under the default budget is argued not to fail where the parse from scratch of its text does not.
 Its default budget, raised by the Document units, is at most that budget plus the bound on the
 Document units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not
-by $n$, $K$ and $L$, as step 7 leaves open). A grammar whose counted units alone pass the
+by $n$, $K$ and $L$, as step 6 leaves open). A grammar whose counted units alone pass the
 default is stopped by it, whatever the Document retains: the operations on the recovered errors
 count (Lemma 14), and the tests run a grammar of recovered errors at lengths that a parse from scratch
 completes and expect a Document parse to complete with a constant factor of its units. A grammar whose
 cost is high only in work that is left out of the count (the extra steps along the chains, the growth of
-the table, the edits, the moves, and the retained state of step 7) is not stopped by the default in
+the table, the edits, the moves, and the retained state of step 6) is not stopped by the default in
 proportion to that work. $\square$
 
 A node counts in $W$ whichever text it was built for, and whether or not a call
-of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 7 of
+of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L$: see step 6 of
 [Open Steps](#open-steps). A chain has at most $E + 1$ entries under one key
 of a rule that a parse from scratch memoizes too ([Setting](#setting)), so $Q$ is
 at most $E + 1$ times the number of such keys at its position, plus the entries
@@ -2229,7 +2283,7 @@ constant does not depend on the number of pending edits $E$, up to the 65,536 of
 whole of the constant factor that the proof gives. The other Document units are not a constant factor of
 $K \hat{n}$: the moves cost $(E + B + 1) W$, a term in the size $W$ that the Document retains and in the
 length $E$ of the log, and the walks, the growth of the slots and $G$ depend on what earlier texts left
-in the memo (step 7 of [Open Steps](#open-steps)). The total of a Document parse is therefore bounded by
+in the memo (step 6 of [Open Steps](#open-steps)). The total of a Document parse is therefore bounded by
 the displayed form, and the claim that it is within a constant factor of a parse from scratch holds for
 the part of the lookups and their edits only. The tests of the repository measure the
 whole for a grammar of 20,000 lines with 0 to 65,536 pending edits spread over the text: at most 4.3
@@ -2461,7 +2515,7 @@ A new condition enters the proof in one of two ways.
 
 ## Open Steps
 
-The outlines leave steps 1 to 7 to be made precise, and step 8 is the part of the
+The outlines leave steps 1 to 6 to be made precise, and step 7 is the part of the
 condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
@@ -2475,7 +2529,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    context of growths. So the sum over the positions is proved for the
    activations owned by memoized evaluations of every source in a rule that
    calls a rule or is memoized at its calls, when its memoized links are of that
-   kind. Three parts are open. The first two are for a source in a rule that
+   kind. The activations that do not succeed, and the evaluations of the rules
+   that are not memoized, follow from the successful ones and the body
+   evaluations of memoized rules (*Activations that do not succeed*), so what
+   is open concerns the successful activations alone. Three parts are open. The first two are for a source in a rule that
    calls no rule and is not memoized at its calls. First, the leaf links that
    lead to an activation owned by a first evaluation: such a link can leave a
    second evaluation through the end of its body, and the claims bound the leaf
@@ -2492,21 +2549,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    link leads to can be owned by a first evaluation. The activations include
    those of the copying operations, the units of the own spans that they read
    (Lemma 6).
-2. **"A unit that succeeds is not restarted."** A body that contains the unit
-   can itself be evaluated again: by the memo, at most three times at a
-   position for each variant of its rule; when its rule is not memoized, at
-   each of its calls. Lemmas 3 and 10 count these
-   evaluations; the proof must show that they do not multiply the scanned cost
-   beyond a constant. Lemma 10 bounds the evaluations of the rules that are not
-   memoized by the activations, so the bound of Lemma 4 on the activations must
-   not rest on those evaluations, or the argument closes on itself. The claims
-   of Lemma 4 proved so far do not: they count links by the memo of Lemma 3 and
-   by the call places of the grammar, and charge the activations of a second
-   evaluation to the first through the memoized evaluations alone. What
-   remains is the activations that do not succeed, which Lemma 4 counts by the
-   body evaluations that evaluate a source, those of rules that are not
-   memoized included.
-3. **Continuations of growing units.** The claim on sources at fixed offsets in
+2. **Continuations of growing units.** The claim on sources at fixed offsets in
    Lemma 5 bounds a unit followed by a growing unit with which it shares no
    call, in all but a constant number of steps. The proof must still bound such
    a pair when the definition of sharing gives it a shared call, the later
@@ -2517,7 +2560,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    `"y"` in `E = "y"? (E / "z") "q" / "x"`, or before a call that reaches it,
    as in `r = "y"? f "q" / "x"; f = r / "z"`, where the unit is also checked as
    an alternative that is not growing.
-4. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
+3. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an
    operator part after an operand when the rule nests, through its right
@@ -2527,14 +2570,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    a position when inner levels return there are at most the number of parts for
    each level, so their cost is the cost of the units up to their failure, which
    the claims of step 1 bound with its open parts.
-5. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
+4. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
    that a context of growths repeats, which Lemma 3 leaves out: the calls
    that find no result with the same growing results and lookahead outcomes,
    and the growths of leaders inside other growths at their position, whose
    steps are shared only through equal results. It must show that the
    comparison of results by structure, which is bounded, loses only reuse,
    and that condition 5 covers every growth that is new in each step.
-6. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
+5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
    that no evaluation of a binding reads a value built from an earlier
@@ -2544,7 +2587,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    values of rules, only through a sequence that holds the binding and a call
    that can reach its rule again, or a repetition around the binding, as the
    condition lists.
-7. **What a Document retains in Lemma 12.** The bound of Lemma 12 is in terms of
+6. **What a Document retains in Lemma 12.** The bound of Lemma 12 is in terms of
    $W$, $B$, $G$ and $Q$, which depend on the history of the Document. A bound by
    the $n$, $K$ and $L$ of the parse would have to show that the nodes a parse
    moves are at most a constant times what a parse of the same text from scratch
@@ -2570,7 +2613,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    of that window of edits, not by $n$, $K$ and $L$. The step is to bound these
    terms, or to change what a Document retains so that they are bounded, and
    then to restate that section with the tighter bounds.
-8. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
+7. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
    bounds the cost of the written grammar by a constant times that of its view,
    except for the values that actions build from a reshaped value: the value of
    an expression that a rewrite replaces where it changes that value, or a value

@@ -1,6 +1,6 @@
 # Cost View
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-10
 
 The classifier decides the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 on the [cost view](../runtime/parsing.md#cost-view) of the rule bodies, and the
@@ -168,7 +168,7 @@ $G$ and three characters in the view. It can build values of other sizes, and
 stop the parse with a run-time error where the view does not, or the reverse.
 The theorem therefore bounds $C'_G$, the cost $C_G$ less the values that such
 actions build, on inputs on which no action that reads a reshaped value stops
-either parse with a run-time error. Step 8 of the [open
+either parse with a run-time error. Step 7 of the [open
 steps](linear-cost.md#open-steps) states what remains: prove that the values
 which actions build from a value that a rewrite of [Rewrites That Change
 Values](#rewrites-that-change-values) reshapes (a sequence of one item or a

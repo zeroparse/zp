@@ -1095,7 +1095,7 @@ The conditions below use these terms.
   what they match and keeps their cost within a constant factor, apart from the
   values that actions build from a value that the view reshapes
   ([Cost View](../proofs/cost-view.md); those values, and the run-time errors of
-  the actions that build them, are step 8 of the
+  the actions that build them, are step 7 of the
   [open steps of the linear cost proof](../proofs/linear-cost.md#open-steps)),
   with the memoized rules and the left-recursion cycles of the grammar as
   written.

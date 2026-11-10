@@ -1,6 +1,6 @@
 # Grammar Laws
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-10
 
 **Status:** Draft. The laws are proved as stated, except the law of [Free
 Variables](#free-variables), which is unproved in full. The confluence of the
@@ -614,7 +614,7 @@ classifier reads the [cost view](../runtime/parsing.md#cost-view), which
 applies the rules of both levels except N7 and N13, under these further
 conditions, which give that bound for each rule that
 the view applies ([Cost View](cost-view.md)), except for the values that actions
-build from a value that a rewrite reshapes, and their run-time errors: step 8 of
+build from a value that a rewrite reshapes, and their run-time errors: step 7 of
 the [open steps of the linear cost proof](linear-cost.md#open-steps). The
 rewrites that reshape a value are N9, N10, N11, the left factoring of N12, the
 replacement of `!X X` by `_|_` (N12), the drop of every alternative with a value
