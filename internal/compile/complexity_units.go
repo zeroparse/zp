@@ -905,10 +905,12 @@ const (
 // leads finds the first calls of the paths. It looks through calls that are not shared, by
 // evaluating their bodies, through expressions that examine no input, and through the ends of rule
 // bodies, by every call site of the rule. With only set, it looks through every call but one
-// of that rule, and records in seen the shareable calls that it looks through. A path whose entry
-// in ups is true has already left a body through a call that nests (see lead.up), before the
-// shared calls that strip removed from it.
-func (k *classifier) leads(paths []*cont, ups []bool, only *string, seen map[string]bool) []lead {
+// of that rule, and records in seen the shareable calls that it looks through. When from is set,
+// each path is the rest after the lead in from at the same index, and starts with what that lead
+// carries: whether the path left a body through a call that nests (see lead.up), whether it left
+// the body in which it started, and the calls that it looked through, before the shared calls
+// that strip removed from it.
+func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[string]bool) []lead {
 	budget := leadBudget
 	var out []lead
 	// ended are the rule ends already followed: the paths after them are the same each time. The
@@ -1052,7 +1054,11 @@ func (k *classifier) leads(paths []*cont, ups []bool, only *string, seen map[str
 		}
 	}
 	for i, p := range paths {
-		visit(p, state{up: ups != nil && ups[i]})
+		var st state
+		if from != nil {
+			st = state{from[i].up, from[i].left, from[i].via}
+		}
+		visit(p, st)
 	}
 	return out
 }
@@ -1212,11 +1218,11 @@ func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visi
 // in primary = ws number: when the first calls of the two differ, the classifier looks through
 // them, by evaluating their bodies, for a call that both evaluate first.
 func (k *classifier) strip(u, c []*cont, owner *unit) ([]*cont, []*cont) {
-	var ups []bool // for each path of c, whether it left a body through a call that nests
+	var fu, fc []lead // the leads of which the paths of u and c are the rests
 	for range 16 {
-		lu, lc := k.leads(u, nil, nil, nil), k.leads(c, ups, nil, nil)
+		lu, lc := k.leads(u, fu, nil, nil), k.leads(c, fc, nil, nil)
 		if !commonLead(lu, lc) {
-			lu, lc = k.deepLeads(u, c, ups)
+			lu, lc = k.deepLeads(u, c, fu, fc)
 			if lu == nil {
 				return u, c
 			}
@@ -1225,8 +1231,8 @@ func (k *classifier) strip(u, c []*cont, owner *unit) ([]*cont, []*cont) {
 			return u, c
 		}
 		k.recordShared(owner, lu, lc)
-		u, _ = rests(lu)
-		c, ups = rests(lc)
+		u, fu = rests(lu)
+		c, fc = rests(lc)
 	}
 	return u, c
 }
@@ -1249,11 +1255,11 @@ func (k *classifier) rescans(lc []lead) bool {
 // deepLeads looks for a shareable call that the unit and the continuation both evaluate first,
 // through the bodies of the shareable calls that they evaluate first, and returns the leads of
 // both at it, or nil.
-func (k *classifier) deepLeads(u, c []*cont, ups []bool) ([]lead, []lead) {
+func (k *classifier) deepLeads(u, c []*cont, fu, fc []lead) ([]lead, []lead) {
 	none := ""
 	su, sc := map[string]bool{}, map[string]bool{}
-	k.leads(u, nil, &none, su)
-	k.leads(c, ups, &none, sc)
+	k.leads(u, fu, &none, su)
+	k.leads(c, fc, &none, sc)
 	var both []string
 	for n := range su {
 		if sc[n] {
@@ -1262,7 +1268,7 @@ func (k *classifier) deepLeads(u, c []*cont, ups []bool) ([]lead, []lead) {
 	}
 	slices.Sort(both)
 	for _, n := range both {
-		lu, lc := k.leads(u, nil, &n, nil), k.leads(c, ups, &n, nil)
+		lu, lc := k.leads(u, fu, &n, nil), k.leads(c, fc, &n, nil)
 		if commonLead(lu, lc) {
 			return lu, lc
 		}
@@ -1298,18 +1304,17 @@ func sameLead(a, b *lead) bool {
 	return a.lit.Value == b.lit.Value && a.lit.IgnoreCase == b.lit.IgnoreCase
 }
 
-// rests returns the paths after the leads, and for each whether it has left a body through a call
-// that nests, before the lead or on the way to it.
-func rests(ls []lead) ([]*cont, []bool) {
+// rests returns the paths after the leads that examine input, and those leads.
+func rests(ls []lead) ([]*cont, []lead) {
 	var out []*cont
-	var ups []bool
+	var from []lead
 	for _, l := range ls {
 		if !l.done {
 			out = append(out, l.rest)
-			ups = append(ups, l.up)
+			from = append(from, l)
 		}
 	}
-	return out, ups
+	return out, from
 }
 
 // committing reports whether, after the shared calls are removed, the first characters of the

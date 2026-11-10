@@ -24,6 +24,11 @@ var nestingRestarts = []struct{ name, src string }{
 	{"through two calls, pure scan", "rule main = m R \"z\"\nrule z = \"(\" y R \"x\"\nrule y = m\nrule m = \".\" / z \"!\" / \"(\" m\nrule R = [ ]*\n"},
 	{"after a shared literal", "rule main = v R \"z\"\nrule e = \"(\" (v R \"x\" / v R \"y\")\nrule v = \".\" / e \";\" / \"(\" v\nrule R = &\"\" [ ]*\n"},
 	{"after a shared literal, pure scan", "rule main = v R \"z\"\nrule e = \"(\" (v R \"x\" / v R \"y\")\nrule v = \".\" / e \";\" / \"(\" v\nrule R = [ ]*\n"},
+	// The unit looks through the nesting call z, shares the literal at its start with the
+	// continuation and then the call of m inside it: the calls looked through carry over from one
+	// shared call to the next.
+	{"through the call, after a literal", "rule main = m\nrule z = \"(\" m\nrule m = \".\" / z R \"!\" / \"(\" m\nrule R = [ ]*\n"},
+	{"through the call, after a literal, impure scan", "rule main = m\nrule z = \"(\" m\nrule m = \".\" / z R \"!\" / \"(\" m\nrule R = &\"\" [ ]*\n"},
 	// The shared call is a call of a rule that contains the nesting call and ends where it ends:
 	// E1 adds w, and E2 the rule of the restart, whose continuation calls w at its end.
 	{"through a rule that nests", "rule main = e\nrule e = \"(\" (w R \"x\" / w) / \".\"\nrule w = e\nrule R = [ ]*\n"},
