@@ -1,0 +1,375 @@
+package lower
+
+import (
+	"errors"
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+	"sync"
+
+	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
+)
+
+// Terms of the action language lowered to Exec IR.
+//
+// A term (an action, a predicate or the value of a binding) becomes a function of Exec IR that calls
+// the compositions of the operators of terms (binary, unary, logic, member, length, text, convert,
+// conforms) of the parser VM, in the order the term evaluates its operands. Each call returns its value
+// and a failure; the failure is checked right after the call and raised by term.raise, which ends the
+// evaluation of the term as the target's evaluation error does. The logical operators && and || are
+// branches: the right operand is evaluated only if the left one does not decide the result.
+//
+// The leaves of a term (constants, captures, locals and variables), the context of the evaluation and
+// the static operands of the compositions (a member's name, a node type, the checked type of a cast)
+// are transitional operations whose immediate operand the target prints, as its term printer does.
+
+// ErrUnsupported reports a term that holds a kind of term that Term does not lower yet; the caller
+// prints the whole term the way it did before.
+var ErrUnsupported = errors.New("lower: term kind not lowered")
+
+// TermConst is the immediate operand of term.const: an int, a string, a bool or nil.
+type TermConst struct{ Value any }
+
+func (c TermConst) String() string {
+	if s, ok := c.Value.(string); ok {
+		return strconv.Quote(s)
+	}
+	return fmt.Sprint(c.Value)
+}
+
+// TermRead is the immediate operand of term.read: a ir.SlotRef, ir.Local or ir.VarRef.
+type TermRead struct{ Term ir.Term }
+
+func (r TermRead) String() string {
+	switch t := r.Term.(type) {
+	case *ir.SlotRef:
+		return "$" + t.Name
+	case *ir.Local:
+		return "$" + t.Name
+	case *ir.VarRef:
+		return "var " + t.Name
+	}
+	return fmt.Sprintf("%T", r.Term)
+}
+
+// TermCast is the immediate operand of term.castType and term.castError: the cast.
+type TermCast struct{ Cast *ir.Cast }
+
+func (c TermCast) String() string { return fmt.Sprintf("cast %d:%d", c.Cast.Line, c.Cast.Col) }
+
+// Names of the operations that lowered terms call besides the compositions.
+const (
+	OpTermConst     = "term.const"
+	OpTermRead      = "term.read"
+	OpTermCtx       = "term.ctx"
+	OpTermName      = "term.name"
+	OpTermNodeType  = "term.nodeType"
+	OpTermCastType  = "term.castType"
+	OpTermRaise     = "term.raise"
+	OpTermCastError = "term.castError"
+	OpTermTextEqual = "term.textEqual"
+	OpTermFromStr   = "term.fromStr"
+	OpTermSpend     = "term.spend"
+)
+
+// TermCompositions are the compositions of the parser VM that lowered terms call.
+var TermCompositions = []string{"binary", "unary", "logic", "member", "length", "text", "convert", "conforms"}
+
+// TermLowered is a term lowered to Exec IR.
+type TermLowered struct {
+	// Module declares what Func calls: the compositions of the operators of terms with what they call,
+	// and the operations of the leaves.
+	Module *exec.Module
+	Func   *exec.Func
+	// Result is the local of Func (Func.Locals) that holds the term's value at the end of Func's body,
+	// or "" if the body returns it.
+	Result string
+}
+
+// TermOptions configures Term.
+type TermOptions struct {
+	// Result, if not empty, names a local of the lowered function (Func.Locals) that its body assigns
+	// the term's value to last; otherwise the body returns the value. A printer that prints the body
+	// without the function declares the local around it.
+	Result string
+	// Steps charges one step of the budget for each subterm, before its operands, as the target's
+	// evaluation of terms does under budget controls (term.spend).
+	Steps bool
+}
+
+// Term lowers the term t, or returns ErrUnsupported if t holds a kind of term that it does not lower
+// (a constructor, a tuple, a built-in other than len and text, a lambda or a lambda parameter).
+func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
+	if !TermSupported(t) {
+		return nil, ErrUnsupported
+	}
+	m, err := termModule()
+	if err != nil {
+		return nil, err
+	}
+	datum := exec.THandle(ops.Datum)
+	var results []exec.Type
+	if o.Result == "" {
+		results = []exec.Type{datum}
+	}
+	l := &termLowerer{steps: o.Steps}
+	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
+		var res exec.Expr
+		if o.Result != "" {
+			res = b.Var(o.Result, datum)
+		}
+		v := l.value(b, t)
+		if res != nil {
+			b.Set(o.Result, v)
+		} else {
+			b.Return(v)
+		}
+	})
+	if err := exec.Verify(m); err != nil {
+		return nil, fmt.Errorf("lower term: %w", err)
+	}
+	return &TermLowered{Module: m, Func: fn, Result: o.Result}, nil
+}
+
+// TermSupported reports whether Term lowers t.
+func TermSupported(t ir.Term) bool {
+	ok := true
+	ir.WalkTerm(t, func(x ir.Term) {
+		switch x := x.(type) {
+		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast:
+		case *ir.Local:
+			ok = ok && x.Kind != ir.LocalParam
+		case *ir.Builtin:
+			ok = ok && (x.Func == "len" || x.Func == "text") && len(x.Args) == 1
+		default:
+			ok = false
+		}
+	})
+	return ok
+}
+
+var (
+	termBaseOnce sync.Once
+	termBase     *exec.Module
+	termBaseErr  error
+)
+
+// termModule returns a new module for one lowered term: the declarations of the parser VM, the
+// operations of the leaves, and the compositions of the operators of terms with every function they
+// call.
+func termModule() (*exec.Module, error) {
+	termBaseOnce.Do(func() {
+		base := core.Build()
+		m := &exec.Module{Name: "term", Features: base.Features, Components: slices.Clip(base.Components),
+			Registers: base.Registers, Handles: base.Handles, Ops: slices.Clip(base.Ops)}
+		m.AddComponent(Component, "The state of the hand-written runtime.")
+		addTermOps(m)
+		seen := map[string]bool{}
+		var add func(name string)
+		add = func(name string) {
+			f := base.Func(name)
+			if f == nil || seen[name] {
+				return
+			}
+			seen[name] = true
+			exec.Walk(f.Body, nil, func(e exec.Expr) {
+				if c, ok := e.(*exec.Call); ok {
+					add(c.Callee)
+				}
+			})
+			m.Funcs = append(m.Funcs, f)
+		}
+		for _, name := range TermCompositions {
+			if base.Func(name) == nil {
+				termBaseErr = fmt.Errorf("lower: no composition %s", name)
+				return
+			}
+			add(name)
+		}
+		m.Funcs = slices.Clip(m.Funcs)
+		termBase = m
+	})
+	if termBaseErr != nil {
+		return nil, termBaseErr
+	}
+	m := *termBase
+	return &m, nil
+}
+
+// addTermOps declares the operations of the leaves of terms.
+func addTermOps(m *exec.Module) {
+	datum, failT := exec.THandle(ops.Datum), exec.THandle(ops.Fail)
+	str := exec.THandle(ops.Str)
+	reads := []string{Component}
+	op := func(o *exec.Op) {
+		o.Component = Component
+		o.Transitional = true
+		m.AddOp(o)
+	}
+	op(&exec.Op{Name: OpTermConst, Results: []exec.Type{datum}, Imm: "the constant (TermConst)",
+		Contract: "Returns the constant in Imm."})
+	op(&exec.Op{Name: OpTermRead, Results: []exec.Type{datum}, Reads: reads, Imm: "the capture, local or variable (TermRead)",
+		Contract: "Returns the value of the capture, the local or the variable in Imm, as the term printer reads it."})
+	op(&exec.Op{Name: OpTermCtx, Results: []exec.Type{exec.THandle(ops.Act)}, Reads: reads,
+		Contract: "Returns the context of the evaluation of the term."})
+	op(&exec.Op{Name: OpTermName, Results: []exec.Type{exec.THandle(ops.Name)}, Imm: "the name (a string)",
+		Contract: "Returns the name in Imm."})
+	op(&exec.Op{Name: OpTermNodeType, Results: []exec.Type{exec.THandle(ops.NodeType)}, Reads: reads, Imm: "the name of the node type (a string)",
+		Contract: "Returns the named node type in Imm."})
+	op(&exec.Op{Name: OpTermCastType, Results: []exec.Type{exec.THandle(ops.FType)}, Imm: "the cast (TermCast)",
+		Contract: "Returns the checked type of the cast in Imm."})
+	op(&exec.Op{Name: OpTermRaise, Params: []exec.Param{exec.P("f", failT)}, Reads: reads, Writes: reads, NoReturn: true,
+		Contract: "Ends the evaluation of the term with the failure f."})
+	op(&exec.Op{Name: OpTermCastError, Params: []exec.Param{exec.P("v", datum)}, Reads: reads, Writes: reads, NoReturn: true,
+		Imm: "the cast (TermCast)", Contract: "Ends the evaluation of the term with the failure of the cast in Imm of the value v."})
+	op(&exec.Op{Name: OpTermTextEqual, Params: []exec.Param{exec.P("l", str), exec.P("r", str)}, Results: []exec.Type{exec.TBool},
+		Reads: reads, Writes: reads, Contract: "Returns whether the strings l and r are equal, comparing them as == compares two strings."})
+	op(&exec.Op{Name: OpTermSpend, Reads: reads, Writes: reads, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Contract: "Charges one step of the budget for a subterm, under budget controls."})
+	op(&exec.Op{Name: OpTermFromStr, Params: []exec.Param{exec.P("s", str)}, Results: []exec.Type{datum},
+		Contract: "Returns the string s as a value."})
+}
+
+type termLowerer struct {
+	n     int
+	steps bool
+}
+
+// local returns a fresh name of a local with the prefix p.
+func (l *termLowerer) local(p string) string {
+	l.n++
+	return p + strconv.Itoa(l.n)
+}
+
+// fallible lets the results of the call c of a composition that returns a value and a failure,
+// raises the failure, and returns the value.
+func (l *termLowerer) fallible(b *exec.Builder, prefix string, c *exec.Call) exec.Expr {
+	n := l.local("")
+	r := b.LetN([]string{prefix + n, "tf" + n}, c)
+	b.If(exec.Bin("!=", r[1], exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { b.Do(OpTermRaise, r[1]) })
+	return r[0]
+}
+
+func imm(callee string, x any) *exec.Call { return &exec.Call{Callee: callee, Imm: x} }
+
+// code returns the code of the operator sym in the list of operators.
+func code(list []string, sym string) exec.Expr {
+	i := slices.Index(list, sym)
+	if i < 0 {
+		panic("lower: unknown operator " + sym)
+	}
+	return exec.Int(int64(i))
+}
+
+// value lowers t, appending the statements that compute its operands to b, and returns its value: a
+// local or the call of a leaf.
+func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
+	if l.steps {
+		b.Do(OpTermSpend)
+	}
+	switch t := t.(type) {
+	case *ir.Const:
+		return imm(OpTermConst, TermConst{t.Value})
+	case *ir.SlotRef, *ir.Local:
+		return imm(OpTermRead, TermRead{t})
+	case *ir.VarRef:
+		// Reading a variable charges the budget, so it is read where the term reads it, before the
+		// operands that follow.
+		return b.Let(l.local("tv"), imm(OpTermRead, TermRead{t}))
+	case *ir.Member:
+		x := l.value(b, t.X)
+		kind, field := memberKind(t.Name)
+		return l.fallible(b, "tv", exec.C("member", exec.C(OpTermCtx), exec.Int(int64(kind)), x,
+			imm(OpTermName, t.Name), imm(OpTermName, field)))
+	case *ir.Unary:
+		x := l.value(b, t.X)
+		return l.fallible(b, "tv", exec.C("unary", code(ops.UnaryOps, t.Op), x))
+	case *ir.Binary:
+		switch t.Op {
+		case "&&", "||":
+			return l.logic(b, t)
+		case "==", "!=":
+			if lx, ok := textArg(t.L); ok {
+				if rx, ok := textArg(t.R); ok {
+					// Two texts compare as strings, without making a value of either.
+					ls := l.fallible(b, "ts", exec.C("text", l.value(b, lx)))
+					rs := l.fallible(b, "ts", exec.C("text", l.value(b, rx)))
+					var eq exec.Expr = exec.C(OpTermTextEqual, ls, rs)
+					if t.Op == "!=" {
+						eq = exec.Not(eq)
+					}
+					return exec.C("val.fromBool", eq)
+				}
+			}
+		}
+		x := l.value(b, t.L)
+		y := l.value(b, t.R)
+		return l.fallible(b, "tv", exec.C("binary", code(ops.BinaryOps, t.Op), x, y))
+	case *ir.Builtin:
+		x := l.value(b, t.Args[0])
+		if t.Func == "len" {
+			return l.fallible(b, "tv", exec.C("length", x))
+		}
+		return exec.C(OpTermFromStr, l.fallible(b, "ts", exec.C("text", x)))
+	case *ir.Convert:
+		x := l.value(b, t.X)
+		return l.fallible(b, "tv", exec.C("convert", imm(OpTermNodeType, t.NodeType), x))
+	case *ir.Cast:
+		x := b.Let(l.local("tc"), l.value(b, t.X))
+		b.If(exec.Not(exec.C("conforms", imm(OpTermCastType, TermCast{t}), x)), func(b *exec.Builder) {
+			b.Append(&exec.Do{Call: &exec.Call{Callee: OpTermCastError, Args: []exec.Expr{x}, Imm: TermCast{t}}})
+		})
+		return x
+	}
+	panic(fmt.Sprintf("lower: term %T", t))
+}
+
+// logic lowers l && r and l || r: logic checks each operand that is evaluated, and the right one is
+// evaluated only if the left one does not decide the result.
+func (l *termLowerer) logic(b *exec.Builder, t *ir.Binary) exec.Expr {
+	op := code(ops.LogicalOps, t.Op)
+	left := l.fallible(b, "tb", exec.C("logic", op, l.value(b, t.L)))
+	and := t.Op == "&&"
+	r := b.Let(l.local("tv"), exec.C("val.fromBool", exec.BoolC(!and)))
+	cond := left
+	if !and {
+		cond = exec.Not(left)
+	}
+	b.If(cond, func(b *exec.Builder) {
+		right := l.fallible(b, "tb", exec.C("logic", op, l.value(b, t.R)))
+		b.Set(r.(*exec.Local).Name, exec.C("val.fromBool", right))
+	})
+	return r
+}
+
+// textArg returns the argument of t if t is a call text(x).
+func textArg(t ir.Term) (ir.Term, bool) {
+	if c, ok := t.(*ir.Builtin); ok && c.Func == "text" && len(c.Args) == 1 {
+		return c.Args[0], true
+	}
+	return nil, false
+}
+
+// memberKind returns the kind of the member read name (ops.MemberKinds) and the name of the field or
+// capture that it reads.
+func memberKind(name string) (int, string) {
+	prefix := -1
+	for code, k := range ops.MemberKinds {
+		switch {
+		case code == ops.MemberCapture:
+			prefix = code
+		case k.Spelling != "" && name == k.Spelling:
+			return code, name
+		}
+	}
+	if prefix >= 0 {
+		if field, ok := strings.CutPrefix(name, ops.MemberKinds[prefix].Spelling); ok {
+			return prefix, field
+		}
+	}
+	return ops.MemberField, name
+}

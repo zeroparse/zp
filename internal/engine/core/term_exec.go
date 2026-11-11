@@ -52,13 +52,13 @@ const (
 	valKindOther  = 4
 )
 
-// The codes of the kinds of member reads.
+// The codes of the kinds of member reads, for generated parsers; not a stable API.
 const (
-	memberField   = 0
-	memberStart   = 1
-	memberEnd     = 2
-	memberValue   = 3
-	memberCapture = 4
+	MemberField   = 0
+	MemberStart   = 1
+	MemberEnd     = 2
+	MemberValue   = 3
+	MemberCapture = 4
 )
 
 // memberKind returns the kind of the member read name and the name of the field or capture that it
@@ -66,16 +66,16 @@ const (
 func memberKind(name string) (int, string) {
 	switch name {
 	case "Start":
-		return memberStart, name
+		return MemberStart, name
 	case "End":
-		return memberEnd, name
+		return MemberEnd, name
 	case "Value":
-		return memberValue, name
+		return MemberValue, name
 	}
 	if field, ok := strings.CutPrefix(name, "$"); ok {
-		return memberCapture, field
+		return MemberCapture, field
 	}
-	return memberField, name
+	return MemberField, name
 }
 
 // termError returns the failure of a term with the message ops.TermErrors[code]; it is an error that the

@@ -1,0 +1,2608 @@
+## main action
+func term() Datum {
+  return term.read([$f])
+}
+
+## main binding ctx
+func term() Datum {
+  return term.const([64])
+}
+
+## main binding ctx
+func term() Datum {
+  return term.const([0])
+}
+
+## main binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(0, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sourceFile action
+not lowered: New, map, Lambda, param
+
+## otherTopLevelStatement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## otherTopLevelStatement predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## awaitFreeTopLevelStatement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## awaitFreeTopLevelStatement predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## awaitFreeTopLevelStatement binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(1, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## statement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## plainStatement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## plainFunctionDeclaration action
+func term() Datum {
+  return term.read([$d])
+}
+
+## plainClassDeclaration action
+func term() Datum {
+  return term.read([$d])
+}
+
+## decoratedDeclaration action
+func term() Datum {
+  return term.read([$d])
+}
+
+## contextualDeclaration action
+func term() Datum {
+  return term.read([$d])
+}
+
+## block action
+not lowered: New, map, Lambda, param
+
+## variableStatement action
+not lowered: New
+
+## ifStatement action
+not lowered: New
+
+## doStatement action
+not lowered: New
+
+## whileStatement action
+not lowered: New
+
+## withStatement action
+not lowered: New
+
+## forOfStatement action
+not lowered: New
+
+## forInStatement action
+not lowered: New
+
+## forClassicStatement action
+not lowered: New
+
+## forInitializer action
+func term() Datum {
+  return term.read([$i])
+}
+
+## forInitializer binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([4]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## forDeclarationList action
+func term() Datum {
+  return term.read([$l])
+}
+
+## continueStatement action
+not lowered: New
+
+## breakStatement action
+not lowered: New
+
+## returnStatement action
+not lowered: New
+
+## throwStatement action
+not lowered: New
+
+## throwStatement predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$d]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["declare"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## switchStatement action
+not lowered: New
+
+## caseBlock action
+not lowered: New, map, Lambda, param
+
+## caseClause action
+not lowered: New, map, Lambda, param
+
+## defaultClause action
+not lowered: New, map, Lambda, param
+
+## clauseStatement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## tryStatement action
+not lowered: New
+
+## tryStatement predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$cc]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tb2, tf2 = logic(1, tv1)
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3 = val.fromBool(true)
+  if !tb2 {
+    let tv4, tf4 = binary(6, term.read([$fb]), term.const([<nil>]))
+    if (tf4 != null(Fail)) {
+      term.raise(tf4)
+    }
+    let tb5, tf5 = logic(1, tv4)
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    tv3 = val.fromBool(tb5)
+  }
+  return tv3
+}
+
+## catchClause action
+not lowered: New
+
+## expressionOrLabeledStatement action
+func term() Datum {
+  return term.read([$s])
+}
+
+## labeledStatement action
+not lowered: New
+
+## expressionStatement action
+not lowered: New
+
+## declareStatement action
+not lowered: New
+
+## declareStatement predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$x]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["declare"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## variableStatementWithModifiers action
+not lowered: New
+
+## variableDeclarationList action
+not lowered: New, concat
+
+## variableDeclarations action
+not lowered: concat, list, map, Lambda, param
+
+## variableDeclaration action
+not lowered: New
+
+## variableDeclaration predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([4]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## initializer action
+func term() Datum {
+  return term.read([$e])
+}
+
+## typeAnnotation action
+func term() Datum {
+  return term.read([$t])
+}
+
+## objectBindingPattern action
+not lowered: New, concat
+
+## objectBindingPattern binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## bindingElementWithPropertyName action
+not lowered: New
+
+## bindingElementShorthand action
+not lowered: New
+
+## arrayBindingPattern action
+not lowered: New, concat
+
+## arrayBindingPattern binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## functionDeclaration action
+not lowered: New, concat
+
+## functionDeclaration predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$i]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tb2, tf2 = logic(1, tv1)
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3 = val.fromBool(true)
+  if !tb2 {
+    let tv4, tf4 = binary(6, term.read([$dm]), term.const([<nil>]))
+    if (tf4 != null(Fail)) {
+      term.raise(tf4)
+    }
+    let tb5, tf5 = logic(1, tv4)
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    tv3 = val.fromBool(tb5)
+  }
+  return tv3
+}
+
+## functionDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = length(term.read([$g]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(0, tv4, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = length(term.read([$am]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  let tv8, tf8 = binary(3, tv7, term.const([5]))
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tv9, tf9 = binary(2, tv8, term.const([2]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tv10, tf10 = binary(0, tv6, tv9)
+  if (tf10 != null(Fail)) {
+    term.raise(tf10)
+  }
+  return tv10
+}
+
+## defaultModifierScan action
+func term() Datum {
+  return term.read([$d])
+}
+
+## asyncModifierScan action
+func term() Datum {
+  return term.read([$a])
+}
+
+## parameterList action
+not lowered: concat
+
+## parameters action
+not lowered: concat, list, map, Lambda, param
+
+## thisParameter action
+not lowered: New
+
+## regularParameter action
+not lowered: New
+
+## returnType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## returnType binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([32]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## classDeclaration action
+not lowered: New, concat
+
+## classExpression action
+not lowered: New, concat
+
+## className action
+func term() Datum {
+  return term.read([$i])
+}
+
+## heritageClauses action
+not lowered: concat, list, map, Lambda, param
+
+## heritageClause action
+not lowered: New, concat
+
+## heritageTypes action
+not lowered: concat, list, map, Lambda, param
+
+## expressionWithTypeArguments action
+not lowered: New, concat
+
+## classMembers action
+not lowered: map, Lambda, param
+
+## classAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## classMemberNotAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## classStaticBlock action
+not lowered: New
+
+## classStaticBlock binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(0, tv4, term.const([2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  return tv5
+}
+
+## getAccessor action
+not lowered: New, concat
+
+## getAccessor binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## setAccessor action
+not lowered: New, concat
+
+## setAccessor binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## constructorDeclaration action
+not lowered: New, concat
+
+## constructorDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## classIndexSignature action
+not lowered: New, concat
+
+## methodDeclaration action
+not lowered: New, concat
+
+## methodDeclaration predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$s]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## methodDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = length(term.read([$g]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(0, tv4, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = length(term.read([$am]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  let tv8, tf8 = binary(3, tv7, term.const([5]))
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tv9, tf9 = binary(2, tv8, term.const([2]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tv10, tf10 = binary(0, tv6, tv9)
+  if (tf10 != null(Fail)) {
+    term.raise(tf10)
+  }
+  return tv10
+}
+
+## propertyDeclaration action
+not lowered: New
+
+## propertyDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([8]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## interfaceDeclaration action
+not lowered: New, concat
+
+## typeAliasDeclaration action
+not lowered: New, concat
+
+## enumDeclaration action
+not lowered: New, concat
+
+## enumDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## enumMember action
+not lowered: New
+
+## namespaceDeclaration action
+not lowered: New
+
+## namespaceBody action
+func term() Datum {
+  return term.read([$d])
+}
+
+## nestedNamespace action
+not lowered: New
+
+## externalModuleDeclaration action
+not lowered: New
+
+## globalDeclaration action
+not lowered: New
+
+## moduleBlock action
+not lowered: New, map, Lambda, param
+
+## importEqualsDeclaration action
+not lowered: New
+
+## externalModuleReference action
+not lowered: New
+
+## importDeclaration action
+not lowered: New
+
+## importClause action
+not lowered: New
+
+## namespaceImport action
+not lowered: New
+
+## namedImports action
+not lowered: New, concat
+
+## importSpecifierTypeAsAs action
+not lowered: New
+
+## importSpecifierTypeAsName action
+not lowered: New
+
+## importSpecifierTypeAs action
+not lowered: New
+
+## importSpecifierType action
+not lowered: New
+
+## importSpecifierPlain action
+not lowered: New
+
+## importAttributes action
+not lowered: New
+
+## importAttributesBraces action
+not lowered: concat
+
+## importAttribute action
+not lowered: New
+
+## exportAssignment action
+not lowered: New
+
+## exportAssignment binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([2]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## namespaceExportDeclaration action
+not lowered: New
+
+## exportStarDeclaration action
+not lowered: New
+
+## exportStarDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([2]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## exportNamedDeclaration action
+not lowered: New
+
+## exportNamedDeclaration binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([2]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## namespaceExport action
+not lowered: New
+
+## namedExports action
+not lowered: New, concat
+
+## exportSpecifierTypeAsAs action
+not lowered: New
+
+## exportSpecifierTypeAsName action
+not lowered: New
+
+## exportSpecifierTypeAs action
+not lowered: New
+
+## exportSpecifierType action
+not lowered: New
+
+## exportSpecifierPlain action
+not lowered: New
+
+## modifiers action
+not lowered: concat
+
+## modifiers predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$m1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## decoratorList action
+not lowered: map, Lambda, param
+
+## modifierList action
+not lowered: concat, map, Lambda, param
+
+## modifierList predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$b]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$s]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(9, tv5, term.const([0]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## staticModifierList action
+not lowered: list
+
+## classModifiers action
+not lowered: concat
+
+## classModifiers predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$m1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## classModifierList action
+not lowered: concat, map, Lambda, param
+
+## classModifierList predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$b]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$s]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(9, tv5, term.const([0]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## classStaticModifierList action
+not lowered: list
+
+## typeMemberModifiers action
+not lowered: concat
+
+## typeParameterModifiers action
+not lowered: concat, map, Lambda, param
+
+## decorator action
+not lowered: New
+
+## decorator binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([8]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([8]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([8]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## expression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## expression binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([8]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([4]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([8]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## expressionAllowIn action
+func term() Datum {
+  return term.read([$e])
+}
+
+## expressionAllowIn binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([8]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## commaExpression action
+not lowered: foldl, Lambda, New, param
+
+## assignmentExpression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## assignmentExpression binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([8]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([4]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([8]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## assignmentExpressionAllowIn action
+func term() Datum {
+  return term.read([$e])
+}
+
+## assignmentExpressionAllowIn binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([8]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## assignmentExpressionInner action
+func term() Datum {
+  return term.read([$e])
+}
+
+## yieldExpression action
+not lowered: New
+
+## yieldExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## assignment action
+not lowered: New
+
+## conditionalOrBinaryExpression action
+not lowered: foldl, Lambda, New, param
+
+## conditionalWhenTrue action
+func term() Datum {
+  return term.read([$e])
+}
+
+## conditionalWhenTrue binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([8]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([16]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## conditionalWhenFalse action
+func term() Datum {
+  return term.read([$e])
+}
+
+## arrowFunction action
+not lowered: New, concat
+
+## arrowFunction binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = length(term.read([$ml]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(2, tv5, term.const([2]))
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv4, tv6)
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## arrowFunction predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([16]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## arrowFunction predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$rt]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## arrowAsyncModifier action
+not lowered: list
+
+## arrowTypeParameters action
+func term() Datum {
+  return term.read([$tp])
+}
+
+## arrowTypeParameters predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(7, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## arrowParenthesisIsNotParameterList predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## arrowParenthesisIsNotParameterList predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## simpleArrowFunction action
+not lowered: New, list
+
+## simpleArrowFunction binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## simpleArrowParameter action
+not lowered: New
+
+## asyncSimpleArrowFunction action
+not lowered: New, list
+
+## asyncSimpleArrowFunction binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(0, tv4, term.const([2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  return tv5
+}
+
+## binaryExpression line 2
+not lowered: New
+
+## binaryExpression line 3
+not lowered: New
+
+## binaryExpression line 4
+not lowered: New
+
+## binaryExpression line 5
+not lowered: New
+
+## binaryExpression line 6
+not lowered: New
+
+## binaryExpression line 7
+not lowered: New
+
+## binaryExpression line 8
+not lowered: New
+
+## binaryExpression line 9
+not lowered: New
+
+## binaryExpression line 10
+not lowered: New
+
+## binaryExpression line 11
+not lowered: New
+
+## binaryExpression line 12
+not lowered: New
+
+## binaryExpression line 13
+not lowered: New
+
+## binaryExpression line 14
+not lowered: New
+
+## relationalToken predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(10, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## relationalToken predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([4]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## unaryExpression action
+func term() Datum {
+  return term.read([$u])
+}
+
+## unaryOperatorStart predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(7, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## prefixUnaryExpression action
+not lowered: New
+
+## deleteExpression action
+not lowered: New
+
+## typeOfExpression action
+not lowered: New
+
+## voidExpression action
+not lowered: New
+
+## awaitExpression action
+not lowered: New
+
+## awaitExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## typeAssertion action
+not lowered: New
+
+## typeAssertion predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(7, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## jsxUnaryExpression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## jsxUnaryExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(10, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## updateExpression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## updateExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(10, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## postfixOrLeftHandSideExpression action
+not lowered: foldl, Lambda, New, param
+
+## postfixOrLeftHandSideExpression predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(8, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## prefixUpdateExpression action
+not lowered: New
+
+## jsxPrimaryExpression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## jsxPrimaryExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(10, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## leftHandSideExpression line 5
+not lowered: New
+
+## leftHandSideExpression line 6
+not lowered: New
+
+## leftHandSideExpression line 7
+not lowered: New
+
+## leftHandSideExpression line 8
+not lowered: New
+
+## leftHandSideExpression line 9
+not lowered: New, concat
+
+## leftHandSideExpression line 10
+not lowered: New, concat
+
+## leftHandSideExpression line 11
+not lowered: New
+
+## leftHandSideExpression line 12
+not lowered: New
+
+## leftHandSideExpression line 13
+not lowered: New, concat
+
+## leftHandSideExpression line 14
+not lowered: New, concat
+
+## leftHandSideExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([8]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## heritageExpression line 5
+not lowered: New
+
+## heritageExpression line 6
+not lowered: New
+
+## heritageExpression line 7
+not lowered: New
+
+## heritageExpression line 8
+not lowered: New
+
+## heritageExpression line 9
+not lowered: New, concat
+
+## heritageExpression line 10
+not lowered: New, concat
+
+## heritageExpression line 11
+not lowered: New
+
+## heritageExpression line 12
+not lowered: New, concat
+
+## heritageExpression line 13
+not lowered: New, concat
+
+## heritageExpression predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([8]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## newTarget line 3
+not lowered: New
+
+## newTarget line 4
+not lowered: New
+
+## newTarget line 5
+not lowered: New, concat
+
+## newTarget line 6
+not lowered: New
+
+## newTarget predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([8]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## typeArgumentsInExpression action
+not lowered: concat
+
+## typeArgumentsInExpression binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## arguments action
+not lowered: concat
+
+## arguments binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([8]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## argumentList action
+not lowered: concat, list, map, Lambda, param
+
+## spreadElement action
+not lowered: New
+
+## importMetaProperty action
+not lowered: New
+
+## primaryExpression action
+func term() Datum {
+  return term.read([$e])
+}
+
+## wordPrimary action
+func term() Datum {
+  return term.read([$e])
+}
+
+## numericOrBigIntLiteral action
+func term() Datum {
+  return term.read([$e])
+}
+
+## parenthesizedExpression action
+not lowered: New
+
+## arrayLiteralExpression action
+not lowered: New, concat
+
+## arrayLiteralExpression binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([8]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([4]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([8]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## objectLiteralExpression action
+not lowered: New, concat
+
+## objectAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## objectMemberNotAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## spreadAssignment action
+not lowered: New
+
+## objectGetAccessor action
+not lowered: New, concat
+
+## objectGetAccessor binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## objectSetAccessor action
+not lowered: New, concat
+
+## objectSetAccessor binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## objectMethod action
+not lowered: New, concat
+
+## objectMethod predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$s]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## objectMethod binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = length(term.read([$g]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(0, tv4, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = length(term.read([$am]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  let tv8, tf8 = binary(3, tv7, term.const([5]))
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tv9, tf9 = binary(2, tv8, term.const([2]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tv10, tf10 = binary(0, tv6, tv9)
+  if (tf10 != null(Fail)) {
+    term.raise(tf10)
+  }
+  return tv10
+}
+
+## shorthandPropertyAssignment action
+not lowered: New
+
+## shorthandPropertyAssignment binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## propertyAssignment action
+not lowered: New
+
+## propertyAssignment binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([4]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## functionExpression action
+not lowered: New, concat
+
+## functionExpression binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = length(term.read([$g]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(0, tv4, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = length(term.read([$ml]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  let tv8, tf8 = binary(2, tv7, term.const([2]))
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tv9, tf9 = binary(0, tv6, tv8)
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  return tv9
+}
+
+## asyncFunctionModifier action
+not lowered: list
+
+## classExpressionPrimary action
+func term() Datum {
+  return term.read([$c])
+}
+
+## newTargetMetaProperty action
+not lowered: New
+
+## newExpressionWithTarget action
+not lowered: New, concat
+
+## templateExpression action
+not lowered: New
+
+## templateSpans action
+not lowered: concat, map, Lambda, param, list
+
+## templateSpanMiddle action
+not lowered: New
+
+## templateSpanTail action
+not lowered: New
+
+## rawTemplateExpression action
+not lowered: New
+
+## rawTemplateSpans action
+not lowered: concat, map, Lambda, param, list
+
+## rawTemplateSpanMiddle action
+not lowered: New
+
+## rawTemplateSpanTail action
+not lowered: New
+
+## jsxSelfClosingElement action
+not lowered: New, concat
+
+## jsxElement action
+not lowered: New
+
+## jsxElement predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$on]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ts2, tf2 = text(term.read([$cn]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return val.fromBool(term.textEqual(ts1, ts2))
+}
+
+## jsxOpeningElement action
+not lowered: New, concat
+
+## jsxClosingElement action
+not lowered: New
+
+## jsxFragment action
+not lowered: New
+
+## jsxMemberName action
+not lowered: foldl, Lambda, New, param
+
+## jsxNamespacedName action
+not lowered: New
+
+## jsxAttributes action
+not lowered: New, concat
+
+## jsxAttribute action
+not lowered: New
+
+## jsxAttributeExpression action
+not lowered: New
+
+## jsxSpreadAttribute action
+not lowered: New
+
+## jsxChildExpression action
+not lowered: New
+
+## jsxChildElement action
+func term() Datum {
+  return term.read([$e])
+}
+
+## typeNode action
+func term() Datum {
+  return term.read([$t])
+}
+
+## typeNode binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(4, tv2, term.const([4]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(1, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## typeNoConditional action
+func term() Datum {
+  return term.read([$t])
+}
+
+## typeNoConditional binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([32]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  let tv7, tf7 = binary(0, tv6, term.const([32]))
+  if (tf7 != null(Fail)) {
+    term.raise(tf7)
+  }
+  return tv7
+}
+
+## typeAllowConditional action
+func term() Datum {
+  return term.read([$t])
+}
+
+## typeAllowConditional binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([32]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## conditionalOrHigher action
+not lowered: foldl, Lambda, New, param
+
+## conditionalOrHigher predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([32]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## typePredicate action
+not lowered: New
+
+## functionType action
+not lowered: New, concat
+
+## constructorType action
+not lowered: New, concat
+
+## abstractModifier action
+not lowered: list
+
+## returnTypeOfType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## returnTypeOfType binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([32]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## unionOrHigher action
+func term() Datum {
+  return term.read([$u])
+}
+
+## leadingUnionType action
+not lowered: New, concat, list, map, Lambda, param
+
+## plainOrUnionType action
+not lowered: foldl, Lambda, New, concat, list, param, map
+
+## intersectionOrHigher action
+func term() Datum {
+  return term.read([$u])
+}
+
+## leadingIntersectionType action
+not lowered: New, concat, list, map, Lambda, param
+
+## plainOrIntersectionType action
+not lowered: foldl, Lambda, New, concat, list, param, map
+
+## typeOperatorOrHigher action
+func term() Datum {
+  return term.read([$t])
+}
+
+## postfixTypeAllowConditional action
+func term() Datum {
+  return term.read([$t])
+}
+
+## postfixTypeAllowConditional binding ctx
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2 = term.read([var ctx])
+  let tv3, tf3 = binary(3, tv2, term.const([32]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(4, tv3, term.const([2]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5, tf5 = binary(2, tv4, term.const([32]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tv6, tf6 = binary(1, tv1, tv5)
+  if (tf6 != null(Fail)) {
+    term.raise(tf6)
+  }
+  return tv6
+}
+
+## typeOperator action
+not lowered: New
+
+## inferType action
+not lowered: New
+
+## inferTypeParameter action
+not lowered: New
+
+## inferTypeParameter predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([32]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## postfixType line 2
+not lowered: New
+
+## postfixType line 3
+not lowered: New
+
+## postfixType line 4
+not lowered: New
+
+## postfixType line 5
+not lowered: New
+
+## postfixTypeNoQuestion line 2
+not lowered: New
+
+## postfixTypeNoQuestion line 3
+not lowered: New
+
+## postfixTypeNoQuestion line 4
+not lowered: New
+
+## nonArrayType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## wordType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## literalType action
+not lowered: New
+
+## negativeLiteral action
+not lowered: New
+
+## thisTypePredicate action
+not lowered: New
+
+## assertsTypePredicate action
+not lowered: New
+
+## typeQuery action
+not lowered: New, concat
+
+## importType action
+not lowered: New, concat
+
+## importTypeAttributes action
+not lowered: New
+
+## typeReference action
+not lowered: New, concat
+
+## functionTypeReference action
+not lowered: New
+
+## parenthesizedType action
+not lowered: New
+
+## templateLiteralType action
+not lowered: New
+
+## templateTypeSpans action
+not lowered: concat, map, Lambda, param, list
+
+## templateTypeSpanMiddle action
+not lowered: New
+
+## templateTypeSpanTail action
+not lowered: New
+
+## jsdocNullableType action
+not lowered: New
+
+## jsdocNonNullableType action
+not lowered: New
+
+## jsdocFunctionType action
+not lowered: New, concat
+
+## jsdocParameter action
+not lowered: New
+
+## entityName action
+not lowered: foldl, Lambda, New, param
+
+## entityNameAllowReserved action
+not lowered: foldl, Lambda, New, param
+
+## typeArguments action
+not lowered: concat
+
+## typeList action
+not lowered: concat, list, map, Lambda, param
+
+## typeParameters action
+not lowered: concat
+
+## typeParameter action
+not lowered: New
+
+## tupleType action
+not lowered: New, concat
+
+## namedTupleMember action
+not lowered: New
+
+## restType action
+not lowered: New
+
+## optionalType action
+not lowered: New
+
+## typeLiteral action
+not lowered: New
+
+## objectTypeMembers action
+not lowered: map, Lambda, param
+
+## mappedType action
+not lowered: New, map, Lambda, param
+
+## mappedTypeParameter action
+not lowered: New
+
+## mappedReadonlyToken action
+func term() Datum {
+  return term.read([$t])
+}
+
+## mappedPlusMinusReadonly action
+func term() Datum {
+  return term.read([$t])
+}
+
+## mappedQuestionToken action
+func term() Datum {
+  return term.read([$t])
+}
+
+## mappedPlusMinusQuestion action
+func term() Datum {
+  return term.read([$t])
+}
+
+## typeAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## typeMemberNotAccessor action
+func term() Datum {
+  return term.read([$m])
+}
+
+## callSignature action
+not lowered: New, concat
+
+## constructSignature action
+not lowered: New, concat
+
+## typeGetAccessor action
+not lowered: New, concat
+
+## typeSetAccessor action
+not lowered: New, concat
+
+## typeIndexSignature action
+not lowered: New, concat
+
+## methodSignature action
+not lowered: New, concat
+
+## propertySignature action
+not lowered: New
+
+## computedPropertyName action
+not lowered: New
+
+## identifier action
+func term() Datum {
+  return term.read([$i])
+}
+
+## identifier predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## identifier predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## bindingIdentifier action
+func term() Datum {
+  return term.read([$i])
+}
+
+## arrayBindingElementList action
+not lowered: concat, list, map, Lambda, param
+
+## arrayElementList action
+not lowered: concat, list, map, Lambda, param
+
+## bindingElementList action
+not lowered: concat, list, map, Lambda, param
+
+## enumMemberList action
+not lowered: concat, list, map, Lambda, param
+
+## exportSpecifierList action
+not lowered: concat, list, map, Lambda, param
+
+## importAttributeList action
+not lowered: concat, list, map, Lambda, param
+
+## importSpecifierList action
+not lowered: concat, list, map, Lambda, param
+
+## jsdocParameterList action
+not lowered: concat, list, map, Lambda, param
+
+## jsxAttributeLikeList action
+not lowered: concat, list, map, Lambda, param
+
+## objectLiteralElementList action
+not lowered: concat, list, map, Lambda, param
+
+## tupleElementList action
+not lowered: concat, list, map, Lambda, param
+
+## typeParameterList action
+not lowered: concat, list, map, Lambda, param
+
+## arrowParenthesisIsNotParameterList predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## arrowParenthesisIsNotParameterList predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## unaryOperatorStart predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(7, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## relationalToken predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(10, tv1, term.const([64]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## relationalToken predicate
+func term() Datum {
+  let tv1 = term.read([var ctx])
+  let tv2, tf2 = binary(3, tv1, term.const([4]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(4, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv3, term.const([0]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+

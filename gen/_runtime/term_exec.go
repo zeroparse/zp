@@ -48,13 +48,13 @@ const (
 	valKindOther  = 4
 )
 
-// The codes of the kinds of member reads.
+// The codes of the kinds of member reads, for generated parsers; not a stable API.
 const (
-	memberField   = 0
-	memberStart   = 1
-	memberEnd     = 2
-	memberValue   = 3
-	memberCapture = 4
+	MemberField   = 0
+	MemberStart   = 1
+	MemberEnd     = 2
+	MemberValue   = 3
+	MemberCapture = 4
 )
 
 // memberKind returns the kind of the member read name and the name of the field or capture that it
@@ -62,16 +62,16 @@ const (
 func memberKind(name string) (int, string) {
 	switch name {
 	case "Start":
-		return memberStart, name
+		return MemberStart, name
 	case "End":
-		return memberEnd, name
+		return MemberEnd, name
 	case "Value":
-		return memberValue, name
+		return MemberValue, name
 	}
 	if field, ok := strings.CutPrefix(name, "$"); ok {
-		return memberCapture, field
+		return MemberCapture, field
 	}
-	return memberField, name
+	return MemberField, name
 }
 
 // termError returns the failure of a term with the message ops.TermErrors[code]; it is a value that the
@@ -212,13 +212,14 @@ func (p *Parser) termIndex(l any, r any) (any, any) {
 	return UnboxNode(items[i]), nil
 }
 
-// termBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
+// TermBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
 // / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
 // Strings concatenate with + and compare with < <= > >= by code point. == and != apply equal and fail where it has
 // no equality. [] is index. Any other operands fail.
+// TermBinary is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function binary of internal/ir/exec/core.
-func (p *Parser) termBinary(op int, l any, r any) (any, any) {
+func (p *Parser) TermBinary(op int, l any, r any) (any, any) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
 		return v, e
@@ -286,11 +287,12 @@ func (p *Parser) termBinary(op int, l any, r any) (any, any) {
 	return nil, p.termError(1, l, r, op, 0)
 }
 
-// termUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
+// TermUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
 // wraparound, and ! negates a bool. Any other operand fails.
+// TermUnary is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function unary of internal/ir/exec/core.
-func (p *Parser) termUnary(op int, x any) (any, any) {
+func (p *Parser) TermUnary(op int, x any) (any, any) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
 	}
@@ -300,26 +302,28 @@ func (p *Parser) termUnary(op int, x any) (any, any) {
 	return nil, p.termError(3, x, nil, op, 0)
 }
 
-// termLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
+// TermLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 // operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 // true and of || only if it is false, and checks each operand it evaluates.
+// TermLogic is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function logic of internal/ir/exec/core.
-func (p *Parser) termLogic(op int, x any) (bool, any) {
+func (p *Parser) TermLogic(op int, x any) (bool, any) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
 	}
 	return x.(bool), nil
 }
 
-// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// TermMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
 // capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
 // opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
 // type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
 // not declare fail.
+// TermMember is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function member of internal/ir/exec/core.
-func (p *Parser) termMember(c *ActCtx, kind int, x any, name string, field string) (any, any) {
+func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field string) (any, any) {
 	n, ok := nodeOf(x)
 	if !ok {
 		return nil, p.termError(8, x, any(name), 0, 0)
@@ -427,11 +431,12 @@ func (p *Parser) termFilterKeep(v any) (bool, any) {
 	return v.(bool), nil
 }
 
-// termLength is the built-in function len: the length of a string in the position unit, of the range of a string
+// TermLength is the built-in function len: the length of a string in the position unit, of the range of a string
 // node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails.
+// TermLength is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function length of internal/ir/exec/core.
-func (p *Parser) termLength(x any) (any, any) {
+func (p *Parser) TermLength(x any) (any, any) {
 	k := valKind(x)
 	if k == 2 {
 		return any(p.unitLen(x.(string))), nil
@@ -449,11 +454,12 @@ func (p *Parser) termLength(x any) (any, any) {
 	return nil, p.termError(13, x, nil, 0, 0)
 }
 
-// termText is the built-in function text: a string itself, the text that a string node or an error holds,
+// TermText is the built-in function text: a string itself, the text that a string node or an error holds,
 // the input of the range of any other node, and the empty string for nil. Any other value fails.
+// TermText is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function text of internal/ir/exec/core.
-func (p *Parser) termText(x any) (string, any) {
+func (p *Parser) TermText(x any) (string, any) {
 	k := valKind(x)
 	if k == 0 {
 		return "", nil
@@ -472,11 +478,12 @@ func (p *Parser) termText(x any) (string, any) {
 	return "", p.termError(14, x, nil, 0, 0)
 }
 
-// termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+// TermConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
 // type or not, becomes a node of t. Any other value fails.
+// TermConvert is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function convert of internal/ir/exec/core.
-func (p *Parser) termConvert(t *nodeTypeKinds, x any) (any, any) {
+func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 	n, ok := nodeOf(x)
 	if ok {
 		if n.hasBase() {
@@ -553,13 +560,14 @@ func (p *Parser) termHull(c *ActCtx, tuple bool, kids []*Node) *Node {
 	return n
 }
 
-// termConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
+// TermConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
 // element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
 // (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
 // not the node of a repetition or a sequence.
+// TermConforms is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function conforms of internal/ir/exec/core.
-func (p *Parser) termConforms(t *FieldType, v any) bool {
+func (p *Parser) TermConforms(t *FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
 	x := UnboxValue(v)
@@ -583,12 +591,12 @@ func (p *Parser) termConforms(t *FieldType, v any) bool {
 	}
 	// An optional type takes nil and the values of its type; a join the values of an alternative.
 	if kt == 111 {
-		return kx == 0 || p.termConforms(t.Elem, x)
+		return kx == 0 || p.TermConforms(t.Elem, x)
 	}
 	if kt == 117 {
 		count := len(t.Alts)
 		for i = 0; i < count; i++ {
-			if p.termConforms(t.Alts[i], x) {
+			if p.TermConforms(t.Alts[i], x) {
 				return true
 			}
 		}
@@ -691,7 +699,7 @@ func (p *Parser) termElemsConform(t *FieldType, items []*Node) bool {
 	count := len(items)
 	for j = 0; j < count; j++ {
 		p.Spend()
-		if !p.termConforms(t, UnboxNode(items[j])) {
+		if !p.TermConforms(t, UnboxNode(items[j])) {
 			return false
 		}
 	}
@@ -710,7 +718,7 @@ func (p *Parser) termTupleConform(t *FieldType, items []*Node) bool {
 	}
 	for j = 0; j < count; j++ {
 		p.Spend()
-		if !p.termConforms(t.Alts[j], UnboxNode(items[j])) {
+		if !p.TermConforms(t.Alts[j], UnboxNode(items[j])) {
 			return false
 		}
 	}
@@ -765,13 +773,14 @@ func (p *TParser) termIndex(l any, r any) (any, any) {
 	return items[i], nil
 }
 
-// termBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
+// TermBinary applies the binary operator that op indexes in ops.BinaryOps to l and r. Ints combine with + - *
 // / % and compare with < <= > >=, with 64-bit wraparound; / and % truncate toward zero, and a division by zero fails.
 // Strings concatenate with + and compare with < <= > >= by code point. == and != apply equal and fail where it has
 // no equality. [] is index. Any other operands fail.
+// TermBinary is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function binary of internal/ir/exec/core.
-func (p *TParser) termBinary(op int, l any, r any) (any, any) {
+func (p *TParser) TermBinary(op int, l any, r any) (any, any) {
 	if op == 11 {
 		v, e := p.termIndex(l, r)
 		return v, e
@@ -839,11 +848,12 @@ func (p *TParser) termBinary(op int, l any, r any) (any, any) {
 	return nil, p.termError(1, l, r, op, 0)
 }
 
-// termUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
+// TermUnary applies the unary operator that op indexes in ops.UnaryOps to x: - negates an int, with
 // wraparound, and ! negates a bool. Any other operand fails.
+// TermUnary is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function unary of internal/ir/exec/core.
-func (p *TParser) termUnary(op int, x any) (any, any) {
+func (p *TParser) TermUnary(op int, x any) (any, any) {
 	if op == 0 && valKind(x) == 1 {
 		return any(-x.(int)), nil
 	}
@@ -853,26 +863,28 @@ func (p *TParser) termUnary(op int, x any) (any, any) {
 	return nil, p.termError(3, x, nil, op, 0)
 }
 
-// termLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
+// TermLogic checks the operand x of the logical operator that op indexes in ops.LogicalOps, and returns it. An
 // operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is
 // true and of || only if it is false, and checks each operand it evaluates.
+// TermLogic is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function logic of internal/ir/exec/core.
-func (p *TParser) termLogic(op int, x any) (bool, any) {
+func (p *TParser) TermLogic(op int, x any) (bool, any) {
 	if valKind(x) != 3 {
 		return false, p.termError(4, x, nil, op, 0)
 	}
 	return x.(bool), nil
 }
 
-// termMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
+// TermMember reads the member name of x, whose kind is kind (ops.MemberKinds) and which reads the field or
 // capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box
 // opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared
 // type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does
 // not declare fail.
+// TermMember is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function member of internal/ir/exec/core.
-func (p *TParser) termMember(c *TActCtx, kind int, x any, name string, field string) (any, any) {
+func (p *TParser) TermMember(c *TActCtx, kind int, x any, name string, field string) (any, any) {
 	n, ok := tnodeOf(x)
 	if !ok {
 		return nil, p.termError(8, x, any(name), 0, 0)
@@ -980,11 +992,12 @@ func (p *TParser) termFilterKeep(v any) (bool, any) {
 	return v.(bool), nil
 }
 
-// termLength is the built-in function len: the length of a string in the position unit, of the range of a string
+// TermLength is the built-in function len: the length of a string in the position unit, of the range of a string
 // node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails.
+// TermLength is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function length of internal/ir/exec/core.
-func (p *TParser) termLength(x any) (any, any) {
+func (p *TParser) TermLength(x any) (any, any) {
 	k := valKind(x)
 	if k == 2 {
 		return any(p.unitLen(x.(string))), nil
@@ -1002,11 +1015,12 @@ func (p *TParser) termLength(x any) (any, any) {
 	return nil, p.termError(13, x, nil, 0, 0)
 }
 
-// termText is the built-in function text: a string itself, the text that a string node or an error holds,
+// TermText is the built-in function text: a string itself, the text that a string node or an error holds,
 // the input of the range of any other node, and the empty string for nil. Any other value fails.
+// TermText is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function text of internal/ir/exec/core.
-func (p *TParser) termText(x any) (string, any) {
+func (p *TParser) TermText(x any) (string, any) {
 	k := valKind(x)
 	if k == 0 {
 		return "", nil
@@ -1025,11 +1039,12 @@ func (p *TParser) termText(x any) (string, any) {
 	return "", p.termError(14, x, nil, 0, 0)
 }
 
-// termConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
+// TermConvert is the conversion T{x} to the named node type t: a string, tuple or list node, of a named node
 // type or not, becomes a node of t. Any other value fails.
+// TermConvert is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function convert of internal/ir/exec/core.
-func (p *TParser) termConvert(t uint16, x any) (any, any) {
+func (p *TParser) TermConvert(t uint16, x any) (any, any) {
 	n, ok := tnodeOf(x)
 	if ok {
 		if tnodeHasBase(n) {
@@ -1106,13 +1121,14 @@ func (p *TParser) termHull(c *TActCtx, tuple bool, kids []any) TVal {
 	return n
 }
 
-// termConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
+// TermConforms returns whether v is a value of the type t of a cast in the value model, charging a step for each
 // element of a list or a tuple it examines. A box counts as the value it holds. node[T] is a node whose value is of type T
 // (node[_] any node with a value), and error an error value; a list or tuple type takes a list value or a tuple value,
 // not the node of a repetition or a sequence.
+// TermConforms is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function conforms of internal/ir/exec/core.
-func (p *TParser) termConforms(t *FieldType, v any) bool {
+func (p *TParser) TermConforms(t *FieldType, v any) bool {
 	var i int
 	kt := int(t.Kind)
 	x := v
@@ -1136,12 +1152,12 @@ func (p *TParser) termConforms(t *FieldType, v any) bool {
 	}
 	// An optional type takes nil and the values of its type; a join the values of an alternative.
 	if kt == 111 {
-		return kx == 0 || p.termConforms(t.Elem, x)
+		return kx == 0 || p.TermConforms(t.Elem, x)
 	}
 	if kt == 117 {
 		count := len(t.Alts)
 		for i = 0; i < count; i++ {
-			if p.termConforms(t.Alts[i], x) {
+			if p.TermConforms(t.Alts[i], x) {
 				return true
 			}
 		}
@@ -1244,7 +1260,7 @@ func (p *TParser) termElemsConform(t *FieldType, items []any) bool {
 	count := len(items)
 	for j = 0; j < count; j++ {
 		p.Spend()
-		if !p.termConforms(t, items[j]) {
+		if !p.TermConforms(t, items[j]) {
 			return false
 		}
 	}
@@ -1263,7 +1279,7 @@ func (p *TParser) termTupleConform(t *FieldType, items []any) bool {
 	}
 	for j = 0; j < count; j++ {
 		p.Spend()
-		if !p.termConforms(t.Alts[j], items[j]) {
+		if !p.TermConforms(t.Alts[j], items[j]) {
 			return false
 		}
 	}

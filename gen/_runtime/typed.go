@@ -1456,7 +1456,7 @@ func (p *TParser) TConvertResult(r *TRule, v any) any {
 // Convert evaluates a node type constructor T{v} (ActCtx.Convert): it converts v to the named node
 // type with the index nt.
 func (c *TActCtx) Convert(nt uint16, v any) any {
-	n, e := c.P.termConvert(nt, v)
+	n, e := c.P.TermConvert(nt, v)
 	if e != nil {
 		panic(e)
 	}
@@ -1917,7 +1917,7 @@ func (c *TActCtx) Compare(op int, l, r TOperand) any {
 // Member reads x.name, as the composition member (term_exec.go) does.
 func (c *TActCtx) Member(x any, name string) any {
 	kind, field := memberKind(name)
-	v, e := c.P.termMember(c, kind, x, name, field)
+	v, e := c.P.TermMember(c, kind, x, name, field)
 	if e != nil {
 		panic(e)
 	}
@@ -1943,7 +1943,7 @@ type tzeroFields interface {
 
 // Length is the built-in function len, as the composition length (term_exec.go) makes it.
 func (c *TActCtx) Length(x any) any {
-	v, e := c.P.termLength(x)
+	v, e := c.P.TermLength(x)
 	if e != nil {
 		panic(e)
 	}
@@ -1952,7 +1952,7 @@ func (c *TActCtx) Length(x any) any {
 
 // Text is the built-in function text, as the composition text (term_exec.go) makes it.
 func (c *TActCtx) Text(x any) any {
-	s, e := c.P.termText(x)
+	s, e := c.P.TermText(x)
 	if e != nil {
 		panic(e)
 	}
@@ -1963,7 +1963,7 @@ func (c *TActCtx) Text(x any) any {
 // string in an interface allocates.
 
 func (c *TActCtx) TextStr(x any) string {
-	s, e := c.P.termText(x)
+	s, e := c.P.TermText(x)
 	if e != nil {
 		panic(e)
 	}
@@ -2170,7 +2170,7 @@ func (p *TParser) convertOperator(r *TRule, v any) any {
 // Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
 // its operands are not valid.
 func (c *TActCtx) Binary(op int, l, r any) any {
-	v, e := c.P.termBinary(op, l, r)
+	v, e := c.P.TermBinary(op, l, r)
 	if e != nil {
 		panic(e)
 	}
@@ -2262,7 +2262,7 @@ func (p *TParser) ListField(kids []any) any {
 
 // Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
 func (c *TActCtx) Unary(op int, v any) any {
-	r, e := c.P.termUnary(op, v)
+	r, e := c.P.TermUnary(op, v)
 	if e != nil {
 		panic(e)
 	}
@@ -2271,7 +2271,7 @@ func (c *TActCtx) Unary(op int, v any) any {
 
 // logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
 func (p *TParser) logical(op int, x any) bool {
-	b, e := p.termLogic(op, x)
+	b, e := p.TermLogic(op, x)
 	if e != nil {
 		panic(e)
 	}

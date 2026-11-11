@@ -8,7 +8,7 @@ import (
 )
 
 // The built-in table (conform.BuiltinCases) on the compositions length, text, items and convert
-// of the node and the typed runtime (termLength, termText, termItems and termConvert,
+// of the node and the typed runtime (TermLength, TermText, termItems and TermConvert,
 // printed from Exec IR), through the methods that a generated parser calls.
 
 // nodeBuiltinFixture returns the context of a node parser over conform.BuiltinInput, with a budget

@@ -41,7 +41,7 @@ var engineMutants = []engineMutant{
 	{"a struct has captures", "term_exec.go", "termMember", "if st {\n\t\t\treturn nil, p.termError(9", "if false {\n\t\t\treturn nil, p.termError(9"},
 	{"a set field of a struct reads as its zero", "term_exec.go", "termMember", "if set {\n\t\treturn f, nil\n\t}", "if set && !st {\n\t\treturn f, nil\n\t}"},
 	{"a capture keeps its box", "term_exec.go", "termMember", "return unboxed(v), nil", "return v, nil"},
-	{"End is a field", "term_exec.go", "memberKind", "return memberEnd, name", "return memberField, name"},
+	{"End is a field", "term_exec.go", "memberKind", "return MemberEnd, name", "return MemberField, name"},
 	{"a struct declares every field", "eval.go", "memberZero", "if !p.HasValueField(", "if false && !p.HasValueField("},
 	{"nil has length 1", "term_exec.go", "termLength", "return any(0), nil", "return any(1), nil"},
 	{"the length of a string node is that of its text", "term_exec.go", "termLength", "if value.D(n).Terminal {", "if false {"},

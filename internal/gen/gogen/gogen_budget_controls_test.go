@@ -160,7 +160,7 @@ func TestStringAndMalformedTextBudget(t *testing.T){
  c:=&zprt.ActCtx{P:p}
  for _,op:=range []int{zprt.OpEq,zprt.OpNe,zprt.OpLt,zprt.OpLe,zprt.OpGt,zprt.OpGe,zprt.OpAdd}{
   got:=c.Binary(op,text,text)
-  want,_:=p.X_termBinary(op,text,text)
+  want,_:=p.TermBinary(op,text,text)
   if !reflect.DeepEqual(got,want){t.Fatalf("string op %d: %v want %v",op,got,want)}
  }
  if p.Control.X_budgetUsed()==0{t.Fatal("string spend not charged")}

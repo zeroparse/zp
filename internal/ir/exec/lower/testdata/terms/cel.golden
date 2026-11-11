@@ -1,0 +1,95 @@
+## main action
+func term() Datum {
+  return term.read([$e])
+}
+
+## expr line 2
+not lowered: New
+
+## expr line 3
+not lowered: New
+
+## expr line 4
+not lowered: New
+
+## expr line 5
+not lowered: New
+
+## expr line 6
+not lowered: New
+
+## expr line 7
+not lowered: New
+
+## not_unary action
+not lowered: foldr, Lambda, New, param
+
+## neg_unary action
+not lowered: foldr, Lambda, New, param
+
+## member line 2
+not lowered: New
+
+## member line 3
+not lowered: New, concat
+
+## member line 4
+not lowered: New
+
+## primary action
+func term() Datum {
+  return term.read([$v])
+}
+
+## word_lit action
+func term() Datum {
+  return term.read([$v])
+}
+
+## paren action
+not lowered: New
+
+## ident_only action
+func term() Datum {
+  return term.read([$i])
+}
+
+## call action
+not lowered: New, concat
+
+## args action
+not lowered: concat, list, map, Lambda, param
+
+## list action
+not lowered: New, concat
+
+## elems action
+not lowered: concat, list, map, Lambda, param
+
+## optional action
+not lowered: New
+
+## map action
+not lowered: New, concat
+
+## entries action
+not lowered: concat, list, map, Lambda, param
+
+## opt_entry action
+not lowered: New
+
+## plain_entry action
+not lowered: New
+
+## message action
+not lowered: New, concat
+
+## fields action
+not lowered: concat, list, map, Lambda, param
+
+## opt_field action
+not lowered: New
+
+## plain_field action
+not lowered: New
+

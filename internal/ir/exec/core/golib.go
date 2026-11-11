@@ -181,7 +181,7 @@ func goTarget(s goSpec) *execgo.Target {
 	for _, s := range goOperatorSpecs {
 		names[s.fn] = s.name
 	}
-	goTermNames(names)
+	goRuntimeTermNames(names)
 	entryType, valueField, alloc := "memoEntry", "node", "p.memo.alloc()"
 	// spender is the parser that the generic copies of values charge.
 	attemptType, spender := "operatorsRuleAttempt", "p"
@@ -204,7 +204,7 @@ func goTarget(s goSpec) *execgo.Target {
 		for _, s := range goOperatorSpecs {
 			names[s.fn] = s.name
 		}
-		goTermNames(names)
+		goRuntimeTermNames(names)
 		entryType, valueField, alloc = "tmemoEntry", "val", "p.memoSlab.one()"
 		attemptType, spender, created = "toperatorsRuleAttempt", "p.Parser", "Created"
 		rule = func(r string) string { return r + ".Rule" }

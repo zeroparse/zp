@@ -337,7 +337,9 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 3)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[1].Body = e2
 	rules[2].Body = e5
 	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Object", "Members", c.Concat(c.Cap(0))) }
@@ -360,7 +362,9 @@ func init() {
 		return c.EndList(b_36)
 	}
 	rules[7].Body = e17
-	rules[7].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[7].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	zpGrammar.DeclareStruct("Array", "Elements", "l")
 	zpGrammar.TypeKinds["Array"] = rt.KindOf("Array", "")
 	zpGrammar.DeclareStruct("Member", "Key", "-", "Value", "-")
@@ -2041,7 +2045,13 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = k1
+	{
+		var tr2 any
+		{
+			tr2 = k1
+		}
+		v = tr2
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -2481,7 +2491,13 @@ func i7(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "string"
-	v = k1
+	{
+		var tr3 any
+		{
+			tr3 = k1
+		}
+		v = tr3
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -2972,4 +2988,4 @@ fail:
 
 const _ = types.ZPSchema_341a4aaa83c568ba
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

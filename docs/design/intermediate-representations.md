@@ -215,8 +215,9 @@ of the Node parser and its recognizer is lowered from Flow IR to Exec IR and pri
 closure backend and the bytecode compiler read the grammar or the compiled rules directly. Generated TypeScript prints
 the matching code of every rule the same way, including the lines of an Operators Rule, in both the Node table and the
 recognizer table. It has no other route: a rule that Flow IR or the printer does not cover fails the generation. Its rule table, typed declarations and runtime come from
-the compiled program. Actions and predicates are printed from the grammar terms that Core nodes record,
-because their text belongs to the target language. Which target uses which representation is expected to change as
+the compiled program. In generated Go, actions, predicates and bindings whose terms hold no constructor, tuple, list
+built-in or lambda are lowered from Core IR to Exec IR and printed from there, as calls of the compositions of the
+operators of terms; the other terms are printed from the grammar terms that Core nodes record. Which target uses which representation is expected to change as
 more of them move onto Core IR; the generator code and record 062 are the current statement.
 
 ## Exec IR

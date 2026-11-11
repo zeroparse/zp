@@ -182,7 +182,9 @@ func init() {
 	rules[2].Body = e6
 	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Block", "Body", c.Cap(0)) }
 	rules[3].Body = e8
-	rules[3].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[3].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[4].Body = e10
 	rules[4].Action = func(c *rt.ActCtx) any { return c.NewStruct("Let", "Name", c.Cap(0), "Value", c.Cap(1)) }
 	rules[5].Body = e11
@@ -190,7 +192,9 @@ func init() {
 	rules[6].Body = e12
 	rules[6].Action = func(c *rt.ActCtx) any { return c.NewStruct("If", "Cond", c.Cap(0), "Then", c.Cap(1), "Else", c.Cap(2)) }
 	rules[7].Body = e13
-	rules[7].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[7].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[8].Body = e14
 	rules[8].Action = func(c *rt.ActCtx) any { return c.NewStruct("While", "Cond", c.Cap(0), "Body", c.Cap(1)) }
 	rules[9].Body = e15
@@ -209,7 +213,9 @@ func init() {
 	rules[12].Body = e22
 	rules[12].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExprStmt", "X", c.Cap(0)) }
 	rules[13].Body = e23
-	rules[13].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[13].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[14].OperatorsRule = &rt.OperatorsRule{
 		Skip: e65,
 		Operands: []*rt.OperatorsRuleLine{
@@ -217,7 +223,9 @@ func init() {
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e67, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e68, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e69, Action: nil, Value: sh38},
-			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e70, Action: func(c *rt.ActCtx) any { return c.Cap(0) }, Value: sh57},
+			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e70, Action: func(c *rt.ActCtx) any {
+				return c.Cap(0)
+			}, Value: sh57},
 			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e73, Action: func(c *rt.ActCtx) any { return c.NewStruct("ArrayLit", "Elems", c.Concat(c.Cap(0))) }, Value: sh57},
 		},
 		Prefix: []*rt.OperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e96, Action: func(c *rt.ActCtx) any {
@@ -257,10 +265,14 @@ func init() {
 	}
 	rules[16].Body = e26
 	rules[17].Body = e27
-	rules[17].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[17].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[20].Body = e29
 	rules[21].Body = e31
-	rules[21].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[21].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[22].Body = e33
 	rules[23].Body = e36
 	rules[30].Body = e40
@@ -2421,4 +2433,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

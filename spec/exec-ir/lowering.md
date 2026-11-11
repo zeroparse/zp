@@ -80,3 +80,43 @@ A framed function, whose captures the runtime keeps in a frame (see
 statements of its body, the labeled block assigns the function's cut flag to the register `cut`, when the
 function has one, and returns its value, or the null value when it has none, and true. After the labeled block, which a failure leaves, the function assigns the cut flag again and
 returns the null value and false.
+
+## Terms
+
+A term of the action language, the action of a rule or of a line of an Operators Rule, the term of a predicate or the
+value of a binding, is lowered from Core IR into a function of its own, in a module that declares the parser VM, the
+compositions of the operators of terms ([Values](values.md)) with every function they call, the component `runtime`,
+and the transitional operations of the leaves of terms below. A term that holds a constructor, a tuple, a built-in
+function other than `len` and `text`, or a lambda is not lowered; the target evaluates it as a whole in its own way,
+as it may a term under an optimization of its own that compares strings without making values of them.
+
+The function evaluates the term's operands in the order that the term evaluates them and calls one composition for
+each operation of the term: `binary` for a binary operator, `unary` for a unary one, `member` for a member read, with
+the kind of the member read and the name of the field or capture that the name of the member selects ([Member
+Kinds](values.md#member-kinds)), `length` and `text` for the built-in functions, `convert` for a conversion to a
+named node type and `conforms` for a cast. Each composition that can fail is the value of a `Let` of its value and its
+failure, followed by a branch that calls `term.raise` with the failure when there is one. A cast keeps its operand in a
+local and calls `term.castError` with it when `conforms` rejects it. A logical operator calls `logic` on its left
+operand, and evaluates its right operand and calls `logic` on it only when the left one does not decide the result.
+An equality or inequality of two calls of `text` compares the two strings with `term.textEqual`, without making a
+value of either. A target that charges a step for each subterm of a term under budget controls lowers it with a call
+of `term.spend` at the start of each subterm, before its operands. A variable is read into a local where the term
+reads it, since reading it charges the budget; the other leaves are operands of the calls that read them. The
+function returns the term's value, or, when the target places the value itself, assigns it as its last statement to
+a local of the function that the target declares.
+
+The operations of the leaves are transitional, of the component `runtime`:
+
+| Operation | Immediate operand | Contract |
+|:--|:--|:--|
+| `term.const` | the constant | Returns the constant. |
+| `term.read` | the capture, local or variable | Returns its value. |
+| `term.ctx` | none | Returns the context of the evaluation, which `member` takes. |
+| `term.name` | a name | Returns the name, an operand of `member`. |
+| `term.nodeType` | the name of a named node type | Returns the node type, an operand of `convert`. |
+| `term.castType` | the cast | Returns the checked type of the cast, an operand of `conforms`. |
+| `term.raise` | none | Ends the evaluation of the term with the failure it is given. |
+| `term.castError` | the cast | Ends the evaluation of the term with the failure of the cast of the value it is given. |
+| `term.textEqual` | none | Returns whether two strings are equal, as `==` compares them. |
+| `term.fromStr` | none | Returns a string as a value. |
+| `term.spend` | none | Charges one step of the budget, under budget controls. |

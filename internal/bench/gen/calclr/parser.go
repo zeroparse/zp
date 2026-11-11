@@ -233,7 +233,9 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 2)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[1].Body = e2
 	rules[2].Body = e5
 	rules[2].Action = func(c *rt.ActCtx) any {
@@ -252,9 +254,13 @@ func init() {
 		return c.NewStruct("Binary", "Left", c.Cap(0), "Op", c.Cap(1), "Right", c.Cap(2))
 	}
 	rules[9].Body = e16
-	rules[9].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[9].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[10].Body = e19
-	rules[10].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[10].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	zpGrammar.DeclareStruct("Binary", "Left", "-", "Op", "-", "Right", "-")
 	zpGrammar.TypeKinds["Binary"] = rt.KindOf("Binary", "")
 	zpGrammar.DeclareStruct("Unary", "Op", "-", "X", "-")
@@ -1400,7 +1406,13 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = k1
+	{
+		var tr3 any
+		{
+			tr3 = k1
+		}
+		v = tr3
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -1833,7 +1845,13 @@ L5:
 	k1 = v4
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "primary"
-	v = k1
+	{
+		var tr4 any
+		{
+			tr4 = k1
+		}
+		v = tr4
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -1879,7 +1897,13 @@ func i10(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "group"
-	v = k1
+	{
+		var tr5 any
+		{
+			tr5 = k1
+		}
+		v = tr5
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -1980,4 +2004,4 @@ func s13(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_0f42d2a8b4d24bd6
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

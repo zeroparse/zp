@@ -1,4 +1,4 @@
-protocol 5
+protocol 6
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -20,6 +20,11 @@ const LimitCompute LimitKind = 0
 const LimitDepth LimitKind = 2
 const LimitInput LimitKind = 1
 const LimitMemory LimitKind = 3
+const MemberCapture untyped int = 4
+const MemberEnd untyped int = 2
+const MemberField untyped int = 0
+const MemberStart untyped int = 1
+const MemberValue untyped int = 3
 const MsgBit ExpID = 1073741824
 const OpAdd untyped int = 0
 const OpAnd untyped int = 0
@@ -146,6 +151,7 @@ method (*ActCtx) Or(any, func() any) any
 method (*ActCtx) PushItems(any)
 method (*ActCtx) PushList(...any)
 method (*ActCtx) PushMap(any, func(any) any)
+method (*ActCtx) TermCastFailed(any, *FieldType, int, int)
 method (*ActCtx) Text(any) any
 method (*ActCtx) TextStr(any) string
 method (*ActCtx) Tuple(...any) any
@@ -263,6 +269,15 @@ method (*Parser) Spend()
 method (*Parser) SpendRead(uint64)
 method (*Parser) StreamStart()
 method (*Parser) StreamsIn(int, bool) bool
+method (*Parser) TermBinary(int, any, any) (any, any)
+method (*Parser) TermConforms(*FieldType, any) bool
+method (*Parser) TermConvert(*nodeTypeKinds, any) (any, any)
+method (*Parser) TermLength(any) (any, any)
+method (*Parser) TermLogic(int, any) (bool, any)
+method (*Parser) TermMember(*ActCtx, int, any, string, string) (any, any)
+method (*Parser) TermNodeType(string) *nodeTypeKinds
+method (*Parser) TermText(any) (string, any)
+method (*Parser) TermUnary(int, any) (any, any)
 method (*Parser) Text(int, int) string
 method (*Parser) TextEqual(string, string) bool
 method (*Parser) TooDeep()
@@ -300,6 +315,7 @@ method (*TActCtx) PushItems(any)
 method (*TActCtx) PushList(...any)
 method (*TActCtx) PushMap(any, func(any) any)
 method (*TActCtx) Result(func(*TActCtx) any, string) any
+method (*TActCtx) TermCastFailed(any, *FieldType, int, int)
 method (*TActCtx) Text(any) any
 method (*TActCtx) TextStr(any) string
 method (*TActCtx) Tuple(...any) any
@@ -363,6 +379,14 @@ method (*TParser) Single(int, bool) (any, bool)
 method (*TParser) SkipTerminal(*TerminalProgram) bool
 method (*TParser) TConvertResult(*TRule, any) any
 method (*TParser) TConvertResultOwned(*TRule, any, any) any
+method (*TParser) TermBinary(int, any, any) (any, any)
+method (*TParser) TermConforms(*FieldType, any) bool
+method (*TParser) TermConvert(uint16, any) (any, any)
+method (*TParser) TermLength(any) (any, any)
+method (*TParser) TermLogic(int, any) (bool, any)
+method (*TParser) TermMember(*TActCtx, int, any, string, string) (any, any)
+method (*TParser) TermText(any) (string, any)
+method (*TParser) TermUnary(int, any) (any, any)
 method (*TParser) UseCtx(TActCtx) *TActCtx
 method (*TSeq) TField(string) (any, bool)
 method (*TSeq) TFresh() bool

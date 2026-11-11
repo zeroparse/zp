@@ -1,0 +1,1763 @@
+## dollar_string binding tag
+func term() Datum {
+  let ts1, tf1 = text(term.read([$t]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return term.fromStr(ts1)
+}
+
+## dq_close predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$u]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var tag])
+  let tv3, tf3 = binary(5, term.fromStr(ts1), tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## number action
+not lowered: New
+
+## iconst action
+not lowered: New
+
+## iconst predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = length(term.fromStr(ts1))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(7, tv2, term.const([10]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tb4, tf4 = logic(1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  let tv5 = val.fromBool(true)
+  if !tb4 {
+    let ts6, tf6 = text(term.read([$i]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tv7, tf7 = length(term.fromStr(ts6))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8, tf8 = binary(5, tv7, term.const([10]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tb9, tf9 = logic(0, tv8)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tv10 = val.fromBool(false)
+    if tb9 {
+      let ts11, tf11 = text(term.read([$i]))
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      let tv12, tf12 = binary(8, term.fromStr(ts11), term.const(["2147483647"]))
+      if (tf12 != null(Fail)) {
+        term.raise(tf12)
+      }
+      let tb13, tf13 = logic(0, tv12)
+      if (tf13 != null(Fail)) {
+        term.raise(tf13)
+      }
+      tv10 = val.fromBool(tb13)
+    }
+    let tb14, tf14 = logic(1, tv10)
+    if (tf14 != null(Fail)) {
+      term.raise(tf14)
+    }
+    tv5 = val.fromBool(tb14)
+  }
+  return tv5
+}
+
+## op_generic action
+func term() Datum {
+  return term.read([$o])
+}
+
+## qn_dotted action
+not lowered: New, concat, list, map, Lambda, param
+
+## qn_string action
+not lowered: New, list
+
+## any_name action
+not lowered: New, concat, list, map, Lambda, param
+
+## name_list action
+not lowered: concat, list, map, Lambda, param
+
+## name_list_opt_comma action
+func term() Datum {
+  return term.read([$l])
+}
+
+## col_id_list action
+not lowered: concat, list, map, Lambda, param
+
+## fn_dotted action
+not lowered: New, concat, list, map, Lambda, param
+
+## fn_single action
+not lowered: New, list
+
+## expr line 3
+not lowered: New
+
+## expr line 4
+not lowered: New
+
+## expr line 5
+not lowered: New
+
+## expr line 6
+not lowered: New
+
+## expr line 7
+not lowered: New
+
+## expr line 8
+not lowered: New
+
+## expr line 9
+not lowered: New
+
+## expr line 10
+not lowered: New
+
+## expr line 11
+not lowered: New
+
+## expr line 12
+not lowered: New
+
+## expr line 13
+not lowered: New
+
+## expr line 14
+not lowered: New
+
+## expr line 15
+not lowered: New
+
+## expr line 16
+not lowered: New, concat
+
+## expr line 17
+not lowered: New
+
+## expr line 18
+not lowered: New
+
+## expr line 19
+not lowered: New
+
+## expr line 20
+not lowered: New
+
+## expr line 21
+not lowered: New
+
+## expr line 22
+not lowered: New
+
+## expr line 23
+not lowered: New
+
+## expr line 24
+not lowered: New
+
+## expr line 25
+not lowered: New
+
+## expr line 26
+not lowered: New
+
+## expr line 27
+not lowered: New
+
+## op_rhs_prefix action
+not lowered: New
+
+## b_expr line 2
+not lowered: New
+
+## b_expr line 3
+not lowered: New
+
+## b_expr line 4
+not lowered: New
+
+## b_expr line 5
+not lowered: New
+
+## b_expr line 6
+not lowered: New
+
+## b_expr line 7
+not lowered: New
+
+## b_expr line 8
+not lowered: New
+
+## b_expr line 9
+not lowered: New
+
+## b_expr line 10
+not lowered: New
+
+## b_expr line 11
+not lowered: New
+
+## b_expr line 12
+not lowered: New
+
+## any_source_query action
+not lowered: New
+
+## in_column line 2
+not lowered: New
+
+## in_column line 3
+not lowered: New
+
+## in_column line 4
+not lowered: New
+
+## in_column line 5
+not lowered: New
+
+## col_chained line 2
+not lowered: New
+
+## col_chained line 3
+not lowered: New
+
+## col_chained line 4
+not lowered: New
+
+## call_chained line 2
+not lowered: New, concat
+
+## call_chained line 3
+not lowered: New
+
+## call_chained line 4
+not lowered: New
+
+## plain_literal action
+func term() Datum {
+  return term.read([$l])
+}
+
+## string_literal action
+func term() Datum {
+  return term.read([$l])
+}
+
+## positional_ref action
+not lowered: New
+
+## plain_column action
+not lowered: New
+
+## column_ref action
+not lowered: New
+
+## dotted_idents action
+not lowered: concat, list, map, Lambda, param
+
+## subquery_expr action
+not lowered: New
+
+## row_expr action
+not lowered: New, concat, list, map, Lambda, param
+
+## paren_expr action
+not lowered: New
+
+## func_expr action
+func term() Datum {
+  return term.read([$e])
+}
+
+## func_call_plain action
+func term() Datum {
+  return term.read([$c])
+}
+
+## list_lit action
+not lowered: New, concat
+
+## array_subquery action
+not lowered: New
+
+## array_lit action
+not lowered: New, concat
+
+## struct_lit action
+not lowered: New, concat, list, map, Lambda, param
+
+## struct_field action
+not lowered: New
+
+## map_lit action
+not lowered: New, concat
+
+## map_entries action
+not lowered: concat, list, map, Lambda, param
+
+## map_entry action
+not lowered: New
+
+## list_comp_if action
+not lowered: New
+
+## list_comp action
+not lowered: New
+
+## case_expr action
+not lowered: New
+
+## when_clause_list action
+not lowered: concat, list, map, Lambda, param
+
+## when_clause action
+not lowered: New
+
+## qualified_row action
+not lowered: New, concat
+
+## expr_list action
+not lowered: concat, list, map, Lambda, param
+
+## expr_list_opt_comma action
+func term() Datum {
+  return term.read([$l])
+}
+
+## columns_expr action
+not lowered: New
+
+## star_columns action
+not lowered: New
+
+## unpack_expr action
+not lowered: New
+
+## star_expr action
+not lowered: New, concat
+
+## qualified_star action
+not lowered: New, concat
+
+## lambda_expr action
+not lowered: New
+
+## except_name action
+not lowered: New, concat, list, map, Lambda, param
+
+## except_name_list action
+not lowered: concat, list, map, Lambda, param
+
+## exclude_paren action
+func term() Datum {
+  return term.read([$l])
+}
+
+## exclude_single action
+not lowered: list
+
+## replace_item action
+not lowered: New
+
+## replace_paren action
+not lowered: concat, list, map, Lambda, param
+
+## replace_single action
+not lowered: list
+
+## rename_item action
+not lowered: New
+
+## rename_paren action
+not lowered: concat, list, map, Lambda, param
+
+## rename_single action
+not lowered: list
+
+## keyword_primary action
+func term() Datum {
+  return term.read([$k])
+}
+
+## exists_expr action
+not lowered: New
+
+## grouping_expr action
+not lowered: New
+
+## cast_plain action
+not lowered: New
+
+## cast_try action
+not lowered: New
+
+## interval_paren action
+not lowered: New
+
+## interval_const action
+not lowered: New
+
+## sc_coalesce action
+not lowered: New
+
+## sc_nullif action
+not lowered: New, list
+
+## sc_extract action
+not lowered: New, list
+
+## sc_extract_empty action
+not lowered: New
+
+## sc_overlay action
+not lowered: New, list
+
+## sc_position action
+not lowered: New, list
+
+## sc_position_empty action
+not lowered: New
+
+## sc_substring_from action
+not lowered: New, list
+
+## sc_substring_for_from action
+not lowered: New, list
+
+## sc_substring_for action
+not lowered: New, list
+
+## sc_substring_list action
+not lowered: New
+
+## sc_substring_empty action
+not lowered: New
+
+## sc_treat action
+not lowered: New, list
+
+## sc_trim_chars action
+not lowered: New
+
+## sc_trim action
+not lowered: New
+
+## sc_collation action
+not lowered: New, list
+
+## trim_from action
+func term() Datum {
+  return term.read([$l])
+}
+
+## func_call action
+not lowered: New, concat
+
+## typed_literal_args action
+not lowered: New
+
+## func_arg_list action
+not lowered: concat, list, map, Lambda, param
+
+## named_arg action
+not lowered: New
+
+## filter_clause action
+func term() Datum {
+  return term.read([$e])
+}
+
+## over_clause action
+not lowered: New
+
+## window_specification action
+not lowered: New, concat
+
+## frame_clause action
+func term() Datum {
+  return term.read([$f])
+}
+
+## frame_single action
+not lowered: New
+
+## frame_between action
+not lowered: New
+
+## frame_bound_kw action
+not lowered: New
+
+## frame_bound_expr action
+not lowered: New
+
+## type_list action
+not lowered: concat, list, map, Lambda, param
+
+## typename action
+func term() Datum {
+  return term.read([$t])
+}
+
+## type_setof_qualified action
+not lowered: New
+
+## array_dim action
+not lowered: New
+
+## array_dims_only action
+not lowered: map, Lambda, param
+
+## array_keyword_sized action
+not lowered: list, New
+
+## array_keyword action
+not lowered: list, New
+
+## type_mods action
+not lowered: concat
+
+## type_struct action
+not lowered: New, concat
+
+## colid_type_list action
+not lowered: concat, list, map, Lambda, param
+
+## colid_type action
+not lowered: New
+
+## type_map action
+not lowered: New, concat
+
+## type_interval action
+not lowered: New, concat
+
+## type_datetime action
+not lowered: New, map, Lambda, param, concat
+
+## type_char action
+not lowered: New, map, Lambda, param, concat
+
+## type_bit action
+not lowered: New, concat
+
+## type_double action
+not lowered: New, concat
+
+## type_float action
+not lowered: New, map, Lambda, param, concat
+
+## type_decimal action
+not lowered: New, concat
+
+## type_numeric_plain action
+not lowered: New, concat
+
+## type_qualified action
+not lowered: New, concat
+
+## type_generic action
+not lowered: New, concat
+
+## typed_literal action
+func term() Datum {
+  return term.read([$tl])
+}
+
+## typed_literal_nchar action
+not lowered: New
+
+## typed_literal_const action
+not lowered: New
+
+## typed_literal_name action
+not lowered: New
+
+## type_double_const action
+not lowered: New
+
+## type_float_const action
+not lowered: New, map, Lambda, param
+
+## type_decimal_const action
+not lowered: New, concat
+
+## type_numeric_plain_const action
+not lowered: New
+
+## type_char_const action
+not lowered: New, map, Lambda, param
+
+## type_bit_const action
+not lowered: New, concat
+
+## type_datetime_const action
+not lowered: New, map, Lambda, param
+
+## select_paren_stmt action
+not lowered: New
+
+## select_with_parens action
+not lowered: New
+
+## select_no_parens action
+not lowered: New, concat
+
+## with_recursive action
+not lowered: New, concat, list, map, Lambda, param
+
+## with_plain action
+not lowered: New, concat, list, map, Lambda, param
+
+## cte action
+not lowered: New, concat
+
+## select_body line 8
+not lowered: New
+
+## select_body line 9
+not lowered: New
+
+## select_core action
+not lowered: New, concat
+
+## from_first action
+not lowered: New, concat
+
+## distinct_clause action
+not lowered: New, concat
+
+## target_list_opt_comma action
+not lowered: concat, list, map, Lambda, param
+
+## item_prefixed action
+not lowered: New
+
+## item_plain action
+not lowered: New
+
+## into_clause action
+func term() Datum {
+  return term.read([$t])
+}
+
+## into_temp action
+not lowered: New
+
+## into_table action
+not lowered: New
+
+## into_plain action
+not lowered: New
+
+## group_all action
+not lowered: New
+
+## group_list action
+not lowered: New, concat, list, map, Lambda, param
+
+## group_expr action
+func term() Datum {
+  return term.read([$e])
+}
+
+## gs_rollup action
+not lowered: New
+
+## gs_sets action
+not lowered: New
+
+## gs_empty action
+not lowered: New
+
+## group_by_list_opt_comma action
+not lowered: concat, list, map, Lambda, param
+
+## window_clause action
+not lowered: concat, list, map, Lambda, param
+
+## window_definition action
+not lowered: New
+
+## values_clause action
+not lowered: New, concat, list, map, Lambda, param
+
+## values_row action
+not lowered: New
+
+## table_query action
+not lowered: New
+
+## pivot_query action
+not lowered: New, concat
+
+## unpivot_query action
+not lowered: New, concat
+
+## bracketed_names action
+func term() Datum {
+  return term.read([$l])
+}
+
+## pivot_column_list action
+not lowered: concat, list, map, Lambda, param
+
+## pivot_column_entry action
+not lowered: New, concat
+
+## sort_all action
+not lowered: New
+
+## sort_list action
+not lowered: New, concat, list, map, Lambda, param
+
+## sortby_using action
+not lowered: New
+
+## sortby_plain action
+not lowered: New
+
+## limit_comma action
+not lowered: New
+
+## limit_all action
+not lowered: New
+
+## limit_percent action
+not lowered: New
+
+## limit_percent_sign action
+not lowered: New
+
+## limit_plain action
+not lowered: New
+
+## fetch_value_clause action
+not lowered: New
+
+## fetch_clause action
+not lowered: New
+
+## fetch_signed action
+func term() Datum {
+  return term.read([$n])
+}
+
+## offset_plain action
+not lowered: New
+
+## offset_rows action
+not lowered: New
+
+## locking_clauses action
+not lowered: concat, list, map, Lambda, param
+
+## lock_read_only action
+not lowered: New
+
+## lock_for action
+not lowered: New, concat
+
+## qualified_name_list action
+not lowered: concat, list, map, Lambda, param
+
+## sample_clause action
+func term() Datum {
+  return term.read([$s])
+}
+
+## tablesample_clause action
+func term() Datum {
+  return term.read([$s])
+}
+
+## sample_func action
+not lowered: New
+
+## sample_seeded action
+not lowered: New
+
+## sample_count action
+not lowered: New
+
+## from_list action
+not lowered: concat, list, map, Lambda, param
+
+## from_list_opt_comma action
+not lowered: concat, list, map, Lambda, param
+
+## table_ref line 2
+not lowered: New
+
+## table_ref line 3
+not lowered: New
+
+## table_ref line 4
+not lowered: New
+
+## table_ref line 5
+not lowered: New
+
+## table_ref line 6
+not lowered: New
+
+## table_ref line 7
+not lowered: New
+
+## table_ref line 8
+not lowered: New
+
+## table_ref line 9
+not lowered: New, concat
+
+## table_ref line 10
+not lowered: New
+
+## join_qual_on action
+func term() Datum {
+  return term.read([$e])
+}
+
+## join_qual_using action
+func term() Datum {
+  return term.read([$l])
+}
+
+## unpivot_single action
+not lowered: list
+
+## unpivot_value_list action
+not lowered: concat, list, map, Lambda, param
+
+## unpivot_value action
+not lowered: New
+
+## pivot_value_list action
+not lowered: concat, list, map, Lambda, param
+
+## pivot_value action
+not lowered: New, concat
+
+## pivot_header_list action
+func term() Datum {
+  return term.read([$l])
+}
+
+## pivot_header_single action
+not lowered: list
+
+## c_expr_list_opt_comma action
+not lowered: concat, list, map, Lambda, param
+
+## alias_prefix action
+func term() Datum {
+  return term.read([$n])
+}
+
+## base_ref action
+not lowered: New
+
+## base_ref predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$pa]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## at_clause action
+not lowered: New
+
+## subquery_ref action
+not lowered: New
+
+## subquery_ref predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$pa]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## paren_table action
+not lowered: New
+
+## paren_table predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$pa]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## values_ref action
+not lowered: New
+
+## func_ref action
+not lowered: New
+
+## func_ref predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$pa]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## rows_from_ref action
+not lowered: New, concat, list, map, Lambda, param
+
+## rows_from_ref predicate
+func term() Datum {
+  let tv1, tf1 = binary(5, term.read([$pa]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## rowsfrom_item action
+not lowered: New, concat
+
+## func_call_bare action
+not lowered: New, concat
+
+## alias_as_cols action
+not lowered: New
+
+## alias_as action
+not lowered: New
+
+## alias_cols action
+not lowered: New
+
+## alias_bare action
+not lowered: New
+
+## falias_as_defs action
+not lowered: New
+
+## falias_defs_only action
+not lowered: New
+
+## falias_defs action
+not lowered: New
+
+## table_func_element_list action
+not lowered: concat, list, map, Lambda, param
+
+## table_func_element action
+not lowered: New
+
+## target_list action
+not lowered: concat, list, map, Lambda, param
+
+## insert_stmt action
+not lowered: New, concat
+
+## insert_columns action
+func term() Datum {
+  return term.read([$l])
+}
+
+## insert_column_list action
+not lowered: concat, list, map, Lambda, param
+
+## on_conflict action
+not lowered: New, concat
+
+## index_params action
+not lowered: concat, list, map, Lambda, param
+
+## index_elem_col action
+not lowered: New, list
+
+## index_elem_func action
+not lowered: New
+
+## index_elem_expr action
+not lowered: New
+
+## opt_class action
+func term() Datum {
+  return term.read([$n])
+}
+
+## set_clause_list_opt_comma action
+not lowered: concat, list, map, Lambda, param
+
+## set_clause_one action
+not lowered: New, list
+
+## set_clause_paren action
+not lowered: New, concat, list, map, Lambda, param
+
+## target_table action
+not lowered: New
+
+## update_stmt action
+not lowered: New, concat
+
+## delete_stmt action
+not lowered: New, concat
+
+## truncate_stmt action
+not lowered: New
+
+## merge_stmt action
+not lowered: New, concat, list, map, Lambda, param
+
+## merge_when_matched action
+not lowered: New
+
+## merge_when_not action
+not lowered: New
+
+## ma_update_set action
+not lowered: New
+
+## ma_update_star action
+not lowered: New
+
+## ma_update action
+not lowered: New
+
+## ma_delete action
+not lowered: New
+
+## ma_insert_values action
+not lowered: New, concat
+
+## insert_column_ident_list action
+not lowered: concat, list, map, Lambda, param
+
+## ma_insert_default action
+not lowered: New
+
+## ma_insert action
+not lowered: New
+
+## ma_nothing action
+not lowered: New
+
+## ma_error action
+not lowered: New
+
+## create_table_stmt action
+not lowered: New, map, Lambda, param, concat
+
+## create_table_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## table_element_list action
+not lowered: concat, list, map, Lambda, param
+
+## partition_sorted_option action
+not lowered: New
+
+## with_reloptions action
+func term() Datum {
+  return term.read([$l])
+}
+
+## with_oids action
+not lowered: list
+
+## reloption_list action
+not lowered: concat, list, map, Lambda, param
+
+## reloption_def action
+not lowered: New, list
+
+## reloption_expr action
+not lowered: New
+
+## reloption_name action
+not lowered: New, list
+
+## def_list action
+not lowered: concat, list, map, Lambda, param
+
+## def_elem action
+not lowered: New
+
+## definition action
+func term() Datum {
+  return term.read([$l])
+}
+
+## opt_definition action
+func term() Datum {
+  return term.read([$d])
+}
+
+## column_def_regular action
+not lowered: New, map, Lambda, param
+
+## column_def_generated action
+not lowered: New, map, Lambda, param
+
+## gen_identity action
+not lowered: New, concat
+
+## gen_expr action
+not lowered: New
+
+## gen_as action
+not lowered: New
+
+## constraint_name action
+func term() Datum {
+  return term.read([$n])
+}
+
+## cc_not_null action
+not lowered: New
+
+## cc_null action
+not lowered: New
+
+## cc_unique action
+not lowered: New, concat
+
+## cc_primary action
+not lowered: New, concat
+
+## cc_check action
+not lowered: New
+
+## cc_compression action
+not lowered: New
+
+## cc_default action
+not lowered: New
+
+## cc_references action
+not lowered: New
+
+## cc_attr action
+not lowered: New
+
+## cc_collate action
+not lowered: New
+
+## reference action
+not lowered: New, concat
+
+## column_list_opt_comma action
+func term() Datum {
+  return term.read([$l])
+}
+
+## constraint_attrs action
+not lowered: map, Lambda, param
+
+## tc_check action
+not lowered: New
+
+## tc_unique action
+not lowered: New, concat
+
+## tc_unique_index action
+not lowered: New
+
+## tc_primary action
+not lowered: New, concat
+
+## tc_primary_index action
+not lowered: New
+
+## tc_foreign action
+not lowered: New
+
+## table_like action
+not lowered: New, map, Lambda, param
+
+## create_table_as_stmt action
+not lowered: New, concat, map, Lambda, param
+
+## create_table_as_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## create_view_stmt action
+not lowered: New, concat
+
+## create_view_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## create_index_stmt action
+not lowered: New, concat
+
+## create_schema_stmt action
+not lowered: New, map, Lambda, param
+
+## create_schema_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## create_sequence_stmt action
+not lowered: New, concat
+
+## create_sequence_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## seq_opt_list action
+not lowered: concat, list, map, Lambda, param
+
+## so_as action
+not lowered: New
+
+## so_num action
+not lowered: New
+
+## so_flag action
+not lowered: New
+
+## so_owned action
+not lowered: New
+
+## so_seqname action
+not lowered: New
+
+## so_restart action
+not lowered: New
+
+## create_type_stmt action
+not lowered: New, concat
+
+## create_type_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## enum_val_list action
+not lowered: concat, list, map, Lambda, param
+
+## create_macro_stmt action
+not lowered: New
+
+## create_macro_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## macro_expr_list action
+not lowered: concat, list, map, Lambda, param
+
+## macro_expr_def action
+not lowered: New
+
+## macro_table_one_end action
+func term() Datum {
+  return term.read([$l])
+}
+
+## macro_table_one action
+not lowered: list, New
+
+## macro_table_many action
+not lowered: concat, list, map, Lambda, param
+
+## macro_table_paren action
+not lowered: New
+
+## param_list action
+not lowered: concat
+
+## macro_params action
+not lowered: concat, list, map, Lambda, param
+
+## macro_param action
+not lowered: New
+
+## create_secret_stmt action
+not lowered: New
+
+## create_secret_stmt predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$orr]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## secret_options action
+not lowered: concat, list, map, Lambda, param
+
+## secret_option action
+not lowered: New
+
+## alter_relation_stmt action
+not lowered: New
+
+## alter_name_stmt action
+not lowered: New
+
+## alter_table_cmds action
+not lowered: concat, list, map, Lambda, param
+
+## qualified_column action
+func term() Datum {
+  return term.read([$n])
+}
+
+## ac_add_constraint action
+not lowered: New
+
+## ac_add_column action
+not lowered: New, map, Lambda, param
+
+## ac_add_generated action
+not lowered: New, map, Lambda, param
+
+## ac_set_partitioned action
+not lowered: New
+
+## ac_reset_partitioned action
+not lowered: New
+
+## ac_set_sorted action
+not lowered: New
+
+## ac_reset_sorted action
+not lowered: New
+
+## sortby_list action
+not lowered: concat, list, map, Lambda, param
+
+## ac_col_default action
+not lowered: New
+
+## ac_col_drop_default action
+not lowered: New
+
+## ac_col_not_null action
+not lowered: New
+
+## ac_col_statistics action
+not lowered: New
+
+## ac_col_set_options action
+not lowered: New
+
+## ac_col_reset_options action
+not lowered: New
+
+## ac_col_storage action
+not lowered: New
+
+## ac_col_add_identity action
+not lowered: New, concat
+
+## ac_col_drop_identity action
+not lowered: New
+
+## ac_col_identity action
+not lowered: New
+
+## identity_options action
+not lowered: concat, list, map, Lambda, param
+
+## io_set action
+func term() Datum {
+  return term.read([$o])
+}
+
+## io_generated action
+not lowered: New
+
+## ac_col_type action
+not lowered: New
+
+## ac_col_generic action
+not lowered: New
+
+## ac_drop_column action
+not lowered: New
+
+## ac_alter_constraint action
+not lowered: New
+
+## ac_validate action
+not lowered: New
+
+## ac_drop_constraint action
+not lowered: New
+
+## ac_set_logged action
+not lowered: New
+
+## ac_set_options action
+not lowered: New
+
+## ac_reset_options action
+not lowered: New
+
+## ac_generic action
+not lowered: New
+
+## alter_generic_options action
+func term() Datum {
+  return term.read([$g])
+}
+
+## alter_generic_list action
+not lowered: concat, list, map, Lambda, param
+
+## ago_value action
+not lowered: New
+
+## ago_drop action
+not lowered: New
+
+## alter_sequence_stmt action
+not lowered: New
+
+## alter_database_stmt action
+not lowered: New
+
+## alter_schema_relation action
+not lowered: New
+
+## alter_schema_name action
+not lowered: New
+
+## rename_schema action
+not lowered: New, list
+
+## rename_relation action
+not lowered: New
+
+## rename_name action
+not lowered: New
+
+## rename_column action
+not lowered: New
+
+## rename_constraint action
+not lowered: New
+
+## drop_any_name action
+not lowered: New
+
+## drop_name action
+not lowered: New
+
+## drop_on action
+not lowered: New, list
+
+## any_name_list action
+not lowered: concat, list, map, Lambda, param
+
+## name_as_name_list action
+not lowered: concat, list, New, map, Lambda, param
+
+## drop_secret_stmt action
+not lowered: New
+
+## copy_table action
+not lowered: New, concat, map, Lambda, param
+
+## copy_query action
+not lowered: New, map, Lambda, param, concat
+
+## copy_database action
+not lowered: New
+
+## copy_ident_file action
+not lowered: New, concat, list, map, Lambda, param
+
+## generic_opt_list action
+not lowered: concat, list, map, Lambda, param
+
+## generic_opt_elem action
+not lowered: New
+
+## co_flag action
+not lowered: New
+
+## co_string action
+not lowered: New
+
+## co_force_cols action
+not lowered: New
+
+## co_force_star action
+not lowered: New
+
+## co_partition_cols action
+not lowered: New
+
+## co_partition_star action
+not lowered: New
+
+## export_stmt action
+not lowered: New, map, Lambda, param, concat
+
+## import_stmt action
+not lowered: New
+
+## attach_stmt action
+not lowered: New, concat
+
+## detach_database action
+not lowered: New
+
+## detach_plain action
+not lowered: New
+
+## use_stmt action
+not lowered: New
+
+## load_load action
+not lowered: New
+
+## load_install action
+not lowered: New
+
+## pragma_call action
+not lowered: New
+
+## pragma_set action
+not lowered: New
+
+## pragma_plain action
+not lowered: New
+
+## var_name action
+not lowered: New, concat, list, map, Lambda, param
+
+## set_scoped action
+not lowered: New, concat
+
+## set_unscoped action
+not lowered: New, concat
+
+## reset_scoped action
+not lowered: New
+
+## reset_unscoped action
+not lowered: New
+
+## show_query action
+not lowered: New
+
+## summarize_query action
+not lowered: New
+
+## summarize_table action
+not lowered: New
+
+## show_tables action
+not lowered: New
+
+## show_time_zone action
+not lowered: New
+
+## show_isolation action
+not lowered: New
+
+## show_all action
+not lowered: New
+
+## show_name action
+not lowered: New
+
+## show_bare action
+not lowered: New
+
+## explain_options action
+not lowered: New
+
+## explain_analyze action
+not lowered: New
+
+## explain_verbose action
+not lowered: New
+
+## explain_plain action
+not lowered: New
+
+## explain_option_list action
+not lowered: concat, list, map, Lambda, param
+
+## explain_option action
+not lowered: New
+
+## prepare_stmt action
+not lowered: New, concat
+
+## execute_stmt action
+not lowered: New, concat
+
+## execute_params action
+not lowered: concat, list, map, Lambda, param
+
+## deallocate_prepare action
+not lowered: New
+
+## deallocate_plain action
+not lowered: New
+
+## tx_start action
+not lowered: New
+
+## tx_end action
+not lowered: New
+
+## vacuum_options action
+not lowered: New, concat
+
+## vacuum_option_list action
+not lowered: concat, list, map, Lambda, param
+
+## vacuum_plain action
+not lowered: New, concat
+
+## analyze_stmt action
+not lowered: New, concat
+
+## checkpoint_stmt action
+not lowered: New
+
+## call_stmt action
+not lowered: New
+
+## comment_column action
+not lowered: New
+
+## comment_object action
+not lowered: New
+
+## update_extensions_stmt action
+not lowered: New, concat
+
+## main action
+not lowered: New, concat, map, Lambda, param
+
+## dq_close predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$u]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var tag])
+  let tv3, tf3 = binary(5, term.fromStr(ts1), tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## dollar_string binding tag
+func term() Datum {
+  let ts1, tf1 = text(term.read([$t]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return term.fromStr(ts1)
+}
+

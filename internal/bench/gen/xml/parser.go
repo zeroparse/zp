@@ -1078,13 +1078,21 @@ func init() {
 		return c.NewStruct("XMLDecl", "Version", c.Cap(0), "Encoding", c.Cap(1), "Standalone", c.Cap(2))
 	}
 	rules[4].Body = e12
-	rules[4].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[4].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[6].Body = e16
-	rules[6].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[6].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[8].Body = e20
-	rules[8].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[8].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[11].Body = e26
-	rules[11].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[11].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[13].Body = e31
 	rules[13].Action = func(c *rt.ActCtx) any { return c.NewStruct("PI", "Target", c.Cap(0), "Data", c.Cap(1)) }
 	rules[15].Body = e39
@@ -1099,9 +1107,13 @@ func init() {
 	rules[21].Body = e50
 	rules[21].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExternalID", "Public", c.Cap(0), "System", c.Cap(1)) }
 	rules[22].Body = e51
-	rules[22].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[22].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[25].Body = e56
-	rules[25].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[25].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[28].Body = e62
 	rules[28].Action = func(c *rt.ActCtx) any { return c.NewStruct("ElementDecl", "Name", c.Cap(0), "Content", c.Cap(1)) }
 	rules[32].Body = e75
@@ -1156,7 +1168,9 @@ func init() {
 		return c.NewStruct("EntityDecl", "Parameter", any(true), "Name", c.Cap(0), "Value", c.Cap(1), "ExternalID", c.Cap(2))
 	}
 	rules[49].Body = e114
-	rules[49].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[49].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[52].Body = e120
 	rules[52].Action = func(c *rt.ActCtx) any { return c.NewStruct("NotationDecl", "Name", c.Cap(0), "ExternalID", c.Cap(1)) }
 	rules[54].Body = e122
@@ -1168,11 +1182,17 @@ func init() {
 	rules[56].Body = e128
 	rules[56].Action = func(c *rt.ActCtx) any { return c.NewStruct("Attribute", "Name", c.Cap(0), "Value", c.Cap(1)) }
 	rules[57].Body = e129
-	rules[57].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[57].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[62].Body = e137
-	rules[62].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[62].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[64].Body = e143
-	rules[64].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[64].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[66].Body = e146
 	rules[71].Body = e154
 	rules[76].Body = e156
@@ -1915,7 +1935,155 @@ func e31(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.ActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XML")) })
+		ts1, tf1 := c.P.TermText(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tv4 := any(false)
+		if tb3 {
+			ts5, tf5 := c.P.TermText(c.Cap(0))
+			if tf5 != nil {
+				panic(tf5)
+			}
+			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
+			if tf6 != nil {
+				panic(tf6)
+			}
+			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
+			if tf7 != nil {
+				panic(tf7)
+			}
+			tv4 = any(tb7)
+		}
+		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
+		if tf8 != nil {
+			panic(tf8)
+		}
+		tv9 := any(false)
+		if tb8 {
+			ts10, tf10 := c.P.TermText(c.Cap(0))
+			if tf10 != nil {
+				panic(tf10)
+			}
+			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
+			if tf11 != nil {
+				panic(tf11)
+			}
+			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
+			if tf12 != nil {
+				panic(tf12)
+			}
+			tv9 = any(tb12)
+		}
+		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
+		if tf13 != nil {
+			panic(tf13)
+		}
+		tv14 := any(false)
+		if tb13 {
+			ts15, tf15 := c.P.TermText(c.Cap(0))
+			if tf15 != nil {
+				panic(tf15)
+			}
+			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
+			if tf16 != nil {
+				panic(tf16)
+			}
+			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
+			if tf17 != nil {
+				panic(tf17)
+			}
+			tv14 = any(tb17)
+		}
+		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
+		if tf18 != nil {
+			panic(tf18)
+		}
+		tv19 := any(false)
+		if tb18 {
+			ts20, tf20 := c.P.TermText(c.Cap(0))
+			if tf20 != nil {
+				panic(tf20)
+			}
+			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
+			if tf21 != nil {
+				panic(tf21)
+			}
+			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
+			if tf22 != nil {
+				panic(tf22)
+			}
+			tv19 = any(tb22)
+		}
+		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
+		if tf23 != nil {
+			panic(tf23)
+		}
+		tv24 := any(false)
+		if tb23 {
+			ts25, tf25 := c.P.TermText(c.Cap(0))
+			if tf25 != nil {
+				panic(tf25)
+			}
+			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
+			if tf26 != nil {
+				panic(tf26)
+			}
+			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
+			if tf27 != nil {
+				panic(tf27)
+			}
+			tv24 = any(tb27)
+		}
+		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
+		if tf28 != nil {
+			panic(tf28)
+		}
+		tv29 := any(false)
+		if tb28 {
+			ts30, tf30 := c.P.TermText(c.Cap(0))
+			if tf30 != nil {
+				panic(tf30)
+			}
+			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
+			if tf31 != nil {
+				panic(tf31)
+			}
+			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
+			if tf32 != nil {
+				panic(tf32)
+			}
+			tv29 = any(tb32)
+		}
+		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
+		if tf33 != nil {
+			panic(tf33)
+		}
+		tv34 := any(false)
+		if tb33 {
+			ts35, tf35 := c.P.TermText(c.Cap(0))
+			if tf35 != nil {
+				panic(tf35)
+			}
+			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
+			if tf36 != nil {
+				panic(tf36)
+			}
+			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
+			if tf37 != nil {
+				panic(tf37)
+			}
+			tv34 = any(tb37)
+		}
+		return tv34
 	}) {
 		goto L6
 	}
@@ -2812,7 +2980,17 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return tv2
+	}) {
 		goto L24
 	}
 	goto L18
@@ -4111,7 +4289,17 @@ L17:
 	}
 	p.SetCapture(3, v24)
 	x25 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any { return any(c.P.TextEqual(c.TextStr(c.Cap(3)), c.TextStr(c.Cap(0))) == true) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		ts1, tf1 := c.P.TermText(c.Cap(3))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		ts2, tf2 := c.P.TermText(c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return any(c.P.TextEqual(ts1, ts2))
+	}) {
 		goto L28
 	}
 	x26, x27 = p.Unisolate(x25)
@@ -5903,7 +6091,155 @@ func e177(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.ActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(c.Cap(0)), any("XML")) })
+		ts1, tf1 := c.P.TermText(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tv4 := any(false)
+		if tb3 {
+			ts5, tf5 := c.P.TermText(c.Cap(0))
+			if tf5 != nil {
+				panic(tf5)
+			}
+			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
+			if tf6 != nil {
+				panic(tf6)
+			}
+			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
+			if tf7 != nil {
+				panic(tf7)
+			}
+			tv4 = any(tb7)
+		}
+		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
+		if tf8 != nil {
+			panic(tf8)
+		}
+		tv9 := any(false)
+		if tb8 {
+			ts10, tf10 := c.P.TermText(c.Cap(0))
+			if tf10 != nil {
+				panic(tf10)
+			}
+			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
+			if tf11 != nil {
+				panic(tf11)
+			}
+			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
+			if tf12 != nil {
+				panic(tf12)
+			}
+			tv9 = any(tb12)
+		}
+		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
+		if tf13 != nil {
+			panic(tf13)
+		}
+		tv14 := any(false)
+		if tb13 {
+			ts15, tf15 := c.P.TermText(c.Cap(0))
+			if tf15 != nil {
+				panic(tf15)
+			}
+			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
+			if tf16 != nil {
+				panic(tf16)
+			}
+			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
+			if tf17 != nil {
+				panic(tf17)
+			}
+			tv14 = any(tb17)
+		}
+		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
+		if tf18 != nil {
+			panic(tf18)
+		}
+		tv19 := any(false)
+		if tb18 {
+			ts20, tf20 := c.P.TermText(c.Cap(0))
+			if tf20 != nil {
+				panic(tf20)
+			}
+			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
+			if tf21 != nil {
+				panic(tf21)
+			}
+			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
+			if tf22 != nil {
+				panic(tf22)
+			}
+			tv19 = any(tb22)
+		}
+		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
+		if tf23 != nil {
+			panic(tf23)
+		}
+		tv24 := any(false)
+		if tb23 {
+			ts25, tf25 := c.P.TermText(c.Cap(0))
+			if tf25 != nil {
+				panic(tf25)
+			}
+			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
+			if tf26 != nil {
+				panic(tf26)
+			}
+			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
+			if tf27 != nil {
+				panic(tf27)
+			}
+			tv24 = any(tb27)
+		}
+		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
+		if tf28 != nil {
+			panic(tf28)
+		}
+		tv29 := any(false)
+		if tb28 {
+			ts30, tf30 := c.P.TermText(c.Cap(0))
+			if tf30 != nil {
+				panic(tf30)
+			}
+			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
+			if tf31 != nil {
+				panic(tf31)
+			}
+			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
+			if tf32 != nil {
+				panic(tf32)
+			}
+			tv29 = any(tb32)
+		}
+		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
+		if tf33 != nil {
+			panic(tf33)
+		}
+		tv34 := any(false)
+		if tb33 {
+			ts35, tf35 := c.P.TermText(c.Cap(0))
+			if tf35 != nil {
+				panic(tf35)
+			}
+			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
+			if tf36 != nil {
+				panic(tf36)
+			}
+			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
+			if tf37 != nil {
+				panic(tf37)
+			}
+			tv34 = any(tb37)
+		}
+		return tv34
 	}) {
 		goto L6
 	}
@@ -6209,7 +6545,17 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), any(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return tv2
+	}) {
 		goto L24
 	}
 	goto L18
@@ -6562,7 +6908,17 @@ L12:
 	}
 	p.SetCapture(1, v17)
 	x18 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any { return any(c.P.TextEqual(c.TextStr(c.Cap(1)), c.TextStr(c.Cap(0))) == true) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		ts1, tf1 := c.P.TermText(c.Cap(1))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		ts2, tf2 := c.P.TermText(c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return any(c.P.TextEqual(ts1, ts2))
+	}) {
 		goto L21
 	}
 	x19, x20 = p.Unisolate(x18)
@@ -9717,7 +10073,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "version_info"
-	v = k2
+	{
+		var tr16 any
+		{
+			tr16 = k2
+		}
+		v = tr16
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -9853,7 +10215,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "encoding_decl"
-	v = k2
+	{
+		var tr17 any
+		{
+			tr17 = k2
+		}
+		v = tr17
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -9990,7 +10358,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "sd_decl"
-	v = k2
+	{
+		var tr18 any
+		{
+			tr18 = k2
+		}
+		v = tr18
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -10089,7 +10463,13 @@ func i11(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "comment"
-	v = k1
+	{
+		var tr19 any
+		{
+			tr19 = k1
+		}
+		v = tr19
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -10212,7 +10592,155 @@ func i13(p *rt.TParser) (any, bool) {
 	k1 = v3
 	x4 = p.Isolate(p.Pos)
 	if !p.Predicate(func(c *rt.TActCtx) any {
-		return c.And(c.And(c.And(c.And(c.And(c.And(c.And(c.Binary(rt.OpNe, c.Text(k1), any("xml")), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("xML")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("Xml")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XmL")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XMl")) }), func() any { return c.Binary(rt.OpNe, c.Text(k1), any("XML")) })
+		ts1, tf1 := c.P.TermText(k1)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tv4 := any(false)
+		if tb3 {
+			ts5, tf5 := c.P.TermText(k1)
+			if tf5 != nil {
+				panic(tf5)
+			}
+			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
+			if tf6 != nil {
+				panic(tf6)
+			}
+			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
+			if tf7 != nil {
+				panic(tf7)
+			}
+			tv4 = any(tb7)
+		}
+		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
+		if tf8 != nil {
+			panic(tf8)
+		}
+		tv9 := any(false)
+		if tb8 {
+			ts10, tf10 := c.P.TermText(k1)
+			if tf10 != nil {
+				panic(tf10)
+			}
+			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
+			if tf11 != nil {
+				panic(tf11)
+			}
+			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
+			if tf12 != nil {
+				panic(tf12)
+			}
+			tv9 = any(tb12)
+		}
+		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
+		if tf13 != nil {
+			panic(tf13)
+		}
+		tv14 := any(false)
+		if tb13 {
+			ts15, tf15 := c.P.TermText(k1)
+			if tf15 != nil {
+				panic(tf15)
+			}
+			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
+			if tf16 != nil {
+				panic(tf16)
+			}
+			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
+			if tf17 != nil {
+				panic(tf17)
+			}
+			tv14 = any(tb17)
+		}
+		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
+		if tf18 != nil {
+			panic(tf18)
+		}
+		tv19 := any(false)
+		if tb18 {
+			ts20, tf20 := c.P.TermText(k1)
+			if tf20 != nil {
+				panic(tf20)
+			}
+			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
+			if tf21 != nil {
+				panic(tf21)
+			}
+			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
+			if tf22 != nil {
+				panic(tf22)
+			}
+			tv19 = any(tb22)
+		}
+		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
+		if tf23 != nil {
+			panic(tf23)
+		}
+		tv24 := any(false)
+		if tb23 {
+			ts25, tf25 := c.P.TermText(k1)
+			if tf25 != nil {
+				panic(tf25)
+			}
+			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
+			if tf26 != nil {
+				panic(tf26)
+			}
+			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
+			if tf27 != nil {
+				panic(tf27)
+			}
+			tv24 = any(tb27)
+		}
+		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
+		if tf28 != nil {
+			panic(tf28)
+		}
+		tv29 := any(false)
+		if tb28 {
+			ts30, tf30 := c.P.TermText(k1)
+			if tf30 != nil {
+				panic(tf30)
+			}
+			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
+			if tf31 != nil {
+				panic(tf31)
+			}
+			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
+			if tf32 != nil {
+				panic(tf32)
+			}
+			tv29 = any(tb32)
+		}
+		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
+		if tf33 != nil {
+			panic(tf33)
+		}
+		tv34 := any(false)
+		if tb33 {
+			ts35, tf35 := c.P.TermText(k1)
+			if tf35 != nil {
+				panic(tf35)
+			}
+			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
+			if tf36 != nil {
+				panic(tf36)
+			}
+			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
+			if tf37 != nil {
+				panic(tf37)
+			}
+			tv34 = any(tb37)
+		}
+		return tv34
 	}) {
 		goto L7
 	}
@@ -10827,7 +11355,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "system_literal"
-	v = k2
+	{
+		var tr21 any
+		{
+			tr21 = k2
+		}
+		v = tr21
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -10975,7 +11509,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pubid_literal"
-	v = k2
+	{
+		var tr22 any
+		{
+			tr22 = k2
+		}
+		v = tr22
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -11327,7 +11867,17 @@ L21:
 	} else if _, ok = p.Parser.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpEq, c.Length(k1), any(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any {
+		tv1, tf1 := c.P.TermLength(k1)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return tv2
+	}) {
 		goto L24
 	}
 	goto L18
@@ -12550,7 +13100,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "entity_value"
-	v = k2
+	{
+		var tr24 any
+		{
+			tr24 = k2
+		}
+		v = tr24
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -12930,7 +13486,17 @@ L22:
 	}
 	k17 = v29
 	x30 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.TActCtx) any { return any(c.P.TextEqual(c.TextStr(k17), c.TextStr(k1)) == true) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any {
+		ts1, tf1 := c.P.TermText(k17)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		ts2, tf2 := c.P.TermText(k1)
+		if tf2 != nil {
+			panic(tf2)
+		}
+		return any(c.P.TextEqual(ts1, ts2))
+	}) {
 		goto L33
 	}
 	x31, x32 = p.Unisolate(x30)
@@ -13082,7 +13648,13 @@ L11:
 L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "att_value"
-	v = k2
+	{
+		var tr26 any
+		{
+			tr26 = k2
+		}
+		v = tr26
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -13378,7 +13950,13 @@ L7:
 	k3 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "markup"
-	v = k3
+	{
+		var tr27 any
+		{
+			tr27 = k3
+		}
+		v = tr27
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -13514,7 +14092,13 @@ func i64(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "cdsect"
-	v = k1
+	{
+		var tr28 any
+		{
+			tr28 = k1
+		}
+		v = tr28
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -14210,4 +14794,4 @@ fail:
 
 const _ = types.ZPSchema_fffcf7e83e2174f5
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

@@ -54,3 +54,6 @@ func (l *LiveRules) ReachFrom(roots []RuleKey) { l.reachFrom(roots) }
 func (l *LiveRules) MissingBodies(table string, printed map[RuleKey]bool) []RuleKey {
 	return l.missingBodies(table, printed)
 }
+
+// LoweredTermNames returns the names of the runtime functions and methods that only lowered terms call.
+func LoweredTermNames() []string { return loweredTermNames() }

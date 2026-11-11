@@ -1,0 +1,4293 @@
+## main action
+not lowered: New, concat, map, Lambda, param
+
+## importDecl action
+not lowered: New
+
+## importOne action
+not lowered: list
+
+## importGroup action
+not lowered: map, Lambda, param
+
+## importSpec action
+not lowered: New
+
+## importName action
+func term() Datum {
+  return term.read([$i])
+}
+
+## constDecl action
+not lowered: New
+
+## constOne action
+not lowered: list
+
+## constGroup action
+not lowered: map, Lambda, param
+
+## constSpec action
+not lowered: New, concat
+
+## typeSp action
+func term() Datum {
+  return term.read([$t])
+}
+
+## identList action
+not lowered: concat, list, map, Lambda, param
+
+## valuesSp action
+func term() Datum {
+  return term.read([$vs])
+}
+
+## varDecl action
+not lowered: New
+
+## varOne action
+not lowered: list
+
+## varGroup action
+not lowered: map, Lambda, param
+
+## varSpecTyped action
+not lowered: New, concat
+
+## varSpecUntyped action
+not lowered: New
+
+## typeDecl action
+not lowered: New
+
+## typeOne action
+not lowered: list
+
+## typeGroup action
+not lowered: map, Lambda, param
+
+## typeSpecGeneric action
+not lowered: New
+
+## typeSpecArray action
+not lowered: New
+
+## typeSpecPlain action
+not lowered: New
+
+## aliasEq action
+func term() Datum {
+  return term.read([$e])
+}
+
+## genericParams action
+func term() Datum {
+  return term.read([$p])
+}
+
+## splitParams action
+not lowered: New, concat, list, map, Lambda, param
+
+## splitType action
+not lowered: foldl, Lambda, New, param
+
+## splitStar action
+not lowered: New
+
+## splitParen action
+not lowered: New
+
+## funcDecl action
+not lowered: New
+
+## funcDecl predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$rs]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## recvSp action
+func term() Datum {
+  return term.read([$r])
+}
+
+## typeParamsSp action
+func term() Datum {
+  return term.read([$t])
+}
+
+## bodySp action
+func term() Datum {
+  return term.read([$b])
+}
+
+## params action
+not lowered: New, concat
+
+## namedParams action
+not lowered: concat, list, map, Lambda, param
+
+## paramGroup action
+func term() Datum {
+  return term.read([$g])
+}
+
+## variadicGroup action
+not lowered: New, list
+
+## namedGroup action
+not lowered: New
+
+## namedParamType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## variadicType action
+not lowered: New
+
+## unnamedParams action
+not lowered: concat, list, map, Lambda, param
+
+## unnamedParam action
+not lowered: New
+
+## unnamedType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## resultsSp action
+func term() Datum {
+  return term.read([$r])
+}
+
+## resultType action
+not lowered: New, list
+
+## resultParams action
+not lowered: New, concat
+
+## namedResults action
+not lowered: concat, list, map, Lambda, param
+
+## unnamedResults action
+not lowered: concat, list, map, Lambda, param
+
+## unnamedResult action
+not lowered: New
+
+## typeParams action
+not lowered: New, concat, list, map, Lambda, param
+
+## typeParam action
+not lowered: New
+
+## constraint action
+not lowered: foldl, Lambda, New, param
+
+## constraintFirst action
+func term() Datum {
+  return term.read([$t])
+}
+
+## tildeTerm action
+not lowered: New
+
+## arrayFieldType action
+not lowered: New
+
+## exprSp action
+func term() Datum {
+  return term.read([$x])
+}
+
+## identIndex action
+not lowered: New
+
+## identIndexList action
+not lowered: New, concat, list, map, Lambda, param
+
+## typ action
+func term() Datum {
+  return term.read([$t])
+}
+
+## parenType action
+not lowered: New
+
+## pointerType action
+not lowered: New
+
+## typeName action
+func term() Datum {
+  return term.read([$t])
+}
+
+## typeInstance action
+not lowered: New
+
+## typeInstanceList action
+not lowered: New, concat, list, map, Lambda, param
+
+## qualifiedIdent action
+func term() Datum {
+  return term.read([$t])
+}
+
+## selectorIdent action
+not lowered: New
+
+## arrayType action
+not lowered: New
+
+## arrayLen action
+func term() Datum {
+  return term.read([$x])
+}
+
+## ellipsisLen action
+not lowered: New
+
+## mapType action
+not lowered: New
+
+## sendChanType action
+not lowered: New
+
+## bothChanType action
+not lowered: New
+
+## recvChanTypeT action
+not lowered: New
+
+## funcType action
+not lowered: New
+
+## funcType predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$rs]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## structType action
+not lowered: New
+
+## fieldBlock action
+not lowered: New, map, Lambda, param
+
+## embeddedField action
+not lowered: New
+
+## starField action
+not lowered: New
+
+## starEmbedded action
+not lowered: New
+
+## multiNameField action
+not lowered: New, concat, list, map, Lambda, param
+
+## arrayNameField action
+not lowered: New, list
+
+## oneNameField action
+not lowered: New, list
+
+## instanceField action
+not lowered: New
+
+## tagSp action
+func term() Datum {
+  return term.read([$s])
+}
+
+## interfaceType action
+not lowered: New
+
+## methodBlock action
+not lowered: New, map, Lambda, param
+
+## methodSpec action
+not lowered: New, list
+
+## signature action
+not lowered: New
+
+## signature predicate
+func term() Datum {
+  let tv1, tf1 = binary(6, term.read([$rs]), term.const([<nil>]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## embeddedElem action
+not lowered: New, foldl, Lambda, param
+
+## embeddedIndex action
+not lowered: New
+
+## embeddedIndexList action
+not lowered: New, concat, list, map, Lambda, param
+
+## block action
+not lowered: New, map, Lambda, param
+
+## terminatedStmt action
+func term() Datum {
+  return term.read([$s])
+}
+
+## emptyStmt action
+not lowered: New
+
+## implicitEmpty action
+not lowered: New
+
+## labeledEmpty action
+not lowered: New
+
+## labeledStmt action
+not lowered: New
+
+## clauseBody action
+not lowered: concat, map, Lambda, param
+
+## clauseStmt action
+func term() Datum {
+  return term.read([$s])
+}
+
+## clauseTerminated action
+func term() Datum {
+  return term.read([$s])
+}
+
+## lastClauseStmt action
+not lowered: list
+
+## lastClauseTerminated action
+func term() Datum {
+  return term.read([$s])
+}
+
+## plainStmt action
+func term() Datum {
+  return term.read([$s])
+}
+
+## declStmt action
+not lowered: New
+
+## assignStmt action
+not lowered: New
+
+## sendStmt action
+not lowered: New
+
+## incDecStmt action
+not lowered: New
+
+## exprStmt action
+not lowered: New
+
+## hassignStmt action
+not lowered: New
+
+## hsendStmt action
+not lowered: New
+
+## hincDecStmt action
+not lowered: New
+
+## hexprStmt action
+not lowered: New
+
+## goStmt action
+not lowered: New
+
+## deferStmt action
+not lowered: New
+
+## goCallEmpty action
+not lowered: New
+
+## goCallArgs action
+not lowered: New
+
+## dotsWs action
+func term() Datum {
+  return term.read([$d])
+}
+
+## returnStmt action
+not lowered: New, concat
+
+## returnValues action
+func term() Datum {
+  return term.read([$xs])
+}
+
+## breakStmt action
+not lowered: New
+
+## continueStmt action
+not lowered: New
+
+## gotoStmt action
+not lowered: New
+
+## fallthroughStmt action
+not lowered: New
+
+## labelSp action
+func term() Datum {
+  return term.read([$l])
+}
+
+## ifStmt action
+not lowered: New
+
+## hsimpleSemi action
+func term() Datum {
+  return term.read([$s])
+}
+
+## elseSp action
+func term() Datum {
+  return term.read([$s])
+}
+
+## switchInit action
+func term() Datum {
+  return term.read([$s])
+}
+
+## exprSwitchStmt action
+not lowered: New
+
+## typeSwitchStmt action
+not lowered: New
+
+## guardAssign action
+not lowered: New, list
+
+## guardExpr action
+not lowered: New
+
+## guardAssert action
+not lowered: New
+
+## caseBlock action
+not lowered: New, map, Lambda, param
+
+## caseClauseList action
+not lowered: New
+
+## caseClauseDefault action
+not lowered: New
+
+## selectStmt action
+not lowered: New
+
+## commBlock action
+not lowered: New, map, Lambda, param
+
+## commClauseCase action
+not lowered: New
+
+## commClauseDefault action
+not lowered: New
+
+## commRecv action
+not lowered: New, concat, list, map, Lambda, param
+
+## forInfinite action
+not lowered: New
+
+## forCond action
+not lowered: New
+
+## forClause action
+not lowered: New
+
+## forRange action
+not lowered: New
+
+## rangeValue action
+func term() Datum {
+  return term.read([$v])
+}
+
+## expr action
+func term() Datum {
+  return term.read([$x])
+}
+
+## exprList action
+not lowered: concat, list, map, Lambda, param
+
+## orExpr action
+not lowered: foldl, Lambda, New, param
+
+## andExpr action
+not lowered: foldl, Lambda, New, param
+
+## cmpExpr action
+not lowered: foldl, Lambda, New, param
+
+## addExpr action
+not lowered: foldl, Lambda, New, param
+
+## mulExpr action
+not lowered: foldl, Lambda, New, param
+
+## unaryExpr action
+func term() Datum {
+  return term.read([$u])
+}
+
+## recvChanType action
+func term() Datum {
+  return term.read([$t])
+}
+
+## recvExpr action
+not lowered: New
+
+## unaryOpExpr action
+not lowered: New
+
+## starExpr action
+not lowered: New
+
+## primaryExpr action
+func term() Datum {
+  return term.read([$o])
+}
+
+## operatorsExpr line 2
+not lowered: New
+
+## operatorsExpr line 3
+not lowered: New
+
+## operatorsExpr line 4
+not lowered: New
+
+## operatorsExpr line 5
+not lowered: New
+
+## operatorsExpr line 6
+not lowered: New
+
+## operatorsExpr line 7
+not lowered: New
+
+## operatorsExpr line 8
+not lowered: New
+
+## operatorsExpr line 9
+not lowered: New
+
+## operatorsExpr line 10
+not lowered: New
+
+## operatorsExpr line 11
+not lowered: New
+
+## primaryOperand action
+func term() Datum {
+  return term.read([$o])
+}
+
+## indexList action
+not lowered: concat, list, map, Lambda, param
+
+## parenExpr action
+not lowered: New
+
+## funcLit action
+not lowered: New
+
+## litValue action
+not lowered: concat
+
+## elements action
+not lowered: concat, list, map, Lambda, param
+
+## keyValue action
+not lowered: New
+
+## elidedLit action
+not lowered: New
+
+## goPrimary line 2
+not lowered: New
+
+## goPrimary line 3
+not lowered: New
+
+## goPrimary line 4
+not lowered: New
+
+## goPrimary line 5
+not lowered: New
+
+## goPrimary line 6
+not lowered: New
+
+## goPrimary line 7
+not lowered: New
+
+## goPrimary line 8
+not lowered: New
+
+## goPrimary line 9
+not lowered: New
+
+## goPrimary line 10
+not lowered: New
+
+## goPrimary line 11
+not lowered: New
+
+## hexpr action
+func term() Datum {
+  return term.read([$x])
+}
+
+## hexprList action
+not lowered: concat, list, map, Lambda, param
+
+## horExpr action
+not lowered: foldl, Lambda, New, param
+
+## handExpr action
+not lowered: foldl, Lambda, New, param
+
+## hcmpExpr action
+not lowered: foldl, Lambda, New, param
+
+## haddExpr action
+not lowered: foldl, Lambda, New, param
+
+## hmulExpr action
+not lowered: foldl, Lambda, New, param
+
+## hunaryExpr action
+func term() Datum {
+  return term.read([$u])
+}
+
+## hrecvExpr action
+not lowered: New
+
+## hunaryOpExpr action
+not lowered: New
+
+## hstarExpr action
+not lowered: New
+
+## hprimaryExpr action
+func term() Datum {
+  return term.read([$o])
+}
+
+## hoperatorsExpr line 2
+not lowered: New
+
+## hoperatorsExpr line 3
+not lowered: New
+
+## hoperatorsExpr line 4
+not lowered: New
+
+## hoperatorsExpr line 5
+not lowered: New
+
+## hoperatorsExpr line 6
+not lowered: New
+
+## hoperatorsExpr line 7
+not lowered: New
+
+## hoperatorsExpr line 8
+not lowered: New
+
+## hoperatorsExpr line 9
+not lowered: New
+
+## hoperatorsExpr line 10
+not lowered: New
+
+## hoperand action
+func term() Datum {
+  return term.read([$o])
+}
+
+## compositeLitH action
+not lowered: New
+
+## guardPrimary line 2
+not lowered: New
+
+## guardPrimary line 3
+not lowered: New
+
+## guardPrimary line 4
+not lowered: New
+
+## guardPrimary line 5
+not lowered: New
+
+## guardPrimary line 6
+not lowered: New
+
+## guardPrimary line 7
+not lowered: New
+
+## guardPrimary line 8
+not lowered: New
+
+## guardPrimary line 9
+not lowered: New
+
+## guardPrimary line 10
+not lowered: New
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n1]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n1]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n1]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n1]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n1]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n1]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n2]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n2]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n3]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n3]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n3]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n3]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n3]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n3]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n4]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n4]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n4]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n4]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n4]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n4]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n1]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n1]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n1]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n1]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n1]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n1]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n2]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n2]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n3]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n3]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n3]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n3]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n3]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n3]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n4]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n4]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n4]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n4]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n4]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n4]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c7]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n5]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n5]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n5]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n5]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n5]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n5]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n6]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n6]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c8]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n7]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n7]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n7]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n7]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n7]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n7]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n7]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c9]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n8]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n8]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n8]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n8]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n8]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n8]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n8]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c10]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## validFFFD predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## dirNum predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## dirUint predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n1]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n1]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n1]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n1]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n1]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n1]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n2]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n2]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n3]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n3]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n3]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n3]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n3]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n3]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n4]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n4]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n4]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n4]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n4]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n4]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c7]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n5]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n5]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n5]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n5]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n5]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n5]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n6]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n6]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c8]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n7]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n7]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n7]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n7]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n7]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n7]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n7]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c9]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ws predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n8]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n8]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n8]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n8]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n8]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n8]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n8]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## ws predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c10]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n1]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n1]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n1]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n1]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n1]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n1]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n2]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n2]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n2]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(9, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n3]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n3]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n3]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n3]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n3]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n3]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n3]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c5]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## sp predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n4]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n4]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n4]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n4]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n4]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n4]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n4]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+
+## sp predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c6]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## dirUint predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([20]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([20]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["18446744073709551615"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  return tv4
+}
+
+## validFFFD predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$c]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, term.fromStr(ts1), term.const(["�"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## dirNum predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$n]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(7, tv1, term.const([10]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$n]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(5, tv5, term.const([10]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8 = val.fromBool(false)
+    if tb7 {
+      let ts9, tf9 = text(term.read([$n]))
+      if (tf9 != null(Fail)) {
+        term.raise(tf9)
+      }
+      let tv10, tf10 = binary(8, term.fromStr(ts9), term.const(["1073741824"]))
+      if (tf10 != null(Fail)) {
+        term.raise(tf10)
+      }
+      let tb11, tf11 = logic(0, tv10)
+      if (tf11 != null(Fail)) {
+        term.raise(tf11)
+      }
+      tv8 = val.fromBool(tb11)
+    }
+    let tb12, tf12 = logic(1, tv8)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv4 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(1, tv4)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(true)
+  if !tb13 {
+    let tv15, tf15 = length(term.read([$n]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(5, tv15, term.const([19]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv18 = val.fromBool(false)
+    if tb17 {
+      let ts19, tf19 = text(term.read([$n]))
+      if (tf19 != null(Fail)) {
+        term.raise(tf19)
+      }
+      let tv20, tf20 = binary(10, term.fromStr(ts19), term.const(["9223372036854775808"]))
+      if (tf20 != null(Fail)) {
+        term.raise(tf20)
+      }
+      let tb21, tf21 = logic(0, tv20)
+      if (tf21 != null(Fail)) {
+        term.raise(tf21)
+      }
+      tv18 = val.fromBool(tb21)
+    }
+    let tb22, tf22 = logic(1, tv18)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv14 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(1, tv14)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(true)
+  if !tb23 {
+    let tv25, tf25 = length(term.read([$n]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(5, tv25, term.const([20]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    let tv28 = val.fromBool(false)
+    if tb27 {
+      let ts29, tf29 = text(term.read([$n]))
+      if (tf29 != null(Fail)) {
+        term.raise(tf29)
+      }
+      let tv30, tf30 = binary(8, term.fromStr(ts29), term.const(["18446744073709551615"]))
+      if (tf30 != null(Fail)) {
+        term.raise(tf30)
+      }
+      let tb31, tf31 = logic(0, tv30)
+      if (tf31 != null(Fail)) {
+        term.raise(tf31)
+      }
+      tv28 = val.fromBool(tb31)
+    }
+    let tb32, tf32 = logic(1, tv28)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv24 = val.fromBool(tb32)
+  }
+  return tv24
+}
+

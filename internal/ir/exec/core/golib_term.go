@@ -23,21 +23,45 @@ var termFuncs = []struct{ fn, name string }{
 	{"tupleConform", "termTupleConform"},
 }
 
+// GoTermExports are the Go names of the compositions of the operators of terms that the Go runtime
+// exports, by the name of the composition: generated parsers call them (lower.Term). The rest keep the
+// names of termFuncs.
+var GoTermExports = map[string]string{
+	"binary": "TermBinary", "unary": "TermUnary", "logic": "TermLogic", "member": "TermMember",
+	"length": "TermLength", "text": "TermText", "convert": "TermConvert", "conforms": "TermConforms",
+}
+
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.
 var goTermSpecs = func() []goSpec {
 	var specs []goSpec
 	for _, typed := range []bool{false, true} {
 		for _, f := range termFuncs {
-			specs = append(specs, goSpec{fn: f.fn, typed: typed, name: f.name})
+			specs = append(specs, goSpec{fn: f.fn, typed: typed, name: goRuntimeTermName(f.fn, f.name)})
 		}
 	}
 	return specs
 }()
 
-// goTermNames is the name of each composition of the operators of terms in the Go runtime.
+// goRuntimeTermName returns the Go name in the runtime of the composition fn, whose unexported name
+// is name.
+func goRuntimeTermName(fn, name string) string {
+	if n, ok := GoTermExports[fn]; ok {
+		return n
+	}
+	return name
+}
+
+// goTermNames is the name of each composition of the operators of terms in the engine.
 func goTermNames(names map[string]string) {
 	for _, f := range termFuncs {
 		names[f.fn] = f.name
+	}
+}
+
+// goRuntimeTermNames is the name of each composition of the operators of terms in the Go runtime.
+func goRuntimeTermNames(names map[string]string) {
+	for _, f := range termFuncs {
+		names[f.fn] = goRuntimeTermName(f.fn, f.name)
 	}
 }
 
@@ -88,9 +112,9 @@ func goTermConsts() string {
 	}{{"Nil", ops.KindNil}, {"Int", ops.KindInt}, {"String", ops.KindString}, {"Bool", ops.KindBool}, {"Other", ops.KindOther}} {
 		fmt.Fprintf(&b, "\tvalKind%s = %d\n", k.name, k.code)
 	}
-	b.WriteString(")\n\n// The codes of the kinds of member reads.\nconst (\n")
+	b.WriteString(")\n\n// The codes of the kinds of member reads, for generated parsers; not a stable API.\nconst (\n")
 	for code, k := range ops.MemberKinds {
-		fmt.Fprintf(&b, "\tmember%s = %d\n", k.Name, code)
+		fmt.Fprintf(&b, "\tMember%s = %d\n", k.Name, code)
 	}
 	b.WriteString(")\n\n// memberKind returns the kind of the member read name and the name of the field or capture that it\n// reads.\nfunc memberKind(name string) (int, string) {\n\tswitch name {\n")
 	var prefix []int
@@ -99,15 +123,15 @@ func goTermConsts() string {
 		case code == ops.MemberCapture:
 			prefix = append(prefix, code)
 		case k.Spelling != "":
-			fmt.Fprintf(&b, "\tcase %q:\n\t\treturn member%s, name\n", k.Spelling, k.Name)
+			fmt.Fprintf(&b, "\tcase %q:\n\t\treturn Member%s, name\n", k.Spelling, k.Name)
 		}
 	}
 	b.WriteString("\t}\n")
 	for _, code := range prefix {
 		k := ops.MemberKinds[code]
-		fmt.Fprintf(&b, "\tif field, ok := strings.CutPrefix(name, %q); ok {\n\t\treturn member%s, field\n\t}\n", k.Spelling, k.Name)
+		fmt.Fprintf(&b, "\tif field, ok := strings.CutPrefix(name, %q); ok {\n\t\treturn Member%s, field\n\t}\n", k.Spelling, k.Name)
 	}
-	fmt.Fprintf(&b, "\treturn member%s, name\n}\n", ops.MemberKinds[ops.MemberField].Name)
+	fmt.Fprintf(&b, "\treturn Member%s, name\n}\n", ops.MemberKinds[ops.MemberField].Name)
 	return b.String()
 }
 
@@ -202,6 +226,9 @@ func GoTerms() (string, error) {
 		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
 		if err != nil {
 			return "", err
+		}
+		if _, ok := GoTermExports[s.fn]; ok {
+			f.Doc = strings.TrimSpace(f.Doc) + "\n\n" + s.name + " is for generated parsers; not a stable API."
 		}
 		src, err := execgo.Func(m, f, goTarget(s))
 		if err != nil {

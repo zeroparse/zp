@@ -1,0 +1,1518 @@
+## main_fast action
+func term() Datum {
+  return term.read([$f])
+}
+
+## file action
+not lowered: New, concat, map, Lambda, param
+
+## file predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$pkg]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(9, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## package_clause action
+not lowered: New
+
+## package_clause predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$n]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["#"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$n]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["$"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tb9, tf9 = logic(0, tv8)
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tv10 = val.fromBool(false)
+  if tb9 {
+    let ts11, tf11 = text(term.read([$n]))
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tv12, tf12 = binary(10, term.fromStr(ts11), term.const(["_#"]))
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    let tb13, tf13 = logic(0, tv12)
+    if (tf13 != null(Fail)) {
+      term.raise(tf13)
+    }
+    let tv14 = val.fromBool(false)
+    if tb13 {
+      let ts15, tf15 = text(term.read([$n]))
+      if (tf15 != null(Fail)) {
+        term.raise(tf15)
+      }
+      let tv16, tf16 = binary(7, term.fromStr(ts15), term.const(["_$"]))
+      if (tf16 != null(Fail)) {
+        term.raise(tf16)
+      }
+      let tb17, tf17 = logic(0, tv16)
+      if (tf17 != null(Fail)) {
+        term.raise(tf17)
+      }
+      tv14 = val.fromBool(tb17)
+    }
+    let tv18, tf18 = unary(1, tv14)
+    if (tf18 != null(Fail)) {
+      term.raise(tf18)
+    }
+    let tb19, tf19 = logic(0, tv18)
+    if (tf19 != null(Fail)) {
+      term.raise(tf19)
+    }
+    tv10 = val.fromBool(tb19)
+  }
+  return tv10
+}
+
+## import_paren action
+not lowered: New, map, Lambda, param
+
+## import_single action
+not lowered: New, list
+
+## import_spec action
+not lowered: New
+
+## import_name action
+func term() Datum {
+  return term.read([$i])
+}
+
+## import_name predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tb9, tf9 = logic(0, tv8)
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tv10 = val.fromBool(false)
+  if tb9 {
+    let ts11, tf11 = text(term.read([$i]))
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tv12, tf12 = binary(10, term.fromStr(ts11), term.const(["#"]))
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    let tb13, tf13 = logic(0, tv12)
+    if (tf13 != null(Fail)) {
+      term.raise(tf13)
+    }
+    let tv14 = val.fromBool(false)
+    if tb13 {
+      let ts15, tf15 = text(term.read([$i]))
+      if (tf15 != null(Fail)) {
+        term.raise(tf15)
+      }
+      let tv16, tf16 = binary(7, term.fromStr(ts15), term.const(["$"]))
+      if (tf16 != null(Fail)) {
+        term.raise(tf16)
+      }
+      let tb17, tf17 = logic(0, tv16)
+      if (tf17 != null(Fail)) {
+        term.raise(tf17)
+      }
+      tv14 = val.fromBool(tb17)
+    }
+    let tv18, tf18 = unary(1, tv14)
+    if (tf18 != null(Fail)) {
+      term.raise(tf18)
+    }
+    let tb19, tf19 = logic(0, tv18)
+    if (tf19 != null(Fail)) {
+      term.raise(tf19)
+    }
+    tv10 = val.fromBool(tb19)
+  }
+  let tb20, tf20 = logic(0, tv10)
+  if (tf20 != null(Fail)) {
+    term.raise(tf20)
+  }
+  let tv21 = val.fromBool(false)
+  if tb20 {
+    let ts22, tf22 = text(term.read([$i]))
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    let tv23, tf23 = binary(10, term.fromStr(ts22), term.const(["_#"]))
+    if (tf23 != null(Fail)) {
+      term.raise(tf23)
+    }
+    let tb24, tf24 = logic(0, tv23)
+    if (tf24 != null(Fail)) {
+      term.raise(tf24)
+    }
+    let tv25 = val.fromBool(false)
+    if tb24 {
+      let ts26, tf26 = text(term.read([$i]))
+      if (tf26 != null(Fail)) {
+        term.raise(tf26)
+      }
+      let tv27, tf27 = binary(7, term.fromStr(ts26), term.const(["_$"]))
+      if (tf27 != null(Fail)) {
+        term.raise(tf27)
+      }
+      let tb28, tf28 = logic(0, tv27)
+      if (tf28 != null(Fail)) {
+        term.raise(tf28)
+      }
+      tv25 = val.fromBool(tb28)
+    }
+    let tv29, tf29 = unary(1, tv25)
+    if (tf29 != null(Fail)) {
+      term.raise(tf29)
+    }
+    let tb30, tf30 = logic(0, tv29)
+    if (tf30 != null(Fail)) {
+      term.raise(tf30)
+    }
+    tv21 = val.fromBool(tb30)
+  }
+  return tv21
+}
+
+## import_path action
+not lowered: New
+
+## decls action
+not lowered: map, Lambda, param
+
+## item_normal action
+func term() Datum {
+  return term.read([$d])
+}
+
+## item_tail action
+func term() Datum {
+  return term.read([$e])
+}
+
+## embed_tail action
+not lowered: New
+
+## comp_decl action
+func term() Datum {
+  return term.read([$c])
+}
+
+## ellipsis_decl action
+not lowered: New
+
+## let_decl action
+not lowered: New
+
+## let_decl predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## embed_plain action
+not lowered: New
+
+## embed_bare action
+not lowered: New
+
+## field_plain action
+not lowered: New
+
+## field_alias action
+not lowered: New
+
+## nfield_plain action
+not lowered: New
+
+## nfield_alias action
+not lowered: New
+
+## fv_label action
+func term() Datum {
+  return term.read([$v])
+}
+
+## let_skip action
+func term() Datum {
+  return term.read([$e])
+}
+
+## expr_nolet action
+func term() Datum {
+  return term.read([$e])
+}
+
+## nested action
+not lowered: New, list
+
+## alias_value action
+not lowered: New
+
+## alias_value predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## attrs action
+not lowered: map, Lambda, param
+
+## postfix_alias_at action
+func term() Datum {
+  return term.read([$p])
+}
+
+## alias_dual action
+not lowered: New
+
+## alias_paren action
+not lowered: New
+
+## alias_simple action
+not lowered: New
+
+## alias_label action
+not lowered: New
+
+## alias_label predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## alias_nlabel action
+not lowered: New
+
+## alias_nlabel predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## comp_single action
+not lowered: New, list
+
+## comp_multi action
+not lowered: New, concat, list, map, Lambda, param
+
+## fb_else action
+func term() Datum {
+  return term.read([$f])
+}
+
+## fb_other action
+func term() Datum {
+  return term.read([$f])
+}
+
+## else_clause action
+not lowered: New
+
+## otherwise_clause action
+not lowered: New
+
+## start_clause action
+func term() Datum {
+  return term.read([$c])
+}
+
+## for_kv action
+not lowered: New
+
+## for_kv predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$k]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$k]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## for_kv predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$v]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$v]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## for_v action
+not lowered: New
+
+## for_v predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$v]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$v]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## if_clause action
+not lowered: New
+
+## try_assign action
+not lowered: New
+
+## try_plain action
+not lowered: New
+
+## struct_lit action
+not lowered: New
+
+## list_lit action
+not lowered: New, concat, map, Lambda, param
+
+## elem_expr action
+func term() Datum {
+  return term.read([$e])
+}
+
+## alias_elem action
+not lowered: New
+
+## alias_elem predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$i]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(10, term.fromStr(ts1), term.const(["__"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$i]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(7, term.fromStr(ts5), term.const(["_`"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tv8, tf8 = unary(1, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  return tv8
+}
+
+## list_dots action
+not lowered: New
+
+## dots_type action
+func term() Datum {
+  return term.read([$x])
+}
+
+## paren_expr action
+not lowered: New
+
+## atom_expr action
+func term() Datum {
+  return term.read([$a])
+}
+
+## operand_word action
+func term() Datum {
+  return term.read([$o])
+}
+
+## operand_digit action
+func term() Datum {
+  return term.read([$n])
+}
+
+## ident_q action
+not lowered: New
+
+## full_expr line 2
+not lowered: New
+
+## full_expr line 3
+not lowered: New
+
+## full_expr line 4
+not lowered: New
+
+## full_expr line 5
+not lowered: New
+
+## full_expr line 6
+not lowered: New
+
+## full_expr line 7
+not lowered: New
+
+## full_expr line 8
+not lowered: New
+
+## full_expr line 9
+not lowered: New
+
+## full_expr line 10
+not lowered: New
+
+## full_expr line 11
+not lowered: New
+
+## full_expr line 12
+not lowered: New
+
+## full_expr line 13
+not lowered: New
+
+## full_expr line 14
+not lowered: New
+
+## full_expr line 15
+not lowered: New, map, Lambda, param
+
+## full_expr line 16
+not lowered: New
+
+## sel_string action
+not lowered: New
+
+## interp_expr action
+func term() Datum {
+  return term.read([$e])
+}
+
+## number action
+func term() Datum {
+  return term.read([$n])
+}
+
+## strlit action
+func term() Datum {
+  return term.read([$s])
+}
+
+## dq_plain action
+not lowered: New
+
+## dq_open action
+not lowered: New
+
+## dq_mid action
+not lowered: New
+
+## dq_end action
+not lowered: New
+
+## dq_interp action
+not lowered: New, concat, list
+
+## dq_more action
+not lowered: concat, list
+
+## dq_last action
+not lowered: list
+
+## sq_plain action
+not lowered: New
+
+## sq_open action
+not lowered: New
+
+## sq_mid action
+not lowered: New
+
+## sq_end action
+not lowered: New
+
+## sq_interp action
+not lowered: New, concat, list
+
+## sq_more action
+not lowered: concat, list
+
+## sq_last action
+not lowered: list
+
+## qc predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## qc predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## hq predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(7, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## hq predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(10, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## hq binding sv
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(1, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## g_escbody predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## g_escbody predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_esc predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gs_esc predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## g_interp_open predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## ml_open_tail predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$xh]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$xh]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6 = term.read([var sv])
+    let tv7, tf7 = binary(3, tv6, term.const([2]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8, tf8 = binary(7, tv5, tv7)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tb9, tf9 = logic(1, tv8)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    tv4 = val.fromBool(tb9)
+  }
+  return tv4
+}
+
+## gtriple action
+not lowered: New
+
+## gtriple binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## gtriple binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gsl_plain action
+not lowered: New
+
+## gsl_plain binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## gsl_plain binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gsl_open action
+not lowered: New
+
+## gsl_mid action
+not lowered: New
+
+## gsl_end action
+not lowered: New
+
+## gsl_interp action
+not lowered: New, concat, list
+
+## gsl_interp binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## gsl_interp_s action
+not lowered: New, concat, list
+
+## gsl_interp_s binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gsl_more action
+not lowered: concat, list
+
+## gsl_last action
+not lowered: list
+
+## ml_close action
+func term() Datum {
+  return term.read([$c])
+}
+
+## gml_plain action
+not lowered: New
+
+## gml_plain binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## gml_plain binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gml_plain predicate
+not lowered: foldl, Lambda, param
+
+## gml_open action
+not lowered: New
+
+## gml_mid action
+not lowered: New
+
+## gml_end action
+not lowered: New
+
+## gml_interp action
+not lowered: New, concat, list
+
+## gml_interp binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## gml_interp_s action
+not lowered: New, concat, list
+
+## gml_interp_s binding sv
+func term() Datum {
+  let tv1, tf1 = length(term.read([$hs]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(2, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gml_more action
+not lowered: concat, list
+
+## gml_last action
+not lowered: list
+
+## gstr_plain action
+not lowered: New
+
+## qc predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## qc predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## g_interp_open predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## hq predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(7, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## hq predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(10, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## hq binding sv
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(1, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ml_open_tail predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$xh]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5, tf5 = length(term.read([$xh]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6 = term.read([var sv])
+    let tv7, tf7 = binary(3, tv6, term.const([2]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv8, tf8 = binary(7, tv5, tv7)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tb9, tf9 = logic(1, tv8)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    tv4 = val.fromBool(tb9)
+  }
+  return tv4
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## gs_quote predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gs_esc predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(7, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## gs_esc predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$h]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var sv])
+  let tv3, tf3 = binary(3, tv2, term.const([2]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(5, tv1, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## g_escbody predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([0]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## g_escbody predicate
+func term() Datum {
+  let tv1 = term.read([var sv])
+  let tv2, tf2 = binary(4, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(5, tv2, term.const([1]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+

@@ -462,6 +462,7 @@ type Generator struct {
 	FlowFrames      int
 	ExecFuncs       int            // the functions printed from Exec IR (execRoute)
 	ExecTables      map[string]int // ExecFuncs by table
+	LoweredTerms    int            // the terms printed from Exec IR (lowered)
 	// NodeScopes records the frame layouts shared by typed rule metadata.
 	NodeScopes map[*compile.Rule][]string
 	// typedOnly leaves out the untyped Node family: the rule table keeps only the metadata the
@@ -766,7 +767,7 @@ func (g *Generator) rules() {
 					g.final = r.Action // re-ranged by TActCtx.Result, as an action's result
 				}
 				locals := map[string]string{compile.OperatorsRuleValue: "c.Value"}
-				fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) any { %s }\n", g.Table, r.ID, g.ctxType(), g.termBody(r.Action, compile.NewScope(), locals))
+				fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) any { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), r.Action, compile.NewScope(), locals))
 				g.final = nil
 			}
 			continue
@@ -782,12 +783,12 @@ func (g *Generator) rules() {
 		if r.Action != nil && g.Table == "trules" {
 			// A function of its own, which typedCall calls directly.
 			g.Proj, g.final = g.Projections(r), r.Action
-			fmt.Fprintf(&g.Methods, "// The action of %s.\nfunc ta%d(c *TActCtx) any { %s }\n\n", r.Name, r.ID, g.termBody(r.Action, scopes[r], nil))
+			fmt.Fprintf(&g.Methods, "// The action of %s.\nfunc ta%d(c *TActCtx) any { %s }\n\n", r.Name, r.ID, g.actionBody(g.CoreAction(r), r.Action, scopes[r], nil))
 			g.Proj, g.final = nil, nil
 			fmt.Fprintf(init, "\ttrules[%d].Action = ta%d\n", r.ID, r.ID)
 		} else if r.Action != nil {
 			g.Proj = g.Projections(r)
-			fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) any { %s }\n", g.Table, r.ID, g.ctxType(), g.termBody(r.Action, scopes[r], nil))
+			fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) any { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), r.Action, scopes[r], nil))
 			g.Proj = nil
 		}
 		if g.Table == "trules" {
@@ -1382,7 +1383,11 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if g.Table == "trules" {
 			g.final = action // re-ranged by tctx.result, as an action's result
 		}
-		act = fmt.Sprintf("func(c *%s) any { %s }", g.ctxType(), g.termBody(action, s, locals))
+		var ct core.Term
+		if l != nil {
+			ct = l.Action
+		}
+		act = fmt.Sprintf("func(c *%s) any { %s }", g.ctxType(), g.actionBody(ct, action, s, locals))
 		g.final = nil
 	}
 	return fmt.Sprintf("&%s{Scope: %s, M: %s, Action: %s, Value: %s}", g.pick("OperatorsRuleLine", "TOperatorsRuleLine"), goStrings(s.Names), m, act, g.shaper(e))

@@ -795,7 +795,7 @@ func (p *Parser) TextEqual(l, r string) bool {
 }
 
 // compareStrings applies the comparison operator with the code op (OpEq ... OpGe) to two strings as the
-// composition termBinary does, without the values boxed.
+// composition TermBinary does, without the values boxed.
 func (p *Parser) compareStrings(op int, l, r string) (bool, bool) {
 	switch op {
 	case OpEq:
@@ -817,7 +817,7 @@ func (p *Parser) compareStrings(op int, l, r string) (bool, bool) {
 // Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
 // its operands are not valid.
 func (c *ActCtx) Binary(op int, l, r any) any {
-	v, e := c.P.termBinary(op, l, r)
+	v, e := c.P.TermBinary(op, l, r)
 	if e != nil {
 		panic(e)
 	}
@@ -1599,7 +1599,7 @@ func (p *Parser) wrapEvalError(where, message string) error {
 
 // Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
 func (c *ActCtx) Unary(op int, v any) any {
-	r, e := c.P.termUnary(op, v)
+	r, e := c.P.TermUnary(op, v)
 	if e != nil {
 		panic(e)
 	}
@@ -1608,7 +1608,7 @@ func (c *ActCtx) Unary(op int, v any) any {
 
 // logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
 func (p *Parser) logical(op int, x any) bool {
-	b, e := p.termLogic(op, x)
+	b, e := p.TermLogic(op, x)
 	if e != nil {
 		panic(e)
 	}

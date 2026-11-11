@@ -8,7 +8,7 @@ import (
 )
 
 // The member table (conform.MemberCases) on the composition member of the node and the typed runtime
-// (termMember, printed from Exec IR), through Member, which a generated parser calls.
+// (TermMember, printed from Exec IR), through Member, which a generated parser calls.
 
 // memberCanon returns the canonical form of a value of the node runtime (conform.MemberCanon).
 func memberCanon(x any) string {

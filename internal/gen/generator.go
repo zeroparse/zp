@@ -247,6 +247,19 @@ type FlowState struct {
 	Rules []*compile.Rule
 }
 
+// CoreAction returns the action of Core IR of the rule r, the term that its value is made of, or nil
+// if it has none or the table has no Core IR.
+func (g *Generator) CoreAction(r *compile.Rule) core.Term {
+	if g.Flow == nil || r.ID >= len(g.Flow.M.Rules) {
+		return nil
+	}
+	cr := g.Flow.M.Rules[r.ID]
+	if cr == nil || cr.Finish.Kind != core.FinishAction {
+		return nil
+	}
+	return cr.Finish.Action
+}
+
 // FailFlow records that Flow IR does not print a part of a table, which fails the generation: every
 // table is printed from Flow IR and has no other route.
 func (g *Generator) FailFlow(what string) {

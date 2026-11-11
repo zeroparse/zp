@@ -293,7 +293,10 @@ what surrounds it, the predicate and the binding, is one composition on every ru
 fails is an ordinary failure of the expression: what it gathered and created is dropped, and the parse goes on to
 its next alternative. The operators, member reads and built-in functions of terms are compositions over value
 operations ([Values](../../../spec/exec-ir/values.md)), with tables that every target shares and runs on fixed
-fixtures; term evaluation itself is not yet written on them.
+fixtures. On generated Go, a term made of constants, captures, locals, variables, operators, member reads, `len`,
+`text`, conversions and casts is lowered from Core IR to a function of Exec IR that calls those compositions,
+which the Go runtime exports for generated parsers; terms with constructors, tuples, list built-ins or lambdas are
+not yet written on them.
 
 **Capture frames.** Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark
 is the position, the environment, the recovered errors and the length of the trail; what a reset restores from it

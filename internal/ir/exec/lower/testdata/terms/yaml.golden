@@ -1,0 +1,1469 @@
+## l_yaml_stream action
+not lowered: New, concat, map, Lambda, param
+
+## l_directive_document action
+not lowered: New
+
+## l_explicit_document action
+not lowered: New, list
+
+## l_bare_document action
+not lowered: New, list
+
+## bare_root action
+func term() Datum {
+  return term.read([$r])
+}
+
+## bare_root binding n
+func term() Datum {
+  let tv1, tf1 = unary(0, term.const([1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## bare_root binding c
+func term() Datum {
+  return term.const(["block-in"])
+}
+
+## document_end action
+func term() Datum {
+  return term.read([$m])
+}
+
+## l_directive action
+func term() Datum {
+  return term.read([$d])
+}
+
+## ns_yaml_directive action
+not lowered: New, list
+
+## ns_tag_directive action
+not lowered: New, list
+
+## ns_reserved_directive action
+not lowered: New, map, Lambda, param
+
+## c_ns_properties action
+not lowered: New
+
+## s_l_block_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## s_l_flow_in_block action
+func term() Datum {
+  return term.read([$v])
+}
+
+## s_l_flow_in_block binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## flow_out_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## flow_out_node binding c
+func term() Datum {
+  return term.const(["flow-out"])
+}
+
+## plain_out_node action
+not lowered: New
+
+## block_sequence_node action
+not lowered: New
+
+## block_mapping_node action
+not lowered: New
+
+## block_collection_start action
+func term() Datum {
+  return term.read([$p])
+}
+
+## block_sequence_start action
+func term() Datum {
+  return term.read([$p])
+}
+
+## block_collection_properties action
+func term() Datum {
+  return term.read([$p])
+}
+
+## block_collection_properties binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## block_collection_property action
+not lowered: New
+
+## block_collection_property binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## seq_space action
+func term() Datum {
+  return term.read([$s])
+}
+
+## seq_space predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## seq_space binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(1, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## seq_space predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## l_block_sequence action
+not lowered: map, Lambda, param
+
+## l_block_sequence predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(9, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_block_sequence binding n
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## c_l_block_seq_entry action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_l_block_seq_entry binding c
+func term() Datum {
+  return term.const(["block-in"])
+}
+
+## compact_collection action
+func term() Datum {
+  return term.read([$v])
+}
+
+## compact_collection binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = length(term.read([$s]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(0, tv2, tv3)
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## ns_l_compact_sequence action
+not lowered: New, concat, list, map, Lambda, param
+
+## l_block_mapping action
+not lowered: map, Lambda, param
+
+## l_block_mapping predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(9, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_block_mapping binding n
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## ns_l_compact_mapping action
+not lowered: New, concat, list, map, Lambda, param
+
+## c_l_block_map_explicit_entry action
+not lowered: New
+
+## c_l_block_map_explicit_key action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_l_block_map_explicit_key binding c
+func term() Datum {
+  return term.const(["block-out"])
+}
+
+## l_block_map_explicit_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## l_block_map_explicit_value binding c
+func term() Datum {
+  return term.const(["block-out"])
+}
+
+## ns_l_block_map_implicit_entry action
+not lowered: New
+
+## ns_s_block_map_implicit_key action
+func term() Datum {
+  return term.read([$k])
+}
+
+## ns_s_block_map_implicit_key binding c
+func term() Datum {
+  return term.const(["block-key"])
+}
+
+## plain_key_node action
+not lowered: New
+
+## c_l_block_map_implicit_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## block_out_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## block_out_node binding c
+func term() Datum {
+  return term.const(["block-out"])
+}
+
+## s_l_block_scalar action
+not lowered: New
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([3]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([4]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([5]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([6]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([7]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([8]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([9]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(9, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## s_l_block_scalar predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$e]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(8, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_l_block_scalar predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(8, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## s_l_block_scalar predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$e]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(9, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_l_block_scalar binding n
+func term() Datum {
+  let tv1, tf1 = length(term.read([$e]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  return tv1
+}
+
+## s_l_block_scalar predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$c1]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = length(term.read([$c2]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tv3, tf3 = binary(0, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4, tf4 = binary(8, tv3, term.const([1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  return tv4
+}
+
+## s_separate_n1 binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## block_scalar_properties action
+func term() Datum {
+  return term.read([$p])
+}
+
+## block_scalar_properties binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## l_nb_literal_text predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(9, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_nb_literal_text predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(5, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_empty_block predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(8, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_trail_comments predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(7, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## ns_flow_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## properties_node action
+not lowered: New
+
+## properties_separate action
+func term() Datum {
+  return term.read([$p])
+}
+
+## e_node action
+not lowered: New
+
+## e_node_comments action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_flow_sequence action
+not lowered: New, concat
+
+## c_flow_sequence predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## c_flow_sequence predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## c_flow_sequence binding c
+func term() Datum {
+  return term.const(["flow-in"])
+}
+
+## c_flow_sequence binding c
+func term() Datum {
+  return term.const(["flow-key"])
+}
+
+## ns_s_flow_seq_entries action
+not lowered: concat, list, map, Lambda, param
+
+## c_flow_mapping action
+not lowered: New, concat
+
+## c_flow_mapping predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## c_flow_mapping predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## c_flow_mapping binding c
+func term() Datum {
+  return term.const(["flow-in"])
+}
+
+## c_flow_mapping binding c
+func term() Datum {
+  return term.const(["flow-key"])
+}
+
+## ns_s_flow_map_entries action
+not lowered: concat, list, map, Lambda, param
+
+## flow_map_explicit action
+func term() Datum {
+  return term.read([$e])
+}
+
+## empty_pair action
+not lowered: New
+
+## ns_flow_map_yaml_key_entry action
+not lowered: New
+
+## separate_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_ns_flow_map_empty_key_entry action
+not lowered: New
+
+## c_ns_flow_map_separate_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## separated_flow_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_ns_flow_map_json_key_entry action
+not lowered: New
+
+## adjacent_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## c_ns_flow_map_adjacent_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## optionally_separated_flow_node action
+func term() Datum {
+  return term.read([$v])
+}
+
+## ns_flow_pair action
+not lowered: New, list
+
+## ns_flow_pair_yaml_key_entry action
+not lowered: New
+
+## flow_pair_yaml_key action
+func term() Datum {
+  return term.read([$k])
+}
+
+## flow_pair_yaml_key predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## flow_pair_yaml_key binding c
+func term() Datum {
+  return term.const(["flow-key"])
+}
+
+## c_ns_flow_pair_json_key_entry action
+not lowered: New
+
+## flow_pair_json_key action
+func term() Datum {
+  return term.read([$k])
+}
+
+## flow_pair_json_key predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## flow_pair_json_key binding c
+func term() Datum {
+  return term.const(["flow-key"])
+}
+
+## plain_node action
+not lowered: New
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain_safe predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["block-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## ns_plain_safe predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## c_double_quoted action
+not lowered: New
+
+## double_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-in"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## double_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## c_single_quoted action
+not lowered: New
+
+## single_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-in"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## single_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## l_empty_flow predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(10, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_empty_flow predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(7, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_flow_line_prefix predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(10, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_separate predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## s_separate predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(6, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(6, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## s_indent predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(5, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_separate predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## s_separate predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(6, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(6, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## s_indent predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$s]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(5, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## s_separate_n1 binding n
+func term() Datum {
+  let tv1 = term.read([var n])
+  let tv2, tf2 = binary(0, tv1, term.const([1]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## l_trail_comments predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(7, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## ns_plain_safe predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["block-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## ns_plain_safe predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## ns_plain predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## double_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-in"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## double_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## single_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-in"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## single_quoted predicate
+func term() Datum {
+  let tv1 = term.read([var c])
+  let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(true)
+  if !tb3 {
+    let tv5 = term.read([var c])
+    let tv6, tf6 = binary(5, tv5, term.const(["flow-key"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(1, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  return tv4
+}
+
+## s_flow_line_prefix predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(10, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_empty_flow predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(10, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+
+## l_empty_flow predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$sp]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2 = term.read([var n])
+  let tv3, tf3 = binary(7, tv1, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  return tv3
+}
+

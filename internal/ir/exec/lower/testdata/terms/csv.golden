@@ -1,0 +1,6 @@
+## main action
+not lowered: New
+
+## record action
+not lowered: New, concat, list, map, Lambda, param
+

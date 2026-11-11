@@ -62,6 +62,9 @@ type Target struct {
 	// Pure, if not nil, reports whether evaluating a call of an operation has no effect and cannot
 	// panic, for leaving out unread assignments (Body).
 	Pure func(c *exec.Call) bool
+	// Name, if not nil, returns the name that a Go constant has for the int constant v that a call of
+	// the function callee takes as its argument number arg, or reports false to print the number.
+	Name func(callee string, arg int, v int64) (string, bool)
 }
 
 // Func returns the Go declaration of the function f of the verified module m, formatted.
@@ -703,6 +706,15 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 		args := p.args(x)
 		if p.m.Op(x.Callee) != nil {
 			return p.paren(p.t.Op(x, args), outer)
+		}
+		if p.t.Name != nil {
+			for i, a := range x.Args {
+				if c, ok := a.(*exec.Const); ok && c.Type.Kind == exec.KInt {
+					if n, ok := p.t.Name(x.Callee, i, c.Value.(int64)); ok {
+						args[i] = n
+					}
+				}
+			}
 		}
 		name := p.name(x.Callee)
 		if p.t.Recv != "" {

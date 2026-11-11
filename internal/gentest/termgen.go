@@ -1065,3 +1065,62 @@ func PushTermCases() []TermCase {
 	}
 	return out
 }
+
+// ScalarTermCases returns fixed terms of operators over scalars whose outcome depends on how a target
+// evaluates them rather than on the values alone: a division by zero that fails the term, a logical
+// operator whose right operand would fail if it were evaluated when the left one decides, equalities
+// of two texts, and the arithmetic, comparison and unary operators. Each term is an action on a literal of one byte and one beyond the Basic Multilingual
+// Plane, followed by "c", and a few are predicates, which guard a "b" after it. The rule captures the
+// literal and the "c".
+func ScalarTermCases() []TermCase {
+	actions := []struct{ typ, term string }{
+		{"int", "1 / ($x.End - $x.End)"},
+		{"int", "$y.Start - 1 / $x.Start"},
+		{"bool", "$x.Start > 0 && 1 / $x.Start > 0"},
+		{"bool", "$x.Start == 0 || 1 / $x.Start > 0"},
+		{"bool", "$x.Start == 0 && 1 / $x.Start > 0"},
+		{"bool", "text($x) == text($y)"},
+		{"bool", "text($x) != text($y)"},
+		{"bool", "text($x) == text($x)"},
+		// Arithmetic, comparison and unary operators whose result differs from that of each neighbouring
+		// operator on the literals: a negative dividend shows that / and % truncate toward zero, and
+		// equal operands show < apart from <= and >=.
+		{"int", "$x.End * ($y.End + 1)"},
+		{"int", "(0 - $y.End - 5) / 2"},
+		{"int", "(0 - $y.End - 5) % 3"},
+		{"int", "($y.End + 7) / 2 - ($y.End + 7) % 3"},
+		{"bool", "$x.End < $y.End"},
+		{"bool", "$y.End < $x.End"},
+		{"bool", "$x.End < $x.End"},
+		{"int", "-$y.End"},
+		{"int", "-(-($x.End * 3))"},
+		{"bool", "!($x.Start < $x.End)"},
+		{"bool", "!!($y.End < $x.End)"},
+	}
+	predicates := []string{
+		"text($x) != text($y)",
+		"$x.Start > 0 || text($x) == text($y)",
+	}
+	captures := func(string) map[string]Capture { return map[string]Capture{"x": litCap(0), "y": litCap(1)} }
+	var out []TermCase
+	for _, lit := range []string{"a", "😀"} {
+		in, rule := lit+"c", fmt.Sprintf("x:%q y:\"c\"", lit)
+		for _, a := range actions {
+			out = append(out, TermCase{
+				Case: Case{Name: "scalar: " + a.term,
+					Src:    fmt.Sprintf("@start\nrule main %s = %s $$ => %s\n", a.typ, rule, a.term),
+					Inputs: []string{in}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: captures,
+			})
+		}
+		for _, p := range predicates {
+			out = append(out, TermCase{
+				Case: Case{Name: "scalar predicate: " + p,
+					Src:    fmt.Sprintf("@start\nrule main int = %s ({%s} \"b\" / \"\") $$ => 1\n", rule, p),
+					Inputs: []string{in, in + "b"}},
+				Term: p, Kind: TermPredicate, Lit: lit, Captures: captures,
+			})
+		}
+	}
+	return out
+}

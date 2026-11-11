@@ -168,7 +168,7 @@ func testTermGeneratedTargets(t *testing.T) {
 }
 
 // TestTermFixedGeneratedTargets checks the fixed term sets of gentest (conversions, structs, casts,
-// list and tuple values, iteration and pushes) on generated Go (node and typed) and generated
+// list and tuple values, iteration, pushes and scalar operators) on generated Go (node and typed) and generated
 // TypeScript: each gives the engine's value or error for every input, in both position units. The
 // generated terms of TestTermGeneratedTargets do not reach every form these sets pin, and the charge
 // goldens of the sets compare only the outcome, not the value.
@@ -195,8 +195,9 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 }
 
 // TestTermDifferentialDetectsBrokenTargets is the negative control of TestTermGeneratedTargets: with an
-// operator of the generated Go or TypeScript parsers swapped for another, or the iteration order of
-// foldl reversed, the comparison with the engine fails on some generated term.
+// operator of the generated Go or TypeScript parsers swapped for another, a map turned into a filter, a
+// failure of a term left unraised, the right operand of a logical operator always evaluated or an
+// equality of texts negated, the comparison with the engine fails on some generated or fixed scalar term.
 func TestTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testTermDifferentialDetectsBrokenTargets)
@@ -207,20 +208,49 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	cases, _ := wellTypedTermCases(t, 1, termDifferentialCases, true)
-	list := termCaseList(cases)
+	// The fixed scalar terms fail, short-circuit and compare texts, which the generated terms rarely do.
+	scalar, _ := wellTypedCases(t, gentest.ScalarTermCases())
+	list := termCaseList(append(cases, scalar...))
 	for i := range list {
 		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	// Each mutant changes one pattern of the code. A term printed from Exec IR calls the compositions with
+	// the constant of the operator; a term of a kind that is not lowered (constructors, tuples, list
+	// built-ins, lambdas) is printed by the term printer, which calls the wrappers. The mutants of the
+	// first kind name only the first pattern, so a mismatch comes from lowered code, and each pattern must
+	// occur in the generated code.
 	for _, m := range []struct{ name, from, to string }{
-		{"plus becomes minus", `c.Binary(rt.OpAdd`, `c.Binary(rt.OpSub`},
-		{"times becomes plus", `c.Binary(rt.OpMul`, `c.Binary(rt.OpAdd`},
-		{"map becomes filter", `c.MapList(`, `c.FilterList(`},
+		{"lowered: plus becomes minus", `c.P.TermBinary(rt.OpAdd,`, `c.P.TermBinary(rt.OpSub,`},
+		{"lowered: times becomes plus", `c.P.TermBinary(rt.OpMul,`, `c.P.TermBinary(rt.OpAdd,`},
+		{"lowered: quotient becomes product", `c.P.TermBinary(rt.OpQuo,`, `c.P.TermBinary(rt.OpMul,`},
+		{"lowered: remainder becomes quotient", `c.P.TermBinary(rt.OpRem,`, `c.P.TermBinary(rt.OpQuo,`},
+		{"lowered: less becomes less or equal", `c.P.TermBinary(rt.OpLt,`, `c.P.TermBinary(rt.OpLe,`},
+		{"lowered: equal becomes not equal", `c.P.TermBinary(rt.OpEq,`, `c.P.TermBinary(rt.OpNe,`},
+		{"lowered: negation becomes not", `c.P.TermUnary(rt.OpNeg,`, `c.P.TermUnary(rt.OpNot,`},
+		{"lowered: not becomes negation", `c.P.TermUnary(rt.OpNot,`, `c.P.TermUnary(rt.OpNeg,`},
+		{"lowered: end is read as start", `rt.MemberEnd,`, `rt.MemberStart,`},
+		{"lowered: a failure is not raised", `panic(tf`, `_ = (tf`},
+		{"lowered: a logical operator always evaluates its right operand", `if !tb`, `if true || !tb`},
+		{"lowered: a logical operator always evaluates its right operand (||)", `if tb`, `if true || tb`},
+		{"lowered: a text equality is negated", `any(c.P.TextEqual(`, `any(!c.P.TextEqual(`},
+		{"term printer: plus becomes minus", `c.Binary(rt.OpAdd`, `c.Binary(rt.OpSub`},
+		{"term printer: times becomes plus", `c.Binary(rt.OpMul`, `c.Binary(rt.OpAdd`},
+		{"term printer: map becomes filter", `c.MapList(`, `c.FilterList(`},
 	} {
+		hits := 0
 		got := gentest.GeneratedParsersMismatches(t, goBin, list, gen.GenOptions{}, func(code []byte) []byte {
-			return []byte(strings.ReplaceAll(string(code), m.from, m.to))
+			s := string(code)
+			if n := strings.Count(s, m.from); n > 0 {
+				hits++
+				s = strings.ReplaceAll(s, m.from, m.to)
+			}
+			return []byte(s)
 		})
-		if len(got) == 0 {
+		t.Logf("Go: %s: parsers changed %d of %d cases, mismatches %d", m.name, hits, len(list), len(got))
+		if hits == 0 {
+			t.Errorf("Go: %s: the generated code has no %q", m.name, m.from)
+		} else if len(got) == 0 {
 			t.Errorf("Go: %s: no generated term notices", m.name)
 		}
 	}
@@ -348,11 +378,12 @@ func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term
 }
 
 // fixedTermCases returns the fixed term sets of gentest other than the members, which
-// TestTermGeneratedTargets reads: conversions, structs, casts, list and tuple values, iteration and pushes.
+// TestTermGeneratedTargets reads: conversions, structs, casts, list and tuple values, iteration, pushes
+// and scalar operators.
 func fixedTermCases() []gentest.TermCase {
 	var all []gentest.TermCase
 	for _, set := range [][]gentest.TermCase{gentest.ConvertTermCases(), gentest.StructTermCases(), gentest.CastTermCases(),
-		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases()} {
+		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases(), gentest.ScalarTermCases()} {
 		all = append(all, set...)
 	}
 	return all

@@ -16,10 +16,25 @@ type FieldType struct {
 // error names the input position where the action started and, when line is positive, the grammar
 // position of the cast.
 func (c *ActCtx) Cast(v any, t *FieldType, line, col int) any {
-	if !c.P.termConforms(t, v) {
+	if !c.P.TermConforms(t, v) {
 		c.P.castFailed(typeName(v), t.Text, c.start, line, col)
 	}
 	return v
+}
+
+// TermCastFailed raises the evaluation error of a cast of v to t, a type that v does not fit (see
+// Cast).
+//
+// TermCastFailed is for generated parsers; not a stable API.
+func (c *ActCtx) TermCastFailed(v any, t *FieldType, line, col int) {
+	c.P.castFailed(typeName(v), t.Text, c.start, line, col)
+}
+
+// TermCastFailed is ActCtx.TermCastFailed for the values of the typed runtime.
+//
+// TermCastFailed is for generated parsers; not a stable API.
+func (c *TActCtx) TermCastFailed(v any, t *FieldType, line, col int) {
+	c.P.Parser.castFailed(ttypeName(v), t.Text, c.Start, line, col)
 }
 
 // castFailed raises the evaluation error of a failed cast of a value of type from to type to, at
@@ -34,7 +49,7 @@ func (p *Parser) castFailed(from, to string, pos, gline, gcol int) {
 
 // Cast is ActCtx.Cast for the values of the typed runtime.
 func (c *TActCtx) Cast(v any, t *FieldType, line, col int) any {
-	if !c.P.termConforms(t, v) {
+	if !c.P.TermConforms(t, v) {
 		c.P.Parser.castFailed(ttypeName(v), t.Text, c.Start, line, col)
 	}
 	return v

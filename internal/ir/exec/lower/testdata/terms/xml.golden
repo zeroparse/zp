@@ -1,0 +1,298 @@
+## main action
+not lowered: New, concat
+
+## misc_list action
+not lowered: map, Lambda, param
+
+## xml_decl action
+not lowered: New
+
+## version_info action
+func term() Datum {
+  return term.read([$v])
+}
+
+## encoding_decl action
+func term() Datum {
+  return term.read([$e])
+}
+
+## sd_decl action
+func term() Datum {
+  return term.read([$v])
+}
+
+## comment action
+func term() Datum {
+  return term.read([$c])
+}
+
+## pi action
+not lowered: New
+
+## pi predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$t]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(6, term.fromStr(ts1), term.const(["xml"]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tb3, tf3 = logic(0, tv2)
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tv4 = val.fromBool(false)
+  if tb3 {
+    let ts5, tf5 = text(term.read([$t]))
+    if (tf5 != null(Fail)) {
+      term.raise(tf5)
+    }
+    let tv6, tf6 = binary(6, term.fromStr(ts5), term.const(["xmL"]))
+    if (tf6 != null(Fail)) {
+      term.raise(tf6)
+    }
+    let tb7, tf7 = logic(0, tv6)
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    tv4 = val.fromBool(tb7)
+  }
+  let tb8, tf8 = logic(0, tv4)
+  if (tf8 != null(Fail)) {
+    term.raise(tf8)
+  }
+  let tv9 = val.fromBool(false)
+  if tb8 {
+    let ts10, tf10 = text(term.read([$t]))
+    if (tf10 != null(Fail)) {
+      term.raise(tf10)
+    }
+    let tv11, tf11 = binary(6, term.fromStr(ts10), term.const(["xMl"]))
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tb12, tf12 = logic(0, tv11)
+    if (tf12 != null(Fail)) {
+      term.raise(tf12)
+    }
+    tv9 = val.fromBool(tb12)
+  }
+  let tb13, tf13 = logic(0, tv9)
+  if (tf13 != null(Fail)) {
+    term.raise(tf13)
+  }
+  let tv14 = val.fromBool(false)
+  if tb13 {
+    let ts15, tf15 = text(term.read([$t]))
+    if (tf15 != null(Fail)) {
+      term.raise(tf15)
+    }
+    let tv16, tf16 = binary(6, term.fromStr(ts15), term.const(["xML"]))
+    if (tf16 != null(Fail)) {
+      term.raise(tf16)
+    }
+    let tb17, tf17 = logic(0, tv16)
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    tv14 = val.fromBool(tb17)
+  }
+  let tb18, tf18 = logic(0, tv14)
+  if (tf18 != null(Fail)) {
+    term.raise(tf18)
+  }
+  let tv19 = val.fromBool(false)
+  if tb18 {
+    let ts20, tf20 = text(term.read([$t]))
+    if (tf20 != null(Fail)) {
+      term.raise(tf20)
+    }
+    let tv21, tf21 = binary(6, term.fromStr(ts20), term.const(["Xml"]))
+    if (tf21 != null(Fail)) {
+      term.raise(tf21)
+    }
+    let tb22, tf22 = logic(0, tv21)
+    if (tf22 != null(Fail)) {
+      term.raise(tf22)
+    }
+    tv19 = val.fromBool(tb22)
+  }
+  let tb23, tf23 = logic(0, tv19)
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  let tv24 = val.fromBool(false)
+  if tb23 {
+    let ts25, tf25 = text(term.read([$t]))
+    if (tf25 != null(Fail)) {
+      term.raise(tf25)
+    }
+    let tv26, tf26 = binary(6, term.fromStr(ts25), term.const(["XmL"]))
+    if (tf26 != null(Fail)) {
+      term.raise(tf26)
+    }
+    let tb27, tf27 = logic(0, tv26)
+    if (tf27 != null(Fail)) {
+      term.raise(tf27)
+    }
+    tv24 = val.fromBool(tb27)
+  }
+  let tb28, tf28 = logic(0, tv24)
+  if (tf28 != null(Fail)) {
+    term.raise(tf28)
+  }
+  let tv29 = val.fromBool(false)
+  if tb28 {
+    let ts30, tf30 = text(term.read([$t]))
+    if (tf30 != null(Fail)) {
+      term.raise(tf30)
+    }
+    let tv31, tf31 = binary(6, term.fromStr(ts30), term.const(["XMl"]))
+    if (tf31 != null(Fail)) {
+      term.raise(tf31)
+    }
+    let tb32, tf32 = logic(0, tv31)
+    if (tf32 != null(Fail)) {
+      term.raise(tf32)
+    }
+    tv29 = val.fromBool(tb32)
+  }
+  let tb33, tf33 = logic(0, tv29)
+  if (tf33 != null(Fail)) {
+    term.raise(tf33)
+  }
+  let tv34 = val.fromBool(false)
+  if tb33 {
+    let ts35, tf35 = text(term.read([$t]))
+    if (tf35 != null(Fail)) {
+      term.raise(tf35)
+    }
+    let tv36, tf36 = binary(6, term.fromStr(ts35), term.const(["XML"]))
+    if (tf36 != null(Fail)) {
+      term.raise(tf36)
+    }
+    let tb37, tf37 = logic(0, tv36)
+    if (tf37 != null(Fail)) {
+      term.raise(tf37)
+    }
+    tv34 = val.fromBool(tb37)
+  }
+  return tv34
+}
+
+## doctype action
+not lowered: New, concat
+
+## int_subset action
+not lowered: map, Lambda, param
+
+## system_id action
+not lowered: New
+
+## public_id action
+not lowered: New
+
+## system_literal action
+func term() Datum {
+  return term.read([$l])
+}
+
+## pubid_literal action
+func term() Datum {
+  return term.read([$l])
+}
+
+## element_decl action
+not lowered: New
+
+## mixed action
+not lowered: New, map, Lambda, param
+
+## mixed predicate
+func term() Datum {
+  let tv1, tf1 = length(term.read([$ns]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tv2, tf2 = binary(5, tv1, term.const([0]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return tv2
+}
+
+## choice action
+not lowered: New, concat, list, map, Lambda, param
+
+## sequence action
+not lowered: New, concat, list, map, Lambda, param
+
+## name_particle action
+not lowered: New
+
+## attlist_decl action
+not lowered: New, map, Lambda, param
+
+## att_def action
+not lowered: New
+
+## notation_type action
+not lowered: New, concat, list, map, Lambda, param
+
+## enumeration action
+not lowered: New, concat, list, map, Lambda, param
+
+## ge_decl action
+not lowered: New
+
+## pe_decl action
+not lowered: New
+
+## entity_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## notation_decl action
+not lowered: New
+
+## public_notation action
+not lowered: New
+
+## element action
+not lowered: New, map, Lambda, param, concat
+
+## element predicate
+func term() Datum {
+  let ts1, tf1 = text(term.read([$e]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ts2, tf2 = text(term.read([$n]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  return val.fromBool(term.textEqual(ts1, ts2))
+}
+
+## attribute action
+not lowered: New
+
+## att_value action
+func term() Datum {
+  return term.read([$v])
+}
+
+## markup action
+func term() Datum {
+  return term.read([$c])
+}
+
+## cdsect action
+func term() Datum {
+  return term.read([$c])
+}
+

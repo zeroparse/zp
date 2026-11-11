@@ -203,12 +203,16 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 1)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[1].OperatorsRule = &rt.OperatorsRule{
 		Skip: e6,
 		Operands: []*rt.OperatorsRuleLine{
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e7, Action: nil, Value: sh5},
-			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e10, Action: func(c *rt.ActCtx) any { return c.Cap(0) }, Value: sh11},
+			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e10, Action: func(c *rt.ActCtx) any {
+				return c.Cap(0)
+			}, Value: sh11},
 		},
 		Prefix: []*rt.OperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e19, Action: func(c *rt.ActCtx) any {
 			return c.NewStruct("Unary", "Op", rt.UnboxValue(c.Op), "X", rt.UnboxValue(c.Rhs))
@@ -254,7 +258,9 @@ func init() {
 		Skip: e30,
 		Operands: []*rt.TOperatorsRuleLine{
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e31, Action: nil, Value: sh5},
-			&rt.TOperatorsRuleLine{Scope: []string{"e"}, M: e32, Action: func(c *rt.TActCtx) any { return c.Cap(0) }, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{"e"}, M: e32, Action: func(c *rt.TActCtx) any {
+				return c.Cap(0)
+			}, Value: sh11},
 		},
 		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e35, Action: func(c *rt.TActCtx) any { return tmk_Unary(c, true, (c.Op), (c.Rhs)) }, Value: sh5}}},
 		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e33, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh5}},
@@ -967,7 +973,13 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = k1
+	{
+		var tr2 any
+		{
+			tr2 = k1
+		}
+		v = tr2
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -1307,4 +1319,4 @@ func s4(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_0f42d2a8b4d24bd6
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

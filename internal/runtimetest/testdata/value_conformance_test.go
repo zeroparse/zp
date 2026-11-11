@@ -11,8 +11,8 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
-// The compositions of the operators of terms in the generated Go runtimes (termBinary, termUnary and
-// termLogic, printed from Exec IR) are the subjects of the value conformance, for node parsers and for
+// The compositions of the operators of terms in the generated Go runtimes (TermBinary, TermUnary and
+// TermLogic, printed from Exec IR) are the subjects of the value conformance, for node parsers and for
 // typed parsers. Each returns its failure as a value, whose text the binding returns.
 
 type goValues struct {
@@ -94,9 +94,9 @@ func (g goValues) Call(o *exec.Op, args []any) (res []any) {
 }
 
 var (
-	nodeValues  = goValues{(&Parser{}).termBinary, (&Parser{}).termUnary, (&Parser{}).termLogic, false}
+	nodeValues  = goValues{(&Parser{}).TermBinary, (&Parser{}).TermUnary, (&Parser{}).TermLogic, false}
 	typedParser = &TParser{Parser: &Parser{}}
-	typedValues = goValues{typedParser.termBinary, typedParser.termUnary, typedParser.termLogic, true}
+	typedValues = goValues{typedParser.TermBinary, typedParser.TermUnary, typedParser.TermLogic, true}
 )
 
 // controlledValues binds the compositions of a parser that runs under budget controls, whose string
@@ -105,7 +105,7 @@ func controlledValues() (node, typed goValues) {
 	control := newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
 	p := &Parser{Control: control}
 	tp := &TParser{Parser: &Parser{Control: control}}
-	return goValues{p.termBinary, p.termUnary, p.termLogic, false}, goValues{tp.termBinary, tp.termUnary, tp.termLogic, true}
+	return goValues{p.TermBinary, p.TermUnary, p.TermLogic, false}, goValues{tp.TermBinary, tp.TermUnary, tp.TermLogic, true}
 }
 
 func TestValueConformance(t *testing.T) {
@@ -209,18 +209,18 @@ func TestValueBoxedOperands(t *testing.T) {
 		{OpEq, box(nil), nil, true},
 		{OpEq, box(1), nil, false},
 	} {
-		got, e := p.termBinary(c.op, c.l, c.r)
+		got, e := p.TermBinary(c.op, c.l, c.r)
 		if e != nil || got != c.want {
 			t.Errorf("%v op %d %v = %v, %v; want %v", c.l, c.op, c.r, got, e, c.want)
 		}
 	}
-	if _, e := p.termBinary(OpAdd, box(1), 1); e == nil {
+	if _, e := p.TermBinary(OpAdd, box(1), 1); e == nil {
 		t.Error("a box is an operand of +")
 	}
 }
 
 // TestValueCompareStrings holds the comparison of two unboxed strings of the typed runtime
-// (TActCtx.Compare, whose fast path decides in compareStrings) to the composition termBinary on
+// (TActCtx.Compare, whose fast path decides in compareStrings) to the composition TermBinary on
 // every pair of strings of the pool, for each comparison operator: the same answer and, under a
 // budget control, the same units, which a fast path that skips the control would not charge.
 // compareStrings is written by hand, so the composition is its reference.
@@ -252,7 +252,7 @@ func TestValueCompareStrings(t *testing.T) {
 			for _, l := range strs {
 				for _, r := range strs {
 					beforeFast, beforeComposed := used(fast), used(composed)
-					want, e := composed.termBinary(op, l, r)
+					want, e := composed.TermBinary(op, l, r)
 					if e != nil {
 						t.Fatalf("controlled=%v: %q op %d %q fails: %v", controlled, l, op, r, e)
 					}

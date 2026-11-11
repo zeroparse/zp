@@ -1,0 +1,25 @@
+## main action
+func term() Datum {
+  return term.read([$v])
+}
+
+## object action
+not lowered: New, concat
+
+## members action
+not lowered: concat, list, map, Lambda, param
+
+## member action
+not lowered: New
+
+## array action
+not lowered: New, concat
+
+## elements action
+not lowered: concat, list, map, Lambda, param
+
+## string action
+func term() Datum {
+  return term.read([$s])
+}
+

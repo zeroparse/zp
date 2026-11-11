@@ -33,7 +33,7 @@ a different signature, state, features or cost bound.
 | 5 | [Compositions](compositions.md) | The functions written once for every runtime, and their specializations |
 | 6 | [Invariants](invariants.md) | What a well-formed module guarantees and what verification checks |
 | 7 | [Passes](passes.md) | The transformations of functions that keep their behavior |
-| 8 | [Lowering From Flow IR](lowering.md) | How the function of a rule variant becomes a function of Exec IR |
+| 8 | [Lowering From Flow IR](lowering.md) | How the function of a rule variant, and a term of the action language, becomes a function of Exec IR |
 | 9 | [Printing](printing.md) | How a function becomes Go or TypeScript, and the runtime protocol |
 | 10 | [Text Form](text-form.md) | The printed form of a module |
 

@@ -1,0 +1,27 @@
+# The functions and methods of the runtime that generated Go parsers call only for terms printed from
+# Exec IR, as Receiver.Name; they are for generated parsers and not a stable API. The constants are the kinds of member reads
+# that they pass.
+ActCtx.TermCastFailed
+Parser.TermBinary
+Parser.TermConforms
+Parser.TermConvert
+Parser.TermLength
+Parser.TermLogic
+Parser.TermMember
+Parser.TermNodeType
+Parser.TermText
+Parser.TermUnary
+TActCtx.TermCastFailed
+TParser.TermBinary
+TParser.TermConforms
+TParser.TermConvert
+TParser.TermLength
+TParser.TermLogic
+TParser.TermMember
+TParser.TermText
+TParser.TermUnary
+const MemberCapture
+const MemberEnd
+const MemberField
+const MemberStart
+const MemberValue

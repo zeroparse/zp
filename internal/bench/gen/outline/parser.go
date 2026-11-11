@@ -203,13 +203,17 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 1)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[1].Body = e3
 	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
 	rules[2].Body = e4
 	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Item", "Text", c.Cap(1), "Children", c.Concat(c.Cap(2))) }
 	rules[3].Body = e5
-	rules[3].Action = func(c *rt.ActCtx) any { return c.Cap(1) }
+	rules[3].Action = func(c *rt.ActCtx) any {
+		return c.Cap(1)
+	}
 	zpGrammar.DeclareStruct("Item", "Text", "-", "Children", "l")
 	zpGrammar.TypeKinds["Item"] = rt.KindOf("Item", "")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
@@ -232,7 +236,9 @@ func e1(p *rt.Parser, _ int) (*rt.Node, bool) {
 	var ok bool
 	var v2 *rt.Node
 	var x4 rt.Mark
-	if !p.Bind(0, func(c *rt.ActCtx) any { return any(0) }) {
+	if !p.Bind(0, func(c *rt.ActCtx) any {
+		return any(0)
+	}) {
 		goto fail
 	}
 	if v2, ok = p.Call(rules[1], 0); !ok {
@@ -328,7 +334,18 @@ func e4(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
 	if v4, ok = r5(p); !ok {
@@ -388,10 +405,27 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.ActCtx) any { return c.Length(c.Cap(0)) }) {
+	if !p.Bind(0, func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		return tv1
+	}) {
 		goto fail
 	}
 	if v10, ok = p.Call(rules[1], 0); !ok {
@@ -574,7 +608,9 @@ func e15(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
-	if !p.Bind(0, func(c *rt.ActCtx) any { return any(0) }) {
+	if !p.Bind(0, func(c *rt.ActCtx) any {
+		return any(0)
+	}) {
 		goto fail
 	}
 	if _, ok = p.Call(recRules[1], 0); !ok {
@@ -661,7 +697,18 @@ func e18(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpEq, c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
 	if _, ok = q5(p); !ok {
@@ -717,10 +764,27 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any { return c.Binary(rt.OpGt, c.Length(c.Cap(0)), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.ActCtx) any { return c.Length(c.Cap(0)) }) {
+	if !p.Bind(0, func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		return tv1
+	}) {
 		goto fail
 	}
 	if _, ok = p.Call(recRules[1], 0); !ok {
@@ -876,7 +940,9 @@ func i0(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	prevEnv = p.Env
-	if !p.Bind(0, func(c *rt.TActCtx) any { return any(0) }) {
+	if !p.Bind(0, func(c *rt.TActCtx) any {
+		return any(0)
+	}) {
 		goto fail
 	}
 	if v3, ok = u1(p); !ok {
@@ -903,7 +969,13 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = k1
+	{
+		var tr11 any
+		{
+			tr11 = k1
+		}
+		v = tr11
+	}
 	v = c.Finish(v)
 	p.Env = prevEnv
 	return v, true
@@ -1005,7 +1077,18 @@ func i2(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	k1 = v3
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpEq, c.Length(k1), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any {
+		tv1, tf1 := c.P.TermLength(k1)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
 	if v6, ok = s5(p); !ok {
@@ -1084,10 +1167,27 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.TActCtx) any { return c.Binary(rt.OpGt, c.Length(k7), c.Var(0)) }) {
+	if !p.Predicate(func(c *rt.TActCtx) any {
+		tv1, tf1 := c.P.TermLength(k7)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := c.Var(0)
+		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
+		if tf3 != nil {
+			panic(tf3)
+		}
+		return tv3
+	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any { return c.Length(k7) }) {
+	if !p.Bind(0, func(c *rt.TActCtx) any {
+		tv1, tf1 := c.P.TermLength(k7)
+		if tf1 != nil {
+			panic(tf1)
+		}
+		return tv1
+	}) {
 		goto fail
 	}
 	if v12, ok = u1(p); !ok {
@@ -1096,7 +1196,13 @@ L3:
 	k10 = v12
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "children"
-	v = k10
+	{
+		var tr15 any
+		{
+			tr15 = k10
+		}
+		v = tr15
+	}
 	v = c.Finish(v)
 	p.Depth--
 	p.Env = prevEnv
@@ -1252,4 +1358,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6

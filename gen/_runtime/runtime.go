@@ -274,12 +274,17 @@ func (n *Node) BaseNode() *Node {
 // Convert evaluates a node type constructor T{v}: it converts v to the named node type typ, as the
 // composition convert (term_exec.go) does.
 func (c *ActCtx) Convert(typ string, v any) any {
-	n, e := c.P.termConvert(c.P.g.NodeTypes[typ], v)
+	n, e := c.P.TermConvert(c.P.g.NodeTypes[typ], v)
 	if e != nil {
 		panic(e)
 	}
 	return n
 }
+
+// TermNodeType returns the named node type typ, the operand of TermConvert.
+//
+// TermNodeType is for generated parsers; not a stable API.
+func (p *Parser) TermNodeType(typ string) *nodeTypeKinds { return p.g.NodeTypes[typ] }
 
 // ruleKinds are the kinds of a rule's nodes: the reserved types with the rule's name.
 type ruleKinds struct {
@@ -3487,7 +3492,7 @@ func (o TOperand) value() any {
 // Member reads x.name, as the composition member (term_exec.go) does.
 func (c *ActCtx) Member(x any, name string) any {
 	kind, field := memberKind(name)
-	v, e := c.P.termMember(c, kind, x, name, field)
+	v, e := c.P.TermMember(c, kind, x, name, field)
 	if e != nil {
 		panic(e)
 	}
@@ -3539,7 +3544,7 @@ func (c *ActCtx) zeroValue(d string) (any, string) {
 
 // Length is the built-in function len, as the composition length (term_exec.go) makes it.
 func (c *ActCtx) Length(x any) any {
-	v, e := c.P.termLength(x)
+	v, e := c.P.TermLength(x)
 	if e != nil {
 		panic(e)
 	}
@@ -3548,7 +3553,7 @@ func (c *ActCtx) Length(x any) any {
 
 // Text is the built-in function text, as the composition text (term_exec.go) makes it.
 func (c *ActCtx) Text(x any) any {
-	s, e := c.P.termText(x)
+	s, e := c.P.TermText(x)
 	if e != nil {
 		panic(e)
 	}
@@ -3558,7 +3563,7 @@ func (c *ActCtx) Text(x any) any {
 // TextStr returns text(x) as a string. Comparisons of two texts use it directly, since storing a
 // string in an interface allocates.
 func (c *ActCtx) TextStr(x any) string {
-	s, e := c.P.termText(x)
+	s, e := c.P.TermText(x)
 	if e != nil {
 		panic(e)
 	}

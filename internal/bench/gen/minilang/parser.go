@@ -600,7 +600,9 @@ func init() {
 	rules[2].Body = e6
 	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Block", "Body", c.Cap(0)) }
 	rules[3].Body = e8
-	rules[3].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[3].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[4].Body = e10
 	rules[4].Action = func(c *rt.ActCtx) any { return c.NewStruct("Let", "Name", c.Cap(0), "Value", c.Cap(1)) }
 	rules[5].Body = e11
@@ -608,7 +610,9 @@ func init() {
 	rules[6].Body = e12
 	rules[6].Action = func(c *rt.ActCtx) any { return c.NewStruct("If", "Cond", c.Cap(0), "Then", c.Cap(1), "Else", c.Cap(2)) }
 	rules[7].Body = e13
-	rules[7].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[7].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[8].Body = e14
 	rules[8].Action = func(c *rt.ActCtx) any { return c.NewStruct("While", "Cond", c.Cap(0), "Body", c.Cap(1)) }
 	rules[9].Body = e15
@@ -627,7 +631,9 @@ func init() {
 	rules[12].Body = e22
 	rules[12].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExprStmt", "X", c.Cap(0)) }
 	rules[13].Body = e23
-	rules[13].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[13].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[14].OperatorsRule = &rt.OperatorsRule{
 		Skip: e56,
 		Operands: []*rt.OperatorsRuleLine{
@@ -635,7 +641,9 @@ func init() {
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e58, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e59, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e60, Action: nil, Value: sh38},
-			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e61, Action: func(c *rt.ActCtx) any { return c.Cap(0) }, Value: sh48},
+			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e61, Action: func(c *rt.ActCtx) any {
+				return c.Cap(0)
+			}, Value: sh48},
 			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e64, Action: func(c *rt.ActCtx) any { return c.NewStruct("ArrayLit", "Elems", c.Concat(c.Cap(0))) }, Value: sh48},
 		},
 		Prefix: []*rt.OperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e87, Action: func(c *rt.ActCtx) any {
@@ -675,9 +683,13 @@ func init() {
 	}
 	rules[16].Body = e26
 	rules[17].Body = e27
-	rules[17].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[17].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	rules[21].Body = e31
-	rules[21].Action = func(c *rt.ActCtx) any { return c.Cap(0) }
+	rules[21].Action = func(c *rt.ActCtx) any {
+		return c.Cap(0)
+	}
 	zpGrammar.DeclareStruct("ArrayLit", "Elems", "l")
 	zpGrammar.TypeKinds["ArrayLit"] = rt.KindOf("ArrayLit", "")
 	zpGrammar.DeclareStruct("Assign", "Target", "-", "Value", "-")
@@ -761,7 +773,9 @@ func init() {
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e125, Action: nil, Value: sh38},
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e126, Action: nil, Value: sh38},
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e127, Action: nil, Value: sh38},
-			&rt.TOperatorsRuleLine{Scope: []string{"e"}, M: e128, Action: func(c *rt.TActCtx) any { return c.Cap(0) }, Value: sh48},
+			&rt.TOperatorsRuleLine{Scope: []string{"e"}, M: e128, Action: func(c *rt.TActCtx) any {
+				return c.Cap(0)
+			}, Value: sh48},
 			&rt.TOperatorsRuleLine{Scope: []string{"xs"}, M: e129, Action: func(c *rt.TActCtx) any { return tmk_ArrayLit(c, true, c.Concat(c.Cap(0))) }, Value: sh48},
 		},
 		Prefix: []*rt.TOperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e136, Action: func(c *rt.TActCtx) any { return tmk_Unary(c, true, (c.Op), (c.Rhs)) }, Value: sh38}}},
@@ -5159,7 +5173,9 @@ fail:
 	return nil, false
 }
 
-func ta3(c *rt.TActCtx) any { return c.Cap(0) }
+func ta3(c *rt.TActCtx) any {
+	return c.Cap(0)
+}
 
 // rule stmt
 func u3(p *rt.TParser) (any, bool) {
@@ -5431,7 +5447,13 @@ L6:
 	k1 = v5
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "else"
-	v = k1
+	{
+		var tr6 any
+		{
+			tr6 = k1
+		}
+		v = tr6
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -5742,7 +5764,13 @@ L7:
 	k1 = v8
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "expr"
-	v = k1
+	{
+		var tr7 any
+		{
+			tr7 = k1
+		}
+		v = tr7
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -6526,7 +6554,13 @@ L7:
 	k1 = v8
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "name"
-	v = k1
+	{
+		var tr8 any
+		{
+			tr8 = k1
+		}
+		v = tr8
+	}
 	v = c.Finish(v)
 	v = p.TConvertResult(trules[17], v)
 	return v, true
@@ -6634,7 +6668,13 @@ func i21(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "string"
-	v = k1
+	{
+		var tr9 any
+		{
+			tr9 = k1
+		}
+		v = tr9
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -7326,4 +7366,4 @@ fail:
 
 const _ = types.ZPSchema_3d84369c53f6b3f2
 
-const _ = rt.Protocol5
+const _ = rt.Protocol6
