@@ -1,6 +1,6 @@
 # Memoization
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-12
 
 This proof shows that [memoization](../runtime/parsing.md#memoization) never
 changes the result of a parse. A parse that answers calls from the memo returns
@@ -80,8 +80,9 @@ evaluating it, under these conditions:
   also keep, apart from the table, the outcome and range of a call at $p$ that
   read open growths, with its key, state and present set $P$, the current
   results that it read, and the observations of the lookaheads at $p$ within
-  it that read one. It answers a call with the same key and state and the
-  present set $P$ from it only if each growth that it read is open with an
+  it that read one. It answers a call with the same key, the present set $P$
+  and a lookahead state at least the state of the result, as (L) allows for an
+  entry, from it only if each growth that it read is open with an
   equal current result and each observed lookahead has the same observation,
   as a result kept in the same way gives it. Only a lookahead that leaves
   nothing after it but whether its expression matched is observed: a negative
@@ -99,19 +100,11 @@ evaluating it, under these conditions:
   result of $L$, directly or through the lookaheads that it observed. It drops
   what it keeps when the first growth open at $p$ ends.
 
-  **Open gap.** A result of a call that $\mathcal{M}$ computed outside a
-  lookahead also answers a call of the same key inside a lookahead, so a kept
-  result answers a call whose state is at least the state in which it was
-  computed, not only one of the same state. The argument of Lemma 3 and of
-  Lemma 4 below covers a kept result only for a call of the same state; it is
-  not yet extended to these results, and the claim of item 4 of the proof of
-  the theorem rests on that extension for them.
-
 (S) is the last item of
 [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) that
 concerns the table, and (C) and (D) state the item on contexts; (L) is
-assumption (A2) below. Which outcomes $\mathcal{M}$ stores, and when it uses
-them, is otherwise free. Storing none, storing from the second call at a
+assumption (A2) below, which applies to what (D) keeps as to an entry. Which
+outcomes $\mathcal{M}$ stores, and when it uses them, is otherwise free. Storing none, storing from the second call at a
 position, or not storing the results of some rules are all instances of
 $\mathcal{M}$. A test of equality of two current results that only ever
 claims equality for equal results, such as one that compares identities given
@@ -123,8 +116,8 @@ lists: in every parse of the engine, whose traces report them, and in a
 [Document](../runtime/documents.md) parse of a generated Go parser. A parse that records
 no range may, in (D), take two observations to be the same when the
 expressions of both lookaheads matched or both failed, and two current results
-to be equal whatever their ranges. Lemma 4 then gives $y$ the outcome $\omega$
-but not necessarily the range $\rho$: an observed lookahead leaves nothing
+to be equal whatever their ranges. Lemma 4 then gives $y$ its outcome but not
+necessarily the range $\rho$: an observed lookahead leaves nothing
 after it but whether its expression matched, and its range enters only the
 range of the call around it. For such a parse the proof below holds
 with the ranges left out, that is, with soundness, Lemma 3, Lemma 4 and the
@@ -163,6 +156,83 @@ The proof relies on the following rules of the specification, which it cites.
   theorem a comparison therefore decides alike in both parses. An error is
   raised for the same operands in both, so it is the run-time error of $s$.
 
+## Agreeing Values
+
+Two values **agree** when they differ at most in the messages of error
+values: they are the same `int`, `string` or `bool`, or both `nil`, or both
+error values with the same range, or nodes, structs, tuples or lists of the
+same kind and the same type name, with the same range where they have one,
+whose values, fields, captures and elements agree in order. Agreement is an
+equivalence relation.
+
+**Actions on agreeing values.** Let an action or a predicate be evaluated
+twice, at the same position, with the same values of the variables and with
+captures whose values agree. Then both evaluations raise the same run-time
+error, or neither does; if neither does, their values agree, and a predicate
+succeeds in both or fails in both.
+
+*Proof.* By induction on the action expression. The rules of
+[Actions](../language/actions.md) define each operation, and each run-time
+error, from the kinds, type names, ranges, fields, captures, elements and
+scalars of its operands, which agreeing values share, and none of them reads
+the message of an error value:
+
+- A literal is the same in both. A variable holds an `int`, a `string` or a
+  `bool` ([Variables](../language/predicates.md#variables)), which is the same
+  in both. A capture reference has values that agree by the assumption, and a
+  parameter of a lambda is bound, by the induction hypothesis, to values that
+  agree.
+- The operators accept scalars, and `==` and `!=` also any value with `nil`
+  ([Operators](../language/actions.md#operators-and-functions)). Agreeing
+  scalars are equal and agreeing values are `nil` in both or in neither, so
+  the result, or the error, is the same (A3).
+- A constructor, a typed list literal, a tuple literal, `list` and `concat`
+  build from agreeing parts, evaluated in the same order, a value that agrees.
+  A constructor checks nothing when it runs
+  ([Values and Constructors](../language/actions.md#values-and-constructors)).
+  The range that a struct, list or tuple gets covers the ranges of its parts
+  ([Value and Range Details](../language/actions.md#value-and-range-details)),
+  which are the same in both. A conversion `N{x}` keeps the range and the
+  content of a node, and does not accept an error value
+  ([Named Node Types](../language/types.md#named-node-types)).
+- A field access reads fields that agree, and reads `nil` from an error value
+  in both ([Field Access](../language/actions.md#field-access)); its run-time
+  errors, on `nil` and on a struct whose type lacks the field, depend on the
+  kind and the type of the receiver. `.Start` and `.End` read a range, and
+  `.Value` a value that agrees. A capture access reads captures that agree,
+  or `nil` for an unmatched capture in both.
+- Whether a value fits the Type of a cast depends on its kind, its type name
+  and, through its value and elements, on theirs
+  ([Casts](../language/actions.md#casts)): an error value fits only a Type that
+  admits `error`. The run-time error of a cast names the type of the value,
+  `error` for an error value
+  ([Type Checking](../language/type-checking.md)), and the position where the
+  rule started, which are the same in both.
+- An index reads the element of a list or tuple of the same length in both,
+  and the elements agree.
+- The argument of `len` and `text` is a string or a node, possibly `nil`
+  ([Type Checking](../language/type-checking.md)); an error value is neither,
+  and a value of type `_` reaches them only through a cast, which an error
+  value fails as above. `len` reads the length of a string, the range of a
+  string node or the number of elements of a list or tuple, and `text` a
+  string or the input of a range, the same in both
+  ([Built-In Functions](../language/actions.md#built-in-functions)).
+- `foldl`, `foldr`, `map` and `filter` visit lists of the same length, an
+  error value as an empty list in both, and call their lambdas in the same
+  order with arguments that agree; by the induction hypothesis the results
+  agree, so `filter` keeps the same elements and the folds pass on
+  accumulators that agree.
+
+A predicate succeeds when its value is `true`, which is a scalar and the same
+in both, and a run-time error makes it fail in both
+([Types and Errors](../language/actions.md#types-and-errors)). $\square$
+
+An error value can thus be stored, cast, compared with `nil` and passed on,
+but no operation reads its message. A value of the type `missing`, whose
+fields `expected` and `message` an action can read, is made only by the
+insertion of a [`#missing`](../language/pragmas.md#missing) token, which is
+outside the scope.
+
 ## Lemma 1 (Context)
 
 In $\mathcal{R}$, let a call read no growth open at its start. Then its $s$,
@@ -170,9 +240,9 @@ its $q$, its run-time error, if any, and its examined range are functions of
 its key $\kappa$, and its outcome is a function $F(\kappa, \lambda)$ of its key
 and lookahead state. The two outcomes $F(\kappa, 0)$ and $F(\kappa, 1)$
 **agree**: they differ at most in their farthest failures and in the errors that
-`#recover` builds, those of $\varepsilon$ and the error values in $v$, so they
-have recovered errors of the same number, and the same value when they have
-none.
+`#recover` builds, so they have the same $s$ and $q$, recovered errors of the
+same number and values that agree ([Agreeing Values](#agreeing-values)), the
+same value when they have no recovered error.
 
 *Proof.* By induction on the nesting of evaluations, which is finite
 ([Termination](../runtime/parsing.md#termination)). The evaluation of the body
@@ -203,19 +273,23 @@ of $A$ at $p$ depends on the following state and on nothing else:
   annotated expression: their positions, their lines and columns, their
   expected items, and the messages of the error values in $v$.
 
-None of what $\lambda$ changes reaches a decision of the parser. An error value
-is a node of the kind error whose text is its message
-([`#recover`](../language/pragmas.md#recover)), but an action or predicate
-cannot read that text: `text` does not accept a value of the type `error`, so
-`text($x)` on an error value is a compile-time error, and the type `error`
-declares no field ([Built-In Functions](../language/actions.md#built-in-functions)).
-By (A3), `==` does not compare an error node, so a comparison never reads its
-message either. So $s$, $q$,
-the run-time error and the examined range are the same for both states, each
-`#recover` recovers in both or in neither, $\varepsilon$ has the same
-length, and $v$ is the same except in its error values. When $\varepsilon$ is
-empty, no recovery took place on the path that matched, so $v$ holds no error
-value and is the same. $\square$
+None of what $\lambda$ changes reaches a decision of the parser. Compare the
+evaluations in the two states step by step. As long as they have taken the
+same steps, the values that they have built agree: a recovery skips the same
+input in both, since its skip expression starts at the same position, so its
+error value has the same range, and only its message, made from the recorded
+error, depends on $\lambda$ ([`#recover`](../language/pragmas.md#recover)); a
+capture, a sequence or a repetition puts agreeing values together, and a call
+gives a value that agrees, by the induction hypothesis. So an action or a
+predicate reads captures that agree, and by
+[Actions on agreeing values](#agreeing-values) it raises the same run-time
+error in both, or builds values that agree, and a predicate decides alike. A
+binding stores an `int`, a `string` or a `bool`, the same in both. No other
+step reads a value, so the next step is the same in both. So $s$, $q$, the
+run-time error and the examined range are the same for both states, each
+`#recover` recovers in both or in neither, $\varepsilon$ has the same length,
+and the values agree. When $\varepsilon$ is empty, no recovery took place on
+the path that matched, so $v$ holds no error value and is the same. $\square$
 
 The same argument shows that an evaluation in state $1$ whose parts have
 outcomes that agree with other ones has an outcome that agrees with the one
@@ -278,19 +352,36 @@ $F(\kappa, 1)$. $\square$
 
 Let a call $x$ in $\mathcal{R}$, of key $\kappa$ in state $\lambda$ at $p$
 in a context $\Gamma_1$ with the present set $P$, have the outcome $\omega$
-and the range $\rho$, and let a call $y$ of the same key and state in a
-context $\Gamma_2$ with the present set $P$ find each growth that $x$ read open
-with an equal current result, and each lookahead at $p$ that $x$ observed with
-the same observation. Then $y$ has the outcome $\omega$ and the range
-$\rho$.
+and the range $\rho$, and let a call $y$ of the same key in a state
+$\lambda' \ge \lambda$, in a context $\Gamma_2$ with the present set $P$, find
+each growth that $x$ read open with a current result that **matches** the one
+that $x$ read, and each lookahead at $p$ that $x$ observed with the same
+observation. A current result matches another when it is equal to it or, if
+$\lambda' = 1$, agrees with it and has the same examined range. Then $y$ has the
+range $\rho$, and the outcome $\omega$ if $\lambda' = 0$, and one that agrees
+with $\omega$ if $\lambda' = 1$. Outside the lookaheads that $x$ observed, the
+two evaluations make the same calls at the same positions and take the same
+decisions.
 
 *Proof.* Compare the evaluations of $x$ and $y$ from their start. They take
-the same steps as long as each step reads the same state, and, as in Lemma 1,
-the state that a step reads differs between them only in the growths open at
-$p$ at their start. A call of a leader at $p$ is answered with a current
-result in both or in neither: only a growth of the cycle of the rule can
-answer it (Lemma 2), and the present sets are equal; when it is, the result is
-equal, since $x$ read it. A lookahead at $p$ that reads such a growth and that
+the same steps as long as each step reads the same state, or one that differs
+only in what no decision reads, and, as in Lemma 1, the state that a step reads
+differs between them only in the growths open at $p$ at their start and in the
+lookahead state.
+
+The lookahead state differs only when $\lambda = 0$ and $\lambda' = 1$, and
+then, as in Lemma 1, it changes only the farthest failures that the steps
+record and the messages of the error values that recoveries build. The values
+that the two evaluations build therefore agree, step by step, and by
+[Actions on agreeing values](#agreeing-values) no action or predicate decides
+differently or raises a different run-time error, as in the proof of Lemma 1.
+A step inside a lookahead within $x$ is in state $1$ in both.
+
+A call of a leader at $p$ is answered with a current result in both or in
+neither: only a growth of the cycle of the rule can answer it (Lemma 2), and
+the present sets are equal; when it is, the results match, since $x$ read it,
+so they have the same $s$, $q$ and examined range and values that agree. A
+lookahead at $p$ that reads such a growth and that
 $x$ observed has the same outcome and range in both, and nothing else of it
 remains after it: by (A1) its expression records no expected item and no
 farthest failure; a failing expression and a negative lookahead have no other
@@ -300,9 +391,17 @@ recovered in it ([Lookahead](../language/parser-expressions.md#lookahead)). A lo
 the growths that it reads are among those that $x$ read. A call at
 $p$ within $x$ that grows a leader of the cycle grows it in both, from the same
 failing seed; its steps read the growths open at the start of $x$ only in the
-ways above, so by induction on the steps they have the same outcomes, and so
-does the growth. A call at a later position reads no growth open at the start
-of $x$ (Lemma 2). $\square$
+ways above, so by induction on the steps they have outcomes that match, equal
+when $\lambda' = 0$, and stop at the same step, and so does the growth. A call
+at a later position reads no growth open at the start of $x$ (Lemma 2), so by
+Lemma 1 its outcomes in the two evaluations are equal when the states are, and
+agree otherwise.
+
+So the two evaluations take the same decisions, with the same steps and
+examined ranges, and their outcomes differ at most where the current results
+that they read and the lookahead states differ: not at all when
+$\lambda' = 0$, and only in what agreement allows when $\lambda' = 1$.
+$\square$
 
 ## Theorem (Memoization Never Changes the Result)
 
@@ -334,12 +433,15 @@ following.
    in both parses, so they have the same outcome and examine the same input.
    The values they read are equal by (I1), though they may be different nodes,
    and by (A3) a comparison depends only on scalar values and on whether a
-   value is `nil`.
+   value is `nil`. In state $1$ the values they read agree, and by
+   [Actions on agreeing values](#agreeing-values) they decide alike, raise the
+   same run-time error and build values that agree.
 2. *A combinator.* A sequence, choice, repetition, option, lookahead, cut,
    capture or `#recover` combines the outcomes of its parts by the rules of
    [Rule Expressions](../language/parser-expressions.md) and records them in
    order. Its parts satisfy (I1) and (I2), so it does too: in state $1$ by
-   Lemma 1, since no decision reads an error that `#recover` built. A
+   Lemma 1, since no decision reads an error that `#recover` built
+   ([Agreeing Values](#agreeing-values)). A
    lookahead or the `skip` of an Operators Rule in state $0$, whose
    expression is in state $1$, has an outcome equal in both parses. Its
    expression matches in both or in neither and records no farthest failure
@@ -353,17 +455,20 @@ following.
 3. *A call answered with the current result of an open growth.* Both parses
    answer it so. The current result is the outcome of a completed body
    evaluation of the growth (item 5), or the failing seed, so it is the same in
-   both parses.
+   both parses, or agrees in state $1$.
 4. *A call answered from an entry.* By (I3) the entry is sound, so by Lemma 3
-   (I1) and (I2) hold for $x$. A call answered from a result that (D) keeps
-   in the state of the call was answered under the conditions of Lemma 4, and
-   that result was the outcome and range of an evaluation of $\mathcal{M}$
-   that completed before, which satisfies (I1) and (I2); so by Lemma 4 they
-   hold for $x$. For a result kept in a smaller state, (I1) and (I2) are the
-   open gap stated with (D). Equal
-   current results read in both parses are equal by (I1). A step of a growth
+   (I1) and (I2) hold for $x$. A call answered from a result that (D) keeps,
+   in its state or in a smaller one, was answered under the conditions of
+   Lemma 4, and that result was the outcome and range of an evaluation of
+   $\mathcal{M}$ that completed before, which satisfies (I1) and (I2). The
+   current results that the two read are equal in both parses in state $0$ and
+   agree in state $1$, by (I1), so they match in $\mathcal{R}$ as they do in
+   $\mathcal{M}$. By Lemma 4 the outcome of $x$ in $\mathcal{R}$ is then that
+   of the earlier evaluation in $\mathcal{R}$ if $x$ is in state $0$, and
+   agrees with it if $x$ is in state $1$, and agreement is an equivalence, so
+   (I1) and (I2) hold for $x$. A step of a growth
    answered in the same way has by Lemma 4 the outcome that evaluating it
-   gives. In a run of steps of a growth of $L$ taken at once, from current
+   gives, or one that agrees with it in state $1$. In a run of steps of a growth of $L$ taken at once, from current
    results $r_0, \dots, r_{k-1}$ to $r_1, \dots, r_k$, step $i$ read only the
    growth of $L$, with the current result $r_{i-1}$, and observed lookaheads.
    The run is taken from a current result equal to $r_0$, and each of those
@@ -371,8 +476,8 @@ following.
    reading a current result of $L$. An evaluation that reads no current result
    of $L$ is the same whatever that result is, so each lookahead also has that
    observation while the current result is $r_{i-1}$. By induction on $i$,
-   Lemma 4 gives step $i$ the outcome $r_i$, so the run has the outcomes that
-   evaluating its steps gives.
+   Lemma 4 gives step $i$ the outcome $r_i$, or one that agrees with it in
+   state $1$, so the run has the outcomes that evaluating its steps gives.
 5. *A call that evaluates the body of a rule, or grows a leader.* A body
    evaluation is nested in $x$ and satisfies (I1) and (I2). A growth evaluates
    the body with the current result fixed, compares the end of its outcome with
