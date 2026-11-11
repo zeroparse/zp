@@ -79,15 +79,15 @@ func errOps(code int) string {
 // goTermConsts returns the constants and the tables of the operators of terms for the Go runtime.
 func goTermConsts() string {
 	var b strings.Builder
-	b.WriteString("\n// The codes of the binary operators, as the compositions of terms take them.\nconst (\n")
+	b.WriteString("\n// The codes of the binary operators, as the compositions of terms take them, for generated parsers;\n// not a stable API.\nconst (\n")
 	for i := range ops.BinaryNames {
 		fmt.Fprintf(&b, "\t%s = %d // %s\n", ops.Ident(ops.BinaryNames[i]), i, ops.BinaryOps[i])
 	}
-	b.WriteString(")\n\n// The codes of the unary operators.\nconst (\n")
+	b.WriteString(")\n\n// The codes of the unary operators, for generated parsers; not a stable API.\nconst (\n")
 	for i := range ops.UnaryNames {
 		fmt.Fprintf(&b, "\t%s = %d // %s\n", ops.Ident(ops.UnaryNames[i]), i, ops.UnaryOps[i])
 	}
-	b.WriteString(")\n\n// The codes of the logical operators.\nconst (\n")
+	b.WriteString(")\n\n// The codes of the logical operators, for generated parsers; not a stable API.\nconst (\n")
 	for i := range ops.LogicalNames {
 		fmt.Fprintf(&b, "\t%s = %d // %s\n", ops.Ident(ops.LogicalNames[i]), i, ops.LogicalOps[i])
 	}
