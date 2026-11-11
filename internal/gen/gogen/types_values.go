@@ -27,6 +27,9 @@ import (
 type vhelper struct {
 	name string
 	x    compile.Ty
+	// ranged is set for a helper of back that takes the ranges of the lists and tuples that a field holds
+	// from a cursor (see zpRangeCursor).
+	ranged bool
 }
 
 // vhelpers registers helpers by the Go type they produce.
@@ -44,7 +47,7 @@ func (h *vhelpers) get(prefix, key string, x compile.Ty) string {
 	}
 	name := fmt.Sprintf("%s%d", prefix, len(h.order))
 	h.names[key] = name
-	h.order = append(h.order, vhelper{name, x})
+	h.order = append(h.order, vhelper{name: name, x: x})
 	return name
 }
 
@@ -251,12 +254,28 @@ func (t *TypedGen) backHelper(x compile.Ty) string {
 	return t.bhelpers.get("tb", key, x)
 }
 
+// backRangedHelper returns the name of the function converting a tuple that a field holds into a value of the
+// typed runtime, with the range that each list and tuple in it had where it was made (backRanged).
+func (t *TypedGen) backRangedHelper(x compile.Ty) string {
+	key := "ranged " + t.goType(x)
+	before := len(t.bhelpers.order)
+	name := t.bhelpers.get("tbr", key, x)
+	if len(t.bhelpers.order) > before {
+		t.bhelpers.order[before].ranged = true
+	}
+	return name
+}
+
 // backHelpers writes the pending helpers of back, and reports whether it wrote any.
 func (t *TypedGen) backHelpers(b *strings.Builder, done *int) bool {
 	wrote := false
 	for ; *done < len(t.bhelpers.order); *done++ {
 		wrote = true
 		h := t.bhelpers.order[*done]
+		if h.ranged {
+			t.rangedHelper(b, h)
+			continue
+		}
 		fmt.Fprintf(b, "func %s(v %s) any {\n", h.name, t.goType(h.x))
 		elems := func(x compile.TupleTy, v string) string {
 			kids := make([]string, len(x.Elems))

@@ -39,7 +39,8 @@ The names after the operators are the names by which targets name the codes.
 
 A member name of a term is the name of a field, a range or value member of a node (`Start`, `End`, `Value`), or a
 capture (`$` and the name of the capture). The composition `member` takes the kind of a member read as a code. A range or value member reads the
-node itself only if the value is a node; of a struct or a list it is the field of that name.
+node itself only if the value is a node; of a struct or a list it is the field of that name. A field read returns the
+value that the field holds, and a list, a tuple or a struct keeps the range it had where it was made.
 
 | Code | Kind | Spelling | Reads |
 |--:|:--|:--|:--|

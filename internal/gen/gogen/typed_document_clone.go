@@ -129,8 +129,8 @@ func (t *TypedGen) documentClone(b *strings.Builder, result compile.Ty) string {
  if old, ok := c.seen%[4]s[v]; ok { return old }
  out := astNew(&c.t%[4]s)
  out.%[2]s = v.%[2]s
- if c.seen%[4]s == nil { c.seen%[4]s = make(map[*%[1]s]*%[1]s) }; c.seen%[4]s[v] = out
-`, t.ref(name), "Span", convName(name), name)
+%[5]s if c.seen%[4]s == nil { c.seen%[4]s = make(map[*%[1]s]*%[1]s) }; c.seen%[4]s[v] = out
+`, t.ref(name), "Span", convName(name), name, copyRanges(t, name))
 		target := &methods
 		if deferred {
 			methods.WriteString(" c.Tasks = append(c.Tasks, TypedDocumentCloneTask{Source: v, Target: out})\n return out\n}\n")
@@ -312,4 +312,12 @@ func typedDocumentClonePointer[T any](c *typedDocumentClone, v *T) *T {
 `)
 	b.WriteString(methods.String())
 	return publication
+}
+
+// copyRanges returns the statement of the clone of the struct name that copies the ranges it keeps.
+func copyRanges(t *TypedGen, name string) string {
+	if !t.hasRanges(name) {
+		return ""
+	}
+	return " out.TCopyRanges(v)\n"
 }

@@ -561,3 +561,10 @@ A list or tuple value built by an action (`list`, `map`, `concat`, `filter`,
 `[]T{...}`) has no range: `.Start`, `.End` and `text` do not apply to it, and it
 encodes as a plain array. A struct encodes without a range as well, and its range
 members are not readable from an action.
+A list or tuple that an action reads from a field of a struct is the value that
+the field holds, with the range it had where it was made: a struct that an action
+makes of it covers that range, not the range of the rule that reads it. A list
+or tuple made by `list`, `[]T{...}` or a tuple literal has the range that covers
+the ranges of its elements that have one, and an int, string or bool element has
+the range of the rule that made the list. A list of no element has the empty range
+at the start of that rule.

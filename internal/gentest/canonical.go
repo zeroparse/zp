@@ -50,6 +50,10 @@ func canonicalValue(v reflect.Value) any {
 		}
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Type().Field(i)
+			if !f.IsExported() {
+				// What a parser keeps for itself (the ranges of the lists and tuples that actions read).
+				continue
+			}
 			if f.Anonymous {
 				switch {
 				case f.Type.Name() == "Span":

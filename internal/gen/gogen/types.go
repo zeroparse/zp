@@ -59,8 +59,14 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 	}
 	ruleType := t.ruleType
 	var b, tb, entries, named strings.Builder
+	// A parser that runs the typed runtime keeps the ranges of the lists and tuples that its structs hold in the
+	// fields that actions read, which the declarations of the structs need to know.
+	t.direct = !conv && t.runtimeOK(ruleType(start))
+	t.reads = t.fieldReads()
+	t.rfuncs = map[string]string{}
 	t.inTypes = true
 	t.decls(&tb)
+	t.rangeHelpers(&tb)
 	t.valueMethods(&tb)
 	for helpers := 0; t.backHelpers(&tb, &helpers); {
 	}
@@ -70,7 +76,7 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 // type is expected becomes nil.
 `
 	st := ruleType(start)
-	directStart := !conv && t.runtimeOK(st)
+	directStart := t.direct
 	enter := func(r *compile.Rule) {
 		g.typedRoots = append(g.typedRoots, ruleKey{"trules", r.ID, true})
 		if g.typedEntry == nil {
@@ -366,6 +372,14 @@ type TypedGen struct {
 	// from values of the typed runtime, and cloning them for Documents; bhelpers convert them back
 	// into values of the typed runtime (back).
 	nhelpers, dhelpers, chelpers, bhelpers vhelpers
+	// direct is set when the typed runtime builds the values (ParseAST does not convert nodes); reads holds the
+	// names of the fields that an action or a predicate reads. A struct of a direct parser keeps the ranges of
+	// the lists and tuples that it holds in a field that is read (rangeKind), and rfuncs names the functions
+	// that collect them from the values of the typed runtime.
+	direct    bool
+	reads     map[string]bool
+	rfuncs    map[string]string
+	rfuncList []listConv
 }
 
 type listConv struct {
@@ -668,6 +682,7 @@ func (t *TypedGen) decls(b *strings.Builder) {
 		for _, f := range t.Info.Fields[name] {
 			fmt.Fprintf(b, "\t%s %s\n", t.fieldGo(f.Name), t.goType(f.T))
 		}
+		t.rangeDecls(b, name)
 		b.WriteString("}\n\n")
 	}
 	for _, name := range t.NodeTypes {
@@ -957,6 +972,24 @@ func (t *TypedGen) readsFields() bool {
 			plain[f.Name] = plain[f.Name] && t.plainField(f.T) && f.T.String() == fieldType[f.Name]
 		}
 	}
+	for name := range t.fieldReads() {
+		if !plain[name] {
+			return true
+		}
+	}
+	return false
+}
+
+// fieldReads returns the names of the fields of the struct types that an action or a predicate reads: those
+// of a member access that is not a read of the range or the value of a node. A name that is also that of a
+// capture is in it too.
+func (t *TypedGen) fieldReads() map[string]bool {
+	fields := map[string]bool{}
+	for _, name := range t.structs {
+		for _, f := range t.Info.Fields[name] {
+			fields[f.Name] = true
+		}
+	}
 	var terms []grammar.Term
 	var expr func(e grammar.Expr)
 	expr = func(e grammar.Expr) {
@@ -992,16 +1025,15 @@ func (t *TypedGen) readsFields() bool {
 			terms = append(terms, r.Def.Action)
 		}
 	}
-	faithful := func(field string) bool { return plain[field] }
-	found := false
+	reads := map[string]bool{}
 	for _, x := range terms {
 		compile.WalkTerm(x, func(y grammar.Term) {
-			if m, ok := y.(*grammar.Member); ok && fields[m.Name] && !t.nodeMember(m) && !faithful(m.Name) {
-				found = true
+			if m, ok := y.(*grammar.Member); ok && fields[m.Name] && !t.nodeMember(m) {
+				reads[m.Name] = true
 			}
 		})
 	}
-	return found
+	return reads
 }
 
 // representable reports whether the typed runtime can build values of type x and read them back
@@ -1061,7 +1093,7 @@ func (t *TypedGen) valueMethods(b *strings.Builder) {
 		fmt.Fprintf(b, "func (v *%s) TField(name string) (any, bool) {\n\tswitch name {\n", g)
 		for _, f := range t.Info.Fields[name] {
 			if t.representable(f.T) {
-				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.back(f.T, "v."+t.fieldGo(f.Name)))
+				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.readField(f.Name, f.T, "v", false))
 			} else {
 				fmt.Fprintf(b, "\tcase %q:\n\t\treturn nil, true\n", f.Name)
 			}
@@ -1083,7 +1115,7 @@ func (t *TypedGen) valueMethods(b *strings.Builder) {
 		fmt.Fprintf(b, "func (v *%s) TFieldSpend(p *"+runtimeAlias+".TParser, name string) (any, bool) {\n\tswitch name {\n", g)
 		for _, f := range t.Info.Fields[name] {
 			if t.representable(f.T) {
-				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.backSpend(f.T, "v."+t.fieldGo(f.Name)))
+				fmt.Fprintf(b, "\tcase %q:\n%s\t\treturn %s, true\n", f.Name, t.unsetField(f.Name, f.T), t.readField(f.Name, f.T, "v", true))
 			} else {
 				fmt.Fprintf(b, "\tcase %q:\n\t\treturn nil, true\n", f.Name)
 			}
@@ -1102,6 +1134,7 @@ func (t *TypedGen) valueMethods(b *strings.Builder) {
 			}
 		}
 		b.WriteString("\t}\n\treturn nil, false\n}\n\n")
+		t.rangeMethods(b, name)
 	}
 }
 
@@ -1314,6 +1347,7 @@ func (t *TypedGen) typedRuntime(b *strings.Builder) {
 		for i, f := range fields {
 			fmt.Fprintf(&cons, "\tv.%s = %s\n", t.fieldGo(f.Name), t.dconv(f.T, fmt.Sprintf("f%d", i), "a"))
 		}
+		cons.WriteString(t.rangeStatements(name))
 		fmt.Fprintf(&cons, "\tif final {\n\t\tv.%[1]s = %[1]s{Start: c.Start, End: c.End}\n\t\treturn v\n\t}\n\treturn c.MadeOf(v", span)
 		for i := range fields {
 			fmt.Fprintf(&cons, ", f%d", i)
@@ -1334,6 +1368,7 @@ func (t *TypedGen) typedRuntime(b *strings.Builder) {
 			break
 		}
 	}
+	t.rangeFuncs(&convs)
 	b.WriteString("// tinit sets up the typed rules (called at the end of init, after the rule tables).\nfunc tinit() {\n" + reg.String() + "}\n\n")
 	b.WriteString(cons.String())
 	b.WriteString(convs.String())
