@@ -92,7 +92,7 @@ A handle type is a type of opaque values. Its component is the state component w
 | `Err` | `recovered` | A syntax error that a recovery made. |
 | `Body` | `rules` | The invocation of a rule's body that a generated call passes. |
 | `ExpMark` | `expected` | The record that an isolation set aside. |
-| `ExpSet` | `expected` | The expectations an isolation recorded, valid until the next record. |
+| `ExpSet` | `expected` | The expectations an isolation recorded, which a target may keep where the record grows next: valid as exp.setAt requires. |
 | `ExpID` | `expected` | An expectation: the identifier of a description or message of the grammar. |
 | `ExpKept` | `expected` | Expectations kept beyond the record, as a memo entry keeps them. |
 | `Ctx` | `growth` | The context state of a memoized call: the growths of its rule's cycle at its position, their present set, and whether the call records its dependencies. |
