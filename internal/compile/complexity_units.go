@@ -504,9 +504,9 @@ func (k *classifier) firstEvaluated(e grammar.Expr) *grammar.Ref {
 // walkOperators walks an Operators Rule. The rule applies operators, which is a scanning source;
 // each operand item other than the last, and each operator part with its right operand, is a
 // unit. Its continuations are approximated by the other operand items or operator parts that the
-// rule can try at the same position, and by what follows the Operators Rule expression. A later
-// operand, and an operand or another prefix part after a prefix part, go on with the operator
-// parts and what follows the rule.
+// rule can try at the same position, and by what follows the Operators Rule expression. Each of
+// those other items or parts goes on with its right operand, the operator parts and what follows
+// the rule.
 func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	hasOps := false
 	for _, l := range pr.Levels {
@@ -614,14 +614,14 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			if q.op == p.op || (q.op.Kind == grammar.Prefix) != (p.op.Kind == grammar.Prefix) {
 				continue
 			}
-			// After an operand, the retried parts (addRetried) continue with the other operator
-			// parts and through the end of the rule when the rule nests. A part that ends the
-			// rule where a failed one's call ended does so through a call followed by what can
-			// match without consuming input, which nests at one end, so the rule nests then:
-			// here the part alone is compared.
-			sibling := withSkip(q.op.Expr)
-			if p.op.Kind == grammar.Prefix {
-				sibling = instead(q.op.Expr, rhs)
+			// A sibling that succeeds is followed by its right operand and then by the operator
+			// parts that the rule tries again at its end, which can be inside the input that the
+			// failed part examined, even when no call nests: with `postfix "[" R "x"` and
+			// `postfix "["`, R scans again after each "[". So the sibling is continued as far as
+			// the rule goes, then with what follows the rule.
+			sibling := instead(q.op.Expr, rhs)
+			if q.op.Kind == grammar.Postfix {
+				sibling = instead(q.op.Expr)
 			}
 			conts = append(conts, contSpec{paths: []*cont{sibling},
 				what: fmt.Sprintf("the operator part %s at %s", k.show(q.op.Expr), at(c.rule, exprPos(q.op.Expr)))})

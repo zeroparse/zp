@@ -150,6 +150,13 @@ func TestClassifyComplexity(t *testing.T) {
 		{"copy of a struct field that holds a lookahead capture", "type S = { F string }\nrule main = a* $$\nrule a string = \"a\" y:look => $y.F + \"!\"\nrule look S = &(x:w) => S{F: text($x)}\nrule w = \"a\" w / \"\"\n", ClassUnknown, 0},
 		{"copy of a bounded lookahead capture", "rule main = a* \"b\" $$\nrule a string = \"a\" y:look => text($y) + \"!\"\nrule look = &(x:\"a\" / \"b\") => $x\n", ClassLinear, 0},
 		{"source inside a shared call", "rule main = e $$\nrule e = #operators {\n    skip ws\n    operand \"true\"\n    operand [a-z]+\n    level { infix left \"+\" }\n}\nrule ws = [ \\t]*\n", ClassLinear, 0},
+		// An operator part that shares its literal with another one is followed, when the other one
+		// succeeds, by the operator parts that the rule tries again at its end, inside the input
+		// that the failed part examined: R scans again after each "[" though no call nests.
+		{"operator part restarted by the next application", "@start\nrule main = e\nrule e = #operators {\n operand \".\"\n level a { postfix \"[\" R \"x\"\n postfix \"[\" }\n}\nrule R = [\\[]*\n", ClassUnknown, 0},
+		{"infix part restarted by the next application", "@start\nrule main = e\nrule e = #operators {\n operand \".\"\n level a { infix left \"[\" R \"x\"\n infix left \"[\" }\n}\nrule R = [.\\[]*\n", ClassUnknown, 0},
+		{"infix part restarted by the next application, scan after the rule", "@start\nrule main = e R\nrule e = #operators {\n operand \".\"\n level a { infix left \"[\" f R \"x\"\n infix left \"[\" }\n}\nrule f = e\nrule R = &\"\" [ ]*\n", ClassUnknown, 0},
+		{"operator part whose scan stops at the next application", "@start\nrule main = e\nrule e = #operators {\n operand \".\"\n level a { postfix \"[\" R \"x\"\n postfix \"[\" }\n}\nrule R = [ ]*\n", ClassLinear, 0},
 		// A list built from the elements of a repetition costs its number of elements.
 		{"list of a repetition", "rule main = l $$\nrule l = \"[\" ms:m? \"]\" => concat($ms)\nrule m = f:v rs:(\",\" x:v)* => concat(list($f), map($rs, (r) => r.$x))\nrule v = \"x\" / l\n", ClassLinear, 0},
 		{"list built by right recursion", "rule main = l $$\nrule l = x:\"a\" t:l? => concat(list($x), $t)\n", ClassPoly, 2},

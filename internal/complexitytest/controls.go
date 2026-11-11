@@ -309,6 +309,15 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// An operator part fails after its scan ran over the operator text that follows, and the
+		// other part with the same literal succeeds, after which the rule applies the operator
+		// parts again inside that text: R scans the rest of the input once for each "[".
+		{
+			Name: "Scan restarted by the next operator application", Family: "shared literals",
+			Source: "rule main = e $$\nrule e = #operators {\n    operand \".\"\n    level { postfix \"[\" R \"x\"\n        postfix \"[\" }\n}\nrule R = [\\[]*\n",
+			Input:  func(n int) string { return "." + rep("[", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
 		// Each nested evaluation of a left-recursive rule that ends at a position grows there, and
 		// each step of its growth scans what follows its seed again.
 		{
