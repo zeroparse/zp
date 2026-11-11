@@ -45,7 +45,9 @@ committing unit shares with its continuation, which, in the reference parse of
 the memoization proof, is evaluated again and repeats the first activation at
 the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
-calls no rule when the call is the first that the two share. It proves the sum
+calls no rule when the call is the first that the two share, and it shows,
+apart from three open points, that evaluations of a call that nest without a
+bound and end at one position make the call nest at one end. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
 sources of rules that call a rule or are memoized at their calls, by charging
 the activations of each later evaluation of a rule or its twin at a position to
@@ -693,56 +695,109 @@ growths. Then $k - i$ is at most a constant.
 *Proof.* Since $r$ calls no rule, the evaluation of a call of $r$ that
 contains an activation is the innermost call evaluation that contains it, so
 $e_{l+1} = e'_l$ for $i \le l < k$, and every link evaluates $r$ at one
-position $p$. As the shared call is the first, $w_l$ starts examining the
-input at $p$, and $\kappa_l$ reaches $e'_l$ from $p$ without consuming input.
-Call the body evaluations in progress the frames. Let $N_l$ be the innermost
-evaluation that contains $\alpha_{l-1}$ and $\alpha_l$. Since $w_l$ is the
-first abandoned evaluation below $N_l$ on the path to $\alpha_{l-1}$, every
-evaluation above $w_l$ on that path, up to $N_l$, succeeds and is not the
-expression of a lookahead (*Restarts*). $e'_l$, which starts after $w_l$ ends
-and contains $\alpha_l$, lies in $N_l$. When the child of $N_l$ that contains
-$w_l$ is not $w_l$, it succeeded, $N_l$ went on at its end, and $e'_l$ lies in
-a later child, so that child ends at or before $p$. From the end
-of $w_l$ to $e'_l$, the parser leaves the frames that enclose $w_l$ inside
-$N_l$, and then starts frames at $p$ through calls on the way to $e'_l$. Each
-frame that it leaves succeeds and ends at $p$: no later than that child, which
-contains it, and no earlier than $p$, before which the parser starts nothing
-after $w_l$. A frame is left once. In a frame that it leaves, the call of the
-frame inside it, if $w_l$ is not directly in its body, lies on the path and
-ends at $p$, and what follows that call in the body, up to the end of the
-frame, lies on the path too, since a failure there would make an evaluation
-on the path that encloses the call fail. So it matched from $p$ to $p$, and
-the call place is followed in its caller by what can match without consuming
-input. The unit is the first abandoned evaluation, not one inside it: with
-`X = (Y "x" / "")` and `Y = (R "a")?` at $p$, and the scan in `R`, the unit is
-the alternative `Y "x"`, which lies directly in the body of `X`, so `X` is left
-through no call that holds the unit, and the call of `Y` is not a place
-through which a frame is left.
+position $p$. As the shared call is the first, $w_l$ examines no input before
+$p$, so it starts at $p$, and $\kappa_l$ reaches $e'_l$ from $p$ without
+consuming input. Call the body evaluations in progress the frames. Let $N_l$
+be the innermost evaluation that contains $\alpha_{l-1}$ and $\alpha_l$. Since
+$w_l$ is the first abandoned evaluation below $N_l$ on the path to
+$\alpha_{l-1}$, every evaluation above $w_l$ on that path, up to $N_l$,
+succeeds and is not the expression of a lookahead (*Restarts*). $e'_l$, which
+starts after $w_l$ ends and contains $\alpha_l$, lies in $N_l$. When the child
+of $N_l$ that contains $w_l$ is not $w_l$, it succeeded, $N_l$ went on at its
+end, and $e'_l$ lies in a later child, so that child ends at or before $p$.
+From the end of $w_l$ to $e'_l$, the parser leaves the frames that enclose
+$w_l$ inside $N_l$, and then starts frames at $p$ through calls on the way to
+$e'_l$. Each frame that it leaves succeeds and ends at $p$: no later than that
+child, which contains it, and no earlier than $p$, before which the parser
+starts nothing after $w_l$. A frame is left once. In a frame that it leaves,
+the call of the frame inside it, if $w_l$ is not directly in its body, lies
+on the path, so it succeeded, and it ended at $p$, where the frame inside it
+ended. The frame ends at $p$ too, so what it evaluated after the call, up to
+the end of its body, succeeded without consuming input, and the call place
+is followed in its caller by what can match without consuming input. The
+unit is the first abandoned evaluation on the path, not one inside it: with
+`X = (Y "x" / "")` and `Y = (R "a")?` at $p$, and the scan in `R`, the unit
+that holds the scan is the alternative `Y "x"`, which lies directly in the
+body of `X`, so `X` is left through no call that holds the unit. This
+configuration is not a leaf link, since the unit begins with the call of
+`Y`, which calls a rule; it shows only which evaluation is the unit.
 
-Frames started at $p$ nest, through calls made before input is consumed, at
-most $|\text{rules}|$ deep. A rule that recurs among them recurs through a
-cycle of left calls, which passes through a leader ([Growths of Left
-Recursion](../runtime/parsing.md#growths-of-left-recursion)), and a call of
-that leader at $p$ is answered from the memo or by the current result of its
-growth, which starts no frame, or grows it, which starts a growth step, which
-the claim leaves out. A link that leaves no frame evaluates $r$ again in a
-frame in progress or one started at $p$ inside it, at a later place of its
-body; by the argument of Lemma 1, and since an iteration that starts at $p$
-either consumes input or ends its repetition, the links between two that leave
-frames are at most a constant. For a link $l$ that leaves frames, let $\pi_l$
-be the call place through which it leaves its last frame $Y_l$ into the frame
-$Z_l$ in which it then reaches $e'_l$. If more links than there are call places
-leave frames, two of them, $l < l'$, have $\pi_l = \pi_{l'}$. The frames from
-$Z_l$ up to $Y_{l'}$ are all left at $p$, and the places through which each
-of them called the one inside it, from $\pi_l$ at $Z_l$ up to the place at
-$Y_{l'}$, lead from the rule of $Y_l$ back to the rule of $Y_{l'}$, which is
-the same rule, the callee of $\pi_l$. So they form a cycle of calls of rules of
-one recursion, each followed in its caller by what can match without consuming
-input, and $\pi_l$ nests at one end. The continuation of $w_l$ reaches $e'_l$
-in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is not
-shared ([Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost)), against the choice of
-the link. $\square$
+Frames started at $p$ in this interval nest, through calls made before input
+is consumed, at most $|\text{rules}|$ deep. A rule that recurs among them
+recurs through a cycle of left calls, which passes through a leader ([Growths
+of Left Recursion](../runtime/parsing.md#growths-of-left-recursion)), and a
+call of that leader at $p$ is answered from the memo or by the current result
+of its growth, which starts no frame, or grows it, which starts a growth step,
+which the claim leaves out. By the argument of Lemma 1, and since an
+iteration that starts at $p$ either consumes input or ends its repetition, a
+body evaluation reaches each place of its body at $p$ at most a constant
+number of times, and so makes at most a constant number $c'$ of calls at $p$.
+A link that leaves no frame evaluates $r$ again in a frame in progress or one
+started at $p$ inside it, at a later place of its body, so the links between
+two that leave frames are at most a constant. For a link $l$ that leaves
+frames, let $Y_l$ be the last frame that it leaves, $\pi_l$ the call place
+through which it leaves $Y_l$, and $Z_l$ the frame of the caller, in which it
+then reaches $e'_l$. The link is **outer** when $Y_l$ starts before $p$, and
+**inner** when $Y_l$ starts at $p$; every frame that an inner link leaves lies
+inside $Y_l$ and so starts at $p$.
+
+From the end of $w_i$ to $e'_k$ the parser starts no evaluation at a position
+before $p$: it starts none from the end of each $w_j$ to $e'_j$ (*Restarts*,
+since $w_j$ starts at $p$), and from $e'_j = e_{j+1}$ to the end of $w_{j+1}$
+it is inside $w_{j+1}$, which starts at $p$.
+
+*Outer links.* Let $l < l'$ be outer links with $\pi_l = \pi_{l'}$. $Y_{l'}$ starts before $p$ and is
+in progress at $e_{l'}$, after the end of $w_l$, so it was started before
+$w_l$ ended, and it encloses $w_l$. It is still in progress at $e'_l$, so link
+$l$ does not leave it: it is $Z_l$ or encloses $Z_l$. No evaluation on the
+path from $Y_{l'}$ down to $Y_l$ is abandoned. Otherwise let $v$ be one. It
+contains $\alpha_{l-1}$, which lies in $Y_l$, and not $\alpha_{l'}$, which
+starts after $Y_{l'}$ ends. Let $m$ be the last index with $\alpha_m$ in $v$,
+so that $l - 1 \le m < l'$ and $\alpha_{m+1}$ starts after $v$ ends. The
+innermost evaluation $N_{m+1}$ that contains $\alpha_m$ and $\alpha_{m+1}$
+encloses $v$, which is abandoned and lies on the path from $N_{m+1}$ to
+$\alpha_m$, so $w_{m+1}$, the first such evaluation, encloses $v$ and with it
+$Y_l$. But $w_{m+1}$ starts at $p$, and $Y_l$ before $p$. So every evaluation
+on the path succeeds, is not the expression of a lookahead and is no dropped
+step, and lies in the match of the one above it; since $Y_l$ and $Y_{l'}$
+both end at $p$, so does each frame on the path. The parser leaves those
+frames at $p$ after the end of $w_l$ and before $e'_{l'}$, so none is a growth
+step or in a context of growths. Each call on the path ends at $p$ in a frame
+that ends at $p$, so what follows it in its caller matched without consuming
+input. These calls lead from the rule of $Y_{l'}$ down to the rule of $Z_l$,
+and $\pi_l$ leads from there to the rule of $Y_l$, which is the rule of
+$Y_{l'}$, the callee of $\pi_l$: they form a cycle of calls of one recursion,
+each followed in its caller by what can match without consuming input. So
+the caller of $\pi_l$ is in the set of rules that
+defines nesting at one end for $\pi_l$ ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)), since what follows
+$\pi_l$ can match without consuming input, and so is each rule of the cycle,
+which calls the next one at such a call, the callee of $\pi_l$ among them; so
+$\pi_l$ nests at one end. *Nesting at one end* below proves this in general,
+when abandoned evaluations lie on the path. The continuation of $w_l$ reaches
+$e'_l$ in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is
+not shared, against the choice of the link. So no two outer links have one
+call place, and the outer links are at most the number of call places.
+
+*Inner links.* Each inner link leaves at least one frame that starts at $p$,
+and a frame is left once, so the inner links are at most the frames started
+at $p$ that the parser leaves from the end of $w_i$ to $e'_k$. Those started
+before the end of $w_i$ enclose $w_i$ and form one chain, and those left form
+its inner part. No rule recurs in that part: a leader's frame between two
+frames of one rule, both started at $p$, would be a growth step left at $p$.
+So at most $|\text{rules}|$ of them are left. Those started after the end of
+$w_i$ are no growth steps, so no rule recurs among nested ones either, and
+each is called at $p$ from a frame in progress: another one started after the
+end of $w_i$, or a frame that the parser was in before. Such an earlier frame
+is either the innermost frame started before $p$ that the parser is in, which
+changes only when an outer link leaves it, so that at most the number of call
+places plus one frames take that role, or a frame of the chain at $p$ that
+the parser is in at the end of $w_i$ or returns to after leaving the frames of
+the chain inside it, at most $|\text{rules}| + 2$ frames. Each of those makes
+at most $c'$ calls at $p$, and so does each frame started after the end of
+$w_i$, nested at most $|\text{rules}|$ deep, so the frames started after the
+end of $w_i$ at $p$ are at most a constant. So $k - i$ is at most a
+constant. $\square$
 
 An Operators Rule that nests repeats in the same way: each enclosing level tries
 the operator parts after an operand again where the inner operand ended, so a
@@ -756,6 +811,120 @@ higher binding level than the part, so at most the number of binding levels in a
 row, and through calls each followed in its caller by what matched without
 consuming input, which repeat no rule, since a repeated rule closes a cycle of
 such calls, which nests at one end and makes the rule nest.
+
+**Nesting at one end.** Let $t$ be a call of a rule $Y$ from a rule $Z$ of
+its recursion, and $E_t$ the smallest set of rules that the definition of a
+call that nests at one end ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)) builds for $t$, so
+that $t$ nests at one end when $Y$ is in $E_t$. Let $X$ be an evaluation of a
+call of a rule $A$ that succeeds and ends at a position $p_0$, and $T$ an
+evaluation of $t$ inside $X$, other than $X$, that starts before $p_0$, ends
+at $p_0$ and holds a successful activation. Let no evaluation on the path from
+$X$ to $T$ be a dropped step of a growth, and let two evaluations at one
+position of a call that a unit and a continuation share, or that the
+comparison of a decided unit passes alike, end at one position. Then $A$ is in
+$E_t$, except in the cases that the end of the proof leaves open. So when the
+evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
+the one around it, all of those calls ending at one position and each holding
+a successful activation, $t$ nests at one end: calls that start at that
+position nest only through left recursion, which the growths bound, so some
+call $X$ starts before the position and holds another, $T$, that does too,
+and the claim gives $Y$ in $E_t$.
+
+*Proof.* By induction on the number of calls on the path from $X$ to $T$.
+
+If no evaluation on the path below $X$ is abandoned, each succeeds and lies in
+the match of the one above it, so each call on the path ends at $p_0$, in a
+body evaluation that ends at $p_0$, and what follows it in its caller matched
+without consuming input. A kept growth step on the path is the last kept step
+of its growth, since it ends where the growth ends. So $Z$ is in $E_t$ by the
+first case of the definition, as the caller of $T$, and each rule above it on
+the path by the second, up to $A$.
+
+Otherwise let $w$ be the first abandoned evaluation on the path below $X$. It
+contains $T$, and with it the activation, which succeeded before $w$ was
+abandoned, so $w$ is the expression of a lookahead or failed after one of its
+scanning sources examined input. It is no dropped step, so it is a unit that
+condition 2 checks, and it is committing. This is why the definition needs no
+case for the units that can fail only before their scanning sources examine
+input: no such unit lies on the path. Let $s < p_0$ be the start of $w$. The
+evaluations above $w$ on the path, up to $X$, succeed and are kept, so after
+$w$ the parser evaluates from $s$ a continuation $\kappa$ of $w$, through the
+ends of the enclosing expressions and, at the end of a rule body, through the
+call of the rule, and ends $X$ at $p_0$, returning to no position before $s$
+in between (*Restarts*). $\kappa$ consumes the input from $s$ to $p_0$, so it
+begins with the calls that $w$ and $\kappa$ share or that the comparison passes
+alike, the **alike calls**, each starting at the end of the one before, which
+end at the same positions in $w$ and in $\kappa$. Those of them that start
+before $p_0$ lie in the match of $X$ in $\kappa$, so they end at or before
+$p_0$.
+
+$T$ does not start at or after the end $u$ of the alike calls in $w$. If it
+did, $w$ would examine, after the alike calls, the character at $u$, on its
+way to $T$ or in $T$, which consumes the input from its start to $p_0$, and
+$\kappa$, which reaches $p_0 > u$ after the alike calls, would consume that
+character too, which disjoint first characters exclude; and a unit has no
+scanning source after the alike calls only if $T$ there holds none. So $T$ is
+one of the alike calls, or lies inside one of them, or $w$ looks through it to
+reach them, which then lie in its body. In each of these cases the first
+alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
+
+- (a) $T$ is an alike call, and $S = T$.
+- (b) $w$ looks through $T$: the last alike call inside $T$ ends at $p_0$, since
+  otherwise $T$ would consume, after the alike calls, the character where it
+  ends, which $\kappa$ consumes too; $S$ is inside $T$, and $w$ reaches it by
+  looking through $t$.
+- (c) $T$ lies inside an alike call, and no evaluation between them is
+  abandoned: that call ends at $p_0$, at the end of $T$, and is $S$. Its evaluation in $w$ succeeds,
+  ends at $p_0$ and holds $T$ with fewer calls between, so by induction its
+  rule $B$ is in $E_t$.
+
+$\kappa$ evaluates $S$ in the body of a call $K$ on the path from $X$ to $w$:
+the call whose body holds $w$, or one whose body $\kappa$ reaches by leaving
+the bodies inside it through their ends. $K$ is kept and contains $S$ in its
+match, so it ends at $p_0$, no later than $X$ and no earlier than $S$, and
+after $S$, $\kappa$ reaches the end of the body of $K$ without consuming
+input. In (a) and (b), the rule of $K$ is in $E_t$ by the third case of the
+definition, in its form for a continuation that left the body of the unit
+when $K$ is not the call whose body holds $w$. In (c), the call $S$ of $B$ is
+followed in the body of $K$ by what matched without consuming input, so the
+rule of $K$ is in $E_t$ by the second case. The calls on the path from $X$ to
+$K$ end at $p_0$ in body evaluations that end at $p_0$, so the second case
+adds each rule above $K$, up to $A$.
+
+Three points of this proof are open. The hypothesis that the alike calls end
+at one position in both evaluations is what
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+states for the shared calls and the comparison of a decided unit for the
+calls that it passes alike; inside a growth, two evaluations at the growing
+position of a call of a rule of the growing cycle can read different growing
+results, and that the shared calls of a unit and its continuation there end
+at one position is argued from the unit and the continuation starting in one
+step, where a read of the seed returns one seed, but not shown. The paragraph
+that places $T$ among the alike calls is written for disjoint first
+characters and for a unit without a scanning source after the alike calls;
+for words that exclude the continuation and for decided units, the proof of
+*Direct activations* shows the same for an activation after the word or the
+decisive symbol, and it must still be shown for the end of $T$. And when $T$
+lies inside an alike call in a unit abandoned inside it, that call can end
+before $p_0$, and the cases above do not apply.
+
+**Seed reads.** A left call $s$ from a rule of a left-recursion cycle to a rule
+of the same cycle nests at one end when some call of a rule of that cycle
+does. This is the case in which what follows $s$ is evaluated at a position
+$p_0$, with a successful activation, by unboundedly many evaluations. That happens once in each growth step
+at $p_0$ of an evaluation of a leader of the cycle whose current result ends
+at $p_0$, and each such evaluation has a bounded number of steps there: the
+growth stops at the first step that does not grow. So unboundedly many such
+evaluations nest, each in the next, and since a new one starts at a new
+position, it is made by a call whose callee is a rule of the cycle, as a left
+call of a rule of the cycle starts no new evaluation at a new position. One of
+the finitely many call places, $t$, makes unboundedly many of them, and
+*Nesting at one end*, with $X$ an outer and $T$ an inner one of them, puts the
+callee of $t$ in $E_t$, so $t$ nests at one end. The path between them can
+hold kept growth steps, which that claim allows; the claims above leave out
+the links between which the parser leaves or starts a growth step at the
+position, and so do not use this case.
 
 These claims bound the links of one source at one position, memoized links by
 the memo and the links of a rule that calls no rule by the cycles of nesting
@@ -3074,27 +3243,26 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    continuation makes, nor those whose reference link meets case (a) or (b)
    of the covered keys. Three parts are open.
    The first two are for a source in a rule that calls no rule and is not
-   memoized at its calls, and both wait on a corrected condition of nesting at
-   one end. The condition is being corrected because of
-   `main = e; e = "(" (e R "x" / e) / "."; R = [ ]*`, which the conditions
-   accept as they stand and which costs time quadratic in n on `(`^n `.`
-   followed by n spaces: each evaluation of `e` holds a scan of the spaces
-   after the first call of `e` and ends where that scan starts through the
-   second, so
-   the call of `R` is shared although the call of `e` before it is followed by
-   what cannot match without consuming input. The cycle argument of *Calls that
-   call no rule* does not carry over to it. First, the leaf links that lead to an
+   memoized at its calls. First, the leaf links that lead to an
    activation held by a head: such a link can leave a memoized evaluation that
    is not a head through the end of its body. The heads that start at the
    position of the scan are bounded by the classes there (*Memoized links keep
    positions*); those that start before it, and the activations that one head
    holds, are not. Second, the leaf links when the shared call follows other
-   shared calls: the frames that the continuation leaves are then left at the
-   start of the unit, before the shared calls, or after some of them, so the
-   frames left between two links need not be followed by what matches without
-   consuming input; and the leaf links between which the parser leaves or
-   starts, at their position, a growth step or an evaluation in a context of
-   growths, which that claim leaves out. Third, the
+   shared calls: the continuation then leaves frames at the ends of the
+   shared calls before the call, at positions before the scan, and between
+   them, as in `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, where the call
+   of `e` that both alternatives share comes before the call of `R`. *Calls
+   that call no rule* counts only frames left at the position of the scan.
+   *Nesting at one end* shows that evaluations of a call that nest without a
+   bound and end at one position, through restarts as well, make the call
+   nest at one end, which keeps the call of `R` in that grammar from being
+   shared, apart from the three points that it leaves open; what remains is
+   to bound the frames left at the earlier positions by it. And the leaf links
+   between which the parser leaves or starts, at their position, a growth
+   step or an evaluation in a context of growths, which that claim leaves
+   out, and for which the condition has its case of seed reads (*Seed
+   reads*). Third, the
    memoized links that the comparison leaves out: a link of a leader with a
    growth of its cycle open at the start of only one of its two evaluations,
    which then read different results of another leader of the cycle; in a Document parse, a link
@@ -3149,6 +3317,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    source of the operators but in no activation of it, so Lemma 2, *One place*
    of Lemma 10 and *Activations that do not succeed* of Lemma 4 do not bound
    the calls and the evaluations of sources made in them.
+   *Nesting at one end* also takes the continuation of an operand that the
+   rule abandons to be a later operand, followed by the operator parts that
+   the rule tries after it and by what follows the rule. The step must show
+   that the parse of the rule evaluates nothing else at the end of that
+   operand, so that the restarts through a later operand reach what follows
+   the rule and are those that the definition of nesting at one end counts.
+   The case to cover is an Operators Rule `e` with the operands `"(" e R "x"`,
+   `"(" e` and `"."`, called as `e R` with `R = [ ]*`: on `(`^n `.` followed by n
+   spaces, the first operand fails at each level after scanning the spaces,
+   the second ends where the inner operand ended, and every level scans the
+   spaces in `R` again.
 4. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
    that a context of growths repeats, which Lemma 3 leaves out: the calls
    that find no result with the same growing results and lookahead outcomes,
@@ -3164,7 +3343,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    conditions 3 and 5, and not from the count of Lemma 4 on the activations
    owned by memoized evaluations. The claims that count nothing are *Failure
    after a source*, the restarts, *Direct activations*, *Repeats*, *Memoized
-   links*, *Calls that call no rule*, *Own regions*, *Counterparts in the
+   links*, *Calls that call no rule*, *Nesting at one end*, *Seed reads*, *Own regions*, *Counterparts in the
    reference parse*, *Replays*, *Replayed activations*, *Answered calls*, *Covered keys*,
    *Reference links*, *Heads in the reference parse*, *Reference links lead to
    repeated evaluations*, *Links lead to repeated evaluations*, *Links to heads*,
