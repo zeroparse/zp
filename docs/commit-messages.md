@@ -21,7 +21,7 @@ How it is solved is in the diff.
 
  - Bullet points are acceptable.
 
-Resolves: #123
+Refs: #123
 See also: #456, #789
 ```
 
@@ -50,8 +50,10 @@ See also: #456, #789
 - The body SHOULD be structured so that the reader gets the context, the change,
   and the consequence, in that order. A longer commit SHOULD use paragraphs for
   the background, the change itself, and any improvement it enables.
-- Issue references SHOULD be placed at the end, as `Resolves:` or `See also:`
-  trailers.
+- Issue references SHOULD be placed at the end, as `Refs:` or `See also:`
+  trailers. A commit never closes an issue (no `Resolves:`, `Closes:` or `Fixes:`);
+  an issue is closed by hand after its acceptance criterion and integration are
+  verified.
 
 ### What a Commit Contains
 

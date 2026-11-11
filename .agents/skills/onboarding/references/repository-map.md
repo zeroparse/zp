@@ -25,9 +25,11 @@ for user-facing workflows. For optimization mechanisms and applicability, use th
 [catalog](../../../../docs/optimizations/README.md) and
 [performance method](../../../../docs/performance.md).
 
-The live [Issue #1](https://github.com/zeroparse/zp/issues/1) is the backlog, not a
-language contract. Fetch its present body and relevant comments before planning or
-updating an item; branch, worktree and integration status also need live checks.
+The backlog (one issue per item, in the
+[ZeroParse backlog project](https://github.com/orgs/zeroparse/projects/2)) and the work
+status page [Issue #1](https://github.com/zeroparse/zp/issues/1) are not a language
+contract. Fetch the present issue and its comments before planning or updating an
+item; branch, worktree and integration status also need live checks.
 Use the [documentation](../../documentation/SKILL.md),
 [backlog](../../backlog/SKILL.md), [performance](../../performance/SKILL.md) or
 [zerosite](../../zerosite/SKILL.md) skill when that work is in scope.

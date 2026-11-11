@@ -24,7 +24,7 @@ description: Maintain ZeroParse user documentation, contracts, design records an
   enforce link directions and heading capitalization.
 - Keep `AGENTS.md` concise. Follow existing indexes and templates, remove
   authoring prompts from finished pages, verify examples and links, and keep
-  published docs independent of chats and Issue #1 IDs.
-- The documentation sidekick owns documentation context and Issue #1 management
+  published docs independent of chats and issue numbers.
+- The documentation sidekick owns documentation context and backlog issue management
   after handoff. The primary owns site code, other implementation, tests and Git.
   The primary must review documentation changes and verify saved results.

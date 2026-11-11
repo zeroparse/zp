@@ -32,5 +32,5 @@ unmeasured paths explicit.
 Before integration, inspect the actual diff, generated artifacts and relevant docs;
 state which local checks ran and what they cover. Verify live branch and remote state
 before claiming a commit, merge, or backlog completion. The
-[backlog skill](../../backlog/SKILL.md) defines Issue #1 updates; do not treat a
+[backlog skill](../../backlog/SKILL.md) defines backlog issue updates; do not treat a
 passing local test, an accepted proposal, or a draft change as integrated work.

@@ -105,7 +105,7 @@ the title without a trailing qualifier.
 - American English. Write "Go API", "TypeScript", "WebAssembly" and "`.zpc`". Say "input" for the text that a
   parser reads and "grammar source" for a `.zp` file.
 - Write for the reader of the published page. Do not mention chats, requests, review, the order in which work was
-  done, backlog identifiers or agents. A page does not describe how it differs from an earlier version; a migration is
+  done, issue numbers or agents. A page does not describe how it differs from an earlier version; a migration is
   a section that tells the reader what to change, with the old and the new spelling.
 
 ## How a Page Opens and Ends

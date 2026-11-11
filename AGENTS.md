@@ -54,7 +54,7 @@ with implementation changes; regenerate generated files.
 - Reuse the established Luna documentation/backlog sidekick and independent
   reviewer where appropriate. The primary owns implementation, tests, site
   code, Git operations and main integration; the documentation sidekick owns
-  documentation context and Issue #1 management after handoff.
+  documentation context and backlog issue management after handoff.
 
 - For high-impact changes, request critical review from a reviewer whose context
   is independent of the worker; reuse existing reviewers. Share requirements,
@@ -62,13 +62,16 @@ with implementation changes; regenerate generated files.
 
 ## Backlog, commits and branches
 
-- Issue #1 is the living backlog: https://github.com/zeroparse/zp/issues/1.
-  Categories are two-digit B, O, F, Q, I, D, plus M for ready-made parsers.
-  Keep incomplete parent items; mark completion only after verified
-  integration, in the recent-completions list with a commit link and outcome
-  sentence. IDs belong in Issue #1, not reader-facing docs.
+- The backlog is one issue per item in this repository, tracked in the public
+  [ZeroParse backlog project](https://github.com/orgs/zeroparse/projects/2)
+  (Category, Tier, Status, Priority); use the `backlog` skill. Issue
+  [#1](https://github.com/zeroparse/zp/issues/1) is the live work status page.
+  The body states the current truth, comments log decisions and measurements as
+  the work happens, and an issue closes by hand only after verified
+  integration. Issue numbers do not appear in reader-facing docs.
 - Write commits, issues and PRs in the owner's voice: omit references to agents,
-  AI assistance, the owner/user, requests, delegation or work history. Follow
+  AI assistance, the owner/user, requests, delegation or work history; cite
+  the backlog issue as `Refs #N`, never `Closes`. Follow
   `docs/commit-messages.md`; include a body explaining the problem and rationale.
   Do not add agent signatures.
 - Branch prefixes: `feat/`, `fix/`, `perf/`, `docs/`; do not use `codex/` or
