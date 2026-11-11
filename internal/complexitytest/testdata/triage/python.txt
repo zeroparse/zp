@@ -1,4 +1,4 @@
-# python: exponential (degree 0, witnessed degree 0), 85 witnesses, 153 reasons
+# python: exponential (degree 0, witnessed degree 0), 85 witnesses, 154 reasons
 
 ## whitespace (50) -> F97
 254:44 indentation: the cost can grow as n^2: after an iteration of the repetition at 254:43 in rule indentation fails, what follows the repetition ([ \t]* "\u{c}")* can start again inside the input that the repetition [ \t]* at 254:44 in rule indentation examined; this repeats in the repetition ("\\" newline !$$ ([ \t]* "\u{c}")*)* at 254:25 in rule indentation
@@ -115,7 +115,7 @@
 216:19 module_end: the option at 216:19 in rule module_end contains the repetition blank* at 216:24 in rule module_end and is not committing against what follows the option (eol blank*)?
 216:24 module_end: an iteration of the repetition at 216:24 in rule module_end contains the repetition ("\\" newline !$$ [ \t\u{c}]*)* at 258:26 in rule blank and is not committing against what follows the repetition blank*
 
-## nested (137) -> F100
+## nested (138) -> F100
 204:15 main: the option at 204:15 in rule main is not committing against what follows the option first_stmts?, and units that are not committing are nested in it without bound through a recursion of rule calls
 222:14 stmts: an iteration of the repetition at 222:14 in rule stmts is not committing against what follows the repetition (-ws -";" -ws s:simple_stmt / -stmt_s..., and units that are not committing are nested in it without bound through a recursion of rule calls
 222:15 stmts: the alternative at 222:15 in rule stmts is not committing against the later alternative -stmt_sep s:stmt at 222:44 in rule stmts, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -220,6 +220,7 @@
 740:54 slice_colon: the option at 740:54 in rule slice_colon is not committing against what follows the option (-ws ":" !"=" (-ws s:expression)?)?, and units that are not committing are nested in it without bound through a recursion of rule calls
 740:68 slice_colon: the option at 740:68 in rule slice_colon is not committing against what follows the option (-ws s:expression)?, and units that are not committing are nested in it without bound through a recursion of rule calls
 744:41 for_if_clauses: an iteration of the repetition at 744:41 in rule for_if_clauses is not committing against what follows the repetition (-ws c:for_if_clause)*, and units that are not committing are nested in it without bound through a recursion of rule calls
+744:48 for_if_clauses: the evaluations of the call of for_if_clause at 744:48 in rule for_if_clauses can nest without a bound and end at one position, through a unit that evaluates calls alike with a continuation, which the classifier found only after it relied on the call
 747:9 for_if_clause: an iteration of the repetition at 747:9 in rule for_if_clause is not committing against what follows the repetition (-ws kw_if -ws c:disjunction)*, and units that are not committing are nested in it without bound through a recursion of rule calls
 751:18 atom: the alternative at 751:18 in rule atom is not committing against the later alternative name at 751:28 in rule atom, and units that are not committing are nested in it without bound through a recursion of rule calls
 757:33 paren: the alternative at 757:33 in rule paren is not committing against the later alternative star_first_tuple at 757:47 in rule paren, and units that are not committing are nested in it without bound through a recursion of rule calls

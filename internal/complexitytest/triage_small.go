@@ -4,10 +4,11 @@ package complexitytest
 // through a recursion of rule calls, other than at a #recover base.
 const nestedPattern = `^(the alternative|the option|an iteration|the operator part|the operand|the lookahead|the expression)[^#]* is not committing against .*, and units that are not committing are nested in it without bound through a recursion of rule calls$`
 
-// nestsLate matches the reason for the call of callee in rule caller whose evaluations the checks
-// found to nest and end at one position only after they relied on the call.
+// nestsLate matches the reason for a call of callee in rule caller, each a regular expression,
+// whose evaluations the checks found to nest and end at one position only after they relied on
+// the call.
 func nestsLate(callee, caller string) string {
-	return `|^the evaluations of the call of ` + callee + ` at [0-9]+:[0-9]+ in rule ` + caller + ` can nest without a bound and end at one position, `
+	return `|^the evaluations of the call of (?:` + callee + `) at [0-9]+:[0-9]+ in rule (?:` + caller + `) can nest without a bound and end at one position, `
 }
 
 // triageSmall is the triage table of csv, xml, cel, minilang, outline and calc.

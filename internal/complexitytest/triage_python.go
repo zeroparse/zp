@@ -80,10 +80,11 @@ func triagePython() []TriageGroup {
 			Assign: "F97", Order: Linear, Families: []TriageFamily{
 				{Name: "leading and trailing blank lines", Build: func(n int) string { return rep("   \n", n) + "x = 1\n" + rep("   \n", n) + rep(" ", n) }, Sizes: doubling(1000, 3), Order: Linear},
 			}},
-		{Grammar: "python", ID: "nested", Pattern: nestedPattern,
+		{Grammar: "python", ID: "nested", Pattern: nestedPattern + nestsLate("for_if_clause", "for_if_clauses"),
 			Shape:  "units of statements, expressions, targets and patterns nested through the recursion of expressions, blocks and patterns",
 			Assign: "F100", Order: Linear, Families: []TriageFamily{
 				{Name: "nested parentheses", Build: func(n int) string { return "x = " + nest("(", "1", ")")(n) + "\n" }, Sizes: []int{48, 96, 192}, Order: Linear},
+				{Name: "nested comprehensions in the last clause", Build: func(n int) string { return "x = " + nest("[a for a in ", "b", "]")(n) + "\n" }, Sizes: []int{48, 96, 192}, Order: Linear},
 				{Name: "nested lists and tuples", Build: func(n int) string { return "x = " + nest("[1, (", "2", ",)]")(n) + "\n" }, Sizes: []int{24, 48, 96}, Order: Linear},
 				{Name: "nested lambdas", Build: func(n int) string { return "f = " + rep("lambda: ", n) + "0\n" }, Sizes: doubling(300, 3), Order: Linear},
 				{Name: "nested conditional expressions", Build: func(n int) string { return "x = " + rep("a if b else ", n) + "c\n" }, Sizes: doubling(300, 3), Order: Linear},

@@ -93,9 +93,27 @@ type excl struct {
 	owner *unit
 }
 
-// exitMark marks, in a path of a continuation, the end of the body of the rule of the unit, as a
-// symbol that consumes nothing and tells nothing (symSkip). It does not count toward exclLen.
-var exitMark = &grammar.Bottom{}
+// exitMark marks, in a path of a continuation, the end of the body of rule: of the rule of the
+// unit, or of a caller that the path reached after it left that body. into is the rule in whose
+// body the path goes on, empty after the end of the parse. It is a symbol that consumes nothing
+// and tells nothing (symSkip), and does not count toward exclLen.
+type exitMark struct {
+	grammar.Bottom
+	rule, into string
+}
+
+// exited prepends to each path of ps the mark of the end of the body of rule, after which it goes
+// on in the body of into, when the comparison records restarts (owner).
+func (x excl) exited(ps [][]sym, rule, into string) [][]sym {
+	if x.owner == nil {
+		return ps
+	}
+	mark := &exitMark{rule: rule, into: into}
+	for i, p := range ps {
+		ps[i] = append([]sym{{symSkip, mark, 0}}, p...)
+	}
+	return ps
+}
 
 type cheapKey struct {
 	rule    string
@@ -371,7 +389,7 @@ func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 func pathLen(p []sym) int {
 	n := len(p)
 	for _, s := range p {
-		if s.kind == symSkip && s.e == exitMark {
+		if _, exit := s.e.(*exitMark); s.kind == symSkip && exit {
 			n--
 		}
 	}
@@ -408,11 +426,6 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 		if !ok {
 			return nil, false
 		}
-		if depth == 0 && x.owner != nil {
-			for i, p := range after {
-				after[i] = append([]sym{{symSkip, exitMark, 0}}, p...)
-			}
-		}
 		return concatPaths(paths, after)
 	}
 	return paths, true
@@ -442,14 +455,14 @@ func (x excl) followPaths(c *cont) ([][]sym, bool) {
 func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 	var after [][]sym
 	if rule == x.k.start {
-		after = append(after, []sym{{kind: symEnd}})
+		after = append(after, x.exited([][]sym{{{kind: symEnd}}}, rule, "")...)
 	}
 	for _, s := range x.k.sites {
 		if s.callee != rule {
 			continue
 		}
 		if depth >= x.follow {
-			after = append(after, []sym{{kind: symStop, e: stopFollow}})
+			after = append(after, x.exited([][]sym{{{kind: symStop, e: stopFollow}}}, rule, s.caller)...)
 			continue
 		}
 		y, nest := x, x.k.nestsEnd(s)
@@ -469,10 +482,10 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 				ps[i] = append([]sym{{kind: symBind}}, p...)
 			}
 		}
-		after = append(after, ps...)
+		after = append(after, x.exited(ps, rule, s.caller)...)
 	}
 	if len(after) == 0 {
-		after = append(after, []sym{{kind: symStop}})
+		after = append(after, x.exited([][]sym{{{kind: symStop}}}, rule, "")...)
 	}
 	return after, len(after) <= exclPaths
 }
@@ -494,7 +507,7 @@ func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
 		}
 		var ps [][]sym
 		if ps, ok = y.contPaths(c, depth+1); ok {
-			for _, p := range ps {
+			for _, p := range x.exited(ps, rule, rule) {
 				if nest {
 					p = append([]sym{{kind: symUp}}, p...)
 				}
@@ -937,18 +950,20 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 }
 
 // recordAlike records, for checkRestarts, the call a of the unit that the continuation evaluates
-// alike at s.q[s.j], when the continuation can then reach the end of the body of the rule of the
-// unit without consuming input (restart).
+// alike at s.q[s.j], when the continuation can then reach the end of a body without consuming
+// input (restart): the body of the rule of the unit, or the body of the caller that the
+// continuation reached after it left that one, whose rule the next exit mark names.
 func (x excl) recordAlike(s exclState, a sym) {
 	r, ok := a.e.(*grammar.Ref)
 	if x.owner == nil || !ok || !x.k.recursive[x.owner.rule] {
 		return
 	}
+	add := func(rule string) { x.k.addRestart(restart{rule, r, s.viaP}) }
 	for _, b := range s.q[s.j+1:] {
 		switch b.kind {
 		case symSkip:
-			if b.e == exitMark {
-				x.k.addRestart(restart{x.owner.rule, r, s.viaP})
+			if m, ok := b.e.(*exitMark); ok {
+				add(m.rule)
 				return
 			}
 		case symUp, symBind, symEnv, symNot, symAnd:
@@ -958,14 +973,25 @@ func (x excl) recordAlike(s exclState, a sym) {
 			}
 		default:
 			// A path that the analysis does not follow further, or the end of the parse, which
-			// comes after the end of the body.
-			x.k.addRestart(restart{x.owner.rule, r, s.viaP})
+			// comes after the end of the body in which the call is.
+			add(x.bodyOf(s.q[:s.j]))
 			return
 		}
 	}
 	if x.owner.kind == unitOperand || x.owner.kind == unitOperator {
-		x.k.addRestart(restart{x.owner.rule, r, s.viaP})
+		add(x.owner.rule)
 	}
+}
+
+// bodyOf returns the rule of the body in which the continuation path q goes on: the rule of the
+// unit, or the caller that the last exit of q reached.
+func (x excl) bodyOf(q []sym) string {
+	for i := len(q) - 1; i >= 0; i-- {
+		if m, ok := q[i].e.(*exitMark); ok && q[i].kind == symSkip {
+			return m.into
+		}
+	}
+	return x.owner.rule
 }
 
 // expand replaces the symbol side[idx] by each path that it stands for and requires each to be

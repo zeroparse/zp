@@ -37,6 +37,11 @@ var nestingRestarts = []struct{ name, src string }{
 	{"through a memoized rule that nests, pure scan", "rule main = e / \"!\" w\nrule e = \"(\" (w R \"x\" / w) / \".\"\nrule w = e\nrule R = [ ]*\n"},
 	// A lookahead is restarted by what follows it.
 	{"lookahead", "rule main = e\nrule e = \"(\" &(e R) e \"x\"? / \".\"\nrule R = [ ]*\n"},
+	// The option ends the body of f, and its continuation leaves f and then e through the call of
+	// e that nests at one end, and then main: the scan in main follows that nesting, although the
+	// call of e in main does not nest.
+	{"after the ends of two bodies", "rule main = e R\nrule e = \"(\" f e / \".\"\nrule f = (e R \"x\")?\nrule R = &\"\" [ ]*\n"},
+	{"after the ends of two bodies, nested option", "rule main = m R\nrule m = \"[\" e m / \".\"\nrule e = \"(\" (m R \"x\")? / \".\"\nrule R = &\"\" [ ]*\n"},
 }
 
 // nestingLinear are grammars of the same shapes whose cost is linear.

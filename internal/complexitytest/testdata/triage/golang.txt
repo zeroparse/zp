@@ -1,4 +1,4 @@
-# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 148 reasons
+# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 150 reasons
 
 ## comments (16) -> F97
 672:119 sp: the cost can grow as n^5: after the lookahead at 672:112 in rule sp fails, what follows the lookahead !("/*" (!"*/" [^\n])* "\n") can start again inside the input that the repetition (!"*/" [^\n])* at 672:119 in rule sp examined; it is evaluated again inside an iteration of the repetition at 672:11 in rule sp; it is evaluated again inside the lookahead at 555:29 in rule goPrimary; it is evaluated again inside the operator part at 555:17 in rule goPrimary; this repeats in the recursion of rule goPrimary
@@ -32,7 +32,7 @@
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:26 in rule imagLit fails, the later alternative hexFloat "i" at 750:45 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:45 in rule imagLit fails, the later alternative imagInt "i" at 750:60 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 
-## nested (148) -> F100
+## nested (150) -> F100
 134:43 constSpec: the option at 134:43 in rule constSpec is not committing against what follows the option typeSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 134:54 constSpec: the option at 134:54 in rule constSpec is not committing against what follows the option valuesSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 142:26 varSpec: the alternative at 142:26 in rule varSpec is not committing against the later alternative varSpecUntyped at 142:41 in rule varSpec, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -83,6 +83,7 @@
 331:31 instanceField: the alternative at 331:31 in rule instanceField is not committing against the later alternative identIndex at 331:48 in rule instanceField, and units that are not committing are nested in it without bound through a recursion of rule calls
 335:41 methodBlock: an iteration of the repetition at 335:41 in rule methodBlock is not committing against what follows the repetition (e:interfaceElem -sp -fieldTerm -ws)*, and units that are not committing are nested in it without bound through a recursion of rule calls
 336:28 interfaceElem: the alternative at 336:28 in rule interfaceElem is not committing against the later alternative embeddedElem at 336:41 in rule interfaceElem, and units that are not committing are nested in it without bound through a recursion of rule calls
+338:40 signature: the evaluations of the call of resultsSp at 338:40 in rule signature can nest without a bound and end at one position, through a unit that evaluates calls alike with a continuation, which the classifier found only after it relied on the call
 338:40 signature: the option at 338:40 in rule signature is not committing against what follows the option resultsSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 342:30 embeddedElem: an iteration of the repetition at 342:30 in rule embeddedElem is not committing against what follows the repetition (-sp "|" ![|=] -ws t:embeddedTerm)*, and units that are not committing are nested in it without bound through a recursion of rule calls
 344:27 embeddedFirst: the alternative at 344:27 in rule embeddedFirst is not committing against the later alternative embeddedIndex at 344:47 in rule embeddedFirst, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -92,6 +93,7 @@
 358:31 terminatedStmt: the alternative at 358:31 in rule terminatedStmt is not committing against the later alternative plainStmt at 358:45 in rule terminatedStmt, and units that are not committing are nested in it without bound through a recursion of rule calls
 365:60 labeledStmt: the alternative at 365:60 in rule labeledStmt is not committing against the later alternative plainStmt at 365:74 in rule labeledStmt, and units that are not committing are nested in it without bound through a recursion of rule calls
 369:22 clauseBody: an iteration of the repetition at 369:22 in rule clauseBody is not committing against what follows the repetition (-ws s:clauseStmt)*, and units that are not committing are nested in it without bound through a recursion of rule calls
+369:44 clauseBody: the evaluations of the call of lastClauseStmt at 369:44 in rule clauseBody can nest without a bound and end at one position, through a unit that evaluates calls alike with a continuation, which the classifier found only after it relied on the call
 369:44 clauseBody: the option at 369:44 in rule clauseBody is not committing against what follows the option lastClauseStmt?, and units that are not committing are nested in it without bound through a recursion of rule calls
 372:33 clauseTerminated: the alternative at 372:33 in rule clauseTerminated is not committing against the later alternative plainStmt at 372:47 in rule clauseTerminated, and units that are not committing are nested in it without bound through a recursion of rule calls
 375:37 lastClauseTerminated: the alternative at 375:37 in rule lastClauseTerminated is not committing against the later alternative plainStmt at 375:51 in rule lastClauseTerminated, and units that are not committing are nested in it without bound through a recursion of rule calls

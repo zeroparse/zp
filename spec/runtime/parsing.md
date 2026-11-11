@@ -1246,12 +1246,18 @@ The conditions below use these terms.
   decided unit passes them alike, one of which, in the unit, is `t` itself
   or a call in the body that `t` evaluates, which the unit reaches by
   looking through `t`, after which the continuation can reach the end of the rule body without
-  consuming input. The last case is a **restart**: in
+  consuming input. When the continuation has left that body before the
+  shared calls, through its end and a call of the rule, the rule in the set
+  is the one in whose body the continuation is at the shared calls, whose
+  evaluation contains that of the unit, if the continuation can reach the end
+  of that body. The last case is a **restart**: in
   `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, the alternative `e R "x"`
   fails after its call of `e` ended at a position, and the alternative `e`
   ends `e` at the same position through the memo answer of the same call,
   so every level of the nesting ends there and scans the spaces in `R`
-  again. The other units add nothing: a unit that can fail only before its
+  again. In `e = "(" f e / "."` with `f = (e R "x")?`, the option fails in
+  the same way, `f` ends, and the call of `e` after `f` ends `e` at that
+  position: `e` is in the set. The other units add nothing: a unit that can fail only before its
   scanning sources have examined input has evaluated none when it fails, so
   neither `t` nor a call that it looked through contains one, and since each
   rule of the recursion of `t` calls the rule of `t`, no rule of the

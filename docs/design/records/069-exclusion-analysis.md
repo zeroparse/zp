@@ -198,9 +198,11 @@ an end, and after it a call that the memo does not answer and that scans is not 
 ends at the position evaluates it again, which no constant bounds, as in `e = "(" e? (ws ")")?`.
 
 Whether a call nests at one end depends on this comparison too. A unit that fails after its call of a rule ended at a
-position, and a continuation that passes the same call alike and then ends the rule body without consuming input,
-restart the nesting there: in `e = "(" (e R "x" / e) / "."` every level ends where the innermost one ends, through the
-memo answer of the call that the failed alternative made. The calls that the comparison passes alike therefore take part
+position, and a continuation that passes the same call alike and then ends a body without consuming input, restart the
+nesting there: in `e = "(" (e R "x" / e) / "."` every level ends where the innermost one ends, through the memo answer
+of the call that the failed alternative made. The body is that of the rule of the unit, or that of the caller in which
+the continuation passed the call after it left the body of the unit, whose evaluation contains the unit, as `e` in
+`e = "(" f e / "."` with `f = (e R "x")?`. The calls that the comparison passes alike therefore take part
 in the definition of nesting at one end in
 [Conditions for Linear Cost](../../../spec/runtime/parsing.md#conditions-for-linear-cost). Before the checks, the classifier reads the
 shared calls of the units of a recursion that can fail after a scanning source (those that the repeated-scans

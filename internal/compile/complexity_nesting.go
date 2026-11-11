@@ -141,24 +141,30 @@ func (k *classifier) callsRecursion(u *unit) bool {
 }
 
 // recordShared records a shared call of owner, a unit, and its continuation (see restart). lu are
-// the leads of the unit at the call, lc those of the continuation.
+// the leads of the unit at the call, lc those of the continuation. The restart is of each rule
+// whose body the continuation can end after the call: the rule of owner, or, for a continuation
+// that left that body before the call, the rule of the body that it reached, whose evaluation
+// contains the one of the rule of owner.
 func (k *classifier) recordShared(owner *unit, lu, lc []lead) {
 	if owner == nil || !k.recursive[owner.rule] {
 		return
 	}
-	ends := false
+	var rules []string
 	for _, l := range lc {
-		if l.call != nil && !l.left && k.endsBody(l.rest, owner) {
-			ends = true
-			break
+		if l.call == nil {
+			continue
 		}
+		k.bodyEnds(l.rest, owner, func(r string) {
+			if !slices.Contains(rules, r) {
+				rules = append(rules, r)
+			}
+		})
 	}
-	if !ends {
-		return
-	}
-	for _, l := range lu {
-		if l.call != nil {
-			k.addRestart(restart{owner.rule, l.call, l.via})
+	for _, r := range rules {
+		for _, l := range lu {
+			if l.call != nil {
+				k.addRestart(restart{r, l.call, l.via})
+			}
 		}
 	}
 }
@@ -173,41 +179,45 @@ func (k *classifier) addRestart(r restart) {
 	}
 }
 
-// endsBody reports whether the path c, which has not left the body of the rule of owner, can
-// reach the end of that body without consuming input. The paths of an operand or an operator part
-// end with the part, after which the Operators Rule can end.
-func (k *classifier) endsBody(c *cont, owner *unit) bool {
+// bodyEnds calls end with the rule of each body whose end the path c can reach without consuming
+// input: the body of the rule of owner, or the body of a caller that the path reached after it
+// left that one. The paths of an operand or an operator part end with the part, after which the
+// Operators Rule of owner can end.
+func (k *classifier) bodyEnds(c *cont, owner *unit, end func(rule string)) {
 	seen := map[string]bool{}
-	var walk func(c *cont) bool
-	walk = func(c *cont) bool {
+	var walk func(c *cont)
+	walk = func(c *cont) {
 		for ; c != nil; c = c.next {
 			k.control.Poll()
 			if _, null := k.firstItems(c.items); !null {
-				return false
+				return
 			}
 			if c.next != nil {
 				continue
 			}
 			switch {
 			case c.end == endNone:
-				return owner.kind == unitOperand || owner.kind == unitOperator
+				if owner.kind == unitOperand || owner.kind == unitOperator {
+					end(owner.rule)
+				}
+				return
 			case !c.inner:
-				return true
+				end(c.rule)
+				return
 			case seen[c.rule]:
-				return false
+				return
 			}
 			// The end of a body that the path looked into: it continues after the call.
 			seen[c.rule] = true
-			found := false
 			if c.end == endOps {
-				k.opsLeads(c.rule, true, func(n *cont) { found = found || walk(n) })
+				k.opsLeads(c.rule, true, walk)
 			}
-			k.endLeads(c.rule, func(n *cont, _ *site) { found = found || walk(n) })
-			return found
+			k.endLeads(c.rule, func(n *cont, _ *site) { walk(n) })
+			return
 		}
-		return true
+		end(owner.rule)
 	}
-	return walk(c)
+	walk(c)
 }
 
 // nestSet returns the call sites that nest at one end, with the restart clause read from rs.
