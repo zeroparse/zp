@@ -284,6 +284,30 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("(", n) + "x" + rep(" ", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
 		},
+		// A nesting restarted at one end: a unit fails after its call ended at a position, and a
+		// continuation that evaluates the same call alike, through the memo answer, ends the rule
+		// there, so every level ends where the innermost one ends and scans the spaces after it
+		// again. R is not pure, so that the engine keeps no record of its scans.
+		{
+			Name: "Scan restarted at the end of nested alternatives", Family: "nesting restarts",
+			Source: "rule main = e R $$\nrule e = \"(\" (e R \"x\" / e) / \".\"\nrule R = &\"\" [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		{
+			Name: "Scan restarted through a looked-through call", Family: "nesting restarts",
+			Source: "rule main = m R \"z\" $$\nrule z = \"(\" y R \"x\"\nrule y = m\nrule m = \".\" / z \"!\" / \"(\" m\nrule R = &\"\" [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) + "z" },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// Each nested evaluation of a left-recursive rule that ends at a position grows there, and
+		// each step of its growth scans what follows its seed again.
+		{
+			Name: "Scan after the seed of nested growths", Family: "nesting restarts",
+			Source: "rule main = e R $$\nrule e = e R \"x\" / \"(\" e / \".\"\nrule R = &\"\" [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
 		{
 			Name: "Operators Rule skip shared by nested prefix operators", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = [ ]*\n",
