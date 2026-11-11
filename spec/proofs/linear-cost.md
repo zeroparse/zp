@@ -370,7 +370,8 @@ start at one position $q$, with $\alpha$ evaluated first, and let the innermost
 evaluation $N$ that contains both not be a growth. Then $\alpha'$ is not inside
 $\alpha$, and on the path from $N$ down to $\alpha$ there is a first abandoned
 evaluation $w$ below $N$. Either $w$ is a dropped step of a growth, or $w$ is an
-evaluation of a unit that starts at a position $s \le q$ and is committing. From
+evaluation of a unit that starts at a position $s \le q$, which is committing
+when the source is not a bounded scan. From
 the end of $w$ to the start of $\alpha'$, the parser starts no evaluation at a
 position before the start of $w$.
 
@@ -408,8 +409,10 @@ progress after $w$ ends, it encloses $w$. It ends before $\alpha'$, so it does
 not enclose $\alpha'$, and it lies on the path from $N$ to $w$, where no
 evaluation fails. So there is no such $v$.
 
-Let $w$ be a unit. It contains the scanning source of $\alpha$, or a call
-that leads to it. It is the expression of a lookahead, which condition 2
+Let $w$ be a unit, and let the source not be a bounded scan; a unit whose
+only scanning sources are bounded scans has no scanning source in the sense of
+condition 2, which need not check it. $w$ contains the scanning source of
+$\alpha$, or a call that leads to it. It is the expression of a lookahead, which condition 2
 checks in any case, or it failed after $\alpha$ succeeded, having examined
 input, so by the paragraph above it can fail after one of its scanning
 sources has examined input. Condition 2 makes it committing. $\square$
@@ -523,7 +526,9 @@ count of the evaluations in a context of growths, and with the second bound
 gives $A_s$. Last, this claim bounds the evaluations of the rules that are not
 memoized and $A_f$.
 
-By the restarts above, a successful activation is repeated at a
+The claims from here to *Nothing in a memoized link is a head* concern the
+scanning sources other than bounded scans, whose activations Lemma 13 counts.
+By the restarts above, a successful activation of such a source is repeated at a
 position only after a dropped step of a growth, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
 not return before the start of that unit until the repetition. The ways in which
@@ -817,21 +822,26 @@ its recursion, and $E_t$ the smallest set of rules that the definition of a
 call that nests at one end ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)) builds for $t$, so
 that $t$ nests at one end when $Y$ is in $E_t$. Let $X$ be an evaluation of a
-call of a rule $A$ that succeeds and ends at a position $p_0$, and $T$ an
-evaluation of $t$ inside $X$, other than $X$, that starts before $p_0$, ends
-at $p_0$ and holds a successful activation. Let no evaluation on the path from
+call of a rule $A$ of the recursion of $t$ that succeeds and ends at a
+position $p_0$, and $T$ an evaluation of $t$ inside $X$, other than $X$, that
+starts before $p_0$, ends at $p_0$ and holds a successful activation of a
+scanning source other than a bounded scan. Let no evaluation on the path from
 $X$ to $T$ be a dropped step of a growth, and let two evaluations at one
 position of a call that a unit and a continuation share, or that the
 comparison of a decided unit passes alike, end at one position. Then $A$ is in
 $E_t$, except in the cases that the end of the proof leaves open. So when the
 evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
-the one around it, all of those calls ending at one position and each holding
-a successful activation, $t$ nests at one end: calls that start at that
-position nest only through left recursion, which the growths bound, so some
-call $X$ starts before the position and holds another, $T$, that does too,
-and the claim gives $Y$ in $E_t$.
+the one around it, all of those calls ending at one position, each holding a
+successful activation of such a source, and no dropped step of a growth lying
+between them, $t$ nests at one end: calls that start at that position nest
+only through left recursion, which the growths bound, so some call $X$ starts
+before the position and holds another, $T$, that does too, with no dropped
+step on the path between them, and the claim gives $Y$ in $E_t$. A nesting
+with a dropped step of a growth between its calls is left open.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
+Each call on that path is of a rule of the recursion of $t$, since $A$
+reaches it and it reaches $Z$.
 
 If no evaluation on the path below $X$ is abandoned, each succeeds and lies in
 the match of the one above it, so each call on the path ends at $p_0$, in a
@@ -884,11 +894,21 @@ the call whose body holds $w$, or one whose body $\kappa$ reaches by leaving
 the bodies inside it through their ends. $K$ is kept and contains $S$ in its
 match, so it ends at $p_0$, no later than $X$ and no earlier than $S$, and
 after $S$, $\kappa$ reaches the end of the body of $K$ without consuming
-input. In (a) and (b), the rule of $K$ is in $E_t$ by the third case of the
-definition, in its form for a continuation that left the body of the unit
-when $K$ is not the call whose body holds $w$. In (c), the call $S$ of $B$ is
-followed in the body of $K$ by what matched without consuming input, so the
-rule of $K$ is in $E_t$ by the second case. The calls on the path from $X$ to
+input. $\kappa$ evaluates $S$ either directly in the body of $K$ or inside
+calls $Q_1, \dots, Q_m$ that it looks through, $Q_1$ made in the body of $K$
+and each $Q_{i+1}$ in the body of $Q_i$, with $S$ in the body of $Q_m$. Each
+$Q_i$ contains $S$ in its match, so it ends at $p_0$, and after $S$ the body of
+$Q_m$, and after $Q_{i+1}$ the body of $Q_i$, match without consuming input.
+In (a) and (b), the rule of $K$
+is in $E_t$ by the third case of the definition, with the shared call reached
+by looking through $Q_1$ when $\kappa$ evaluates $S$ inside it, in its form
+for a continuation that left the body of the unit when $K$ is not the call
+whose body holds $w$. In (c), the call $S$ of $B$ is followed by what matched
+without consuming input in the body of $Q_m$, or of $K$ when $\kappa$
+evaluates $S$ directly there, so the second case adds the rule of $Q_m$, then
+those of $Q_{m-1}$ to $Q_1$, each calling the next at such a call, and the
+rule of $K$; the rule of each $Q_i$ is of the recursion of $t$, since $K$
+reaches it and it reaches $B$, which reaches $Z$. The calls on the path from $X$ to
 $K$ end at $p_0$ in body evaluations that end at $p_0$, so the second case
 adds each rule above $K$, up to $A$.
 
@@ -909,7 +929,9 @@ decisive symbol, and it must still be shown for the end of $T$. And when $T$
 lies inside an alike call in a unit abandoned inside it, that call can end
 before $p_0$, and the cases above do not apply.
 
-**Seed reads.** A left call $s$ from a rule of a left-recursion cycle to a rule
+**Seed reads.** The following argues, without proving it, that the case of
+seed reads in the definition is the one that *Nesting at one end* gives inside
+growths. A left call $s$ from a rule of a left-recursion cycle to a rule
 of the same cycle nests at one end when some call of a rule of that cycle
 does. This is the case in which what follows $s$ is evaluated at a position
 $p_0$, with a successful activation, by unboundedly many evaluations. That happens once in each growth step
@@ -920,11 +942,16 @@ evaluations nest, each in the next, and since a new one starts at a new
 position, it is made by a call whose callee is a rule of the cycle, as a left
 call of a rule of the cycle starts no new evaluation at a new position. One of
 the finitely many call places, $t$, makes unboundedly many of them, and
-*Nesting at one end*, with $X$ an outer and $T$ an inner one of them, puts the
-callee of $t$ in $E_t$, so $t$ nests at one end. The path between them can
-hold kept growth steps, which that claim allows; the claims above leave out
-the links between which the parser leaves or starts a growth step at the
-position, and so do not use this case.
+*Nesting at one end*, with $X$ an outer and $T$ an inner one of them, would put
+the callee of $t$ in $E_t$, so that $t$ nests at one end. Besides the open
+points of that claim, two of its hypotheses are not shown here. First, $X$
+and $T$ must end at $p_0$, but the evaluations above are chosen because the
+current result of their leader ends at $p_0$, and a leader whose step at
+$p_0$ grows ends beyond $p_0$. Second, no dropped step of a growth may lie
+on the path from $X$ to $T$, and that path lies inside growths: the claim
+allows the kept growth steps on it, but the dropped ones are not excluded.
+The claims above leave out the links between which the parser leaves or
+starts a growth step at the position, and so do not use this case.
 
 These claims bound the links of one source at one position, memoized links by
 the memo and the links of a rule that calls no rule by the cycles of nesting
@@ -3262,7 +3289,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
    out, and for which the condition has its case of seed reads (*Seed
-   reads*). Third, the
+   reads*); that case is argued from *Nesting at one end* but not proved:
+   besides the three open points of that claim, it is not shown that the
+   nested evaluations of a leader that it picks end at the position, since a
+   leader whose current result ends there can grow beyond it, nor that no
+   dropped step of a growth lies on the path between them. Third, the
    memoized links that the comparison leaves out: a link of a leader with a
    growth of its cycle open at the start of only one of its two evaluations,
    which then read different results of another leader of the cycle; in a Document parse, a link
@@ -3317,17 +3348,22 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    source of the operators but in no activation of it, so Lemma 2, *One place*
    of Lemma 10 and *Activations that do not succeed* of Lemma 4 do not bound
    the calls and the evaluations of sources made in them.
-   *Nesting at one end* also takes the continuation of an operand that the
-   rule abandons to be a later operand, followed by the operator parts that
-   the rule tries after it and by what follows the rule. The step must show
-   that the parse of the rule evaluates nothing else at the end of that
-   operand, so that the restarts through a later operand reach what follows
-   the rule and are those that the definition of nesting at one end counts.
-   The case to cover is an Operators Rule `e` with the operands `"(" e R "x"`,
-   `"(" e` and `"."`, called as `e R` with `R = [ ]*`: on `(`^n `.` followed by n
-   spaces, the first operand fails at each level after scanning the spaces,
-   the second ends where the inner operand ended, and every level scans the
-   spaces in `R` again.
+   *Nesting at one end* takes the continuation $\kappa$ of an abandoned unit
+   to be what the parser evaluates after it, and for a unit of an Operators
+   Rule it applies the continuations that the definition lists: the later
+   operands, the operator parts that the rule tries after them and what
+   follows the rule. The step must show, for every unit of an Operators Rule,
+   that the parse of the rule evaluates, after an operand or an operator part
+   that it abandons, nothing beyond those continuations, as *Restarts* does
+   for the other constructs; the restarts through a later operand are then
+   those that the definition counts. In an Operators Rule `e` with the
+   operands `"(" e R "x"`, `"(" e` and `"."`, called as `e R` with
+   `R = [ ]*`, the first operand fails at each level after scanning the
+   spaces and the second ends where the inner operand ended; the two share
+   the call of `e`, so the definition puts `e` in the set for that call, which
+   nests at one end. The rule then nests, the call of `R` that the
+   continuation reaches after an operand is not shared, and the condition
+   excludes the grammar.
 4. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
    that a context of growths repeats, which Lemma 3 leaves out: the calls
    that find no result with the same growing results and lookahead outcomes,
