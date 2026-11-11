@@ -72,6 +72,10 @@ Example comment (numbers illustrative):
   migrated from the former single-issue backlog carry only a short text until
   someone picks them up.
 - Set Status when work starts and when it goes to review.
+- Set the project's Start date when work starts (Status In progress) and a
+  Target date as the planned finish, so the Roadmap view shows the work. Revise
+  the Target date when the plan changes, and set it to the actual finish when
+  the issue closes. Enrich the body at the start (see above) and keep it current.
 - Commits carry `Refs #N`. Never use `Closes`, `Fixes` or `Resolves`.
 - Close an issue by hand only after its acceptance criterion and gates pass and
   integration is verified (live branch and remote state). The closing comment is
