@@ -3076,4 +3076,4 @@ fail:
 
 const _ = types.ZPSchema_341a4aaa83c568ba
 
-const _ = rt.Protocol6
+const _ = rt.Protocol99
