@@ -72,5 +72,6 @@ memory that stay linear in the worst case.
 
 ## Decision and Limits
 
-Adopted on every target, always on. Not covered: the missing-token mode, whose replays no lemma bounds; the number of
-errors that a result reports, which listing them costs in time and which no lemma bounds by the cost.
+Adopted on every target, always on. Not covered: the missing-token mode, whose replays no lemma bounds. Lemma 16 of the
+linear cost proof bounds the number of errors that a result reports by a constant times the input, so listing them
+stays within the cost of a parse outside a Document.

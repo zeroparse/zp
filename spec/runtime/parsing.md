@@ -347,12 +347,15 @@ no more than the shorter one, so it costs at most the length of the shorter
 operand, plus a constant.
 
 Outside a [Document](documents.md), and apart from the exceptions below, time is
-proportional to cost, plus the number of errors that a result reports when its
-recovered errors are listed. The memory that a parse allocates is at most
-proportional to its cost plus the input, plus the errors that a result reports
-when its recovered errors are listed, because each memo entry, node and value
-is built by cost that is counted, except in a parse with missing-token
-insertion, as below. The cost of a parse is measured in compute units, which
+proportional to cost, listing the recovered errors of a result included: a
+result reports at most a constant times the input that its parse matched, and a
+parse outside a Document examines that input at a cost that is counted
+([linear cost proof](../proofs/linear-cost.md#lemma-16-errors-of-an-outcome)).
+The memory that a parse allocates is at most proportional to its cost plus the
+input, because each memo entry, node and value is built by cost that is counted
+and the list of recovered errors is at most a constant times the input. Both
+exclude a parse with missing-token insertion, as below, where no bound relates
+the number of its errors to the input or the cost. The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
 [compute limits](#cancellation-and-compute-limits) caps it. Each backend that
 counts compute units, the engine's closure backend and bytecode machines as
@@ -2069,8 +2072,8 @@ Here `n` is the length of the input in the position unit of the parse: bytes
 for `Bytes`, code points for `CodePoints`. `Input` has no finite default
 because the default `Compute` already grows with `n`, and `Memory` has none
 because, outside missing-token insertion, the memory a parse allocates is at
-most proportional to its cost plus the input, plus the errors that a result
-reports ([Time and Memory](#time-and-memory)). `Memory` does not count the list
+most proportional to its cost plus the input
+([Time and Memory](#time-and-memory)). `Memory` does not count the list
 of reported errors, which the parse hands to the caller.
 
 `WithLimits` sets the fields field by field. A nonzero field overrides the

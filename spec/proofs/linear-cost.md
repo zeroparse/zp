@@ -1,6 +1,6 @@
 # Linear Cost
 
-Arata Furukawa · Last revised 2026-11-11
+Arata Furukawa · Last revised 2026-11-12
 
 This proof shows that the [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 bound the [cost](../runtime/parsing.md#cost) of every parse, so that the
@@ -10,8 +10,9 @@ splits the cost into the parts that the specification counts and bounds each
 part by one lemma, so that a new condition is added as a lemma, or as a case of
 one, without changing the others.
 
-Lemmas 1, 3, 7, 8, 9, 11 and 14 are proved, and Lemmas 2 and 10 apart from the
-tries of an Operators Rule outside its activations (step 3 of
+Lemmas 1, 3, 7, 8, 9, 11 and 14 are proved, Lemma 16 given the theorems of
+the [Memoization](memoization.md) and [Documents](documents.md) proofs, and
+Lemmas 2 and 10 apart from the tries of an Operators Rule outside its activations (step 3 of
 [Open Steps](#open-steps)). Lemmas 13 and 15 are proved
 for the [cost view](#setting) that the classifier reads, and the
 [Cost View](cost-view.md) proof transfers every bound on the view to the grammar
@@ -31,7 +32,9 @@ leaves unbounded. After Lemma 12 an argument, not a proof, shows that the units
 which the default budget counts for a Document parse are at most those of a
 parse of the same text from scratch.
 Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
-constant times $C$.
+constant times $C$, and Lemma 16 bounds the number of the recovered errors of an
+outcome by a constant times the input, so that listing them outside a Document
+takes at most a constant times $C$.
 [Correspondence](#correspondence) maps the conditions and terms of the
 specification to the lemmas that use them. Lemmas 4 and 5 are given as
 outlines: each states its claim, the conditions it uses, and the steps that its
@@ -3017,9 +3020,10 @@ the walks of Lemma 12. $\square$
 
 Listing the errors of the outcome charges no Compute. By Lemma 14 it visits at
 most twice as many lists as the outcome has errors, counted as often as they
-occur; no lemma bounds that number by $C$. In the missing-token mode, the parse
-records the errors of every reused result one by one, and no lemma bounds those
-units.
+occur, and by Lemma 16 that number is at most a constant times the input that
+the parse matched, which a Document parse need not examine. In the
+missing-token mode, the parse records the errors of every reused result one by
+one, and no lemma bounds those units.
 
 That these four are all the units of a parse is a reading of the charges of the
 engine, not a derivation: no lemma relates a charge to $C$ in general.
@@ -3102,7 +3106,7 @@ of these is part of a step that $C$ counts with at least one unit: a recovery,
 a call, a store, or a growth step. So by the lemma the units that the takes
 charge and the entries of their lists are at most a constant times $C$, and
 listing the errors of the outcome visits at most twice as many lists as there
-are errors. The lemma does not cover the missing-token mode, which records the
+are errors, which Lemma 16 bounds by the input. The lemma does not cover the missing-token mode, which records the
 errors of every reused result one by one.
 
 **Measured controls.** The engine on its three backends and the generated Go
@@ -3151,6 +3155,150 @@ leader it is 3.1, 6.4 and 13.2 to 13.3 MB on every one.
 The slope tests of the classifier check both grammars on the three backends of
 the engine, and the tests of each generated runtime check that four times the
 items cost less than five times the Compute.
+
+## Lemma 16 (Errors of an Outcome)
+
+Lemma 14 bounds the lists that listing the recovered errors of an outcome
+visits by twice the number of those errors, counted as often as they occur.
+This lemma bounds that number by the input. It uses none of the conditions for
+linear cost, so it holds for every grammar.
+
+The recovered errors of a parse are those of the reference parse $\mathcal{R}$
+of the [memoization proof](memoization.md#setting), by its
+[theorem](memoization.md#theorem-memoization-never-changes-the-result), and a
+[Document](../runtime/documents.md) parse returns those of a parse of its text
+from scratch ([Documents](documents.md#theorem-document-parses-equal-fresh-parses)).
+A [stream](../runtime/streaming.md) lists only the errors that it has not
+delivered. So it suffices to count the errors $\varepsilon$ of the outcome of
+the start call in $\mathcal{R}$. As in those proofs, the parse inserts no
+[`#missing`](../language/pragmas.md#missing) token and no limit stops it.
+
+**Derivations.** The **derivation** of an evaluation in $\mathcal{R}$ that
+matches is a tree. Its root is the evaluation, and the children of a node are
+the derivations of the outcomes that it records and keeps, in order: an
+expression keeps the outcomes of its subexpressions that it ends with, a call
+keeps the evaluation of the body of its rule, a call that grows a leader keeps
+the last step whose result became the current result, which is the result
+that the call returns, a call that reads the current result of a growth keeps
+the step that gave that result, evaluated before the call, and a recovery that
+recovers keeps its skip expression. A
+[lookahead](../language/parser-expressions.md#lookahead) and the
+[`skip` of an Operators Rule](../language/operators-rule.md#skip) keep
+nothing, since their end discards the errors recovered in them. So the
+parent of a node is the evaluation that evaluated it, except below a call
+that reads a current result. A step that two calls read is a child of each,
+so a node is an occurrence. The **span** of
+a node is the interval $[s, e)$ from the position where it starts to the end of
+its outcome. A **recovery node** is a node of a recovery that recovers.
+
+The caller records an outcome by appending its errors to its own
+([Setting](memoization.md#setting)), a failure has none, and a recovery that
+recovers records its own error besides those of its skip expression
+([`#recover`](../language/pragmas.md#recover)). So the errors of an
+evaluation are those of the recovery nodes of its derivation, one for each,
+and $|\varepsilon|$ is their number.
+
+**Lemma 16.** Let the start call of a parse match from $p$ to $q$. Its
+recovered errors, counted as often as they occur, number at most
+$D \, (2 (q - p) - 1)$ if $q > p$, and none if $q = p$, where $D$ depends only
+on the grammar. Outside a Document, $q - p \le C$, so listing them visits at
+most $4 D C$ lists.
+
+*Proof.* **Spans nest.** A child's span lies within its parent's, by
+[Positions do not decrease](../runtime/parsing.md#growths-of-left-recursion).
+The children of a node lie one after another: after it records an outcome that
+ends at $e$, an evaluation continues from $e$, and it goes back before $e$
+only where a choice, a repetition, a recovery or a lookahead returns to the
+position where one of its subexpressions started, which drops the outcomes
+recorded after that position with their errors
+([Cost](../runtime/parsing.md#cost)). So two nodes of which neither is above
+the other have disjoint spans, those of the two children of their lowest
+common ancestor that lie above them. A recovery node has a span that is not
+empty, since its skip expression consumes input. So the spans of the recovery
+nodes are, for any two, disjoint or nested, and two recovery nodes with the
+same span lie on one path from the root, and so do the nodes between them,
+whose spans are the same.
+
+**Distinct spans.** A family of distinct non-empty intervals within
+$[p, q)$, any two of which are disjoint or nested, has at most
+$2 (q - p) - 1$ members. Order them by inclusion into a forest. A member with
+at most one child member holds a character that lies in no child, since it
+differs from its child or has none and is not empty. Such a character lies in
+no member below the one that holds it and in none disjoint from it, so no two
+members hold the same one, and these members number at most $q - p$. A forest has fewer nodes with two or
+more children than leaves, and the leaves are among the members just counted,
+so the others number at most $q - p - 1$.
+
+**One span.** Let $\pi$ be a path of nodes that all have the span $[a, b)$,
+$a < b$. Every node of $\pi$ starts at $a$, so its calls are calls at $a$,
+each made by a body that started at $a$. Call a node of $\pi$ that reads the
+current result of a growth a **read**. A read's child on $\pi$ was evaluated
+before it; every other node of $\pi$ evaluates its child, so the reads cut
+$\pi$ into **segments** in which each node is evaluated by the one above it.
+The nodes of a segment from a node $u$ down to a node $w$ are then all the
+evaluations that are evaluated within $u$ and enclose $w$, and the calls of a
+segment form a chain of
+[Lemma 1 of Left-Recursion Growth](left-recursion.md#lemma-1-chains-at-one-position).
+
+Let $r$ be a read of a growth $H$ and $u$ the first node of the segment that
+ends at $r$. If $u$ is a step of $H$, or the call that grows $H$ lies on the
+segment, whose child there is a step of $H$, then $r$ is evaluated within a
+step of $H$ that lies on $\pi$ and reads the current result that the step
+started from. That result ends before the step does, since the step became
+the current result by ending farther (a read within the first step fails), so
+$r$ would end before $b$. Hence
+neither holds, and $H$, open when $r$ is evaluated, started before $u$: a
+growth that started within the evaluation of $u$ and is still open at $r$ is
+grown by a call that is evaluated within $u$ and encloses $r$, so a node of
+the segment. Now let $r'$ and $r$ be consecutive reads on $\pi$, of growths
+$H'$ and $H$, so that the segment after $r'$ starts with a step $S$ of $H'$.
+Then $H \ne H'$, $H$ started before $S$ and is open within $S$. The calls that
+grow $H$ and $H'$ are both being evaluated when $S$ starts, so one encloses
+the other. If the call of $H'$ enclosed that of $H$, $H$ would have started
+within an earlier step of $H'$ and ended with it, before $S$. So each growth
+read on $\pi$ encloses the one read before it, all are open at once at $a$,
+and their keys of leader and level differ, since a call of an open growth's
+key at its position reads it. So $\pi$ holds at most $N$ reads and $N + 1$
+segments, where $N$ is the number of keys of
+[Left-Recursion Growth](left-recursion.md#setting), and each segment holds
+at most $B$ calls by its Lemma 1.
+
+Between two calls of a segment, and above its first or below its last, the
+nodes are nested parts of one body: subexpressions, iterations of a
+repetition, or applications of operators of an Operators Rule. At most two
+applications have one span, because a prefix or postfix operator consumes
+input and an infix operator that consumes none ends the expression. So such a
+stretch holds at most $d + 2$ nodes, where $d$ is the greatest depth of the
+subexpressions of a rule body, and $\pi$ holds at most
+$D = (N + 1)\,(B + (B + 1)(d + 2))$ nodes.
+
+**The count.** The recovery nodes with one span lie on one path of that span,
+so at most $D$ of them share a span, and the distinct spans number at most
+$2 (q - p) - 1$; if $q = p$ no recovery node fits in the derivation.
+
+**Matched input.** Outside a Document the parse starts with an empty memo and
+no record of a walk. Its position passes a character only where a terminal
+matches the character, which $C$ counts as input examined, or where it takes
+an outcome, a current result or a record that this parse made earlier from
+such matches. So each of the $q - p$ characters was
+examined by a step that $C$ counts, and $q - p \le C$. By Lemma 14 listing $k$
+recovered errors visits at most $2k$ lists, so listing those of the outcome
+visits at most $4 D C$. $\square$
+
+A recovery inside the skip expression of another can share its span: with
+`rule item = ("a" ";") #recover(skip=inner)` and
+`rule inner = ("b" ";") #recover(skip=[^;]* ";")`, the input `c;` gives two
+errors over $[0, 2)$. So the errors of an outcome do not cover disjoint spans,
+and the bound counts the recovery nodes of each span instead. The errors of a
+step that a growth reads recur in the outcome, but each read keeps the step
+over a span shorter than that of the step that reads it, so the steps of one
+growth at one position add no errors over one span beyond the bound.
+
+In a Document the count is the same, at most $D \, (2 (q - p) - 1)$, but the
+parse need not examine the input that it reuses, so the bound by $C$ does not
+follow. In the missing-token mode an insertion records an error over no input,
+and the parse records the errors of every reused result one by one; the lemma
+does not cover it.
 
 ## Correspondence
 
