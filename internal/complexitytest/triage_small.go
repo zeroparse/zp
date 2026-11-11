@@ -101,10 +101,10 @@ func triageSmall() []TriageGroup {
 				{Name: "backquoted selectors", Build: list("a", ".`"+rep("x ", 20)+"`", "", ""), Sizes: doubling(300, 3), Order: Linear},
 			}},
 		{Grammar: "cel", ID: "space", Witness: true, Rules: []string{"ws"}, Pattern: `examined`,
-			Shape:  "the whitespace before a call or an operator part, rescanned by a later alternative, or by each enclosing ?: at the position where the nested operands end; the scan [ \\t\\r\\n\\u{c}]* repeats one character class, so no record answers it again",
-			Assign: "O75", Order: Poly(2), Families: []TriageFamily{
+			Shape:  "the whitespace before a call or an operator part, rescanned by a later alternative, or by each enclosing ?: at the position where the nested operands end; the scan [ \\t\\r\\n\\u{c}]* repeats one character class in a rule that calls no rule, a scan site whose records answer the rescans after the first walk, so the steps grow linearly, but the classifier does not exempt the skip of an Operators Rule",
+			Assign: "O75", Order: Linear, Families: []TriageFamily{
 				{Name: "space before a call", Build: list("", "f"+rep(" ", 30)+"(1)", " + ", ""), Sizes: doubling(300, 3), Order: Linear},
-				{Name: "nested conditionals before long whitespace", Build: func(n int) string { return rep("a?b:", n) + "a" + rep(" ", n) }, Sizes: doubling(250, 3), Order: Poly(2)},
+				{Name: "nested conditionals before long whitespace", Build: func(n int) string { return rep("a?b:", n) + "a" + rep(" ", n) }, Sizes: doubling(250, 3), Order: Linear},
 			}},
 		{Grammar: "cel", ID: "nested", Pattern: nestedPattern,
 			Shape:  "units of primary, unary, member and the list, map and field lists, nested through the recursion of expr, every call on it memoized",
