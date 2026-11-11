@@ -1242,7 +1242,7 @@ The conditions below use these terms.
   recursion that contains `Z` when what follows `t` can match without
   consuming input, each rule that calls a rule of the set at a call that
   what can match without consuming input follows, and each rule with a unit
-  and a continuation that share calls, as below or as the comparison of a
+  that condition 2 below checks and a continuation that share calls, as below or as the comparison of a
   decided unit passes them alike, one of which, in the unit, is `t` itself
   or a call in the body that `t` evaluates, which the unit reaches by
   looking through `t`, after which the continuation can reach the end of the rule body without
@@ -1251,8 +1251,13 @@ The conditions below use these terms.
   fails after its call of `e` ended at a position, and the alternative `e`
   ends `e` at the same position through the memo answer of the same call,
   so every level of the nesting ends there and scans the spaces in `R`
-  again. A left call of a rule of a left-recursion cycle nests at one end
-  too when a call of a rule of that cycle does: each evaluation of a leader
+  again. The other units add nothing: a unit that can fail only before its
+  scanning sources have examined input has evaluated none when it fails, so
+  neither `t` nor a call that it looked through contains one, and since each
+  rule of the recursion of `t` calls the rule of `t`, no rule of the
+  recursion contains one either, and a nesting through `t` repeats no scan.
+  A left call from a rule of a left-recursion cycle to a rule of the same
+  cycle nests at one end too when a call of a rule of that cycle does: each evaluation of a leader
   of the cycle that ends at a position grows there, and the next step of its
   growth evaluates what follows the left calls there again, after its seed,
   as `R` in `e = e R "x" / "(" e / "."`. Each of the nested evaluations that
