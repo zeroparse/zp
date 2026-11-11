@@ -826,3 +826,80 @@ func HullTermCases() []TermCase {
 	}
 	return out
 }
+
+// iterPrelude declares the struct type of IterTermCases: I has an int and a list field.
+const iterPrelude = "type I = { N int; L []int }\n@start\n"
+
+// IterTermCases returns fixed terms that iterate over a list with map, filter, foldl and foldr: over lists of
+// no element, of nodes with one that did not match (nil), of ints, strings, tuples, lists and structs, and over
+// a list field left unset; terms whose order of iteration shows in the value (foldl and foldr of strings and of
+// digits); a lambda that fails part way through, so that the elements made so far are dropped; iterations
+// nested in a lambda and in a fused concat; and the map that takes a projected repetition as it is. Each term
+// is an action on a literal of one byte and one beyond the Basic Multilingual Plane, and a few are predicates,
+// whose failure drops what the term made. The rule captures two nodes of one literal each, a third that does not
+// match and a repetition of two more.
+func IterTermCases() []TermCase {
+	actions := []struct{ typ, term string }{
+		{"[]int", "map(list(1, 2, 3), (n) => n * 2)"},
+		{"int", "len(map(list(), (n) => n))"},
+		{"int", "len(map(list($x, $y, $z), (n) => n))"},
+		{"[]string", "map(list($x, $y), (n) => text(n))"},
+		{"int", "len(map(I{}.L, (n) => n))"},
+		{"[]int", "map(list(list(1), list(2, 3), list()), (l) => len(l))"},
+		{"[]int", "map(list(2, 1, 0), (n) => 6 / n)"},
+		{"int", "foldl(0, list(1, 2, 3), (a, n) => a * 10 + n)"},
+		{"int", "foldr(0, list(1, 2, 3), (a, n) => a * 10 + n)"},
+		{"string", `foldl("", list("a", "b", "c"), (a, s) => a + s)`},
+		{"string", `foldr("", list("a", "b", "c"), (a, s) => a + s)`},
+		{"string", `foldr("", list($x, $y), (a, n) => a + text(n))`},
+		{"int", "foldl(0, list(), (a, n) => a + n)"},
+		{"int", "foldr(7, list(), (a, n) => a + n)"},
+		{"int", "foldl(0, I{L: list(1, 2)}.L, (a, n) => a + n)"},
+		{"int", "foldl(0, list((1, 2), (3, 4)), (a, t) => a + t[1])"},
+		{"int", "foldl(0, list(1, 0), (a, n) => a + 1 / n)"},
+		{"int", "foldr(0, list(0, 1), (a, n) => a + 1 / n)"},
+		{"[]int", "filter(list(1, 2, 3, 4), (n) => n % 2 == 0)"},
+		{"[]int", "filter(list(1, 2), (n) => false)"},
+		{"int", "len(filter(list(), (n) => true))"},
+		{"int", "len(filter(list($x, $y), (n) => text(n) != \"\"))"},
+		{"[]string", `filter(list("a", "", "b"), (s) => s != "")`},
+		{"[]int", "filter(list(1, 0), (n) => 1 / n == 1)"},
+		{"int", "len(map(list(1, 2), (n) => len(map(list(n, n), (m) => m + 1))))"},
+		{"int", "foldl(0, map(list(1, 2, 3), (n) => n * n), (a, n) => a + n)"},
+		{"[]int", "map(list(1, 2), (n) => foldl(n, list(10, 20), (a, m) => a + m + n))"},
+		{"int", "foldl(0, map(list(1, 2), (n) => I{N: n}), (a, s) => a + s.N)"},
+		{"[]int", "map(filter(list(I{N: 1}, I{}), (s) => s.N > 0), (s) => s.N)"},
+		{"int", "len(concat(list(1), map(list(2, 3), (n) => n), concat(list(4), filter(list(5, 6), (n) => n > 5))))"},
+		{"[]int", "concat(map(list(1, 2), (n) => n + 1), list(9))"},
+		{"[]int", "concat(list(1), map(list(1, 0), (n) => 1 / n))"},
+		{"int", "len(map($rs, (e) => e.$w))"},
+		{"int", "len(concat(list($x), map($rs, (e) => e.$w)))"},
+	}
+	predicates := []string{
+		"len(map(list($x, $y), (n) => n)) == 2",
+		"len(map(list(1, 0), (n) => 1 / n)) == 2",
+		"foldl(0, filter(list(1, 2, 3), (n) => n > 1), (a, n) => a + n) == 5",
+	}
+	const rule = "x:%[3]q y:%[3]q z:\"c\"? rs:(w:%[3]q)*"
+	var out []TermCase
+	for _, lit := range []string{"a", "😀"} {
+		in := strings.Repeat(lit, 4)
+		for _, a := range actions {
+			out = append(out, TermCase{
+				Case: Case{Name: "iter: " + a.term,
+					Src:    fmt.Sprintf("%srule main %s = "+rule+" $$ => %[4]s\n", iterPrelude, a.typ, lit, a.term),
+					Inputs: []string{in}},
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+		for _, p := range predicates {
+			out = append(out, TermCase{
+				Case: Case{Name: "iter predicate: " + p,
+					Src:    fmt.Sprintf("%srule main %s = "+rule+" ({%[4]s} \"b\" / \"\") $$ => 1\n", iterPrelude, "int", lit, p),
+					Inputs: []string{in, in + "b"}},
+				Term: p, Kind: TermPredicate, Lit: lit,
+			})
+		}
+	}
+	return out
+}

@@ -117,6 +117,14 @@ func TestTermChargesHull(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_hull.golden", "gentest.HullTermCases", "The terms make no struct value that leaves a field unset.", "termchargeshull", gentest.HullTermCases())
 }
 
+// TestTermChargesIter pins the charges of gentest.IterTermCases, whose terms iterate over lists with map, filter,
+// foldl and foldr, so that a change in how a target walks a list, calls the function and keeps or drops the
+// elements it makes shows as a stated change of the units it charges.
+func TestTermChargesIter(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_iter.golden", "gentest.IterTermCases", "Some terms read a list field left unset.", "termchargesiter", gentest.IterTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)
