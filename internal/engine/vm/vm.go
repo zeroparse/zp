@@ -1436,12 +1436,10 @@ func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err err
 			base := len(p.KidStack)
 			for _, v := range stack[top:] {
 				p.Spend()
-				n, err := ctx.Element("tuple", v)
-				if err != nil {
+				if err := ctx.Push("tuple", v); err != nil {
 					p.DropKids(base)
 					return nil, err
 				}
-				p.KidStack = append(p.KidStack, n)
 			}
 			stack = append(stack[:top], ctx.TupleNode(p.Kids(base)))
 		case bytecode.EMapPush:

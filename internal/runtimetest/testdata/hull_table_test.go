@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
@@ -24,10 +25,12 @@ func TestValueHullTable(t *testing.T) {
 				}
 				n = c.Tuple(args...).(*Node)
 			} else {
-				var items []*Node
+				base := len(c.P.KidStack)
 				for _, e := range elems {
-					items = append(items, c.asNode("list", vals[e]))
+					c.push("list", vals[e])
 				}
+				items := slices.Clone(c.P.KidStack[base:])
+				c.P.DropKids(base)
 				n = c.NewList(items)
 			}
 			rng := fmt.Sprintf("%d-%d", n.RawStart, n.RawEnd)

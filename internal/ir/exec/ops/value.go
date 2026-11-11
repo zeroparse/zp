@@ -313,6 +313,9 @@ const QZeroParts = "zero_parts"
 // concatenation, copies.
 const QValueBytes = "value_bytes"
 
+// QSeqLen is the number of elements of the Seq argument of a primitive, which it copies.
+const QSeqLen = "seq_len"
+
 // QErrParts is the number of fragments of the text of a failure: the fixed pieces and the values
 // between them, which a target that bounds the work assembles piece by piece, charging each.
 const QErrParts = "error_parts"
@@ -489,6 +492,16 @@ ints.`})
 	m.AddOp(&exec.Op{Name: "act.made", Component: Host, Params: []exec.Param{exec.P("c", act), n}, Writes: []string{Host}, NoReturn: true,
 		Contract: `Records n as a value that c made, which the parser drops with the values of a term that it abandons.`,
 		Requires: `n is a struct that c made and has not recorded.`})
+	m.AddOp(&exec.Op{Name: "act.push", Component: Host, Params: []exec.Param{exec.P("c", act), exec.P("e", exec.THandle(Elem))},
+		Writes: []string{Host}, NoReturn: true,
+		Contract: `Pushes e above the elements gathered for the lists and tuples that c is making, as the next element of the
+innermost one. The host gathers them so that a list or a tuple takes its elements in one piece when it is made, and
+drops them with the values of a term that it abandons.`})
+	m.AddOp(&exec.Op{Name: "act.pushAll", Component: Host, Params: []exec.Param{exec.P("c", act), exec.P("items", items)},
+		Writes: []string{Host}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSeqLen}}},
+		Contract: `Pushes the elements of items in order, as act.push pushes each. A target that bounds the work charges one
+unit for each element it copies.`,
+		Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "val.seq", Params: []exec.Param{exec.P("c", act), exec.P("tuple", exec.TBool), exec.P("kids", items)},
 		Results: []exec.Type{exec.THandle(Obj)}, Host: true, NoReturn: true, Cost: exec.Cost{Const: 1},
 		Contract: `Returns a new tuple value if tuple and a new list value otherwise, made in c, whose elements are kids, which it

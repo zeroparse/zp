@@ -41,7 +41,7 @@ const build = (v: V): p.Value => {
     case "rep": return new p.Node("list", "", 2, 5, "", [text(), text()], p.noFields, false, false);
     case "err": return new p.Node("error", "", 2, 4, "x", p.noNodes, p.noFields, false, true);
     case "struct": return c.newStruct(v.Name);
-    case "box": return c.element("list", 1) as p.Value;
+    case "box": c.push("list", 1); return P.kidStack.pop()! as p.Value;
     case "list": return c.list(...elems());
     case "tupleValue": return c.tuple(...elems());
   }

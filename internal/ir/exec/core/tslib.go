@@ -46,7 +46,8 @@ var tsSpecs = []struct {
 	{fn: "unary", name: "termUnary"},
 	{fn: "logic", name: "termLogic"},
 	{fn: "member", name: "termMember"},
-	{fn: "element", name: "termElement"},
+	{fn: "push", name: "termPush"},
+	{fn: "pushItems", name: "termPushItems"},
 	{fn: "items", name: "termItems"},
 	{fn: "itemAt", name: "termItemAt"},
 	{fn: "filterKeep", name: "termFilterKeep"},
@@ -252,6 +253,10 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("setNodeSpan(%s, %s, %s)", a[0], a[1], a[2])
 		case "act.made":
 			return "this.created.push(" + a[1] + ")"
+		case "act.push":
+			return "this.kidStack.push(" + a[1] + ")"
+		case "act.pushAll":
+			return a[0] + ".pushAll(" + a[1] + ")"
 		case "ftype.kind":
 			return a[0] + ".kind.charCodeAt(0)"
 		case "ftype.elem":

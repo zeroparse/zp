@@ -136,8 +136,7 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 		{"binary type", func(p *core.Parser) error { _, err := p.ValueBinary("+", node, 1); return err }},
 		{"list name", func(p *core.Parser) error { _, err := p.ValueListItems(long, 1); return err }},
 		{"element name", func(p *core.Parser) error {
-			_, err := (&core.EvalCtx{P: p}).Element(long, budgetActionFunc{})
-			return err
+			return (&core.EvalCtx{P: p}).Push(long, budgetActionFunc{})
 		}},
 		{"text type", func(p *core.Parser) error { _, err := (&core.EvalCtx{P: p}).TextString(budgetActionFunc{}); return err }},
 	}

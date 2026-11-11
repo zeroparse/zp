@@ -1863,7 +1863,7 @@ func (c *TActCtx) Tuple(args ...any) any {
 	base := len(c.P.KidStack)
 	for _, a := range args {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("tuple", a))
+		c.push("tuple", a)
 	}
 	return c.P.termHull(c, true, c.P.Kids(base))
 }
@@ -2011,19 +2011,21 @@ func (c *TActCtx) PushMap(list any, f func(item any) any) {
 	items := c.ListItems("map", list)
 	for i := range items {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(c.P.termItemAt(items, i, false))))
+		c.push("map", f(c.P.termItemAt(items, i, false)))
 	}
 }
 
 func (c *TActCtx) PushList(args ...any) {
 	for _, a := range args {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("list", a))
+		c.push("list", a)
 	}
 }
 
 func (c *TActCtx) PushItems(v any) {
-	c.P.KidStack = appendSpend(c.P.Parser, c.P.KidStack, c.ListItems("concat", v))
+	if f := c.P.termPushItems(c, "concat", v); f != nil {
+		panic(f)
+	}
 }
 
 func (c *TActCtx) EndList(base int) any {
@@ -2302,12 +2304,10 @@ func (c *TActCtx) ListItems(fn string, v any) []any {
 	return items
 }
 
-// asNode returns v as an element of a list or a tuple that fn makes, as the composition element
-// (term_exec.go) makes it.
-func (c *TActCtx) asNode(fn string, v any) any {
-	e, f := c.P.termElement(c, fn, v)
-	if f != nil {
+// push pushes v as the next element of the list or the tuple that fn makes, as the composition push
+// (term_exec.go) does.
+func (c *TActCtx) push(fn string, v any) {
+	if f := c.P.termPush(c, fn, v); f != nil {
 		panic(f)
 	}
-	return e
 }

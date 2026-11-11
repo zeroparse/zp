@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// The built-in table (conform.BuiltinCases) on the compositions length, text, element, items and convert
-// of the node and the typed runtime (termLength, termText, termElement, termItems and termConvert,
+// The built-in table (conform.BuiltinCases) on the compositions length, text, items and convert
+// of the node and the typed runtime (termLength, termText, termItems and termConvert,
 // printed from Exec IR), through the methods that a generated parser calls.
 
 // nodeBuiltinFixture returns the context of a node parser over conform.BuiltinInput, with a budget
@@ -82,11 +82,6 @@ func TestValueBuiltinTable(t *testing.T) {
 					return c.Length(v)
 				case conform.CallText:
 					return c.TextStr(v)
-				case conform.CallElement:
-					if n := c.asNode(conform.BuiltinFn(call), v); n != nil {
-						return n
-					}
-					return nil
 				case conform.CallConvert:
 					return c.Convert(conform.BuiltinType, v)
 				}
@@ -104,28 +99,13 @@ func TestValueBuiltinTable(t *testing.T) {
 					return tc.Length(v)
 				case conform.CallText:
 					return tc.TextStr(v)
-				case conform.CallElement:
-					e := tc.asNode(conform.BuiltinFn(call), v)
-					if k := valKind(e); k == valKindInt || k == valKindString || k == valKindBool {
-						// The typed runtime keeps a scalar element as it is, where the node runtime boxes it.
-						return builtinBox{e}
-					}
-					return e
 				case conform.CallConvert:
 					return tc.Convert(builtinTypeNt, v)
 				}
 				return &TSeq{Typ: TypeListValue, Kids: tc.ListItems(conform.BuiltinFn(call), v)}
-			}, func(x any) string {
-				if b, ok := x.(builtinBox); ok {
-					return "box " + tmemberCanon(b.v)
-				}
-				return tmemberCanon(x)
-			})
+			}, tmemberCanon)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
 		}
 	}
 }
-
-// builtinBox marks an element of the typed runtime that the node runtime boxes.
-type builtinBox struct{ v any }

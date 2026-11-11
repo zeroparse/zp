@@ -43,8 +43,14 @@ var goMutants = []goMutant{
 	{"End is a field", "term_exec.go", "memberKind", "return memberEnd, name", "return memberField, name"},
 	{"nil has length 1", "term_exec.go", "termLength", "return any(0), nil", "return any(1), nil"},
 	{"a string has no length", "term_exec.go", "termLength", "if k == 2 {", "if false {"},
-	{"a bool is not an element", "term_exec.go", "termElement", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
-	{"a function is an element", "term_exec.go", "termElement", "return nil, p.termError(11, v, any(fn), 0, 0)", "return nil, nil"},
+	{"a bool is not an element", "term_exec.go", "termPush", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
+	{"a function is an element", "term_exec.go", "termPush", "return p.termError(11, v, any(fn), 0, 0)", "return nil"},
+	{"nil pushes no element", "term_exec.go", "termPush", "p.KidStack = append(p.KidStack, nil)\n", ""},
+	{"a node pushes no element", "term_exec.go", "termPush", "p.KidStack = append(p.KidStack, n)\n", "_ = n\n"},
+	{"concat pushes no elements", "term_exec.go", "termPushItems", "\t\tp.KidStack = appendSpend(", "\t\t_ = appendSpend("},
+	{"concat takes a value that is not a list", "term_exec.go", "termPushItems", "if ok {", "if ok || true {"},
+	{"concat charges nothing for the elements it pushes", "term_exec.go", "termPushItems", "appendSpend(p, p.KidStack, items)", "append(p.KidStack, items...)"},
+	{"typed concat charges nothing for the elements it pushes", "term_exec.go", "termPushItems", "appendSpend(p.Parser, p.KidStack, items)", "append(p.KidStack, items...)"},
 	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
 	{"the text of a string is empty", "term_exec.go", "termText", "return x.(string), nil", "return \"\", nil"},
 	{"a list value converts", "term_exec.go", "termConvert", "if ok {\n\t\tif ", "if ok {\n\t\tif true || "},
@@ -104,6 +110,11 @@ func TestPrintedOperatorMutants(t *testing.T) {
 		if strings.Contains(m.old, "UnboxValue") || strings.Contains(m.old, "UnboxNode") {
 			heads = heads[:1] // a typed value is never boxed
 		}
+		if strings.Contains(m.old, "(p.Parser,") {
+			heads = heads[1:] // the typed runtime passes its embedded parser
+		} else if strings.Contains(m.old, "Spend(p,") {
+			heads = heads[:1]
+		}
 		for _, head := range heads {
 			t.Run(m.name+" "+strings.TrimSuffix(strings.TrimPrefix(head, "func "), " "), func(t *testing.T) {
 				t.Parallel()
@@ -130,7 +141,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the runtime has no %s%s with %q", head, m.fn, m.old)
 				}
-				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|CastTable)$", ".")
+				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$", ".")
 				cmd.Dir = dir
 				cmd.Env = append(cmd.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
 				out, err := cmd.CombinedOutput()

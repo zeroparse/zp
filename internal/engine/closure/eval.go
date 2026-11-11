@@ -277,13 +277,11 @@ func (cm *Machine) evalTuple(c *core.EvalCtx, elems []grammar.Term) (any, error)
 	kb := len(p.KidStack)
 	for _, v := range p.Estack[base:] {
 		p.Spend()
-		n, err := c.Element("tuple", v)
-		if err != nil {
+		if err := c.Push("tuple", v); err != nil {
 			p.DropKids(kb)
 			p.Estack = p.Estack[:base]
 			return nil, err
 		}
-		p.KidStack = append(p.KidStack, n)
 	}
 	p.Estack = p.Estack[:base]
 	return c.TupleNode(p.Kids(kb)), nil

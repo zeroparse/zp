@@ -1641,12 +1641,10 @@ func (c *ActCtx) ListItems(fn string, v any) []*Node {
 	return items
 }
 
-// asNode returns v as an element of a list or a tuple that fn makes, as the composition element
-// (term_exec.go) makes it.
-func (c *ActCtx) asNode(fn string, v any) *Node {
-	n, f := c.P.termElement(c, fn, v)
-	if f != nil {
+// push pushes v as the next element of the list or the tuple that fn makes, as the composition push
+// (term_exec.go) does.
+func (c *ActCtx) push(fn string, v any) {
+	if f := c.P.termPush(c, fn, v); f != nil {
 		panic(f)
 	}
-	return n
 }

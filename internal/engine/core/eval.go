@@ -171,10 +171,7 @@ func (c *EvalCtx) zeroFrom(d string) (any, string, error) {
 			e, d, err = c.zeroFrom(d)
 			if err == nil {
 				p.Spend()
-				var n *value.Node
-				if n, err = c.Element("tuple", e); err == nil {
-					p.KidStack = append(p.KidStack, n)
-				}
+				err = c.Push("tuple", e)
 			}
 			if err != nil {
 				p.DropKids(kb)
@@ -297,29 +294,23 @@ func (c *EvalCtx) PushElems(fn string, args []any) error {
 			if err != nil {
 				return err
 			}
-			n, err := c.Element("map", v)
-			if err != nil {
+			if err := c.Push("map", v); err != nil {
 				return err
 			}
-			c.P.KidStack = append(c.P.KidStack, n)
 		}
 	case "list":
 		for _, a := range args {
 			c.P.Spend()
-			n, err := c.Element("list", a)
-			if err != nil {
+			if err := c.Push("list", a); err != nil {
 				return err
 			}
-			c.P.KidStack = append(c.P.KidStack, n)
 		}
 	case "concat":
 		for _, a := range args {
 			c.P.Spend()
-			items, err := c.P.ValueListItems("concat", a)
-			if err != nil {
+			if err := c.P.termPushItems(c, "concat", a); err != nil {
 				return err
 			}
-			c.P.KidStack = AppendSpend(c.P, c.P.KidStack, items)
 		}
 	}
 	return nil
@@ -331,10 +322,11 @@ func (p *Parser) ValueListItems(fn string, v any) ([]*value.Node, error) {
 	return p.termItems(fn, v)
 }
 
-// Element returns v as an element of a list that the list built-in fn makes. An int, string or
-// bool travels boxed, with the range of the action's input, as the result of an action does.
-func (c *EvalCtx) Element(fn string, v any) (*value.Node, error) {
-	return c.P.termElement(c, fn, v)
+// Push pushes v onto KidStack as the next element of the list or the tuple that the built-in or literal
+// fn makes, as the composition push does. An int, string or bool travels boxed, with the range of the
+// action's input, as the result of an action does.
+func (c *EvalCtx) Push(fn string, v any) error {
+	return c.P.termPush(c, fn, v)
 }
 
 // Keep returns c, or a copy of c on the heap if it belongs to a lambda call (closure.apply),

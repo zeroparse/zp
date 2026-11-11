@@ -313,24 +313,41 @@ func (p *Parser) termMember(c *EvalCtx, kind int, x any, name string, field stri
 	return nil, p.termError(10, x, any(field), 0, 0)
 }
 
-// termElement returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil,
-// a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such
-// as a function, fails.
+// termPush pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
+// nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
+// value, such as a function, fails and pushes nothing.
 //
-// Printed from Exec IR function element of internal/ir/exec/core.
-func (p *Parser) termElement(c *EvalCtx, fn string, v any) (*value.Node, error) {
+// Printed from Exec IR function push of internal/ir/exec/core.
+func (p *Parser) termPush(c *EvalCtx, fn string, v any) error {
 	k := valKind(v)
 	if k == 0 {
-		return nil, nil
+		p.KidStack = append(p.KidStack, nil)
+		return nil
 	}
 	if k == 1 || k == 2 || k == 3 {
-		return p.NewNode(value.Data{Kind: value.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}), nil
+		p.KidStack = append(p.KidStack, p.NewNode(value.Data{Kind: value.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}))
+		return nil
 	}
 	n, ok := nodeOf(v)
 	if ok {
-		return n, nil
+		p.KidStack = append(p.KidStack, n)
+		return nil
 	}
-	return nil, p.termError(11, v, any(fn), 0, 0)
+	return p.termError(11, v, any(fn), 0, 0)
+}
+
+// termPushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
+// next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
+// fails and pushes nothing.
+//
+// Printed from Exec IR function pushItems of internal/ir/exec/core.
+func (p *Parser) termPushItems(c *EvalCtx, fn string, v any) error {
+	items, ok := valItems(v)
+	if ok {
+		p.KidStack = AppendSpend(p, p.KidStack, items)
+		return nil
+	}
+	return p.termError(12, v, any(fn), 0, 0)
 }
 
 // termItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,

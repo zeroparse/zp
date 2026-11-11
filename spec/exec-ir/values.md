@@ -3,7 +3,7 @@
 The component `value` holds the operations on the values of terms: actions, predicates and the values of bindings.
 They read and write no state of the parse. A value is a datum of the host, opaque to the rest of the parser VM; these
 operations look inside it. Each acts on one kind of value and has none of the policy of an operator of the grammar:
-the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `element`, `items`, `itemAt`, `filterKeep`, `length`, `text`, `convert`, `cover`, `made` and `hull` (see
+the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `push`, `pushItems`, `items`, `itemAt`, `filterKeep`, `length`, `text`, `convert`, `cover`, `made` and `hull` (see
 [Compositions](compositions.md#terms)) decide which operation applies, which operands are valid and which failure a term
 reports. The tables of this chapter are shared by every target: a target numbers the operators, kinds and failures as
 they are numbered here, and prints the messages of the failures as they are written here, so that they read the same
@@ -172,9 +172,11 @@ whose element type is top charges none, and a tuple of another length is refused
 
 ## Operations That Write Host State
 
-The component `host` holds these two operations, which write the host and so are not operations of the component `value`.
+The component `host` holds these operations, which write the host and so are not operations of the component `value`.
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
 | `op node.setSpan(n Obj, start int, end int) noreturn` | writes host | `0` | Sets the range of n to start and end. It is for a value that a term is making, which no one has read. |
 | `op act.made(c Act, n Obj) noreturn` | writes host | `0` | Records n as a value that c made, which the parser drops with the values of a term that it abandons. Requires: n is a struct that c made and has not recorded. |
+| `op act.push(c Act, e Elem) noreturn` | writes host | `0` | Pushes e above the elements gathered for the lists and tuples that c is making, as the next element of the innermost one. The host gathers them so that a list or a tuple takes its elements in one piece when it is made, and drops them with the values of a term that it abandons. |
+| `op act.pushAll(c Act, items Seq) noreturn` | writes host | `0 + 1*seq_len` | Pushes the elements of items in order, as act.push pushes each. A target that bounds the work charges one unit for each element it copies. Requires: items came from seq.items. |

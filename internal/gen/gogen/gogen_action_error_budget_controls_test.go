@@ -113,7 +113,7 @@ func TestActionHelperErrorsAndShortCircuit(t *testing.T){
    func(){right:=func()any{called++;return true};if typed{(&zprt.TActCtx{P:tp}).And(tn,right)}else{(&zprt.ActCtx{P:p}).And(n,right)}},
    func(){right:=func()any{called++;return false};if typed{(&zprt.TActCtx{P:tp}).Or(tn,right)}else{(&zprt.ActCtx{P:p}).Or(n,right)}},
    func(){if typed{(&zprt.TActCtx{P:tp}).ListItems(long,1)}else{(&zprt.ActCtx{P:p}).ListItems(long,1)}},
-   func(){fn:=func(...any)any{return nil};if typed{(&zprt.TActCtx{P:tp}).X_asNode(long,fn)}else{(&zprt.ActCtx{P:p}).X_asNode(long,fn)}},
+   func(){fn:=func(...any)any{return nil};if typed{(&zprt.TActCtx{P:tp}).X_push(long,fn)}else{(&zprt.ActCtx{P:p}).X_push(long,fn)}},
   }
   for _,run:=range cases{
    p.Control=nil;ordinary,e:=catchActionText(run);if e!=nil || ordinary==""{t.Fatal("ordinary helper error",e)}

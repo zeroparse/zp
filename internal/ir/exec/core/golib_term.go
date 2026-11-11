@@ -17,7 +17,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 // termFuncs are the compositions of the operators of terms, in the order they are printed.
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
-	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"itemAt", "termItemAt"}, {"filterKeep", "termFilterKeep"}, {"length", "termLength"}, {"text", "termText"},
+	{"member", "termMember"}, {"push", "termPush"}, {"pushItems", "termPushItems"}, {"items", "termItems"}, {"itemAt", "termItemAt"}, {"filterKeep", "termFilterKeep"}, {"length", "termLength"}, {"text", "termText"},
 	{"convert", "termConvert"}, {"cover", "termCover"}, {"made", "termMade"}, {"hull", "termHull"},
 	{"conforms", "termConforms"}, {"valueConforms", "termValueConforms"}, {"elemsConform", "termElemsConform"},
 	{"tupleConform", "termTupleConform"},
@@ -356,6 +356,13 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		return fmt.Sprintf("%[1]s.start, %[1]s.end", a[0]), true
 	case "act.made":
 		return fmt.Sprintf("%s.made(%s)", a[0], a[1]), true
+	case "act.push":
+		return fmt.Sprintf("p.KidStack = append(p.KidStack, %s)", a[1]), true
+	case "act.pushAll":
+		if typed {
+			return fmt.Sprintf("p.KidStack = appendSpend(p.Parser, p.KidStack, %s)", a[1]), true
+		}
+		return fmt.Sprintf("p.KidStack = appendSpend(p, p.KidStack, %s)", a[1]), true
 	case "node.typeName":
 		if typed {
 			return "tnodeTypeOf(" + a[0] + ").name", true
@@ -522,6 +529,10 @@ func engineValueOp(callee string, a []string) (string, bool) {
 		return fmt.Sprintf("%[1]s.Start, %[1]s.End", a[0]), true
 	case "act.made":
 		return fmt.Sprintf("%s.made(%s)", a[0], a[1]), true
+	case "act.push":
+		return fmt.Sprintf("p.KidStack = append(p.KidStack, %s)", a[1]), true
+	case "act.pushAll":
+		return fmt.Sprintf("p.KidStack = AppendSpend(p, p.KidStack, %s)", a[1]), true
 	case "node.typeName":
 		return a[0] + "[0].Type", true
 	case "node.shape":

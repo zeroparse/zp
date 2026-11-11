@@ -100,7 +100,8 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func unary(op int, x Datum) (Datum, Fail)` | Applies the unary operator that op indexes in the [unary operators](values.md#operators) to x: - negates an int, with wraparound, and ! negates a bool. Any other operand fails. |
 | `func logic(op int, x Datum) (bool, Fail)` | Checks the operand x of the logical operator that op indexes in the [logical operators](values.md#operators), and returns it. An operand that is not a bool fails. The caller short-circuits: it evaluates the right operand of && only if the left is true and of \|\| only if it is false, and checks each operand it evaluates. |
 | `func member(c Act, kind int, x Datum, name Name, field Name) (Datum, Fail)` | Reads the member name of x, whose kind is kind (see [Member Kinds](values.md#member-kinds)) and which reads the field or capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does not declare fail. |
-| `func element(c Act, fn Name, v Datum) (Elem, Fail)` | Returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such as a function, fails. |
+| `func push(c Act, fn Name, v Datum) Fail` | Pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c: nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such as a function, fails and pushes nothing. |
+| `func pushItems(c Act, fn Name, v Datum) Fail` | Pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value fails and pushes nothing. |
 | `func items(fn Name, v Datum) (Seq, Fail)` | Returns the elements of v, an argument of the built-in function fn that takes a list: none for nil, and those of a list or a tuple. Any other value fails. |
 | `func itemAt(items Seq, i int, right bool) Datum` | Returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges nothing; the iteration charges one step (`seq.step`) per element before it. |
 | `func filterKeep(v Datum) (bool, Fail)` | Returns whether filter keeps an element for which its function returned v. A v that is not a bool fails. |
@@ -183,7 +184,8 @@ row includes what its backends print into packages of their own.
 | unary | `[]` | `[]` | `[]` | `[]` |
 | logic | `[]` | `[]` | `[]` | `[]` |
 | member | `[]` | `[]` | `[]` | `[]` |
-| element | `[]` | `[]` | `[]` | `[]` |
+| push | `[]` | `[]` | `[]` | `[]` |
+| pushItems | `[]` | `[]` | `[]` | `[]` |
 | items | `[]` | `[]` | `[]` | `[]` |
 | itemAt | `[]` | `[]` | `[]` | `[]` |
 | filterKeep | `[]` | `[]` | `[]` | `[]` |

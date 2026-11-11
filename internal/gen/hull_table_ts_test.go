@@ -37,11 +37,17 @@ const values: Record<string, p.Value> = {
   "late": new p.Node("string", "", 7, 9, "q", p.noNodes, p.noFields, false, true),
 };
 const used = (): number => (CONTROLLED ? (P.control as any).budgetUsed : 0);
+// pushed returns the elements that list makes of vs.
+const pushed = (vs: p.Value[]): (p.Node | null)[] => {
+  const base = P.kidStack.length;
+  for (const v of vs) c.push("list", v);
+  return P.kidStack.splice(base);
+};
 const cases: [string, string[]][] = JSON.parse(readFileSync("cases.json", "utf8"));
 console.log(JSON.stringify(cases.map(([kind, elems]) => {
   try {
     const vs = elems.map((e) => values[e]!);
-    const n = (kind === "tuple" ? c.tuple(...vs) : c.newList(vs.map((v) => c.element("list", v)))) as p.Node;
+    const n = (kind === "tuple" ? c.tuple(...vs) : c.newList(pushed(vs))) as p.Node;
     const rng = n.start + "-" + n.end;
     const before = used();
     P.termHull(c, kind === "tuple", n.children);

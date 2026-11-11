@@ -4331,9 +4331,17 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
-  // termElement returns a value as an element of a list or a tuple that fn makes, and the failure.
+  // termPush pushes a value as the next element of the list or the tuple that fn makes; it returns the failure,
+  // null if there is none.
   // Its text is printed from Exec IR (internal/ir/exec/core).
-  termElement(c: Actx, fn: string, v: Value): [Node | null, Value] {
+  termPush(c: Actx, fn: string, v: Value): Value {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termPushItems pushes the elements of an argument of the built-in function fn that concatenates lists; it
+  // returns the failure, null if there is none.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termPushItems(c: Actx, fn: string, v: Value): Value {
     throw new Error("the printed method replaces this one");
   }
 
@@ -4771,8 +4779,7 @@ export class Actx {
     this.spend();
     for (const a of args) {
       this.spend();
-      const v = this.element("tuple", a);
-      this.p.kidStack.push(v);
+      this.push("tuple", a);
     }
     return this.p.termHull(this, true, this.p.kids(base));
   }
@@ -4916,33 +4923,39 @@ export class Actx {
     const items = this.listItems("map", list);
     for (let i = 0; i < items.length; i++) {
       this.spend();
-      const v = this.element("map", f(this.p.termItemAt(items, i, false)));
-      this.p.kidStack.push(v);
+      this.push("map", f(this.p.termItemAt(items, i, false)));
     }
   }
 
-  // element returns v as an element of a list or a tuple that fn makes, as the composition element
-  // makes it.
-  element(fn: string, v: Value): Node | null {
-    const [n, e] = this.p.termElement(this, fn, v);
+  // push pushes v as the next element of the list or the tuple that fn makes, as the composition push
+  // does.
+  push(fn: string, v: Value): void {
+    const e = this.p.termPush(this, fn, v);
     if (e !== null) {
-      return evalError(e as string);
+      evalError(e as string);
     }
-    return n;
   }
 
   pushList(...args: Value[]): void {
     this.spend();
     for (const a of args) {
       this.spend();
-      const v = this.element("list", a);
-      this.p.kidStack.push(v);
+      this.push("list", a);
     }
   }
 
   pushItems(v: Value): void {
     this.spend();
-    for (const it of this.listItems("concat", v)) {
+    const e = this.p.termPushItems(this, "concat", v);
+    if (e !== null) {
+      evalError(e as string);
+    }
+  }
+
+  // pushAll pushes items on the parser's kidStack in order, charging one unit for each (the primitive
+  // act.pushAll).
+  pushAll(items: readonly (Node | null)[]): void {
+    for (const it of items) {
       this.spend();
       this.p.kidStack.push(it);
     }

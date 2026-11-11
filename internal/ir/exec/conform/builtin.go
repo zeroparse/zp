@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// The built-in table: calls of the built-in functions len and text, of the compositions element and
-// items, which every list, tuple and list-taking built-in function applies to its arguments, and of the
+// The built-in table: calls of the built-in functions len and text, of the composition items, which every
+// list-taking built-in function applies to its arguments, and of the
 // conversion to a named node type, on the values of one fixture, and what each returns in the canonical form of MemberCanon. Each target builds
 // the fixture over the input BuiltinInput and runs the calls through its printed compositions; the
 // tests that do are the ones the mutants of that code name.
@@ -52,9 +52,6 @@ const (
 	CallLen = "len"
 	// CallText is text(x).
 	CallText = "text"
-	// CallElement is the composition element for the built-in function list, which returns x as an
-	// element: the canonical form of a box is "box " and that of the value it holds.
-	CallElement = "element"
 	// CallItems is the composition items for the built-in function concat, which returns the elements
 	// of x as a list.
 	CallItems = "items"
@@ -82,12 +79,6 @@ var BuiltinCases = []BuiltinCase{
 	{CallText, BuiltinText, `"xyz"`},
 	{CallText, BuiltinNode, `"234"`},
 	{CallText, MemberInt, "error: text: invalid argument int"},
-	{CallElement, MemberNil, "nil"},
-	{CallElement, MemberInt, "box 1"},
-	{CallElement, BuiltinString, `box "ab"`},
-	{CallElement, BuiltinBool, "box true"},
-	{CallElement, BuiltinPair, "[1, 2]"},
-	{CallElement, BuiltinFunc, "error: list: elements must be values, got ..."},
 	{CallItems, MemberNil, "[]"},
 	{CallItems, BuiltinPair, "[1, 2]"},
 	{CallItems, MemberList, "[]"},
@@ -103,8 +94,8 @@ var BuiltinCases = []BuiltinCase{
 	{CallConvert, BuiltinPair, "error: cannot convert [..."},
 }
 
-// BuiltinFn is the name of the built-in function that a call of CallElement or CallItems passes to the
-// composition, as the text of its failure names it.
+// BuiltinFn is the name of the built-in function that a call of CallItems passes to the composition, as the
+// text of its failure names it.
 func BuiltinFn(call string) string {
 	if call == CallItems {
 		return "concat"

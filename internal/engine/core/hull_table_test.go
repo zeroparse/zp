@@ -34,7 +34,7 @@ func TestEngineValueHullTable(t *testing.T) {
 		err := conform.RunHulls("engine", controlled, func(kind string, elems []string) (string, int) {
 			var kids []*value.Node
 			for _, e := range elems {
-				n, err := c.Element(kind, vals[e])
+				n, err := element(c, kind, vals[e])
 				if err != nil {
 					return "error: " + err.Error(), 0
 				}

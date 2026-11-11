@@ -47,7 +47,7 @@ func TestEngineValueCastTable(t *testing.T) {
 						out = append(out, nil)
 						continue
 					}
-					n, err := c.Element("list", build(e))
+					n, err := element(c, "list", build(e))
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -83,7 +83,7 @@ func TestEngineValueCastTable(t *testing.T) {
 				}
 				return n
 			case "box":
-				n, err := c.Element("list", 1)
+				n, err := element(c, "list", 1)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -39,8 +39,8 @@ func TestEngineValueIterTable(t *testing.T) {
 			p.Control = NewBudgetControl(nil, limits.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
-		one, _ := c.Element("list", 1)
-		two, _ := c.Element("list", 2)
+		one, _ := element(c, "list", 1)
+		two, _ := element(c, "list", 2)
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,

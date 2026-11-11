@@ -172,17 +172,38 @@ not declare fail.`
 		return Bin("||", Bin("||", Eq(e, k(ops.KindInt)), Eq(e, k(ops.KindString))), Eq(e, k(ops.KindBool)))
 	}
 	elem := THandle(ops.Elem)
-	element := m.AddFunc("element", []Param{act, fn, P("v", datum)}, []Type{elem, failT}, nil, func(b *Builder) {
+	push := m.AddFunc("push", []Param{act, fn, P("v", datum)}, []Type{failT}, nil, func(b *Builder) {
 		kv := b.Let("k", kind(L("v")))
-		b.If(Eq(kv, k(ops.KindNil)), func(b *Builder) { b.Return(Null(elem), ok) })
-		b.If(isScalar(kv), func(b *Builder) { b.Return(C("val.box", L("c"), L("v")), ok) })
+		b.If(Eq(kv, k(ops.KindNil)), func(b *Builder) {
+			b.Do("act.push", L("c"), Null(elem))
+			b.Return(ok)
+		})
+		b.If(isScalar(kv), func(b *Builder) {
+			b.Do("act.push", L("c"), C("val.box", L("c"), L("v")))
+			b.Return(ok)
+		})
 		o := b.LetN([]string{"n", "ok"}, C("node.of", L("v")))
-		b.If(o[1], func(b *Builder) { b.Return(C("node.elem", o[0]), ok) })
-		b.Return(Null(elem), failure(ops.ErrElement, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+		b.If(o[1], func(b *Builder) {
+			b.Do("act.push", L("c"), C("node.elem", o[0]))
+			b.Return(ok)
+		})
+		b.Return(failure(ops.ErrElement, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
 	})
-	element.Doc = `element returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil,
-a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such
-as a function, fails.`
+	push.Doc = `push pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
+nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
+value, such as a function, fails and pushes nothing.`
+
+	pushItems := m.AddFunc("pushItems", []Param{act, fn, P("v", datum)}, []Type{failT}, nil, func(b *Builder) {
+		it := b.LetN([]string{"items", "ok"}, C("seq.items", L("v")))
+		b.If(it[1], func(b *Builder) {
+			b.Do("act.pushAll", L("c"), it[0])
+			b.Return(ok)
+		})
+		b.Return(failure(ops.ErrArgList, L("v"), C("val.name", L("fn")), Int(0), Int(0)))
+	})
+	pushItems.Doc = `pushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
+next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
+fails and pushes nothing.`
 
 	items := m.AddFunc("items", []Param{fn, P("v", datum)}, []Type{THandle(ops.Seq), failT}, nil, func(b *Builder) {
 		it := b.LetN([]string{"items", "ok"}, C("seq.items", L("v")))

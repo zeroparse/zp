@@ -808,6 +808,27 @@ op act.made(c Act, n Obj)
   requires:
     // n is a struct that c made and has not recorded.
 
+op act.push(c Act, e Elem)
+  component host
+  writes host
+  noreturn
+  cost <= 0
+  contract:
+    // Pushes e above the elements gathered for the lists and tuples that c is making, as the next element of the
+    // innermost one. The host gathers them so that a list or a tuple takes its elements in one piece when it is made, and
+    // drops them with the values of a term that it abandons.
+
+op act.pushAll(c Act, items Seq)
+  component host
+  writes host
+  noreturn
+  cost <= 0 + 1*seq_len
+  contract:
+    // Pushes the elements of items in order, as act.push pushes each. A target that bounds the work charges one
+    // unit for each element it copies.
+  requires:
+    // items came from seq.items.
+
 host op val.seq(c Act, tuple bool, kids Seq) Obj
   component value
   noreturn

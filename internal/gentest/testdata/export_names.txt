@@ -12,7 +12,7 @@ seenRulePages repeats pages last at sparse
 frame end
 typedMemo
 typedDocumentState
-asNode
+push
 chunks
 profile rules stack
 errs expected env

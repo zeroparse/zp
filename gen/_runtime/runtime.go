@@ -3462,7 +3462,7 @@ func (c *ActCtx) Tuple(args ...any) any {
 	base := len(c.P.KidStack)
 	for _, a := range args {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("tuple", a))
+		c.push("tuple", a)
 	}
 	return c.P.termHull(c, true, c.P.Kids(base))
 }
@@ -3614,19 +3614,21 @@ func (c *ActCtx) PushMap(list any, f func(item any) any) {
 	items := c.ListItems("map", list)
 	for i := range items {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(c.P.termItemAt(items, i, false))))
+		c.push("map", f(c.P.termItemAt(items, i, false)))
 	}
 }
 
 func (c *ActCtx) PushList(args ...any) {
 	for _, a := range args {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("list", a))
+		c.push("list", a)
 	}
 }
 
 func (c *ActCtx) PushItems(v any) {
-	c.P.KidStack = appendSpend(c.P, c.P.KidStack, c.ListItems("concat", v))
+	if f := c.P.termPushItems(c, "concat", v); f != nil {
+		panic(f)
+	}
 }
 
 // EndList returns a list of the elements pushed since base.

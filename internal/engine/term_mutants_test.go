@@ -45,8 +45,13 @@ var engineMutants = []engineMutant{
 	{"a struct declares every field", "eval.go", "memberZero", "if !p.HasValueField(", "if false && !p.HasValueField("},
 	{"nil has length 1", "term_exec.go", "termLength", "return any(0), nil", "return any(1), nil"},
 	{"the length of a string node is that of its text", "term_exec.go", "termLength", "if value.D(n).Terminal {", "if false {"},
-	{"a bool is not an element", "term_exec.go", "termElement", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
-	{"a function is an element", "term_exec.go", "termElement", "return nil, p.termError(11, v, any(fn), 0, 0)", "return nil, nil"},
+	{"a bool is not an element", "term_exec.go", "termPush", "if k == 1 || k == 2 || k == 3 {", "if k == 1 || k == 2 {"},
+	{"a function is an element", "term_exec.go", "termPush", "return p.termError(11, v, any(fn), 0, 0)", "return nil"},
+	{"nil pushes no element", "term_exec.go", "termPush", "p.KidStack = append(p.KidStack, nil)\n", ""},
+	{"a node pushes no element", "term_exec.go", "termPush", "p.KidStack = append(p.KidStack, n)\n", "_ = n\n"},
+	{"concat pushes no elements", "term_exec.go", "termPushItems", "\t\tp.KidStack = AppendSpend(", "\t\t_ = AppendSpend("},
+	{"concat takes a value that is not a list", "term_exec.go", "termPushItems", "if ok {", "if ok || true {"},
+	{"concat charges nothing for the elements it pushes", "term_exec.go", "termPushItems", "AppendSpend(p, p.KidStack, items)", "append(p.KidStack, items...)"},
 	{"concat takes any value", "term_exec.go", "termItems", "return items, p.termError(12, v, any(fn), 0, 0)", "return items, nil"},
 	{"the text of a string node is the input", "term_exec.go", "termText", "if held {", "if held && false {"},
 	{"a list value converts", "term_exec.go", "termConvert", "if value.HasBase(n) {", "if true {"},
@@ -112,7 +117,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|CastTable)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$", "./internal/engine/core")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()
