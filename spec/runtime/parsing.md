@@ -961,7 +961,10 @@ The conditions below use these terms.
   operands, by `filter` from its list, by `map` from the values of its lambda,
   and by `foldl` or `foldr` from the initial value and the values of the
   lambda, but not from the list that the fold visits. A member of a node
-  holds what the capture that it names holds. A comparison, an arithmetic
+  holds what the capture that it names holds. A read of a variable holds what
+  the values that the bindings which can reach it bind hold: the bindings of
+  the variable earlier in the body of the rule that reads it, and those in the
+  rules that can call that rule, directly or indirectly. A comparison, an arithmetic
   operation, `len`, a predicate and a binding hold none of what they read. The **value of a rule** is the value of its action, of
   the actions of an Operators Rule, or, in a rule without an action, of an
   inline action that is its expression or an alternative of it, through
@@ -1481,15 +1484,20 @@ necessary.
    bindings, captures and rule values, the variable's own earlier value, when
    the value it binds can reach a later evaluation of the same binding: when a
    sequence of the rule body has the binding in one element and a call that
-   can reach its rule again in a later element, each at any depth of groups,
-   options and choices, or when the binding is part of the element of a
+   can reach its rule again in a later element, each at any depth of the
+   expressions that keep the bindings made in them after they succeed, which
+   are all but a negative lookahead and a call: groups, options, choices,
+   captures, discards, atomic expressions, attributed expressions and positive
+   lookaheads, so that `&({v := v + v}) "y" r` passes the value of the
+   binding to the call `r`; or when the binding is part of the element of a
    repetition or of an Operators Rule, which applies its parts again at each
    operator, outside a negative lookahead. A binding and a call in
    different alternatives of one choice are not on one path of evaluation,
    because a failed alternative undoes its bindings before the next is tried.
    A binding after the recursive call binds a value that no later evaluation
    of it sees, because bindings in a called rule are not visible to its
-   caller. The variables with **finite values** are exempt from this
+   caller; the value can still reach the caller through the value of the
+   rule, which condition 4 follows through the reads of the variable. The variables with **finite values** are exempt from this
    condition: the `bool` variables, the `int` variables whose values form a
    finite set, the least set that holds the initial value and, for each of the
    variable's bindings, the values that the binding leaves bound from the values
@@ -1625,7 +1633,14 @@ necessary.
    the text is joined or compared, while a list of nodes of the recursion, as
    built by `list($x)`, has one element per node whatever the node contains;
    `concat(list($x), $t)` with `t` the list of the rule's own recursion
-   includes it. A value of a rule on a cycle of such values, and the value of
+   includes it. A read of a variable includes what the values that the
+   bindings which can reach it bind include, as **holds** defines those
+   bindings. A read sees a binding only while the evaluation of the rule that
+   made the binding runs, so an operation that copies such a read is checked
+   as an operation of the rule of each of those bindings as well: in
+   `r = ("(" c:r ")" {x := $c} => x + x) / ("a" => "a")` the action copies
+   the value of the call of `r` twice, as `$c + $c` would, and the value of
+   `r` doubles at each level. A value of a rule on a cycle of such values, and the value of
    an Operators Rule, are taken to include it. A copy whose size does not include
    such a value does not add up over the levels of the recursion; when it is
    not bounded by a constant, it is a scanning source, which condition 2
@@ -1707,7 +1722,8 @@ necessary.
    repetition, distinct parts of the input whose sizes add up to at most the
    input. A fold over a list that is not bounded that reads a value whose
    size degree is not known fails this condition. A copying
-   operation that copies the value of a variable is linear given an
+   operation that copies the value of a variable, when that value includes
+   no value of a call that this condition checks, is linear given an
    environment bound.
 5. **Carried growth.** No leader R grows, at the position where another leader
    S of its cycle grows, from a result that includes the growing result of S,
