@@ -211,7 +211,11 @@ leaving it out saves nothing). The calls that
 the decided comparison passes alike, and those that the checks of growing units and of continuations without the
 paths that re-enter a cycle share, come only from the checks, so the classifier records the calls that each
 comparison passed alike; one that would make a call nest where the classifier assumed it did not becomes a reason, so no decision
-rests on a nesting that was missed. A left call from a rule of a left-recursion cycle to a rule of the same cycle nests
+rests on a nesting that was missed. These records change classes, not only reasons, and only toward rejection: they
+can reject a linear grammar, as `main = e R` with `e = "<" f e / "."`, `f = (R e)*`, `R = sp*` and `sp = [ ]`, where the
+decided comparison passes `R` and the call of `e` in `f` alike and the continuation then ends `e` through the call of
+`e` after `f`, so the call in `f` is reported to nest at one end although every backend parses the grammar in linear
+time. A left call from a rule of a left-recursion cycle to a rule of the same cycle nests
 at one end when a call of a rule of the cycle does, since each nested evaluation of a
 leader that ends at the position grows there and evaluates what follows its left calls again.
 

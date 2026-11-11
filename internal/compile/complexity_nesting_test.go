@@ -149,6 +149,28 @@ func TestNestingRestartsDecided(t *testing.T) {
 	}
 }
 
+// TestNestingRestartsDecidedRejectLinearExit pins a grammar that the recorded restarts reject
+// although it is linear: the decided comparison passes R and the call of e in f alike, and the
+// continuation then leaves f and ends e through the call of e after f, so the call of e in f is
+// reported to nest at one end, while the steps of every backend grow linearly. The rejection is
+// a loss of precision, not of soundness; a change that makes the grammar linear must show why
+// the nesting cannot restart.
+func TestNestingRestartsDecidedRejectLinearExit(t *testing.T) {
+	src := "@start\nrule main = e R\nrule e = \"<\" f e / \".\"\nrule f = (R e)*\nrule R = sp*\nrule sp = [ ]\n"
+	c := classifySource(t, src)
+	if c.Class != ClassUnknown {
+		t.Fatalf("class %v, want unknown: %v", c.Class, c.Reasons)
+	}
+	found := false
+	for _, r := range c.Reasons {
+		found = found || strings.Contains(r.Message, "call of e at 4:13 in rule f can nest without a bound") &&
+			strings.Contains(r.Message, "found only after it relied on the call")
+	}
+	if !found {
+		t.Errorf("no reason for the restart that the decided comparison found: %v", c.Reasons)
+	}
+}
+
 // nestingGrowths are grammars whose cost is quadratic because the evaluations of a left-recursive
 // rule nest and end at one position: each of them grows there, and the next step of its growth
 // scans R after its seed at that position again.
