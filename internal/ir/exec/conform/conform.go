@@ -185,7 +185,8 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	ok := true
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
-		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp:
+		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp,
+			c.Callee == ExpOp, c.Callee == PlaceholderOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -249,6 +250,17 @@ func call(m exec.Machine, o *exec.Op, args []any) (out outcome) {
 	return outcome{res: m.Call(o, args)}
 }
 
+// implCall is call on the implementation, where a panic other than an interruption is a failure of
+// the implementation, not of the harness.
+func implCall(m exec.Machine, o *exec.Op, args []any) outcome {
+	defer func() {
+		if x := recover(); x != nil {
+			panic(mismatch(fmt.Sprintf("the implementation panicked: %v", x)))
+		}
+	}()
+	return call(m, o, args)
+}
+
 func (p *pair) Call(o *exec.Op, args []any) []any {
 	refArgs, implArgs := make([]any, len(args)), make([]any, len(args))
 	shown := make([]string, len(args))
@@ -282,6 +294,13 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 		i := args[0].(int64)
 		return []any{p.wrap(ref.RuleRef{Index: i}, p.impl.(Environment).Rule(i))}
 	}
+	if o.Name == ExpOp {
+		id := args[0].(int64)
+		return []any{p.wrap(ref.ExpID{ID: id}, p.impl.(Expectations).Exp(id))}
+	}
+	if o.Name == PlaceholderOp {
+		return []any{p.wrap(ref.Placeholder, p.impl.(Expectations).Placeholder())}
+	}
 	if !p.model.Allows(o, refArgs) {
 		panic(mismatch("the case breaks the precondition of " + o.Name))
 	}
@@ -295,7 +314,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 		before = meter.Used()
 	}
 	want := call(p.model, o, refArgs)
-	got := call(p.impl, o, implArgs)
+	got := implCall(p.impl, o, implArgs)
 	charges := metered && o.Name != "budget.charge"
 	if charges && want.interrupted == "" && got.interrupted == "limit" {
 		// The implementation's own charges may exhaust the budget inside the operation, provided
@@ -357,11 +376,12 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 			shown = append(shown, fmt.Sprintf("#%d", rn))
 			continue
 		}
-		if w != g {
+		if w != g && !(mayResults[o.Name] && g == true) {
 			panic(mismatch(fmt.Sprintf("result %d: model %v, implementation %v", i, w, g)))
 		}
-		res[i] = w
-		shown = append(shown, fmt.Sprint(w))
+		// A filter's answer that the implementation may give in place of the model's goes on.
+		res[i] = g
+		shown = append(shown, fmt.Sprint(g))
 	}
 	if len(shown) > 0 {
 		p.trace[len(p.trace)-1] += " -> " + strings.Join(shown, ", ")

@@ -25,8 +25,8 @@ The operations of the component `memo`.
 | `op memo.silent(e Entry) bool` | reads memo | `0` | Returns whether entry e was computed in a silent context. |
 | `op memo.value(e Entry) Value` | reads memo | `0` | Returns the value of entry e. |
 | `op memo.errs(e Entry) Errs` | reads memo | `0` | Returns the recovered errors of entry e. |
-| `transitional op memo.far(e Entry) int` | reads memo | `0` | Returns the farthest position of the expectations of entry e. |
-| `transitional op memo.expected(e Entry) ExpKept` | reads memo | `0` | Returns the expectations of entry e. |
+| `transitional op memo.far(e Entry) int` | reads memo | `0` | Returns the farthest position of the expectations of entry e. Requires: memo.setExpected recorded expectations with e. |
+| `transitional op memo.expected(e Entry) ExpKept` | reads memo | `0` | Returns the expectations of entry e. Requires: memo.setExpected recorded expectations with e. |
 | `transitional op memo.setExpected(e Entry, far int, k ExpKept)` | writes memo | `0` | Records the expectations k at far of the call that computed entry e. When memo.splice moves e, far moves with it, by the same amount as its end. |
 | `transitional op memo.forgetDoc(e Entry) [document]` | writes memo | `0` | Forgets the Document record of the entry e, which the call replaces, where the target keeps the records beside the entries. |
 | `transitional op memo.setPresent(e Entry, c Ctx)` | reads growth; writes memo | `0` | Records with the entry e the present set of the context state c, for ctx.allows. |
@@ -111,23 +111,23 @@ The operations of the component `expected`.
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
 | `transitional op exp.isolate(pos int) ExpMark` | writes expected | `0` | Sets the record aside and starts an empty one at pos. |
-| `transitional op exp.unisolate(m ExpMark) (int, ExpSet)` | writes expected | `0` | Ends the record that the isolation m started and restores the one set aside; returns the farthest position of the ended record and its expectations. |
+| `transitional op exp.unisolate(m ExpMark) (int, ExpSet)` | writes expected | `0` | Ends the record that the isolation m started and restores the one set aside; returns the farthest position of the ended record and its expectations. Requires: m is the innermost isolation that has not ended. |
 | `transitional op exp.farthest() int` | reads expected | `0` | Returns the farthest position of the current record. |
 | `transitional op exp.recording() bool` | reads expected | `0` | Reports whether the parse records expectations. A parse that does not keeps one placeholder entry in the record of a failure, which stands for the failure at the farthest position and is not an expectation. |
 | `transitional op exp.reset(pos int)` | writes expected | `0` | Starts the current record anew at pos: the farthest position becomes pos and the entries are dropped. |
 | `transitional op exp.fresh() bool` | reads expected | `0` | Reports whether the current record has no entry. |
 | `transitional op exp.placeholder()` | reads expected; writes expected | `0` | Adds the placeholder entry to the current record. |
-| `transitional op exp.maybe(id ExpID) bool` | reads expected | `0` | Reports whether id may be in the current record: false means it is not; true means it may be. |
+| `transitional op exp.maybe(id ExpID) bool` | reads expected | `0` | Reports whether id may be in the current record: false means it is not; true means it may be. Requires: id is an expectation, not the placeholder. |
 | `transitional op exp.count() int` | reads expected | `0` | Returns the number of entries of the current record. |
 | `transitional op exp.at(i int) ExpID` | reads expected | `0` | Returns entry i of the current record, in the order they were added. Requires: 0 <= i < exp.count. |
 | `transitional op exp.add(id ExpID)` | reads expected; writes expected | `0` | Adds id to the current record, after its other entries. |
 | `transitional op exp.setCount(s ExpSet) int` | none | `0` | Returns the number of expectations of s. |
-| `transitional op exp.setAt(s ExpSet, i int) ExpID` | none | `0` | Returns expectation i of s, in the order they were recorded. Requires: 0 <= i < exp.setCount(s). |
+| `transitional op exp.setAt(s ExpSet, i int) ExpID` | none | `0` | Returns expectation i of s, in the order they were recorded. Requires: 0 <= i < exp.setCount(s); s is the set that exp.unisolate returned last, no isolation began or ended since, and every entry written to the record since then was written at an index below n + i, where n is the number of entries of the record when exp.unisolate returned s. Merging s into the record entry by entry, reading each entry before the write that follows it, meets this. |
 | `transitional op exp.keptCount(k ExpKept) int` | none | `0` | Returns the number of expectations of k. |
 | `transitional op exp.keptAt(k ExpKept, i int) ExpID` | none | `0` | Returns expectation i of k, in the order they were recorded. Requires: 0 <= i < exp.keptCount(k). |
 | `transitional op exp.empty() ExpKept` | none | `0` | Returns the kept set with no expectations. |
 | `transitional op exp.last() ExpKept` | reads expected | `0` | Returns the set that exp.copy made last in the parse, and the empty set before the first. |
-| `transitional op exp.copy(s ExpSet) ExpKept noreturn` | reads expected; writes expected | `0 + 1*set` | Copies the expectations of s, in order, into a set that outlives the record, makes it the set that exp.copy made last and returns it. The copy is charged as the target charges copies of values, and the memory it takes as the target accounts it. Requires: s has at least one expectation. |
+| `transitional op exp.copy(s ExpSet) ExpKept noreturn` | reads expected; writes expected | `0 + 1*set` | Copies the expectations of s, in order, into a set that outlives the record, makes it the set that exp.copy made last and returns it. The copy is charged as the target charges copies of values, and the memory it takes as the target accounts it. Requires: s has at least one expectation, and exp.setAt may read each of them. |
 
 ## Left-Recursion Growth
 

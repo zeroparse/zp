@@ -108,7 +108,7 @@ handle ExpMark of expected
   // The record that an isolation set aside.
 
 handle ExpSet of expected
-  // The expectations an isolation recorded, valid until the next record.
+  // The expectations an isolation recorded, which a target may keep where the record grows next: valid as exp.setAt requires.
 
 handle ExpID of expected
   // An expectation: the identifier of a description or message of the grammar.
@@ -661,6 +661,8 @@ transitional op exp.unisolate(m ExpMark) (int, ExpSet)
   contract:
     // Ends the record that the isolation m started and restores the one set aside; returns the
     // farthest position of the ended record and its expectations.
+  requires:
+    // m is the innermost isolation that has not ended.
 
 transitional op exp.farthest() int
   component expected
@@ -707,6 +709,8 @@ transitional op exp.maybe(id ExpID) bool
   cost <= 0
   contract:
     // Reports whether id may be in the current record: false means it is not; true means it may be.
+  requires:
+    // id is an expectation, not the placeholder.
 
 transitional op exp.count() int
   component expected
@@ -744,7 +748,11 @@ transitional op exp.setAt(s ExpSet, i int) ExpID
   contract:
     // Returns expectation i of s, in the order they were recorded.
   requires:
-    // 0 <= i < exp.setCount(s).
+    // 0 <= i < exp.setCount(s); s is the set that exp.unisolate returned last, no
+    // isolation began or ended since, and every entry written to the record since then was written at an
+    // index below n + i, where n is the number of entries of the record when exp.unisolate returned s.
+    // Merging s into the record entry by entry, reading each entry before the write that follows it, meets
+    // this.
 
 transitional op exp.keptCount(k ExpKept) int
   component expected
@@ -784,7 +792,7 @@ transitional op exp.copy(s ExpSet) ExpKept
     // that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
     // and the memory it takes as the target accounts it.
   requires:
-    // s has at least one expectation.
+    // s has at least one expectation, and exp.setAt may read each of them.
 
 transitional op memo.far(e Entry) int
   component memo
@@ -792,6 +800,8 @@ transitional op memo.far(e Entry) int
   cost <= 0
   contract:
     // Returns the farthest position of the expectations of entry e.
+  requires:
+    // memo.setExpected recorded expectations with e.
 
 transitional op memo.expected(e Entry) ExpKept
   component memo
@@ -799,6 +809,8 @@ transitional op memo.expected(e Entry) ExpKept
   cost <= 0
   contract:
     // Returns the expectations of entry e.
+  requires:
+    // memo.setExpected recorded expectations with e.
 
 transitional op memo.setExpected(e Entry, far int, k ExpKept)
   component memo

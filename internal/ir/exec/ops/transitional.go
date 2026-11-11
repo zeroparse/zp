@@ -106,7 +106,7 @@ dependency memo).`)
 	rule := exec.THandle(Rule)
 	body := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
 	mark := m.AddHandle(Mark, Exp, "The record that an isolation set aside.")
-	set := m.AddHandle(Set, Exp, "The expectations an isolation recorded, valid until the next record.")
+	set := m.AddHandle(Set, Exp, "The expectations an isolation recorded, which a target may keep where the record grows next: valid as exp.setAt requires.")
 	expID := m.AddHandle(ExpID, Exp, "An expectation: the identifier of a description or message of the grammar.")
 	kept := m.AddHandle(Kept, Exp, "Expectations kept beyond the record, as a memo entry keeps them.")
 	ctx := m.AddHandle(Ctx, Growth, `The context state of a memoized call: the growths of its rule's cycle at its
@@ -170,7 +170,7 @@ position on failure.`})
 		Writes:   []string{Exp},
 		Contract: `Sets the record aside and starts an empty one at pos.`})
 	add(&exec.Op{Name: "exp.unisolate", Component: Exp, Params: []exec.Param{exec.P("m", mark)}, Results: []exec.Type{exec.TInt, set},
-		Writes: []string{Exp},
+		Writes: []string{Exp}, Requires: `m is the innermost isolation that has not ended.`,
 		Contract: `Ends the record that the isolation m started and restores the one set aside; returns the
 farthest position of the ended record and its expectations.`})
 
@@ -190,6 +190,7 @@ dropped.`})
 	add(&exec.Op{Name: "exp.placeholder", Component: Exp, Reads: []string{Exp}, Writes: []string{Exp},
 		Contract: `Adds the placeholder entry to the current record.`})
 	add(&exec.Op{Name: "exp.maybe", Component: Exp, Params: expArg, Results: []exec.Type{exec.TBool}, Reads: []string{Exp},
+		Requires: `id is an expectation, not the placeholder.`,
 		Contract: `Reports whether id may be in the current record: false means it is not; true means it may be.`})
 	add(&exec.Op{Name: "exp.count", Component: Exp, Results: []exec.Type{exec.TInt}, Reads: []string{Exp},
 		Contract: `Returns the number of entries of the current record.`})
@@ -201,7 +202,11 @@ dropped.`})
 	add(&exec.Op{Name: "exp.setCount", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of expectations of s.`})
 	add(&exec.Op{Name: "exp.setAt", Component: Exp, Params: []exec.Param{exec.P("s", set), exec.P("i", exec.TInt)},
-		Results: []exec.Type{expID}, Requires: `0 <= i < exp.setCount(s).`,
+		Results: []exec.Type{expID}, Requires: `0 <= i < exp.setCount(s); s is the set that exp.unisolate returned last, no
+isolation began or ended since, and every entry written to the record since then was written at an
+index below n + i, where n is the number of entries of the record when exp.unisolate returned s.
+Merging s into the record entry by entry, reading each entry before the write that follows it, meets
+this.`,
 		Contract: `Returns expectation i of s, in the order they were recorded.`})
 	add(&exec.Op{Name: "exp.keptCount", Component: Exp, Params: []exec.Param{exec.P("k", kept)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of expectations of k.`})
@@ -216,15 +221,17 @@ dropped.`})
 		Contract: `Returns the set that exp.copy made last in the parse, and the empty set before the first.`})
 	add(&exec.Op{Name: "exp.copy", Component: Exp, Params: []exec.Param{exec.P("s", set)}, Results: []exec.Type{kept},
 		Reads: []string{Exp}, Writes: []string{Exp}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSet}}},
-		Requires: `s has at least one expectation.`,
+		Requires: `s has at least one expectation, and exp.setAt may read each of them.`,
 		Contract: `Copies the expectations of s, in order, into a set that outlives the record, makes it the set
 that exp.copy made last and returns it. The copy is charged as the target charges copies of values,
 and the memory it takes as the target accounts it.`})
 
 	entryArg := []exec.Param{exec.P("e", entry)}
 	add(&exec.Op{Name: "memo.far", Component: Memo, Params: entryArg, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},
+		Requires: `memo.setExpected recorded expectations with e.`,
 		Contract: `Returns the farthest position of the expectations of entry e.`})
 	add(&exec.Op{Name: "memo.expected", Component: Memo, Params: entryArg, Results: []exec.Type{kept}, Reads: []string{Memo},
+		Requires: `memo.setExpected recorded expectations with e.`,
 		Contract: `Returns the expectations of entry e.`})
 	add(&exec.Op{Name: "memo.setExpected", Component: Memo, Params: append(entryArg, exec.P("far", exec.TInt), exec.P("k", kept)),
 		Writes: []string{Memo},
