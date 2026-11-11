@@ -75,7 +75,6 @@ uses the existing -1 sentinel for both `REPEAT` and `SCAN` variants.
 | Body | Start of the body in the match code. The body pushes the value of its scope (or none, if the body is value-free) and ends with `RETURN`: the single value of the body, or a tuple node of its values when the scope is a tuple. |
 | Scope | The capture names of the body, in slot order |
 | Action | Start of the action in the expression code, or -1 if there is none |
-| Body is a sequence | Whether the body's value is a tuple; used to interpret `$n` |
 | Node type | Name of the named node type a rule declared with one converts its value to (see Rule Completion), or -1 if there is none. For a rule with an Operators Rule and no action, it is the named node type every operator's value is converted to (see Operators Rule); with an action, it is the type the action's result is converted to |
 | Memoize, left-recursion leader, member, position-dependent | Results of static analysis. A member is a rule of a left-recursion cycle that is not its leader. |
 | Cycle | The number of the left-recursion cycle of a leader or member, from 1, the same for the rules of one cycle; 0 for any other rule |
@@ -89,7 +88,7 @@ uses the existing -1 sentinel for both `REPEAT` and `SCAN` variants.
 
 **Value-free twins.** When a rule that returns a CST is called from a place where its value is discarded (`#atomic`, `-`, `!`, or a value-free body), the compiler compiles a second version of its body that builds no value. The twin is placed in the rule table after all original rules, and the `CALL` refers to it. The twin has the same name as the original rule; lookups of a start rule by name ignore twins. Because the twin matches the same input in the same way, results do not change. Rules that belong to a left-recursive cycle have no twin.
 
-**Value-free bodies.** The body of a rule whose action does not refer to `$n` is compiled without building values. Capture targets still build their values.
+**Value-free bodies.** The body of a rule with an action reads only captures, so it is compiled without building its own value. Capture targets still build their values.
 
 ### Operators Rule Table
 
@@ -233,7 +232,7 @@ A growth that begins where another growth of its cycle is in progress reuses, in
 
 The value of the rule is built from the body value v and the start position:
 
-- **With an action:** evaluate the action with the `$n` items set to the children of v if the body is a sequence, and to [v] otherwise. For a rule with an Operators Rule, evaluate it with local 0 = `$value`, the folded value v, instead. If the result is a node newly created by the action, its range becomes the range of the rule. An `int`, `string` or `bool` result becomes a value node with the range of the rule.
+- **With an action:** evaluate the action with the captures of the scope. For a rule with an Operators Rule, evaluate it with local 0 = `$value`, the folded value v, as well. If the result is a node newly created by the action, its range becomes the range of the rule. An `int`, `string` or `bool` result becomes a value node with the range of the rule.
 - **Otherwise:** if the scope has captures, attach them. If v is fresh, give it the rule name if it has none, and clear its fresh mark.
 
 When the rule's node type is a named node type, the value built above is then checked against the rule's check, which names the underlying node type, and converted to the named node type as `ENODE` converts it; a value that is not a string, tuple or list node fails the parse with `cannot convert <value type> to <type> in result of rule <name>`.
@@ -272,7 +271,7 @@ Actions and predicates are evaluated by stack-based expression code. An evaluati
 | 102 | `EBOOL` | A value | Push a boolean (0 or 1). |
 | 103 | `ENIL` | | Push nil. |
 | 104 | `ECAP` | A slot | Push the value of a capture slot. |
-| 105 | `EITEM` | A n | Push `$n`. For n = 0, push a list value of all items. An out-of-range n is an error. |
+| 105 | `EITEM` | A n | Reserved. No grammar compiles to it, because the language has no positional references. |
 | 106 | `ELOCAL` | A index | Push a local (a lambda parameter, `$lhs`, `$rhs`, `$op`, or `$value`). |
 | 107 | `EVAR` | A variable | Push the value of variable A, an index into the variable table. |
 | 108 | `EMEMBER` | A name | Pop a value and push its field. `Start`, `End` and `Value` are built in for a node with a range: the range, and the text of a string node or the elements of a tuple or list node. A field not declared by the struct type is an error; a declared field that is absent yields the zero value of its declared type (a field of a type that has none is always present). A name `$y` reads capture `y`: it is an error on a struct value, and an unmatched capture yields nil. |

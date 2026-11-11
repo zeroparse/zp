@@ -163,12 +163,19 @@ capture returns a nil Snapshot. The same invocation limits cover parsing,
 copying text, freezing the graph, and copying diagnostics. Snapshot getters and
 `Materialize` run after capture and have no inherited controller or compute limit.
 
-`SnapshotNode` is a read-only handle. Its zero value represents a nil Node;
-`ChildCount` includes nil child slots. `Field(name)` returns both a value and a
-presence flag, distinguishing an absent field from a present nil value. A typed
-nil `*Node` field becomes a zero handle, while an untyped nil remains nil.
-`Fields()` returns an owned slice in original order. Snapshots and handles can
-be read concurrently while the single-owner Document is edited or parsed.
+`SnapshotNode` is a read-only handle on a node of the captured tree, with the node model of
+[Nodes and Values](../../spec/runtime/nodes.md). Its zero value represents a nil node. Snapshots and handles can be
+read concurrently while the single-owner Document is edited or parsed.
+
+| Method | Meaning |
+|:--|:--|
+| `Valid()` | False for the zero handle, the handle of a nil value |
+| `Type()` | The kind of the node: `"string"`, `"tuple"`, `"list"` and so on, or the name of a struct type |
+| `Text()`, `IsTerminal()` | The text of a string node, and whether the node is a terminal |
+| `Start()`, `End()` | The range of the node in the text of the revision |
+| `ChildCount()`, `Child(i)` | The elements of a tuple or list node. `ChildCount` includes nil slots, and the handle of a nil slot is the zero handle |
+| `Field(name)` | The value of a struct field and a presence flag, which distinguishes an absent field from a present nil value. A typed nil `*Node` field becomes a zero handle, while an untyped nil remains nil |
+| `Fields()` | An owned slice of the fields, in original order |
 
 The snapshot graph preserves shared nodes and cycles. It freezes only field
 values of dynamic type nil, `int`, `string`, `bool`, or `*zp.Node`; an

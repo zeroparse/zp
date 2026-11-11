@@ -84,7 +84,7 @@ import (
 
 const grammar = `package kv
 
-type Pair = { Key node; Value node }
+type Pair = { Key node[string]; Value node[string] }
 
 @start
 rule main = pair* #stream $$
@@ -104,7 +104,7 @@ func main() {
 		value := n.Field("Value").(*zp.Node)
 		fmt.Printf("[%d,%d) %s = %s\n", n.Start(), n.End(), key.Text(), value.Text())
 		return nil
-	})
+	}, zp.WithExpectations())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
@@ -122,7 +122,7 @@ printf 'a=1\nbb=22\nccc=x\n' | go run .
 error: 3:5: syntax error: expected [0-9]
 ```
 
-Notice that the third line is reported as an error at `3:5`, even though the parser had thrown away the first two lines
+The program passes `zp.WithExpectations()` so that the message names what was expected; without it the message ends at `syntax error`. Notice that the third line is reported as an error at `3:5`, even though the parser had thrown away the first two lines
 by then: line and column numbers, like node positions, refer to the whole input.
 
 ## Pulling One Element at a Time
@@ -340,7 +340,7 @@ rule line =  [a-z0-9]+ #atomic "\n" `)
 
 	// 1. The input stops matching the grammar after some elements were handed over.
 	fmt.Println("syntax error:")
-	err := lines.ParseStream(strings.NewReader("ab\ncd\n!\n"), print)
+	err := lines.ParseStream(strings.NewReader("ab\ncd\n!\n"), print, zp.WithExpectations())
 	var se *zp.SyntaxError
 	if errors.As(err, &se) {
 		fmt.Printf("  %v (line %d, column %d, position %d)\n", err, se.Line, se.Col, se.Pos)
@@ -374,7 +374,7 @@ rule num =  [0-9]+ #atomic `)
 	err = entries.ParseStream(strings.NewReader("a=1\nb=x\nc=3\nd\n"), func(n *zp.Node) error {
 		fmt.Printf("  element %v\n", n)
 		return nil
-	})
+	}, zp.WithExpectations())
 	var recovered zp.SyntaxErrors
 	if errors.As(err, &recovered) {
 		for _, e := range recovered {
@@ -497,7 +497,7 @@ var grammars = map[string]string{
 	"cst": `@start
 rule main =  item* #stream $$
 rule item =  ^ k:[a-z]+ #atomic "=" v:[0-9]+ #atomic "\n" `,
-	"action": `type Pair = { Key node; Value node }
+	"action": `type Pair = { Key node[string]; Value node[string] }
 @start
 rule main = item* #stream $$
 rule item Pair = k:key "=" v:value "\n" => Pair{Key: $k, Value: $v}

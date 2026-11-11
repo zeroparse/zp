@@ -323,16 +323,17 @@ ZeroParse builds values only where something can observe them. To reduce allocat
 2. **Use `#atomic` for tokens.** Their bodies are matched without building values: an identifier is
    one node instead of one node per character.
 
-How much do they matter? Parsing one 140 KB list of 20,000 identifiers separated by `" ,  "` with the default backend
-allocated, measured around a single `Parse` call with `runtime.MemStats`:
+How much do they matter? Parsing one 140 KB list of 20,000 three-letter identifiers separated by `" ,  "` with the default backend
+allocated the following, in megabytes (10^6 bytes) of `TotalAlloc` measured around a single `Parse` call with
+`runtime.MemStats`. The figure moves by about 2 MB between runs, so read it as a ratio:
 
 | Grammar | Allocated per parse |
 |:--|--:|
-| Whitespace kept in the captured repetition (`rest:(ws "," ws x:ident)*`), `ident` an atomic token (`[a-z]+ #atomic`) | 22.5 MB |
-| Whitespace discarded (`rest:(-ws "," -ws x:ident)*`) | 11.9 MB |
-| Whitespace and the separator discarded (`rest:(-ws -"," -ws x:ident)*`) | 8.0 MB |
-| Whitespace discarded, but `ident` without a type: `rule ident =  [a-z]+ ` (a list of string nodes) | 16.4 MB |
-| Same, with `rule ident =  [a-z]+ #atomic ` | 11.9 MB |
+| Whitespace kept in the captured repetition (`rest:(ws "," ws x:ident)*`), `ident` an atomic token (`[a-z]+ #atomic`) | 17.2 MB |
+| Whitespace discarded (`rest:(-ws "," -ws x:ident)*`) | 12.6 MB |
+| Whitespace and the separator discarded (`rest:(-ws -"," -ws x:ident)*`) | 10.3 MB |
+| Whitespace discarded, but `ident` without a type: `rule ident =  [a-z]+ ` (a list of string nodes) | 19.5 MB |
+| Same, with `rule ident =  [a-z]+ #atomic ` | 12.6 MB |
 
 These choices matter most when a grammar captures many repeated values. Measure your own input and inspect the resulting tree to ensure that discarding text does not remove information your application needs.
 

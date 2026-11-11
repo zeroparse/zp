@@ -122,10 +122,12 @@ stars text 42
   `SyntaxErrors` anyway).
 - **Speed.** When no action reads a field of a struct value that has no plain form (a node, a named node type, a join, an `any` or a record), the generated
   parser builds the values directly, without the
-  nodes `Parse` makes: on the benchmarks `ParseAST` then takes a half to two thirds of the time of `Parse` and a quarter
-  to a third of the memory (JSON 6.7 → 3.1 ms and 10.4 → 2.4 MB on a 262 KB input, less than `Recognize`; XML, the
-  left-recursive calculator and the outline grammar alike; the Operators Rule calculator about 11% faster). Otherwise
-  `ParseAST` runs `Parse` and converts the tree, about 10% slower than `Parse` (minilang). The
+  nodes `Parse` makes: on the benchmarks `ParseAST` then takes 0.7 to 1.0 times the time of `Parse` and 0.3 to 0.4 times
+  the memory (JSON 5.7 → 3.9 ms and 9.1 → 2.6 MB; XML, CSV, the left-recursive calculator and the
+  outline grammar alike; the Operators Rule calculator is about as fast). Otherwise
+  `ParseAST` runs `Parse` and converts the tree, which takes about 0.95 times the time of `Parse` and 0.3 times the
+  memory (minilang and the recovery grammar). The figures are those of the
+  [benchmark results](../benchmarks.md#typed-values-parseast-of-zp-gen--types). The
   [design record](../design/records/012-typed-values.md) explains both. The types, their conversions and the typed rules add about
   as much code to `parser.go` as the parser itself.
 - **Scratch reuse.** The typed runtime clears discarded undo entries after rollback, rule return and captured

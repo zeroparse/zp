@@ -16,8 +16,9 @@ For an edit of `[start, end)`, and a memo entry that examined `[from, examined)`
 
 Consequences, all of which can be read off the numbers in the next section:
 
-- **Reuse is per rule call.** Only rule results are memoized, so the unit of reuse is a rule. A grammar written as one
-  big rule has nothing to reuse. `Document` memoizes every rule call, even those an ordinary `Parse` does not (rules that
+- **Reuse is per rule call.** Only rule results are memoized, so the unit of reuse is a rule. A rule whose
+  range contains the edit runs again as a whole, so a grammar written as one big rule reuses nothing by memo entries. It
+  still reuses what its long repetitions resume (see below): with a flat repetition, nearly the whole file. `Document` memoizes every rule call, even those an ordinary `Parse` does not (rules that
   call no rule, and rules referenced only once), precisely so that these small rules can be reused. The exception is the
   rules of a left-recursive cycle other than its leader, the rule that grows the seed: their results depend on the
   growing match, so no parse memoizes them.
@@ -109,7 +110,7 @@ rule name =  [a-z_]+ #atomic
 rule num =  [0-9]+ #atomic
 rule blank =  "\n" `, lines(-1)},
 
-	{".Start in an action", `type At = { Pos int; Text node }
+	{".Start in an action", `type At = { Pos int; Text node[string] }
 @start
 rule main =  (line / blank)* $$
 rule line =  name " = " n:num "\n"
