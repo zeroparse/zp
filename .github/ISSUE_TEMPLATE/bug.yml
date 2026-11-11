@@ -1,0 +1,65 @@
+name: "Bug"
+description: "A defect: wrong behavior, panic, miscompilation"
+projects: ["zeroparse/2"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Category: **Bug**. Set the Category and Tier fields in the project after filing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem"
+      description: "Summary of the defect and its impact."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Reproduction"
+      description: "Minimal steps, input or grammar that shows the defect."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+      description: "What should happen."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+      description: "What happens instead, with output or error."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance criterion"
+      description: "What makes this issue complete, for example a regression test."
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: "Decisions"
+      description: "Decisions already made, and options rejected with the reason."
+    validations:
+      required: false
+  - type: textarea
+    id: remaining
+    attributes:
+      label: "Remaining work"
+      description: "Checklist of what is left. Keep an incomplete parent's scope listed here."
+      placeholder: "- [ ] "
+    validations:
+      required: false
+  - type: textarea
+    id: related
+    attributes:
+      label: "Related"
+      description: "Related issues, specification, guides and design records."
+    validations:
+      required: false

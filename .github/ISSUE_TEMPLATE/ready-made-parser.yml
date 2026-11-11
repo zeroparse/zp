@@ -1,0 +1,44 @@
+name: "Ready-made parser"
+description: "A problem specific to one ready-made parser"
+projects: ["zeroparse/2"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Category: **Ready-made parser**. Set the Category and Tier fields in the project after filing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem"
+      description: "What is wrong or missing."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance criterion"
+      description: "What makes this issue complete."
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: "Decisions"
+      description: "Decisions already made, and options rejected with the reason."
+    validations:
+      required: false
+  - type: textarea
+    id: remaining
+    attributes:
+      label: "Remaining work"
+      description: "Checklist of what is left. Keep an incomplete parent's scope listed here."
+      placeholder: "- [ ] "
+    validations:
+      required: false
+  - type: textarea
+    id: related
+    attributes:
+      label: "Related"
+      description: "Related issues, specification, guides and design records."
+    validations:
+      required: false

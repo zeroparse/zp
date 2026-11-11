@@ -1,0 +1,51 @@
+name: "Optimization"
+description: "A change that affects speed, memory or size"
+projects: ["zeroparse/2"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Category: **Optimization**. Set the Category and Tier fields in the project after filing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem"
+      description: "Which cost is too high, and where."
+    validations:
+      required: true
+  - type: textarea
+    id: measurement
+    attributes:
+      label: "Measurement method and criterion"
+      description: "Benchmark or measurement, the control, and the threshold (for example an A/A spread) that decides success."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance criterion"
+      description: "What makes this issue complete."
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: "Decisions"
+      description: "Decisions already made, and options rejected with the reason."
+    validations:
+      required: false
+  - type: textarea
+    id: remaining
+    attributes:
+      label: "Remaining work"
+      description: "Checklist of what is left. Keep an incomplete parent's scope listed here."
+      placeholder: "- [ ] "
+    validations:
+      required: false
+  - type: textarea
+    id: related
+    attributes:
+      label: "Related"
+      description: "Related issues, specification, guides and design records."
+    validations:
+      required: false
