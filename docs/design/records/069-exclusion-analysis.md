@@ -208,8 +208,9 @@ in the definition of nesting at one end in
 shared calls of the units of a recursion that do not grow, contain a scanning source and call a rule of their
 recursion, against each of their continuations (a unit that fails only before its sources restarts no scan, but
 leaving it out saves nothing). The calls that
-the decided comparison passes alike, and those that the checks of growing units and of continuations without the
-paths that re-enter a cycle share, come only from the checks, so the classifier records the calls that each
+the decided comparison passes alike, and those that the checks of growing units, of continuations without the
+paths that re-enter a cycle and of the operator parts that the enclosing levels of a nesting Operators Rule try
+again share, come only from the checks, so the classifier records the calls that each
 comparison passed alike; one that would make a call nest where the classifier assumed it did not becomes a reason, so no decision
 rests on a nesting that was missed. These records change classes, not only reasons, and only toward rejection: they
 can reject a linear grammar, as `main = e R` with `e = "<" f e / "."`, `f = (R e)*`, `R = sp*` and `sp = [ ]`, where the

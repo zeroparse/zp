@@ -101,26 +101,20 @@ func (k *classifier) computeNesting() {
 }
 
 // collectRestarts records the shared calls of each unit of a recursion that does not grow against
-// each of its continuations, with the operator parts that the enclosing levels of an Operators
-// Rule try again. The checks compare growing units, and units whose continuations leave out the
-// paths that re-enter a cycle, against other paths; they record the shared calls of those
-// themselves, and checkRestarts reports any that this pass did not find. A unit that can fail only
-// before its scanning sources restarts no scan, but it is read too: leaving it out saves nothing.
+// each of its continuations. The operator parts that the enclosing levels of an Operators Rule
+// try again become a continuation only after this pass, when the rule nests (addRetried), so like
+// the paths below they come from the checks. The checks compare growing units, and units whose
+// continuations leave out the paths that re-enter a cycle, against other paths; they record the
+// shared calls of those themselves, and checkRestarts reports any that this pass did not find.
+// A unit that can fail only before its scanning sources restarts no scan, but it is read too:
+// leaving it out saves nothing.
 func (k *classifier) collectRestarts() {
-	retried := map[*unit]*cont{}
-	for _, r := range k.retried {
-		retried[r.u] = r.end
-	}
 	for _, u := range k.units {
 		k.control.Poll()
 		if u.growing || !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.callsRecursion(u) {
 			continue
 		}
-		conts := slices.Clone(u.conts)
-		if end := retried[u]; end != nil {
-			conts = append(conts, contSpec{paths: []*cont{end}})
-		}
-		for _, cs := range conts {
+		for _, cs := range u.conts {
 			k.strip(u.self, cs.paths, u)
 		}
 	}
