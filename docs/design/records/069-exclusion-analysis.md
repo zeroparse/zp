@@ -205,11 +205,12 @@ the continuation passed the call after it left the body of the unit, whose evalu
 `e = "(" f e / "."` with `f = (e R "x")?`. The calls that the comparison passes alike therefore take part
 in the definition of nesting at one end in
 [Conditions for Linear Cost](../../../spec/runtime/parsing.md#conditions-for-linear-cost). Before the checks, the classifier reads the
-shared calls of the units of a recursion that can fail after a scanning source (those that the repeated-scans
-condition checks; a unit that fails only before its sources reaches no call that scans, so no rule of the recursion
-scans either) and that call a rule of their recursion, against each of their continuations. The calls that the
-decided comparison passes alike come only from the checks, so the classifier records the calls that each comparison
-passed alike; one that would make a call nest where the classifier assumed it did not becomes a reason, so no decision
+shared calls of the units of a recursion that do not grow, contain a scanning source and call a rule of their
+recursion, against each of their continuations (a unit that fails only before its sources restarts no scan, but
+leaving it out saves nothing). The calls that
+the decided comparison passes alike, and those that the checks of growing units and of continuations without the
+paths that re-enter a cycle share, come only from the checks, so the classifier records the calls that each
+comparison passed alike; one that would make a call nest where the classifier assumed it did not becomes a reason, so no decision
 rests on a nesting that was missed. A left call from a rule of a left-recursion cycle to a rule of the same cycle nests
 at one end when a call of a rule of the cycle does, since each nested evaluation of a
 leader that ends at the position grows there and evaluates what follows its left calls again.

@@ -36,10 +36,10 @@ import (
 //
 // The calls that units evaluate alike come from the analyses that rely on them: the shared calls
 // of strip and the calls that the exclusion analysis passes alike. nestsAt computes the set from
-// the shared calls of every unit of a recursion against each of its continuations before the
-// checks, without any call nesting (so without the shortening that nesting causes, which can only
-// remove shared calls). The checks record the calls that they relied on, and checkRestarts turns
-// any that would make another call nest into a reason.
+// the shared calls of the units of a recursion that do not grow against each of their
+// continuations before the checks, without any call nesting (so without the shortening that
+// nesting causes, which can only remove shared calls). The checks record the calls that they
+// relied on, and checkRestarts turns any that would make another call nest into a reason.
 
 // restartsAhead makes nestsAt read the shared calls of the units before the checks. It is on; the
 // variable is a test hook for checkRestarts.
@@ -100,9 +100,12 @@ func (k *classifier) computeNesting() {
 	}
 }
 
-// collectRestarts records the shared calls of each unit of a recursion against each of its
-// continuations: those of checkUnits, the operator parts that the enclosing levels of an
-// Operators Rule try again, and the continuations without re-entries.
+// collectRestarts records the shared calls of each unit of a recursion that does not grow against
+// each of its continuations, with the operator parts that the enclosing levels of an Operators
+// Rule try again. The checks compare growing units, and units whose continuations leave out the
+// paths that re-enter a cycle, against other paths; they record the shared calls of those
+// themselves, and checkRestarts reports any that this pass did not find. A unit that can fail only
+// before its scanning sources restarts no scan, but it is read too: leaving it out saves nothing.
 func (k *classifier) collectRestarts() {
 	retried := map[*unit]*cont{}
 	for _, r := range k.retried {
@@ -110,17 +113,12 @@ func (k *classifier) collectRestarts() {
 	}
 	for _, u := range k.units {
 		k.control.Poll()
-		// A unit restarts a nesting only if it fails after the scans of nested evaluations, so
-		// only after a scanning source (see unitFailsAfterSource); the checks analyze no other.
-		if !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.callsRecursion(u) || !k.unitFailsAfterSource(u) {
+		if u.growing || !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.callsRecursion(u) {
 			continue
 		}
 		conts := slices.Clone(u.conts)
 		if end := retried[u]; end != nil {
 			conts = append(conts, contSpec{paths: []*cont{end}})
-		}
-		if !u.growing {
-			conts = append(conts, k.withoutReentry(u)...)
 		}
 		for _, cs := range conts {
 			k.strip(u.self, cs.paths, u)
