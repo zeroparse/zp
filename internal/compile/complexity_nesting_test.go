@@ -42,6 +42,15 @@ var nestingRestarts = []struct{ name, src string }{
 	// call of e in main does not nest.
 	{"after the ends of two bodies", "rule main = e R\nrule e = \"(\" f e / \".\"\nrule f = (e R \"x\")?\nrule R = &\"\" [ ]*\n"},
 	{"after the ends of two bodies, nested option", "rule main = m R\nrule m = \"[\" e m / \".\"\nrule e = \"(\" (m R \"x\")? / \".\"\nrule R = &\"\" [ ]*\n"},
+	// An operand fails after its call of e ended at a position, and a later operand ends e at
+	// that position through the memo answer of the same call, so every level ends there and the
+	// first operand of the level around it, or what follows e, scans R there again.
+	{"later operand", "rule main = e\nrule e = #operators {\n operand \"(\" e R \"x\"\n operand \"(\" e\n operand \".\"\n}\nrule R = &\"\" [ ]*\n"},
+	{"later operand, pure scan", "rule main = e R\nrule e = #operators {\n operand \"(\" e R \"x\"\n operand \"(\" e\n operand \".\"\n}\nrule R = [ ]*\n"},
+	{"later operand, postfix part", "rule main = e\nrule e = #operators {\n operand \"(\" e R \"x\"\n operand \"(\" e\n operand \".\"\n level a { postfix \"!\" }\n}\nrule R = &\"\" [ ]*\n"},
+	{"later operand, scan after the rule", "rule main = e R\nrule e = #operators {\n operand \"(\" e R \"x\"\n operand \"(\" e\n operand \".\"\n level a { postfix \"!\" }\n}\nrule R = &\"\" [ ]*\n"},
+	{"later operand through a rule", "rule main = e R\nrule e = #operators {\n operand \"(\" w R \"x\"\n operand \"(\" w\n operand \".\"\n level a { postfix \"!\" }\n}\nrule w = e\nrule R = &\"\" [ ]*\n"},
+	{"later operand through another rule", "rule main = x R\nrule x = \"{\" x / e\nrule e = #operators {\n operand \"(\" x R \"x\"\n operand \"(\" x\n operand \".\"\n level a { postfix \"!\" }\n}\nrule R = &\"\" [ ]*\n"},
 }
 
 // nestingLinear are grammars of the same shapes whose cost is linear.

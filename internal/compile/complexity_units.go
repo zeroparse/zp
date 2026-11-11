@@ -504,7 +504,9 @@ func (k *classifier) firstEvaluated(e grammar.Expr) *grammar.Ref {
 // walkOperators walks an Operators Rule. The rule applies operators, which is a scanning source;
 // each operand item other than the last, and each operator part with its right operand, is a
 // unit. Its continuations are approximated by the other operand items or operator parts that the
-// rule can try at the same position, and by what follows the Operators Rule expression.
+// rule can try at the same position, and by what follows the Operators Rule expression. A later
+// operand, and an operand or another prefix part after a prefix part, go on with the operator
+// parts and what follows the rule.
 func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	hasOps := false
 	for _, l := range pr.Levels {
@@ -528,6 +530,13 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			items = append(items, k.skipItem(pr))
 		}
 		return &cont{items: append(append(items, e), more...)}
+	}
+	// instead is a path that the rule tries in place of a failed operand or operator part: after
+	// it, the rule goes on with its operator parts and then with what follows it, as end says.
+	instead := func(e grammar.Expr, more ...grammar.Expr) *cont {
+		c := withSkip(e, more...)
+		c.next = end
+		return c
 	}
 	// An Operators Rule is a whole rule body: what follows it is what follows the rule. The other
 	// operator parts that the rule can try after an operand are continuations of their own.
@@ -557,7 +566,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 		if i < len(pr.Operands)-1 {
 			var conts []contSpec
 			for _, later := range pr.Operands[i+1:] {
-				conts = append(conts, contSpec{paths: []*cont{withSkip(later.Expr)},
+				conts = append(conts, contSpec{paths: []*cont{instead(later.Expr)},
 					what: fmt.Sprintf("the later operand %s at %s", k.show(later.Expr), at(c.rule, exprPos(later.Expr)))})
 			}
 			u := k.newUnit(unitOperand, c, o.Expr, []*cont{withSkip(o.Expr)}, append(conts, follow))
@@ -605,12 +614,21 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			if q.op == p.op || (q.op.Kind == grammar.Prefix) != (p.op.Kind == grammar.Prefix) {
 				continue
 			}
-			conts = append(conts, contSpec{paths: []*cont{withSkip(q.op.Expr)},
+			// After an operand, the retried parts (addRetried) continue with the other operator
+			// parts and through the end of the rule when the rule nests. A part that ends the
+			// rule where a failed one's call ended does so through a call followed by what can
+			// match without consuming input, which nests at one end, so the rule nests then:
+			// here the part alone is compared.
+			sibling := withSkip(q.op.Expr)
+			if p.op.Kind == grammar.Prefix {
+				sibling = instead(q.op.Expr, rhs)
+			}
+			conts = append(conts, contSpec{paths: []*cont{sibling},
 				what: fmt.Sprintf("the operator part %s at %s", k.show(q.op.Expr), at(c.rule, exprPos(q.op.Expr)))})
 		}
 		if p.op.Kind == grammar.Prefix {
 			for _, o := range pr.Operands {
-				conts = append(conts, contSpec{paths: []*cont{withSkip(o.Expr)},
+				conts = append(conts, contSpec{paths: []*cont{instead(o.Expr)},
 					what: fmt.Sprintf("the operand %s at %s", k.show(o.Expr), at(c.rule, exprPos(o.Expr)))})
 			}
 		}

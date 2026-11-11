@@ -1223,8 +1223,14 @@ The conditions below use these terms.
   - for the base of a `#recover`, its skip expression, followed by what follows
     the `#recover`;
   - for a unit of an Operators Rule, the other operator parts and `operand`
-    items that the rule can try at the same position, and what follows the
-    Operators Rule expression. The Operators Rule **nests** when it has a prefix
+    items that the rule can try at the same position, each followed by what
+    the rule tries after it (the right operand of an infix or prefix operator
+    part, then the operator parts that the rule tries after an operand, then
+    what follows the Operators Rule expression), and what follows the
+    Operators Rule expression. A later `operand` item that succeeds through
+    the memo answer of a call that the failed one made ends where that call
+    ended, so what follows it there is part of the continuation, as for the
+    later alternatives of a choice. The Operators Rule **nests** when it has a prefix
     operator part or a right-associative infix one, whose right operand applies
     operators of its own level, or a call from the rule that nests at one end
     (below), such as the call of `x` in an operand `"(" x?` of `x`, which parses
