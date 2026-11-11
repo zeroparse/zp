@@ -4,7 +4,8 @@
 // runtime/operators_exec.go and runtime/stream_exec.go, and those of the engine to
 // internal/engine/core/call_exec.go, operators_exec.go, stream_exec.go and document_exec.go, and the
 // term compositions of the engine's backends to internal/engine/closure/term_exec.go and
-// internal/engine/vm/term_exec.go. It runs from go generate in the directory of package core.
+// internal/engine/vm/term_exec.go, and the engine's conformance bindings of the expectation record to
+// internal/engine/core/exp_bind_exec_test.go. It runs from go generate in the directory of package core.
 package main
 
 import (
@@ -90,6 +91,13 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := os.WriteFile(core.EngineVMTermFile, []byte(vmTerms), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	expBindings, err := core.EngineExpBindings()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineExpBindingsFile, []byte(expBindings), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }

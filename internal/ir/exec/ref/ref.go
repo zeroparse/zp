@@ -34,6 +34,8 @@ type Config struct {
 	Vars []int64
 	// RuleVars are the slots of the variables that each rule reads, in the order of its memo key.
 	RuleVars [][]int64
+	// NoExpectations makes a parse that does not record expectations (exp.recording is false).
+	NoExpectations bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -111,6 +113,9 @@ type Model struct {
 	// rec holds the entries of the recovered-error list: errors that rec.push recorded, as lists of one
 	// error, and the lists that rec.add recorded or rec.since put in place of the entries after its mark
 	rec []*ErrList
+
+	// expected
+	exp expState
 }
 
 // Err is an Err handle of the model.
@@ -198,6 +203,9 @@ type Entry struct {
 	// applied is the number of edits since which the entry was stored or last found: a target that
 	// applies edits to an entry when it finds it has applied those before it.
 	applied int64
+	// far and expected are what memo.setExpected recorded, expected nil before it.
+	far      int64
+	expected *ExpKept
 }
 
 // Pos returns the position of the entry's key.
@@ -298,7 +306,7 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
-	return true
+	return m.allowsExp(o, args)
 }
 
 // Quantity returns the cost quantity name for a call of o with args, in the state before the call.
@@ -381,6 +389,8 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 			return 1 // the same value: the same bytes of the same memory
 		}
 		return 2 * int64(len(s))
+	case ops.QSet:
+		return setSize(args)
 	}
 	panic("ref: unknown quantity " + name)
 }
@@ -496,6 +506,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	case "stream.settleErrors":
 		m.rec = nil
 		return nil
+	}
+	if res, ok := m.callExp(o, args); ok {
+		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }
@@ -639,6 +652,7 @@ func (m *Model) splice(start, end, delta int64) {
 			c.key.pos += delta
 			c.end += delta
 			c.examined += delta
+			c.far += delta
 		default:
 			hold(e.key, e.applied, m.held)
 			continue
