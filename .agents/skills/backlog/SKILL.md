@@ -30,7 +30,9 @@ anything, and read back what you saved.
   before ecosystem, ready-made parsers and compatibility extensions), Status
   (Backlog, Ready, In progress, In review, Done), Priority (a number; lower
   first, within a tier). Labels: `paused` (reason and resume condition in a
-  comment), `needs-decision` (waiting for the owner), `release-blocker`.
+  comment), `needs-decision` (waiting for the owner). Release gating has no label: every
+  Core P1 and Core P2 issue gates the first release, and the release issue is
+  blocked by them (or by their epic) through blocked-by relations.
 - Fix a wrong category by changing the field; the number stays.
 
 ## Body and comments
