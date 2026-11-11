@@ -127,6 +127,28 @@ func TestNestingRestartsUsed(t *testing.T) {
 	}
 }
 
+// TestNestingRestartsDecided checks the restarts that only the decided comparison finds: the unit
+// begins with a character class and the continuation with a literal, so they share no call at
+// their start and nestsAt reads no restart from them, while the comparison passes the class and
+// the literal alike and then the call of e. The call of e in the unit then nests at one end, which
+// checkRestarts reports. The grammars are quadratic: R scans the same spaces once for each level.
+func TestNestingRestartsDecided(t *testing.T) {
+	for _, tc := range []struct{ name, src string }{
+		{"class against a literal", "rule main = e\nrule e = \"(\" ([.] e R \"x\" / \".\" e) / \".\"\nrule R = [ ]*\n"},
+		{"class against a literal, impure scan", "rule main = e\nrule e = \"(\" ([.] e R \"x\" / \".\" e) / \".\"\nrule R = &\"\" [ ]*\n"},
+	} {
+		c := classifySource(t, "@start\n"+tc.src)
+		found := false
+		for _, r := range c.Reasons {
+			found = found || strings.Contains(r.Message, "call of e at 3:19 in rule e can nest without a bound") &&
+				strings.Contains(r.Message, "found only after it relied on the call")
+		}
+		if !found {
+			t.Errorf("%s: no reason for the restart that the decided comparison found: %v", tc.name, c.Reasons)
+		}
+	}
+}
+
 // nestingGrowths are grammars whose cost is quadratic because the evaluations of a left-recursive
 // rule nest and end at one position: each of them grows there, and the next step of its growth
 // scans R after its seed at that position again.
@@ -157,6 +179,10 @@ func TestNestingGrowths(t *testing.T) {
 			for _, tc := range []struct{ name, src string }{
 				{"nesting consumes after the call", "rule main = e\nrule e = e R \"x\" / e \"+\" / \"(\" e \")\" / \".\"\nrule R = &\"\" [ ]*\n"},
 				{"no scan after the seed", "rule main = e\nrule e = e \"+\" / \"(\" e / \".\"\n"},
+				// The calls of n nest and end at one position, but those of x, another cycle, do
+				// not: the unit "y" R "!" of t is left at the end of x, and the next step of the
+				// growth of x scans R again only once.
+				{"nesting in another cycle", "rule main = n \";\" x\nrule n = n \"-\" / \"(\" n / \".\"\nrule x = x R \"+\" t / t\nrule t = \"y\" R \"!\" / \"y\"\nrule R = &\"\" [ ]*\n"},
 			} {
 				if c := classifySource(t, "@start\n"+tc.src); c.Class != ClassLinear {
 					t.Errorf("%s: class %v, want linear: %v %v", tc.name, c.Class, c.Reasons, c.Causes)
