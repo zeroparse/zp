@@ -189,9 +189,33 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Doc", "Lines", c.Member(c.Cap(0), "Value")) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tn2 := c.TermStruct("Doc", 1)
+		tfirst3 := true
+		c.P.Spend()
+		c.TermSetField(tn2, "Lines", tv1)
+		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2)
+	}
 	rules[1].Body = e5
-	rules[1].Action = func(c *rt.ActCtx) any { return c.NewStruct("Line", "N", c.Length(c.Cap(0))) }
+	rules[1].Action = func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tn2 := c.TermStruct("Line", 1)
+		tfirst3 := true
+		c.P.Spend()
+		c.TermSetField(tn2, "N", tv1)
+		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2)
+	}
 	zpGrammar.DeclareStruct("Doc", "Lines", "l")
 	zpGrammar.TypeKinds["Doc"] = rt.KindOf("Doc", "")
 	zpGrammar.DeclareStruct("Line", "N", "i")
@@ -620,7 +644,18 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = tmk_Doc(c, true, c.Member(k1, "Value"))
+	{
+		var tr10 any
+		{
+			tv1, tf1 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := tmk_Doc(c, true, tv1)
+			tr10 = tv2
+		}
+		v = tr10
+	}
 	return v, true
 fail:
 	return nil, false
@@ -728,7 +763,18 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "line"
-	v = tmk_Line(c, true, c.Length(k1))
+	{
+		var tr14 any
+		{
+			tv1, tf1 := c.P.TermLength(k1)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := tmk_Line(c, true, tv1)
+			tr14 = tv2
+		}
+		v = tr14
+	}
 	return v, true
 fail:
 	return nil, false

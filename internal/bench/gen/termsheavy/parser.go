@@ -199,7 +199,19 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Doc", "Lines", c.Member(c.Cap(0), "Value")) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tn2 := c.TermStruct("Doc", 1)
+		tfirst3 := true
+		c.P.Spend()
+		c.TermSetField(tn2, "Lines", tv1)
+		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2)
+	}
 	rules[1].Body = e5
 	rules[1].Action = func(c *rt.ActCtx) any {
 		return c.NewStruct("Line", "N", c.Length(c.Cap(0)), "Total", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_11 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_11), "$s"))) }), func(l_12, l_13 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_12), rt.UnboxValue(l_13)) }), "Long", c.Length(c.FilterList(c.MapList(c.Cap(0), func(l_14 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_14), "$s"))) }), func(l_15 any) any { return c.Binary(rt.OpGt, rt.UnboxValue(l_15), any(3)) })), "Longest", c.Fold("foldl", false, any(""), c.MapList(c.Cap(0), func(l_16 any) any { return c.Text(c.Member(rt.UnboxValue(l_16), "$s")) }), func(l_17, l_18 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_17), rt.UnboxValue(l_18)) }), "Wide", c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_19 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_19), "$s"))) }), func(l_20, l_21 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_20), rt.UnboxValue(l_21)) }), any(20)))
@@ -512,7 +524,18 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = tmk_Doc(c, true, c.Member(k1, "Value"))
+	{
+		var tr1 any
+		{
+			tv1, tf1 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := tmk_Doc(c, true, tv1)
+			tr1 = tv2
+		}
+		v = tr1
+	}
 	return v, true
 fail:
 	return nil, false

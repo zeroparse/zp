@@ -68,10 +68,11 @@ rule leaf Leaf = d:[0-9]+ => Leaf{N: len($d)}
 	if strings.Contains(src, "func() any") {
 		t.Errorf("generated source contains a function literal around a term:\n%s", src)
 	}
-	if !strings.Contains(src, "tmk_Leaf(c, true, c.Length(") {
+	// The term is printed from Exec IR: a field in declaration order is the result of its composition.
+	if m := regexp.MustCompile(`tmk_Leaf\(c, true, (tv\d+)\)`).FindStringSubmatch(src); m == nil || !regexp.MustCompile(m[1]+`, tf\d+ := c\.P\.TermLength\(`).MatchString(src) {
 		t.Errorf("fields in declaration order are not the arguments:\n%s", src)
 	}
-	m := regexp.MustCompile(`(f_\d+) := \w+\n\s*(f_\d+) := \w+\n\s*v = tmk_Pair\(c, true, (f_\d+), (f_\d+)\)`).FindStringSubmatch(src)
+	m := regexp.MustCompile(`(tf\d+) := \w+\n\s*(tf\d+) := \w+\n\s*tv\d+ := tmk_Pair\(c, true, (tf\d+), (tf\d+)\)`).FindStringSubmatch(src)
 	if m == nil || m[1] != m[4] || m[2] != m[3] {
 		t.Errorf("fields out of order do not keep the order written:\n%s", src)
 	}

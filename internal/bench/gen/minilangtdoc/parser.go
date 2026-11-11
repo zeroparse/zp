@@ -1406,32 +1406,123 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 8)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Program", "Body", c.Cap(0)) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Program", 1)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Body", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[1].Body = e3
 	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
 	rules[2].Body = e6
-	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Block", "Body", c.Cap(0)) }
+	rules[2].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Block", 1)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Body", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
 	}
 	rules[4].Body = e10
-	rules[4].Action = func(c *rt.ActCtx) any { return c.NewStruct("Let", "Name", c.Cap(0), "Value", c.Cap(1)) }
+	rules[4].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Let", 2)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Name", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Value", c.Cap(1))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[5].Body = e11
-	rules[5].Action = func(c *rt.ActCtx) any { return c.NewStruct("Assign", "Target", c.Cap(0), "Value", c.Cap(1)) }
+	rules[5].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Assign", 2)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Target", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Value", c.Cap(1))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[6].Body = e12
-	rules[6].Action = func(c *rt.ActCtx) any { return c.NewStruct("If", "Cond", c.Cap(0), "Then", c.Cap(1), "Else", c.Cap(2)) }
+	rules[6].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("If", 3)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Cond", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Then", c.Cap(1))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Else", c.Cap(2))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[7].Body = e13
 	rules[7].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
 	}
 	rules[8].Body = e14
-	rules[8].Action = func(c *rt.ActCtx) any { return c.NewStruct("While", "Cond", c.Cap(0), "Body", c.Cap(1)) }
+	rules[8].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("While", 2)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Cond", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Body", c.Cap(1))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[9].Body = e15
-	rules[9].Action = func(c *rt.ActCtx) any { return c.NewStruct("Return", "Value", c.Cap(0)) }
+	rules[9].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Return", 1)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Value", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[10].Body = e18
 	rules[10].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Func", "Name", c.Cap(0), "Params", c.Concat(c.Cap(1)), "Body", c.Cap(2))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tk3 := c.P.Kids(tm1)
+		tn4 := c.P.TermHull(c, false, tk3)
+		tn5 := c.TermStruct("Func", 3)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Name", c.Cap(0))
+		tfirst6 = c.P.TermCover(tn5, c.Cap(0), tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Params", any(tn4))
+		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Body", c.Cap(2))
+		tfirst6 = c.P.TermCover(tn5, c.Cap(2), tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
 	}
 	rules[11].Body = e21
 	rules[11].Action = func(c *rt.ActCtx) any {
@@ -1441,7 +1532,15 @@ func init() {
 		return c.EndList(b_64)
 	}
 	rules[12].Body = e22
-	rules[12].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExprStmt", "X", c.Cap(0)) }
+	rules[12].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("ExprStmt", 1)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "X", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[13].Body = e23
 	rules[13].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
@@ -1456,34 +1555,170 @@ func init() {
 			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e70, Action: func(c *rt.ActCtx) any {
 				return c.Cap(0)
 			}, Value: sh57},
-			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e73, Action: func(c *rt.ActCtx) any { return c.NewStruct("ArrayLit", "Elems", c.Concat(c.Cap(0))) }, Value: sh57},
+			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e73, Action: func(c *rt.ActCtx) any {
+				tm1 := len(c.P.KidStack)
+				c.P.Spend()
+				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+				if tf2 != nil {
+					panic(tf2)
+				}
+				tk3 := c.P.Kids(tm1)
+				tn4 := c.P.TermHull(c, false, tk3)
+				tn5 := c.TermStruct("ArrayLit", 1)
+				tfirst6 := true
+				c.P.Spend()
+				c.TermSetField(tn5, "Elems", any(tn4))
+				tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+				c.P.TermMade(c, tn5, tfirst6)
+				return any(tn5)
+			}, Value: sh57},
 		},
 		Prefix: []*rt.OperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e96, Action: func(c *rt.ActCtx) any {
-			return c.NewStruct("Unary", "Op", rt.UnboxValue(c.Op), "X", rt.UnboxValue(c.Rhs))
+			tn1 := c.TermStruct("Unary", 2)
+			tfirst2 := true
+			c.P.Spend()
+			c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+			c.P.Spend()
+			c.TermSetField(tn1, "X", rt.UnboxValue(c.Rhs))
+			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+			c.P.TermMade(c, tn1, tfirst2)
+			return any(tn1)
 		}, Value: sh38}}},
 		Led: []*rt.OperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "right", Level: 1, Line: &rt.OperatorsRuleLine{Scope: []string{"t"}, M: e76, Action: func(c *rt.ActCtx) any {
-			return c.NewStruct("Cond", "Cond", rt.UnboxValue(c.Lhs), "Then", c.Cap(0), "Else", rt.UnboxValue(c.Rhs))
+			tn1 := c.TermStruct("Cond", 3)
+			tfirst2 := true
+			c.P.Spend()
+			c.TermSetField(tn1, "Cond", rt.UnboxValue(c.Lhs))
+			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+			c.P.Spend()
+			c.TermSetField(tn1, "Then", c.Cap(0))
+			tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+			c.P.Spend()
+			c.TermSetField(tn1, "Else", rt.UnboxValue(c.Rhs))
+			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+			c.P.TermMade(c, tn1, tfirst2)
+			return any(tn1)
 		}, Value: sh57}},
 			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e78, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Binary", "Left", rt.UnboxValue(c.Lhs), "Op", rt.UnboxValue(c.Op), "Right", rt.UnboxValue(c.Rhs))
+				tn1 := c.TermStruct("Binary", 3)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
 			}, Value: sh38}},
 			{Id: 2, Kind: "infix", Assoc: "left", Level: 3, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e80, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Binary", "Left", rt.UnboxValue(c.Lhs), "Op", rt.UnboxValue(c.Op), "Right", rt.UnboxValue(c.Rhs))
+				tn1 := c.TermStruct("Binary", 3)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
 			}, Value: sh38}},
 			{Id: 3, Kind: "infix", Assoc: "none", Level: 4, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e87, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Binary", "Left", rt.UnboxValue(c.Lhs), "Op", rt.UnboxValue(c.Op), "Right", rt.UnboxValue(c.Rhs))
+				tn1 := c.TermStruct("Binary", 3)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
 			}, Value: sh38}},
 			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e90, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Binary", "Left", rt.UnboxValue(c.Lhs), "Op", rt.UnboxValue(c.Op), "Right", rt.UnboxValue(c.Rhs))
+				tn1 := c.TermStruct("Binary", 3)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
 			}, Value: sh38}},
 			{Id: 5, Kind: "infix", Assoc: "left", Level: 6, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e94, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Binary", "Left", rt.UnboxValue(c.Lhs), "Op", rt.UnboxValue(c.Op), "Right", rt.UnboxValue(c.Rhs))
+				tn1 := c.TermStruct("Binary", 3)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
 			}, Value: sh38}},
 			{Id: 7, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e97, Action: func(c *rt.ActCtx) any {
-				return c.NewStruct("Call", "Fn", rt.UnboxValue(c.Lhs), "Args", c.Concat(c.Cap(0)))
+				tm1 := len(c.P.KidStack)
+				c.P.Spend()
+				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+				if tf2 != nil {
+					panic(tf2)
+				}
+				tk3 := c.P.Kids(tm1)
+				tn4 := c.P.TermHull(c, false, tk3)
+				tn5 := c.TermStruct("Call", 2)
+				tfirst6 := true
+				c.P.Spend()
+				c.TermSetField(tn5, "Fn", rt.UnboxValue(c.Lhs))
+				tfirst6 = c.P.TermCover(tn5, rt.UnboxValue(c.Lhs), tfirst6)
+				c.P.Spend()
+				c.TermSetField(tn5, "Args", any(tn4))
+				tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+				c.P.TermMade(c, tn5, tfirst6)
+				return any(tn5)
 			}, Value: sh57}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"i"}, M: e98, Action: func(c *rt.ActCtx) any { return c.NewStruct("Index", "X", rt.UnboxValue(c.Lhs), "Index", c.Cap(0)) }, Value: sh57}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"n"}, M: e99, Action: func(c *rt.ActCtx) any { return c.NewStruct("Member", "X", rt.UnboxValue(c.Lhs), "Name", c.Cap(0)) }, Value: sh62}}},
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"i"}, M: e98, Action: func(c *rt.ActCtx) any {
+				tn1 := c.TermStruct("Index", 2)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "X", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Index", c.Cap(0))
+				tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
+			}, Value: sh57}},
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"n"}, M: e99, Action: func(c *rt.ActCtx) any {
+				tn1 := c.TermStruct("Member", 2)
+				tfirst2 := true
+				c.P.Spend()
+				c.TermSetField(tn1, "X", rt.UnboxValue(c.Lhs))
+				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.P.Spend()
+				c.TermSetField(tn1, "Name", c.Cap(0))
+				tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+				c.P.TermMade(c, tn1, tfirst2)
+				return any(tn1)
+			}, Value: sh62}}},
 	}
 	rules[14].Body = func(p *rt.Parser, min int) (*rt.Node, bool) { return p.OperatorsRuleParse(rules[14], min) }
 	rules[15].Body = e25
@@ -1568,18 +1803,67 @@ func init() {
 			&rt.TOperatorsRuleLine{Scope: []string{"e"}, M: e109, Action: func(c *rt.TActCtx) any {
 				return c.Cap(0)
 			}, Value: sh57},
-			&rt.TOperatorsRuleLine{Scope: []string{"xs"}, M: e110, Action: func(c *rt.TActCtx) any { return tmk_ArrayLit(c, true, c.Concat(c.Cap(0))) }, Value: sh57},
+			&rt.TOperatorsRuleLine{Scope: []string{"xs"}, M: e110, Action: func(c *rt.TActCtx) any {
+				tm1 := len(c.P.KidStack)
+				c.P.Spend()
+				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+				if tf2 != nil {
+					panic(tf2)
+				}
+				tk3 := c.P.Kids(tm1)
+				tn4 := c.P.TermHull(c, false, tk3)
+				tv5 := tmk_ArrayLit(c, true, any(tn4))
+				return tv5
+			}, Value: sh57},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e117, Action: func(c *rt.TActCtx) any { return tmk_Unary(c, true, (c.Op), (c.Rhs)) }, Value: sh38}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "right", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e111, Action: func(c *rt.TActCtx) any { return tmk_Cond(c, true, (c.Lhs), c.Cap(0), (c.Rhs)) }, Value: sh57}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e112, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh38}},
-			{Id: 2, Kind: "infix", Assoc: "left", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e113, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh38}},
-			{Id: 3, Kind: "infix", Assoc: "none", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e114, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh38}},
-			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e115, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh38}},
-			{Id: 5, Kind: "infix", Assoc: "left", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e116, Action: func(c *rt.TActCtx) any { return tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs)) }, Value: sh38}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"xs"}, M: e118, Action: func(c *rt.TActCtx) any { return tmk_Call(c, true, (c.Lhs), c.Concat(c.Cap(0))) }, Value: sh57}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e119, Action: func(c *rt.TActCtx) any { return tmk_Index(c, true, (c.Lhs), c.Cap(0)) }, Value: sh57}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"n"}, M: e120, Action: func(c *rt.TActCtx) any { return tmk_Member(c, true, (c.Lhs), c.Cap(0)) }, Value: sh62}}},
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e117, Action: func(c *rt.TActCtx) any {
+			tv1 := tmk_Unary(c, true, (c.Op), (c.Rhs))
+			return tv1
+		}, Value: sh38}}},
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "right", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e111, Action: func(c *rt.TActCtx) any {
+			tv1 := tmk_Cond(c, true, (c.Lhs), c.Cap(0), (c.Rhs))
+			return tv1
+		}, Value: sh57}},
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e112, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs))
+				return tv1
+			}, Value: sh38}},
+			{Id: 2, Kind: "infix", Assoc: "left", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e113, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs))
+				return tv1
+			}, Value: sh38}},
+			{Id: 3, Kind: "infix", Assoc: "none", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e114, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs))
+				return tv1
+			}, Value: sh38}},
+			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e115, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs))
+				return tv1
+			}, Value: sh38}},
+			{Id: 5, Kind: "infix", Assoc: "left", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e116, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Binary(c, true, (c.Lhs), (c.Op), (c.Rhs))
+				return tv1
+			}, Value: sh38}},
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"xs"}, M: e118, Action: func(c *rt.TActCtx) any {
+				tm1 := len(c.P.KidStack)
+				c.P.Spend()
+				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+				if tf2 != nil {
+					panic(tf2)
+				}
+				tk3 := c.P.Kids(tm1)
+				tn4 := c.P.TermHull(c, false, tk3)
+				tv5 := tmk_Call(c, true, (c.Lhs), any(tn4))
+				return tv5
+			}, Value: sh57}},
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e119, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Index(c, true, (c.Lhs), c.Cap(0))
+				return tv1
+			}, Value: sh57}},
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.TOperatorsRuleLine{Scope: []string{"n"}, M: e120, Action: func(c *rt.TActCtx) any {
+				tv1 := tmk_Member(c, true, (c.Lhs), c.Cap(0))
+				return tv1
+			}, Value: sh62}}},
 	}
 	trules[14].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[14], min) }
 }
@@ -3905,7 +4189,14 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = tmk_Program(c, true, k1)
+	{
+		var tr26 any
+		{
+			tv1 := tmk_Program(c, true, k1)
+			tr26 = tv1
+		}
+		v = tr26
+	}
 	return v, true
 fail:
 	return nil, false
@@ -4009,7 +4300,14 @@ func i2(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "block"
-	v = tmk_Block(c, true, k1)
+	{
+		var tr27 any
+		{
+			tv1 := tmk_Block(c, true, k1)
+			tr27 = tv1
+		}
+		v = tr27
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -4106,7 +4404,14 @@ func i4(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "let"
-	v = tmk_Let(c, true, k1, k4)
+	{
+		var tr28 any
+		{
+			tv1 := tmk_Let(c, true, k1, k4)
+			tr28 = tv1
+		}
+		v = tr28
+	}
 	return v, true
 fail:
 	return nil, false
@@ -4174,7 +4479,14 @@ L6:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "assign"
-	v = tmk_Assign(c, true, k1, k7)
+	{
+		var tr29 any
+		{
+			tv1 := tmk_Assign(c, true, k1, k7)
+			tr29 = tv1
+		}
+		v = tr29
+	}
 	return v, true
 fail:
 	return nil, false
@@ -4231,7 +4543,14 @@ L13:
 	k7 = v11
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "if"
-	v = tmk_If(c, true, k1, k4, k7)
+	{
+		var tr30 any
+		{
+			tv1 := tmk_If(c, true, k1, k4, k7)
+			tr30 = tv1
+		}
+		v = tr30
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -4307,11 +4626,11 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "else"
 	{
-		var tr6 any
+		var tr31 any
 		{
-			tr6 = k1
+			tr31 = k1
 		}
-		v = tr6
+		v = tr31
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -4358,7 +4677,14 @@ func i8(p *rt.TParser) (any, bool) {
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "while"
-	v = tmk_While(c, true, k1, k4)
+	{
+		var tr32 any
+		{
+			tv1 := tmk_While(c, true, k1, k4)
+			tr32 = tv1
+		}
+		v = tr32
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -4410,7 +4736,14 @@ L7:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "return"
-	v = tmk_Return(c, true, k1)
+	{
+		var tr33 any
+		{
+			tv1 := tmk_Return(c, true, k1)
+			tr33 = tv1
+		}
+		v = tr33
+	}
 	return v, true
 fail:
 	return nil, false
@@ -4483,7 +4816,22 @@ L10:
 	k12 = v14
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "func"
-	v = tmk_Func(c, true, k1, c.Concat(k4), k12)
+	{
+		var tr34 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPushItems(c, "concat", k4)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tv5 := tmk_Func(c, true, k1, any(tn4), k12)
+			tr34 = tv5
+		}
+		v = tr34
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -4594,7 +4942,14 @@ func i12(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "exprStmt"
-	v = tmk_ExprStmt(c, true, k1)
+	{
+		var tr35 any
+		{
+			tv1 := tmk_ExprStmt(c, true, k1)
+			tr35 = tv1
+		}
+		v = tr35
+	}
 	return v, true
 fail:
 	return nil, false
@@ -4642,11 +4997,11 @@ L7:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "expr"
 	{
-		var tr7 any
+		var tr36 any
 		{
-			tr7 = k1
+			tr36 = k1
 		}
-		v = tr7
+		v = tr36
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -5500,11 +5855,11 @@ L7:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "name"
 	{
-		var tr8 any
+		var tr37 any
 		{
-			tr8 = k1
+			tr37 = k1
 		}
-		v = tr8
+		v = tr37
 	}
 	v = c.Finish(v)
 	v = p.TConvertResult(trules[17], v)
@@ -5624,11 +5979,11 @@ func i21(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "string"
 	{
-		var tr9 any
+		var tr38 any
 		{
-			tr9 = k1
+			tr38 = k1
 		}
-		v = tr9
+		v = tr38
 	}
 	v = c.Finish(v)
 	return v, true

@@ -89,7 +89,7 @@ compositions of the operators of terms ([Values](values.md)) with every function
 and the transitional operations of the leaves of terms below. A term is not lowered, and the target evaluates it as a
 whole in its own way, when it holds
 
-- a constructor, a tuple, a built-in function other than `len` and `text` (the list built-ins) or a lambda;
+- a built-in function that takes a function (`map`, `filter`, `foldl` and `foldr`) or a lambda;
 - a comparison that an optimization of the target makes without making a value of an operand: a comparison with a field
   read in a typed parser of Go (`field-compare`), and a predicate that compares the text of a capture with literals,
   which a target prints as one switch over them (`text-dispatch`);
@@ -107,7 +107,20 @@ failure, followed by a branch that calls `term.raise` with the failure when ther
 local and calls `term.castError` with it when `conforms` rejects it. A logical operator calls `logic` on its left
 operand, and evaluates its right operand and calls `logic` on it only when the left one does not decide the result.
 An equality or inequality of two calls of `text` compares the two strings with `term.textEqual`, without making a
-value of either. A target that charges a step for each subterm of a term under budget controls lowers it with a call
+value of either.
+
+A tuple literal and a call of `list` take the mark of the gathered values with the parser VM's `term.kids`, push the
+value of each element with `push`, charging a step for it with `seq.step` before, take the values gathered above the
+mark with `term.elemsAbove` and make the tuple or list value of them with `hull`. A call of `concat` pushes the
+elements of each argument with `pushItems`, charging a step for the argument; when every argument is a call of `list`
+or such a call of `concat`, the elements of the arguments are pushed as `list` pushes them, without making the lists
+of the arguments. A struct literal evaluates its field values in the order written. A target whose structs are made of
+their fields makes an empty struct with `term.struct` and, for each field in that order, charges a step with
+`seq.step`, sets the field with `term.setField` and widens the range of the struct with `cover`; `made` then records
+the struct. A target with a constructor for each struct type calls it once, with `term.new` followed by the number
+of fields that the type declares, passing the values in the order the type declares the fields and nil for a field
+that the literal does not give; a value is kept in a local before the next one is evaluated only when the literal
+gives the fields in another order. A target that does not bound the work leaves out the calls of `seq.step`. A target that charges a step for each subterm of a term under budget controls lowers it with a call
 of `term.spend` at the start of each subterm, before its operands. A variable is read into a local where the term
 reads it, since reading it charges the budget; the other leaves are operands of the calls that read them. The
 function returns the term's value, or, when the target places the value itself, assigns it as its last statement to
@@ -120,7 +133,8 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.const` | the constant | Returns the constant. |
 | `term.read` | the capture, local or variable | Returns its value. |
 | `term.ctx` | none | Returns the context of the evaluation, which `member` takes. |
-| `term.name` | a name | Returns the name, an operand of `member`. |
+| `term.name` | a name | Returns the name, an operand of `member`, `push` and `pushItems`. |
+| `term.field` | a member and the name it reads | Returns the name of the field or the capture that the member reads, an operand of `member`. A target whose comparison of names charges less for the same string data than for equal bytes cuts it from the name of the member, so that the charge does not depend on whether equal literals share their data. |
 | `term.nodeType` | the name of a named node type | Returns the node type, an operand of `convert`. |
 | `term.castType` | the cast | Returns the checked type of the cast, an operand of `conforms`. |
 | `term.raise` | none | Ends the evaluation of the term with the failure it is given. |
@@ -128,3 +142,8 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.textEqual` | none | Returns whether two strings are equal, as `==` compares them. |
 | `term.fromStr` | none | Returns a string as a value. |
 | `term.spend` | none | Charges one step of the budget, under budget controls. |
+| `term.elemsAbove` | none | Takes the values gathered above a mark of `term.kids` off the gathered values and returns them, for `hull` to take over. |
+| `term.struct` | the struct literal | Returns a new struct of the type of the literal with no field set and an empty range. |
+| `term.setField` | the name of the field | Sets the field of a struct that the term is making to a value. |
+| `term.fromObj` | none | Returns a struct, list value or tuple value as a value. |
+| `term.new`*N* | the struct literal | Returns the struct that the constructor of its type makes of the values of its N declared fields. |

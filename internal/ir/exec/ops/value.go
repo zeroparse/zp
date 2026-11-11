@@ -539,8 +539,9 @@ ShapeListValue or ShapeStruct, which a value of a node type has by its base.`,
 		Contract: `Returns the elements of the list value or the tuple value n, and the children of any other node.`,
 		Laws:     []string{"pure: equal arguments give equal results"}})
 	pure(&exec.Op{Name: "seq.step", Host: true, NoReturn: true, Cost: exec.Cost{Const: 1},
-		Contract: `Charges the step of examining one element of a list or a tuple against its type. A target that bounds
-the work charges one unit; a target that does not charges nothing.`})
+		Contract: `Charges the step of one element of a list or a tuple: an element that is examined against its type,
+walked by a built-in function or made by a constructor. A target that bounds the work charges one unit; a target
+that does not charges nothing.`})
 	pure(&exec.Op{Name: "seq.len", Params: []exec.Param{exec.P("items", items)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of elements.`, Requires: `items came from seq.items.`})
 	pure(&exec.Op{Name: "seq.at", Params: []exec.Param{exec.P("items", items), exec.P("i", exec.TInt)}, Results: []exec.Type{datum},

@@ -102,7 +102,19 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e3
-	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("File", "Records", c.Member(c.Cap(0), "Value")) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tn2 := c.TermStruct("File", 1)
+		tfirst3 := true
+		c.P.Spend()
+		c.TermSetField(tn2, "Records", tv1)
+		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2)
+	}
 	rules[1].Body = e6
 	rules[1].Action = func(c *rt.ActCtx) any {
 		b_15 := len(c.P.KidStack)
