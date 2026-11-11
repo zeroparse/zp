@@ -86,7 +86,10 @@ type excl struct {
 	up     bool
 	follow int               // the most rule and operand ends through which contPaths follows a continuation
 	cheapR map[cheapKey]int8 // 1 while computed, 2 cheap, 3 not
-	work   *int              // the steps left of exclBudget, shared by the copies of x
+	// opsR holds the paths that opsEnd returned, which every operator part and operand item of
+	// an Operators Rule reaches as the end of its continuation.
+	opsR map[opsKey]opsPaths
+	work *int // the steps left of exclBudget, shared by the copies of x
 	// owner, when set, is the unit whose continuations the comparison reads: the paths of a
 	// continuation mark the end of the body of its rule (exitMark), and the comparison records the
 	// calls that both evaluate alike for nestsAt (checkRestarts).
@@ -120,9 +123,22 @@ type cheapKey struct {
 	env, up bool
 }
 
+// An opsKey is what the paths of opsEnd depend on besides the grammar and the unit: the paths
+// read cheap, which depends on env and up, and stop at the follow limit.
+type opsKey struct {
+	rule          string
+	depth, follow int
+	env, up       bool
+}
+
+type opsPaths struct {
+	paths [][]sym
+	ok    bool
+}
+
 func newExcl(k *classifier, strict bool, maxK int) excl {
 	work := exclBudget
-	return excl{k: k, strict: strict, maxK: maxK, follow: exclFollow, cheapR: map[cheapKey]int8{}, work: &work}
+	return excl{k: k, strict: strict, maxK: maxK, follow: exclFollow, cheapR: map[cheapKey]int8{}, opsR: map[opsKey]opsPaths{}, work: &work}
 }
 
 // spend charges n steps to the budget and reports whether the budget is exhausted. The first time
@@ -492,11 +508,22 @@ func (x excl) ruleEnd(rule string, depth int) ([][]sym, bool) {
 
 // opsEnd returns the paths of what follows the end of an operand of the Operators Rule of rule:
 // an operator part that applies after it, with its right operand, or the end of the rule. The
-// parts are those that the classifier takes as the continuations of an operand.
+// parts are those that the classifier takes as the continuations of an operand. The result is
+// computed once for each key; contPaths, its only caller, copies the paths that it extends.
 func (x excl) opsEnd(rule string, depth int) ([][]sym, bool) {
 	if depth >= x.follow {
 		return [][]sym{{{kind: symStop, e: stopFollow}}}, true
 	}
+	key := opsKey{rule, depth, x.follow, x.env, x.up}
+	if r, ok := x.opsR[key]; ok {
+		return r.paths, r.ok
+	}
+	ps, ok := x.opsEndPaths(rule, depth)
+	x.opsR[key] = opsPaths{ps, ok}
+	return ps, ok
+}
+
+func (x excl) opsEndPaths(rule string, depth int) ([][]sym, bool) {
 	var after [][]sym
 	ok := true
 	y, nest := x, x.k.nestsOps(rule)
