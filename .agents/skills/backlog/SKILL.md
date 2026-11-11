@@ -7,11 +7,23 @@ description: Maintain ZeroParse's Issue #1 backlog, its status comment, and rece
 
 - Use ZeroParse Issue #1: https://github.com/zeroparse/zp/issues/1. Retrieve current
   issue content and the status comment before proposing or making updates.
-- Categories use two-digit IDs: B bugs, O optimizations, F features, Q quality
-  and tools, I improvements, D docs, and M ready-made parsers. Preserve existing
-  IDs and never reuse one. A new ID is the category's entry in the body's
-  last-used-ID line plus one; update that line when allocating. Features
-  normally require a design record.
+- Categories use two-digit IDs and are defined by the kind of change: B bug
+  and other defect fixes; O optimization, meaning changes that actually affect
+  performance, visible to users or not (enabling infrastructure with no
+  performance effect of its own is I); F user-visible new features, with a
+  design record close to mandatory (the flag and profile mechanism for
+  optimizations is F; one optimization exposed as a flag stays O); Q quality
+  and verification (tests, benchmarks, proofs, reference builds, flaky tests)
+  and developer-only tooling; I improvements to internal mechanisms and
+  functions, meaning refactoring and reorganization other than for
+  performance, of any size, including the precision of analyses such as the
+  classifier; D documentation work (guides, specification text, design
+  records), where proofs are not documentation; M problems specific to one
+  bundled or ready-made parser; R release and launch (tagging, announcements,
+  posts, launch measurement). Tools are categorized by the kind of change.
+  Preserve existing IDs and never reuse one. A new ID is the category's entry
+  in the body's last-used-ID line plus one; update that line when allocating.
+  Moving an item to another category allocates a new ID and retires the old one.
 - Keep the issue body to its rules, the last used IDs, the status link, the
   ten most recent completions and incomplete items. The commit log is the full
   record of completed work; there are no archive comments.
