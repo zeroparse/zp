@@ -300,6 +300,15 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) + "z" },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// The same restart through the operands of an Operators Rule: the first operand fails after
+		// its call ended at a position, and the later operand ends the rule there through the memo
+		// answer of that call.
+		{
+			Name: "Scan restarted by a later operand", Family: "nesting restarts",
+			Source: "rule main = e R $$\nrule e = #operators {\n    operand \"(\" e R \"x\"\n    operand \"(\" e\n    operand \".\"\n    level { postfix \"!\" }\n}\nrule R = &\"\" [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
 		// Each nested evaluation of a left-recursive rule that ends at a position grows there, and
 		// each step of its growth scans what follows its seed again.
 		{
