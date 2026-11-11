@@ -1,10 +1,14 @@
 package complexitytest
 
 // nestedPattern matches the reasons for the class unknown whose units are nested without bound
-// through a recursion of rule calls, other than at a #recover base, and the reasons for a call of
-// such a recursion whose evaluations can nest and end at one position.
-const nestedPattern = `^(the alternative|the option|an iteration|the operator part|the operand|the lookahead|the expression)[^#]* is not committing against .*, and units that are not committing are nested in it without bound through a recursion of rule calls$` +
-	`|^the evaluations of the call of [^ ]+ at [^ ]+ in rule [^ ]+ can nest without a bound and end at one position, `
+// through a recursion of rule calls, other than at a #recover base.
+const nestedPattern = `^(the alternative|the option|an iteration|the operator part|the operand|the lookahead|the expression)[^#]* is not committing against .*, and units that are not committing are nested in it without bound through a recursion of rule calls$`
+
+// nestsLate matches the reason for the call of callee in rule caller whose evaluations the checks
+// found to nest and end at one position only after they relied on the call.
+func nestsLate(callee, caller string) string {
+	return `|^the evaluations of the call of ` + callee + ` at [0-9]+:[0-9]+ in rule ` + caller + ` can nest without a bound and end at one position, `
+}
 
 // triageSmall is the triage table of csv, xml, cel, minilang, outline and calc.
 func triageSmall() []TriageGroup {
@@ -32,7 +36,7 @@ func triageSmall() []TriageGroup {
 				{Name: "n comments", Build: list("", "<!--"+rep("c", 50)+"-->", "\n", "<r/>"), Sizes: doubling(500, 3), Order: Linear},
 				{Name: "one comment of length n", Build: func(n int) string { return "<!--" + rep("c", n) + "--><r/>" }, Sizes: doubling(4000, 3), Order: Linear},
 			}},
-		{Grammar: "xml", ID: "nested", Pattern: nestedPattern,
+		{Grammar: "xml", ID: "nested", Pattern: nestedPattern + nestsLate("cp", "choice"),
 			Shape:  "units nested through the recursion of content_spec/cp and element/content, every call on it memoized",
 			Assign: "F100", Order: Linear, Families: []TriageFamily{
 				{Name: "nested elements", Build: nest("<e a=\"1\">", "t", "</e>"), Sizes: doubling(500, 3), Order: Linear},

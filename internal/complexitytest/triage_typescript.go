@@ -77,7 +77,7 @@ func triageTypescript() []TriageGroup {
 				{Name: "long JSX element names", Build: tsx(func(n int) string { return "x = <" + rep("a", n) + "></" + rep("a", n) + ">;\n" }), Sizes: doubling(1000, 3), Order: Linear},
 				{Name: "many JSX elements with long names", Build: tsx(func(n int) string { return "x = <b>" + rep("<"+rep("a", 40)+"></"+rep("a", 40)+">", n) + "</b>;\n" }), Sizes: doubling(100, 3), Order: Linear},
 			}},
-		{Grammar: "typescript", ID: "nested", Pattern: nestedPattern,
+		{Grammar: "typescript", ID: "nested", Pattern: nestedPattern + nestsLate("typeAnnotation", "mappedType"),
 			Shape:  "units of statements, expressions, types and JSX nested through their recursion, every call on it memoized under the ctx value of its context",
 			Assign: "F100", Order: Linear, Families: append([]TriageFamily{
 				{Name: "nested parentheses and arrows", Build: tsStmt(func(n int) string { return rep("((a) => ", n) + "a" + rep(")", n) }), Sizes: doubling(300, 3), Order: Linear},

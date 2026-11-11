@@ -39,7 +39,7 @@ func triageGolang() []TriageGroup {
 				}), Sizes: doubling(2000, 3), Order: Linear},
 				{Name: "many imaginary literals", Build: goFile(list("x := ", "123_456i", " + ", "")), Sizes: doubling(500, 3), Order: Linear},
 			}},
-		{Grammar: "golang", ID: "nested", Pattern: nestedPattern,
+		{Grammar: "golang", ID: "nested", Pattern: nestedPattern + nestsLate("expr", "operatorsExpr"),
 			Shape:  "units of statements, expressions, types and literals nested through the recursion of expressions, types and blocks, every call on it memoized",
 			Assign: "F100", Order: Linear, Families: []TriageFamily{
 				{Name: "nested parentheses", Build: goFile(func(n int) string { return "x := " + nest("(", "1", ")")(n) }), Sizes: doubling(500, 3), Order: Linear},
