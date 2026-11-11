@@ -1812,7 +1812,10 @@ positive lookahead would break this: its value lies outside the own span, so
 that `A = "a" &(x:W) => text($x) + "!"` in `A*` copies the rest of the input at
 each position, the reason why condition 4 excludes it.
 
-A copy of the value of a variable costs at most $L$. Condition 1 keeps the
+A copy of the value of a variable costs at most $L$; a copy of a read whose
+binding binds a value that includes the value of a call on a recursion is
+checked by condition 4 as a copy of that value, by the rule of the binding.
+Condition 1 keeps the
 value of a variable from growing from its own earlier value, or, by Lemma 8,
 keeps it in a set of constant size, so the number of combinations at a
 position is $K$, a constant when every binding is a literal or binds a
@@ -2463,17 +2466,18 @@ excluded: a value of a variable has size up to $L$ whatever the match, and a
 capture in a positive lookahead holds input outside it, so for them the bound
 holds only with $n$. $\square$
 
-*Values of variables.* Let no evaluation of a binding read a value that is
-built, through bindings, captures and rule values, from an earlier
-evaluation of the same binding. Then $L$ is at most a constant times
-$\hat{n}$.
+*Values of variables.* Call a sequence of evaluations of bindings a
+**chain** when each evaluation after the first reads a value built, through
+captures, rule values and the reads of variables, from the value that the
+one before it binds. Let each binding occur at most a constant number $b$ of
+times in every chain. Then $L$ is at most a constant times $\hat{n}$.
 
 *Proof.* Every value that a binding binds is built from literals, values of
 matches, and the values of variables that its term reads, which earlier
-evaluations of other bindings, or the initial values, gave. Follow the
+evaluations of bindings, or the initial values, gave. Follow the
 values of variables back through the bindings that built them: by the
-assumption, a chain of such evaluations repeats no binding, so it is no
-longer than the number of bindings of the grammar. By *Top sizes*, with the
+assumption, a chain of such evaluations is no longer than $b$ times the
+number of bindings of the grammar. By *Top sizes*, with the
 values of variables that a term reads added to its operands, a binding binds
 a value of top size at most a constant times $\hat{n}$ plus a constant
 times the top sizes of the values of variables that it reads, since a match
@@ -2481,10 +2485,12 @@ consumes at most $n$ and a capture in a positive lookahead at most the rest
 of the input. Induction along the chains gives a bound of a constant times
 $\hat{n}$. $\square$
 
-The assumption is what condition 1 states for a binding whose value can
-reach a later evaluation of the same binding, through the forms that the
-condition lists; that those forms are the only ways in which the value
-reaches it is step 5 of [Open Steps](#open-steps). The theorem does not use
+The assumption is what conditions 1 and 4 state together: condition 1 for a
+binding whose value can reach a later evaluation of the same binding through
+the bindings that its rule keeps in effect, and condition 4 for a value that
+reaches the caller through the value of the rule and a read of a variable.
+That these are the only ways in which the value reaches a later evaluation
+of the binding is step 5 of [Open Steps](#open-steps). The theorem does not use
 the bound on $L$: its cost carries the factor $L + 1$, and
 [Classification](../runtime/parsing.md#classification) derives from the
 bound that the second class costs at most a constant times $K \cdot n^2$.
@@ -3580,13 +3586,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
-   that no evaluation of a binding reads a value built from an earlier
-   evaluation of the same binding. The step must show that condition 1
-   ensures this: that such a value reaches a later evaluation of the binding,
-   through the bindings of other variables, the captures of callers and the
-   values of rules, only through a sequence that holds the binding and a call
-   that can reach its rule again, or a repetition around the binding, as the
-   condition lists.
+   that each binding occurs a bounded number of times in every chain. The
+   step must show that conditions 1 and 4 ensure this: that a value reaches
+   a later evaluation of the same binding only through a sequence that holds
+   the binding, at any depth of expressions that keep its bindings, and a
+   call that can reach its rule again, or a repetition around the binding,
+   which condition 1 checks, or through the value of a rule passed to a
+   caller and read there through a variable, which condition 4 checks; and
+   that a chain that takes neither repeats each binding a bounded number of
+   times, as `s = a:A {x := $a} A` does when `A` binds `x`.
 6. **What a Document retains in Lemma 12.** The bound of Lemma 12 is in terms of
    $W$, $B$, $G$ and $Q$, which depend on the history of the Document. A bound by
    the $n$, $K$ and $L$ of the parse would have to show that the nodes a parse
