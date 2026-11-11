@@ -167,6 +167,38 @@ func testTermGeneratedTargets(t *testing.T) {
 	gentest.GeneratedTypesCorpus(t, goBin, list(true), gen.GenOptions{ConvertTypes: true}, 0)
 }
 
+// TestTermFixedGeneratedTargets checks the fixed term sets of gentest (conversions, structs, casts,
+// list and tuple values, iteration and pushes) on generated Go (node and typed) and generated
+// TypeScript: each gives the engine's value or error for every input, in both position units. The
+// generated terms of TestTermGeneratedTargets do not reach every form these sets pin, and the charge
+// goldens of the sets compare only the outcome, not the value.
+func TestTermFixedGeneratedTargets(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testTermFixedGeneratedTargets)
+}
+
+func testTermFixedGeneratedTargets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds generated consumers")
+	}
+	var all []gentest.TermCase
+	for _, set := range [][]gentest.TermCase{gentest.ConvertTermCases(), gentest.StructTermCases(), gentest.CastTermCases(),
+		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases()} {
+		cases, _ := wellTypedCases(t, set)
+		all = append(all, cases...)
+	}
+	cases := termCaseList(all)
+	for i := range cases {
+		cases[i].Name = fmt.Sprintf("%d %s", i, cases[i].Name)
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{})
+	if node, err := exec.LookPath("node"); err == nil {
+		gentest.TSParsersCorpus(t, node, cases, gen.GenOptions{})
+	}
+	gentest.GeneratedTypesCorpus(t, goBin, cases, gen.GenOptions{ConvertTypes: true}, 0)
+}
+
 // TestTermDifferentialDetectsBrokenTargets is the negative control of TestTermGeneratedTargets: with an
 // operator of the generated Go or TypeScript parsers swapped for another, or the iteration order of
 // foldl reversed, the comparison with the engine fails on some generated term.
