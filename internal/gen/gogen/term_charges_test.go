@@ -125,6 +125,14 @@ func TestTermChargesIter(t *testing.T) {
 	checkTermCharges(t, "testdata/term_charges_iter.golden", "gentest.IterTermCases", "Some terms read a list field left unset.", "termchargesiter", gentest.IterTermCases())
 }
 
+// TestTermChargesPush pins the charges of gentest.PushTermCases, whose terms push the elements of the lists and
+// tuples they make, from literals, zero values, concat over lists it takes as they are and fused concat, so that a
+// change in how a target makes and pushes an element shows as a stated change of the units it charges.
+func TestTermChargesPush(t *testing.T) {
+	t.Parallel()
+	checkTermCharges(t, "testdata/term_charges_push.golden", "gentest.PushTermCases", "Some terms read list and tuple fields left unset.", "termchargespush", gentest.PushTermCases())
+}
+
 func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
 	t.Helper()
 	gentest.NeedsBudgetControls(t)

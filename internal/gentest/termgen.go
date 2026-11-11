@@ -903,3 +903,68 @@ func IterTermCases() []TermCase {
 	}
 	return out
 }
+
+// pushPrelude declares the struct type of PushTermCases: P has a list of ints, a list of string nodes and a tuple.
+const pushPrelude = "type P = { L []int; N []node[string]; T (int, string) }\n@start\n"
+
+// PushTermCases returns fixed terms that push the elements of the lists and tuples they make: list and tuple
+// literals of every kind of element, a list field left unset and the tuple and list zero values of a struct
+// field; concat over arguments that are not list literals, maps or concats (fields, a repetition, a field
+// left unset), which takes their elements as they are, and over such literals, which it fuses, nested;
+// a concat of more elements (BIG, 130 ints) than a target that bounds the work charges in one piece; and a list or concat
+// whose later argument fails, so that the elements pushed so far are dropped. Each term is an action on a
+// literal of one byte and one beyond the Basic Multilingual Plane, and a few are predicates, whose failure
+// drops what the term pushed. The rule captures two nodes of one literal each, a third that does not match
+// and a repetition of two more.
+func PushTermCases() []TermCase {
+	actions := []struct{ typ, term string }{
+		{"[]int", "list(1, 2, 3)"},
+		{"[]string", `list("a", "", "b")`},
+		{"[]bool", "list(true, false)"},
+		{"int", "len(list($x, $z, $y))"},
+		{"int", `len(list((1, "a"), (2, "b")))`},
+		{"int", "len(list(P{}, P{L: list(1)}))"},
+		{"int", `len(($x, $z, 1, "s", true, list(2), P{}))`},
+		{"int", "len(P{}.T)"},
+		{"int", "len(P{}.L) + len(P{}.N)"},
+		{"int", "len(concat(P{}.L, P{L: list(1, 2)}.L))"},
+		{"int", "len(concat($rs, $rs))"},
+		{"int", "len(concat(P{N: list($x, $y)}.N, list($z)))"},
+		{"[]int", "concat(list(1), P{L: list(2, 3)}.L, list())"},
+		{"[]int", "concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n)))"},
+		{"int", "len(concat(P{L: list(BIG)}.L, list(1)))"},
+		{"int", "len(concat(list(BIG), list(1)))"},
+		{"[]int", "list(1, 2, 3 / len(list()))"},
+		{"[]int", "concat(P{L: list(1)}.L, list(2, 1 / len(P{}.L)))"},
+		{"int", "len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)})))"},
+	}
+	predicates := []string{
+		"len(concat(list($x), P{N: list($y)}.N, $rs)) == 4",
+		"len(list(1, 2 / len(list()))) == 2",
+		`len(($x, 1, "s")) == 3`,
+	}
+	const rule = "x:%[3]q y:%[3]q z:\"c\"? rs:(w:%[3]q)*"
+	big := strings.TrimSuffix(strings.Repeat("1, ", 130), ", ")
+	var out []TermCase
+	for _, lit := range []string{"a", "😀"} {
+		in := strings.Repeat(lit, 4)
+		for _, a := range actions {
+			term := strings.ReplaceAll(a.term, "BIG", big)
+			out = append(out, TermCase{
+				Case: Case{Name: "push: " + term,
+					Src:    fmt.Sprintf("%srule main %s = "+rule+" $$ => %[4]s\n", pushPrelude, a.typ, lit, term),
+					Inputs: []string{in}},
+				Term: term, Type: a.typ, Kind: TermAction, Lit: lit,
+			})
+		}
+		for _, p := range predicates {
+			out = append(out, TermCase{
+				Case: Case{Name: "push predicate: " + p,
+					Src:    fmt.Sprintf("%srule main %s = "+rule+" ({%[4]s} \"b\" / \"\") $$ => 1\n", pushPrelude, "int", lit, p),
+					Inputs: []string{in, in + "b"}},
+				Term: p, Kind: TermPredicate, Lit: lit,
+			})
+		}
+	}
+	return out
+}
