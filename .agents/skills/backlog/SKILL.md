@@ -61,8 +61,18 @@ Example comment (numbers illustrative):
   its own stream or needs its own review or criterion, make it a sub-issue; a
   parent keeps the scope of its incomplete children and stays open until they
   close.
-- Use blocked-by for order. Close a duplicate with a link to the survivor.
-- Keep Priority and Tier current; the views group and sort by them.
+- Group naturally related items under an epic: a parent issue whose
+  sub-issues are the items, with the goal, scope, children and completion
+  criterion in its body. Reuse an existing issue as the parent when it already
+  is the umbrella, and leave singletons alone. Use sub-issues, not labels, for
+  epics. An epic's Tier and Priority are its earliest child's; its dates span
+  its dated children.
+- Use blocked-by only for real order (a stated prerequisite), never as a
+  guess. Close a duplicate with a link to the survivor.
+- Keep Priority and Tier current; the views group and sort by them. Keep the
+  planned Start and Target dates of Core P1 and Core P2 issues in Tier and
+  Priority order, so the Roadmap shows the sequence; later tiers stay undated
+  until they come near.
 
 ## Working and closing
 
