@@ -26,11 +26,6 @@ func triageCue() []TriageGroup {
 				{Name: "list elements before newlines and commas", Build: cueField(func(n int) string { return "[" + list("", "1"+rep(" ", 10)+"\n"+rep(" ", 10)+",", " ", "")(n) + "2]" }), Sizes: doubling(200, 3), Order: Linear},
 				{Name: "aliases after long comments", Build: list("", "f%d"+rep(" ", 20)+"~ // "+rep("c", 30)+"\n x: 1", "\n", "\n"), Sizes: doubling(200, 3), Order: Linear},
 			}},
-		{Grammar: "cue", ID: "nested-operators", Witness: true, Rules: []string{"sp"}, Pattern: cueNestedOperators,
-			Shape:  "the space before an operator part after an operand nested in prefix operators: each enclosing operator part tries the operator parts, and the lookahead of atom_expr, again at the position where the nested operands end; the scan [ \\t\\r]* repeats one character class, so no record answers it again",
-			Assign: "O75", Order: Poly(2), Families: []TriageFamily{
-				{Name: "nested negations before long spaces", Build: cueField(func(n int) string { return rep("-", n) + "1" + rep(" ", n) }), Sizes: doubling(250, 3), Order: Poly(2)},
-			}},
 		{Grammar: "cue", ID: "definitions", Witness: true, Rules: []string{"idchars"}, Pattern: `examined`,
 			Shape:  "the name of an identifier or a definition #name read by the !(sp ident) lookahead of a let keyword or by a selector part that fails, and again by the label, embedding or selector part that follows",
 			Assign: "F97", Order: Linear, Families: []TriageFamily{

@@ -955,6 +955,7 @@ func TestCutPrefixes(t *testing.T) {
 // is not memoized by it.
 func TestTriviaMemo(t *testing.T) {
 	defer restoreExclusionDefaults()
+	withoutScanSites(t) // the records of the scan site of ws would answer the levels
 	const nest = "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\n"
 	for _, c := range []struct {
 		name, ws string

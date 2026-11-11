@@ -276,13 +276,18 @@ lemmas do not bound.
 ## Scan Sites
 
 This section covers the records of [scan sites](../runtime/parsing.md#scan-sites). Lemma 4 is the
-exactness of a reused record, and Lemma 5 bounds what the records add to the cost of a parse.
+exactness of a reused record, Lemma 5 bounds what the records add to the cost of a parse, and Lemma 6
+bounds what evaluating a scan-only rule again at one position costs.
 
 **Setting.** A scan site $\sigma$ repeats a character class $C$ (or any character) without an upper
-bound, with minimum $c_{\min}$, in a pure scan rule. The rule calls no rule and has no capture,
-predicate, lookahead, assertion, variable, `#recover` or other attribute, so an iteration of
-$\sigma$ reads the one character at its position and nothing else, and no state of the parse
-outside the input and the position changes what it gives. Positions are in the unit of the input
+bound, with minimum $c_{\min}$, in a rule that calls no rule; it is neither a site of a skip run nor
+a `#stream` repetition. The iteration of $\sigma$ is the test of $C$ and nothing else: it calls no
+rule, binds and reads no variable, and has no predicate, lookahead, capture or action inside it,
+whatever the rule has around $\sigma$. So an iteration reads the one character at its position and
+nothing else, and no state of the parse outside the input and the position changes what it gives.
+What the rule does around $\sigma$ (a capture or label of it, an action that reads its list, a
+predicate, a lookahead, an attribute) runs after the walk or before it and sees only what the walk
+gives, so it is evaluated as without records once the walk gives the same. Positions are in the unit of the input
 (characters, or bytes when the unit is bytes), and a character of the input takes one or more units.
 For a position $r$ let $\mathrm{end}(r)$ be the least position $q \ge r$ at which the input holds no
 character of $C$ (the end of the input counts as such a position). The walk of $\sigma$ from $r$
@@ -348,9 +353,10 @@ the value of its body, to label it or to attach captures; a node that the rule t
 change is final before another holder can see it, as the elements of the records of run sites are
 ([Run Sites](../runtime/parsing.md#run-sites)). A walk marks every element final when it stores its record, before any other
 walk can reach the record, and a walk that takes a record gets elements that are final already. The
-element of a scan site is never the value of a rule body in any case: a pure scan rule has no capture and
-no action, so the value of the rule is the list node that the walk makes or a node that holds it, never
-one of its elements. The list node is new for each walk (it is the node a rule labels) and holds the
+element of a scan site is never the value of a rule body in any case: an iteration has no capture and
+no action, so the value that the walk gives is the list node that it makes, and what the rule makes of
+it is that list, a node that holds it, or the value of an action, which reads the elements and changes
+none of them; a capture of the list attaches to the list or to a node around it, never to an element. The list node is new for each walk (it is the node a rule labels) and holds the
 shared elements as children only. The same holds for the list node that a walk of a scan site makes at its end: it is made after the elements
 are marked, and shares nothing else. So the lists of two walks share nodes that nothing changes, and the
 sharing changes no list.
@@ -407,3 +413,43 @@ positions of one run, which find no record, each pay at most the two steps, and 
 kept apart for the walks inside lookaheads, only decides which walks look up. Parsers generated as
 Go source keep no records.
 
+## Lemma 6 (Walks Again From One Start)
+
+Let a parse insert no missing tokens and resume no repetition of a document. For a scan site $\sigma$
+and a start $s$, at most three walks of $\sigma$ from $s$ in each mode match more than $T$
+characters and do not take a record, where the modes are the four pairs of whether the walk is
+inside a lookahead and whether it builds a value. Every other walk of $\sigma$ from $s$ costs at most
+$T + 3$ steps. So let $\rho$ be a scan-only rule
+([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)) and $p$ a position:
+all the evaluations of calls of $\rho$ at $p$ but a constant number cost at most a constant each, and
+each of the others costs at most $1 + 2/(T + 1)$ times what the first evaluation at $p$ would cost
+without records.
+
+*Proof.* A walk takes a record of $s$ when its site is hot in its lookahead state and the table of
+its value mode holds a record of $s$. The hot state of a pair of a site and a lookahead state only
+turns on, and the record of a start, once stored, stays for the parse, since the stream drops only the
+records of starts that no later walk reaches. A walk of $\sigma$ from $s$ that matches $T$ characters
+or more at a site that is not hot notes itself in the cold state: the furthest end becomes at least
+the end of the walk, $\mathrm{end}(s) \ge s + T$. So the next such walk from $s$ in the same
+lookahead state starts below the furthest end and walks $T$ characters below it, and turns the site
+hot. So at most two walks from $s$ in a mode find the site cold, and once it is hot, the first walk
+from $s$ without a record stores one, which every later walk from $s$ in the value mode takes:
+at most three walks in a mode take no record. A walk that takes one costs $T + 3$ steps by Lemma 5,
+and a walk that matches fewer than $T$ characters costs at most $T$.
+
+Since $\rho$ calls no rule and reads no variable, and the walks give what they give without records
+(Lemma 4), every evaluation of $\rho$ at $p$ takes the same path through the body and gives the same
+result; only the expectations differ, which a lookahead silences. Every repetition without an upper
+bound in $\rho$ is a scan site and an iteration of a scan site calls nothing, so the path makes the
+same walks of sites, from the same starts, in each evaluation, a number $w$ of them bounded by the
+grammar (the product of the upper bounds of the bounded repetitions around each site), and outside
+the walks it is a finite expression that examines a constant amount of the input, with no scanning
+source other than the sites. So an evaluation costs a constant $c$ outside its walks. By the first
+part, at most $12w$ walks in all the evaluations at $p$ match more than $T$ characters and take no
+record, so at most $12w$ evaluations make such a walk. Every other evaluation costs at most
+$c + w(T + 3)$, and those that make one cost at most what the parse without records pays for the
+evaluation, with the excess of Lemma 5, which is the same evaluation as the first at $p$. $\square$
+
+A parse with missing-token insertion keeps no records and is outside the classes. A document that
+resumes a repetition resumes it without records, as Lemma 4 states; the bound is for the walks that a
+parse makes. Walks from different starts each pay their own length, which this lemma does not bound.

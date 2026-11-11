@@ -9,8 +9,9 @@ import (
 // nestingRestarts are grammars whose cost is quadratic because a unit restarts a nesting: the
 // unit fails after a nested call ended at a position, and its continuation ends the rule at that
 // position through calls that it evaluates alike with the unit, which the memo answers. Each level
-// of the nesting then evaluates the scan R at that position again. R is pure (a scan site that
-// the engine's records answer, but a generated Go parser does not) or not.
+// of the nesting then evaluates the scan R at that position again. R is pure or not; either way
+// its repetition is a scan site, whose records answer the levels, so the tests that check the
+// restarts classify them without scan sites (withoutScanSites), as for a scan that is no site.
 var nestingRestarts = []struct{ name, src string }{
 	// The shared call is the nesting call itself (E3 through t).
 	{"call itself", "rule main = e\nrule e = \"(\" (e R \"x\" / e) / \".\"\nrule R = [ ]*\n"},
@@ -83,8 +84,9 @@ var nestingHooks = []struct {
 
 // TestNestingRestarts checks that the restart clause of nesting at one end makes the classifier
 // reject the grammars whose units restart a nesting, under each setting of the analyses, and
-// keeps the linear grammars of the same shapes linear.
+// keeps the linear grammars of the same shapes linear. It classifies them without scan sites.
 func TestNestingRestarts(t *testing.T) {
+	withoutScanSites(t)
 	calc, err := os.ReadFile("../../examples/calculator/calc_lr.zp")
 	if err != nil {
 		t.Fatal(err)
@@ -193,8 +195,10 @@ var nestingGrowths = []struct{ name, src string }{
 
 // TestNestingGrowths checks that the classifier counts the steps of the growths of nested
 // evaluations that end at one position, and keeps the grammars whose nesting consumes input after
-// the nested call, or that scan nothing after a seed, linear.
+// the nested call, or that scan nothing after a seed, linear. It classifies them without scan
+// sites.
 func TestNestingGrowths(t *testing.T) {
+	withoutScanSites(t)
 	for _, h := range nestingHooks {
 		t.Run(h.name, func(t *testing.T) {
 			defer h.hooks.Set()()
@@ -220,5 +224,41 @@ func TestNestingGrowths(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// withoutScanSites makes the test compile and classify without scan sites, as if the repetitions
+// of its grammars were scanning sources that no record answers.
+func withoutScanSites(t *testing.T) {
+	NoScanSites = true
+	t.Cleanup(func() { NoScanSites = false })
+}
+
+// scanOnlyNestingRejected are the grammars of nestingRestarts and nestingGrowths that stay rejected
+// with scan sites, for a reason other than the evaluations of R again at one position: a
+// lookahead that what follows restarts, the operator parts of an Operators Rule that nests, and
+// the growths of two alternatives.
+var scanOnlyNestingRejected = map[string]bool{
+	"lookahead":                          true,
+	"later operand, postfix part":        true,
+	"later operand, scan after the rule": true,
+	"later operand through a rule":       true,
+	"later operand through another rule": true,
+	"two growing alternatives":           true,
+}
+
+// TestScanOnlyNestings checks that the scan-only rule R, whose only scanning source is a scan site,
+// is shared where a nesting restarts at one end: the records of its site answer each level after
+// the first walks from a position, so the classifier accepts the grammars of nestingRestarts and
+// nestingGrowths but those that it rejects for another reason. Without scan sites it rejects them
+// all (TestNestingRestarts, TestNestingGrowths). The controls of the families "nesting restarts"
+// and "rescanned calls" measure the same shapes linear.
+func TestScanOnlyNestings(t *testing.T) {
+	defer restoreExclusionDefaults()
+	for _, tc := range append(nestingRestarts[:len(nestingRestarts):len(nestingRestarts)], nestingGrowths...) {
+		c := classifySource(t, "@start\n"+tc.src)
+		if linear := c.Class == ClassLinear; linear == scanOnlyNestingRejected[tc.name] {
+			t.Errorf("%s: class %v with scan sites: %v", tc.name, c.Class, c.Reasons)
+		}
 	}
 }

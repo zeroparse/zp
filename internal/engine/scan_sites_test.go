@@ -18,50 +18,12 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// scanSiteGrammars are grammars with scan sites (compile/scan_sites.go): pure rules called from two
-// or more places, whose calls a failed alternative restarts at the same position. Their parse trees
-// hold the values of the scan sites, which later calls share.
-var scanSiteGrammars = []struct{ Name, Src, Alphabet string }{
-	{"a scan restarted by alternatives", `rule main = (r "!" / r "?" / r "w" / [abz])* $$
-rule r = [ab]*`, "abz!?w"},
-	{"a repetition of groups", `rule main = (r "!" / r "?" / [ab/z\n])* $$
-rule r = [ ab]* ("//" [^\n]* [ ab]*)*`, " ab/z!?\n"},
-	{"calls at the same position", `rule main = e " " ws $$
-rule e = "(" e? (ws ")")?
-rule ws = [ ]*`, "( )"},
-	{"lookahead and silent calls", `rule main = (!(ws "!") "x" / ws "!" / ws "?" / [,y ])* $$
-rule ws = [ ]*`, "x!? y,"},
-	{"expectations", `rule main = (ws "a" ws "b" / ws "a" ws "c" / ws "d")* $$
-rule ws = [ \t]*`, "abcd \t"},
-	{"recovery in the caller", `rule main = s* $$
-rule s = (ws "a" ws ";" / ws "a" ws "!") #recover(skip=[^;]* ";")
-rule ws = [ ]*`, "a ;!"},
-	{"memoized callers of a scan", `rule main = (a ";" / a ":" / b ";" / b ":" / c ";" / c ":" / d ";" / d ":" / [;: ])* $$
-rule a = ws "x"
-rule b = ws "y"
-rule c = ws "z"
-rule d = ws "w"
-rule ws = [ ]*`, "xyzw;:  "},
-	{"a called scan with a minimum", `rule main = (r "!" / r "?" / [ab ])* $$
-rule r = [ab]+`, "ab!? "},
-	{"a minimum above the hot span in text", `rule main = (w / [ab ])* $$
-rule w = (r "!" / r "?") #atomic
-rule r = [ab] #repeat(5,)`, "ab!? "},
-	{"a minimum above the hot span", `rule main = (r "!" / r "?" / [ab ])* $$
-rule r = [ab] #repeat(5,)`, "ab!? "},
-}
+// scanSiteGrammars are the grammars with scan sites of the tests of all targets.
+var scanSiteGrammars = gentest.ScanSiteGrammars
 
-// scanSiteInputs are inputs, besides random ones, with long runs that the calls restart at.
+// scanSiteInputs are random inputs over alphabet and inputs with long runs that the walks restart at.
 func scanSiteInputs(alphabet string, rng *rand.Rand) []string {
-	in := gentest.SkipRunInputs(alphabet, 300, rng)
-	for _, c := range alphabet {
-		for _, n := range []int{3, 40, 150} {
-			run := strings.Repeat(string(c), n)
-			in = append(in, run+"x;", run+"z:")
-			in = append(in, run, run+"!", run+"?", run+"x", "("+run, "("+run+"("+run+")", run+" "+run+"!")
-		}
-	}
-	return in
+	return gentest.ScanSiteInputs(alphabet, 300, rng)
 }
 
 // TestScanSitesMatchParsesWithoutRecords checks that the records of scan sites change no result:
@@ -106,20 +68,26 @@ func scanSitesMatchWithoutRecords(t *testing.T) {
 	}
 }
 
-// TestScanSitesAreMarked checks which rules are scan sites.
+// TestScanSitesAreMarked checks which repetitions are scan sites: those of one character without a
+// maximum in the rules that call no rule, whatever the rule does with their values.
 func TestScanSitesAreMarked(t *testing.T) {
 	for _, c := range []struct {
 		name, src string
 		sites     int
 	}{
 		{"a pure rule called twice", "rule main = r \"a\" / r \"b\"\nrule r = [x]*", 1},
-		{"a pure rule called once", "rule main = r \"a\"\nrule r = [x]*", 0},
+		{"a pure rule called once", "rule main = r \"a\"\nrule r = [x]*", 1},
 		{"a rule that calls a rule", "rule main = r \"a\" / r \"b\"\nrule r = s*\nrule s = \"x\"", 0},
-		{"a rule with a capture", "rule main = r \"a\" / r \"b\"\nrule r = c:[x]*", 0},
-		{"a rule with an action", "rule main = r \"a\" / r \"b\"\nrule r = [x]* => 1", 0},
+		{"a rule with a capture", "rule main = r \"a\" / r \"b\"\nrule r = c:[x]*", 1},
+		{"a rule with an action", "rule main = r \"a\" / r \"b\"\nrule r = [x]* => 1", 1},
 		{"a rule with a predicate", "var n int\nrule main = r \"a\" / r \"b\"\nrule r = ([x] { n < 3 })*", 0},
 		{"a rule with a lookahead", "rule main = r \"a\" / r \"b\"\nrule r = (![y] [x])*", 0},
-		{"a rule with a pragma", "rule main = r \"a\" / r \"b\"\nrule r = [x]* #atomic", 0},
+		{"a rule with a pragma", "rule main = r \"a\" / r \"b\"\nrule r = [x]* #atomic", 1},
+		{"repetitions in the calling rule", "rule main = [x]* \"a\" [y]* / [x]+ \"b\"", 3},
+		{"a repetition of a literal", "rule main = r \"a\"\nrule r = \"x\"*", 0},
+		{"a repetition with a maximum", "rule main = r \"a\"\nrule r = [x]#repeat(0,9)", 0},
+		{"a repetition of a choice", "rule main = r \"a\"\nrule r = (\"x\" / \"yz\")*", 0},
+		{"a repetition in a stream", "rule main = [x]* #stream", 0},
 	} {
 		if n := mustCompile(t, c.src).NumScanSites; n != c.sites {
 			t.Errorf("%s: %d scan sites, want %d", c.name, n, c.sites)

@@ -1,4 +1,4 @@
-# cue: exponential (degree 0, witnessed degree 0), 51 witnesses, 55 reasons
+# cue: exponential (degree 0, witnessed degree 0), 49 witnesses, 55 reasons
 
 ## whitespace (12) -> F97
 113:11 sp: the cost can grow as n^2: after the lookahead at 141:69 in rule embed_tail fails, what follows the lookahead &tail_mark_end can start again inside the input that the repetition [ \t\r]* at 113:11 in rule sp examined; this repeats in the recursion of rule embed_tail
@@ -14,13 +14,9 @@
 113:11 sp: the cost can grow as n^3: after the option at 99:33 in rule import_spec fails, what follows the option import_name? can start again inside the input that the repetition [ \t\r]* at 113:11 in rule sp examined; it is evaluated again inside the alternative at 94:31 in rule import_decl; this repeats in the repetition (i:import_decl sep)* at 86:8 in rule file
 114:13 nlws: the cost can grow as n^4: after the alternative at 118:27 in rule comma fails, the later alternative ("\n" / &"//" / $$) ws at 118:46 in rule comma can start again inside the input that the repetition [ \t\r\n]* at 114:13 in rule nlws examined; it is evaluated again inside the alternative at 212:35 in rule postfix_alias; it is evaluated again inside the alternative at 141:38 in rule embed_tail; this repeats in the recursion of rule embed_tail
 
-## nested-operators (2) -> O75
-113:11 sp: the cost can grow as n^2: after the lookahead at 306:37 in rule atom_expr fails, what follows the lookahead !(sp [.\[(|&=!<>+\-*/]) can start again inside the input that the repetition [ \t\r]* at 113:11 in rule sp examined; this repeats in the recursion of rule atom_expr
-113:11 sp: the cost can grow as n^2: after the operator part at 336:17 in rule full_expr fails, the operator parts that the enclosing operator parts of full_expr try again can start again inside the input that the repetition [ \t\r]* at 113:11 in rule sp examined; this repeats in the recursion of rule full_expr
-
 ## definitions (5) -> F97
 372:16 idchars: the cost can grow as n^2: after the lookahead at 169:38 in rule bare_let fails, what follows the lookahead !(sp ident) can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; this repeats in the recursion of rule embed_decl
-372:16 idchars: the cost can grow as n^2: after the operator part at 330:17 in rule full_expr fails, the operator part "." ws s:selector at 331:17 in rule full_expr can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; this repeats in the recursion of rule full_expr
+372:16 idchars: the cost can grow as n^2: after the operator part at 330:17 in rule full_expr fails, the operator part o:"..." at 336:17 in rule full_expr can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; this repeats in the recursion of rule full_expr
 372:16 idchars: the cost can grow as n^2: after the operator part at 331:17 in rule full_expr fails, the operator part o:"..." at 336:17 in rule full_expr can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; this repeats in the recursion of rule full_expr
 372:16 idchars: the cost can grow as n^3: after the lookahead at 202:44 in rule let_value fails, what follows the lookahead !(sp ident) can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; it is evaluated again inside the alternative at 197:57 in rule fv_choice; this repeats in the recursion of rule fv_choice
 372:16 idchars: the cost can grow as n^3: after the lookahead at 225:39 in rule let_label fails, what follows the lookahead !(sp ident) can start again inside the input that the repetition [a-zA-Z0-9_$]* at 372:16 in rule idchars examined; it is evaluated again inside the alternative at 231:27 in rule nlabel_plain; this repeats in the recursion of rule nlabel_plain

@@ -161,13 +161,14 @@ func (x excl) spend(n int) bool {
 // that the memo answers, at the cost of a memo access, or a call of a rule that calls no rule,
 // which repeats only its own scan (case 2); or a call of a rule whose body is cheap in all its
 // parts. After a symUp mark, a call that the memo does not answer and that scans is not cheap:
-// the nested evaluations repeat it once each, which no constant bounds.
+// the nested evaluations repeat it once each, which no constant bounds, unless the rule's scanning
+// sources are all scan sites (scanOnly), whose records answer the repeated walks.
 func (x excl) cheap(e grammar.Expr) bool {
 	r, ok := e.(*grammar.Ref)
 	if !ok {
 		return !x.k.containsSource(e)
 	}
-	if x.up && !x.k.memoAt(r) && x.k.containsSource(r) {
+	if x.up && !x.k.memoAt(r) && x.k.containsSource(r) && !x.k.scanOnly(r.Name) {
 		return false
 	}
 	if x.k.shareable(r) || !x.k.containsSource(r) {

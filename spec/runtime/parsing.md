@@ -806,36 +806,63 @@ lookahead, a run site that the document can resume is resumed as before.
 
 ### Scan Sites
 
-A rule that matches input and calls no rule, as a run of blanks, is walked again
-by every failed alternative that leads back to its start, and the walk of a
-single-character repetition keeps no record because a run site does not repeat
-a single character. A **scan site** is an unbounded repetition of a character
-class or of any character in a **pure scan rule**, which has all of the
-following:
+A repetition of one character, as a run of blanks, is walked again by every
+failed alternative that leads back to its start, and its walk keeps no record
+because a run site does not repeat a single character. A **scan site** is a
+repetition without an upper bound whose expression is a character class or any
+character, in a rule that calls no rule, unless it is a site of a
+[skip run](#skip-runs) or a `#stream` repetition. The rule may be called from any
+number of places, and the repetition may stand under a capture, a label, an
+action or an attribute: an iteration tests one character and nothing else, so
+the walk from a start ends at a position, matches a number of characters,
+builds elements and examines a range of input that depend on the start and the
+input alone, whatever the rule does with them. A capture or an action reads only
+the list that the walk gives, and a predicate, lookahead or call around the
+repetition is evaluated as without records.
+
+A rule that matches input, calls no rule and is a **pure scan rule** has, in
+addition, all of the following:
 
 - it is called from two places in the grammar at least;
 - it has no attribute but `@start`, no type and no action;
-- it calls no rule, and its expression is made of literals, character classes,
-  any character, sequences, alternatives, groups, optionals, repetitions and
-  discards: no capture, predicate, lookahead, assertion, variable, `#recover`
-  or other attribute.
+- its expression is made of literals, character classes, any character,
+  sequences, alternatives, groups, optionals, repetitions and discards: no
+  capture, predicate, lookahead, assertion, variable, `#recover` or other
+  attribute.
 
-Every other repetition of such a rule is made restartable, so that it is a run
-site wherever the conditions of [Run Sites](#run-sites) otherwise hold. The
-result of a pure scan rule and the input range it examines depend on the
-position and the input alone, so its records need no environment.
+Every repetition of a pure scan rule that is not a scan site is made
+restartable, so that it is a run site wherever the conditions of
+[Run Sites](#run-sites) otherwise hold. The result of a pure scan rule and the
+input range it examines depend on the position and the input alone, so its
+records need no environment.
 
 A walk of a scan site charges and examines as an ordinary repetition for its
-first 16 characters, the constant `T` (which is not the hot span of run sites: a site turns hot after walks of `T` characters
-that overlap, as a run site does after its own hot span). If the site is hot, the
-walk that has matched `T` characters looks for the record of its start. A scan site keeps at most one record for a walk, at
-the start of the walk, and none for the positions inside it. A record holds
-the position where the walk ended, the range of input the walk examined, the
-number of elements and, for a walk that builds a value, the elements. A walk
-that finds one moves to the recorded end, takes the number of elements and the
-elements from the record, and examines the recorded range; the test of the next
-character fails there as it did when the walk was recorded, and gives the same
-expectation. Otherwise the walk goes on, and when it ends it makes the record.
+first 16 characters, the constant `T` (which is not the hot span of run sites:
+a site turns hot after walks of `T` characters that overlap, as a run site does
+after its own hot span). If the site is hot, the walk that has matched `T`
+characters looks for the record of its start. A scan site keeps at most one
+record for a walk, at the start of the walk, and none for the positions inside
+it. A walk that builds a value and one that does not are recorded apart.
+
+A record holds what a later walk from its start cannot obtain without walking
+again:
+
+- the position where the walk ended;
+- the number of characters it matched;
+- for a walk that builds a value, the elements;
+- the range of input the walk examined, which runs from the start to the
+  character whose test ended the walk, or further when a test of an earlier
+  character examined units after it, as the test of an invalid byte of a
+  bytes-unit input can. A parser whose test of a character examines no unit
+  after that character need not store it, since the walk that takes the record
+  makes the last test again and that test reaches furthest.
+
+A walk that finds a record moves to the recorded end, takes the number of
+characters and the elements from the record, and examines the recorded range;
+the test of the next character fails there as it did when the walk was
+recorded, and gives the same expectation. Otherwise the walk goes on, and when
+it ends it makes the record. A record holds no expectation and no failure: the
+only ones a walk produces are those of that last test, which every walk makes.
 The lookup costs one step, the slot of a record that it finds one more, the
 record that a walk makes one, and the skipped characters nothing. A site has one
 table of records for the walks inside lookaheads and the walks outside them:
@@ -845,13 +872,18 @@ the two.) A walk records only if the input it examined is available: the parse
 has all of its input, or the examined range lies in the part of a stream that
 has been read. The input is filled up to the character that a walk examines, so
 the range always lies in the part that has been read unless the input has ended,
-and the test is a safeguard only. The elements of a record are shared with
-the lists of the walks that take them. They are final, as those of run sites are.
+and the test is a safeguard only. A stream drops the records of the starts
+before the input it commits.
+
+The elements of a record are shared with the lists of the walks that take them.
+They are final, as those of run sites are. A walk whose number of characters
+falls short of the repetition's minimum fails as it would without records.
 
 A scan site that a [document](documents.md) resumes is resumed as before: a
 repetition that is resumed neither looks up nor makes records. That affects only
 cost and reuse, since every record is exact (see the proof). The records of scan
-sites last for one parse.
+sites last for one parse. A parse with missing-token insertion keeps no records
+of scan sites.
 
 A parse with scan sites gives the result of a parse without them, with the same
 expectations and examined ranges. The steps a parse charges exceed those of a
@@ -1289,7 +1321,14 @@ The conditions below use these terms.
   A call of a rule that is not memoized at the call and contains a scanning
   source is not shared either when the continuation reaches it after the end
   of a rule body, in what follows a call that **nests at one end**, or after
-  an operand of an Operators Rule that nests. A call nests at one end when
+  an operand of an Operators Rule that nests, unless the rule is a **scan-only
+  rule**: it reads no variable, calls no rule, contains no `#recover`, Operators Rule or
+  `#stream`, and each of its scanning sources is a
+  [scan site](#scan-sites). Evaluating such a call again at a position costs
+  at most a constant once the walks of its sites from there are recorded,
+  which takes at most three walks from each position in each mode, inside or
+  outside lookaheads and with or without a value: two that turn the site hot
+  and one that records. A call nests at one end when
   the evaluations of its caller can nest through it without a bound, each in
   the call of the one around it, with all of those calls ending where the
   innermost one ends. A call `t` of a rule `Y` from a rule `Z` of its
@@ -1420,7 +1459,7 @@ The conditions below use these terms.
     call that the memo does not answer and that contains a scanning source is
     not cheap when the continuation reaches it after the end of a rule body,
     in what follows a call that nests at one end, or after an operand of an
-    Operators Rule that nests;
+    Operators Rule that nests, unless it calls a scan-only rule (which reads no variable);
   - an option, choice, repetition or lookahead that a path passes is looked
     into only when all its parts are cheap;
   - a lookahead that only the continuation evaluates, or an alternative of it
@@ -1867,9 +1906,10 @@ many results for one rule at one position: until the input is long enough for
 the parse to reach them all, the cost can grow faster than n.
 
 The first two classes are guarantees under the memoization that
-[Evaluations of Rules](#evaluations-of-rules) describes and the skip runs that
-[Skip Runs](#skip-runs) describes; an implementation or a parse that keeps
-fewer of either, as one can for testing and as a parse with missing-token
+[Evaluations of Rules](#evaluations-of-rules) describes, the skip runs that
+[Skip Runs](#skip-runs) describes and the scan sites that
+[Scan Sites](#scan-sites) describes; an implementation or a parse that keeps
+fewer of any of them, as one can for testing and as a parse with missing-token
 insertion does, is outside them. The
 classifier reports them only when the
 conditions of [Conditions for Linear Cost](#conditions-for-linear-cost) hold,

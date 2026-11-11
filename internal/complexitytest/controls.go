@@ -258,25 +258,25 @@ func Controls() []Control {
 			Name: "Scan shared through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Scan shared through the ends of rules around a recursion", Family: "rescanned calls",
 			Source: "rule main = e ws $$\nrule e = \"(\" e? t\nrule t = o\nrule o = (ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Scan shared after a literal through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e \"x\" ws $$\nrule e = \"(\" e? (\"x\" ws \")\")?\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "x" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Scan shared after a memoized call through the end of a recursion", Family: "rescanned calls",
 			Source: "rule main = e m ws $$\nrule e = \"(\" m e? (m ws \")\")?\nrule m = mx\nrule mx = \"x\"\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(x", n) + "x" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Memoized scan shared after a literal through the end of a recursion", Family: "rescanned calls", Positive: true,
@@ -287,10 +287,19 @@ func Controls() []Control {
 		// A nesting restarted at one end: a unit fails after its call ended at a position, and a
 		// continuation that evaluates the same call alike, through the memo answer, ends the rule
 		// there, so every level ends where the innermost one ends and scans the spaces after it
-		// again. R is not pure, so that the engine keeps no record of its scans.
+		// again. R is not pure, but its repetition is a scan site, whose records answer the levels
+		// from the second one on.
 		{
 			Name: "Scan restarted at the end of nested alternatives", Family: "nesting restarts",
 			Source: "rule main = e R $$\nrule e = \"(\" (e R \"x\" / e) / \".\"\nrule R = &\"\" [ ]*\n",
+			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
+		},
+		// The same restart of a scan in a rule that calls a rule, which is no scan site, so that no
+		// record answers the levels.
+		{
+			Name: "Scan of a rule that calls a rule restarted at the end of nested alternatives", Family: "nesting restarts",
+			Source: "rule main = e S $$\nrule e = \"(\" (e R \"x\" / e) / \".\"\nrule R = [ ]* Q\nrule Q = \"\"\nrule S = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
@@ -298,7 +307,7 @@ func Controls() []Control {
 			Name: "Scan restarted through a looked-through call", Family: "nesting restarts",
 			Source: "rule main = m R \"z\" $$\nrule z = \"(\" y R \"x\"\nrule y = m\nrule m = \".\" / z \"!\" / \"(\" m\nrule R = &\"\" [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) + "z" },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		// The same restart through the operands of an Operators Rule: the first operand fails after
 		// its call ended at a position, and the later operand ends the rule there through the memo
@@ -307,7 +316,7 @@ func Controls() []Control {
 			Name: "Scan restarted by a later operand", Family: "nesting restarts",
 			Source: "rule main = e R $$\nrule e = #operators {\n    operand \"(\" e R \"x\"\n    operand \"(\" e\n    operand \".\"\n    level { postfix \"!\" }\n}\nrule R = &\"\" [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// An operator part fails after its scan ran over the operator text that follows, and the
 		// other part with the same literal succeeds, after which the rule applies the operator
@@ -324,13 +333,13 @@ func Controls() []Control {
 			Name: "Scan after the seed of nested growths", Family: "nesting restarts",
 			Source: "rule main = e R $$\nrule e = e R \"x\" / \"(\" e / \".\"\nrule R = &\"\" [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "." + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Operators Rule skip shared by nested prefix operators", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    skip ws\n    operand \"a\"\n    level { prefix \"(\"\n        postfix \")\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + "a" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Operators Rule part shared by nested right operands", Family: "rescanned calls",
@@ -342,19 +351,19 @@ func Controls() []Control {
 			Name: "Operators Rule part shared by nested operands", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" x?\n    level { postfix ws \"!\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Operators Rule part shared by operands nested through a rule", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" y?\n    level { postfix ws \"!\" }\n}\nrule y = x\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Operators Rule parts shared by operands of two nested Operators Rules", Family: "rescanned calls",
 			Source: "rule main = x ws $$\nrule x = #operators {\n    operand \"a\"\n    operand \"(\" z?\n    level { postfix ws \"!\" }\n}\nrule z = #operators {\n    operand \"b\"\n    operand \"(\" x?\n    level { postfix ws \"?\" }\n}\nrule ws = [ ]*\n",
 			Input:  func(n int) string { return rep("(", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		{
 			Name: "Operators Rule part shared by operator parts that nest", Family: "rescanned calls",
@@ -916,7 +925,7 @@ func Controls() []Control {
 			Name: "Scan at the end of a nest", Family: "bounded scans",
 			Source: "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("a", n) + "b" + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear, Positive: true,
 		},
 		// The opening delimiter is in the alphabet of the body, so a run of openers holds a start at
 		// each of its positions.

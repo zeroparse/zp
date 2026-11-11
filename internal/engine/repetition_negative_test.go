@@ -29,8 +29,9 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 		op        bytecode.Op
 	}{
 		{"ordinary", `rule main = "é"* $$`, bytecode.OpRepeat},
-		{"class scan", `rule main = [é]* #atomic $$`, bytecode.OpScan},
-		{"any scan", `rule main = .* #atomic $$`, bytecode.OpScan},
+		// The call of e keeps the repetitions plain scans rather than scan sites.
+		{"class scan", "rule main = [é]* #atomic e $$\nrule e = \"\"", bytecode.OpScan},
+		{"any scan", "rule main = .* #atomic e $$\nrule e = \"\"", bytecode.OpScan},
 		{"projection", `rule main = xs:(v:"é")* $$ => map($xs, (x) => x.$v)`, bytecode.OpRepeat},
 	} {
 		for _, maximum := range negativeMaxima() {

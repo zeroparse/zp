@@ -32,7 +32,7 @@ main:
 key:
     13  PUSHPOS    
     14  LABEL      "expected a key"
-    15  SCAN       "[a-z]" min=1 max=-1
+    15  SCANSITE   "[a-z]" min=1 site=1
     16  ENDLABEL   
     17  ATOMIC     build=1
     18  RETURN     

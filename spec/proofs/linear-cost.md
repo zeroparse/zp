@@ -551,7 +551,8 @@ a unit is committing give the following cases.
    continuation reaches it after leaving a body through a call that nests at one
    end, and *Calls that call no rule* below bounds its re-evaluations at one
    position where the parser leaves or starts no growth step and no evaluation
-   in a context of growths between them. A rule of a cycle other than a leader is memoized at a call that is
+   in a context of growths between them. A scan-only rule is shared there as
+   well, by *Calls of scan-only rules* below. A rule of a cycle other than a leader is memoized at a call that is
    not a left call: a growth of its cycle at the position of the call that was
    in progress would be evaluating, at that position, every rule from the
    growing leader to the caller, so each of them would have a left call of the
@@ -806,6 +807,25 @@ at most $c'$ calls at $p$, and so does each frame started after the end of
 $w_i$, nested at most $|\text{rules}|$ deep, so the frames started after the
 end of $w_i$ at $p$ are at most a constant. So $k - i$ is at most a
 constant. $\square$
+
+**Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
+scan-only rule ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)) that is not memoized
+at its calls, in a parse with the records of scan sites, and let every link
+evaluate $r$ at one position $p$, as in the claim above, but without its bound
+on the parser between them. Then the activations of the links are at most a
+constant beyond $T$ for each link. By [Lemma 6 of the Run Sites
+proof](run-sites.md#lemma-6-walks-again-from-one-start), all but a constant
+number of the evaluations of $r$ at $p$ make each walk of a scan site either in
+fewer than $T + 1$ iterations or by taking a record after its first $T$
+iterations, so each of them makes at most $w(T + 1)$ activations and two steps
+for each record, a constant, which is charged to the call that the link
+evaluates and Lemma 2 counts; each of the others makes the activations of the first evaluation at
+$p$ again, with the excess of Lemma 5 of that proof, and there are a constant
+number of them at each position. So the links through the calls of $r$ at one
+position restart a constant number of activations each, plus a constant number
+of whole evaluations at that position, which is what the claim above gives for
+a rule that calls no rule, and the call is shared in the sense of condition 2.
 
 An Operators Rule that nests repeats in the same way: each enclosing level tries
 the operator parts after an operand again where the inner operand ended, so a
@@ -3346,7 +3366,7 @@ names a term or condition of the specification and the lemmas that use it.
   of Lemma 4.
 - Condition 2 (Repeated scans), with a unit that can fail after a source, the
   continuations, committing units, shared calls, calls that nest at one end,
-  Operators Rules that nest, words that exclude a continuation and
+  scan-only rules (with Lemma 6 of the Run Sites proof), Operators Rules that nest, words that exclude a continuation and
   alternatives that can fail only after a `#cut`: Lemma 4, its failure after a source, the cases of
   committing and its claims on links.
 - The paths that enter a growth again, for which an alternative is committing

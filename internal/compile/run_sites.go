@@ -113,7 +113,7 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 			}
 		}, control)
 	}
-	prog.markScanSites(control, scanRules)
+	prog.markScanSites(control, calls)
 }
 
 // EnvFree reports whether the skip-run or run site is free of the environment: its records are

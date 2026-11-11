@@ -1254,10 +1254,12 @@ func (k *classifier) strip(u, c []*cont, owner *unit) ([]*cont, []*cont) {
 // reaches the call after the end of a rule body, in what follows a call whose evaluations can nest
 // without a bound and end at one position. Each of the nested evaluations that ends at the
 // position of the unit then evaluates the call there again, as the option in
-// e = "(" e? (ws ")")? does, where ws scans the same spaces once for each level.
+// e = "(" e? (ws ")")? does, where ws scans the same spaces once for each level, unless the
+// scanning sources of ws are all scan sites (scanOnly), whose records answer each of those
+// evaluations with a constant.
 func (k *classifier) rescans(lc []lead) bool {
 	for _, l := range lc {
-		if l.call != nil && l.up && !k.memoAt(l.call) && k.ruleSrc[l.call.Name] != nil {
+		if l.call != nil && l.up && !k.memoAt(l.call) && k.ruleSrc[l.call.Name] != nil && !k.scanOnly(l.call.Name) {
 			return true
 		}
 	}

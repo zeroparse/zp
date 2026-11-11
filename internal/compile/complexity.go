@@ -305,6 +305,7 @@ type classifier struct {
 	srcExprs        map[grammar.Expr]bool // the expressions that are scanning sources
 	failRule        map[string]bool       // rules that can fail after a scanning source examined input
 	srcMemo         map[grammar.Expr]bool
+	scanOnlyRules   map[string]bool                      // the rules for which scanOnly holds, once computed
 	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
 	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
 
@@ -473,6 +474,7 @@ func (k *classifier) classify() *Complexity {
 	k.collect()
 	k.computeBoundedScans()
 	k.settleSources()
+	k.computeScanOnly()
 	k.computeRuleSources()
 	k.computeFailRules()
 	k.computeFollow()

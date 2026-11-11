@@ -307,27 +307,29 @@ func TestSlopeGateGrowth(t *testing.T) {
 		{"left call after an option rule, behind two calls",
 			"rule main = r $$\nrule r = p f (w [ ] [b])\nrule p = [ab]?\nrule f = g / [a-c]\nrule g = r\nrule w = [^a]* $$\n",
 			func(n int) string { return rep("ab", n) + rep("b", n) + " " }, 1 + slopeMargin},
-		// Each step of the growth of r runs the repetition, which restarts the scan in s.
+		// Each step of the growth of r runs the repetition, which restarts the scan in s. The rules
+		// that scan call q, so that their repetitions are no scan sites, whose records would answer
+		// the restarts.
 		{"restarted scan in a repetition of each growth step",
-			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* q \"ab\"+ \" \"*)?\nrule q = \"\"\n",
 			func(n int) string { return rep("a", n/2) }, 2 + slopeMargin},
 		// The same, with the scan in a rule that the repetition reaches through another rule.
 		{"restarted scan in a rule called indirectly",
-			"rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			"rule main = r* $$\nrule r = (r [ab] m)*\nrule m = s . . .\nrule s = ([a]* q \"ab\"+ \" \"*)?\nrule q = \"\"\n",
 			func(n int) string { return rep("a", n/2) }, 2 + slopeMargin},
 		// The same growth from the next size on reaches the cap, whose cost is a lower bound.
 		{"restarted scan up to the cap",
-			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* \"ab\"+ \" \"*)?\n",
+			"rule main = r* $$\nrule r = (r [ab] s . . .)*\nrule s = ([a]* q \"ab\"+ \" \"*)?\nrule q = \"\"\n",
 			func(n int) string { return rep("a", n) }, 2},
 		// Units that are not committing nest without bound around the scans that each step of the
 		// growth of r evaluates, so the cost passes the degree 2 of the causes: a reason must make
 		// the class unknown.
 		{"nesting without bound around a growth",
-			"rule main = r* $$\nrule r = ([ab]? (r / [a-c]) (w [ ]))*\nrule w = [ab]*\n",
+			"rule main = r* $$\nrule r = ([ab]? (r / [a-c]) (w [ ]))*\nrule w = [ab]* q\nrule q = \"\"\n",
 			func(n int) string { return " " + rep("a ", n/8) + rep("a", n/8) + "c" }, 2 + slopeMargin + 0.05},
 		// The same, where the cycle can also grow from a call of a rule that is not a leader.
 		{"nesting without bound around a growth from a rule that is not a leader",
-			"rule main = r $$\nrule p = (!\"a\" \"b\")?\nrule f = r / [a-c]\nrule r = (p f (w [ ] [b]))*\nrule w = [^ ]*\n",
+			"rule main = r $$\nrule p = (!\"a\" \"b\")?\nrule f = r / [a-c]\nrule r = (p f (w [ ] [b]))*\nrule w = [^ ]* q\nrule q = \"\"\n",
 			func(n int) string { return "aab" + rep("a b", n/8) + rep("b", n/8) + "a" }, 2 + slopeMargin + 0.05},
 		// The inner map copies $y for each element of each element, which the degree 2 of the
 		// restarted scan in B does not cover.

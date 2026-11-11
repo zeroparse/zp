@@ -288,7 +288,8 @@ func TestBoundedScanClasses(t *testing.T) {
 		{"memoized scan that each position starts", "rule main = (t \"y\" / t \"z\" / .)* $$\nrule t = d \"x\"\nrule d = [0-9]+\n", ClassPoly},
 		{"scan restarted by a repetition", "rule main = (a \"y\" / \"q\" a / .)* $$\nrule a = x+\nrule x = \"x\"\n", ClassPoly},
 		{"scan restarted through a memoized recursion", "rule main = t a? $$\nrule t = a t \"!\" / . t / \"\"\nrule a = x+\nrule x = \"x\"\n", ClassUnknown},
-		{"scan at the end of a nest", "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n", ClassPoly},
+		// The records of the scan site of sp answer the levels that end at the run of blanks.
+		{"scan at the end of a nest", "rule main = e sp $$\nrule e = \"a\" e (sp \"!\")? / \"b\"\nrule sp = [ ]*\n", ClassLinear},
 		{"cut in a repetition before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n", ClassUnknown},
 		{"cut under a lookahead before a scan", "rule main = (!(\"aa\" #cut $$ / \"a\") (s \"z\")? \"a\")* \"aa\"? $$\nrule s = [a]+\n", ClassPoly},
 		{"cut in a called rule before a scan", "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n", ClassUnknown},
