@@ -208,6 +208,8 @@ const (
 	// ErrConvert is the conversion to a named node type of a value that is not a string, tuple or list
 	// node (a is the value, name the named node type).
 	ErrConvert
+	// ErrFilter is a result of the function of filter that is not a bool (a is the result).
+	ErrFilter
 )
 
 // TermErrors are the messages of the failures of a term.
@@ -228,6 +230,7 @@ var TermErrors = []TermError{
 	ErrLenArg:     {Name: "invalid len argument", Text: "len: invalid argument {a}"},
 	ErrTextArg:    {Name: "invalid text argument", Text: "text: invalid argument {a}"},
 	ErrConvert:    {Name: "not convertible", Text: "cannot convert {a} to {name}"},
+	ErrFilter:     {Name: "filter result not a bool", Text: "filter: predicate must produce a bool, got {a}"},
 }
 
 // Kinds of a member read, by the code the composition member takes. A member name of a term is the

@@ -61,6 +61,13 @@ var goMutants = []goMutant{
 	{"the end of a hull is the earliest", "term_exec.go", "termHull", "ee > hi", "ee < hi"},
 	{"a later element replaces the range of a hull", "term_exec.go", "termHull", "if first || es < lo {", "if true {"},
 	{"an empty hull is not at the start of the rule", "term_exec.go", "termHull", "lo := rs", "lo := 0"},
+	{"a fold step charges nothing", "budget.go", "Fold", "c.P.Spend()\n\t\tacc = f(acc", "acc = f(acc"},
+	{"a typed fold step charges nothing", "typed.go", "Fold", "c.P.Spend()\n\t\tacc = f(acc", "acc = f(acc"},
+	{"foldr passes the elements from the first", "term_exec.go", "termItemAt", "if right {", "if false {"},
+	{"the folds pass the elements in each other's order", "term_exec.go", "termItemAt", "if right {", "if !right {"},
+	{"an iteration passes a box", "term_exec.go", "termItemAt", "return UnboxNode(items[i])", "return items[i]"},
+	{"filter takes a result that is not a bool", "term_exec.go", "termFilterKeep", "if valKind(v) != 3 {", "if valKind(v) == 0 {"},
+	{"filter drops what it keeps", "term_exec.go", "termFilterKeep", "return v.(bool), nil", "return !v.(bool), nil"},
 	{"an element of a list charges no step", "term_exec.go", "termElemsConform", "p.Spend()", ""},
 	{"an element of a tuple charges no step", "term_exec.go", "termTupleConform", "p.Spend()", ""},
 	{"a tuple of another length conforms", "term_exec.go", "termTupleConform", "if count != len(t.Alts) {", "if count > len(t.Alts) {"},
@@ -90,7 +97,11 @@ func TestPrintedOperatorMutants(t *testing.T) {
 		if m.file == "budget.go" || m.fn == "strAdd" || m.fn == "strEq" {
 			heads = []string{"func (p *Parser) "}
 		}
-		if strings.Contains(m.old, "UnboxValue") {
+		if m.fn == "Fold" {
+			// The loops of the built-in functions are methods of the action contexts.
+			heads = []string{map[string]string{"budget.go": "func (c *ActCtx) ", "typed.go": "func (c *TActCtx) "}[m.file]}
+		}
+		if strings.Contains(m.old, "UnboxValue") || strings.Contains(m.old, "UnboxNode") {
 			heads = heads[:1] // a typed value is never boxed
 		}
 		for _, head := range heads {
@@ -119,7 +130,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the runtime has no %s%s with %q", head, m.fn, m.old)
 				}
-				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|CastTable)$", ".")
+				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|CastTable)$", ".")
 				cmd.Dir = dir
 				cmd.Env = append(cmd.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
 				out, err := cmd.CombinedOutput()

@@ -48,20 +48,17 @@ func TestGeneratedLoopCharge(t *testing.T) {
 		})
 		t.Run(form+"/negative control", func(t *testing.T) {
 			// Without the charge of the loops, a lambda call is not charged at all.
-			loop := regexp.MustCompile(`(func \(c \*T?ActCtx\) (?:PushMap|FilterList)\([^\n]*\{\n(?:[^\n]*\n)*?)\t*c\.P\.Spend\(\)\n`)
-			fold := regexp.MustCompile(`(func \(c \*T?ActCtx\) foldControlled\([^\n]*\{\n(?:[^\n]*\n)*?)\t*c\.P\.Spend\(\)\n`)
+			// The pattern stays in the body of one loop: its lines are indented, and the closing brace is not.
+			step := regexp.MustCompile(`(func \(c \*T?ActCtx\) (?:PushMap|FilterList|Fold)\([^\n]*\{\n(?:\t[^\n]*\n)*?)\t+c\.P\.Spend\(\)\n`)
 			patched := 0
 			dir := gentest.RuntimeCopyWith(t, func(name, src string) string {
-				for _, re := range []*regexp.Regexp{loop, fold} {
-					src = re.ReplaceAllStringFunc(src, func(m string) string {
-						patched++
-						return re.FindStringSubmatch(m)[1]
-					})
-				}
-				return src
+				return step.ReplaceAllStringFunc(src, func(m string) string {
+					patched++
+					return step.FindStringSubmatch(m)[1]
+				})
 			}, nil)
 			if patched != 6 {
-				t.Fatalf("patched %d loops of the runtime, want 6 (PushMap, FilterList and foldControlled of both contexts)", patched)
+				t.Fatalf("patched %d loops of the runtime, want 6 (PushMap, FilterList and Fold of both contexts)", patched)
 			}
 			problems := loopChargeProblems(t, cases, dir, typed)
 			for _, p := range problems {

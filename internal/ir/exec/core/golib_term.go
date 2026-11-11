@@ -17,7 +17,7 @@ const GoTermsFile = "../../../../runtime/term_exec.go"
 // termFuncs are the compositions of the operators of terms, in the order they are printed.
 var termFuncs = []struct{ fn, name string }{
 	{"equal", "termEqual"}, {"index", "termIndex"}, {"binary", "termBinary"}, {"unary", "termUnary"}, {"logic", "termLogic"},
-	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"length", "termLength"}, {"text", "termText"},
+	{"member", "termMember"}, {"element", "termElement"}, {"items", "termItems"}, {"itemAt", "termItemAt"}, {"filterKeep", "termFilterKeep"}, {"length", "termLength"}, {"text", "termText"},
 	{"convert", "termConvert"}, {"cover", "termCover"}, {"made", "termMade"}, {"hull", "termHull"},
 	{"conforms", "termConforms"}, {"valueConforms", "termValueConforms"}, {"elemsConform", "termElemsConform"},
 	{"tupleConform", "termTupleConform"},

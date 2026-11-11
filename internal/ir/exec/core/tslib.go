@@ -48,6 +48,8 @@ var tsSpecs = []struct {
 	{fn: "member", name: "termMember"},
 	{fn: "element", name: "termElement"},
 	{fn: "items", name: "termItems"},
+	{fn: "itemAt", name: "termItemAt"},
+	{fn: "filterKeep", name: "termFilterKeep"},
 	{fn: "length", name: "termLength"},
 	{fn: "text", name: "termText"},
 	{fn: "convert", name: "termConvert"},

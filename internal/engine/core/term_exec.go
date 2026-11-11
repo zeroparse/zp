@@ -114,6 +114,8 @@ func (p *Parser) termError(code int, a, b any, op, n int) error {
 		return p.ActionError("text: invalid argument ", TypeName(a))
 	case 15: // not convertible
 		return p.ActionError("cannot convert ", TypeName(a), " to ", b.(string))
+	case 16: // filter result not a bool
+		return p.ActionError("filter: predicate must produce a bool, got ", TypeName(a))
 	}
 	return errors.New("core: no term failure")
 }
@@ -341,6 +343,27 @@ func (p *Parser) termItems(fn string, v any) ([]*value.Node, error) {
 		return items, nil
 	}
 	return items, p.termError(12, v, any(fn), 0, 0)
+}
+
+// termItemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
+// its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges
+// nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
+//
+// Printed from Exec IR function itemAt of internal/ir/exec/core.
+func (p *Parser) termItemAt(items []*value.Node, i int, right bool) any {
+	if right {
+		return value.UnboxNode(items[len(items)-1-i])
+	}
+	return value.UnboxNode(items[i])
+}
+
+// termFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
+// Printed from Exec IR function filterKeep of internal/ir/exec/core.
+func (p *Parser) termFilterKeep(v any) (bool, error) {
+	if valKind(v) != 3 {
+		return false, p.termError(16, v, nil, 0, 0)
+	}
+	return v.(bool), nil
 }
 
 // termLength is the built-in function len: the length of a string in the position unit, of the range of a string

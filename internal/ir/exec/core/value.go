@@ -192,6 +192,25 @@ as a function, fails.`
 	items.Doc = `items returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
 and those of a list or a tuple. Any other value fails.`
 
+	seqT := THandle(ops.Seq)
+	itemAt := m.AddFunc("itemAt", []Param{P("items", seqT), P("i", TInt), P("right", TBool)}, []Type{datum}, nil, func(b *Builder) {
+		b.If(L("right"), func(b *Builder) {
+			b.Return(C("seq.at", L("items"), Bin("-", Bin("-", C("seq.len", L("items")), Int(1)), L("i"))))
+		})
+		b.Return(C("seq.at", L("items"), L("i")))
+	})
+	itemAt.Doc = `itemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
+its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges
+nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.`
+
+	filterKeep := m.AddFunc("filterKeep", []Param{P("v", datum)}, []Type{TBool, failT}, nil, func(b *Builder) {
+		b.If(Bin("!=", kind(L("v")), k(ops.KindBool)), func(b *Builder) {
+			b.Return(BoolC(false), failure(ops.ErrFilter, L("v"), none, Int(0), Int(0)))
+		})
+		b.Return(C("val.toBool", L("v")), ok)
+	})
+	filterKeep.Doc = `filterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.`
+
 	length := m.AddFunc("length", []Param{P("x", datum)}, val, nil, func(b *Builder) {
 		kx := b.Let("k", kind(x))
 		b.If(Eq(kx, k(ops.KindString)), func(b *Builder) { b.Return(C("str.len", x), ok) })
@@ -294,7 +313,7 @@ struct that holds one covers it.`
 
 	// The cast: the check of a value against a type, over the accessors of the type (ftype.*) and the
 	// primitives of the values it checks.
-	ftype, seqT := THandle(ops.FType), THandle(ops.Seq)
+	ftype := THandle(ops.FType)
 	t, v, n := L("t"), L("v"), L("n")
 	shape := L("shape")
 	shapeIs := func(c int) Expr { return Eq(shape, k(c)) }

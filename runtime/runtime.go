@@ -3565,17 +3565,6 @@ func (c *ActCtx) TextStr(x any) string {
 	return s
 }
 
-func rtFold(right bool, acc any, items []*Node, f func(acc, item any) any) any {
-	for i := range items {
-		it := items[i]
-		if right {
-			it = items[len(items)-1-i]
-		}
-		acc = f(acc, UnboxNode(it))
-	}
-	return acc
-}
-
 // The list built-ins gather the elements on KidStack (lambdas that build lists push above them)
 // and hand the copied-out slice to the list node. If one fails, the error unwinds to the action
 // (which fails the parse) or the predicate (which pops what was gathered).
@@ -3588,15 +3577,15 @@ func (c *ActCtx) MapList(list any, f func(item any) any) any {
 
 func (c *ActCtx) FilterList(list any, f func(item any) any) any {
 	base := len(c.P.KidStack)
-	for _, item := range c.ListItems("filter", list) {
+	items := c.ListItems("filter", list)
+	for i := range items {
 		c.P.Spend()
-		value := f(UnboxNode(item))
-		keep, ok := value.(bool)
-		if !ok {
-			c.P.evalErrorf("filter: predicate must produce a bool, got %s", typeName(value))
+		keep, e := c.P.termFilterKeep(f(c.P.termItemAt(items, i, false)))
+		if e != nil {
+			panic(e)
 		}
 		if keep {
-			c.P.KidStack = append(c.P.KidStack, item)
+			c.P.KidStack = append(c.P.KidStack, items[i])
 		}
 	}
 	return c.EndList(base)
@@ -3622,9 +3611,10 @@ func (c *ActCtx) Concat(args ...any) any {
 // as pushes for its arguments followed by EndList, so that they build no intermediate list.
 
 func (c *ActCtx) PushMap(list any, f func(item any) any) {
-	for _, it := range c.ListItems("map", list) {
+	items := c.ListItems("map", list)
+	for i := range items {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(UnboxNode(it))))
+		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(c.P.termItemAt(items, i, false))))
 	}
 }
 

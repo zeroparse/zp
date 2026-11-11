@@ -1521,21 +1521,10 @@ func (p *Parser) undoCaptures(from int) {
 }
 
 func (c *ActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	if c.P.Control != nil {
-		return c.foldControlled(fn, right, acc, list, f)
-	}
-	return rtFold(right, acc, c.ListItems(fn, list), f)
-}
-
-func (c *ActCtx) foldControlled(fn string, right bool, acc, list any, f func(acc, item any) any) any {
 	items := c.ListItems(fn, list)
 	for i := range items {
 		c.P.Spend()
-		item := items[i]
-		if right {
-			item = items[len(items)-1-i]
-		}
-		acc = f(acc, nodeOrNil(item))
+		acc = f(acc, c.P.termItemAt(items, i, right))
 	}
 	return acc
 }

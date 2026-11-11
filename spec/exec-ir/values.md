@@ -3,7 +3,7 @@
 The component `value` holds the operations on the values of terms: actions, predicates and the values of bindings.
 They read and write no state of the parse. A value is a datum of the host, opaque to the rest of the parser VM; these
 operations look inside it. Each acts on one kind of value and has none of the policy of an operator of the grammar:
-the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `element`, `items`, `length`, `text`, `convert`, `cover`, `made` and `hull` (see
+the compositions `binary`, `unary`, `equal`, `index`, `logic`, `member`, `element`, `items`, `itemAt`, `filterKeep`, `length`, `text`, `convert`, `cover`, `made` and `hull` (see
 [Compositions](compositions.md#terms)) decide which operation applies, which operands are valid and which failure a term
 reports. The tables of this chapter are shared by every target: a target numbers the operators, kinds and failures as
 they are numbered here, and prints the messages of the failures as they are written here, so that they read the same
@@ -79,6 +79,7 @@ count. A hint, where a failure has one, ends its message.
 | 13 | invalid len argument | `len: invalid argument {a}` | | An argument of `len` that has no length |
 | 14 | invalid text argument | `text: invalid argument {a}` | | An argument of `text` that has no text |
 | 15 | not convertible | `cannot convert {a} to {name}` | | The conversion to a named node type of a value that is not a string, tuple or list node |
+| 16 | filter result not a bool | `filter: predicate must produce a bool, got {a}` | | A result of the function of filter that is not a bool |
 
 ## Cast Types
 

@@ -4343,6 +4343,19 @@ export class Parser {
     throw new Error("the printed method replaces this one");
   }
 
+  // termItemAt returns the element that map, filter, foldl or foldr passes to its function at step i; the loop
+  // charges the step.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termItemAt(items: readonly (Node | null)[], i: number, right: boolean): Value {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // termFilterKeep returns whether filter keeps an element for which its function returned v, and the failure.
+  // Its text is printed from Exec IR (internal/ir/exec/core).
+  termFilterKeep(v: Value): [boolean, Value] {
+    throw new Error("the printed method replaces this one");
+  }
+
   // termLength is the built-in function len; it returns the length and the failure.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   termLength(x: Value): [Value, Value] {
@@ -4865,14 +4878,15 @@ export class Actx {
 
   filterList(list: Value, f: (item: Value) => Value): Value {
     const base = this.p.kidStack.length;
-    for (const item of this.listItems("filter", list)) {
+    const items = this.listItems("filter", list);
+    for (let i = 0; i < items.length; i++) {
       this.spend();
-      const value = f(unboxValue(item));
-      if (typeof value !== "boolean") {
-        evalError(`filter: predicate must produce a bool, got ${typeName(value)}`);
+      const [keep, e] = this.p.termFilterKeep(f(this.p.termItemAt(items, i, false)));
+      if (e !== null) {
+        return evalError(e as string);
       }
-      if (value) {
-        this.p.kidStack.push(item);
+      if (keep) {
+        this.p.kidStack.push(items[i]!);
       }
     }
     return this.endList(base);
@@ -4899,9 +4913,10 @@ export class Actx {
 
   pushMap(list: Value, f: (item: Value) => Value): void {
     this.spend();
-    for (const it of this.listItems("map", list)) {
+    const items = this.listItems("map", list);
+    for (let i = 0; i < items.length; i++) {
       this.spend();
-      const v = this.element("map", f(unboxValue(it)));
+      const v = this.element("map", f(this.p.termItemAt(items, i, false)));
       this.p.kidStack.push(v);
     }
   }
@@ -4991,11 +5006,10 @@ export function tupleTerm(n: number): string {
 }
 
 export function rtFold(c: Actx, fn: string, right: boolean, acc: Value, list: Value, f: (acc: Value, item: Value) => Value): Value {
-  const control = c.p.control;
   const items = c.listItems(fn, list);
   for (let i = 0; i < items.length; i++) {
-    control?.charge(1);
-    acc = f(acc, unboxValue(items[right ? items.length - 1 - i : i]!));
+    c.spend();
+    acc = f(acc, c.p.termItemAt(items, i, right));
   }
   return acc;
 }

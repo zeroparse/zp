@@ -102,6 +102,8 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func member(c Act, kind int, x Datum, name Name, field Name) (Datum, Fail)` | Reads the member name of x, whose kind is kind (see [Member Kinds](values.md#member-kinds)) and which reads the field or capture field. Start, End and Value of a node read its range and value; a capture of a node reads it with a box opened, nil if it did not match; a field reads what the value holds, and of a struct the zero value of the declared type of a field that is not set. A value that has no members, a capture of a struct and a field that a struct does not declare fail. |
 | `func element(c Act, fn Name, v Datum) (Elem, Fail)` | Returns v as an element of a list or a tuple that the built-in function or literal fn makes: nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other value, such as a function, fails. |
 | `func items(fn Name, v Datum) (Seq, Fail)` | Returns the elements of v, an argument of the built-in function fn that takes a list: none for nil, and those of a list or a tuple. Any other value fails. |
+| `func itemAt(items Seq, i int, right bool) Datum` | Returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges nothing; the iteration charges one step (`seq.step`) per element before it. |
+| `func filterKeep(v Datum) (bool, Fail)` | Returns whether filter keeps an element for which its function returned v. A v that is not a bool fails. |
 | `func length(x Datum) (Datum, Fail)` | The built-in function len: the length of a string in the position unit, of the range of a string node, and the number of elements of a list, a tuple or another node; nil has length 0. Any other value fails. |
 | `func text(x Datum) (Str, Fail)` | The built-in function text: a string itself, the text that a string node or an error holds, the input of the range of any other node, and the empty string for nil. Any other value fails. |
 | `func convert(t NodeType, x Datum) (Datum, Fail)` | The conversion `T{x}` to the named node type t: a string, tuple or list node, of a named node type or not, becomes a node of t. Any other value fails. |
@@ -183,6 +185,8 @@ row includes what its backends print into packages of their own.
 | member | `[]` | `[]` | `[]` | `[]` |
 | element | `[]` | `[]` | `[]` | `[]` |
 | items | `[]` | `[]` | `[]` | `[]` |
+| itemAt | `[]` | `[]` | `[]` | `[]` |
+| filterKeep | `[]` | `[]` | `[]` | `[]` |
 | length | `[]` | `[]` | `[]` | `[]` |
 | text | `[]` | `[]` | `[]` | `[]` |
 | convert | `[]` | `[]` | `[]` | `[]` |

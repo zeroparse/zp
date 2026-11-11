@@ -1970,17 +1970,6 @@ func (c *TActCtx) TextStr(x any) string {
 	return s
 }
 
-func trtFold(right bool, acc any, items []any, f func(acc, item any) any) any {
-	for i := range items {
-		it := items[i]
-		if right {
-			it = items[len(items)-1-i]
-		}
-		acc = f(acc, tvalOrNil(it))
-	}
-	return acc
-}
-
 func (c *TActCtx) MapList(list any, f func(item any) any) any {
 	base := len(c.P.KidStack)
 	c.PushMap(list, f)
@@ -1989,15 +1978,15 @@ func (c *TActCtx) MapList(list any, f func(item any) any) any {
 
 func (c *TActCtx) FilterList(list any, f func(item any) any) any {
 	base := len(c.P.KidStack)
-	for _, item := range c.ListItems("filter", list) {
+	items := c.ListItems("filter", list)
+	for i := range items {
 		c.P.Spend()
-		value := f(tvalOrNil(item))
-		keep, ok := value.(bool)
-		if !ok {
-			c.P.evalErrorf("filter: predicate must produce a bool, got %s", ttypeName(value))
+		keep, e := c.P.termFilterKeep(f(c.P.termItemAt(items, i, false)))
+		if e != nil {
+			panic(e)
 		}
 		if keep {
-			c.P.KidStack = append(c.P.KidStack, item)
+			c.P.KidStack = append(c.P.KidStack, items[i])
 		}
 	}
 	return c.EndList(base)
@@ -2019,9 +2008,10 @@ func (c *TActCtx) Concat(args ...any) any {
 }
 
 func (c *TActCtx) PushMap(list any, f func(item any) any) {
-	for _, it := range c.ListItems("map", list) {
+	items := c.ListItems("map", list)
+	for i := range items {
 		c.P.Spend()
-		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(tvalOrNil(it))))
+		c.P.KidStack = append(c.P.KidStack, c.asNode("map", f(c.P.termItemAt(items, i, false))))
 	}
 }
 
@@ -2237,21 +2227,10 @@ func (p *TParser) valueFieldControlled(n TVal, name string) (any, bool) {
 	return nil, true
 }
 func (c *TActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	if c.P.Control != nil {
-		return c.foldControlled(fn, right, acc, list, f)
-	}
-	return trtFold(right, acc, c.ListItems(fn, list), f)
-}
-
-func (c *TActCtx) foldControlled(fn string, right bool, acc, list any, f func(acc, item any) any) any {
 	items := c.ListItems(fn, list)
 	for i := range items {
 		c.P.Spend()
-		item := items[i]
-		if right {
-			item = items[len(items)-1-i]
-		}
-		acc = f(acc, tvalOrNil(item))
+		acc = f(acc, c.P.termItemAt(items, i, right))
 	}
 	return acc
 }

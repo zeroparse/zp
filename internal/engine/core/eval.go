@@ -251,13 +251,10 @@ func (c *EvalCtx) Builtin(fn string, args []any) (any, error) {
 			return nil, err
 		}
 		acc := args[0]
+		right := fn == "foldr"
 		for i := range items {
 			c.P.Spend()
-			it := items[i]
-			if fn == "foldr" {
-				it = items[len(items)-1-i]
-			}
-			if acc, err = f.Apply(acc, value.UnboxNode(it)); err != nil {
+			if acc, err = f.Apply(acc, c.P.termItemAt(items, i, right)); err != nil {
 				return nil, err
 			}
 		}
@@ -294,9 +291,9 @@ func (c *EvalCtx) PushElems(fn string, args []any) error {
 		if err != nil {
 			return err
 		}
-		for _, it := range items {
+		for i := range items {
 			c.P.Spend()
-			v, err := f.Apply(value.UnboxNode(it), nil)
+			v, err := f.Apply(c.P.termItemAt(items, i, false), nil)
 			if err != nil {
 				return err
 			}
