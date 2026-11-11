@@ -168,7 +168,8 @@ func leadingClassNode(n Node) *ClassNode {
 }
 
 // Scans replaces every value-free repetition of a class or of any character by a Scan, except a
-// skip-run site, which records its walks as any repetition does.
+// skip-run site, which records its walks as any repetition does. A Scan of a scan site keeps its
+// number.
 func Scans(m *Module) {
 	for _, r := range m.Rules {
 		if r == nil {
@@ -181,9 +182,9 @@ func Scans(m *Module) {
 			}
 			switch body := rep.Body.(type) {
 			case *ClassNode:
-				return &Scan{base: rep.base, Class: body.Class, Min: rep.Min, Max: rep.Max}
+				return &Scan{base: rep.base, Class: body.Class, Min: rep.Min, Max: rep.Max, Site: rep.ScanSite}
 			case *Any:
-				return &Scan{base: rep.base, Min: rep.Min, Max: rep.Max}
+				return &Scan{base: rep.base, Min: rep.Min, Max: rep.Max, Site: rep.ScanSite}
 			}
 			return n
 		})

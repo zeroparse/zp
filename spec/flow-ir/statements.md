@@ -28,6 +28,7 @@ leaves empty is absent.
 | `SkipBegin` | Site | Begins a walk of the skip-run site Site at the position: the iterations of the repetition that follow are visits of the walk, until SkipEnd. |
 | `SkipVisit` |  | Ends the iteration of the walk before, if any, and begins one at the position. |
 | `SkipEnd` |  | Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited. |
+| `ScanEnd` | Site, Start, Count | Ends a value-free walk of the scan site Site that began at Start and matched Count characters, at least the hot span of scan sites, at the position: unless the walk took the rest from a record, it records itself at a hot site, and otherwise notes the walk for the hot state of the site. |
 | `Append` | Vals, X, Spread | Appends X to the list Vals; with Spread, the children of the tuple node X. |
 | `SetWhere` | Name | Names the rule whose action runs, for the messages of its errors. |
 | `DropCreated` | C | Drops the structs made since the context C began. |

@@ -12,6 +12,8 @@ ShapeSingle have two results and are the value of an assignment of two places; e
 | `KidsLen` |  | Is the height of the stack of gathered values. |
 | `StreamOn` |  | Reports that the invocation delivers the elements of its #stream repetition: a stream parse with a callback, at the top call of its start rule. |
 | `SkipHit` |  | Ends the iteration of the walk before, if any, and reports whether the walk has a record of the position; it then takes the rest of the walk from the record, which moves the position to its end, and the walk stops. |
+| `ScanReach` | Site, Start, Count | Is called by a walk of the scan site Site that began at Start when it has matched Count characters, the hot span of scan sites. At a hot site with a record of Start it moves the position to the recorded end and is the recorded count; otherwise it is Count. |
+| `ScanKids` | Site, Start, Base, Count | Is the list of the elements of a walk of the scan site Site that builds a value, which began at Start, gathered its elements above Base and matched Count characters: for a walk that took the rest from a record, the elements of the record, which it shares, and the gathered ones are removed; otherwise the gathered ones, which it removes from the stack and, for a walk of the hot span or more at a hot site, records. |
 | `Nil` |  | Is the nil value. |
 | `Int` | N | Is an integer constant. |
 | `Bool` | B | Is a boolean constant. |

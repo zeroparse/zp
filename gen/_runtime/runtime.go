@@ -1527,6 +1527,11 @@ type Parser struct {
 	// lookahead; skip is the walk in progress (skip_runs.go).
 	skipTables []*skipSlots
 	skip       skipWalk
+	// scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
+	// by 2*site, plus 1 in a lookahead, and scanWalk the walk that ScanReach reached (scan_sites.go).
+	scanTables []map[int]scanRecord
+	scanCold   []scanCold
+	scanWalk   scanWalk
 	// Stream is set only by ParseStream: positions then index its buffer.
 	Stream *streamInput
 	// memUsed counts the bytes of the chunks the allocators have taken (budget_memory.go); a

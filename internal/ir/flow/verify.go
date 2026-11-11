@@ -192,6 +192,11 @@ func (v *verifier) stmt(s Stmt) error {
 		return v.expr(s.X)
 	case *DropKids:
 		return v.expr(s.Base)
+	case *ScanEnd:
+		if s.Site <= 0 {
+			return fmt.Errorf("%s: scan site %d", v.f.Name, s.Site)
+		}
+		return v.expr(s.Start, s.Count)
 	case *StreamStart:
 		if !v.f.Node || !v.f.Frame {
 			return fmt.Errorf("%s: stream start outside a framed Node function", v.f.Name)

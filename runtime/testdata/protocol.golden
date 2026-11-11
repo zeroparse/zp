@@ -1,4 +1,4 @@
-protocol 6
+protocol 7
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -256,6 +256,9 @@ method (*Parser) RecoveryErrorText(*SyntaxError) string
 method (*Parser) RejectBudgetClass(rune, *BudgetClass) bool
 method (*Parser) Reset(Mark)
 method (*Parser) Restore(int, int)
+method (*Parser) ScanEnd(int, int, int)
+method (*Parser) ScanKids(int, int, int, int) []*Node
+method (*Parser) ScanReach(int, int, int) int
 method (*Parser) ScopeValue(Shaper, *Node, int) *Node
 method (*Parser) SetCapture(int, *Node)
 method (*Parser) ShapeCapture(Shaper, *Node, int) *Node
@@ -371,6 +374,7 @@ method (*TParser) Predicate(func(*TActCtx) any) bool
 method (*TParser) PushKid(any)
 method (*TParser) RecoverAttr(tmatcher, tmatcher, bool) (any, bool)
 method (*TParser) Reset(Mark)
+method (*TParser) ScanKids(int, int, int, int) []any
 method (*TParser) ScopeValue(Shaper, any, int) any
 method (*TParser) SetCapture(int, any)
 method (*TParser) ShapeCapture(Shaper, any, int) any

@@ -891,8 +891,9 @@ parse without scan sites by at most two steps for each walk that reached
 `T` characters. A walk that starts at another position than a recorded start
 inside the same run does not reuse the record, and costs its own length.
 
-Parsers generated as Go source keep no records of scan sites or of run sites;
-they are outside this section.
+Parsers generated as Go or TypeScript source keep the records of scan sites as
+this section describes, with the same `T` and the same charges; they keep no
+records of run sites.
 
 ### Classes of Growth
 

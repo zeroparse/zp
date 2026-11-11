@@ -371,7 +371,9 @@ the other (the nodes of a reused result move together; an edit never falls insid
 reused result examined). The elements are not empty (a character is at least one unit), so none is
 copied as an empty node is, which would break the sharing, and the write of the moved pointer into the
 shared slice of children stores the pointer already there. The same sharing of elements between lists
-already happens for the nodes that rule memo entries and the records of run sites share. $\square$
+already happens for the nodes that rule memo entries and the records of run sites share. A parser
+generated as Go source moves a reused tree of a document by copying the nodes that move into new ones,
+so no node that two lists share is written in place. $\square$
 
 Which positions have records, and the hot state of the site, decide only which walks find a record,
 never what a record holds, so none changes the result of a parse. A record is looked up and made only
@@ -403,15 +405,14 @@ is the same walk. A walk that reaches $T$ characters charges the first $T$ tests
   record that it makes, so it costs $k + 3$.
 
 These are the charges that [Scan Sites](../runtime/parsing.md#scan-sites) states for every
-backend that keeps records.
+backend that keeps records, and for parsers generated as Go or TypeScript source.
 
 Each case costs at most $k + 3$, which is two steps above $k + 1$. A walk that reaches $T$ characters costs at least
 $T + 1$ steps without records, which gives the ratio. $\square$
 
 The bound is per walk, so it needs no count of the walks: the walks that start at different
 positions of one run, which find no record, each pay at most the two steps, and the cold state,
-kept apart for the walks inside lookaheads, only decides which walks look up. Parsers generated as
-Go source keep no records.
+kept apart for the walks inside lookaheads, only decides which walks look up.
 
 ## Lemma 6 (Walks Again From One Start)
 

@@ -139,6 +139,9 @@ func (p *printer) node(n Node, d int) {
 		if n.Site != 0 {
 			fmt.Fprintf(&p.b, " site=%d", n.Site)
 		}
+		if n.ScanSite != 0 {
+			fmt.Fprintf(&p.b, " scan-site=%d", n.ScanSite)
+		}
 	case *Look:
 		if n.Neg {
 			p.line(d, "not")
@@ -201,6 +204,9 @@ func (p *printer) node(n Node, d int) {
 			p.line(d, "scan any %d %d", n.Min, n.Max)
 		} else {
 			p.line(d, "scan %s %d %d", classString(n.Class), n.Min, n.Max)
+		}
+		if n.Site != 0 {
+			fmt.Fprintf(&p.b, " scan-site=%d", n.Site)
 		}
 	case *ClassRun:
 		cs := make([]string, len(n.Classes))

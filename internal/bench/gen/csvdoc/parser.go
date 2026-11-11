@@ -220,11 +220,11 @@ fail:
 
 func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
-	var x1, size, x15 int
-	var x2, x9, x13 rt.Mark
+	var x1, size, x8, x9, x13, x14, x16, x17, x21, x24, x25 int
+	var x2, x11, x19 rt.Mark
 	var x4, ch rune
 	var x5, ok bool
-	var v18 *rt.Node
+	var v26 *rt.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	if p.Document == nil && p.Pos < len(p.In) {
@@ -242,6 +242,8 @@ func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
 	} else if _, ok = p.MatchLiteral(lit7, "\"", 7, false); !ok {
 		goto L7
 	}
+	x8 = p.Pos
+	x9 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -254,15 +256,24 @@ func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
 			break
 		}
 		p.Pos += size
+		x9++
+		if x9 == 16 {
+			x9 = p.ScanReach(4, x8, x9)
+		}
+	}
+	if 15 < x9 {
+		p.ScanEnd(4, x8, x9)
 	}
 	for {
 		p.Spend()
-		x9 = p.Mark()
+		x11 = p.Mark()
 		if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 34 && p.In[p.Pos+1] == 34) && p.Control.Take(2) {
 			p.Pos += 2
 		} else if _, ok = p.MatchLiteral(lit8, "\"\"", 9, false); !ok {
-			goto L10
+			goto L12
 		}
+		x13 = p.Pos
+		x14 = 0
 		for {
 			if p.Document == nil && p.Pos < len(p.In) {
 				p.SpendRead(1)
@@ -275,13 +286,20 @@ func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
 				break
 			}
 			p.Pos += size
+			x14++
+			if x14 == 16 {
+				x14 = p.ScanReach(6, x13, x14)
+			}
 		}
-		if p.Pos == x9.Pos {
+		if 15 < x14 {
+			p.ScanEnd(6, x13, x14)
+		}
+		if p.Pos == x11.Pos {
 			break
 		}
 		continue
-	L10:
-		p.Reset(x9)
+	L12:
+		p.Reset(x11)
 		break
 	}
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
@@ -293,6 +311,8 @@ func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
 L7:
 	p.Reset(x2)
 L6:
+	x16 = p.Pos
+	x17 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -305,16 +325,23 @@ L6:
 			break
 		}
 		p.Pos += size
+		x17++
+		if x17 == 16 {
+			x17 = p.ScanReach(8, x16, x17)
+		}
+	}
+	if 15 < x17 {
+		p.ScanEnd(8, x16, x17)
 	}
 	for {
 		p.Spend()
-		x13 = p.Mark()
+		x19 = p.Mark()
 		if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 13) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.MatchLiteral(lit9, "\r", 11, false); !ok {
-			goto L14
+			goto L20
 		}
-		x15 = p.Pos
+		x21 = p.Pos
 		p.Silent++
 		p.LookBegin(2)
 		if p.Document == nil && p.Pos < len(p.In) {
@@ -325,19 +352,21 @@ L6:
 		}
 		if !ok || (ch == 10) {
 			p.Expect(p.Pos, 12)
-			goto L16
+			goto L22
 		}
 		p.Pos += size
 		p.LookEnd(true)
 		p.Silent--
-		p.Pos = x15
-		goto L17
-	L16:
+		p.Pos = x21
+		goto L23
+	L22:
 		p.LookEnd(false)
 		p.Silent--
-		p.Pos = x15
-		goto L14
-	L17:
+		p.Pos = x21
+		goto L20
+	L23:
+		x24 = p.Pos
+		x25 = 0
 		for {
 			if p.Document == nil && p.Pos < len(p.In) {
 				p.SpendRead(1)
@@ -350,19 +379,26 @@ L6:
 				break
 			}
 			p.Pos += size
+			x25++
+			if x25 == 16 {
+				x25 = p.ScanReach(10, x24, x25)
+			}
 		}
-		if p.Pos == x13.Pos {
+		if 15 < x25 {
+			p.ScanEnd(10, x24, x25)
+		}
+		if p.Pos == x19.Pos {
 			break
 		}
 		continue
-	L14:
-		p.Reset(x13)
+	L20:
+		p.Reset(x19)
 		break
 	}
 	goto L3
 L3:
-	v18 = p.NewTerminal(x1, p.Text(x1, p.Pos))
-	return v18, true
+	v26 = p.NewTerminal(x1, p.Text(x1, p.Pos))
+	return v26, true
 }
 
 func e13(p *rt.Parser, _ int) (*rt.Node, bool) {
@@ -429,4 +465,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol6
+const _ = rt.Protocol7

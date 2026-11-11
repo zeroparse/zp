@@ -20,7 +20,7 @@ value is converted to a node type. The rule's body follows, indented one level.
 | `Any`, `Cut`, `Succeed`, `FailNode`, `Seq`, `Opt`, `Text`, `Drop`, `Recover`, `Missing`, `Stream`, `Terminal` | `any`, `cut`, `succeed`, `fail`, `seq`, `opt`, `text`, `drop`, `recover`, `missing`, `stream`, `terminal` |
 | `Anchor` | `anchor begin-input`, `end-input`, `begin-line` or `end-line` |
 | `Choice` | `choice`, with each alternative as an `alt` line, followed by ` guard=` and the first terminal, and ` class` for a guarded class |
-| `Repeat` | `repeat min max`, then ` scope=[names]` and ` project=name` if present |
+| `Repeat` | `repeat min max`, then ` scope=[names]`, ` project=name`, ` site=n` and ` scan-site=n` if present |
 | `Look` | `and` or, if negative, `not` |
 | `Call` | `call id:name`, then ` level=n` if not 0 |
 | `Nest` | `nest id:name` |
@@ -28,7 +28,7 @@ value is converted to a node type. The rule's body follows, indented one level.
 | `Capture` | `capture slot name`, then ` project=field` if present |
 | `Pred`, `BindNode` | `pred term`, `bind name = term` |
 | `Label` | `error "message"` or `diagnostic "message"` |
-| `Scan` | `scan class min max`, or `scan any min max` |
+| `Scan` | `scan class min max`, or `scan any min max`, then ` scan-site=n` if present |
 | `ClassRun` | `classrun` and its classes |
 
 A first terminal is a class, or a quoted code point, with `i` after it if case-insensitive, and `+n` for a depth n.

@@ -46,11 +46,11 @@ var tsSkipRunMutations = map[string][][2]string{
 	}},
 }
 
-// tsSkipRunSpends builds the sources as TypeScript parsers with the runtime changed by mutation
-// (none if "") and returns, for each source, the least budget with which each input is recognized,
+// tsSkipRunSpends builds the sources as TypeScript parsers with the runtime changed by the
+// replacements of mutation (none if empty) and returns, for each source, the least budget with which each input is recognized,
 // and the results of the parses of the inputs of results with the last source. The spend of a
 // parse also counts the text of each recovered error node, which the walks do not change.
-func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation string) (spends [][]uint64, out []string) {
+func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]string, results []string, mutation [][2]string) (spends [][]uint64, out []string) {
 	t.Helper()
 	dir := t.TempDir()
 	var imports, entries strings.Builder
@@ -64,11 +64,11 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 			t.Fatal(err)
 		}
 		for k, f := range files {
-			if f.Path == "runtime.ts" && mutation != "" {
+			if f.Path == "runtime.ts" && len(mutation) > 0 {
 				content := string(f.Content)
-				for _, r := range tsSkipRunMutations[mutation] {
+				for _, r := range mutation {
 					if !strings.Contains(content, r[0]) {
-						t.Fatalf("mutation %s: %q not in the runtime", mutation, r[0])
+						t.Fatalf("mutation: %q not in the runtime", r[0])
 					}
 					content = strings.Replace(content, r[0], r[1], 1)
 				}
@@ -181,21 +181,21 @@ func TestSkipRunsTSLinear(t *testing.T) {
 		}
 		return lo, hi
 	}
-	spends, results := tsSkipRunSpends(t, node, sources, inputs, nested, "")
+	spends, results := tsSkipRunSpends(t, node, sources, inputs, nested, nil)
 	t.Logf("spends at %v: %v", sizes, spends)
 	for i, row := range spends {
 		if _, hi := slopes(row); hi > 1.2 {
 			t.Errorf("%s: spends %v grow faster than linearly", names[i], row)
 		}
 	}
-	spends, _ = tsSkipRunSpends(t, node, sources, inputs, nested, "never record")
+	spends, _ = tsSkipRunSpends(t, node, sources, inputs, nested, tsSkipRunMutations["never record"])
 	t.Logf("spends of walks that never record: %v", spends)
 	for i, row := range spends {
 		if lo, _ := slopes(row); lo < 1.7 {
 			t.Errorf("%s, walks that never record: spends %v are not quadratic", names[i], row)
 		}
 	}
-	_, early := tsSkipRunSpends(t, node, sources, inputs, nested, "early store")
+	_, early := tsSkipRunSpends(t, node, sources, inputs, nested, tsSkipRunMutations["early store"])
 	differ := false
 	for i := range results {
 		differ = differ || results[i] != early[i]

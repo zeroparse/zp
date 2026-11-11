@@ -34,6 +34,8 @@ analysis, and the verifier of the IR package checks them on an analyzed module, 
 - A choice guard equals the first terminal of its alternative. An alternative marked as a guarded class begins with the
   guard's class, at depth 0, as the alternative itself or as the first item of its sequence.
 - Repetition and `Scan` bounds are ordered: the minimum is not negative and a non-negative maximum is not below it.
+- A repetition with a ScanSite has no maximum, Scope, Project or Site, and its element is a class or `Any`; a `Scan`
+  with a Site has no maximum.
 - A `Terminal` contains only literals, classes, sequences, choices without guards, options, negative lookaheads, `Text` and
   `Drop`, and wants no value. A `Scan` and a `ClassRun` want no value, and a `ClassRun` has at least one class.
 

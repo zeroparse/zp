@@ -310,8 +310,7 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 	var v10, v11, v12, v14, v15 *rt.Node
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
-	x4, x5 = p.Pos, len(p.KidStack)
-	x6 = 0
+	x4, x6, x5 = p.Pos, len(p.KidStack), 0
 	for {
 		p.Spend()
 		x7 = p.Mark()
@@ -329,21 +328,21 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Pos += size
 		v10 = p.NewTerminal(x9, p.Text(x9, p.Pos))
 		v11 = p.ScopeValue(sh1, v10, x7.Pos)
-		x6++
 		p.KidStack = append(p.KidStack, v11)
-		if p.Pos == x7.Pos {
-			break
+		x5++
+		if x5 == 16 {
+			x5 = p.ScanReach(3, x4, x5)
 		}
 		continue
 	L8:
 		p.Reset(x7)
 		break
 	}
-	if x6 < 1 {
-		p.DropKids(x5)
+	if x5 < 1 {
+		p.DropKids(x6)
 		goto fail
 	}
-	v12 = p.NewBranch(rt.RawKindList, x4, p.Kids(x5))
+	v12 = p.NewBranch(rt.RawKindList, x4, p.ScanKids(3, x4, x6, x5))
 	p.SetCapture(0, v12)
 	x2 = append(x2, v12)
 	x13 = p.Pos
@@ -433,12 +432,13 @@ fail:
 
 func q2(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
-	var start, size, x1 int
+	var start, size, x1, x2 int
 	var v *rt.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
-	x1 = 0
+	x1 = p.Pos
+	x2 = 0
 	for {
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -451,9 +451,15 @@ func q2(p *rt.Parser) (*rt.Node, bool) {
 			break
 		}
 		p.Pos += size
-		x1++
+		x2++
+		if x2 == 16 {
+			x2 = p.ScanReach(2, x1, x2)
+		}
 	}
-	if x1 < 1 {
+	if 15 < x2 {
+		p.ScanEnd(2, x1, x2)
+	}
+	if x2 < 1 {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 32) && p.Control.Take(1) {
@@ -598,8 +604,7 @@ func i2(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
-	x5, x6 = p.Pos, len(p.KidStack)
-	x7 = 0
+	x5, x7, x6 = p.Pos, len(p.KidStack), 0
 	for {
 		p.Spend()
 		x8 = p.Pos
@@ -617,21 +622,21 @@ func i2(p *rt.TParser) (any, bool) {
 		p.Pos += size
 		v11 = p.NewMatch(x10, p.Pos, p.Text(x10, p.Pos), true)
 		v12 = p.ScopeValue(sh1, v11, x8)
-		x7++
 		p.PushKid(v12)
-		if p.Pos == x8 {
-			break
+		x6++
+		if x6 == 16 {
+			x6 = p.ScanReach(3, x5, x6)
 		}
 		continue
 	L9:
 		p.Pos = x8
 		break
 	}
-	if x7 < 1 {
-		p.DropKids(x6)
+	if x6 < 1 {
+		p.DropKids(x7)
 		goto fail
 	}
-	v13 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
+	v13 = p.NewNode("list", x5, p.Pos, p.ScanKids(3, x5, x7, x6))
 	k3 = v13
 	x2 = append(x2, v13)
 	x14 = p.Pos
@@ -655,4 +660,4 @@ fail:
 
 const _ = types.ZPSchema_e363e9a5033ad260
 
-const _ = rt.Protocol6
+const _ = rt.Protocol7

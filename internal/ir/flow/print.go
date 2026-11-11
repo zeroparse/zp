@@ -133,6 +133,8 @@ func (p *printer) stmt(s Stmt, d int) {
 		p.line(d, "skip visit")
 	case *SkipEnd:
 		p.line(d, "skip end")
+	case *ScanEnd:
+		p.line(d, "scan end %d %s, %s", s.Site, p.expr(s.Start), p.expr(s.Count))
 	case *Append:
 		spread := ""
 		if s.Spread {
@@ -297,6 +299,10 @@ func (p *printer) expr(x Expr) string {
 		return fmt.Sprintf("vals(%d)", x.N)
 	case *Kids:
 		return "kids(" + p.expr(x.Base) + ")"
+	case *ScanReach:
+		return fmt.Sprintf("scanreach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
+	case *ScanKids:
+		return fmt.Sprintf("scankids(%d, %s, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Base), p.expr(x.Count))
 	case *ShapeSingle:
 		return "single(" + p.exprs(x.X, x.Start) + ")"
 	case *ShapeCapture:

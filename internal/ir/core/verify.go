@@ -248,6 +248,16 @@ func (v *verifier) node(n Node, scope []Slot) error {
 		if n.Min < 0 || n.Max >= 0 && n.Max < n.Min {
 			return fmt.Errorf("repetition bounds %d, %d", n.Min, n.Max)
 		}
+		if n.ScanSite != 0 {
+			switch n.Body.(type) {
+			case *ClassNode, *Any:
+			default:
+				return fmt.Errorf("scan site %d repeats more than one character", n.ScanSite)
+			}
+			if n.ScanSite < 0 || n.Max >= 0 || n.Scope != nil || n.Project != "" || n.Site != 0 {
+				return fmt.Errorf("scan site %d with maximum %d, a scope, a projection or a skip-run site", n.ScanSite, n.Max)
+			}
+		}
 		if n.Scope != nil {
 			if err := v.scope(n.Scope); err != nil {
 				return err
@@ -338,6 +348,9 @@ func (v *verifier) node(n Node, scope []Slot) error {
 	case *Scan:
 		if n.Min < 0 || n.Max >= 0 && n.Max < n.Min {
 			return fmt.Errorf("scan bounds %d, %d", n.Min, n.Max)
+		}
+		if n.Site < 0 || n.Site != 0 && n.Max >= 0 {
+			return fmt.Errorf("scan site %d with maximum %d", n.Site, n.Max)
 		}
 		if n.Class != nil {
 			if err := v.class(n.Class); err != nil {

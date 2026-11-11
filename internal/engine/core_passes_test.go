@@ -348,12 +348,12 @@ func TestCoreScans(t *testing.T) {
 	}
 	got := core.PrintNode(m, m.Rules[0].Body, false)
 	want := `seq
-  scan [a-z] 0 -1
+  scan [a-z] 0 -1 scan-site=1
   repeat 2 2
     lit "-"
   scan any 1 3
   capture 0 x
-    repeat 0 -1
+    repeat 0 -1 scan-site=3
       class [0-9]
   anchor end-input
 `

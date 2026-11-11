@@ -326,6 +326,8 @@ func (l *lowerer) stmtUses(s flow.Stmt) []exec.Expr {
 		return l.uses(s.X)
 	case *flow.DropKids:
 		return l.uses(s.Base)
+	case *flow.ScanEnd:
+		return l.uses(s.Start, s.Count)
 	case *flow.DropCreated:
 		return l.uses(s.C)
 	case *flow.Unfresh:

@@ -172,6 +172,11 @@ type Repeat struct {
 	// Site, if not 0, is the number of the skip-run site the repetition is (compile.SkipSite): its
 	// walks record where the rest of them from each position ends, and reuse the records.
 	Site int
+	// ScanSite, if not 0, is the number of the scan site the repetition is (compile.ScanSite), a
+	// repetition of one character without a maximum: a walk that matches ScanHotSpan characters takes
+	// the rest from the record of its start or records itself. A walk that builds a value uses the
+	// number after it, whose records hold the elements.
+	ScanSite int
 }
 
 // Look is a lookahead: a silent scope that restores the position.
@@ -311,6 +316,8 @@ type Scan struct {
 	base
 	Class    *Class
 	Min, Max int
+	// Site, if not 0, is the number of the scan site the repetition is (Repeat.ScanSite).
+	Site int
 }
 
 // ClassRun is a value-free sequence of single characters of classes.

@@ -358,8 +358,7 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 	var v9, v10, v11, v13, v14 *rt.Node
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
-	x3, x4 = p.Pos, len(p.KidStack)
-	x5 = 0
+	x3, x5, x4 = p.Pos, len(p.KidStack), 0
 	for {
 		p.Spend()
 		x6 = p.Mark()
@@ -377,21 +376,21 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Pos += size
 		v9 = p.NewTerminal(x8, p.Text(x8, p.Pos))
 		v10 = p.ScopeValue(sh1, v9, x6.Pos)
-		x5++
 		p.KidStack = append(p.KidStack, v10)
-		if p.Pos == x6.Pos {
-			break
+		x4++
+		if x4 == 16 {
+			x4 = p.ScanReach(3, x3, x4)
 		}
 		continue
 	L7:
 		p.Reset(x6)
 		break
 	}
-	if x5 < 1 {
-		p.DropKids(x4)
+	if x4 < 1 {
+		p.DropKids(x5)
 		goto fail
 	}
-	v11 = p.NewBranch(rt.RawKindList, x3, p.Kids(x4))
+	v11 = p.NewBranch(rt.RawKindList, x3, p.ScanKids(3, x3, x5, x4))
 	x2 = append(x2, v11)
 	x12 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 32) && p.Control.Take(1) {
@@ -744,8 +743,7 @@ func s2(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
-	x3, x4 = p.Pos, len(p.KidStack)
-	x5 = 0
+	x3, x5, x4 = p.Pos, len(p.KidStack), 0
 	for {
 		p.Spend()
 		x6 = p.Pos
@@ -763,21 +761,21 @@ func s2(p *rt.TParser) (any, bool) {
 		p.Pos += size
 		v9 = p.NewMatch(x8, p.Pos, p.Text(x8, p.Pos), true)
 		v10 = p.ScopeValue(sh1, v9, x6)
-		x5++
 		p.PushKid(v10)
-		if p.Pos == x6 {
-			break
+		x4++
+		if x4 == 16 {
+			x4 = p.ScanReach(3, x3, x4)
 		}
 		continue
 	L7:
 		p.Pos = x6
 		break
 	}
-	if x5 < 1 {
-		p.DropKids(x4)
+	if x4 < 1 {
+		p.DropKids(x5)
 		goto fail
 	}
-	v11 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
+	v11 = p.NewNode("list", x3, p.Pos, p.ScanKids(3, x3, x5, x4))
 	x2 = append(x2, v11)
 	x12 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 32) && p.Control.Take(1) {
@@ -800,4 +798,4 @@ fail:
 
 const _ = types.ZPSchema_2e326dad401977ae
 
-const _ = rt.Protocol6
+const _ = rt.Protocol7

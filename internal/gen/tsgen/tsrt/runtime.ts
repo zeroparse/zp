@@ -1583,6 +1583,26 @@ interface SkipRecord {
   exp: number[];
 }
 
+// SCAN_HOT_SPAN is the number of characters that a walk of a scan site matches before it looks for the
+// record of its start, and the length of the walks that turn a site hot (the Go runtime's
+// ScanHotSpan).
+const SCAN_HOT_SPAN = 16;
+
+// ScanRecord is the record of a walk of a scan site: where it ended, how many characters it matched
+// and, for a walk that builds a value, its elements.
+interface ScanRecord {
+  end: number;
+  count: number;
+  kids: (Node | null)[] | null;
+}
+
+// ScanCold is the state of a scan site that decides whether it is hot: the furthest end of the walks
+// of SCAN_HOT_SPAN characters or more.
+interface ScanCold {
+  end: number;
+  hot: boolean;
+}
+
 // SkipSlots holds the slots of a site: a bit for each position from base on in the 32-bit words
 // marks, set when the slot is not fresh, and the records of the recorded slots by position.
 class SkipSlots {
@@ -2103,6 +2123,15 @@ export class Parser {
   skipFar = 0;
   skipBase = 0;
   skipHitRec: SkipRecord | null = null;
+
+  // scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
+  // by 2*site, plus 1 in a lookahead, and scanHotNow, scanHit and scanRec the state of the walk that
+  // scanReach reached (see scanReach).
+  scanTables: (Map<number, ScanRecord> | undefined)[] = [];
+  scanCold: ScanCold[] = [];
+  scanHotNow = false;
+  scanHit = false;
+  scanRec: ScanRecord | null = null;
 
   readonly control: BudgetControl | null;
 
@@ -2712,6 +2741,89 @@ export class Parser {
   // walk from there did, filling the records backward when it ends. A recording walk that reaches a
   // recorded position (once it has matched its minimum) takes the rest from the record, as a memo
   // hit does. The slots of a parse last for that parse.
+
+  // Scan sites: the records of the walks of the repetitions of one character without a maximum in the
+  // rules that call no rule, a mirror of the Go runtime's (runtime/scan_sites.go). A walk from a start
+  // ends at a position, matches a number of characters and builds elements that depend on the start
+  // and the input alone. A walk that has matched SCAN_HOT_SPAN characters at a hot site looks for the
+  // record of its start (scanReach): it moves to the recorded end and takes the count, and its next
+  // iteration fails there as it did when the walk was recorded; otherwise it goes on and records
+  // itself when it ends (scanEnd, scanKids). A site turns hot, separately inside and outside
+  // lookaheads, once a walk of SCAN_HOT_SPAN characters or more starts below the furthest end of its
+  // walks and walks SCAN_HOT_SPAN characters below it (scanWalked). Walks do not nest.
+
+  // scanReach is called by a walk of the scan site that began at start when it has matched
+  // SCAN_HOT_SPAN characters, count of them. At a hot site with a record of start it moves to the
+  // recorded end and returns the recorded count, charging one unit for the lookup and one for the
+  // record; otherwise it returns count, charging one unit for the lookup at a hot site.
+  scanReach(site: number, start: number, count: number): number {
+    const i = 2 * site + (this.silent > 0 ? 1 : 0);
+    this.scanHotNow = this.scanCold[i]?.hot === true;
+    this.scanHit = false;
+    if (!this.scanHotNow) return count;
+    this.spend();
+    const rec = this.scanTables[site]?.get(start);
+    if (rec === undefined) return count;
+    this.spend();
+    this.scanHit = true;
+    this.scanRec = rec;
+    this.pos = rec.end;
+    return rec.count;
+  }
+
+  // scanEnd ends a value-free walk of the scan site that began at start, matched count characters (at
+  // least SCAN_HOT_SPAN) and ended at the position: unless it took the rest from a record, it records
+  // itself if the site is hot and notes that it walked if not.
+  scanEnd(site: number, start: number, count: number): void {
+    if (this.scanHit) return;
+    if (this.scanHotNow) this.scanStore(site, start, { end: this.pos, count, kids: null });
+    else this.scanWalked(site, start);
+  }
+
+  // scanKids returns the elements of a walk of the scan site that builds a value, which began at
+  // start, gathered its elements on the stack from base and matched count characters: for a walk of
+  // SCAN_HOT_SPAN characters or more that took the rest from a record, the elements of the record,
+  // which it shares (the gathered ones are dropped); otherwise the gathered elements, which a walk of
+  // that length records at a hot site.
+  scanKids(site: number, start: number, base: number, count: number): (Node | null)[] {
+    if (count < SCAN_HOT_SPAN) return this.kids(base);
+    if (this.scanHit) {
+      this.dropKids(base);
+      return this.scanRec!.kids!;
+    }
+    const kids = this.kids(base);
+    if (this.scanHotNow) {
+      for (const k of kids) {
+        if (k !== null) k.fresh = false;
+      }
+      this.scanStore(site, start, { end: this.pos, count, kids });
+    } else {
+      this.scanWalked(site, start);
+    }
+    return kids;
+  }
+
+  // scanStore records the walk of the site that began at start, charging one unit.
+  scanStore(site: number, start: number, rec: ScanRecord): void {
+    this.spend();
+    let t = this.scanTables[site];
+    if (t === undefined) {
+      t = new Map();
+      this.scanTables[site] = t;
+    }
+    t.set(start, rec);
+  }
+
+  // scanWalked notes a walk of SCAN_HOT_SPAN characters or more of a site that is not hot, which began
+  // at start and ended at the position: the site turns hot when the walk began below the furthest end
+  // of the walks before it and walked SCAN_HOT_SPAN characters below that end.
+  scanWalked(site: number, start: number): void {
+    const i = 2 * site + (this.silent > 0 ? 1 : 0);
+    while (this.scanCold.length <= i) this.scanCold.push({ end: 0, hot: false });
+    const c = this.scanCold[i]!;
+    if (start < c.end && Math.min(this.pos, c.end) - start >= SCAN_HOT_SPAN) c.hot = true;
+    c.end = Math.max(c.end, this.pos);
+  }
 
   // skipBegin starts a walk of the site at the current position.
   skipBegin(site: number): void {

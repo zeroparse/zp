@@ -265,6 +265,7 @@ func (p *Parser) streamDropRecords(pos int) {
 	// its inactive capacity can still refer to committed elements.
 	clear(p.Trail[:cap(p.Trail)])
 	p.pruneSkipRecords(pos)
+	p.pruneScanRecords(pos)
 	p.Observation.dropDiscarded(pos)
 }
 

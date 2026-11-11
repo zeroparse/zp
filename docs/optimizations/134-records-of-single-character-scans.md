@@ -73,3 +73,5 @@ between lookaheads and the code outside them. The elements of a record are never
 
 Adopted on the closure and bytecode backends, always on. Not covered: generated parsers; a repetition that a Document
 resumes; the bound for walks that start at different positions of one run is a draft (Lemma 5).
+[Record 137](137-scan-records-on-every-target.md) widens the sites to every rule that calls no rule and adds the
+records to generated parsers.

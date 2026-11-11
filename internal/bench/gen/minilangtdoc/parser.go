@@ -2360,13 +2360,14 @@ fail:
 
 func e29(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
-	var x1, size, x2, x6 int
+	var x1, size, x2, x3, x7, x8 int
 	var ch rune
 	var ok bool
-	var x3 rt.Mark
-	var v7 *rt.Node
+	var x4 rt.Mark
+	var v9 *rt.Node
 	x1 = p.Pos
-	x2 = 0
+	x2 = p.Pos
+	x3 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -2379,18 +2380,25 @@ func e29(p *rt.Parser, _ int) (*rt.Node, bool) {
 			break
 		}
 		p.Pos += size
-		x2++
+		x3++
+		if x3 == 16 {
+			x3 = p.ScanReach(5, x2, x3)
+		}
 	}
-	if x2 < 1 {
+	if 15 < x3 {
+		p.ScanEnd(5, x2, x3)
+	}
+	if x3 < 1 {
 		goto fail
 	}
-	x3 = p.Mark()
+	x4 = p.Mark()
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit28, ".", 26, false); !ok {
-		goto L4
+		goto L5
 	}
-	x6 = 0
+	x7 = p.Pos
+	x8 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -2403,17 +2411,23 @@ func e29(p *rt.Parser, _ int) (*rt.Node, bool) {
 			break
 		}
 		p.Pos += size
-		x6++
+		x8++
+		if x8 == 16 {
+			x8 = p.ScanReach(7, x7, x8)
+		}
 	}
-	if x6 < 1 {
-		goto L4
+	if 15 < x8 {
+		p.ScanEnd(7, x7, x8)
 	}
-	goto L5
-L4:
-	p.Reset(x3)
+	if x8 < 1 {
+		goto L5
+	}
+	goto L6
 L5:
-	v7 = p.NewTerminal(x1, p.Text(x1, p.Pos))
-	return v7, true
+	p.Reset(x4)
+L6:
+	v9 = p.NewTerminal(x1, p.Text(x1, p.Pos))
+	return v9, true
 fail:
 	return nil, false
 }
@@ -2579,7 +2593,7 @@ fail:
 
 func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
-	var x1, x2, size, x13, x17, x19, x21, x22, x26 int
+	var x1, x2, size, x13, x17, x19, x21, x22, x23, x26 int
 	var x4, x6, x24 rt.Mark
 	var v7, v14, v20, v27, v28, v29, v30, v31, v32, v33 *rt.Node
 	var x9, ch rune
@@ -2632,7 +2646,7 @@ func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 		}
 		v20 = p.NewTerminal(x19, "//")
 		x18 = append(x18, v20)
-		x21, x22 = p.Pos, len(p.KidStack)
+		x21, x23, x22 = p.Pos, len(p.KidStack), 0
 		for {
 			p.Spend()
 			x24 = p.Mark()
@@ -2651,15 +2665,16 @@ func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 			v27 = p.NewTerminal(x26, p.Text(x26, p.Pos))
 			v28 = p.ScopeValue(sh38, v27, x24.Pos)
 			p.KidStack = append(p.KidStack, v28)
-			if p.Pos == x24.Pos {
-				break
+			x22++
+			if x22 == 16 {
+				x22 = p.ScanReach(10, x21, x22)
 			}
 			continue
 		L25:
 			p.Reset(x24)
 			break
 		}
-		v29 = p.NewBranch(rt.RawKindList, x21, p.Kids(x22))
+		v29 = p.NewBranch(rt.RawKindList, x21, p.ScanKids(10, x21, x23, x22))
 		x18 = append(x18, v29)
 		v30 = p.NewBranch(rt.RawKindSeq, x17, x18)
 		v31, _ = p.ShapeSingle(sh39, v30, x6.Pos)
@@ -2687,7 +2702,7 @@ func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 func e41(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var v *rt.Node
-	var x2, x3, x5, x6, size int
+	var x2, x3, x5, x6, size, x14, x15 int
 	var x8, ch rune
 	var x9, ok bool
 	for {
@@ -2728,6 +2743,8 @@ func e41(p *rt.Parser, _ int) (*rt.Node, bool) {
 		} else if _, ok = p.MatchLiteral(lit37, "//", 31, false); !ok {
 			goto L13
 		}
+		x14 = p.Pos
+		x15 = 0
 		for {
 			if p.Document == nil && p.Pos < len(p.In) {
 				p.SpendRead(1)
@@ -2740,6 +2757,13 @@ func e41(p *rt.Parser, _ int) (*rt.Node, bool) {
 				break
 			}
 			p.Pos += size
+			x15++
+			if x15 == 16 {
+				x15 = p.ScanReach(9, x14, x15)
+			}
+		}
+		if 15 < x15 {
+			p.ScanEnd(9, x14, x15)
 		}
 		goto L7
 	L13:
@@ -5522,13 +5546,14 @@ func s20(p *rt.TParser) (any, bool) {
 
 func ds20(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, rec, x1, size, x2, x3, x4, x7 int
-	var v, v8, bv any
+	var start, rec, x1, size, x2, x3, x4, x5, x8, x9 int
+	var v, v10, bv any
 	var ch rune
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
-	x2 = 0
+	x2 = p.Pos
+	x3 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -5541,18 +5566,25 @@ func ds20(p *rt.TParser) (any, bool) {
 			break
 		}
 		p.Pos += size
-		x2++
+		x3++
+		if x3 == 16 {
+			x3 = p.ScanReach(5, x2, x3)
+		}
 	}
-	if x2 < 1 {
+	if 15 < x3 {
+		p.ScanEnd(5, x2, x3)
+	}
+	if x3 < 1 {
 		goto fail
 	}
-	x3, x4 = p.Pos, len(p.Recovered)
+	x4, x5 = p.Pos, len(p.Recovered)
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.Parser.MatchLiteral(lit28, ".", 26, false); !ok {
-		goto L5
+		goto L6
 	}
-	x7 = 0
+	x8 = p.Pos
+	x9 = 0
 	for {
 		if p.Document == nil && p.Pos < len(p.In) {
 			p.SpendRead(1)
@@ -5565,18 +5597,24 @@ func ds20(p *rt.TParser) (any, bool) {
 			break
 		}
 		p.Pos += size
-		x7++
+		x9++
+		if x9 == 16 {
+			x9 = p.ScanReach(7, x8, x9)
+		}
 	}
-	if x7 < 1 {
-		goto L5
+	if 15 < x9 {
+		p.ScanEnd(7, x8, x9)
 	}
-	goto L6
-L5:
-	p.Restore(x3, x4)
+	if x9 < 1 {
+		goto L6
+	}
+	goto L7
 L6:
-	v8 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v8)
-	v = p.ScopeValue(sh38, v8, start)
+	p.Restore(x4, x5)
+L7:
+	v10 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v10)
+	v = p.ScopeValue(sh38, v10, start)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -5808,7 +5846,7 @@ func s30(p *rt.TParser) (any, bool) {
 
 func ds30(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x1, x2, x4, x5, x7, x8, size, x15, x19, x21, x23, x24, x26, x27, x29 int
+	var start, x1, x2, x4, x5, x7, x8, size, x15, x19, x21, x23, x24, x25, x26, x27, x29 int
 	var v, v9, v16, v22, v30, v31, v32, v33, v34, v35, v36 any
 	var x11, ch rune
 	var x12, ok bool
@@ -5861,7 +5899,7 @@ func ds30(p *rt.TParser) (any, bool) {
 		}
 		v22 = p.NewMatch(x21, p.Pos, "//", true)
 		x20 = append(x20, v22)
-		x23, x24 = p.Pos, len(p.KidStack)
+		x23, x25, x24 = p.Pos, len(p.KidStack), 0
 		for {
 			p.Spend()
 			x26, x27 = p.Pos, len(p.Recovered)
@@ -5880,15 +5918,16 @@ func ds30(p *rt.TParser) (any, bool) {
 			v30 = p.NewMatch(x29, p.Pos, p.Text(x29, p.Pos), true)
 			v31 = p.ScopeValue(sh38, v30, x26)
 			p.PushKid(v31)
-			if p.Pos == x26 {
-				break
+			x24++
+			if x24 == 16 {
+				x24 = p.ScanReach(10, x23, x24)
 			}
 			continue
 		L28:
 			p.Restore(x26, x27)
 			break
 		}
-		v32 = p.NewNode("list", x23, p.Pos, p.Kids(x24))
+		v32 = p.NewNode("list", x23, p.Pos, p.ScanKids(10, x23, x25, x24))
 		x20 = append(x20, v32)
 		v33 = p.NewNode("tuple", x19, p.Pos, x20)
 		v34, _ = p.ShapeSingle(sh39, v33, x7)
@@ -5927,7 +5966,7 @@ func s31(p *rt.TParser) (any, bool) {
 func ds31(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var v any
-	var x2, x3, x5, x6, size int
+	var x2, x3, x5, x6, size, x14, x15 int
 	var x8, ch rune
 	var x9, ok bool
 	for {
@@ -5968,6 +6007,8 @@ func ds31(p *rt.TParser) (any, bool) {
 		} else if _, ok = p.Parser.MatchLiteral(lit37, "//", 31, false); !ok {
 			goto L13
 		}
+		x14 = p.Pos
+		x15 = 0
 		for {
 			if p.Document == nil && p.Pos < len(p.In) {
 				p.SpendRead(1)
@@ -5980,6 +6021,13 @@ func ds31(p *rt.TParser) (any, bool) {
 				break
 			}
 			p.Pos += size
+			x15++
+			if x15 == 16 {
+				x15 = p.ScanReach(9, x14, x15)
+			}
+		}
+		if 15 < x15 {
+			p.ScanEnd(9, x14, x15)
 		}
 		goto L7
 	L13:
@@ -6405,4 +6453,4 @@ fail:
 
 const _ = types.ZPSchema_3d84369c53f6b3f2
 
-const _ = rt.Protocol6
+const _ = rt.Protocol7

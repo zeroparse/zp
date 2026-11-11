@@ -24,7 +24,7 @@ the expectation a node records, the capture slots it writes and its effects (see
 | `Seq` | A [sequence](../language/parser-expressions.md#sequence) |
 | `Choice` | An [ordered choice](../language/parser-expressions.md#ordered-choice). An alternative can carry a guard (see below) |
 | `Opt` | An [optional](../language/parser-expressions.md#optional) |
-| `Repeat` | A [repetition](../language/parser-expressions.md#repetition) with the bounds Min and Max; a negative Max is unbounded. With a Scope, each iteration has fresh capture slots, which the element's value carries. With Project, the element builds no value and the repetition gathers the named capture of each element |
+| `Repeat` | A [repetition](../language/parser-expressions.md#repetition) with the bounds Min and Max; a negative Max is unbounded. With a Scope, each iteration has fresh capture slots, which the element's value carries. With Project, the element builds no value and the repetition gathers the named capture of each element. A Site numbers a [skip-run site](../runtime/parsing.md#skip-runs), whose walks record and reuse the rest of a walk from each position; a ScanSite numbers a [scan site](../runtime/parsing.md#scan-sites), whose walks record and reuse the rest of a walk from their start, under the number after it for a walk that builds a value |
 | `Look` | A [lookahead](../language/parser-expressions.md#lookahead), positive or negative. Its body runs in a silent scope, so it neither consumes nor records expectations |
 | `Cut` | [`#cut`](../language/parser-expressions.md#cut). It sets the cut flag of the enclosing choice, option or repetition |
 
@@ -72,4 +72,6 @@ records the same expectations at the same positions as the expression it replace
 | `Terminal` | A region of literals, classes, sequences, choices, options, negative lookaheads, `Text` and `Drop`, which a target may run as one table or program |
 
 A `Scan` records the expectation of the character where it stops, and fails only if it matched fewer than its minimum.
+A `Scan` that replaces a repetition that is a scan site keeps its number as Site and its records as the repetition
+would.
 No Core node charges a budget step on entry: a generated rule charges one compute unit when it is entered, a left-recursion leader charges one before each evaluation of its body and a repetition charges one on each iteration, while a `Scan` and a `ClassRun` charge one unit for each character they read.

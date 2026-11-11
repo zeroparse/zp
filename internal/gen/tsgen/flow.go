@@ -386,6 +386,8 @@ func (p *tsFlowPrinter) stmt(s flow.Stmt) {
 		p.write("p.skipVisit();\n")
 	case *flow.SkipEnd:
 		p.write("p.skipEnd();\n")
+	case *flow.ScanEnd:
+		p.write(fmt.Sprintf("p.scanEnd(%d, %s, %s);\n", s.Site, p.expr(s.Start), p.expr(s.Count)))
 	case *flow.ObserveSkip:
 		if p.dead || p.dry {
 			return
@@ -664,6 +666,10 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		return "p.kidStack.length"
 	case *flow.SkipHit:
 		return "p.skipHit()"
+	case *flow.ScanReach:
+		return fmt.Sprintf("p.scanReach(%d, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Count))
+	case *flow.ScanKids:
+		return fmt.Sprintf("p.scanKids(%d, %s, %s, %s)", x.Site, p.expr(x.Start), p.expr(x.Base), p.expr(x.Count))
 	case *flow.Nil:
 		return "null"
 	case *flow.Int:
