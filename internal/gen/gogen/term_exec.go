@@ -3,6 +3,7 @@ package gogen
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -26,6 +27,8 @@ import (
 const (
 	rtTermNodeType   = "TermNodeType"
 	rtTermCastFailed = "TermCastFailed"
+	rtTermStruct     = "TermStruct"
+	rtTermSetField   = "TermSetField"
 )
 
 // loweredBody returns the body of a function that returns the value of the term t of Core IR, printed
@@ -51,7 +54,7 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 	if t == nil || g.fieldCompared(t) {
 		return "", false
 	}
-	l, err := lower.Term(t, lower.TermOptions{Result: result})
+	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules"})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -110,7 +113,8 @@ func coreFieldRead(t irc.Term) bool {
 // s and the locals resolve.
 func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *execgo.Target {
 	handles := map[string]string{ops.Datum: "any", ops.Fail: "any", ops.Str: "string", ops.Name: "string",
-		ops.Act: "*" + g.ctxType(), ops.FType: "*FieldType", ops.NodeType: g.pick("*nodeTypeKinds", "uint16")}
+		ops.Act: "*" + g.ctxType(), ops.FType: "*FieldType", ops.NodeType: g.pick("*nodeTypeKinds", "uint16"),
+		ops.Seq: g.pick("[]*Node", "[]any"), ops.Obj: g.pick("*Node", "TVal")}
 	return &execgo.Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
@@ -158,8 +162,23 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return fmt.Sprintf("c.%s(%s, %s, %d, %d)", rtTermCastFailed, a[0], g.castTypeVar(x), x.Line, x.Col)
 			case lower.OpTermTextEqual:
 				return "c.P.TextEqual(" + a[0] + ", " + a[1] + ")"
-			case lower.OpTermFromStr, "val.fromBool":
+			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
 				return "any(" + a[0] + ")"
+			case "term.kids":
+				return "len(c.P.KidStack)"
+			case lower.OpTermElemsAbove:
+				return "c.P.Kids(" + a[0] + ")"
+			case "seq.step":
+				return "c.P.Spend()"
+			case lower.OpTermStruct:
+				t := c.Imm.(lower.TermNew).New
+				return fmt.Sprintf("c.%s(%q, %d)", rtTermStruct, t.Type, len(t.Fields))
+			case lower.OpTermSetField:
+				return fmt.Sprintf("c.%s(%s, %q, %s)", rtTermSetField, a[0], c.Imm.(string), a[1])
+			}
+			if t, ok := c.Imm.(lower.TermNew); ok && strings.HasPrefix(c.Callee, lower.OpTermNew) {
+				// The typed runtime calls the constructor of the type (tmk_T, see typedRuntime).
+				return "tmk_" + t.New.Type + "(" + strings.Join(append([]string{"c", strconv.FormatBool(t.New.Final)}, a...), ", ") + ")"
 			}
 			panic("gogen: term operation " + c.Callee)
 		},
@@ -179,7 +198,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 // call: the compositions of core.GoTermExports and the operations of the leaves that the runtime
 // exports for them.
 func loweredTermNames() []string {
-	names := []string{rtTermNodeType, rtTermCastFailed}
+	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField}
 	for _, n := range core.GoTermExports {
 		names = append(names, n)
 	}

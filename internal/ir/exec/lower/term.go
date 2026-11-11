@@ -63,21 +63,38 @@ func (c TermCast) String() string { return fmt.Sprintf("cast %d:%d", c.Cast.Line
 
 // Names of the operations that lowered terms call besides the compositions.
 const (
-	OpTermConst     = "term.const"
-	OpTermRead      = "term.read"
-	OpTermCtx       = "term.ctx"
-	OpTermName      = "term.name"
-	OpTermNodeType  = "term.nodeType"
-	OpTermCastType  = "term.castType"
-	OpTermRaise     = "term.raise"
-	OpTermCastError = "term.castError"
-	OpTermTextEqual = "term.textEqual"
-	OpTermFromStr   = "term.fromStr"
-	OpTermSpend     = "term.spend"
+	OpTermConst      = "term.const"
+	OpTermRead       = "term.read"
+	OpTermCtx        = "term.ctx"
+	OpTermName       = "term.name"
+	OpTermNodeType   = "term.nodeType"
+	OpTermCastType   = "term.castType"
+	OpTermRaise      = "term.raise"
+	OpTermCastError  = "term.castError"
+	OpTermTextEqual  = "term.textEqual"
+	OpTermFromStr    = "term.fromStr"
+	OpTermSpend      = "term.spend"
+	OpTermElemsAbove = "term.elemsAbove"
+	OpTermStruct     = "term.struct"
+	OpTermSetField   = "term.setField"
+	OpTermFromObj    = "term.fromObj"
+	// OpTermNew is the prefix of term.newN, the call of the constructor of a struct type with N
+	// declared fields (TermOptions.StructCall).
+	OpTermNew = "term.new"
 )
 
+// opTermKids is the operation of the parser VM that returns the base of the elements of a list or a
+// tuple that starts being made: the number of elements gathered so far (act.push).
+const opTermKids = "term.kids"
+
+// TermNew is the immediate operand of term.newN: the struct literal.
+type TermNew struct{ New *ir.New }
+
+func (n TermNew) String() string { return n.New.Type }
+
 // TermCompositions are the compositions of the parser VM that lowered terms call.
-var TermCompositions = []string{"binary", "unary", "logic", "member", "length", "text", "convert", "conforms"}
+var TermCompositions = []string{"binary", "unary", "logic", "member", "length", "text", "convert", "conforms",
+	"push", "pushItems", "hull", "cover", "made"}
 
 // TermLowered is a term lowered to Exec IR.
 type TermLowered struct {
@@ -99,10 +116,18 @@ type TermOptions struct {
 	// Steps charges one step of the budget for each subterm, before its operands, as the target's
 	// evaluation of terms does under budget controls (term.spend).
 	Steps bool
+	// StructCall makes a struct literal one call of the target's constructor of its type (term.newN),
+	// with the field values evaluated in the order written and passed in declaration order, nil for a
+	// field not given. Otherwise the struct is made of its fields by term.struct, term.setField, cover
+	// and made.
+	StructCall bool
+	// Unbounded leaves out the steps that elements charge (seq.step), for a target whose parser
+	// does not bound the work and prints no charge.
+	Unbounded bool
 }
 
 // Term lowers the term t, or returns ErrUnsupported if t holds a kind of term that it does not lower
-// (a constructor, a tuple, a built-in other than len and text, a lambda or a lambda parameter).
+// (a built-in that takes a function, a lambda or a lambda parameter).
 func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if !TermSupported(t) {
 		return nil, ErrUnsupported
@@ -116,7 +141,7 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if o.Result == "" {
 		results = []exec.Type{datum}
 	}
-	l := &termLowerer{steps: o.Steps}
+	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded}
 	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
 		var res exec.Expr
 		if o.Result != "" {
@@ -140,11 +165,18 @@ func TermSupported(t ir.Term) bool {
 	ok := true
 	ir.WalkTerm(t, func(x ir.Term) {
 		switch x := x.(type) {
-		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast:
+		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast,
+			*ir.Tuple, *ir.New:
 		case *ir.Local:
 			ok = ok && x.Kind != ir.LocalParam
 		case *ir.Builtin:
-			ok = ok && (x.Func == "len" || x.Func == "text") && len(x.Args) == 1
+			switch x.Func {
+			case "len", "text":
+				ok = ok && len(x.Args) == 1
+			case "list", "concat":
+			default:
+				ok = false
+			}
 		default:
 			ok = false
 		}
@@ -196,7 +228,10 @@ func termModule() (*exec.Module, error) {
 	if termBaseErr != nil {
 		return nil, termBaseErr
 	}
+	// The slices are clipped, so that what a term adds to its module (term.newN, its function) does not
+	// write into those of the base, which other terms share.
 	m := *termBase
+	m.Ops, m.Funcs = slices.Clip(m.Ops), slices.Clip(m.Funcs)
 	return &m, nil
 }
 
@@ -232,11 +267,31 @@ func addTermOps(m *exec.Module) {
 		Contract: "Charges one step of the budget for a subterm, under budget controls."})
 	op(&exec.Op{Name: OpTermFromStr, Params: []exec.Param{exec.P("s", str)}, Results: []exec.Type{datum},
 		Contract: "Returns the string s as a value."})
+	obj, seq := exec.THandle(ops.Obj), exec.THandle(ops.Seq)
+	op(&exec.Op{Name: OpTermFromObj, Params: []exec.Param{exec.P("n", obj)}, Results: []exec.Type{datum},
+		Contract: "Returns the struct, list value or tuple value n as a value."})
+	op(&exec.Op{Name: OpTermElemsAbove, Params: []exec.Param{exec.P("base", exec.TInt)}, Results: []exec.Type{seq}, Reads: reads, Writes: reads,
+		Contract: "Takes the elements gathered above base, which term.kids returned, off the gathered elements and returns them, for hull to take over."})
+	op(&exec.Op{Name: OpTermStruct, Results: []exec.Type{obj}, Reads: reads, Writes: reads, NoReturn: true, Imm: "the struct literal (TermNew)",
+		Contract: "Returns a new struct of the type of the literal in Imm with no field set and an empty range, with room for the fields the literal gives."})
+	op(&exec.Op{Name: OpTermSetField, Params: []exec.Param{exec.P("n", obj), exec.P("v", datum)}, Reads: reads, Writes: reads, NoReturn: true,
+		Imm:      "the name of the field (a string)",
+		Contract: "Sets the field in Imm of the struct n, which a term is making, to v. A target that bounds the work charges for the fields it scans and the bytes of the names it compares."})
 }
 
 type termLowerer struct {
-	n     int
-	steps bool
+	m          *exec.Module
+	n          int
+	steps      bool
+	structCall bool
+	unbounded  bool
+}
+
+// step charges the step of an element (seq.step).
+func (l *termLowerer) step(b *exec.Builder) {
+	if !l.unbounded {
+		b.Do("seq.step")
+	}
 }
 
 // local returns a fresh name of a local with the prefix p.
@@ -309,7 +364,33 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 		x := l.value(b, t.L)
 		y := l.value(b, t.R)
 		return l.fallible(b, "tv", exec.C("binary", code(ops.BinaryOps, t.Op), x, y))
+	case *ir.Tuple:
+		return l.sequence(b, true, "tuple", l.values(b, t.Elems))
+	case *ir.New:
+		return l.newStruct(b, t)
 	case *ir.Builtin:
+		switch t.Func {
+		case "list":
+			return l.sequence(b, false, "list", l.values(b, t.Args))
+		case "concat":
+			if fusable(t) {
+				// The elements of the arguments are pushed as they are made, without making the lists of
+				// the arguments.
+				base := b.Let(l.local("tm"), exec.C(opTermKids))
+				l.concatParts(b, t)
+				return l.hull(b, false, base)
+			}
+			vals := l.values(b, t.Args)
+			base := b.Let(l.local("tm"), exec.C(opTermKids))
+			for _, v := range vals {
+				l.step(b)
+				if l.steps {
+					b.Do(OpTermSpend)
+				}
+				l.check(b, exec.C("pushItems", exec.C(OpTermCtx), imm(OpTermName, "concat"), v))
+			}
+			return l.hull(b, false, base)
+		}
 		x := l.value(b, t.Args[0])
 		if t.Func == "len" {
 			return l.fallible(b, "tv", exec.C("length", x))
@@ -326,6 +407,124 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 		return x
 	}
 	panic(fmt.Sprintf("lower: term %T", t))
+}
+
+// values lowers the terms ts in order and returns their values.
+func (l *termLowerer) values(b *exec.Builder, ts []ir.Term) []exec.Expr {
+	vals := make([]exec.Expr, len(ts))
+	for i, t := range ts {
+		vals[i] = l.value(b, t)
+	}
+	return vals
+}
+
+// check lets the failure that the call c of a composition returns and raises it.
+func (l *termLowerer) check(b *exec.Builder, c *exec.Call) {
+	f := b.Let(l.local("tf"), c)
+	b.If(exec.Bin("!=", f, exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { b.Do(OpTermRaise, f) })
+}
+
+// sequence makes the tuple value, if tuple, or the list value of vals, the values of the elements that
+// the literal or the built-in function fn gives: it pushes each, charging a step for it, and the hull
+// takes them over.
+func (l *termLowerer) sequence(b *exec.Builder, tuple bool, fn string, vals []exec.Expr) exec.Expr {
+	base := b.Let(l.local("tm"), exec.C(opTermKids))
+	l.pushes(b, fn, vals)
+	return l.hull(b, tuple, base)
+}
+
+// pushes pushes vals as elements of the list or the tuple that fn makes, charging a step for each.
+// Under Steps, a step is charged before them, as the target's evaluation of terms charges one for
+// gathering them.
+func (l *termLowerer) pushes(b *exec.Builder, fn string, vals []exec.Expr) {
+	if l.steps {
+		b.Do(OpTermSpend)
+	}
+	for _, v := range vals {
+		l.step(b)
+		l.check(b, exec.C("push", exec.C(OpTermCtx), imm(OpTermName, fn), v))
+	}
+}
+
+// hull returns the tuple value, if tuple, or the list value of the elements pushed since base.
+func (l *termLowerer) hull(b *exec.Builder, tuple bool, base exec.Expr) exec.Expr {
+	kids := b.Let(l.local("tk"), exec.C(OpTermElemsAbove, base))
+	return exec.C(OpTermFromObj, b.Let(l.local("tn"), exec.C("hull", exec.C(OpTermCtx), exec.BoolC(tuple), kids)))
+}
+
+// concatParts pushes the elements of the arguments of the fusable concat call t: those of a list call
+// as list pushes them, and those of a concat call by its own arguments. The calls themselves are not
+// subterms that are evaluated, and charge no step for one.
+func (l *termLowerer) concatParts(b *exec.Builder, t *ir.Builtin) {
+	for _, a := range t.Args {
+		call := a.(*ir.Builtin)
+		switch call.Func {
+		case "list":
+			l.pushes(b, "list", l.values(b, call.Args))
+		case "concat":
+			l.concatParts(b, call)
+		default:
+			panic("lower: concat part " + call.Func)
+		}
+	}
+}
+
+// fusable reports whether every argument of the concat call t is a call of list, of map with a
+// function, or a fusable concat (see compile.Fusable), whose elements can be pushed as they are made.
+func fusable(t *ir.Builtin) bool {
+	for _, a := range t.Args {
+		call, ok := a.(*ir.Builtin)
+		switch {
+		case ok && call.Func == "list", ok && call.Func == "map" && len(call.Args) == 2:
+		case ok && call.Func == "concat" && fusable(call):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// newStruct lowers the struct literal t. The field values are evaluated in the order written. The
+// struct is then one call of the constructor of its type (StructCall), or made of its fields in that
+// order: a step charged for each, the field set and its value covered by the range of the struct.
+func (l *termLowerer) newStruct(b *exec.Builder, t *ir.New) exec.Expr {
+	vals := make([]exec.Expr, len(t.Fields))
+	for i, f := range t.Fields {
+		// A value is let before the next one is evaluated, so that a later field cannot change it.
+		vals[i] = b.Let(l.local("tf"), l.value(b, f.Value))
+	}
+	if l.structCall {
+		name := OpTermNew + strconv.Itoa(len(t.Declared))
+		if l.m.Op(name) == nil {
+			params := make([]exec.Param, len(t.Declared))
+			for i := range params {
+				params[i] = exec.P("f"+strconv.Itoa(i), exec.THandle(ops.Datum))
+			}
+			l.m.AddOp(&exec.Op{Name: name, Component: Component, Transitional: true, Params: params,
+				Results: []exec.Type{exec.THandle(ops.Datum)}, Reads: []string{Component}, Writes: []string{Component},
+				Imm: "the struct literal (TermNew)", Contract: "Returns the struct that the literal in Imm makes of the field values, given in the order its type declares them; nil for a field the literal does not give."})
+		}
+		args := make([]exec.Expr, len(t.Declared))
+		for i, d := range t.Declared {
+			args[i] = imm(OpTermConst, TermConst{nil})
+			for j, f := range t.Fields {
+				if f.Name == d {
+					args[i] = vals[j]
+				}
+			}
+		}
+		return b.Let(l.local("tv"), &exec.Call{Callee: name, Args: args, Imm: TermNew{t}})
+	}
+	n := b.Let(l.local("tn"), &exec.Call{Callee: OpTermStruct, Imm: TermNew{t}})
+	first := l.local("tfirst")
+	b.Let(first, exec.BoolC(true))
+	for i, f := range t.Fields {
+		l.step(b)
+		b.Append(&exec.Do{Call: &exec.Call{Callee: OpTermSetField, Args: []exec.Expr{n, vals[i]}, Imm: f.Name}})
+		b.Set(first, exec.C("cover", n, vals[i], exec.L(first)))
+	}
+	b.Do("made", exec.C(OpTermCtx), n, exec.L(first))
+	return exec.C(OpTermFromObj, n)
 }
 
 // logic lowers l && r and l || r: logic checks each operand that is evaluated, and the right one is

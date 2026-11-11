@@ -362,12 +362,13 @@ func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field strin
 	return nil, p.termError(10, x, any(field), 0, 0)
 }
 
-// termPush pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
+// TermPush pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
 // nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
 // value, such as a function, fails and pushes nothing.
+// TermPush is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function push of internal/ir/exec/core.
-func (p *Parser) termPush(c *ActCtx, fn string, v any) any {
+func (p *Parser) TermPush(c *ActCtx, fn string, v any) any {
 	k := valKind(v)
 	if k == 0 {
 		p.KidStack = append(p.KidStack, nil)
@@ -385,12 +386,13 @@ func (p *Parser) termPush(c *ActCtx, fn string, v any) any {
 	return p.termError(11, v, any(fn), 0, 0)
 }
 
-// termPushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
+// TermPushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
 // next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
 // fails and pushes nothing.
+// TermPushItems is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function pushItems of internal/ir/exec/core.
-func (p *Parser) termPushItems(c *ActCtx, fn string, v any) any {
+func (p *Parser) TermPushItems(c *ActCtx, fn string, v any) any {
 	items, ok := valItems(v)
 	if ok {
 		p.KidStack = appendSpend(p, p.KidStack, items)
@@ -494,12 +496,13 @@ func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 	return nil, p.termError(15, x, any(t[0].typ), 0, 0)
 }
 
-// termCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+// TermCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
 // v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
 // whether it had none before, and the first node gives n its range.
+// TermCover is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function cover of internal/ir/exec/core.
-func (p *Parser) termCover(n *Node, v any, first bool) bool {
+func (p *Parser) TermCover(n *Node, v any, first bool) bool {
 	k, ok := nodeOf(v)
 	if !ok {
 		return first
@@ -518,11 +521,12 @@ func (p *Parser) termCover(n *Node, v any, first bool) bool {
 	return false
 }
 
-// termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+// TermMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 // rule if no field value is a node, and c records n.
+// TermMade is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function made of internal/ir/exec/core.
-func (p *Parser) termMade(c *ActCtx, n *Node, first bool) {
+func (p *Parser) TermMade(c *ActCtx, n *Node, first bool) {
 	if first {
 		rs, re := c.start, c.end
 		n.setSpan(rs, re)
@@ -530,13 +534,14 @@ func (p *Parser) termMade(c *ActCtx, n *Node, first bool) {
 	c.made(n)
 }
 
-// termHull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
+// TermHull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
 // gives it its range: the one that covers the ranges that the elements add (seq.span), and the empty range at the start
 // of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a
 // struct that holds one covers it.
+// TermHull is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function hull of internal/ir/exec/core.
-func (p *Parser) termHull(c *ActCtx, tuple bool, kids []*Node) *Node {
+func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*Node) *Node {
 	var j int
 	n := p.NewNode(Node{RawKind: seqKind(tuple), RawChildren: kids})
 	rs, _ := c.start, c.end
@@ -923,12 +928,13 @@ func (p *TParser) TermMember(c *TActCtx, kind int, x any, name string, field str
 	return nil, p.termError(10, x, any(field), 0, 0)
 }
 
-// termPush pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
+// TermPush pushes v as the next element of the list or the tuple that the built-in function or literal fn makes in c:
 // nil, a node, a list, a tuple or a struct as it is, and an int, a string or a bool as val.box makes it. Any other
 // value, such as a function, fails and pushes nothing.
+// TermPush is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function push of internal/ir/exec/core.
-func (p *TParser) termPush(c *TActCtx, fn string, v any) any {
+func (p *TParser) TermPush(c *TActCtx, fn string, v any) any {
 	k := valKind(v)
 	if k == 0 {
 		p.KidStack = append(p.KidStack, nil)
@@ -946,12 +952,13 @@ func (p *TParser) termPush(c *TActCtx, fn string, v any) any {
 	return p.termError(11, v, any(fn), 0, 0)
 }
 
-// termPushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
+// TermPushItems pushes the elements of v, an argument of the built-in function fn that concatenates lists, as the
 // next elements of the list that fn makes in c: none for nil, and those of a list or a tuple as they are. Any other value
 // fails and pushes nothing.
+// TermPushItems is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function pushItems of internal/ir/exec/core.
-func (p *TParser) termPushItems(c *TActCtx, fn string, v any) any {
+func (p *TParser) TermPushItems(c *TActCtx, fn string, v any) any {
 	items, ok := tvalItems(v)
 	if ok {
 		p.KidStack = appendSpend(p.Parser, p.KidStack, items)
@@ -1055,12 +1062,13 @@ func (p *TParser) TermConvert(t uint16, x any) (any, any) {
 	return nil, p.termError(15, x, any(tnodeTypeOf(t).name), 0, 0)
 }
 
-// termCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
+// TermCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
 // v is a node, a list, a tuple or a struct, and returns whether n still has no node among its field values: first is
 // whether it had none before, and the first node gives n its range.
+// TermCover is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function cover of internal/ir/exec/core.
-func (p *TParser) termCover(n TVal, v any, first bool) bool {
+func (p *TParser) TermCover(n TVal, v any, first bool) bool {
 	k, ok := tnodeOf(v)
 	if !ok {
 		return first
@@ -1079,11 +1087,12 @@ func (p *TParser) termCover(n TVal, v any, first bool) bool {
 	return false
 }
 
-// termMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
+// TermMade finishes the struct n that c made of field values that cover has gone over: n takes the range of the
 // rule if no field value is a node, and c records n.
+// TermMade is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function made of internal/ir/exec/core.
-func (p *TParser) termMade(c *TActCtx, n TVal, first bool) {
+func (p *TParser) TermMade(c *TActCtx, n TVal, first bool) {
 	if first {
 		rs, re := c.Start, c.End
 		n.TSetSpan(rs, re)
@@ -1091,13 +1100,14 @@ func (p *TParser) termMade(c *TActCtx, n TVal, first bool) {
 	c.made(n)
 }
 
-// termHull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
+// TermHull makes the tuple value, if tuple, or the list value of the elements kids in c, which it takes over, and
 // gives it its range: the one that covers the ranges that the elements add (seq.span), and the empty range at the start
 // of the rule if none adds one. It charges a step for each element. The value model does not show the range of a list or a tuple, but a
 // struct that holds one covers it.
+// TermHull is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function hull of internal/ir/exec/core.
-func (p *TParser) termHull(c *TActCtx, tuple bool, kids []any) TVal {
+func (p *TParser) TermHull(c *TActCtx, tuple bool, kids []any) TVal {
 	var j int
 	n := c.newSeq(tuple, kids)
 	rs, _ := c.Start, c.End

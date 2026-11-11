@@ -29,6 +29,7 @@ var termFuncs = []struct{ fn, name string }{
 var GoTermExports = map[string]string{
 	"binary": "TermBinary", "unary": "TermUnary", "logic": "TermLogic", "member": "TermMember",
 	"length": "TermLength", "text": "TermText", "convert": "TermConvert", "conforms": "TermConforms",
+	"push": "TermPush", "pushItems": "TermPushItems", "hull": "TermHull", "cover": "TermCover", "made": "TermMade",
 }
 
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.

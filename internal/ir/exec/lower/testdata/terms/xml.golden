@@ -1,11 +1,66 @@
 ## main action
-not lowered: New, concat
+func term() Datum {
+  let tf1 = term.read([$d])
+  let tm3 = term.kids()
+  seq.step()
+  let tf4 = pushItems(term.ctx(), term.name([concat]), term.read([$p1]))
+  if (tf4 != null(Fail)) {
+    term.raise(tf4)
+  }
+  seq.step()
+  let tf5 = pushItems(term.ctx(), term.name([concat]), term.read([$p2]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tk6 = term.elemsAbove(tm3)
+  let tn7 = hull(term.ctx(), false, tk6)
+  let tf2 = term.fromObj(tn7)
+  let tf8 = term.read([$dt])
+  let tf9 = term.read([$r])
+  let tf10 = term.read([$e])
+  let tn11 = term.struct([Document])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Decl], tn11, tf1)
+  tfirst12 = cover(tn11, tf1, tfirst12)
+  seq.step()
+  term.setField([Prolog], tn11, tf2)
+  tfirst12 = cover(tn11, tf2, tfirst12)
+  seq.step()
+  term.setField([Doctype], tn11, tf8)
+  tfirst12 = cover(tn11, tf8, tfirst12)
+  seq.step()
+  term.setField([Root], tn11, tf9)
+  tfirst12 = cover(tn11, tf9, tfirst12)
+  seq.step()
+  term.setField([Epilog], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## misc_list action
 not lowered: map, Lambda, param
 
 ## xml_decl action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$v])
+  let tf2 = term.read([$e])
+  let tf3 = term.read([$sd])
+  let tn4 = term.struct([XMLDecl])
+  let tfirst5 = true
+  seq.step()
+  term.setField([Version], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
+  seq.step()
+  term.setField([Encoding], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
+  seq.step()
+  term.setField([Standalone], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4)
+}
 
 ## version_info action
 func term() Datum {
@@ -28,7 +83,20 @@ func term() Datum {
 }
 
 ## pi action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$t])
+  let tf2 = term.read([$d])
+  let tn3 = term.struct([PI])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Target], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([Data], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## pi predicate
 func term() Datum {
@@ -184,16 +252,63 @@ func term() Datum {
 }
 
 ## doctype action
-not lowered: New, concat
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$x])
+  let tm4 = term.kids()
+  seq.step()
+  let tf5 = pushItems(term.ctx(), term.name([concat]), term.read([$ds]))
+  if (tf5 != null(Fail)) {
+    term.raise(tf5)
+  }
+  let tk6 = term.elemsAbove(tm4)
+  let tn7 = hull(term.ctx(), false, tk6)
+  let tf3 = term.fromObj(tn7)
+  let tn8 = term.struct([Doctype])
+  let tfirst9 = true
+  seq.step()
+  term.setField([Name], tn8, tf1)
+  tfirst9 = cover(tn8, tf1, tfirst9)
+  seq.step()
+  term.setField([ExternalID], tn8, tf2)
+  tfirst9 = cover(tn8, tf2, tfirst9)
+  seq.step()
+  term.setField([Subset], tn8, tf3)
+  tfirst9 = cover(tn8, tf3, tfirst9)
+  made(term.ctx(), tn8, tfirst9)
+  return term.fromObj(tn8)
+}
 
 ## int_subset action
 not lowered: map, Lambda, param
 
 ## system_id action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$l])
+  let tn2 = term.struct([ExternalID])
+  let tfirst3 = true
+  seq.step()
+  term.setField([System], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2)
+}
 
 ## public_id action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$p])
+  let tf2 = term.read([$l])
+  let tn3 = term.struct([ExternalID])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Public], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([System], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## system_literal action
 func term() Datum {
@@ -206,7 +321,20 @@ func term() Datum {
 }
 
 ## element_decl action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$c])
+  let tn3 = term.struct([ElementDecl])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Name], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([Content], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## mixed action
 not lowered: New, map, Lambda, param
@@ -231,13 +359,47 @@ not lowered: New, concat, list, map, Lambda, param
 not lowered: New, concat, list, map, Lambda, param
 
 ## name_particle action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$o])
+  let tn3 = term.struct([NameParticle])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Name], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([Occur], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## attlist_decl action
 not lowered: New, map, Lambda, param
 
 ## att_def action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$t])
+  let tf3 = term.read([$k])
+  let tf4 = term.read([$v])
+  let tn5 = term.struct([AttDef])
+  let tfirst6 = true
+  seq.step()
+  term.setField([Name], tn5, tf1)
+  tfirst6 = cover(tn5, tf1, tfirst6)
+  seq.step()
+  term.setField([Type], tn5, tf2)
+  tfirst6 = cover(tn5, tf2, tfirst6)
+  seq.step()
+  term.setField([Default], tn5, tf3)
+  tfirst6 = cover(tn5, tf3, tfirst6)
+  seq.step()
+  term.setField([Value], tn5, tf4)
+  tfirst6 = cover(tn5, tf4, tfirst6)
+  made(term.ctx(), tn5, tfirst6)
+  return term.fromObj(tn5)
+}
 
 ## notation_type action
 not lowered: New, concat, list, map, Lambda, param
@@ -246,10 +408,56 @@ not lowered: New, concat, list, map, Lambda, param
 not lowered: New, concat, list, map, Lambda, param
 
 ## ge_decl action
-not lowered: New
+func term() Datum {
+  let tf1 = term.const([false])
+  let tf2 = term.read([$n])
+  let tf3 = term.read([$v])
+  let tf4 = term.read([$x])
+  let tf5 = term.read([$nd])
+  let tn6 = term.struct([EntityDecl])
+  let tfirst7 = true
+  seq.step()
+  term.setField([Parameter], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
+  seq.step()
+  term.setField([Name], tn6, tf2)
+  tfirst7 = cover(tn6, tf2, tfirst7)
+  seq.step()
+  term.setField([Value], tn6, tf3)
+  tfirst7 = cover(tn6, tf3, tfirst7)
+  seq.step()
+  term.setField([ExternalID], tn6, tf4)
+  tfirst7 = cover(tn6, tf4, tfirst7)
+  seq.step()
+  term.setField([NData], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6)
+}
 
 ## pe_decl action
-not lowered: New
+func term() Datum {
+  let tf1 = term.const([true])
+  let tf2 = term.read([$n])
+  let tf3 = term.read([$v])
+  let tf4 = term.read([$x])
+  let tn5 = term.struct([EntityDecl])
+  let tfirst6 = true
+  seq.step()
+  term.setField([Parameter], tn5, tf1)
+  tfirst6 = cover(tn5, tf1, tfirst6)
+  seq.step()
+  term.setField([Name], tn5, tf2)
+  tfirst6 = cover(tn5, tf2, tfirst6)
+  seq.step()
+  term.setField([Value], tn5, tf3)
+  tfirst6 = cover(tn5, tf3, tfirst6)
+  seq.step()
+  term.setField([ExternalID], tn5, tf4)
+  tfirst6 = cover(tn5, tf4, tfirst6)
+  made(term.ctx(), tn5, tfirst6)
+  return term.fromObj(tn5)
+}
 
 ## entity_value action
 func term() Datum {
@@ -257,10 +465,36 @@ func term() Datum {
 }
 
 ## notation_decl action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$x])
+  let tn3 = term.struct([NotationDecl])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Name], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([ExternalID], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## public_notation action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$p])
+  let tf2 = term.read([$l])
+  let tn3 = term.struct([ExternalID])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Public], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([System], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## element action
 not lowered: New, map, Lambda, param, concat
@@ -279,7 +513,20 @@ func term() Datum {
 }
 
 ## attribute action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$v])
+  let tn3 = term.struct([Attribute])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Name], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([Value], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## att_value action
 func term() Datum {

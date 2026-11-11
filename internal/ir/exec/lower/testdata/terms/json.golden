@@ -4,16 +4,63 @@ func term() Datum {
 }
 
 ## object action
-not lowered: New, concat
+func term() Datum {
+  let tm2 = term.kids()
+  seq.step()
+  let tf3 = pushItems(term.ctx(), term.name([concat]), term.read([$ms]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tk4 = term.elemsAbove(tm2)
+  let tn5 = hull(term.ctx(), false, tk4)
+  let tf1 = term.fromObj(tn5)
+  let tn6 = term.struct([Object])
+  let tfirst7 = true
+  seq.step()
+  term.setField([Members], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6)
+}
 
 ## members action
 not lowered: concat, list, map, Lambda, param
 
 ## member action
-not lowered: New
+func term() Datum {
+  let tf1 = term.read([$k])
+  let tf2 = term.read([$v])
+  let tn3 = term.struct([Member])
+  let tfirst4 = true
+  seq.step()
+  term.setField([Key], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
+  seq.step()
+  term.setField([Value], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3)
+}
 
 ## array action
-not lowered: New, concat
+func term() Datum {
+  let tm2 = term.kids()
+  seq.step()
+  let tf3 = pushItems(term.ctx(), term.name([concat]), term.read([$es]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tk4 = term.elemsAbove(tm2)
+  let tn5 = hull(term.ctx(), false, tk4)
+  let tf1 = term.fromObj(tn5)
+  let tn6 = term.struct([Array])
+  let tfirst7 = true
+  seq.step()
+  term.setField([Elements], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6)
+}
 
 ## elements action
 not lowered: concat, list, map, Lambda, param

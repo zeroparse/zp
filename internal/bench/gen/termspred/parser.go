@@ -189,9 +189,35 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any { return c.NewStruct("Doc", "Lines", c.Member(c.Cap(0), "Value")) }
+	rules[0].Action = func(c *rt.ActCtx) any {
+		tv2, tf2 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf1 := tv2
+		tn3 := c.TermStruct("Doc", 1)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Lines", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[1].Body = e5
-	rules[1].Action = func(c *rt.ActCtx) any { return c.NewStruct("Line", "N", c.Length(c.Cap(0))) }
+	rules[1].Action = func(c *rt.ActCtx) any {
+		tv2, tf2 := c.P.TermLength(c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf1 := tv2
+		tn3 := c.TermStruct("Line", 1)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "N", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	zpGrammar.DeclareStruct("Doc", "Lines", "l")
 	zpGrammar.TypeKinds["Doc"] = rt.KindOf("Doc", "")
 	zpGrammar.DeclareStruct("Line", "N", "i")
@@ -620,7 +646,19 @@ func i0(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = tmk_Doc(c, true, c.Member(k1, "Value"))
+	{
+		var tr10 any
+		{
+			tv2, tf2 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf1 := tv2
+			tv3 := tmk_Doc(c, true, tf1)
+			tr10 = tv3
+		}
+		v = tr10
+	}
 	return v, true
 fail:
 	return nil, false
@@ -728,7 +766,19 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "line"
-	v = tmk_Line(c, true, c.Length(k1))
+	{
+		var tr14 any
+		{
+			tv2, tf2 := c.P.TermLength(k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf1 := tv2
+			tv3 := tmk_Line(c, true, tf1)
+			tr14 = tv3
+		}
+		v = tr14
+	}
 	return v, true
 fail:
 	return nil, false

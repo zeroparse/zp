@@ -1069,13 +1069,64 @@ func init() {
 	zpGrammar.SetRules(rules, 18)
 	rules[0].Body = e2
 	rules[0].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Document", "Decl", c.Cap(0), "Prolog", c.Concat(c.Cap(1), c.Cap(3)), "Doctype", c.Cap(2), "Root", c.Cap(4), "Epilog", c.Cap(5))
+		tf1 := c.Cap(0)
+		tm3 := len(c.P.KidStack)
+		c.P.Spend()
+		tf4 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf4 != nil {
+			panic(tf4)
+		}
+		c.P.Spend()
+		tf5 := c.P.TermPushItems(c, "concat", c.Cap(3))
+		if tf5 != nil {
+			panic(tf5)
+		}
+		tk6 := c.P.Kids(tm3)
+		tn7 := c.P.TermHull(c, false, tk6)
+		tf2 := any(tn7)
+		tf8 := c.Cap(2)
+		tf9 := c.Cap(4)
+		tf10 := c.Cap(5)
+		tn11 := c.TermStruct("Document", 5)
+		tfirst12 := true
+		c.P.Spend()
+		c.TermSetField(tn11, "Decl", tf1)
+		tfirst12 = c.P.TermCover(tn11, tf1, tfirst12)
+		c.P.Spend()
+		c.TermSetField(tn11, "Prolog", tf2)
+		tfirst12 = c.P.TermCover(tn11, tf2, tfirst12)
+		c.P.Spend()
+		c.TermSetField(tn11, "Doctype", tf8)
+		tfirst12 = c.P.TermCover(tn11, tf8, tfirst12)
+		c.P.Spend()
+		c.TermSetField(tn11, "Root", tf9)
+		tfirst12 = c.P.TermCover(tn11, tf9, tfirst12)
+		c.P.Spend()
+		c.TermSetField(tn11, "Epilog", tf10)
+		tfirst12 = c.P.TermCover(tn11, tf10, tfirst12)
+		c.P.TermMade(c, tn11, tfirst12)
+		return any(tn11)
 	}
 	rules[1].Body = e4
 	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("XMLDecl", "Version", c.Cap(0), "Encoding", c.Cap(1), "Standalone", c.Cap(2))
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("XMLDecl", 3)
+		tfirst5 := true
+		c.P.Spend()
+		c.TermSetField(tn4, "Version", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
+		c.P.Spend()
+		c.TermSetField(tn4, "Encoding", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
+		c.P.Spend()
+		c.TermSetField(tn4, "Standalone", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4)
 	}
 	rules[4].Body = e12
 	rules[4].Action = func(c *rt.ActCtx) any {
@@ -1094,18 +1145,76 @@ func init() {
 		return c.Cap(0)
 	}
 	rules[13].Body = e31
-	rules[13].Action = func(c *rt.ActCtx) any { return c.NewStruct("PI", "Target", c.Cap(0), "Data", c.Cap(1)) }
+	rules[13].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("PI", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Target", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "Data", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[15].Body = e39
 	rules[15].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Doctype", "Name", c.Cap(0), "ExternalID", c.Cap(1), "Subset", c.Concat(c.Cap(2)))
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tm4 := len(c.P.KidStack)
+		c.P.Spend()
+		tf5 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf5 != nil {
+			panic(tf5)
+		}
+		tk6 := c.P.Kids(tm4)
+		tn7 := c.P.TermHull(c, false, tk6)
+		tf3 := any(tn7)
+		tn8 := c.TermStruct("Doctype", 3)
+		tfirst9 := true
+		c.P.Spend()
+		c.TermSetField(tn8, "Name", tf1)
+		tfirst9 = c.P.TermCover(tn8, tf1, tfirst9)
+		c.P.Spend()
+		c.TermSetField(tn8, "ExternalID", tf2)
+		tfirst9 = c.P.TermCover(tn8, tf2, tfirst9)
+		c.P.Spend()
+		c.TermSetField(tn8, "Subset", tf3)
+		tfirst9 = c.P.TermCover(tn8, tf3, tfirst9)
+		c.P.TermMade(c, tn8, tfirst9)
+		return any(tn8)
 	}
 	rules[16].Body = e41
 	rules[16].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
 	rules[19].Body = e46
 	rules[20].Body = e48
-	rules[20].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExternalID", "System", c.Cap(0)) }
+	rules[20].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tn2 := c.TermStruct("ExternalID", 1)
+		tfirst3 := true
+		c.P.Spend()
+		c.TermSetField(tn2, "System", tf1)
+		tfirst3 = c.P.TermCover(tn2, tf1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2)
+	}
 	rules[21].Body = e50
-	rules[21].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExternalID", "Public", c.Cap(0), "System", c.Cap(1)) }
+	rules[21].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ExternalID", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Public", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "System", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[22].Body = e51
 	rules[22].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
@@ -1115,7 +1224,20 @@ func init() {
 		return c.Cap(0)
 	}
 	rules[28].Body = e62
-	rules[28].Action = func(c *rt.ActCtx) any { return c.NewStruct("ElementDecl", "Name", c.Cap(0), "Content", c.Cap(1)) }
+	rules[28].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ElementDecl", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "Content", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[32].Body = e75
 	rules[32].Action = func(c *rt.ActCtx) any {
 		return c.NewStruct("Mixed", "Names", c.MapList(c.Cap(0), func(l_167 any) any { return c.Member(rt.UnboxValue(l_167), "$n") }))
@@ -1136,14 +1258,46 @@ func init() {
 	}
 	rules[35].Body = e82
 	rules[36].Body = e83
-	rules[36].Action = func(c *rt.ActCtx) any { return c.NewStruct("NameParticle", "Name", c.Cap(0), "Occur", c.Cap(1)) }
+	rules[36].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("NameParticle", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "Occur", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[38].Body = e87
 	rules[38].Action = func(c *rt.ActCtx) any {
 		return c.NewStruct("AttlistDecl", "Name", c.Cap(0), "Defs", c.NewList(c.ListItems("map", c.Cap(1))))
 	}
 	rules[39].Body = e88
 	rules[39].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("AttDef", "Name", c.Cap(0), "Type", c.Cap(1), "Default", c.Cap(2), "Value", c.Cap(3))
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tf4 := c.Cap(3)
+		tn5 := c.TermStruct("AttDef", 4)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Name", tf1)
+		tfirst6 = c.P.TermCover(tn5, tf1, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Type", tf2)
+		tfirst6 = c.P.TermCover(tn5, tf2, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Default", tf3)
+		tfirst6 = c.P.TermCover(tn5, tf3, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Value", tf4)
+		tfirst6 = c.P.TermCover(tn5, tf4, tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
 	}
 	rules[44].Body = e106
 	rules[44].Action = func(c *rt.ActCtx) any {
@@ -1161,26 +1315,107 @@ func init() {
 	}
 	rules[47].Body = e112
 	rules[47].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("EntityDecl", "Parameter", any(false), "Name", c.Cap(0), "Value", c.Cap(1), "ExternalID", c.Cap(2), "NData", c.Cap(3))
+		tf1 := any(false)
+		tf2 := c.Cap(0)
+		tf3 := c.Cap(1)
+		tf4 := c.Cap(2)
+		tf5 := c.Cap(3)
+		tn6 := c.TermStruct("EntityDecl", 5)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Parameter", tf1)
+		tfirst7 = c.P.TermCover(tn6, tf1, tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "Name", tf2)
+		tfirst7 = c.P.TermCover(tn6, tf2, tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "Value", tf3)
+		tfirst7 = c.P.TermCover(tn6, tf3, tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "ExternalID", tf4)
+		tfirst7 = c.P.TermCover(tn6, tf4, tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "NData", tf5)
+		tfirst7 = c.P.TermCover(tn6, tf5, tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[48].Body = e113
 	rules[48].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("EntityDecl", "Parameter", any(true), "Name", c.Cap(0), "Value", c.Cap(1), "ExternalID", c.Cap(2))
+		tf1 := any(true)
+		tf2 := c.Cap(0)
+		tf3 := c.Cap(1)
+		tf4 := c.Cap(2)
+		tn5 := c.TermStruct("EntityDecl", 4)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Parameter", tf1)
+		tfirst6 = c.P.TermCover(tn5, tf1, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Name", tf2)
+		tfirst6 = c.P.TermCover(tn5, tf2, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Value", tf3)
+		tfirst6 = c.P.TermCover(tn5, tf3, tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "ExternalID", tf4)
+		tfirst6 = c.P.TermCover(tn5, tf4, tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
 	}
 	rules[49].Body = e114
 	rules[49].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
 	}
 	rules[52].Body = e120
-	rules[52].Action = func(c *rt.ActCtx) any { return c.NewStruct("NotationDecl", "Name", c.Cap(0), "ExternalID", c.Cap(1)) }
+	rules[52].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("NotationDecl", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "ExternalID", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[54].Body = e122
-	rules[54].Action = func(c *rt.ActCtx) any { return c.NewStruct("ExternalID", "Public", c.Cap(0), "System", c.Cap(1)) }
+	rules[54].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ExternalID", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Public", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "System", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[55].Body = e127
 	rules[55].Action = func(c *rt.ActCtx) any {
 		return c.NewStruct("Element", "Name", c.Cap(0), "Attrs", c.NewList(c.ListItems("map", c.Cap(1))), "Content", c.Concat(c.Cap(2)))
 	}
 	rules[56].Body = e128
-	rules[56].Action = func(c *rt.ActCtx) any { return c.NewStruct("Attribute", "Name", c.Cap(0), "Value", c.Cap(1)) }
+	rules[56].Action = func(c *rt.ActCtx) any {
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("Attribute", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "Value", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
+	}
 	rules[57].Body = e129
 	rules[57].Action = func(c *rt.ActCtx) any {
 		return c.Cap(0)
@@ -9815,7 +10050,32 @@ L19:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
-	v = tmk_Document(c, true, k4, c.Concat(k11, k21), k14, k24, k27)
+	{
+		var tr30 any
+		{
+			tf1 := k4
+			tm3 := len(c.P.KidStack)
+			c.P.Spend()
+			tf4 := c.P.TermPushItems(c, "concat", k11)
+			if tf4 != nil {
+				panic(tf4)
+			}
+			c.P.Spend()
+			tf5 := c.P.TermPushItems(c, "concat", k21)
+			if tf5 != nil {
+				panic(tf5)
+			}
+			tk6 := c.P.Kids(tm3)
+			tn7 := c.P.TermHull(c, false, tk6)
+			tf2 := any(tn7)
+			tf8 := k14
+			tf9 := k24
+			tf10 := k27
+			tv11 := tmk_Document(c, true, tf1, tf2, tf8, tf9, tf10)
+			tr30 = tv11
+		}
+		v = tr30
+	}
 	return v, true
 fail:
 	return nil, false
@@ -9982,7 +10242,17 @@ L16:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "xml_decl"
-	v = tmk_XMLDecl(c, true, k1, k4, k11)
+	{
+		var tr31 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tf3 := k11
+			tv4 := tmk_XMLDecl(c, true, tf1, tf2, tf3)
+			tr31 = tv4
+		}
+		v = tr31
+	}
 	return v, true
 fail:
 	return nil, false
@@ -10074,11 +10344,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "version_info"
 	{
-		var tr16 any
+		var tr32 any
 		{
-			tr16 = k2
+			tr32 = k2
 		}
-		v = tr16
+		v = tr32
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10216,11 +10486,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "encoding_decl"
 	{
-		var tr17 any
+		var tr33 any
 		{
-			tr17 = k2
+			tr33 = k2
 		}
-		v = tr17
+		v = tr33
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10359,11 +10629,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "sd_decl"
 	{
-		var tr18 any
+		var tr34 any
 		{
-			tr18 = k2
+			tr34 = k2
 		}
-		v = tr18
+		v = tr34
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10464,11 +10734,11 @@ func i11(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "comment"
 	{
-		var tr19 any
+		var tr35 any
 		{
-			tr19 = k1
+			tr35 = k1
 		}
-		v = tr19
+		v = tr35
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10773,7 +11043,16 @@ L13:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pi"
-	v = tmk_PI(c, true, k1, k10)
+	{
+		var tr37 any
+		{
+			tf1 := k1
+			tf2 := k10
+			tv3 := tmk_PI(c, true, tf1, tf2)
+			tr37 = tv3
+		}
+		v = tr37
+	}
 	return v, true
 fail:
 	return nil, false
@@ -10942,7 +11221,25 @@ L15:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "doctype"
-	v = tmk_Doctype(c, true, k1, k5, c.Concat(k12))
+	{
+		var tr38 any
+		{
+			tf1 := k1
+			tf2 := k5
+			tm4 := len(c.P.KidStack)
+			c.P.Spend()
+			tf5 := c.P.TermPushItems(c, "concat", k12)
+			if tf5 != nil {
+				panic(tf5)
+			}
+			tk6 := c.P.Kids(tm4)
+			tn7 := c.P.TermHull(c, false, tk6)
+			tf3 := any(tn7)
+			tv8 := tmk_Doctype(c, true, tf1, tf2, tf3)
+			tr38 = tv8
+		}
+		v = tr38
+	}
 	return v, true
 fail:
 	return nil, false
@@ -11228,7 +11525,15 @@ func i20(p *rt.TParser) (any, bool) {
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "system_id"
-	v = tmk_ExternalID(c, true, nil, k1)
+	{
+		var tr39 any
+		{
+			tf1 := k1
+			tv2 := tmk_ExternalID(c, true, any(nil), tf1)
+			tr39 = tv2
+		}
+		v = tr39
+	}
 	return v, true
 fail:
 	return nil, false
@@ -11270,7 +11575,16 @@ func i21(p *rt.TParser) (any, bool) {
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "public_id"
-	v = tmk_ExternalID(c, true, k1, k4)
+	{
+		var tr40 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tv3 := tmk_ExternalID(c, true, tf1, tf2)
+			tr40 = tv3
+		}
+		v = tr40
+	}
 	return v, true
 fail:
 	return nil, false
@@ -11356,11 +11670,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "system_literal"
 	{
-		var tr21 any
+		var tr41 any
 		{
-			tr21 = k2
+			tr41 = k2
 		}
-		v = tr21
+		v = tr41
 	}
 	v = c.Finish(v)
 	return v, true
@@ -11510,11 +11824,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pubid_literal"
 	{
-		var tr22 any
+		var tr42 any
 		{
-			tr22 = k2
+			tr42 = k2
 		}
-		v = tr22
+		v = tr42
 	}
 	v = c.Finish(v)
 	return v, true
@@ -11628,7 +11942,16 @@ func i28(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "element_decl"
-	v = tmk_ElementDecl(c, true, k1, k4)
+	{
+		var tr43 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tv3 := tmk_ElementDecl(c, true, tf1, tf2)
+			tr43 = tv3
+		}
+		v = tr43
+	}
 	return v, true
 fail:
 	return nil, false
@@ -12202,7 +12525,16 @@ L9:
 	k4 = v7
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "name_particle"
-	v = tmk_NameParticle(c, true, k1, k4)
+	{
+		var tr45 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tv3 := tmk_NameParticle(c, true, tf1, tf2)
+			tr45 = tv3
+		}
+		v = tr45
+	}
 	return v, true
 fail:
 	return nil, false
@@ -12376,7 +12708,18 @@ L16:
 L12:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "att_def"
-	v = tmk_AttDef(c, true, k1, k4, k8, k10)
+	{
+		var tr46 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tf3 := k8
+			tf4 := k10
+			tv5 := tmk_AttDef(c, true, tf1, tf2, tf3, tf4)
+			tr46 = tv5
+		}
+		v = tr46
+	}
 	return v, true
 fail:
 	return nil, false
@@ -12938,7 +13281,19 @@ L11:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ge_decl"
-	v = tmk_EntityDecl(c, true, any(false), k1, k5, k7, k9)
+	{
+		var tr47 any
+		{
+			tf1 := any(false)
+			tf2 := k1
+			tf3 := k5
+			tf4 := k7
+			tf5 := k9
+			tv6 := tmk_EntityDecl(c, true, tf1, tf2, tf3, tf4, tf5)
+			tr47 = tv6
+		}
+		v = tr47
+	}
 	return v, true
 fail:
 	return nil, false
@@ -13015,7 +13370,18 @@ L9:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pe_decl"
-	v = tmk_EntityDecl(c, true, any(true), k1, k5, k7, nil)
+	{
+		var tr48 any
+		{
+			tf1 := any(true)
+			tf2 := k1
+			tf3 := k5
+			tf4 := k7
+			tv5 := tmk_EntityDecl(c, true, tf1, tf2, tf3, tf4, any(nil))
+			tr48 = tv5
+		}
+		v = tr48
+	}
 	return v, true
 fail:
 	return nil, false
@@ -13101,11 +13467,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "entity_value"
 	{
-		var tr24 any
+		var tr49 any
 		{
-			tr24 = k2
+			tr49 = k2
 		}
-		v = tr24
+		v = tr49
 	}
 	v = c.Finish(v)
 	return v, true
@@ -13275,7 +13641,16 @@ func i52(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "notation_decl"
-	v = tmk_NotationDecl(c, true, k1, k4)
+	{
+		var tr50 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tv3 := tmk_NotationDecl(c, true, tf1, tf2)
+			tr50 = tv3
+		}
+		v = tr50
+	}
 	return v, true
 fail:
 	return nil, false
@@ -13374,7 +13749,16 @@ L7:
 L8:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "public_notation"
-	v = tmk_ExternalID(c, true, k1, k5)
+	{
+		var tr51 any
+		{
+			tf1 := k1
+			tf2 := k5
+			tv3 := tmk_ExternalID(c, true, tf1, tf2)
+			tr51 = tv3
+		}
+		v = tr51
+	}
 	return v, true
 fail:
 	return nil, false
@@ -13563,7 +13947,16 @@ func i56(p *rt.TParser) (any, bool) {
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attribute"
-	v = tmk_Attribute(c, true, k1, k4)
+	{
+		var tr53 any
+		{
+			tf1 := k1
+			tf2 := k4
+			tv3 := tmk_Attribute(c, true, tf1, tf2)
+			tr53 = tv3
+		}
+		v = tr53
+	}
 	return v, true
 fail:
 	return nil, false
@@ -13649,11 +14042,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "att_value"
 	{
-		var tr26 any
+		var tr54 any
 		{
-			tr26 = k2
+			tr54 = k2
 		}
-		v = tr26
+		v = tr54
 	}
 	v = c.Finish(v)
 	return v, true
@@ -13951,11 +14344,11 @@ L7:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "markup"
 	{
-		var tr27 any
+		var tr55 any
 		{
-			tr27 = k3
+			tr55 = k3
 		}
-		v = tr27
+		v = tr55
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -14093,11 +14486,11 @@ func i64(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "cdsect"
 	{
-		var tr28 any
+		var tr56 any
 		{
-			tr28 = k1
+			tr56 = k1
 		}
-		v = tr28
+		v = tr56
 	}
 	v = c.Finish(v)
 	return v, true

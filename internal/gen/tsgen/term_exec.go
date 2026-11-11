@@ -29,7 +29,7 @@ func (g *Generator) termStmts(ct irc.Term, t grammar.Term, s *compile.Scope, loc
 	if ct == nil || !g.castsChecked(t) {
 		return "", false
 	}
-	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget})
+	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -126,10 +126,18 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case lower.OpTermTextEqual:
 				// As the term printer does, == of two strings, which charges as it does.
 				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", core.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
-			case lower.OpTermFromStr, "val.fromBool":
+			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
 				return a[0]
-			case lower.OpTermSpend:
+			case lower.OpTermSpend, "seq.step":
 				return "c.spend()"
+			case "term.kids":
+				return "c.p.kidStack.length"
+			case lower.OpTermElemsAbove:
+				return "c.p.kids(" + a[0] + ")"
+			case lower.OpTermStruct:
+				return "c.termStruct(" + TsString(c.Imm.(lower.TermNew).New.Type) + ")"
+			case lower.OpTermSetField:
+				return fmt.Sprintf("c.termSetField(%s, %s, %s)", a[0], TsString(c.Imm.(string)), a[1])
 			}
 			panic("tsgen: term operation " + c.Callee)
 		},
