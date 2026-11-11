@@ -157,3 +157,32 @@ func runTS(t *testing.T, cases []tsRunCase, probe string) [][]string {
 	}
 	return got
 }
+
+// TestGeneratedTSLambdaParameter checks, in a generated TypeScript parser, that a recognition in
+// which a capture named x records nothing, since the only x that a predicate names is a lambda
+// parameter, has the outcome of a parse on inputs where the lambda runs over a list that is not
+// empty, as TestRecognizeLambdaParameter does for the engine.
+func TestGeneratedTSLambdaParameter(t *testing.T) {
+	t.Parallel()
+	var cases []tsRunCase
+	for _, in := range []string{"aaz6", "aazz6", "aa6", "aa5"} {
+		cases = append(cases, tsRunCase{in, gentest.TwinLambdaParamSrc, in})
+	}
+	// A parse returns a result with an error field; a recognition returns the error or null.
+	const outcome = `(m, run) => {
+  const r = run({});
+  return (r === null || r.error === null) ? "ok" : "error";
+}`
+	got := runTS(t, cases, outcome)
+	for i, c := range cases {
+		want := "error"
+		if strings.HasSuffix(c.input, "z6") {
+			want = "ok"
+		}
+		for j, form := range tsRunForms {
+			if got[i][j] != want {
+				t.Errorf("%q, %s: %s, want %s", c.input, form, got[i][j], want)
+			}
+		}
+	}
+}

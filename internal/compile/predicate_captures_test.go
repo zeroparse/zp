@@ -14,30 +14,32 @@ func TestPredicateCaptures(t *testing.T) {
 	cases := []struct {
 		body string
 		want []int
+		// slotted lists the captures whose names a predicate reads, which keep their slot.
+		slotted []int
 	}{
 		// Another alternative: undone by backtracking before the predicate runs.
-		{`x:a "1" / x:a "2" / -a "3" / x:b { len($x) > 0 }`, []int{2}},
+		{`x:a "1" / x:a "2" / -a "3" / x:b { len($x) > 0 }`, []int{2}, []int{0, 1, 2}},
 		// After the predicate.
-		{`x:a { len($x) > 0 } x:b`, []int{0}},
+		{`x:a { len($x) > 0 } x:b`, []int{0}, []int{0, 1}},
 		// Overwritten by a later capture of the same name on every path.
-		{`x:a x:b { len($x) > 0 }`, []int{1}},
+		{`x:a x:b { len($x) > 0 }`, []int{1}, []int{0, 1}},
 		// Overwritten on one path only.
-		{`x:a (x:b)? { len($x) > 0 }`, []int{0, 1}},
-		{`(x:a / "q") { len($x) > 0 }`, []int{0}},
+		{`x:a (x:b)? { len($x) > 0 }`, []int{0, 1}, []int{0, 1}},
+		{`(x:a / "q") { len($x) > 0 }`, []int{0}, []int{0}},
 		// A repetition element is a scope of its own.
-		{`x:a (x:b { len($x) > 0 })*`, []int{1}},
-		{`x:a (x:b)* { len($x) > 0 }`, []int{0}},
+		{`x:a (x:b { len($x) > 0 })*`, []int{1}, []int{0, 1}},
+		{`x:a (x:b)* { len($x) > 0 }`, []int{0}, []int{0, 1}},
 		// Kept from a positive lookahead.
-		{`&(x:a) { len($x) > 0 }`, []int{0}},
+		{`&(x:a) { len($x) > 0 }`, []int{0}, []int{0}},
 		// Inside the capture itself: its value is not recorded yet.
-		{`x:(a { len($x) > 0 })`, nil},
+		{`x:(a { len($x) > 0 })`, nil, []int{0}},
 		// Read in a negative lookahead after the capture.
-		{`x:a !({ len($x) > 1 } "z")`, []int{0}},
-		{`x:a y:b`, nil},
+		{`x:a !({ len($x) > 1 } "z")`, []int{0}, []int{0}},
+		{`x:a y:b`, nil, nil},
 		// A predicate that reads a name no capture of which can hold a value when it runs.
-		{`"+" b:a / "-" { len(text($b)) == 0 }`, nil},
-		// A lambda parameter reads no capture of its name.
-		{`x:a ys:b* { len(map($ys, (x) => x)) > 0 }`, []int{1}},
+		{`"+" b:a / "-" { len(text($b)) == 0 }`, nil, []int{0}},
+		// A lambda parameter reads no capture of its name and keeps no slot for it.
+		{`x:a ys:b* { len(map($ys, (x) => x)) > 0 }`, []int{1}, []int{1}},
 	}
 	for _, c := range cases {
 		g, err := parseTest("rule main = " + c.body + "\nrule a = \"a\"\nrule b = \"b\"\n")
@@ -53,10 +55,13 @@ func TestPredicateCaptures(t *testing.T) {
 		}, nil)
 		pc := predicateCaptures(body, nil)
 		read := pc.Read
-		var got []int
+		var got, slotted []int
 		for i, cp := range all {
 			if read[cp] {
 				got = append(got, i)
+			}
+			if pc.Slotted(cp) {
+				slotted = append(slotted, i)
 			}
 			if pc.Records(cp) != read[cp] {
 				t.Errorf("%s: capture %d records %v, read %v", c.body, i, pc.Records(cp), read[cp])
@@ -67,6 +72,9 @@ func TestPredicateCaptures(t *testing.T) {
 		}
 		if !slices.Equal(got, c.want) {
 			t.Errorf("%s: captures read %v, want %v", c.body, got, c.want)
+		}
+		if !slices.Equal(slotted, c.slotted) {
+			t.Errorf("%s: captures slotted %v, want %v", c.body, slotted, c.slotted)
 		}
 	}
 }

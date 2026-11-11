@@ -113,3 +113,57 @@ func main() {
 		}
 	}
 }
+
+// TestGeneratedLambdaParameter checks, in a generated Go parser, that a recognition in which a
+// capture named x records nothing, since the only x that a predicate names is a lambda parameter,
+// has the outcome of a parse on inputs where the lambda runs over a list that is not empty, as
+// TestRecognizeLambdaParameter does for the engine.
+func TestGeneratedLambdaParameter(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testGeneratedLambdaParameter)
+}
+
+func testGeneratedLambdaParameter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds generated code")
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	if _, err := os.Stat(goBin); err != nil {
+		t.Skip("go command not found")
+	}
+	inputs := []string{"aaz6", "aazz6", "aa6", "aa5"}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var imports, calls strings.Builder
+	for _, pkg := range []string{"g", "l"} {
+		gentest.GeneratePackage(t, dir, pkg, mustParse(gentest.TwinLambdaParamSrc), gen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: pkg == "l"})
+		fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+		for _, in := range inputs {
+			fmt.Fprintf(&calls, "\t{ _, perr := %s.Parse(%q); rerr := %[1]s.Recognize(%[2]q); fmt.Println(perr == nil, fmt.Sprint(perr) == fmt.Sprint(rerr)) }\n", pkg, in)
+		}
+	}
+	main := "package main\n\nimport (\n\t\"fmt\"\n\n" + imports.String() + ")\n\nfunc main() {\n" + calls.String() + "}\n"
+	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(main), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(goBin, "run", ".")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go run: %v\n%s", err, out)
+	}
+	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	if len(lines) != 2*len(inputs) {
+		t.Fatalf("got %d lines, want %d\n%s", len(lines), 2*len(inputs), out)
+	}
+	for i, line := range lines {
+		in := inputs[i%len(inputs)]
+		want := fmt.Sprintf("%v true", strings.HasSuffix(in, "z6"))
+		if line != want {
+			t.Errorf("%q (limit controls %v): parse succeeded, recognition agreed: %s, want %s", in, i >= len(inputs), line, want)
+		}
+	}
+}
