@@ -356,6 +356,17 @@ without network access or a prior generated artifact outside the repository.
   partial results for editor recovery where supported.
 - Compare formatter parse/format/parse stability and LSP diagnostics and
   source ranges using each parser selection.
+- Enumerate every sequence of up to two tokens (three in the `zp_long` tier) of
+  a fixed alphabet after each of twelve heads and tails (declarations, type
+  bodies, Operators Rules, action blocks, attribute arguments, groups and
+  index brackets), joined by a space and directly, and require the same
+  acceptance and grammar. The long tier covers about 3.8 million sources, of
+  which about 3.1 million are rejected by both; none of those has an error in
+  the classes `extra` or `other earlier`, and the others stay in the forms
+  above. Run the canonical grammar as a generated Go parser on the sources of
+  the mutation corpus and require the engine's trees, positions and errors,
+  so that a result of the engine that the adapter reads is the result of the
+  generated parser too.
 - Verify clean-checkout bootstrap, deterministic generation, root Go tests,
   all parser modules, CLI commands, site examples and generated parser checks.
 - Benchmark parse-only time, bytes/op and allocations on small common
