@@ -160,8 +160,9 @@ non-empty value and the bound value reaches a later evaluation of the same
 binding. That is so, outside a negative lookahead, when a sequence of the rule
 body has the binding in one element and a call that can reach its rule again
 in a later element, each at any depth of groups, options and choices, or when
-the binding is part of the element of a repetition in its rule. Captures, discards
-and `#atomic` do not change this, as groups do not. Each
+the binding is part of the element of a repetition in its rule. Captures, discards,
+`#atomic`, attributes and positive lookaheads, which keep the bindings made in
+them, do not change this, as groups do not. Each
 evaluation can then at least double the size of the variable, so that its size
 can grow exponentially with the input:
 
