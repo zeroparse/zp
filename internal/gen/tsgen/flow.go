@@ -794,8 +794,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		if p.dry {
 			return "p.predicate(a)"
 		}
-		body := p.g.predicateTerm(p.grammarTerm(x.Node), gen.FrameScope(x.Caps))
-		return fmt.Sprintf("p.predicate((%s) => %s)", tsActxParam(body), body)
+		return fmt.Sprintf("p.predicate(%s)", p.g.predicateFunc(x.Node.Term, p.grammarTerm(x.Node), gen.FrameScope(x.Caps)))
 	case *flow.Bind:
 		if x.Caps.Vars != nil {
 			panic(tsFlowUnsupported("a bind that reads variables"))
@@ -809,8 +808,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		}
 		// The function is declared only if the rule keeps the printed text.
 		name := p.g.Name("a")
-		val := p.g.term(b.Value, gen.FrameScope(x.Caps), nil)
-		p.decl(name, fmt.Sprintf("function %s(%s: Actx): Value {\n  return %s;\n}\n\n", name, tsActxParam(val), val))
+		p.decl(name, p.g.actionFunc(name, x.Node.Term, b.Value, gen.FrameScope(x.Caps), nil))
 		return fmt.Sprintf("p.bind(%d, %s)", p.g.Prog.Vars.Index(b.Name), name)
 	case *flow.CallOutline:
 		return p.outline(x)

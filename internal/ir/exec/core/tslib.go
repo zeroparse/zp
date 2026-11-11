@@ -566,3 +566,11 @@ var tsTarget = &exects.Target{
 		return "", false
 	},
 }
+
+// TSTermMethod returns the name of the method of the TypeScript runtime's Parser class that the
+// composition fn is printed as, for printing calls of the compositions outside the runtime (lowered
+// terms).
+func TSTermMethod(fn string) string { return tsTarget.FuncName(fn) }
+
+// TSHandle returns the TypeScript type of the handle type name in the TypeScript runtime.
+func TSHandle(name string) string { return tsTarget.Handle(name) }

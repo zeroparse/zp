@@ -86,9 +86,17 @@ returns the null value and false.
 A term of the action language, the action of a rule or of a line of an Operators Rule, the term of a predicate or the
 value of a binding, is lowered from Core IR into a function of its own, in a module that declares the parser VM, the
 compositions of the operators of terms ([Values](values.md)) with every function they call, the component `runtime`,
-and the transitional operations of the leaves of terms below. A term that holds a constructor, a tuple, a built-in
-function other than `len` and `text`, or a lambda is not lowered; the target evaluates it as a whole in its own way,
-as it may a term under an optimization of its own that compares strings without making values of them.
+and the transitional operations of the leaves of terms below. A term is not lowered, and the target evaluates it as a
+whole in its own way, when it holds
+
+- a constructor, a tuple, a built-in function other than `len` and `text` (the list built-ins) or a lambda;
+- a comparison that an optimization of the target makes without making a value of an operand: a comparison with a field
+  read in a typed parser of Go (`field-compare`), and a predicate that compares the text of a capture with literals,
+  which a target prints as one switch over them (`text-dispatch`);
+- a cast to a type that every value fits, in TypeScript, because Core IR holds no check for it, though the target
+  charges one.
+
+A term of every other kind is lowered whole.
 
 The function evaluates the term's operands in the order that the term evaluates them and calls one composition for
 each operation of the term: `binary` for a binary operator, `unary` for a unary one, `member` for a member read, with

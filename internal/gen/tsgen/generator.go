@@ -294,7 +294,7 @@ var TsPrintRuns = sync.OnceValue(func() string {
 // runtime's fieldConforms serves.
 func (g *Generator) fieldCheckSource() string {
 	src := ""
-	for _, f := range []string{"castValue"} {
+	for _, f := range []string{"castValue", "castFailed"} {
 		if strings.Contains(g.Init.String(), f+"(") || strings.Contains(g.Vars.String(), f+"(") || strings.Contains(g.Methods.String(), f+"(") {
 			src += tsCheckSources[f]
 		}
@@ -304,6 +304,7 @@ func (g *Generator) fieldCheckSource() string {
 
 // tsCheckSources are the check functions of fieldCheckSource, by name.
 var tsCheckSources = map[string]string{
+	"castFailed": "\n" + tsCastFailed + "\n",
 	"castValue": `
 // castValue returns v if it fits t, the type of a cast, and raises an evaluation error otherwise.
 // The error names the input position where the action started and, when gline is positive, the
@@ -352,6 +353,8 @@ type Generator struct {
 	printed map[string]map[int][]int
 	// ExecFuncs counts the functions printed from Exec IR (execRoute).
 	ExecFuncs int
+	// LoweredTerms counts the terms printed from Exec IR (termStmts).
+	LoweredTerms int
 }
 
 // TsString returns s as a TypeScript string literal (JSON is valid TypeScript).
@@ -451,11 +454,9 @@ func tsActxParam(body string) string {
 }
 
 // action emits a function that evaluates the term t (an action or a predicate) and returns its name.
-func (g *Generator) action(t grammar.Term, s *compile.Scope, locals map[string]string) string {
+func (g *Generator) action(ct core.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
 	name := g.Name("a")
-	body := g.term(t, s, locals)
-	param := tsActxParam(body)
-	fmt.Fprintf(&g.Methods, "function %s(%s: Actx): Value {\n  return %s;\n}\n\n", name, param, body)
+	g.Methods.WriteString(g.actionFunc(name, ct, t, s, locals))
 	return name
 }
 
@@ -543,7 +544,7 @@ func (g *Generator) rules() {
 			if r.Action != nil && !r.Novalue {
 				// The whole-rule action, which the runtime runs on the folded value after each call.
 				locals := map[string]string{compile.OperatorsRuleValue: "c.value"}
-				fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(r.Action, compile.NewScope(), locals))
+				fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), r.Action, compile.NewScope(), locals))
 			}
 			continue
 		}
@@ -552,7 +553,7 @@ func (g *Generator) rules() {
 		}
 		if r.Action != nil && g.tableRow(r) {
 			g.Proj = g.Projections(r)
-			fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(r.Action, scopes[r], nil))
+			fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), r.Action, scopes[r], nil))
 			g.Proj = nil
 		}
 	}
@@ -720,7 +721,11 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if operator {
 			locals = map[string]string{"lhs": "c.lhs", "rhs": "c.rhs", "op": "c.op"}
 		}
-		act = g.action(action, s, locals)
+		var ct core.Term
+		if l != nil {
+			ct = l.Action
+		}
+		act = g.action(ct, action, s, locals)
 	}
 	return fmt.Sprintf("{ scope: %s, m: %s, action: %s, value: %d }", TsStrings(s.Names), m, act, tsShaper(g.Prog, e))
 }

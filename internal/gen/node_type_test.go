@@ -93,7 +93,7 @@ rule main A = x:"a" => A{$x}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(goCode), `c.Convert("N", `) || !strings.Contains(string(tsCode), `c.convert("N", `) {
+	if !strings.Contains(string(goCode), `c.P.TermConvert(c.P.TermNodeType("N"), `) || !strings.Contains(string(tsCode), `c.p.termConvert("N", `) {
 		t.Errorf("generated conversions do not name N")
 	}
 }

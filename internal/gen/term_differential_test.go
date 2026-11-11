@@ -259,14 +259,34 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		return
 	}
 	for _, m := range []struct{ name, from, to string }{
-		{"plus becomes minus", `c.binary(0,`, `c.binary(1,`},
-		{"equal becomes not equal", `c.binary(5,`, `c.binary(6,`},
-		{"length becomes zero", `c.length(`, `((x) => (c.length(x), 0))(`},
+		{"lowered: plus becomes minus", `c.p.termBinary(0,`, `c.p.termBinary(1,`},
+		{"lowered: times becomes plus", `c.p.termBinary(2,`, `c.p.termBinary(0,`},
+		{"lowered: quotient becomes product", `c.p.termBinary(3,`, `c.p.termBinary(2,`},
+		{"lowered: remainder becomes quotient", `c.p.termBinary(4,`, `c.p.termBinary(3,`},
+		{"lowered: less becomes less or equal", `c.p.termBinary(7,`, `c.p.termBinary(8,`},
+		{"lowered: equal becomes not equal", `c.p.termBinary(5,`, `c.p.termBinary(6,`},
+		{"lowered: negation becomes not", `c.p.termUnary(0,`, `c.p.termUnary(1,`},
+		{"lowered: not becomes negation", `c.p.termUnary(1,`, `c.p.termUnary(0,`},
+		{"lowered: length becomes zero", `c.p.termLength(`, `((x: Value): [Value, Value] => (c.p.termLength(x), [0, null]))(`},
+		{"lowered: a failure is not raised", `evalError(tf`, `void (tf`},
+		{"lowered: a logical operator always evaluates its right operand", `if (!tb`, `if (true || !tb`},
+		{"lowered: a logical operator always evaluates its right operand (||)", `if (tb`, `if (true || tb`},
+		{"term printer: plus becomes minus", `c.binary(0,`, `c.binary(1,`},
+		{"term printer: equal becomes not equal", `c.binary(5,`, `c.binary(6,`},
+		{"term printer: length becomes zero", `c.length(`, `((x) => (c.length(x), 0))(`},
 	} {
+		hits := 0
 		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {
-			return strings.ReplaceAll(code, m.from, m.to)
+			if strings.Contains(code, m.from) {
+				hits++
+				code = strings.ReplaceAll(code, m.from, m.to)
+			}
+			return code
 		})
-		if len(got) == 0 {
+		t.Logf("TypeScript: %s: parsers changed %d of %d cases, mismatches %d", m.name, hits, len(list), len(got))
+		if hits == 0 {
+			t.Errorf("TypeScript: %s: the generated code has no %q", m.name, m.from)
+		} else if len(got) == 0 {
 			t.Errorf("TypeScript: %s: no generated term notices", m.name)
 		}
 	}

@@ -31,13 +31,13 @@ func TestShortCircuitGeneratedTypeScript(t *testing.T) {
 }
 
 // TestShortCircuitGeneratedTypeScriptDetectsEagerOperands is the negative control of the test above:
-// a runtime that evaluates the right operand before it tests the left one differs from the engine.
+// a parser that evaluates the right operand whatever the left one is differs from the engine.
 func TestShortCircuitGeneratedTypeScriptDetectsEagerOperands(t *testing.T) {
 	t.Parallel()
 	node := gentest.RequireNode(t)
 	for _, m := range []struct{ name, from, to string }{
-		{"and", "return this.logic(0, l) && this.logic(0, r());", "const x = r(); return this.logic(0, l) && this.logic(0, x);"},
-		{"or", "return this.logic(1, l) || this.logic(1, r());", "const x = r(); return this.logic(1, l) || this.logic(1, x);"},
+		{"and", "if (tb", "if (true || tb"},
+		{"or", "if (!tb", "if (true || !tb"},
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
@@ -46,10 +46,10 @@ func TestShortCircuitGeneratedTypeScriptDetectsEagerOperands(t *testing.T) {
 				if strings.Contains(src, m.from) {
 					replaced = true
 				}
-				return strings.Replace(src, m.from, m.to, 1)
+				return strings.ReplaceAll(src, m.from, m.to)
 			})
 			if !replaced {
-				t.Fatalf("the generated runtime has no %q", m.from)
+				t.Fatalf("the generated parser has no %q", m.from)
 			}
 			if len(mismatches) == 0 {
 				t.Errorf("an eager %s operand differs from the engine on none of the cases", m.name)

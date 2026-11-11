@@ -63,6 +63,9 @@ type Target struct {
 	// function; an operation receives the local's name and prints the parts itself. Only locals and
 	// parameters hold values of the types.
 	Parts map[string][]Part
+	// Self, if not empty, is the expression whose methods the functions of the module are; empty is
+	// this.
+	Self string
 }
 
 // Part is a part of a value that a target holds in several locals (Target.Parts): the suffix of the
@@ -81,6 +84,27 @@ func Method(m *exec.Module, f *exec.Func, t *Target) (string, error) {
 	}
 	if err := p.fn(); err != nil {
 		return "", fmt.Errorf("exects: function %s: %v", f.Name, err)
+	}
+	return p.b.String(), nil
+}
+
+// Statements returns the statements of the body of the function f of the verified module m, without
+// the function's declaration, indented by two spaces for each level of depth, for a function without
+// locals or a labeled body that the caller wraps, such as a lowered term.
+func Statements(m *exec.Module, f *exec.Func, t *Target, depth int) (string, error) {
+	if len(f.Locals) > 0 || f.Body.Label != "" {
+		return "", fmt.Errorf("exects: function %s: statements of a function with locals or a labeled body", f.Name)
+	}
+	p := &printer{m: m, t: t, f: f, labels: map[string]int{}, depth: depth, types: map[string]exec.Type{}, partner: map[string]string{}}
+	for _, x := range f.Params {
+		p.types[x.Name] = x.Type
+	}
+	if err := p.pairs(); err != nil {
+		return "", fmt.Errorf("exects: function %s: %v", f.Name, err)
+	}
+	p.stmts(f.Body)
+	if p.err != nil {
+		return "", fmt.Errorf("exects: function %s: %v", f.Name, p.err)
 	}
 	return p.b.String(), nil
 }
@@ -932,7 +956,11 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 			}
 			args[i] = strings.Join(ps, ", ")
 		}
-		return "this." + p.name(x.Callee) + "(" + strings.Join(args, ", ") + ")"
+		self := "this"
+		if p.t.Self != "" {
+			self = p.t.Self
+		}
+		return self + "." + p.name(x.Callee) + "(" + strings.Join(args, ", ") + ")"
 	}
 	panic(fmt.Sprintf("exects: expression %T", x))
 }
