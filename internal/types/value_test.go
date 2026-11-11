@@ -1,4 +1,4 @@
-package compile
+package types
 
 import (
 	"fmt"
@@ -89,7 +89,7 @@ func randomTy(r *rand.Rand, depth int) Ty {
 		var caps []CapIndex
 		for i := range r.IntN(3) {
 			caps = append(caps, CapIndex{Name: string(rune('a' + r.IntN(2))), Paths: [][]int{{i, r.IntN(2)}}, Side: r.IntN(2) == 0,
-				T: randomTy(r, depth-1), maybe: r.IntN(2) == 0})
+				T: randomTy(r, depth-1), Maybe: r.IntN(2) == 0})
 		}
 		n := NodeTy{Value: randomTy(r, depth-1), Caps: caps}
 		if r.IntN(5) == 0 {
@@ -131,8 +131,8 @@ func TestAppendTyTextIsString(t *testing.T) {
 		if !ok {
 			continue
 		}
-		if got := string(appendTyText(nil, ty)); got != want {
-			t.Fatalf("%T: appendTyText %q, String %q", ty, got, want)
+		if got := string(AppendText(nil, ty)); got != want {
+			t.Fatalf("%T: AppendText %q, String %q", ty, got, want)
 		}
 		checked++
 	}
@@ -188,7 +188,7 @@ func join(f func(...Ty) Ty, ts []Ty) (out Ty, panicked bool) {
 // TestVjoinDuplicates pins what counts as a duplicate: the same Go type with the same text.
 func TestVjoinDuplicates(t *testing.T) {
 	a := NodeTy{Value: TyString, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}}}}
-	b := NodeTy{Value: TyString, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}, maybe: true}}} // the same text
+	b := NodeTy{Value: TyString, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}, Maybe: true}}} // the same text
 	if got := Vjoin(a, b); !reflect.DeepEqual(got, a) {
 		t.Errorf("types that print alike are not joined to the first: %#v", got)
 	}

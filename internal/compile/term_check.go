@@ -1,6 +1,9 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/types"
+)
 
 // nodeMembers are the members of a node, and the removed ones that the checker reports: they are
 // not captures, which are read with x.$name.
@@ -81,7 +84,7 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 		elem := k.Resolve(t.Elem)
 		if len(c.errs) > reported || k.sawUnsupported {
 			// The element type is in error already.
-		} else if elem == tyNever {
+		} else if elem == types.TyNever {
 			c.errorf(t.Diagnostic(), "the list element has type _|_, which has no values")
 		} else if !concreteListElement(elem) {
 			c.errorf(t.Diagnostic(), "list constructors require a concrete element type, got %s", elem)

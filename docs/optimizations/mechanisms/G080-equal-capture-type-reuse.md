@@ -34,7 +34,7 @@ Evidence records:
 
 Source owners: [`equal captured type
 merge`](../../../internal/compile/check.go), [`immutable inferred type
-structures`](../../../internal/compile/types.go).
+structures`](../../../internal/types/).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

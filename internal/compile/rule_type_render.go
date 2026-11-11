@@ -64,10 +64,10 @@ func renderRuleType(t Ty, poll func()) string {
 		if len(t.Caps) == 0 {
 			return finish("node[" + value + "]")
 		}
-		return finish("node[" + value + ", " + t.capsText() + "]")
+		return finish("node[" + value + ", " + t.CapsText() + "]")
 	case RecordTy:
-		names := make([]string, 0, len(t.fields))
-		for name := range t.fields {
+		names := make([]string, 0, len(t.Fields))
+		for name := range t.Fields {
 			poll()
 			names = append(names, name)
 		}
@@ -75,7 +75,7 @@ func renderRuleType(t Ty, poll func()) string {
 		parts := make([]string, len(names))
 		for i, name := range names {
 			poll()
-			parts[i] = name + ": " + renderRuleType(t.fields[name], poll)
+			parts[i] = name + ": " + renderRuleType(t.Fields[name], poll)
 		}
 		return finish("node{" + joinRuleType(parts, ", ", poll) + "}")
 	default:

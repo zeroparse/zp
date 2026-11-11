@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/types"
 )
 
 func TestRuleTypeWithPollParity(t *testing.T) {
-	record := RecordTy{fields: map[string]Ty{"z": ListTy{Elem: JoinTy{Alts: []Ty{TyMatch, TyNil}}}, "a": OptTy{Elem: TyString}}}
-	cases := []Ty{TyAny, tyNever, TyNil, TyInt, TyBool, TyString, TyNode, TyMatch, ListTy{Elem: TyMatch}, OptTy{Elem: TyMatch}, JoinTy{}, JoinTy{Alts: []Ty{TyMatch, tySeq, TyMissing}}, record, RecordTy{fields: map[string]Ty{}}, ListTy{Elem: record},
+	record := RecordTy{Fields: map[string]Ty{"z": ListTy{Elem: JoinTy{Alts: []Ty{TyMatch, TyNil}}}, "a": OptTy{Elem: TyString}}}
+	cases := []Ty{TyAny, types.TyNever, TyNil, TyInt, TyBool, TyString, TyNode, TyMatch, ListTy{Elem: TyMatch}, OptTy{Elem: TyMatch}, JoinTy{}, JoinTy{Alts: []Ty{TyMatch, types.TySeq, TyMissing}}, record, RecordTy{Fields: map[string]Ty{}}, ListTy{Elem: record},
 		// Value-model types
 		TyTop, TyBottom, RuleTy{Name: "expr"}, NodeTy{Value: TyTop}, NodeTy{Value: ListTy{Elem: TyStringNode}}, TupleTy{Elems: []Ty{TyStringNode}},
 		NodeTy{Value: TupleTy{Elems: []Ty{OptTy{Elem: TyStringNode}, RuleTy{Name: "x"}}}, Caps: []CapIndex{{Name: "a", Paths: [][]int{{0}, {1, 0}}}, {Name: "b", Side: true}}}}
@@ -43,10 +44,10 @@ func TestRuleTypeWithPollParity(t *testing.T) {
 
 func TestRuleTypeWithPollCancelsWithinCollections(t *testing.T) {
 	var union JoinTy
-	record := RecordTy{fields: map[string]Ty{}}
+	record := RecordTy{Fields: map[string]Ty{}}
 	for i := range 1024 {
 		union.Alts = append(union.Alts, TyMatch)
-		record.fields[fmt.Sprintf("f%d", i)] = TyMatch
+		record.Fields[fmt.Sprintf("f%d", i)] = TyMatch
 	}
 	for _, typ := range []Ty{union, record, JoinTy{Alts: []Ty{NamedTy{Name: strings.Repeat("x", 1<<20)}, TyMatch}}} {
 		func() {

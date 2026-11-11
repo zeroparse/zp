@@ -3,6 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/types"
 )
 
 // shownRuleTypes returns the type of each rule as Program.RuleType shows it: the declared type of
@@ -27,10 +28,10 @@ func shownRuleTypes(prog *Program, rules []*grammar.RuleDef, values map[string]T
 				return d
 			}
 		case ListTy:
-			return ListTy{show(t.Elem)}
+			return ListTy{Elem: show(t.Elem)}
 		case OptTy:
 			// A declared type may be optional itself; an optional is not nested.
-			return vopt(show(t.Elem))
+			return types.Vopt(show(t.Elem))
 		case JoinTy:
 			alts := make([]Ty, len(t.Alts))
 			for i, a := range t.Alts {
@@ -42,7 +43,7 @@ func shownRuleTypes(prog *Program, rules []*grammar.RuleDef, values map[string]T
 			for i, e := range t.Elems {
 				elems[i] = show(e)
 			}
-			return TupleTy{elems}
+			return TupleTy{Elems: elems}
 		case NodeTy:
 			if t.Name != "" {
 				return t

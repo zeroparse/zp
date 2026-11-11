@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/types"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -61,7 +62,7 @@ func (v *ValueInference) shownSeen(t Ty, seen map[string]bool) Ty {
 	if v.Prog == nil {
 		return t
 	}
-	return mapTy(t, func(u Ty) (Ty, bool) {
+	return types.MapTy(t, func(u Ty) (Ty, bool) {
 		r, ok := u.(RuleTy)
 		if !ok || seen[r.Name] {
 			return nil, false
@@ -235,7 +236,7 @@ func (v *ValueInference) expandSeen(t Ty, seen map[string]bool) Ty {
 			}
 			return Vjoin(alts...)
 		case OptTy:
-			return vopt(v.expandSeen(u.Elem, seen))
+			return types.Vopt(v.expandSeen(u.Elem, seen))
 		}
 		return t
 	}
@@ -245,7 +246,7 @@ func (v *ValueInference) expandSeen(t Ty, seen map[string]bool) Ty {
 // rule that declares a type, at any depth, replaced by that type. A reference to a rule without a
 // declared type keeps the rule's name.
 func (v *ValueInference) display(t Ty) Ty {
-	return mapTy(v.Expand(t), func(u Ty) (Ty, bool) {
+	return types.MapTy(v.Expand(t), func(u Ty) (Ty, bool) {
 		r, ok := u.(RuleTy)
 		if !ok {
 			return nil, false
@@ -344,7 +345,7 @@ func (v *ValueInference) assignable(s, d Ty) bool {
 			return true
 		}
 		// A node type written in the grammar has no captures and takes nodes with any.
-		return (len(d.Caps) == 0 || sameCaps(sn.Caps, d.Caps)) && v.assignable(v.nodeValue(sn), v.nodeValue(d))
+		return (len(d.Caps) == 0 || types.SameCaps(sn.Caps, d.Caps)) && v.assignable(v.nodeValue(sn), v.nodeValue(d))
 	}
 	if d == TyErr && s == TyMissing {
 		return true // a missing token is an error value
@@ -497,12 +498,6 @@ func (prog *Program) convertsResult(key any, rd *grammar.RuleDef) (NodeTy, bool)
 	return NodeTy{}, false
 }
 
-func sameCaps(a, b []CapIndex) bool {
-	return slices.EqualFunc(a, b, func(x, y CapIndex) bool {
-		return x.Name == y.Name && x.Side == y.Side && slices.EqualFunc(x.Paths, y.Paths, func(p, q []int) bool { return slices.Equal(p, q) })
-	})
-}
-
 // term returns the type of the value expression t.
 func (v *ValueInference) term(t grammar.Term, env *valueEnv) Ty {
 	r := v.termType(t, env)
@@ -569,13 +564,13 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 			return TyAny
 		}
 		v.unsetFields(t, st)
-		return NamedTy{name, 's'}
+		return NamedTy{Name: name, Kind: 's'}
 	case *grammar.TupleLit:
 		elems := make([]Ty, len(t.Elems))
 		for i, x := range t.Elems {
 			elems[i] = v.term(x, env)
 		}
-		return TupleTy{elems}
+		return TupleTy{Elems: elems}
 	case *grammar.ListConstructor:
 		elem := v.resolve(t.Elem)
 		for _, item := range t.Items {
@@ -584,7 +579,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 				v.errorf(termPos(item, t.Diagnostic()), "cannot use %s as %s in list constructor%s", v.display(it), elem, v.castHint(it, elem))
 			}
 		}
-		return ListTy{elem}
+		return ListTy{Elem: elem}
 	case *grammar.Call:
 		return v.call(t, env)
 	case *grammar.Cast:
@@ -880,7 +875,7 @@ func (v *ValueInference) member(x Ty, m *grammar.Member) Ty {
 		return TyAny
 	}
 	if recovered {
-		return vopt(Vjoin(found...))
+		return types.Vopt(Vjoin(found...))
 	}
 	return Vjoin(found...)
 }
@@ -930,7 +925,7 @@ func CapType(caps []CapIndex, name string) (Ty, bool) {
 		if c.Name == name {
 			ts = append(ts, c.T)
 			sets = append(sets, setType(c))
-			always = always || !c.maybe
+			always = always || !c.Maybe
 		}
 	}
 	if len(ts) == 0 {
@@ -1126,26 +1121,26 @@ func (v *ValueInference) call(t *grammar.Call, env *valueEnv) Ty {
 		if body := v.term(l.Body, env.with(l.Params, []Ty{elem})); !v.assignable(body, TyBool) {
 			v.errorf(t.Diagnostic(), "filter: predicate must produce a bool, got %s", body)
 		}
-		return ListTy{elem}
+		return ListTy{Elem: elem}
 	case "map":
 		elem := v.elemOf("map", arg(0), t.Diagnostic())
 		l, ok := v.lambda(t, 1, 1)
 		if !ok {
 			return TyAny
 		}
-		return ListTy{v.term(l.Body, env.with(l.Params, []Ty{elem}))}
+		return ListTy{Elem: v.term(l.Body, env.with(l.Params, []Ty{elem}))}
 	case "list":
 		ts := make([]Ty, len(t.Args))
 		for i := range t.Args {
 			ts[i] = arg(i)
 		}
-		return ListTy{Vjoin(ts...)}
+		return ListTy{Elem: Vjoin(ts...)}
 	case "concat":
 		ts := make([]Ty, len(t.Args))
 		for i := range t.Args {
 			ts[i] = v.elemOf("concat", arg(i), t.Diagnostic())
 		}
-		return ListTy{Vjoin(ts...)}
+		return ListTy{Elem: Vjoin(ts...)}
 	}
 	return TyAny
 }

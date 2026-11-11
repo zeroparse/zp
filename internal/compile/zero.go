@@ -62,7 +62,7 @@ func (p *Program) hasZero(t Ty, visiting map[string]bool) bool {
 	case ListTy, OptTy:
 		return true
 	case RecordTy:
-		for _, f := range t.fields {
+		for _, f := range t.Fields {
 			if !p.hasZero(f, visiting) {
 				return false
 			}

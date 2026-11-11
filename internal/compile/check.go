@@ -139,7 +139,7 @@ func JoinMembers(t Ty) Ty {
 			alts[i] = a
 		}
 	}
-	return JoinTy{alts}
+	return JoinTy{Alts: alts}
 }
 
 type typedField struct {

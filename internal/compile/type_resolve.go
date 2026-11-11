@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/types"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
@@ -48,10 +49,10 @@ func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
 		return k.Resolve(t.Type)
 	case *grammar.ListType:
 		// []_|_ is the list type whose only value is the empty list.
-		return ListTy{k.Resolve(t.Elem)}
+		return ListTy{Elem: k.Resolve(t.Elem)}
 	case *grammar.OptionalType:
 		// *_|_ is nil, the optional type whose only value is nil.
-		return vopt(k.Resolve(t.Elem))
+		return types.Vopt(k.Resolve(t.Elem))
 	case *grammar.JoinType:
 		ts := make([]Ty, len(t.Types))
 		for i, x := range t.Types {
@@ -65,7 +66,7 @@ func (k *TypeResolver) Resolve(t grammar.TypeExpr) Ty {
 				return TyBottom
 			}
 		}
-		return TupleTy{elems}
+		return TupleTy{Elems: elems}
 	case *grammar.StructType:
 		k.unsupported(t, t.Diagnostic(), "unnamed struct types are not supported yet; define one with type T = {...}")
 		return TyAny
@@ -116,7 +117,7 @@ func vmeet(a, b Ty) Ty {
 	case ListTy:
 		if y, ok := b.(ListTy); ok {
 			// Every list type has the empty list: the meet of two is a list type, []_|_ at least.
-			return ListTy{vmeet(x.Elem, y.Elem)}
+			return ListTy{Elem: vmeet(x.Elem, y.Elem)}
 		}
 	case NodeTy:
 		if y, ok := b.(NodeTy); ok {
@@ -126,7 +127,7 @@ func vmeet(a, b Ty) Ty {
 			caps := x.Caps
 			if len(caps) == 0 {
 				caps = y.Caps
-			} else if len(y.Caps) > 0 && !sameCaps(x.Caps, y.Caps) {
+			} else if len(y.Caps) > 0 && !types.SameCaps(x.Caps, y.Caps) {
 				return TyBottom
 			}
 			if e := vmeet(x.Value, y.Value); e != TyBottom {
@@ -240,7 +241,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 	case *grammar.TypeDef:
 		val := spec.NodeValue()
 		if val == nil {
-			return NamedTy{name, 's'}
+			return NamedTy{Name: name, Kind: 's'}
 		}
 		// Within the value of a named node type, a named node type stands for itself by its
 		// name, like a struct type: its value is read from its definition where it is needed

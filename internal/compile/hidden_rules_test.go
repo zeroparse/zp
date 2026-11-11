@@ -127,7 +127,7 @@ func TestPruneSpliceTypesFollowsTheStructureOfTypes(t *testing.T) {
 		{"list", ListTy{Elem: RuleTy{Name: "_m"}}, true},
 		{"join", JoinTy{Alts: []Ty{TyStringNode, RuleTy{Name: "_m"}}}, true},
 		{"capture", NodeTy{Value: TyStringNode, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}, T: RuleTy{Name: "_m"}}}}, true},
-		{"capture set", NodeTy{Value: TyStringNode, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}, T: TyStringNode, maybe: true, set: RuleTy{Name: "_m"}}}}, true},
+		{"capture set", NodeTy{Value: TyStringNode, Caps: []CapIndex{{Name: "x", Paths: [][]int{{0}}, T: TyStringNode, Maybe: true, Set: RuleTy{Name: "_m"}}}}, true},
 		{"no reference", TupleTy{Elems: []Ty{TyStringNode}}, false},
 		{"a name that holds the rule's", RuleTy{Name: "x_m"}, false},
 	} {
