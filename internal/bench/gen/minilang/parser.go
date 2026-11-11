@@ -7721,4 +7721,4 @@ fail:
 
 const _ = types.ZPSchema_3d84369c53f6b3f2
 
-const _ = rt.Protocol6
+const _ = rt.Protocol99
