@@ -2,16 +2,18 @@ package ref
 
 import (
 	"fmt"
+	"strings"
 
 	"zeroparse.dev/zp/grammar"
 )
 
 // TermEnv is what a term reads: the captures of the rule, the unit of positions and the place of the
-// evaluation. The reference evaluator covers the terms that a generated term uses: literals, captures
-// and lambda parameters, members of nodes and structs, struct and tuple constructors, the built-in
-// functions, the operators and casts to int and string.
+// evaluation. The reference evaluator covers every term of a value or predicate action: literals,
+// captures and lambda parameters, the members of nodes (.Start, .End, .Value and captures) and of
+// structs, struct, tuple and named node constructors, the built-in functions, the operators and casts
+// to every type (spec/language/actions.md). It does not model the values of error recovery.
 type TermEnv struct {
-	// Captures are the captures by name; a string node is Node(text, start, end).
+	// Captures are the captures by name, made with Node; a capture that did not match is absent.
 	Captures map[string]V
 	// Bytes sets the unit of positions and lengths to bytes instead of code points.
 	Bytes bool
@@ -23,9 +25,6 @@ type TermEnv struct {
 	// that a constructor left unset reads as (spec/language/types.md#zero-values).
 	Zeros map[string]map[string]V
 }
-
-// Node returns the value of a string node of the input.
-func Node(text string, start, end int) V { return V{Kind: KNode, S: text, Start: start, End: end} }
 
 // failure is the panic value of an evaluation error.
 type failure string
@@ -81,7 +80,14 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 		return e.member(e.eval(t.X, p), t.Name)
 	case *grammar.New:
 		if len(t.Args) > 0 {
-			fail("ref: node constructors are not modeled")
+			// N{x} converts the node x to the named node type N: it keeps the range and the content
+			// of x and carries the name N (types.md, Named Node Types). The checker admits only nodes.
+			x := e.eval(t.Args[0], p)
+			if x.Kind != KNode {
+				panic("ref: conversion of a value that is not a node: " + x.TypeName())
+			}
+			x.Type = t.Type
+			return x
 		}
 		s := V{Kind: KStruct, Type: t.Type, Fields: map[string]V{}}
 		for _, f := range t.Fields {
@@ -122,6 +128,11 @@ func (e *TermEnv) member(x V, name string) V {
 			return Int(int64(x.Start))
 		case "End":
 			return Int(int64(x.End))
+		case "Value":
+			return x.nodeValue()
+		}
+		if cap, ok := strings.CutPrefix(name, "$"); ok {
+			return x.Caps[cap] // a capture that did not match reads as nil
 		}
 	case KStruct:
 		if v, ok := x.Fields[name]; ok {
@@ -162,13 +173,17 @@ func (e *TermEnv) binary(t *grammar.Binary, p params) V {
 	return v
 }
 
-// items returns the elements of a list; nil is the empty list.
+// items returns the elements of a list value or a list node; nil is the empty list.
 func (e *TermEnv) items(fn string, v V) []V {
 	switch v.Kind {
 	case KNil:
 		return nil
 	case KList:
 		return v.Items
+	case KNode:
+		if v.Shape == ListNode {
+			return v.Items
+		}
 	}
 	fail("%s: expected a list, got %s", fn, v.TypeName())
 	return nil
@@ -186,7 +201,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		case KStr:
 			return Int(int64(unitLen(x.S, e.Bytes)))
 		case KNode:
-			if x.Items != nil {
+			if x.Shape != StringNode {
 				return Int(int64(len(x.Items))) // a list or a tuple node
 			}
 			return Int(int64(x.End - x.Start)) // a string node
@@ -245,27 +260,90 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 }
 
 func (e *TermEnv) cast(c *grammar.Cast, x V) V {
-	ref, ok := c.Type.(*grammar.TypeRef)
-	if !ok {
-		panic(fmt.Sprintf("ref: unsupported cast type %T", c.Type))
-	}
-	fits := false
-	switch ref.Name {
-	case "int":
-		fits = x.Kind == KInt
-	case "string":
-		fits = x.Kind == KStr
-	case "bool":
-		fits = x.Kind == KBool
-	default:
-		// A struct type, or another type that the generated terms do not cast to: no value other
-		// than a struct of that type is one.
-		fits = x.Kind == KStruct && x.Type == ref.Name
-	}
-	if !fits {
-		fail("cannot cast %s to %s at input position %d (line %d, column %d)", x.TypeName(), ref.Name, e.Pos, e.Line, e.Col)
+	if !admits(c.Type, x) {
+		fail("cannot cast %s to %s at input position %d (line %d, column %d)", x.TypeName(), castName(c.Type), e.Pos, e.Line, e.Col)
 	}
 	return x
+}
+
+// castName is the type of a cast as an error message shows it: as written, without the parentheses
+// that group the whole type.
+func castName(t grammar.TypeExpr) string {
+	for {
+		g, ok := t.(*grammar.TypeGroup)
+		if !ok {
+			return grammar.FormatType(t)
+		}
+		t = g.Type
+	}
+}
+
+// admits reports whether the type t admits the value x (actions.md, Values and Constructors): a name
+// other than a built-in one is a declared struct type or named node type, which admits only its own
+// values. The model has no values of error recovery, so error admits none.
+func admits(t grammar.TypeExpr, x V) bool {
+	switch t := t.(type) {
+	case *grammar.TypeGroup:
+		return admits(t.Type, x)
+	case *grammar.TypeRef:
+		switch t.Name {
+		case "_":
+			return true
+		case "int":
+			return x.Kind == KInt
+		case "string":
+			return x.Kind == KStr
+		case "bool":
+			return x.Kind == KBool
+		case "error":
+			return false
+		}
+		return (x.Kind == KStruct || x.Kind == KNode) && x.Type == t.Name
+	case *grammar.OptionalType:
+		return x.Kind == KNil || admits(t.Elem, x)
+	case *grammar.JoinType:
+		for _, m := range t.Types {
+			if admits(m, x) {
+				return true
+			}
+		}
+		return false
+	case *grammar.MeetType:
+		for _, m := range t.Types {
+			if !admits(m, x) {
+				return false
+			}
+		}
+		return true
+	case *grammar.ListType:
+		return x.Kind == KList && all(x.Items, t.Elem)
+	case *grammar.TupleType:
+		return x.Kind == KTuple && len(x.Items) == len(t.Types) && each(x.Items, t.Types)
+	case *grammar.TypeApp:
+		// node[U] admits a node, named or not, whose value U admits.
+		if t.Name == "node" && len(t.Args) == 1 {
+			return x.Kind == KNode && admits(t.Args[0], x.nodeValue())
+		}
+	}
+	panic(fmt.Sprintf("ref: unsupported cast type %s", grammar.FormatType(t)))
+}
+
+func all(xs []V, t grammar.TypeExpr) bool {
+	for _, x := range xs {
+		if !admits(t, x) {
+			return false
+		}
+	}
+	return true
+}
+
+func each(xs []V, ts []grammar.TypeExpr) bool {
+	for i, x := range xs {
+		if !admits(ts[i], x) {
+			return false
+		}
+	}
+	return true
 }
 
 // Plain returns v as the plain Go value that a parse result shows in JSON: a struct that is the result
@@ -289,6 +367,15 @@ func (e *TermEnv) plain(v V, result bool) any {
 			out[i] = e.plain(x, false)
 		}
 		return out
+	case KNode:
+		out := map[string]any{"start": v.Start, "end": v.End, "value": v.S}
+		if v.Shape != StringNode {
+			out["value"] = e.plain(v.nodeValue(), false)
+		}
+		if v.Type != "" {
+			out["type"] = v.Type
+		}
+		return out
 	case KStruct:
 		fields := map[string]any{}
 		for k, x := range v.Fields {
@@ -300,7 +387,7 @@ func (e *TermEnv) plain(v V, result bool) any {
 		}
 		return map[string]any{"type": v.Type, "start": start, "end": end, "fields": fields}
 	}
-	panic("ref: a node is not a result")
+	panic(fmt.Sprintf("ref: no plain form of %s", v.TypeName()))
 }
 
 // structRange is the range of a struct: the range that covers the ranges of the fields whose values

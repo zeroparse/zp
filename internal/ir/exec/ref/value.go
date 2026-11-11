@@ -13,7 +13,7 @@ import (
 // Kind is the kind of a value of the model.
 type Kind int
 
-// Kinds of values. A Node here is the string node of a capture; the other node kinds are not modeled.
+// Kinds of values. A node is a node of the input: a string, tuple or list node (Shape), named or not.
 const (
 	KNil Kind = iota
 	KInt
@@ -38,6 +38,38 @@ type V struct {
 	Fields map[string]V
 	// Start and End are the range of a node, in the units of the input.
 	Start, End int
+	// Shape is the shape of a node: its value is the string S (the text of its range), or the tuple
+	// or the list of Items. S is the text of the range of every node.
+	Shape Shape
+	// Caps are the captures of a node by name; a capture that did not match is absent and reads as nil.
+	Caps map[string]V
+}
+
+// Shape is the shape of the value of a node.
+type Shape int
+
+// Shapes of nodes.
+const (
+	StringNode Shape = iota
+	TupleNode
+	ListNode
+)
+
+// Node returns a node of the input of the shape with the text and the range, the elements of a tuple
+// or a list node, and the captures. A named node has Type set to the name of its node type.
+func Node(shape Shape, text string, start, end int, items []V, caps map[string]V) V {
+	return V{Kind: KNode, Shape: shape, S: text, Start: start, End: end, Items: items, Caps: caps}
+}
+
+// nodeValue is the value of a node, .Value: its string, its tuple or its list of elements.
+func (v V) nodeValue() V {
+	switch v.Shape {
+	case TupleNode:
+		return Tuple(v.Items...)
+	case ListNode:
+		return List(v.Items...)
+	}
+	return Str(v.S)
 }
 
 // Constructors of the scalar values.
@@ -69,6 +101,15 @@ func (v V) TypeName() string {
 		return "(" + strings.TrimSuffix(strings.Repeat("_, ", len(v.Items)), ", ") + ")"
 	case KStruct:
 		return v.Type
+	}
+	if v.Type != "" {
+		return v.Type // a named node type
+	}
+	switch v.Shape {
+	case TupleNode:
+		return "node[" + Tuple(v.Items...).TypeName() + "]"
+	case ListNode:
+		return "node[[]_]"
 	}
 	return "node[string]"
 }

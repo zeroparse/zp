@@ -181,12 +181,7 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	var all []gentest.TermCase
-	for _, set := range [][]gentest.TermCase{gentest.ConvertTermCases(), gentest.StructTermCases(), gentest.CastTermCases(),
-		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases()} {
-		cases, _ := wellTypedCases(t, set)
-		all = append(all, cases...)
-	}
+	all, _ := wellTypedCases(t, fixedTermCases())
 	cases := termCaseList(all)
 	for i := range cases {
 		cases[i].Name = fmt.Sprintf("%d %s", i, cases[i].Name)
@@ -308,32 +303,13 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				if unit == engine.Bytes {
 					w = len(c.Lit)
 				}
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(c.Lit, 0, w)}, Bytes: unit == engine.Bytes, Start: 0, End: w, Line: 1, Col: 1,
-					Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
-				v, msg := env.Eval(term)
-				opts := engine.ParseOptions{Backend: engine.Closure, Unit: unit}
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == engine.Bytes,
+					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
+				in := c.Lit
 				if c.Kind == gentest.TermPredicate {
-					n, err := prog.ParseWith("main", c.Lit+"b", opts)
-					held := err == nil && n != nil
-					if want := ref.Holds(v, msg); held != want {
-						t.Errorf("%s: unit %d: the engine holds the predicate: %v, the reference evaluator: %v (%s)", c.Name, unit, held, want, msg)
-					}
-					checked++
-					continue
+					in += "b"
 				}
-				n, err := prog.ParseWith("main", c.Lit, opts)
-				want := map[string]any{"node": nil}
-				if msg != "" {
-					want["err"] = "action in main: " + msg
-				} else {
-					want["node"] = env.Plain(v)
-				}
-				wantJSON, _ := json.Marshal(want)
-				got := gentest.ResultJSON(n, err)
-				var gotAny, wantAny any
-				if json.Unmarshal([]byte(got), &gotAny) != nil || json.Unmarshal(wantJSON, &wantAny) != nil || !reflect.DeepEqual(gotAny, wantAny) {
-					t.Errorf("%s: unit %d: the engine gives\n %s\nthe reference evaluator\n %s", c.Name, unit, got, wantJSON)
-				}
+				checkReference(t, c, prog, term, env, unit, in)
 				checked++
 			}
 		}
@@ -341,6 +317,123 @@ func TestTermReferenceEvaluator(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("no case was checked")
 	}
+}
+
+// checkReference compares the engine's closure backend on the input in with the reference evaluator
+// in env: the value or the error of an action, and for a predicate, which precedes an optional "b",
+// whether the predicate held, by whether an input that ends in "b" parses.
+func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit engine.PositionUnit, in string) {
+	t.Helper()
+	v, msg := env.Eval(term)
+	n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: engine.Closure, Unit: unit})
+	if c.Kind == gentest.TermPredicate {
+		held := err == nil && n != nil
+		if want := !strings.HasSuffix(in, "b") || ref.Holds(v, msg); held != want {
+			t.Errorf("%s: input %q unit %d: the engine parses: %v, the reference evaluator: %v (%s)", c.Name, in, unit, held, want, msg)
+		}
+		return
+	}
+	want := map[string]any{"node": nil}
+	if msg != "" {
+		want["err"] = "action in main: " + msg
+	} else {
+		want["node"] = env.Plain(v)
+	}
+	wantJSON, _ := json.Marshal(want)
+	got := gentest.ResultJSON(n, err)
+	var gotAny, wantAny any
+	if json.Unmarshal([]byte(got), &gotAny) != nil || json.Unmarshal(wantJSON, &wantAny) != nil || !reflect.DeepEqual(gotAny, wantAny) {
+		t.Errorf("%s: input %q unit %d: the engine gives\n %s\nthe reference evaluator\n %s", c.Name, in, unit, got, wantJSON)
+	}
+}
+
+// fixedTermCases returns the fixed term sets of gentest other than the members, which
+// TestTermGeneratedTargets reads: conversions, structs, casts, list and tuple values, iteration and pushes.
+func fixedTermCases() []gentest.TermCase {
+	var all []gentest.TermCase
+	for _, set := range [][]gentest.TermCase{gentest.ConvertTermCases(), gentest.StructTermCases(), gentest.CastTermCases(),
+		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases()} {
+		all = append(all, set...)
+	}
+	return all
+}
+
+// TestTermFixedReference checks the engine's closure backend against the reference evaluator on the
+// fixed term sets and the members, in both position units: the same value or error for every input of an action, and
+// whether a predicate held. The captures come from the hand-written tables of the cases, so the
+// reference evaluator reads the nodes that the rules define, not the engine's. With
+// TestTermFixedGeneratedTargets, which compares the generated targets with the engine on the same
+// cases, every target gives the reference value.
+func TestTermFixedReference(t *testing.T) {
+	t.Parallel()
+	checked := 0
+	for _, c := range append(gentest.MemberTermCases(), fixedTermCases()...) {
+		g, err := parseTest(c.Src)
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		prog, err := engine.Compile(g, compile.Options{})
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		var structs []string
+		for _, d := range g.File.Decls {
+			if td, ok := d.(*grammar.TypeDef); ok {
+				if _, ok := td.Type.(*grammar.StructType); ok {
+					structs = append(structs, td.Name)
+				}
+			}
+		}
+		zeros := referenceZeros(t, prog.Static(), structs...)
+		term := referenceTerm(t, c)
+		for _, in := range c.Inputs {
+			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+				bytes := unit == engine.Bytes
+				end := utf8.RuneCountInString(in)
+				if bytes {
+					end = len(in)
+				}
+				env := &ref.TermEnv{Captures: referenceCaptures(c.Captures(in), in, bytes), Bytes: bytes, Start: 0, End: end, Line: 1, Col: 1, Zeros: zeros}
+				checkReference(t, c, prog, term, env, unit, in)
+				checked++
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no case was checked")
+	}
+}
+
+// referenceCaptures turns the captures of a fixed case, in characters of the input in, into nodes of the
+// reference evaluator in the position unit; a capture that did not match is left out.
+func referenceCaptures(caps map[string]gentest.Capture, in string, bytes bool) map[string]ref.V {
+	runes := []rune(in)
+	offset := func(i int) int {
+		if bytes {
+			return len(string(runes[:i]))
+		}
+		return i
+	}
+	var node func(c gentest.Capture) ref.V
+	node = func(c gentest.Capture) ref.V {
+		shape := map[gentest.CaptureShape]ref.Shape{gentest.StringCapture: ref.StringNode, gentest.TupleCapture: ref.TupleNode,
+			gentest.ListCapture: ref.ListNode}
+		if c.Shape == gentest.Unmatched {
+			return ref.Nil
+		}
+		var items []ref.V
+		for _, e := range c.Elems {
+			items = append(items, node(e))
+		}
+		return ref.Node(shape[c.Shape], string(runes[c.From:c.To]), offset(c.From), offset(c.To), items, referenceCaptures(c.Caps, in, bytes))
+	}
+	out := map[string]ref.V{}
+	for name, c := range caps {
+		if c.Shape != gentest.Unmatched {
+			out[name] = node(c)
+		}
+	}
+	return out
 }
 
 // referenceZeros returns the zero values of the fields of the struct types names that the grammar declares for the reference

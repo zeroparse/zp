@@ -26,6 +26,72 @@ type TermCase struct {
 	// Lit is the text of the literal that the rule main matches, and $x captures: "a" in the terms of
 	// TermCases, and "a", "é" or "😀" in those of TermCasesWide, whose positions differ in the two units.
 	Lit string
+	// Captures returns the captures of the rule main after it matched the input, for the reference
+	// evaluator of terms; nil for the generated cases, whose rule captures only $x, the literal. The
+	// fixed cases write them by hand from their rules, so that the reference evaluator reads the
+	// captures that the grammar defines without a parser of its own.
+	Captures func(in string) map[string]Capture
+}
+
+// Capture is a node that a capture holds after a match, with its range in characters of the input: a
+// string node, a tuple node or a list node of Elems, with its own captures. The zero Capture is a capture
+// that did not match, which reads as nil.
+type Capture struct {
+	Shape    CaptureShape
+	From, To int
+	Elems    []Capture
+	Caps     map[string]Capture
+}
+
+// CaptureShape is the shape of the node of a Capture.
+type CaptureShape int
+
+// Shapes of captured nodes.
+const (
+	Unmatched CaptureShape = iota
+	StringCapture
+	TupleCapture
+	ListCapture
+)
+
+// litCap is the string node of the literal at character i.
+func litCap(i int) Capture { return Capture{Shape: StringCapture, From: i, To: i + 1} }
+
+// litsCap is the node of the repetition of the literal over the characters [from, to).
+func litsCap(from, to int) Capture {
+	c := Capture{Shape: ListCapture, From: from, To: to}
+	for i := from; i < to; i++ {
+		c.Elems = append(c.Elems, litCap(i))
+	}
+	return c
+}
+
+// lits is the number of characters of the input in, where the literal lit repeats from the start.
+func lits(in, lit string) int {
+	n := 0
+	for strings.HasPrefix(in, lit) {
+		in, n = in[len(lit):], n+1
+	}
+	return n
+}
+
+// xyzCaptures are the captures of x:lit y:lit z:"c"? on an input of the literal: z does not match.
+func xyzCaptures(string) map[string]Capture {
+	return map[string]Capture{"x": litCap(0), "y": litCap(1)}
+}
+
+// xyzRsCaptures are the captures of x:lit y:lit z:"c"? rs:(w:lit)*: rs is the list of the tuple nodes of the
+// literals after y, each of one element, captured as w.
+func xyzRsCaptures(lit string) func(string) map[string]Capture {
+	return func(in string) map[string]Capture {
+		n := lits(in, lit)
+		rs := Capture{Shape: ListCapture, From: 2, To: n}
+		for i := 2; i < n; i++ {
+			rs.Elems = append(rs.Elems, Capture{Shape: TupleCapture, From: i, To: i + 1, Elems: []Capture{litCap(i)},
+				Caps: map[string]Capture{"w": litCap(i)}})
+		}
+		return map[string]Capture{"x": litCap(0), "y": litCap(1), "rs": rs}
+	}
 }
 
 // termTypes are the Types of the values a generated term may have.
@@ -594,13 +660,23 @@ func MemberTermCases() []TermCase {
 				Case: Case{Name: "member: " + a.term,
 					Src: fmt.Sprintf("%srule main %s = x:%q \"b\"? $$ => %s\n", widePrelude, a.typ, lit, a.term), Inputs: []string{lit}},
 				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Captures: func(string) map[string]Capture { return map[string]Capture{"x": litCap(0)} },
 			})
 		}
 	}
 	// A capture of a node, matched and unmatched, read directly and by a predicate.
 	capture := widePrelude + "rule main string = x:sub $$ => text($x.$y) + text($x.$z)\nrule sub = y:\"a\" z:\"b\"?\n"
+	// $x is the tuple node of the sequence of sub, which carries its captures y and z.
+	subCaptures := func(in string) map[string]Capture {
+		y, z := litCap(0), Capture{}
+		if in == "ab" {
+			z = litCap(1)
+		}
+		return map[string]Capture{"x": {Shape: TupleCapture, From: 0, To: len(in), Elems: []Capture{y, z},
+			Caps: map[string]Capture{"y": y, "z": z}}}
+	}
 	out = append(out, TermCase{Case: Case{Name: "member: capture", Src: capture, Inputs: []string{"a", "ab"}},
-		Term: "text($x.$y) + text($x.$z)", Type: "string", Kind: TermAction, Lit: "a"})
+		Term: "text($x.$y) + text($x.$z)", Type: "string", Kind: TermAction, Lit: "a", Captures: subCaptures})
 	return out
 }
 
@@ -614,6 +690,18 @@ const convertPrelude = "type N = node[string]\ntype M = node[string]\ntype P = n
 // as the operand of a member read, len or text, and the value of a rule of the named node type. Each
 // conversion is sure to occur.
 func ConvertTermCases() []TermCase {
+	// The captures of the three bodies: a literal, a sequence of two and a repetition.
+	one := func(string) map[string]Capture { return map[string]Capture{"x": litCap(0)} }
+	pair := func(string) map[string]Capture {
+		return map[string]Capture{"x": {Shape: TupleCapture, From: 0, To: 2, Elems: []Capture{litCap(0), litCap(1)}}}
+	}
+	captures := map[string]func(string) func(string) map[string]Capture{
+		"x:%[1]q":         func(string) func(string) map[string]Capture { return one },
+		"x:(%[1]q %[1]q)": func(string) func(string) map[string]Capture { return pair },
+		"x:%[1]q+": func(lit string) func(string) map[string]Capture {
+			return func(in string) map[string]Capture { return map[string]Capture{"x": litsCap(0, lits(in, lit))} }
+		},
+	}
 	actions := []struct{ typ, body, term string }{
 		{"string", "x:%[1]q", "text(N{$x})"},
 		{"int", "x:%[1]q", "N{$x}.End - N{$x}.Start"},
@@ -636,7 +724,7 @@ func ConvertTermCases() []TermCase {
 			out = append(out, TermCase{
 				Case: Case{Name: "convert: " + a.term,
 					Src: fmt.Sprintf("%srule main %s = %s $$ => %s\n", convertPrelude, a.typ, fmt.Sprintf(a.body, lit), a.term), Inputs: []string{input}},
-				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: captures[a.body](lit),
 			})
 		}
 	}
@@ -678,7 +766,7 @@ func StructTermCases() []TermCase {
 				Case: Case{Name: "struct: " + a.term,
 					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:%[3]q z:\"c\"? $$ => %[4]s\n", structPrelude, a.typ, lit, a.term),
 					Inputs: []string{lit + lit}},
-				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: xyzCaptures,
 			})
 		}
 	}
@@ -763,11 +851,20 @@ func CastTermCases() []TermCase {
 				Case: Case{Name: "cast: " + term,
 					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:(%[3]q %[3]q) z:%[3]q+ w:\"c\"? $$ => %[4]s\n", prelude, a.typ, lit, term),
 					Inputs: []string{strings.Repeat(lit, 4), strings.Repeat(lit, 5)}},
-				Term: term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: castCaptures(lit),
 			})
 		}
 	}
 	return out
+}
+
+// castCaptures are the captures of the rule of CastTermCases, x:lit y:(lit lit) z:lit+ w:"c"?: w does not
+// match.
+func castCaptures(lit string) func(string) map[string]Capture {
+	return func(in string) map[string]Capture {
+		return map[string]Capture{"x": litCap(0), "y": {Shape: TupleCapture, From: 1, To: 3, Elems: []Capture{litCap(1), litCap(2)}},
+			"z": litsCap(3, lits(in, lit))}
+	}
 }
 
 // hullPrelude declares the struct type of HullTermCases: S has a list and a tuple field.
@@ -820,7 +917,7 @@ func HullTermCases() []TermCase {
 				Case: Case{Name: "hull: " + a.term,
 					Src:    fmt.Sprintf("%srule main %s = x:%[3]q y:%[3]q z:\"c\"? $$ => %[4]s\n", hullPrelude, a.typ, lit, a.term),
 					Inputs: []string{lit + lit}},
-				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: xyzCaptures,
 			})
 		}
 	}
@@ -889,7 +986,7 @@ func IterTermCases() []TermCase {
 				Case: Case{Name: "iter: " + a.term,
 					Src:    fmt.Sprintf("%srule main %s = "+rule+" $$ => %[4]s\n", iterPrelude, a.typ, lit, a.term),
 					Inputs: []string{in}},
-				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: a.term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: xyzRsCaptures(lit),
 			})
 		}
 		for _, p := range predicates {
@@ -897,7 +994,7 @@ func IterTermCases() []TermCase {
 				Case: Case{Name: "iter predicate: " + p,
 					Src:    fmt.Sprintf("%srule main %s = "+rule+" ({%[4]s} \"b\" / \"\") $$ => 1\n", iterPrelude, "int", lit, p),
 					Inputs: []string{in, in + "b"}},
-				Term: p, Kind: TermPredicate, Lit: lit,
+				Term: p, Kind: TermPredicate, Lit: lit, Captures: xyzRsCaptures(lit),
 			})
 		}
 	}
@@ -954,7 +1051,7 @@ func PushTermCases() []TermCase {
 				Case: Case{Name: "push: " + term,
 					Src:    fmt.Sprintf("%srule main %s = "+rule+" $$ => %[4]s\n", pushPrelude, a.typ, lit, term),
 					Inputs: []string{in}},
-				Term: term, Type: a.typ, Kind: TermAction, Lit: lit,
+				Term: term, Type: a.typ, Kind: TermAction, Lit: lit, Captures: xyzRsCaptures(lit),
 			})
 		}
 		for _, p := range predicates {
@@ -962,7 +1059,7 @@ func PushTermCases() []TermCase {
 				Case: Case{Name: "push predicate: " + p,
 					Src:    fmt.Sprintf("%srule main %s = "+rule+" ({%[4]s} \"b\" / \"\") $$ => 1\n", pushPrelude, "int", lit, p),
 					Inputs: []string{in, in + "b"}},
-				Term: p, Kind: TermPredicate, Lit: lit,
+				Term: p, Kind: TermPredicate, Lit: lit, Captures: xyzRsCaptures(lit),
 			})
 		}
 	}
