@@ -880,8 +880,6 @@ type lead struct {
 	// up: the path reaches the lead after the end of a rule body, in what follows a call whose
 	// evaluations can nest without a bound and end at one position (nestsEnd, nestsOps).
 	up bool
-	// left: the path reaches the lead after the end of the body in which it started.
-	left bool
 	// via: the calls whose bodies the path looked through to reach the lead.
 	via *refList
 }
@@ -907,9 +905,8 @@ const (
 // bodies, by every call site of the rule. With only set, it looks through every call but one
 // of that rule, and records in seen the shareable calls that it looks through. When from is set,
 // each path is the rest after the lead in from at the same index, and starts with what that lead
-// carries: whether the path left a body through a call that nests (see lead.up), whether it left
-// the body in which it started, and the calls that it looked through, before the shared calls
-// that strip removed from it.
+// carries: whether the path left a body through a call that nests (see lead.up), and the calls
+// that it looked through, before the shared calls that strip removed from it.
 func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[string]bool) []lead {
 	budget := leadBudget
 	var out []lead
@@ -918,13 +915,13 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 	// which the path entered it, which the leads after it carry.
 	type upKey struct {
 		endKey
-		up, left bool
-		via      *refList
+		up  bool
+		via *refList
 	}
 	ended := map[upKey]bool{}
 	type state struct {
-		up, left bool
-		via      *refList
+		up  bool
+		via *refList
 	}
 	var visit func(p *cont, st state)
 	visit = func(p *cont, st state) {
@@ -937,7 +934,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 				return
 			}
 			if p == nil {
-				out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
+				out = append(out, lead{done: true, up: up, via: st.via})
 				return
 			}
 			if len(p.items) == 0 {
@@ -946,7 +943,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					continue
 				}
 				if p.end != endNone {
-					key := upKey{endKey: endKey{p.end, p.rule}, up: up, left: st.left}
+					key := upKey{endKey: endKey{p.end, p.rule}, up: up}
 					if p.inner {
 						key.via = st.via
 					}
@@ -955,17 +952,14 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					}
 					ended[key] = true
 				}
-				// Past the end of a body that the path looked into, it is still in the body in
-				// which it started.
-				left := st.left || !p.inner
 				switch p.end {
 				case endNone:
-					out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
+					out = append(out, lead{done: true, up: up, via: st.via})
 				case endOps:
-					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), left, st.via}) })
-					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), left, st.via}) })
+					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), st.via}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via}) })
 				case endRule:
-					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), left, st.via}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via}) })
 				}
 				return
 			}
@@ -997,12 +991,12 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 				p = rest
 			case *grammar.EndInput:
 				// At the end of the input nothing more is examined.
-				out = append(out, lead{done: true, up: up, left: st.left, via: st.via})
+				out = append(out, lead{done: true, up: up, via: st.via})
 				return
 			case *grammar.Literal:
 				if e.Value != "" {
 					if only == nil {
-						out = append(out, lead{lit: e, rest: rest, up: up, left: st.left, via: st.via})
+						out = append(out, lead{lit: e, rest: rest, up: up, via: st.via})
 					} else {
 						out = append(out, lead{})
 					}
@@ -1035,7 +1029,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					return
 				}
 				if k.shareable(e) && (only == nil || *only == e.Name) {
-					out = append(out, lead{call: e, rest: rest, up: up, left: st.left, via: st.via})
+					out = append(out, lead{call: e, rest: rest, up: up, via: st.via})
 					return
 				}
 				if k.shareable(e) && seen != nil {
@@ -1056,7 +1050,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 	for i, p := range paths {
 		var st state
 		if from != nil {
-			st = state{from[i].up, from[i].left, from[i].via}
+			st = state{from[i].up, from[i].via}
 		}
 		visit(p, st)
 	}
