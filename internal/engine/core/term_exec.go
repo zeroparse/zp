@@ -11,7 +11,8 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// The codes of the binary operators, as the compositions of terms take them.
+// The codes of the binary operators, as the compositions of terms take them, for generated parsers;
+// not a stable API.
 const (
 	OpAdd   = 0  // +
 	OpSub   = 1  // -
@@ -27,13 +28,13 @@ const (
 	OpIndex = 11 // []
 )
 
-// The codes of the unary operators.
+// The codes of the unary operators, for generated parsers; not a stable API.
 const (
 	OpNeg = 0 // -
 	OpNot = 1 // !
 )
 
-// The codes of the logical operators.
+// The codes of the logical operators, for generated parsers; not a stable API.
 const (
 	OpAnd = 0 // &&
 	OpOr  = 1 // ||
