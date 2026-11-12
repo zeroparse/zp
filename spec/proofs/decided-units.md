@@ -25,25 +25,23 @@ Linear Cost proof, a scanning source below is one that is not a bounded scan,
 and its activations are its iterations, the operators that it applies or the
 evaluations of a skip expression.
 
-**Paths as the comparison reads them.** The paths of an expression are built
-from its structure. A call, a literal, a character class and `.` are paths of
-one symbol, and so is a lookahead, whose expression is evaluated inside the
-symbol. A predicate, a `#cut` and an anchor consume nothing, and the
-comparison passes them on either side; a predicate that binds a variable ends
-the agreement of the variables (Lemma 2). Groups, captures, discarded
+**Paths as the comparison builds them.** The paths of an expression are built
+from its structure, with the symbols that the specification lists. A call, a
+literal, a character class, `.`, a predicate, a `#cut`, an anchor and a
+repetition that the comparison passes whole are paths of one symbol, and so is
+a lookahead, whose expression is evaluated inside the symbol. Groups, captures,
+discarded
 expressions, `#atomic`, actions and streams have the paths of their expression.
 A sequence has the concatenations of the paths of its items, a choice the paths
 of its alternatives, an option the empty path and the paths of its expression,
 and a repetition the concatenations of any number of paths of its expression,
 with at least as many as its lower bound and at most as many as its upper
-bound. The comparison **looks into** an option, a choice, a repetition or a
-lookahead only when it is cheap in all its parts: it contains no scanning
-source of its own, the expression itself included, and each call in it is
-cheap. Every other expression, `#recover`, attributed expressions and Operators
+bound. As the specification states, the comparison **looks into** an option,
+a choice, a repetition or a lookahead only when it is cheap in all its parts,
+the expression itself included. Every other expression, `#recover`, attributed expressions and Operators
 Rules among them, is a **stop**: a path that reaches it ends with it, and the
 comparison decides nothing at it. In particular a repetition without an upper
-bound that is not a bounded scan is a scanning source of its own, so it is
-never looked into.
+bound that is not a bounded scan is never looked into.
 
 The paths of a continuation are built in the same way from what the parser
 evaluates after the unit: the rest of each enclosing sequence; at the end of
@@ -140,6 +138,14 @@ Where the comparison passes two symbols by a character that they have in
 common, the step is a single character that both accept at $p$, which both
 consume or neither does.
 
+Two equal repetitions whose calls are alike in the same sense evaluate the same
+expression, whose terminals agree as above and whose calls match alike, and
+which reads the same variables on both sides, so by induction on the structure
+of the expression each iteration of one, started where the same iteration of
+the other started, fails in both or ends at one position in both. A repetition
+is greedy: it stops at the same iteration in both, after the same number of
+iterations, so both match or both fail, and both end at one position.
+
 A trivia rule has the body `X*`, atomic or not, where `X` cannot match without
 consuming input, and neither it nor a rule that it calls runs an action or
 contains `#recover`, an attributed expression, a stream, an Operators Rule or
@@ -213,18 +219,15 @@ Let a pair of paths of the unit $w$ and the continuation $\kappa$ be settled
 at a decisive symbol, and let both evaluations reach it at the position $t$
 after passing every step. Then at most one of them passes it.
 
-The decisive symbols are read as follows. A decisive symbol by first
-characters is one that cannot match without consuming input, facing one that
-cannot either: a symbol that can match without consuming input passes at $t$
-whatever the character there, so its first characters decide nothing. Two
-literals decide when neither can match at a position where the other matches,
-which for literals with the same case sensitivity means that neither is a
-prefix of the other. A negative lookahead `!K` on one side decides when every
+The decisive symbols are those of the specification: symbols by first
+characters cannot match without consuming input, and a positive lookahead
+decides against a symbol that, like its expression, cannot. Two literals
+decide when neither can match at a position where the other matches, which for
+literals with the same case sensitivity means that neither is a prefix of the
+other. A negative lookahead `!K` on one side decides when every
 evaluation that passes the next symbols of the other side's path, in order from
 $t$, matches an alternative of $K$ at $t$; the other side passes the decisive
-point when it passes those symbols. A positive lookahead `&K` on one side
-decides when $K$ and the next symbol of the other side cannot match without
-consuming input and have disjoint first characters. The end of the parse is
+point when it passes those symbols. The end of the parse is
 decisive in the continuation: nothing follows it on its path.
 
 *Proof.* Two symbols that cannot match without consuming input consume, where
@@ -271,8 +274,9 @@ symbol of $\pi$, inside a stop of $\pi$, or in a failed attempt or a dropped
 call. It is direct in $E$, so it lies in no call made in $E$, which rules out a
 call symbol, a dropped call and the calls of a failed attempt; a literal, a
 class or `.` holds no activation; a lookahead symbol that the comparison passes
-or decides on is cheap in all its parts, and so is a failed attempt, so neither
-contains a scanning source of its own. What remains is that the activation is
+or decides on is cheap in all its parts, and so are a repetition that it
+passes whole and a failed attempt, so none of them contains a scanning source
+of its own. What remains is that the activation is
 made by a construct that encloses several symbols of $\pi$: an iteration of a
 repetition that $\pi$ passes, an operator applied by an Operators Rule whose
 parts $\pi$ passes, or an evaluation of a skip expression that $\pi$ passes. A
