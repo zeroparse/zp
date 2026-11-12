@@ -13,13 +13,14 @@ func term() (Datum, Fail) {
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
-  let tn5 = term.struct([Object])
-  let tfirst6 = true
+  let tf5 = term.fromObj(tn4)
+  let tn6 = term.struct([Object])
+  let tfirst7 = true
   seq.step()
-  term.setField([Members], tn5, term.fromObj(tn4))
-  tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
-  made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5), null(Fail)
+  term.setField([Members], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## members action
@@ -55,16 +56,18 @@ func term() (Datum, Fail) {
 
 ## member action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Member])
-  let tfirst2 = true
+  let tf1 = term.read([$k])
+  let tf2 = term.read([$v])
+  let tn3 = term.struct([Member])
+  let tfirst4 = true
   seq.step()
-  term.setField([Key], tn1, term.read([$k]))
-  tfirst2 = cover(tn1, term.read([$k]), tfirst2)
+  term.setField([Key], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Value], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## array action
@@ -77,13 +80,14 @@ func term() (Datum, Fail) {
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
-  let tn5 = term.struct([Array])
-  let tfirst6 = true
+  let tf5 = term.fromObj(tn4)
+  let tn6 = term.struct([Array])
+  let tfirst7 = true
   seq.step()
-  term.setField([Elements], tn5, term.fromObj(tn4))
-  tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
-  made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5), null(Fail)
+  term.setField([Elements], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## elements action

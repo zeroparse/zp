@@ -26,11 +26,11 @@ func TestGeneratedTSRecoveredValuesDetectsMutation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs generated code")
 	}
-	const from = `c.termSetField(tn2, "A", tv1);`
+	const from = `c.termSetField(tn3, "A", tv1);`
 	var replaced bool
 	mismatches := gentest.TSParsersMismatches(t, gentest.RequireNode(t), gentest.RecoveredValueCases[1:2], gen.GenOptions{}, func(src string) string {
 		replaced = replaced || strings.Contains(src, from)
-		return strings.ReplaceAll(src, from, `c.termSetField(tn2, "A", (tv1 as number) + 1);`)
+		return strings.ReplaceAll(src, from, `c.termSetField(tn3, "A", (tv1 as number) + 1);`)
 	})
 	if !replaced {
 		t.Fatalf("the generated parser has no %q", from)

@@ -41,12 +41,13 @@ func term() (Datum, Fail) {
   }
   let tk10 = term.elemsAbove(tm1)
   let tn11 = hull(term.ctx(), false, tk10)
-  let tn12 = term.struct([Record])
-  let tfirst13 = true
+  let tf12 = term.fromObj(tn11)
+  let tn13 = term.struct([Record])
+  let tfirst14 = true
   seq.step()
-  term.setField([Fields], tn12, term.fromObj(tn11))
-  tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
-  made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12), null(Fail)
+  term.setField([Fields], tn13, tf12)
+  tfirst14 = cover(tn13, tf12, tfirst14)
+  made(term.ctx(), tn13, tfirst14)
+  return term.fromObj(tn13), null(Fail)
 }
 

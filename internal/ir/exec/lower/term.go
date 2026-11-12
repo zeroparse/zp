@@ -747,14 +747,16 @@ func inDeclaredOrder(t *ir.New) bool {
 // order: a step charged for each, the field set and its value covered by the range of the struct.
 func (l *termLowerer) structLiteral(b *exec.Builder, t *ir.New) exec.Expr {
 	// A value is let before the next one is evaluated when the constructor call takes the values in
-	// another order than written: the call evaluates its arguments in the order declared. Otherwise the
-	// values are used as they are; what a field leaves for its use to evaluate (a read, a constant)
-	// does not depend on the fields after it.
+	// another order than written: the call evaluates its arguments in the order declared. Without the
+	// constructor, each value is used twice (set and covered), so a value that is not a local or a
+	// constant is let once: a read is then made, and charged, once, as the term reads it. Otherwise
+	// the values are used as they are; what a field leaves for its use to evaluate (a read, a
+	// constant) does not depend on the fields after it.
 	let := l.structCall && !inDeclaredOrder(t)
 	vals := make([]exec.Expr, len(t.Fields))
 	for i, f := range t.Fields {
 		vals[i] = l.value(b, f.Value)
-		if let {
+		if let || !l.structCall && !settled(vals[i]) {
 			vals[i] = b.Let(l.local("tf"), vals[i])
 		}
 	}
@@ -790,6 +792,18 @@ func (l *termLowerer) structLiteral(b *exec.Builder, t *ir.New) exec.Expr {
 	}
 	b.Do("made", exec.C(OpTermCtx), n, exec.L(first))
 	return exec.C(OpTermFromObj, n)
+}
+
+// settled reports whether the expression e is a local or a constant, which can be used more than
+// once without being evaluated again.
+func settled(e exec.Expr) bool {
+	switch e := e.(type) {
+	case *exec.Local, *exec.Const:
+		return true
+	case *exec.Call:
+		return e.Callee == OpTermConst
+	}
+	return false
 }
 
 // logic lowers l && r and l || r: logic checks each operand that is evaluated, and the right one is

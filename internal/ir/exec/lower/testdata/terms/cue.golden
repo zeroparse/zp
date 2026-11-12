@@ -117,13 +117,14 @@ func term() (Datum, Fail) {
   }
   let tk47 = term.elemsAbove(tm41)
   let tn48 = hull(term.ctx(), false, tk47)
-  let tn49 = term.struct([File])
-  let tfirst50 = true
+  let tf49 = term.fromObj(tn48)
+  let tn50 = term.struct([File])
+  let tfirst51 = true
   seq.step()
-  term.setField([Decls], tn49, term.fromObj(tn48))
-  tfirst50 = cover(tn49, term.fromObj(tn48), tfirst50)
-  made(term.ctx(), tn49, tfirst50)
-  return term.fromObj(tn49), null(Fail)
+  term.setField([Decls], tn50, tf49)
+  tfirst51 = cover(tn50, tf49, tfirst51)
+  made(term.ctx(), tn50, tfirst51)
+  return term.fromObj(tn50), null(Fail)
 }
 
 ## file predicate
@@ -141,13 +142,14 @@ func term() (Datum, Fail) {
 
 ## package_clause action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Package])
-  let tfirst2 = true
+  let tf1 = term.read([$n])
+  let tn2 = term.struct([Package])
+  let tfirst3 = true
   seq.step()
-  term.setField([Name], tn1, term.read([$n]))
-  tfirst2 = cover(tn1, term.read([$n]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Name], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## package_clause predicate
@@ -233,37 +235,39 @@ func term() (Datum, Fail) {
 
 ## import_paren action
 func term() (Datum, Fail) {
-  let tm1 = term.kids()
-  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
-  if (tf2 != null(Fail)) {
-    return null(Datum), tf2
+  let tf1 = term.read([$lp])
+  let tm2 = term.kids()
+  let ti3, tf3 = items(term.name([map]), term.read([$ss]))
+  if (tf3 != null(Fail)) {
+    return null(Datum), tf3
   }
-  let tj3 = 0
-  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
-    let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
-    if (tf7 != null(Fail)) {
-      return null(Datum), tf7
-    }
-    let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$s]), term.field([s of $s]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      return null(Datum), tf9
+    }
   }
-  let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
-  let tn11 = term.struct([ImportDecl])
-  let tfirst12 = true
+  let tk10 = term.elemsAbove(tm2)
+  let tn11 = hull(term.ctx(), false, tk10)
+  let tf12 = term.fromObj(tn11)
+  let tn13 = term.struct([ImportDecl])
+  let tfirst14 = true
   seq.step()
-  term.setField([Lparen], tn11, term.read([$lp]))
-  tfirst12 = cover(tn11, term.read([$lp]), tfirst12)
+  term.setField([Lparen], tn13, tf1)
+  tfirst14 = cover(tn13, tf1, tfirst14)
   seq.step()
-  term.setField([Specs], tn11, term.fromObj(tn10))
-  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
-  made(term.ctx(), tn11, tfirst12)
-  return term.fromObj(tn11), null(Fail)
+  term.setField([Specs], tn13, tf12)
+  tfirst14 = cover(tn13, tf12, tfirst14)
+  made(term.ctx(), tn13, tfirst14)
+  return term.fromObj(tn13), null(Fail)
 }
 
 ## import_single action
@@ -276,27 +280,30 @@ func term() (Datum, Fail) {
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
-  let tn5 = term.struct([ImportDecl])
-  let tfirst6 = true
+  let tf5 = term.fromObj(tn4)
+  let tn6 = term.struct([ImportDecl])
+  let tfirst7 = true
   seq.step()
-  term.setField([Specs], tn5, term.fromObj(tn4))
-  tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
-  made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5), null(Fail)
+  term.setField([Specs], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## import_spec action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([ImportSpec])
-  let tfirst2 = true
+  let tf1 = term.read([$n])
+  let tf2 = term.read([$p])
+  let tn3 = term.struct([ImportSpec])
+  let tfirst4 = true
   seq.step()
-  term.setField([Name], tn1, term.read([$n]))
-  tfirst2 = cover(tn1, term.read([$n]), tfirst2)
+  term.setField([Name], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Path], tn1, term.read([$p]))
-  tfirst2 = cover(tn1, term.read([$p]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Path], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## import_name action
@@ -435,13 +442,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## decls action
@@ -482,16 +490,18 @@ func term() (Datum, Fail) {
 
 ## embed_tail action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([EmbedDecl])
-  let tfirst2 = true
+  let tf1 = term.read([$l])
+  let tf2 = term.read([$a])
+  let tn3 = term.struct([EmbedDecl])
+  let tfirst4 = true
   seq.step()
-  term.setField([Expr], tn1, term.read([$l]))
-  tfirst2 = cover(tn1, term.read([$l]), tfirst2)
+  term.setField([Expr], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Alias], tn1, term.read([$a]))
-  tfirst2 = cover(tn1, term.read([$a]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Alias], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## comp_decl action
@@ -509,16 +519,18 @@ func term() (Datum, Fail) {
 
 ## let_decl action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([LetClause])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$e])
+  let tn3 = term.struct([LetClause])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## let_decl predicate
@@ -560,116 +572,138 @@ func term() (Datum, Fail) {
 
 ## embed_plain action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([EmbedDecl])
-  let tfirst2 = true
+  let tf1 = term.read([$e])
+  let tn2 = term.struct([EmbedDecl])
+  let tfirst3 = true
   seq.step()
-  term.setField([Expr], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## embed_bare action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([EmbedDecl])
-  let tfirst2 = true
+  let tf1 = term.read([$k])
+  let tn2 = term.struct([EmbedDecl])
+  let tfirst3 = true
   seq.step()
-  term.setField([Expr], tn1, term.read([$k]))
-  tfirst2 = cover(tn1, term.read([$k]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## field_plain action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Field])
-  let tfirst2 = true
+  let tf1 = term.read([$l])
+  let tf2 = term.read([$al])
+  let tf3 = term.read([$c])
+  let tf4 = term.read([$v])
+  let tf5 = term.read([$as])
+  let tn6 = term.struct([Field])
+  let tfirst7 = true
   seq.step()
-  term.setField([Label], tn1, term.read([$l]))
-  tfirst2 = cover(tn1, term.read([$l]), tfirst2)
+  term.setField([Label], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
   seq.step()
-  term.setField([Alias], tn1, term.read([$al]))
-  tfirst2 = cover(tn1, term.read([$al]), tfirst2)
+  term.setField([Alias], tn6, tf2)
+  tfirst7 = cover(tn6, tf2, tfirst7)
   seq.step()
-  term.setField([Constraint], tn1, term.read([$c]))
-  tfirst2 = cover(tn1, term.read([$c]), tfirst2)
+  term.setField([Constraint], tn6, tf3)
+  tfirst7 = cover(tn6, tf3, tfirst7)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn6, tf4)
+  tfirst7 = cover(tn6, tf4, tfirst7)
   seq.step()
-  term.setField([Attrs], tn1, term.read([$as]))
-  tfirst2 = cover(tn1, term.read([$as]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Attrs], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## field_alias action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Field])
-  let tfirst2 = true
+  let tf1 = term.read([$l])
+  let tf2 = term.read([$al])
+  let tf3 = term.read([$c])
+  let tf4 = term.read([$v])
+  let tf5 = term.read([$as])
+  let tn6 = term.struct([Field])
+  let tfirst7 = true
   seq.step()
-  term.setField([Label], tn1, term.read([$l]))
-  tfirst2 = cover(tn1, term.read([$l]), tfirst2)
+  term.setField([Label], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
   seq.step()
-  term.setField([Alias], tn1, term.read([$al]))
-  tfirst2 = cover(tn1, term.read([$al]), tfirst2)
+  term.setField([Alias], tn6, tf2)
+  tfirst7 = cover(tn6, tf2, tfirst7)
   seq.step()
-  term.setField([Constraint], tn1, term.read([$c]))
-  tfirst2 = cover(tn1, term.read([$c]), tfirst2)
+  term.setField([Constraint], tn6, tf3)
+  tfirst7 = cover(tn6, tf3, tfirst7)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn6, tf4)
+  tfirst7 = cover(tn6, tf4, tfirst7)
   seq.step()
-  term.setField([Attrs], tn1, term.read([$as]))
-  tfirst2 = cover(tn1, term.read([$as]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Attrs], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## nfield_plain action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Field])
-  let tfirst2 = true
+  let tf1 = term.read([$l])
+  let tf2 = term.read([$al])
+  let tf3 = term.read([$c])
+  let tf4 = term.read([$v])
+  let tf5 = term.read([$as])
+  let tn6 = term.struct([Field])
+  let tfirst7 = true
   seq.step()
-  term.setField([Label], tn1, term.read([$l]))
-  tfirst2 = cover(tn1, term.read([$l]), tfirst2)
+  term.setField([Label], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
   seq.step()
-  term.setField([Alias], tn1, term.read([$al]))
-  tfirst2 = cover(tn1, term.read([$al]), tfirst2)
+  term.setField([Alias], tn6, tf2)
+  tfirst7 = cover(tn6, tf2, tfirst7)
   seq.step()
-  term.setField([Constraint], tn1, term.read([$c]))
-  tfirst2 = cover(tn1, term.read([$c]), tfirst2)
+  term.setField([Constraint], tn6, tf3)
+  tfirst7 = cover(tn6, tf3, tfirst7)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn6, tf4)
+  tfirst7 = cover(tn6, tf4, tfirst7)
   seq.step()
-  term.setField([Attrs], tn1, term.read([$as]))
-  tfirst2 = cover(tn1, term.read([$as]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Attrs], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## nfield_alias action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Field])
-  let tfirst2 = true
+  let tf1 = term.read([$l])
+  let tf2 = term.read([$al])
+  let tf3 = term.read([$c])
+  let tf4 = term.read([$v])
+  let tf5 = term.read([$as])
+  let tn6 = term.struct([Field])
+  let tfirst7 = true
   seq.step()
-  term.setField([Label], tn1, term.read([$l]))
-  tfirst2 = cover(tn1, term.read([$l]), tfirst2)
+  term.setField([Label], tn6, tf1)
+  tfirst7 = cover(tn6, tf1, tfirst7)
   seq.step()
-  term.setField([Alias], tn1, term.read([$al]))
-  tfirst2 = cover(tn1, term.read([$al]), tfirst2)
+  term.setField([Alias], tn6, tf2)
+  tfirst7 = cover(tn6, tf2, tfirst7)
   seq.step()
-  term.setField([Constraint], tn1, term.read([$c]))
-  tfirst2 = cover(tn1, term.read([$c]), tfirst2)
+  term.setField([Constraint], tn6, tf3)
+  tfirst7 = cover(tn6, tf3, tfirst7)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn6, tf4)
+  tfirst7 = cover(tn6, tf4, tfirst7)
   seq.step()
-  term.setField([Attrs], tn1, term.read([$as]))
-  tfirst2 = cover(tn1, term.read([$as]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Attrs], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## fv_label action
@@ -697,27 +731,30 @@ func term() (Datum, Fail) {
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
-  let tn5 = term.struct([StructLit])
-  let tfirst6 = true
+  let tf5 = term.fromObj(tn4)
+  let tn6 = term.struct([StructLit])
+  let tfirst7 = true
   seq.step()
-  term.setField([Elts], tn5, term.fromObj(tn4))
-  tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
-  made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5), null(Fail)
+  term.setField([Elts], tn6, tf5)
+  tfirst7 = cover(tn6, tf5, tfirst7)
+  made(term.ctx(), tn6, tfirst7)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## alias_value action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Alias])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$e])
+  let tn3 = term.struct([Alias])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_value predicate
@@ -790,52 +827,58 @@ func term() (Datum, Fail) {
 
 ## alias_dual action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([PostfixAlias])
-  let tfirst2 = true
+  let tf1 = term.read([$k])
+  let tf2 = term.read([$v])
+  let tn3 = term.struct([PostfixAlias])
+  let tfirst4 = true
   seq.step()
-  term.setField([Label], tn1, term.read([$k]))
-  tfirst2 = cover(tn1, term.read([$k]), tfirst2)
+  term.setField([Label], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Field], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Field], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_paren action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([PostfixAlias])
-  let tfirst2 = true
+  let tf1 = term.read([$f])
+  let tn2 = term.struct([PostfixAlias])
+  let tfirst3 = true
   seq.step()
-  term.setField([Field], tn1, term.read([$f]))
-  tfirst2 = cover(tn1, term.read([$f]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Field], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## alias_simple action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([PostfixAlias])
-  let tfirst2 = true
+  let tf1 = term.read([$f])
+  let tn2 = term.struct([PostfixAlias])
+  let tfirst3 = true
   seq.step()
-  term.setField([Field], tn1, term.read([$f]))
-  tfirst2 = cover(tn1, term.read([$f]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Field], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## alias_label action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Alias])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$r])
+  let tn3 = term.struct([Alias])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$r]))
-  tfirst2 = cover(tn1, term.read([$r]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_label predicate
@@ -877,16 +920,18 @@ func term() (Datum, Fail) {
 
 ## alias_nlabel action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Alias])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$r])
+  let tn3 = term.struct([Alias])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$r]))
-  tfirst2 = cover(tn1, term.read([$r]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_nlabel predicate
@@ -936,19 +981,22 @@ func term() (Datum, Fail) {
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
-  let tn5 = term.struct([Comprehension])
-  let tfirst6 = true
+  let tf5 = term.fromObj(tn4)
+  let tf6 = term.read([$v])
+  let tf7 = term.read([$f])
+  let tn8 = term.struct([Comprehension])
+  let tfirst9 = true
   seq.step()
-  term.setField([Clauses], tn5, term.fromObj(tn4))
-  tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
+  term.setField([Clauses], tn8, tf5)
+  tfirst9 = cover(tn8, tf5, tfirst9)
   seq.step()
-  term.setField([Value], tn5, term.read([$v]))
-  tfirst6 = cover(tn5, term.read([$v]), tfirst6)
+  term.setField([Value], tn8, tf6)
+  tfirst9 = cover(tn8, tf6, tfirst9)
   seq.step()
-  term.setField([Fallback], tn5, term.read([$f]))
-  tfirst6 = cover(tn5, term.read([$f]), tfirst6)
-  made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5), null(Fail)
+  term.setField([Fallback], tn8, tf7)
+  tfirst9 = cover(tn8, tf7, tfirst9)
+  made(term.ctx(), tn8, tfirst9)
+  return term.fromObj(tn8), null(Fail)
 }
 
 ## comp_multi action
@@ -979,19 +1027,22 @@ func term() (Datum, Fail) {
   }
   let tk10 = term.elemsAbove(tm1)
   let tn11 = hull(term.ctx(), false, tk10)
-  let tn12 = term.struct([Comprehension])
-  let tfirst13 = true
+  let tf12 = term.fromObj(tn11)
+  let tf13 = term.read([$v])
+  let tf14 = term.read([$f])
+  let tn15 = term.struct([Comprehension])
+  let tfirst16 = true
   seq.step()
-  term.setField([Clauses], tn12, term.fromObj(tn11))
-  tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
+  term.setField([Clauses], tn15, tf12)
+  tfirst16 = cover(tn15, tf12, tfirst16)
   seq.step()
-  term.setField([Value], tn12, term.read([$v]))
-  tfirst13 = cover(tn12, term.read([$v]), tfirst13)
+  term.setField([Value], tn15, tf13)
+  tfirst16 = cover(tn15, tf13, tfirst16)
   seq.step()
-  term.setField([Fallback], tn12, term.read([$f]))
-  tfirst13 = cover(tn12, term.read([$f]), tfirst13)
-  made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12), null(Fail)
+  term.setField([Fallback], tn15, tf14)
+  tfirst16 = cover(tn15, tf14, tfirst16)
+  made(term.ctx(), tn15, tfirst16)
+  return term.fromObj(tn15), null(Fail)
 }
 
 ## fb_else action
@@ -1006,24 +1057,26 @@ func term() (Datum, Fail) {
 
 ## else_clause action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([FallbackClause])
-  let tfirst2 = true
+  let tf1 = term.read([$b])
+  let tn2 = term.struct([FallbackClause])
+  let tfirst3 = true
   seq.step()
-  term.setField([Body], tn1, term.read([$b]))
-  tfirst2 = cover(tn1, term.read([$b]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Body], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## otherwise_clause action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([FallbackClause])
-  let tfirst2 = true
+  let tf1 = term.read([$b])
+  let tn2 = term.struct([FallbackClause])
+  let tfirst3 = true
   seq.step()
-  term.setField([Body], tn1, term.read([$b]))
-  tfirst2 = cover(tn1, term.read([$b]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Body], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## start_clause action
@@ -1033,19 +1086,22 @@ func term() (Datum, Fail) {
 
 ## for_kv action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([ForClause])
-  let tfirst2 = true
+  let tf1 = term.read([$k])
+  let tf2 = term.read([$v])
+  let tf3 = term.read([$s])
+  let tn4 = term.struct([ForClause])
+  let tfirst5 = true
   seq.step()
-  term.setField([Key], tn1, term.read([$k]))
-  tfirst2 = cover(tn1, term.read([$k]), tfirst2)
+  term.setField([Key], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Source], tn1, term.read([$s]))
-  tfirst2 = cover(tn1, term.read([$s]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Source], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## for_kv predicate
@@ -1124,16 +1180,18 @@ func term() (Datum, Fail) {
 
 ## for_v action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([ForClause])
-  let tfirst2 = true
+  let tf1 = term.read([$v])
+  let tf2 = term.read([$s])
+  let tn3 = term.struct([ForClause])
+  let tfirst4 = true
   seq.step()
-  term.setField([Value], tn1, term.read([$v]))
-  tfirst2 = cover(tn1, term.read([$v]), tfirst2)
+  term.setField([Value], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Source], tn1, term.read([$s]))
-  tfirst2 = cover(tn1, term.read([$s]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Source], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## for_v predicate
@@ -1175,27 +1233,30 @@ func term() (Datum, Fail) {
 
 ## if_clause action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([IfClause])
-  let tfirst2 = true
+  let tf1 = term.read([$c])
+  let tn2 = term.struct([IfClause])
+  let tfirst3 = true
   seq.step()
-  term.setField([Condition], tn1, term.read([$c]))
-  tfirst2 = cover(tn1, term.read([$c]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Condition], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## try_assign action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([TryClause])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$e])
+  let tn3 = term.struct([TryClause])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## try_plain action
@@ -1208,13 +1269,14 @@ func term() (Datum, Fail) {
 
 ## struct_lit action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([StructLit])
-  let tfirst2 = true
+  let tf1 = term.read([$ds])
+  let tn2 = term.struct([StructLit])
+  let tfirst3 = true
   seq.step()
-  term.setField([Elts], tn1, term.read([$ds]))
-  tfirst2 = cover(tn1, term.read([$ds]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Elts], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## list_lit action
@@ -1258,13 +1320,14 @@ func term() (Datum, Fail) {
   }
   let tk16 = term.elemsAbove(tm1)
   let tn17 = hull(term.ctx(), false, tk16)
-  let tn18 = term.struct([ListLit])
-  let tfirst19 = true
+  let tf18 = term.fromObj(tn17)
+  let tn19 = term.struct([ListLit])
+  let tfirst20 = true
   seq.step()
-  term.setField([Elts], tn18, term.fromObj(tn17))
-  tfirst19 = cover(tn18, term.fromObj(tn17), tfirst19)
-  made(term.ctx(), tn18, tfirst19)
-  return term.fromObj(tn18), null(Fail)
+  term.setField([Elts], tn19, tf18)
+  tfirst20 = cover(tn19, tf18, tfirst20)
+  made(term.ctx(), tn19, tfirst20)
+  return term.fromObj(tn19), null(Fail)
 }
 
 ## elem_expr action
@@ -1274,16 +1337,18 @@ func term() (Datum, Fail) {
 
 ## alias_elem action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Alias])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$e])
+  let tn3 = term.struct([Alias])
+  let tfirst4 = true
   seq.step()
-  term.setField([Ident], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Ident], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Expr], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Expr], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_elem predicate
@@ -1325,13 +1390,14 @@ func term() (Datum, Fail) {
 
 ## list_dots action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([Ellipsis])
-  let tfirst2 = true
+  let tf1 = term.read([$t])
+  let tn2 = term.struct([Ellipsis])
+  let tfirst3 = true
   seq.step()
-  term.setField([Type], tn1, term.read([$t]))
-  tfirst2 = cover(tn1, term.read([$t]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Type], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## dots_type action
@@ -1341,13 +1407,14 @@ func term() (Datum, Fail) {
 
 ## paren_expr action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([ParenExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$e])
+  let tn2 = term.struct([ParenExpr])
+  let tfirst3 = true
   seq.step()
-  term.setField([X], tn1, term.read([$e]))
-  tfirst2 = cover(tn1, term.read([$e]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([X], tn2, tf1)
+  tfirst3 = cover(tn2, tf1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2), null(Fail)
 }
 
 ## atom_expr action
@@ -1367,295 +1434,341 @@ func term() (Datum, Fail) {
 
 ## ident_q action
 func term() (Datum, Fail) {
-  let tn1 = term.struct([PostfixExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$i])
+  let tf2 = term.read([$q])
+  let tn3 = term.struct([PostfixExpr])
+  let tfirst4 = true
   seq.step()
-  term.setField([X], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([X], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Op], tn1, term.read([$q]))
-  tfirst2 = cover(tn1, term.read([$q]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Op], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## full_expr line 2
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 3
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 4
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 5
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 6
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 7
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 8
 func term() (Datum, Fail) {
-  let tn1 = term.struct([BinaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tf3 = term.read([$rhs])
+  let tn4 = term.struct([BinaryExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Y], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Y], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 9
 func term() (Datum, Fail) {
-  let tn1 = term.struct([UnaryExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$o])
+  let tf2 = term.read([$rhs])
+  let tn3 = term.struct([UnaryExpr])
+  let tfirst4 = true
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
+  term.setField([Op], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([X], tn1, term.read([$rhs]))
-  tfirst2 = cover(tn1, term.read([$rhs]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([X], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## full_expr line 10
 func term() (Datum, Fail) {
-  let tn1 = term.struct([SelectorExpr])
-  let tfirst2 = true
-  seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
-  seq.step()
-  term.setField([Sel], tn1, term.read([$s]))
-  tfirst2 = cover(tn1, term.read([$s]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  let tn3 = term.struct([PostfixExpr])
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$s])
+  let tn3 = term.struct([SelectorExpr])
   let tfirst4 = true
   seq.step()
-  term.setField([X], tn3, term.fromObj(tn1))
-  tfirst4 = cover(tn3, term.fromObj(tn1), tfirst4)
+  term.setField([X], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Op], tn3, term.read([$q]))
-  tfirst4 = cover(tn3, term.read([$q]), tfirst4)
+  term.setField([Sel], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
   made(term.ctx(), tn3, tfirst4)
-  return term.fromObj(tn3), null(Fail)
+  let tf5 = term.fromObj(tn3)
+  let tf6 = term.read([$q])
+  let tn7 = term.struct([PostfixExpr])
+  let tfirst8 = true
+  seq.step()
+  term.setField([X], tn7, tf5)
+  tfirst8 = cover(tn7, tf5, tfirst8)
+  seq.step()
+  term.setField([Op], tn7, tf6)
+  tfirst8 = cover(tn7, tf6, tfirst8)
+  made(term.ctx(), tn7, tfirst8)
+  return term.fromObj(tn7), null(Fail)
 }
 
 ## full_expr line 11
 func term() (Datum, Fail) {
-  let tn1 = term.struct([SelectorExpr])
-  let tfirst2 = true
-  seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
-  seq.step()
-  term.setField([Sel], tn1, term.read([$s]))
-  tfirst2 = cover(tn1, term.read([$s]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
-}
-
-## full_expr line 12
-func term() (Datum, Fail) {
-  let tn1 = term.struct([IndexExpr])
-  let tfirst2 = true
-  seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
-  seq.step()
-  term.setField([Index], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
-  seq.step()
-  term.setField([Rbrack], tn1, term.read([$r]))
-  tfirst2 = cover(tn1, term.read([$r]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  let tn3 = term.struct([PostfixExpr])
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$s])
+  let tn3 = term.struct([SelectorExpr])
   let tfirst4 = true
   seq.step()
-  term.setField([X], tn3, term.fromObj(tn1))
-  tfirst4 = cover(tn3, term.fromObj(tn1), tfirst4)
+  term.setField([X], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Op], tn3, term.read([$q]))
-  tfirst4 = cover(tn3, term.read([$q]), tfirst4)
+  term.setField([Sel], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
   made(term.ctx(), tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
+## full_expr line 12
+func term() (Datum, Fail) {
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$i])
+  let tf3 = term.read([$r])
+  let tn4 = term.struct([IndexExpr])
+  let tfirst5 = true
+  seq.step()
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
+  seq.step()
+  term.setField([Index], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
+  seq.step()
+  term.setField([Rbrack], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  let tf6 = term.fromObj(tn4)
+  let tf7 = term.read([$q])
+  let tn8 = term.struct([PostfixExpr])
+  let tfirst9 = true
+  seq.step()
+  term.setField([X], tn8, tf6)
+  tfirst9 = cover(tn8, tf6, tfirst9)
+  seq.step()
+  term.setField([Op], tn8, tf7)
+  tfirst9 = cover(tn8, tf7, tfirst9)
+  made(term.ctx(), tn8, tfirst9)
+  return term.fromObj(tn8), null(Fail)
+}
+
 ## full_expr line 13
 func term() (Datum, Fail) {
-  let tn1 = term.struct([IndexExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$i])
+  let tf3 = term.read([$r])
+  let tn4 = term.struct([IndexExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Index], tn1, term.read([$i]))
-  tfirst2 = cover(tn1, term.read([$i]), tfirst2)
+  term.setField([Index], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([Rbrack], tn1, term.read([$r]))
-  tfirst2 = cover(tn1, term.read([$r]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Rbrack], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 14
 func term() (Datum, Fail) {
-  let tn1 = term.struct([SliceExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$lo])
+  let tf3 = term.read([$hi])
+  let tn4 = term.struct([SliceExpr])
+  let tfirst5 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn4, tf1)
+  tfirst5 = cover(tn4, tf1, tfirst5)
   seq.step()
-  term.setField([Low], tn1, term.read([$lo]))
-  tfirst2 = cover(tn1, term.read([$lo]), tfirst2)
+  term.setField([Low], tn4, tf2)
+  tfirst5 = cover(tn4, tf2, tfirst5)
   seq.step()
-  term.setField([High], tn1, term.read([$hi]))
-  tfirst2 = cover(tn1, term.read([$hi]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([High], tn4, tf3)
+  tfirst5 = cover(tn4, tf3, tfirst5)
+  made(term.ctx(), tn4, tfirst5)
+  return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 15
 func term() (Datum, Fail) {
-  let tm1 = term.kids()
-  let ti2, tf2 = items(term.name([map]), term.read([$as]))
-  if (tf2 != null(Fail)) {
-    return null(Datum), tf2
+  let tf1 = term.read([$lhs])
+  let tm2 = term.kids()
+  let ti3, tf3 = items(term.name([map]), term.read([$as]))
+  if (tf3 != null(Fail)) {
+    return null(Datum), tf3
   }
-  let tj3 = 0
-  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
-    let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
-    if (tf7 != null(Fail)) {
-      return null(Datum), tf7
-    }
-    let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$a]), term.field([a of $a]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      return null(Datum), tf9
+    }
   }
-  let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
-  let tn11 = term.struct([CallExpr])
-  let tfirst12 = true
+  let tk10 = term.elemsAbove(tm2)
+  let tn11 = hull(term.ctx(), false, tk10)
+  let tf12 = term.fromObj(tn11)
+  let tn13 = term.struct([CallExpr])
+  let tfirst14 = true
   seq.step()
-  term.setField([Fun], tn11, term.read([$lhs]))
-  tfirst12 = cover(tn11, term.read([$lhs]), tfirst12)
+  term.setField([Fun], tn13, tf1)
+  tfirst14 = cover(tn13, tf1, tfirst14)
   seq.step()
-  term.setField([Args], tn11, term.fromObj(tn10))
-  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
-  made(term.ctx(), tn11, tfirst12)
-  return term.fromObj(tn11), null(Fail)
+  term.setField([Args], tn13, tf12)
+  tfirst14 = cover(tn13, tf12, tfirst14)
+  made(term.ctx(), tn13, tfirst14)
+  return term.fromObj(tn13), null(Fail)
 }
 
 ## full_expr line 16
 func term() (Datum, Fail) {
-  let tn1 = term.struct([PostfixExpr])
-  let tfirst2 = true
+  let tf1 = term.read([$lhs])
+  let tf2 = term.read([$o])
+  let tn3 = term.struct([PostfixExpr])
+  let tfirst4 = true
   seq.step()
-  term.setField([X], tn1, term.read([$lhs]))
-  tfirst2 = cover(tn1, term.read([$lhs]), tfirst2)
+  term.setField([X], tn3, tf1)
+  tfirst4 = cover(tn3, tf1, tfirst4)
   seq.step()
-  term.setField([Op], tn1, term.read([$o]))
-  tfirst2 = cover(tn1, term.read([$o]), tfirst2)
-  made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1), null(Fail)
+  term.setField([Op], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## sel_string action
@@ -1664,13 +1777,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## interp_expr action
@@ -1694,13 +1808,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_open action
@@ -1709,13 +1824,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_mid action
@@ -1724,13 +1840,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_end action
@@ -1739,13 +1856,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_interp action
@@ -1771,13 +1889,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## dq_more action
@@ -1835,13 +1954,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_open action
@@ -1850,13 +1970,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_mid action
@@ -1865,13 +1986,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_end action
@@ -1880,13 +2002,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_interp action
@@ -1912,13 +2035,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## sq_more action
@@ -2154,13 +2278,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gtriple binding sv
@@ -2263,13 +2388,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_plain binding sv
@@ -2308,13 +2434,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_mid action
@@ -2323,13 +2450,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_end action
@@ -2338,13 +2466,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_interp action
@@ -2370,13 +2499,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## gsl_interp binding sv
@@ -2415,13 +2545,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## gsl_interp_s binding sv
@@ -2501,13 +2632,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_plain binding sv
@@ -2672,13 +2804,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_mid action
@@ -2687,13 +2820,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_end action
@@ -2702,13 +2836,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_interp action
@@ -2734,13 +2869,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## gml_interp binding sv
@@ -2779,13 +2915,14 @@ func term() (Datum, Fail) {
   }
   let tk8 = term.elemsAbove(tm5)
   let tn9 = hull(term.ctx(), false, tk8)
-  let tn10 = term.struct([Interpolation])
-  let tfirst11 = true
+  let tf10 = term.fromObj(tn9)
+  let tn11 = term.struct([Interpolation])
+  let tfirst12 = true
   seq.step()
-  term.setField([Elts], tn10, term.fromObj(tn9))
-  tfirst11 = cover(tn10, term.fromObj(tn9), tfirst11)
-  made(term.ctx(), tn10, tfirst11)
-  return term.fromObj(tn10), null(Fail)
+  term.setField([Elts], tn11, tf10)
+  tfirst12 = cover(tn11, tf10, tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## gml_interp_s binding sv
@@ -2860,13 +2997,14 @@ func term() (Datum, Fail) {
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
-  let tn2 = term.struct([String])
-  let tfirst3 = true
+  let tf2 = term.fromStr(ts1)
+  let tn3 = term.struct([String])
+  let tfirst4 = true
   seq.step()
-  term.setField([Text], tn2, term.fromStr(ts1))
-  tfirst3 = cover(tn2, term.fromStr(ts1), tfirst3)
-  made(term.ctx(), tn2, tfirst3)
-  return term.fromObj(tn2), null(Fail)
+  term.setField([Text], tn3, tf2)
+  tfirst4 = cover(tn3, tf2, tfirst4)
+  made(term.ctx(), tn3, tfirst4)
+  return term.fromObj(tn3), null(Fail)
 }
 
 ## qc predicate
