@@ -21,7 +21,7 @@ func TestGeneratedSourceParserCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gen.Go{Module: "zeroparse.dev/zp/internal/syntax/genparser", Runtime: gen.RuntimeImport, Types: true, TypedOnly: true}.Generate(g, "main")
+	files, err := gen.Go{Module: "zeroparse.dev/zp/internal/syntax/genparser", Runtime: gen.RuntimeImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
