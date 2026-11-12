@@ -1638,7 +1638,7 @@ op call.missing(st CallState) int
   requires:
     // st holds a call that call.save saved.
 
-transitional op missing.active() bool
+op missing.active() bool
   component recovered
   reads recovered
   features missing
@@ -1646,7 +1646,7 @@ transitional op missing.active() bool
   contract:
     // Reports whether the parse runs in the missing-token mode.
 
-transitional op missing.recompute(r Rule) bool
+op missing.recompute(r Rule) bool
   component recovered
   reads recovered, rules
   features missing
@@ -1655,7 +1655,7 @@ transitional op missing.recompute(r Rule) bool
     // Reports whether a result of the rule is evaluated again instead of being reused from the memo:
     // the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token.
 
-transitional op missing.mark() int
+op missing.mark() int
   component recovered
   reads recovered
   features missing
@@ -1663,22 +1663,22 @@ transitional op missing.mark() int
   contract:
     // Returns a mark of the missing-token record, for missing.reset.
 
-transitional op missing.reset(mark int)
+op missing.reset(mark int)
   component recovered
   writes recovered
   features missing
-  cost <= 0
+  cost <= 0 + 1*tokens
   contract:
     // Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it.
   requires:
     // mark is a result of missing.mark at or before every later mark that is still in use.
 
-transitional op missing.replay(e Entry)
+op missing.replay(e Entry)
   component recovered
   writes recovered
   features missing
   noreturn
-  cost <= 0 + 1*errs
+  cost <= 0 + 1*tokens + 1*errs
   contract:
     // Records again the tokens that the call of entry e inserted and the errors it recovered, as
     // rec.add does for the errors outside the missing-token mode.

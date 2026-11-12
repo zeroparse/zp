@@ -57,6 +57,10 @@ type Config struct {
 	DocCallMemo bool
 	// Observed makes a parse that is observed (obs.active is true).
 	Observed bool
+	// Missing makes a parse in the missing-token mode, and MissingRules the rules, by index in RuleVars,
+	// that can insert a missing token themselves or through a rule they call.
+	Missing      bool
+	MissingRules []bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -162,15 +166,32 @@ type Model struct {
 
 	// observe
 	obs obsState
+
+	// missing-token mode
+	missing missingState
 }
 
 // Err is an Err handle of the model.
-type Err struct{ ID int64 }
+type Err struct {
+	ID int64
+	// single is the list of this error alone. A target holds an error as an entry of its own, which is
+	// equal to every other entry of the same error, so that the model makes one list for each error.
+	single *ErrList
+}
+
+// list returns the list of the error e alone.
+func (e *Err) list() *ErrList {
+	if e.single == nil {
+		e.single = &ErrList{err: e.ID, ptr: e, n: 1}
+	}
+	return e.single
+}
 
 // ErrList is a list of recovered errors: one error, which rec.push recorded, or the entries that
 // rec.since made a list of, at least two. It never changes once made, and lists share it.
 type ErrList struct {
 	err     int64      // the identifier of the error of a list of one, made by rec.push
+	ptr     *Err       // that error
 	entries []*ErrList // the entries of a list that rec.since made
 	n       int        // the number of errors
 }
@@ -251,6 +272,8 @@ type Entry struct {
 	applied int64
 	// present is the present set that memo.setPresent recorded.
 	present uint64
+	// seed is the tokens that the call of the entry inserted (MissingSeedOp).
+	seed []missingToken
 	// far and expected are what memo.setExpected recorded, expected nil before it.
 	far      int64
 	expected *ExpKept
@@ -360,6 +383,9 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	if allowed, ok := m.allowsRule(o, args); ok {
 		return allowed
 	}
+	if allowed, ok := m.allowsMissing(o, args); ok {
+		return allowed
+	}
 	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args)) && m.allowsCtx(o, args) &&
 		(!isFrameOp(o.Name) || m.allowsFrame(o, args))
 }
@@ -459,6 +485,10 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 	case ops.QCaptureFields:
 		// A scripted body sets no capture, so no capture matches.
 		return 0
+	case ops.QErrs:
+		return m.errsQuantity(o, args)
+	case ops.QTokens:
+		return m.tokensQuantity(o, args)
 	}
 	panic("ref: unknown quantity " + name)
 }
@@ -545,7 +575,7 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	case "rec.mark":
 		return []any{int64(len(m.rec))}
 	case "rec.push":
-		m.rec = append(slices.Clip(m.rec), &ErrList{err: args[0].(*Err).ID, n: 1})
+		m.rec = append(slices.Clip(m.rec), args[0].(*Err).list())
 		return nil
 	case "rec.truncate":
 		m.rec = m.rec[:args[0].(int64)]
@@ -594,6 +624,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return res
 	}
 	if res, ok := m.callObs(o, args); ok {
+		return res
+	}
+	if res, ok := m.callMissing(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))

@@ -337,8 +337,12 @@ a replay costs a constant however many errors it brings back and listing k error
 ([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry
 that holds recovered errors stops being valid where an edit would move it. The operations are under
 conformance, with the identity of each error and of each list compared after every write, on generated Go and
-the engine; TypeScript stays on its parity tests. The missing-token operations of the engine are
-transitional. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
+the engine; TypeScript stays on its parity tests. The operations of the missing-token mode, which only the engine
+has, have a reference model of the tokens a parse inserts and conformance cases that compare them after each write,
+on the engine; a rule that can insert a token is not memoized in that mode. The growth operations `grow.step` and
+`grow.end` stay transitional: they record a seed's errors again, a write to the recovered errors from another
+component that the verifier allows only for transitional operations, and where that write belongs depends on the
+design of the call context, which also replays a call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
 that make an error record it: grammar code and the recovery of each engine write the push in their own language.
 
 **Variable environment.** A persistent environment: a binding makes a new environment that shares what it can,

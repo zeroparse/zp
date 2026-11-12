@@ -83,6 +83,9 @@ const (
 	// QErrs is the number of recovered errors that the call copies: those of its argument, or those
 	// recovered after its mark.
 	QErrs = "errs"
+	// QTokens is the number of missing tokens that the call removes (those inserted after its mark) or
+	// records again (those that the call of its entry inserted).
+	QTokens = "tokens"
 	// QSegs is the number of entries of the recovered-error list after the mark of the call, or for
 	// grow.step after the mark that the growth took when it began: errors that rec.push recorded and
 	// lists that rec.add recorded or rec.since put in their place.

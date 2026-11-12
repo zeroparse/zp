@@ -298,3 +298,16 @@ const GoObsBindingsFile = "obs_bind_exec_test.go"
 func GoObsBindings() (string, error) {
 	return bindingFile("runtime", obsBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
+
+// EngineMissingBindingsFile is the file of the engine's conformance bindings of the missing-token
+// mode, relative to the directory of this package. It is a test file of package core of the engine.
+const EngineMissingBindingsFile = "../../../engine/core/missing_bind_exec_test.go"
+
+// missingBindingOps are the operations of the missing-token mode.
+var missingBindingOps = []string{"missing.active", "missing.recompute", "missing.mark", "missing.reset", "missing.replay"}
+
+// EngineMissingBindings returns the Go test file of the conformance bindings of the missing-token mode
+// for package core of the engine, the only target that has the mode.
+func EngineMissingBindings() (string, error) {
+	return bindingFile("core", missingBindingOps, engineTarget())
+}

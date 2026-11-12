@@ -97,11 +97,11 @@ The operations of the component `recovered`.
 | `op rec.add(errs Errs)` | writes recovered | `0` | Records the errors of errs again, after the recovered errors, as one entry that shares errs; an empty list records nothing. |
 | `op rec.none(errs Errs) bool` | none | `0` | Reports whether the list of errors is empty. |
 | `op stream.settleErrors() [stream] noreturn` | writes recovered | `16` | Forgets the recovered errors, which were delivered and collected, and counts none as delivered. It charges one unit for each slot it clears of the scratch it keeps for the next element, which holds at most 16; a larger list is released without clearing it. Requires: The parse retains the tail (stream.tail), and no call holds a mark of the list. |
-| `transitional op missing.active() bool [missing]` | reads recovered | `0` | Reports whether the parse runs in the missing-token mode. |
-| `transitional op missing.recompute(r Rule) bool [missing]` | reads recovered, rules | `0` | Reports whether a result of the rule is evaluated again instead of being reused from the memo: the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token. |
-| `transitional op missing.mark() int [missing]` | reads recovered | `0` | Returns a mark of the missing-token record, for missing.reset. |
-| `transitional op missing.reset(mark int) [missing]` | writes recovered | `0` | Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it. Requires: mark is a result of missing.mark at or before every later mark that is still in use. |
-| `transitional op missing.replay(e Entry) [missing] noreturn` | writes recovered | `0 + 1*errs` | Records again the tokens that the call of entry e inserted and the errors it recovered, as rec.add does for the errors outside the missing-token mode. Requires: The parse runs in the missing-token mode. |
+| `op missing.active() bool [missing]` | reads recovered | `0` | Reports whether the parse runs in the missing-token mode. |
+| `op missing.recompute(r Rule) bool [missing]` | reads recovered, rules | `0` | Reports whether a result of the rule is evaluated again instead of being reused from the memo: the parse runs in the missing-token mode and the rule or a rule it calls can insert a missing token. |
+| `op missing.mark() int [missing]` | reads recovered | `0` | Returns a mark of the missing-token record, for missing.reset. |
+| `op missing.reset(mark int) [missing]` | writes recovered | `0 + 1*tokens` | Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it. Requires: mark is a result of missing.mark at or before every later mark that is still in use. |
+| `op missing.replay(e Entry) [missing] noreturn` | writes recovered | `0 + 1*tokens + 1*errs` | Records again the tokens that the call of entry e inserted and the errors it recovered, as rec.add does for the errors outside the missing-token mode. Requires: The parse runs in the missing-token mode. |
 | `transitional op opr.replay(a Attempt) [missing] noreturn` | reads operators; writes recovered | `0 + 1*errs` | Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for the errors outside the missing-token mode. |
 
 ## Expectations
