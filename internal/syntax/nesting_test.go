@@ -38,6 +38,42 @@ var nestingFamilies = []struct {
 	{"comment in parentheses", func(n int) string {
 		return "rule a = " + strings.Repeat("(", n-1) + "/* c */ x" + strings.Repeat(")", n-1)
 	}, func(n int) int { return 9 + n - 1 }},
+	{"lambdas on lines in a block", func(n int) string {
+		return "rule a = x => {\n f := (" + strings.Repeat("(y) =>\n", n-3) + "y)\n}"
+	}, func(n int) int { return 23 + 7*(n-4) }},
+}
+
+// flatFamilies make valid sources of n statements or items on lines of their own inside braces,
+// each with a "=>" that ends with its line, as a line break inside a brace ends a statement. Their nesting does not grow with n.
+var flatFamilies = []struct {
+	name string
+	src  func(n int) string
+}{
+	{"lambda statements in an action block", func(n int) string {
+		return "rule a = x => {\n" + strings.Repeat("  f := (y) => y\n", n) + "  1\n}"
+	}},
+	{"actioned items of an operator level", func(n int) string {
+		return "rule a = #operators {\n operand \"x\"\n level l {\n" + strings.Repeat("  infix left \"+\" => 1\n", n) + " }\n}"
+	}},
+}
+
+// TestNestingEndsWithTheLine checks that a "=>" inside braces ends with the statement or item that
+// holds it when a line break ends that, so a flat block of any length is accepted.
+func TestNestingEndsWithTheLine(t *testing.T) {
+	for _, f := range flatFamilies {
+		for _, n := range []int{maxLevels - 1, maxLevels + 1, 4 * maxLevels} {
+			src := f.src(n)
+			if _, err := Parse(src); err != nil {
+				t.Errorf("%s, Parse of %d lines: %.200v", f.name, n, err)
+			}
+			if _, errs := ParsePartial(src); errs != nil {
+				t.Errorf("%s, ParsePartial of %d lines: %.200v", f.name, n, errs)
+			}
+			if _, err := ParseReference(src); err != nil {
+				t.Errorf("%s, ParseReference of %d lines: %.200v", f.name, n, err)
+			}
+		}
+	}
 }
 
 // TestNestingLimit checks the nesting limit of the language specification at its boundary for

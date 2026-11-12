@@ -117,7 +117,7 @@ type lexer struct {
 	// Nesting (see nest): the levels open at the previous token, whether a name or literal before
 	// it may still be the name of a capture, and whether the source is already reported as too deep.
 	levels          []level
-	delimiters      int // the levelDelimiter entries of levels
+	delimiters      int // the delimiter entries of levels
 	pendingPop      bool
 	reportedTooDeep bool
 	newlines        int // line breaks since the previous token or comment
@@ -803,10 +803,14 @@ const maxLevels = 500
 type level uint8
 
 const (
-	levelDelimiter level = iota // an opening parenthesis, bracket or brace, until its closing one
+	levelDelimiter level = iota // an opening parenthesis or bracket, until its closing one
+	levelBrace                  // an opening brace, until its closing one
 	levelPrefix                 // a prefix operator, until its operand
 	levelArrow                  // "=>", until the item, statement or bracket that holds it ends
 )
+
+// delimiter reports whether k is the level of an opening delimiter.
+func (k level) delimiter() bool { return k == levelDelimiter || k == levelBrace }
 
 // prefixTokens are the tokens that may be a prefix operator: of rule expressions, of values, of
 // types, and the ":" of a capture. Each opens a level wherever it stands; after an operand, the
@@ -821,7 +825,9 @@ var operandTokens = map[string]bool{"$$": true, "$": true, "^^": true, "^": true
 // brackets around it, and each comment nested in it one more. An operand ends
 // the prefix operators before it once the next token shows that it is not the name of a capture.
 // Outside brackets, the end of a line ends every level; a "," or ";" ends the levels opened since
-// the innermost bracket.
+// the innermost bracket, and so does the end of a line when that bracket is a brace: there a line
+// break separates statements and items as ";" does, since an expression that spans lines needs a
+// parenthesis or bracket of its own.
 func (l *lexer) nest(t token) {
 	if l.pendingPop {
 		l.pendingPop = false
@@ -829,31 +835,37 @@ func (l *lexer) nest(t token) {
 			l.popPrefixes()
 		}
 	}
-	if t.lineBefore && l.delimiters == 0 {
-		l.levels = l.levels[:0]
+	if t.lineBefore {
+		switch {
+		case l.delimiters == 0:
+			l.levels = l.levels[:0]
+		case l.innermostBrace():
+			l.popToDelimiter()
+		}
 	}
 	if t.kind != tPunct {
 		l.pendingPop = t.kind != tEOF
 		return
 	}
 	switch t.text {
-	case "(", "[", "{":
+	case "(", "[":
 		l.delimiters++
 		l.open(levelDelimiter, t.pos)
+	case "{":
+		l.delimiters++
+		l.open(levelBrace, t.pos)
 	case ")", "]", "}":
 		for len(l.levels) > 0 {
 			last := l.levels[len(l.levels)-1]
 			l.levels = l.levels[:len(l.levels)-1]
-			if last == levelDelimiter {
+			if last.delimiter() {
 				l.delimiters--
 				break
 			}
 		}
 		l.popPrefixes()
 	case ",", ";":
-		for len(l.levels) > 0 && l.levels[len(l.levels)-1] != levelDelimiter {
-			l.levels = l.levels[:len(l.levels)-1]
-		}
+		l.popToDelimiter()
 	case "=>":
 		l.open(levelArrow, t.pos)
 	default:
@@ -864,6 +876,23 @@ func (l *lexer) nest(t token) {
 			l.popPrefixes()
 		}
 	}
+}
+
+// popToDelimiter ends the levels opened since the innermost open delimiter.
+func (l *lexer) popToDelimiter() {
+	for len(l.levels) > 0 && !l.levels[len(l.levels)-1].delimiter() {
+		l.levels = l.levels[:len(l.levels)-1]
+	}
+}
+
+// innermostBrace reports whether the innermost open delimiter is a brace.
+func (l *lexer) innermostBrace() bool {
+	for i := len(l.levels) - 1; i >= 0; i-- {
+		if l.levels[i].delimiter() {
+			return l.levels[i] == levelBrace
+		}
+	}
+	return false
 }
 
 // popPrefixes ends the prefix operators whose operand has ended.
