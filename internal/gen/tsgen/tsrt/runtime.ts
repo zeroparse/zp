@@ -2146,11 +2146,28 @@ export class Parser {
   spendUnits(n: number): void { this.control?.chargeUnits(n); }
   // alloc counts n bytes of storage taken into use for the memory limit; only a controlled parse counts.
   alloc(n: number): void { const c = this.control; if (c !== null) c.mem += n; }
+  // counted returns n, a node the generated code constructs, counting bytes for the memory limit.
+  counted(n: Node, bytes: number): Node { const c = this.control; if (c !== null) c.mem += bytes; return n; }
+  // heldBytes returns the bytes of the slots of the working stacks, by their lengths now: what the
+  // records on them hold is counted where they are made.
+  heldBytes(): number {
+    const slots = this.kidStack.length + this.saved.length + this.trail.length + this.exp.length + this.isoStack.length +
+      this.recovered.length + this.gamma.length + this.depFrames.length + this.deps.length + this.popped.length +
+      this.ctxs.length + this.looks.length + this.obsGuard.length + this.skipVisits.length + this.scanCold.length;
+    return 8 * slots;
+  }
+  // allocRetyped counts n when it is a copy that retypeNode made of the node v.
+  allocRetyped(v: Value, n: Value): void {
+    if (this.control !== null && n instanceof Node && n !== v && v instanceof Node) {
+      this.control.mem += nodeBytes + 8 + (v.fresh ? arrayBytes(v.children.length) : 0) + arrayBytes(v.fields.length);
+    }
+  }
 
   constructor(g: Grammar, input: string | Uint8Array, unit: Unit, stride: number, maxDepth: number, control: BudgetControl | null = null) {
     this.g = g;
     this.sourceInfo = g.sourceInfo;
     this.control = control;
+    if (control !== null) control.held = () => this.heldBytes();
     this.unit = unit;
     this.maxDepth = maxDepth;
     if (g.initEnv === undefined) {
@@ -2190,6 +2207,8 @@ export class Parser {
       this.src = this.decodeCodePoints(input);
       this.n = this.cps.length;
     }
+    // The decoded input, its offsets, and the per-rule tables of the parse.
+    this.alloc(typedBytes(this.cps.byteLength) + (this.offs === null ? 0 : typedBytes((this.offs as Int32Array).byteLength)) + 2 * typedBytes(stride * 4) + typedBytes(stride));
     this.sparse = g.sparse && stride > 64 && this.n > 1024;
   }
 
@@ -2474,13 +2493,16 @@ export class Parser {
   memoIndexAt(pos: number): Map<number, MemoEntry> {
     if (this.memoIndex === null) {
       this.memoIndex = new Map();
+      this.alloc(mapBytes);
     }
     let ix = this.memoIndex.get(pos);
     if (ix === undefined) {
       ix = new Map();
+      this.alloc(2 * mapEntryBytes + mapBytes);
       for (let e = this.slots[pos] || null; e; e = e.next) {
         this.memoProbe(ix, memoKeyHash(e.rule, e.min, e.env, this.control), () => false);
         ix.set(this.memoSlot, e);
+        this.alloc(mapEntryBytes);
       }
       this.memoIndex.set(pos, ix);
     }
@@ -2489,6 +2511,7 @@ export class Parser {
 
   // memoPut stores e under the key, replacing an entry with the same key.
   memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): void {
+    this.alloc(entryBytes);
     e.rule = rule;
     e.min = min;
     e.env = env;
@@ -2526,6 +2549,7 @@ export class Parser {
       }
     }
     if (ix !== undefined) {
+      if (replaced === null) this.alloc(mapEntryBytes);
       ix.set(ixSlot, e);
     }
     if (replaced !== null) {
@@ -2544,6 +2568,7 @@ export class Parser {
         this.slots = new Array(this.n + 1).fill(null);
       } else {
         const slots: (MemoEntry | null)[] = new Array(this.n + 1);
+        this.alloc(arrayBytes(slots.length));
         for (let from = 0; from < slots.length; from += 128) {
           const end = Math.min(from + 128, slots.length);
           this.spend(end - from);
@@ -2562,6 +2587,7 @@ export class Parser {
       return null;
     }
     const vals: Value[] = new Array(slots.length);
+    this.alloc(arrayBytes(slots.length));
     for (let i = 0; i < slots.length; i++) {
       this.spend();
       vals[i] = this.variable(slots[i]!);
@@ -2581,6 +2607,7 @@ export class Parser {
       return emptyFrame; // never written, so shared
     }
     const f: Frame = new Array(n);
+    this.alloc(arrayBytes(n));
     for (let i = 0; i < n; i++) {
       this.spend();
       f[i] = null;
@@ -2616,6 +2643,7 @@ export class Parser {
   }
 
   setCapture(slot: number, v: Node | null): void {
+    this.alloc(objectBytes(3));
     this.trail.push({ f: this.frame, slot, old: this.frame[slot]! });
     this.frame[slot] = v;
   }
@@ -2817,8 +2845,10 @@ export class Parser {
     let t = this.scanTables[site];
     if (t === undefined) {
       t = new Map();
+      this.alloc(mapBytes);
       this.scanTables[site] = t;
     }
+    this.alloc(objectBytes(3) + mapEntryBytes);
     t.set(start, rec);
   }
 
@@ -2893,6 +2923,7 @@ export class Parser {
       return;
     }
     this.skipClose();
+    this.alloc(objectBytes(3));
     this.skipVisits.push({ pos: this.pos, far: 0, exp: noExp });
     this.skipOpen = true;
     this.skipFar = this.farthest;
@@ -2961,8 +2992,12 @@ export class Parser {
       s = new SkipSlots();
       this.skipSlots = s;
       this.skipTables[this.skipTable] = s;
+      this.alloc(objectBytes(3) + arrayBytes(0) + mapBytes);
     }
+    const words = s.marks.length;
     s.put(pos, r);
+    // The words the marks grew by, and the record with its map entry.
+    this.alloc(8 * (s.marks.length - words) + (r === null ? 0 : objectBytes(3) + mapEntryBytes));
   }
 
   // text returns the text of [start, end): a range of the input, which costs a constant whatever
@@ -2972,10 +3007,10 @@ export class Parser {
     if (control !== null) {
       control.charge(1);
     }
-    if (this.offs === null) {
-      return this.src.slice(start, end);
-    }
-    return this.src.slice(this.offs[start], this.offs[end]);
+    const from = this.offs === null ? start : this.offs[start]!;
+    const to = this.offs === null ? end : this.offs[end]!;
+    if (control !== null) control.mem += sliceBytes(to - from);
+    return this.src.slice(from, to);
   }
 
   // recoveredError is makeError for an error that #recover records and never throws: it leaves out the
@@ -3010,6 +3045,7 @@ export class Parser {
         }
       }
       this.lines = lines;
+      this.alloc(arrayBytes(lines.length));
     }
     pos = Math.min(pos, this.n);
     // The number of line starts at or before pos.
@@ -3027,6 +3063,8 @@ export class Parser {
     const col = pos - this.lines[lo - 1]! + 1;
     if (this.control !== null) reserveSyntaxMessageSpend(lo, col, exp, msgs, this.control);
     const error = bare ? bareSyntaxError(pos, lo, col, exp, msgs) : new SyntaxError(pos, lo, col, exp, msgs);
+    // The error object with its message, and its lists of expectations and messages.
+    this.alloc(objectBytes(8) + stringBytes(error.message.length) + arrayBytes(exp.length) + arrayBytes(msgs.length));
     this.control?.check();
     return error;
   }
@@ -3037,6 +3075,7 @@ export class Parser {
     const bit = 1 << i % 32;
     if (w >= this.seen.length) {
       const grown = new Int32Array(Math.max(w + 1, 2 * this.seen.length, 64));
+      this.alloc(typedBytes(grown.byteLength));
       if (this.control === null) {
         grown.set(this.seen);
       } else {
@@ -3062,12 +3101,14 @@ export class Parser {
     if (this.seenPages === null) {
       this.seenPages = [];
       this.seenPageChunks = [];
+      this.alloc(2 * arrayBytes(0));
     }
     let pages = this.seenPages[s];
     if (pages === undefined) {
       this.spend();
       pages = [];
       this.seenPages[s] = pages;
+      this.alloc(arrayBytes(0) + 8);
     }
     const at = Math.floor(pos / 1024);
     let page = pages[at];
@@ -3076,8 +3117,10 @@ export class Parser {
       page = this.seenPageCount++;
       if (page % 64 === 0) {
         this.seenPageChunks!.push(new Int32Array(64 * 32));
+        this.alloc(typedBytes(64 * 32 * 4) + 8);
       }
       pages[at] = page;
+      this.alloc(8);
     }
     const chunk = this.seenPageChunks![Math.floor(page / 64)]!;
     const word = (page % 64) * 32 + Math.floor((pos % 1024) / 32);
@@ -3128,6 +3171,7 @@ export class Parser {
     let c = noCtx;
     let seed: CtxResult | null = null;
     if (r.cycle !== 0 && this.gamma.length !== 0) {
+      this.alloc(objectBytes(5));
       c = newCtxCall();
       seed = this.ctxEnter(c, r, min);
     }
@@ -3193,6 +3237,7 @@ export class Parser {
       entry.far = far;
       entry.expected = kept;
     } else if (store === storeCtx) {
+      this.alloc(objectBytes(7));
       this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
     }
     this.ctxDone(c);
@@ -3238,6 +3283,7 @@ export class Parser {
       return this.recovered[rec]!;
     }
     const l = new ErrList(this.control === null ? this.recovered.slice(rec) : copyEntriesSpend(this.recovered, rec, end, this.control));
+    this.alloc(objectBytes(1));
     this.recovered.length = rec;
     this.recovered.push(l);
     return l;
@@ -3355,6 +3401,7 @@ export class Parser {
   // env in the table of the context c, with the dependencies that ctxPop ended.
   ctxKeep(c: CtxCall, rule: number, start: number, min: number, env: Value[] | null, res: CtxResult): void {
     const sd = this.stored(this.popped);
+    this.alloc(objectBytes(8));
     this.ctxStore(start, c.gp, headKey(ctxCallKind, rule, min, c.present), sd, newSlot(res, 0, env));
   }
 
@@ -3369,6 +3416,7 @@ export class Parser {
   // pushFrame starts recording the dependencies of an evaluation at pos, in the context of the
   // growths gamma[gp:] there.
   pushFrame(pos: number, gp: number): void {
+    this.alloc(objectBytes(4));
     this.depFrames.push({ pos, gp, depth: this.gamma.length, base: this.deps.length });
   }
 
@@ -3439,6 +3487,7 @@ export class Parser {
         out.push({ kind: depObs, rule: 0, min: 0, site: d.idx, val: d.val });
       } else {
         const g = this.gamma[d.idx]!;
+        this.alloc(objectBytes(5) + 8);
         out.push({ kind: d.kind, rule: g.rule, min: g.min, site: 0, val: d.val });
       }
     }
@@ -3513,6 +3562,7 @@ export class Parser {
     if (!create) {
       return null;
     }
+    this.alloc(objectBytes(5) + mapBytes);
     const t: CtxTable = { pos, depth: gp, heads: new Map(), jumps: null, canon: null };
     this.ctxs.push(t);
     return t;
@@ -3648,6 +3698,7 @@ export class Parser {
     let sets = t.heads.get(h);
     if (sets === undefined) {
       sets = [];
+      this.alloc(arrayBytes(0) + mapEntryBytes);
       t.heads.set(h, sets);
     }
     let set: CtxSet | null = null;
@@ -3660,6 +3711,7 @@ export class Parser {
     }
     if (set === null) {
       set = { seeds, obs, vals: new Map() };
+      this.alloc(objectBytes(3) + mapBytes + 8);
       sets.push(set);
     }
     slot.deps = ds;
@@ -3676,6 +3728,7 @@ export class Parser {
       }
     }
     slot.next = link;
+    this.alloc(mapEntryBytes);
     set.vals.set(k, slot);
   }
 
@@ -3745,7 +3798,8 @@ export class Parser {
     const present = this.presentOf(f.gp);
     const sd = this.stored(ds);
     if (present !== null) {
-      this.ctxStore(f.pos, f.gp, headKey(ctxLookKind, site, 0, present), sd, newSlot(null, val, null));
+      this.alloc(objectBytes(8));
+    this.ctxStore(f.pos, f.gp, headKey(ctxLookKind, site, 0, present), sd, newSlot(null, val, null));
     }
     const out: Dep[] = [{ kind: depObs, idx: site, d: f.depth, val }];
     for (const d of ds) {
@@ -3763,6 +3817,7 @@ export class Parser {
     const gi = this.gamma.length;
     const gp = this.gammaAt(start, r.cycle);
     const g: GrowState = { rule: r.id, min, start, rec: this.recovered.length, gi, gp, ctx: false, present: 0, done: false, exp: 0, run: [] };
+    this.alloc(objectBytes(7) + objectBytes(7));
     this.gamma.push({ rule: r.id, min, pos: start, cycle: r.cycle, bit: r.leaderBit, seed: newCtxResult(undefined, start, false, noErrs, 0, noExp), id: failSeed });
     if (gp < gi) {
       // The present set of the steps includes the leader's own growth.
@@ -3820,6 +3875,7 @@ export class Parser {
         return;
       }
       this.spend();
+      this.alloc(objectBytes(7));
       rec.seed = newCtxResult(v, this.pos, false, this.recSince(g.rec), 0, noExp);
       rec.id = this.nextSeedID();
       this.pos = g.start;
@@ -3831,10 +3887,12 @@ export class Parser {
     const far = this.unisolate(g.exp);
     const exp = this.isoIds;
     this.mergeKept(far, exp);
+    this.alloc(objectBytes(7));
     let res = newCtxResult(v, ok ? this.pos : g.start, this.silent > 0, ok ? this.recSince(g.rec) : noErrs, 0, noExp);
     const c = this.canonicalSeed(g, res);
     res = c.e;
     const sd = this.stored(ds);
+    this.alloc(objectBytes(8));
     const slot = newSlot(res, c.id, null);
     slot.far = far;
     slot.exp = exp;
@@ -3913,9 +3971,11 @@ export class Parser {
     }
     const t = this.table(g.start, g.gp, true)!;
     if (t.jumps === null) {
+      this.alloc(mapBytes);
       t.jumps = new Map();
     }
     const cur = this.gamma[g.gi]!;
+    this.alloc(objectBytes(6));
     let acc: JumpRec = { end: cur.seed, id: cur.id, far: -1, exp: noExp, silent: false, deps: noSdeps };
     for (let i = g.run.length - 1; i >= 0; i--) {
       const s = g.run[i]!;
@@ -3932,8 +3992,10 @@ export class Parser {
       const k = jumpKey(g, s.seed);
       const js = t.jumps.get(k);
       if (js === undefined) {
+        this.alloc(mapEntryBytes + arrayBytes(1));
         t.jumps.set(k, [acc]);
       } else if (!this.jumpShadowed(js, acc)) {
+        this.alloc(8);
         js.push(acc);
       }
     }
@@ -4017,6 +4079,7 @@ export class Parser {
     }
     const t = this.table(g.start, g.gp, true)!;
     if (t.canon === null) {
+      this.alloc(mapBytes);
       t.canon = new Map();
     }
     const ck = g.rule + "," + g.min + "," + e.end;
@@ -4029,6 +4092,7 @@ export class Parser {
       }
     }
     const rec = { e, id };
+    this.alloc(objectBytes(2) + mapEntryBytes + stringBytes(ck.length));
     t.canon.set(ck, rec);
     return rec;
   }
@@ -4164,6 +4228,7 @@ export class Parser {
     if (n === null) {
       throw new Fatal(new Error(`cannot convert ${typeName(u)} to ${r.nodeType} in result of rule ${r.where || r.name}`));
     }
+    this.allocRetyped(u, n);
     return n;
   }
 
@@ -4219,6 +4284,7 @@ export class Parser {
     }
     let n = v as Node;
     if (wrap) {
+      this.alloc(nodeBytes + arrayBytes(1));
       n = new Node("tuple", "", start, end, "", [v], noFields, true, false);
     }
     n.labeled = this.sourceInfo;
@@ -4242,10 +4308,12 @@ export class Parser {
   shapeTuple(s: Shaper, v: Node | null, start: number): Node {
     if ((s & shaperElems) !== 0) {
       if ((s & shaperShared) !== 0 && v !== null) {
+        this.alloc(nodeBytes);
         return new Node("tuple", "", v.start, v.end, "", v.children, noFields, true, false);
       }
       return v as Node;
     }
+    this.alloc(nodeBytes + arrayBytes(s >> 5 === 1 ? 1 : 0));
     return new Node("tuple", "", start, this.pos, "", s >> 5 === 1 ? [v] : [], noFields, true, false);
   }
 
@@ -4265,6 +4333,7 @@ export class Parser {
   // node of the range matched when the expression has no value.
   shapeCapture(s: Shaper, v: Node | null, start: number): Node | null {
     if (((s >> 2) & 3) === singleNone) {
+      this.alloc(nodeBytes + arrayBytes(0));
       return new Node("tuple", "", start, this.pos, "", [], noFields, true, false);
     }
     return this.shapeSingle(s, v, start);
@@ -4284,6 +4353,7 @@ export class Parser {
     if (n.terminal) {
       return n.text;
     }
+    this.alloc(nodeBytes);
     return new Node(nodeShape(n) === shapeList ? typeListValue : typeTupleValue, "", n.start, n.end, "", n.children, noFields, false, false);
   }
 
@@ -4317,6 +4387,7 @@ export class Parser {
     if (!build) {
       return null;
     }
+    this.alloc(nodeBytes);
     return new Node("string", "", start, this.pos, lit.text, noNodes, noFields, true, true);
   }
 
@@ -4336,6 +4407,7 @@ export class Parser {
     if (!build) {
       return null;
     }
+    this.alloc(nodeBytes);
     return new Node("string", "", start, this.pos, this.text(start, this.pos), noNodes, noFields, true, true);
   }
 
@@ -4365,6 +4437,7 @@ export class Parser {
     if (!build) {
       return null;
     }
+    this.alloc(nodeBytes);
     return new Node("string", "", start, this.pos, this.text(start, this.pos), noNodes, noFields, true, true);
   }
 
@@ -4586,6 +4659,8 @@ export class Parser {
     // Variables are checked scalar values; an equal binding has no effect.
     if (control === null ? old === val : equalValuesSpend(old, val, control)) return;
     this.spend(this.envDepth + 1);
+    // envSet copies one array of at most envWidth slots on each level.
+    this.alloc((this.envDepth + 1) * arrayBytes(envWidth));
     this.env = envSet(this.env!, slot, this.envDepth, val);
   }
 
@@ -4674,6 +4749,7 @@ export class Parser {
     // captures.
     let opv: Node | null;
     if (((l.value >> 2) & 3) === singleNone) {
+      this.alloc(nodeBytes + arrayBytes(0));
       opv = new Node("tuple", "", a.start, a.end, "", [], noFields, false, false);
     } else {
       opv = this.shapeSingle(l.value, a.v, a.start);
@@ -4709,6 +4785,8 @@ export class Parser {
         kids = [lhs, opv, rhs];
         fields = [{ name: "lhs", value: lhs }, { name: "op", value: opv }, { name: "rhs", value: rhs }];
     }
+    // The node, its child list and its fields, each field an object of two fields.
+    this.alloc(nodeBytes + (r.opNodeType !== "" ? 8 : 0) + 2 * arrayBytes(kids.length) + kids.length * objectBytes(2));
     if (r.opNodeType !== "") {
       // The node of the operators' named node type, built without the tuple node it converts from.
       const t = new TypedNode(r.opNodeType, start, end, "", kids, fields, false, shapeTuple);
@@ -4728,6 +4806,7 @@ export class Parser {
     if (n === null) {
       throw new Fatal(new Error(`cannot convert ${typeName(u)} to ${r.opNodeType} in result of rule ${r.where || r.name}`));
     }
+    this.allocRetyped(u, n);
     return n;
   }
 }
@@ -4830,6 +4909,7 @@ export class Actx {
           return evalError("result must be a value, got a function");
         }
         // A value other than a node travels boxed, with the range of the action's input.
+        this.p.alloc(nodeBytes);
         const b = new Node(typeBox, "", this.start, this.end, "", noNodes, noFields, false, false);
         b.box = v;
         return b;
@@ -4868,6 +4948,7 @@ export class Actx {
   // convert evaluates a node type constructor T{v}: it converts v to the named node type typ.
   convert(typ: string, v: Value): Value {
     const [n, e] = this.p.termConvert(typ, v);
+    this.p.allocRetyped(v, n);
     if (e !== null) {
       return evalError(e as string);
     }
@@ -4890,12 +4971,15 @@ export class Actx {
   // termStruct returns a new struct of the type typ with no field set and an empty range: the
   // operation term.struct of a term that makes a struct.
   termStruct(typ: string): Node {
+    this.p.alloc(nodeBytes);
     return new Node(typ, "", 0, 0, "", noNodes, noFields, false, false);
   }
 
   // termSetField sets the field name of the struct n, which a term is making, to v: the operation
   // term.setField.
   termSetField(n: Node, name: string, v: Value): void {
+    // The field record and its slot; the first field also makes the array.
+    this.p.alloc((n.fields === noFields ? arrayBytes(0) + 16 : 0) + 8 + objectBytes(2));
     setField(n, name, v, this.p.control);
   }
 
@@ -4906,6 +4990,7 @@ export class Actx {
   // listNode returns a list value with the child list kids (which it takes over). Its range, which
   // the value model does not show, covers the elements that are nodes.
   listNode(kids: (Node | null)[]): Node {
+    this.p.alloc(nodeBytes);
     return this.p.termHull(this, false, kids);
   }
 
@@ -4917,6 +5002,7 @@ export class Actx {
       this.spend();
       this.push("tuple", a);
     }
+    this.p.alloc(nodeBytes);
     return this.p.termHull(this, true, this.p.kids(base));
   }
 
@@ -5004,6 +5090,7 @@ export class Actx {
   // box is the operation val.box: x boxed with the range of the input, as the result of an action
   // travels.
   box(x: Value): Node {
+    this.p.alloc(nodeBytes);
     const b = new Node(typeBox, "", this.start, this.end, "", noNodes, noFields, false, false);
     b.box = x;
     return b;

@@ -326,6 +326,7 @@ export interface ParseOptions {
 }
 export interface Limits {
   compute?: number;                       // with -limits only
+  memory?: number;                        // with -limits only
   input?: number;                         // with -limits only
   depth?: number;
 }
@@ -334,7 +335,7 @@ export interface ParseResult { node: Node | null; error: Error | null }
 // With -limits:
 export interface CancellationSignal { readonly aborted: boolean; readonly reason?: unknown }
 // In both forms:
-export type ParseInterruptionKind = "canceled" | "compute-limit" | "input-limit" | "depth-limit";
+export type ParseInterruptionKind = "canceled" | "compute-limit" | "memory-limit" | "input-limit" | "depth-limit";
 export class ParseInterruptionError extends Error {
   readonly kind: ParseInterruptionKind;
   readonly limit: number;
@@ -382,25 +383,38 @@ export function marshal(n: Node | null): string;
   `null` and `error` as a `ParseInterruptionError` whose `kind` is `"depth-limit"`, with
   `limit` and `used` the depth limit and `requested` 1, in both forms.
 - A parser generated without `-limits` emits no code that spends budget and sets no control, so a parse charges nothing, and its
-  `ParseOptions` has no `signal` and its `Limits` has no `compute`; it does not
-  export `CancellationSignal`. A call that passes a signal or a finite nonzero compute
-  limit anyway returns an error in the result, before
+  `ParseOptions` has no `signal` and its `Limits` has no `compute` or `memory`; it does not
+  export `CancellationSignal`. A call that passes a signal or a finite nonzero compute or
+  memory limit anyway returns an error in the result, before
   matching, that says the parser was generated without limit controls; no option is
-  ignored. An absent or null signal, a zero or `Unlimited` compute limit, and the input
+  ignored. An absent or null signal, zero or `Unlimited` compute and memory limits, and the input
   and depth limits set no control and are accepted. A parser generated with `-limits` has the controlled form only, and a call
   that sets no limit runs it with the [default budget](parsing.md#default-limits). The rest of this list describes the controlled form.
 - `signal` is a structural cancellation signal: any object with `aborted` and an optional
-  `reason`, such as an `AbortSignal`. `limits.compute` and `limits.input` MUST be finite
+  `reason`, such as an `AbortSignal`. `limits.compute`, `limits.memory` and `limits.input` MUST be finite
   nonnegative safe integers; zero selects the [default](parsing.md#default-limits) and
   `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit; other values return a
-  configuration error in the result. An unknown option or limit key, such as `limits.memory`,
+  configuration error in the result. An unknown option or limit key, such as `limits.time`,
   is a configuration error too, in both forms. A finite `limits.input` bounds the input in the
   position unit and is checked before any matching, in both forms; a longer input returns a `ParseInterruptionError` whose
   `kind` is `"input-limit"`, with `limit` the input limit, `used` zero and `requested` the length
   of the input. The units of the limits are those of
   [Cancellation and Compute Limits](parsing.md#cancellation-and-compute-limits).
+- A finite `limits.memory` bounds the storage the parse takes into use, in bytes, as the
+  [memory limit](parsing.md#memory-limit) defines it, with the polls, order of checks and
+  accounting given there. The count is an estimate from a model of the sizes of the
+  runtime's objects in a 64-bit JavaScript engine: the nodes, child lists and fields the
+  parse builds, memo entries, slots and hash indexes, first-call sets, the decoded input
+  and its line table, the records of left recursion and of scan and skip sites, variable
+  environments and frames, syntax errors, the text copied out of the input and the strings
+  that actions concatenate, and the slots of the working stacks at their largest length
+  at a poll. Not counted are the caller's input, the values of the typed conversion that
+  `parseAST` hands to the caller, and what the JavaScript engine adds beyond the model.
+  A count above the limit returns a `ParseInterruptionError` whose `kind` is
+  `"memory-limit"`, message `memory-limit exceeded: limit N, used M`, with `limit` the
+  memory limit, `used` the count and `requested` zero.
 - An interrupted parse returns `node` as `null` and `error` as a `ParseInterruptionError`
-  whose `kind` is `"canceled"`, `"compute-limit"` or `"input-limit"`. For a limit,
+  whose `kind` is `"canceled"`, `"compute-limit"`, `"memory-limit"` or `"input-limit"`. For a limit,
   `limit`, `used` and `requested` give the accounting, with the meaning that
   [a `LimitError` reports](parsing.md#cancellation-and-compute-limits); for cancellation, `cause` is the
   `reason` of the signal. Recovery does not turn an interruption into a partial result,
