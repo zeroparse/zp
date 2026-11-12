@@ -2036,8 +2036,9 @@ not run before a call into the cycle that may run before consuming input
 evaluation that the binding reaches makes a call at $p$ of a rule of the
 cycle, and the value reaches the reads of the growing result neither directly
 nor through a binding that it reaches. A capture that a predicate reads
-without a variable has that predicate as its only reader, after the
-lookahead, so for it only the paragraphs below are needed.
+without a variable has its readers after the lookahead: the predicates and
+the action of the rule, and through its value the callers, so for it only
+the paragraphs below are needed.
 
 The expression of the lookahead reaches every rule of the cycle through its
 left call, and every rule that $R$ reaches. If one of those contains a
@@ -2164,8 +2165,12 @@ one of them.
     *Steps that begin anew* is the result of the first step of $R$, so that
     result is empty; the step with the empty seed then ends with a result that
     includes $s$, through a left call of $R$ that reads the empty seed and is
-    followed, before it consumes input, by a read of $s$. What follows that left
-    call is a continuation of $U'$ through the end of the body of $R$.
+    followed, before it consumes input, by a read of $s$. Since the result of
+    the first step is empty, the continuation of $U'$ in $t$ reaches the end of
+    the body of $R$ without consuming input, and goes on through every call of
+    $R$, that left call included, wherever it lies in the body, also in an
+    alternative before $U'$: what follows that left call is a continuation of
+    $U'$.
   - When it lies after $c_i$, $g$ makes the left call before it consumes input, so $c_i$
     ends at $p$ and the growth of $R$ ends with an empty result. The part of $g$
     after $c_i$, through the end of the body of $R$ and the call $c_i$, is a
@@ -2207,9 +2212,11 @@ shared calls, and one step for each memoized rule. $\square$
 **Decided units at the position of the growth.** In the steps that
 *Failures at the position of the growth* does not leave out, let the unit $V$
 that holds $x$ be decided by its continuation $g$, and let $C$ be a call of a
-rule that calls no rule that $V$ passes alike before it parts. Then $C$
+rule that calls no rule that $V$ passes alike before it parts. Then, apart
+from the case that step 2 of [Open Steps](#open-steps) keeps, $C$
 examines at most a constant amount of the input, and $V$ fails at $p$ at the
-decisive symbol or inside a unit that condition 2 checks at $p$.
+decisive symbol, within the symbols that the alternative of a decisive
+negative lookahead reads, or inside a unit that condition 2 checks at $p$.
 
 *Proof.* The step reaches $V$ at $p$ through symbols that it passes at $p$
 without consuming input, its **route**: the left calls on the way, the
@@ -2241,20 +2248,38 @@ symbol of $P$. If it is a literal, a class or a symbol whose first characters
 are disjoint from those of the symbol of $V$, $V$ fails there, at $p$. If it
 is a positive lookahead $\&K$ that matched at $p$, the next symbol of $V$ is
 disjoint from $K$ and fails at $p$. If it is a negative lookahead $!K$ whose
-expression failed at $p$, the rest of $P$ must match $K$, so $V$ fails within
-the symbols that $K$ reads. $K$ is the expression of a lookahead, a unit
-that condition 2 checks whether or not it fails, and the copy of $P$ follows
-it at $p$ without consuming input, so it is among the continuations of $K$.
-A scanning source of $V$ among the symbols that $K$ reads is matched by $K$
-over the same input, so $K$ contains one there too, and $K$ and the copy of
-$P$ begin with the same characters after the calls that they share. So $K$
-is committing for that copy only when its scanning sources lie inside calls
-that it shares with $P$ at their start, at $p$, which condition 3 and the
-memo bound as in the paragraph above. A symbol of $V$'s side that decides, a dead symbol, a lookahead or
-the end of the parse, fails $V$ at $p$ as well, or is evaluated by $V$ at
-$p$ as part of the unit that condition 2 checks. So $V$ examines at most a
-constant amount of the input beyond what Lemma 1 bounds in every step that
-the claims above do not leave out. $\square$
+expression failed at $p$, the rest of $V$ must match $K$ in the form that
+condition 2 gives a decisive $!K$: every path of the rest of $V$ passes, in
+order, the symbols of one alternative $A$ of $K$, made of calls, literals,
+classes and `.`, and $A$ failed at $p$ with $K$. Each symbol of $V$ that
+passes a literal, a class or `.` of $A$ consumes only characters that this
+symbol of $A$ matches, at the same position; each call of $V$ that passes a
+call of $A$ is alike with it there, with the same outcome; every other call
+or repetition on the way stands for its paths, which pass the rest of $A$ in
+the same way; and the lookaheads that $V$ passes over cost a constant. So no
+evaluation of $V$ gets past the symbol at which $A$ failed: $V$ fails within
+the symbols that $A$ reads, at $p$, and examines only input that $A$
+examined. $K$ is the expression of a lookahead and so a unit, which can be
+committing in any of its ways, by its words among them; this case uses only
+the form of a decisive $!K$, not the way in which $K$ is committing. The
+literals, classes and lookaheads of $V$ there cost a constant. Each call of
+$V$ that passes a call of $A$ is cheap: the memo answers it, it holds no
+scanning source and examines what Lemma 1 bounds, or its rule calls no rule,
+and a call whose body is cheap in all its parts reduces to these.
+In the last case the call is a call of $K$ as well, so $K$ contains a
+scanning source, and by the form of a decisive $!K$ that lookahead is
+neither on the side of $V$ nor among the negative lookaheads that $V$ passes
+before it parts, so it is not an earlier symbol of $P$: it precedes the copy.
+Step 2 of [Open Steps](#open-steps) keeps that case.
+
+A symbol of $V$'s side that decides, a dead symbol, a lookahead or the end of
+the parse, fails $V$ at $p$ as well: a negative lookahead of $V$'s side
+contains no scanning source by the form of a decisive $!K$, so it examines
+what Lemma 1 bounds, and a positive lookahead of $V$'s side is evaluated by
+$V$ at $p$ as part of the unit that condition 2 checks. So, outside the case
+that step 2 keeps, $V$ examines at most a constant amount of the input beyond
+what Lemma 1 bounds in every step that the claims above do not leave out.
+$\square$
 
 So in each step, apart from a constant number of steps for each growth and
 each unit, what a step evaluates at $p$ outside the parts that read the seed
@@ -5381,6 +5406,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    position from a growing result, which leaves those claims in force (*Values
    bound from a growing result*), and that a decided unit examines a constant
    amount of the input there (*Decided units at the position of the growth*).
+   One case of that claim is open: a unit decided at a negative lookahead
+   `!K` that precedes the copy of its path, on the side of the continuation,
+   where a call of `K` that the unit passes alike is a call of a rule that
+   calls no rule and contains a scanning source. The unit repeats that scan in
+   each step where `K` is answered by the memo, so the proof must show that
+   another condition excludes such a lookahead, or the specification must
+   restrict it.
 3. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an

@@ -1486,7 +1486,8 @@ The conditions below use these terms.
   position: first characters that are disjoint, two literals of which neither
   is a prefix of the other, or two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
-  must match, or a positive lookahead `&K` on one side whose expression and the
+  must match, in the form below, or a positive lookahead `&K` on one side
+  whose expression and the
   next symbol of the other side are disjoint; a dead symbol on one side; or, in
   the continuation, the end of the parse, which costs a constant. A symbol at
   which neither side can go on is not decisive: the two do not part where each,
@@ -1496,7 +1497,30 @@ The conditions below use these terms.
   are disjoint. So a path of the unit never parts from its own copy, which the
   continuation reaches through a left call of the rule of the unit: in a
   growth that call reads the growing result instead of evaluating the copy,
-  while each step of the growth evaluates the unit again. The strict
+  while each step of the growth evaluates the unit again.
+  The rest of a side must match `K` only in this form. Through groups and
+  through calls of rules that are not on a left-recursion cycle and make up
+  the whole expression, `K` is a choice, or a single alternative, and one of
+  its alternatives, `A`, is a sequence of calls, literals, character classes
+  and `.`, through groups, captures, discarded expressions and `#atomic`.
+  Every path of the rest of the other side passes the symbols of `A` in
+  order: a literal of `A` by literals of the same case sensitivity that it
+  begins with or that begin with it, a class of `A` by a class that it
+  contains or by a literal whose first character it contains, `.` by `.` or
+  by a literal, and a call of `A` by an alike call that is cheap (below). A
+  call or a repetition of that side that does not pass the symbol of `A` at
+  hand stands for its paths, each of which must pass the rest of `A`, and a
+  lookahead of that side is passed over when it costs a constant. The rest of
+  the other side then matches only where `A` matches. When `!K` is on the side
+  of the unit, which alone evaluates it, `K` contains no scanning source, and
+  neither does a negative lookahead that a path of the unit passes before it
+  parts; when `!K` is on the side of the continuation, the alternatives of
+  `K` before `A` cost a constant, as a lookahead that only the continuation
+  evaluates does.
+  So `!("c" L "y")`, with `L` a recursion of its own, decides nothing against
+  `"c" W "y"` with another rule `W`: no symbol of that side passes the call of
+  `L`.
+  The strict
   conditions make what the continuation evaluates again bounded:
   - every symbol passed alike is **cheap**: evaluating it again where the unit
     evaluated it costs the continuation at most a constant or what the unit
