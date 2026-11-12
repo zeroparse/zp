@@ -41,9 +41,10 @@ with implementation changes; regenerate generated files.
   `hack/test-alpha-parsers.sh` (it fails without an alpha-parsers checkout;
   `hack/sync-alpha-parsers.sh` updates one); budget-control code: also the reference build
   in `docs/development.md`. The default root `go test ./... ./runtime/...` takes
-  minutes; run it on the final commit of each landing batch, and add
-  `-tags zp_long` (the long tier in `docs/development.md`) when the batch touches
-  the engine, generator or runtime. New slow tests go to the long tier.
+  minutes; run it on the final commit of each landing batch, and when the
+  batch touches the engine, generator or runtime run it with `-tags zp_long` (the
+  long tier in `docs/development.md`) instead,
+  which includes the default tier. New slow tests go to the long tier.
 - Keep generated benchmark reports/results unedited by hand and align
   `spec/bytecode/README.md` with VM changes.
 - GitHub Actions are temporarily paused: do not trigger, rerun, cancel, poll or
