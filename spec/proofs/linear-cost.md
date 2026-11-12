@@ -2251,9 +2251,11 @@ disjoint from $K$ and fails at $p$. If it is a negative lookahead $!K$ whose
 expression failed at $p$, the rest of $V$ must match $K$ in the form that
 condition 2 gives a decisive $!K$: every path of the rest of $V$ passes, in
 order, the symbols of one alternative $A$ of $K$, made of calls, literals,
-classes and `.`, and $A$ failed at $p$ with $K$. Each symbol of $V$ that
-passes a literal, a class or `.` of $A$ consumes only characters that this
-symbol of $A$ matches, at the same position; each call of $V$ that passes a
+classes and `.`, and no alternative of $K$ before $A$ has a cut that commits
+the choice, so $K$ failed only after it tried $A$, and $A$ failed at $p$.
+Each symbol of $V$ that passes literals, classes or `.` of $A$ consumes,
+character by character, what those symbols of $A$ match in order, at the
+same positions; each call of $V$ that passes a
 call of $A$ is alike with it there, with the same outcome; every other call
 or repetition on the way stands for its paths, which pass the rest of $A$ in
 the same way; and the lookaheads that $V$ passes over cost a constant. So no
