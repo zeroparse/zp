@@ -33,7 +33,7 @@ reach, and what they mean, including the encoding of the data generated parsers 
 
 - The runtime declares a constant `ProtocolN` for each protocol version N it implements.
 - A parser generated with `-runtime import` refers to the constant of the protocol it was generated for, so a parser
-  and a runtime that do not match fail to build (`undefined: rt.Protocol9`), never at run time.
+  and a runtime that do not match fail to build (`undefined: rt.Protocol10`), never at run time.
 - The protocol version increases whenever that interface changes; a test of the runtime compares the declarations
   with the ones recorded for the current version and fails otherwise. A change of meaning or data encoding that keeps
   the declarations needs the same increase, and no test detects it.

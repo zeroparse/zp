@@ -294,7 +294,7 @@ var TsPrintRuns = sync.OnceValue(func() string {
 // runtime's fieldConforms serves.
 func (g *Generator) fieldCheckSource() string {
 	src := ""
-	for _, f := range []string{"castValue", "castFailed"} {
+	for _, f := range []string{"castValue", "castFailure"} {
 		if strings.Contains(g.Init.String(), f+"(") || strings.Contains(g.Vars.String(), f+"(") || strings.Contains(g.Methods.String(), f+"(") {
 			src += tsCheckSources[f]
 		}
@@ -304,7 +304,7 @@ func (g *Generator) fieldCheckSource() string {
 
 // tsCheckSources are the check functions of fieldCheckSource, by name.
 var tsCheckSources = map[string]string{
-	"castFailed": "\n" + tsCastFailed + "\n",
+	"castFailure": "\n" + tsCastFailure + "\n",
 	"castValue": `
 // castValue returns v if it fits t, the type of a cast, and raises an evaluation error otherwise.
 // The error names the input position where the action started and, when gline is positive, the

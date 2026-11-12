@@ -881,7 +881,9 @@ type Rule struct {
 	Name   string
 	Scope  []string // capture names of the rule body, in slot order
 	Body   func(p *Parser, min int) (*Node, bool)
-	Action func(c *ActCtx) any
+	// Action returns the value of the rule's action and the failure that ends its evaluation, nil if
+	// it does not fail.
+	Action func(c *ActCtx) (any, any)
 	Value  Shaper // makes the rule's value from the value of its body, without an action
 	// NodeType, if not "", is the named node type the rule's value is converted to, whose kinds
 	// are nodeKinds.
@@ -3345,7 +3347,7 @@ func (p *Parser) useCtx(c ActCtx) *ActCtx {
 	return &p.ac
 }
 
-func (c *ActCtx) result(action func(*ActCtx) any, where string) (n *Node) {
+func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *Node) {
 	defer func() {
 		c.P.dropCreated(c.cbase)
 		if x := recover(); x != nil {
@@ -3356,7 +3358,10 @@ func (c *ActCtx) result(action func(*ActCtx) any, where string) (n *Node) {
 			panic(fatal{c.P.wrapEvalError(where, e.msg)})
 		}
 	}()
-	v := action(c)
+	v, f := action(c)
+	if f != nil {
+		c.P.actionFailed(where, f)
+	}
 	if v == nil {
 		return nil
 	}
@@ -3389,7 +3394,7 @@ func (p *Parser) dropCreated(base int) {
 
 // evalTerm is the operation term.eval: it reports false for a term that fails. Any other panic, an
 // interruption among them, ends the parse and passes through.
-func (p *Parser) evalTerm(t func(*ActCtx) any) (v any, ok bool) {
+func (p *Parser) evalTerm(t func(*ActCtx) (any, any)) (v any, ok bool) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, isEval := x.(evalError); !isEval {
@@ -3398,7 +3403,13 @@ func (p *Parser) evalTerm(t func(*ActCtx) any) (v any, ok bool) {
 			ok = false
 		}
 	}()
-	return t(p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})), true
+	v, f := t(p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)}))
+	return v, f == nil
+}
+
+// actionFailed ends the parse with the failure f of the action in where.
+func (p *Parser) actionFailed(where string, f any) {
+	panic(fatal{p.wrapEvalError(where, f.(evalError).msg)})
 }
 
 // isFalse is the operation term.isFalse.
@@ -3677,7 +3688,7 @@ type OperatorsRule struct {
 type OperatorsRuleLine struct {
 	Scope  []string
 	M      matcher
-	Action func(*ActCtx) any
+	Action func(*ActCtx) (any, any)
 	// Value makes the value of an operand line without an action, and of an operator line's
 	// operator, from the value of the line's expression.
 	Value Shaper

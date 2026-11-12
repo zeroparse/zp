@@ -1,15 +1,15 @@
 ## main action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = pushItems(term.ctx(), term.name([concat]), term.read([$p1]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   seq.step()
   let tf3 = pushItems(term.ctx(), term.name([concat]), term.read([$p2]))
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
   let tn5 = hull(term.ctx(), false, tk4)
@@ -31,15 +31,15 @@ func term() Datum {
   term.setField([Epilog], tn6, term.read([$e]))
   tfirst7 = cover(tn6, term.read([$e]), tfirst7)
   made(term.ctx(), tn6, tfirst7)
-  return term.fromObj(tn6)
+  return term.fromObj(tn6), null(Fail)
 }
 
 ## misc_list action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$ms]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tj3 = 0
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
@@ -47,21 +47,21 @@ func term() Datum {
     let tp5 = itemAt(ti2, tj3, false)
     let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     let tv6 = tv7
     let tf8 = push(term.ctx(), term.name([map]), tv6)
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
   let tn10 = hull(term.ctx(), false, tk9)
-  return term.fromObj(tn10)
+  return term.fromObj(tn10), null(Fail)
 }
 
 ## xml_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([XMLDecl])
   let tfirst2 = true
   seq.step()
@@ -74,31 +74,31 @@ func term() Datum {
   term.setField([Standalone], tn1, term.read([$sd]))
   tfirst2 = cover(tn1, term.read([$sd]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## version_info action
-func term() Datum {
-  return term.read([$v])
+func term() (Datum, Fail) {
+  return term.read([$v]), null(Fail)
 }
 
 ## encoding_decl action
-func term() Datum {
-  return term.read([$e])
+func term() (Datum, Fail) {
+  return term.read([$e]), null(Fail)
 }
 
 ## sd_decl action
-func term() Datum {
-  return term.read([$v])
+func term() (Datum, Fail) {
+  return term.read([$v]), null(Fail)
 }
 
 ## comment action
-func term() Datum {
-  return term.read([$c])
+func term() (Datum, Fail) {
+  return term.read([$c]), null(Fail)
 }
 
 ## pi action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([PI])
   let tfirst2 = true
   seq.step()
@@ -108,169 +108,169 @@ func term() Datum {
   term.setField([Data], tn1, term.read([$d]))
   tfirst2 = cover(tn1, term.read([$d]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## pi predicate
-func term() Datum {
+func term() (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
-    term.raise(tf1)
+    return null(Datum), tf1
   }
   let tv2, tf2 = binary(6, term.fromStr(ts1), term.const(["xml"]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tb3, tf3 = logic(0, tv2)
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tv4 = val.fromBool(false)
   if tb3 {
     let ts5, tf5 = text(term.read([$t]))
     if (tf5 != null(Fail)) {
-      term.raise(tf5)
+      return null(Datum), tf5
     }
     let tv6, tf6 = binary(6, term.fromStr(ts5), term.const(["xmL"]))
     if (tf6 != null(Fail)) {
-      term.raise(tf6)
+      return null(Datum), tf6
     }
     let tb7, tf7 = logic(0, tv6)
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     tv4 = val.fromBool(tb7)
   }
   let tb8, tf8 = logic(0, tv4)
   if (tf8 != null(Fail)) {
-    term.raise(tf8)
+    return null(Datum), tf8
   }
   let tv9 = val.fromBool(false)
   if tb8 {
     let ts10, tf10 = text(term.read([$t]))
     if (tf10 != null(Fail)) {
-      term.raise(tf10)
+      return null(Datum), tf10
     }
     let tv11, tf11 = binary(6, term.fromStr(ts10), term.const(["xMl"]))
     if (tf11 != null(Fail)) {
-      term.raise(tf11)
+      return null(Datum), tf11
     }
     let tb12, tf12 = logic(0, tv11)
     if (tf12 != null(Fail)) {
-      term.raise(tf12)
+      return null(Datum), tf12
     }
     tv9 = val.fromBool(tb12)
   }
   let tb13, tf13 = logic(0, tv9)
   if (tf13 != null(Fail)) {
-    term.raise(tf13)
+    return null(Datum), tf13
   }
   let tv14 = val.fromBool(false)
   if tb13 {
     let ts15, tf15 = text(term.read([$t]))
     if (tf15 != null(Fail)) {
-      term.raise(tf15)
+      return null(Datum), tf15
     }
     let tv16, tf16 = binary(6, term.fromStr(ts15), term.const(["xML"]))
     if (tf16 != null(Fail)) {
-      term.raise(tf16)
+      return null(Datum), tf16
     }
     let tb17, tf17 = logic(0, tv16)
     if (tf17 != null(Fail)) {
-      term.raise(tf17)
+      return null(Datum), tf17
     }
     tv14 = val.fromBool(tb17)
   }
   let tb18, tf18 = logic(0, tv14)
   if (tf18 != null(Fail)) {
-    term.raise(tf18)
+    return null(Datum), tf18
   }
   let tv19 = val.fromBool(false)
   if tb18 {
     let ts20, tf20 = text(term.read([$t]))
     if (tf20 != null(Fail)) {
-      term.raise(tf20)
+      return null(Datum), tf20
     }
     let tv21, tf21 = binary(6, term.fromStr(ts20), term.const(["Xml"]))
     if (tf21 != null(Fail)) {
-      term.raise(tf21)
+      return null(Datum), tf21
     }
     let tb22, tf22 = logic(0, tv21)
     if (tf22 != null(Fail)) {
-      term.raise(tf22)
+      return null(Datum), tf22
     }
     tv19 = val.fromBool(tb22)
   }
   let tb23, tf23 = logic(0, tv19)
   if (tf23 != null(Fail)) {
-    term.raise(tf23)
+    return null(Datum), tf23
   }
   let tv24 = val.fromBool(false)
   if tb23 {
     let ts25, tf25 = text(term.read([$t]))
     if (tf25 != null(Fail)) {
-      term.raise(tf25)
+      return null(Datum), tf25
     }
     let tv26, tf26 = binary(6, term.fromStr(ts25), term.const(["XmL"]))
     if (tf26 != null(Fail)) {
-      term.raise(tf26)
+      return null(Datum), tf26
     }
     let tb27, tf27 = logic(0, tv26)
     if (tf27 != null(Fail)) {
-      term.raise(tf27)
+      return null(Datum), tf27
     }
     tv24 = val.fromBool(tb27)
   }
   let tb28, tf28 = logic(0, tv24)
   if (tf28 != null(Fail)) {
-    term.raise(tf28)
+    return null(Datum), tf28
   }
   let tv29 = val.fromBool(false)
   if tb28 {
     let ts30, tf30 = text(term.read([$t]))
     if (tf30 != null(Fail)) {
-      term.raise(tf30)
+      return null(Datum), tf30
     }
     let tv31, tf31 = binary(6, term.fromStr(ts30), term.const(["XMl"]))
     if (tf31 != null(Fail)) {
-      term.raise(tf31)
+      return null(Datum), tf31
     }
     let tb32, tf32 = logic(0, tv31)
     if (tf32 != null(Fail)) {
-      term.raise(tf32)
+      return null(Datum), tf32
     }
     tv29 = val.fromBool(tb32)
   }
   let tb33, tf33 = logic(0, tv29)
   if (tf33 != null(Fail)) {
-    term.raise(tf33)
+    return null(Datum), tf33
   }
   let tv34 = val.fromBool(false)
   if tb33 {
     let ts35, tf35 = text(term.read([$t]))
     if (tf35 != null(Fail)) {
-      term.raise(tf35)
+      return null(Datum), tf35
     }
     let tv36, tf36 = binary(6, term.fromStr(ts35), term.const(["XML"]))
     if (tf36 != null(Fail)) {
-      term.raise(tf36)
+      return null(Datum), tf36
     }
     let tb37, tf37 = logic(0, tv36)
     if (tf37 != null(Fail)) {
-      term.raise(tf37)
+      return null(Datum), tf37
     }
     tv34 = val.fromBool(tb37)
   }
-  return tv34
+  return tv34, null(Fail)
 }
 
 ## doctype action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = pushItems(term.ctx(), term.name([concat]), term.read([$ds]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
   let tn4 = hull(term.ctx(), false, tk3)
@@ -286,15 +286,15 @@ func term() Datum {
   term.setField([Subset], tn5, term.fromObj(tn4))
   tfirst6 = cover(tn5, term.fromObj(tn4), tfirst6)
   made(term.ctx(), tn5, tfirst6)
-  return term.fromObj(tn5)
+  return term.fromObj(tn5), null(Fail)
 }
 
 ## int_subset action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$ds]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tj3 = 0
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
@@ -302,32 +302,32 @@ func term() Datum {
     let tp5 = itemAt(ti2, tj3, false)
     let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     let tv6 = tv7
     let tf8 = push(term.ctx(), term.name([map]), tv6)
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
   let tn10 = hull(term.ctx(), false, tk9)
-  return term.fromObj(tn10)
+  return term.fromObj(tn10), null(Fail)
 }
 
 ## system_id action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([ExternalID])
   let tfirst2 = true
   seq.step()
   term.setField([System], tn1, term.read([$l]))
   tfirst2 = cover(tn1, term.read([$l]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## public_id action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([ExternalID])
   let tfirst2 = true
   seq.step()
@@ -337,21 +337,21 @@ func term() Datum {
   term.setField([System], tn1, term.read([$l]))
   tfirst2 = cover(tn1, term.read([$l]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## system_literal action
-func term() Datum {
-  return term.read([$l])
+func term() (Datum, Fail) {
+  return term.read([$l]), null(Fail)
 }
 
 ## pubid_literal action
-func term() Datum {
-  return term.read([$l])
+func term() (Datum, Fail) {
+  return term.read([$l]), null(Fail)
 }
 
 ## element_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([ElementDecl])
   let tfirst2 = true
   seq.step()
@@ -361,15 +361,15 @@ func term() Datum {
   term.setField([Content], tn1, term.read([$c]))
   tfirst2 = cover(tn1, term.read([$c]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## mixed action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$ns]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tj3 = 0
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
@@ -377,12 +377,12 @@ func term() Datum {
     let tp5 = itemAt(ti2, tj3, false)
     let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$n]), term.field([n of $n]))
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     let tv6 = tv7
     let tf8 = push(term.ctx(), term.name([map]), tv6)
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
@@ -393,33 +393,33 @@ func term() Datum {
   term.setField([Names], tn11, term.fromObj(tn10))
   tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
   made(term.ctx(), tn11, tfirst12)
-  return term.fromObj(tn11)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## mixed predicate
-func term() Datum {
+func term() (Datum, Fail) {
   let tv1, tf1 = length(term.read([$ns]))
   if (tf1 != null(Fail)) {
-    term.raise(tf1)
+    return null(Datum), tf1
   }
   let tv2, tf2 = binary(5, tv1, term.const([0]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
-  return tv2
+  return tv2, null(Fail)
 }
 
 ## choice action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let ti3, tf3 = items(term.name([map]), term.read([$rs]))
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tj4 = 0
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
@@ -427,12 +427,12 @@ func term() Datum {
     let tp6 = itemAt(ti3, tj4, false)
     let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$c]), term.field([c of $c]))
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
     let tv7 = tv8
     let tf9 = push(term.ctx(), term.name([map]), tv7)
     if (tf9 != null(Fail)) {
-      term.raise(tf9)
+      return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
@@ -446,20 +446,20 @@ func term() Datum {
   term.setField([Occur], tn12, term.read([$o]))
   tfirst13 = cover(tn12, term.read([$o]), tfirst13)
   made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12)
+  return term.fromObj(tn12), null(Fail)
 }
 
 ## sequence action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let ti3, tf3 = items(term.name([map]), term.read([$rs]))
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tj4 = 0
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
@@ -467,12 +467,12 @@ func term() Datum {
     let tp6 = itemAt(ti3, tj4, false)
     let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$c]), term.field([c of $c]))
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
     let tv7 = tv8
     let tf9 = push(term.ctx(), term.name([map]), tv7)
     if (tf9 != null(Fail)) {
-      term.raise(tf9)
+      return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
@@ -486,11 +486,11 @@ func term() Datum {
   term.setField([Occur], tn12, term.read([$o]))
   tfirst13 = cover(tn12, term.read([$o]), tfirst13)
   made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12)
+  return term.fromObj(tn12), null(Fail)
 }
 
 ## name_particle action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([NameParticle])
   let tfirst2 = true
   seq.step()
@@ -500,15 +500,15 @@ func term() Datum {
   term.setField([Occur], tn1, term.read([$o]))
   tfirst2 = cover(tn1, term.read([$o]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## attlist_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$ds]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tj3 = 0
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
@@ -516,12 +516,12 @@ func term() Datum {
     let tp5 = itemAt(ti2, tj3, false)
     let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     let tv6 = tv7
     let tf8 = push(term.ctx(), term.name([map]), tv6)
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
@@ -535,11 +535,11 @@ func term() Datum {
   term.setField([Defs], tn11, term.fromObj(tn10))
   tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
   made(term.ctx(), tn11, tfirst12)
-  return term.fromObj(tn11)
+  return term.fromObj(tn11), null(Fail)
 }
 
 ## att_def action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([AttDef])
   let tfirst2 = true
   seq.step()
@@ -555,20 +555,20 @@ func term() Datum {
   term.setField([Value], tn1, term.read([$v]))
   tfirst2 = cover(tn1, term.read([$v]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## notation_type action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let ti3, tf3 = items(term.name([map]), term.read([$rs]))
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tj4 = 0
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
@@ -576,12 +576,12 @@ func term() Datum {
     let tp6 = itemAt(ti3, tj4, false)
     let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$n]), term.field([n of $n]))
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
     let tv7 = tv8
     let tf9 = push(term.ctx(), term.name([map]), tv7)
     if (tf9 != null(Fail)) {
-      term.raise(tf9)
+      return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
@@ -592,20 +592,20 @@ func term() Datum {
   term.setField([Names], tn12, term.fromObj(tn11))
   tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
   made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12)
+  return term.fromObj(tn12), null(Fail)
 }
 
 ## enumeration action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
   let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let ti3, tf3 = items(term.name([map]), term.read([$rs]))
   if (tf3 != null(Fail)) {
-    term.raise(tf3)
+    return null(Datum), tf3
   }
   let tj4 = 0
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
@@ -613,12 +613,12 @@ func term() Datum {
     let tp6 = itemAt(ti3, tj4, false)
     let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$n]), term.field([n of $n]))
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
     let tv7 = tv8
     let tf9 = push(term.ctx(), term.name([map]), tv7)
     if (tf9 != null(Fail)) {
-      term.raise(tf9)
+      return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
@@ -629,11 +629,11 @@ func term() Datum {
   term.setField([Values], tn12, term.fromObj(tn11))
   tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
   made(term.ctx(), tn12, tfirst13)
-  return term.fromObj(tn12)
+  return term.fromObj(tn12), null(Fail)
 }
 
 ## ge_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([EntityDecl])
   let tfirst2 = true
   seq.step()
@@ -652,11 +652,11 @@ func term() Datum {
   term.setField([NData], tn1, term.read([$nd]))
   tfirst2 = cover(tn1, term.read([$nd]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## pe_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([EntityDecl])
   let tfirst2 = true
   seq.step()
@@ -672,16 +672,16 @@ func term() Datum {
   term.setField([ExternalID], tn1, term.read([$x]))
   tfirst2 = cover(tn1, term.read([$x]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## entity_value action
-func term() Datum {
-  return term.read([$v])
+func term() (Datum, Fail) {
+  return term.read([$v]), null(Fail)
 }
 
 ## notation_decl action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([NotationDecl])
   let tfirst2 = true
   seq.step()
@@ -691,11 +691,11 @@ func term() Datum {
   term.setField([ExternalID], tn1, term.read([$x]))
   tfirst2 = cover(tn1, term.read([$x]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## public_notation action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([ExternalID])
   let tfirst2 = true
   seq.step()
@@ -705,15 +705,15 @@ func term() Datum {
   term.setField([System], tn1, term.read([$l]))
   tfirst2 = cover(tn1, term.read([$l]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## element action
-func term() Datum {
+func term() (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$as]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
   let tj3 = 0
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
@@ -721,12 +721,12 @@ func term() Datum {
     let tp5 = itemAt(ti2, tj3, false)
     let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
     if (tf7 != null(Fail)) {
-      term.raise(tf7)
+      return null(Datum), tf7
     }
     let tv6 = tv7
     let tf8 = push(term.ctx(), term.name([map]), tv6)
     if (tf8 != null(Fail)) {
-      term.raise(tf8)
+      return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
@@ -735,7 +735,7 @@ func term() Datum {
   seq.step()
   let tf12 = pushItems(term.ctx(), term.name([concat]), term.read([$cs]))
   if (tf12 != null(Fail)) {
-    term.raise(tf12)
+    return null(Datum), tf12
   }
   let tk13 = term.elemsAbove(tm11)
   let tn14 = hull(term.ctx(), false, tk13)
@@ -751,24 +751,24 @@ func term() Datum {
   term.setField([Content], tn15, term.fromObj(tn14))
   tfirst16 = cover(tn15, term.fromObj(tn14), tfirst16)
   made(term.ctx(), tn15, tfirst16)
-  return term.fromObj(tn15)
+  return term.fromObj(tn15), null(Fail)
 }
 
 ## element predicate
-func term() Datum {
+func term() (Datum, Fail) {
   let ts1, tf1 = text(term.read([$e]))
   if (tf1 != null(Fail)) {
-    term.raise(tf1)
+    return null(Datum), tf1
   }
   let ts2, tf2 = text(term.read([$n]))
   if (tf2 != null(Fail)) {
-    term.raise(tf2)
+    return null(Datum), tf2
   }
-  return val.fromBool(term.textEqual(ts1, ts2))
+  return val.fromBool(term.textEqual(ts1, ts2)), null(Fail)
 }
 
 ## attribute action
-func term() Datum {
+func term() (Datum, Fail) {
   let tn1 = term.struct([Attribute])
   let tfirst2 = true
   seq.step()
@@ -778,21 +778,21 @@ func term() Datum {
   term.setField([Value], tn1, term.read([$v]))
   tfirst2 = cover(tn1, term.read([$v]), tfirst2)
   made(term.ctx(), tn1, tfirst2)
-  return term.fromObj(tn1)
+  return term.fromObj(tn1), null(Fail)
 }
 
 ## att_value action
-func term() Datum {
-  return term.read([$v])
+func term() (Datum, Fail) {
+  return term.read([$v]), null(Fail)
 }
 
 ## markup action
-func term() Datum {
-  return term.read([$c])
+func term() (Datum, Fail) {
+  return term.read([$c]), null(Fail)
 }
 
 ## cdsect action
-func term() Datum {
-  return term.read([$c])
+func term() (Datum, Fail) {
+  return term.read([$c]), null(Fail)
 }
 
