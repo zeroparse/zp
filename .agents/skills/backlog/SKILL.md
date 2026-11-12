@@ -44,7 +44,9 @@ in the same step as its event, never later.
   oldest beyond ten). Fix the parent epic's dates. Keep any unfinished scope open.
 - **Pause**: set Status=Pending and comment the reason and where the WIP lives
   (branch); keep the Target date realistic.
-- **New issue**: set Tier, Category, Milestone, dates, parent and blocked-by at creation.
+- **New issue**: use the .github/ISSUE_TEMPLATE form for its Category (`gh issue create
+  --template` or the same headings), add it to project 2, and set every field (Tier,
+  Category, Milestone, Status, dates, parent and blocked-by) before reporting it filed.
 
 Every Status change updates Status, the Start/Target dates and the blocked-by or parent
 links in the same step.
