@@ -149,11 +149,11 @@ row includes what its backends print into packages of their own.
 | streamCommit | `[stream]` |  | `[stream]` |  |
 | streamEmit | `[stream]` |  | `[stream]` |  |
 | streamsIn | `[stream]` |  | `[stream]` |  |
-| expect | `[budget, document]` `[budget]` |  | `[budget]` | `[budget]` |
+| expect | `[budget, document]` `[budget]` |  | `[budget]` | `[budget]` `[budget, document]` |
 | expectSlow | `[]` |  |  |  |
 | expectOrdinary | `[]` |  |  |  |
-| mergeKept |  |  |  | `[budget]` |
-| mergeExpected | `[budget, document]` |  | `[budget]` | `[budget]` |
+| mergeKept |  |  |  | `[budget]` `[budget, document]` |
+| mergeExpected | `[budget, document]` |  | `[budget]` | `[budget]` `[budget, document]` |
 | keep | `[budget]` |  | `[budget]` | `[budget]` |
 | reset | `[]` | `[]` | `[missing]` | `[]` |
 | skipTrivia | `[]` | `[]` | `[missing]` | `[]` |

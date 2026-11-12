@@ -20,8 +20,8 @@ type TSMethod struct {
 // call observes before callBody, and it has no streams. The methods with doc set belong to the
 // DocumentParser class, the parser of a Document parse: its call takes callDocument, which memoizes
 // the rules that the Document memoizes and records the input that each call examined. Its parses
-// charge Document work like any other work (no free regions), so they are specialized without
-// budget controls.
+// charge Document work like any other work (no free regions): the call forms are specialized without
+// budget controls, and the expectation forms with the charges of the batch forms.
 var tsSpecs = []struct {
 	fn   string
 	on   []string
@@ -36,6 +36,11 @@ var tsSpecs = []struct {
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
 	{fn: "mergeExpected", on: []string{ops.Budget}, name: "mergeExpected"},
+	// The forms of the DocumentParser, which its expect, mergeKept and mergeExpected call. They come
+	// after the forms above, whose names the printed calls take.
+	{fn: "expect", on: []string{ops.Document, ops.Budget}, name: "expectDocument", doc: true},
+	{fn: "mergeKept", on: []string{ops.Document, ops.Budget}, name: "mergeKeptDocument", doc: true},
+	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "mergeExpectedDocument", doc: true},
 	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
 	// The Operators Rule loop and backtracking.
 	{fn: "operatorsParse", on: []string{ops.Budget}, name: "operatorsRuleParse"},
@@ -87,6 +92,14 @@ func TSMethods() ([]TSMethod, error) {
 		src, err := exects.Method(m, f, t)
 		if err != nil {
 			return nil, err
+		}
+		if printed := t.FuncName(s.fn); printed != s.name {
+			// The method is printed under the name that calls of fn take; this form has its own.
+			head := "\n  " + printed + "("
+			if strings.Count(src, head) != 1 {
+				return nil, fmt.Errorf("tslib: the printed method %s has %d heads %q", s.name, strings.Count(src, head), head)
+			}
+			src = strings.Replace(src, head, "\n  "+s.name+"(", 1)
 		}
 		out = append(out, TSMethod{Name: s.name, Text: src})
 	}
