@@ -414,8 +414,11 @@ func (k Kind) String() string {
 }
 
 // Kind returns what the node stands for.
-func (n *Node) Kind() Kind {
-	switch ShapeOf(n) {
+func (n *Node) Kind() Kind { return KindOfShape(ShapeOf(n)) }
+
+// KindOfShape returns the Kind of a node that has the shape.
+func KindOfShape(shape Shape) Kind {
+	switch shape {
 	case ShapeString:
 		return KindString
 	case ShapeTuple:
@@ -561,11 +564,14 @@ const (
 var baseShapes = [len(reservedTypes)]Shape{ShapeString, ShapeTuple, ShapeList, ShapeError, ShapeError, ShapeBox, ShapeTupleValue, ShapeListValue}
 
 // ShapeOf returns what n stands for in the value model.
-func ShapeOf(n *Node) Shape {
-	if k := n.d.Kind; k != nil && k.Base >= 0 {
+func ShapeOf(n *Node) Shape { return ShapeOfKind(n.d.Kind, n.d.Terminal) }
+
+// ShapeOfKind returns what a node of the kind stands for, given whether it is a terminal.
+func ShapeOfKind(k *NodeKind, terminal bool) Shape {
+	if k != nil && k.Base >= 0 {
 		return baseShapes[k.Base]
 	}
-	if n.d.Terminal {
+	if terminal {
 		return ShapeString
 	}
 	return ShapeStruct

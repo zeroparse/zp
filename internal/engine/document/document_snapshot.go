@@ -211,6 +211,53 @@ func (n SnapshotNode) Child(i int) SnapshotNode {
 	}
 	return snapshotHandle(n.graph, n.record().children[i])
 }
+// fields returns the fields of the node, none for a box, which keeps its value in the one field of
+// its record.
+func (n SnapshotNode) fields() value.Fields {
+	if r := n.record(); r.kind != value.BoxKind {
+		return r.fields
+	}
+	return nil
+}
+
+// Kind returns what the node stands for, as Node.Kind does. Like Node.Kind, it panics on a nil node.
+func (n SnapshotNode) Kind() value.Kind {
+	if !n.Valid() {
+		panic("zp: Kind of a nil snapshot node")
+	}
+	return value.KindOfShape(n.shape())
+}
+
+func (n SnapshotNode) shape() value.Shape {
+	r := n.record()
+	return value.ShapeOfKind(r.kind, r.terminal)
+}
+
+// Len returns the number of elements of a tuple or a list (KindTuple, KindList, KindTupleValue,
+// KindListValue), counting nil elements, and 0 for other nodes and for nil, as Node.Len does.
+func (n SnapshotNode) Len() int {
+	switch n.shape() {
+	case value.ShapeTuple, value.ShapeList, value.ShapeTupleValue, value.ShapeListValue:
+		return n.ChildCount()
+	}
+	return 0
+}
+
+// Value returns the value of a KindValue node (such as an int, a string or a bool) and the string of
+// a KindString node; it returns nil for other nodes and for nil, as Node.Value does.
+func (n SnapshotNode) Value() any {
+	if !n.Valid() {
+		return nil
+	}
+	switch n.shape() {
+	case value.ShapeBox:
+		return n.record().fields[0].Value
+	case value.ShapeString:
+		return n.record().text
+	}
+	return nil
+}
+
 func (n SnapshotNode) fieldValue(v any) any {
 	if id, ok := v.(snapshotRef); ok {
 		return snapshotHandle(n.graph, int(id))
@@ -220,13 +267,13 @@ func (n SnapshotNode) fieldValue(v any) any {
 
 // Field distinguishes absent fields from present nil values.
 func (n SnapshotNode) Field(name string) (any, bool) {
-	v, ok := n.record().fields.Get(name)
+	v, ok := n.fields().Get(name)
 	return n.fieldValue(v), ok
 }
 
 // Fields returns an owned slice in stored order. Typed nil nodes remain zero handles.
 func (n SnapshotNode) Fields() []SnapshotField {
-	fs := n.record().fields
+	fs := n.fields()
 	if fs == nil {
 		return nil
 	}
@@ -272,7 +319,9 @@ func (s *Snapshot) Materialize() *value.Node {
 				value.D(n).Children[j] = node(id)
 			}
 		}
-		if r.fields != nil {
+		if r.kind == value.BoxKind {
+			value.D(n).Box = r.fields[0].Value
+		} else if r.fields != nil {
 			value.D(n).Fields = make(value.Fields, len(r.fields))
 			for j, f := range r.fields {
 				if id, ok := f.Value.(snapshotRef); ok {
@@ -468,6 +517,11 @@ func freezeSnapshotGraph(p *core.Parser, root *value.Node) (snapshotGraph, *Snap
 		}
 		if value.D(n).Fields != nil {
 			r.fields = make(value.Fields, len(value.D(n).Fields))
+		}
+		if r.kind == value.BoxKind {
+			// A box carries its value in the one field of its record, which no accessor exposes
+			// as a field, so a record stays as small as it was.
+			r.fields = value.Fields{{Value: value.D(n).Box}}
 		}
 		g.nodes = core.GrowSpend(p, g.nodes, 1)
 		g.nodes = append(g.nodes, r)
