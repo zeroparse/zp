@@ -119,7 +119,7 @@ const over = p.parseWithOptions("abc", { limits: { input: 2 } }).error;
 console.log(over instanceof p.ParseInterruptionError && over.kind === "input-limit" ? over.message : String(over));
 console.log(String(p.parseWithOptions("abc", { limits: { compute: 3 } } as p.ParseOptions).error));
 `, gen.GenOptions{Start: "main", LimitControls: false, Types: true, Recognize: true})
-	if want := "accepted\ninput-limit exceeded: limit 2, length 3\nError: this parser was generated without limit controls (generate with -limits to use signal and the compute limit)\n"; out != want {
+	if want := "accepted\ninput-limit exceeded: limit 2, length 3\nError: this parser was generated without limit controls (generate with -limits to use signal and the compute and memory limits)\n"; out != want {
 		t.Fatalf("without budget controls: got %q", out)
 	}
 }

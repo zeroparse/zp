@@ -6,7 +6,7 @@ export interface CancellationSignal {
   readonly reason?: unknown;
 }
 
-export type ParseInterruptionKind = "canceled" | "compute-limit" | "input-limit" | "depth-limit";
+export type ParseInterruptionKind = "canceled" | "compute-limit" | "memory-limit" | "input-limit" | "depth-limit";
 
 /** An interrupted invocation returns no partial Node or typed result. */
 export class ParseInterruptionError extends Error {
@@ -16,7 +16,7 @@ export class ParseInterruptionError extends Error {
   readonly requested: number;
 
   constructor(kind: ParseInterruptionKind, limit = 0, used = 0, requested = 0, cause: unknown = undefined) {
-    super(kind === "canceled" ? "parse canceled" : kind === "input-limit" ? `input-limit exceeded: limit ${limit}, length ${requested}` : kind === "depth-limit" ? `nesting too deep: more than ${limit} nested recursive rule calls` : `${kind} exceeded: limit ${limit}, used ${used}, requested ${requested}`);
+    super(kind === "canceled" ? "parse canceled" : kind === "input-limit" ? `input-limit exceeded: limit ${limit}, length ${requested}` : kind === "depth-limit" ? `nesting too deep: more than ${limit} nested recursive rule calls` : kind === "memory-limit" ? `memory-limit exceeded: limit ${limit}, used ${used}` : `${kind} exceeded: limit ${limit}, used ${used}, requested ${requested}`);
     this.name = "ParseInterruptionError";
     this.kind = kind;
     this.limit = limit;
@@ -39,6 +39,7 @@ export interface ResolvedParseOptions {
   readonly expectations: boolean;
   signal: CancellationSignal | null;
   readonly budget: number;
+  readonly memory: number;
 }
 
 // Signal getters are caller code. Keep their thrown identity through the
@@ -53,24 +54,35 @@ export class BudgetControl {
   private readonly budget: number;
   private budgetUsed = 0;
   private sinceCheck = 0;
+  private readonly memory: number;
+  /** The bytes of storage the parse has taken into use, as the memory limit counts them (see alloc). */
+  mem = 0;
 
   constructor(o: ResolvedParseOptions) {
     this.signal = o.signal;
     this.budget = o.budget;
+    this.memory = o.memory;
   }
 
   release(): void { this.signal = null; }
 
+  // check is the poll: the signal first, then the memory count. Memory is counted where storage is
+  // taken into use and checked here, not reserved before an allocation, so the count can pass the
+  // limit by what the parse allocates between two polls.
   check(): void {
     const signal = this.signal;
-    if (signal === null) return;
-    let aborted: boolean;
-    let reason: unknown;
-    try {
-      aborted = signal.aborted;
-      if (aborted) reason = signal.reason;
-    } catch (x) { throw new SignalPanic(x); }
-    if (aborted) throw new Fatal(new ParseInterruptionError("canceled", 0, 0, 0, reason));
+    if (signal !== null) {
+      let aborted: boolean;
+      let reason: unknown;
+      try {
+        aborted = signal.aborted;
+        if (aborted) reason = signal.reason;
+      } catch (x) { throw new SignalPanic(x); }
+      if (aborted) throw new Fatal(new ParseInterruptionError("canceled", 0, 0, 0, reason));
+    }
+    if (this.memory !== 0 && this.mem > this.memory) {
+      throw new Fatal(new ParseInterruptionError("memory-limit", this.memory, this.mem, 0));
+    }
   }
 
   charge(n: number): void {
@@ -101,7 +113,7 @@ export class BudgetControl {
 }
 
 export function withBudgetControl<T>(o: ResolvedParseOptions, body: (control: BudgetControl | null) => T, interrupted: (error: Error) => T): T {
-  if (o.signal === null && o.budget === 0) return body(null);
+  if (o.signal === null && o.budget === 0 && o.memory === 0) return body(null);
   let control: BudgetControl | null = null;
   try {
     control = new BudgetControl(o);
