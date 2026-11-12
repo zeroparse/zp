@@ -40,7 +40,7 @@ Evidence records: [014](../014-one-operand-stack-for-vm-expression-code.md),
 [027](../027-struct-and-call-operands-on-the-expression-stack-in-the-closure-backend.md),
 [028](../028-field-lists-and-list-built-ins-without-allocation-in-the-generated-parsers.md).
 
-Source owners: [`evalCtx`](../../../internal/engine/core/eval.go), [`termEvaluator`](../../../internal/engine/closure/eval.go),
+Source owners: [`evalCtx`](../../../internal/engine/core/eval.go), [`engine term programs`](../../../internal/engine/core/),
 [`vm.Program.eval`](../../../internal/engine/vm/vm.go), [`parser.estack and operator
 locals`](../../../internal/engine/core/runtime.go), [`generated
 ActCtx`](../../../runtime/runtime.go), [`typed evaluation
@@ -50,6 +50,6 @@ context`](../../../internal/gen/tsgen/tsrt/runtime.ts).
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
 
-Related mechanisms: [A190](A190-evaluation-context-reuse.md), [A130](A130-closure-lambda-arenas.md), [A150](A150-vm-position-and-lambda-chunks.md).
+Related mechanisms: [A190](A190-evaluation-context-reuse.md), [A150](A150-vm-position-and-lambda-chunks.md).
 
 [Optimization Catalog](../README.md)

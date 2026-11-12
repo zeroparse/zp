@@ -33,7 +33,7 @@ Evidence records:
 [072](../072-reuse-structurally-equal-duplicate-capture-types.md).
 
 Source owners: [`equal captured type
-merge`](../../../internal/compile/check.go), [`immutable inferred type
+merge`](../../../internal/check/check.go), [`immutable inferred type
 structures`](../../../internal/types/).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
