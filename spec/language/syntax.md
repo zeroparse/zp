@@ -97,8 +97,8 @@ rule empty_stmt_sep = ";" / nl / &$$
 // An item or a field may end at the end of the input; the list that is not closed reports the missing brace.
 rule empty_item_sep = ";" / nl / &"}" / &$$
 rule empty_field_sep = ";" / nl / &"}" / &$$
-// Recovery of a declaration skips from the start of the failed declaration to the next one, as the
-// hand-written parser does. The skip follows the brackets that the declaration opens. At the top level, a
+// Recovery of a declaration skips from the start of the failed declaration to the next one. The skip
+// follows the brackets that the declaration opens. At the top level, a
 // line or a statement after a semicolon that starts with rule, type or var, or the attributes of a rule,
 // starts the next declaration. A balanced group (...), {...} or [...] and the arguments of an attribute
 // are skipped whole, so that a line inside them is not taken for a declaration, whatever it starts with.

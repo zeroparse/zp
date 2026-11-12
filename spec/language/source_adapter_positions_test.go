@@ -5,7 +5,6 @@ import (
 	"testing"
 	"unicode"
 
-	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/genparser"
 )
@@ -105,7 +104,7 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 	seen := make([]int, len(placements))
 	example := make([]string, len(placements))
 	for _, src := range rejectedSources(t) {
-		_, merr := zp.ParseGrammar(src)
+		_, merr := syntax.ParseReference(src)
 		text, invalid := syntax.WithoutInvalidCharacters(src)
 		if invalid || merr == nil {
 			continue

@@ -67,8 +67,8 @@ var frontends = []struct {
 	name  string
 	parse func(src string) (any, error)
 }{
-	{"manual", func(src string) (any, error) { return Parse(src) }},
-	{"manual-aa", func(src string) (any, error) { return Parse(src) }},
+	{"manual", func(src string) (any, error) { return ParseReference(src) }},
+	{"manual-aa", func(src string) (any, error) { return ParseReference(src) }},
 	{"generated", parseGenerated},
 	{"generated-exp", func(src string) (any, error) { return parseGeneratedWith(src, genparser.WithExpectations()) }},
 	{"manual-partial", parsePartialManual},
@@ -76,9 +76,9 @@ var frontends = []struct {
 	{"generated-partial-exp", func(src string) (any, error) { return parsePartialGenerated(src, genparser.WithExpectations()) }},
 }
 
-// parsePartialManual is ParsePartial, with its errors as the error.
+// parsePartialManual is ParsePartialReference, with its errors as the error.
 func parsePartialManual(src string) (any, error) {
-	g, errs := ParsePartial(src)
+	g, errs := ParsePartialReference(src)
 	if len(errs) > 0 {
 		return g, errs
 	}

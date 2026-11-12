@@ -117,7 +117,7 @@ func TestMissingPragmaSourceAndFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, source := range []string{`rule main = ";" #missing()`, `rule main = ";" #missing(1)`, `rule main = ";" #missing(foo="b")`} {
-		if _, err := Parse(source); err == nil || !strings.Contains(err.Error(), "takes no arguments") {
+		if _, err := Parse(source); err == nil || !strings.HasPrefix(err.Error(), "1:17: ") {
 			t.Fatalf("accepted #missing arguments in %q: %v", source, err)
 		}
 	}

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 	"text/template"
-
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
 )
 
 func sourceGrammar(t *testing.T) (*zp.Parser, string) {
@@ -499,7 +499,7 @@ func TestSourceGrammarTrivia(t *testing.T) {
 		"rule a = \"x\" ; /* x */ // after\nrule b = \"y\"",
 		"rule a = \"x\" ; /* x */\n// lead\nrule b = \"y\"",
 	} {
-		if _, err := zp.ParseGrammar(src); err != nil {
+		if _, err := syntax.ParseReference(src); err != nil {
 			t.Fatalf("reference rejects %q: %v", src, err)
 		}
 		n, err := p.Parse(src)
@@ -524,7 +524,7 @@ func TestSourceGrammarTrivia(t *testing.T) {
 		// A group's multiline mode ends at its closing parenthesis.
 		"type A ~ (B)\n  | C", "rule a = x:\"a\" => $x.(Match)\n  == $x",
 	} {
-		if _, err := zp.ParseGrammar(src); err == nil {
+		if _, err := syntax.ParseReference(src); err == nil {
 			t.Fatalf("reference accepted %q", src)
 		}
 		if _, err := p.Parse(src); err == nil {
@@ -572,7 +572,7 @@ func TestSourceGrammarOperatorsPlacement(t *testing.T) {
 		{"reference and predicate", `rule operators = "x"` + "\n" + `rule a = operators {1 == 1}`, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, refErr := zp.ParseGrammar(tc.src)
+			_, refErr := syntax.ParseReference(tc.src)
 			_, err := p.Parse(tc.src, zp.RecognizeOnly())
 			if (refErr == nil) != tc.valid {
 				t.Errorf("reference parser: valid %v, want %v (%v)", refErr == nil, tc.valid, refErr)

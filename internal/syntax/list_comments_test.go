@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -86,8 +87,8 @@ func TestFormatRepeatPragmaComments(t *testing.T) {
 	}
 }
 
-// A comma where an argument belongs is reported as such, also after a keyword
-// argument.
+// A comma where an argument belongs is reported at the comma, also after a
+// keyword argument.
 func TestAttributeDoubledComma(t *testing.T) {
 	for _, src := range []string{
 		"rule r = \"a\" @custom(k=1,,)\n",
@@ -95,7 +96,11 @@ func TestAttributeDoubledComma(t *testing.T) {
 		"rule r = \"a\" @custom(, 1)\n",
 	} {
 		_, err := Parse(src)
-		if err == nil || !strings.Contains(err.Error(), "expected an attribute argument, found ','") {
+		col := strings.Index(src, ",,") + 2 // the second comma
+		if col == 1 {
+			col = strings.Index(src, "(,") + 2
+		}
+		if err == nil || !strings.HasPrefix(err.Error(), "1:"+strconv.Itoa(col)+": ") {
 			t.Errorf("%q: got %v", src, err)
 		}
 	}

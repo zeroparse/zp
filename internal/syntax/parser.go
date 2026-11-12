@@ -1,7 +1,6 @@
 package syntax
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -59,8 +58,10 @@ func (e *errorList) addRange(pos, end grammar.Pos, msg string) {
 	e.list = append(e.list, &Error{Pos: pos, End: end, Msg: msg})
 }
 
-// Parse parses the ZeroParse source code src.
-func Parse(src string) (*grammar.Grammar, error) {
+// ParseReference parses src with the hand-written recursive-descent parser. It is not a
+// frontend of any API: it is the reference that the differential tests of the generated
+// frontend (Parse) compare with.
+func ParseReference(src string) (*grammar.Grammar, error) {
 	errs := &errorList{}
 	p := &parser{toks: lex(src, errs), errs: errs}
 	g := p.file()
@@ -70,26 +71,13 @@ func Parse(src string) (*grammar.Grammar, error) {
 	return g, nil
 }
 
-// ParseExpr parses a single parser expression. It is intended for tests.
-func ParseExpr(src string) (expr grammar.Expr, err error) {
+// ParsePartialReference is ParsePartial with the hand-written parser (see ParseReference):
+// after an error it skips to the next rule or type, so the grammar holds the definitions that
+// parsed to the end.
+func ParsePartialReference(src string) (*grammar.Grammar, ErrorList) {
 	errs := &errorList{}
-	p := &parser{toks: lex(src, errs), errs: errs, layout: true}
-	defer func() {
-		if value := recover(); value != nil {
-			if _, ok := value.(bail); !ok {
-				panic(value)
-			}
-			expr, err = nil, errs.list
-		}
-	}()
-	e := p.inlineChoice()
-	if p.tok().kind != tEOF {
-		p.errorf("unexpected %s", p.tok())
-	}
-	if len(errs.list) > 0 {
-		return nil, errs.list
-	}
-	return e, nil
+	p := &parser{toks: lex(src, errs), errs: errs}
+	return p.file(), errs.list
 }
 
 type parser struct {
@@ -104,8 +92,6 @@ type parser struct {
 	errs    *errorList
 	// params holds the parameters of the lambdas whose bodies are being parsed, innermost last.
 	params []string
-	ctx    context.Context
-	work   uint
 	// cur is the line break most recently recorded. Comments that do not
 	// precede a recorded line break are added to it, because the formatter
 	// writes the tokens they follow on the line after it.
@@ -129,39 +115,14 @@ type parser struct {
 // error.
 type bail struct{}
 
-// parseCancelled unwinds the parser without treating cancellation as a
-// recoverable syntax error. The caller discards the incomplete grammar.
-type parseCancelled struct{ err error }
-
-// poll charges token consumption and token-array scans alike. Ordinary parses
-// have no context; contextual parses check after at most 256 such steps.
-func (p *parser) poll() {
-	p.charge(1)
-}
-
-func (p *parser) charge(steps uint) {
-	if p.ctx == nil {
-		return
-	}
-	old := p.work
-	p.work += steps
-	if old/256 != p.work/256 {
-		if err := p.ctx.Err(); err != nil {
-			panic(parseCancelled{err})
-		}
-	}
-}
-
 func (p *parser) tok() token { return p.toks[p.i] }
 func (p *parser) peek(k int) token {
-	p.poll()
 	if p.i+k < len(p.toks) {
 		return p.toks[p.i+k]
 	}
 	return p.toks[len(p.toks)-1]
 }
 func (p *parser) next() token {
-	p.poll()
 	t := p.toks[p.i]
 	if p.header {
 		if t.lineComment != nil {
@@ -169,7 +130,6 @@ func (p *parser) next() token {
 			p.headerComments = append(p.headerComments, t.lineComment)
 		}
 		for _, comment := range t.comments {
-			p.poll()
 			comment.Header = p.headerPos
 		}
 		p.headerComments = p.appendComments(p.headerComments, t.comments)
@@ -198,16 +158,7 @@ func (p *parser) next() token {
 }
 
 func (p *parser) appendComments(dst, comments []*grammar.Comment) []*grammar.Comment {
-	if p.ctx == nil {
-		return append(dst, comments...)
-	}
-	for len(comments) > 0 {
-		n := min(len(comments), 256)
-		p.charge(uint(n))
-		dst = append(dst, comments[:n]...)
-		comments = comments[n:]
-	}
-	return dst
+	return append(dst, comments...)
 }
 
 // headerContents returns the normalized contents of the header comments that the parser has
@@ -218,7 +169,6 @@ func (p *parser) headerContents(from int) []string {
 	}
 	out := make([]string, 0, len(p.headerComments)-from)
 	for _, c := range p.headerComments[from:] {
-		p.poll()
 		out = append(out, c.Content)
 	}
 	return out
@@ -233,7 +183,6 @@ func (p *parser) gapContents() []string {
 		out = append(out, t.lineComment.Content)
 	}
 	for _, c := range t.comments {
-		p.poll()
 		out = append(out, c.Content)
 	}
 	return out
@@ -368,7 +317,6 @@ func (p *parser) statementBreak() *grammar.LineBreak {
 // token i up to token j.
 func (p *parser) multiline(i, j int) bool {
 	for k := i + 1; k <= j && k < len(p.toks); k++ {
-		p.poll()
 		if p.toks[k].lineBefore {
 			return true
 		}
@@ -451,8 +399,6 @@ func (p *parser) file() *grammar.Grammar {
 		}()
 		if p.i == start {
 			p.next()
-		}
-		if statement != nil {
 		}
 		p.declarationEnd()
 		if statement != nil {
@@ -540,7 +486,6 @@ func (p *parser) recover() {
 	// reference before its '=' exposes the error. Recover its statement header
 	// rather than losing the following declaration from partial tooling.
 	for j := p.i - 1; j > p.recoveryStart; j-- {
-		p.poll()
 		t := p.toks[j]
 		if t.lineBefore && t.kind == tIdent && (t.text == "rule" || t.text == "type" || t.text == "var") && j+1 < len(p.toks) && p.toks[j+1].kind == tIdent {
 			p.i = j
@@ -569,7 +514,6 @@ func (p *parser) attributesStart(i int) bool {
 func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 	depth := 0
 	for j := i + 1; j < len(p.toks); j++ {
-		p.poll()
 		t := p.toks[j]
 		switch {
 		case t.kind == tEOF:
@@ -991,7 +935,6 @@ func (p *parser) declarationAttributes(keyword string) (attrs []*grammar.Attribu
 		}
 		if b != nil || breaks != nil {
 			for len(breaks) < len(attrs) {
-				p.charge(1)
 				breaks = append(breaks, nil)
 			}
 			breaks = append(breaks, b)
@@ -1498,18 +1441,7 @@ func (p *parser) suffixed() (sourceResult grammar.Expr) {
 // appendAttributeBreak fills the absent breaks before a newly broken
 // attribute. A long same-line attribute run can make this gap large.
 func (p *parser) appendAttributeBreak(a *grammar.Attributed, b *grammar.LineBreak) {
-	gap := len(a.Attrs) - len(a.Breaks)
-	if p.ctx == nil {
-		a.Breaks = append(a.Breaks, make([]*grammar.LineBreak, gap)...)
-	} else {
-		var blanks [256]*grammar.LineBreak
-		for gap > 0 {
-			n := min(gap, len(blanks))
-			p.charge(uint(n))
-			a.Breaks = append(a.Breaks, blanks[:n]...)
-			gap -= n
-		}
-	}
+	a.Breaks = append(a.Breaks, make([]*grammar.LineBreak, len(a.Attrs)-len(a.Breaks))...)
 	a.Breaks = append(a.Breaks, b)
 }
 

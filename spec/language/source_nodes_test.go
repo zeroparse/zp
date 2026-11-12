@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
@@ -666,7 +666,7 @@ var compared int
 
 func compareNodes(t *testing.T, p *zp.Parser, name, src string) bool {
 	t.Helper()
-	manual, merr := zp.ParseGrammar(src)
+	manual, merr := syntax.ParseReference(src)
 	n, err := p.Parse(src)
 	switch {
 	case merr != nil && err != nil:

@@ -1,54 +1,52 @@
 # 054. Generated Grammar Source Parser
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Author**: @ornew
 - **Date**: 2026-10-13
 
 ## Summary
 
-Provide a typed Go parser for ZeroParse grammar source generated from ZeroParse's own
-complete grammar, while retaining the hand-written source parser as a
-selectable implementation. The hand-written parser is the reference: the
-generated parser accepts and rejects the same sources and builds the same
-grammar ASTs. On a rejected source it reports the first error at the place the
-reference does or, in the forms named in the [Diagnostic Contract](#diagnostic-contract),
-at another place of the same mistake, and it reports no error at a declaration
-without a mistake. Message text may differ. Differential tests establish this.
-Paired measurements determine which parser is the default for
-source-consuming APIs and commands; no speed advantage is assumed.
+Parse ZeroParse grammar source with a typed Go parser generated from ZeroParse's
+own complete grammar. It is the only frontend of the source APIs and commands:
+`ParseGrammar`, `CompileSource`, `parse`, `compile`, `gen`, `fmt`, `lint` and
+the language server. The hand-written recursive-descent parser stays in the
+repository only as the oracle of the differential tests and as the reader of
+the removed syntax that `zp fix` rewrites; no API or command selects it. The
+generated frontend accepts and rejects the same sources as the oracle and
+builds the same grammar ASTs. On a rejected source it reports the first error
+at the place the oracle does or, in the forms named in the
+[Diagnostic Contract](#diagnostic-contract), at another place of the same
+mistake, and it reports no error at a declaration without a mistake. Message
+text may differ. The speed of the generated frontend is recovered in the
+generator and the optimizer, measured against the hand-written baseline below,
+not by keeping a second frontend.
 
 ## Motivation
 
-The hand-written parser is currently the only implementation of ZeroParse grammar
-syntax. A parser described by ZeroParse's own grammar could reduce duplicated
-syntax logic and make grammar evolution easier to inspect, while a generated
-typed Go implementation may offer a practical fast path. Retaining the manual
-parser as an explicit alternative provides an independent oracle and fallback
-while the generated parser's correctness, diagnostics and performance are
-established.
+A parser described by ZeroParse's own grammar removes the duplicated syntax
+logic of a hand-written parser and makes grammar evolution inspectable: the
+grammar of the language is the executable source of its frontend. It also
+makes the language's frontend a workload of the generator, so improvements of
+generated parsers apply to it. The hand-written parser remains as an
+independent oracle of acceptance, ASTs, source metadata and diagnostics.
 
 ## Goals
 
 - Describe the complete grammar-file syntax in a canonical root `.zp` file.
 - Generate a typed Go parser from that grammar without requiring users to run
   generation before building or using ZeroParse.
-- Keep both generated and manual source parsers selectable at source-parsing
-  entry points, without mutable global configuration.
-- Compare parser outputs, source metadata, acceptance and errors against the
-  Diagnostic Contract before changing defaults.
-- Establish and tune the hand-written lexer/parser as a fair reference before
-  selecting a default.
-- Select the generated implementation only if it is measurably faster than the
-  tuned manual frontend under an equivalent public AST, the same acceptance and
-  the Diagnostic Contract, without a material supported-workload regression.
+- Use one frontend for every source-consuming API and command, with no
+  selection and no mutable global configuration.
+- Hold the generated frontend to the oracle: outputs, source metadata,
+  acceptance and the Diagnostic Contract.
+- Recover the speed of the generated frontend in the generator and the
+  optimizer, measured against the hand-written baseline.
 
 ## Non-Goals
 
 This proposal does not replace the grammar compiler, type checker, formatter,
 semantic analysis, or the `Compile(*grammar.Grammar, ...)` AST entry point.
-It does not make generated Go the default before differential and performance
-gates pass, and it does not remove the manual parser in the first stage. It
-does not claim ZeroParse can generate its parser without a checked-in bootstrap
+It does not keep a selectable second frontend. It does not claim ZeroParse can generate its parser without a checked-in bootstrap
 artifact.
 
 ## Proposed Design
@@ -137,18 +135,16 @@ the same corpus, mutations and comment insertions. The differential tests compar
 repository grammar, documentation example, comment insertion, line-ending
 variant and a seeded set of mutated sources, whether both frontends accept the
 source and, when they do, the JSON form of the AST (fields and source metadata)
-together with the Go type of each node. A parser selection is not part of this
-contract. Differential span cases cover aliases, terminals,
+together with the Go type of each node. Differential span cases cover aliases, terminals,
 structs, multiline groups, comments, separators, Unicode and CR/LF/CRLF. The
 existing generated-consumer gate also compares typed type spans with the runtime
-source tree; the Diagnostic Contract and formatting parity remain required
-before the proposal can be accepted.
+source tree. The Diagnostic Contract and formatting parity hold for the
+frontend as a whole.
 
 ### Diagnostic Contract
 
-The hand-written parser is the reference implementation, because the generated
-parser may not match its performance. The generated parser keeps four
-guarantees against it. It does not have to produce the same message text, so a
+The hand-written parser is the reference of the differential tests. The
+generated parser keeps four guarantees against it. It does not have to produce the same message text, so a
 diagnostic that the grammar cannot name dynamically needs no runtime support.
 The adapter reports the checks the grammar does not make with the reference
 messages where that is direct.
@@ -265,85 +261,56 @@ The detector is shown to fail on quadratic work, but no committed control makes
 the generated parser itself quadratic: lookaheads to the end of the source added
 to the recovery rules measured linear, for a cause that is not established.
 
-### Selection Surface
+### One Frontend
 
-Expose a per-call source-parser selection for `ParseGrammar` and
-`CompileSource`, and corresponding explicit selection for CLI or tooling
-commands that parse source (`parse`, `compile`, `gen`, `fmt`, `lint` and LSP).
-Existing calls keep their defaults. Add optional per-call source-parser
-options to the existing entry points rather than separate `WithOptions` or
-`WithParser` entry points. Do not use a process-wide mutable switch or an
-environment variable as the only selection mechanism. `Compile` of an
-already constructed `grammar.Grammar` is unaffected.
+The source APIs and commands parse with the generated parser and its adapter;
+there is no per-call or process-wide parser selection. `Compile` of an already
+constructed `grammar.Grammar` is unaffected. A partial parse for editors runs
+the parser with recovery and keeps the declarations that are complete (see
+[Diagnostic Contract](#diagnostic-contract)); it observes the caller's context
+for cancellation. The frontend bounds the nesting of recursive rule calls, so
+that a malformed or hostile source cannot build a tree that the consumers of
+the grammar AST cannot walk, and reports a deeper source as `nesting too deep`
+at its deepest opening delimiter.
 
 The generated parser's concrete source-AST shape is checked against the typed
 nodes declared by the root grammar. Its adapter is then checked against the
-public `grammar.Grammar` result expected by source-consuming APIs. The manual
-parser need not construct the generated parser's source AST; compare its
-public-grammar output, errors and source metadata at the shared API
-boundary. Preserve meaningful public source forms such as explicit `Group`
-nodes, statement `Block` nodes, ordered positional attribute arguments
-including null slots, named arguments, and the unified binary/unary operator
-representation. Do not normalize these distinctions away to make the parsers
-appear equal. Parser selection must not change the accepted language or the
-semantic validation pipeline.
-
-### Default Selection
-
-The end state is one frontend: the default switches to the generated typed
-parser, which builds its source tree directly, with no intermediate generic
-node tree. One adapter reads the typed source tree and builds `grammar.Grammar`;
-the differential tests compare its result with the manual parser's. Layout and formatting parity is a separate goal from the
-acceptance, grammar and diagnostic parity that the switch requires.
-
-Keep the manual parser as the initial default. When parser-performance work is
-resumed, first profile and tune its lexer/parser on representative grammar
-sources; do not treat its current implementation as a permanently fixed
-baseline. Then compare it with the generated parser through the same source
-API, including the generated source-AST-to-`grammar.Grammar` adapter. The
-measured operations must produce equivalent public grammar ASTs and source
-metadata, the same acceptance and the Diagnostic Contract. A direct
-comparison between manual `grammar.Grammar` construction and generated
-concrete-source-AST construction is useful as an initial cost observation, but
-it is not an equivalent-output comparison and cannot select a winner.
-
-Separate frontend parsing from semantic compilation and code generation.
-Use repeated alternating samples on the same corpus and hardware, including
-small, large, malformed and comment-heavy grammars. Select the generated
-parser as default only if it is consistently faster than the tuned manual
-frontend under the equivalent-output gate and has no material supported-
-workload regression. Otherwise retain the manual default and the explicit
-parser selector; do not claim a speed advantage from unlike AST or diagnostic
-work.
+public `grammar.Grammar` result of the oracle. Preserve meaningful public
+source forms such as explicit `Group` nodes, statement `Block` nodes, ordered
+positional attribute arguments including null slots, named arguments, and the
+unified binary/unary operator representation. Do not normalize these
+distinctions away to make the parsers appear equal.
 
 ## Alternatives Considered
 
-- **Keep only the manual parser.** This avoids bootstrap and duplicate
+- **Keep only the hand-written parser.** This avoids bootstrap and duplicate
   implementations, but leaves the grammar description and implementation as
   separate sources of truth.
-- **Replace the manual parser immediately.** This is simpler after a proven
-  migration, but removes the independent comparison path before grammar,
-  metadata and diagnostic parity are established.
+- **Remove the hand-written parser entirely.** This leaves one parser in the
+  repository, but removes the independent comparison path that the
+  differential tests need, and the reader of the removed syntax that `zp fix`
+  rewrites.
+- **Keep the hand-written parser as the default until the generated one is
+  faster.** This keeps today's speed, but keeps two frontends whose behavior
+  must be kept equal, and puts the speed work in a parser that no other
+  grammar benefits from.
 - **Generate an untyped parser and convert its generic tree.** This may be
   easier to generate, but adds allocations and conversion logic and risks
   losing typed AST and source-layout information.
-- **Select a parser dynamically at runtime.** This could tailor each call, but
-  adds benchmark or policy complexity to a deterministic source API and makes
-  behavior harder to reproduce. Prefer one measured static default with an
-  explicit per-call override.
+- **Select a parser per call or at runtime.** This could tailor each call, but
+  adds policy complexity to a deterministic source API and makes behavior
+  harder to reproduce.
 - **Keep the display grammar in Markdown only.** This is easy to read, but
   cannot serve as a direct generator input or be checked against the source
   parser as an executable grammar artifact.
 
 ## Compatibility and Bootstrap
 
-Existing source APIs and commands retain their defaults until the selection
-is validated. An explicit manual-parser selection provides a diagnostic
-fallback. Existing `.zp`, JSON grammar AST, compiled grammar and generated
-parser formats remain unchanged; generated grammar parsing is only a frontend
-change. The root grammar and checked-in generated Go parser must be updated
-together. Bootstrap and generation checks must work from a clean checkout
-without network access or a prior generated artifact outside the repository.
+Existing `.zp`, JSON grammar AST, compiled grammar and generated parser formats
+remain unchanged; the generated frontend is only a frontend change. The root
+grammar and checked-in generated Go parser must be updated together. Bootstrap
+and generation checks must work from a clean checkout without network access or
+a prior generated artifact outside the repository.
 
 ## Acceptance Tests
 
@@ -369,7 +336,7 @@ without network access or a prior generated artifact outside the repository.
   as the [Mutation Measurement](#mutation-measurement) does. Preserve stable
   partial results for editor recovery where supported.
 - Compare formatter parse/format/parse stability and LSP diagnostics and
-  source ranges using each parser selection.
+  source ranges of the generated frontend with those of the oracle.
 - Enumerate every sequence of up to two tokens (three in the `zp_long` tier) of
   a fixed alphabet after each of twelve heads and tails (declarations, type
   bodies, Operators Rules, action blocks, attribute arguments, groups and
@@ -389,14 +356,11 @@ without network access or a prior generated artifact outside the repository.
   all parser modules, CLI commands, site examples and generated parser checks.
 - Benchmark parse-only time, bytes/op and allocations on small common
   grammars, large grammars, comment-heavy files, deeply nested forms and
-  malformed/incomplete editor input. First profile and optimize the manual
-  frontend without changing its acceptance, public AST, source metadata or
-  diagnostic behavior; record its baseline and changes. Then use identical
-  inputs, a pinned Go version and repeated alternating samples for the tuned
-  manual and generated parser plus adapter. Report paired ranges and compare
-  only equivalent public AST and diagnostic work for selection. Measure full
-  source-to-compiled-parser cost separately. Choose the default based on these
-  results rather than generation novelty.
+  malformed/incomplete editor input, with identical inputs, a pinned Go
+  version and repeated alternating samples of the hand-written baseline and
+  the generated parser plus adapter. Report paired ranges and compare only
+  equivalent public AST and diagnostic work. Measure full
+  source-to-compiled-parser cost separately.
 
 ### Mutation Measurement
 
@@ -581,14 +545,16 @@ The generated parser takes 9.2 times the time, 3.8 times the bytes and 1.7
 times the allocations of the hand-written one in the geometric mean, before the
 adapter adds its own work. The bytes of a parse that reuses the memory of
 earlier parses depend on the number of iterations, so its bytes vary more
-between rounds (up to ±9%) than its time. A selection of the default needs the
-same measure with the adapter in the generated column.
+between rounds (up to ±9%) than its time. The speed recovery of the generated
+frontend is measured the same way, with the adapter in the generated column.
 
 ## Limitations and Open Questions
 
-This remains a proposal. The exact public selector names and whether every
-editor path exposes parser selection require API review. Comment/layout
-metadata and incomplete-input recovery may be the hardest parity requirements.
-If the typed parser cannot preserve the current formatter and LSP contracts,
-retain the manual parser as the default and narrow the generated parser's
-scope before reconsidering replacement.
+The generated frontend is slower than the hand-written baseline; the speed is
+recovered in the generator and the optimizer. The layout replay of the adapter
+uses the layout primitives of the hand-written parser, and `zp fix` reads the
+removed syntax with the hand-written parser, so that parser stays in the
+repository with the oracle. Messages of the generated frontend are those of the
+grammar's labels and expectations, which name fewer specific mistakes than
+the messages of the hand-written parser, such as the removed spellings that
+`zp fix` rewrites.

@@ -155,25 +155,25 @@ func TestFormatRoundTrip(t *testing.T) {
 
 func TestParseErrors(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
-		{`rule a = `, `1:10: expected an expression, found end of file`},
+		{`rule a = `, `1:10: expected rule expression`},
 		{`rule a = "abc`, `1:10: unterminated string`},
 		{`rule a = [a-`, `1:10: unterminated character class`},
-		{`rule a = []`, `1:10: expected an expression, found '[]'`},
+		{`rule a = []`, `1:10: expected rule expression`},
 		{`rule a = [z-a]`, `1:10: invalid range 'z'-'a'`},
-		{`foo`, `1:1: expected '@', 'rule', 'type' or 'var', found 'foo'`},
-		{"rule a = (b\nrule c = d", `2:8: expected ')', found '='`},
-		{`type A = { X }`, `1:14: expected identifier, found '}'`},
-		{`type A struct { X }`, `1:8: a struct type is defined as type A = {...}`},
-		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type A ~ <type> for an alias`},
-		{`type A B`, `1:8: expected '=' or '~', found 'B'`},
-		{`type A = node[string, int]`, `a node type takes one type argument: type A = node[T]`},
-		{`type A = node`, `1:8: expected '{' or 'node[' after '='`},
-		{`rule a = #operators { level { infix "+" } }`, `1:37: expected 'left', 'right', or 'none', found "+"`},
-		{"rule a = #operators\n{ operand \"x\" }", `1:10: #operators must be followed by { on the same line`},
-		{`rule a = #operators`, `1:10: #operators must be followed by { on the same line`},
-		{`rule a = #operators( operand "x" )`, `1:10: #operators must be followed by { on the same line`},
-		{`rule a = x => A{X 1}`, `1:19: expected ',', found 1`},
-		{"rule a = %\nrule b = c", `1:10: expected an expression, found '%'`},
+		{`foo`, `1:1: expected type, var or rule declaration`},
+		{"rule a = (b\nrule c = d", `2:8: expected rule expression`},
+		{`type A = { X }`, `1:14: expected field type`},
+		{`type A struct { X }`, `1:8: expected '= {', '= node[' or '~'`},
+		{`type A = B`, `1:8: expected '= {', '= node[' or '~'`},
+		{`type A B`, `1:8: expected '= {', '= node[' or '~'`},
+		{`type A = node[string, int]`, `1:23: a node type takes one type argument`},
+		{`type A = node`, `1:8: expected '= {', '= node[' or '~'`},
+		{`rule a = #operators { level { infix "+" } }`, `1:37: expected left, right, or none associativity`},
+		{"rule a = #operators\n{ operand \"x\" }", `1:10: expected rule expression`},
+		{`rule a = #operators`, `1:10: expected rule expression`},
+		{`rule a = #operators( operand "x" )`, `1:10: expected rule expression`},
+		{`rule a = x => A{X 1}`, `1:19: expected closing brace for constructor`},
+		{"rule a = %\nrule b = c", `1:10: expected rule expression`},
 		{"rule a = `", "1:10: unexpected character '`'"},
 	} {
 		t.Run(tc.in, func(t *testing.T) {
@@ -255,7 +255,7 @@ func TestExprPositions(t *testing.T) {
 		default:
 			t.Fatalf("unexpected %T", it)
 		}
-		got = append(got, fmt.Sprintf("%s@%d", grammar.FormatExpr(it), pos.Col))
+		got = append(got, fmt.Sprintf("%s@%d", grammar.FormatExpr(it), pos.Col-len(ExprPrefix)))
 	}
 	want := "&a@1 !b@4 c #atomic@9 -d@17 _@20 _|_@22 #cut@26 ^^@31 ^@34 $@36 $$@38 .@41 (x y)*@43 z+@50 (w)?@53 v #repeat(2)@58"
 	if s := strings.Join(got, " "); s != want {
@@ -270,7 +270,7 @@ func TestParseRejectsTerminalType(t *testing.T) {
 	if !ok || len(list) != 1 {
 		t.Fatalf("got %v, want exactly one error", err)
 	}
-	const want = "a terminal type is the struct type T = { Text string }"
+	const want = "expected '= {', '= node[' or '~'"
 	if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: 8}) {
 		t.Errorf("got %v, want 1:8: %s", err, want)
 	}
@@ -307,26 +307,20 @@ func TestParsePositionalConstructorArity(t *testing.T) {
 	}
 }
 
+// The retired type names are not names of types: Parse rejects them where a type is expected, and
+// the legacy reader of zp fix still reads them.
 func TestParseRejectsRetiredTypeNames(t *testing.T) {
-	replacements := map[string]string{
-		"terminal": "node[string]",
-		"Match":    "node[string]",
-		"Seq":      "node[_]",
-		"List":     "node[_]",
-		"Operator": "node[_]",
-		"Error":    "error",
-	}
-	for name, replacement := range replacements {
-		for _, position := range []struct{ name, src string }{
-			{"struct field", "type R = { F NAME }"},
-			{"alias", "type R ~ NAME"},
-			{"rule type", "rule r NAME = \"x\""},
-			{"list", "type R ~ []NAME"},
-			{"pointer", "type R = { F *NAME }"},
-			{"join", "type R ~ int | NAME"},
-			{"nested", "type R = { F []*NAME }"},
-			{"type application", "type R = { F NAME[int] }"},
-			{"cast", "rule r = x:\"x\" => $x.(NAME)"},
+	for _, name := range []string{"terminal", "Match", "Seq", "List", "Operator", "Error"} {
+		for _, position := range []struct{ name, src, want string }{
+			{"struct field", "type R = { F NAME }", "expected field type"},
+			{"alias", "type R ~ NAME", "expected type"},
+			{"rule type", "rule r NAME = \"x\"", "expected '=' after rule header"},
+			{"list", "type R ~ []NAME", "expected type"},
+			{"pointer", "type R = { F *NAME }", "expected field type"},
+			{"join", "type R ~ int | NAME", "syntax error: expected"},
+			{"nested", "type R = { F []*NAME }", "expected field type"},
+			{"type application", "type R = { F NAME[int] }", "expected field type"},
+			{"cast", "rule r = x:\"x\" => $x.(NAME)", "syntax error: expected"},
 		} {
 			t.Run(name+"/"+position.name, func(t *testing.T) {
 				src := strings.Replace(position.src, "NAME", name, 1)
@@ -335,10 +329,9 @@ func TestParseRejectsRetiredTypeNames(t *testing.T) {
 				if !ok || len(list) != 1 {
 					t.Fatalf("got %v, want exactly one error", err)
 				}
-				want := fmt.Sprintf("%s is not a type; write %s", name, replacement)
 				col := strings.Index(src, name) + 1
-				if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
-					t.Errorf("got %v, want 1:%d: %s", err, col, want)
+				if !strings.HasPrefix(list[0].Msg, position.want) || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
+					t.Errorf("got %v, want 1:%d: %s", err, col, position.want)
 				}
 			})
 		}

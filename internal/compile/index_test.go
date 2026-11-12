@@ -77,7 +77,7 @@ rule item = [a-z]`)
 		}
 	}
 	if _, err := parseTest(`rule main = item[a-z]
-rule item = "a"`); err == nil || !strings.Contains(err.Error(), "write a space before it") {
+rule item = "a"`); err == nil || !strings.HasPrefix(err.Error(), "1:17: ") {
 		t.Fatalf("adjacent character class: %v", err)
 	}
 	for _, src := range []string{
