@@ -113,7 +113,13 @@ func (b *builder) rewrite(n core.Node) core.Node {
 	case *core.Choice:
 		return b.choice(x)
 	case *core.Repeat:
-		if body := b.node(x.Body); body != x.Body {
+		body := b.node(x.Body)
+		if b.on(N10) {
+			if r := b.nestedRepeat(x, body); r != nil {
+				return r
+			}
+		}
+		if body != x.Body {
 			c := *x
 			c.Body = body
 			return b.built(&c, x)
@@ -125,11 +131,7 @@ func (b *builder) rewrite(n core.Node) core.Node {
 			return b.built(&c, x)
 		}
 	case *core.Look:
-		if body := b.node(x.Body); body != x.Body {
-			c := *x
-			c.Body = body
-			return b.built(&c, x)
-		}
+		return b.lookahead(x)
 	case *core.Capture:
 		read := b.values.reads[b.cur][x.Name]
 		if read {
@@ -177,7 +179,8 @@ func (b *builder) rewrite(n core.Node) core.Node {
 	return n
 }
 
-// seq applies N1 (splice), N4 (leading bottom) and N12 (!X X) to a sequence.
+// seq applies N1 (splice), N4 (leading bottom), N9 (repetitions in a row), N11 (unrolling) and
+// N12 (!X X) to a sequence.
 func (b *builder) seq(s *core.Seq) core.Node {
 	changed := false
 	var items []core.Node
@@ -231,6 +234,36 @@ func (b *builder) seq(s *core.Seq) core.Node {
 
 // adjacent rewrites two items in a row into one, or returns nil.
 func (b *builder) adjacent(x, y core.Node) core.Node {
+	rx, xRep := x.(*core.Repeat)
+	ry, yRep := y.(*core.Repeat)
+	if yRep && ry.Max < 0 && ry.Min <= 1 && b.depth == 0 && (b.on(N9) || b.on(N11)) && !b.values.observed(b.cur, x, y) {
+		z := ry.Body
+		switch {
+		case !b.on(N9):
+		case xRep && rx.Max < 0 && rx.Min <= 1 && ry.Min == 0 && b.same(rx.Body, z) && b.idempotent(z):
+			// R3 and R4: X* X* and X+ X* match as the first repetition does. The second evaluates
+			// X once more where the first stopped, in a state that differs only by bindings that X
+			// does not read.
+			b.count(N9)
+			return rx
+		case !xRep && ry.Min == 0 && b.same(x, z) && b.idempotent(z):
+			// R5: X X* is X+.
+			b.count(N9)
+			c := *ry
+			c.Min = 1
+			return b.built(&c, ry)
+		}
+		if o, ok := x.(*core.Opt); ok && b.on(N9) && ry.Min == 0 && b.same(o.Body, z) && b.idempotent(z) && !b.src.Facts.Nullable(z) {
+			// R4: X? X* matches as X* does.
+			b.count(N9)
+			return ry
+		}
+		if xRep && rx.Max < 0 && rx.Min == 0 && ry.Min == 0 && b.on(N11) {
+			if r := b.unroll(rx, ry); r != nil {
+				return r
+			}
+		}
+	}
 	if n, ok := x.(*core.Look); ok && n.Neg && b.on(N12) && b.depth == 0 && b.same(n.Body, y) && boundedTerminal(y) {
 		// K4: !X X never matches. X examines a bounded amount of input, so the view drops a
 		// constant cost. !X X has the type of X and _|_ has the type _|_, which a choice around it
@@ -355,6 +388,135 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 }
 
 func looseCutAlt(a *core.Alt) bool { return facts.LooseCut(a.Body) }
+
+// unroll applies R7 to X* (Y X*)*, giving (X / Y)*, and the absorption X* (X / Y)* to (X / Y)*.
+func (b *builder) unroll(rx, ry *core.Repeat) core.Node {
+	x := rx.Body
+	if b.src.Facts.Nullable(x) || facts.LooseCut(x) {
+		return nil
+	}
+	if ch, ok := ry.Body.(*core.Choice); ok && len(ch.Alts) > 1 && b.same(ch.Alts[0].Body, x) && b.idempotent(x) {
+		// The absorption: the second repetition evaluates X again where the first stopped.
+		b.count(N11)
+		return ry
+	}
+	s, ok := ry.Body.(*core.Seq)
+	if !ok || len(s.Items) < 2 {
+		return nil
+	}
+	last, ok := s.Items[len(s.Items)-1].(*core.Repeat)
+	if !ok || last.Min != 0 || last.Max >= 0 || !b.same(last.Body, x) {
+		return nil
+	}
+	var y core.Node
+	if len(s.Items) == 2 {
+		y = s.Items[0]
+	} else {
+		y = b.built(&core.Seq{Items: slices.Clone(s.Items[:len(s.Items)-1])}, s)
+	}
+	if facts.LooseCut(y) || bindsOutsideCalls(y) || !b.idempotent(x) {
+		return nil
+	}
+	// R7: both evaluate X first at each position and Y after X fails, in the same states. When Y
+	// matches without consuming input, the unrolled form evaluates X again where it failed, which
+	// fails again only if Y bound nothing that X reads, and which the view drops: so Y makes no
+	// binding outside its calls, and X evaluated again costs at most what it cost first.
+	b.count(N11)
+	c := *ry
+	c.Body = &core.Choice{Alts: []*core.Alt{{Body: x}, {Body: y}}}
+	return b.built(&c, ry)
+}
+
+// nestedRepeat applies R6 to a repetition whose element, rewritten, is body, or returns nil.
+func (b *builder) nestedRepeat(outer *core.Repeat, body core.Node) core.Node {
+	if outer.Max >= 0 || outer.Min > 1 || b.depth > 0 || b.values.observed(b.cur, outer) {
+		return nil
+	}
+	switch in := body.(type) {
+	case *core.Repeat:
+		if in.Max >= 0 || in.Min > 1 || outer.Min == 1 && in.Min == 1 {
+			return nil
+		}
+		if !b.idempotent(in.Body) {
+			return nil
+		}
+		// (X*)*, (X+)* and (X*)+ match as X* does: the outer repetition stops after an iteration
+		// that matches nothing, which evaluates X once more where the inner one stopped.
+		b.count(N10)
+		c := *in
+		c.Min = 0
+		return b.built(&c, in)
+	case *core.Opt:
+		if outer.Min != 0 || b.src.Facts.Nullable(in.Body) || !b.idempotent(in.Body) {
+			return nil
+		}
+		// (X?)* matches as X* does for an X that cannot match without consuming input.
+		b.count(N10)
+		c := *outer
+		c.Body = in.Body
+		return b.built(&c, outer)
+	}
+	return nil
+}
+
+// lookahead applies K2 and K1 to a lookahead whose body is a lookahead. A lookahead it builds in
+// place of two is new: it is written in the grammar's syntax of its own.
+func (b *builder) lookahead(l *core.Look) core.Node {
+	body := b.node(l.Body)
+	if in, ok := body.(*core.Look); ok && b.on(N5) {
+		switch {
+		case !in.Neg:
+			// K2: &&X is &X and !&X is !X: the outer lookahead keeps the result of the inner one,
+			// which returns to its start.
+			b.count(N5)
+			return &core.Look{Body: in.Body, Neg: l.Neg, Site: l.Site}
+		case !l.Neg:
+			// K2: &!X is !X.
+			b.count(N5)
+			return in
+		case !bindsOutsideCalls(in.Body):
+			// K1: !!X is &X when X makes no binding that the positive lookahead would keep.
+			b.count(N5)
+			return &core.Look{Body: in.Body, Site: l.Site}
+		}
+	}
+	if body == l.Body {
+		return l
+	}
+	c := *l
+	c.Body = body
+	return b.built(&c, l)
+}
+
+// idempotent reports the conditions on X of R3 under which a repetition of X evaluated again
+// where one stopped matches nothing: X has no cut that commits the repetition, and it cannot match
+// without consuming input or makes no binding; and evaluating X again costs at most what its first
+// evaluation cost. A node that is evaluated again cheaply makes no binding, so the last condition
+// implies the second.
+func (b *builder) idempotent(x core.Node) bool {
+	return !facts.LooseCut(x) && b.evaluatedAgainCheaply(x)
+}
+
+// bindsOutsideCalls reports whether n makes a binding that lasts after it: a binding outside the
+// rules that it calls. The bindings of an inlined call (a nest) are the call's own.
+func bindsOutsideCalls(n core.Node) bool {
+	found := false
+	var walk func(core.Node)
+	walk = func(n core.Node) {
+		switch n.(type) {
+		case *core.BindNode:
+			found = true
+			return
+		case *core.Nest:
+			return
+		}
+		for _, c := range core.Children(n) {
+			walk(c)
+		}
+	}
+	walk(n)
+	return found
+}
 
 // same reports whether two nodes are the same expression: they print the same, whatever their
 // positions in the module.
