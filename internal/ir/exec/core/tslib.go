@@ -17,13 +17,21 @@ type TSMethod struct {
 }
 
 // tsSpecs are the methods of the TypeScript runtime that the compositions replace. The runtime's
-// call observes before callBody, and it has neither Documents nor streams.
+// call observes before callBody, and it has no streams. The methods with doc set belong to the
+// DocumentParser class, the parser of a Document parse: its call takes callDocument, which memoizes
+// the rules that the Document memoizes and records the input that each call examined. Its parses
+// charge Document work like any other work (no free regions), so they are specialized without
+// budget controls.
 var tsSpecs = []struct {
 	fn   string
 	on   []string
 	name string
+	doc  bool
 }{
 	{fn: "call", on: []string{ops.Observe, ops.Budget}, name: "callBody"},
+	{fn: "document", on: []string{ops.Document}, name: "callDocument", doc: true},
+	{fn: "unmemoized", name: "callUnmemoized", doc: true},
+	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo", doc: true},
 	{fn: "grow", name: "grow"},
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
@@ -72,7 +80,11 @@ func TSMethods() ([]TSMethod, error) {
 		if err != nil {
 			return nil, err
 		}
-		src, err := exects.Method(m, f, tsTarget)
+		t := tsTarget
+		if s.doc {
+			t = tsDocTarget
+		}
+		src, err := exects.Method(m, f, t)
 		if err != nil {
 			return nil, err
 		}
@@ -570,6 +582,55 @@ var tsTarget = &exects.Target{
 		return "", false
 	},
 }
+
+// tsDocTarget is tsTarget in the methods of the DocumentParser class, which read the Document
+// bookkeeping of the parser and of the rules.
+var tsDocTarget = func() *exects.Target {
+	t := *tsTarget
+	t.Op = func(c *exec.Call, a []string) string {
+		switch c.Callee {
+		case "doc.active":
+			return "true"
+		case "rule.docMemo", "rule.positional":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "rule.")
+		case "rule.docOnlyMemo":
+			return "(" + a[0] + ".docMemo && !" + a[0] + ".memo && !" + a[0] + ".leader)"
+		case "doc.touch":
+			return "this.documentTouch(" + a[0] + ")"
+		case "doc.touchFrom":
+			return "this.documentTouchFrom(" + a[0] + ")"
+		case "doc.high":
+			return "this.docHigh"
+		case "doc.low":
+			return "this.docLow"
+		case "doc.reused":
+			return "this.reused++"
+		case "doc.move":
+			return "this.documentMove(" + a[0] + ")"
+		case "memo.examined":
+			return a[0] + "!.examined"
+		case "memo.before":
+			return a[0] + "!.from === fromBefore"
+		case "memo.pin":
+			return a[0] + ".pinned = true"
+		case "memo.examine":
+			return fmt.Sprintf("%[1]s.examined = %[3]s;\n%[1]s.from = %[2]s ? fromBefore : fromPos;\n%[1]s.pinned = false", a[0], a[1], a[2])
+		case "call.tracked":
+			return "false"
+		}
+		return tsTarget.Op(c, a)
+	}
+	t.Stmt = func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
+		switch c.Callee {
+		case "doc.enter":
+			return fmt.Sprintf("%[1]s %[2]s = this.docHigh;\n%[1]s %[3]s = this.docLow;\nthis.docHigh = %[4]s + 1;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true
+		case "doc.leave":
+			return fmt.Sprintf("this.docHigh = Math.max(%s, this.docHigh);\nif (%s < this.docLow) {\n  this.docLow = %[2]s;\n}", a[0], a[1]), true
+		}
+		return tsTarget.Stmt(c, a, dst, decl)
+	}
+	return &t
+}()
 
 // TSTermMethod returns the name of the method of the TypeScript runtime's Parser class that the
 // composition fn is printed as, for printing calls of the compositions outside the runtime (lowered

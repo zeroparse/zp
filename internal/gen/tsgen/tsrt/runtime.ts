@@ -936,6 +936,12 @@ export interface Rule {
   vars: number[];
   // nodeType, if not "", is the named node type the rule's value is converted to.
   nodeType: string;
+  // docMemo means Document parses memoize the rule, transient or not, as they do for a leader and
+  // for a rule marked for memoization.
+  docMemo: boolean;
+  // positional means the rule's results may depend on positions (.start, .end), not only on the
+  // input they examine: an edit of a Document before them removes them instead of moving them.
+  positional: boolean;
   // opNodeType, if not "", is the named node type every operator node of an Operators Rule is
   // converted to.
   opNodeType: string;
@@ -1000,6 +1006,8 @@ export function mkRule(
     vars,
     nodeType: "",
     opNodeType: "",
+    docMemo: false,
+    positional: false,
   };
 }
 
@@ -1225,11 +1233,13 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
 }
 
 // run parses the whole input of the grammar g with rule r of a rule table with seen rules that have rule.seen set.
-export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Array, unit: Unit | undefined, maxDepth = g.maxDepth, control: BudgetControl | null = null, traceOptions: ResolvedParseOptions | null = null): ParseResult {
+// With document set, it parses with the parser of a Document parse (DocumentParser).
+export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Array, unit: Unit | undefined, maxDepth = g.maxDepth, control: BudgetControl | null = null, traceOptions: ResolvedParseOptions | null = null, document = false): ParseResult {
   let p: Parser | null = null;
   try {
     // Made inside the try, so that decoding the input fails as parsing does.
-    p = new Parser(g, input, unit === Bytes ? Bytes : CodePoints, seen, maxDepth, control);
+    const u = unit === Bytes ? Bytes : CodePoints;
+    p = document ? new DocumentParser(g, input, u, seen, maxDepth, control) : new Parser(g, input, u, seen, maxDepth, control);
     p.expectations = traceOptions?.expectations === true;
     p.observation = traceOptions?.profile != null ? new ProfileObservation(traceOptions) : traceOptions?.trace == null ? null : new Observation(traceOptions);
     return result(p, p.call(r, 0));
@@ -1385,7 +1395,7 @@ export class DocumentBase {
     if (o.expectations !== this.expectations) return fail(new Error("document parse cannot change expectations"));
     this.parsing = true;
     try {
-      return withObservedOptions(o, control => convert(run(this.g, this.start, this.seen, input, o.unit, o.maxDepth, control, o), control), fail);
+      return withObservedOptions(o, control => convert(run(this.g, this.start, this.seen, input, o.unit, o.maxDepth, control, o, true), control), fail);
     } finally {
       this.parsing = false;
     }
@@ -1747,10 +1757,22 @@ export interface MemoEntry {
   // present is the set of leaders (Rule.leaderBit) that grew at the position when the result of a
   // rule of a cycle was evaluated; it answers a call where no other leader grows (memoAllows).
   present: number;
+  // examined is the end of the input that the call examined in a Document parse, and from where
+  // that input starts: noRecord outside a Document parse, fromPos at the position of the entry,
+  // fromBefore one unit before it. pinned means an edit before the entry removes it.
+  examined: number;
+  from: number;
+  pinned: boolean;
 }
 
+// The starts of the input that a call of a Document parse examined (MemoEntry.from).
+const noRecord = 0;
+const fromPos = 1;
+const fromBefore = 2;
+void noRecord;
+
 export function newEntry(node: R, ok: boolean, end: number, silent: boolean, errs: Errs): MemoEntry {
-  return { node, errs, expected: noExp, next: null, env: null, end, far: 0, rule: 0, min: 0, ok, silent, present: 0 };
+  return { node, errs, expected: noExp, next: null, env: null, end, far: 0, rule: 0, min: 0, ok, silent, present: 0, examined: 0, from: noRecord, pinned: false };
 }
 
 export const noExp: number[] = [];
@@ -4901,6 +4923,202 @@ export class Parser {
       throw new Fatal(new Error(`cannot convert ${typeName(u)} to ${r.opNodeType} in result of rule ${r.where || r.name}`));
     }
     return n;
+  }
+}
+
+/**
+ * DocumentParser is the parser of a Document parse: every rule call takes callDocument, which
+ * memoizes the rules that the Document memoizes (Rule.docMemo) from their first call, and records the
+ * input that each call examined, [docLow, docHigh), with its memo entry. The batch Parser stays
+ * without this bookkeeping.
+ */
+export class DocumentParser extends Parser {
+  // docHigh and docLow bound the input that the active rule call examined, [docLow, docHigh).
+  docHigh = 0;
+  docLow = 0;
+  // evaluated and reused count the rule evaluations and the reused memo results of the parse.
+  evaluated = 0;
+  reused = 0;
+
+  override call(r: Rule, min: number): R {
+    const o = this.observation;
+    this.spend();
+    if (o === null) return this.callDocument(r, min);
+    o.enter(r.name, this.pos, min);
+    const v = this.callDocument(r, min);
+    o.exit(v !== undefined, this.pos);
+    return v;
+  }
+
+  override invokePlain(r: Rule, min: number): R {
+    return this.call(r, min);
+  }
+
+  override invoke(r: Rule, min: number): R {
+    this.evaluated++;
+    return super.invoke(r, min);
+  }
+
+  override invokePlainBody(r: Rule, min: number): R {
+    this.evaluated++;
+    return super.invokePlainBody(r, min);
+  }
+
+  // documentTouch records that the active rule call examined the input before end.
+  documentTouch(end: number): void {
+    if (end > this.docHigh) this.docHigh = end;
+  }
+
+  // documentTouchFrom extends the input that the active rule call examined back to from.
+  documentTouchFrom(from: number): void {
+    if (from < this.docLow) this.docLow = from;
+  }
+
+  // documentMove moves the value of the entry e by the shift that edits gave it, and reports whether
+  // it could. A parse starts with an empty memo, so no entry has a shift.
+  documentMove(e: MemoEntry): boolean {
+    void e;
+    return true;
+  }
+
+  // callDocument is a rule call in a Document parse, which memoizes the rules that the Document reuses
+  // and records the input each call examined. The enclosing call's examined input is restored however
+  // the call ends, an interruption included, so that a parse after it starts from the state it would
+  // start from otherwise.
+  callDocument(r: Rule, min: number): R {
+    const oldHigh = this.docHigh;
+    const oldLow = this.docLow;
+    this.docHigh = this.pos + 1;
+    this.docLow = this.pos;
+    try {
+      if (!r.docMemo) {
+        const v = this.callUnmemoized(r, min);
+        return v;
+      }
+      const v = this.callMemo(r, min);
+      return v;
+    } finally {
+      this.docHigh = Math.max(oldHigh, this.docHigh);
+      if (oldLow < this.docLow) {
+        this.docLow = oldLow;
+      }
+    }
+  }
+
+
+  // callUnmemoized calls rule r at binding level min without memo bookkeeping, as call does while the
+  // rule's memoization is deferred: its expectations need no isolation, and a failure restores the
+  // position and the recovered errors.
+  callUnmemoized(r: Rule, min: number): R {
+    let v: R = null;
+    const start = this.pos;
+    if (r.scope.length === 0) {
+      v = this.invokePlainBody(r, min);
+      return v;
+    }
+    const rec = this.recovered.length;
+    v = this.invoke(r, min);
+    if (v === undefined) {
+      this.pos = start;
+      this.recovered.length = rec;
+    }
+    return v;
+  }
+
+
+  // callMemo calls rule r at binding level min through the memo, as call does once the rule's
+  // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
+  // bookkeeping of how far each call examined the input.
+  callMemo(r: Rule, min: number): R {
+    let v: R = null;
+    let fm: bigint = 0n;
+    void fm;
+    const start = this.pos;
+    const env = this.envValues(r.vars);
+    let c = noCtx;
+    let seed: CtxResult | null = null;
+    if (r.cycle !== 0 && this.gamma.length !== 0) {
+      c = newCtxCall();
+      seed = this.ctxEnter(c, r, min);
+    }
+    if (seed !== null) {
+      this.replayCtx(seed!, true);
+      if (!seed!.ok) {
+        return undefined;
+      }
+      return seed!.node;
+    }
+    const e = this.memoGet(r.id, start, min, env);
+    const found = e !== null;
+    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0) && (!true || this.documentMove(e))) {
+      this.observation?.memoHit();
+      this.documentTouch(e!.examined);
+      if (e!.from === fromBefore) {
+        this.documentTouchFrom(start + -1);
+      }
+      this.reused++;
+      this.mergeKept(e.far, e.expected);
+      if (!e.ok) {
+        return undefined;
+      }
+      this.pos = e.end;
+      this.recAdd(e.errs);
+      return e.node;
+    }
+    if (c.ctx) {
+      const held = this.ctxLookup(c, r.id, min, env);
+      if (held !== null) {
+        this.replayCtx(held!, false);
+        if (!held!.ok) {
+          return undefined;
+        }
+        return held!.node;
+      }
+    }
+    const rec = this.recovered.length;
+    this.ctxPush(c);
+    const mFar = this.farthest;
+    const mBase = this.expBase;
+    this.expBase = this.expTop;
+    this.farthest = start;
+    if (r.leader) {
+      v = this.grow(r, min);
+    } else {
+      v = this.invoke(r, min);
+      if (v === undefined) {
+        this.recovered.length = rec;
+      }
+    }
+    const far = this.farthest;
+    const innerFrom = this.expBase;
+    const innerTo = this.expTop;
+    this.expTop = this.expBase;
+    this.expBase = mBase;
+    this.farthest = mFar;
+    const kept = this.keep(innerFrom, innerTo);
+    this.documentTouch(this.pos + 1);
+    const store = this.ctxPop(c);
+    if (store === storeMemo) {
+      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
+      this.memoPut(r.id, start, min, env, entry);
+      entry.present = c.present;
+      entry.far = far;
+      entry.expected = kept;
+      entry.examined = this.docHigh;
+      entry.from = this.docLow < start ? fromBefore : fromPos;
+      entry.pinned = false;
+      if (r.positional) {
+        entry.pinned = true;
+      }
+    } else if (store === storeCtx) {
+      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
+    }
+    this.ctxDone(c);
+    this.mergeExpected(far, innerFrom, innerTo);
+    if (v === undefined) {
+      this.pos = start;
+    }
+    return v;
   }
 }
 

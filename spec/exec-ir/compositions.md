@@ -136,9 +136,9 @@ row includes what its backends print into packages of their own.
 | callMemo |  | `[document, observe, typed]` |  |  |
 | grow | `[]` | `[typed]` | `[]` | `[]` |
 | observed | `[document, observe]` | `[document, observe]` |  |  |
-| unmemoized | `[]` |  |  |  |
-| memoized | `[budget, document, observe]` |  |  |  |
-| document | `[budget, document]` |  |  |  |
+| unmemoized | `[]` |  |  | `[]` |
+| memoized | `[budget, document, observe]` |  |  | `[document, observe]` |
+| document | `[budget, document]` |  |  | `[document]` |
 | typedDocument |  | `[budget, document, observe, typed]` |  |  |
 | callBegin |  |  | `[budget, document, missing]` |  |
 | callEnd |  |  | `[budget, document, missing]` |  |
