@@ -1,4 +1,4 @@
-protocol 8
+protocol 9
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -278,7 +278,10 @@ method (*Parser) TermBinary(int, any, any) (any, any)
 method (*Parser) TermConforms(*FieldType, any) bool
 method (*Parser) TermConvert(*nodeTypeKinds, any) (any, any)
 method (*Parser) TermCover(*Node, any, bool) bool
+method (*Parser) TermFilterKeep(any) (bool, any)
 method (*Parser) TermHull(*ActCtx, bool, []*Node) *Node
+method (*Parser) TermItemAt([]*Node, int, bool) any
+method (*Parser) TermItems(string, any) ([]*Node, any)
 method (*Parser) TermLength(any) (any, any)
 method (*Parser) TermLogic(int, any) (bool, any)
 method (*Parser) TermMade(*ActCtx, *Node, bool)
@@ -394,7 +397,10 @@ method (*TParser) TermBinary(int, any, any) (any, any)
 method (*TParser) TermConforms(*FieldType, any) bool
 method (*TParser) TermConvert(uint16, any) (any, any)
 method (*TParser) TermCover(TVal, any, bool) bool
+method (*TParser) TermFilterKeep(any) (bool, any)
 method (*TParser) TermHull(*TActCtx, bool, []any) TVal
+method (*TParser) TermItemAt([]any, int, bool) any
+method (*TParser) TermItems(string, any) ([]any, any)
 method (*TParser) TermLength(any) (any, any)
 method (*TParser) TermLogic(int, any) (bool, any)
 method (*TParser) TermMade(*TActCtx, TVal, bool)

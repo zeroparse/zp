@@ -505,6 +505,10 @@ func (p *printer) let(l *exec.Let, rest []exec.Stmt) {
 		// Nothing reads the value and computing it has no effect.
 	case !bound:
 		p.line("%s;", v)
+	case len(names) == 1 && kw == "let" && p.types[names[0]].Kind == exec.KHandle:
+		// A local that is assigned later has the type of the handle, not the narrower type that
+		// TypeScript would infer from its first value (a number for an int constant of a value).
+		p.line("let %s: %s = %s;", names[0], p.typ(p.types[names[0]]), v)
 	case len(names) == 1:
 		p.line("%s %s = %s;", kw, names[0], v)
 	default:

@@ -193,7 +193,7 @@ var recRulesStrs = [...][]string{
 
 var recRulesExtras = [...]ruleExtra{}
 
-var scope34 = []string{"s"}
+var scope12 = []string{"s"}
 
 func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
@@ -214,7 +214,224 @@ func init() {
 	}
 	rules[1].Body = e5
 	rules[1].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Line", "N", c.Length(c.Cap(0)), "Total", c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_11 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_11), "$s"))) }), func(l_12, l_13 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_12), rt.UnboxValue(l_13)) }), "Long", c.Length(c.FilterList(c.MapList(c.Cap(0), func(l_14 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_14), "$s"))) }), func(l_15 any) any { return c.Binary(rt.OpGt, rt.UnboxValue(l_15), any(3)) })), "Longest", c.Fold("foldl", false, any(""), c.MapList(c.Cap(0), func(l_16 any) any { return c.Text(c.Member(rt.UnboxValue(l_16), "$s")) }), func(l_17, l_18 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_17), rt.UnboxValue(l_18)) }), "Wide", c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(c.Cap(0), func(l_19 any) any { return c.Length(c.Text(c.Member(rt.UnboxValue(l_19), "$s"))) }), func(l_20, l_21 any) any { return c.Binary(rt.OpAdd, rt.UnboxValue(l_20), rt.UnboxValue(l_21)) }), any(20)))
+		tv1, tf1 := c.P.TermLength(c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tm2 := len(c.P.KidStack)
+		ti3, tf3 := c.P.TermItems("map", c.Cap(0))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tj4 := 0
+		for ; tj4 < len(ti3); tj4++ {
+			c.P.Spend()
+			tp6 := c.P.TermItemAt(ti3, tj4, false)
+			tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp6), "$s", "$s"[1:])
+			if tf8 != nil {
+				panic(tf8)
+			}
+			ts9, tf9 := c.P.TermText(tv8)
+			if tf9 != nil {
+				panic(tf9)
+			}
+			tv10, tf10 := c.P.TermLength(any(ts9))
+			if tf10 != nil {
+				panic(tf10)
+			}
+			tv7 := tv10
+			tf11 := c.P.TermPush(c, "map", tv7)
+			if tf11 != nil {
+				panic(tf11)
+			}
+		}
+		tk12 := c.P.Kids(tm2)
+		tn13 := c.P.TermHull(c, false, tk12)
+		ti14, tf14 := c.P.TermItems("foldl", any(tn13))
+		if tf14 != nil {
+			panic(tf14)
+		}
+		ta15 := any(0)
+		tj16 := 0
+		for ; tj16 < len(ti14); tj16++ {
+			c.P.Spend()
+			tp18 := ta15
+			tp19 := c.P.TermItemAt(ti14, tj16, false)
+			tv21, tf21 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp18), rt.UnboxValue(tp19))
+			if tf21 != nil {
+				panic(tf21)
+			}
+			tv20 := tv21
+			ta15 = tv20
+		}
+		tm22 := len(c.P.KidStack)
+		ti23, tf23 := c.P.TermItems("map", c.Cap(0))
+		if tf23 != nil {
+			panic(tf23)
+		}
+		tj24 := 0
+		for ; tj24 < len(ti23); tj24++ {
+			c.P.Spend()
+			tp26 := c.P.TermItemAt(ti23, tj24, false)
+			tv28, tf28 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp26), "$s", "$s"[1:])
+			if tf28 != nil {
+				panic(tf28)
+			}
+			ts29, tf29 := c.P.TermText(tv28)
+			if tf29 != nil {
+				panic(tf29)
+			}
+			tv30, tf30 := c.P.TermLength(any(ts29))
+			if tf30 != nil {
+				panic(tf30)
+			}
+			tv27 := tv30
+			tf31 := c.P.TermPush(c, "map", tv27)
+			if tf31 != nil {
+				panic(tf31)
+			}
+		}
+		tk32 := c.P.Kids(tm22)
+		tn33 := c.P.TermHull(c, false, tk32)
+		tm34 := len(c.P.KidStack)
+		ti35, tf35 := c.P.TermItems("filter", any(tn33))
+		if tf35 != nil {
+			panic(tf35)
+		}
+		tj36 := 0
+		for ; tj36 < len(ti35); tj36++ {
+			c.P.Spend()
+			tp38 := c.P.TermItemAt(ti35, tj36, false)
+			tv40, tf40 := c.P.TermBinary(rt.OpGt, rt.UnboxValue(tp38), any(3))
+			if tf40 != nil {
+				panic(tf40)
+			}
+			tv39 := tv40
+			tb41, tf41 := c.P.TermFilterKeep(tv39)
+			if tf41 != nil {
+				panic(tf41)
+			}
+			if tb41 {
+				c.P.KidStack = append(c.P.KidStack, ti35[tj36])
+			}
+		}
+		tk42 := c.P.Kids(tm34)
+		tn43 := c.P.TermHull(c, false, tk42)
+		tv44, tf44 := c.P.TermLength(any(tn43))
+		if tf44 != nil {
+			panic(tf44)
+		}
+		tm45 := len(c.P.KidStack)
+		ti46, tf46 := c.P.TermItems("map", c.Cap(0))
+		if tf46 != nil {
+			panic(tf46)
+		}
+		tj47 := 0
+		for ; tj47 < len(ti46); tj47++ {
+			c.P.Spend()
+			tp49 := c.P.TermItemAt(ti46, tj47, false)
+			tv51, tf51 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp49), "$s", "$s"[1:])
+			if tf51 != nil {
+				panic(tf51)
+			}
+			ts52, tf52 := c.P.TermText(tv51)
+			if tf52 != nil {
+				panic(tf52)
+			}
+			tv50 := any(ts52)
+			tf53 := c.P.TermPush(c, "map", tv50)
+			if tf53 != nil {
+				panic(tf53)
+			}
+		}
+		tk54 := c.P.Kids(tm45)
+		tn55 := c.P.TermHull(c, false, tk54)
+		ti56, tf56 := c.P.TermItems("foldl", any(tn55))
+		if tf56 != nil {
+			panic(tf56)
+		}
+		ta57 := any("")
+		tj58 := 0
+		for ; tj58 < len(ti56); tj58++ {
+			c.P.Spend()
+			tp60 := ta57
+			tp61 := c.P.TermItemAt(ti56, tj58, false)
+			tv63, tf63 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp60), rt.UnboxValue(tp61))
+			if tf63 != nil {
+				panic(tf63)
+			}
+			tv62 := tv63
+			ta57 = tv62
+		}
+		tm64 := len(c.P.KidStack)
+		ti65, tf65 := c.P.TermItems("map", c.Cap(0))
+		if tf65 != nil {
+			panic(tf65)
+		}
+		tj66 := 0
+		for ; tj66 < len(ti65); tj66++ {
+			c.P.Spend()
+			tp68 := c.P.TermItemAt(ti65, tj66, false)
+			tv70, tf70 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp68), "$s", "$s"[1:])
+			if tf70 != nil {
+				panic(tf70)
+			}
+			ts71, tf71 := c.P.TermText(tv70)
+			if tf71 != nil {
+				panic(tf71)
+			}
+			tv72, tf72 := c.P.TermLength(any(ts71))
+			if tf72 != nil {
+				panic(tf72)
+			}
+			tv69 := tv72
+			tf73 := c.P.TermPush(c, "map", tv69)
+			if tf73 != nil {
+				panic(tf73)
+			}
+		}
+		tk74 := c.P.Kids(tm64)
+		tn75 := c.P.TermHull(c, false, tk74)
+		ti76, tf76 := c.P.TermItems("foldl", any(tn75))
+		if tf76 != nil {
+			panic(tf76)
+		}
+		ta77 := any(0)
+		tj78 := 0
+		for ; tj78 < len(ti76); tj78++ {
+			c.P.Spend()
+			tp80 := ta77
+			tp81 := c.P.TermItemAt(ti76, tj78, false)
+			tv83, tf83 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp80), rt.UnboxValue(tp81))
+			if tf83 != nil {
+				panic(tf83)
+			}
+			tv82 := tv83
+			ta77 = tv82
+		}
+		tv84, tf84 := c.P.TermBinary(rt.OpGt, ta77, any(20))
+		if tf84 != nil {
+			panic(tf84)
+		}
+		tn85 := c.TermStruct("Line", 5)
+		tfirst86 := true
+		c.P.Spend()
+		c.TermSetField(tn85, "N", tv1)
+		tfirst86 = c.P.TermCover(tn85, tv1, tfirst86)
+		c.P.Spend()
+		c.TermSetField(tn85, "Total", ta15)
+		tfirst86 = c.P.TermCover(tn85, ta15, tfirst86)
+		c.P.Spend()
+		c.TermSetField(tn85, "Long", tv44)
+		tfirst86 = c.P.TermCover(tn85, tv44, tfirst86)
+		c.P.Spend()
+		c.TermSetField(tn85, "Longest", ta57)
+		tfirst86 = c.P.TermCover(tn85, ta57, tfirst86)
+		c.P.Spend()
+		c.TermSetField(tn85, "Wide", tv84)
+		tfirst86 = c.P.TermCover(tn85, tv84, tfirst86)
+		c.P.TermMade(c, tn85, tfirst86)
+		return any(tn85)
 	}
 	rules[2].Body = e7
 	zpGrammar.DeclareStruct("Doc", "Lines", "l")
@@ -223,7 +440,7 @@ func init() {
 	zpGrammar.TypeKinds["Line"] = rt.KindOf("Line", "")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
 	zpRecGrammar.SetRules(recRules, 0)
-	recRules[0].Body = e22
+	recRules[0].Body = e11
 	zpGrammar.Starts = []string{"main"}
 	zpGrammar.DefaultStart = "main"
 	zpRecGrammar.Share(zpGrammar)
@@ -371,7 +588,7 @@ fail:
 	return nil, false
 }
 
-func e22(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e11(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var v *rt.Node
 	var x2 int
@@ -531,16 +748,16 @@ func i0(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr1 any
+		var tr2 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
 			if tf1 != nil {
 				panic(tf1)
 			}
 			tv2 := tmk_Doc(c, true, tv1)
-			tr1 = tv2
+			tr2 = tv2
 		}
-		v = tr1
+		v = tr2
 	}
 	return v, true
 fail:
@@ -601,7 +818,213 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "line"
-	v = tmk_Line(c, true, c.Length(k1), c.Fold("foldl", false, any(0), c.MapList(k1, func(l_23 any) any { return c.Length(c.Text(c.Member((l_23), "$s"))) }), func(l_24, l_25 any) any { return c.Binary(rt.OpAdd, (l_24), (l_25)) }), c.Length(c.FilterList(c.MapList(k1, func(l_26 any) any { return c.Length(c.Text(c.Member((l_26), "$s"))) }), func(l_27 any) any { return c.Binary(rt.OpGt, (l_27), any(3)) })), c.Fold("foldl", false, any(""), c.MapList(k1, func(l_28 any) any { return c.Text(c.Member((l_28), "$s")) }), func(l_29, l_30 any) any { return c.Binary(rt.OpAdd, (l_29), (l_30)) }), c.Binary(rt.OpGt, c.Fold("foldl", false, any(0), c.MapList(k1, func(l_31 any) any { return c.Length(c.Text(c.Member((l_31), "$s"))) }), func(l_32, l_33 any) any { return c.Binary(rt.OpAdd, (l_32), (l_33)) }), any(20)))
+	{
+		var tr3 any
+		{
+			tv1, tf1 := c.P.TermLength(k1)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tm2 := len(c.P.KidStack)
+			ti3, tf3 := c.P.TermItems("map", k1)
+			if tf3 != nil {
+				panic(tf3)
+			}
+			tj4 := 0
+			for ; tj4 < len(ti3); tj4++ {
+				c.P.Spend()
+				tp6 := c.P.TermItemAt(ti3, tj4, false)
+				tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, (tp6), "$s", "$s"[1:])
+				if tf8 != nil {
+					panic(tf8)
+				}
+				ts9, tf9 := c.P.TermText(tv8)
+				if tf9 != nil {
+					panic(tf9)
+				}
+				tv10, tf10 := c.P.TermLength(any(ts9))
+				if tf10 != nil {
+					panic(tf10)
+				}
+				tv7 := tv10
+				tf11 := c.P.TermPush(c, "map", tv7)
+				if tf11 != nil {
+					panic(tf11)
+				}
+			}
+			tk12 := c.P.Kids(tm2)
+			tn13 := c.P.TermHull(c, false, tk12)
+			ti14, tf14 := c.P.TermItems("foldl", any(tn13))
+			if tf14 != nil {
+				panic(tf14)
+			}
+			ta15 := any(0)
+			tj16 := 0
+			for ; tj16 < len(ti14); tj16++ {
+				c.P.Spend()
+				tp18 := ta15
+				tp19 := c.P.TermItemAt(ti14, tj16, false)
+				tv21, tf21 := c.P.TermBinary(rt.OpAdd, (tp18), (tp19))
+				if tf21 != nil {
+					panic(tf21)
+				}
+				tv20 := tv21
+				ta15 = tv20
+			}
+			tm22 := len(c.P.KidStack)
+			ti23, tf23 := c.P.TermItems("map", k1)
+			if tf23 != nil {
+				panic(tf23)
+			}
+			tj24 := 0
+			for ; tj24 < len(ti23); tj24++ {
+				c.P.Spend()
+				tp26 := c.P.TermItemAt(ti23, tj24, false)
+				tv28, tf28 := c.P.TermMember(c, rt.MemberCapture, (tp26), "$s", "$s"[1:])
+				if tf28 != nil {
+					panic(tf28)
+				}
+				ts29, tf29 := c.P.TermText(tv28)
+				if tf29 != nil {
+					panic(tf29)
+				}
+				tv30, tf30 := c.P.TermLength(any(ts29))
+				if tf30 != nil {
+					panic(tf30)
+				}
+				tv27 := tv30
+				tf31 := c.P.TermPush(c, "map", tv27)
+				if tf31 != nil {
+					panic(tf31)
+				}
+			}
+			tk32 := c.P.Kids(tm22)
+			tn33 := c.P.TermHull(c, false, tk32)
+			tm34 := len(c.P.KidStack)
+			ti35, tf35 := c.P.TermItems("filter", any(tn33))
+			if tf35 != nil {
+				panic(tf35)
+			}
+			tj36 := 0
+			for ; tj36 < len(ti35); tj36++ {
+				c.P.Spend()
+				tp38 := c.P.TermItemAt(ti35, tj36, false)
+				tv40, tf40 := c.P.TermBinary(rt.OpGt, (tp38), any(3))
+				if tf40 != nil {
+					panic(tf40)
+				}
+				tv39 := tv40
+				tb41, tf41 := c.P.TermFilterKeep(tv39)
+				if tf41 != nil {
+					panic(tf41)
+				}
+				if tb41 {
+					c.P.KidStack = append(c.P.KidStack, ti35[tj36])
+				}
+			}
+			tk42 := c.P.Kids(tm34)
+			tn43 := c.P.TermHull(c, false, tk42)
+			tv44, tf44 := c.P.TermLength(any(tn43))
+			if tf44 != nil {
+				panic(tf44)
+			}
+			tm45 := len(c.P.KidStack)
+			ti46, tf46 := c.P.TermItems("map", k1)
+			if tf46 != nil {
+				panic(tf46)
+			}
+			tj47 := 0
+			for ; tj47 < len(ti46); tj47++ {
+				c.P.Spend()
+				tp49 := c.P.TermItemAt(ti46, tj47, false)
+				tv51, tf51 := c.P.TermMember(c, rt.MemberCapture, (tp49), "$s", "$s"[1:])
+				if tf51 != nil {
+					panic(tf51)
+				}
+				ts52, tf52 := c.P.TermText(tv51)
+				if tf52 != nil {
+					panic(tf52)
+				}
+				tv50 := any(ts52)
+				tf53 := c.P.TermPush(c, "map", tv50)
+				if tf53 != nil {
+					panic(tf53)
+				}
+			}
+			tk54 := c.P.Kids(tm45)
+			tn55 := c.P.TermHull(c, false, tk54)
+			ti56, tf56 := c.P.TermItems("foldl", any(tn55))
+			if tf56 != nil {
+				panic(tf56)
+			}
+			ta57 := any("")
+			tj58 := 0
+			for ; tj58 < len(ti56); tj58++ {
+				c.P.Spend()
+				tp60 := ta57
+				tp61 := c.P.TermItemAt(ti56, tj58, false)
+				tv63, tf63 := c.P.TermBinary(rt.OpAdd, (tp60), (tp61))
+				if tf63 != nil {
+					panic(tf63)
+				}
+				tv62 := tv63
+				ta57 = tv62
+			}
+			tm64 := len(c.P.KidStack)
+			ti65, tf65 := c.P.TermItems("map", k1)
+			if tf65 != nil {
+				panic(tf65)
+			}
+			tj66 := 0
+			for ; tj66 < len(ti65); tj66++ {
+				c.P.Spend()
+				tp68 := c.P.TermItemAt(ti65, tj66, false)
+				tv70, tf70 := c.P.TermMember(c, rt.MemberCapture, (tp68), "$s", "$s"[1:])
+				if tf70 != nil {
+					panic(tf70)
+				}
+				ts71, tf71 := c.P.TermText(tv70)
+				if tf71 != nil {
+					panic(tf71)
+				}
+				tv72, tf72 := c.P.TermLength(any(ts71))
+				if tf72 != nil {
+					panic(tf72)
+				}
+				tv69 := tv72
+				tf73 := c.P.TermPush(c, "map", tv69)
+				if tf73 != nil {
+					panic(tf73)
+				}
+			}
+			tk74 := c.P.Kids(tm64)
+			tn75 := c.P.TermHull(c, false, tk74)
+			ti76, tf76 := c.P.TermItems("foldl", any(tn75))
+			if tf76 != nil {
+				panic(tf76)
+			}
+			ta77 := any(0)
+			tj78 := 0
+			for ; tj78 < len(ti76); tj78++ {
+				c.P.Spend()
+				tp80 := ta77
+				tp81 := c.P.TermItemAt(ti76, tj78, false)
+				tv83, tf83 := c.P.TermBinary(rt.OpAdd, (tp80), (tp81))
+				if tf83 != nil {
+					panic(tf83)
+				}
+				tv82 := tv83
+				ta77 = tv82
+			}
+			tv84, tf84 := c.P.TermBinary(rt.OpGt, ta77, any(20))
+			if tf84 != nil {
+				panic(tf84)
+			}
+			tv85 := tmk_Line(c, true, tv1, ta15, tv44, ta57, tv84)
+			tr3 = tv85
+		}
+		v = tr3
+	}
 	return v, true
 fail:
 	return nil, false
@@ -672,7 +1095,7 @@ func i2(p *rt.TParser) (any, bool) {
 	x2 = append(x2, v15)
 	v16 = p.NewNode("tuple", x1, p.Pos, x2)
 	v = p.ScopeValue(sh10, v16, start)
-	v = p.AttachCaptures(v, scope34, []any{k3}, start, p.Pos)
+	v = p.AttachCaptures(v, scope12, []any{k3}, start, p.Pos)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -683,4 +1106,4 @@ fail:
 
 const _ = types.ZPSchema_e363e9a5033ad260
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

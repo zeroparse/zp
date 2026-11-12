@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/core"
@@ -26,6 +27,10 @@ import (
 // The leaves of a term (constants, captures, locals and variables), the context of the evaluation and
 // the static operands of the compositions (a member's name, a node type, the checked type of a cast)
 // are transitional operations whose immediate operand the target prints, as its term printer does.
+//
+// A built-in function that takes a function (map, filter, foldl, foldr) is a loop over the elements of
+// its list argument: each step charges the step of the element (seq.step), binds the parameters of the
+// lambda to locals of the loop and evaluates its body in place.
 
 // ErrUnsupported reports a term that holds a kind of term that Term does not lower yet; the caller
 // prints the whole term the way it did before.
@@ -79,6 +84,8 @@ const (
 	OpTermStruct     = "term.struct"
 	OpTermSetField   = "term.setField"
 	OpTermFromObj    = "term.fromObj"
+	OpTermKeep       = "term.keep"
+	OpTermCopyList   = "term.copyList"
 	// OpTermNew is the prefix of term.newN, the call of the constructor of a struct type with N
 	// declared fields (TermOptions.StructCall).
 	OpTermNew = "term.new"
@@ -101,7 +108,7 @@ func (n TermNew) String() string { return n.New.Type }
 
 // TermCompositions are the compositions of the parser VM that lowered terms call.
 var TermCompositions = []string{"binary", "unary", "logic", "member", "length", "text", "convert", "conforms",
-	"push", "pushItems", "hull", "cover", "made"}
+	"push", "pushItems", "hull", "cover", "made", "items", "itemAt", "filterKeep"}
 
 // TermLowered is a term lowered to Exec IR.
 type TermLowered struct {
@@ -131,10 +138,13 @@ type TermOptions struct {
 	// Unbounded leaves out the steps that elements charge (seq.step), for a target whose parser
 	// does not bound the work and prints no charge.
 	Unbounded bool
+	// Proj are the projected captures of the rule of the term, by name, with the capture of an element
+	// that each stands for (compile.RuleProjections). A call map($x, (e) => e.$f) of a projected capture
+	// x whose elements stand for f takes the elements of x as they are (term.copyList).
+	Proj map[string]string
 }
 
-// Term lowers the term t, or returns ErrUnsupported if t holds a kind of term that it does not lower
-// (a built-in that takes a function, a lambda or a lambda parameter).
+// Term lowers the term t, or returns ErrUnsupported if t holds a kind of term that it does not lower.
 func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if !TermSupported(t) {
 		return nil, ErrUnsupported
@@ -148,7 +158,8 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if o.Result == "" {
 		results = []exec.Type{datum}
 	}
-	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded}
+	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded, proj: o.Proj,
+		params: map[*ir.Lambda][]exec.Expr{}}
 	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
 		var res exec.Expr
 		if o.Result != "" {
@@ -173,14 +184,21 @@ func TermSupported(t ir.Term) bool {
 	ir.WalkTerm(t, func(x ir.Term) {
 		switch x := x.(type) {
 		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast,
-			*ir.Tuple, *ir.New:
-		case *ir.Local:
-			ok = ok && x.Kind != ir.LocalParam
+			*ir.Tuple, *ir.New, *ir.Local, *ir.Lambda:
+			// A lambda is an argument of a built-in, checked with it below, and a parameter is read only in
+			// the body of its lambda.
 		case *ir.Builtin:
 			switch x.Func {
 			case "len", "text":
-				ok = ok && len(x.Args) == 1
+				ok = ok && len(x.Args) == 1 && plain(x.Args[0])
 			case "list", "concat":
+				for _, a := range x.Args {
+					ok = ok && plain(a)
+				}
+			case "map", "filter":
+				ok = ok && len(x.Args) == 2 && plain(x.Args[0]) && lambda(x.Args[1], 1)
+			case "foldl", "foldr":
+				ok = ok && len(x.Args) == 3 && plain(x.Args[0]) && plain(x.Args[1]) && lambda(x.Args[2], 2)
 			default:
 				ok = false
 			}
@@ -189,6 +207,18 @@ func TermSupported(t ir.Term) bool {
 		}
 	})
 	return ok
+}
+
+// plain reports whether t is not a lambda.
+func plain(t ir.Term) bool {
+	_, ok := t.(*ir.Lambda)
+	return !ok
+}
+
+// lambda reports whether t is a lambda with n parameters.
+func lambda(t ir.Term, n int) bool {
+	f, ok := t.(*ir.Lambda)
+	return ok && len(f.Params) == n
 }
 
 var (
@@ -286,6 +316,10 @@ func addTermOps(m *exec.Module) {
 	op(&exec.Op{Name: OpTermSetField, Params: []exec.Param{exec.P("n", obj), exec.P("v", datum)}, Reads: reads, Writes: reads, NoReturn: true,
 		Imm:      "the name of the field (a string)",
 		Contract: "Sets the field in Imm of the struct n, which a term is making, to v. A target that bounds the work charges for the fields it scans and the bytes of the names it compares."})
+	op(&exec.Op{Name: OpTermKeep, Params: []exec.Param{exec.P("items", seq), exec.P("i", exec.TInt)}, Reads: reads, Writes: reads, NoReturn: true,
+		Contract: "Pushes element i of items, which items returned, as it is (a box stays a box) as the next element of the list that filter makes, charging nothing."})
+	op(&exec.Op{Name: OpTermCopyList, Params: []exec.Param{exec.P("items", seq)}, Results: []exec.Type{datum}, Reads: reads, Writes: reads,
+		Contract: "Returns a new list value of the elements items, which items returned, as they are, charging for copying them under budget controls."})
 }
 
 type termLowerer struct {
@@ -294,6 +328,9 @@ type termLowerer struct {
 	steps      bool
 	structCall bool
 	unbounded  bool
+	proj       map[string]string
+	// params holds the values of the parameters of each lambda whose body is being lowered.
+	params map[*ir.Lambda][]exec.Expr
 }
 
 // step charges the step of an element (seq.step).
@@ -338,7 +375,13 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 	switch t := t.(type) {
 	case *ir.Const:
 		return imm(OpTermConst, TermConst{t.Value})
-	case *ir.SlotRef, *ir.Local:
+	case *ir.Local:
+		if t.Kind == ir.LocalParam {
+			// A parameter may hold a box, which stands for its value.
+			return exec.C("val.unbox", l.params[t.Lambda][slices.Index(t.Lambda.Params, t.Name)])
+		}
+		return imm(OpTermRead, TermRead{t})
+	case *ir.SlotRef:
 		return imm(OpTermRead, TermRead{t})
 	case *ir.VarRef:
 		// Reading a variable charges the budget, so it is read where the term reads it, before the
@@ -399,6 +442,37 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 				l.check(b, exec.C("pushItems", exec.C(OpTermCtx), imm(OpTermName, "concat"), v))
 			}
 			return l.hull(b, false, base)
+		case "map":
+			if x, ok := l.projected(t); ok {
+				items := l.fallible(b, "ti", exec.C("items", imm(OpTermName, "map"), l.value(b, x)))
+				return b.Let(l.local("tv"), exec.C(OpTermCopyList, items))
+			}
+			list := l.value(b, t.Args[0])
+			base := b.Let(l.local("tm"), exec.C(opTermKids))
+			l.mapPush(b, list, t.Args[1].(*ir.Lambda))
+			return l.hull(b, false, base)
+		case "filter":
+			list := l.value(b, t.Args[0])
+			base := b.Let(l.local("tm"), exec.C(opTermKids))
+			f := t.Args[1].(*ir.Lambda)
+			items := l.fallible(b, "ti", exec.C("items", imm(OpTermName, "filter"), list))
+			l.loop(b, items, func(b *exec.Builder, i exec.Expr) {
+				v := l.call(b, f, exec.C("itemAt", items, i, exec.BoolC(false)))
+				keep := l.fallible(b, "tb", exec.C("filterKeep", v))
+				b.If(keep, func(b *exec.Builder) { b.Do(OpTermKeep, items, i) })
+			})
+			return l.hull(b, false, base)
+		case "foldl", "foldr":
+			init := l.value(b, t.Args[0])
+			list := l.value(b, t.Args[1])
+			f := t.Args[2].(*ir.Lambda)
+			items := l.fallible(b, "ti", exec.C("items", imm(OpTermName, t.Func), list))
+			acc := l.local("ta")
+			b.Let(acc, init)
+			l.loop(b, items, func(b *exec.Builder, i exec.Expr) {
+				b.Set(acc, l.call(b, f, exec.L(acc), exec.C("itemAt", items, i, exec.BoolC(t.Func == "foldr"))))
+			})
+			return exec.L(acc)
 		}
 		x := l.value(b, t.Args[0])
 		if t.Func == "len" {
@@ -462,14 +536,25 @@ func (l *termLowerer) hull(b *exec.Builder, tuple bool, base exec.Expr) exec.Exp
 }
 
 // concatParts pushes the elements of the arguments of the fusable concat call t: those of a list call
-// as list pushes them, and those of a concat call by its own arguments. The calls themselves are not
-// subterms that are evaluated, and charge no step for one.
+// as list pushes them, those of a map call as map pushes them, and those of a concat call by its own
+// arguments. The calls themselves are not subterms that are evaluated, and charge no step for one.
 func (l *termLowerer) concatParts(b *exec.Builder, t *ir.Builtin) {
 	for _, a := range t.Args {
 		call := a.(*ir.Builtin)
 		switch call.Func {
 		case "list":
 			l.pushes(b, "list", l.values(b, call.Args))
+		case "map":
+			if x, ok := l.projected(call); ok {
+				// The elements of the projected capture are pushed as concat pushes those of an argument.
+				v := l.value(b, x)
+				if l.steps {
+					b.Do(OpTermSpend)
+				}
+				l.check(b, exec.C("pushItems", exec.C(OpTermCtx), imm(OpTermName, "concat"), v))
+				break
+			}
+			l.mapPush(b, l.value(b, call.Args[0]), call.Args[1].(*ir.Lambda))
 		case "concat":
 			l.concatParts(b, call)
 		default:
@@ -478,21 +563,84 @@ func (l *termLowerer) concatParts(b *exec.Builder, t *ir.Builtin) {
 	}
 }
 
-// fusable reports whether every argument of the concat call t is a call of list or a fusable concat,
-// whose elements concatParts pushes as they are made. compile.Fusable, which the term printer follows,
-// also fuses a call of map with a function; TermSupported rejects terms with functions, so no such
-// call reaches the lowering, and fusable admits only the parts that concatParts lowers.
+// fusable reports whether every argument of the concat call t is a call of list or map or a fusable
+// concat, whose elements concatParts pushes as they are made, as compile.Fusable, which the term
+// printer follows, decides.
 func fusable(t *ir.Builtin) bool {
 	for _, a := range t.Args {
 		call, ok := a.(*ir.Builtin)
 		switch {
-		case ok && call.Func == "list":
+		case ok && call.Func == "list", ok && call.Func == "map" && len(call.Args) == 2:
 		case ok && call.Func == "concat" && fusable(call):
 		default:
 			return false
 		}
 	}
 	return true
+}
+
+// mapPush pushes the values that the lambda f returns for the elements of list as the elements of the
+// list that map makes. Under Steps, a step is charged before the elements are read, as the target's
+// map charges one.
+func (l *termLowerer) mapPush(b *exec.Builder, list exec.Expr, f *ir.Lambda) {
+	if l.steps {
+		b.Do(OpTermSpend)
+	}
+	items := l.fallible(b, "ti", exec.C("items", imm(OpTermName, "map"), list))
+	l.loop(b, items, func(b *exec.Builder, i exec.Expr) {
+		v := l.call(b, f, exec.C("itemAt", items, i, exec.BoolC(false)))
+		l.check(b, exec.C("push", exec.C(OpTermCtx), imm(OpTermName, "map"), v))
+	})
+}
+
+// loop appends a loop over the elements items, which items returned, whose body charges the step of
+// the element and then runs body with the index of the element.
+func (l *termLowerer) loop(b *exec.Builder, items exec.Expr, body func(b *exec.Builder, i exec.Expr)) {
+	i := l.local("tj")
+	b.Let(i, exec.Int(0))
+	b.For(l.local("each"), nil, exec.Lt(exec.L(i), exec.C("seq.len", items)), exec.Assign(i, exec.Add(exec.L(i), exec.Int(1))), func(b *exec.Builder) {
+		l.step(b)
+		body(b, exec.L(i))
+	})
+}
+
+// call evaluates the body of the lambda f with its parameters bound to args, each let to a local, and
+// returns its value.
+func (l *termLowerer) call(b *exec.Builder, f *ir.Lambda, args ...exec.Expr) exec.Expr {
+	vals := make([]exec.Expr, len(args))
+	for i, a := range args {
+		vals[i] = b.Let(l.local("tp"), a)
+	}
+	l.params[f] = vals
+	v := b.Let(l.local("tv"), l.value(b, f.Body))
+	delete(l.params, f)
+	return v
+}
+
+// projected reports whether the map call t is map($x, (e) => e.$f) of a projected capture x (Proj)
+// whose elements stand for the capture f, and returns the read of x.
+func (l *termLowerer) projected(t *ir.Builtin) (*ir.SlotRef, bool) {
+	if l.proj == nil || len(t.Args) != 2 {
+		return nil, false
+	}
+	x, ok := t.Args[0].(*ir.SlotRef)
+	if !ok || l.proj[x.Name] == "" {
+		return nil, false
+	}
+	f, ok := t.Args[1].(*ir.Lambda)
+	if !ok || len(f.Params) != 1 {
+		return nil, false
+	}
+	m, ok := f.Body.(*ir.Member)
+	if !ok {
+		return nil, false
+	}
+	e, ok := m.X.(*ir.Local)
+	if !ok || e.Kind != ir.LocalParam || e.Lambda != f {
+		return nil, false
+	}
+	field, ok := compile.ProjectionField(m.Name)
+	return x, ok && field == l.proj[x.Name]
 }
 
 // inDeclaredOrder reports whether the struct literal t gives its fields in the order its type declares

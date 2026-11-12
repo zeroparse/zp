@@ -1981,7 +1981,7 @@ func (c *TActCtx) FilterList(list any, f func(item any) any) any {
 	items := c.ListItems("filter", list)
 	for i := range items {
 		c.P.Spend()
-		keep, e := c.P.termFilterKeep(f(c.P.termItemAt(items, i, false)))
+		keep, e := c.P.TermFilterKeep(f(c.P.TermItemAt(items, i, false)))
 		if e != nil {
 			panic(e)
 		}
@@ -2011,7 +2011,7 @@ func (c *TActCtx) PushMap(list any, f func(item any) any) {
 	items := c.ListItems("map", list)
 	for i := range items {
 		c.P.Spend()
-		c.push("map", f(c.P.termItemAt(items, i, false)))
+		c.push("map", f(c.P.TermItemAt(items, i, false)))
 	}
 }
 
@@ -2232,7 +2232,7 @@ func (c *TActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item an
 	items := c.ListItems(fn, list)
 	for i := range items {
 		c.P.Spend()
-		acc = f(acc, c.P.termItemAt(items, i, right))
+		acc = f(acc, c.P.TermItemAt(items, i, right))
 	}
 	return acc
 }
@@ -2297,7 +2297,7 @@ func (c *TActCtx) Or(l any, r func() any) any {
 // ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
 // the composition items (term_exec.go) reads them.
 func (c *TActCtx) ListItems(fn string, v any) []any {
-	items, e := c.P.termItems(fn, v)
+	items, e := c.P.TermItems(fn, v)
 	if e != nil {
 		panic(e)
 	}

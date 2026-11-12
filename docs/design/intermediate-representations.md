@@ -217,7 +217,7 @@ the matching code of every rule the same way, including the lines of an Operator
 recognizer table. It has no other route: a rule that Flow IR or the printer does not cover fails the generation. Its rule table, typed declarations and runtime come from
 the compiled program. In generated Go and TypeScript, actions, predicates and bindings are lowered from Core IR to Exec IR and printed
 from there, as calls of the compositions of the operators of terms, except the terms that keep the printer of the grammar
-terms that Core nodes record: those that hold a constructor, a tuple, a list built-in or a lambda; the comparisons that
+terms that Core nodes record: the comparisons that
 the options `field-compare` (typed Go) and `text-dispatch` print without making values; and, in TypeScript, a cast to a
 type that every value fits, which Core IR holds no check for. Which target uses which representation is expected to change as
 more of them move onto Core IR; the generator code and record 062 are the current statement.

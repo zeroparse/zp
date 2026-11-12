@@ -29,7 +29,7 @@ func (g *Generator) termStmts(ct irc.Term, t grammar.Term, s *compile.Scope, loc
 	if ct == nil || !g.castsChecked(t) {
 		return "", false
 	}
-	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget})
+	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -134,6 +134,15 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return "c.spend()"
 			case "term.kids":
 				return "c.p.kidStack.length"
+			case "seq.len":
+				return a[0] + ".length"
+			case "val.unbox":
+				// As the term printer reads a parameter, which may hold a box.
+				return "unboxValue(" + a[0] + ")"
+			case lower.OpTermKeep:
+				return fmt.Sprintf("c.p.kidStack.push(%s[%s]!)", a[0], a[1])
+			case lower.OpTermCopyList:
+				return "c.newList(" + a[0] + ")"
 			case lower.OpTermElemsAbove:
 				return "c.p.kids(" + a[0] + ")"
 			case lower.OpTermStruct:

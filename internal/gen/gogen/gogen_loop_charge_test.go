@@ -16,16 +16,17 @@ import (
 )
 
 // TestGeneratedLoopCharge checks that every repetition of a list built-in is charged. The terms of an
-// action carry no charge, so the loops of the runtime are what bounds the budget an action spends: map, filter,
-// foldl and foldr charge one step per element (map and filter also charge the elements of their result), and a lambda body, called once per element (nested lambdas:
-// once per element of each loop), charges nothing itself.
+// action carry no charge, so the loops that the generated code prints for them are what bounds the budget an
+// action spends: map, filter, foldl and foldr charge one step per element (map and filter also charge the
+// elements of their result), and a lambda body, evaluated once per element (nested lambdas: once per element
+// of each loop), charges nothing itself.
 //
 // For each built-in and for nested lambdas it generates a parser whose action uses the loop, and one
 // whose action is len($xs). It asserts that the first needs at least one step per lambda call more than the
 // second, that this grows by at least one per call from the input of N to that of 2N, and that a Budget
 // halfway between ends the first with ErrLimit on the large input while the second completes.
-// The negative control runs the same checks against a copy of the runtime without the per-element charge of
-// the loops: every case has to violate them.
+// The negative control runs the same checks against generated code without the per-element charge of the
+// loops: every case has to violate them.
 func TestGeneratedLoopCharge(t *testing.T) {
 	t.Parallel()
 	gentest.NeedsBudgetControls(t)
@@ -42,25 +43,24 @@ func TestGeneratedLoopCharge(t *testing.T) {
 	for _, typed := range []bool{false, true} {
 		form := map[bool]string{false: "node", true: "typed"}[typed]
 		t.Run(form+"/runtime", func(t *testing.T) {
-			if problems := loopChargeProblems(t, cases, gentest.RuntimeCopy(), typed); len(problems) != 0 {
+			if problems := loopChargeProblems(t, cases, typed, nil); len(problems) != 0 {
 				t.Error(strings.Join(problems, "\n"))
 			}
 		})
 		t.Run(form+"/negative control", func(t *testing.T) {
-			// Without the charge of the loops, a lambda call is not charged at all.
-			// The pattern stays in the body of one loop: its lines are indented, and the closing brace is not.
-			step := regexp.MustCompile(`(func \(c \*T?ActCtx\) (?:PushMap|FilterList|Fold)\([^\n]*\{\n(?:\t[^\n]*\n)*?)\t+c\.P\.Spend\(\)\n`)
-			patched := 0
-			dir := gentest.RuntimeCopyWith(t, func(name, src string) string {
-				return step.ReplaceAllStringFunc(src, func(m string) string {
-					patched++
-					return step.FindStringSubmatch(m)[1]
-				})
-			}, nil)
-			if patched != 6 {
-				t.Fatalf("patched %d loops of the runtime, want 6 (PushMap, FilterList and Fold of both contexts)", patched)
-			}
-			problems := loopChargeProblems(t, cases, dir, typed)
+			// Without the charge of the loops, a lambda call is not charged at all. The actions of the cases make
+			// no tuple, list literal or struct whose elements charge a step, so every step that the code of an
+			// action charges (c.P.Spend(), unlike the rule's p.Spend()) is that of a loop.
+			step := regexp.MustCompile(`(?m)^\t+c\.P\.Spend\(\)\n`)
+			problems := loopChargeProblems(t, cases, typed, func(pkg string, code []byte) []byte {
+				if pkg == "base" {
+					return code
+				}
+				if !step.Match(code) {
+					t.Fatalf("%s: the generated code charges no step in a loop", pkg)
+				}
+				return step.ReplaceAll(code, nil)
+			})
 			for _, p := range problems {
 				t.Logf("expected violation: %s", p)
 			}
@@ -91,9 +91,9 @@ type loopCase struct {
 	list         bool
 }
 
-// loopChargeProblems generates the parsers of cases, builds them against the runtime in rtDir and returns
-// the violations of the contract of TestGeneratedLoopCharge.
-func loopChargeProblems(t *testing.T, cases []loopCase, rtDir string, typed bool) []string {
+// loopChargeProblems generates the parsers of cases, changed by mutate if it is not nil, builds them and
+// returns the violations of the contract of TestGeneratedLoopCharge.
+func loopChargeProblems(t *testing.T, cases []loopCase, typed bool, mutate func(pkg string, code []byte) []byte) []string {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -103,7 +103,7 @@ func loopChargeProblems(t *testing.T, cases []loopCase, rtDir string, typed bool
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoModAt("loopcharge", rtDir))
+	write("go.mod", gentest.GoModAt("loopcharge", gentest.RuntimeCopy()))
 	var imports, table strings.Builder
 	gen := func(pkg, action string, list bool) {
 		if typed && list {
@@ -120,6 +120,9 @@ func loopChargeProblems(t *testing.T, cases []loopCase, rtDir string, typed bool
 		code, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: pkg, Start: "main", Types: typed})
 		if err != nil {
 			t.Fatalf("%s: %v", action, err)
+		}
+		if mutate != nil {
+			code = mutate(pkg, code)
 		}
 		write(pkg+"/parser.go", string(code))
 		write(pkg+"/probe.go", "package "+pkg+loopChargeProbe)

@@ -24,7 +24,39 @@ func term() Datum {
 }
 
 ## sourceFile action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([SourceFile])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Statements], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  seq.step()
+  term.setField([EndOfFileToken], tn11, term.read([$e]))
+  tfirst12 = cover(tn11, term.read([$e]), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## otherTopLevelStatement action
 func term() Datum {
@@ -113,7 +145,36 @@ func term() Datum {
 }
 
 ## block action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([Block])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Statements], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## variableStatement action
 func term() Datum {
@@ -351,13 +412,103 @@ func term() Datum {
 }
 
 ## caseBlock action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$cs]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$c]), term.field([c of $c]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([CaseBlock])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Clauses], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## caseClause action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([CaseClause])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Expression], tn11, term.read([$e]))
+  tfirst12 = cover(tn11, term.read([$e]), tfirst12)
+  seq.step()
+  term.setField([Statements], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## defaultClause action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([DefaultClause])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Statements], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## clauseStatement action
 func term() Datum {
@@ -515,7 +666,35 @@ func term() Datum {
 }
 
 ## variableDeclarations action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$d]), term.field([d of $d]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## variableDeclaration action
 func term() Datum {
@@ -811,7 +990,35 @@ func term() Datum {
 }
 
 ## parameters action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$p]), term.field([p of $p]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## thisParameter action
 func term() Datum {
@@ -965,7 +1172,35 @@ func term() Datum {
 }
 
 ## heritageClauses action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$h]), term.field([h of $h]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## heritageClause action
 func term() Datum {
@@ -994,7 +1229,35 @@ func term() Datum {
 }
 
 ## heritageTypes action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## expressionWithTypeArguments action
 func term() Datum {
@@ -1019,7 +1282,30 @@ func term() Datum {
 }
 
 ## classMembers action
-not lowered: map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  return term.fromObj(tn10)
+}
 
 ## classAccessor action
 func term() Datum {
@@ -1554,7 +1840,36 @@ func term() Datum {
 }
 
 ## moduleBlock action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ss]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$s]), term.field([s of $s]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([ModuleBlock])
+  let tfirst12 = true
+  seq.step()
+  term.setField([Statements], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## importEqualsDeclaration action
 func term() Datum {
@@ -2105,10 +2420,95 @@ func term() Datum {
 }
 
 ## decoratorList action
-not lowered: map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ds]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  return term.fromObj(tn10)
+}
 
 ## modifierList action
-not lowered: concat, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$b]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tm11 = term.kids()
+  let ti12, tf12 = items(term.name([map]), term.read([$a]))
+  if (tf12 != null(Fail)) {
+    term.raise(tf12)
+  }
+  let tj13 = 0
+  loop each14 while (tj13 < seq.len(ti12)); post tj13 = (tj13 + 1) {
+    seq.step()
+    let tp15 = itemAt(ti12, tj13, false)
+    let tv17, tf17 = member(term.ctx(), 4, val.unbox(tp15), term.name([$m]), term.field([m of $m]))
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv16 = tv17
+    let tf18 = push(term.ctx(), term.name([map]), tv16)
+    if (tf18 != null(Fail)) {
+      term.raise(tf18)
+    }
+  }
+  let tk19 = term.elemsAbove(tm11)
+  let tn20 = hull(term.ctx(), false, tk19)
+  let tm21 = term.kids()
+  seq.step()
+  let tf22 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn10))
+  if (tf22 != null(Fail)) {
+    term.raise(tf22)
+  }
+  seq.step()
+  let tf23 = pushItems(term.ctx(), term.name([concat]), term.read([$s]))
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  seq.step()
+  let tf24 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn20))
+  if (tf24 != null(Fail)) {
+    term.raise(tf24)
+  }
+  let tk25 = term.elemsAbove(tm21)
+  let tn26 = hull(term.ctx(), false, tk25)
+  return term.fromObj(tn26)
+}
 
 ## modifierList predicate
 func term() Datum {
@@ -2198,7 +2598,69 @@ func term() Datum {
 }
 
 ## classModifierList action
-not lowered: concat, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$b]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tm11 = term.kids()
+  let ti12, tf12 = items(term.name([map]), term.read([$a]))
+  if (tf12 != null(Fail)) {
+    term.raise(tf12)
+  }
+  let tj13 = 0
+  loop each14 while (tj13 < seq.len(ti12)); post tj13 = (tj13 + 1) {
+    seq.step()
+    let tp15 = itemAt(ti12, tj13, false)
+    let tv17, tf17 = member(term.ctx(), 4, val.unbox(tp15), term.name([$m]), term.field([m of $m]))
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv16 = tv17
+    let tf18 = push(term.ctx(), term.name([map]), tv16)
+    if (tf18 != null(Fail)) {
+      term.raise(tf18)
+    }
+  }
+  let tk19 = term.elemsAbove(tm11)
+  let tn20 = hull(term.ctx(), false, tk19)
+  let tm21 = term.kids()
+  seq.step()
+  let tf22 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn10))
+  if (tf22 != null(Fail)) {
+    term.raise(tf22)
+  }
+  seq.step()
+  let tf23 = pushItems(term.ctx(), term.name([concat]), term.read([$s]))
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  seq.step()
+  let tf24 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn20))
+  if (tf24 != null(Fail)) {
+    term.raise(tf24)
+  }
+  let tk25 = term.elemsAbove(tm21)
+  let tn26 = hull(term.ctx(), false, tk25)
+  return term.fromObj(tn26)
+}
 
 ## classModifierList predicate
 func term() Datum {
@@ -2260,7 +2722,69 @@ func term() Datum {
 }
 
 ## typeParameterModifiers action
-not lowered: concat, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$b]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tm11 = term.kids()
+  let ti12, tf12 = items(term.name([map]), term.read([$a]))
+  if (tf12 != null(Fail)) {
+    term.raise(tf12)
+  }
+  let tj13 = 0
+  loop each14 while (tj13 < seq.len(ti12)); post tj13 = (tj13 + 1) {
+    seq.step()
+    let tp15 = itemAt(ti12, tj13, false)
+    let tv17, tf17 = member(term.ctx(), 4, val.unbox(tp15), term.name([$m]), term.field([m of $m]))
+    if (tf17 != null(Fail)) {
+      term.raise(tf17)
+    }
+    let tv16 = tv17
+    let tf18 = push(term.ctx(), term.name([map]), tv16)
+    if (tf18 != null(Fail)) {
+      term.raise(tf18)
+    }
+  }
+  let tk19 = term.elemsAbove(tm11)
+  let tn20 = hull(term.ctx(), false, tk19)
+  let tm21 = term.kids()
+  seq.step()
+  let tf22 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn10))
+  if (tf22 != null(Fail)) {
+    term.raise(tf22)
+  }
+  seq.step()
+  let tf23 = pushItems(term.ctx(), term.name([concat]), term.read([$s]))
+  if (tf23 != null(Fail)) {
+    term.raise(tf23)
+  }
+  seq.step()
+  let tf24 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn20))
+  if (tf24 != null(Fail)) {
+    term.raise(tf24)
+  }
+  let tk25 = term.elemsAbove(tm21)
+  let tn26 = hull(term.ctx(), false, tk25)
+  return term.fromObj(tn26)
+}
 
 ## decorator action
 func term() Datum {
@@ -2357,7 +2881,42 @@ func term() Datum {
 }
 
 ## commaExpression action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$first])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$o]), term.field([o of $o]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv9, tf9 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tn10 = term.struct([BinaryExpression])
+    let tfirst11 = true
+    seq.step()
+    term.setField([Left], tn10, val.unbox(tp5))
+    tfirst11 = cover(tn10, val.unbox(tp5), tfirst11)
+    seq.step()
+    term.setField([OperatorToken], tn10, tv8)
+    tfirst11 = cover(tn10, tv8, tfirst11)
+    seq.step()
+    term.setField([Right], tn10, tv9)
+    tfirst11 = cover(tn10, tv9, tfirst11)
+    made(term.ctx(), tn10, tfirst11)
+    let tv7 = term.fromObj(tn10)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## assignmentExpression action
 func term() Datum {
@@ -2466,7 +3025,56 @@ func term() Datum {
 }
 
 ## conditionalOrBinaryExpression action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$c])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$q]), term.field([q of $q]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv9, tf9 = member(term.ctx(), 4, val.unbox(tp6), term.name([$t]), term.field([t of $t]))
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tv10, tf10 = member(term.ctx(), 4, val.unbox(tp6), term.name([$k]), term.field([k of $k]))
+    if (tf10 != null(Fail)) {
+      term.raise(tf10)
+    }
+    let tv11, tf11 = member(term.ctx(), 4, val.unbox(tp6), term.name([$f]), term.field([f of $f]))
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tn12 = term.struct([ConditionalExpression])
+    let tfirst13 = true
+    seq.step()
+    term.setField([Condition], tn12, val.unbox(tp5))
+    tfirst13 = cover(tn12, val.unbox(tp5), tfirst13)
+    seq.step()
+    term.setField([QuestionToken], tn12, tv8)
+    tfirst13 = cover(tn12, tv8, tfirst13)
+    seq.step()
+    term.setField([WhenTrue], tn12, tv9)
+    tfirst13 = cover(tn12, tv9, tfirst13)
+    seq.step()
+    term.setField([ColonToken], tn12, tv10)
+    tfirst13 = cover(tn12, tv10, tfirst13)
+    seq.step()
+    term.setField([WhenFalse], tn12, tv11)
+    tfirst13 = cover(tn12, tv11, tfirst13)
+    made(term.ctx(), tn12, tfirst13)
+    let tv7 = term.fromObj(tn12)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## conditionalWhenTrue action
 func term() Datum {
@@ -3160,7 +3768,39 @@ func term() Datum {
 }
 
 ## postfixOrLeftHandSideExpression action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$e])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$o]), term.field([o of $o]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let ts9, tf9 = text(tv8)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tn10 = term.struct([PostfixUnaryExpression])
+    let tfirst11 = true
+    seq.step()
+    term.setField([Operand], tn10, val.unbox(tp5))
+    tfirst11 = cover(tn10, val.unbox(tp5), tfirst11)
+    seq.step()
+    term.setField([Operator], tn10, term.fromStr(ts9))
+    tfirst11 = cover(tn10, term.fromStr(ts9), tfirst11)
+    made(term.ctx(), tn10, tfirst11)
+    let tv7 = term.fromObj(tn10)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## postfixOrLeftHandSideExpression predicate
 func term() Datum {
@@ -3763,7 +4403,35 @@ func term() Datum {
 }
 
 ## argumentList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$a]), term.field([a of $a]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## spreadElement action
 func term() Datum {
@@ -4334,7 +5002,35 @@ func term() Datum {
 }
 
 ## templateSpans action
-not lowered: concat, map, Lambda, param, list
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  seq.step()
+  let tf9 = push(term.ctx(), term.name([list]), term.read([$t]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## templateSpanMiddle action
 func term() Datum {
@@ -4379,7 +5075,35 @@ func term() Datum {
 }
 
 ## rawTemplateSpans action
-not lowered: concat, map, Lambda, param, list
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  seq.step()
+  let tf9 = push(term.ctx(), term.name([list]), term.read([$t]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## rawTemplateSpanMiddle action
 func term() Datum {
@@ -4526,7 +5250,35 @@ func term() Datum {
 }
 
 ## jsxMemberName action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$first])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$n]), term.field([n of $n]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tn9 = term.struct([PropertyAccessExpression])
+    let tfirst10 = true
+    seq.step()
+    term.setField([Expression], tn9, val.unbox(tp5))
+    tfirst10 = cover(tn9, val.unbox(tp5), tfirst10)
+    seq.step()
+    term.setField([Name], tn9, tv8)
+    tfirst10 = cover(tn9, tv8, tfirst10)
+    made(term.ctx(), tn9, tfirst10)
+    let tv7 = term.fromObj(tn9)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## jsxNamespacedName action
 func term() Datum {
@@ -4697,7 +5449,49 @@ func term() Datum {
 }
 
 ## conditionalOrHigher action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$c])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv9, tf9 = member(term.ctx(), 4, val.unbox(tp6), term.name([$t]), term.field([t of $t]))
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tv10, tf10 = member(term.ctx(), 4, val.unbox(tp6), term.name([$f]), term.field([f of $f]))
+    if (tf10 != null(Fail)) {
+      term.raise(tf10)
+    }
+    let tn11 = term.struct([ConditionalType])
+    let tfirst12 = true
+    seq.step()
+    term.setField([CheckType], tn11, val.unbox(tp5))
+    tfirst12 = cover(tn11, val.unbox(tp5), tfirst12)
+    seq.step()
+    term.setField([ExtendsType], tn11, tv8)
+    tfirst12 = cover(tn11, tv8, tfirst12)
+    seq.step()
+    term.setField([TrueType], tn11, tv9)
+    tfirst12 = cover(tn11, tv9, tfirst12)
+    seq.step()
+    term.setField([FalseType], tn11, tv10)
+    tfirst12 = cover(tn11, tv10, tfirst12)
+    made(term.ctx(), tn11, tfirst12)
+    let tv7 = term.fromObj(tn11)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## conditionalOrHigher predicate
 func term() Datum {
@@ -4839,10 +5633,95 @@ func term() Datum {
 }
 
 ## leadingUnionType action
-not lowered: New, concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$t]), term.field([t of $t]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  let tn12 = term.struct([UnionType])
+  let tfirst13 = true
+  seq.step()
+  term.setField([Types], tn12, term.fromObj(tn11))
+  tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
+  made(term.ctx(), tn12, tfirst13)
+  return term.fromObj(tn12)
+}
 
 ## plainOrUnionType action
-not lowered: foldl, Lambda, New, concat, list, param, map
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$more]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$f])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tm8 = term.kids()
+    seq.step()
+    let tf9 = push(term.ctx(), term.name([list]), val.unbox(tp5))
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tv10, tf10 = member(term.ctx(), 4, val.unbox(tp6), term.name([$ts]), term.field([ts of $ts]))
+    if (tf10 != null(Fail)) {
+      term.raise(tf10)
+    }
+    let ti11, tf11 = items(term.name([map]), tv10)
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tj12 = 0
+    loop each13 while (tj12 < seq.len(ti11)); post tj12 = (tj12 + 1) {
+      seq.step()
+      let tp14 = itemAt(ti11, tj12, false)
+      let tv16, tf16 = member(term.ctx(), 4, val.unbox(tp14), term.name([$t]), term.field([t of $t]))
+      if (tf16 != null(Fail)) {
+        term.raise(tf16)
+      }
+      let tv15 = tv16
+      let tf17 = push(term.ctx(), term.name([map]), tv15)
+      if (tf17 != null(Fail)) {
+        term.raise(tf17)
+      }
+    }
+    let tk18 = term.elemsAbove(tm8)
+    let tn19 = hull(term.ctx(), false, tk18)
+    let tn20 = term.struct([UnionType])
+    let tfirst21 = true
+    seq.step()
+    term.setField([Types], tn20, term.fromObj(tn19))
+    tfirst21 = cover(tn20, term.fromObj(tn19), tfirst21)
+    made(term.ctx(), tn20, tfirst21)
+    let tv7 = term.fromObj(tn20)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## intersectionOrHigher action
 func term() Datum {
@@ -4850,10 +5729,95 @@ func term() Datum {
 }
 
 ## leadingIntersectionType action
-not lowered: New, concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$t]), term.field([t of $t]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  let tn12 = term.struct([IntersectionType])
+  let tfirst13 = true
+  seq.step()
+  term.setField([Types], tn12, term.fromObj(tn11))
+  tfirst13 = cover(tn12, term.fromObj(tn11), tfirst13)
+  made(term.ctx(), tn12, tfirst13)
+  return term.fromObj(tn12)
+}
 
 ## plainOrIntersectionType action
-not lowered: foldl, Lambda, New, concat, list, param, map
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$more]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$f])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tm8 = term.kids()
+    seq.step()
+    let tf9 = push(term.ctx(), term.name([list]), val.unbox(tp5))
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+    let tv10, tf10 = member(term.ctx(), 4, val.unbox(tp6), term.name([$ts]), term.field([ts of $ts]))
+    if (tf10 != null(Fail)) {
+      term.raise(tf10)
+    }
+    let ti11, tf11 = items(term.name([map]), tv10)
+    if (tf11 != null(Fail)) {
+      term.raise(tf11)
+    }
+    let tj12 = 0
+    loop each13 while (tj12 < seq.len(ti11)); post tj12 = (tj12 + 1) {
+      seq.step()
+      let tp14 = itemAt(ti11, tj12, false)
+      let tv16, tf16 = member(term.ctx(), 4, val.unbox(tp14), term.name([$t]), term.field([t of $t]))
+      if (tf16 != null(Fail)) {
+        term.raise(tf16)
+      }
+      let tv15 = tv16
+      let tf17 = push(term.ctx(), term.name([map]), tv15)
+      if (tf17 != null(Fail)) {
+        term.raise(tf17)
+      }
+    }
+    let tk18 = term.elemsAbove(tm8)
+    let tn19 = hull(term.ctx(), false, tk18)
+    let tn20 = term.struct([IntersectionType])
+    let tfirst21 = true
+    seq.step()
+    term.setField([Types], tn20, term.fromObj(tn19))
+    tfirst21 = cover(tn20, term.fromObj(tn19), tfirst21)
+    made(term.ctx(), tn20, tfirst21)
+    let tv7 = term.fromObj(tn20)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## typeOperatorOrHigher action
 func term() Datum {
@@ -5237,7 +6201,35 @@ func term() Datum {
 }
 
 ## templateTypeSpans action
-not lowered: concat, map, Lambda, param, list
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  seq.step()
+  let tf9 = push(term.ctx(), term.name([list]), term.read([$t]))
+  if (tf9 != null(Fail)) {
+    term.raise(tf9)
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## templateTypeSpanMiddle action
 func term() Datum {
@@ -5326,10 +6318,66 @@ func term() Datum {
 }
 
 ## entityName action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$first])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$n]), term.field([n of $n]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tn9 = term.struct([QualifiedName])
+    let tfirst10 = true
+    seq.step()
+    term.setField([Left], tn9, val.unbox(tp5))
+    tfirst10 = cover(tn9, val.unbox(tp5), tfirst10)
+    seq.step()
+    term.setField([Right], tn9, tv8)
+    tfirst10 = cover(tn9, tv8, tfirst10)
+    made(term.ctx(), tn9, tfirst10)
+    let tv7 = term.fromObj(tn9)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## entityNameAllowReserved action
-not lowered: foldl, Lambda, New, param
+func term() Datum {
+  let ti1, tf1 = items(term.name([foldl]), term.read([$rest]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let ta2 = term.read([$first])
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti1)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = ta2
+    let tp6 = itemAt(ti1, tj3, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$n]), term.field([n of $n]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tn9 = term.struct([QualifiedName])
+    let tfirst10 = true
+    seq.step()
+    term.setField([Left], tn9, val.unbox(tp5))
+    tfirst10 = cover(tn9, val.unbox(tp5), tfirst10)
+    seq.step()
+    term.setField([Right], tn9, tv8)
+    tfirst10 = cover(tn9, tv8, tfirst10)
+    made(term.ctx(), tn9, tfirst10)
+    let tv7 = term.fromObj(tn9)
+    ta2 = tv7
+  }
+  return ta2
+}
 
 ## typeArguments action
 func term() Datum {
@@ -5345,7 +6393,35 @@ func term() Datum {
 }
 
 ## typeList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$rest]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$t]), term.field([t of $t]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## typeParameters action
 func term() Datum {
@@ -5456,10 +6532,77 @@ func term() Datum {
 }
 
 ## objectTypeMembers action
-not lowered: map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  return term.fromObj(tn10)
+}
 
 ## mappedType action
-not lowered: New, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  let ti2, tf2 = items(term.name([map]), term.read([$ms]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let tj3 = 0
+  loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
+    seq.step()
+    let tp5 = itemAt(ti2, tj3, false)
+    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$m]), term.field([m of $m]))
+    if (tf7 != null(Fail)) {
+      term.raise(tf7)
+    }
+    let tv6 = tv7
+    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+  }
+  let tk9 = term.elemsAbove(tm1)
+  let tn10 = hull(term.ctx(), false, tk9)
+  let tn11 = term.struct([MappedType])
+  let tfirst12 = true
+  seq.step()
+  term.setField([ReadonlyToken], tn11, term.read([$rt]))
+  tfirst12 = cover(tn11, term.read([$rt]), tfirst12)
+  seq.step()
+  term.setField([TypeParameter], tn11, term.read([$p]))
+  tfirst12 = cover(tn11, term.read([$p]), tfirst12)
+  seq.step()
+  term.setField([NameType], tn11, term.read([$nt]))
+  tfirst12 = cover(tn11, term.read([$nt]), tfirst12)
+  seq.step()
+  term.setField([QuestionToken], tn11, term.read([$qt]))
+  tfirst12 = cover(tn11, term.read([$qt]), tfirst12)
+  seq.step()
+  term.setField([Type], tn11, term.read([$t]))
+  tfirst12 = cover(tn11, term.read([$t]), tfirst12)
+  seq.step()
+  term.setField([Members], tn11, term.fromObj(tn10))
+  tfirst12 = cover(tn11, term.fromObj(tn10), tfirst12)
+  made(term.ctx(), tn11, tfirst12)
+  return term.fromObj(tn11)
+}
 
 ## mappedTypeParameter action
 func term() Datum {
@@ -5759,40 +6902,376 @@ func term() Datum {
 }
 
 ## arrayBindingElementList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## arrayElementList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## bindingElementList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## enumMemberList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## exportSpecifierList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## importAttributeList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## importSpecifierList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## jsdocParameterList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$p]), term.field([p of $p]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## jsxAttributeLikeList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$a]), term.field([a of $a]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## objectLiteralElementList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## tupleElementList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## typeParameterList action
-not lowered: concat, list, map, Lambda, param
+func term() Datum {
+  let tm1 = term.kids()
+  seq.step()
+  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  if (tf2 != null(Fail)) {
+    term.raise(tf2)
+  }
+  let ti3, tf3 = items(term.name([map]), term.read([$r]))
+  if (tf3 != null(Fail)) {
+    term.raise(tf3)
+  }
+  let tj4 = 0
+  loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
+    seq.step()
+    let tp6 = itemAt(ti3, tj4, false)
+    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$p]), term.field([p of $p]))
+    if (tf8 != null(Fail)) {
+      term.raise(tf8)
+    }
+    let tv7 = tv8
+    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    if (tf9 != null(Fail)) {
+      term.raise(tf9)
+    }
+  }
+  let tk10 = term.elemsAbove(tm1)
+  let tn11 = hull(term.ctx(), false, tk10)
+  return term.fromObj(tn11)
+}
 
 ## arrowParenthesisIsNotParameterList predicate
 func term() Datum {
