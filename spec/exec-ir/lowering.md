@@ -89,7 +89,6 @@ compositions of the operators of terms ([Values](values.md)) with every function
 and the transitional operations of the leaves of terms below. A term is not lowered, and the target evaluates it as a
 whole in its own way, when it holds
 
-- a built-in function that takes a function (`map`, `filter`, `foldl` and `foldr`) or a lambda;
 - a comparison that an optimization of the target makes without making a value of an operand: a comparison with a field
   read in a typed parser of Go (`field-compare`), and a predicate that compares the text of a capture with literals,
   which a target prints as one switch over them (`text-dispatch`);
@@ -114,17 +113,34 @@ value of each element with `push`, charging a step for it with `seq.step` before
 mark with `term.elemsAbove` and make the tuple or list value of them with `hull`. A call of `concat` pushes the
 elements of each argument with `pushItems`, charging a step for the argument; when every argument is a call of `list`
 or such a call of `concat`, the elements of the arguments are pushed as `list` pushes them, without making the lists
-of the arguments. A struct literal evaluates its field values in the order written. A target whose structs are made of
+of the arguments; a call of `map` among them pushes its elements as `map` pushes them, below. A struct literal evaluates its field values in the order written. A target whose structs are made of
 their fields makes an empty struct with `term.struct` and, for each field in that order, charges a step with
 `seq.step`, sets the field with `term.setField` and widens the range of the struct with `cover`; `made` then records
 the struct. A target with a constructor for each struct type calls it once, with `term.new` followed by the number
 of fields that the type declares, passing the values in the order the type declares the fields and nil for a field
 that the literal does not give; a value is kept in a local before the next one is evaluated only when the literal
-gives the fields in another order. A target that does not bound the work leaves out the calls of `seq.step`. A target that charges a step for each subterm of a term under budget controls lowers it with a call
+gives the fields in another order.
+
+A built-in function that takes a function (`map`, `filter`, `foldl` and `foldr`) evaluates its arguments other than
+the lambda in the order written, reads the elements of its list argument with `items`, which fails for a value that
+is not a list, a tuple or nil, and loops over them. Each step of the loop charges a step with `seq.step`, takes the
+element with `itemAt` and evaluates the body of the lambda in place, with its parameters bound to locals of the loop;
+a parameter is read with `val.unbox`, since it may hold a box. `map` takes the mark of the gathered values with
+`term.kids` after its list argument, pushes the value of the body for each element with `push` and makes the list
+value of the values above the mark with `hull`. `filter` does the same, but calls `filterKeep` on the value of the
+body and pushes the element itself, as it is, with `term.keep` when it keeps it. `foldl` and `foldr` keep the
+accumulator, their first argument, in a local, bind it and the element to the parameters, and assign the value of the
+body to it; `foldr` takes the elements from the last. A call `map($x, (e) => e.$f)` of a projected capture `x`, a
+capture whose elements the target keeps as the captures `f` of the elements, makes a list value of the elements of
+`x` as they are with `term.newList`; when it is an argument of a `concat` whose arguments are pushed as they are
+made, its elements are pushed with `pushItems`, as those of an argument of `concat`.
+
+A target that does not bound the work leaves out the calls of `seq.step`. A target that charges a step for each subterm of a term under budget controls lowers it with a call
 of `term.spend` at the start of each subterm, before its operands; it also calls `term.spend` once for each tuple
 literal and each call of `list`, including those whose elements a `concat` pushes, after the values of the elements
-and before the first `push`, and once for each argument of a `concat` whose arguments are not pushed as `list`
-pushes them, before its `pushItems`. A variable is read into a local where the term
+and before the first `push`, once for each argument of a `concat` whose arguments are not pushed as `list`
+pushes them and for each projected `map` among the arguments of one whose are, before its `pushItems`, and once for
+each other call of `map`, before `items`. A variable is read into a local where the term
 reads it, since reading it charges the budget; the other leaves are operands of the calls that read them. The
 function returns the term's value, or, when the target places the value itself, assigns it as its last statement to
 a local of the function that the target declares.
@@ -149,4 +165,6 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.struct` | the struct literal | Returns a new struct of the type of the literal with no field set and an empty range. |
 | `term.setField` | the name of the field | Sets the field of a struct that the term is making to a value. |
 | `term.fromObj` | none | Returns a struct, list value or tuple value as a value. |
+| `term.keep` | none | Pushes an element of the elements that `items` returned, as it is, as the next element of the list that `filter` makes, charging nothing. |
+| `term.newList` | none | Returns a new list value of the elements that `items` returned, as they are, charging for copying them under budget controls. |
 | `term.new`*N* | the struct literal | Returns the struct that the constructor of its type makes of the values of its N declared fields. |

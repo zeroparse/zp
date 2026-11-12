@@ -101,10 +101,25 @@ func init() {
 	}
 	rules[1].Body = e6
 	rules[1].Action = func(c *rt.ActCtx) any {
-		b_16 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.NewStruct("Record", "Fields", c.EndList(b_16))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tn6 := c.TermStruct("Record", 1)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Fields", any(tn5))
+		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[2].Body = e10
 	rules[4].Body = e13
@@ -477,4 +492,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

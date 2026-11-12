@@ -3604,7 +3604,7 @@ func (c *ActCtx) FilterList(list any, f func(item any) any) any {
 	items := c.ListItems("filter", list)
 	for i := range items {
 		c.P.Spend()
-		keep, e := c.P.termFilterKeep(f(c.P.termItemAt(items, i, false)))
+		keep, e := c.P.TermFilterKeep(f(c.P.TermItemAt(items, i, false)))
 		if e != nil {
 			panic(e)
 		}
@@ -3638,7 +3638,7 @@ func (c *ActCtx) PushMap(list any, f func(item any) any) {
 	items := c.ListItems("map", list)
 	for i := range items {
 		c.P.Spend()
-		c.push("map", f(c.P.termItemAt(items, i, false)))
+		c.push("map", f(c.P.TermItemAt(items, i, false)))
 	}
 }
 

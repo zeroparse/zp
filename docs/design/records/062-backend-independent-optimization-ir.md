@@ -505,7 +505,7 @@ record planned as Flow IR passes, from the Core effect summary and the options:
   place) are lowered as separate Flow IR functions selected by the caller.
 - **Charge placement.** Without budget controls, charges are not lowered at all. The terms of an action
   are straight-line code run once per matched rule, so they carry no charge; only repetition is charged, by
-  the runtime built-ins that call lambdas (`map`, `filter`, `foldl`, `foldr`): each charges one step per
+  the loops of the built-ins that take lambdas (`map`, `filter`, `foldl`, `foldr`): each charges one step per
   element, so nested lambdas charge once per call. Charges in a row are merged by the backend that prints
   them, not by a pass of Flow IR.
 - **Dead stores and unused variables.** The Exec IR pass that finds dead stores leaves out the variables
