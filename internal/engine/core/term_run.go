@@ -198,11 +198,13 @@ func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*parse.Node, ts []
 }
 
 // local returns the value of the Operators Rule local name ($lhs, $rhs, $op or $value), with a box
-// opened, and false if c has none of that name. Under budget controls it charges one unit for each local it passes.
+// opened, and false if c has none of that name. Under budget controls it charges one unit for each
+// local it passes, the one it finds included; the names are the compiler's, so comparing them is
+// part of that step.
 func (c *EvalCtx) local(name string) (any, bool) {
 	for l := c.Locals; l != nil; l = l.Next {
 		c.P.Spend()
-		if c.P.ValueEqual(l.Name, name) {
+		if l.Name == name {
 			return value.UnboxValue(l.Val), true
 		}
 	}
