@@ -51,6 +51,10 @@ type ValueInference struct {
 	nodeMembers map[*grammar.Member]bool
 	// rec, if not nil, receives the types of terms, scopes and rules.
 	rec *ValueRecord
+	// memo, if not nil, holds the elements of the expressions met outside the bodies of splice
+	// rules being expanded, which depend on nothing else (ShapeCache). Its slices are shared:
+	// nothing may change them.
+	memo map[grammar.Expr][]ValueElem
 }
 
 // ValueRecord holds the types the value inference gives the parts of a program, for the backends
@@ -531,6 +535,19 @@ func (v *ValueInference) isSeq(e grammar.Expr) bool {
 
 // elems returns the elements e contributes to the tuple of its scope.
 func (v *ValueInference) elems(e grammar.Expr) []ValueElem {
+	if v.memo == nil || len(v.spliced) != 0 {
+		return v.exprElems(e)
+	}
+	if out, ok := v.memo[e]; ok {
+		return out
+	}
+	out := v.exprElems(e)
+	v.memo[e] = out
+	return out
+}
+
+// exprElems computes elems(e).
+func (v *ValueInference) exprElems(e grammar.Expr) []ValueElem {
 	v.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Group:

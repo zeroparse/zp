@@ -69,6 +69,9 @@ func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool, c
 	b.noProject = !project
 	b.m.Control = control
 	if b.chk != nil {
+		b.shapes = check.NewShapeCache(b.chk)
+	}
+	if b.chk != nil {
 		b.rec = b.chk.ValueRecord()
 	}
 	for _, d := range core.FixedDescs {
@@ -125,6 +128,8 @@ type coreBuilder struct {
 	origin map[core.Node]grammar.Expr
 	// rec holds the checked types of the program, nil if it has none.
 	rec *check.ValueRecord
+	// shapes computes the shapes of the program's expressions, nil if it has no checker.
+	shapes *check.ShapeCache
 	// exps and classes intern the expectations and classes of the module.
 	exps    map[string]core.ExpID
 	classes map[string]*core.Class
@@ -282,7 +287,7 @@ func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 	}
 	cr.Body = n
 	cr.Finish.NodeType = r.NodeType
-	cr.Finish.Shape = coreShape(b.chk, body)
+	cr.Finish.Shape = b.shape(body)
 	switch {
 	case r.Novalue:
 		cr.Finish.Kind = core.FinishNone
@@ -346,7 +351,7 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 	if err != nil {
 		return nil, err
 	}
-	l := &core.OpLine{Body: body, Shape: coreShape(b.chk, e)}
+	l := &core.OpLine{Body: body, Shape: b.shape(e)}
 	if action != nil && !b.cur.Novalue {
 		env := map[string]*core.Local{}
 		if operator {
@@ -365,13 +370,14 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 	return l, nil
 }
 
-// coreShape returns the static shape of the value of e.
-func coreShape(chk *check.Checker, e grammar.Expr) core.Shape {
+// shape returns the static shape of the value of e.
+func (b *coreBuilder) shape(e grammar.Expr) core.Shape {
+	chk := b.chk
 	if chk == nil {
 		return core.Shape{} // an untyped module has no shapes
 	}
 	elems := check.IsElems(chk, e)
-	k, mode, tuple := check.ShapeFacts(chk, e)
+	k, mode, tuple := b.shapes.Facts(e)
 	return core.Shape{Elems: elems, K: k, Mode: core.SingleMode(mode), Tuple: tuple, Shared: elems && check.SharesTuple(chk, e)}
 }
 
@@ -435,7 +441,7 @@ func coreLayout(r *Rule, proj map[string]string, e grammar.Expr, build bool) *co
 // its value is wanted, and its shape.
 func (b *coreBuilder) set(n core.Node, e grammar.Expr, want bool) core.Node {
 	a := n.Attrs()
-	a.Want, a.Shape = want, coreShape(b.chk, e)
+	a.Want, a.Shape = want, b.shape(e)
 	return n
 }
 
@@ -669,7 +675,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if build {
 			// What recovers is one element: the value of the expression, or the error. Its shape
 			// gives an expression without a value no element, which its users then leave out.
-			n.Attrs().Want, n.Attrs().Shape = true, coreShape(b.chk, e)
+			n.Attrs().Want, n.Attrs().Shape = true, b.shape(e)
 		}
 		return n, nil
 	case "stream":

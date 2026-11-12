@@ -150,10 +150,32 @@ func scopeTuple(elems []ValueElem, seq bool) bool {
 // ShapeFacts returns what ValuedCount, SingleModeOf and ScopeTuple return for e, from one
 // computation of its elements.
 func ShapeFacts(p *Checker, e grammar.Expr) (k int, mode SingleMode, tuple bool) {
-	elems := ShapeElems(p, e)
+	return shapeFacts(p, ShapeElems(p, e), e)
+}
+
+func shapeFacts(p *Checker, elems []ValueElem, e grammar.Expr) (k int, mode SingleMode, tuple bool) {
 	seq := isSeq(p, e)
 	k = valuedCount(elems)
 	return k, singleMode(k, seq), scopeTuple(elems, seq)
+}
+
+// ShapeCache computes the shapes of the expressions of one program, such as each node of its
+// backend code needs, remembering the elements of each expression so that those of the
+// expressions inside it are not computed again. The program must not change while it is in use.
+type ShapeCache struct {
+	p     *Checker
+	elems map[grammar.Expr][]ValueElem
+}
+
+// NewShapeCache returns a ShapeCache of the program p.
+func NewShapeCache(p *Checker) *ShapeCache {
+	return &ShapeCache{p: p, elems: map[grammar.Expr][]ValueElem{}}
+}
+
+// Facts returns ShapeFacts(p, e) for the program p of c.
+func (c *ShapeCache) Facts(e grammar.Expr) (k int, mode SingleMode, tuple bool) {
+	v := &ValueInference{Prog: c.p, control: c.p.shapeControl, memo: c.elems}
+	return shapeFacts(c.p, v.elems(e), e)
 }
 
 // Shaper converts the result of an expression's matcher to the value where it takes one element
