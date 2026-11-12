@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
@@ -468,6 +469,20 @@ func TSParsersOutputs(t *testing.T, node string, cases []Case, opts gen.GenOptio
 // runs many mutations of the same parsers generates them once.
 func TSOutputs(t *testing.T, node string, cases []Case, bundles [][]byte, mutate func(string) string) string {
 	t.Helper()
+	out, _, stopped := TSOutputsWithin(t, node, cases, bundles, mutate, 0)
+	if stopped {
+		t.Fatal("node: stopped before the test's deadline")
+	}
+	return out
+}
+
+// TSOutputsWithin is TSOutputs with the run of Node bounded by limit (none if limit <= 0) and by
+// the test's deadline, as ChildContext bounds it. It also returns how long Node ran, and whether
+// it was stopped at the bound, in which case the results are those written by then. A mutation
+// may make the parsers take exponential time; its negative control bounds the run and counts a
+// stop as a difference.
+func TSOutputsWithin(t *testing.T, node string, cases []Case, bundles [][]byte, mutate func(string) string, limit time.Duration) (string, time.Duration, bool) {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
@@ -495,14 +510,21 @@ func TSOutputs(t *testing.T, node string, cases []Case, bundles [][]byte, mutate
 	}
 	data, _ := json.Marshal(inputs)
 	write("inputs.json", string(data))
-	cmd := exec.Command(node, "harness.mjs", "inputs.json", "out.jsonl")
+	ctx, cancel := ChildContext(t, limit)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, node, "harness.mjs", "inputs.json", "out.jsonl")
 	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("node: %v\n%s", err, out)
+	cmd.WaitDelay = ChildWaitDelay
+	start := time.Now()
+	runOut, runErr := cmd.CombinedOutput()
+	elapsed := time.Since(start)
+	stopped := runErr != nil && ctx.Err() != nil
+	if runErr != nil && !stopped {
+		t.Fatalf("node: %v\n%s", runErr, runOut)
 	}
 	out, err := os.ReadFile(filepath.Join(dir, "out.jsonl"))
-	if err != nil {
+	if err != nil && !stopped {
 		t.Fatal(err)
 	}
-	return string(out)
+	return string(out), elapsed, stopped
 }

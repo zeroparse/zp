@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
@@ -70,11 +71,18 @@ func TestGeneratedTSLeftRecursionDependencyMemoControls(t *testing.T) {
 	opts := gen.GenOptions{SourceInfo: true}
 	// The parsers are generated once; each mutation of their runtime runs as a parallel subtest.
 	bundles := gentest.TSBundles(t, cases, opts)
-	want := gentest.TSOutputs(t, node, cases, bundles, nil)
+	want, took, stopped := gentest.TSOutputsWithin(t, node, cases, bundles, nil, 0)
+	if stopped {
+		t.Fatal("the runtime as it is did not end before the test's deadline")
+	}
+	// A mutation may make the parsers exponential (the dependency cap does), so each mutated run
+	// is bounded by depMemoMutantLimit and a run stopped at the bound counts as a difference.
+	limit := depMemoMutantLimit(took)
+	t.Logf("the runtime as it is ran %v; each mutation runs at most %v", took, limit)
 	for name, reps := range depMemoTSMutations {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got := gentest.TSOutputs(t, node, cases, bundles, func(src string) string {
+			got, _, stopped := gentest.TSOutputsWithin(t, node, cases, bundles, func(src string) string {
 				for _, r := range reps {
 					if strings.Count(src, r[0]) != 1 {
 						t.Fatalf("mutation %s: %q is not in the runtime once", name, r[0])
@@ -82,10 +90,20 @@ func TestGeneratedTSLeftRecursionDependencyMemoControls(t *testing.T) {
 					src = strings.Replace(src, r[0], r[1], 1)
 				}
 				return src
-			})
-			if got == want {
+			}, limit)
+			switch {
+			case stopped:
+				t.Logf("%s: detected: the run did not end within %v", name, limit)
+			case got == want:
 				t.Errorf("%s: the mutation went undetected", name)
 			}
 		})
 	}
+}
+
+// depMemoMutantLimit bounds the run of a mutated runtime of the dependency memo controls, given
+// how long the runtime as it is took on the same inputs: far more than the slowdown that a
+// loaded machine causes, and far less than an exponential run takes.
+func depMemoMutantLimit(took time.Duration) time.Duration {
+	return time.Minute + 20*took
 }
