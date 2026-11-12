@@ -104,7 +104,8 @@ The summary of a node is the union of its children's, with these differences.
 - Matching nodes. A non-empty literal, a class, `Any`, `ClassRun`: consume, fail and expect. An anchor: fail and expect.
   `FailNode`: fail. `Cut`: cut. `Succeed`: none.
 - `Choice`, `Opt`, `Repeat` and `Look` do not pass on Cut. `Opt` does not pass on Fail, nor does `Repeat` with a
-  minimum of 0. `Look` neither consumes nor records expectations, and can fail. A `Repeat` with a scope does not pass
+  minimum of 0, unless its body can cut: a cut commits the option or the iteration, which then fails when its body
+  fails after the cut. `Look` neither consumes nor records expectations, and can fail. A `Repeat` with a scope does not pass
   on the captures of its element.
 - `Call` has the effects of the callee, except its captures, bindings and cut, which are the callee's own, and adds Call
   and Raise: a call can exceed the nesting limit. `Nest` is the same for its body. An `OperatorsRule` has consume, fail,
