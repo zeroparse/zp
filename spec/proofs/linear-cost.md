@@ -1978,11 +1978,13 @@ no such result ends two steps. $\square$
 the first, the one whose seed is empty and the last. In every other step, let
 $x$ be an evaluation at $p$ that calls no rule of the cycle at $p$ and fails
 after one of its scanning sources has examined input. Then, apart from a
-constant number of steps for each unit of a body of the cycle and from the
-pairs that the proof names, $x$ examines at most a constant amount of the
-input.
+constant number of steps for each unit and each memoized rule and from the
+decided units that the proof names, $x$ examines at most a constant amount of
+the input.
 
-*Proof.* The step goes on after $x$ fails and ends with a result that includes
+*Proof.* By induction on the number of evaluations that the step makes after
+$x$ and before the successful left call below: the claim holds for those that
+come later in the step. The step goes on after $x$ fails and ends with a result that includes
 the seed, so it makes a successful left call at $p$ after $x$. After a unit
 fails, the parser evaluates only its continuations at the unit's start, so let
 $U$ be the outermost unit that holds $x$ and fails before the step makes that
@@ -2010,17 +2012,59 @@ then checks $U$ as an alternative that is not growing on the paths that go on
 there, from there, $x$ among them. If $U$ and $g$ share no call,
 *Sources at fixed offsets* applies to $U$ and $g$ on those paths, and bounds
 the input that $U$, and so $x$, examines at $p$ by a constant outside a
-constant number of steps. If they share a call and $g$ makes its left call
-before it examines the input, by *Calls shared with a growing unit* either
-the shared calls examine no input and the same claim applies to the parts
-after them, or the first call that they share after those is a left call of a
-leader at $p$ that $U$ makes before it examines the input, so $x$ lies after
-it, on a path that goes on at the start of $U$ after a path through that call
-failed, and the check on those paths applies as in the first case when they
-share no call with $g$. Step 2 of [Open Steps](#open-steps) keeps the
-remaining pairs: a path of $U$ from where it goes on that shares a call with
-$g$, and a part $g$ that examines the input before its left call and shares a
-call with $U$. $\square$
+constant number of steps.
+
+Otherwise let $P$ be the part of $U$ that condition 2 compares with $g$ on the
+path of the step to $x$: $U$ itself when no left call of $U$ at $p$ whose path
+failed comes before $x$, and otherwise the path that goes on at the start of
+$U$ after the last such call. If $P$ and $g$ share no call, *Sources at fixed
+offsets* applies to them as to $U$ and $g$ above. Let them share the calls
+$c_1, \dots, c_k$, in the order in which condition 2 removes them from their
+starts, the shared literals included. Each $c_i$ has the same outcome and
+examines the same input in $P$ and in $g$: the memo answers it the second
+time, or its rule calls no rule and reads no variable, so that its evaluation
+depends only on its position and the input, or it is a call of a leader that
+grows again in the context from the same growing results, since the two calls
+lie in the same growths of its cycle (*Calls shared with a growing unit*).
+Each side evaluates the shared calls before anything else that examines the
+input, and $x$ examines input, so $x$ lies after $c_1, \dots, c_k$ or inside
+one of them.
+
+- *After the shared calls.* Each $c_i$ ends in $P$ before $x$ starts, at $p$,
+  so it ends at $p$ in $g$ as well, and $g$ reaches its left call at $p$ after
+  them without consuming input; none of them is a read of the seed, which ends
+  after $p$. The parts of $P$ and $g$ after them start at $p$, share no further
+  call, and are compared by condition 2 as the unit and the continuation, $g$
+  still making its left call at $p$ before it consumes input, whether or not it
+  examines the input first. So *Sources at fixed offsets* applies to them, and
+  bounds the input that $x$ examines at $p$ by a constant outside a constant
+  number of steps.
+- *Inside a shared call.* Let $x$ lie inside $c_i$. The calls before $c_i$ end
+  at $p$ on both sides, as above, so $c_i$ is a call at $p$ on both sides. If
+  its rule is on the cycle, it is a leader that grows in the context, since a
+  read of the seed evaluates no body and a left call of another rule of the
+  cycle is not shared; $x$ then lies in a step of that growth, which the step
+  nests at $p$, and the claim applies to $x$ with that growth in place of the
+  growth at $p$, *Growths inside a step* bounding those growths. If its rule is
+  off the cycle and memoized at the call, it calls no rule of the cycle at $p$,
+  since a rule reached from the cycle through left calls that reaches the
+  cycle again through left calls is on it, and it reads no variable, so by
+  *Evaluations that read no growing result* the memo answers it in every step
+  after the first that evaluates it, and $x$ is evaluated in one step of the
+  growth at most. Otherwise its rule calls no rule, and $g$ evaluates $c_i$ at
+  $p$ again in the same step, before its left call, which comes after $c_i$ in
+  $g$ since $c_i$ examines input. That evaluation evaluates an evaluation $x'$
+  of the expression of $x$ at $p$ again, over the same input and with the same
+  outcome. $x'$ comes after $x$ in the step and before its successful left
+  call, and it fails at $p$ after a scanning source has examined input as $x$
+  does, so by induction it examines at most a constant amount of the input
+  outside the steps that the claim leaves out, and so does $x$.
+
+So a pair that shares a call is bounded as one that shares none: the steps
+left out are those of *Sources at fixed offsets* for the parts after the
+shared calls, and one step for each memoized rule. The decided units that
+*Sources at fixed offsets* names remain, and step 2 of [Open
+Steps](#open-steps) keeps them. $\square$
 
 So in each step, apart from a constant number of steps for each growth and
 each unit, what a step evaluates at $p$ outside the parts that read the seed
@@ -5144,17 +5188,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    growth without reading a growing result (*Failures at the position of the growth*):
    the later alternatives after a growing unit fails, the parts that a unit
    goes on with at its start after a path through its left call fails, and
-   what a unit examines there before a left call without consuming input. Three cases
-   remain. The first is a pair of *Failures at the position of the growth* that shares a
-   call: a path of the unit from where it goes on at its start that shares a
-   call with the continuation, or a continuation that examines the input
-   before its left call and shares a call with the unit. The second is the
+   what a unit examines there before a left call without consuming input,
+   also when the unit and the continuation share calls. Two cases
+   remain. The first is the
    values of variables: *Results that do not include the seed* and the claims
    after it count the steps for each combination of the values that an
    evaluation reads, and the step must show that a binding made at the
    position of the growth from a growing result, through a capture of a left
    call in a lookahead, gives no more combinations than $K$ allows. The
-   third is a unit that its continuation decides: the unit fails within three
+   second is a unit that its continuation decides: the unit fails within three
    symbols in every step but a constant number, but among the symbols that it
    passes alike, a call of a rule that calls no rule repeats its own scan in
    each step, at the same position, and nothing yet bounds the number of such
