@@ -2,6 +2,7 @@ package ref
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -21,13 +22,16 @@ type CtxRule struct {
 	Leader bool
 }
 
-// maxCtxDeps is the number of dependencies that a dependency set indexes: a result with more is not
-// kept.
-const maxCtxDeps = 6
+// CtxLeaderBits is the number of leaders of a cycle that have a bit in a word of bits of present
+// sets, those of the generated parsers. A context with another leader has as its present set an
+// identity that names the set of its leaders (presentWide): a memo entry holds a word of bits, so
+// no entry answers a call in such a context and every result there goes to the table of the
+// context. A binding gives the same leaders a bit.
+const CtxLeaderBits = 31
 
-// maxLeaderBits is the number of leaders of a cycle that have a bit in a present set: a context with
-// another leader cannot be told from others.
-const maxLeaderBits = 32
+// presentWide tags the present set of a context with a leader that has no bit: no word of bits has
+// it.
+const presentWide uint64 = 1 << 63
 
 // The values of ctx.pop.
 const (
@@ -60,9 +64,9 @@ func ctxRes(a any) *CtxResult {
 
 // CtxState is the model's Ctx handle: the context state of a memoized call.
 type CtxState struct {
-	gp                 int
-	present            uint64
-	ctx, known, framed bool
+	gp          int
+	present     uint64
+	ctx, framed bool
 	// ds are the dependencies that ctx.pop ended, and sd those that ctx.keep stores.
 	ds []ctxDep
 	sd []ctxSDep
@@ -103,6 +107,7 @@ type growthRec struct {
 	pos, cycle int64
 	key        growKey
 	bit        uint64
+	idx        int64
 	seed       *CtxResult
 	id         uint64
 }
@@ -154,8 +159,11 @@ type ctxModel struct {
 	tables  []*ctxTable
 	looks   []lookRec
 	guard   []int64
-	// units counts the table and dependency work of the operation in progress.
-	tableUnits, depUnits int64
+	// wide holds the identities of the present sets with a leader that has no bit, by their leaders,
+	// while a growth is in progress.
+	wide map[string]uint64
+	// units counts the table, dependency and present-set work of the operation in progress.
+	tableUnits, depUnits, presentUnits int64
 	// keyCost is Model.keyCost: what comparing the key of a result inspects.
 	keyCost func(int64) int64
 }
@@ -167,14 +175,11 @@ func (m *Model) ctxRule(r RuleRef) CtxRule {
 	return CtxRule{}
 }
 
-// leaderBit returns the bit of the leader r in the present sets of its cycle: leaders are numbered in
-// the order of Config.CtxRules within each cycle.
-func (m *Model) leaderBit(r RuleRef) uint64 {
+// leaderIndex returns the number of the leader r in its cycle: leaders are numbered from 0 in the
+// order of Config.CtxRules within each cycle.
+func (m *Model) leaderIndex(r RuleRef) int64 {
 	c := m.ctxRule(r)
-	if !c.Leader || c.Cycle == 0 {
-		return 0
-	}
-	k := 0
+	k := int64(0)
 	for i, x := range m.cfg.CtxRules {
 		if int64(i) == r.Index {
 			break
@@ -183,10 +188,20 @@ func (m *Model) leaderBit(r RuleRef) uint64 {
 			k++
 		}
 	}
-	if k >= maxLeaderBits {
+	return k
+}
+
+// leaderBit returns the bit of the leader r in the words of bits of present sets, and 0 if it has
+// none.
+func (m *Model) leaderBit(r RuleRef) uint64 {
+	c := m.ctxRule(r)
+	if !c.Leader || c.Cycle == 0 {
 		return 0
 	}
-	return 1 << k
+	if k := m.leaderIndex(r); k < CtxLeaderBits {
+		return 1 << k
+	}
+	return 0
 }
 
 func (m *Model) pos() int64 { return m.regs["pos"].(int64) }
@@ -214,15 +229,40 @@ func (s *ctxModel) gammaFind(gp int, k growKey) int {
 	return -1
 }
 
-func (s *ctxModel) present(gp int) (uint64, bool) {
+// present returns the present set of the context growths[gp:]: the bits of its leaders, or, if a
+// leader has no bit, the identity of the set of their numbers, which naming counts in presentUnits:
+// one for each growth, and one when the set gets its identity.
+func (s *ctxModel) present(gp int) uint64 {
 	var p uint64
 	for _, g := range s.growths[gp:] {
 		if g.bit == 0 {
-			return 0, false
+			return s.presentWide(gp)
 		}
 		p |= g.bit
 	}
-	return p, true
+	return p
+}
+
+func (s *ctxModel) presentWide(gp int) uint64 {
+	var ks []int64
+	for _, g := range s.growths[gp:] {
+		s.presentUnits++
+		if !slices.Contains(ks, g.idx) {
+			ks = append(ks, g.idx)
+		}
+	}
+	slices.Sort(ks)
+	key := fmt.Sprint(ks)
+	if v, ok := s.wide[key]; ok {
+		return v
+	}
+	s.presentUnits++
+	if s.wide == nil {
+		s.wide = map[string]uint64{}
+	}
+	v := presentWide | uint64(len(s.wide)+1)
+	s.wide[key] = v
+	return v
 }
 
 func (s *ctxModel) addDep(d ctxDep) {
@@ -359,9 +399,6 @@ func (s *ctxModel) store(pos int64, gp int, h ctxHead, ds []ctxSDep, slot *ctxSl
 		case depObs:
 			obs, ov = append(obs, d.site), append(ov, d.val)
 		}
-	}
-	if len(seeds)+len(obs) > maxCtxDeps {
-		return
 	}
 	v = append(v, ov...)
 	t := s.table(pos, gp, true)
@@ -505,13 +542,13 @@ func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
 // callCtx runs the operations of the component growth and the conformance operations of its cases.
 func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	s := &m.ctx
-	s.tableUnits, s.depUnits, s.keyCost = 0, 0, m.keyCost
+	s.tableUnits, s.depUnits, s.presentUnits, s.keyCost = 0, 0, 0, m.keyCost
 	switch o.Name {
 	case CtxGrowOp:
 		r := args[0].(RuleRef)
 		pos := m.pos()
 		s.growths = append(s.growths, growthRec{pos: pos, cycle: m.ctxRule(r).Cycle, key: growKey{r.Index, args[1].(int64)},
-			bit: m.leaderBit(r), id: uint64(args[4].(int64)), seed: &CtxResult{ok: args[2].(bool), end: args[3].(int64), examined: args[3].(int64), from: pos}})
+			bit: m.leaderBit(r), idx: m.leaderIndex(r), id: uint64(args[4].(int64)), seed: &CtxResult{ok: args[2].(bool), end: args[3].(int64), examined: args[3].(int64), from: pos}})
 		return nil, true
 	case CtxReseedOp:
 		g := &s.growths[len(s.growths)-1]
@@ -524,6 +561,10 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 			s.tables = s.tables[:n-1]
 		}
 		s.growths = s.growths[:i]
+		if i == 0 {
+			// Nothing outside the growths in progress holds the identities of present sets.
+			clear(s.wide)
+		}
 		return nil, true
 	case CtxLookBeginOp:
 		pos := m.pos()
@@ -558,11 +599,9 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 			return nil, true
 		}
 		val := obsOutcome(args[0].(bool), f.pos, examined)
-		present, known := s.present(f.gp)
+		present := s.present(f.gp)
 		sd, _ := s.stored(ds)
-		if known {
-			s.store(f.pos, f.gp, ctxHead{look: true, id: l.site, present: present}, sd, &ctxSlot{outcome: val})
-		}
+		s.store(f.pos, f.gp, ctxHead{look: true, id: l.site, present: present}, sd, &ctxSlot{outcome: val})
 		out := []ctxDep{{kind: depObs, idx: int(l.site), d: f.depth, val: val}}
 		for _, d := range ds {
 			if d.kind == depSeed {
@@ -591,8 +630,8 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 			}
 		}
 		c.ctx = true
-		c.present, c.known = s.present(gp)
-		c.framed = c.known
+		c.present = s.present(gp)
+		c.framed = true
 		return []any{c, nil}, true
 	case "ctx.found":
 		return []any{ctxRes(args[0]) != nil}, true
@@ -605,7 +644,7 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		return nil, true
 	case "ctx.allows":
 		c, e := args[0].(*CtxState), args[1].(*Entry)
-		return []any{!c.ctx || c.known && c.present&^e.present == 0}, true
+		return []any{!c.ctx || c.present&presentWide == 0 && c.present&^e.present == 0}, true
 	case "ctx.active":
 		return []any{args[0].(*CtxState).ctx}, true
 	case "ctx.lookup":
@@ -667,7 +706,7 @@ func (m *Model) ctxPop(c *CtxState) int64 {
 	}
 	_, c.ds = m.ctx.popFrame()
 	sd, read := m.ctx.stored(c.ds)
-	if !read {
+	if !read && c.present&presentWide == 0 {
 		return CtxStoreMemo
 	}
 	c.sd = sd
@@ -742,7 +781,8 @@ func (m *Model) replayExpected(far int64, k *ExpKept, apply bool) int64 {
 
 // clone returns a copy of s that operations change apart from s.
 func (s *ctxModel) clone() ctxModel {
-	c := ctxModel{growths: slices.Clone(s.growths), looks: slices.Clone(s.looks), guard: slices.Clone(s.guard), keyCost: s.keyCost}
+	c := ctxModel{growths: slices.Clone(s.growths), looks: slices.Clone(s.looks), guard: slices.Clone(s.guard), keyCost: s.keyCost,
+		wide: maps.Clone(s.wide)}
 	for _, f := range s.frames {
 		f.deps = slices.Clone(f.deps)
 		c.frames = append(c.frames, f)
@@ -773,6 +813,15 @@ func (m *Model) ctxQuantity(name string, o *exec.Op, args []any) (int64, bool) {
 		return 0, false
 	}
 	switch o.Name {
+	case "ctx.enter":
+		if name != ops.QPresent {
+			return 0, false
+		}
+		saved := m.ctx
+		m.ctx = saved.clone()
+		defer func() { m.ctx = saved }()
+		m.callCtx(o, args)
+		return m.ctx.presentUnits, true
 	case "ctx.lookup", "ctx.keep", "ctx.pop", "ctx.done":
 	case "ctx.replay":
 		r := ctxRes(args[0])
@@ -804,6 +853,8 @@ func (m *Model) ctxQuantity(name string, o *exec.Op, args []any) (int64, bool) {
 	}
 	m.callCtx(o, a)
 	switch name {
+	case ops.QPresent:
+		return m.ctx.presentUnits, true
 	case ops.QTable:
 		return m.ctx.tableUnits, true
 	case ops.QDeps:

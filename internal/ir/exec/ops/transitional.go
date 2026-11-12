@@ -60,6 +60,10 @@ const (
 	// of an observation leads to counts again on each path through the observations that outcomes
 	// depend on.
 	QTable = "table"
+	// QPresent is the work of naming the present set of the call's context when a leader in it has no
+	// bit in a word of bits: one for each growth of the context, and one more when no call named that
+	// set since the first growth in progress began; 0 when every leader of the context has a bit.
+	QPresent = "present"
 	// QRun is, for each step of the run of the growth that the call records as jumps (the steps since
 	// the last step that read another seed): one, one for each jump recorded before from its seed,
 	// and the expectations of its set when its farthest position is that of the steps after it.
@@ -268,7 +272,7 @@ the records beside the entries.`})
 	ctxArg := exec.P("c", ctx)
 	resArg := []exec.Param{exec.P("s", res)}
 	m.AddOp(&exec.Op{Name: "ctx.enter", Component: Growth, Params: call, Results: []exec.Type{ctx, res},
-		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QPresent}}},
 		Contract: `Begins a memoized call of the rule at the position: returns its context state and, if the
 rule is a leader that grows at the position, its current seed, which the call reads (with the
 dependency on its identity); otherwise the null result. The context of a call of a rule of a
@@ -291,7 +295,8 @@ them as missing.replay does, one by one when the tokens they inserted repeat.`})
 		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Memo},
 		Contract: `Reports whether the call with the context state c may reuse the memo entry e: always outside a
 context, and in one only when the leaders growing there are among those that grew where e was stored
-(its present set).`})
+(its present set). An entry holds a present set of one word of bits, so it answers no call in a context
+with a leader that has no bit there.`})
 	m.AddOp(&exec.Op{Name: "ctx.active", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether the call with the context state c is in a context.`})
 	m.AddOp(&exec.Op{Name: "ctx.lookup", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("min", exec.TInt),
@@ -307,8 +312,9 @@ call. Otherwise the null result.`,
 	m.AddOp(&exec.Op{Name: "ctx.pop", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TInt},
 		Reads: []string{Growth}, Writes: []string{Growth}, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
 		Contract: `Ends recording the dependencies of the evaluation and returns where its result goes:
-ctx.storeMemo for the memo (it read no seed and made no observation), ctx.storeCtx for the table of
-the context, or another value for nowhere (its context's leaders have no present set).`})
+ctx.storeMemo for the memo (it read no seed, made no observation and its context's leaders all have
+a bit in a word of bits), ctx.storeCtx for the table of the context, or another value for nowhere
+(its context records no dependencies).`})
 	for _, a := range []struct{ name, doc string }{
 		{"ctx.storeMemo", "Returns the value of ctx.pop for a result stored in the memo."},
 		{"ctx.storeCtx", "Returns the value of ctx.pop for a result kept in the table of its context."},
@@ -330,7 +336,7 @@ ended, and the examined frontier of a Document parse.`,
 		Contract: `Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.`})
 
 	add(&exec.Op{Name: "grow.begin", Component: Growth, Params: call, Results: []exec.Type{grow},
-		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QPresent}}},
 		Contract: `Starts the growth of the leader at the binding level min at the position from a failure,
 charging one unit: the growth is in a context when other leaders of its cycle grow at the position.`})
 	add(&exec.Op{Name: "grow.next", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},

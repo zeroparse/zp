@@ -69,7 +69,7 @@ inside it before, as a lookahead does.`,
 }
 
 // CtxConfig returns the rules of the cases: a cycle of two leaders and a rule that is not one, a rule
-// of no cycle, a second cycle, and a cycle of more leaders than present sets tell apart.
+// of no cycle, a second cycle, and a cycle of more leaders than a word of bits of present sets holds.
 func CtxConfig() ref.Config {
 	rules := []ref.CtxRule{{Cycle: 1, Leader: true}, {Cycle: 1, Leader: true}, {Cycle: 1}, {}, {Cycle: 2, Leader: true}, {Cycle: 2}}
 	for range 33 {
@@ -87,9 +87,11 @@ const (
 	ctxPlain     = 3
 	ctxOtherLead = 4
 	ctxOther     = 5
-	// ctxUnknownLead is a leader of the third cycle without a bit, and ctxUnknown a rule of that cycle.
-	ctxUnknownLead = 38
-	ctxUnknown     = 39
+	// ctxNarrowLead is the first leader of the third cycle, which has a bit in a word of bits of present
+	// sets, ctxWideLead a leader of that cycle without one, and ctxWide a rule of that cycle.
+	ctxNarrowLead = 6
+	ctxWideLead   = 38
+	ctxWide       = 39
 )
 
 // CtxCases returns the handwritten conformance cases of the dependency memo, in one module.
@@ -268,17 +270,32 @@ func CtxCases() []Case {
 		b.Do("ctx.replay", h, f)
 		b.Assert(eq(exec.C("exp.count"), i(2)), "replaying a result adds its expectations")
 	})
-	add("ctx_unknown_present", func(b *exec.Builder) {
-		grow(b, ctxUnknownLead, 0, true, 1, 7)
-		c, _ := enter(b, "c", ctxUnknown)
+	add("ctx_wide_present", func(b *exec.Builder) {
+		grow(b, ctxWideLead, 0, true, 1, 7)
+		c, _ := enter(b, "c", ctxWide)
 		b.Assert(exec.C("ctx.active", c), "the call is in the context")
-		e := b.Let("e", exec.C("memo.store", i(ctxUnknown), i(0), i(0), exec.C(ValuesOp, i(0)), t, i(1), f, noValue, noErrs, f))
-		b.Assert(exec.Not(exec.C("ctx.allows", c, e)), "a context without a present set reuses no memo entry")
+		e := b.Let("e", exec.C("memo.store", i(ctxWide), i(0), i(0), exec.C(ValuesOp, i(0)), t, i(1), f, noValue, noErrs, f))
+		b.Assert(exec.Not(exec.C("ctx.allows", c, e)), "a memo entry answers no call in a context with a leader that has no bit")
 		b.Do("ctx.push", c)
-		readSeed(b, "in", ctxUnknownLead)
-		b.Assert(exec.Not(eq(exec.C("ctx.pop", c), exec.C("ctx.storeMemo"))), "its result goes nowhere")
-		b.Assert(exec.Not(eq(exec.C("ctx.storeMemo"), exec.C("ctx.storeCtx"))), "the two stores differ")
+		b.Assert(eq(exec.C("ctx.pop", c), exec.C("ctx.storeCtx")), "a result that read no seed goes to the context too")
+		keep(b, c, ctxWide, 0, true, 1, noValue, noErrs, exec.C("exp.empty"))
 		b.Do("ctx.done", c)
+		c2, _ := enter(b, "c2", ctxWide)
+		b.Assert(exec.C("ctx.found", exec.C("ctx.lookup", c2, rule(ctxWide), i(0), exec.C(ValuesOp, i(0)))),
+			"the context finds the result under the same present set")
+		grow(b, ctxNarrowLead, 0, true, 1, 8)
+		c3, _ := enter(b, "c3", ctxWide)
+		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", c3, rule(ctxWide), i(0), exec.C(ValuesOp, i(0))))),
+			"another set of leaders has another present set")
+		b.Do(ref.CtxUngrowOp)
+		c4, _ := enter(b, "c4", ctxWide)
+		b.Assert(exec.C("ctx.found", exec.C("ctx.lookup", c4, rule(ctxWide), i(0), exec.C(ValuesOp, i(0)))),
+			"the first set names the same present set again")
+		b.Do(ref.CtxUngrowOp)
+		grow(b, ctxWideLead, 0, true, 1, 7)
+		c5, _ := enter(b, "c5", ctxWide)
+		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", c5, rule(ctxWide), i(0), exec.C(ValuesOp, i(0))))),
+			"a new growth starts with an empty table")
 	})
 	return cs
 }
@@ -354,7 +371,7 @@ func RandomCtx(name string, rng *rand.Rand, n int) Case {
 		kept = append(kept, ctxEntry{ex[0], res[0]})
 
 		// The rules that calls draw from, by cycle: the cycles of two leaders and of many.
-		cycles := [][]int64{{ctxLeaderA, ctxLeaderB, ctxMember, ctxPlain}, {ctxOtherLead, ctxOther}, {ctxUnknownLead, 6, ctxUnknown}}
+		cycles := [][]int64{{ctxLeaderA, ctxLeaderB, ctxMember, ctxPlain}, {ctxOtherLead, ctxOther}, {ctxWideLead, ctxNarrowLead, ctxWide}}
 		cycle := cycles[0]
 		if rng.IntN(4) == 0 {
 			cycle = cycles[1+rng.IntN(2)]
@@ -362,7 +379,7 @@ func RandomCtx(name string, rng *rand.Rand, n int) Case {
 		leaders := func() []int64 {
 			var ls []int64
 			for _, r := range cycle {
-				if r != ctxMember && r != ctxPlain && r != ctxOther && r != ctxUnknown {
+				if r != ctxMember && r != ctxPlain && r != ctxOther && r != ctxWide {
 					ls = append(ls, r)
 				}
 			}
