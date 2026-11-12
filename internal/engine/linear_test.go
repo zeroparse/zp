@@ -116,3 +116,67 @@ func TestDeclaredLinearKeepsClassification(t *testing.T) {
 		}
 	}
 }
+
+// TestDeclaredLinearRewrites checks that each error of @linear gives the rewrite for the kind of its
+// cause, with the link to the section of the recipe that shows it, on the grammar of each section
+// of the recipe. Each grammar must name its own section and no other, so that a cause mapped to
+// the wrong kind fails.
+func TestDeclaredLinearRewrites(t *testing.T) {
+	const recipe = "https://zeroparse.dev/docs/cookbook/linear-rewrites/"
+	sections := map[string]string{
+		"restart":   "scan once: put the scan and what may follow it in one alternative (see " + recipe + "#a-repetition-restarted-after-backtracking)",
+		"lookahead": "check once after the scan instead of at every iteration (see " + recipe + "#a-lookahead-over-a-scan)",
+		"skip":      "write the repetition inside skip= (see " + recipe + "#a-recovery-skip-followed-by-failure)",
+		"regrowth":  "call the rule once at a position: factor the caller (see " + recipe + "#a-left-recursive-rule-or-an-operators-rule-called-again-and-again)",
+		"binding":   "bind a value that does not depend on the earlier value (see " + recipe + "#diverging-variable-bindings)",
+		"bound":     "keep the values of the variables bounded (see " + recipe + "#diverging-variable-bindings)",
+		"growing":   "keep a count or another property of the value instead of the value (see " + recipe + "#self-growing-values)",
+		"other":     "rewrite it so that the cost stays linear (see " + recipe + ")",
+	}
+	const head = "@linear\npackage p\n"
+	for _, tc := range []struct {
+		name, src, want string
+	}{
+		{"restarted repetition", head + "@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n", "restart"},
+		{"lookahead over a scan", head + "@start\nrule main = (\"a\" !rest)* \"a\"* $$\nrule rest = \"a\"* \"c\"\n", "lookahead"},
+		{"recovery skip", head + "@start\nrule main = (x / \"a\")* $$\nrule x = (y #recover(skip=s)) \"c\"\nrule y = \"b\"\nrule s = [a]+\n", "skip"},
+		{"left-recursive rule", head + "@start\nrule main = (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"\n", "regrowth"},
+		{"Operators Rule", head + "@start\nrule main = (e \"q\" / \"x\")* $$\nrule e = #operators {\n    operand \"x\"\n    level add { infix left \"\" }\n}\n", "regrowth"},
+		{"diverging binding", head + "var v string\n@start\nrule main = r $$\nrule r = \"(\" {v := v + \"0\"} r \")\" \"y\" / \"(\" {v := v + \"1\"} r \")\" \"z\" / \"n\" {len(v) >= 0}\n", "binding"},
+		{"bounded binding", head + "var v string\n@start\nrule main = r $$\nrule r = \"(\" {v := \"0\"} r \")\" \"y\" / \"(\" {v := \"1\"} r \")\" \"z\" / \"n\" {len(v) >= 0}\n", "bound"},
+		{"self-growing variable", head + "var s string = \"a\"\n@start\nrule main = r $$\nrule r = \"x\" {s := s + s} r / {len(s) > 0}\n", "growing"},
+		{"self-growing fold", head + "@start\nrule main = xs:\"x\"* => len(foldl(\"a\", $xs, (acc, x) => acc + acc))\n", "growing"},
+		{"unknown", head + "@start\nrule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", "other"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, err := syntax.Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = engine.Compile(g, engine.Options{})
+			if err == nil {
+				t.Fatal("Compile accepted the grammar")
+			}
+			found := false
+			for _, line := range strings.Split(err.Error(), "\n") {
+				want := tc.want
+				// A reason for the class unknown has no section of its own, even beside a cause.
+				if strings.Contains(line, "the classifier cannot prove its cost linear: ") {
+					want = "other"
+				}
+				found = found || want == tc.want
+				if !strings.HasSuffix(line, "; "+sections[want]) {
+					t.Errorf("error %q does not end with the rewrite of section %s", line, want)
+				}
+				for name, other := range sections {
+					if name != want && strings.HasSuffix(line, other) {
+						t.Errorf("error %q gives the rewrite of section %s, want %s", line, name, want)
+					}
+				}
+			}
+			if !found {
+				t.Errorf("no error gives the rewrite of section %s:\n%v", tc.want, err)
+			}
+		})
+	}
+}

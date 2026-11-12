@@ -49,7 +49,8 @@ type source struct {
 	rule string
 	pos  grammar.Pos
 	what string
-	scan *grammar.Repeat // the repetition that is the source, if one is
+	kind ComplexityCauseKind // the pattern of a cause that restarts the source
+	scan *grammar.Repeat     // the repetition that is the source, if one is
 }
 
 func (s *source) String() string { return fmt.Sprintf("%s at %s", s.what, at(s.rule, s.pos)) }
@@ -187,8 +188,8 @@ func (k *classifier) collectCaptures(r *grammar.RuleDef) {
 }
 
 // addSource records a scanning source found in the walk.
-func (k *classifier) addSource(c wctx, pos grammar.Pos, what string) *source {
-	s := &source{rule: c.rule, pos: pos, what: what}
+func (k *classifier) addSource(c wctx, pos grammar.Pos, kind ComplexityCauseKind, what string) *source {
+	s := &source{rule: c.rule, pos: pos, what: what, kind: kind}
 	k.walked[c.rule] = append(k.walked[c.rule], s)
 	for _, u := range c.open {
 		u.srcs = append(u.srcs, s)
@@ -314,7 +315,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			return
 		}
 		if e.Max < 0 && !c.skipSites && !k.runSite(e) {
-			k.addSource(c, exprPos(e), "the repetition "+k.show(e)).scan = e
+			k.addSource(c, exprPos(e), CauseRestartedRepetition, "the repetition "+k.show(e)).scan = e
 			k.srcExprs[e] = true
 		}
 		u := k.newUnit(unitIteration, c, e, []*cont{{items: []grammar.Expr{e.Expr}}},
@@ -392,7 +393,7 @@ func (k *classifier) walkLookahead(e, body grammar.Expr, c wctx, not bool) {
 func (k *classifier) walkRecovery(e, base, skip grammar.Expr, c wctx) {
 	shared := reused(skip)
 	if !shared {
-		k.addSource(c, exprPos(e), "the skip expression "+k.show(skip)+" of #recover")
+		k.addSource(c, exprPos(e), CauseRecoverySkip, "the skip expression "+k.show(skip)+" of #recover")
 		k.srcExprs[e] = true
 	}
 	u := k.newUnit(unitRecover, c, e, []*cont{{items: []grammar.Expr{base}}},
@@ -425,7 +426,7 @@ func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
 	// what the unit around it keeps.
 	if k.an.cyclic[e.Name] && (!k.sameCycle(c.rule, e.Name) || !c.mustStart ||
 		(k.an.leaders[e.Name] && c.rule != e.Name)) {
-		k.addSource(c, exprPos(e), "the growth of the left-recursive rule "+e.Name+" at a new position")
+		k.addSource(c, exprPos(e), CauseRegrowth, "the growth of the left-recursive rule "+e.Name+" at a new position")
 		k.srcExprs[e] = true
 	}
 }
@@ -522,7 +523,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 		hasOps = hasOps || len(l.Operators) > 0
 	}
 	if hasOps {
-		k.addSource(c, exprPos(pr), "the operators that the Operators Rule applies")
+		k.addSource(c, exprPos(pr), CauseRegrowth, "the operators that the Operators Rule applies")
 		k.srcExprs[pr] = true
 	}
 	end := &cont{end: endOps, rule: c.rule}
@@ -669,7 +670,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			}
 		}
 		if applies {
-			u.src = &source{rule: c.rule, pos: exprPos(p.op.Expr), what: "the right operand of the operator part " + k.show(p.op.Expr) + ", which can apply operators"}
+			u.src = &source{rule: c.rule, pos: exprPos(p.op.Expr), kind: CauseRegrowth, what: "the right operand of the operator part " + k.show(p.op.Expr) + ", which can apply operators"}
 		} else if skipSource {
 			u.src = &source{rule: c.rule, pos: exprPos(pr.Skip), what: "the skip expression " + k.show(pr.Skip)}
 		}
@@ -1759,7 +1760,7 @@ func (k *classifier) checkGrowth() {
 				return
 			}
 			seen[s] = true
-			k.cause(ClassPoly, 2, s.rule, s.pos, "%s: %s is evaluated in each step of the growth of the left-recursive rule %s, at the position where it grows",
+			k.cause(CauseRegrowth, ClassPoly, 2, s.rule, s.pos, "%s: %s is evaluated in each step of the growth of the left-recursive rule %s, at the position where it grows",
 				degreeText(ClassPoly, 2), s, r.Name)
 		}
 		visit = func(e grammar.Expr) bool {
@@ -1796,7 +1797,7 @@ func (k *classifier) checkGrowth() {
 					return true
 				}
 				if e.Max < 0 && !k.runSite(e) {
-					report(k.sourceAt(r.Name, e, "the repetition "+k.show(e)))
+					report(k.sourceAt(r.Name, e, CauseRestartedRepetition, "the repetition "+k.show(e)))
 					for _, c := range allCallsControlled(e.Expr, nil, k.control) {
 						maps.Copy(k.stepRules, k.reachable(c))
 					}
@@ -1826,18 +1827,18 @@ func (k *classifier) checkGrowth() {
 				return visit(e.Expr)
 			case *grammar.Recovery:
 				if !reused(e.Skip) {
-					report(k.sourceAt(r.Name, e, "the skip expression "+k.show(e.Skip)+" of #recover"))
+					report(k.sourceAt(r.Name, e, CauseRecoverySkip, "the skip expression "+k.show(e.Skip)+" of #recover"))
 				}
 				visit(e.Expr)
 				return k.nullable(e)
 			case *grammar.Attributed:
 				if skip := recoverSkip(e); skip != nil && !reused(skip) {
-					report(k.sourceAt(r.Name, e, "the skip expression "+k.show(skip)+" of #recover"))
+					report(k.sourceAt(r.Name, e, CauseRecoverySkip, "the skip expression "+k.show(skip)+" of #recover"))
 				}
 				visit(e.Expr)
 				return k.nullable(e)
 			case *grammar.OperatorsRule:
-				report(k.sourceAt(r.Name, e, "the operators that the Operators Rule applies"))
+				report(k.sourceAt(r.Name, e, CauseRegrowth, "the operators that the Operators Rule applies"))
 				return k.nullable(e)
 			case *grammar.Predicate:
 				if s := k.predicateSource[e]; s != nil {
@@ -1852,12 +1853,12 @@ func (k *classifier) checkGrowth() {
 }
 
 // sourceAt returns the source recorded at e, so that one cause is reported once.
-func (k *classifier) sourceAt(rule string, e grammar.Expr, what string) *source {
+func (k *classifier) sourceAt(rule string, e grammar.Expr, kind ComplexityCauseKind, what string) *source {
 	key := sourceKey{rule, exprPos(e), what}
 	if s := k.sourceIndex[key]; s != nil {
 		return s
 	}
-	s := &source{rule: rule, pos: exprPos(e), what: what}
+	s := &source{rule: rule, pos: exprPos(e), what: what, kind: kind}
 	k.sourceIndex[key] = s
 	return s
 }
@@ -2006,7 +2007,11 @@ func (k *classifier) checkNesting() {
 				msg += "; it is evaluated again inside " + c
 			}
 			msg += "; this repeats in " + why
-			k.cause(ClassPoly, degree, u.src.rule, u.src.pos, "%s", msg)
+			kind := u.src.kind
+			if kind == CauseRestartedRepetition && u.kind == unitLookahead {
+				kind = CauseLookaheadScan
+			}
+			k.cause(kind, ClassPoly, degree, u.src.rule, u.src.pos, "%s", msg)
 		}
 	}
 }
