@@ -8,8 +8,11 @@ import (
 	"zeroparse.dev/zp/runtime/parse"
 )
 
-// NewIterative prepares a module for execution with the iterative model.
-func NewIterative(m *bytecode.Module) *Program { return buildVMProgram(m, iterateBody) }
+// NewIterative prepares a module for execution with the iterative model; terms are the programs
+// of its terms (LoadTerms).
+func NewIterative(m *bytecode.Module, terms []*core.TermProgram) *Program {
+	return buildVMProgram(m, terms, iterateBody)
+}
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
 func iterateBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool) {

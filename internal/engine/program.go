@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -42,10 +43,15 @@ type Program struct {
 	recOnce sync.Once
 	rec     *Program // program that builds no tree (recognizer)
 	recErr  error
-	vmOnce  sync.Once
-	vm      *vm.Program
-	ivmOnce sync.Once
-	ivm     *vm.Program
+	// vmTerms holds the programs of the module's terms, which both VMs run; a loaded program has
+	// them from the checks of its file.
+	vmTermsOnce sync.Once
+	vmTerms     []*core.TermProgram
+	vmTermsErr  error
+	vmOnce      sync.Once
+	vm          *vm.Program
+	ivmOnce     sync.Once
+	ivm         *vm.Program
 	// loaded reports that the program was loaded from a compiled grammar, whose module serves the
 	// parses of mode only (checkMode).
 	loaded bool
@@ -110,6 +116,21 @@ func (prog *Program) Module() *bytecode.Module {
 	m := prog.BytecodeModule()
 	vm.CompileTerms(prog.Static(), m)
 	return m
+}
+
+// moduleTerms returns the module m (Module) and the programs of its terms, loading them once for
+// both VMs.
+func (prog *Program) moduleTerms() (*bytecode.Module, []*core.TermProgram, error) {
+	m := prog.Module()
+	prog.vmTermsOnce.Do(func() {
+		prog.vmTerms, prog.vmTermsErr = vm.LoadTerms(m)
+		if prog.vmTermsErr != nil {
+			// A loaded file's terms were checked when it was loaded; a compiled module's are the
+			// compiler's.
+			prog.vmTermsErr = fmt.Errorf("internal error: %w", prog.vmTermsErr)
+		}
+	})
+	return m, prog.vmTerms, prog.vmTermsErr
 }
 
 // RuleType returns the type of the value of the rule name: its declared type, or the inferred

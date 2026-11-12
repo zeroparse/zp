@@ -196,10 +196,18 @@ func (prog *Program) rule(b Backend, name string, f closure.Family) (*core.Rule,
 	var r *core.Rule
 	switch prog.backend(b) {
 	case Bytecode:
-		prog.vmOnce.Do(func() { prog.vm = vm.New(prog.Module()) })
+		m, terms, err := prog.moduleTerms()
+		if err != nil {
+			return nil, err
+		}
+		prog.vmOnce.Do(func() { prog.vm = vm.New(m, terms) })
 		r = prog.vm.Rule(name)
 	case BytecodeIterative:
-		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(prog.Module()) })
+		m, terms, err := prog.moduleTerms()
+		if err != nil {
+			return nil, err
+		}
+		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m, terms) })
 		r = prog.ivm.Rule(name)
 	case Closure:
 		if prog.Grammar == nil {

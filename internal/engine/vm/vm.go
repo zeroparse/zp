@@ -88,8 +88,11 @@ func (vm *Program) runSite(ip int) *vmRunSite {
 // execBody calls exec, which recurses for each rule call.
 type vmBodies func(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool)
 
-// New prepares a module for execution with the recursive model.
-func New(m *bytecode.Module) *Program { return buildVMProgram(m, execBody) }
+// New prepares a module for execution with the recursive model; terms are the programs of its
+// terms (LoadTerms).
+func New(m *bytecode.Module, terms []*core.TermProgram) *Program {
+	return buildVMProgram(m, terms, execBody)
+}
 
 // Rule returns the rule called name, or nil when the module has none.
 func (vm *Program) Rule(name string) *core.Rule { return vm.byName[name] }
@@ -111,7 +114,7 @@ func execBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int
 }
 
 // buildVMProgram prepares a module for execution. bodies makes the rule bodies.
-func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
+func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, bodies vmBodies) *Program {
 	vm := &Program{m: m, byName: map[string]*core.Rule{}, descs: append(append([]string(nil), compile.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
@@ -152,11 +155,6 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 	}
 	vtable := compile.ModuleVarTable(m)
 	vm.vars = vtable
-	terms, err := vm.loadTerms()
-	if err != nil {
-		// Loading a module file checks its terms (CheckTerms); a compiled module's are the compiler's.
-		panic(fmt.Sprintf("internal error: %v", err))
-	}
 	vm.terms = terms
 	for i := range m.Rules {
 		ri := &m.Rules[i]
@@ -1154,10 +1152,6 @@ func isFunction(v any) bool {
 }
 
 // loadTerms makes the programs of the module's terms.
-func (vm *Program) loadTerms() ([]*core.TermProgram, error) {
-	return LoadTerms(vm.m)
-}
-
 // LoadTerms makes the programs of the terms of the module m, checking each (core.LoadTerm). A
 // loader calls it to reject a module file whose term code is invalid.
 func LoadTerms(m *bytecode.Module) ([]*core.TermProgram, error) {

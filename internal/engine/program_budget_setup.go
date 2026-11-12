@@ -133,13 +133,16 @@ func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Fam
 		return r, err
 	}
 	c.Check()
-	m := prog.Module()
+	m, terms, err := prog.moduleTerms()
+	if err != nil {
+		return nil, err
+	}
 	c.Check() // Also the checkpoint immediately before VM preparation.
 	switch prog.backend(b) {
 	case Bytecode:
-		prog.vmOnce.Do(func() { prog.vm = vm.New(m) })
+		prog.vmOnce.Do(func() { prog.vm = vm.New(m, terms) })
 	case BytecodeIterative:
-		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m) })
+		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m, terms) })
 	}
 	c.Check()
 	return prog.rule(b, name, f)
