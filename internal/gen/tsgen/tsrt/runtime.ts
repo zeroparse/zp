@@ -1808,9 +1808,8 @@ const ctxCallKind = 0;
 const ctxStepKind = 1;
 const ctxLookKind = 2;
 
-// The ways a memoized call stores its result (Parser.ctxPop): nowhere (unused, as every call in a
-// context records its dependencies); in the memo; in the table of the context.
-export const storeNone = 0;
+// The ways a memoized call stores its result (Parser.ctxPop): in the memo; in the table of the
+// context.
 export const storeMemo = 1;
 export const storeCtx = 2;
 

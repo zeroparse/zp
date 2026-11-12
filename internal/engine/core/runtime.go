@@ -864,6 +864,7 @@ func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
 	p.Gamma = p.Gamma[:g.gi]
 	if len(p.Gamma) == 0 && len(p.interned) > 0 {
 		clear(p.interned)
+		p.internSeq = 0
 	}
 	best := g.Best
 	if g.ctx {

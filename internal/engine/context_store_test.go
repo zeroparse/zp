@@ -126,6 +126,26 @@ func TestContextStoreMissingRandom(t *testing.T) {
 	if gentest.Long() {
 		seeds = 400
 	}
+	for _, msg := range missingRandomMismatches(t, seeds) {
+		t.Error(msg)
+	}
+}
+
+// TestContextStoreMissingRandomControl checks that TestContextStoreMissingRandom detects rules
+// that insert tokens keeping their results in contexts.
+func TestContextStoreMissingRandomControl(t *testing.T) {
+	core.ContextMemoMutation = core.CtxStoreInserts
+	defer func() { core.ContextMemoMutation = 0 }()
+	if len(missingRandomMismatches(t, 40)) == 0 {
+		t.Error("CtxStoreInserts not detected")
+	}
+}
+
+// missingRandomMismatches parses the inputs of seeds random cycle grammars with insertion, with and
+// without memos, and returns the differences.
+func missingRandomMismatches(t *testing.T, seeds int) []string {
+	t.Helper()
+	var out []string
 	lit := regexp.MustCompile(`"[a-z]"`)
 	checked := 0
 	for s := int64(0); s < int64(seeds); s++ {
@@ -156,8 +176,10 @@ func TestContextStoreMissingRandom(t *testing.T) {
 				o.ContextMemoOff = true
 				want, wantErr := ref.ParseWith("", in, o)
 				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
-				if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
-					t.Errorf("seed %d %q recognize=%v:\n%s\n got %s\nwant %s", s, in, recognize, src, a, b)
+				// Only the compute and memory limits may end the two parses at different points: rules
+				// that insert tokens keep no result, so both make the same insertion attempts.
+				if a != b && !strings.Contains(a+b, "compute limit") && !strings.Contains(a+b, "memory limit") {
+					out = append(out, fmt.Sprintf("seed %d %q recognize=%v:\n%s\n got %s\nwant %s", s, in, recognize, src, a, b))
 				}
 			}
 		}
@@ -165,4 +187,5 @@ func TestContextStoreMissingRandom(t *testing.T) {
 	if checked < seeds/4 {
 		t.Fatalf("only %d of %d grammars compiled with insertion", checked, seeds)
 	}
+	return out
 }
