@@ -1,4 +1,4 @@
-// Package lower lowers a rule of Core IR (internal/ir/core) to a Flow IR function
+// Package lower lowers a rule of Core IR (internal/ir/coreir) to a Flow IR function
 // (internal/ir/flow).
 //
 // Lower threads a failure label through each node: a node's statements leave the block of that
@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -56,7 +56,7 @@ type Options struct {
 	// ones, in the functions it lowers (Func.Node). It holds for every function of a module's lowering,
 	// so the options of the Node and recognizer tables are never shared with the typed table's.
 	Node bool
-	// Stream lowers the #stream repetition (core.Stream) of a framed Node function as the repetition that
+	// Stream lowers the #stream repetition (coreir.Stream) of a framed Node function as the repetition that
 	// delivers its elements in a stream parse: it hands each committed element to the callback instead of
 	// gathering it, when the invocation streams (StreamOn), and gathers it otherwise. The function is the
 	// body of the start rule that ParseStream runs.
@@ -69,16 +69,16 @@ type Options struct {
 	// Outline, if not nil, selects the nodes of a framed function that run as functions of their own: the
 	// function calls them (CallOutline) under its frame and lowers them with LowerOutline. A node it selects
 	// must be Outlinable; the lowering keeps every node in a function lowered with Observe.
-	Outline func(core.Node) bool
+	Outline func(coreir.Node) bool
 }
 
 // Recovers reports whether the module has a Recover, which appends recovered errors.
-func Recovers(m *core.Module) bool {
+func Recovers(m *coreir.Module) bool {
 	found := false
 	for _, r := range m.Rules {
 		if r != nil {
-			core.Walk(r.Body, func(n core.Node) {
-				if _, ok := n.(*core.Recover); ok {
+			coreir.Walk(r.Body, func(n coreir.Node) {
+				if _, ok := n.(*coreir.Recover); ok {
 					found = true
 				}
 			})
@@ -90,17 +90,17 @@ func Recovers(m *core.Module) bool {
 // LocalRule reports whether Lower can lower the rule r: its captures can be variables of its
 // function. Left-recursion leaders, whose growth the runtime owns, Operators Rules and rules with
 // recovery keep runtime frames.
-func LocalRule(r *core.Rule) bool {
+func LocalRule(r *coreir.Rule) bool {
 	if r.Policy.Leader {
 		return false
 	}
-	if _, ok := r.Body.(*core.OperatorsRule); ok {
+	if _, ok := r.Body.(*coreir.OperatorsRule); ok {
 		return false
 	}
 	ok := true
-	core.Walk(r.Body, func(n core.Node) {
+	coreir.Walk(r.Body, func(n coreir.Node) {
 		switch n.(type) {
-		case *core.Recover, *core.Nest, *core.OperatorsRule:
+		case *coreir.Recover, *coreir.Nest, *coreir.OperatorsRule:
 			ok = false
 		}
 	})
@@ -109,11 +109,11 @@ func LocalRule(r *core.Rule) bool {
 
 // FramedBody reports whether LowerFrame can lower the body n: it has no Operators Rule, inlined
 // call or terminal region, which the runtime or a local function matches.
-func FramedBody(n core.Node) bool {
+func FramedBody(n coreir.Node) bool {
 	ok := true
-	core.Walk(n, func(n core.Node) {
+	coreir.Walk(n, func(n coreir.Node) {
 		switch n.(type) {
-		case *core.Nest, *core.OperatorsRule, *core.Terminal:
+		case *coreir.Nest, *coreir.OperatorsRule, *coreir.Terminal:
 			ok = false
 		}
 	})
@@ -124,20 +124,20 @@ func FramedBody(n core.Node) bool {
 // framed function name of the rule r: the body of a left-recursion leader or of a rule that
 // recovers, or a line of an Operators Rule of r. Analyze must have run on m. With Options.Budget the
 // function does not charge its entry: the method that calls it does (Func.Entered).
-func LowerFrame(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*flow.Func, error) {
+func LowerFrame(m *coreir.Module, r *coreir.Rule, n coreir.Node, slots []coreir.Slot, build bool, name string, opts Options) (*flow.Func, error) {
 	return lowerFrameBody(m, r, n, slots, build, name, opts)
 }
 
 // Outlinable reports whether a node can run as a function of its own (LowerOutline): it is a framed
 // body without a cut, whose flag the function would have to share with the enclosing backtracking points.
-func Outlinable(n core.Node) bool {
+func Outlinable(n coreir.Node) bool {
 	if !FramedBody(n) {
 		return false
 	}
 	ok := true
-	core.Walk(n, func(n core.Node) {
+	coreir.Walk(n, func(n coreir.Node) {
 		switch n.(type) {
-		case *core.Cut, *core.Stream:
+		case *coreir.Cut, *coreir.Stream:
 			ok = false
 		}
 	})
@@ -147,23 +147,23 @@ func Outlinable(n core.Node) bool {
 // LowerOutline lowers the node n, which a CallOutline of a framed function runs, to the framed function
 // name. The function belongs to the rule of its caller, which charged the entry of the rule: it
 // charges only the repetitions below n. Analyze must have run on m.
-func LowerOutline(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*flow.Func, error) {
+func LowerOutline(m *coreir.Module, r *coreir.Rule, n coreir.Node, slots []coreir.Slot, build bool, name string, opts Options) (*flow.Func, error) {
 	return lowerFrameBody(m, r, n, slots, build, name, opts)
 }
 
-func lowerFrameBody(m *core.Module, r *core.Rule, n core.Node, slots []core.Slot, build bool, name string, opts Options) (*flow.Func, error) {
+func lowerFrameBody(m *coreir.Module, r *coreir.Rule, n coreir.Node, slots []coreir.Slot, build bool, name string, opts Options) (*flow.Func, error) {
 	if err := checkOptions(opts); err != nil {
 		return nil, err
 	}
 	if !FramedBody(n) {
 		return nil, fmt.Errorf("a body of rule %s is not lowered to a framed function", r.Name)
 	}
-	f := &flow.Func{Name: name, Rule: r, Fail: &flow.Label{Name: "fail"}, Frame: true, Node: opts.Node, Budget: opts.Budget, Document: opts.Document, Entered: opts.Budget, Binds: n.Attrs().Eff.Set&core.EffBind != 0}
+	f := &flow.Func{Name: name, Rule: r, Fail: &flow.Label{Name: "fail"}, Frame: true, Node: opts.Node, Budget: opts.Budget, Document: opts.Document, Entered: opts.Budget, Binds: n.Attrs().Eff.Set&coreir.EffBind != 0}
 	l := &lowerer{m: m, opts: opts, f: f, used: map[*flow.Label]bool{}, frame: true}
 	l.top = n
 	l.stack = []*[]flow.Stmt{&f.Body}
-	core.Walk(n, func(n core.Node) {
-		if _, ok := n.(*core.Cut); ok {
+	coreir.Walk(n, func(n coreir.Node) {
+		if _, ok := n.(*coreir.Cut); ok {
 			l.localCuts = true
 		}
 	})
@@ -189,7 +189,7 @@ func checkOptions(opts Options) error {
 
 // Lower lowers the rule r of the module m, a LocalRule, to the function name. Analyze must have
 // run on m.
-func Lower(m *core.Module, r *core.Rule, name string, opts Options) (*flow.Func, error) {
+func Lower(m *coreir.Module, r *coreir.Rule, name string, opts Options) (*flow.Func, error) {
 	if err := checkOptions(opts); err != nil {
 		return nil, err
 	}
@@ -204,11 +204,11 @@ func Lower(m *core.Module, r *core.Rule, name string, opts Options) (*flow.Func,
 		Budget:   opts.Budget,
 		Document: opts.Document,
 		Entered:  opts.Budget, // the method that calls the function charges the step of entering the rule
-		Binds:    r.Body.Attrs().Eff.Set&core.EffBind != 0}
+		Binds:    r.Body.Attrs().Eff.Set&coreir.EffBind != 0}
 	l := &lowerer{m: m, opts: opts, f: f, used: map[*flow.Label]bool{}}
 	l.stack = []*[]flow.Stmt{&f.Body}
-	core.Walk(r.Body, func(n core.Node) {
-		if _, ok := n.(*core.Cut); ok {
+	coreir.Walk(r.Body, func(n coreir.Node) {
+		if _, ok := n.(*coreir.Cut); ok {
 			l.localCuts = true
 		}
 	})
@@ -231,8 +231,8 @@ func verified(f *flow.Func) (*flow.Func, error) {
 
 type lowerer struct {
 	// top is the root of a framed function, which stays in it.
-	top  core.Node
-	m    *core.Module
+	top  coreir.Node
+	m    *coreir.Module
 	opts Options
 	f    *flow.Func
 	n    int
@@ -249,22 +249,22 @@ type lowerer struct {
 	// guarded is the class that begins the alternative guardedAlt being lowered, which the guard
 	// has read and accepted; guardedSize holds the size of its character. node forgets guarded at
 	// any other node.
-	guarded     *core.ClassNode
-	guardedAlt  core.Node
+	guarded     *coreir.ClassNode
+	guardedAlt  coreir.Node
 	guardedSize *flow.Var
 	// frame reports a framed function.
 	frame bool
 	// streaming is the repetition of the Stream node being lowered in a stream parse (Options.Stream).
-	streaming *core.Repeat
+	streaming *coreir.Repeat
 }
 
 // scope is a capture scope: its slots and the variables made for them.
 type scope struct {
-	slots []core.Slot
+	slots []coreir.Slot
 	vars  []*flow.Var
 }
 
-func newScope(slots []core.Slot) *scope {
+func newScope(slots []coreir.Slot) *scope {
 	return &scope{slots: slots, vars: make([]*flow.Var, len(slots))}
 }
 
@@ -391,13 +391,13 @@ func (m mark) at() flow.Expr {
 }
 
 // mark saves the state before n; with saves, also the capture slots of s that n may write.
-func (l *lowerer) mark(s *scope, n core.Node, saves bool) mark {
+func (l *lowerer) mark(s *scope, n coreir.Node, saves bool) mark {
 	if l.frame {
 		m := mark{state: l.decl("x", flow.TypeMark)}
 		eff := n.Attrs().Eff
-		st := &flow.MarkState{Env: eff.Set&core.EffBind != 0, Rec: eff.Set&core.EffRecover != 0}
-		core.Walk(n, func(n core.Node) {
-			if _, ok := n.(*core.Capture); ok {
+		st := &flow.MarkState{Env: eff.Set&coreir.EffBind != 0, Rec: eff.Set&coreir.EffRecover != 0}
+		coreir.Walk(n, func(n coreir.Node) {
+			if _, ok := n.(*coreir.Capture); ok {
 				st.Trail = true
 			}
 		})
@@ -412,7 +412,7 @@ func (l *lowerer) mark(s *scope, n core.Node, saves bool) mark {
 		l.set(m.pos, pos)
 	}
 	eff := n.Attrs().Eff
-	if eff.Set&core.EffBind != 0 {
+	if eff.Set&coreir.EffBind != 0 {
 		m.env = l.decl("x", flow.TypeEnv)
 		l.set(m.env, &flow.Read{R: flow.RegEnv})
 	}
@@ -447,7 +447,7 @@ func (l *lowerer) reset(m mark) {
 }
 
 // cutNode lowers a backtracking point's body with a cut flag of its own, if the rule cuts.
-func (l *lowerer) cutNode(n core.Node, s *scope, build bool, fail *flow.Label) (flow.Expr, *flow.Var) {
+func (l *lowerer) cutNode(n coreir.Node, s *scope, build bool, fail *flow.Label) (flow.Expr, *flow.Var) {
 	if !l.localCuts {
 		return l.node(n, s, build, fail), nil
 	}
@@ -467,10 +467,10 @@ func (l *lowerer) cutFail(cut *flow.Var, fail *flow.Label, cleanup ...flow.Stmt)
 	}
 }
 
-var anchorExps = map[core.AnchorKind]core.ExpID{core.BeginInput: 1, core.EndInput: 2, core.BeginLine: 3, core.EndLine: 4}
+var anchorExps = map[coreir.AnchorKind]coreir.ExpID{coreir.BeginInput: 1, coreir.EndInput: 2, coreir.BeginLine: 3, coreir.EndLine: 4}
 
 // node lowers n, leaving fail when it fails, and returns its value: nil unless build.
-func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) node(n coreir.Node, s *scope, build bool, fail *flow.Label) flow.Expr {
 	if l.dead {
 		return &flow.Nil{}
 	}
@@ -482,14 +482,14 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		return l.outlined(n, s, build, fail)
 	}
 	switch n := n.(type) {
-	case *core.Terminal:
+	case *coreir.Terminal:
 		l.failIf(nil, &flow.Not{X: &flow.SkipTerminal{T: n}}, fail)
 		return &flow.Nil{}
-	case *core.Lit:
+	case *coreir.Lit:
 		return l.lit(n, build, fail)
-	case *core.Missing:
+	case *coreir.Missing:
 		return l.lit(n.Lit, build, fail)
-	case *core.ClassNode:
+	case *coreir.ClassNode:
 		if n == l.guarded {
 			return l.guardedClass(build)
 		}
@@ -510,12 +510,12 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		l.failIf(nil, &flow.Or{X: &flow.Not{X: use(ok)}, Y: &flow.Not{X: &flow.InClass{Class: n.Class, Ch: ch}}}, fail,
 			&flow.Expect{At: pos, Exp: n.Class.Exp})
 		return l.single(size, build)
-	case *core.Any:
+	case *coreir.Any:
 		size, ok := l.shared("size", flow.TypeInt), l.ok()
 		l.emit(&flow.Peek{Size: size, OK: ok})
 		l.failIf(nil, &flow.Not{X: use(ok)}, fail, &flow.Expect{At: pos, Exp: 0})
 		return l.single(size, build)
-	case *core.Call:
+	case *coreir.Call:
 		ok := l.ok()
 		call := &flow.CallRule{Rule: n.Rule, Level: n.Level}
 		if !build {
@@ -525,14 +525,14 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		v := l.decl("v", flow.TypeValue)
 		l.failIf(&flow.Set{Dst: []flow.LValue{v, ok}, X: []flow.Expr{call}}, &flow.Not{X: use(ok)}, fail)
 		return use(v)
-	case *core.Seq:
+	case *coreir.Seq:
 		return l.seq(n, s, build, fail)
-	case *core.ClassRun:
+	case *coreir.ClassRun:
 		l.failIf(nil, &flow.Not{X: &flow.SkipClasses{Run: n}}, fail)
 		return &flow.Nil{}
-	case *core.Choice:
+	case *coreir.Choice:
 		return l.choice(n, s, build, fail)
-	case *core.Stream:
+	case *coreir.Stream:
 		if l.opts.Stream {
 			if !l.frame || !l.opts.Node || n.Repeat.Project != "" {
 				panic("flow: a stream repetition is lowered in a framed Node function and is not projected")
@@ -540,11 +540,11 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 			l.streaming = n.Repeat
 		}
 		return l.repeat(n.Repeat, s, build, fail)
-	case *core.Repeat:
+	case *coreir.Repeat:
 		return l.repeat(n, s, build, fail)
-	case *core.Scan:
+	case *coreir.Scan:
 		return l.scan(n, fail)
-	case *core.Opt:
+	case *coreir.Opt:
 		m := l.mark(s, n.Body, true)
 		var v *flow.Var
 		if build {
@@ -574,7 +574,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 			return &flow.Nil{}
 		}
 		return use(v)
-	case *core.Look:
+	case *coreir.Look:
 		if n.Neg {
 			return l.not(n, s, fail)
 		}
@@ -582,7 +582,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		// keeps its captures and bindings.
 		start := l.decl("x", flow.TypeInt)
 		var rec *flow.Var
-		if l.opts.Recovers && n.Body.Attrs().Eff.Set&core.EffRecover != 0 {
+		if l.opts.Recovers && n.Body.Attrs().Eff.Set&coreir.EffRecover != 0 {
 			rec = l.decl("x", flow.TypeInt)
 			l.emit(&flow.Set{Dst: []flow.LValue{start, rec}, X: []flow.Expr{pos, &flow.RecLen{}}})
 		} else {
@@ -617,7 +617,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 			l.close(bd)
 		}
 		return &flow.Nil{}
-	case *core.Text:
+	case *coreir.Text:
 		var start *flow.Var
 		if build {
 			start = l.decl("x", flow.TypeInt)
@@ -630,17 +630,17 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 		v := l.decl("v", flow.TypeValue)
 		l.set(v, l.match(use(start), &flow.Text{Start: use(start)}))
 		return use(v)
-	case *core.Drop:
+	case *coreir.Drop:
 		l.node(n.Body, s, false, fail)
 		return &flow.Nil{}
-	case *core.Capture:
+	case *coreir.Capture:
 		if l.frame {
 			return l.frameCapture(n, s, build, fail)
 		}
 		k := l.capVar(s, n.Slot)
 		var v flow.Expr
 		if n.Project != "" {
-			v = l.projectRepeat(n.Body.(*core.Repeat), fail)
+			v = l.projectRepeat(n.Body.(*coreir.Repeat), fail)
 		} else {
 			start := l.decl("x", flow.TypeInt)
 			l.set(start, pos)
@@ -651,30 +651,30 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 			return &flow.Nil{}
 		}
 		return v
-	case *core.Succeed:
+	case *coreir.Succeed:
 		return &flow.Nil{}
-	case *core.FailNode:
+	case *coreir.FailNode:
 		l.exit(fail)
 		return &flow.Nil{}
-	case *core.Cut:
+	case *coreir.Cut:
 		if l.cut != nil {
 			l.set(l.cut, &flow.Bool{B: true})
 		}
 		return &flow.Nil{}
-	case *core.Anchor:
+	case *coreir.Anchor:
 		l.failIf(nil, &flow.Not{X: &flow.AtAnchor{Kind: n.Kind}}, fail, &flow.Expect{At: pos, Exp: anchorExps[n.Kind]})
 		return &flow.Nil{}
-	case *core.Pred:
+	case *coreir.Pred:
 		caps := l.termCaps(n.Term, s)
 		l.failIf(nil, &flow.Not{X: &flow.Pred{Node: n, Caps: caps}}, fail)
 		return &flow.Nil{}
-	case *core.BindNode:
+	case *coreir.BindNode:
 		caps := l.termCaps(n.Term, s)
 		l.failIf(nil, &flow.Not{X: &flow.Bind{Node: n, Caps: caps}}, fail)
 		return &flow.Nil{}
-	case *core.Label:
+	case *coreir.Label:
 		return l.label_(n, s, build, fail)
-	case *core.Recover:
+	case *coreir.Recover:
 		if l.frame {
 			return l.recover(n, s, build, fail)
 		}
@@ -683,7 +683,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 }
 
 // lit lowers a literal.
-func (l *lowerer) lit(n *core.Lit, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) lit(n *coreir.Lit, build bool, fail *flow.Label) flow.Expr {
 	var start *flow.Var
 	if build {
 		start = l.decl("x", flow.TypeInt)
@@ -743,7 +743,7 @@ func (l *lowerer) guardedClass(build bool) flow.Expr {
 	return use(v)
 }
 
-func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) seq(n *coreir.Seq, s *scope, build bool, fail *flow.Label) flow.Expr {
 	var start, kids *flow.Var
 	if build {
 		start, kids = l.decl("x", flow.TypeInt), l.decl("x", flow.TypeVals)
@@ -772,18 +772,18 @@ func (l *lowerer) seq(n *core.Seq, s *scope, build bool, fail *flow.Label) flow.
 }
 
 // leadingClass returns the class that begins the alternative body n, also inside a Terminal.
-func leadingClass(n core.Node) *core.ClassNode {
-	if t, ok := n.(*core.Terminal); ok {
+func leadingClass(n coreir.Node) *coreir.ClassNode {
+	if t, ok := n.(*coreir.Terminal); ok {
 		n = t.Body
 	}
-	if s, ok := n.(*core.Seq); ok && len(s.Items) > 0 {
+	if s, ok := n.(*coreir.Seq); ok && len(s.Items) > 0 {
 		n = s.Items[0]
 	}
-	c, _ := n.(*core.ClassNode)
+	c, _ := n.(*coreir.ClassNode)
 	return c
 }
 
-func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) choice(n *coreir.Choice, s *scope, build bool, fail *flow.Label) flow.Expr {
 	m := l.mark(s, n, true)
 	var v *flow.Var
 	if build {
@@ -808,7 +808,7 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail *flow.Label)
 			break // the alternatives after one that cannot fail are never tried
 		}
 		var bs *flow.Block
-		var guarded *core.ClassNode
+		var guarded *coreir.ClassNode
 		if a.Guard != nil {
 			// The alternative is skipped when the next character cannot begin it.
 			if ch == nil {
@@ -851,9 +851,9 @@ func (l *lowerer) choice(n *core.Choice, s *scope, build bool, fail *flow.Label)
 
 // shapeOne converts the value x of n, matched from start, to its value where it takes one
 // element; with capture, where it is captured.
-func (l *lowerer) shapeOne(n core.Node, x flow.Expr, start flow.Expr, capture bool) flow.Expr {
+func (l *lowerer) shapeOne(n coreir.Node, x flow.Expr, start flow.Expr, capture bool) flow.Expr {
 	sh := n.Attrs().Shape
-	if sh.Mode == core.SinglePass && !sh.Elems {
+	if sh.Mode == coreir.SinglePass && !sh.Elems {
 		return x
 	}
 	v := l.decl("v", flow.TypeValue)
@@ -866,7 +866,7 @@ func (l *lowerer) shapeOne(n core.Node, x flow.Expr, start flow.Expr, capture bo
 }
 
 // not lowers a negative lookahead.
-func (l *lowerer) not(n *core.Look, s *scope, fail *flow.Label) flow.Expr {
+func (l *lowerer) not(n *coreir.Look, s *scope, fail *flow.Label) flow.Expr {
 	m := l.mark(s, n.Body, true)
 	l.emit(&flow.Silent{Delta: 1, Site: n.Site})
 	f := l.label()
@@ -884,7 +884,7 @@ func (l *lowerer) not(n *core.Look, s *scope, fail *flow.Label) flow.Expr {
 	return &flow.Nil{}
 }
 
-func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) repeat(n *coreir.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
 	if n.Site != 0 {
 		return l.skipRepeat(n, s, fail)
 	}
@@ -922,7 +922,7 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 	}
 	if own && build {
 		attached := l.decl("v", flow.TypeValue)
-		x := &flow.AttachCaptures{X: v, Names: &flow.Names{List: core.SlotNames(es.slots)}, Start: use(m.pos)}
+		x := &flow.AttachCaptures{X: v, Names: &flow.Names{List: coreir.SlotNames(es.slots)}, Start: use(m.pos)}
 		x.Vals = l.scopeVals(es)
 		l.set(attached, x)
 		v = use(attached)
@@ -966,7 +966,7 @@ func (l *lowerer) repeat(n *core.Repeat, s *scope, build bool, fail *flow.Label)
 // its own, in a local or a framed function. A walk that matches ScanHotSpan characters takes the
 // rest from the record of its start or goes on (ScanReach), and records itself when it ends
 // (ScanEnd; ScanKids for a walk that builds a value, whose records are those of the next site).
-func (l *lowerer) scanSiteRepeat(n *core.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) scanSiteRepeat(n *coreir.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
 	if n.Max >= 0 || n.Scope != nil || n.Project != "" {
 		panic("flow: a scan site has no maximum, no scope of its own and no projection")
 	}
@@ -1044,7 +1044,7 @@ func (l *lowerer) scanEnd(site int, start, count *flow.Var) {
 // skipRepeat lowers the skip-run site n, a value-free repetition without a maximum or a scope of
 // its own, whose iterations are the visits of a walk (SkipBegin): from the minimum on, an iteration
 // first takes the rest of the walk from the record of the position, if there is one.
-func (l *lowerer) skipRepeat(n *core.Repeat, s *scope, fail *flow.Label) flow.Expr {
+func (l *lowerer) skipRepeat(n *coreir.Repeat, s *scope, fail *flow.Label) flow.Expr {
 	if n.Max >= 0 || n.Scope != nil {
 		panic("flow: a skip-run site has no maximum and no scope of its own")
 	}
@@ -1102,7 +1102,7 @@ func (l *lowerer) exitLoop(lp *flow.Loop) {
 }
 
 // clearScope sets the capture slots of the element n in its own scope es to nil.
-func (l *lowerer) clearScope(es *scope, n core.Node) {
+func (l *lowerer) clearScope(es *scope, n coreir.Node) {
 	for _, slot := range n.Attrs().Eff.Slots {
 		l.set(l.capVar(es, slot), &flow.Nil{})
 	}
@@ -1118,7 +1118,7 @@ func (l *lowerer) scopeVals(es *scope) []*flow.Var {
 }
 
 // scan lowers a value-free repetition of one character.
-func (l *lowerer) scan(n *core.Scan, fail *flow.Label) flow.Expr {
+func (l *lowerer) scan(n *coreir.Scan, fail *flow.Label) flow.Expr {
 	var ch *flow.Var
 	if n.Class != nil {
 		ch = l.shared("ch", flow.TypeRune)
@@ -1140,7 +1140,7 @@ func (l *lowerer) scan(n *core.Scan, fail *flow.Label) flow.Expr {
 	l.loop(lp)
 	l.emit(&flow.Peek{Ch: ch, Size: size, OK: ok})
 	var stop flow.Expr = &flow.Not{X: use(ok)}
-	exp := core.ExpID(0)
+	exp := coreir.ExpID(0)
 	if n.Class != nil {
 		stop = &flow.Or{X: stop, Y: &flow.Not{X: &flow.InClass{Class: n.Class, Ch: ch}}}
 		exp = n.Class.Exp
@@ -1165,7 +1165,7 @@ func (l *lowerer) scan(n *core.Scan, fail *flow.Label) flow.Expr {
 
 // projectRepeat lowers a repetition that gathers the values of the capture Project of its
 // elements.
-func (l *lowerer) projectRepeat(n *core.Repeat, fail *flow.Label) flow.Expr {
+func (l *lowerer) projectRepeat(n *coreir.Repeat, fail *flow.Label) flow.Expr {
 	es := newScope(n.Scope)
 	start, base, count := l.decl("x", flow.TypeInt), l.decl("x", flow.TypeInt), l.decl("x", flow.TypeInt)
 	l.emit(&flow.Set{Dst: []flow.LValue{start, base, count}, X: []flow.Expr{pos, &flow.KidsLen{}, &flow.Int{}}})
@@ -1205,21 +1205,21 @@ func (l *lowerer) projectRepeat(n *core.Repeat, fail *flow.Label) flow.Expr {
 
 // termCaps returns the captures of the scope s for a term, making the variables of the slots it
 // refers to; in a framed function, the term reads the current frame.
-func (l *lowerer) termCaps(t core.Term, s *scope) flow.Captures {
+func (l *lowerer) termCaps(t coreir.Term, s *scope) flow.Captures {
 	if l.frame {
-		return flow.Captures{Names: core.SlotNames(s.slots)}
+		return flow.Captures{Names: coreir.SlotNames(s.slots)}
 	}
-	core.WalkTerm(t, func(t core.Term) {
-		if r, ok := t.(*core.SlotRef); ok {
+	coreir.WalkTerm(t, func(t coreir.Term) {
+		if r, ok := t.(*coreir.SlotRef); ok {
 			l.capVar(s, r.Slot)
 		}
 	})
-	return flow.Captures{Names: core.SlotNames(s.slots), Vars: append([]*flow.Var(nil), s.vars...)}
+	return flow.Captures{Names: coreir.SlotNames(s.slots), Vars: append([]*flow.Var(nil), s.vars...)}
 }
 
 // label_ lowers @error and @diagnostic: the expectations recorded inside are isolated, so that
 // the label changes only those of a failed body.
-func (l *lowerer) label_(n *core.Label, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) label_(n *coreir.Label, s *scope, build bool, fail *flow.Label) flow.Expr {
 	mk, far, exps := l.decl("x", flow.TypeExpMark), l.decl("x", flow.TypeInt), l.decl("x", flow.TypeExpIDs)
 	l.set(mk, &flow.Isolate{})
 	f, done := l.label(), l.label()
@@ -1249,29 +1249,29 @@ func (l *lowerer) label_(n *core.Label, s *scope, build bool, fail *flow.Label) 
 
 // finish makes the rule's value from the body's value body and the captures s, leaving it in
 // the Result variable.
-func (l *lowerer) finish(r *core.Rule, s *scope, body flow.Expr) {
+func (l *lowerer) finish(r *coreir.Rule, s *scope, body flow.Expr) {
 	f := l.f
 	var owned flow.Expr
-	if r.Finish.NodeType != "" && (r.Finish.Kind == core.FinishSplice || r.Finish.Kind == core.FinishScope) {
+	if r.Finish.NodeType != "" && (r.Finish.Kind == coreir.FinishSplice || r.Finish.Kind == coreir.FinishScope) {
 		bv := l.shared("bv", flow.TypeValue)
 		l.set(bv, &flow.FreshNode{X: body})
 		owned = use(bv)
 	}
 	switch r.Finish.Kind {
-	case core.FinishNone:
+	case coreir.FinishNone:
 		l.set(f.Result, &flow.Nil{})
-	case core.FinishAction:
-		caps := flow.Captures{Names: core.SlotNames(s.slots), Vars: l.scopeVals(s)}
+	case coreir.FinishAction:
+		caps := flow.Captures{Names: coreir.SlotNames(s.slots), Vars: l.scopeVals(s)}
 		l.set(f.Ctx, &flow.UseCtx{Start: use(f.Start)})
 		l.emit(&flow.SetWhere{Name: r.Where})
 		l.set(f.Result, &flow.Eval{Term: r.Finish.Action, C: f.Ctx, Caps: caps})
 		switch r.Finish.Action.(type) {
-		case *core.New, *core.Convert:
+		case *coreir.New, *coreir.Convert:
 			// A struct made with the rule's range; structs made inside it are dropped.
 			nested := 0
-			core.WalkTerm(r.Finish.Action, func(t core.Term) {
+			coreir.WalkTerm(r.Finish.Action, func(t coreir.Term) {
 				switch t.(type) {
-				case *core.New, *core.Convert:
+				case *coreir.New, *coreir.Convert:
 					nested++
 				}
 			})
@@ -1281,13 +1281,13 @@ func (l *lowerer) finish(r *core.Rule, s *scope, body flow.Expr) {
 		default:
 			l.set(f.Result, &flow.CtxFinish{C: f.Ctx, X: use(f.Result)})
 		}
-	case core.FinishSplice:
+	case coreir.FinishSplice:
 		l.set(f.Result, body)
 		l.emit(&flow.Unfresh{X: use(f.Result)})
-	case core.FinishScope:
+	case coreir.FinishScope:
 		l.set(f.Result, &flow.ScopeValue{Shape: r.Finish.Shape, X: body, Start: use(f.Start)})
 		if len(s.slots) > 0 {
-			x := &flow.AttachCaptures{X: use(f.Result), Names: &flow.Names{List: core.SlotNames(s.slots)}, Start: use(f.Start)}
+			x := &flow.AttachCaptures{X: use(f.Result), Names: &flow.Names{List: coreir.SlotNames(s.slots)}, Start: use(f.Start)}
 			x.Vals = l.scopeVals(s)
 			l.set(f.Result, x)
 		}
@@ -1299,10 +1299,10 @@ func (l *lowerer) finish(r *core.Rule, s *scope, body flow.Expr) {
 }
 
 // frameCapture lowers a capture in a framed function: it sets the slot of the current frame.
-func (l *lowerer) frameCapture(n *core.Capture, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) frameCapture(n *coreir.Capture, s *scope, build bool, fail *flow.Label) flow.Expr {
 	var v flow.Expr
 	if n.Project != "" {
-		v = l.frameRepeat(n.Body.(*core.Repeat), s, true, fail)
+		v = l.frameRepeat(n.Body.(*coreir.Repeat), s, true, fail)
 	} else {
 		start := l.decl("x", flow.TypeInt)
 		l.set(start, pos)
@@ -1318,7 +1318,7 @@ func (l *lowerer) frameCapture(n *core.Capture, s *scope, build bool, fail *flow
 // frameRepeat lowers a repetition in a framed function. An element with captures of its own runs
 // under a new frame, which a projected repetition (Project) makes once and clears for each
 // element.
-func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) frameRepeat(n *coreir.Repeat, s *scope, build bool, fail *flow.Label) flow.Expr {
 	field := n.Project
 	own := n.Scope != nil
 	es := s
@@ -1331,7 +1331,7 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 	if own {
 		es = newScope(n.Scope)
 		frame, prev = l.decl("x", flow.TypeFrame), l.decl("x", flow.TypeFrame)
-		names = &flow.Names{List: core.SlotNames(es.slots), Declared: true}
+		names = &flow.Names{List: coreir.SlotNames(es.slots), Declared: true}
 		if field != "" {
 			l.set(frame, &flow.NewFrame{N: names})
 		}
@@ -1432,7 +1432,7 @@ func (l *lowerer) frameRepeat(n *core.Repeat, s *scope, build bool, fail *flow.L
 }
 
 // slotOf returns the index of the slot name among slots.
-func slotOf(slots []core.Slot, name string) int {
+func slotOf(slots []coreir.Slot, name string) int {
 	for i, sl := range slots {
 		if sl.Name == name {
 			return i
@@ -1444,7 +1444,7 @@ func slotOf(slots []core.Slot, name string) int {
 // recover lowers #recover in a framed function. The expectations recorded inside are isolated;
 // when the body fails, the parser state goes back to the mark, the skip expression consumes at
 // least one character, and the error is recorded and is the value.
-func (l *lowerer) recover(n *core.Recover, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) recover(n *coreir.Recover, s *scope, build bool, fail *flow.Label) flow.Expr {
 	l.emit(&flow.Comment{Text: "Recovery inlined under the runtime-owned frame."})
 	m := l.mark(s, n, true)
 	mk, far, exps := l.decl("x", flow.TypeExpMark), l.decl("x", flow.TypeInt), l.decl("x", flow.TypeExpIDs)
@@ -1520,18 +1520,18 @@ func (l *lowerer) branch(list bool, start, kids flow.Expr) flow.Expr {
 }
 
 // outlines reports whether the node n runs as a function of its own.
-func (l *lowerer) outlines(n core.Node) bool {
+func (l *lowerer) outlines(n coreir.Node) bool {
 	return l.opts.Outline != nil && n != l.top && !l.opts.Observe && l.streaming == nil &&
 		l.opts.Outline(n) && (l.frame || noCaptures(n))
 }
 
 // noCaptures reports whether the node n neither sets nor reads captures, so that a function of its own
 // can run it for a function whose captures are variables.
-func noCaptures(n core.Node) bool {
+func noCaptures(n coreir.Node) bool {
 	ok := true
-	core.Walk(n, func(n core.Node) {
+	coreir.Walk(n, func(n coreir.Node) {
 		switch n.(type) {
-		case *core.Capture, *core.Pred, *core.BindNode, *core.Recover:
+		case *coreir.Capture, *coreir.Pred, *coreir.BindNode, *coreir.Recover:
 			ok = false
 		}
 	})
@@ -1539,7 +1539,7 @@ func noCaptures(n core.Node) bool {
 }
 
 // outlined lowers the node n to a call of its function.
-func (l *lowerer) outlined(n core.Node, s *scope, build bool, fail *flow.Label) flow.Expr {
+func (l *lowerer) outlined(n coreir.Node, s *scope, build bool, fail *flow.Label) flow.Expr {
 	ok := l.ok()
 	call := &flow.CallOutline{Node: n, Slots: s.slots, Build: build}
 	if !build {

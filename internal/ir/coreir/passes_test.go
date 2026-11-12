@@ -1,4 +1,4 @@
-package core
+package coreir
 
 import (
 	"fmt"
@@ -190,7 +190,7 @@ func TestPassesScanPreconditions(t *testing.T) {
 	m.Rules[0].Want = false
 	passes(t, m, Scans)
 	items := m.Rules[0].Body.(*Seq).Items
-	for i, want := range []string{"*core.Repeat", "*core.Repeat", "*core.Repeat", "*core.Scan"} {
+	for i, want := range []string{"*coreir.Repeat", "*coreir.Repeat", "*coreir.Repeat", "*coreir.Scan"} {
 		if got := fmt.Sprintf("%T", items[i]); got != want {
 			t.Errorf("item %d: %s, want %s", i, got, want)
 		}

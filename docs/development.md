@@ -119,7 +119,7 @@ call counts with the engine across chunkings, units, controls, observability and
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.
 
 Generation-time optimizations are the flags of one registry (`internal/gen/opt`), and the Core passes are a pipeline
-declared in `internal/ir/core/pipeline.go` and run by the generic manager in `internal/ir/pipeline`
+declared in `internal/ir/coreir/pipeline.go` and run by the generic manager in `internal/ir/pipeline`
 ([design 063](design/records/063-configurable-optimization-pass-pipeline.md)). To add an optimization:
 
 1. Declare a pass with its `Requires`, `Invalidates`, `After`, `Applies` and `Obligation`, or add a lowering or

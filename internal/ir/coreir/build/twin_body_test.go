@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // TestTwinBodies checks that the value-free twin of every rule of the corpus grammars has the
@@ -36,8 +36,8 @@ func TestTwinBodies(t *testing.T) {
 				continue
 			}
 			twins++
-			rule := callee.ReplaceAllString(core.PrintNode(m, r.Body, false), "call ")
-			twin := callee.ReplaceAllString(core.PrintNode(m, r.Twin.Body, false), "call ")
+			rule := callee.ReplaceAllString(coreir.PrintNode(m, r.Body, false), "call ")
+			twin := callee.ReplaceAllString(coreir.PrintNode(m, r.Twin.Body, false), "call ")
 			if rule != twin {
 				t.Errorf("%s: the twin of %s has another body:\n%s\nthe rule:\n%s", path, r.Name, twin, rule)
 			}

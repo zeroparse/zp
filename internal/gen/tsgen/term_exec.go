@@ -7,11 +7,11 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	irc "zeroparse.dev/zp/internal/ir/core"
+	irc "zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/execcore"
-	"zeroparse.dev/zp/internal/ir/exec/exects"
 	"zeroparse.dev/zp/internal/ir/exec/execlower"
+	"zeroparse.dev/zp/internal/ir/exec/exects"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 

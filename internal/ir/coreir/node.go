@@ -1,4 +1,4 @@
-package core
+package coreir
 
 // Node is an expression of Core IR.
 type Node interface {

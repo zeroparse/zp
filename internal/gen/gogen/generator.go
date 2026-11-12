@@ -17,7 +17,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
@@ -83,9 +83,9 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// CoreRun runs the Core passes in place of core.Run (gen.Generator.CoreRun), so that a test
+	// CoreRun runs the Core passes in place of coreir.Run (gen.Generator.CoreRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
-	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	CoreRun func(m *coreir.Module, env *coreir.Env, o coreir.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate (other than for RuntimeOnly). It generates twice: the
@@ -1327,7 +1327,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	co := g.flowOperatorsRule(r)
 	if e.Skip != nil {
 		s := compile.NewScope()
-		var skip *core.OpLine
+		var skip *coreir.OpLine
 		if co != nil {
 			skip = co.Skip
 		}
@@ -1339,7 +1339,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	}
 	fmt.Fprintf(&b, "\t\tOperands: []*%s{\n", g.pick("OperatorsRuleLine", "TOperatorsRuleLine"))
 	for i, o := range e.Operands {
-		var l *core.OpLine
+		var l *coreir.OpLine
 		if co != nil {
 			l = co.Operands[i]
 		}
@@ -1350,7 +1350,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	id := 0
 	for i, l := range e.Levels {
 		for _, op := range l.Operators {
-			var l *core.OpLine
+			var l *coreir.OpLine
 			if co != nil {
 				l = co.Ops[id].Line
 			}
@@ -1374,7 +1374,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 
 // operatorsRuleLine returns the line of an Operators Rule with the expression e and the action;
 // l is its Core IR if it is printed from Flow IR, or nil.
-func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, operator bool, l *core.OpLine) string {
+func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, operator bool, l *coreir.OpLine) string {
 	s := compile.NewScope()
 	var locals []string
 	if operator {
@@ -1396,7 +1396,7 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if g.Table == "trules" {
 			g.final = action // re-ranged by tctx.result, as an action's result
 		}
-		var ct core.Term
+		var ct coreir.Term
 		if l != nil {
 			ct = l.Action
 		}

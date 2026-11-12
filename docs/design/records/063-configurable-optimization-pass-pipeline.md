@@ -70,7 +70,7 @@ negative-control test. This record gives that rule a mechanism.
 ### Pass Declarations
 
 A pass is a value of `pipeline.Pass[M, X]` (`internal/ir/pipeline`), generic over the unit `M` and the mode `X`; the
-Core passes are declared in `internal/ir/core/pipeline.go`. The names are those of the pipeline code, not of any public
+Core passes are declared in `internal/ir/coreir/pipeline.go`. The names are those of the pipeline code, not of any public
 API.
 
 | Field | Meaning |
@@ -79,12 +79,12 @@ API.
 | `Requires` | Analyses that must be valid when the pass starts |
 | `Invalidates` | Analyses that the pass makes stale |
 | `After` | Passes that must precede it when both are enabled (an ordering constraint with no data dependence) |
-| `Applies` | A predicate over the generation mode (`core.Mode`: lean, ordinary, observe) |
+| `Applies` | A predicate over the generation mode (`coreir.Mode`: lean, ordinary, observe) |
 | `Obligation` | One sentence stating what the pass preserves |
 | `Run` | The function over the unit |
 
 Analyses are the data that passes read and that other passes make stale. The Core pipeline has one: `attributes`
-(`core.Analyze`: `Nullable`, `First`, `Eff`). The attributes that the builder sets (`Want`, `Shape`) are inputs, not
+(`coreir.Analyze`: `Nullable`, `First`, `Eff`). The attributes that the builder sets (`Want`, `Shape`) are inputs, not
 analyses. No pass changes the calls between rules, so the call graph is checked by `Verify` and is not an analysis of
 the manager.
 
@@ -114,9 +114,9 @@ On the typed table with every optimization enabled, `attributes` is stale at the
 it is stale again after `scans` and `class-runs` and is recomputed once before the final verification. The pipeline
 of the recognizer table and of the Node table is the same list in a mode that is not lean, so `terminals` and
 `class-runs` do not apply there. Where a route needs to follow what a pass does, it hooks the pass: the route of the Node
-and recognizer tables keeps the origin of each repetition that `scans` replaces (`core.Env.PrepareScans`).
+and recognizer tables keeps the origin of each repetition that `scans` replaces (`coreir.Env.PrepareScans`).
 
-The mode is a value the generator passes in (`core.Mode`), so `core` keeps no knowledge of budget controls or
+The mode is a value the generator passes in (`coreir.Mode`), so `coreir` keeps no knowledge of budget controls or
 Documents.
 
 ### Flags
@@ -176,7 +176,7 @@ generated source larger, and only an optimization that is effective gets a flag.
 
 ### Verification Between Passes
 
-With verification on (`GenOptions.VerifyEachPass`), the manager makes `attributes` valid and calls `core.Verify` after
+With verification on (`GenOptions.VerifyEachPass`), the manager makes `attributes` valid and calls `coreir.Verify` after
 every pass and names the pass that produced the first violation. Off (the default), it verifies once at the end.
 Verification between passes can run more analyses than the default pipeline; the output does not change. The test
 helpers of the generator set it, so every fixture of the suite runs with the check between passes.
@@ -219,7 +219,7 @@ The word "profile" already names the rule profiler (`zp profile`, `WithProfile`)
 ### Print After Pass
 
 The manager takes an optional `Dump func(pass string, m M)`, called with `build` before the first pass and with the name
-of each pass that ran, after it. The generator prints with `core.Print(m, true)` to `PrintTo` after the passes selected
+of each pass that ran, after it. The generator prints with `coreir.Print(m, true)` to `PrintTo` after the passes selected
 by `PrintAfter`: a comma-separated list of `build`, pass names, or `all`, as in LLVM's `-print-after`. Only the
 generation that writes the output prints. Each section starts with `-- Core IR of the <table> after <pass> --`, where
 `<table>` is `typed` for the typed rules, and `rules` or `recRules` for the Node and recognizer tables. The tests use

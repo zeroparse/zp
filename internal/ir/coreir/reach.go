@@ -1,4 +1,4 @@
-package core
+package coreir
 
 // Entry is a way of entering a rule. A generator enters a rule through its slot, the rule table's
 // entry that the runtime runs with its bookkeeping (Body), or through its wrapper, a function of its

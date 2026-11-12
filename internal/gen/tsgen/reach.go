@@ -6,12 +6,12 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // A generated parser prints only the rules that a parse can enter: the start rules, which parseRule
-// names and parse and recognize run, and the rules that the printed bodies call (core.Module.Reach).
+// names and parse and recognize run, and the rules that the printed bodies call (coreir.Module.Reach).
 // The Core IR also has calls that the printed code leaves out, after an expression that never matches;
 // GenerateParser then generates again with the rules that the printed calls reach (printedReach).
 // A rule left out has no constant, body, action, plain function or table row, and what only it would
@@ -24,14 +24,14 @@ import (
 
 // tsLive holds, for each table ("rules" or "recRules"), the ways in which the rules are entered.
 type tsLive struct {
-	reach map[string][]core.Entry
+	reach map[string][]coreir.Entry
 }
 
 // reachableRules returns the rules of prog and of the recognizer rec (nil if there is none) that a
 // parse can enter: every start rule of the Node table, which parseRule can name, and the rule start
 // that parse and recognize run.
 func reachableRules(prog, rec *compile.Program, start *compile.Rule) (*tsLive, error) {
-	return reachFrom(prog, rec, start, func(table string, p *compile.Program) (*core.Module, error) {
+	return reachFrom(prog, rec, start, func(table string, p *compile.Program) (*coreir.Module, error) {
 		return irbuild.CoreFrom(p, nil)
 	})
 }
@@ -40,12 +40,12 @@ func reachableRules(prog, rec *compile.Program, start *compile.Rule) (*tsLive, e
 // prints (checkCall), from the roots of reachableRules. Printing leaves out the calls that Core IR
 // has at points that the lowered code never reaches, such as after a lookahead that always fails.
 func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule) *tsLive {
-	l, _ := reachFrom(prog, rec, start, func(table string, p *compile.Program) (*core.Module, error) {
-		m := &core.Module{Calls: make([][]int, len(p.RuleList)+len(p.Twins))}
+	l, _ := reachFrom(prog, rec, start, func(table string, p *compile.Program) (*coreir.Module, error) {
+		m := &coreir.Module{Calls: make([][]int, len(p.RuleList)+len(p.Twins))}
 		for from, to := range g.printed[table] {
 			m.Calls[from] = to
 		}
-		m.Rules = make([]*core.Rule, len(m.Calls))
+		m.Rules = make([]*coreir.Rule, len(m.Calls))
 		return m, nil
 	})
 	return l
@@ -53,8 +53,8 @@ func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule
 
 // reachFrom computes the reach of reachableRules over the call graph of the module that module
 // returns for each table.
-func reachFrom(prog, rec *compile.Program, start *compile.Rule, module func(table string, p *compile.Program) (*core.Module, error)) (*tsLive, error) {
-	l := &tsLive{reach: map[string][]core.Entry{}}
+func reachFrom(prog, rec *compile.Program, start *compile.Rule, module func(table string, p *compile.Program) (*coreir.Module, error)) (*tsLive, error) {
+	l := &tsLive{reach: map[string][]coreir.Entry{}}
 	for table, p := range map[string]*compile.Program{"rules": prog, "recRules": rec} {
 		if p == nil {
 			continue
@@ -63,19 +63,19 @@ func reachFrom(prog, rec *compile.Program, start *compile.Rule, module func(tabl
 		if err != nil {
 			return nil, err
 		}
-		var roots []core.Root
+		var roots []coreir.Root
 		if table == "rules" {
 			for _, name := range p.StartRules {
-				roots = append(roots, core.Root{Rule: p.ByName[name].ID, Entry: core.EnterSlot})
+				roots = append(roots, coreir.Root{Rule: p.ByName[name].ID, Entry: coreir.EnterSlot})
 			}
 		}
-		roots = append(roots, core.Root{Rule: p.ByName[start.Name].ID, Entry: core.EnterSlot})
+		roots = append(roots, coreir.Root{Rule: p.ByName[start.Name].ID, Entry: coreir.EnterSlot})
 		rules := append(append([]*compile.Rule(nil), p.RuleList...), p.Twins...)
-		l.reach[table] = m.Reach(roots, func(id int) core.Entry {
+		l.reach[table] = m.Reach(roots, func(id int) coreir.Entry {
 			if callsPlain(rules[id]) {
-				return core.EnterWrapper
+				return coreir.EnterWrapper
 			}
-			return core.EnterSlot
+			return coreir.EnterSlot
 		})
 	}
 	return l, nil
@@ -109,7 +109,7 @@ func (g *Generator) pruned(r *compile.Rule) bool {
 // slotReached reports whether something enters the rule r through its constant (and so its body
 // assignment), and not only through its plain function.
 func (g *Generator) slotReached(r *compile.Rule) bool {
-	return g.live == nil || g.live.reach[g.Table][r.ID]&core.EnterSlot != 0
+	return g.live == nil || g.live.reach[g.Table][r.ID]&coreir.EnterSlot != 0
 }
 
 // tableRow reports whether the constant of the rule r is declared: something reads it, which is

@@ -12,7 +12,7 @@
 //
 // The package depends on nothing of the engine: checked types are handles the engine makes
 // (Type), and the handles of a cast (Cast.Check, Cast.Key) carry what only a backend needs.
-package core
+package coreir
 
 // Module is a program variant in Core IR.
 type Module struct {

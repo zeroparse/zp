@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 	"zeroparse.dev/zp/internal/value"
@@ -43,7 +43,7 @@ func (g *Generator) startTSFlow() bool {
 	g.Flow.Opts.InlineLiterals = 0
 	g.Flow.Opts.ClassTableRanges = 0
 	if chosen := outlineNodes(g.Flow.M, g.Table == "rules"); len(chosen) > 0 {
-		g.Flow.Opts.Outline = func(n core.Node) bool { return chosen[n] }
+		g.Flow.Opts.Outline = func(n coreir.Node) bool { return chosen[n] }
 	}
 	return true
 }
@@ -58,7 +58,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *compile.Scope) (call string
 		return "", false
 	}
 	var f *flow.Func
-	var slots []core.Slot
+	var slots []coreir.Slot
 	cr := g.Flow.M.Rules[r.ID]
 	if gen.RecFlowEligible(r) && flowlower.LocalRule(cr) {
 		var err error
@@ -85,7 +85,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *compile.Scope) (call string
 // flowFunc prints the function f, whose capture scope has the slots, as a function of its own and
 // returns the call expression that runs it, or false if the printer does not print f. On success it
 // sets scope to the capture scope of a framed f. The comment describes the function.
-func (g *Generator) flowFunc(f *flow.Func, slots []core.Slot, scope *compile.Scope, comment string) (call string, ok bool) {
+func (g *Generator) flowFunc(f *flow.Func, slots []coreir.Slot, scope *compile.Scope, comment string) (call string, ok bool) {
 	defer func() {
 		if e := recover(); e != nil {
 			if _, unsupported := e.(tsFlowUnsupported); !unsupported {
@@ -616,18 +616,18 @@ var tsFixedExpNames = []string{"idAny", "idBeginInput", "idEndInput", "idBeginLi
 
 // exp returns the TypeScript expression of the expectation id: the name of a fixed one, otherwise its
 // ID in the parser's table.
-func (p *tsFlowPrinter) exp(id core.ExpID) string {
+func (p *tsFlowPrinter) exp(id coreir.ExpID) string {
 	if int(id) < len(tsFixedExpNames) {
 		return tsFixedExpNames[id]
 	}
 	return strconv.Itoa(int(p.desc(id)))
 }
 
-func (p *tsFlowPrinter) desc(id core.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
+func (p *tsFlowPrinter) desc(id coreir.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
 
 // classIn returns the condition that the code point in ch is in the class c (false at the end of the
 // input is the caller's check).
-func tsClassIn(c *core.Class, ch string) string {
+func tsClassIn(c *coreir.Class, ch string) string {
 	var in []string
 	for _, r := range c.Ranges {
 		if r.Lo == r.Hi {
@@ -739,11 +739,11 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		return tsClassIn(x.Class, x.Ch.Name)
 	case *flow.AtAnchor:
 		switch x.Kind {
-		case core.BeginInput:
+		case coreir.BeginInput:
 			return "p.pos === 0"
-		case core.EndInput:
+		case coreir.EndInput:
 			return "p.atEnd()"
-		case core.BeginLine:
+		case coreir.BeginLine:
 			return "p.atLineStart()"
 		default:
 			return "p.atLineEnd()"
@@ -866,7 +866,7 @@ func tsNamesIdentifier(code, name string) bool {
 }
 
 // tsShape packs a shape as the runtime's Shaper (tsShaper).
-func tsShape(sh core.Shape) int {
+func tsShape(sh coreir.Shape) int {
 	s := int(sh.Mode)<<2 | sh.K<<5
 	if sh.Elems {
 		s |= 1
@@ -915,7 +915,7 @@ func (p *tsFlowPrinter) scopeNames(n *flow.Names) string {
 
 // grammarTerm returns the term of the grammar predicate that the node n is built from, which the
 // term printer prints.
-func (p *tsFlowPrinter) grammarTerm(n core.Node) grammar.Term {
+func (p *tsFlowPrinter) grammarTerm(n coreir.Node) grammar.Term {
 	e, ok := p.g.Flow.Origin[n].(*grammar.Predicate)
 	if !ok {
 		panic(tsFlowUnsupported(fmt.Sprintf("no grammar predicate for %T", n)))
@@ -936,7 +936,7 @@ func tsUnisolate(s *flow.Set) (*flow.Unisolate, bool) {
 // function and returns the call expression that runs it, or false if the printer does not print
 // the line. It sets scope to the capture scope of the line. With budget controls the runtime loop that
 // runs the line charges its entry and the function charges each iteration of a repetition.
-func (g *Generator) flowLine(l *core.OpLine, e grammar.Expr, scope *compile.Scope, build bool) (string, bool) {
+func (g *Generator) flowLine(l *coreir.OpLine, e grammar.Expr, scope *compile.Scope, build bool) (string, bool) {
 	if g.Flow == nil || l == nil || !gen.FlowLineOK(e) || !flowlower.FramedBody(l.Body) {
 		return "", false
 	}

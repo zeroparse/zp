@@ -9,9 +9,9 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diag"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 // structuralErrors returns the errors that depend on the facts of g: they read the structure of the
@@ -25,7 +25,7 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 		return nil
 	}
 	in, defs := structuralInput(canon, control)
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[coreir.Node]grammar.Expr{}
 	m, err := build.Structural(in, origin)
 	if err != nil {
 		return nil

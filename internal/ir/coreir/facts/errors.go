@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 // Error is a grammar that the facts reject: a construct that is valid in itself but not on a
@@ -12,8 +12,8 @@ import (
 // about, for the caller to find its source position; Rule is nil when the message is about the
 // rule itself (a splice cycle).
 type Error struct {
-	Rule *core.Rule
-	Node core.Node
+	Rule *coreir.Rule
+	Node coreir.Node
 	Msg  string
 }
 
@@ -21,7 +21,7 @@ type Error struct {
 // splice cycle (at most one), then, per rule, a #stream on a left-recursion cycle, and the
 // bindings of variables that a left-recursion cycle reads (see bindings). If bindings is false the
 // bindings are accepted.
-func (f *Facts) Errors(m *core.Module, bindings bool) []Error {
+func (f *Facts) Errors(m *coreir.Module, bindings bool) []Error {
 	var errs []Error
 	errs = f.spliceCycle(m, errs)
 	for _, r := range m.Rules {
@@ -29,15 +29,15 @@ func (f *Facts) Errors(m *core.Module, bindings bool) []Error {
 			continue
 		}
 		if f.Rules[r.ID].Cyclic() {
-			core.Walk(r.Body, func(n core.Node) {
-				if _, ok := n.(*core.Stream); ok {
+			coreir.Walk(r.Body, func(n coreir.Node) {
+				if _, ok := n.(*coreir.Stream); ok {
 					errs = append(errs, Error{Rule: r, Node: n, Msg: fmt.Sprintf("#stream cannot be used in rule %s, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered", r.Name)})
 				}
 			})
 		}
 	}
 	if bindings {
-		seen := map[core.Node]bool{}
+		seen := map[coreir.Node]bool{}
 		errs = append(errs, f.bindings(m, false, seen)...)
 		if f.c.inserts {
 			errs = append(errs, f.bindings(m, true, seen)...)
@@ -53,9 +53,9 @@ func (f *Facts) Errors(m *core.Module, bindings bool) []Error {
 // in the same rule body and before any input is consumed; bindings in a called rule end with the
 // call. The cycles are those with token insertion enabled if ins. Bindings in seen are already
 // reported.
-func (f *Facts) bindings(m *core.Module, ins bool, seen map[core.Node]bool) []Error {
+func (f *Facts) bindings(m *coreir.Module, ins bool, seen map[coreir.Node]bool) []Error {
 	if seen == nil {
-		seen = map[core.Node]bool{}
+		seen = map[coreir.Node]bool{}
 	}
 	var errs []Error
 	for _, r := range m.Rules {
@@ -70,7 +70,7 @@ func (f *Facts) bindings(m *core.Module, ins bool, seen map[core.Node]bool) []Er
 		if cycle == 0 || len(fr.Vars) == 0 {
 			continue
 		}
-		f.leftBindings(r.Body, nil, ins, func(callee int, bound []*core.BindNode) {
+		f.leftBindings(r.Body, nil, ins, func(callee int, bound []*coreir.BindNode) {
 			c := &f.Rules[callee]
 			if k := c.Cycle; ins && c.CycleIns != cycle || !ins && k != cycle {
 				return
@@ -90,26 +90,26 @@ func (f *Facts) bindings(m *core.Module, ins bool, seen map[core.Node]bool) []Er
 // before it, given the bindings in that may run before n. It returns the bindings that may run
 // before a node following n. The result over-approximates: a binding in a choice alternative or an
 // option counts even when input is consumed or the binding is undone before the call runs.
-func (f *Facts) leftBindings(n core.Node, in []*core.BindNode, ins bool, visit func(int, []*core.BindNode)) []*core.BindNode {
+func (f *Facts) leftBindings(n coreir.Node, in []*coreir.BindNode, ins bool, visit func(int, []*coreir.BindNode)) []*coreir.BindNode {
 	f.c.control.Poll()
-	nullable := func(x core.Node) bool {
+	nullable := func(x coreir.Node) bool {
 		at := x.Attrs()
 		return at.Nullable || ins && at.NullableIns
 	}
 	switch n := n.(type) {
-	case *core.Call, *core.Nest:
+	case *coreir.Call, *coreir.Nest:
 		k, _ := f.c.callee(n)
 		visit(k, in)
-	case *core.BindNode:
+	case *coreir.BindNode:
 		in = append(slices.Clip(in), n)
-	case *core.Seq:
+	case *coreir.Seq:
 		for _, it := range n.Items {
 			in = f.leftBindings(it, in, ins, visit)
 			if !nullable(it) {
 				break
 			}
 		}
-	case *core.Choice:
+	case *coreir.Choice:
 		out := in
 		for _, alt := range n.Alts {
 			out = unionBinds(out, f.leftBindings(alt.Body, in, ins, visit))
@@ -118,7 +118,7 @@ func (f *Facts) leftBindings(n core.Node, in []*core.BindNode, ins bool, visit f
 			}
 		}
 		in = out
-	case *core.Repeat:
+	case *coreir.Repeat:
 		if n.Max != 0 {
 			out := f.leftBindings(n.Body, in, ins, visit)
 			if nullable(n.Body) && len(out) > len(in) {
@@ -127,28 +127,28 @@ func (f *Facts) leftBindings(n core.Node, in []*core.BindNode, ins bool, visit f
 			}
 			in = out
 		}
-	case *core.Look:
+	case *coreir.Look:
 		f.leftBindings(n.Body, in, ins, visit)
 		if !n.Neg {
 			// A positive lookahead returns to its start and keeps its bindings, so every binding
 			// in its body may run before what follows. A negative one succeeds only when its body
 			// fails, which undoes its bindings.
-			core.Walk(n.Body, func(x core.Node) {
-				if b, ok := x.(*core.BindNode); ok {
+			coreir.Walk(n.Body, func(x coreir.Node) {
+				if b, ok := x.(*coreir.BindNode); ok {
 					in = append(slices.Clip(in), b)
 				}
 			})
 		}
-	case *core.Opt, *core.Drop, *core.Capture, *core.Label, *core.Text, *core.Terminal:
-		for _, x := range core.Children(n) {
+	case *coreir.Opt, *coreir.Drop, *coreir.Capture, *coreir.Label, *coreir.Text, *coreir.Terminal:
+		for _, x := range coreir.Children(n) {
 			in = f.leftBindings(x, in, ins, visit)
 		}
-	case *core.Recover:
+	case *coreir.Recover:
 		in = f.leftBindings(n.Body, in, ins, visit)
 		if !f.Succeeds(n.Body) {
 			in = f.leftBindings(n.Skip, in, ins, visit)
 		}
-	case *core.OperatorsRule:
+	case *coreir.OperatorsRule:
 		if n.Skip != nil {
 			in = f.leftBindings(n.Skip.Body, in, ins, visit)
 		}
@@ -171,7 +171,7 @@ func (f *Facts) leftBindings(n core.Node, in []*core.BindNode, ins bool, visit f
 
 // unionBinds returns the bindings of a followed by those of b that a does not hold. Every list
 // extends a common prefix, so the result is small and keeps the order of discovery.
-func unionBinds(a, b []*core.BindNode) []*core.BindNode {
+func unionBinds(a, b []*coreir.BindNode) []*coreir.BindNode {
 	for _, x := range b {
 		if !slices.Contains(a, x) {
 			a = append(slices.Clip(a), x)
@@ -183,7 +183,7 @@ func unionBinds(a, b []*core.BindNode) []*core.BindNode {
 // spliceCycle reports a splice rule whose elements include its own: it calls itself in the
 // sequence of its elements, so that its elements would be infinite in number. A call in a choice,
 // an option, a repetition or a capture is one element of its own, and may recur.
-func (f *Facts) spliceCycle(m *core.Module, errs []Error) []Error {
+func (f *Facts) spliceCycle(m *coreir.Module, errs []Error) []Error {
 	flat := map[int][]int{}
 	for _, r := range m.Rules {
 		if r != nil && r.Policy.Splice && r.Twin == nil && !r.Policy.NoValue {
@@ -221,15 +221,15 @@ func (f *Facts) spliceCycle(m *core.Module, errs []Error) []Error {
 }
 
 // flatCalls appends to out the rules n calls where their elements are elements of n.
-func (f *Facts) flatCalls(n core.Node, out []int) []int {
+func (f *Facts) flatCalls(n coreir.Node, out []int) []int {
 	switch n := n.(type) {
-	case *core.Seq:
+	case *coreir.Seq:
 		for _, it := range n.Items {
 			out = f.flatCalls(it, out)
 		}
-	case *core.Label:
+	case *coreir.Label:
 		out = f.flatCalls(n.Body, out)
-	case *core.Call:
+	case *coreir.Call:
 		k, _ := f.c.callee(n)
 		out = append(out, k)
 	}

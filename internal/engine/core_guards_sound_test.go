@@ -12,10 +12,10 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
-// The guards of the Core IR (core.Guards) skip an alternative of a choice when the next character
+// The guards of the Core IR (coreir.Guards) skip an alternative of a choice when the next character
 // cannot begin it, and every parser printed from Flow IR relies on that. The decision goldens freeze
 // what the guards are; they do not say that a guard is sound. This test does, with the engine as the
 // oracle: a guard is sound if the engine never matches its alternative at a position where the guard
@@ -29,7 +29,7 @@ import (
 // probed, and the test counts how many are.
 
 // guardAccepts reports whether the guard f lets the character ch begin its alternative.
-func guardAccepts(f *core.First, ch rune) bool {
+func guardAccepts(f *coreir.First, ch rune) bool {
 	if f.Lit {
 		return ch == f.Rune || f.Fold && ch == f.Rune-('a'-'A')
 	}
@@ -44,7 +44,7 @@ func guardAccepts(f *core.First, ch rune) bool {
 
 // guardNarrowed returns the character that the mutant of the guard f stops accepting: the first
 // character of its literal or of its first range. It reports false for a guard it does not narrow.
-func guardNarrowed(f *core.First) (rune, bool) {
+func guardNarrowed(f *coreir.First) (rune, bool) {
 	switch {
 	case f.Lit:
 		return f.Rune, true
@@ -57,7 +57,7 @@ func guardNarrowed(f *core.First) (rune, bool) {
 // guardProbe is a guarded alternative and the rule that matches it.
 type guardProbe struct {
 	rule  string
-	guard *core.First
+	guard *coreir.First
 }
 
 // guardProbeInputs returns the inputs of a case at the positions the guards are checked at: every
@@ -90,14 +90,14 @@ func guardProbes(t *testing.T, src string, cases []*coreGenCase) (*Program, []gu
 	t.Helper()
 	type alt struct {
 		text  string
-		guard *core.First
+		guard *coreir.First
 	}
 	var alts []alt
 	seen := map[string]bool{}
 	for _, c := range cases {
 		for _, cr := range c.m.Rules {
-			core.Walk(cr.Body, func(n core.Node) {
-				ch, ok := n.(*core.Choice)
+			coreir.Walk(cr.Body, func(n coreir.Node) {
+				ch, ok := n.(*coreir.Choice)
 				if !ok {
 					return
 				}
@@ -160,7 +160,7 @@ func guardProbes(t *testing.T, src string, cases []*coreGenCase) (*Program, []gu
 // guardViolations returns the positions at which the engine matches a probe whose guard, as narrowed
 // by narrow (nil for none), rejects the character there, and the number of positions checked with the
 // engine (those the guard rejects: where it accepts, it cannot be unsound).
-func guardViolations(prog *Program, probes []guardProbe, inputs []string, narrow func(*core.First) (rune, bool)) (bad []string, checked int) {
+func guardViolations(prog *Program, probes []guardProbe, inputs []string, narrow func(*coreir.First) (rune, bool)) (bad []string, checked int) {
 	for _, in := range inputs {
 		ch, size := utf8.DecodeRuneInString(in)
 		if size == 0 {

@@ -8,24 +8,24 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/pipeline"
 )
 
 // brokenGuards is a pass that runs after guards and leaves the first literal guard it finds out of
-// step with its alternative, which core.Verify rejects.
-var brokenGuards = pipeline.Pass[*core.Module, *core.Env]{
+// step with its alternative, which coreir.Verify rejects.
+var brokenGuards = pipeline.Pass[*coreir.Module, *coreir.Env]{
 	Name:       "break-guard",
-	After:      []string{core.PassGuards},
+	After:      []string{coreir.PassGuards},
 	Obligation: "none: it breaks the module on purpose",
-	Run: func(m *core.Module, _ *core.Env) error {
+	Run: func(m *coreir.Module, _ *coreir.Env) error {
 		for _, r := range m.Rules {
 			if r == nil {
 				continue
 			}
 			broke := false
-			core.Walk(r.Body, func(n core.Node) {
-				c, ok := n.(*core.Choice)
+			coreir.Walk(r.Body, func(n coreir.Node) {
+				c, ok := n.(*coreir.Choice)
 				if !ok || broke {
 					return
 				}
@@ -49,19 +49,19 @@ var brokenGuards = pipeline.Pass[*core.Module, *core.Env]{
 
 // withBrokenGuards returns a Hooks.CoreRun that runs the pipeline of Core passes with brokenGuards
 // added after the pass guards.
-func withBrokenGuards() func(*core.Module, *core.Env, core.RunOptions) ([]string, error) {
-	p := *core.Pipeline
+func withBrokenGuards() func(*coreir.Module, *coreir.Env, coreir.RunOptions) ([]string, error) {
+	p := *coreir.Pipeline
 	p.Passes = nil
-	for _, ps := range core.Pipeline.Passes {
+	for _, ps := range coreir.Pipeline.Passes {
 		p.Passes = append(p.Passes, ps)
-		if ps.Name == core.PassGuards {
+		if ps.Name == coreir.PassGuards {
 			p.Passes = append(p.Passes, brokenGuards)
 		}
 	}
-	return func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error) {
+	return func(m *coreir.Module, env *coreir.Env, o coreir.RunOptions) ([]string, error) {
 		// The mutant is not a registered optimization, which the settings of the generator would refuse.
 		enabled := func(name string) bool { return name == brokenGuards.Name || env.On(name) }
-		return p.Run(m, env, pipeline.Options[*core.Module]{Enabled: enabled, VerifyEach: o.VerifyEach, Dump: o.Dump})
+		return p.Run(m, env, pipeline.Options[*coreir.Module]{Enabled: enabled, VerifyEach: o.VerifyEach, Dump: o.Dump})
 	}
 }
 
@@ -88,7 +88,7 @@ rule num = [0-9]+
 	if err == nil || !strings.Contains(err.Error(), "after pass break-guard:") {
 		t.Fatalf("with VerifyEachPass: %v", err)
 	}
-	if !slices.Contains(core.Pipeline.Names(), core.PassGuards) {
+	if !slices.Contains(coreir.Pipeline.Names(), coreir.PassGuards) {
 		t.Fatal("no guards pass")
 	}
 }

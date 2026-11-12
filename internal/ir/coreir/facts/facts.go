@@ -1,12 +1,12 @@
 // Package facts computes the grammar facts of a Core IR module: per rule, its nullability, whether
 // it always succeeds, its left calls and left-recursion cycles with their leaders, whether it is on
 // a cycle of calls, whether its value may hold positions or recovered errors, the variables it
-// reads and its memo policy; and, through core.Analyze, the node attributes that depend on them
+// reads and its memo policy; and, through coreir.Analyze, the node attributes that depend on them
 // (first terminals and effects).
 //
 // The facts are those that spec/core-ir/attributes.md ("Rule Facts") defines. They are computed on
 // the rules of the module and read nothing back from their Policy: Compute sets the Rec and Leader
-// policies, which core.Analyze reads, from the facts it computed. A value-free twin has the facts
+// policies, which coreir.Analyze reads, from the facts it computed. A value-free twin has the facts
 // of its rule, and a call of a twin counts as a call of its rule.
 package facts
 
@@ -14,7 +14,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 // Facts are the grammar facts of a module.
@@ -69,9 +69,9 @@ type Rule struct {
 func (r *Rule) Cyclic() bool { return r.Cycle != 0 }
 
 // Compute computes the facts of the module's rules. It sets the Rec and Leader policies of every
-// rule to the computed facts and runs core.Analyze, so that the node attributes follow them. The
+// rule to the computed facts and runs coreir.Analyze, so that the node attributes follow them. The
 // rule references of the module must be valid. A non-nil control polls for cancellation.
-func Compute(m *core.Module, control *cancel.Control) *Facts {
+func Compute(m *coreir.Module, control *cancel.Control) *Facts {
 	c := newComputer(m, control)
 	c.recursion()
 	for _, r := range m.Rules {
@@ -79,7 +79,7 @@ func Compute(m *core.Module, control *cancel.Control) *Facts {
 			r.Policy.Rec, r.Policy.Leader = c.rules[c.canon[r.ID]].Rec, false
 		}
 	}
-	core.Analyze(m)
+	coreir.Analyze(m)
 	for _, id := range c.order {
 		at := m.Rules[id].Body.Attrs()
 		c.rules[id].Nullable, c.rules[id].NullableIns = at.Nullable, at.NullableIns
@@ -95,7 +95,7 @@ func Compute(m *core.Module, control *cancel.Control) *Facts {
 			r.Policy.Leader = c.rules[c.canon[r.ID]].Leader
 		}
 	}
-	core.Analyze(m)
+	coreir.Analyze(m)
 	for _, r := range m.Rules {
 		if r != nil && c.canon[r.ID] != r.ID {
 			c.rules[r.ID] = c.rules[c.canon[r.ID]]
@@ -105,7 +105,7 @@ func Compute(m *core.Module, control *cancel.Control) *Facts {
 }
 
 type computer struct {
-	m       *core.Module
+	m       *coreir.Module
 	control *cancel.Control
 	rules   []Rule
 	// canon maps each rule ID to its rule: a twin's rule, or the rule itself.
@@ -122,7 +122,7 @@ type computer struct {
 	inserts bool
 }
 
-func newComputer(m *core.Module, control *cancel.Control) *computer {
+func newComputer(m *coreir.Module, control *cancel.Control) *computer {
 	c := &computer{m: m, control: control, rules: make([]Rule, len(m.Rules)), canon: make([]int, len(m.Rules)),
 		calls: make([][]int, len(m.Rules)), sure: make([]bool, len(m.Rules))}
 	for i := range c.canon {
@@ -140,11 +140,11 @@ func newComputer(m *core.Module, control *cancel.Control) *computer {
 		}
 		c.order = append(c.order, r.ID)
 		c.rules[r.ID].Recovering = -1
-		core.Walk(r.Body, func(n core.Node) {
+		coreir.Walk(r.Body, func(n coreir.Node) {
 			if k, ok := c.callee(n); ok {
 				c.calls[r.ID] = append(c.calls[r.ID], k)
 			}
-			if _, ok := n.(*core.Missing); ok {
+			if _, ok := n.(*coreir.Missing); ok {
 				c.inserts = true
 			}
 		})
@@ -153,11 +153,11 @@ func newComputer(m *core.Module, control *cancel.Control) *computer {
 }
 
 // callee returns the rule that n calls, if n is a call.
-func (c *computer) callee(n core.Node) (int, bool) {
+func (c *computer) callee(n coreir.Node) (int, bool) {
 	switch n := n.(type) {
-	case *core.Call:
+	case *coreir.Call:
 		return c.canon[n.Rule], true
-	case *core.Nest:
+	case *coreir.Nest:
 		return c.canon[n.Rule], true
 	}
 	return 0, false
@@ -357,36 +357,36 @@ func (c *computer) succeeding(cyclic []bool) {
 // recovery's skip runs only if its body can fail; a repetition of at most zero iterations calls
 // nothing. An Operators Rule may call its skip line, its operands up to one that always succeeds and
 // its prefix operators.
-func (c *computer) leftCalls(n core.Node, acc []int, ins bool) []int {
+func (c *computer) leftCalls(n coreir.Node, acc []int, ins bool) []int {
 	c.control.Poll()
 	switch n := n.(type) {
-	case *core.Call, *core.Nest:
+	case *coreir.Call, *coreir.Nest:
 		k, _ := c.callee(n)
 		return append(acc, k)
-	case *core.Seq:
+	case *coreir.Seq:
 		for _, it := range n.Items {
 			acc = c.leftCalls(it, acc, ins)
 			if at := it.Attrs(); !at.Nullable && !(ins && at.NullableIns) { // NullableIns holds every Nullable node
 				break
 			}
 		}
-	case *core.Choice:
+	case *coreir.Choice:
 		for _, alt := range n.Alts {
 			acc = c.leftCalls(alt.Body, acc, ins)
 			if c.alwaysSucceeds(alt.Body) {
 				break
 			}
 		}
-	case *core.Repeat:
+	case *coreir.Repeat:
 		if n.Max != 0 {
 			acc = c.leftCalls(n.Body, acc, ins)
 		}
-	case *core.Recover:
+	case *coreir.Recover:
 		acc = c.leftCalls(n.Body, acc, ins)
 		if !c.alwaysSucceeds(n.Body) {
 			acc = c.leftCalls(n.Skip, acc, ins)
 		}
-	case *core.OperatorsRule:
+	case *coreir.OperatorsRule:
 		if n.Skip != nil {
 			acc = c.leftCalls(n.Skip.Body, acc, ins)
 		}
@@ -401,8 +401,8 @@ func (c *computer) leftCalls(n core.Node, acc []int, ins bool) []int {
 				acc = c.leftCalls(op.Line.Body, acc, ins)
 			}
 		}
-	case *core.Opt, *core.Look, *core.Text, *core.Drop, *core.Capture, *core.Label, *core.Stream, *core.Terminal:
-		for _, x := range core.Children(n) {
+	case *coreir.Opt, *coreir.Look, *coreir.Text, *coreir.Drop, *coreir.Capture, *coreir.Label, *coreir.Stream, *coreir.Terminal:
+		for _, x := range coreir.Children(n) {
 			acc = c.leftCalls(x, acc, ins)
 		}
 	}
@@ -411,23 +411,23 @@ func (c *computer) leftCalls(n core.Node, acc []int, ins bool) []int {
 
 // alwaysSucceeds reports a proof that n cannot fail, at any position, with the rules of sure
 // proven. Errors that end the parse are not failures.
-func (c *computer) alwaysSucceeds(n core.Node) bool {
+func (c *computer) alwaysSucceeds(n coreir.Node) bool {
 	c.control.Poll()
 	switch n := n.(type) {
-	case *core.Lit:
+	case *coreir.Lit:
 		return n.Text == ""
-	case *core.Succeed, *core.Cut:
+	case *coreir.Succeed, *coreir.Cut:
 		return true
-	case *core.Call:
+	case *coreir.Call:
 		return c.sure[c.canon[n.Rule]]
-	case *core.Seq:
+	case *coreir.Seq:
 		for _, it := range n.Items {
 			if !c.alwaysSucceeds(it) {
 				return false
 			}
 		}
 		return true
-	case *core.Choice:
+	case *coreir.Choice:
 		for _, alt := range n.Alts {
 			if c.alwaysSucceeds(alt.Body) {
 				return true
@@ -436,9 +436,9 @@ func (c *computer) alwaysSucceeds(n core.Node) bool {
 				return false // it may fail after committing the choice
 			}
 		}
-	case *core.Opt:
+	case *coreir.Opt:
 		return !looseCut(n.Body) || c.alwaysSucceeds(n.Body)
-	case *core.Repeat:
+	case *coreir.Repeat:
 		if n.Max == 0 {
 			return n.Min == 0
 		}
@@ -448,64 +448,64 @@ func (c *computer) alwaysSucceeds(n core.Node) bool {
 		// A repetition ends at its first empty iteration, so a body that always succeeds proves
 		// no minimum above one.
 		return n.Min == 1 && c.alwaysSucceeds(n.Body)
-	case *core.Look:
+	case *coreir.Look:
 		if n.Neg {
 			return c.alwaysFails(n.Body)
 		}
 		return c.alwaysSucceeds(n.Body)
-	case *core.Capture:
+	case *coreir.Capture:
 		return c.alwaysSucceeds(n.Body)
-	case *core.Text:
+	case *coreir.Text:
 		return c.alwaysSucceeds(n.Body)
-	case *core.Drop:
+	case *coreir.Drop:
 		return c.alwaysSucceeds(n.Body)
-	case *core.Label:
+	case *coreir.Label:
 		return c.alwaysSucceeds(n.Body)
-	case *core.Recover:
+	case *coreir.Recover:
 		return c.alwaysSucceeds(n.Body)
-	case *core.Stream:
+	case *coreir.Stream:
 		return c.alwaysSucceeds(n.Repeat)
-	case *core.Terminal:
+	case *coreir.Terminal:
 		return c.alwaysSucceeds(n.Body)
 	}
 	return false
 }
 
 // alwaysFails reports a proof that n cannot succeed.
-func (c *computer) alwaysFails(n core.Node) bool {
+func (c *computer) alwaysFails(n coreir.Node) bool {
 	c.control.Poll()
 	switch n := n.(type) {
-	case *core.FailNode:
+	case *coreir.FailNode:
 		return true
-	case *core.Look:
+	case *coreir.Look:
 		if n.Neg {
 			return c.alwaysSucceeds(n.Body)
 		}
 		return c.alwaysFails(n.Body)
-	case *core.Seq:
+	case *coreir.Seq:
 		for _, it := range n.Items {
 			if c.alwaysFails(it) {
 				return true
 			}
 		}
-	case *core.Choice:
+	case *coreir.Choice:
 		for _, alt := range n.Alts {
 			if !c.alwaysFails(alt.Body) {
 				return false
 			}
 		}
 		return true
-	case *core.Capture:
+	case *coreir.Capture:
 		return c.alwaysFails(n.Body)
-	case *core.Text:
+	case *coreir.Text:
 		return c.alwaysFails(n.Body)
-	case *core.Drop:
+	case *coreir.Drop:
 		return c.alwaysFails(n.Body)
-	case *core.Label:
+	case *coreir.Label:
 		return c.alwaysFails(n.Body)
-	case *core.Stream:
+	case *coreir.Stream:
 		return c.alwaysFails(n.Repeat)
-	case *core.Terminal:
+	case *coreir.Terminal:
 		return c.alwaysFails(n.Body)
 	}
 	return false
@@ -514,14 +514,14 @@ func (c *computer) alwaysFails(n core.Node) bool {
 // looseCut reports a cut in n that can commit the enclosing choice, option or repetition: one
 // outside nested choices, options, repetitions, lookaheads and calls. A recovery's skip runs in the
 // scope of its body.
-func looseCut(n core.Node) bool {
+func looseCut(n coreir.Node) bool {
 	switch n := n.(type) {
-	case *core.Cut:
+	case *coreir.Cut:
 		return true
-	case *core.Seq:
+	case *coreir.Seq:
 		return slices.ContainsFunc(n.Items, looseCut)
-	case *core.Capture, *core.Text, *core.Drop, *core.Label, *core.Recover, *core.Terminal:
-		return slices.ContainsFunc(core.Children(n), looseCut)
+	case *coreir.Capture, *coreir.Text, *coreir.Drop, *coreir.Label, *coreir.Recover, *coreir.Terminal:
+		return slices.ContainsFunc(coreir.Children(n), looseCut)
 	}
 	return false
 }
@@ -531,8 +531,8 @@ func looseCut(n core.Node) bool {
 func (c *computer) positional() {
 	set := make([]bool, len(c.m.Rules))
 	for _, id := range c.order {
-		c.terms(c.m.Rules[id], func(t core.Term) {
-			if m, ok := t.(*core.Member); ok && (m.Name == "Start" || m.Name == "End") {
+		c.terms(c.m.Rules[id], func(t coreir.Term) {
+			if m, ok := t.(*coreir.Member); ok && (m.Name == "Start" || m.Name == "End") {
 				set[id] = true
 			}
 		})
@@ -545,18 +545,18 @@ func (c *computer) positional() {
 
 // terms calls f for every term of the rule: its action, its predicates and bindings, and the actions
 // of its Operators Rule lines, with their subterms.
-func (c *computer) terms(r *core.Rule, f func(core.Term)) {
-	core.WalkTerm(r.Finish.Action, f)
-	core.Walk(r.Body, func(n core.Node) {
+func (c *computer) terms(r *coreir.Rule, f func(coreir.Term)) {
+	coreir.WalkTerm(r.Finish.Action, f)
+	coreir.Walk(r.Body, func(n coreir.Node) {
 		c.control.Poll()
 		switch n := n.(type) {
-		case *core.Pred:
-			core.WalkTerm(n.Term, f)
-		case *core.BindNode:
-			core.WalkTerm(n.Term, f)
-		case *core.OperatorsRule:
+		case *coreir.Pred:
+			coreir.WalkTerm(n.Term, f)
+		case *coreir.BindNode:
+			coreir.WalkTerm(n.Term, f)
+		case *coreir.OperatorsRule:
 			for _, l := range n.Lines() {
-				core.WalkTerm(l.Action, f)
+				coreir.WalkTerm(l.Action, f)
 			}
 		}
 	})
@@ -582,15 +582,15 @@ func (c *computer) propagate(set []bool) {
 func (c *computer) recovering() {
 	calls := make([][]int, len(c.m.Rules))
 	for _, id := range c.order {
-		var walk func(n core.Node)
-		walk = func(n core.Node) {
+		var walk func(n coreir.Node)
+		walk = func(n coreir.Node) {
 			c.control.Poll()
 			switch n := n.(type) {
-			case *core.Look:
+			case *coreir.Look:
 				return
-			case *core.Recover:
+			case *coreir.Recover:
 				c.rules[id].Recovering = id
-			case *core.OperatorsRule:
+			case *coreir.OperatorsRule:
 				for _, l := range n.Operands {
 					walk(l.Body)
 				}
@@ -602,7 +602,7 @@ func (c *computer) recovering() {
 			if k, ok := c.callee(n); ok {
 				calls[id] = append(calls[id], k)
 			}
-			for _, x := range core.Children(n) {
+			for _, x := range coreir.Children(n) {
 				walk(x)
 			}
 		}
@@ -630,8 +630,8 @@ func (c *computer) vars() {
 	direct := make([]map[string]bool, len(c.m.Rules))
 	some := false
 	for _, id := range c.order {
-		c.terms(c.m.Rules[id], func(t core.Term) {
-			if v, ok := t.(*core.VarRef); ok {
+		c.terms(c.m.Rules[id], func(t coreir.Term) {
+			if v, ok := t.(*coreir.VarRef); ok {
 				if direct[id] == nil {
 					direct[id] = map[string]bool{}
 				}
@@ -704,8 +704,8 @@ func (c *computer) memo() {
 		r := &c.rules[id]
 		r.Memo = !r.Leader
 		r.Transient = len(c.calls[id]) == 0 || refs[id] < 2 && !(start[id] && selfCalled(id))
-		core.Walk(c.m.Rules[id].Body, func(n core.Node) {
-			if _, ok := n.(*core.Missing); ok {
+		coreir.Walk(c.m.Rules[id].Body, func(n coreir.Node) {
+			if _, ok := n.(*coreir.Missing); ok {
 				missing[id] = true
 			}
 		})

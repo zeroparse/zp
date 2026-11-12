@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 // String returns a readable listing of the function f, for tests and debugging: its variables,
@@ -177,7 +177,7 @@ func varName(v *Var) string {
 	return v.Name
 }
 
-func exp(id core.ExpID) string { return "#" + strconv.Itoa(int(id)) }
+func exp(id coreir.ExpID) string { return "#" + strconv.Itoa(int(id)) }
 
 func (p *printer) set(s *Set) string {
 	dst := make([]string, len(s.Dst))

@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // TestCoreFactsGolden compares the rule facts that Core IR's analysis computes on the module of
@@ -30,7 +30,7 @@ func TestCoreFactsGolden(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
-		core.Analyze(m)
+		coreir.Analyze(m)
 		pinned := factstest.Load(t, path)
 		for _, r := range prog.RuleList {
 			body := m.Rules[r.ID].Body.Attrs()
@@ -73,16 +73,16 @@ func TestRecoverAndMissingNullability(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		core.Analyze(m)
-		var found []core.Node
-		var walk func(core.Node)
-		walk = func(n core.Node) {
+		coreir.Analyze(m)
+		var found []coreir.Node
+		var walk func(coreir.Node)
+		walk = func(n coreir.Node) {
 			switch n.(type) {
-			case *core.Recover, *core.Missing:
+			case *coreir.Recover, *coreir.Missing:
 				found = append(found, n)
 				return
 			}
-			for _, c := range core.Children(n) {
+			for _, c := range coreir.Children(n) {
 				walk(c)
 			}
 		}

@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // coreRecognizeCase builds the Core IR of the recognizer of the parser generated with Recognize,
@@ -21,19 +21,19 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 	if err != nil {
 		return nil, err
 	}
-	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[core.Node]grammar.Expr{}}
+	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[coreir.Node]grammar.Expr{}}
 	c.rules = append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)
 	m, err := irbuild.CoreFrom(rec, c.origin)
 	if err != nil {
 		return nil, err
 	}
-	check := func(pass string, m *core.Module) {
-		core.Analyze(m)
-		if err := core.Verify(m); err != nil {
+	check := func(pass string, m *coreir.Module) {
+		coreir.Analyze(m)
+		if err := coreir.Verify(m); err != nil {
 			c.passErrs = append(c.passErrs, fmt.Sprintf("after %s: %v", pass, err))
 		}
 	}
-	prepare := func(m *core.Module) func() {
+	prepare := func(m *coreir.Module) func() {
 		repeats := irbuild.FollowRepeats(m, c.origin)
 		return func() {
 			for _, f := range repeats {
@@ -41,8 +41,8 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 			}
 		}
 	}
-	env := &core.Env{Mode: core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
-	if _, err := core.Run(m, env, core.RunOptions{Dump: check}); err != nil {
+	env := &coreir.Env{Mode: coreir.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, Flag: g.Opt.On, PrepareScans: prepare}
+	if _, err := coreir.Run(m, env, coreir.RunOptions{Dump: check}); err != nil {
 		return nil, err
 	}
 	c.m = m
@@ -50,11 +50,11 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 }
 
 // guardedClassCount returns the number of alternatives of the module whose first class is a guarded class.
-func guardedClassCount(m *core.Module) int {
+func guardedClassCount(m *coreir.Module) int {
 	n := 0
 	for _, r := range m.Rules {
-		core.Walk(r.Body, func(x core.Node) {
-			if ch, ok := x.(*core.Choice); ok {
+		coreir.Walk(r.Body, func(x coreir.Node) {
+			if ch, ok := x.(*coreir.Choice); ok {
 				for _, a := range ch.Alts {
 					if a.GuardedClass {
 						n++

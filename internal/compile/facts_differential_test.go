@@ -10,13 +10,13 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 // TestFactsDifferential compares the grammar facts that compilation computes with those that
-// internal/ir/core/facts computes on the Core IR module, with the rules' policies cleared, on
+// internal/ir/coreir/facts computes on the Core IR module, with the rules' policies cleared, on
 // random grammars: left recursion through options, lookaheads, recoveries, cuts and Operators
 // Rules, variables and positions read by actions and predicates, insertions, cycles through them
 // that exist only with insertion enabled, and hidden rules.
@@ -38,13 +38,13 @@ func TestFactsDifferential(t *testing.T) {
 		}
 		compiled++
 		want := factstest.Render(compile.ProgramFacts(prog))
-		origin := map[core.Node]grammar.Expr{}
+		origin := map[coreir.Node]grammar.Expr{}
 		m, err := build.CoreFrom(prog, origin)
 		if err != nil {
 			t.Fatalf("seed %d: %v\n%s", seed, err, src)
 		}
 		for _, r := range m.Rules {
-			r.Policy = core.Policy{}
+			r.Policy = coreir.Policy{}
 		}
 		if got := factstest.Render(factstest.CoreRules(m, facts.Compute(m, nil), origin)); got != want {
 			t.Fatalf("seed %d: facts differ\n%s\ncompile:\n%s\ncore:\n%s", seed, src, want, got)

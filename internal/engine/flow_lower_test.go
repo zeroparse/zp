@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 )
@@ -26,7 +26,7 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 			lowered, framed, observed, skips := 0, 0, 0, 0
 			for _, gen := range coreGenerations(t, mode) {
 				g := gen.gen
-				m, err := g.TypedCore(map[core.Node]grammar.Expr{})
+				m, err := g.TypedCore(map[coreir.Node]grammar.Expr{})
 				if err != nil {
 					t.Fatalf("%s: %v", gen.name, err)
 				}
@@ -56,7 +56,7 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 						lowered++
 						continue
 					}
-					if o, ok := r.Body.(*core.OperatorsRule); ok {
+					if o, ok := r.Body.(*coreir.OperatorsRule); ok {
 						for _, l := range o.Lines() {
 							if flowlower.FramedBody(l.Body) {
 								check(flowlower.LowerFrame(m, r, l.Body, l.Scope, l.Body.Attrs().Want, r.Name, opts))

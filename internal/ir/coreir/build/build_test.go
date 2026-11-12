@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 func TestCoreBuildShapes(t *testing.T) {
@@ -25,11 +25,11 @@ rule d = "d"
 	if err != nil {
 		t.Fatal(err)
 	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
+	coreir.Analyze(m)
+	if err := coreir.Verify(m); err != nil {
 		t.Fatal(err)
 	}
-	got := core.Print(m, false)
+	got := coreir.Print(m, false)
 	for _, want := range []string{
 		"scope=[a b h] => $0:a",
 		"  seq\n    capture 0 a\n      call 1:x\n",
@@ -44,15 +44,15 @@ rule d = "d"
 		}
 	}
 	main := m.Rules[0]
-	if main.Want || main.Finish.Kind != core.FinishAction {
+	if main.Want || main.Finish.Kind != coreir.FinishAction {
 		t.Errorf("main: want=%v finish=%v; want a lean rule with an action", main.Want, main.Finish.Kind)
 	}
 	// The capture builds the value of its body, a call of x itself rather than its twin.
-	capture := main.Body.(*core.Seq).Items[0].(*core.Capture)
-	if call := capture.Body.(*core.Call); !call.Attrs().Want || m.Rules[call.Rule].Policy.NoValue {
+	capture := main.Body.(*coreir.Seq).Items[0].(*coreir.Capture)
+	if call := capture.Body.(*coreir.Call); !call.Attrs().Want || m.Rules[call.Rule].Policy.NoValue {
 		t.Errorf("captured call: want=%v novalue=%v", call.Attrs().Want, m.Rules[call.Rule].Policy.NoValue)
 	}
-	if x := m.Rules[1]; !x.Want || x.Finish.Kind != core.FinishScope || !x.Finish.Shape.Tuple {
+	if x := m.Rules[1]; !x.Want || x.Finish.Kind != coreir.FinishScope || !x.Finish.Shape.Tuple {
 		t.Errorf("x: want=%v finish=%v shape=%+v", x.Want, x.Finish.Kind, x.Finish.Shape)
 	}
 }
@@ -64,7 +64,7 @@ func coreProgram(t *testing.T, src string) *compile.Program {
 }
 
 // typeString returns the checker's spelling of a Core type handle.
-func typeString(x core.Type) string {
+func typeString(x coreir.Type) string {
 	if x == nil {
 		return "<nil>"
 	}
@@ -83,8 +83,8 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 	if err != nil {
 		t.Fatal(err)
 	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
+	coreir.Analyze(m)
+	if err := coreir.Verify(m); err != nil {
 		t.Fatal(err)
 	}
 	if !m.Typed || typeString(m.Types["P"]) != "P" {
@@ -97,7 +97,7 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 	if typeString(main.Type) != "P" || typeString(pair.Type) != "P" {
 		t.Errorf("rule types %s %s", typeString(main.Type), typeString(pair.Type))
 	}
-	slotTypes := func(s []core.Slot) string {
+	slotTypes := func(s []coreir.Slot) string {
 		var out []string
 		for _, x := range s {
 			out = append(out, x.Name+" "+typeString(x.Type))
@@ -111,9 +111,9 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 	if got := slotTypes(pair.Scope); got != "n node[[]node[string]], s node[string]" {
 		t.Errorf("pair scope %s", got)
 	}
-	var element []core.Slot
-	core.Walk(main.Body, func(n core.Node) {
-		if r, ok := n.(*core.Repeat); ok && r.Scope != nil {
+	var element []coreir.Slot
+	coreir.Walk(main.Body, func(n coreir.Node) {
+		if r, ok := n.(*coreir.Repeat); ok && r.Scope != nil {
 			element = r.Scope
 		}
 	})
@@ -121,8 +121,8 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 		t.Errorf("element scope %s", got)
 	}
 	var terms []string
-	core.WalkTerm(main.Finish.Action, func(x core.Term) {
-		terms = append(terms, core.TermString(x)+" : "+typeString(core.TypeOf(x)))
+	coreir.WalkTerm(main.Finish.Action, func(x coreir.Term) {
+		terms = append(terms, coreir.TermString(x)+" : "+typeString(coreir.TypeOf(x)))
 	})
 	if len(terms) == 0 || !strings.HasSuffix(terms[0], " : P") {
 		t.Errorf("action terms %v", terms)
@@ -149,11 +149,11 @@ rule inner = "b"* #stream
 	if err != nil {
 		t.Fatal(err)
 	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
+	coreir.Analyze(m)
+	if err := coreir.Verify(m); err != nil {
 		t.Fatal(err)
 	}
-	got := core.Print(m, false)
+	got := coreir.Print(m, false)
 	for _, want := range []string{
 		"    capture 0 x\n      stream\n        repeat 0 -1\n",
 		"      seq\n        lit \"a\"\n        missing\n          lit \";\"\n",
@@ -162,10 +162,10 @@ rule inner = "b"* #stream
 			t.Errorf("Print does not contain %q:\n%s", want, got)
 		}
 	}
-	if _, ok := m.Rules[2].Body.(*core.Repeat); !ok {
+	if _, ok := m.Rules[2].Body.(*coreir.Repeat); !ok {
 		t.Errorf("inner: %T, want the repetition of a rule that starts no parse", m.Rules[2].Body)
 	}
-	if m.Rules[0].Body.Attrs().Eff.Set&core.EffCommit == 0 || m.Rules[2].Body.Attrs().Eff.Set&core.EffCommit != 0 {
+	if m.Rules[0].Body.Attrs().Eff.Set&coreir.EffCommit == 0 || m.Rules[2].Body.Attrs().Eff.Set&coreir.EffCommit != 0 {
 		t.Errorf("commit effects: main %v, inner %v", m.Rules[0].Body.Attrs().Eff, m.Rules[2].Body.Attrs().Eff)
 	}
 }
@@ -185,8 +185,8 @@ rule e = #operators {
 		t.Fatal(err)
 	}
 	var levels []int
-	core.Walk(m.Rules[0].Body, func(n core.Node) {
-		if c, ok := n.(*core.Call); ok {
+	coreir.Walk(m.Rules[0].Body, func(n coreir.Node) {
+		if c, ok := n.(*coreir.Call); ok {
 			levels = append(levels, c.Level)
 		}
 	})

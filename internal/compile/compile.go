@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diag"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -938,8 +938,8 @@ func hasCapturesControlled(e grammar.Expr, control *cancel.Control) bool {
 
 func quote(s string) string { return strconv.Quote(s) }
 
-// LiteralDesc is core.LiteralDesc.
-func LiteralDesc(e *grammar.Literal) string { return core.LiteralDesc(e) }
+// LiteralDesc is coreir.LiteralDesc.
+func LiteralDesc(e *grammar.Literal) string { return coreir.LiteralDesc(e) }
 
 // FoldASCIIRune maps A-Z to a-z and leaves every other rune as it is: the folding of #ignorecase
 // and of the suffix i, which is ASCII only.
@@ -999,8 +999,8 @@ func firstTerminal(prog *Program, e grammar.Expr, depth int, seen map[string]boo
 	return nil, 0
 }
 
-// CharClassString is core.CharClassString.
-func CharClassString(e *grammar.CharClass) string { return core.CharClassString(e) }
+// CharClassString is coreir.CharClassString.
+func CharClassString(e *grammar.CharClass) string { return coreir.CharClassString(e) }
 
 // levelMin returns the minimum binding level of a call with a binding level.
 func (c *Compiler) levelMin(e *grammar.Ref, r *Rule) int {

@@ -42,7 +42,7 @@ Evidence records:
 Source owners: [`Walker.scanRepeat`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),
 [`SCAN lowering`](../../../internal/compile/bcompile.go),
-[`Scans pass`](../../../internal/ir/core/passes.go),
+[`Scans pass`](../../../internal/ir/coreir/passes.go),
 [`Flow scan lowering`](../../../internal/ir/flow/flowlower/lower.go), which lowers the
 scans of generated Go and TypeScript.
 

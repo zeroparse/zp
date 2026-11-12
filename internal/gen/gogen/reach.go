@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // A rule of the Node table (rules), the recognizer table (recRules) or the typed table (trules) has
@@ -20,7 +20,7 @@ import (
 // so on transitively.
 //
 // GenerateParser finds the reachable rules with a first pass, which takes the calls of the rules from the
-// Core IR (core.Module.Reach) and how a call of each rule is printed (callWrapper), and a second pass
+// Core IR (coreir.Module.Reach) and how a call of each rule is printed (callWrapper), and a second pass
 // leaves out the others. The rule tables still list every rule: only the Body, Action,
 // Entry and OperatorsRule assignments and the functions of an unreachable rule are left out. What a
 // left-out rule would have declared (its expectations, literals, class tables and typed helpers) is
@@ -45,36 +45,36 @@ type liveRules struct {
 	descs  []string             // the expectation table, whose IDs the printed bodies keep
 	Roots  []ruleKey            // the start rules of the tables and the entries of the typed table
 	Reach  map[ruleKey]bool
-	mods   map[string]*core.Module         // the Core IR of each table, whose calls reachFrom follows
+	mods   map[string]*coreir.Module       // the Core IR of each table, whose calls reachFrom follows
 	enter  func(table string, id int) bool // whether a call of a rule is printed as a call of its wrapper
 }
 
 // reachFrom sets l.Reach to the rules that the roots enter, with the reachability of the Core IR
-// (core.Module.Reach) of each table, in the way enter prints a call of a rule.
+// (coreir.Module.Reach) of each table, in the way enter prints a call of a rule.
 func (l *liveRules) reachFrom(roots []ruleKey) {
 	l.Reach = map[ruleKey]bool{}
 	for table, m := range l.mods {
-		var rs []core.Root
+		var rs []coreir.Root
 		for _, k := range roots {
 			if k.Table == table {
-				e := core.EnterSlot
+				e := coreir.EnterSlot
 				if k.Wrapper {
-					e = core.EnterWrapper
+					e = coreir.EnterWrapper
 				}
-				rs = append(rs, core.Root{Rule: k.ID, Entry: e})
+				rs = append(rs, coreir.Root{Rule: k.ID, Entry: e})
 			}
 		}
-		reach := m.Reach(rs, func(id int) core.Entry {
+		reach := m.Reach(rs, func(id int) coreir.Entry {
 			if l.enter(table, id) {
-				return core.EnterWrapper
+				return coreir.EnterWrapper
 			}
-			return core.EnterSlot
+			return coreir.EnterSlot
 		})
 		for id, e := range reach {
-			if e&core.EnterSlot != 0 {
+			if e&coreir.EnterSlot != 0 {
 				l.Reach[ruleKey{table, id, false}] = true
 			}
-			if e&core.EnterWrapper != 0 {
+			if e&coreir.EnterWrapper != 0 {
 				l.Reach[ruleKey{table, id, true}] = true
 			}
 		}
@@ -155,7 +155,7 @@ func (g *Generator) finishReach(prog, rec *compile.Program) error {
 		}
 		roots = append(roots, g.typedRoots...)
 		g.collect.Roots = roots
-		mods := map[string]*core.Module{}
+		mods := map[string]*coreir.Module{}
 		progs := map[string]*compile.Program{"rules": prog, "trules": prog}
 		if rec != nil {
 			progs["recRules"] = rec

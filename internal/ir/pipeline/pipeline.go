@@ -7,7 +7,7 @@
 // once at the end or after every pass. A pass that breaks an invariant is named in the error.
 //
 // The package knows nothing about the unit M or the context X that its callers choose: Core IR is the
-// first user (internal/ir/core, Pipeline). It holds no state between runs.
+// first user (internal/ir/coreir, Pipeline). It holds no state between runs.
 package pipeline
 
 import "fmt"

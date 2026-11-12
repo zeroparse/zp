@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 // TestNodeQueriesMatchRuleFacts checks the node queries on the body of every rule of every corpus
@@ -65,7 +65,7 @@ func TestNodeQueriesNegativeControl(t *testing.T) {
 	t.Fatal("no corpus rule has left calls")
 }
 
-func moduleFacts(t *testing.T, path string) (*core.Module, *facts.Facts) {
+func moduleFacts(t *testing.T, path string) (*coreir.Module, *facts.Facts) {
 	t.Helper()
 	g, err := compiletest.Parse(factstest.Read(t, path))
 	if err != nil {
@@ -80,7 +80,7 @@ func moduleFacts(t *testing.T, path string) (*core.Module, *facts.Facts) {
 		t.Fatal(err)
 	}
 	for _, r := range m.Rules {
-		r.Policy = core.Policy{}
+		r.Policy = coreir.Policy{}
 	}
 	return m, facts.Compute(m, nil)
 }

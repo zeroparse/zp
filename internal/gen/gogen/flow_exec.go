@@ -9,7 +9,7 @@ import (
 	goast "go/ast"
 
 	"zeroparse.dev/zp/internal/compile"
-	irc "zeroparse.dev/zp/internal/ir/core"
+	irc "zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
 	"zeroparse.dev/zp/internal/ir/exec/execlower"

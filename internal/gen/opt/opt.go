@@ -15,14 +15,14 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 // Kind says what an optimization changes.
 type Kind int
 
 const (
-	// Pass is a pass over Core IR, or a variant of one (internal/ir/core, Pipeline).
+	// Pass is a pass over Core IR, or a variant of one (internal/ir/coreir, Pipeline).
 	Pass Kind = iota
 	// Lowering is an option of Flow lowering.
 	Lowering
@@ -64,13 +64,13 @@ type Flag struct {
 
 // Flags lists the optimizations in the order the reference documents them.
 var Flags = []Flag{
-	{Name: core.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
+	{Name: coreir.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
 	{Name: "text-dispatch", Kind: Printer, Default: 1, Doc: "the printers emit a predicate that compares the text of a capture with literals as one switch"},
 	{Name: "field-compare", Kind: Printer, Default: 1, Doc: "the Go printer compares fields in the actions and predicates of typed rules without boxing string fields"},
-	{Name: core.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
-	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
-	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
-	{Name: core.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
+	{Name: coreir.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
+	{Name: coreir.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
+	{Name: coreir.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},
+	{Name: coreir.PassClassRuns, Kind: Pass, Default: 1, Doc: "consecutive classes of a value-free sequence run as one (lean typed Go)"},
 	{Name: "class-tables", Kind: Lowering, Int: true, Default: 0, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); smaller source against a slower parse, so an opt-in: 0 in speed, 5 is the measured choice"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
 	{Name: "method-sharing", Kind: Printer, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
@@ -345,7 +345,7 @@ func PrintNames() []string {
 	return append([]string{"build"}, append(corePassNames(), "all")...)
 }
 
-func corePassNames() []string { return core.Pipeline.Names() }
+func corePassNames() []string { return coreir.Pipeline.Names() }
 
 // ParsePrintAfter validates a comma-separated list of pass names for printing, and returns the names
 // in order. The empty string selects nothing.

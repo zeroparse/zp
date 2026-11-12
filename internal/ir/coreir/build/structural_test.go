@@ -9,9 +9,9 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 // structuralInput returns the input of an untyped module of the rules of the compiled program:
@@ -32,15 +32,15 @@ func structuralInput(prog *compile.Program) *build.Input {
 
 // shape returns the sequence of node types of the module without captures, which the typed and the untyped build
 // must agree on.
-func shape(m *core.Module, n int) []string {
+func shape(m *coreir.Module, n int) []string {
 	var out []string
-	var walk func(core.Node)
-	walk = func(n core.Node) {
+	var walk func(coreir.Node)
+	walk = func(n coreir.Node) {
 		// A lean rule of the typed build leaves out the captures its action does not read.
-		if _, ok := n.(*core.Capture); !ok {
+		if _, ok := n.(*coreir.Capture); !ok {
 			out = append(out, fmt.Sprintf("%T", n))
 		}
-		for _, c := range core.Children(n) {
+		for _, c := range coreir.Children(n) {
 			walk(c)
 		}
 	}
