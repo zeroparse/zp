@@ -347,15 +347,16 @@ no more than the shorter one, so it costs at most the length of the shorter
 operand, plus a constant.
 
 Outside a [Document](documents.md), and apart from the exceptions below, time is
-proportional to cost, listing the recovered errors of a result included: a
-result reports at most a constant times the input that its parse matched, and a
-parse outside a Document examines that input at a cost that is counted
-([linear cost proof](../proofs/linear-cost.md#lemma-16-errors-of-an-outcome)).
+proportional to cost, including the time to list the recovered errors of a
+result: a result reports at most a constant times the input that its parse
+matched, and a parse outside a Document examines that input at a cost that is
+counted ([linear cost proof](../proofs/linear-cost.md#lemma-16-errors-of-an-outcome)).
 The memory that a parse allocates is at most proportional to its cost plus the
-input, because each memo entry, node and value is built by cost that is counted
-and the list of recovered errors is at most a constant times the input. Both
-exclude a parse with missing-token insertion, as below, where no bound relates
-the number of its errors to the input or the cost. The cost of a parse is measured in compute units, which
+input, because each memo entry, node and value is built by cost that is counted,
+and the list of recovered errors is at most a constant times the input. A parse
+with missing-token insertion is an exception to both, as below: no bound relates
+the number of its errors to the input or the cost.
+The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
 [compute limits](#cancellation-and-compute-limits) caps it. Each backend that
 counts compute units, the engine's closure backend and bytecode machines as

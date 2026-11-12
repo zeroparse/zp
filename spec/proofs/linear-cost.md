@@ -3208,8 +3208,8 @@ most $4 D C$ lists.
 [Positions do not decrease](../runtime/parsing.md#growths-of-left-recursion).
 The children of a node lie one after another: after it records an outcome that
 ends at $e$, an evaluation continues from $e$, and it goes back before $e$
-only where a choice, a repetition, a recovery or a lookahead returns to the
-position where one of its subexpressions started, which drops the outcomes
+only where a choice, a repetition, an Operators Rule, a recovery or a lookahead
+returns to the position where one of its subexpressions started, which drops the outcomes
 recorded after that position with their errors
 ([Cost](../runtime/parsing.md#cost)). So two nodes of which neither is above
 the other have disjoint spans, those of the two children of their lowest
@@ -3269,21 +3269,39 @@ repetition, or applications of operators of an Operators Rule. At most two
 applications have one span, because a prefix or postfix operator consumes
 input and an infix operator that consumes none ends the expression. So such a
 stretch holds at most $d + 2$ nodes, where $d$ is the greatest depth of the
-subexpressions of a rule body, and $\pi$ holds at most
-$D = (N + 1)\,(B + (B + 1)(d + 2))$ nodes.
+subexpressions of a rule body. Let $r \le d + 2$ be the greatest number of
+recovery nodes that one stretch holds. The $N + 1$ segments hold at most $B + 1$
+stretches each, and the calls of a segment are not recovery nodes, so $\pi$
+holds at most $D = (N + 1)(B + 1)\,r$ recovery nodes.
 
 **The count.** The recovery nodes with one span lie on one path of that span,
-so at most $D$ of them share a span, and the distinct spans number at most
+so at most $D = (N + 1)(B + 1)\,r$ of them share a span, and the distinct spans number at most
 $2 (q - p) - 1$; if $q = p$ no recovery node fits in the derivation.
 
-**Matched input.** Outside a Document the parse starts with an empty memo and
-no record of a walk. Its position passes a character only where a terminal
-matches the character, which $C$ counts as input examined, or where it takes
-an outcome, a current result or a record that this parse made earlier from
-such matches. So each of the $q - p$ characters was
-examined by a step that $C$ counts, and $q - p \le C$. By Lemma 14 listing $k$
-recovered errors visits at most $2k$ lists, so listing those of the outcome
-visits at most $4 D C$. $\square$
+**Matched input.** The bound by $C$ is for a backend that counts compute
+units: the engine's three backends and the Go parsers generated with limit
+controls. A parser generated without them counts none, and for it only the
+first part of the lemma, the number of errors, holds. Outside a Document the
+parse starts with an empty memo and no record of a walk. Its position passes
+a character only where a terminal matches the character, which $C$ counts as
+input examined, or where it takes an outcome, a current result or a record that
+this parse made earlier from such matches. A record of a
+[skip run](skip-runs.md) is exact and was made by a walk that examined its
+characters ([Skip Runs](skip-runs.md#lemma-1-exactness) and
+[Cost](skip-runs.md#lemma-2-cost)); so is a record of a
+[run site](run-sites.md#lemma-1-exactness), counted by its
+[cost](run-sites.md#lemma-3-cost-before-hot), and a record of a scan site
+([Exactness](run-sites.md#lemma-4-exactness-of-scan-records) and
+[Cost](run-sites.md#lemma-5-cost-of-scan-records)). The generated parsers keep
+records only for skip runs ([Scope](run-sites.md#scope)). So each of the
+$q - p$ characters was examined by a step that $C$ counts, and $q - p \le C$.
+By Lemma 14 listing $k$ recovered errors visits at most $2k$ lists, so listing
+those of the outcome visits at most $4 D C$. $\square$
+
+**Scope.** The lemma holds in the units of the cost and for every grammar,
+without the conditions for linear cost. It excludes a parse with missing-token
+insertion and a parse that a limit stops. A stream lists a part of the errors
+of the parse of the input that it has read, so the bound holds for it too.
 
 A recovery inside the skip expression of another can share its span: with
 `rule item = ("a" ";") #recover(skip=inner)` and
