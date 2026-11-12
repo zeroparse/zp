@@ -34,7 +34,6 @@ type Expr ~ error | Ident | IntLit | UintLit | DoubleLit | StringLit | BytesLit 
 @start
 rule main Expr = ws e:expr ws $$ => $e
 
-
 rule expr Expr = #operators {
     skip ws
     operand unary
@@ -59,7 +58,6 @@ rule member Expr = #operators {
         postfix "[" ws q:"?"? ws i:expr ws "]" => Index{X: $lhs, Index: $i, Optional: len($q) > 0}
     }
 }
-
 
 rule primary Expr = (
     &[A-Za-z_] v:(word_lit / message / ident_only / call) / &[0-9] v:(int_plain / double / uint / int) / &["'] v:string / &"." v:(double / message / call / ident) / &"-" v:(double / int) / v:(paren / list / map / expected_start)
@@ -96,7 +94,6 @@ rule field Field = (opt_field / plain_field) #recover(skip=[^,()\[\]{}]+)
 rule opt_field FieldV = "?" ws n:name ws ":" ws v:expr => FieldV{Name: $n, Value: $v, Optional: true}
 rule plain_field FieldV = n:name ws ":" ws v:expr => FieldV{Name: $n, Value: $v, Optional: false}
 
-
 rule bool BoolLit = (("true" / "false") ![A-Za-z0-9_]) #atomic
 rule null NullLit = ("null" ![A-Za-z0-9_]) #atomic
 
@@ -128,7 +125,6 @@ rule str_esc = (
     / "\\U" !("0000" [dD] [89a-fA-F]) "00" ("0" hex #repeat(5) / "10" hex #repeat(4))
 )
 rule hex = [0-9a-fA-F]
-
 
 rule name_plain Ident = (!(("true" / "false" / "null" / "in") ![A-Za-z0-9_]) [A-Za-z_] [A-Za-z0-9_]*) #atomic
 rule name_global = (
