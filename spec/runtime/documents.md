@@ -142,7 +142,11 @@ value graph in one immutable `Snapshot`. It resolves invocation overrides once
 over the construction defaults, with the same variable and fixed options as
 `Parse`. Parsing and freezing use the same cancellation context and the same
 cumulative spend counter. Copying the text, freezing
-nodes and fields and copying diagnostics are part of that invocation.
+nodes and fields and copying diagnostics are part of that invocation. A snapshot
+MAY share immutable records with the previous one of the same document; whether
+it does is not observable except in memory, and the Compute it charges is the
+same whether or not the previous snapshot is still alive: it is a function of the
+document and of the new graph alone.
 
 A normally returned parse outcome produces a snapshot, including an ordinary
 syntax error and a recovered error. For an ordinary syntax failure the snapshot

@@ -48,6 +48,9 @@ type Document struct {
 	resumed int
 	// Candidate-only weak reference: dropped snapshots must remain collectible.
 	previousSnapshot weak.Pointer[snapshotGraph]
+	// previousRoot is the root of the last published snapshot graph (0 before one): the logical
+	// fact that a snapshot was taken, which stays when the collector drops previousSnapshot.
+	previousRoot int
 }
 
 // Runner is the program a Document parses with. The engine's Program

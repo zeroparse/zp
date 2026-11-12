@@ -336,7 +336,7 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **value.Node) (*Snap
 			return captureErr
 		}
 		if snapshotSharingEnabled && graph.root != 0 {
-			graph = shareSnapshotGraph(p, d.previousSnapshot.Value(), graph)
+			graph = d.shareWithPrevious(p, graph)
 		}
 		// input.text may lazily build tables. Keep that work private to this
 		// capture, rather than mutating Document-owned input during freezing.
@@ -375,6 +375,7 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **value.Node) (*Snap
 		}
 		if snapshotSharingEnabled {
 			d.previousSnapshot = weak.Make(&result.graph)
+			d.previousRoot = result.graph.root
 		}
 		return returnedError
 	})
@@ -555,6 +556,48 @@ func snapshotFieldPath(p *core.Parser, stack []snapshotFrame, edge snapshotEdge)
 	return out.String()
 }
 
+// shareWithPrevious reuses the records of the previous snapshot's graph where it is still alive.
+// Reuse only saves memory, and the collector decides whether the previous graph is alive, so the
+// parse is charged for the reuse as a function of the new graph alone, whenever a previous snapshot
+// of the same root was taken: the charge never depends on collection, or on what the previous
+// snapshot held. The reuse itself then runs unmetered, within what was charged, and still observes
+// cancellation.
+func (d *Document) shareWithPrevious(p *core.Parser, next snapshotGraph) snapshotGraph {
+	if d.previousRoot != next.root {
+		return next
+	}
+	p.SpendValue(snapshotSharingCharge(&next))
+	p.Control.Check()
+	previous := d.previousSnapshot.Value()
+	if previous == nil {
+		return next
+	}
+	if c := p.Control; c != nil {
+		used, limit := c.Used, c.Limits.Compute
+		c.Limits.Compute = 0
+		defer func() { c.Used, c.Limits.Compute = used, limit }()
+	}
+	return shareSnapshotGraph(p, previous, next)
+}
+
+// snapshotSharingCharge bounds the work of reusing records for next: a visit of each record, one
+// unit for every byte read twice of its text and field names and string values, and for every child
+// and field.
+func snapshotSharingCharge(next *snapshotGraph) int {
+	n := 0
+	for i := range next.nodes {
+		r := &next.nodes[i]
+		n += 2 + 2*len(r.text) + len(r.children) + len(r.fields)
+		for _, f := range r.fields {
+			n += 2 * len(f.Name)
+			if s, ok := f.Value.(string); ok {
+				n += 2 * len(s)
+			}
+		}
+	}
+	return n
+}
+
 // shareSnapshotGraph reuses immutable records after freezing the current parse.
 // The default requires exact metadata; the private position-overlay candidate
 // keeps changed metadata separately. No mutable Node or parser slice is shared.
@@ -690,7 +733,7 @@ func shareSnapshotChildren(p *core.Parser, previousGraph *snapshotGraph, previou
 	for i := range equal {
 		start := i * snapshotChildChunkSize
 		end := min(start+snapshotChildChunkSize, len(next.children))
-		p.Control.Charge(uint64(end - start))
+		p.SpendValue(end - start)
 		old := previousGraph.childChunk(previous, i, end-start)
 		if len(old) != 0 && slices.Equal(old, next.children[start:end]) {
 			equal[i] = true
@@ -760,7 +803,7 @@ func sameFlatSnapshotRecord(p *core.Parser, a, b *snapshotRecord) bool {
 	}
 	for offset := 0; offset < len(a.children); offset += 4096 {
 		end := min(offset+4096, len(a.children))
-		p.Control.Charge(uint64(end - offset))
+		p.SpendValue(end - offset)
 		if !slices.Equal(a.children[offset:end], b.children[offset:end]) {
 			return false
 		}
@@ -780,7 +823,7 @@ func sameSnapshotChildren(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, 
 	if !a.childChunked && !b.childChunked {
 		for offset := 0; offset < count; offset += 4096 {
 			end := min(offset+4096, count)
-			p.Control.Charge(uint64(end - offset))
+			p.SpendValue(end - offset)
 			if !slices.Equal(a.children[offset:end], b.children[offset:end]) {
 				return false
 			}
@@ -789,7 +832,7 @@ func sameSnapshotChildren(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, 
 	}
 	for offset := 0; offset < count; offset += snapshotChildChunkSize {
 		end := min(offset+snapshotChildChunkSize, count)
-		p.Control.Charge(uint64(end - offset))
+		p.SpendValue(end - offset)
 		if !slices.Equal(ag.childChunk(a, offset/snapshotChildChunkSize, end-offset), bg.childChunk(b, offset/snapshotChildChunkSize, end-offset)) {
 			return false
 		}
