@@ -23,10 +23,7 @@ import (
 // with the same ownership rules as the hand-written parser. It returns the
 // errors of those checks, in the form of Parse, when the source is not a valid
 // grammar. The raw comment tokens and line breaks that Format reads are
-// replayed from the tokens of src (see layoutReplay): those of declarations,
-// headers, types, struct fields, attribute lists and Operators Rule items.
-// Inside rule expressions, actions and variable values they are not replayed
-// yet; the comments there go to the line break of their declaration.
+// replayed from the tokens of src (see layoutReplay).
 func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error) {
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src)}
 	defer func() {
