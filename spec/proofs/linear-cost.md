@@ -44,7 +44,7 @@ proof must still make precise, listed under [Open Steps](#open-steps). Lemma 4
 proves a reduction and bounds the repetitions at one position: the scanned cost comes down to the number of activations, those that do not succeed come down to those that do and to the body evaluations of memoized rules, without resting on Lemma 10, a failure
 after a source passes through the forms that condition 2 checks, an activation
 is repeated at a position only after an abandoned committing unit or a dropped
-growth step, at most one successful activation of a source at a position is
+growth step, which condition 2 checks as a unit at the end of its seed, at most one successful activation of a source at a position is
 direct in one body evaluation, and every other follows a call that a
 committing unit shares with its continuation, which, in the reference parse of
 the memoization proof, is evaluated again and repeats the first activation at
@@ -59,8 +59,8 @@ the activations of each later evaluation of a rule or its twin at a position to
 the first, and by comparing the two evaluations of each memoized link in the
 reference parse of the memoization proof, in either lookahead state, either
 variant and through the growths that the later one makes again, apart from the
-activations that a dropped step of a growth or a path that enters the growth
-again repeats, which Lemma 5 counts before it, and with no count of the
+activations that a path that enters the growth again, or a dropped step in a
+part at the position of its growth, repeats, which Lemma 5 counts before it, and with no count of the
 evaluations in a context of growths. It leaves the sum open for the sources of rules that call no rule and are not
 memoized, and, in a Document parse or through results kept in a context of
 growths, for the links that the comparison leaves out. Lemmas 2 and 10 and the
@@ -373,7 +373,8 @@ $\alpha$ and $\alpha'$ be successful activations of one scanning source that
 start at one position $q$, with $\alpha$ evaluated first, and let the innermost
 evaluation $N$ that contains both not be a growth. Then $\alpha'$ is not inside
 $\alpha$, and on the path from $N$ down to $\alpha$ there is a first abandoned
-evaluation $w$ below $N$. Either $w$ is a dropped step of a growth, or $w$ is an
+evaluation $w$ below $N$. Either $w$ is a dropped step of a growth whose seed
+ends at a position $e \le q$, which *Dropped steps* below treats, or $w$ is an
 evaluation of a unit that starts at a position $s \le q$, which is committing
 when the source is not a bounded scan. From
 the end of $w$ to the start of $\alpha'$, the parser starts no evaluation at a
@@ -402,7 +403,11 @@ that $c_1$ consumes, which ends at or before $q$. So $w$ exists, and the
 evaluations above it on the path, up to $N$, succeed, are not the expression
 of a lookahead, and are not dropped steps. Its parent goes on after it, so
 $w$ is a dropped step or a unit, and it starts at a position $s \le q$, since
-it contains $\alpha$.
+it contains $\alpha$. When $w$ is a dropped step of a growth $G$, $G$ lies on
+the path from $c_1$ down to $w$, where every evaluation succeeds and is not
+abandoned, so the input that $c_1$ consumes holds the result of $G$, which is
+the seed of $w$, and $e \le \mathrm{end}(c_1) \le q$; $c_1$ is not
+abandoned, since $w$ is the first abandoned evaluation.
 
 Let $v$ be the first evaluation in progress that started before $s$ and
 fails after the end of $w$ and before $\alpha'$; only such a failure returns
@@ -420,6 +425,86 @@ $\alpha$, or a call that leads to it. It is the expression of a lookahead, which
 checks in any case, or it failed after $\alpha$ succeeded, having examined
 input, so by the paragraph above it can fail after one of its scanning
 sources has examined input. Condition 2 makes it committing. $\square$
+
+**Dropped steps.** Let the evaluation $w$ of the restarts be a dropped step of
+a growth $G$ of a leader $R$ at $p$, whose seed ends at $e \le q$. From the end
+of $G$ to the start of $\alpha'$, the parser starts no evaluation at a position
+before $e$, and it evaluates from $e$ what follows the calls that start $G$, the
+continuations of a step of $G$ after the first as a unit
+([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
+condition 2). One of three cases holds.
+
+- *A step that fails.* $\alpha$ follows, in $w$, a read of the seed of $G$ that
+  succeeds, or a call whose result includes one, and $w$ fails. Then condition
+  2 checks $w$ as a unit that starts at $e$, it is committing when the source
+  is not a bounded scan, and the conclusion of the restarts holds for this
+  unit with $s = e$.
+- *A step that succeeds.* $\alpha$ follows such a read and $w$ succeeds with a
+  result no longer than its seed. Then the path from $w$ down to $\alpha$ holds
+  a first evaluation $w'$ below $w$ that fails, is the expression of a
+  lookahead or is a dropped step, it starts at a position $s' \le e$, and the
+  conclusion of the restarts holds for $w'$, with what the parser evaluates
+  after it in $w$ and then from $e$ as its continuation.
+- *At the position of the growth.* Otherwise $\alpha$ lies in a part that $w$
+  evaluates at $p$ on a path that reads no growing result that succeeds, as
+  in the second case of *Repeats inside a growth* in Lemma 5.
+
+*Proof.* A growth ends with its first dropped step, and it gives the seed of
+that step as its result, so $G$ ends when $w$ does, at $e$. Let $v$ be the
+first evaluation in progress that started before $e$ and fails after the end
+of $G$ and before $\alpha'$. Every evaluation that starts after the end of $G$
+and before the failure of $v$ starts at $e$ or later, since the parser goes on
+at $e$ and a dropped step that starts in that time returns it to the end of
+its own seed, which is not before the start of its growth. So $v$ started
+before the end of $G$ and encloses $G$; it does not enclose $\alpha'$, so it
+lies on the path from $N$ to $w$, where no evaluation fails. So there is no
+such $v$. The parser goes on at $e$ after the call that started $G$: a call of
+$R$ that is not a left call, or a call of another rule of the cycle that is not
+a left call, in whose body $G$ ends after the left call of $R$ that its body
+reaches ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost), the left calls). Up to
+$\alpha'$ it evaluates from $e$ on what follows there, through the ends of rule
+bodies and every call of their rules, the reads of the seeds of the growths
+around included: this is what follows the calls that start the growth.
+
+In the first case $\alpha$ lies in $w$ after a left call of $R$ that read the
+seed, so it lies in a step tail of $R$, or in a call that a step tail makes.
+By *Failure after a source*, applied to $w$, the evaluation $f$ whose failure
+makes $w$ fail comes after $\alpha$, after the read, so in the same step
+tail, and the innermost evaluation that holds both is a sequence, a required
+repetition or a negative lookahead of the tail, or of a rule body that it
+calls. So the step tail can fail after its source, condition 2 checks the
+step as a unit that starts at $e$, and it is committing when the source is no
+bounded scan. The arguments of *Direct activations* and *Repeats* below use of
+$w$ only that it is checked against the continuation $\kappa$ that the parser
+evaluates from its start, that the parser returns to no position before that
+start until $\alpha'$, and that $\alpha$ is consumed in $w$ after the calls
+that $w$ and $\kappa$ share: the step examines the input from $e$ on through
+its step tails, whose first characters are those of the step, so the
+character at the end of the shared calls is one of them. They apply to $w$
+with $s = e$, as they apply to a growing unit in *Repeats inside a growth*.
+
+In the second case, if no evaluation below $w$ on the path from $w$ to
+$\alpha$ failed, was the expression of a lookahead or was a dropped step, the
+input that $\alpha$ consumes from $q \ge e$ would lie in the result of $w$,
+which ends at or before $e$; a kept step of a growth on the path is part of the
+seed of the next step and so of the result of the growth. So $w'$ exists. The
+evaluations between $w$ and $w'$ succeed and are not abandoned, so the
+argument of the restarts gives that from the end of $w'$ to the end of $w$ the
+parser starts no evaluation before the position where the parent of $w'$ goes
+on after it: the start $s'$ of $w'$, or, for a dropped step, the end of its
+seed, which this claim then takes as $s'$. These evaluations do not fail, so
+$w$ ends at or after $s'$, and since the result of $w$ ends at or before $e$,
+$s' \le e$. From the end of $w$ the parser returns to no position before $e$,
+as shown above, so the conclusion of the restarts holds for $w'$ at $s'$. What
+the parser evaluates after $w'$, through the end of the body of $R$ in $w$
+and then from $e$, is a continuation of $w'$, which continues at the end of a
+rule body through every call of the rule. $w'$ is then a unit, which the
+restarts and *Failure after a source* make committing, or a dropped step, to
+which this claim applies again, deeper on the path. $\square$
+
+The activations of the third case are counted by Lemma 5 with those that the
+second case of *Repeats inside a growth* gives, as stated there.
 
 **Operators Rules.** The operators that an Operators Rule applies are a scanning
 source, and each operator applied is an activation. An operator applied without
@@ -520,8 +605,9 @@ count nothing: they rest on the conditions, the memo of Lemma 3 and the memoizat
 activation, including those of growth steps and of evaluations in a context of
 growths. Second, Lemma 5 bounds $B$, the evaluations in a context of growths,
 the activations that growth steps and those evaluations own, and the successful
-activations that a dropped step of a growth or a path that enters the growth
-again (case 5 below) repeats, from those claims, Lemmas 1 to 3 and conditions 3
+activations that a dropped step at the position of its growth (the third case
+of *Dropped steps*) or a path that enters the growth again (case 5 below)
+repeats, from those claims, Lemmas 1 to 3 and conditions 3
 and 5; it must not use the bounds that come after it (step 4 of [Open
 Steps](#open-steps)). Third, *Activations held by heads* bounds the successful
 activations owned by memoized evaluations from Lemma 3, *Replayed activations*
@@ -535,7 +621,9 @@ memoized and $A_f$.
 The claims from here to *Nothing in a memoized link is a head* concern the
 scanning sources other than bounded scans, whose activations Lemma 13 counts.
 By the restarts above, a successful activation of such a source is repeated at a
-position only after a dropped step of a growth, which Lemma 5 counts, or after a
+position only after a dropped step of a growth, which *Dropped steps* turns
+into a unit at the end of its seed or into one below it, apart from its third
+case, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
 not return before the start of that unit until the repetition. The restarts
 leave out two activations whose innermost common evaluation is a growth;
@@ -651,8 +739,10 @@ continues from its start.
 
 **Repeats.** Let $\alpha$ and $\alpha'$ be successful activations of $\sigma$
 at $q$, $\alpha$ first, direct in different body evaluations of $R$, and let
-no dropped step of a growth and no path that enters the growth again lead from
-the abandoned unit to $\alpha'$. With $w$ and $\kappa$ as above, $\alpha$ lies
+no path that enters the growth again lead from the abandoned unit to
+$\alpha'$, and $\alpha$ not lie in the third case of *Dropped steps*. With $w$
+and $\kappa$ as above, where $w$ is the unit that *Dropped steps* gives when
+the abandoned evaluation of the restarts is a dropped step, $\alpha$ lies
 in the evaluation inside $w$ of a call that $w$ and $\kappa$ share, which
 starts at or before $q$.
 
@@ -682,12 +772,13 @@ answers that call, and the next activation at the space lies in the call of
 `R` that `main` makes after it, in no evaluation of `s`.
 
 So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
-in the order in which they start, outside case 5, dropped steps and the
-repeats at the position of a growth that *Repeats inside a growth* of Lemma 5
+in the order in which they start, outside case 5, the third case of *Dropped
+steps* and the repeats at the position of a growth that *Repeats inside a growth* of Lemma 5
 leaves out, are direct
 in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
 the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
-continuation $\kappa_i$, inside $w_i$, where $\kappa_i$ is the continuation
+continuation $\kappa_i$, inside $w_i$, where $w_i$ can be a step of a growth
+after the first, a unit that starts at the end of its seed (*Dropped steps*), where $\kappa_i$ is the continuation
 that the parser evaluates from the start of $w_i$ the last time before
 $\alpha_i$, as in *Direct activations*. When $\alpha_i$ lies in the evaluation
 $e'_i$ of that call that $\kappa_i$ makes, at the same position (case 2), and
@@ -1447,7 +1538,7 @@ evaluation named below. Then before $e_i$ ended the parse made a body
 evaluation of $R$ or of its twin at $p_i$ with a successful activation of
 $\sigma$ at $q$ direct in it, so $p_i$ is the position of the body evaluation
 of an earlier successful activation of $\sigma$ at $q$: $p_i = p_m$ for some
-$m < i$, or the position of one that case 5 or a dropped step repeats. If $i$ is linked
+$m < i$, or the position of one that case 5 or a dropped step at the position of its growth repeats. If $i$ is linked
 by a leaf link, $p_i = p_{i-1}$.
 
 *Proof.* A leaf link has $e_i = P_{i-1}$ and $e'_i = P_i$. For a memoized link,
@@ -1465,7 +1556,7 @@ current result of an open growth makes no call in $\mathcal{R}$ and holds no
 body evaluation of $R$; an entry or a kept result leads to an earlier
 evaluation of a key of the class, as in the covered keys; and a skipped
 alternative holds no activation. That activation is one of the $\alpha_m$ or
-one that case 5 or a dropped step repeats, which the $\alpha_m$ leave out, and
+one that case 5 or a dropped step at the position of its growth repeats, which the $\alpha_m$ leave out, and
 it ends before $e_i$ ends, so before $\alpha_i$ starts, and $m < i$ in the
 first case. $\square$
 
@@ -1482,7 +1573,7 @@ So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
 position for each free $i$, each link that *Links to heads* leaves
 out, each memoized link whose two evaluations read a growth open
 at their start, which *Memoized links keep positions* leaves out, and each
-activation that case 5 or a dropped step repeats. For a leaf link $j$ whose shared call is the first, so that
+activation that case 5 or a dropped step at the position of its growth repeats. For a leaf link $j$ whose shared call is the first, so that
 $w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
 it. The heads that start at $p_j$ are of the classes at $p_j$, one head each.
 Those that start before $p_j$ enclose $w_j$, and the frames between are left at
@@ -1496,19 +1587,19 @@ holds are part of step 1 of [Open Steps](#open-steps).
 **Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
 (b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
 counterpart of an activation of $\mathcal{R}$ that has a reference link with
-neither case (a) nor (b) on its path, or that a dropped step or a path that
-enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
+neither case (a) nor (b) on its path, or that a dropped step at the position of its growth or a path
+that enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
 activations and since a class has at most six
 memoized evaluations, the successful activations of
 $\sigma$ at $q$ held by memoized evaluations are at most six times those
-held by heads, which are $\alpha_1$, those that case 5 or a dropped step
-repeats, and the free ones that a dropped step or a path that enters a growth
-again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
+held by heads, which are $\alpha_1$, those that case 5 or a dropped step at the position of its growth
+repeats, and the free ones that a dropped step at the position of its growth or a path that enters a
+growth again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
 leaves to count. The free ones whose reference link meets case (a) or (b) are
 outside the hypothesis, and step 1 leaves them open too. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
-evaluations own, apart from those that case 5 or a dropped step repeats, which
-Lemma 5 counts. The comparison with $\mathcal{R}$ needs no order between the
+evaluations own, apart from those that case 5 or a dropped step at the position of its growth
+repeats, which Lemma 5 counts. The comparison with $\mathcal{R}$ needs no order between the
 lookahead states of $e_i$ and $e'_i$ and no common variant, and passes through
 the growths that $e'_i$ makes again outside lookaheads after $e_i$ made them
 inside one, through those that the leader of the link makes again there, and
@@ -1549,8 +1640,9 @@ a leader outside a growth step included. Their local and scanned cost is at
 most a constant times $K(L + 1)\hat{n}$ more than Lemma 4 counts. Lemma 4
 counts the activations owned by memoized evaluations, those inside a growth
 step included, and this lemma those owned by growth steps and by evaluations in
-a context of growths, and the successful activations that a dropped step of a
-growth or a path that enters the growth again repeats. Its bounds come before
+a context of growths, and the successful activations that a dropped step in a
+part at the position of its growth or a path that enters the growth again
+repeats. Its bounds come before
 the count of Lemma 4 on the activations that memoized evaluations own, in the
 order that [Lemma 4](#lemma-4-scanned-cost) states, so they must not rest on
 it: they rest on the claims of Lemma 4 that count nothing, from *Failure after
@@ -2182,7 +2274,7 @@ position of the growth* bound these as stated, whether $\alpha'$ lies in the
 own region of the step or in a call that the part makes. $\square$
 
 So the sequence $\alpha_1, \alpha_2, \ldots$ of Lemma 4 leaves out, beside case
-5 and the dropped steps, the activations of the second case: an activation
+5 and the third case of *Dropped steps*, the activations of the second case: an activation
 that lies in a step of a growth, on a path that reads no growing result that
 succeeds, after an activation of $\sigma$ at $q$ in an earlier step of that
 growth. Two activations of the sequence whose innermost common evaluation is a
@@ -2197,8 +2289,22 @@ at each position they number at most a constant times what one evaluation of
 those parts holds there, which *Consecutive repeats inside a family* below
 bounds by a constant for each family of growths. Each of them follows an
 activation of $\sigma$ at $q$ in an earlier step of the same growth, so a
-growth that holds one also holds one of the sequence, or one of case 5 or a
-dropped step, and they add no growth to the count over the positions below.
+growth that holds one also holds one of the sequence, or one of case 5 or of
+the third case of *Dropped steps*, and they add no growth to the count over the
+positions below. An activation $\alpha'$ of that third case is the next
+successful activation of $\sigma$ at $q$ after an activation $\alpha$ that a
+dropped step holds in a part that it evaluates at $p$ without reading a
+growing result that succeeds, so distinct ones follow distinct such $\alpha$,
+and $q \ge e$ beyond the seed. These parts are those of the second case, and
+the same claims bound the activations of $\sigma$ at $q$ that they hold: at
+most a constant for each step in a step that the claims at $p$ do not leave
+out, which, beyond the seed, leaves only the steps of growths at most a
+constant before $q$, and in the constant number of steps of a growth that the
+claims leave out, at most a constant times what one evaluation of those parts
+holds at $q$ (*Consecutive repeats inside a family*). So these $\alpha'$
+number at most the activations that dropped steps hold in such parts, which
+these claims count with those of the second case, a growth having at most one
+dropped step.
 The pairs that step 2 of [Open Steps](#open-steps) keeps remain open.
 
 **Families of growths.** A growth of a leader at $p$ is **outer** when no
@@ -2648,7 +2754,16 @@ of $g'$ for that of $\alpha'$: an evaluation that returns the parser before
 $s$ would enclose $w$ and fail before $g'$ starts, on the path from $N$ to
 $w$, where nothing fails; and a unit $w$ holds the call that starts $g$, a
 scanning source, and is the expression of a lookahead or failed after
-$\alpha$ succeeded, so condition 2 makes it committing. Let $N$ be a growth
+$\alpha$ succeeded, so condition 2 makes it committing. When $w$ is a dropped
+step of a growth whose seed ends at $e$, $e \le \mathrm{end}(c_1) \le p'$ as in
+the restarts, and *Dropped steps* applies with the start of $g'$ for that of
+$\alpha'$ and the call that starts $g$ for the source: in its first case that
+call follows the read of the seed, so $e \le p$, and the step is a committing
+unit at $e$; in its second case the evaluation $w'$ that it gives holds the
+call that starts $g$, since $g$ and the steps of $g$ above $\alpha$ are not
+abandoned, so $s' \le p$; and in its third case $g$ starts in a part that the
+dropped step evaluates at the position of its growth, which the count after
+*Repeats inside a growth* charges $\alpha'$ to. Let $N$ be a growth
 at $p_N$, with $\alpha$ in its step $j$ and $\alpha'$ in a later step $j'$.
 In the first case of *Repeats inside a growth*, $g'$ starts after a read of
 the growing result of $N$ that succeeds, or after a call whose result
@@ -4538,6 +4653,10 @@ names a term or condition of the specification and the lemmas that use it.
   Operators Rules that nest, words that exclude a continuation and
   alternatives that can fail only after a `#cut`: Lemma 4, its failure after a source, the cases of
   committing and its claims on links.
+- Condition 2 for the steps of a growth after the first, checked as units at
+  the end of the seed through the step tails of the leader: *Dropped steps*
+  in Lemma 4, with *Restarts of growth activations* and the count after
+  *Repeats inside a growth* in Lemma 5.
 - The paths that enter a growth again, for which an alternative is committing
   when its sources lie in memoized calls and what follows the leader has no
   source: the fifth case of Lemma 4, with Lemma 5.
@@ -4609,7 +4728,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    observed lookahead it enters. So the sum over the positions is proved for the
    activations owned by memoized evaluations of every source in a rule that
    calls a rule or is memoized at its calls, when its memoized links are of that
-   kind, apart from the activations that a dropped step of a growth or a path
+   kind, apart from the activations that a dropped step at the position of its growth or a path
    that enters the growth again repeats, which Lemma 5 counts (step 4), and
    with no count of the evaluations in a context of growths. The activations that
    do not succeed, and the evaluations of the rules that are not memoized,
@@ -4618,8 +4737,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    activations alone. An activation need not follow a link of the parse: the
    memo can answer the shared call in the continuation (*Repeats*), and the
    claims follow it through its reference link instead. The activations of the
-   reference parse that a dropped step or a path that enters a growth again of
-   the reference parse leads to, which have no reference link, are more than
+   reference parse that a dropped step at the position of its growth or a path that enters a growth
+   again of the reference parse leads to, which have no reference link, are more than
    those of the parse, and Lemma 5 must count those that are counterparts of
    activations of the parse; this is not shown. Nor are the activations of the
    reference parse whose reference link meets case (a) or (b) of the covered
@@ -4756,7 +4875,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
    growths, the activations that they own and the successful activations that
-   a dropped step or a path that enters the growth again repeats must be bounded
+   a dropped step at the position of its growth or a path that enters the growth again repeats must be bounded
    from the claims of Lemma 4 that count nothing, Lemmas 1 to 3, the memo and
    conditions 3 and 5, and not from the count of Lemma 4 on the activations
    owned by memoized evaluations. The claims that count nothing are *Failure
@@ -4776,8 +4895,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    links inside a family, with the open parts of step 1, and the pairs that
    step 2 keeps. Second, the heads of keys
    whose first activation at a position is of a kind that *First activations
-   of heads* lists: the open parts of step 1, the activations that a dropped
-   step or a path that enters a growth again of the reference parse leads to,
+   of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth
+   or a path that enters a growth again of the reference parse leads to,
    and the activations
    that *Heads hold what later growths hold* leaves out, through a result or
    step kept in a smaller lookahead state or the lookaheads that it observed,
@@ -4793,9 +4912,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    of the first, and places there the free activations whose reference link
    is the call that starts the growth itself and the growth activations that
    a path that enters the growth again repeats outside the first step of that
-   growth. Two points remain: the growth activations that a dropped step
-   repeats, or that such a path repeats in the first step of the growth that
-   it enters; and a check, claim by
+   growth. *Dropped steps* and *Restarts of growth activations* give a
+   dropped step on the path of a restart, ordinary or of growth activations,
+   a unit at the end of its seed or below it, and charge the repeats after a
+   part that it evaluates at the position of its growth to the activations
+   there. Three points remain: the growth activations that a path that enters
+   the growth again repeats in the first step of the growth that it enters; a
+   check, claim by claim, that the claims from *Memoized links* to *Activations
+   held by heads*, written for a unit $w_i$ that is an evaluation starting at
+   the start of what it examines, hold when $w_i$ is a step of a growth after
+   the first, which starts at the position of its growth but is checked as a
+   unit at the end of its seed; and a check, claim by
    claim, that the claims from *Memoized links* to *Activations held by heads*
    and the family claims of this lemma use of a growth activation only what
    the correspondences after *Direct growth activations* give.
