@@ -10,8 +10,8 @@ Parse ZeroParse grammar source with a typed Go parser generated from ZeroParse's
 own complete grammar. It is the only frontend of the source APIs and commands:
 `ParseGrammar`, `CompileSource`, `parse`, `compile`, `gen`, `fmt`, `lint` and
 the language server. The hand-written recursive-descent parser stays in the
-repository only as the oracle of the differential tests and as the reader of
-the removed syntax that `zp fix` rewrites; no API or command selects it. The
+repository only as the oracle of the differential tests; no API or command
+selects it. The
 generated frontend accepts and rejects the same sources as the oracle, also at
 the nesting limit of the language specification, which both apply through the
 same lexer, and builds the same grammar ASTs. On a rejected source it reports the first error
@@ -157,8 +157,10 @@ one reads `an expression` or `a value`; white space and comment openers are
 not listed, because they may stand anywhere. Explicit messages of the grammar
 cover a pragma that does not exist (`unknown pragma #foo`), `#repeat` without
 a count, a group or block that is not closed, and the old spellings that the
-reference named. A value on the line after its `=>` is reported as the
-reference reports it. Message differences that remain: `#ignorecase(...)` is
+reference named; the adapter adds the name of the type to the messages of old
+type definitions, as the reference does. A value
+on the line after its `=>`, or after an operator where a line break ends the
+statement, is reported as the reference reports it. Message differences that remain: `#ignorecase(...)` is
 reported as a list of what may follow the expression, at the `#`, not as an
 argument it does not take; the reference's messages about a pragma or its
 arguments that do not follow directly, a `nil` lambda parameter, attributes
@@ -323,8 +325,7 @@ distinctions away to make the parsers appear equal.
   separate sources of truth.
 - **Remove the hand-written parser entirely.** This leaves one parser in the
   repository, but removes the independent comparison path that the
-  differential tests need, and the reader of the removed syntax that `zp fix`
-  rewrites.
+  differential tests need.
 - **Keep the hand-written parser as the default until the generated one is
   faster.** This keeps today's speed, but keeps two frontends whose behavior
   must be kept equal, and puts the speed work in a parser that no other
@@ -587,9 +588,7 @@ frontend is measured the same way, with the adapter in the generated column.
 
 The generated frontend is slower than the hand-written baseline; the speed is
 recovered in the generator and the optimizer. The layout replay of the adapter
-uses the layout primitives of the hand-written parser, and `zp fix` reads the
-removed syntax with the hand-written parser, so that parser stays in the
-repository with the oracle. Messages of the generated frontend are those of the
+uses the layout primitives of the hand-written parser, so that parser stays in
+the repository with the oracle. Messages of the generated frontend are those of the
 grammar's labels and expectations, which name fewer specific mistakes than
-the messages of the hand-written parser, such as the removed spellings that
-`zp fix` rewrites.
+the messages of the hand-written parser.

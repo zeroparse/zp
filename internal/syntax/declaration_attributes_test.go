@@ -235,8 +235,8 @@ func TestPackageAttributesParse(t *testing.T) {
 
 func TestPackageAttributesErrors(t *testing.T) {
 	for _, tc := range []struct{ src, want string }{
-		{"@linear package p\nrule a = \"x\"\n", "1:9: syntax error: expected"},
-		{"rule a = \"x\"\n@linear\npackage p\n", "3:1: syntax error: expected"},
+		{"@linear package p\nrule a = \"x\"\n", "1:9: expected newline, found 'package'"},
+		{"rule a = \"x\"\n@linear\npackage p\n", `3:1: expected "@", "rule", found 'package'`},
 		// Unclosed arguments do not reach "package", so they are a rule's.
 		{"@linear(\npackage p\nrule a = \"x\"\n", "3:8: expected closing parenthesis for attribute arguments"},
 	} {

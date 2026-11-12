@@ -621,7 +621,7 @@ rule action_ops ActionExpr = #operators {
     level field_access {
         postfix "." -ws c:capture_ref => CaptureAccess{X: $lhs, Capture: $c}
         postfix "." -ws t:cast_type => Cast{X: $lhs, Type: $t}
-        postfix "." -ws name:ident => FieldAccess{X: $lhs, Name: $name}
+        postfix "." -ws name:(ident @diagnostic(name="identifier")) => FieldAccess{X: $lhs, Name: $name}
         postfix i:index_suffix => BinaryOp{Op: "[]", L: $lhs, R: $i}
     }
 }

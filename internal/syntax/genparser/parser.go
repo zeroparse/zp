@@ -2828,7 +2828,7 @@ func init() {
 	trules[151].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[151], min) }
 	trules[174].Body = e434
 	trules[202].Body = e435
-	zpGrammar.Descs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", "\"@\"", "\"package\"", "expected package name", "expected type, var or rule declaration", "[)\\]}]", "expected semicolon, newline, or end of file", "\"=\"", "[=>]", "\"/*\"", "expected semicolon, newline, or closing brace", "\";\"", "\"}\"", "\"[\"", "\"(\"", "\"{\"", "\")\"", "\"]\"", "\"\\\\\"", "[^\\]\\\\\\n]", "\"rule\"", "\"type\"", "\"var\"", "\":\"", "\"/\"", "\"\\\"\"", "\"//\"", "\"~\"", "[:!<>=+*/%&|\\^\\-]", "\"=>\"", "[a-zA-Z0-9_]", "expected type", "expected type name", "\"node[\"", "expected '= {', '= node[' or '~'", "\"struct\"", "\"terminal\"", "a struct type is defined as type Name = { ... }", "a terminal type is the struct type Name = { Text string }", "expected '{' or 'node[' after '='; write type Name ~ Type for an alias", "\",\"", "a node type takes one type argument", "expected field name", "expected field type", "expected closing brace for struct", "expected variable name", "expected the initial value", "expected rule name", "expected '=' after rule header", "\"#\"", "unknown pragma", "an Operators Rule is written #operators { ... }", "\"operators\"", "\"skip\"", "\"operand\"", "\"level\"", "\"prefix\"", "\"postfix\"", "\"infix\"", "[a-zA-Z_]", "\"atomic\"", "\"stream\"", "\"missing\"", "\"ignorecase\"", "\"repeat\"", "\"recover\"", "\"cut\"", "expected closing parenthesis for rule group", "\"level(\"", "expected target rule in level call", "expected comma in level call", "expected level name", "expected closing parenthesis for level call", "\"_\"", "\"_|_\"", "\"^^\"", "\"^\"", "\"$$\"", "\"$\"", "[0-9]", "\".\"", "\"..\"", "\"#cut\"", "\"--\"", "the cut is written #cut", "#repeat requires a count", "expected closing parenthesis for #repeat", "\"-\"", "\"0\"", "expected skip= in #recover", "expected '=' after skip", "expected closing parenthesis for #recover", "expected attribute name", "expected closing parenthesis for attribute arguments", "expected attribute argument value", "\"true\"", "\"false\"", "\"nil\"", "\"#ignorecase\"", "only #ignorecase may follow an Operators Rule", "\"#operators\"", "expected closing brace for operators", "expected skip, operand, or level", "expected skip expression", "expected operand expression", "expected opening brace for level", "expected closing brace for level", "expected prefix, postfix, or infix", "expected prefix expression", "expected postfix expression", "\"left\"", "\"right\"", "\"none\"", "expected left, right, or none associativity", "expected infix expression", "\"...\"", "expected closing brace for action block", "\":=\"", "expected binding value", "expected closing parenthesis for tuple", "expected closing parenthesis for action expression", "expected closing parenthesis for function call", "\"[]\"", "expected opening brace for list constructor", "expected closing brace for list constructor", "expected closing brace for constructor", "expected initializer field name", "expected initializer value", "a capture is read by name: label the element (x:...) and write $x", "\"\\r\\n\"", "[\\r\\n]", "newline", "[ \\t\\n\\v\\f\\r\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "whitespace", "[^\"\\\\\\n]", "comment", "[^\\n\\r]", "\"*/\"", "\"i\"", "unterminated string", "expected closing bracket for character class", "[^\\r\\n]", "\"*\"", "[ \\t\\v\\f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "[({,]", "[({]", "\"|\"", "\"&\"", "an expression", "\"!\"", "\"?\"", "\"+\"", "\"#atomic\"", "\"#stream\"", "\"#missing\"", "\"#repeat\"", "\"#recover\"", "a value", "\"||\"", "\"&&\"", "\"==\"", "\"!=\"", "\"<=\"", "\">=\"", "\"<\"", "\">\"", "\"%\""}
+	zpGrammar.Descs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", "\"@\"", "\"package\"", "expected package name", "expected type, var or rule declaration", "[)\\]}]", "expected semicolon, newline, or end of file", "\"=\"", "[=>]", "\"/*\"", "expected semicolon, newline, or closing brace", "\";\"", "\"}\"", "\"[\"", "\"(\"", "\"{\"", "\")\"", "\"]\"", "\"\\\\\"", "[^\\]\\\\\\n]", "\"rule\"", "\"type\"", "\"var\"", "\":\"", "\"/\"", "\"\\\"\"", "\"//\"", "\"~\"", "[:!<>=+*/%&|\\^\\-]", "\"=>\"", "[a-zA-Z0-9_]", "expected type", "expected type name", "\"node[\"", "expected '= {', '= node[' or '~'", "\"struct\"", "\"terminal\"", "a struct type is defined as type Name = { ... }", "a terminal type is the struct type Name = { Text string }", "expected '{' or 'node[' after '='; write type Name ~ Type for an alias", "\",\"", "a node type takes one type argument", "expected field name", "expected field type", "expected closing brace for struct", "expected variable name", "expected the initial value", "expected rule name", "expected '=' after rule header", "\"#\"", "unknown pragma", "an Operators Rule is written #operators { ... }", "\"operators\"", "\"skip\"", "\"operand\"", "\"level\"", "\"prefix\"", "\"postfix\"", "\"infix\"", "[a-zA-Z_]", "\"atomic\"", "\"stream\"", "\"missing\"", "\"ignorecase\"", "\"repeat\"", "\"recover\"", "\"cut\"", "expected closing parenthesis for rule group", "\"level(\"", "expected target rule in level call", "expected comma in level call", "expected level name", "expected closing parenthesis for level call", "\"_\"", "\"_|_\"", "\"^^\"", "\"^\"", "\"$$\"", "\"$\"", "[0-9]", "\".\"", "\"..\"", "\"#cut\"", "\"--\"", "the cut is written #cut", "#repeat requires a count", "expected closing parenthesis for #repeat", "\"-\"", "\"0\"", "expected skip= in #recover", "expected '=' after skip", "expected closing parenthesis for #recover", "expected attribute name", "expected closing parenthesis for attribute arguments", "expected attribute argument value", "\"true\"", "\"false\"", "\"nil\"", "\"#ignorecase\"", "only #ignorecase may follow an Operators Rule", "\"#operators\"", "expected closing brace for operators", "expected skip, operand, or level", "expected skip expression", "expected operand expression", "expected opening brace for level", "expected closing brace for level", "expected prefix, postfix, or infix", "expected prefix expression", "expected postfix expression", "\"left\"", "\"right\"", "\"none\"", "expected left, right, or none associativity", "expected infix expression", "\"...\"", "expected closing brace for action block", "\":=\"", "expected binding value", "expected closing parenthesis for tuple", "expected closing parenthesis for action expression", "expected closing parenthesis for function call", "\"[]\"", "expected opening brace for list constructor", "expected closing brace for list constructor", "expected closing brace for constructor", "expected initializer field name", "expected initializer value", "a capture is read by name: label the element (x:...) and write $x", "\"\\r\\n\"", "[\\r\\n]", "newline", "[ \\t\\n\\v\\f\\r\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "whitespace", "[^\"\\\\\\n]", "comment", "[^\\n\\r]", "\"*/\"", "\"i\"", "unterminated string", "expected closing bracket for character class", "[^\\r\\n]", "\"*\"", "[ \\t\\v\\f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "[({,]", "[({]", "\"|\"", "\"&\"", "an expression", "\"!\"", "\"?\"", "\"+\"", "\"#atomic\"", "\"#stream\"", "\"#missing\"", "\"#repeat\"", "\"#recover\"", "a value", "\"||\"", "\"&&\"", "\"==\"", "\"!=\"", "\"<=\"", "\">=\"", "\"<\"", "\">\"", "\"%\"", "identifier"}
 	zpGrammar.Expectations = true
 }
 
@@ -13148,10 +13148,12 @@ fail:
 
 func e497(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var x1, x3 int
+	var x1, x3, x7 int
 	var x2 []any
 	var ok bool
-	var v4, v6, v7 any
+	var v4, v11, v12 any
+	var x6 rt.ExpMark
+	var x8 []rt.ExpID
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
@@ -13165,13 +13167,22 @@ func e497(p *rt.TParser) (any, bool) {
 	if _, ok = u177(p); !ok {
 		goto fail
 	}
-	if v6, ok = u197(p); !ok {
-		goto fail
+	x6 = p.Isolate(p.Pos)
+	if v11, ok = u197(p); !ok {
+		goto L9
 	}
-	p.SetCapture(0, v6)
-	x2 = append(x2, v6)
-	v7 = p.NewNode("tuple", x1, p.Pos, x2)
-	return v7, true
+	x7, x8 = p.Unisolate(x6)
+	p.MergeExpected(x7, x8)
+	goto L10
+L9:
+	x7, x8 = p.Unisolate(x6)
+	p.MergeExpected(x7, rt.RenamedExpected(p.Parser, x8, 171))
+	goto fail
+L10:
+	p.SetCapture(0, v11)
+	x2 = append(x2, v11)
+	v12 = p.NewNode("tuple", x1, p.Pos, x2)
+	return v12, true
 fail:
 	return nil, false
 }
