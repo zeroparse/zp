@@ -45,6 +45,33 @@ rule digit = [0-9]`)
 	}
 }
 
+// A choice skips an alternative whose first character does not match only when running it would
+// not meet the depth limit first: an alternative that enters a recursive rule before its first
+// character meets the limit even on input it would not match.
+func TestMaxDepthBeforeSkippedAlternative(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = item $$
+rule item = nest / "x"
+rule nest = "(" item ")"`)
+	// n parentheses make 2n+1 nested recursive calls (item and nest), and the innermost item tries
+	// nest once more before "x".
+	for n := 0; n < 4; n++ {
+		in := strings.Repeat("(", n) + "x" + strings.Repeat(")", n)
+		for _, b := range depthBackends {
+			for limit := 1; limit <= 2*n+3; limit++ {
+				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Depth: uint64(limit)}})
+				if want := 2*n+2 > limit; (err != nil) != want {
+					t.Errorf("%v: %d nested, limit %d: error %v, want an error: %v", b, n, limit, err, want)
+				}
+				var le *parse.LimitError
+				if err != nil && (!errors.As(err, &le) || le.Kind != parse.LimitDepth) {
+					t.Errorf("%v: %d nested, limit %d: error %#v, want a LimitDepth error", b, n, limit, err)
+				}
+			}
+		}
+	}
+}
+
 // A grammar without recursion never meets a limit of one, however long the input.
 func TestMaxDepthIgnoresRulesOutsideCycles(t *testing.T) {
 	t.Parallel()
