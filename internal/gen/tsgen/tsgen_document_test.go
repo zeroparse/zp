@@ -9,6 +9,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
@@ -90,7 +91,8 @@ func documentInside(text string, k int) bool {
 // TestTSDocumentMatchesFreshParse edits generated TypeScript Documents at random, in both units and
 // with replacements that join invalid UTF-8 bytes into characters, and requires each parse to return
 // what the engine returns for a parse of the whole text, each typed parse what parseAST returns, and
-// the text to be the edited one. Rejected edits change nothing.
+// the text to be the edited one. Rejected edits change nothing. As a negative control, runtimes with
+// a broken edit must fail the comparison.
 func TestTSDocumentMatchesFreshParse(t *testing.T) {
 	g, err := parseTest(gentest.IncrementalGrammar)
 	if err != nil {
@@ -152,33 +154,75 @@ for (const c of cases) {
   if (made.error !== null) throw made.error;
   const d = made.document;
   for (const e of c.edits) {
-    const before = b64(d.bytes());
-    const err = d.edit(e.start, e.end, e.isStr ? e.str : new Uint8Array(Buffer.from(e.b64, "base64")));
-    if ((err !== null) !== e.bad) throw new Error("edit " + JSON.stringify(e) + ": " + err);
-    if (err !== null && b64(d.bytes()) !== before) throw new Error("a rejected edit changed the text");
-    const r = d.parse();
-    const text = d.bytes();
-    const fresh = parse(text, unit);
-    if (marshal(fresh.node) !== marshal(r.node) || String(fresh.error) !== String(r.error)) throw new Error("Document parse differs from parse");
-    const typed = d.parseAST();
-    const freshTyped = parseAST(text, unit);
-    if (JSON.stringify(typed.value) !== JSON.stringify(freshTyped.value) || String(typed.error) !== String(freshTyped.error)) throw new Error("Document parseAST differs from parseAST");
-    const out = r.error === null ? '{"node":' + marshal(r.node) + "}" : '{"err":' + JSON.stringify(r.error.message) + ',"node":' + marshal(r.node) + "}";
-    console.log(b64(text) + " " + out);
+    try {
+      const before = b64(d.bytes());
+      const err = d.edit(e.start, e.end, e.isStr ? e.str : new Uint8Array(Buffer.from(e.b64, "base64")));
+      if ((err !== null) !== e.bad) throw new Error("edit " + JSON.stringify(e) + ": " + err);
+      if (err !== null && b64(d.bytes()) !== before) throw new Error("a rejected edit changed the text");
+      const r = d.parse();
+      const text = d.bytes();
+      const fresh = parse(text, unit);
+      if (marshal(fresh.node) !== marshal(r.node) || String(fresh.error) !== String(r.error)) throw new Error("Document parse differs from parse");
+      const typed = d.parseAST();
+      const freshTyped = parseAST(text, unit);
+      if (JSON.stringify(typed.value) !== JSON.stringify(freshTyped.value) || String(typed.error) !== String(freshTyped.error)) throw new Error("Document parseAST differs from parseAST");
+      const out = r.error === null ? '{"node":' + marshal(r.node) + "}" : '{"err":' + JSON.stringify(r.error.message) + ',"node":' + marshal(r.node) + "}";
+      console.log(b64(text) + " " + out);
+    } catch (err) {
+      console.log("throw " + JSON.stringify(String(err)));
+    }
   }
 }
 `
-	out := gentest.RunTSGrammarScriptWith(t, g, script, gen.GenOptions{Start: "main", Document: true, Types: true})
-	got := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
-	if len(got) != len(wants) {
-		t.Fatalf("got %d results, want %d:\n%s", len(got), len(wants), gentest.Clip(out, 0))
+	opts := gen.GenOptions{Start: "main", Document: true, Types: true}
+	// run runs the script on the runtime that mutate changes, and returns the first difference from
+	// the engine.
+	run := func(mutate func(string) string) error {
+		out := gentest.RunTSGrammarScriptBundle(t, g, script, opts, func(g *grammar.Grammar, opts gen.GenOptions) ([]byte, error) {
+			code, err := gentest.GenerateTSBundle(g, opts)
+			if err != nil || mutate == nil {
+				return code, err
+			}
+			return []byte(mutate(string(code))), nil
+		})
+		got := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+		for i := range wants {
+			if i >= len(got) {
+				return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), gentest.Clip(out, 0))
+			}
+			if got[i] != wants[i] {
+				at := gentest.DiffAt(got[i], wants[i])
+				return fmt.Errorf("parse %d:\n got %s\nwant %s", i, gentest.Clip(got[i], at), gentest.Clip(wants[i], at))
+			}
+		}
+		if len(got) != len(wants) {
+			return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), gentest.Clip(out, 0))
+		}
+		return nil
 	}
-	for i := range wants {
-		if got[i] != wants[i] {
-			at := gentest.DiffAt(got[i], wants[i])
-			t.Fatalf("parse %d:\n got %s\nwant %s", i, gentest.Clip(got[i], at), gentest.Clip(wants[i], at))
+	if err := run(nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range documentMutants {
+		mutate := func(src string) string {
+			if strings.Count(src, m.old) != 1 {
+				t.Fatalf("mutant %q: the runtime has %d copies of %q, want 1", m.name, strings.Count(src, m.old), m.old)
+			}
+			return strings.Replace(src, m.old, m.new, 1)
+		}
+		if run(mutate) == nil {
+			t.Errorf("mutant %q passes the comparison", m.name)
 		}
 	}
+}
+
+// documentMutants are the broken edits of the negative control of TestTSDocumentMatchesFreshParse:
+// each replaces old in the runtime with new.
+var documentMutants = []struct{ name, old, new string }{
+	// The replacement is dropped: the edit only deletes the range.
+	{"dropped splice", "out.set(r, startByte);", ""},
+	// A position in code points is taken as one byte per character after the start.
+	{"mis-mapped unit offset", "endByte = documentByteOffset(b, end);", "endByte = startByte + (end - start);"},
 }
 
 // TestTSDocumentOptions checks the options of a Document: invocation options apply after the
