@@ -746,6 +746,10 @@ scope	0	32	x
 grammar	lean,lean observable,controlled,lean boxed	"empty operand and infix"
 scope	1	1	
 scope	1	3	
+grammar	lean,lean observable,controlled,lean boxed	"empty operand and right infix"
+scope	1	1	
+scope	1	2	
+scope	1	3	
 grammar	lean,lean observable,controlled,lean boxed	"empty prefix and postfix"
 scope	1	1	
 scope	1	2	

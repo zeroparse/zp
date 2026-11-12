@@ -192,7 +192,6 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"ExprLed", "rmin := level\n\tif op.Assoc == grammar.AssocRight {", "rmin := level\n\tif true {"}},
 			{{"ExprRhs", "\t\tp.Reset(st.M0)\n\t\treturn true, true\n", "\t\treturn true, true\n"}},
 			{{"ExprRhs", "\t\tst.LastNone = op.Level\n", ""}},
-			{{"ExprRhs", "\tif p.Pos == st.M0.Pos {\n\t\treturn true, true\n\t}\n", ""}},
 			// The bound of the loop: the tightest level that may follow the start or the last operator.
 			{{"operatorsRuleExpr", "level > bound ||", "level > bound && false ||"}},
 			{{"operatorsRuleExpr", "bound := p.nudBound", "bound := 1073741824"}},
@@ -274,12 +273,14 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		}},
 		// The right operand of an infix operator applied without consuming input.
 		{"^TestOperatorsEmptyInfixTerminates$", ".", [][]funcEdit{
-			{{"operatorsRuleExpr", "if start == guard && a.End == start {", "if false {"}},
+			{{"operatorsRuleExpr", "if start == guard && a.End == start {", "if start == guard && false {"}},
 			{{"operatorsRuleExpr", "p.afterEmpty = p.Pos == start", "p.afterEmpty = false"}},
 			{{"operatorsRuleExpr", "\tp.afterEmpty = false\n", ""}},
 			{{"ExprLed", "if st.M0.Pos == st.Guard && st.A.End == st.M0.Pos {", "if false {"}},
 			{{"ExprLed", "p.afterEmpty = p.Pos == st.M0.Pos", "p.afterEmpty = false"}},
 			{{"ExprBegin", "\tp.afterEmpty = false\n", ""}},
+			// An application that consumed no input ends the loop, which these tests reach.
+			{{"ExprRhs", "\tif p.Pos == st.M0.Pos {\n\t\treturn true, true\n\t}\n", ""}},
 		}},
 		{"^TestBackendsMatchOnCorpus$", ".", [][]funcEdit{
 			{{"Longest", "p.Pos > best.End", "p.Pos >= best.End"}},
@@ -347,10 +348,10 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"ExprRhs", "\t\tif st.A.Cut {\n\t\t\treturn true, false\n\t\t}\n", ""}},
 		}},
 		{"^TestOperatorsRuleJuxtaposition$", ".", [][]funcEdit{
-			{{"ExprLed", "\t\tp.Reset(st.M0)\n\t\treturn true, true, -1\n\t}\n\tp.Pos = st.A.End", "\t\treturn true, true, -1\n\t}\n\tp.Pos = st.A.End"}},
+			{{"ExprLed", "level == st.LastNone {\n\t\tp.Reset(st.M0)\n\t\treturn true, true, -1\n", "level == st.LastNone {\n\t\treturn true, true, -1\n"}},
 		}},
 		{"^TestOperatorsRulePositionsWithActions$", ".", [][]funcEdit{
-			{{"operatorsRuleExpr", "\t\t\tp.Reset(m0)\n\t\t\tbreak\n\t\t}\n\t\tp.Pos = a.End", "\t\t\tbreak\n\t\t}\n\t\tp.Pos = a.End"}},
+			{{"operatorsRuleExpr", "level == lastNone {\n\t\t\tp.Reset(m0)\n\t\t\tbreak\n", "level == lastNone {\n\t\t\tbreak\n"}},
 		}},
 		{"^TestOperatorsRulePrefixPartCuts$", ".", [][]funcEdit{
 			{{"NudPrefix", "} else if p.cutFailed {", "} else if false {"}},
