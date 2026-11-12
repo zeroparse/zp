@@ -549,7 +549,7 @@ func (c *canonical) types(list []types.Type) []grammar.TypeExpr {
 // name of a type, with the type that replaces it.
 func (c *canonical) typeName(name *types.Ident) {
 	if replacement, ok := valueTypeNames[name.Value]; ok {
-		c.errs.add(c.pos.At(name.Start), fmt.Sprintf("%s is not a type; write %s", name.Value, replacement))
+		c.errs.add(c.pos.At(name.Start), fmt.Sprintf("%s is not a type; write %s (zp fix rewrites it)", name.Value, replacement))
 	}
 }
 
@@ -560,7 +560,7 @@ func (c *canonical) typ(n any) grammar.TypeExpr {
 	case *types.TypeRef:
 		t := &grammar.TypeRef{Name: c.name(n.Name)}
 		if t.Name == "node" {
-			c.errs.add(c.pos.At(n.Name.Start), bareNode)
+			c.errs.add(c.pos.At(n.Name.Start), bareNode+" (zp fix rewrites it)")
 		}
 		c.typeName(n.Name)
 		c.span(&t.SourceInfo, n)

@@ -157,8 +157,10 @@ one reads `an expression` or `a value`; white space and comment openers are
 not listed, because they may stand anywhere. Explicit messages of the grammar
 cover a pragma that does not exist (`unknown pragma #foo`), `#repeat` without
 a count, a group or block that is not closed, and the old spellings that the
-reference named. A value on the line after its `=>` is reported as the
-reference reports it. Message differences that remain: `#ignorecase(...)` is
+reference named; the adapter adds the name of the type to the messages of old
+type definitions and, as the reference does, what `zp fix` rewrites. A value
+on the line after its `=>`, or after an operator where a line break ends the
+statement, is reported as the reference reports it. Message differences that remain: `#ignorecase(...)` is
 reported as a list of what may follow the expression, at the `#`, not as an
 argument it does not take; the reference's messages about a pragma or its
 arguments that do not follow directly, a `nil` lambda parameter, attributes

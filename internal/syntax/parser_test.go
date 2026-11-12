@@ -163,11 +163,11 @@ func TestParseErrors(t *testing.T) {
 		{`foo`, `1:1: expected type, var or rule declaration`},
 		{"rule a = (b\nrule c = d", `2:8: expected closing parenthesis for rule group, found '='`},
 		{`type A = { X }`, `1:14: expected field type`},
-		{`type A struct { X }`, `1:8: a struct type is defined as type Name = { ... }`},
-		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
+		{`type A struct { X }`, `1:8: a struct type is defined as type A = {...}; run zp fix to rewrite type A struct`},
+		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type A ~ <type> for an alias (zp fix rewrites type A = <type>)`},
 		{`type A B`, `1:8: expected '= {', '= node[' or '~'`},
 		{`type A = node[string, int]`, `1:23: a node type takes one type argument`},
-		{`type A = node`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
+		{`type A = node`, `1:8: expected '{' or 'node[' after '='; write type A ~ <type> for an alias (zp fix rewrites type A = <type>)`},
 		{`rule a = #operators { level { infix "+" } }`, `1:37: expected left, right, or none associativity`},
 		{"rule a = #operators\n{ operand \"x\" }", `1:10: expected an expression, found '#'`},
 		{`rule a = #operators`, `1:10: expected an expression, found '#'`},
@@ -270,7 +270,7 @@ func TestParseRejectsTerminalType(t *testing.T) {
 	if !ok || len(list) != 1 {
 		t.Fatalf("got %v, want exactly one error", err)
 	}
-	const want = "a terminal type is the struct type Name = { Text string }"
+	const want = "a terminal type is the struct type T = { Text string }; run zp fix to rewrite type T terminal"
 	if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: 8}) {
 		t.Errorf("got %v, want 1:8: %s", err, want)
 	}
@@ -346,7 +346,7 @@ func TestParseRejectsRetiredTypeNames(t *testing.T) {
 					t.Fatalf("got %v, want exactly one error", err)
 				}
 				col := strings.Index(src, name) + 1
-				want := fmt.Sprintf("%s is not a type; write %s", name, valueTypeNames[name])
+				want := fmt.Sprintf("%s is not a type; write %s (zp fix rewrites it)", name, valueTypeNames[name])
 				if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
 					t.Errorf("got %v, want 1:%d: %s", err, col, want)
 				}
@@ -369,8 +369,8 @@ func TestParseRejectsBareNode(t *testing.T) {
 	} {
 		_, err := Parse(src)
 		list, ok := err.(ErrorList)
-		if !ok || len(list) != 1 || list[0].Msg != bareNode {
-			t.Errorf("Parse(%q): got %v, want one error %q", src, err, bareNode)
+		if want := bareNode + " (zp fix rewrites it)"; !ok || len(list) != 1 || list[0].Msg != want {
+			t.Errorf("Parse(%q): got %v, want one error %q", src, err, want)
 		}
 		fixed, err := Fix(src)
 		if err != nil {

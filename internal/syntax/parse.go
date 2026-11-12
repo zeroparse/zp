@@ -3,6 +3,7 @@ package syntax
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -135,6 +136,14 @@ var starts = map[string]map[string]bool{
 	"a value":       {`"!"`: true, `"-"`: true, `"("`: true},
 }
 
+// typeSpellings word the errors of a type definition in a spelling that the language no longer
+// has, which the grammar of the source gives without the name of the type, with that name.
+var typeSpellings = map[string]string{
+	"a struct type is defined as type Name = { ... }":                        "a struct type is defined as type %[1]s = {...}; run zp fix to rewrite type %[1]s struct",
+	"a terminal type is the struct type Name = { Text string }":              "a terminal type is the struct type %[1]s = { Text string }; run zp fix to rewrite type %[1]s terminal",
+	"expected '{' or 'node[' after '='; write type Name ~ Type for an alias": "expected '{' or 'node[' after '='; write type %[1]s ~ <type> for an alias (zp fix rewrites type %[1]s = <type>)",
+}
+
 // messages words the syntax errors of the generated parser for a source, with the tokens of the
 // lexer around each error.
 type messages struct {
@@ -149,8 +158,10 @@ func newMessages(src string) *messages {
 // message is the message of a syntax error e. Without explicit messages, it lists what e expects,
 // without the trivia, and with the items that a named operand covers left to the name. A message
 // that says only what is expected also says what was found: the token at the error. An error after the
-// name of a pragma that does not exist names it, and an expected value on the line after "=>" is
-// the mistake of a value that does not start on the line of its "=>".
+// name of a pragma that does not exist names it, and an expected value on the line after "=>", or
+// after an operator where a line break ends a statement, is the mistake of a value that does not start on the line of
+// its operator. The errors of a spelling that
+// the language no longer has name what to write and what zp fix rewrites.
 func (m *messages) message(e *genparser.SyntaxError) string {
 	var msg string
 	if len(e.Messages) > 0 {
@@ -172,14 +183,38 @@ func (m *messages) message(e *genparser.SyntaxError) string {
 	}
 	i := m.tokenAt(e.Pos)
 	switch {
+	case typeSpellings[msg] != "" && i >= 1 && m.toks[i-1].kind == tIdent:
+		return fmt.Sprintf(typeSpellings[msg], m.toks[i-1].text)
+	case strings.HasPrefix(msg, "positional captures are removed") && m.toks[i].kind == tIndex:
+		return fmt.Sprintf("%s; run zp fix to rewrite $%d", msg, m.toks[i].num)
 	case msg == "unknown pragma" && i >= 2 && m.toks[i-1].kind == tIdent && m.toks[i-2].kind == tPunct && m.toks[i-2].text == "#":
 		return msg + " #" + m.toks[i-1].text
-	case strings.HasPrefix(msg, "expected a value") && i >= 1 && m.toks[i].lineBefore && m.toks[i-1].kind == tPunct && m.toks[i-1].text == "=>":
+	case strings.HasPrefix(msg, "expected a value") && i >= 1 && m.toks[i].lineBefore && m.toks[i].kind != tEOF &&
+		m.toks[i-1].kind == tPunct && (m.toks[i-1].text == "=>" || m.lineEndsStatement(i)):
 		return "multiline expressions require their own open delimiter"
 	case expects(msg):
 		return msg + ", found " + m.toks[i].String()
 	}
 	return msg
+}
+
+// lineEndsStatement reports whether a line break before the token i ends a statement: no
+// parenthesis or bracket is open there, or a brace is the innermost open delimiter.
+func (m *messages) lineEndsStatement(i int) bool {
+	var open []string
+	for _, t := range m.toks[:i] {
+		if t.kind == tPunct {
+			switch t.text {
+			case "(", "[", "{":
+				open = append(open, t.text)
+			case ")", "]", "}":
+				if len(open) > 0 {
+					open = open[:len(open)-1]
+				}
+			}
+		}
+	}
+	return len(open) == 0 || open[len(open)-1] == "{"
 }
 
 // expects reports whether every part of msg says what is expected, so that what was found may

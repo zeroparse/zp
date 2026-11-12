@@ -6,24 +6,24 @@ import (
 )
 
 // A spelling that the language no longer has fails with a message in the current syntax, at the
-// old spelling.
+// old spelling, that says what zp fix rewrites.
 func TestOldSpellingsReportCurrentSyntax(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
-		{`rule a = "x" -- "y"`, `1:14: the cut is written #cut`},
-		{`rule a = -- "y"`, `1:10: the cut is written #cut`},
-		{`rule a = x:"x" => $1`, `1:19: a capture is read by name: label the element (x:...) and write $x`},
-		{`rule a = xs:"x"* => map($xs, (e) => $2)`, `1:37: a capture is read by name: label the element (x:...) and write $x`},
-		{`type T terminal`, `1:8: a terminal type is the struct type Name = { Text string }`},
-		{`type T struct { A string }`, `1:8: a struct type is defined as type Name = { ... }`},
-		{`type T = string`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
-		{`type T = []A`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
-		{"rule a = operators {\n  operand x\n}\nrule x = \"x\"", `1:10: an Operators Rule is written #operators { ... }`},
-		{`rule a = x:"x" => $x.text`, `1:22: a capture is read with .$text`},
-		{`rule a = x:"x" => $x.Name.text`, `1:27: a capture is read with .$text`},
-		{`rule a = xs:"x"* => map($xs, (e) => $e)`, `1:37: lambda parameters are written without $: write e`},
-		{`rule a Match = "x"`, `1:8: Match is not a type; write node[string]`},
-		{`type T = { A []Seq }`, `1:16: Seq is not a type; write node[_]`},
-		{`rule a node = "x"`, `1:8: ` + bareNode},
+		{`rule a = "x" -- "y"`, `1:14: the cut is written #cut; run zp fix to rewrite --`},
+		{`rule a = -- "y"`, `1:10: the cut is written #cut; run zp fix to rewrite --`},
+		{`rule a = x:"x" => $1`, `1:19: positional captures are removed: label the element (x:...) and write $x; run zp fix to rewrite $1`},
+		{`rule a = xs:"x"* => map($xs, (e) => $2)`, `1:37: positional captures are removed: label the element (x:...) and write $x; run zp fix to rewrite $2`},
+		{`type T terminal`, `1:8: a terminal type is the struct type T = { Text string }; run zp fix to rewrite type T terminal`},
+		{`type T struct { A string }`, `1:8: a struct type is defined as type T = {...}; run zp fix to rewrite type T struct`},
+		{`type T = string`, `1:8: expected '{' or 'node[' after '='; write type T ~ <type> for an alias (zp fix rewrites type T = <type>)`},
+		{`type U = []A`, `1:8: expected '{' or 'node[' after '='; write type U ~ <type> for an alias (zp fix rewrites type U = <type>)`},
+		{"rule a = operators {\n  operand x\n}\nrule x = \"x\"", `1:10: an Operators Rule is written #operators { ... }; run zp fix to rewrite operators {`},
+		{`rule a = x:"x" => $x.text`, `1:22: a capture is read with .$text; run zp fix to rewrite .text`},
+		{`rule a = x:"x" => $x.Name.text`, `1:27: a capture is read with .$text; run zp fix to rewrite .text`},
+		{`rule a = xs:"x"* => map($xs, (e) => $e)`, `1:37: lambda parameters are written without $: write e; run zp fix to rewrite $e`},
+		{`rule a Match = "x"`, `1:8: Match is not a type; write node[string] (zp fix rewrites it)`},
+		{`type T = { A []Seq }`, `1:16: Seq is not a type; write node[_] (zp fix rewrites it)`},
+		{`rule a node = "x"`, `1:8: ` + bareNode + ` (zp fix rewrites it)`},
 	} {
 		_, err := Parse(c.src)
 		if err == nil {
@@ -36,12 +36,28 @@ func TestOldSpellingsReportCurrentSyntax(t *testing.T) {
 	}
 }
 
+// A value expected on the line after an operator, where a line break ends the statement, is a
+// value that does not start on the line of its operator; inside parentheses, or at the end of the
+// source, it is a value that is missing.
+func TestMultilineValues(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{"rule a = x => 1 +\nrule b = c", `2:1: multiline expressions require their own open delimiter`},
+		{"rule a = x => {\n 1 +\n 2\n}", `3:2: multiline expressions require their own open delimiter`},
+		{"rule a = x => (1 +\n)", `2:1: expected a value, found ')'`},
+		{"rule a = x => 1 +\n", `2:1: expected a value, found end of file`},
+	} {
+		if _, err := Parse(c.src); err == nil || err.Error() != c.want {
+			t.Errorf("Parse(%q): %v, want %s", c.src, err, c.want)
+		}
+	}
+}
+
 // What a syntax error expects leaves out white space and comments, which may stand between any two
 // tokens, and names a newline instead of listing its characters.
 func TestSyntaxErrorsExpectNoTrivia(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
 		{"@start rule a = \"x\"", `1:8: expected newline, found 'rule'`},
-		{`rule a = x:"x" => $x.1`, `1:22: expected "(", [a-zA-Z_], found 1`},
+		{`rule a = x:"x" => $x.1`, `1:22: expected identifier, "(", found 1`},
 	} {
 		_, err := Parse(c.src)
 		if err == nil {

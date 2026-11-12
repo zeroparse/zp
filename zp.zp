@@ -444,7 +444,7 @@ rule rule_expr RuleExpr = #operators {
 // Operators Rule starts.
 rule unknown_pragma = "#" !(known_pragma !ident_char) ident (_|_ @error(message="unknown pragma"))
 rule rule_body_expr RuleExpr = !legacy_operators_start x:rule_expr => $x
-rule operators_spelling = !legacy_operators_start / _|_ @error(message="an Operators Rule is written #operators { ... }")
+rule operators_spelling = !legacy_operators_start / _|_ @error(message="an Operators Rule is written #operators { ... }; run zp fix to rewrite operators {")
 // An Operators Rule starts with #operators. A rule that starts with operators { and an item is an
 // error; operators {x == 1} is a reference followed by a predicate.
 rule legacy_operators_start = (
@@ -478,7 +478,7 @@ rule any Any = ("." !"..") #atomic
 rule cut Cut = ("#cut" !ident_char !"(") #atomic
 // The cut was once written --. That spelling is an error in the current syntax, from which the
 // parse recovers.
-rule cut_spelling RuleExpr | error = (&"--" _|_ @error(message="the cut is written #cut")) #recover(skip="--")
+rule cut_spelling RuleExpr | error = (&"--" _|_ @error(message="the cut is written #cut; run zp fix to rewrite --")) #recover(skip="--")
 rule predicate Predicate = b:action_block => Predicate{Actions: $b.Actions, Comments: $b.Comments}
 
 // Postfix pragmas have dedicated payloads. Metadata attributes retain ordered
@@ -613,7 +613,7 @@ rule action_ops ActionExpr = #operators {
     level field_access {
         postfix "." -ws c:capture_ref => CaptureAccess{X: $lhs, Capture: $c}
         postfix "." -ws t:cast_type => Cast{X: $lhs, Type: $t}
-        postfix "." -ws name:ident => FieldAccess{X: $lhs, Name: $name}
+        postfix "." -ws name:(ident @diagnostic(name="identifier")) => FieldAccess{X: $lhs, Name: $name}
         postfix i:index_suffix => BinaryOp{Op: "[]", L: $lhs, R: $i}
     }
 }
@@ -675,7 +675,7 @@ rule capture_ref CaptureRef = (&("$" ident) "$" ident #atomic) #atomic
 // A capture is read by its label. $ and a number, a spelling the language no longer has, is an
 // error from which the parse recovers.
 rule index_capture ActionExpr | error = (
-    &("$" digit) _|_ @error(message="a capture is read by name: label the element (x:...) and write $x")
+    &("$" digit) _|_ @error(message="positional captures are removed: label the element (x:...) and write $x")
 ) #recover(skip="$" digit+)
 rule var_name VarRef = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref VarRef = (!bottom ident !"(") #atomic
