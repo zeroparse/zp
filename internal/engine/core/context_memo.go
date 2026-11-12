@@ -65,6 +65,7 @@ const (
 	CtxNarrowOutcome              // a lookahead whose examined range needs more than a word is not stored
 	CtxStrictMissing              // a parse with missing-token insertion keeps no result in a context
 	CtxStoreInserts               // rules that insert tokens keep their results in contexts too
+	CtxConstWide                  // all present sets of leaders without bits have one identity
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -349,6 +350,9 @@ func (p *Parser) presentWide(gp int) uint64 {
 			w = append(w, 0)
 		}
 		w[k/64] |= 1 << (k % 64)
+	}
+	if ContextMemoMutation == CtxConstWide {
+		return presentWide | 1
 	}
 	key := make([]byte, 1, 1+8*len(w))
 	key[0] = internPresent
