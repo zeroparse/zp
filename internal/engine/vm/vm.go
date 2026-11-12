@@ -1151,23 +1151,13 @@ func isFunction(v any) bool {
 	return ok
 }
 
-// loadTerms makes the programs of the module's terms.
 // LoadTerms makes the programs of the terms of the module m, checking each (core.LoadTerm). A
 // loader calls it to reject a module file whose term code is invalid.
 func LoadTerms(m *bytecode.Module) ([]*core.TermProgram, error) {
 	if len(m.Terms) == 0 {
 		return nil, nil
 	}
-	types := moduleTermTypes(m)
-	terms := make([]*core.TermProgram, len(m.Terms))
-	for i := range m.Terms {
-		t, err := core.LoadTerm(&m.Terms[i], m.Strings, len(m.Vars), types)
-		if err != nil {
-			return nil, fmt.Errorf("term %d: %w", i, err)
-		}
-		terms[i] = t
-	}
-	return terms, nil
+	return core.LoadTerms(m.Terms, m.Strings, len(m.Vars), moduleTermTypes(m))
 }
 
 // moduleTermTypes resolves the types that the term code of m names from its type table.

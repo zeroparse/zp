@@ -475,16 +475,19 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	for _, l := range m.Scopes {
 		strs(l)
 	}
-	checkType := func(i int, where string) {
-		if err == nil {
-			if perr := fieldType(m.Strings[i]); perr != nil {
-				fail("%v %s", perr, where)
-			}
+	// typeErr parses the field type at string index i once no error is recorded. Callers format
+	// the location only on failure, so a valid module allocates no messages.
+	typeErr := func(i int) error {
+		if err != nil {
+			return nil
 		}
+		return fieldType(m.Strings[i])
 	}
 	for _, t := range m.Types {
 		if t.Node >= 0 && err == nil {
-			checkType(t.Node, "in node type "+m.Strings[t.Name])
+			if perr := typeErr(t.Node); perr != nil {
+				fail("%v in node type %s", perr, m.Strings[t.Name])
+			}
 			if err == nil && !strings.HasPrefix(m.Strings[t.Node], "node[") {
 				fail("node type %q is not over a node type", m.Strings[t.Name])
 			}
@@ -732,7 +735,6 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	}
 	for i := range m.Terms {
 		t := &m.Terms[i]
-		where := fmt.Sprintf("in term %d", i)
 		for _, c := range t.Consts {
 			switch c.Kind {
 			case ConstNil, ConstInt:
@@ -740,10 +742,10 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 				str(int(c.Int))
 			case ConstBool:
 				if c.Int != 0 && c.Int != 1 {
-					fail("invalid boolean constant %d %s", c.Int, where)
+					fail("invalid boolean constant %d in term %d", c.Int, i)
 				}
 			default:
-				fail("invalid constant kind %d %s", c.Kind, where)
+				fail("invalid constant kind %d in term %d", c.Kind, i)
 			}
 		}
 		strs(t.Names)
@@ -754,25 +756,27 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		for _, x := range t.NodeTypes {
 			str(x)
 			if err == nil && !nodeType(m.Strings[x]) {
-				fail("type %q of a conversion is not a named node type %s", m.Strings[x], where)
+				fail("type %q of a conversion is not a named node type in term %d", m.Strings[x], i)
 			}
 		}
 		for _, x := range t.Casts {
 			opt("string", x.Type, len(m.Strings))
 			if x.Type >= 0 {
-				checkType(x.Type, where)
+				if perr := typeErr(x.Type); perr != nil {
+					fail("%v in term %d", perr, i)
+				}
 			}
 			if x.Line < 0 || x.Col < 0 {
-				fail("invalid cast position %d:%d %s", x.Line, x.Col, where)
+				fail("invalid cast position %d:%d in term %d", x.Line, x.Col, i)
 			}
 		}
 		for _, x := range t.Structs {
 			str(x.Type)
 			if err == nil && !structType(m.Strings[x.Type]) {
-				fail("type %q of a struct literal is not a struct type %s", m.Strings[x.Type], where)
+				fail("type %q of a struct literal is not a struct type in term %d", m.Strings[x.Type], i)
 			}
 			if x.Fields < 0 {
-				fail("invalid field count %d %s", x.Fields, where)
+				fail("invalid field count %d in term %d", x.Fields, i)
 			}
 		}
 	}

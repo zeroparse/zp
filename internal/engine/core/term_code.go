@@ -152,10 +152,40 @@ var termOperands = map[termOp][4]uint8{
 // kind (a register of its file, a pool index, a jump target in the code, a variable, an operator)
 // and that the code ends with a return or a jump, so that running it cannot leave the code.
 func LoadTerm(x *bytecode.Term, strs []string, vars int, types TermTypes) (*TermProgram, error) {
-	t := &TermProgram{na: int32(x.Regs[0]), nn: int32(x.Regs[1]), ns: int32(x.Regs[2]), nt: int32(x.Regs[3])}
+	t := new(TermProgram)
+	if err := loadTerm(t, x, strs, vars, types); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// LoadTerms makes the TermPrograms of the term codes xs as LoadTerm does, allocating them together.
+func LoadTerms(xs []bytecode.Term, strs []string, vars int, types TermTypes) ([]*TermProgram, error) {
+	progs := make([]TermProgram, len(xs))
+	terms := make([]*TermProgram, len(xs))
+	for i := range xs {
+		if err := loadTerm(&progs[i], &xs[i], strs, vars, types); err != nil {
+			return nil, fmt.Errorf("term %d: %w", i, err)
+		}
+		terms[i] = &progs[i]
+	}
+	return terms, nil
+}
+
+// loadTerm fills t from x for LoadTerm. Each pool gets its exact capacity up front.
+func loadTerm(t *TermProgram, x *bytecode.Term, strs []string, vars int, types TermTypes) error {
+	*t = TermProgram{
+		na: int32(x.Regs[0]), nn: int32(x.Regs[1]), ns: int32(x.Regs[2]), nt: int32(x.Regs[3]),
+		consts:    make([]any, 0, len(x.Consts)),
+		names:     make([]string, 0, len(x.Names)),
+		members:   make([]termMember, 0, len(x.Members)),
+		nodeTypes: make([]*value.NodeTypeKinds, 0, len(x.NodeTypes)),
+		casts:     make([]termCast, 0, len(x.Casts)),
+		structs:   make([]termStruct, 0, len(x.Structs)),
+	}
 	for _, n := range x.Regs {
 		if n < 0 || n > 1<<20 {
-			return nil, fmt.Errorf("invalid register count %d", n)
+			return fmt.Errorf("invalid register count %d", n)
 		}
 	}
 	str := func(i int) (string, error) {
@@ -170,68 +200,68 @@ func LoadTerm(x *bytecode.Term, strs []string, vars int, types TermTypes) (*Term
 			t.consts = append(t.consts, nil)
 		case bytecode.ConstInt:
 			if int64(int(c.Int)) != c.Int {
-				return nil, fmt.Errorf("term constant %d exceeds the implementation int range", c.Int)
+				return fmt.Errorf("term constant %d exceeds the implementation int range", c.Int)
 			}
 			t.consts = append(t.consts, int(c.Int))
 		case bytecode.ConstString:
 			s, err := str(int(c.Int))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			t.consts = append(t.consts, s)
 		case bytecode.ConstBool:
 			if c.Int != 0 && c.Int != 1 {
-				return nil, fmt.Errorf("invalid boolean constant %d", c.Int)
+				return fmt.Errorf("invalid boolean constant %d", c.Int)
 			}
 			t.consts = append(t.consts, c.Int == 1)
 		default:
-			return nil, fmt.Errorf("invalid constant kind %d", c.Kind)
+			return fmt.Errorf("invalid constant kind %d", c.Kind)
 		}
 	}
 	for _, i := range x.Names {
 		s, err := str(i)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		t.names = append(t.names, s)
 	}
 	for _, m := range x.Members {
 		name, err := str(m.Name)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		field, err := str(m.Field)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if m.Kind < 0 || m.Kind >= len(ops.MemberKinds) {
-			return nil, fmt.Errorf("invalid member kind %d", m.Kind)
+			return fmt.Errorf("invalid member kind %d", m.Kind)
 		}
 		t.members = append(t.members, termMember{kind: m.Kind, name: name, field: field})
 	}
 	for _, i := range x.NodeTypes {
 		s, err := str(i)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		k := types.NodeType(s)
 		if k == nil {
-			return nil, fmt.Errorf("term conversion to %q, which is not a named node type", s)
+			return fmt.Errorf("term conversion to %q, which is not a named node type", s)
 		}
 		t.nodeTypes = append(t.nodeTypes, k)
 	}
 	for _, c := range x.Casts {
 		if c.Line < 0 || c.Col < 0 {
-			return nil, fmt.Errorf("invalid cast position %d:%d", c.Line, c.Col)
+			return fmt.Errorf("invalid cast position %d:%d", c.Line, c.Col)
 		}
 		var ft *compile.FieldType
 		if c.Type >= 0 {
 			s, err := str(c.Type)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if ft, err = types.Cast(s); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		t.casts = append(t.casts, termCast{t: ft, line: c.Line, col: c.Col})
@@ -239,20 +269,20 @@ func LoadTerm(x *bytecode.Term, strs []string, vars int, types TermTypes) (*Term
 	for _, s := range x.Structs {
 		name, err := str(s.Type)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		k := types.Struct(name)
 		if k == nil {
-			return nil, fmt.Errorf("term struct literal of %q, which is not a struct type", name)
+			return fmt.Errorf("term struct literal of %q, which is not a struct type", name)
 		}
 		if s.Fields < 0 {
-			return nil, fmt.Errorf("invalid field count %d", s.Fields)
+			return fmt.Errorf("invalid field count %d", s.Fields)
 		}
 		t.structs = append(t.structs, termStruct{kind: k, fields: s.Fields})
 	}
 	n := len(x.Code)
 	if n == 0 {
-		return nil, fmt.Errorf("empty term code")
+		return fmt.Errorf("empty term code")
 	}
 	limit := func(kind uint8) (int, bool) {
 		switch kind {
@@ -295,14 +325,14 @@ func LoadTerm(x *bytecode.Term, strs []string, vars int, types TermTypes) (*Term
 	for pc, in := range x.Code {
 		kinds, ok := termOperands[termOp(in.Op)]
 		if !ok {
-			return nil, fmt.Errorf("invalid term instruction %d at %d", in.Op, pc)
+			return fmt.Errorf("invalid term instruction %d at %d", in.Op, pc)
 		}
 		for k, v := range [4]int32{in.Dst, in.A, in.B, in.C} {
 			if kinds[k] == oSlot && v < 0 {
-				return nil, fmt.Errorf("invalid slot %d at %d", v, pc)
+				return fmt.Errorf("invalid slot %d at %d", v, pc)
 			}
 			if max, ok := limit(kinds[k]); ok && (v < 0 || int(v) >= max) {
-				return nil, fmt.Errorf("invalid operand %d of term instruction %d at %d", v, in.Op, pc)
+				return fmt.Errorf("invalid operand %d of term instruction %d at %d", v, in.Op, pc)
 			}
 		}
 		t.code[pc] = termInstr{op: termOp(in.Op), dst: in.Dst, a: in.A, b: in.B, c: in.C}
@@ -310,7 +340,7 @@ func LoadTerm(x *bytecode.Term, strs []string, vars int, types TermTypes) (*Term
 	switch t.code[n-1].op {
 	case tRet, tRetErr, tJump:
 	default:
-		return nil, fmt.Errorf("term code does not end with a return or a jump")
+		return fmt.Errorf("term code does not end with a return or a jump")
 	}
-	return t, nil
+	return nil
 }
