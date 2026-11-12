@@ -206,6 +206,8 @@ var frontendAgreements = []string{
 	"rule a = {\n type := 1\n rule\n}\n",
 	"rule a = x [a-z]\n",
 	"rule a = \"x\" => $x.Name.startPos + $x.children + $x.message\n", // members of every node
+	"@linear\npackage p\n\n@linear\nrule a = \"x\"\n",                 // declaration attributes of the package clause
+	"// lead\n@linear @foo(1) // trail\n// between\n@bar /* in */ @baz\n\n// before\npackage /* c */ p // after\nrule a = \"x\"\n",
 }
 
 func TestCanonicalFrontendAgreements(t *testing.T) {

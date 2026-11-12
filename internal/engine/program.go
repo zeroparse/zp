@@ -122,7 +122,7 @@ func (prog *Program) ValueType(name string) (string, bool) { return prog.Static(
 
 // Compile compiles the grammar.
 func Compile(g *grammar.Grammar, opts Options) (*Program, error) {
-	return build(g, opts, nil)
+	return compileChecked(g, opts, nil)
 }
 
 // build builds a program from the grammar. If flags is not nil, it skips static analysis and
@@ -138,6 +138,20 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 		return nil, names.Rewrite(err)
 	}
 	return lower(prog, opts, control)
+}
+
+// compileChecked builds the program of g and checks its declarations of linear cost. The programs
+// that a compiled program builds again from its grammar, for other modes, skip the check, which
+// the first compilation made.
+func compileChecked(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Program, error) {
+	prog, err := buildControlled(g, opts, nil, control)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkDeclaredLinear(g, control); err != nil {
+		return nil, err
+	}
+	return prog, nil
 }
 
 // CompileContext is the internal editor compilation entry point. Cancellation
@@ -163,7 +177,7 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 			}
 		}
 	}()
-	return buildControlled(g, opts, nil, &cancel.Control{Ctx: ctx})
+	return compileChecked(g, opts, &cancel.Control{Ctx: ctx})
 }
 
 // lower builds the closure backend's form of the checked program prog.

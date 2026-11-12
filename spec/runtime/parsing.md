@@ -1875,7 +1875,9 @@ degree**: a lower estimate from the witnesses, not a bound. Each polynomial or
 exponential cause produces a [`super-linear`](lint.md#super-linear) hint, with
 its witness, whatever the class; the reasons for the class unknown are shown
 with the classification and produce no finding. Without the request, there is
-no classification and no `super-linear` finding.
+no classification and no `super-linear` finding. A grammar can also require the
+class Linear with [`@linear`](../language/grammar-files.md#declared-linear-cost),
+which makes every cause and reason an error.
 
 | Class | Promise |
 |:--|:--|

@@ -415,6 +415,8 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 		}, control)
 	}
 	starts, defaultStart, startErrors := desugar.ResolveStarts(control.Rules(g), control)
+	_, _, linearErrors := desugar.LinearDeclarations(g, control)
+	startErrors = append(startErrors, linearErrors...)
 	control.Check()
 	if len(unsupported) != 0 {
 		return nil, unsupported
@@ -632,7 +634,8 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 			return nil, c.errs
 		}
 	}
-	// The start rules are reported once the grammar is otherwise valid.
+	// The start rules and the other declaration attributes are reported once the grammar is
+	// otherwise valid.
 	if len(startErrors) > 0 {
 		return nil, startErrors
 	}
