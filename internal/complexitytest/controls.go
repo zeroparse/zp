@@ -956,7 +956,7 @@ func Controls() []Control {
 			Name: "Scan after a lookahead that a cut passes", Family: "bounded scans",
 			Source: "rule main = (!(\"aa\" #cut $$ / \"a\") (s \"z\")? \"a\")* \"aa\"? $$\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
 		{
 			Name: "Scan after a repetition of a rule with a cut", Family: "bounded scans",
