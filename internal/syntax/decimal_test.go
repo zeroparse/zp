@@ -73,14 +73,12 @@ func TestDecimalTokenBoundaries(t *testing.T) {
 }
 
 func BenchmarkDecimalSource(b *testing.B) {
-	// Positional indices are accepted only by the legacy syntax.
 	for _, tc := range []struct {
 		name, source string
 		parse        func(string) (*grammar.Grammar, error)
 	}{
 		{"Plain", `rule main = "a"`, Parse},
 		{"Integers", "rule main = \"a\" => " + strings.Repeat("123 + ", 100) + "0", Parse},
-		{"Indices", "rule main = \"a\" => " + strings.Repeat("$1 + ", 100) + "$0", ParseLegacy},
 	} {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()

@@ -163,8 +163,8 @@ func TestParseErrors(t *testing.T) {
 		{`foo`, `1:1: expected '@', 'rule', 'type' or 'var', found 'foo'`},
 		{"rule a = (b\nrule c = d", `2:8: expected ')', found '='`},
 		{`type A = { X }`, `1:14: expected identifier, found '}'`},
-		{`type A struct { X }`, `1:8: a struct type is defined as type A = {...}; run zp fix to rewrite type A struct`},
-		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type A ~ <type> for an alias (zp fix rewrites type A = <type>)`},
+		{`type A struct { X }`, `1:8: a struct type is defined as type A = {...}`},
+		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type A ~ <type> for an alias`},
 		{`type A B`, `1:8: expected '=' or '~', found 'B'`},
 		{`type A = node[string, int]`, `a node type takes one type argument: type A = node[T]`},
 		{`type A = node`, `1:8: expected '{' or 'node[' after '='`},
@@ -270,22 +270,13 @@ func TestParseRejectsTerminalType(t *testing.T) {
 	if !ok || len(list) != 1 {
 		t.Fatalf("got %v, want exactly one error", err)
 	}
-	const want = "a terminal type is the struct type T = { Text string }; run zp fix to rewrite type T terminal"
+	const want = "a terminal type is the struct type T = { Text string }"
 	if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: 8}) {
 		t.Errorf("got %v, want 1:8: %s", err, want)
 	}
-	g, forms, err := parseLegacy(src)
-	if err != nil {
-		t.Fatalf("parseLegacy: %v", err)
-	}
-	td := g.File.Decls[0].(*grammar.TypeDef)
-	if fields := td.Struct().Fields; len(fields) != 1 || fields[0].Name != "Text" || !forms.terminals[td] {
-		t.Errorf("parseLegacy: spec is %#v, want the struct { Text string }", td)
-	}
 }
 
-// A positional constructor parses to New.Args; the checker accepts it only for a node type, and
-// the legacy reader still marks it for zp fix.
+// A positional constructor parses to New.Args; the checker accepts it only for a node type.
 func TestParsePositionalConstructor(t *testing.T) {
 	const src = "type T = { Text string }\nrule r T = \"x\" => T{\"x\"}"
 	g, err := Parse(src)
@@ -294,13 +285,6 @@ func TestParsePositionalConstructor(t *testing.T) {
 	}
 	if n, ok := g.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); !ok || len(n.Args) != 1 || len(n.Fields) != 0 {
 		t.Errorf("action is %#v, want a constructor with one argument", g.File.Decls[1].(*grammar.RuleDef).Action)
-	}
-	g, forms, err := parseLegacy(src)
-	if err != nil {
-		t.Fatalf("parseLegacy: %v", err)
-	}
-	if n, ok := g.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); !ok || !forms.positional[n] {
-		t.Errorf("parseLegacy: action is %#v, want a positional constructor", g.File.Decls[1].(*grammar.RuleDef).Action)
 	}
 }
 
@@ -351,20 +335,17 @@ func TestParseRejectsRetiredTypeNames(t *testing.T) {
 				if !ok || len(list) != 1 {
 					t.Fatalf("got %v, want exactly one error", err)
 				}
-				want := fmt.Sprintf("%s is not a type; write %s (zp fix rewrites it)", name, replacement)
+				want := fmt.Sprintf("%s is not a type; write %s", name, replacement)
 				col := strings.Index(src, name) + 1
 				if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
 					t.Errorf("got %v, want 1:%d: %s", err, col, want)
-				}
-				if _, _, err := parseLegacy(src); err != nil {
-					t.Errorf("parseLegacy: %v", err)
 				}
 			})
 		}
 	}
 }
 
-// node without a type argument is an error that zp fix rewrites to node[_].
+// node without a type argument is an error.
 func TestParseRejectsBareNode(t *testing.T) {
 	for _, src := range []string{
 		"type R = { F node }",
@@ -375,22 +356,8 @@ func TestParseRejectsBareNode(t *testing.T) {
 	} {
 		_, err := Parse(src)
 		list, ok := err.(ErrorList)
-		if !ok || len(list) != 1 || list[0].Msg != bareNode+" (zp fix rewrites it)" {
+		if !ok || len(list) != 1 || list[0].Msg != bareNode {
 			t.Errorf("Parse(%q): got %v, want one error %q", src, err, bareNode)
-		}
-		fixed, err := Fix(src)
-		if err != nil {
-			t.Fatalf("Fix(%q): %v", src, err)
-		}
-		if want := strings.ReplaceAll(src, "node", "node[_]"); strings.Contains(src, "node[string]") {
-			if want = strings.ReplaceAll(want, "node[_][string]", "node[string]"); fixed != want {
-				t.Errorf("Fix(%q) = %q, want %q", src, fixed, want)
-			}
-		} else if fixed != want {
-			t.Errorf("Fix(%q) = %q, want %q", src, fixed, want)
-		}
-		if _, err := Parse(fixed); err != nil {
-			t.Errorf("Parse(Fix(%q)): %v", src, err)
 		}
 	}
 }

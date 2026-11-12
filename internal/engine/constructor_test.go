@@ -13,18 +13,17 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// legacyConstructorGrammar is constructorGrammar in the retired terminal type syntax, read with
-// syntax.ParseLegacy as the text structs that zp fix writes for it.
-const legacyConstructorGrammar = `type Int terminal
+// constructorGrammar builds text structs in typed list constructors, through an alias too.
+const constructorGrammar = `type Int = { Text string }
 type Alias ~ Int
 type Values = { Items []Int; Nested [][]Int; Maybe []*Int; Default Int; Empty []Int }
-rule main Values = v1:"😀" => Values{Items: []Int{Int{"0"}, Alias{text($v1)}}, Nested: [][]Int{[]Int{}, []Int{Int{"1"}}}, Maybe: []*Int{nil, Int{"2"}}, Default: Int{"0"}, Empty: []Int{}}
+rule main Values = v1:"😀" => Values{Items: []Int{Int{Text: "0"}, Alias{Text: text($v1)}}, Nested: [][]Int{[]Int{}, []Int{Int{Text: "1"}}}, Maybe: []*Int{nil, Int{Text: "2"}}, Default: Int{Text: "0"}, Empty: []Int{}}
 `
 
 func TestTypedNodeConstructors(t *testing.T) {
 	t.Parallel()
-	const source = legacyConstructorGrammar
-	g, err := parseLegacyTest(source)
+	const source = constructorGrammar
+	g, err := parseTest(source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +84,7 @@ func TestTypedNodeConstructors(t *testing.T) {
 func TestNodeConstructorCompiledVersions(t *testing.T) {
 	t.Parallel()
 	for _, mode := range valueModes {
-		p := compileLegacy(t, legacyConstructorGrammar)
+		p := mustCompile(t, constructorGrammar)
 		data, err := p.Marshal("main", mode)
 		if err != nil || data[isaOffset] != bytecode.ISAVersion {
 			t.Fatalf("constructor ISA: %v", err)

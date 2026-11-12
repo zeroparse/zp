@@ -593,10 +593,6 @@ func (k *classifier) termLooks(t grammar.Term, rule string) bool {
 			for _, e := range exprs {
 				found = found || k.exprLooks(e, rule)
 			}
-		case *grammar.IndexRef:
-			if r := k.byName[rule]; r != nil {
-				found = k.exprLooks(r.Expr, rule)
-			}
 		}
 	})
 	return found

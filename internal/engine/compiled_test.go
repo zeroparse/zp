@@ -30,16 +30,15 @@ func TestCompiledRoundTrip(t *testing.T) {
 	}
 }
 
-// The retired terminal constructors are read with syntax.ParseLegacy as the text struct
-// constructors they mean.
-func TestCompiledRoundTripTerminalConstructors(t *testing.T) {
+// Text struct constructors whose field value fails a cast round-trip through compiled files.
+func TestCompiledRoundTripTextStructConstructors(t *testing.T) {
 	t.Parallel()
 	for name, src := range map[string]string{
-		"value error":     "type Int terminal\nvar value int\nrule main = {value := 1} \"x\" => Int{list(value, \"a\")[0].(string)}",
-		"predicate error": "type Int terminal\nvar value int\nrule main = {value := 1} {Int{list(value, \"a\")[0].(string)} != nil} \"x\" / \"x\"",
+		"value error":     "type Int = { Text string }\nvar value int\nrule main = {value := 1} \"x\" => Int{Text: list(value, \"a\")[0].(string)}",
+		"predicate error": "type Int = { Text string }\nvar value int\nrule main = {value := 1} {Int{Text: list(value, \"a\")[0].(string)} != nil} \"x\" / \"x\"",
 	} {
 		t.Run(name, func(t *testing.T) {
-			checkCompiledRoundTrip(t, compileLegacy(t, src), []string{"x", ""})
+			checkCompiledRoundTrip(t, mustCompile(t, src), []string{"x", ""})
 		})
 	}
 }

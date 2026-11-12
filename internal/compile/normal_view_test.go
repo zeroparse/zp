@@ -212,8 +212,8 @@ func TestNormalViewPredicateCaptures(t *testing.T) {
 // of a captured expression: through a variable that a binding sets from the capture, through the
 // capture access $x.$y into a rule's node, and through the elements of a repetition. Each keeps the
 // written shape of the expression that it reads, while an expression that no predicate reaches is
-// normalized. The positional references $0 and $1, which could read an element of a sequence, are
-// removed from the language and rejected by the parser, so they cannot reach the view.
+// normalized. $0 and $1, which would read an element of a sequence, are rejected by the parser, so
+// they cannot reach the view.
 func TestNormalViewPredicateValueFlow(t *testing.T) {
 	for _, c := range []struct {
 		name string

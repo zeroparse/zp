@@ -17,7 +17,7 @@ saved in, and the commands that need the grammar itself (`convert`, `gen`, `lint
 | Command | Use it to | Read more |
 |:--|:--|:--|
 | `parse` | Parse input and print the tree, or only check it | [Parse](#parse) |
-| `fmt`, `fix`, `convert` | Format grammar source, rewrite old syntax, convert between source and JSON | [Fmt](#fmt) |
+| `fmt`, `convert` | Format grammar source, convert between source and JSON | [Fmt](#fmt) |
 | `compile` | Save a compiled grammar of one mode | [Compiled Grammars](compiled-grammars.md) |
 | `gen` | Generate a Go or TypeScript parser | [Generating Parsers](code-generation.md), [Generated TypeScript Parsers](typescript.md) |
 | `test` | Run a fixture suite | [Testing Grammars](testing-grammars.md) |
@@ -212,63 +212,6 @@ rule ws = [ \t\n]*
 ```bash
 zp fmt -l messy.zp     # nothing listed: already formatted
 zp fmt -check messy.zp # exit status 0
-```
-
-## `fix`
-
-```bash
-zp fix [-w] [-l] [<file.zp> ...]
-```
-
-Rewrites grammars written in an earlier version of the language to the current syntax. It changes only the tokens
-whose spelling changed, adding a space where the new spelling would run into a neighboring token, and keeps every other
-byte, so comments and layout survive; run `zp fmt` afterwards if you
-also want canonical formatting. The flags and standard-input behavior are those of `fmt`: without `-w` it prints the
-result, `-w` rewrites the files in place, and `-l` lists the files that need rewriting. It rewrites:
-
-- the old cut `--` to `#cut`;
-- the node members `startPos` and `endPos` to `Start` and `End`;
-- the struct declaration `type T struct {...}` to `type T = {...}`, and the alias `type T = U` to `type T ~ U`;
-- positional captures `$1`, `$2`, ... to named ones, labeling the element each refers to (with the name of the rule it
-  calls when that name is free, and `v1`, `v2`, ... otherwise), and `$0` to a `list(...)` of the labeled elements;
-- a lambda parameter written `$p` in the lambda body to `p`;
-- a capture read `x.y` to `x.$y`, for every member whose name does not begin with an uppercase letter and is not a
-  built-in member;
-- the retired type `any` to `_`, when the grammar compiles with `_` everywhere. A value of type `_` needs a cast before
-  it is used as another type, so a grammar that needs casts is left as it is, and the compiler reports where;
-- a terminal type `type T terminal` to the named node type `type T = node[string]`. A rule declared with it and
-  without an action, `rule r T = e`, which produced the text it matched, becomes `rule r T = (e) #atomic` (without
-  `#atomic` when `e` is atomic already), and `$x.Value` becomes `text($x)` where `x` captures a call of such a rule. When a
-  rule of `T` has captures or makes `T` with a constructor `T{s}`, `T` becomes the struct `type T = { Text string }`
-  instead, and those rules make it with `T{Text: ...}`;
-- a struct `type T = { Text string }` that a rule makes from the text it matched, `rule r T = t:(e) #atomic =>
-  T{Text: text($t)}`, to the named node type `type T = node[string]` with `rule r T = (e) #atomic`, when no other
-  constructor makes `T`. A rule written that way without a type is declared with `T`. Reads `x.Text` of its values
-  become `text(x)`, and `len(x.Text)` becomes `len(x)`;
-- the type names `terminal` and `Match` to `node[string]`, `Seq`, `List` and `Operator` to `node[_]`, and `Error` to
-  `error`;
-- a bare `node`, which needs a type argument, to `node[string]` where the grammar still type-checks with it, and
-  to `node[_]`, a node of any value, otherwise.
-
-The parser rejects each old spelling with a message that points here. Text inside strings, character classes and
-comments is left alone. The rewrites other than the cut and type declarations need a grammar that otherwise parses, so
-fix syntax errors first. A capture read on a join of node types was optional when some of them lacked the capture,
-and `x.$y` requires every one to have it, so the rewritten grammar can report a type error that the old one did not.
-
-```bash
-echo 'rule a = "a" -- "b" / "c"' | zp fix
-```
-
-```text
-rule a = "a" #cut "b" / "c"
-```
-
-```bash
-echo 'rule pair = key ":" key => list($1, $3)' | zp fix
-```
-
-```text
-rule pair = key:key ":" v3:key => list($key, $v3)
 ```
 
 ## `convert`

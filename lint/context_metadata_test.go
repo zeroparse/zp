@@ -70,7 +70,6 @@ func TestLintMetadataPhaseCancellation(t *testing.T) {
 		{"predicate-search", func(c *lintControl) { hasPredicate(wide, c) }},
 		{"capture-search", func(c *lintControl) { hasCaptures(wide, c) }},
 		{"children", func(c *lintControl) { forChildren(wide, func(grammar.Expr) {}, c) }},
-		{"index-search", func(c *lintControl) { usesIndex(term, c) }},
 		{"position-terms", func(c *lintControl) { positionRead(&grammar.RuleDef{Expr: leaf, Action: term}, c) }},
 		{"position-operands", func(c *lintControl) {
 			positionRead(&grammar.RuleDef{Expr: &grammar.OperatorsRule{Operands: operands}}, c)

@@ -847,12 +847,6 @@ type CaptureRef struct {
 	Pragma bool `json:"pragma,omitempty"`
 }
 
-// IndexRef is a positional reference $n. $0 is the list of all elements.
-type IndexRef struct {
-	SourceInfo `json:"source,omitempty"`
-	Index      int `json:"index"`
-}
-
 // VarRef is a reference name to a variable in a predicate.
 type VarRef struct {
 	SourceInfo `json:"source,omitempty"`
@@ -1004,7 +998,6 @@ func (*StringLit) term()       {}
 func (*BoolLit) term()         {}
 func (*NilLit) term()          {}
 func (*CaptureRef) term()      {}
-func (*IndexRef) term()        {}
 func (*VarRef) term()          {}
 func (*Member) term()          {}
 func (*New) term()             {}

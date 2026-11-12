@@ -1671,7 +1671,7 @@ necessary.
    not bounded by a constant, it is a scanning source, which condition 2
    covers. No copying operation copies a value that is not bounded by a
    constant and whose size can come from a capture made in a positive
-   lookahead, directly, as a member or a positional capture, or through the
+   lookahead, directly or as a member, or through the
    values of the rules and captures that it reads, measured as above, so that
    `list($x)` has one element whatever `$x` holds, and whatever input those
    rules consume. Such a capture holds input that the match does not consume,

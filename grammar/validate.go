@@ -34,7 +34,7 @@ type validationFrame struct {
 	exit  bool
 }
 
-// Validate checks required children, nonnegative positional references,
+// Validate checks required children,
 // repetition and character-range bounds, and pointer cycles without mutating g.
 // It returns the first *ValidationError in deterministic depth-first order,
 // checking a node's bounds before its children, or nil.
@@ -202,12 +202,6 @@ func validate(g *Grammar, control *validationControl) error {
 					}
 				}
 				start = end
-			}
-			path = path[:len(path)-1]
-			continue
-		case *IndexRef:
-			if n.Index < 0 {
-				return fail("index", "positional reference must be nonnegative")
 			}
 			path = path[:len(path)-1]
 			continue

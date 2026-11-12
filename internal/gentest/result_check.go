@@ -104,8 +104,8 @@ rule vz = "z" => nil
 
 var OperatorResultCheckInputs = []string{"om^", "ot^", "ol^", "oz^", "!mo", "!lo", "!zo", "o+mo", "o+lo", "o+to", "ol^+lo", "<l#", "<m#", "<l#^", "<t#^", "<z#", "@l@", "@m@", "@t@", "%l%", "%m%", "%z%"}
 
-// TextStructOperatorsRuleGrammar is the text struct counterpart of terminalOperatorsRuleGrammar:
-// the Operators Rule produces the text struct through its actions.
+// TextStructOperatorsRuleGrammar has an Operators Rule of a text struct type, which produces the
+// struct through its actions.
 const TextStructOperatorsRuleGrammar = `type Int = { Text string }
 type S = { F Int }
 rule main = v:e => S{F: $v}

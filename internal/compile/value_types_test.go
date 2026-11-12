@@ -141,11 +141,10 @@ func TestValueTypesOptionalCaptures(t *testing.T) {
 }
 
 // valueTypesOf builds src without running the type check, as a compiled grammar is rebuilt, and returns the value types of its rules and
-// the errors of its actions. It accepts earlier syntax, which still reaches the engine from JSON
-// grammars.
+// the errors of its actions.
 func valueTypesOf(t *testing.T, src string) (map[string]Ty, diag.ErrorList) {
 	t.Helper()
-	g, err := parseLegacyTest(src)
+	g, err := parseTest(src)
 	if err != nil {
 		t.Fatalf("%q: %v", src, err)
 	}
@@ -292,7 +291,6 @@ func TestValueActionErrors(t *testing.T) {
 		{`rule a = x:"x" => text(list($x))`, "text: invalid argument []node[string]"},
 		{`rule a = x:"x" => $x.startPos`, ".startPos is removed: use .Start or .End"},
 		{`rule a = x:"x" => $x.children`, ".children is removed: use .Value"},
-		{`rule a = x:(y:"y" "z") => $x.y`, `node[(node[string], node[string]), {"y": 0}] has no field y: read the capture with .$y`},
 		{`rule a = x:"x" => $x.$y`, "node[string] has no capture y"},
 		{"rule a = x:(b / c) => $x.$y\nrule b = y:\"b\" \"1\"\nrule c = \"c\"", "node[string] has no capture y"},
 		{`rule a = x:"x"? => $x.Value`, "cannot access .Value of *node[string]: the value may be nil"},
@@ -304,10 +302,8 @@ func TestValueActionErrors(t *testing.T) {
 		{"type Foo = { Name string }\nrule a = x:\"x\" => Foo{Name: $x}", "cannot use node[string] as string in field Name of Foo"},
 		{"type Foo = { Name node[string] }\nrule a = x:\"x\" #missing => Foo{Name: $x}", "cannot use node[string] | missing as node[string] in field Name of Foo"},
 		{"type Foo = {}\nrule a = x:\"x\" => []Foo{$x}", "cannot use node[string] as Foo in list constructor"},
-		// The retired forms are read as the text structs they mean: a terminal rule without an
-		// action does not produce one, and a positional constructor sets the field Text.
-		{"type Word terminal\nrule a Word = [a-z]+", "rule a produces node[[]node[string]], which is not assignable to Word"},
-		{"type Word terminal\nrule a = _ => Word{1}", `cannot use int as string in field Text of Word`},
+		// A rule of a text struct type without an action does not produce one.
+		{"type Word = { Text string }\nrule a Word = [a-z]+", "rule a produces node[[]node[string]], which is not assignable to Word"},
 		{"type Word = { Text string }\nrule a = _ => Word{Text: 1}", `cannot use int as string in field Text of Word`},
 		{"type Foo = {}\nrule a Foo = x:\"x\" => $x", "rule a produces node[string], which is not assignable to Foo"},
 		{`rule a = x:"x" => filter($x.Value, (i) => i)`, "filter: expected a list, got string"},

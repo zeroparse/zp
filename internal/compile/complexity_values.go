@@ -481,7 +481,7 @@ func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
 			if !slices.Contains(tc.elems, x.Name) {
 				own = false
 			}
-		case *grammar.VarRef, *grammar.IndexRef:
+		case *grammar.VarRef:
 			own = false
 		}
 	})
@@ -592,9 +592,6 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		// consume.
 		c.look = c.look || k.lookCaptures(tc.rule)[t.Name] && c.unbounded
 		c.outer = tc.repeat && c.unbounded
-	case *grammar.IndexRef:
-		c = k.deepSize(k.byName[tc.rule].Expr, tc, fmt.Sprintf("$%d", t.Index))
-		c.outer = tc.repeat && c.unbounded
 	case *grammar.Member:
 		exprs, param, ok := k.termExprs(t, tc)
 		if !ok {
@@ -687,10 +684,6 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 					c.look = c.look || k.lookCaptures(tc.rule)[x.Name] && d.unbounded
 					c.add(d)
 				}
-			case *grammar.IndexRef:
-				d := k.deepSize(k.byName[tc.rule].Expr, tc, fmt.Sprintf("$%d", x.Index))
-				outer = outer || !d.bounded()
-				c.add(d)
 			case *grammar.VarRef:
 				c.vars = true
 			}
@@ -1056,8 +1049,6 @@ func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
 					ruleVars(e)
 				}
 			}
-		case *grammar.IndexRef:
-			ruleVars(k.byName[rule].Expr)
 		}
 	})
 	return out
@@ -1068,7 +1059,7 @@ func constant(t grammar.Term) bool {
 	ok := true
 	WalkTerm(t, func(x grammar.Term) {
 		switch x.(type) {
-		case *grammar.VarRef, *grammar.CaptureRef, *grammar.IndexRef, *grammar.Member:
+		case *grammar.VarRef, *grammar.CaptureRef, *grammar.Member:
 			ok = false
 		}
 	})

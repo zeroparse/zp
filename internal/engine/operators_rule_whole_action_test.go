@@ -31,12 +31,11 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 		"($value)":     {},
 		"Unknown{}":    {"Unknown", grammar.Pos{Line: 3, Col: 6}},
 		"(Unknown{})":  {"Unknown", grammar.Pos{Line: 3, Col: 7}},
-		"$1":           {"positional capture $1 is removed", grammar.Pos{Line: 3, Col: 6}},
 		"$lhs":         {"undefined capture $lhs", grammar.Pos{Line: 3, Col: 6}},
 		"text($value)": {},
 	} {
 		t.Run(action, func(t *testing.T) {
-			g, err := parseLegacyTest("rule main = #operators {\n    operand \"a\"\n} => " + action)
+			g, err := parseTest("rule main = #operators {\n    operand \"a\"\n} => " + action)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -75,7 +74,7 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 							err := run()
 							if name == "recognizer compile" && want.message != "" {
 								// The recognizer checks the action as it checks that of an ordinary rule.
-								o, perr := parseLegacyTest("rule main = \"a\" => " + action)
+								o, perr := parseTest("rule main = \"a\" => " + action)
 								if perr != nil {
 									t.Fatal(perr)
 								}

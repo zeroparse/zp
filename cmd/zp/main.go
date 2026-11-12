@@ -41,7 +41,6 @@ import (
 	"zeroparse.dev/zp/grammar"
 	igen "zeroparse.dev/zp/internal/gen"
 	genopt "zeroparse.dev/zp/internal/gen/opt"
-	"zeroparse.dev/zp/internal/syntax"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -71,12 +70,6 @@ Commands:
       status 1 if there are any, or 2 if a file cannot be formatted.
       -syntax prints a simplified syntax view and cannot be combined with
       -w, -l or -check.
-
-  fix [-w] [-l] [<file.zp> ...]
-      Rewrite ZeroParse source written in earlier syntax to the current syntax,
-      changing only the rewritten tokens. Without files, standard input is
-      rewritten. -w rewrites the files in place; -l lists the files that
-      need rewriting.
 
   convert [-to zp|json] [-o <file>] <grammar>
       Convert a grammar between ZeroParse source and JSON. -to defaults to the
@@ -280,8 +273,6 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 		return compileCmd(args[1:])
 	case "fmt":
 		return fmtCmd(args[1:], stdin, stdout)
-	case "fix":
-		return fixCmd(args[1:], stdin, stdout)
 	case "convert":
 		return convertCmd(args[1:], stdout)
 	case "trace":
@@ -383,113 +374,6 @@ type countingWriter struct {
 func (c *countingWriter) Write(p []byte) (int, error) {
 	*c.lines += bytes.Count(p, []byte("\n"))
 	return c.w.Write(p)
-}
-
-func fixCmd(args []string, stdin io.Reader, stdout io.Writer) error {
-	fs := flag.NewFlagSet("fix", flag.ContinueOnError)
-	write := fs.Bool("w", false, "write the result to the file instead of standard output")
-	list := fs.Bool("l", false, "list the files that need rewriting")
-	files, err := parseFlags(fs, args)
-	if err != nil {
-		return err
-	}
-	if len(files) == 0 {
-		if *write {
-			return errors.New("fix: cannot use -w with standard input")
-		}
-		src, err := io.ReadAll(stdin)
-		if err != nil {
-			return err
-		}
-		return fixSource("<standard input>", src, false, *list, stdout)
-	}
-	var errs []error
-	for _, path := range files {
-		if filepath.Ext(path) != ".zp" {
-			errs = append(errs, fmt.Errorf("%s: fix rewrites only ZeroParse source files (.zp)", path))
-			continue
-		}
-		src, err := os.ReadFile(path)
-		if err == nil {
-			err = fixSource(path, src, *write, *list, stdout)
-		}
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errors.Join(errs...)
-}
-
-func fixSource(name string, src []byte, write, list bool, stdout io.Writer) error {
-	out, nodes, err := syntax.FixNodeTypes(string(src))
-	if err != nil {
-		return fileError(name, err)
-	}
-	out = narrowNodeTypes(out, nodes)
-	out = fixAnyTypes(out)
-	changed := out != string(src)
-	if list && changed {
-		if _, err := fmt.Fprintln(stdout, name); err != nil {
-			return err
-		}
-	}
-	if write {
-		if !changed {
-			return nil
-		}
-		return writeFormattedFile(name, []byte(out))
-	}
-	if list {
-		return nil
-	}
-	_, err = io.WriteString(stdout, out)
-	return err
-}
-
-// narrowNodeTypes infers the type argument of the types node[_] at offsets, which fix wrote for
-// node without one: node[string] where the grammar still type checks with it, so that only the
-// values that may be other nodes keep node[_].
-func narrowNodeTypes(src string, offsets []int) string {
-	if len(offsets) == 0 || !typeChecks(src) {
-		return src
-	}
-	// From the end, so that the earlier offsets stay valid.
-	for _, o := range slices.Backward(offsets) {
-		if next := src[:o] + "node[string]" + src[o+len("node[_]"):]; typeChecks(next) {
-			src = next
-		}
-	}
-	return src
-}
-
-// fixAnyTypes rewrites the retired type any to _, if the grammar compiles with _ everywhere. A
-// value of type _ must be narrowed with a cast before it is used as another type, so a grammar
-// that relied on any being accepted anywhere may need casts first: it is left as it is, and the
-// compiler reports where.
-func fixAnyTypes(src string) string {
-	offsets := syntax.AnyTypes(src)
-	if len(offsets) == 0 {
-		return src
-	}
-	// From the end, so that the earlier offsets stay valid.
-	next := src
-	for _, o := range slices.Backward(offsets) {
-		next = next[:o] + "_" + next[o+len("any"):]
-	}
-	if !typeChecks(next) {
-		return src
-	}
-	return next
-}
-
-// typeChecks reports whether src parses and compiles.
-func typeChecks(src string) bool {
-	g, err := zp.ParseGrammar(src)
-	if err != nil {
-		return false
-	}
-	_, err = zp.Compile(g, "")
-	return err == nil
 }
 
 func formatFile(path string, write, list bool, stdout io.Writer) error {

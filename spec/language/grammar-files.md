@@ -507,7 +507,7 @@ ownership.
 
 JSON decoding requires one complete document and rejects trailing
 non-whitespace data. JSON and hand-built ASTs must have nonnil required
-children and collection entries, nonnegative positional references, and valid
+children and collection entries, and valid
 repetition bounds. Pointer cycles and typed nil interface nodes are rejected.
 The public `grammar.Validate` function checks this structure before semantic
 compilation. `grammar.ValidateContext(ctx, g)` checks the same structure and
@@ -534,7 +534,6 @@ message `Msg`.
 | A nil grammar; a missing required child; a nil entry in a node collection | Shared subtrees; empty collections; genuinely nil optional children |
 | An interface that holds a typed nil pointer; an unsupported embedded node type | |
 | A pointer cycle | |
-| A negative positional reference | |
 | A repetition whose minimum is negative, or whose finite maximum is smaller than the minimum | Any negative maximum, which means unbounded |
 | A character range whose `Lo` or `Hi` is not a Unicode scalar value (0 through 0x10FFFF except 0xD800 to 0xDFFF), or with `Lo > Hi` | A range that spans the surrogate interval; overlapping ranges; an empty class |
 

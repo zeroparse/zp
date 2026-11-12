@@ -27,42 +27,10 @@ func fieldCheckValueName(value string) string {
 	return value
 }
 
-// fieldCheckGrammarLegacy is fieldCheckGrammar with a terminal type Int, in the retired syntax that
-// only syntax.ParseLegacy accepts: grammars that reach the engine as JSON ASTs may still use it.
-func fieldCheckGrammarLegacy(typ string) string {
-	return `type Int terminal
-type Alias ~ Int
-type Box = { Value Int }
-type S = { F ` + typ + ` }
-type Result ~ S | Int
-rule main Result = nodeCase / nodePred / no
-rule nodeCase = v:val "." => S{F: $v.(` + typ + `)}
-rule nodePred = v:val {S{F: $v.(` + typ + `)} != nil} "!" => Int{"yes"}
-rule no = [a-z!.?;]+ => Int{"no"}
-rule val _ = vm / vt / vl / vk / ve / vn / vq / vr / vw / vp / vz / vi / vs / vb
-rule vm = "m"
-rule vt = "t" => Int{"t"}
-rule vl = "l" => []Int{Int{"a"}}
-rule vk = k:"k" => list($k)
-rule ve = "e" => list(nil)
-rule vn = "n" => list()
-rule vq = "q" => Box{Value: Int{"q"}}
-rule vr = ("r" ";") #recover(skip="?")
-rule vw = "w" => [][]Int{[]Int{Int{"w"}}}
-rule vp = "p" => list(Int{"a"}, nil)
-rule vz = "z" => nil
-rule vi = "i" => 1
-rule vs = "s" => "s"
-rule vb = "b" => true
-`
-}
-
 // TestConstructedFieldChecks checks which dynamically typed values a cast to each declared field
 // type accepts, on every backend, and from a compiled file.
 func TestConstructedFieldChecks(t *testing.T) {
 	t.Parallel()
-	// The terminal model is the same grammar in the retired terminal type syntax, which
-	// syntax.ParseLegacy reads as the text structs it means: it accepts the same values.
 	for _, model := range []struct {
 		name    string
 		grammar func(string) string
@@ -70,7 +38,6 @@ func TestConstructedFieldChecks(t *testing.T) {
 		fields  map[string]string
 	}{
 		{"text struct", gentest.FieldCheckGrammar, parseTest, gentest.FieldCheckFields},
-		{"terminal", fieldCheckGrammarLegacy, parseLegacyTest, gentest.FieldCheckFields},
 	} {
 		t.Run(model.name, func(t *testing.T) {
 			for _, typ := range gentest.FieldCheckTypesOf(model.fields) {

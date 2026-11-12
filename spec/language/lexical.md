@@ -145,9 +145,9 @@ full native integer range in generic attribute arguments.
 ### Capture References
 
 `$` immediately followed by an identifier forms a capture reference (`$label`)
-in actions and predicates. `$` followed by ASCII decimal digits is a removed
-positional reference (`$1`): it is still a token, so that `$1` is never read as
-an anchor followed by a number, but the parser rejects it. `$` followed by any
+in actions and predicates. `$` followed by ASCII decimal digits (`$1`) is a
+token that the parser rejects, so that `$1` is never read as an anchor followed
+by a number. `$` followed by any
 other character is the end-of-line anchor; `$$` is the end-of-input anchor.
 
 ### Punctuation

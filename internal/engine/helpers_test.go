@@ -19,13 +19,6 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// parseLegacyTest parses ZeroParse source with syntax.ParseLegacy and marks its start rules as
-// parseTest does.
-func parseLegacyTest(src string) (*grammar.Grammar, error) {
-	g, err := syntax.ParseLegacy(src)
-	return starttest.MarkAll(g), err
-}
-
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
 // has declaration attributes, every rule becomes a start rule, the first one the default.
 func parseTest(src string) (*grammar.Grammar, error) {
@@ -57,26 +50,6 @@ func compileBare(t *testing.T, src string, opts ...compile.Options) *Program {
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	prog, err := Compile(g, o)
-	if err != nil {
-		t.Fatalf("compile error: %v\n%s", err, src)
-	}
-	return prog
-}
-
-// compileLegacy compiles source that still uses the retired terminal type syntax, which only
-// syntax.ParseLegacy accepts; the engine still accepts grammar.TerminalSpec from JSON ASTs.
-func compileLegacy(t *testing.T, src string, opts ...compile.Options) *Program {
-	t.Helper()
-	g, err := parseLegacyTest(src)
-	if err != nil {
-		t.Fatalf("syntax error: %v\n%s", err, src)
-	}
-	var o compile.Options
-	if len(opts) > 0 {
-		o = opts[0]
-	}
-	o.SourceInfo = true
 	prog, err := Compile(g, o)
 	if err != nil {
 		t.Fatalf("compile error: %v\n%s", err, src)

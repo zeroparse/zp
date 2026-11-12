@@ -12,7 +12,7 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 
 | Surface | At v0.x |
 |:--|:--|
-| The grammar language: `.zp` syntax and meaning ([specification](../spec/README.md)) | Stable in intent. A change that breaks a grammar is announced, and `zp fix` rewrites older syntax where it can |
+| The grammar language: `.zp` syntax and meaning ([specification](../spec/README.md)) | Stable in intent. A change that breaks a grammar is announced with how to update the grammar |
 | The API of generated Go parsers (`Parse`, `ParseAST`, the options and the error types) | Stable in intent. A generated parser carries the runtime of the generator that produced it, so regenerate it after upgrading ZeroParse |
 | The module API, including the `zp` and `grammar` packages | May change in any release; changes are announced |
 | The runtime module `zeroparse.dev/zp/runtime`, as generated code uses it with `zp gen -runtime import` | Judged by its protocol version (see [the runtime protocol](#the-runtime-protocol)), not by the release version |
@@ -56,7 +56,7 @@ v0.1.0.
 ## Announcing Changes
 
 Each release has release notes on its GitHub release page; the repository keeps no separate changelog file. The notes
-list breaking changes first, each with what to do (including the `zp fix` rewrite where one exists), then new
+list breaking changes first, each with what to do, then new
 features and fixes.
 
 ## Supported Platforms

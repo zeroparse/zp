@@ -36,8 +36,6 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 			}
 			c.errorf(t.Diagnostic(), "undefined capture $%s", t.Name)
 		}
-	case *grammar.IndexRef:
-		c.errorf(t.Diagnostic(), "positional capture $%d is removed; name the element with a capture", t.Index)
 	case *grammar.VarRef:
 		if c.Prog.Vars.lookup(t.Name) == nil {
 			c.errorf(t.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", t.Name, t.Name)
@@ -62,7 +60,7 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 			c.errorf(t.Diagnostic(), "%s is not a struct type or a node type", t.Type)
 		} else if len(t.Args) != 0 {
 			if f := FieldOf(st, "Text"); f != nil && len(t.Args) == 1 {
-				c.errorf(t.Diagnostic(), "a struct constructor names its fields: write %s{Text: ...} (zp fix rewrites %s{...})", t.Type, t.Type)
+				c.errorf(t.Diagnostic(), "a struct constructor names its fields: write %s{Text: ...}", t.Type)
 			} else {
 				c.errorf(t.Diagnostic(), "a struct constructor names its fields: write %s{Field: value}", t.Type)
 			}

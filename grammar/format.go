@@ -2348,8 +2348,6 @@ func formatTermNode(t Term, outer int, control *metadataControl) string {
 			return t.Name
 		}
 		return "$" + t.Name
-	case *IndexRef:
-		return "$" + strconv.Itoa(t.Index)
 	case *VarRef:
 		return t.Name
 	case *Member:
@@ -2407,7 +2405,7 @@ func formatTermNode(t Term, outer int, control *metadataControl) string {
 		if t.Op == "[]" {
 			l := formatTerm(t.L, 7, control)
 			switch t.L.(type) {
-			case *IntLit, *StringLit, *IndexRef, *New, *ListConstructor, *Lambda:
+			case *IntLit, *StringLit, *New, *ListConstructor, *Lambda:
 				// "[" is an index only directly after a name, a capture, ")" or "]".
 				l = parenTerm(l, control)
 			}

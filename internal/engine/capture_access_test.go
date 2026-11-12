@@ -10,7 +10,6 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/syntax"
 )
 
 func TestCaptureAccessAcrossBackends(t *testing.T) {
@@ -35,22 +34,18 @@ func TestCaptureAccessAcrossBackends(t *testing.T) {
 	}
 }
 
-// A value of a terminal type was a string node, with the members of a node. zp fix rewrites the
-// terminal type to a named string node, which keeps those members.
-func TestNodeMembersOfTerminalTypes(t *testing.T) {
+// A value of a named string node type has the members of a node.
+func TestNodeMembersOfNamedStringNodes(t *testing.T) {
 	t.Parallel()
-	fixed, err := syntax.Fix(`type Num terminal
+	const src = `type Num = node[string]
 type Out = { S int; E int; V string }
 rule main = "-" n:num $$ => Out{S: $n.Start, E: $n.End, V: $n.Value}
-rule num Num = [0-9]+ #atomic`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	program := mustCompile(t, fixed)
+rule num Num = [0-9]+ #atomic`
+	program := mustCompile(t, src)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		n, err := program.ParseWith("main", "-12", ParseOptions{Backend: backend})
 		if err != nil || n.String() != `Out{E: 3, S: 1, V: "12"}` {
-			t.Fatalf("%s: %v %v\n%s", backend, n, err, fixed)
+			t.Fatalf("%s: %v %v\n%s", backend, n, err, src)
 		}
 	}
 }
@@ -70,18 +65,20 @@ rule num Num = t:([0-9]+ #atomic) => Num{Text: text($t)}`)
 	}
 }
 
-// x.$y reads capture y of node x and projects a repetition. The earlier x.y, which still reaches
-// the engine from JSON grammars, reads a field: on a node it is rejected with a pointer to .$y.
+// x.$y reads capture y of node x and projects a repetition. A member x.y, which the source syntax
+// rejects but a JSON grammar can hold, reads a field: on a node it is rejected with a pointer to .$y.
 func TestCaptureAccessMatchesField(t *testing.T) {
 	t.Parallel()
 	access := mustCompile(t, `rule main = xs:(-"," y:[a-z])* $$ => map($xs, (i) => i.$y)`)
 	if a := compile.RuleProjections(access.Static(), access.RuleList[0]); a["xs"] != "y" {
 		t.Fatalf("projection: %v", a)
 	}
-	g, err := parseLegacyTest(`rule main = xs:(-"," y:[a-z])* $$ => map($xs, (i) => i.y)`)
+	g, err := parseTest(`rule main = xs:(-"," y:[a-z])* $$ => map($xs, (i) => i.$y)`)
 	if err != nil {
 		t.Fatal(err)
 	}
+	member := g.Rules()[0].Action.(*grammar.Call).Args[1].(*grammar.Lambda).Body.(*grammar.Member)
+	member.Name = "y"
 	if _, err := Compile(g, compile.Options{}); err == nil || !strings.Contains(err.Error(), "read the capture with .$y") {
 		t.Fatalf("field access on a node: %v", err)
 	}

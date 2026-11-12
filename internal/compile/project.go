@@ -18,13 +18,12 @@ import (
 
 // ruleProjectionsControlled returns the captures of repetitions that the rule r's action reads
 // only as map($x, (e) => e.$f), mapped to the capture f, polling control. The conditions:
-//   - the action uses no $n, which could reach the same list (it is an element of the body);
 //   - no predicate reads $x, and the names x and f are captured only once in the rule;
 //   - f is captured in every element (an item of the element's sequence), with a value that is
 //     never nil (nonNil): otherwise an element can have no record, and $e.$f would be an error.
 func ruleProjectionsControlled(prog *Program, r *Rule, control *cancel.Control) map[string]string {
 	control.Poll()
-	if prog.NoProjections || r.Action == nil || usesItems(r.Action, control) {
+	if prog.NoProjections || r.Action == nil {
 		return nil
 	}
 	if _, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule); operatorsRule {
@@ -370,19 +369,6 @@ func lineNonNil(prog *Program, e grammar.Expr, t grammar.Term, operator bool, se
 		return c != nil && nonNil(prog, c.Expr, seen, control)
 	}
 	return false
-}
-
-// usesItems reports whether the action refers to the body's elements ($n).
-func usesItems(t grammar.Term, control *cancel.Control) bool {
-	control.Poll()
-	found := false
-	WalkTerm(t, func(x grammar.Term) {
-		control.Poll()
-		if _, ok := x.(*grammar.IndexRef); ok {
-			found = true
-		}
-	})
-	return found
 }
 
 // RuleProjections returns the projected repetition captures of r (ruleProjectionsControlled).

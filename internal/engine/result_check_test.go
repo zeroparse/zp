@@ -10,52 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/syntax"
 )
-
-// resultCheckGrammarLegacy is resultCheckGrammar with a terminal type Int, in the retired syntax that
-// only syntax.ParseLegacy accepts: grammars that reach the engine as JSON ASTs may still use it.
-func resultCheckGrammarLegacy(typ, rt string) string {
-	return `type Int terminal
-type Alias ~ Int
-type Box = { Value Int }
-type S = { F ` + typ + ` }
-type W = { V ` + rt + ` }
-rule main W = ma / mb / mc / md / me / mp / mq
-rule ma W = &(. ".") v:rA "." => W{V: $v}
-rule mb W = &(. ",") v:rB "," => W{V: $v}
-rule mc W = &(. ":") v:rC ":" => W{V: $v}
-rule md W = &(. "+") v:rD "+" => W{V: $v}
-rule me W = &(. "=") v:rE => W{V: $v}
-rule mp W = &(. "!") v:rA {$v == nil || $v != nil} "!" => W{V: $v}
-rule mq W = &(. "~") v:rB {$v == nil || $v != nil} "~" => W{V: $v}
-rule rA ` + rt + ` = v:val => $v.(` + typ + `)
-rule rB ` + rt + ` = v:val => $v.(` + typ + `)
-rule rC ` + rt + ` = #operators {
-    operand v:val => $v.(` + typ + `)
-}
-rule rD ` + rt + ` = #operators {
-    operand v:val => $v.(` + typ + `)
-}
-rule rE ` + rt + ` = v:sc "=" => $v.(` + typ + `)
-rule sc _ = si / ss / sb
-rule si = "i" => 1
-rule ss = "s" => "s"
-rule sb = "b" => true
-rule val _ = vm / vt / vl / vk / ve / vn / vq / vr / vw / vp / vz
-rule vm = "m"
-rule vt = "t" => Int{"t"}
-rule vl = "l" => []Int{Int{"a"}}
-rule vk = k:"k" => list($k)
-rule ve = "e" => list(nil)
-rule vn = "n" => list()
-rule vq = "q" => Box{Value: Int{"q"}}
-rule vr = ("r" ";") #recover(skip="?")
-rule vw = "w" => [][]Int{[]Int{Int{"w"}}}
-rule vp = "p" => list(Int{"a"}, nil)
-rule vz = "z" => nil
-`
-}
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
 var resultCheckRoutes = map[byte]string{'.': "rA", ',': "rB", ':': "rC", '+': "rD", '=': "rE", '!': "rA", '~': "rB"}
@@ -65,8 +20,6 @@ var resultCheckRoutes = map[byte]string{'.': "rA", ',': "rB", ':': "rC", '+': "r
 // that the values it accepts give the same results as when the rules are declared _.
 func TestRuleResultChecks(t *testing.T) {
 	t.Parallel()
-	// The terminal model is the same grammar in the retired terminal type syntax, which
-	// syntax.ParseLegacy reads as the text structs it means: it accepts the same values.
 	for _, model := range []struct {
 		name    string
 		grammar func(typ, rt string) string
@@ -74,7 +27,6 @@ func TestRuleResultChecks(t *testing.T) {
 		fields  map[string]string
 	}{
 		{"text struct", gentest.ResultCheckGrammar, parseTest, gentest.FieldCheckFields},
-		{"terminal", resultCheckGrammarLegacy, parseLegacyTest, gentest.FieldCheckFields},
 	} {
 		t.Run(model.name, func(t *testing.T) {
 			for _, typ := range gentest.ResultCheckTypesOf(model.fields) {
@@ -267,33 +219,10 @@ func TestOperatorResultChecks(t *testing.T) {
 	}
 }
 
-// terminalOperatorsRuleGrammar has an Operators Rule of a terminal type without an action, which
-// converted its value to the terminal like any such rule. A text struct has no such conversion, so
-// zp fix asks for an action instead of rewriting it.
-const terminalOperatorsRuleGrammar = `type Int terminal
-type S = { F Int }
-rule main = v:e => S{F: $v}
-rule e Int = #operators {
-    operand v:val => $v
-    level { infix left "+" v:val => $v }
-}
-rule val _ = "m"
-`
-
-func TestTerminalOperatorsRuleNeedsAction(t *testing.T) {
+// An Operators Rule of a text struct type builds the struct in its actions, with the same result
+// on every backend.
+func TestTextStructOperatorsRule(t *testing.T) {
 	t.Parallel()
-	for _, src := range []string{terminalOperatorsRuleGrammar, `type Num terminal
-rule main = e
-rule e Num = #operators {
-    operand [0-9]+
-    level { infix left "+" }
-}
-`} {
-		if _, err := syntax.Fix(src); err == nil || !strings.Contains(err.Error(), "is an operators rule; give it an action before running zp fix") {
-			t.Errorf("Fix: %v\n%s", err, src)
-		}
-	}
-	// The text struct counterpart builds the struct in its actions.
 	prog := mustCompile(t, gentest.TextStructOperatorsRuleGrammar)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		o := ParseOptions{Backend: b}

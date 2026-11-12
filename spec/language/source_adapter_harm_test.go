@@ -337,7 +337,7 @@ var hintMessages = []string{
 	"a capture is read with .$",
 	"an index [ must directly follow",
 	"a character class directly after a name",
-	"positional captures are removed",
+	"a capture is read by name",
 	"node takes a type argument",
 	"a node type takes one type argument",
 	"lambda parameters are written without $",
