@@ -250,9 +250,9 @@ func (v *verifier) node(n Node, scope []Slot) error {
 		}
 		if n.ScanSite != 0 {
 			switch n.Body.(type) {
-			case *ClassNode, *Any:
+			case *ClassNode, *Any, *Lit, *Choice:
 			default:
-				return fmt.Errorf("scan site %d repeats more than one character", n.ScanSite)
+				return fmt.Errorf("scan site %d repeats something other than a character or literals", n.ScanSite)
 			}
 			if n.ScanSite < 0 || n.Max >= 0 || n.Scope != nil || n.Project != "" || n.Site != 0 {
 				return fmt.Errorf("scan site %d with maximum %d, a scope, a projection or a skip-run site", n.ScanSite, n.Max)

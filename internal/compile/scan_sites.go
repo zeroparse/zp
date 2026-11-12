@@ -87,7 +87,7 @@ func ScanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *gramma
 			}
 		case *grammar.Repeat:
 			if x.Max < 0 {
-				f(x, isScan(x) && !streamed[x])
+				f(x, (isScan(x) || isLiteralScan(x)) && !streamed[x])
 			}
 		}
 	}, control)

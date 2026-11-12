@@ -45,6 +45,20 @@ rule s = c:[ab]+ d:[ ]* => text($c) + "," + text($d)`, "ab !?wz"},
 	{"a rule called once in a recursion", `rule main = e " " ws $$
 rule e = "(" e? (ws ")")? / ws "!"
 rule ws = xs:[ ]* => text($xs)`, "( )!"},
+	{"a repetition of a literal", `rule main = (r "!" / r "?" / [abz])* $$
+rule r = "ab"*`, "abz!?"},
+	{"a repetition of a literal restarted under a nesting", `rule main = e " " ws $$
+rule e = "(" e? (ws ")")?
+rule ws = ("  ")*`, "( )"},
+	{"a repetition of literals", `rule main = (r "!" / r "?" / [abcde])* $$
+rule r = ("ab" / "cd" / "e")*`, "abcde!?"},
+	{"literals that share a first character", `rule main = (r "!" / r "?" / [abcd])* $$
+rule r = ("ac" / "ab" / "ad")*`, "abcd!?"},
+	{"a repetition of a literal under captures and actions", `rule main = (r "!" / s "?" / [abc ])* $$
+rule r = xs:"ab"* => text($xs) + "."
+rule s = c:("ab" / "c")+ d:" "* => text($c) + "," + text($d)`, "abc !?"},
+	{"expectations after literals", `rule main = (ws "a" ws "b" / ws "a" ws "c" / ws "d")* $$
+rule ws = (" " / "\t")*`, "abcd \t"},
 	{"lookaheads around an action", `rule main = (&(r "!") r "!" / !(r "?") r "w" / r "?" / [ab ])* $$
 rule r = c:[ab]* => text($c)`, "ab !?w"},
 }
@@ -59,6 +73,14 @@ func ScanSiteInputs(alphabet string, n int, rng *rand.Rand) []string {
 			run := strings.Repeat(string(c), n)
 			in = append(in, run+"x;", run+"z:")
 			in = append(in, run, run+"!", run+"?", run+"x", "("+run, "("+run+"("+run+")", run+" "+run+"!")
+		}
+	}
+	// Runs of two adjacent characters: the iterations of a repetition of a literal.
+	rs := []rune(alphabet)
+	for i := 0; i+1 < len(rs) && i < 6; i++ {
+		for _, n := range []int{3, 40, 150} {
+			run := strings.Repeat(string(rs[i:i+2]), n)
+			in = append(in, run, run+"!", run+"?", run+string(rs[i]), "("+run, "("+run+"("+run+")", run+" "+run+"!")
 		}
 	}
 	return in

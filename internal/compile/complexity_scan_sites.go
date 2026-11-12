@@ -61,7 +61,7 @@ func (k *classifier) scanOnlyRule(name string) bool {
 		return false
 	}
 	for _, s := range k.walked[name] {
-		if (s.scan == nil || k.srcExprs[s.scan]) && (s.scan == nil || !isScan(s.scan)) {
+		if (s.scan == nil || k.srcExprs[s.scan]) && (s.scan == nil || !isScan(s.scan) && !isLiteralScan(s.scan)) {
 			return false
 		}
 	}

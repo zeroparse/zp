@@ -1,6 +1,8 @@
 package compile
 
 import (
+	"strings"
+
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 )
@@ -102,7 +104,7 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			rep, ok := x.(*grammar.Repeat)
-			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || isScan(rep) {
+			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || isScan(rep) || literalSite(rep, len(calls[r.Name]) == 0) {
 				return
 			}
 			prog.NumRunSites++
@@ -173,6 +175,51 @@ func isScan(e *grammar.Repeat) bool {
 		return true
 	}
 	return false
+}
+
+// isLiteralScan reports whether e repeats a literal, or a choice of literals in which no alternative
+// is a proper prefix of an earlier one, which a scan site records when its rule calls no rule. An
+// iteration of such a body matches at least one character and fails only at an input that no
+// alternative matches: an alternative that fails in an iteration that another alternative matches
+// stops before the end of that match, so the expectations of the iterations that a record skips lie
+// before the position where the walk ends, and the test that ends it gives all that a parse reports
+// there. An alternative that is a proper prefix of an earlier one (as "a" after "ab") can fail at
+// that very position.
+func isLiteralScan(e *grammar.Repeat) bool {
+	var alts []string
+	var add func(x grammar.Expr) bool
+	add = func(x grammar.Expr) bool {
+		switch x := x.(type) {
+		case *grammar.Literal:
+			if x.Value == "" {
+				return false
+			}
+			for _, a := range alts {
+				if len(x.Value) < len(a) && !x.IgnoreCase && strings.HasPrefix(a, x.Value) {
+					return false
+				}
+			}
+			alts = append(alts, x.Value)
+			return !x.IgnoreCase
+		case *grammar.Group:
+			return add(x.Expr)
+		case *grammar.Choice:
+			for _, a := range x.Alts {
+				if !add(a) {
+					return false
+				}
+			}
+			return true
+		}
+		return false
+	}
+	return add(e.Expr)
+}
+
+// literalSite reports whether e, in a rule that calls no rule if noCalls, is a scan site of a literal
+// (isLiteralScan) rather than a run site.
+func literalSite(e *grammar.Repeat, noCalls bool) bool {
+	return noCalls && !NoScanSites && isLiteralScan(e)
 }
 
 // blocksRun reports whether the expression x keeps a repetition that holds it from being a run

@@ -84,9 +84,16 @@ func TestScanSitesAreMarked(t *testing.T) {
 		{"a rule with a lookahead", "rule main = r \"a\" / r \"b\"\nrule r = (![y] [x])*", 0},
 		{"a rule with a pragma", "rule main = r \"a\" / r \"b\"\nrule r = [x]* #atomic", 1},
 		{"repetitions in the calling rule", "rule main = [x]* \"a\" [y]* / [x]+ \"b\"", 3},
-		{"a repetition of a literal", "rule main = r \"a\"\nrule r = \"x\"*", 0},
+		{"a repetition of a literal", "rule main = r \"a\"\nrule r = \"x\"*", 1},
+		{"a repetition of a longer literal", "rule main = r \"a\"\nrule r = \"xy\"*", 1},
+		{"a literal in a rule that calls a rule", "rule main = r \"a\"\nrule r = \"xy\"* s\nrule s = \"z\"", 0},
+		{"a repetition of an empty literal", "rule main = r \"a\"\nrule r = \"\"*", 0},
+		{"a repetition of a literal that ignores case", "rule main = r \"a\"\nrule r = \"xy\"i*", 0},
 		{"a repetition with a maximum", "rule main = r \"a\"\nrule r = [x]#repeat(0,9)", 0},
-		{"a repetition of a choice", "rule main = r \"a\"\nrule r = (\"x\" / \"yz\")*", 0},
+		{"a repetition of a choice", "rule main = r \"a\"\nrule r = (\"x\" / \"yz\")*", 1},
+		{"a choice that shares a prefix, longer first", "rule main = r \"a\"\nrule r = (\"xy\" / \"x\")*", 0},
+		{"a choice that shares a prefix, shorter first", "rule main = r \"a\"\nrule r = (\"x\" / \"xy\")*", 1},
+		{"a choice with a class", "rule main = r \"a\"\nrule r = (\"x\" / [yz])*", 0},
 		{"a repetition in a stream", "rule main = [x]* #stream", 0},
 	} {
 		if n := mustCompile(t, c.src).NumScanSites; n != c.sites {
