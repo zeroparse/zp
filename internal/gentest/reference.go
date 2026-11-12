@@ -310,7 +310,8 @@ func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, referenc
 	var inputs [][]string
 	var wantErr []string
 	// wantValue holds the canonical form of the engine's value of each input, and accepted tells
-	// which inputs the engine accepts; the canonical typed values of accepted inputs must equal it.
+	// which inputs the engine returns a value for, with or without errors; the canonical typed values of
+	// those inputs must equal it.
 	var wantValue []any
 	var accepted []bool
 	typedRuntime := 0
@@ -343,9 +344,9 @@ func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, referenc
 		for _, in := range c.Inputs {
 			n, err := prog(in, false, false)
 			wantErr = append(wantErr, fmt.Sprint(err))
-			accepted = append(accepted, err == nil)
+			accepted = append(accepted, n != nil)
 			var val any
-			if err == nil {
+			if n != nil {
 				b, merr := json.Marshal(n)
 				if merr != nil {
 					t.Fatalf("%s: input %q: %v", c.Name, in, merr)
