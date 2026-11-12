@@ -127,6 +127,7 @@ contract is [Observability](../../spec/runtime/observability.md).
 | Grammar syntax, text and JSON forms | `internal/syntax/`, `grammar/` |
 | Desugaring: inline actions to hidden rules, attribute normalization, start rules | `internal/desugar/` |
 | Compilation, analysis, checking and the bytecode compiler | `internal/compile/`; the type model the checker uses in `internal/types/` |
+| The front end: a grammar checked to its program, Core IR and facts, which tools and generators read without a runtime backend | `internal/frontend/`; the program comes from checking in `internal/compile/`, which also lowers it to closures |
 | The parser runtime: compilation entry points, streams and limit controls, over the backends and the Document | `internal/engine/` |
 | The parse state that every backend shares, and what a backend provides | `internal/engine/core/` |
 | The closure backend | `internal/engine/closure/` |

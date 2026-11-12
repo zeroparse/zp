@@ -155,7 +155,7 @@ func compileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 		}
 	}()
 	names := desugar.InlineNames{}
-	prog, err = CompileProgram(g, opts, nil, names, &cancel.Control{Ctx: ctx}, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+	prog, err = Check(g, opts, nil, names, &cancel.Control{Ctx: ctx})
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}

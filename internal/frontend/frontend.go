@@ -3,9 +3,10 @@
 // the one place that answers what a grammar means; the backends and the tools that analyze a
 // grammar (lint, the language server) read its Result.
 //
-// Run reports the errors the compiler finds. Until the compiler is only the lowering of a
-// Result, Run depends on it for the program (the front end sits above the compiler, and this
-// edge is removed with that change).
+// Run reports the errors the compiler finds. The compiler's Check makes the program, and its
+// CompileProgram lowers the program of a Result to a backend's form; the program and the type
+// model still live in the compiler, so the front end imports it until they move to packages of
+// their own.
 package frontend
 
 import (
@@ -38,10 +39,11 @@ type Result struct {
 // generate shown as written.
 func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
 	names := desugar.InlineNames{}
-	factErrs := structuralErrors(g, opts, names, control)
-	prog, err := compile.CompileProgram(g, opts, nil, names, control, func(*compile.Compiler) compile.ExprBuilder[struct{}] { return compile.NoExprs{} })
+	prog, err := compile.Check(g, opts, nil, names, control)
 	if err != nil {
-		return nil, mergeErrors(names.Rewrite(err), factErrs)
+		// The facts of a grammar that checks have no error (the compiler reports the same ones),
+		// so they are looked for only when checking fails.
+		return nil, mergeErrors(names.Rewrite(err), structuralErrors(g, opts, names, control))
 	}
 	return FromProgram(prog, control)
 }

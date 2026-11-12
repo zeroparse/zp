@@ -94,10 +94,7 @@ func (prog *Program) Recognizer() (*Program, error) {
 			}
 			return
 		}
-		flags := make([]compile.RuleFlags, len(prog.RuleList))
-		for i, r := range prog.RuleList {
-			flags[i] = compile.RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Cycle: r.Cycle, Positional: r.Positional, Twin: r.TwinOK}
-		}
+		flags := prog.Static().Flags()
 		prog.rec, prog.recErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
 			o.Recognize, o.Recognizer, o.ControlledDispatch = true, true, false
 		}), flags)

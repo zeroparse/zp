@@ -87,6 +87,8 @@ type Program struct {
 	// they differ from the flags of the rules; nil otherwise. Such parses run a program built with
 	// them.
 	InsertionFlags []RuleFlags
+	// checked reports that Check made the program, so CompileProgram may lower it.
+	checked bool
 }
 
 // Options configures compilation.
@@ -278,6 +280,16 @@ type RuleFlags struct {
 	Twin bool
 }
 
+// Flags returns the rule flags of the program's rules, with which a variant of the program (its
+// recognizer) is checked again from its grammar so that its rules keep them.
+func (p *Program) Flags() []RuleFlags {
+	flags := make([]RuleFlags, len(p.RuleList))
+	for i, r := range p.RuleList {
+		flags[i] = RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Cycle: r.Cycle, Positional: r.Positional, Twin: r.TwinOK}
+	}
+	return flags
+}
+
 // insertionFlags returns the rule flags of prog under the insertion analysis ins, which the
 // compilation sets as it sets the rules' own from the analysis without insertion, or nil if they
 // equal the rules' own.
@@ -317,7 +329,7 @@ type Canonical struct {
 	StartErrors diag.ErrorList
 }
 
-// Canonicalize validates the grammar and returns the canonical form that CompileProgram compiles.
+// Canonicalize validates the grammar and returns the canonical form that Check checks.
 // names receives the hidden rules that the lowering of inline actions generates.
 func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, control *cancel.Control) (*Canonical, error) {
 	control.Check()
@@ -421,11 +433,18 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 	return &Canonical{Grammar: g, Source: source, Starts: starts, DefaultStart: defaultStart, StartErrors: startErrors}, nil
 }
 
-// CompileProgram compiles the grammar to its static program. The walk of the rule bodies calls
-// the builder that builder returns for the compiler, which builds the bodies in a backend's form.
-// names receives the hidden rules that the lowering of inline actions generates. If flags is not
-// nil, it skips static analysis and type checking and uses flags instead.
-func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
+// Check checks the grammar into its static program: the rules with their flags, scopes and
+// value-free twins, the types and the expectation table, everything a backend lowers and a
+// generator reads, without building any backend's form (the front end's Result holds it). names
+// receives the hidden rules that the lowering of inline actions generates. If flags is not nil,
+// it skips static analysis and type checking and uses flags instead.
+func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
+	return checkWith(g, opts, flags, names, control, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+}
+
+// checkWith is Check with the builder that builder returns for the compiler called by the walk of the
+// rule bodies, for the test that the walk of CompileProgram calls a builder as this walk does.
+func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
 	canon, err := Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil, err
@@ -616,7 +635,50 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 	}
 
 	control.Check()
+	prog.checked = true
 	return prog, nil
+}
+
+// CompileProgram lowers the program that Check made to a backend's form: it walks the rule bodies
+// again, in the order Check walked them, and calls the builder that builder returns for the
+// compiler, which builds the bodies. The walk decides nothing new: the scopes, twins, sites and
+// expectations are those of the checked program, and it reports no errors, because Check reported
+// them; it returns an error only for a program that Check did not make.
+func CompileProgram[M any](prog *Program, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) error {
+	if prog == nil || !prog.checked {
+		return errors.New("compile: the program was not made by Check")
+	}
+	control.Check()
+	// Without an analysis (an, ins) the walk skips the checks that read one, as it does for the
+	// rule flags of a loaded program; the expectation IDs are found again in the table.
+	c := &Compiler{Control: control, Prog: prog, opts: prog.Opts, descIDs: make(map[string]ExpID, len(prog.DescTable))}
+	for i, d := range prog.DescTable {
+		if _, ok := c.descIDs[d]; !ok {
+			c.descIDs[d] = ExpID(i)
+		}
+	}
+	if control != nil {
+		prog.Checker().SetShapeControl(control)
+		defer func() {
+			prog.Checker().SetShapeControl(nil)
+			c.Control = nil
+		}()
+	}
+	descs, twins := len(prog.DescTable), len(prog.Twins)
+	w := &Walker[M]{Compiler: c, Builder: builder(c)}
+	for _, r := range prog.RuleList {
+		control.Poll()
+		w.compileRule(r)
+	}
+	for _, r := range prog.Twins {
+		control.Poll()
+		w.compileRule(r)
+	}
+	control.Check()
+	if len(c.errs) > 0 || len(prog.DescTable) != descs || len(prog.Twins) != twins {
+		return fmt.Errorf("compile: lowering the checked program changed it: %v", c.errs)
+	}
+	return nil
 }
 
 // validateGrammar returns the validation error of g as a compile error.
