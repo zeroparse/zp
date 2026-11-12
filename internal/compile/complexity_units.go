@@ -25,8 +25,11 @@ const (
 type cont struct {
 	items []grammar.Expr
 	next  *cont
-	end   endKind
-	rule  string
+	// end and rule mark the end of the body of rule after items. With a next, the path goes on
+	// after the call of rule with next (bodyThen), and the walkers pass the mark; without one, it
+	// goes on as end tells.
+	end  endKind
+	rule string
 	// inner marks the end of a body that a path entered by looking through a call of the rule,
 	// after which the path continues after that call: it does not leave the body in which the
 	// path started.
@@ -1698,7 +1701,7 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 						paths = append(paths, rest)
 						return
 					}
-					p = rest.then(k.byName[e.Name].Expr)
+					p = bodyThen(k.byName[e.Name], rest)
 					depth++
 					continue
 				}
@@ -1722,8 +1725,21 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 			}
 		}
 	}
-	visit(&cont{items: []grammar.Expr{k.byName[rule].Expr}, next: after}, 0)
+	// after marks the end of the body itself when it is the end of rule (the step tails of a
+	// leader, or the start rule); otherwise the path marks it.
+	start := &cont{items: []grammar.Expr{k.byName[rule].Expr}, next: after}
+	if after.next != nil || after.end != endRule || after.rule != rule {
+		start = bodyThen(k.byName[rule], after)
+	}
+	visit(start, 0)
 	return paths, ok
+}
+
+// bodyThen returns the path that evaluates the body of r and then after, which follows the call
+// of r. The path marks the end of the body (cont.end and cont.rule with a next), which the walkers
+// of paths pass, so that bodyEnds can tell in whose body a path is.
+func bodyThen(r *grammar.RuleDef, after *cont) *cont {
+	return &cont{items: []grammar.Expr{r.Expr}, next: after, end: endRule, rule: r.Name}
 }
 
 // checkGrowth checks condition 3: no scanning source is evaluated at the position where a
