@@ -97,7 +97,9 @@ type normalView struct {
 
 // view is the normal view of a set of rules.
 type view struct {
-	rules []*grammar.RuleDef
+	// source are the rules the view is built from.
+	source []*grammar.RuleDef
+	rules  []*grammar.RuleDef
 	// applied counts the rewrites by rule.
 	applied map[viewRule]int
 	// text gives, for each expression that the view builds, the text of the expressions of the
@@ -133,7 +135,7 @@ func normalizeRules(rules []*grammar.RuleDef, an *Analysis, memo map[string]bool
 		copy.Expr = body
 		out[i] = &copy
 	}
-	return &view{rules: out, applied: v.applied, text: v.text}
+	return &view{source: rules, rules: out, applied: v.applied, text: v.text}
 }
 
 // fix rewrites e until no rule applies. Every rule lowers the measure of spec/proofs/grammar-laws.md

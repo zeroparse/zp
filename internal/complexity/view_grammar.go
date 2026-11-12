@@ -2,6 +2,7 @@ package complexity
 
 import (
 	"fmt"
+	"slices"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -38,6 +39,13 @@ func (v *View) Grammar(rules []*grammar.RuleDef) ([]*grammar.RuleDef, error) {
 func (v *View) expr(n core.Node) (grammar.Expr, error) {
 	if e, ok := v.Origin[n]; ok {
 		return e, nil
+	}
+	if s, ok := v.replaces[n]; ok {
+		if e, ok := v.Origin[s]; ok {
+			if r, err := v.withParts(n, e); r != nil || err != nil {
+				return r, err
+			}
+		}
 	}
 	exprs := func(ns []core.Node) ([]grammar.Expr, error) {
 		es := make([]grammar.Expr, len(ns))
@@ -98,4 +106,98 @@ func (v *View) expr(n core.Node) (grammar.Expr, error) {
 		return &grammar.Bottom{}, nil
 	}
 	return nil, fmt.Errorf("no expression for a built %T", n)
+}
+
+// withParts returns the expression e of the node of the module that the built node n replaces,
+// with the parts of n: a copy of e with the expression of the body of n. It returns nil for a
+// node whose kind is written in the grammar's syntax of its own.
+func (v *View) withParts(n core.Node, e grammar.Expr) (grammar.Expr, error) {
+	var body core.Node
+	switch n := n.(type) {
+	case *core.Repeat:
+		body = n.Body
+	case *core.Opt:
+		body = n.Body
+	case *core.Look:
+		body = n.Body
+	case *core.Capture:
+		body = n.Body
+	case *core.Drop:
+		body = n.Body
+	case *core.Text:
+		body = n.Body
+	case *core.Label:
+		body = n.Body
+	case *core.Recover:
+		body = n.Body
+	case *core.Stream:
+		body = n.Repeat
+	default:
+		return nil, nil
+	}
+	x, err := v.expr(body)
+	if err != nil {
+		return nil, err
+	}
+	switch e := e.(type) {
+	case *grammar.Repeat:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Optional:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.And:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Not:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Capture:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Discard:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Atomic:
+		c := *e
+		c.Expr = x
+		return &c, nil
+	case *grammar.Attributed:
+		if len(e.Attrs) != 1 {
+			return nil, fmt.Errorf("a built %T of %d attributes", n, len(e.Attrs))
+		}
+		c := *e
+		c.Expr, c.Breaks = x, nil
+		return &c, nil
+	}
+	return nil, fmt.Errorf("a built %T of a %T", n, e)
+}
+
+// BuiltTexts returns, for each node of the rules of the view that the view builds, its spelling
+// in the grammar's syntax and the text it stands for, as "spelling = text", sorted. A node that
+// cannot be written is spelled by its error.
+func (v *View) BuiltTexts() []string {
+	var out []string
+	for _, r := range v.Module.Rules {
+		core.Walk(r.Body, func(n core.Node) {
+			if _, ok := v.Origin[n]; ok {
+				return
+			}
+			spelling := ""
+			if e, err := v.expr(n); err != nil {
+				spelling = err.Error()
+			} else {
+				spelling = grammar.FormatExpr(e)
+			}
+			out = append(out, spelling+" = "+v.Text[n])
+		})
+	}
+	slices.Sort(out)
+	return out
 }
