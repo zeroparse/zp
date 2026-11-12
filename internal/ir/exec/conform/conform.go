@@ -190,7 +190,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
 		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp,
-			c.Callee == ExpOp, c.Callee == PlaceholderOp, c.Callee == DocStatOp:
+			c.Callee == ExpOp, c.Callee == PlaceholderOp, c.Callee == DocStatOp, isOprTestOp(c.Callee):
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -312,6 +312,9 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	}
 	if o.Name == PlaceholderOp {
 		return []any{p.wrap(ref.Placeholder, p.impl.(Expectations).Placeholder())}
+	}
+	if isOprTestOp(o.Name) {
+		return []any{p.wrap(p.model.OprHandle(o.Name), p.impl.(Operators).Handle(o.Name))}
 	}
 	if o.Name == DocStatOp {
 		i := args[0].(int64)
