@@ -23,7 +23,8 @@ import (
 // memo reused whatever its present set, equal step results given the same identity without
 // comparing them, a jump that uses observations whose outcomes read the growing seed, a reused
 // result that replays the seeds its observations read where it was made, and one that passes on only
-// those seeds of its observations with current identities.
+// those seeds of its observations with current identities, a result with more dependencies than a
+// key holds that is not stored, and one identity for every present set of leaders without bits.
 var depMemoMutations = map[string][][2]string{
 	"seed identities": {
 		{"rest = k.add(p.gamma[i].id, rest)\n", "rest = k.add(0, rest)\n"},
@@ -49,6 +50,12 @@ var depMemoMutations = map[string][][2]string{
 	},
 	"observations replayed in the current context": {
 		{"buf = p.replayObs(buf, pos, gp, present, d.site, depth)\n", "\n"},
+	},
+	"dependency cap": {
+		{"\t\tif d.kind == depSeed {\n\t\t\tseeds = append(seeds, growKey{d.rule, d.min})", "\t\tif len(seeds)+len(obs) == maxCtxDeps {\n\t\t\treturn\n\t\t}\n\t\tif d.kind == depSeed {\n\t\t\tseeds = append(seeds, growKey{d.rule, d.min})"},
+	},
+	"wide present identity": {
+		{"return presentWide | uint32(p.intern(key))", "return presentWide | 1 + 0*uint32(len(key))"},
 	},
 }
 
