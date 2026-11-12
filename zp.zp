@@ -130,7 +130,7 @@ type ActionBind = { Name Ident; Expr ActionExpr }
 type ActionBlock = { Actions []ActionStmt; Comments []Comment }
 type DefaultAction = node[string]
 type ActionExpr ~ (
-    Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda
+    Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error
 )
 type BinaryOp = { Op string; L ActionExpr; R ActionExpr }
 type UnaryOp = { Op string; X ActionExpr }
@@ -310,10 +310,19 @@ rule type_alias_body TypeAliasBody = (
     "type" -word_end #cut name:ident -ws "~" -ws t:(type_expr @error(message="expected type"))
 ) => TypeAliasBody{Name: $name, Type: $t}
 rule type_def_body TypeDefBody = (
-    "type" -word_end #cut name:(ident @error(message="expected type name")) -ws
+    "type" -word_end #cut name:(ident @error(message="expected type name")) -ws -type_def_spelling
     -((&("=" comments ("{" / "node[" !"]")) "=" -ws) @error(message="expected '= {', '= node[' or '~'"))
     t:(struct_type / node_type)
 ) => TypeDefBody{Name: $name, Type: $t}
+// A type definition written in a spelling that the language no longer has fails with the
+// definition in the current syntax. The check of each spelling stands outside its message, so a
+// spelling that is absent leaves the expectations of the definition as they are.
+rule type_def_spelling = (
+    !(("struct" / "terminal") !ident_char / "=" !(comments ("{" / "node[" !"]")))
+    / &("struct" !ident_char) (_|_ @error(message="a struct type is defined as type Name = { ... }"))
+    / &("terminal" !ident_char) (_|_ @error(message="a terminal type is the struct type Name = { Text string }"))
+    / &"=" (_|_ @error(message="expected '{' or 'node[' after '='; write type Name ~ Type for an alias"))
+)
 // The node type of a named node type takes one type argument.
 rule node_type TypeApp = (
     &"node[" name:ident "[" {ml := true} -ws arg:type_expr -ws ","? -ws
@@ -329,8 +338,8 @@ rule field_body FieldBody = (
 rule type_expr Type = #operators {
     skip ws
     operand bottom
-    operand !retired_type name:ident args:type_args => TypeApp{Name: $name, Args: $args}
-    operand !retired_type name:ident => TypeRef{Name: $name}
+    operand name:ident args:type_args => TypeApp{Name: $name, Args: $args}
+    operand name:ident => TypeRef{Name: $name}
     operand t:type_group => $t
     operand t:struct_type => $t
     level join { infix left "|" => JoinType{L: $lhs, R: $rhs} }
@@ -346,9 +355,6 @@ rule struct_type StructType = (
     "{" {ml := false} &head:source_head_open fields:(f:field_spec)* cs:comments
     -("}" @error(message="expected closing brace for struct"))
 ) => StructType{Fields: map($fields, (x) => x.$f), Comments: $cs, Head: $head}
-
-// The names terminal, Match, Seq, List, Operator and Error are not node types.
-rule retired_type = ("terminal" / "Match" / "Seq" / "List" / "Operator" / "Error") !ident_char
 
 // The brackets of type arguments follow the name directly.
 rule type_args []Type = (
@@ -392,8 +398,8 @@ rule rule_decl RuleDef = (
 rule rule_def_body RuleDefBody = (
     attrs:(a:attr gap:decl_attr_gap)*
     "rule" -word_end #cut name:(ident @error(message="expected rule name")) -ws t:type_expr? -ws
-    -("=" @error(message="expected '=' after rule header")) -ws x:(ops_rule_body / rule_body_expr)
-    @error(message="expected rule expression") a:trailing_action?
+    -("=" @error(message="expected '=' after rule header")) -ws -operators_spelling
+    x:(ops_rule_body / rule_body_expr) @error(message="expected rule expression") a:trailing_action?
 ) => RuleDefBody{
     Attrs: map($attrs, (x) => x.$a),
     AttrComments: foldl(list(), $attrs, (all, x) => concat(all, x.$gap)),
@@ -413,7 +419,7 @@ rule whole_action Action = "=>" -ws a:(action @error(message="expected value act
 rule trailing_action Action = -ws a:whole_action => $a
 rule rule_expr RuleExpr = #operators {
     skip ws
-    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref
+    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref / cut_spelling
     level ordered_choice { infix left "/" => Choice{L: $lhs, R: $rhs} }
     level sequence { infix left _ => Sequence{L: $lhs, R: $rhs} }
     level prefix {
@@ -440,6 +446,7 @@ rule rule_expr RuleExpr = #operators {
 // Operators Rule starts.
 rule unknown_pragma = "#" !(known_pragma !ident_char) ident _|_
 rule rule_body_expr RuleExpr = !legacy_operators_start x:rule_expr => $x
+rule operators_spelling = !legacy_operators_start / _|_ @error(message="an Operators Rule is written #operators { ... }")
 // An Operators Rule starts with #operators. A rule that starts with operators { and an item is an
 // error; operators {x == 1} is a reference followed by a predicate.
 rule legacy_operators_start = (
@@ -471,6 +478,9 @@ rule end_input EndInput = ("$$") #atomic
 rule end_line EndLine = ("$" !(ident_start / digit)) #atomic
 rule any Any = ("." !"..") #atomic
 rule cut Cut = ("#cut" !ident_char !"(") #atomic
+// The cut was once written --. That spelling is an error in the current syntax, from which the
+// parse recovers.
+rule cut_spelling RuleExpr | error = (&"--" _|_ @error(message="the cut is written #cut")) #recover(skip="--")
 rule predicate Predicate = b:action_block => Predicate{Actions: $b.Actions, Comments: $b.Comments}
 
 // Postfix pragmas have dedicated payloads. Metadata attributes retain ordered
@@ -592,7 +602,7 @@ rule action_bind_stmt ActionBind = (
 rule action_expr ActionExpr = lambda / action_ops
 rule action_ops ActionExpr = #operators {
     skip (!(ws "[" !"]") ws)
-    operand list_constructor / constructor / call / action_tuple / action_group / int / action_string / true_lit / false_lit / nil_lit / capture_ref / var_ref
+    operand list_constructor / constructor / call / action_tuple / action_group / int / action_string / true_lit / false_lit / nil_lit / capture_ref / var_ref / index_capture
     level disjunction { infix left "||" => BinaryOp{Op: text($op), L: $lhs, R: $rhs} }
     level conjunction { infix left "&&" => BinaryOp{Op: text($op), L: $lhs, R: $rhs} }
     level comparison { infix none "==" / "!=" / "<=" / ">=" / "<" / ">" => BinaryOp{Op: text($op), L: $lhs, R: $rhs} }
@@ -605,14 +615,10 @@ rule action_ops ActionExpr = #operators {
     level field_access {
         postfix "." -ws c:capture_ref => CaptureAccess{X: $lhs, Capture: $c}
         postfix "." -ws t:cast_type => Cast{X: $lhs, Type: $t}
-        postfix "." -ws !capture_member name:ident => FieldAccess{X: $lhs, Name: $name}
+        postfix "." -ws name:ident => FieldAccess{X: $lhs, Name: $name}
         postfix i:index_suffix => BinaryOp{Op: "[]", L: $lhs, R: $i}
     }
 }
-// x.name with a lowercase name is an error, because a capture is read with x.$name: the fields of a node
-// start with an uppercase letter, and startPos, endPos, children, expected and message are members of every node.
-// A name is ASCII, so the check is exact; the adapter makes it again for a tree it is given.
-rule capture_member = !(("startPos" / "endPos" / "children" / "expected" / "message") !ident_char) [a-z_]
 // The brackets of an index open their own delimiter, and a rule of its own keeps ml from
 // reaching the rest of the action.
 rule index_suffix ActionExpr = "[" {ml := true} -ws i:action_expr -ws "]" => $i
@@ -668,6 +674,11 @@ rule true_lit True = ("true" !ident_char) #atomic
 rule false_lit False = ("false" !ident_char) #atomic
 rule nil_lit Nil = ("nil" !ident_char) #atomic
 rule capture_ref CaptureRef = (&("$" ident) "$" ident #atomic) #atomic
+// A capture is read by its label. $ and a number, a spelling the language no longer has, is an
+// error from which the parse recovers.
+rule index_capture ActionExpr | error = (
+    &("$" digit) _|_ @error(message="a capture is read by name: label the element (x:...) and write $x")
+) #recover(skip="$" digit+)
 rule var_name VarRef = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref VarRef = (!bottom ident !"(") #atomic
 
@@ -678,29 +689,32 @@ rule comments []Comment = -space* xs:(c:comment -space*)* => map($xs, (x) => x.$
 rule horizontal []Comment = -space_no_line* xs:(c:(line_comment / block_no_line) -space_no_line*)* => map($xs, (x) => x.$c)
 rule word_end = !ident_char -ws
 rule space_no_line = !nl space
-rule nl = "\r\n" / [\r\n]
-rule space = [ \t\n\u{b}\u{c}\r\u{85}\u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}]
+rule nl = ("\r\n" / [\r\n]) @diagnostic(name="newline")
+rule space = [ \t\n\u{b}\u{c}\r\u{85}\u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}] @diagnostic(name="whitespace")
 // A lexical comment view retains trivia inside parsing and action expressions.
 // Incomplete tokens remain available to the error-recovering structural pass.
 rule source_comments []Comment = -source_non_comment* xs:(c:comment -source_non_comment*)* $$ => map($xs, (x) => x.$c)
 rule source_non_comment = source_string / source_class / incomplete_comment / !("//" / "/*") .
 rule source_string = "\"" ("\\" . / [^"\\\n])* "\""?
 rule source_class = "[" ("\\" . / [^\]\\\n])* "]"?
-rule incomplete_comment = !inline_comment "/*" .* $$
+rule incomplete_comment = !inline_comment comment_open .* $$
 rule comment Comment = comment_group / inline_comment
+// White space and comments may stand between any two tokens. The source parser leaves them out of
+// what a syntax error expects, by these names.
+rule comment_open node[string] = "/*" @diagnostic(name="comment")
 rule comment_group CommentGroup = (
     first:comment_line rest:(-nl -space_no_line* c:comment_line)*
 ) => CommentGroup{Lines: concat(list($first), map($rest, (x) => x.$c))}
 rule line_comment CommentGroup = c:comment_line => CommentGroup{Lines: list($c)}
-rule comment_line node[string] = ("//" [^\n\r]*) #atomic
+rule comment_line node[string] = (("//" @diagnostic(name="comment")) [^\n\r]*) #atomic
 rule inline_comment InlineComment = (
-    start:"/*" body:(inline_comment / !("/*" / "*/") .)* #atomic end:"*/"
+    start:comment_open body:(inline_comment / !("/*" / "*/") .)* #atomic end:"*/"
 ) => InlineComment{Start: $start, Body: $body, End: $end}
 rule block_no_line InlineComment = (
-    start:"/*" body:(block_no_line / !("/*" / "*/" / nl) .)* #atomic end:"*/"
+    start:comment_open body:(block_no_line / !("/*" / "*/" / nl) .)* #atomic end:"*/"
 ) => InlineComment{Start: $start, Body: $body, End: $end}
 rule block_with_line InlineComment = (
-    start:"/*"
+    start:comment_open
     body:((block_no_line / !("/*" / "*/" / nl) .)* (nl / block_with_line) (inline_comment / !("/*" / "*/") .)*)
     #atomic end:"*/"
 ) => InlineComment{Start: $start, Body: $body, End: $end}

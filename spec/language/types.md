@@ -183,6 +183,11 @@ User-defined type names and field names MUST begin with an uppercase ASCII
 letter. Identifiers that begin with a lowercase ASCII letter are reserved for
 the built-in types (`int`, `string`, `bool`, `node[T]`, `error`, `missing`),
 and `_` and `_|_` name the top and bottom types.
+The names `terminal`, `Match`, `Seq`, `List`, `Operator`, `Error` and
+`Missing` are not types: a type that refers to one is an error that names the
+type to write instead (`node[string]` for `terminal` and `Match`, `node[_]`
+for `Seq`, `List` and `Operator`, `error` for `Error`, `missing` for
+`Missing`).
 Each type name MUST be defined at most once, and types and rules have separate
 namespaces (see [Names](grammar-files.md#names)).
 
