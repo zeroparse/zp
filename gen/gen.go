@@ -128,9 +128,14 @@ type Go struct {
 	// also generates ParseStreamAST and IterateAST, which pass the typed value of each element.
 	Stream bool
 	// TypedOnly generates only the typed entry points of a parser: ParseAST and its siblings, and
-	// no Parse, ParseRule or Recognize. The generated package is smaller and builds faster. It
-	// needs Types and cannot be combined with Recognize, Document or Stream.
+	// no Parse or ParseRule. Recognize may be added. The generated package is smaller and builds
+	// faster. It needs Types and cannot be combined with Document or Stream, which build untyped
+	// Nodes.
 	TypedOnly bool
+	// RecognizeOnly generates only Recognize, which checks the input against the start rule: no
+	// Parse, ParseRule or typed entry point. The generated package is the smallest. It implies
+	// Recognize and cannot be combined with Types, TypedOnly, Document or Stream.
+	RecognizeOnly bool
 	// OmitPackageDoc leaves the package comment out of the generated parser, for a package that
 	// has its own documentation in another file.
 	OmitPackageDoc bool
@@ -177,6 +182,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		Document:       c.Document,
 		Stream:         c.Stream,
 		TypedOnly:      c.TypedOnly,
+		RecognizeOnly:  c.RecognizeOnly,
 		OmitPackageDoc: c.OmitPackageDoc,
 		Optimize:       c.Optimize,
 		Opt:            c.Opt,

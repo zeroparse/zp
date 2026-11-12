@@ -65,13 +65,16 @@ func TestGeneratedTypedOnly(t *testing.T) {
 		want string
 	}{
 		{"without types", gen.GenOptions{TypedOnly: true}, "typed-only output needs typed output (-types)"},
-		{"recognize", gen.GenOptions{Types: true, TypedOnly: true, Recognize: true}, "typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node"},
-		{"document", gen.GenOptions{Types: true, TypedOnly: true, Document: true}, "typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node"},
-		{"stream", gen.GenOptions{Types: true, TypedOnly: true, Stream: true}, "typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node"},
+		{"document", gen.GenOptions{Types: true, TypedOnly: true, Document: true}, "typed-only output cannot have a Document or a stream, which use the untyped Node (Recognize is allowed)"},
+		{"stream", gen.GenOptions{Types: true, TypedOnly: true, Stream: true}, "typed-only output cannot have a Document or a stream, which use the untyped Node (Recognize is allowed)"},
 	} {
 		if _, _, err := generate(tc.opts); err == nil || err.Error() != tc.want {
 			t.Errorf("%s: error %v, want %q", tc.name, err, tc.want)
 		}
+	}
+	// Recognize is no longer refused: it checks input against its own table, without a Node.
+	if _, _, err := generate(gen.GenOptions{Types: true, TypedOnly: true, Recognize: true}); err != nil {
+		t.Errorf("typed-only with Recognize: %v", err)
 	}
 	if _, err := gentest.GenerateTS(g, gen.GenOptions{Start: "main", TypedOnly: true}); err == nil || err.Error() != "typed-only generation is only supported for Go" {
 		t.Errorf("TypeScript: error %v", err)

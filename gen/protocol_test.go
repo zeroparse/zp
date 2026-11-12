@@ -130,6 +130,8 @@ rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $
 	for _, generator := range []gen.Generator{
 		gen.Go{Module: "example.com/h", Types: true},
 		gen.Go{Module: "example.com/h", Types: true, Runtime: gen.RuntimeImport},
+		gen.Go{Module: "example.com/h", Types: true, TypedOnly: true, Recognize: true},
+		gen.Go{Module: "example.com/h", RecognizeOnly: true},
 		gen.TypeScript{Types: true},
 		gen.TypeScript{Types: true, Runtime: gen.RuntimeImport, RuntimeModule: "./rt.ts"},
 	} {

@@ -130,12 +130,19 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 		}
 		return nil, fmt.Errorf("invalid package name %q", opts.Package)
 	}
+	if opts.RecognizeOnly {
+		switch {
+		case opts.Types || opts.TypedOnly || opts.Document || opts.Stream:
+			return nil, fmt.Errorf("recognize-only output generates only Recognize: it cannot have typed output, typed-only output, a Document or a stream")
+		}
+		opts.Recognize = true
+	}
 	if opts.TypedOnly {
 		switch {
 		case !opts.Types:
 			return nil, fmt.Errorf("typed-only output needs typed output (-types)")
-		case opts.Recognize || opts.Document || opts.Stream:
-			return nil, fmt.Errorf("typed-only output cannot have Recognize, a Document or a stream, which use the untyped Node")
+		case opts.Document || opts.Stream:
+			return nil, fmt.Errorf("typed-only output cannot have a Document or a stream, which use the untyped Node (Recognize is allowed)")
 		}
 	}
 	if opts.Types && opts.Module == "" {
@@ -176,7 +183,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: opts.TypedOnly && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: opts.TypedOnly && !opts.KeepNodes}
+	goGen := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
 	if live != nil {
 		goGen.SeedDescs()
 		for _, d := range live.descs[len(goGen.Descs):] {
@@ -265,7 +272,8 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 		}
 		fmt.Fprintf(&goGen.Init, "\tzpGrammar.SetVars(%s, []any{%s})\n", goStrings(names), strings.Join(vals, ", "))
 	}
-	if rec != nil {
+
+	if rec != nil && !opts.TypedOnly {
 		goGen.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
 	}
 
@@ -274,7 +282,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 		out.WriteString("// ErrDocumentBusy is returned by a Parse, ParseAST or Edit of a Document that\n// is already parsing, such as one made by a trace callback of that parse.\n// Schedule the work after the parse returns, or use another Document.\nvar ErrDocumentBusy = DocumentBusy\n\n")
 	}
 	out.WriteString("// --- Generated code ---\n\n")
-	if !opts.TypedOnly {
+	if !opts.TypedOnly && !opts.RecognizeOnly {
 		fmt.Fprintf(&out, "// Parse parses the whole input with the rule %s. Options select position units, depth, cancellation and compute limits.\n", start.Name)
 		out.WriteString("// If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.\n")
 		fmt.Fprintf(&out, "func Parse(input string, opts ...ParseOption) (*Node, error) { return RunParse(rules[%d], input, opts) }\n\n", start.ID)
@@ -311,7 +319,7 @@ func Iterate(r io.Reader, opts ...ParseOption) (*StreamIterator, error) {
 		fmt.Fprintf(&out, "// recRules is the rule table of Recognize, and zpRecGrammar its grammar.\nvar recRules []*Rule\nvar zpRecGrammar = NewGrammar(%d)\n\n", gen.GeneratedMaxDepth(opts))
 	}
 	fmt.Fprintf(&out, "// rules is the rule table, and zpGrammar its grammar.\nvar rules []*Rule\nvar zpGrammar = NewGrammar(%d)\n\n", gen.GeneratedMaxDepth(opts))
-	if !opts.TypedOnly {
+	if !opts.TypedOnly && !opts.RecognizeOnly {
 		out.WriteString(`// ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
 func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
@@ -352,6 +360,11 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 		out.WriteString(typed.parser)
 		out.WriteString("\n")
 		typesBody = typesPreamble + typed.types
+	}
+	if rec != nil && opts.TypedOnly {
+		// The recognizer grammar shares zpGrammar by copying, so Share follows the expectation table,
+		// which a typed-only parser writes only after its typed code.
+		goGen.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
 	}
 	if err := goGen.finishReach(prog, rec); err != nil {
 		return nil, err

@@ -18,9 +18,13 @@ import (
 // GenOptions configures code generation.
 type GenOptions struct {
 	// TypedOnly generates only the typed entry points (ParseAST, ParseRuleAST and their
-	// siblings): no Parse, ParseRule or Recognize, and no function that builds an untyped Node.
-	// It needs Types and excludes Recognize, Document and Stream.
+	// siblings): no Parse or ParseRule, and no function that builds an untyped Node. Recognize
+	// may be added. It needs Types and excludes Document and Stream.
 	TypedOnly bool
+	// RecognizeOnly generates only Recognize: no Parse, ParseRule or typed entry point, and no
+	// function that builds a Node or a typed value. It excludes Types, TypedOnly, Document and
+	// Stream, and implies Recognize.
+	RecognizeOnly bool
 	// LimitControls emits the limit-controlled form of the generated functions, which charges
 	// cancellation and the compute limit (WithContext and Limits.Compute; signal and the
 	// compute limit in TypeScript), and re-exports WithContext. Without it the functions have no charges (the ordinary form, or with Document

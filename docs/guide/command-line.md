@@ -255,7 +255,7 @@ writes no output. To save another mode, compile the grammar source.
 ## `gen`
 
 ```bash
-zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-typed-only] [-expectations] [-observability] [-limits] [-max-depth <n>] [-nodoc] [-source-info] [-default-value] [-optimize <profile>] [-opt <name[=count]>] [-no-opt <names>] [-print-after <passes>]
+zp gen -g <grammar> -module <import path> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-o <directory>] [-types] [-document] [-stream] [-recognize] [-typed-only] [-recognize-only] [-expectations] [-observability] [-limits] [-max-depth <n>] [-nodoc] [-source-info] [-default-value] [-optimize <profile>] [-opt <name[=count]>] [-no-opt <names>] [-print-after <passes>]
 zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-runtime embed|import|only] [-runtime-module <specifier>] [-types] [-recognize] [-expectations] [-observability] [-limits] [-max-depth <n>] [-source-info] [-default-value] [-optimize <profile>] [-opt <name[=count]>] [-no-opt <names>] [-print-after <passes>]
 ```
 
