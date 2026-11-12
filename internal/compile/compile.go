@@ -303,11 +303,23 @@ func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.
 	return out
 }
 
-// CompileProgram compiles the grammar to its static program. The walk of the rule bodies calls
-// the builder that builder returns for the compiler, which builds the bodies in a backend's form.
-// names receives the hidden rules that the lowering of inline actions generates. If flags is not
-// nil, it skips static analysis and type checking and uses flags instead.
-func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
+// Canonical is the grammar that a program is compiled from: the grammar after its inline actions
+// are lowered, its default-value form (if the options ask for it) and its attributes are normalized.
+type Canonical struct {
+	// Grammar is the grammar the program runs.
+	Grammar *grammar.Grammar
+	// Source is the grammar as written, normalized, or nil if Grammar is the one as written.
+	Source *grammar.Grammar
+	// Starts are the start rules in order, and DefaultStart is the one used when none is named.
+	Starts       []string
+	DefaultStart string
+	// StartErrors are the errors of the start declarations; compilation reports them.
+	StartErrors diag.ErrorList
+}
+
+// Canonicalize validates the grammar and returns the canonical form that CompileProgram compiles.
+// names receives the hidden rules that the lowering of inline actions generates.
+func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, control *cancel.Control) (*Canonical, error) {
 	control.Check()
 	if !opts.DefaultValue {
 		if err := validateGrammar(g, control); err != nil {
@@ -406,6 +418,19 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 			return nil, normalizationError
 		}
 	}
+	return &Canonical{Grammar: g, Source: source, Starts: starts, DefaultStart: defaultStart, StartErrors: startErrors}, nil
+}
+
+// CompileProgram compiles the grammar to its static program. The walk of the rule bodies calls
+// the builder that builder returns for the compiler, which builds the bodies in a backend's form.
+// names receives the hidden rules that the lowering of inline actions generates. If flags is not
+// nil, it skips static analysis and type checking and uses flags instead.
+func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
+	canon, err := Canonicalize(g, opts, names, control)
+	if err != nil {
+		return nil, err
+	}
+	g, source, starts, defaultStart, startErrors := canon.Grammar, canon.Source, canon.Starts, canon.DefaultStart, canon.StartErrors
 	prog := &Program{Grammar: g, Source: source, ByName: map[string]*Rule{}, Types: map[string]grammar.TypeDecl{},
 		DescTable: append([]string(nil), FixedDescs...)}
 	c := &Compiler{Control: control, Prog: prog, opts: opts}
