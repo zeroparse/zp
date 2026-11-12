@@ -840,6 +840,9 @@ func (p *tsFlowPrinter) call(r *compile.Rule, min int) string {
 	_, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
 	g.checkCall(r)
 	switch {
+	case g.Document:
+		// Document parses route every call through call, which memoizes per rule.docMemo, plain
+		// rules included.
 	case r.Plain && !operatorsRule:
 		g.plainUsed[r] = true
 		return fmt.Sprintf("%s%d(p)", g.plainPrefix(), r.ID)
