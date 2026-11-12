@@ -107,6 +107,13 @@ func main() {
 	if err := os.WriteFile(core.EngineCtxBindingsFile, []byte(ctxBindings), 0o644); err != nil {
 		log.Fatal(err)
 	}
+	frameBindings, err := core.EngineFrameBindings()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineFrameBindingsFile, []byte(frameBindings), 0o644); err != nil {
+		log.Fatal(err)
+	}
 	docBindings, err := core.EngineDocBindings()
 	if err != nil {
 		log.Fatal(err)

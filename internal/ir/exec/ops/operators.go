@@ -78,47 +78,47 @@ null attempt is no match.`)
 	slots := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSlots}}}
 
 	// The capture frames and backtracking.
-	add(&exec.Op{Name: "frame.mark", Component: Frames, Results: []exec.Type{mark}, Reads: []string{Frames, Env, Rec},
+	m.AddOp(&exec.Op{Name: "frame.mark", Component: Frames, Results: []exec.Type{mark}, Reads: []string{Frames, Env, Rec},
 		Contract: `Returns a backtracking point at the position.`})
-	add(&exec.Op{Name: "frame.markPos", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "frame.markPos", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the position of the backtracking point m.`})
-	add(&exec.Op{Name: "frame.markRec", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "frame.markRec", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of the errors recovered before the backtracking point m, as rec.mark does.`})
-	add(&exec.Op{Name: "frame.markEnv", Component: Frames, Params: m1, Results: []exec.Type{scope},
+	m.AddOp(&exec.Op{Name: "frame.markEnv", Component: Frames, Params: m1, Results: []exec.Type{scope},
 		Contract: `Returns the variable environment of the backtracking point m.`})
-	add(&exec.Op{Name: "frame.markMissing", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt}, Features: []string{Missing},
+	m.AddOp(&exec.Op{Name: "frame.markMissing", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt}, Features: []string{Missing},
 		Contract: `Returns the mark of the missing-token record at the backtracking point m, as missing.mark does.`})
-	add(&exec.Op{Name: "frame.markTrail", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "frame.markTrail", Component: Frames, Params: m1, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the length of the trail at the backtracking point m.`})
-	add(&exec.Op{Name: "frame.undo", Component: Frames, Params: []exec.Param{exec.P("trail", exec.TInt)}, Reads: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.undo", Component: Frames, Params: []exec.Param{exec.P("trail", exec.TInt)}, Reads: []string{Frames},
 		Writes: []string{Frames}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTrail}}},
 		Contract: `Undoes the writes of the trail after its first trail writes, in reverse order, charging one unit
 for each, and drops them: every slot they wrote has the value it had before.`,
 		Requires: `trail is at most the length of the trail.`})
-	add(&exec.Op{Name: "frame.current", Component: Frames, Results: []exec.Type{frame}, Reads: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.current", Component: Frames, Results: []exec.Type{frame}, Reads: []string{Frames},
 		Contract: `Returns the frame that captures write to.`})
-	add(&exec.Op{Name: "frame.use", Component: Frames, Params: f, Writes: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.use", Component: Frames, Params: f, Writes: []string{Frames},
 		Contract: `Makes f the frame that captures write to.`})
-	add(&exec.Op{Name: "frame.open", Component: Frames, Params: []exec.Param{exec.P("n", exec.TInt)}, Results: []exec.Type{frame},
+	m.AddOp(&exec.Op{Name: "frame.open", Component: Frames, Params: []exec.Param{exec.P("n", exec.TInt)}, Results: []exec.Type{frame},
 		Writes: []string{Frames}, NoReturn: true, Cost: slots,
 		Contract: `Returns a new frame of n empty slots, which lives until the parse ends. A frame of no slots is
 never written, so it may be shared.`})
-	add(&exec.Op{Name: "frame.set", Component: Frames, Params: []exec.Param{exec.P("slot", exec.TInt), exec.P("v", value)},
+	m.AddOp(&exec.Op{Name: "frame.set", Component: Frames, Params: []exec.Param{exec.P("slot", exec.TInt), exec.P("v", value)},
 		Reads: []string{Frames}, Writes: []string{Frames},
 		Contract: `Writes v to the slot of the current frame and adds the slot's old value to the trail. The write
 is free: its size depends on nothing, the match that made v paid for itself, and frame.undo charges for
 each write it undoes.`,
 		Requires: `slot is a slot of the current frame.`})
-	add(&exec.Op{Name: "frame.close", Component: Frames, Params: f, Writes: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.close", Component: Frames, Params: f, Writes: []string{Frames},
 		Contract: `Ends f, which nothing refers to any more: a rule's frame when the rule returns. A target may
 reuse it, and one without a pool of frames does nothing.`,
 		Requires: `No trail entry and no current frame refer to f.`})
-	add(&exec.Op{Name: "frame.slots", Component: Frames, Params: f, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "frame.slots", Component: Frames, Params: f, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of slots of f.`})
-	add(&exec.Op{Name: "frame.save", Component: Frames, Params: f, Reads: []string{Frames}, Writes: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.save", Component: Frames, Params: f, Reads: []string{Frames}, Writes: []string{Frames},
 		NoReturn: true, Cost: slots,
 		Contract: `Copies the slots of f aside, charging the copy as the target charges copies of values.`})
-	add(&exec.Op{Name: "frame.restore", Component: Frames, Params: f, Reads: []string{Frames}, Writes: []string{Frames},
+	m.AddOp(&exec.Op{Name: "frame.restore", Component: Frames, Params: f, Reads: []string{Frames}, Writes: []string{Frames},
 		NoReturn: true, Cost: slots,
 		Contract: `Copies the slots that the last frame.save set aside back into f, charging the copy as
 frame.save does.`,

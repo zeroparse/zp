@@ -68,3 +68,19 @@ func TestEngineCtxBindingsCurrent(t *testing.T) {
 		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineCtxBindingsFile)
 	}
 }
+
+// TestEngineFrameBindingsCurrent checks that the engine's conformance bindings of the capture frames
+// are those the engine's printer prints now.
+func TestEngineFrameBindingsCurrent(t *testing.T) {
+	want, err := EngineFrameBindings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(EngineFrameBindingsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineFrameBindingsFile)
+	}
+}
