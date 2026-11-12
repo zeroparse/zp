@@ -7,7 +7,7 @@ and streams have their own guides:
 | Option | Guide |
 |:--|:--|
 | `-types` | [Typed Values in Generated Go](generated-typed-values.md) |
-| `-document` | [Incremental Documents in Generated Go](generated-documents.md) |
+| `-document` | [Incremental Documents in Generated Parsers](generated-documents.md) |
 | `-stream` | [Streams in Generated Go](generated-streams.md) |
 | `-recognize` | [Recognition](#recognition--recognize), below |
 
