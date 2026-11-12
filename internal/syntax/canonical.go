@@ -22,9 +22,11 @@ import (
 // checks that the grammar does not make, and it assigns source information
 // with the same ownership rules as the hand-written parser. It returns the
 // errors of those checks, in the form of Parse, when the source is not a valid
-// grammar. The AST holds the syntax and ownership that Format needs of a
-// node, but not yet the raw comment tokens that Layout and the line breaks
-// keep; formatting an AST built here writes comments by ownership alone.
+// grammar. The raw comment tokens and line breaks that Format reads are
+// replayed from the tokens of src (see layoutReplay): those of declarations,
+// headers, types, struct fields, attribute lists and Operators Rule items.
+// Inside rule expressions, actions and variable values they are not replayed
+// yet; the comments there go to the line break of their declaration.
 func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error) {
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src)}
 	defer func() {
@@ -43,6 +45,7 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 	if len(c.errs.list) > 0 {
 		return nil, c.errs.list
 	}
+	replayLayout(src, g)
 	return g, nil
 }
 
@@ -88,6 +91,7 @@ func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, Erro
 		g.File.Pos = c.pos.At(len(c.src))
 		g.File.End = g.File.Pos
 	}
+	replayLayout(src, g)
 	return g, c.errs.list
 }
 
