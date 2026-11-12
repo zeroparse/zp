@@ -77,8 +77,8 @@ the shared parts of the generated runtimes come from the same representation. Op
 meaning of the grammar are rewrites of Core IR; the choice of loops and branches is made when lowering to Flow IR;
 passes on Exec IR keep the behavior of a function while removing what a build does not need. The reasoning and the
 contracts are in [Core, Flow and Exec IR](intermediate-representations.md). Only some backends use these
-representations: the closure backend and the bytecode compiler work from the program, so a Core IR change does not by
-itself change every backend; [record 062](records/062-backend-independent-optimization-ir.md) states the intended
+representations: the closure backend is built from Core IR, so a Core IR change reaches it, while the bytecode compiler
+still works from the program, so a Core IR change does not by itself change every backend; [record 062](records/062-backend-independent-optimization-ir.md) states the intended
 reach and [record 065](records/065-exec-ir-parser-vm.md) the design of Exec IR.
 
 ## Values, Documents and Streams

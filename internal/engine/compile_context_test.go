@@ -11,7 +11,10 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/gentest"
+	ir "zeroparse.dev/zp/internal/ir/core"
+	corebuild "zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // Cancel at a deterministic poll, without timing or global compiler hooks.
@@ -75,7 +78,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-verify", "closure-build"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -128,12 +131,34 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				c := &compile.Compiler{Prog: p.Static(), Control: control}
 				c.CheckTerm(&grammar.ListConstructor{Elem: elem}, compile.NewScope(), nil)
 			case "matcher-construction":
-				items := make([]grammar.Expr, 1024)
+				// The closure builder polls for each Core node: a sequence with no class or
+				// guard reaches the checkpoint only through those polls.
+				items := make([]ir.Node, 1024)
 				for i := range items {
-					items[i] = &grammar.Literal{Value: "a"}
+					items[i] = &ir.Lit{Text: "a"}
 				}
-				c := newCompileWalker(&compile.Compiler{Prog: p.Static(), Control: control})
-				c.Expr(&grammar.Seq{Items: items}, compile.NewScope(), true)
+				_, _ = closure.Matcher(&compile.Program{DescTable: []string{`"a"`}}, &ir.Module{Exps: []string{`"a"`}}, &ir.Seq{Items: items}, nil, control, false)
+			case "core-build":
+				_, _ = corebuild.CoreControlled(p.Static(), control)
+			case "core-analysis", "core-passes", "core-verify":
+				m, err := corebuild.CoreFrom(p.Static(), nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if phase == "core-verify" {
+					ir.Analyze(m)
+				}
+				m.Control = control
+				switch phase {
+				case "core-analysis":
+					ir.Analyze(m)
+				case "core-passes":
+					_, _ = ir.Run(m, &ir.Env{}, ir.RunOptions{})
+				case "core-verify":
+					_ = ir.Verify(m)
+				}
+			case "closure-build":
+				_, _ = closure.Build(p.Static(), control, false)
 			}
 			t.Fatal("phase completed without cancellation")
 		})

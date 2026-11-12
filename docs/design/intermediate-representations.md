@@ -212,8 +212,10 @@ function, with the Flow verifier after them, as described in [the optimization p
 ## How Targets Use the Result
 
 A target takes Core IR, Flow IR, Exec IR or none of them. Generated Go for typed parsers and for the value-free rules
-of the Node parser and its recognizer is lowered from Flow IR to Exec IR and printed from there; other generated Go, the
-closure backend and the bytecode compiler read the grammar or the compiled rules directly. Generated TypeScript prints
+of the Node parser and its recognizer is lowered from Flow IR to Exec IR and printed from there. The closure backend
+builds one closure for each node of the Core IR, after its own pipeline of choice guards and scans, and evaluates actions,
+predicates and bindings with programs compiled from the Core IR terms. Other generated Go and the bytecode compiler read
+the grammar or the compiled rules directly. Generated TypeScript prints
 the matching code of every rule the same way, including the lines of an Operators Rule, in both the Node table and the
 recognizer table. It has no other route: a rule that Flow IR or the printer does not cover fails the generation. Its rule table, typed declarations and runtime come from
 the compiled program. In generated Go and TypeScript, actions, predicates and bindings are lowered from Core IR to Exec IR and printed

@@ -14,6 +14,8 @@
 // (Type), and the handles of a cast (Cast.Check, Cast.Key) carry what only a backend needs.
 package core
 
+import "zeroparse.dev/zp/internal/cancel"
+
 // Module is a program variant in Core IR.
 type Module struct {
 	// Rules holds the rules by ID, value-free twins included.
@@ -39,6 +41,10 @@ type Module struct {
 	// Typed reports that the module carries the checked types of the program: every term but a
 	// lambda, every capture slot and every rule's value have one.
 	Typed bool
+	// Control is the control of the compilation that builds the module, or nil. The analysis, the
+	// passes and Verify poll it for each rule they visit, so that a cancelled compilation stops
+	// inside them; a cancellation unwinds as cancel.Cancellation.
+	Control *cancel.Control
 }
 
 // Type is a checked type: a handle that the engine makes and the backends read. Core compares

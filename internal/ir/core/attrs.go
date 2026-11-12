@@ -19,6 +19,7 @@ func Analyze(m *Module) {
 	for changed := true; changed; {
 		changed = false
 		for _, r := range m.Rules {
+			m.Control.Poll()
 			if r == nil {
 				continue
 			}
@@ -37,6 +38,7 @@ func Analyze(m *Module) {
 	a.first = make([]*First, len(m.Rules))
 	a.state = make([]uint8, len(m.Rules))
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r != nil {
 			a.firsts(r.Body)
 		}

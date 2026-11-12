@@ -13,7 +13,7 @@ import (
 // module (internal/ir/core/facts) read this structure only, so they are those of the typed module
 // of the same rules. If origin is not nil, it records the expression each node is built from.
 func Structural(in *Input, origin map[core.Node]grammar.Expr) (*core.Module, error) {
-	return coreModule(structural{in}, origin, false)
+	return coreModule(structural{in}, origin, false, nil)
 }
 
 // structural is the Program of a module built without a checker.

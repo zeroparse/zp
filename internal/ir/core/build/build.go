@@ -26,6 +26,7 @@ package build
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/check"
@@ -44,21 +45,29 @@ func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, er
 	return CoreProjecting(prog, origin, true)
 }
 
+// CoreControlled is CoreFrom under the control of a compilation: the build polls control for each
+// expression it builds, and the module keeps it (core.Module.Control) for the passes that follow.
+// A cancellation unwinds as cancel.Cancellation.
+func CoreControlled(prog Program, control *cancel.Control) (*core.Module, error) {
+	return coreModule(prog, nil, true, control)
+}
+
 // CoreProjecting is CoreFrom; if project is false, no repetition gathers the values of a
 // capture (Rule.Projections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
 func CoreProjecting(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
-	return coreModule(prog, origin, project)
+	return coreModule(prog, origin, project, nil)
 }
 
-// coreModule builds the module of prog. A program without a checker (see Structural) builds an
-// untyped module.
-func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+// coreModule builds the module of prog under control (nil for none). A program without a checker
+// (see Structural) builds an untyped module.
+func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool, control *cancel.Control) (*core.Module, error) {
 	in := prog.CoreInput()
 	all := in.Rules
 	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
 		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}}
 	b.noProject = !project
+	b.m.Control = control
 	if b.chk != nil {
 		b.rec = b.chk.ValueRecord()
 	}
@@ -442,6 +451,7 @@ func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node,
 }
 
 func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+	b.m.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Literal:
 		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}

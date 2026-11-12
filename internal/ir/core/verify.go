@@ -41,6 +41,7 @@ func Verify(m *Module) error {
 		}
 	}
 	for i, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil {
 			continue
 		}
@@ -69,6 +70,7 @@ func Verify(m *Module) error {
 		return err
 	}
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil {
 			continue
 		}
@@ -125,6 +127,7 @@ func (v *verifier) callGraph() error {
 		return fmt.Errorf("call graph of %d and %d rules for %d rules", len(m.Calls), len(m.SCC), len(m.Rules))
 	}
 	for i, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil {
 			continue
 		}
@@ -139,6 +142,7 @@ func (v *verifier) callGraph() error {
 	// A rule on a cycle of calls counts against the nesting limit. A pass may remove a call and so
 	// a cycle, but never add one: Rec may exceed the cycles, and never falls short of them.
 	for i, r := range m.Rules {
+		m.Control.Poll()
 		if r != nil && m.Cyclic[m.SCC[i]] && !r.Policy.Rec {
 			return fmt.Errorf("rule %s is on a cycle of calls but does not count against the nesting limit", r.Name)
 		}
