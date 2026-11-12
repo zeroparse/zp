@@ -115,7 +115,7 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
 		dumped = &bytes.Buffer{}
-		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
 		if opts.PrintTo != nil {
 			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped
@@ -487,6 +487,12 @@ func (g *Generator) rules() {
 		vars = append(vars, g.ruleVar(r))
 		if r.Splice {
 			fmt.Fprintf(init, "%s.splice = true;\n", g.ruleVar(r))
+		}
+		if g.Document && (r.Leader || r.Memo) {
+			fmt.Fprintf(init, "%s.docMemo = true;\n", g.ruleVar(r))
+		}
+		if g.Document && r.Positional {
+			fmt.Fprintf(init, "%s.positional = true;\n", g.ruleVar(r))
 		}
 		if r.Rec {
 			fmt.Fprintf(init, "%s.rec = true;\n", g.ruleVar(r))
