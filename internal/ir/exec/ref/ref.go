@@ -45,6 +45,9 @@ type Config struct {
 	// Oprs are the Operators Rules of a case, the rules of the indexes of RuleRef for the operations
 	// of the Operators Rule family.
 	Oprs []OprRule
+	// CtxRules are the left-recursion shapes of the rules of the indexes of RuleRef for the ctx
+	// operations; a rule past the list is on no cycle.
+	CtxRules []CtxRule
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -138,6 +141,9 @@ type Model struct {
 	zeroMark  *Opaque
 	cutFailed bool
 	nudBound  int64
+
+	// growth: the dependency memo of left recursion
+	ctx ctxModel
 }
 
 // Err is an Err handle of the model.
@@ -225,6 +231,8 @@ type Entry struct {
 	// applied is the number of edits since which the entry was stored or last found: a target that
 	// applies edits to an entry when it finds it has applied those before it.
 	applied int64
+	// present is the present set that memo.setPresent recorded.
+	present uint64
 	// far and expected are what memo.setExpected recorded, expected nil before it.
 	far      int64
 	expected *ExpKept
@@ -533,6 +541,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return res
 	}
 	if res, ok := m.callDoc(o, args); ok {
+		return res
+	}
+	if res, ok := m.callCtx(o, args); ok {
 		return res
 	}
 	if res, ok := m.callOpr(o, args); ok {
