@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+	"zeroparse.dev/zp/internal/check"
 )
 
 // Compare the capture merger with the join, including values whose top-level optional/union
@@ -19,7 +20,7 @@ func TestCaptureJoinEquivalence(t *testing.T) {
 		NodeTy{Value: ListTy{Elem: JoinTy{Alts: []Ty{str, tuple}}}}}
 	for i, a := range ts {
 		for j, b := range ts {
-			got := mergeCap([]CapIndex{{Name: "x", Paths: [][]int{{0}}, T: a}}, CapIndex{Name: "x", Paths: [][]int{{1}}, T: b})
+			got := check.MergeCap([]CapIndex{{Name: "x", Paths: [][]int{{0}}, T: a}}, CapIndex{Name: "x", Paths: [][]int{{1}}, T: b})
 			if want := Vjoin(a, b); len(got) != 1 || got[0].T.String() != want.String() || len(got[0].Paths) != 2 {
 				t.Fatalf("pair %d/%d: got %v, want %s", i, j, got, want)
 			}

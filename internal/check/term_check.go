@@ -1,33 +1,60 @@
-package compile
+package check
 
 import (
+	"slices"
+
+	"fmt"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/types"
 )
 
-// nodeMembers are the members of a node, and the removed ones that the checker reports: they are
+// NodeMemberNames are the members of a node, and the removed ones that the checker reports: they are
 // not captures, which are read with x.$name.
-var nodeMembers = map[string]bool{"Start": true, "End": true, "Value": true, "startPos": true, "endPos": true, "children": true}
+var NodeMemberNames = map[string]bool{"Start": true, "End": true, "Value": true, "startPos": true, "endPos": true, "children": true}
 
 // builtins maps built-in functions to their number of arguments (-1 for variadic).
 var builtins = map[string]int{
 	"len": 1, "text": 1, "foldl": 3, "foldr": 3, "map": 2, "list": -1, "concat": -1, "filter": 2,
 }
 
+// TermChecker checks the value expressions of one program, reporting to Errs.
+type TermChecker struct {
+	Control *cancel.Control
+	Prog    *Checker
+	Errs    *diag.ErrorList
+}
+
+// ScopeView is what CheckTerm reads of the captures in scope.
+type ScopeView interface {
+	// Has reports whether the scope defines the capture name.
+	Has(name string) bool
+	// InEnclosing reports whether a scope that encloses this one, outside a repetition element,
+	// defines name.
+	InEnclosing(name string) bool
+}
+
+// OperatorsRuleValue is the local name of the final folded value of an Operators Rule in its
+// whole-rule action.
+const OperatorsRuleValue = "value"
+
+func (c *TermChecker) errorf(pos grammar.Pos, format string, args ...any) {
+	*c.Errs = append(*c.Errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+}
+
 // CheckTerm resolves the names in a value expression and reports statically detectable errors.
-func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
+func (c *TermChecker) CheckTerm(t grammar.Term, s ScopeView, locals []string) {
 	c.Control.Poll()
 	switch t := t.(type) {
 	case *grammar.CaptureRef:
-		if contains(locals, t.Name) {
+		if slices.Contains(locals, t.Name) {
 			return
 		}
-		if _, ok := s.Slots[t.Name]; !ok {
-			for o := s.outer; o != nil; o = o.outer {
-				if _, ok := o.Slots[t.Name]; ok {
-					c.errorf(t.Diagnostic(), "capture $%s is not visible in a repetition element, which sees only its own captures; define a variable from it before the repetition", t.Name)
-					return
-				}
+		if !s.Has(t.Name) {
+			if s.InEnclosing(t.Name) {
+				c.errorf(t.Diagnostic(), "capture $%s is not visible in a repetition element, which sees only its own captures; define a variable from it before the repetition", t.Name)
+				return
 			}
 			if t.Name == OperatorsRuleValue {
 				// The name is a local only in the whole-rule action of an Operators Rule.
@@ -39,7 +66,7 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 	case *grammar.IndexRef:
 		c.errorf(t.Diagnostic(), "positional capture $%d is removed; name the element with a capture", t.Index)
 	case *grammar.VarRef:
-		if c.Prog.Vars.Lookup(t.Name) == nil {
+		if c.Prog.Vars().Lookup(t.Name) == nil {
 			c.errorf(t.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", t.Name, t.Name)
 		}
 	case *grammar.Member:
@@ -79,10 +106,10 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 			c.CheckTerm(fi.Value, s, locals)
 		}
 	case *grammar.ListConstructor:
-		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: &c.errs, report: true}
-		reported := len(c.errs)
+		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: c.Errs, report: true}
+		reported := len(*c.Errs)
 		elem := k.Resolve(t.Elem)
-		if len(c.errs) > reported || k.sawUnsupported {
+		if len(*c.Errs) > reported || k.sawUnsupported {
 			// The element type is in error already.
 		} else if elem == types.TyNever {
 			c.errorf(t.Diagnostic(), "the list element has type _|_, which has no values")
@@ -114,7 +141,7 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 	case *grammar.Unary:
 		c.CheckTerm(t.X, s, locals)
 	case *grammar.Cast:
-		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: &c.errs, report: true}
+		k := &TypeResolver{control: c.Control, Prog: c.Prog, errs: c.Errs, report: true}
 		k.resolveLocation(t.Type, t.Diagnostic(), "the cast")
 		c.CheckTerm(t.X, s, locals)
 	case *grammar.Bind:

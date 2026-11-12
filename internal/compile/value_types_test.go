@@ -111,7 +111,7 @@ func TestValueTypesOfRepositoryGrammars(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
-		p.valueErrors() // checks every action without failing
+		p.Checker().ValueErrors() // checks every action without failing
 		for _, rd := range g.Rules() {
 			if v, ok := p.ValueTypes()[rd.Name]; !ok || v == nil || v == TyBottom {
 				t.Errorf("%s: rule %s has value type %v", path, rd.Name, v)

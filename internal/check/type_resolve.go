@@ -1,7 +1,9 @@
-package compile
+package check
 
 import (
 	"fmt"
+	"unicode"
+	"unicode/utf8"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/types"
@@ -14,7 +16,7 @@ import (
 // aliases that refer to themselves and type syntax that is not supported yet.
 type TypeResolver struct {
 	control *cancel.Control
-	Prog    *Program
+	Prog    *Checker
 	errs    *diag.ErrorList
 	report  bool
 	// sawUnsupported records that a resolved type used syntax that is not supported yet, whether
@@ -180,13 +182,9 @@ func valueAlternatives(t Ty) []Ty {
 // unsupported reports type syntax t that is not supported yet, once.
 func (k *TypeResolver) unsupported(t grammar.TypeExpr, pos grammar.Pos, format string, args ...any) {
 	k.sawUnsupported = true
-	if !k.report || k.Prog.unsupportedSeen[t] {
+	if !k.report || !k.Prog.MarkUnsupported(t) {
 		return
 	}
-	if k.Prog.unsupportedSeen == nil {
-		k.Prog.unsupportedSeen = map[grammar.TypeExpr]bool{}
-	}
-	k.Prog.unsupportedSeen[t] = true
 	report := k.report
 	k.report = true
 	k.errorf(pos, format, args...)
@@ -195,7 +193,7 @@ func (k *TypeResolver) unsupported(t grammar.TypeExpr, pos grammar.Pos, format s
 
 // defined reports whether name is a built-in or declared type.
 func (k *TypeResolver) defined(name string) bool {
-	if _, ok := k.Prog.Types[name]; ok {
+	if _, ok := k.Prog.TypeDecls()[name]; ok {
 		return true
 	}
 	r := &TypeResolver{Prog: k.Prog, errs: &diag.ErrorList{}, report: true}
@@ -237,7 +235,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 	case "error": // the value of recovery: a recovered error or a missing token
 		return TyErr
 	}
-	switch spec := k.Prog.Types[name].(type) {
+	switch spec := k.Prog.TypeDecls()[name].(type) {
 	case *grammar.TypeDef:
 		val := spec.NodeValue()
 		if val == nil {
@@ -271,7 +269,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 		defer delete(k.resolving, name)
 		return k.Resolve(spec.Type)
 	}
-	if to, ok := retiredTypeNames[name]; ok {
+	if to, ok := RetiredTypeNames[name]; ok {
 		k.errorf(pos, "%s is not a type; write %s", name, to)
 		return TyAny
 	}
@@ -279,9 +277,9 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 	return TyAny
 }
 
-// retiredTypeNames maps the names of the former terminal and concrete syntax tree types to the
+// RetiredTypeNames maps the names of the former terminal and concrete syntax tree types to the
 // types that replace them.
-var retiredTypeNames = map[string]string{
+var RetiredTypeNames = map[string]string{
 	"any":      "_",
 	"terminal": "node[string]",
 	"Match":    "node[string]",
@@ -304,7 +302,7 @@ func DefFields(spec *grammar.TypeDef) []*grammar.Field {
 // that do not start with an uppercase letter, and types that do not resolve (undefined names,
 // aliases that refer to themselves, unsupported syntax and fields of type _|_).
 func (k *TypeResolver) checkTypeDefinitions() {
-	for _, td := range k.control.Types(k.Prog.Grammar) {
+	for _, td := range k.control.Types(k.Prog.Grammar()) {
 		k.control.Poll()
 		switch spec := td.(type) {
 		case *grammar.TypeDef:
@@ -318,7 +316,7 @@ func (k *TypeResolver) checkTypeDefinitions() {
 				if seen[f.Name] {
 					k.errorf(f.Diagnostic(), "duplicate field %s in %s", f.Name, td.DeclName())
 				}
-				if !startsUpper(f.Name) {
+				if !StartsUpper(f.Name) {
 					k.errorf(f.Diagnostic(), "field %s of %s must start with an uppercase letter", f.Name, td.DeclName())
 				}
 				seen[f.Name] = true
@@ -328,4 +326,11 @@ func (k *TypeResolver) checkTypeDefinitions() {
 			k.ResolveNamed(td.DeclName(), td.Diagnostic())
 		}
 	}
+}
+
+// StartsUpper reports whether name starts with an uppercase letter, as user-defined type and field
+// names must.
+func StartsUpper(name string) bool {
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(r)
 }

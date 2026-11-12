@@ -2,6 +2,7 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/desugar"
 )
 
@@ -503,7 +504,7 @@ func (c *Walker[M]) checkValueCaptures(d grammar.Pos, line OpLine[M]) {
 
 // OperatorsRuleValue is the local name of the final folded value of an Operators Rule in its
 // whole-rule action, and OperatorsRuleActionLocals the locals of that action.
-const OperatorsRuleValue = "value"
+const OperatorsRuleValue = check.OperatorsRuleValue
 
 var OperatorsRuleActionLocals = []string{OperatorsRuleValue}
 
