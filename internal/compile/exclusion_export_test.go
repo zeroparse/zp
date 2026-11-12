@@ -19,6 +19,6 @@ func (h ExclusionHooks) Set() func() {
 // restoreExclusionDefaults sets the hooks of the exclusion analysis to what the classifier uses:
 // decided units at k = 3 and trivia rules on, the memo of trivia rules and cut prefixes off.
 func restoreExclusionDefaults() {
-	cutPrefixesOn, decidedUnitsOn, decidedUnitsK = false, true, 3
+	cutPrefixesOn, decidedUnitsOn, decidedUnitsK, deadPathsOn = false, true, 3, true
 	triviaOn, triviaOnly, triviaMemo = true, nil, false
 }
