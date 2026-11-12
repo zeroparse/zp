@@ -296,8 +296,8 @@ With `-document`, the Go package gains `NewDocument(text string, opts ...ParseOp
 
 With `-document`, the TypeScript `parser.ts` gains
 `createDocument(input: string | Uint8Array, options?)`, which returns `{ document, error }`, and a `Document`
-class with these methods: `parse(options?)`, `edit(start, end, replacement)`, `text()`, `bytes()` and, with
-`-types`, `parseAST(options?)`.
+class with these methods: `parse(options?)`, `edit(start, end, replacement)`, `text()`, `bytes()`, `stats()`
+and, with `-types`, `parseAST(options?)`.
 
 - `createDocument` copies the input and reads the options once. They become the
   defaults of every parse; `document` is null, with the error, when they are
@@ -310,7 +310,13 @@ class with these methods: `parse(options?)`, `edit(start, end, replacement)`, `t
   what `parseAST` returns. An invocation MUST NOT change the unit or the
   expectations. A `parse` or `edit` made while the Document parses, from a trace
   callback, returns an error.
-- The TypeScript Document parses its whole text on each parse and has no `stats`.
+- A parse reuses the results of earlier parses that the edits since left valid, by
+  the rules of the Go `Document`. `stats()` returns `{ evaluated, reused }`, the
+  rule evaluations and the reused results of the last parse, which equal the Go
+  `Stats` of the same grammar, text and edits.
+- A returned tree can share nodes with the results of later parses, so mutating it
+  can change what they contain. A reused result whose position an edit moved is
+  returned in copies, which leave earlier trees unchanged.
 
 ### Streaming (Go Only)
 
@@ -508,7 +514,7 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 | Recognition | `Recognize` with `-recognize` | `recognize` with `-recognize` |
 | Typed values | `ParseAST`, `ParseRuleAST` with `-types` | `parseAST`, `parseASTWithOptions` with `-types` |
 | Streaming | `ParseStream`, `Iterate` with `-stream` | None; `#stream` is an ordinary repetition |
-| Incremental documents | A subset with `-document` | `createDocument` with `-document`, without reuse between parses |
+| Incremental documents | A subset with `-document` | The same subset, `createDocument` with `-document` |
 | Cancellation and compute limits | `WithContext` and a finite `Compute` with `-limits`; `WithLimits` | `signal` and `limits.compute` with `-limits`; `limits.input`; `ParseInterruptionError` |
 | Nested recursive rule-call limit | `Limits.Depth`, `-max-depth` | `limits.depth`, `-max-depth`; the host stack also bounds nesting |
 | Choice of backend, saved grammar, `Parser.Grammar()` | Not applicable | Not applicable |

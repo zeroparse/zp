@@ -80,8 +80,10 @@ U+FFFD, and a `Uint8Array` replacement is taken as it is, so edits can join inva
 `text()` returns the text as the nodes hold it, and `bytes()` returns a copy of the exact input, invalid bytes
 included. `parse(options?)` returns the `ParseResult` of `parse`, and with `-types` the Document also has
 `parseAST(options?)`. An invocation cannot change the unit or the expectations, and a `parse` or `edit` made
-from a trace callback of a parse returns an error. The TypeScript Document parses its whole text on each
-`parse`: it keeps no results between parses and has no `stats`.
+from a trace callback of a parse returns an error. Like the Go `Document`, it keeps the memoized results that
+the edits leave valid and reuses them in the next `parse`; `stats()` returns `{ evaluated, reused }` for the
+last parse, the same counts as Go's `Stats`. A returned tree can share nodes with later results, so do not
+mutate a tree while the Document is in use.
 
 ## Related Topics
 
