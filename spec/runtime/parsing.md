@@ -1653,10 +1653,16 @@ necessary.
    left calls of other rules of the cycle: from the end of such a left call
    to the end of the body, through the ends of the bodies of the rules of the
    cycle on the way, `"a" T` in `S` above. A step after the first is a unit
-   that starts at the end of the seed, whose first characters are those of
-   the step tails, compared as those of a growing unit are, and whose
-   continuations are what follows the calls that start the growth, at the
-   end of the seed, as for a growing unit. It is checked when a step tail
+   that starts at the end of the seed, whose continuations are what follows
+   the calls that start the growth, at the end of the seed, as for a growing
+   unit. It is compared with them one step tail at a time, as each growing
+   alternative is: after a read of the seed, the step examines the input
+   from the end of the seed only in a step tail, from the end of that read, so the
+   first characters and the shared calls are those of each step tail on its
+   own. In `s = E R "?" $$` with `E = E R "!" / E "+" "x" / "x"`
+   and `R = [ ]*`, the tail `R "!"` shares the call of `R` with the
+   continuation `R "?"`, though the tail `"+" "x"` begins otherwise, and is
+   committing, since `!` and `?` differ. It is checked when a step tail
    contains a scanning source and can fail after it, as a unit can, also
    where no unit holds both the source and what fails after it: in `S`, `T`
    follows the group that holds the growing unit `S "a"`, and a left call
