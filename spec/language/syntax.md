@@ -24,6 +24,10 @@ before the first error of the reference is accepted only in the named forms.
 
 ## Simple Grammar
 
+In a string or a character class the grammar accepts any character after a backslash. A
+literal with an unknown or invalid escape is still an error, found when the literal is
+decoded, so that a definition with such a mistake is kept in a partial parse.
+
 This syntax view omits result types, Value Actions, captures, metadata attributes
 and recovery handling. Unnecessary grouping is removed while retaining
 parentheses required by precedence or source layout. Predicate Actions and matching pragmas remain, including
@@ -476,16 +480,17 @@ rule ident = (ident_start ident_char*) #atomic
 rule ident_start = [a-zA-Z_]
 rule ident_char = [a-zA-Z0-9_]
 rule digit = [0-9]
-rule string = ("\"" ("\\" escape_char / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
+// A backslash escapes any character: the decoding of the literal reports an unknown or invalid
+// escape, so that the declaration with the mistake is kept.
+rule string = ("\"" ("\\" . / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
 // A string of an action has no ignorecase suffix.
-rule action_string = ("\"" ("\\" escape_char / [^"\\\n])* "\"" !"[") #atomic
+rule action_string = ("\"" ("\\" . / [^"\\\n])* "\"" !"[") #atomic
 rule char_class = (
     "[" "^"? (char_class_rng / char_class_chr)+
     -"]"
 )
 rule char_class_rng = char_class_chr "-" !"]" char_class_chr
-rule char_class_chr = ("\\" escape_char / [^\]\\\n]) #atomic
-rule escape_char = "u{" [0-9a-fA-F]+ "}" / "u" [0-9a-fA-F] #repeat(4) / [ntrfvab0] / [^a-zA-Z0-9]
+rule char_class_chr = ("\\" . / [^\]\\\n]) #atomic
 
 // Normalized declaration ownership, independent of raw formatter comments.
 // The lookahead rules never fail, so recording ownership cannot change what a

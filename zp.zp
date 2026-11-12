@@ -692,16 +692,17 @@ rule ident Ident = (ident_start ident_char*) #atomic
 rule ident_start = [a-zA-Z_]
 rule ident_char = [a-zA-Z0-9_]
 rule digit = [0-9]
-rule string String = ("\"" ("\\" escape_char / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
+// A backslash escapes any character: the decoding of the literal reports an unknown or invalid
+// escape, so that the declaration with the mistake is kept.
+rule string String = ("\"" ("\\" . / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
 // A string of an action has no ignorecase suffix.
-rule action_string String = ("\"" ("\\" escape_char / [^"\\\n])* "\"" !"[") #atomic
+rule action_string String = ("\"" ("\\" . / [^"\\\n])* "\"" !"[") #atomic
 rule char_class CharClass = (
     "[" not:"^"? items:(char_class_rng / char_class_chr)+
     -("]" @error(message="expected closing bracket for character class"))
 ) => CharClass{Not: $not != nil, Items: $items.Value}
 rule char_class_rng CharRng = start:char_class_chr "-" !"]" end:char_class_chr => CharRng{Start: $start, End: $end}
-rule char_class_chr Char = ("\\" escape_char / [^\]\\\n]) #atomic
-rule escape_char = "u{" [0-9a-fA-F]+ "}" / "u" [0-9a-fA-F] #repeat(4) / [ntrfvab0] / [^a-zA-Z0-9]
+rule char_class_chr Char = ("\\" . / [^\]\\\n]) #atomic
 
 // Normalized declaration ownership, independent of raw formatter comments.
 // The lookahead rules never fail, so recording ownership cannot change what a
