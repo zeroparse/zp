@@ -26,12 +26,12 @@ import (
 // those seeds of its observations with current identities.
 var depMemoMutations = map[string][][2]string{
 	"seed identities": {
-		{"k.v[k.n] = p.gamma[i].id\n", "k.v[k.n] = 0\n"},
-		{"if d.kind == depSeed {\n\t\t\tk.v[k.n] = d.val\n", "if d.kind == depSeed {\n\t\t\tk.v[k.n] = 0\n"},
+		{"rest = k.add(p.gamma[i].id, rest)\n", "rest = k.add(0, rest)\n"},
+		{"if d.kind == depSeed {\n\t\t\trest = k.add(d.val, rest)\n", "if d.kind == depSeed {\n\t\t\trest = k.add(0, rest)\n"},
 	},
 	"observations": {
 		{"v := p.obsValue(pos, gp, h.present, o)\n", "v := obsUnique + 0*uint64(o)\n"},
-		{"if d.kind == depObs {\n\t\t\tk.v[k.n] = d.val\n", "if d.kind == depObs {\n\t\t\tk.v[k.n] = obsUnique\n"},
+		{"if d.kind == depObs {\n\t\t\trest = k.add(d.val, rest)\n", "if d.kind == depObs {\n\t\t\trest = k.add(obsUnique, rest)\n"},
 		{"if v, free := p.obsFree(g.start, g.gp, g.present, d.site, g.growKey()); v != d.val || !free {", "if false {"},
 	},
 	"present growths": {

@@ -62,7 +62,8 @@ func testGeneratedLeftRecursionDependencyMemo(t *testing.T) {
 // input: doubling the input at most a little more than doubles the evaluations. They also parse an
 // input of length 10,000; with limit controls, within the default budget, which grows linearly with
 // the input and counts work that evaluations do not show, such as the scan of the jumps recorded
-// for a seed.
+// for a seed. The shapes of gentest.ContextStoreShapes, whose constant is large, are compared at
+// gentest.ContextStoreSizes instead, without the long input.
 func TestGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testGeneratedLeftRecursionDependencyMemoLinear)
@@ -81,18 +82,28 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 		t.Fatal(err)
 	}
 	shapes := gentest.SampledShapes()
+	costly := len(shapes)
+	shapes = append(shapes, gentest.ContextStoreShapes...)
 	var imports, calls strings.Builder
 	for i, s := range shapes {
 		pkg := fmt.Sprintf("g%d", i)
 		gentest.GeneratePackage(t, dir, pkg, mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", Types: true, Observability: true})
 		fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
-		for _, n := range []int{80, 160} {
+		sizes, long := []int{80, 160}, 10000
+		if i >= costly {
+			sizes, long = gentest.ContextStoreSizes[:], 0
+		}
+		for _, n := range sizes {
 			in := strconv.Quote(s.Input(n))
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in)
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseAST(%s, zprt.WithProfile(&p)); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in)
 		}
-		in := strconv.Quote(s.Input(10000))
-		fmt.Fprintf(&calls, "\t{ _, err := %s.Parse(%s); _, errAST := %s.ParseAST(%s); fmt.Print(err == nil, \" \", errAST == nil) }\n", pkg, in, pkg, in)
+		if long == 0 {
+			calls.WriteString("\tfmt.Print(true, \" \", true)\n")
+		} else {
+			in := strconv.Quote(s.Input(long))
+			fmt.Fprintf(&calls, "\t{ _, err := %s.Parse(%s); _, errAST := %s.ParseAST(%s); fmt.Print(err == nil, \" \", errAST == nil) }\n", pkg, in, pkg, in)
+		}
 		calls.WriteString("\tfmt.Println()\n")
 	}
 	main := `package main
@@ -133,7 +144,11 @@ func main() {
 			name         string
 			small, large int
 		}{{"Parse", parse80, parse160}, {"ParseAST", ast80, ast160}} {
-			if r.small == 0 || r.large > r.small*5/2 {
+			if i >= costly {
+				if r.small == 0 || r.large > r.small*gentest.ContextStoreGrowth {
+					t.Errorf("%s %s: %d evaluations at m=%d, %d at m=%d", s.Name, r.name, r.small, gentest.ContextStoreSizes[0], r.large, gentest.ContextStoreSizes[1])
+				}
+			} else if r.small == 0 || r.large > r.small*5/2 {
 				t.Errorf("%s %s: %d evaluations at 80, %d at 160", s.Name, r.name, r.small, r.large)
 			}
 		}

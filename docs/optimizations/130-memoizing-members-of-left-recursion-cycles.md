@@ -245,8 +245,9 @@ where no growth of its cycle is in progress at its position stores its result in
 Adopted on every backend. A growth that begins from a result that includes the seed of another growth at its
 position is new in each step of that growth; when it covers the input that later steps cover, it covers it again in
 each step, which [Conditions for Linear Cost](../../spec/runtime/parsing.md#conditions-for-linear-cost) excludes as
-condition 5. A context with more than 32 leaders of one cycle, or a result with more than six seeds and observations,
-is not memoized, and its calls are evaluated again. The jumps from a seed are a list that a growth scans for one whose
+condition 5. A context with more than 32 leaders of one cycle is not memoized, and its calls are evaluated again. A
+result with more than six seeds and observations keys its results by the six values and the bytes of the others, in a
+second map of its set. The jumps from a seed are a list that a growth scans for one whose
 observations hold. In a shape where every step reads a successful lookahead over another leader
 (`S = &R S "q" / "y"`, `R = &S R "q" / "y"` on `y` and n `q`), each step records a jump from the same seed that
 differs from the earlier ones only in the identities of other seeds that it replays. Recording all of them would make
