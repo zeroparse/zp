@@ -56,4 +56,4 @@ testdata/grammars/python/python.zp exponential degree=0
 testdata/grammars/typescript/typescript.zp unknown witnessed=7
 testdata/grammars/xml/xml.zp unknown witnessed=2
 testdata/grammars/yaml/yaml.zp exponential degree=0
-zp.zp unknown witnessed=6
+zp.zp unknown witnessed=2
