@@ -155,12 +155,12 @@ func TestViewGrammarNeedsOrigins(t *testing.T) {
 }
 
 // ported are the rules that the view built on Core IR applies.
-var ported = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, complexity.N4, complexity.N6,
-	complexity.N8, complexity.N12}
+var ported = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, complexity.N4, complexity.N5,
+	complexity.N6, complexity.N8, complexity.N9, complexity.N10, complexity.N11, complexity.N12}
 
 // offCorpus are the ported rules that no grammar of the corpus applies. The grammars of the
 // normal view's unit tests apply them (compile.TestCostViewMatchesCases).
-var offCorpus = []complexity.Law{complexity.N3}
+var offCorpus = []complexity.Law{complexity.N3, complexity.N5, complexity.N9, complexity.N10}
 
 // TestViewMatchesLaws checks the view against the view on the grammar's rules
 // (compile.CostViewRules) on the corpus: with the ported rules together and with each alone, both

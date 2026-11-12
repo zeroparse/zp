@@ -14,7 +14,8 @@ import (
 
 // TestNodeQueriesMatchRuleFacts checks the node queries on the body of every rule of every corpus
 // grammar against the rule facts: LeftCalls is the rule's LeftCalls (LeftCallsIns with token
-// insertion), and a rule off every left-recursion cycle succeeds exactly when its body does.
+// insertion), a rule off every left-recursion cycle succeeds exactly when its body does, and
+// Nullable is the Nullable attribute of every node.
 // The mutated control flips one expectation and must be reported, so that the comparison is
 // known to be able to fail.
 func TestNodeQueriesMatchRuleFacts(t *testing.T) {
@@ -39,6 +40,11 @@ func TestNodeQueriesMatchRuleFacts(t *testing.T) {
 				if f.Succeeds(r.Body) && f.Fails(r.Body) {
 					t.Errorf("rule %s: body both always succeeds and always fails", r.Name)
 				}
+				core.Walk(r.Body, func(n core.Node) {
+					if got, want := f.Nullable(n), n.Attrs().Nullable; got != want {
+						t.Errorf("rule %s: Nullable %v, attribute %v on %s", r.Name, got, want, core.PrintNode(m, n, false))
+					}
+				})
 			}
 		})
 	}
