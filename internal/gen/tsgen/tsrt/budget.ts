@@ -55,8 +55,11 @@ export class BudgetControl {
   private budgetUsed = 0;
   private sinceCheck = 0;
   private readonly memory: number;
-  /** The bytes of storage the parse has taken into use, as the memory limit counts them (see alloc). */
+  /** The bytes of storage the parse has taken into use at the sites that allocate it (Parser.alloc). */
   mem = 0;
+  /** held returns the bytes the parser's working stacks hold now; the count takes its largest value at a poll. */
+  held: (() => number) | null = null;
+  private heldPeak = 0;
 
   constructor(o: ResolvedParseOptions) {
     this.signal = o.signal;
@@ -80,9 +83,19 @@ export class BudgetControl {
       } catch (x) { throw new SignalPanic(x); }
       if (aborted) throw new Fatal(new ParseInterruptionError("canceled", 0, 0, 0, reason));
     }
-    if (this.memory !== 0 && this.mem > this.memory) {
-      throw new Fatal(new ParseInterruptionError("memory-limit", this.memory, this.mem, 0));
+    if (this.memory !== 0) {
+      const used = this.memoryUsed();
+      if (used > this.memory) throw new Fatal(new ParseInterruptionError("memory-limit", this.memory, used, 0));
     }
+  }
+
+  /** memoryUsed returns the count the memory limit checks: the allocated bytes and the peak of the working stacks. */
+  memoryUsed(): number {
+    if (this.held !== null) {
+      const h = this.held();
+      if (h > this.heldPeak) this.heldPeak = h;
+    }
+    return this.mem + this.heldPeak;
   }
 
   charge(n: number): void {
@@ -111,6 +124,33 @@ export class BudgetControl {
     for (; n > 0; n--) this.charge(1);
   }
 }
+
+// The memory limit counts bytes by a model of the objects as V8 lays them out on a 64-bit host
+// without pointer compression, measured on Node.js 24 as the growth of the heap over 200000 live
+// objects of each kind: an object takes 24 bytes plus 8 for each field; an array 32 bytes, and
+// with elements a backing store of 16 bytes plus 8 for each; a typed array about 200 bytes plus its
+// bytes; a Map 184 bytes, growing by about 28 for each entry; a string of up to 12 one-byte units
+// copied out of another takes 16 bytes plus its units rounded up to 8 (one unit is cached, so 0),
+// and a longer one a slice of 32 bytes. Two-byte strings and the allocator's rounding are not
+// modelled: the count estimates the storage and is the same on every run of a parse.
+
+/** objectBytes is the size of an object with n fields. */
+export function objectBytes(n: number): number { return 24 + 8 * n; }
+/** nodeBytes is the size of a Node (11 fields). */
+export const nodeBytes = 24 + 8 * 11;
+/** entryBytes is the size of a memo entry (12 fields). */
+export const entryBytes = 24 + 8 * 12;
+/** arrayBytes is the size of an array of n elements allocated at its length. */
+export function arrayBytes(n: number): number { return n === 0 ? 32 : 48 + 8 * n; }
+/** typedBytes is the size of a typed array of n bytes. */
+export function typedBytes(n: number): number { return 200 + n; }
+/** mapBytes is the size of an empty Map, and mapEntryBytes what each entry adds. */
+export const mapBytes = 184;
+export const mapEntryBytes = 28;
+/** sliceBytes is the size of a string of n units copied or sliced out of another. */
+export function sliceBytes(n: number): number { return n <= 1 ? 0 : n < 13 ? (16 + n + 7) & ~7 : 32; }
+/** stringBytes is the size of a flat string of n units, as a joined string holds once read. */
+export function stringBytes(n: number): number { return n <= 1 ? 0 : (16 + n + 7) & ~7; }
 
 export function withBudgetControl<T>(o: ResolvedParseOptions, body: (control: BudgetControl | null) => T, interrupted: (error: Error) => T): T {
   if (o.signal === null && o.budget === 0 && o.memory === 0) return body(null);
@@ -155,6 +195,7 @@ export function utf8EncodingLenSpend(s: string, control: BudgetControl): number 
 
 export function encodeUTF8Spend(s: string, control: BudgetControl): Uint8Array {
   const out = new Uint8Array(utf8EncodingLenSpend(s, control));
+  control.mem += typedBytes(out.length);
   let j = 0;
   for (let i = 0; i < s.length; i++) {
     let c = stringUnitSpend(s, i, control);
@@ -239,6 +280,7 @@ export function joinStringsSpend(parts: readonly string[], control: BudgetContro
     for (let i = 0; i < part.length; i += 4096) control.charge(Math.min(4096, part.length - i));
   }
   const result = parts.join("");
+  control.mem += stringBytes(result.length);
   control.check();
   return result;
 }
@@ -303,6 +345,7 @@ export function equalStringsSpend(a: string, b: string, control: BudgetControl):
 
 export function copyNodesSpend(items: readonly (Node | null)[], start: number, end: number, control: BudgetControl): (Node | null)[] {
   const out: (Node | null)[] = new Array(end - start);
+  control.mem += arrayBytes(end - start);
   for (let from = start; from < end; from += 128) {
     const stop = Math.min(from + 128, end);
     control.charge(stop - from);
@@ -414,6 +457,7 @@ export function joinValueStringsSpend(parts: readonly string[], control: BudgetC
     for (let i = 0; i < part.length; i += 128) control.charge(Math.min(128, part.length - i));
   }
   const result = parts.join("");
+  control.mem += stringBytes(result.length);
   control.check();
   return result;
 }
@@ -450,6 +494,7 @@ export function equalValuesSpend(a: Value, b: Value, control: BudgetControl): bo
 
 export function copyEntriesSpend(items: readonly RecEntry[], start: number, end: number, control: BudgetControl): RecEntry[] {
   const out: RecEntry[] = new Array(end - start);
+  control.mem += arrayBytes(end - start);
   for (let from = start; from < end; from += 128) {
     const stop = Math.min(from + 128, end);
     control.charge(stop - from);
@@ -460,6 +505,7 @@ export function copyEntriesSpend(items: readonly RecEntry[], start: number, end:
 
 export function copyIDsSpend(items: readonly number[], start: number, end: number, control: BudgetControl): number[] {
   const out: number[] = new Array(end - start);
+  control.mem += arrayBytes(end - start);
   for (let from = start; from < end; from += 128) {
     const stop = Math.min(from + 128, end);
     control.charge(stop - from);

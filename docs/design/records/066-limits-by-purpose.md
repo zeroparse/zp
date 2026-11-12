@@ -305,10 +305,13 @@ parse(text, { limits: { compute: 0, memory: 64 << 20, input: 0, depth: 0 } });
 
 `ParseInterruptionError` keeps its name, because it also reports cancellation. Its kinds become `"canceled"`,
 `"compute-limit"`, `"memory-limit"`, `"input-limit"` and `"depth-limit"`, and the depth error becomes a
-`ParseInterruptionError`. The TypeScript runtime allocates objects one by one, not from slabs, so memory would be
-charged per object at the sites that already charge compute for construction, from estimated object sizes. That is a
-hot-path charge, and it is not measured in this record. [Decision 2](#decisions) orders TypeScript memory after
-Go.
+`ParseInterruptionError`. The TypeScript runtime allocates objects one by one, not from slabs, so memory is charged
+per object at the sites that construct them, from a model of V8's object sizes measured on Node.js 24 (an object of
+k fields takes 24 + 8k bytes, an array 48 + 8 per element, a Map 184 plus about 28 per entry, a copied short string
+16 plus its units rounded to 8). The working stacks are counted by the peak of their lengths at a poll instead of at
+each push, as generated Go counts its stacks at the check. Only a controlled parse counts: the charge is a null
+test of the control in a parser generated with limit controls, and the emitted node constructions of a parser
+generated without them carry no charge. [Decision 2](#decisions) orders TypeScript memory after Go.
 
 ### Command Line
 
@@ -864,7 +867,9 @@ the prototype leaves out, in particular the decoded input, at 8 bytes per input 
 - Memory charged by chunk can exceed the bytes in use by up to one chunk per slab. The cap is enforced at polls, so the
   counter can pass it by what one poll interval allocates.
 - The counts differ between backends and position units, as compute counts do.
-- TypeScript memory charging is not measured.
+- The TypeScript count follows a model of V8 on a 64-bit host without pointer compression; it does not model
+  two-byte strings, hidden-class transitions or array capacity beyond the length, so it can be below the heap the
+  parse takes. The cost of its charges with memory unlimited is not measured.
 - With memory unlimited, the closure backend's ordinary `CodePoints` parses and the generated stream take 1 to 2 %
   longer than without the memory measure, and the profiles attribute it to no function
   ([Implementation](#implementation)).

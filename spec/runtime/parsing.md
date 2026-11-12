@@ -2289,8 +2289,9 @@ within `Memory` are kept, so a parse that reuses them can fail where a parse
 from scratch would fit; the interruption clears them, and the next parse starts
 without them.
 
-The reference engine and generated Go have the memory limit; generated
-TypeScript has no `memory` limit.
+The reference engine, generated Go and generated TypeScript have the memory
+limit; generated TypeScript counts by a model of the sizes of its objects, as
+[Generated Parsers](generated-parsers.md) states.
 
 ## Modes
 
