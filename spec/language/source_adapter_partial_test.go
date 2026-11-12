@@ -101,10 +101,11 @@ func TestPartialSourceTree(t *testing.T) {
 		}
 	}
 	t.Logf("declarations kept: manual %d, canonical %d", manualKept, canonicalKept)
-	// The hand-written parser also keeps a declaration with an error in it (a string that is not
-	// closed, text after the declaration); the generated parser leaves such a declaration out.
-	// Bound the loss, so that a regression of the recovery shows.
-	if canonicalKept*100 < manualKept*85 {
+	// The generated parser keeps a declaration with an error in it where the error is a string that is
+	// not closed, a block comment that is not closed, or text after the declaration that cannot continue
+	// it (a declaration keyword, "=" or a block comment). It leaves out the declaration for the remaining
+	// classes, logged below. Bound the loss, so that a regression of the recovery shows.
+	if canonicalKept*100 < manualKept*92 {
 		t.Errorf("the canonical partial parse keeps %d declarations, the hand-written parser %d", canonicalKept, manualKept)
 	}
 	t.Logf("missing by first manual error: %v", classes)
@@ -168,6 +169,48 @@ func TestPartialKeepsDeclarationsWithInvalidEscapes(t *testing.T) {
 		}
 		if m, g := len(declJSON(t, mg)), len(declJSON(t, gg)); g != m || g != 2 {
 			t.Errorf("%q: declarations kept: manual %d, canonical %d, want 2", src, m, g)
+		}
+	}
+}
+
+// TestPartialKeepsDeclarationsOfEditingStates covers what an editor shows while a declaration is being
+// typed: a string that is not closed, a block comment that is not closed, and a declaration followed by
+// text that is not a separator. The declaration stays, the string stands for its text up to the end of the
+// line, and each mistake is reported once, where the hand-written parser reports it.
+func TestPartialKeepsDeclarationsOfEditingStates(t *testing.T) {
+	cases := []struct {
+		src   string
+		names []string
+		first string
+	}{
+		{"rule a = \"abc\nrule b = c\n", []string{"a", "b"}, "1:10: unterminated string"},
+		{"@x(k = \"v\n)\nrule a = b\n", []string{"a"}, "1:8: unterminated string"},
+		{"rule s = \"s\" /* \n", []string{"s"}, "1:14: unterminated block comment"},
+		{"type A = {x int} type B ~ A\nrule r = x\n", []string{"A", "r"}, "1:18: expected semicolon, newline, or end of file"},
+		{"rule a = b = c\nrule d = e\n", []string{"a", "d"}, "1:12: expected semicolon, newline, or end of file"},
+	}
+	for _, c := range cases {
+		g, errs := partialCanonical(c.src)
+		mg, merrs := syntax.ParsePartial(c.src)
+		var names []string
+		for _, d := range g.File.Decls {
+			switch d := d.(type) {
+			case *grammar.RuleDef:
+				names = append(names, d.Name)
+			case *grammar.TypeDef:
+				names = append(names, d.Name)
+			case *grammar.TypeAlias:
+				names = append(names, d.Name)
+			}
+		}
+		if !reflect.DeepEqual(names, c.names) {
+			t.Errorf("%q: declarations %v, want %v (hand-written parser %d)", c.src, names, c.names, len(mg.File.Decls))
+		}
+		if len(errs) != 1 || !strings.HasPrefix(errs[0].Error(), c.first) {
+			t.Errorf("%q: errors %v, want exactly %q", c.src, errs, c.first)
+		}
+		if len(merrs) == 0 || merrs[0].Pos != errs[0].Pos {
+			t.Errorf("%q: the first error is at %v, the hand-written parser reports %v", c.src, errs[0].Pos, merrs)
 		}
 	}
 }

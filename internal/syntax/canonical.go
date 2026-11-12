@@ -719,6 +719,27 @@ func (c *canonical) literal(n *types.String) *grammar.Literal {
 	return lit
 }
 
+// openLiteral builds the literal that the user is typing from the text that the recovery of a string
+// without a closing quote skipped, and reports the missing quote. It returns nil for any other error.
+func (c *canonical) openLiteral(n *types.Error) *grammar.Literal {
+	s, _ := n.Range()
+	if !c.partial || s >= len(c.src) || c.src[s] != '"' {
+		return nil
+	}
+	lit := &grammar.Literal{}
+	before := len(c.errs.list)
+	c.decode(n, func(l *lexer) { lit.Value = l.string() })
+	// The syntax error of the tree already reports the missing quote.
+	kept := c.errs.list[:before]
+	for _, e := range c.errs.list[before:] {
+		if e.Msg != "unterminated string" {
+			kept = append(kept, e)
+		}
+	}
+	c.errs.list = kept
+	return lit
+}
+
 func (c *canonical) stringValue(n *types.String) string {
 	return c.literal(n).Value
 }
