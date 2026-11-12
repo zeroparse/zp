@@ -478,7 +478,7 @@ func TSOutputs(t *testing.T, node string, cases []Case, bundles [][]byte, mutate
 
 // TSOutputsWithin is TSOutputs with the run of Node bounded by limit (none if limit <= 0) and by
 // the test's deadline, as ChildContext bounds it. It also returns how long Node ran, and whether
-// it was stopped at the bound, in which case the results are those written by then. A mutation
+// it was stopped at the bound (a stop at the test's deadline fails the test instead), in which case the results are those written by then. A mutation
 // may make the parsers take exponential time; its negative control bounds the run and counts a
 // stop as a difference.
 func TSOutputsWithin(t *testing.T, node string, cases []Case, bundles [][]byte, mutate func(string) string, limit time.Duration) (string, time.Duration, bool) {
@@ -518,8 +518,11 @@ func TSOutputsWithin(t *testing.T, node string, cases []Case, bundles [][]byte, 
 	start := time.Now()
 	runOut, runErr := cmd.CombinedOutput()
 	elapsed := time.Since(start)
-	stopped := runErr != nil && ctx.Err() != nil
+	stopped := runErr != nil && ChildStoppedAtBound(ctx)
 	if runErr != nil && !stopped {
+		if ctx.Err() != nil {
+			t.Fatalf("node: stopped by the test's deadline, not at its bound (%v); raise -timeout\n%s", limit, runOut)
+		}
 		t.Fatalf("node: %v\n%s", runErr, runOut)
 	}
 	out, err := os.ReadFile(filepath.Join(dir, "out.jsonl"))
