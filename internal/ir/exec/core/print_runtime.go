@@ -5,7 +5,8 @@
 // internal/engine/core/call_exec.go, operators_exec.go, stream_exec.go and document_exec.go, and the
 // term compositions of the engine's backends to internal/engine/closure/term_exec.go and
 // internal/engine/vm/term_exec.go, and the engine's conformance bindings of the expectation record to
-// internal/engine/core/exp_bind_exec_test.go. It runs from go generate in the directory of package core.
+// internal/engine/core/exp_bind_exec_test.go, and those of the missing-token mode to
+// internal/engine/core/missing_bind_exec_test.go. It runs from go generate in the directory of package core.
 package main
 
 import (
@@ -98,6 +99,13 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := os.WriteFile(core.EngineExpBindingsFile, []byte(expBindings), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	missingBindings, err := core.EngineMissingBindings()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineMissingBindingsFile, []byte(missingBindings), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }

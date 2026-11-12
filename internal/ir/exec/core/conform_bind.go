@@ -1,6 +1,7 @@
 package core
 
 import (
+	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -63,10 +64,15 @@ func bindingsOf(names func(*exec.Module) []string) (*exec.Module, []*exec.Func) 
 			case 0:
 				b.Do(name, args...)
 			case 1:
-				// A declared result, since a nil result has no type of its own.
-				b.Var("r", o.Results[0])
-				b.Set("r", exec.C(name, args...))
-				b.Return(exec.L("r"))
+				// A declared result, since a nil result has no type of its own, named apart from the
+				// parameters.
+				res := "r"
+				for slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
+					res += "r"
+				}
+				b.Var(res, o.Results[0])
+				b.Set(res, exec.C(name, args...))
+				b.Return(exec.L(res))
 			default:
 				rs := make([]string, len(o.Results))
 				for i := range rs {
@@ -123,5 +129,20 @@ const GoObsBindingsFile = "obs_bind_exec_test.go"
 func GoObsBindings() (string, error) {
 	return bindingFile("runtime", goTarget(goSpec{fn: "expect", name: "Expect"}), func() (*exec.Module, []*exec.Func) {
 		return bindingsOf(func(*exec.Module) []string { return obsBindingOps })
+	})
+}
+
+// EngineMissingBindingsFile is the file of the engine's conformance bindings of the missing-token
+// mode, relative to the directory of this package. It is a test file of package core of the engine.
+const EngineMissingBindingsFile = "../../../engine/core/missing_bind_exec_test.go"
+
+// missingBindingOps are the operations of the missing-token mode.
+var missingBindingOps = []string{"missing.active", "missing.recompute", "missing.mark", "missing.reset", "missing.replay"}
+
+// EngineMissingBindings returns the Go test file of the conformance bindings of the missing-token mode
+// for package core of the engine, the only target that has the mode.
+func EngineMissingBindings() (string, error) {
+	return bindingFile("core", engineTarget(), func() (*exec.Module, []*exec.Func) {
+		return bindingsOf(func(*exec.Module) []string { return missingBindingOps })
 	})
 }

@@ -68,12 +68,12 @@ the parse runs in the missing-token mode and the rule or a rule it calls can ins
 		Reads: []string{Rec}, Features: miss,
 		Contract: `Returns a mark of the missing-token record, for missing.reset.`})
 	add(&exec.Op{Name: "missing.reset", Component: Rec, Params: []exec.Param{exec.P("mark", exec.TInt)},
-		Writes: []string{Rec}, Features: miss,
+		Writes: []string{Rec}, Features: miss, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTokens}}},
 		Contract: `Removes the tokens inserted after mark, in the missing-token mode; does nothing outside it.`,
 		Requires: `mark is a result of missing.mark at or before every later mark that is still in use.`})
 	add(&exec.Op{Name: "missing.replay", Component: Rec, Params: []exec.Param{exec.P("e", entry)},
 		Writes: []string{Rec}, Features: miss, NoReturn: true,
-		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTokens}, {Coef: 1, Quantity: QErrs}}},
 		Contract: `Records again the tokens that the call of entry e inserted and the errors it recovered, as
 rec.add does for the errors outside the missing-token mode.`,
 		Requires: `The parse runs in the missing-token mode.`})

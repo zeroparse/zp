@@ -71,11 +71,14 @@ func (m *Model) callObs(o *exec.Op, args []any) ([]any, bool) {
 }
 
 // Observe returns what the model holds of a component for the conformance suite to compare with an
-// implementation's: the events that the observation delivered, for component ops.Obs. It returns nil
-// for any other component.
+// implementation's: the events that the observation delivered, for component ops.Obs, and the tokens
+// inserted in the missing-token mode, for ops.Rec. It returns nil for any other component or parse.
 func (m *Model) Observe(component string) []string {
-	if component == ops.Obs {
+	switch component {
+	case ops.Obs:
 		return append([]string{}, m.obs.events...)
+	case ops.Rec:
+		return m.observeMissing()
 	}
 	return nil
 }
