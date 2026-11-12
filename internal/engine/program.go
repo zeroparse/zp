@@ -133,11 +133,11 @@ func build(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 
 func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
 	names := desugar.InlineNames{}
-	prog, err := buildNamed(g, opts, flags, names, control)
+	prog, err := compile.Check(g, opts, flags, names, control)
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}
-	return prog, nil
+	return lower(prog, opts, control)
 }
 
 // CompileContext is the internal editor compilation entry point. Cancellation
@@ -166,11 +166,10 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 	return buildControlled(g, opts, nil, &cancel.Control{Ctx: ctx})
 }
 
-// buildNamed is buildControlled; names receives the hidden rules that the lowering of inline actions
-// generates.
-func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
+// lower builds the closure backend's form of the checked program prog.
+func lower(prog *compile.Program, opts compile.Options, control *cancel.Control) (*Program, error) {
 	var b *closure.Builder
-	prog, err := compile.CompileProgram(g, opts, flags, names, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
+	err := compile.CompileProgram(prog, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
 		b = closure.NewBuilder(c, !opts.ControlledDispatch)
 		return b
 	})

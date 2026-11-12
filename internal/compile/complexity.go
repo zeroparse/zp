@@ -138,7 +138,7 @@ func GrowingBindings(g *grammar.Grammar, start string, control *cancel.Control) 
 func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
 	control.Check()
 	names := desugar.InlineNames{}
-	prog, err := CompileProgram(g, Options{}, nil, names, control, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
+	prog, err := Check(g, Options{}, nil, names, control)
 	if err != nil {
 		return nil, nil
 	}

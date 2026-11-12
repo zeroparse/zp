@@ -25,7 +25,7 @@ func Parse(src string) (*grammar.Grammar, error) {
 // rules of inline actions as the engine's do.
 func Compile(g *grammar.Grammar, opts compile.Options) (*compile.Program, error) {
 	names := desugar.InlineNames{}
-	p, err := compile.CompileProgram(g, opts, nil, names, nil, func(*compile.Compiler) compile.ExprBuilder[struct{}] { return NoExprs{} })
+	p, err := compile.Check(g, opts, nil, names, nil)
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}
@@ -45,6 +45,3 @@ func Program(tb testing.TB, src string, opts compile.Options) *compile.Program {
 	}
 	return p
 }
-
-// NoExprs is the expression builder that builds nothing (compile.NoExprs).
-type NoExprs = compile.NoExprs

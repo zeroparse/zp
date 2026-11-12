@@ -73,7 +73,7 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 			})
 		}
 		runSitesOn = false
-		prog, err := CompileProgram(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+		prog, err := Check(g, Options{}, nil, desugar.InlineNames{}, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

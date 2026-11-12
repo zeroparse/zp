@@ -23,7 +23,7 @@ func TestFactsGolden(t *testing.T) {
 			}
 			g = starttest.MarkAll(g)
 			names := desugar.InlineNames{}
-			prog, err := CompileProgram(g, Options{}, nil, names, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
+			prog, err := Check(g, Options{}, nil, names, nil)
 			if err != nil {
 				t.Fatal(names.Rewrite(err))
 			}

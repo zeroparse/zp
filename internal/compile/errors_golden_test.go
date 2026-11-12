@@ -35,7 +35,7 @@ func TestErrorsGolden(t *testing.T) {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
 		names := desugar.InlineNames{}
-		_, err = CompileProgram(g, Options{}, nil, names, nil, func(*Compiler) ExprBuilder[struct{}] { return NoExprs{} })
+		_, err = Check(g, Options{}, nil, names, nil)
 		if err == nil {
 			t.Fatalf("%s: compiled", tc.name)
 		}

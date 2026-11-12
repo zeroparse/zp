@@ -31,7 +31,7 @@ parse option `ContextMemoOff`, which evaluates every call in a context again.
 
 Evidence record: [130](../130-memoizing-members-of-left-recursion-cycles.md).
 
-Source owners: [`CompileProgram`](../../../internal/compile/compile.go) (the memo flags and the cycle numbers),
+Source owners: [`Check`](../../../internal/compile/compile.go) (the memo flags and the cycle numbers),
 [`CallBegin` and `CallEnd`](../../../internal/engine/core/call_exec.go) with
 [the engine's context state](../../../internal/engine/core/call_ops.go),
 [`GrowBegin`](../../../internal/engine/core/runtime.go) with
