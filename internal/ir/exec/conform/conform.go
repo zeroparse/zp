@@ -73,6 +73,9 @@ type Suite struct {
 	// DocCallMemo sets ref.Config.DocCallMemo: the implementation's Document parse calls rules through
 	// the call protocol of a parse from scratch.
 	DocCallMemo bool
+	// CallUnitBefore sets ref.Config.CallUnitBefore: the implementation's call protocol charges the unit
+	// of a call before rule.invoke and rule.invokePlain run.
+	CallUnitBefore bool
 	// Exact are the operations whose charges must equal their cost bound, not stay within it: in a
 	// metered implementation, the model's quantities state the work to the unit.
 	Exact []string
@@ -159,6 +162,7 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	cfg.LazyEdits = s.LazyEdits
 	cfg.DocEmptyEnter = s.DocEmptyEnter
 	cfg.DocCallMemo = s.DocCallMemo
+	cfg.CallUnitBefore = s.CallUnitBefore
 	p := &pair{suite: s, model: ref.New(cfg), impl: s.New(cfg),
 		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {

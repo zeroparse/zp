@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -43,10 +44,16 @@ func newRuleMachine(cfg ref.Config, controlled bool) conform.Impl {
 		base = e.engineMachine
 	}
 	base.p.MemoAll = cfg.Document
+	if cfg.Missing {
+		base.p.Missing = &MissingTokenState{Limit: 1 << 30}
+	}
 	// Making a rule's value reads the program, which these rules have no other use for.
 	base.p.Prog = &SharedProgram{staticProgram: &staticProgram{}}
 	m := &ruleMachine{docMachine: &docMachine{base}, specs: cfg.RuleSpecs, evals: map[int64]int64{}}
 	scriptRules(base.envRules, cfg, m.evaluate)
+	for i, r := range base.envRules {
+		r.Missing = i < len(cfg.MissingRules) && cfg.MissingRules[i]
+	}
 	if controlled {
 		return meteredRule{m}
 	}
@@ -101,6 +108,18 @@ func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*value.Node, 
 	for _, id := range e.Errs {
 		m.engineMachine.Call(ruleOps.Op("rec.push"), []any{m.Err(id)})
 	}
+	if p.Missing != nil && len(e.Missing) > 0 {
+		// The grammar's code of a missing-token literal: what it charges is not the body's script's.
+		c := p.Control
+		p.Control = nil
+		for _, t := range e.Missing {
+			err := m.Err(t.Err).(*SyntaxError)
+			if p.InsertMissing(MissingTokenEvent{MissingTokenSite{int(t.Site), int(t.Pos)}, err}) {
+				p.PushRecovered(err)
+			}
+		}
+		p.Control = c
+	}
 	if e.Touch > 0 {
 		p.confDocTouch(start + int(e.Touch))
 	}
@@ -126,10 +145,13 @@ func (m *ruleMachine) spec(index int64) ref.RuleSpec {
 func (m *ruleMachine) UseRegisters(regs map[string]any) { m.regs = regs }
 
 func (m *ruleMachine) Observe(component string) []string {
-	if component != ops.Rules {
-		return nil
+	switch component {
+	case ops.Rules:
+		return append([]string{}, m.log...)
+	case ops.Rec:
+		return (&missingMachine{m.engineMachine}).Observe("recovered")
 	}
-	return append([]string{}, m.log...)
+	return nil
 }
 
 func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
@@ -169,6 +191,10 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 		return nil
 	case "depth.current":
 		return []any{int64(p.Depth)}
+	case "missing.active":
+		return []any{p.confMissingActive()}
+	case "missing.mark":
+		return []any{int64(p.confMissingMark())}
 	}
 	return m.docMachine.Call(o, args)
 }
@@ -176,7 +202,7 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 // ruleEngineOps are the operations of the rules that the engine provides, with the doc operations.
 var ruleEngineOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "rule.docOnlyMemo", "rule.docPlain",
 	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain", "depth.enter", "depth.exit", "depth.current",
-	"rec.mark", "rec.truncate"}, conform.DocCoreOps...)
+	"rec.mark", "rec.truncate", "missing.active", "missing.mark"}, conform.DocCoreOps...)
 
 // ruleSuites are the suites of the engine's operations of the rules: its Document parse takes the call
 // protocol, and its doc.enter starts the range of a call as the empty range at its position. The
@@ -187,6 +213,7 @@ func ruleSuites() []conform.Suite {
 	controlled := s
 	controlled.Name = "engine rules, controlled"
 	controlled.Exact = ruleExact
+	controlled.Ops = append(slices.Clone(ruleEngineOps), engineBudgetOps...)
 	controlled.New = func(c ref.Config) conform.Impl { return newRuleMachine(c, true) }
 	return []conform.Suite{s, controlled}
 }
@@ -211,6 +238,21 @@ func ruleConformanceFailures(s conform.Suite, seeds, n int) (fails []error, ran 
 		run(conform.RandomRule(fmt.Sprint("random_", seed), rng, s.Ops, n, seed%3 == 2))
 	}
 	return fails, ran
+}
+
+// TestEngineRuleCasesRun checks that every handwritten case of the rules runs on the controlled engine:
+// those of the missing-token mode and of the budget too, but those that read rule.docMemo, which the
+// engine does not have.
+func TestEngineRuleCasesRun(t *testing.T) {
+	s := ruleSuites()[1]
+	for _, c := range conform.RuleCases() {
+		if strings.HasPrefix(c.Func.Name, "rule_flags_document_") {
+			continue
+		}
+		if skipped, err := conform.Run(s, c); skipped || err != nil {
+			t.Errorf("%s: skipped %v, %v", c.Func.Name, skipped, err)
+		}
+	}
 }
 
 func TestEngineRuleConformance(t *testing.T) {
@@ -249,6 +291,25 @@ func TestEngineRuleConformanceDetectsBrokenEngine(t *testing.T) {
 			p := m.p
 			p.Pos = int(m.regs[ops.Pos].(int64))
 			v, ok := p.InvokePlain(args[0].(*Rule), int(args[1].(int64)))
+			m.regs[ops.Pos] = int64(p.Pos)
+			return []any{v, ok}
+		},
+		"rule.memo memoizes in the missing-token mode": func(m *ruleMachine, args []any) []any {
+			r := args[0].(*Rule)
+			return []any{r.Memo && (!r.Transient || m.p.MemoAll)}
+		},
+		"rule.docOnlyMemo counts the rules that insert tokens": func(m *ruleMachine, args []any) []any {
+			r := args[0].(*Rule)
+			return []any{m.p.MemoAll && r.Memo && r.Transient && !r.Leader}
+		},
+		"rule.invokePlain leaves the tokens of a failure": func(m *ruleMachine, args []any) []any {
+			p := m.p
+			start, rec := int(m.regs[ops.Pos].(int64)), len(p.Recovered)
+			p.Pos = start
+			v, ok := p.invoke(args[0].(*Rule), int(args[1].(int64)))
+			if !ok {
+				p.Pos, p.Recovered = start, p.Recovered[:rec]
+			}
 			m.regs[ops.Pos] = int64(p.Pos)
 			return []any{v, ok}
 		},
@@ -298,6 +359,22 @@ func TestEngineRuleChargesArePinned(t *testing.T) {
 				for range value.D(v).Fields {
 					m.p.Spend()
 				}
+			}
+			return []any{v, ok}
+		},
+		// The tokens of a failure go without a charge: invoke, which leaves them, and an uncharged reset.
+		"rule.invokePlain charges nothing for the tokens it removes": func(m *ruleMachine, args []any) []any {
+			p := m.p
+			mark, rec := p.missingMark(), len(p.Recovered)
+			start := int(m.regs[ops.Pos].(int64))
+			v, ok := invoke(m, args, p.invoke)
+			if !ok {
+				p.Pos, p.Recovered = start, p.Recovered[:rec]
+				m.regs[ops.Pos] = int64(start)
+				c := p.Control
+				p.Control = nil
+				p.ResetMissing(mark)
+				p.Control = c
 			}
 			return []any{v, ok}
 		},

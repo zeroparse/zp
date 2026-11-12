@@ -1,6 +1,10 @@
 package ops
 
-import "zeroparse.dev/zp/internal/ir/exec"
+import (
+	"slices"
+
+	"zeroparse.dev/zp/internal/ir/exec"
+)
 
 // State components of the transitional operations.
 const (
@@ -64,11 +68,12 @@ const (
 	// action, charge, as the operations they call declare them.
 	QBody = "body"
 	// QCaptures is, when the body of the call matched and the rule makes its value from its captures
-	// rather than with an action, the number of the capture names of the rule; zero otherwise.
+	// (not with an action, not spliced and not value-free), the number of the capture names of the rule;
+	// zero otherwise.
 	QCaptures = "captures"
-	// QCaptureFields is, when a capture of the rule of the call matched, the number of its capture
-	// names and what setting the captures that matched as fields of the rule's value charges; zero
-	// otherwise.
+	// QCaptureFields is, when a capture of the rule of the call matched and the rule makes its value
+	// from its captures, the number of its capture names and what setting the captures that matched as
+	// fields of the rule's value charges; zero otherwise.
 	QCaptureFields = "capture_fields"
 	// QSteps is the number of memoized steps and jumps that the call takes.
 	QSteps = "steps"
@@ -152,11 +157,11 @@ seen.first for a rule whose memoization the target defers, false for one it memo
 stream, or for a rule without a seen index).`})
 
 	for _, a := range []struct{ name, doc string }{
-		{"rule.memo", "Reports whether the rule is memoized."},
+		{"rule.memo", "Reports whether the rule is memoized. A parse in the missing-token mode memoizes no rule that can insert a missing token."},
 		{"rule.leader", "Reports whether the rule leads a left-recursive cycle."},
 		{"rule.plain", "Reports whether the rule has no captures, so that its plain body serves its invocation."},
 		{"rule.docMemo", "Reports whether a Document parse memoizes the rule."},
-		{"rule.docOnlyMemo", "Reports whether a Document parse memoizes the rule and a parse from scratch does not."},
+		{"rule.docOnlyMemo", "Reports whether a Document parse memoizes the rule and a parse from scratch does not; never for a rule that can insert a missing token in a parse in the missing-token mode."},
 		{"rule.docPlain", "Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol."},
 		{"rule.positional", "Reports whether the results of the rule may depend on positions, not only on the input they examine."},
 	} {
@@ -170,11 +175,15 @@ stream, or for a rule without a seen index).`})
 		NoReturn: true, Cost: invoke,
 		Contract: `Runs the rule's body at the binding level min in a frame of its own and makes the rule's
 value; on failure the position is unspecified. The evaluation counts in the statistics of a Document
-parse, and that of a rule on a cycle of calls takes a nesting level while it runs.`})
+parse, and that of a rule on a cycle of calls takes a nesting level while it runs. The unit of the call
+is charged before the nesting level is taken, so that a call that both the budget and the nesting
+limit stop stops on the budget.`})
 	m.AddOp(&exec.Op{Name: "rule.invokePlain", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
-		NoReturn: true, Cost: exec.Cost{Const: 1, Terms: body.Terms},
+		NoReturn: true, Cost: exec.Cost{Const: 1, Terms: append(slices.Clone(body.Terms), exec.CostTerm{Coef: 1, Quantity: QTokens})},
 		Contract: `Runs the plain body of a rule without captures and returns its result, at the start
-position and without the errors it recovered on failure. The evaluation counts as rule.invoke's does.`,
+position and without the errors it recovered on failure; in the missing-token mode a failure also
+removes the missing tokens that the body inserted, as missing.reset does. The evaluation counts, and
+the unit of the call comes before the nesting level, as in rule.invoke.`,
 		Requires: `rule.plain is true of r.`})
 	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", bodyH)}, Results: result,
 		Writes: append([]string{Rules}, regs...), NoReturn: true, Cost: body,

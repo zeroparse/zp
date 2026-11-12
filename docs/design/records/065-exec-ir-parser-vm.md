@@ -343,7 +343,7 @@ has, have a reference model of the tokens a parse inserts and conformance cases 
 on the engine; a rule that can insert a token is not memoized in that mode. The growth operations `grow.step` and
 `grow.end` stay transitional: they record a seed's errors again, a write to the recovered errors from another
 component that the verifier allows only for transitional operations, and where that write belongs depends on the
-design of the call context, which also replays a call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
+design of the left-recursion context, which also replays a call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
 that make an error record it: grammar code and the recovery of each engine write the push in their own language.
 
 **Variable environment.** A persistent environment: a binding makes a new environment that shares what it can,

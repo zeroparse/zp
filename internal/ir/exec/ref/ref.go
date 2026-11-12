@@ -61,6 +61,10 @@ type Config struct {
 	// that can insert a missing token themselves or through a rule they call.
 	Missing      bool
 	MissingRules []bool
+	// CallUnitBefore models a target whose call protocol charges the unit of a call before rule.invoke
+	// or rule.invokePlain runs (as the generated runtimes' do), so that these charge no unit of their
+	// own and a call that reaches them has paid it.
+	CallUnitBefore bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.

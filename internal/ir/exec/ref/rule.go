@@ -30,19 +30,25 @@ type RuleSpec struct {
 }
 
 // Eval is what one evaluation of a body does, in this order: it charges Charge units, records the
-// recovered errors with the identifiers Errs (as rec.push does), extends the examined input of a
-// Document parse to Touch units past its start if Touch is positive (as doc.touch does), sets the
-// captures of the rule with the indexes Captures, each to a value no other evaluation made, moves the
-// position Len units past its start and succeeds if OK. A body that succeeds makes a value no other
-// evaluation made, and its rule attaches the captures it set to that value as fields.
+// recovered errors with the identifiers Errs (as rec.push does), inserts the missing tokens Missing in
+// a parse in the missing-token mode (as MissingInsertOp does, charging nothing), extends the examined
+// input of a Document parse to Touch units past its start if Touch is positive (as doc.touch does),
+// sets the captures of the rule with the indexes Captures, each to a value no other evaluation made,
+// moves the position Len units past its start and succeeds if OK. A body that succeeds makes a value
+// no other evaluation made, and its rule attaches the captures it set to that value as fields.
 type Eval struct {
 	OK       bool
 	Len      int64
 	Charge   uint64
 	Errs     []int64
+	Missing  []MissingInsert
 	Touch    int64
 	Captures []int64
 }
+
+// MissingInsert is a missing token that an evaluation of a body inserts at a site and a position, with
+// the error with the identifier Err; nothing if a token is there.
+type MissingInsert struct{ Site, Pos, Err int64 }
 
 // BodyRef is the model's handle of the invocation of a rule's body that a generated call passes
 // (ops.Body): that of the rule of Config.RuleVars with the index.
@@ -120,14 +126,17 @@ func (m *Model) callRule(o *exec.Op, args []any) ([]any, bool) {
 	case "rule.id":
 		return []any{args[0].(RuleRef).Index}, true
 	case "rule.invoke":
+		m.chargeCall()
 		v, ok := m.evaluate(args[0].(RuleRef).Index, args[1].(int64), true)
 		return []any{v, ok}, true
 	case "rule.invokePlain":
-		mark, start := len(m.rec), m.regs["pos"].(int64)
+		m.chargeCall()
+		mark, start, tokens := len(m.rec), m.regs["pos"].(int64), len(m.missing.path)
 		v, ok := m.evaluate(args[0].(RuleRef).Index, args[1].(int64), true)
 		if !ok {
 			m.regs["pos"] = start
 			m.rec = m.rec[:mark]
+			m.resetMissing(int64(tokens))
 		}
 		return []any{v, ok}, true
 	case "rule.run":
@@ -135,6 +144,16 @@ func (m *Model) callRule(o *exec.Op, args []any) ([]any, bool) {
 		return []any{v, ok}, true
 	}
 	return nil, false
+}
+
+// chargeCall checks the unit that rule.invoke and rule.invokePlain charge for the call before the body
+// runs, on a target whose call protocol does not charge it before (Config.CallUnitBefore): the unit
+// comes before the nesting level, so that a call that the budget and the nesting limit both stop
+// stops on the budget.
+func (m *Model) chargeCall() {
+	if !m.cfg.CallUnitBefore && m.Exceeds(1) {
+		panic(exec.Interrupt{Reason: "limit"})
+	}
 }
 
 // evaluate runs the next evaluation of the body of the rule with the index at the level and returns
@@ -163,6 +182,11 @@ func (m *Model) evaluate(index, level int64, count bool) (any, bool) {
 	}
 	for _, id := range e.Errs {
 		m.rec = append(m.rec[:len(m.rec):len(m.rec)], &ErrList{err: id, n: 1})
+	}
+	if m.cfg.Missing {
+		for _, t := range e.Missing {
+			m.insertMissing(missingToken{t.Site, t.Pos, &Err{ID: t.Err}})
+		}
 	}
 	if e.Touch > 0 && m.cfg.Document {
 		m.doc.high = max(m.doc.high, start+e.Touch)
