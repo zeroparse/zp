@@ -18,6 +18,9 @@ import (
 	"zeroparse.dev/zp/internal/ir/core/facts"
 )
 
+// A fact error of the untyped module that the compiler does not report is added to its errors
+// by mergeErrors.
+
 // Result is the checked form of a grammar.
 type Result struct {
 	// Program is the compiled program: rules, flags and types.
@@ -35,9 +38,10 @@ type Result struct {
 // generate shown as written.
 func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Result, error) {
 	names := desugar.InlineNames{}
+	factErrs := structuralErrors(g, opts, names, control)
 	prog, err := compile.CompileProgram(g, opts, nil, names, control, func(*compile.Compiler) compile.ExprBuilder[struct{}] { return compile.NoExprs{} })
 	if err != nil {
-		return nil, names.Rewrite(err)
+		return nil, mergeErrors(names.Rewrite(err), factErrs)
 	}
 	origin := map[core.Node]grammar.Expr{}
 	m, err := build.CoreFrom(prog, origin)
