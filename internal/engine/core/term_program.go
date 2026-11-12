@@ -150,7 +150,9 @@ func CompileTerm(t ir.Term, env TermEnv) (*TermProgram, error) {
 	}
 	c := &termCompiler{env: env, m: l.Module, locals: map[string]termReg{}, prog: &TermProgram{}}
 	for _, p := range l.Func.Locals {
-		c.declare(p.Name, p.Type)
+		if _, err := c.declare(p.Name, p.Type); err != nil {
+			return nil, fmt.Errorf("core: term %s: %w", ir.TermString(t), err)
+		}
 	}
 	if err := c.block(l.Func.Body); err != nil {
 		return nil, fmt.Errorf("core: term %s: %w", ir.TermString(t), err)
@@ -200,13 +202,19 @@ func (c *termCompiler) reg(file int) termReg {
 	return r
 }
 
+// declare returns the register of the local name of type t, taking one in the file of t on first
+// use. A name declared again in another file is an error: an instruction would write one file and
+// its reader read the other.
 func (c *termCompiler) declare(name string, t exec.Type) (termReg, error) {
-	if r, ok := c.locals[name]; ok {
-		return r, nil
-	}
 	f, ok := fileOf(t)
 	if !ok {
 		return termReg{}, fmt.Errorf("local %s of type %s", name, t)
+	}
+	if r, ok := c.locals[name]; ok {
+		if r.file != f {
+			return termReg{}, fmt.Errorf("local %s of type %s declared in another register file", name, t)
+		}
+		return r, nil
 	}
 	r := c.reg(f)
 	c.locals[name] = r
