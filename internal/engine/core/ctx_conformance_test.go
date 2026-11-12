@@ -120,7 +120,7 @@ func (m *ctxMachine) testOp(name string, args []any) {
 	case ref.CtxGrowOp:
 		r := args[0].(*Rule)
 		p.Gamma = append(p.Gamma, growRec{key: MemoKey{Rule: r.ID, Pos: p.Pos, Min: int(args[1].(int64))},
-			seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64)), bit: r.LeaderBit, cycle: r.Cycle})
+			seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64)), bit: r.LeaderBit, cycle: int32(r.Cycle)})
 	case ref.CtxReseedOp:
 		g := &p.Gamma[len(p.Gamma)-1]
 		pos := p.Pos
