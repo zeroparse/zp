@@ -412,53 +412,8 @@ func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Co
 	grammaranalysis.WalkExprWithPoll(e, f, control.Poll)
 }
 
-// WalkTerm visits the value expression and its subexpressions in preorder.
-func WalkTerm(t grammar.Term, f func(grammar.Term)) {
-	if t == nil {
-		return
-	}
-	f(t)
-	switch t := t.(type) {
-	case *grammar.TermGroup:
-		WalkTerm(t.Term, f)
-	case *grammar.Block:
-		for _, stmt := range t.Statements {
-			WalkTerm(stmt, f)
-		}
-	case *grammar.Member:
-		WalkTerm(t.X, f)
-	case *grammar.New:
-		for _, fi := range t.Fields {
-			WalkTerm(fi.Value, f)
-		}
-		for _, x := range t.Args {
-			WalkTerm(x, f)
-		}
-	case *grammar.TupleLit:
-		for _, x := range t.Elems {
-			WalkTerm(x, f)
-		}
-	case *grammar.ListConstructor:
-		for _, item := range t.Items {
-			WalkTerm(item, f)
-		}
-	case *grammar.Call:
-		for _, a := range t.Args {
-			WalkTerm(a, f)
-		}
-	case *grammar.Lambda:
-		WalkTerm(t.Body, f)
-	case *grammar.Binary:
-		WalkTerm(t.L, f)
-		WalkTerm(t.R, f)
-	case *grammar.Unary:
-		WalkTerm(t.X, f)
-	case *grammar.Cast:
-		WalkTerm(t.X, f)
-	case *grammar.Bind:
-		WalkTerm(t.Value, f)
-	}
-}
+// WalkTerm is grammaranalysis.WalkTerm.
+func WalkTerm(t grammar.Term, f func(grammar.Term)) { grammaranalysis.WalkTerm(t, f) }
 
 // Tarjan returns the strongly connected components of the graph of edges, starting from the
 // rules in order. A component comes after every component it reaches, so callees come before
