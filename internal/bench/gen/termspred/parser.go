@@ -189,10 +189,10 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any {
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tn2 := c.TermStruct("Doc", 1)
 		tfirst3 := true
@@ -200,13 +200,13 @@ func init() {
 		c.TermSetField(tn2, "Lines", tv1)
 		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
 		c.P.TermMade(c, tn2, tfirst3)
-		return any(tn2)
+		return any(tn2), nil
 	}
 	rules[1].Body = e5
-	rules[1].Action = func(c *rt.ActCtx) any {
+	rules[1].Action = func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tn2 := c.TermStruct("Line", 1)
 		tfirst3 := true
@@ -214,7 +214,7 @@ func init() {
 		c.TermSetField(tn2, "N", tv1)
 		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
 		c.P.TermMade(c, tn2, tfirst3)
-		return any(tn2)
+		return any(tn2), nil
 	}
 	zpGrammar.DeclareStruct("Doc", "Lines", "l")
 	zpGrammar.TypeKinds["Doc"] = rt.KindOf("Doc", "")
@@ -297,63 +297,63 @@ func e5(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpGt, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpLt, tv1, any(100))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermMember(c, rt.MemberStart, c.Cap(0), "Start", "Start")
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermMember(c, rt.MemberEnd, c.Cap(0), "End", "End")
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tv3, tf3 := c.P.TermBinary(rt.OpNe, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermLength(any(ts1))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tv3, tf3 := c.P.TermBinary(rt.OpGe, tv2, any(0))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -507,63 +507,63 @@ func e12(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpGt, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpLt, tv1, any(100))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermMember(c, rt.MemberStart, c.Cap(0), "Start", "Start")
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermMember(c, rt.MemberEnd, c.Cap(0), "End", "End")
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tv3, tf3 := c.P.TermBinary(rt.OpNe, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermLength(any(ts1))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tv3, tf3 := c.P.TermBinary(rt.OpGe, tv2, any(0))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -648,7 +648,7 @@ func i0(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := tmk_Doc(c, true, tv1)
 			tr10 = tv2
@@ -702,51 +702,51 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	v10 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
 	k1 = v10
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpGt, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpLt, tv1, any(100))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any {
-		return c.Compare(rt.OpNe, c.FieldOperand(k1, "Start"), c.FieldOperand(k1, "End"))
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
+		return c.Compare(rt.OpNe, c.FieldOperand(k1, "Start"), c.FieldOperand(k1, "End")), nil
 	}) {
 		goto fail
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermLength(any(ts1))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tv3, tf3 := c.P.TermBinary(rt.OpGe, tv2, any(0))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -767,7 +767,7 @@ func i1(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermLength(k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := tmk_Line(c, true, tv1)
 			tr14 = tv2
@@ -844,4 +844,4 @@ fail:
 
 const _ = types.ZPSchema_2e326dad401977ae
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

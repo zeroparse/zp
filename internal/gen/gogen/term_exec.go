@@ -31,8 +31,8 @@ const (
 	rtTermSetField   = "TermSetField"
 )
 
-// loweredBody returns the body of a function that returns the value of the term t of Core IR, printed
-// from Exec IR, or reports false if t is printed by the term printer. The scope s and the locals resolve
+// loweredBody returns the body of a function that returns the value of the term t of Core IR and its
+// failure, printed from Exec IR, or reports false if t is printed by the term printer. The scope s and the locals resolve
 // the leaves as for term.
 func (g *Generator) loweredBody(t irc.Term, s *compile.Scope, locals map[string]string) (string, bool) {
 	return g.lowered(t, s, locals, "")
@@ -66,14 +66,14 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 	return res.Text, true
 }
 
-// actionBody returns the body of a function that returns the value of the term ct of Core IR, printed
-// from Exec IR if lower.Term lowers it, and otherwise the body that the term printer prints for t, the
-// grammar term that ct is built from.
+// actionBody returns the body of a function that returns the value of the term ct of Core IR and its
+// failure, printed from Exec IR if lower.Term lowers it, and otherwise the body that the term printer
+// prints for t, the grammar term that ct is built from, whose evaluation error panics.
 func (g *Generator) actionBody(ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
 	if body, ok := g.loweredBody(ct, s, locals); ok {
 		return body
 	}
-	return g.termBody(t, s, locals)
+	return g.termBody(t, s, locals) + ", nil"
 }
 
 // predicate returns the body of the function of a predicate with the term ct of Core IR, built from
@@ -165,7 +165,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case lower.OpTermCastType:
 				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
 			case lower.OpTermRaise:
-				return "panic(" + a[0] + ")"
+				return "c.TermRaise(" + a[0] + ")"
 			case lower.OpTermCastError:
 				x := c.Imm.(lower.TermCast).Cast
 				return fmt.Sprintf("c.%s(%s, %s, %d, %d)", rtTermCastFailed, a[0], g.castTypeVar(x), x.Line, x.Col)
@@ -217,7 +217,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 // call: the compositions of core.GoTermExports and the operations of the leaves that the runtime
 // exports for them.
 func loweredTermNames() []string {
-	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField}
+	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField, "TermRaise"}
 	for _, n := range core.GoTermExports {
 		names = append(names, n)
 	}

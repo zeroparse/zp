@@ -60,10 +60,10 @@ func (g *Generator) castsChecked(t grammar.Term) bool {
 // printed from Exec IR if it can be and by the term printer otherwise, declared with the name name.
 func (g *Generator) actionFunc(name string, ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
 	if body, ok := g.termStmts(ct, t, s, locals); ok {
-		return fmt.Sprintf("function %s(%s: Actx): Value {\n%s}\n\n", name, tsActxParam(body), body)
+		return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n%s}\n\n", name, tsActxParam(body), body)
 	}
 	val := g.term(t, s, locals)
-	return fmt.Sprintf("function %s(%s: Actx): Value {\n  return %s;\n}\n\n", name, tsActxParam(val), val)
+	return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n  return [%s, null];\n}\n\n", name, tsActxParam(val), val)
 }
 
 // predicateFunc returns the arrow function of a predicate with the term ct of Core IR, built from the
@@ -75,11 +75,11 @@ func (g *Generator) predicateFunc(ct irc.Term, t grammar.Term, s *compile.Scope)
 	}
 	if !dispatch {
 		if body, ok := g.termStmts(ct, t, s, nil); ok {
-			return fmt.Sprintf("(%s) => {\n%s}", tsActxParam(body), body)
+			return fmt.Sprintf("(%s): [Value, Value] => {\n%s}", tsActxParam(body), body)
 		}
 	}
 	body := g.predicateTerm(t, s)
-	return fmt.Sprintf("(%s) => %s", tsActxParam(body), body)
+	return fmt.Sprintf("(%s): [Value, Value] => [%s, null]", tsActxParam(body), body)
 }
 
 // termTarget returns the TypeScript implementation of the operations of a lowered term whose leaves
@@ -120,11 +120,9 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return TsString(c.Imm.(lower.TermField).Field)
 			case lower.OpTermCastType:
 				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
-			case lower.OpTermRaise:
-				return "evalError(" + a[0] + " as string)"
 			case lower.OpTermCastError:
 				x := c.Imm.(lower.TermCast).Cast
-				return fmt.Sprintf("castFailed(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
+				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
 			case lower.OpTermTextEqual:
 				// As the term printer does, == of two strings, which charges as it does.
 				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", core.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
@@ -160,10 +158,10 @@ func (g *Generator) castTypeVar(x *irc.Cast) string {
 	return g.FieldTypeVar(x.Key, x.Check.(compile.Ty), tsFieldTypeDecl)
 }
 
-// tsCastFailed is the check function castFailed of fieldCheckSource.
-var tsCastFailed = strings.TrimSpace(`
-// castFailed raises the evaluation error of a cast of v to t, a type that v does not fit (castValue).
-function castFailed(c: Actx, v: Value, t: FieldType, gline: number, gcol: number): never {
+// tsCastFailure is the check function castFailure of fieldCheckSource.
+var tsCastFailure = strings.TrimSpace(`
+// castFailure returns the failure of a cast of v to t, a type that v does not fit (castValue).
+function castFailure(c: Actx, v: Value, t: FieldType, gline: number, gcol: number): string {
   const e = c.p.makeError(c.start, []);
-  return evalError(` + "`cannot cast ${typeName(v)} to ${t.text} at input position ${c.start} (line ${e.line}, column ${e.col})${gline > 0 ? `; cast at grammar position ${gline}:${gcol}` : \"\"}`" + `);
+  return (` + "`cannot cast ${typeName(v)} to ${t.text} at input position ${c.start} (line ${e.line}, column ${e.col})${gline > 0 ? `; cast at grammar position ${gline}:${gcol}` : \"\"}`" + `);
 }`)

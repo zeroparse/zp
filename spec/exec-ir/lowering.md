@@ -101,9 +101,13 @@ The function evaluates the term's operands in the order that the term evaluates 
 each operation of the term: `binary` for a binary operator, `unary` for a unary one, `member` for a member read, with
 the kind of the member read and the name of the field or capture that the name of the member selects ([Member
 Kinds](values.md#member-kinds)), `length` and `text` for the built-in functions, `convert` for a conversion to a
-named node type and `conforms` for a cast. Each composition that can fail is the value of a `Let` of its value and its
-failure, followed by a branch that calls `term.raise` with the failure when there is one. A cast keeps its operand in a
-local and calls `term.castError` with it when `conforms` rejects it. A logical operator calls `logic` on its left
+named node type and `conforms` for a cast. The function returns the term's value and its failure, null when the term
+does not fail, as a composition does. Each composition that can fail is the value of a `Let` of its value and its
+failure, followed by a branch that returns the null value and the failure when there is one. A cast keeps its operand
+in a local and, when `conforms` rejects it, returns the failure that `term.castError` makes of it. The caller handles
+the failure: a predicate or a binding fails, and an action ends the parse with an evaluation error. A target that
+evaluates an action in place, inside the function of its rule, instead of calling the term's function, ends the parse
+at each failure with `term.raise`. A logical operator calls `logic` on its left
 operand, and evaluates its right operand and calls `logic` on it only when the left one does not decide the result.
 An equality or inequality of two calls of `text` compares the two strings with `term.textEqual`, without making a
 value of either.
@@ -156,8 +160,8 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.field` | a member and the name it reads | Returns the name of the field or the capture that the member reads, an operand of `member`. A target whose comparison of names charges less for the same string data than for equal bytes cuts it from the name of the member, so that the charge does not depend on whether equal literals share their data. |
 | `term.nodeType` | the name of a named node type | Returns the node type, an operand of `convert`. |
 | `term.castType` | the cast | Returns the checked type of the cast, an operand of `conforms`. |
-| `term.raise` | none | Ends the evaluation of the term with the failure it is given. |
-| `term.castError` | the cast | Ends the evaluation of the term with the failure of the cast of the value it is given. |
+| `term.raise` | none | Ends the parse with the failure it is given, for an action evaluated in place. |
+| `term.castError` | the cast | Returns the failure of the cast of the value it is given. |
 | `term.textEqual` | none | Returns whether two strings are equal, as `==` compares them. |
 | `term.fromStr` | none | Returns a string as a value. |
 | `term.spend` | none | Charges one step of the budget, under budget controls. |

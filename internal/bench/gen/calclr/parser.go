@@ -233,12 +233,12 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 2)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[1].Body = e2
 	rules[2].Body = e5
-	rules[2].Action = func(c *rt.ActCtx) any {
+	rules[2].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Binary", 3)
 		tfirst2 := true
 		c.P.Spend()
@@ -251,11 +251,11 @@ func init() {
 		c.TermSetField(tn1, "Right", c.Cap(2))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[3].Body = e6
 	rules[4].Body = e10
-	rules[4].Action = func(c *rt.ActCtx) any {
+	rules[4].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Binary", 3)
 		tfirst2 := true
 		c.P.Spend()
@@ -268,11 +268,11 @@ func init() {
 		c.TermSetField(tn1, "Right", c.Cap(2))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[5].Body = e11
 	rules[6].Body = e12
-	rules[6].Action = func(c *rt.ActCtx) any {
+	rules[6].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Unary", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -282,10 +282,10 @@ func init() {
 		c.TermSetField(tn1, "X", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[8].Body = e15
-	rules[8].Action = func(c *rt.ActCtx) any {
+	rules[8].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Binary", 3)
 		tfirst2 := true
 		c.P.Spend()
@@ -298,15 +298,15 @@ func init() {
 		c.TermSetField(tn1, "Right", c.Cap(2))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[9].Body = e16
-	rules[9].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[9].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[10].Body = e19
-	rules[10].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[10].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	zpGrammar.DeclareStruct("Binary", "Left", "-", "Op", "-", "Right", "-")
 	zpGrammar.TypeKinds["Binary"] = rt.KindOf("Binary", "")
@@ -2148,4 +2148,4 @@ func s13(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_0f42d2a8b4d24bd6
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10
