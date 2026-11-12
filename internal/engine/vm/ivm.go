@@ -338,7 +338,7 @@ func (f *callFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			return nil, iresult{v: v, ok: ok}, true
 		}
 		if r.Leader {
-			f.g = p.GrowBegin(p.GrowKey(r, f.min), r.LeaderBit, r.Cycle)
+			f.g = p.GrowBegin(p.GrowKey(r, f.min), r)
 			if !p.GrowNext(&f.g) {
 				v, ok = p.GrowEnd(r, &f.g)
 				if p.MemoAll {

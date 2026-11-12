@@ -331,11 +331,12 @@ rule L = T "!" / &T S "q" "q"`,
 	r := RandomRecoveringCycleGrammar(2964)
 	r.Inputs = append(r.Inputs, "baabcac")
 	cases = append(cases, r)
-	// A context with more dependencies than the context store holds inline.
+	// A context with more dependencies than the context store holds inline, and more leaders than
+	// a word of present bits holds in generated parsers.
 	cases = append(cases, Case{
-		Name:   "seven dependencies",
-		Src:    "@start\nrule main = " + ContextChain(7, 7, false),
-		Inputs: []string{"axy", "aaxx", "aaaxxx", "axq", "aaxzx", "aqax", "a", ""},
+		Name:   "seven dependencies and 33 leaders",
+		Src:    "@start\nrule main = " + ContextChain(32, 7, false),
+		Inputs: []string{"axy", "aaxx", "aaaxxx", "axq", "aaxzx", "a", ""},
 	})
 	for s := int64(0); s < int64(seeds); s++ {
 		cases = append(cases, RandomCycleGrammar(s, false), RandomCycleGrammar(s, true), RandomRecoveringCycleGrammar(s))
@@ -386,6 +387,7 @@ func ContextChainInput(m int) string {
 var ContextStoreShapes = []DependencyMemoShape{
 	{"seven dependencies", ContextChain(7, 7, false), ContextChainInput},
 	{"nine dependencies", ContextChain(9, 9, false), ContextChainInput},
+	{"70 leaders", ContextChain(69, 1, false), ContextChainInput},
 }
 
 // ContextStoreSizes are the sizes m of the inputs of ContextStoreShapes that the tests compare: a

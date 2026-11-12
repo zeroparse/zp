@@ -902,9 +902,10 @@ type Rule struct {
 	// any other rule: a call of a rule of a cycle can read the seeds of the cycle's leaders that grow
 	// at its position (context_memo.go).
 	Cycle int32
-	// leaderBit is the bit of a leader in the present sets of the results of its cycle, or 0
-	// (setLeaderBits).
-	leaderBit uint32
+	// leaderIndex numbers the leaders of each cycle from 0, and leaderBit is the bit of a leader
+	// in the present sets of the results of its cycle, or 0 (setLeaderBits).
+	leaderIndex int32
+	leaderBit   uint32
 	// DocMemo means Documents memoize the rule, transient or not, as the engine does for a leader
 	// and for a rule marked for memoization.
 	DocMemo bool
@@ -1459,10 +1460,13 @@ type Parser struct {
 	looks    []lookRec
 	obsGuard []int32
 	seedSeq  uint64
-	unit     PositionUnit
-	In       []rune // code points (CodePoints)
-	bs       string // the input (Bytes)
-	n        int    // input length in units
+	// interned and internSeq number keys too large for a word (intern).
+	interned  map[string]uint64
+	internSeq uint64
+	unit      PositionUnit
+	In        []rune // code points (CodePoints)
+	bs        string // the input (Bytes)
+	n         int    // input length in units
 	// src and offs give token text without copying in CodePoints mode: offs[i] is the byte offset
 	// of code point i (len(in)+1 entries). For invalid UTF-8, offs is nil until the first text
 	// replaces src by the decoded input (with U+FFFD substituted) and builds its table; decoded
