@@ -246,8 +246,9 @@ strings and character classes:
   or closing delimiter after it, unless that is a name followed by `:`, which
   continues a chain of captures.
 - Each `=>` opens a level.
-- A `,` or `;` ends the levels opened after the innermost open bracket. With no
-  bracket open, so does a line break.
+- A `,` or `;` ends the levels opened after the innermost open bracket. So
+  does a line break when no bracket is open or the innermost open bracket is a
+  brace, where a line break ends a statement or item as `;` does.
 - A block comment nests one level deeper than the brackets open around it,
   and each block comment nested in it one more; the levels of operators and
   `=>` do not count for comments.
