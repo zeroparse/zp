@@ -1744,8 +1744,7 @@ $p$ before it consumes input, as a growing unit of that leader does, and let
 $u$ and $g$ share no call. In every step of the growth at
 $p$ except the first, the one whose seed is empty and, when $u$ is committing
 for $g$ by its words or decides it, a constant number of others, an evaluation
-of $u$ at $p$ examines at most a constant amount of the input, apart from the
-case of a decided $u$ that the proof names.
+of $u$ at $p$ examines at most a constant amount of the input.
 
 *Proof.* As a continuation of $u$, $g$ examines the input from $p$ through the
 seed. The seeds of the steps are the results of the steps before them and grow
@@ -1771,8 +1770,9 @@ $g$ in the step passes its first three symbols, through the seed. $u$ then fails
 at the decisive symbol or before it, after the symbols that it passed alike.
 Each of these is cheap, and by *Evaluations that read no growing result* below
 each costs a constant in every step after the first that evaluates it alike,
-except a call of a rule that calls no rule, which repeats its own scan; step 2
-of [Open Steps](#open-steps) keeps that case. $\square$
+except a call of a rule that calls no rule, which repeats its own scan;
+*Decided units at the position of the growth* below shows that such a call
+examines a constant amount of the input. $\square$
 
 The proof does not ask how $u$ reaches the input at $p$. A path of $u$ that
 reads the seed has the first characters of the leader among those of $u$,
@@ -2058,13 +2058,16 @@ do not include the seed* and of *Values bound from a growing result*, and
 the first, the one whose seed is empty and the last. In every other step, let
 $x$ be an evaluation at $p$ that calls no rule of the cycle at $p$ and fails
 after one of its scanning sources has examined input. Then, apart from a
-constant number of steps for each unit and each memoized rule and from the
-decided units that the proof names, $x$ examines at most a constant amount of
-the input.
+constant number of steps for each unit and each memoized rule, $x$ examines
+at most a constant amount of the input.
 
-*Proof.* By induction on the number of evaluations that the step makes after
-$x$ and before the successful left call below: the claim holds for those that
-come later in the step. The step goes on after $x$ fails and ends with a result that includes
+*Proof.* By induction, first on the number of leaders that do not grow at $p$
+around $x$, then on the number of evaluations that the step makes after $x$
+and before the successful left call below: the claim holds for an evaluation
+that lies in a step of a growth of another leader that the step nests at $p$,
+and for those that come later in the step. The first number is finite, since
+the growths at $p$ that enclose one another have distinct leaders (*Calls in a
+context of growths*), and the second is finite, since a step is. The step goes on after $x$ fails and ends with a result that includes
 the seed, so it makes a successful left call at $p$ after $x$. After a unit
 fails, the parser evaluates only its continuations at the unit's start, so let
 $U$ be the outermost unit that holds $x$ and fails before the step makes that
@@ -2121,11 +2124,50 @@ one of them.
   number of steps.
 - *Inside a shared call.* Let $x$ lie inside $c_i$. The calls before $c_i$ end
   at $p$ on both sides, as above, so $c_i$ is a call at $p$ on both sides. If
-  its rule is on the cycle, it is a leader that grows in the context, since a
+  its rule is on the cycle, it is a leader $R$ that grows in the context, since a
   read of the seed evaluates no body and a left call of another rule of the
-  cycle is not shared; $x$ then lies in a step of that growth, which the step
-  nests at $p$, and the claim applies to $x$ with that growth in place of the
-  growth at $p$, *Growths inside a step* bounding those growths. If its rule is
+  cycle is not shared, and $x$ lies in a step $t$ of that growth, which the
+  step nests at $p$. The claim is not applied to the growth of $R$ with its own
+  exceptions: of the second and third kinds of *Growths inside a step*, that
+  growth starts anew in each step at $p$, so its first, empty-seed and last
+  steps recur once in each of them. The argument above is applied instead to
+  $x$ in $t$ with the seed $s$ of the step at $p$, which is not empty, in place
+  of the seed of $R$. Let $U'$ be the outermost unit that holds $x$ and fails in
+  $t$ before $t$ ends or fails. The successful left call of the step lies inside
+  $c_i$ or after it in $g$.
+  - When the call lies inside $c_i$, the result of $c_i$ includes the growing result $s$, so the
+    growth of $R$ is of the second kind, and each of its results from the first
+    that is not empty includes $s$ and begins with it, since the read starts at
+    $p$ and what comes before it consumes nothing. If $t$ makes after $x$ a
+    successful read at $p$ of a result that is not empty, that result is $s$ or
+    a seed of $R$ that begins with $s$. Otherwise the paths of $t$ through its
+    reads of the seed of $R$ fail or keep the position at $p$, and $t$ ends with
+    a result that passes through no read of a result that is not empty, which by
+    *Steps that begin anew* is the result of the first step of $R$, so that
+    result is empty; the step with the empty seed then ends with a result that
+    includes $s$, through a left call of $R$ that reads the empty seed and is
+    followed, before it consumes input, by a read of $s$. What follows that left
+    call is a continuation of $U'$ through the end of the body of $R$.
+  - When it lies after $c_i$, $g$ makes the left call before it consumes input, so $c_i$
+    ends at $p$ and the growth of $R$ ends with an empty result. The part of $g$
+    after $c_i$, through the end of the body of $R$ and the call $c_i$, is a
+    continuation of $U'$, or of the step $t$ as a unit when $t$ is the step with
+    the empty seed and fails, whose continuations follow the calls that start
+    the growth at the end of that seed, here $p$.
+
+  In each case $U'$, or the step, has a continuation $g'$ that makes a left call
+  at $p$ before it consumes input and has a path through $s$ or through a seed
+  of $R$ that begins with $s$. The argument above, with $U'$ and $g'$ in place of
+  $U$ and $g$, then bounds $x$ as in *Sources at fixed offsets*, with $s$ in
+  place of the seed: the character at $p$ is the first of $s$; a word $w$ of
+  $U'$ is matched at $p$ only in the steps at $p$ whose seed ends before the end
+  of $w$; and a path of $g'$ through $s$ passes its first three symbols apart
+  from the first three steps at $p$ with a seed that is not empty. A further
+  shared call that holds $x$ is handled by the induction, on a leader that
+  grows inside $R$ or on a later evaluation. So the steps left out are steps
+  at $p$, a constant number for each unit, whichever step of $R$ holds $x$. A
+  growth of the first kind takes the steps of an earlier growth of $R$ in the
+  context again, so it evaluates $x$ again in none of them. If its rule is
   off the cycle and memoized at the call, it calls no rule of the cycle at $p$,
   since a rule reached from the cycle through left calls that reaches the
   cycle again through left calls is on it, and it reads no variable, so by
@@ -2142,9 +2184,59 @@ one of them.
 
 So a pair that shares a call is bounded as one that shares none: the steps
 left out are those of *Sources at fixed offsets* for the parts after the
-shared calls, and one step for each memoized rule. The decided units that
-*Sources at fixed offsets* names remain, and step 2 of [Open
-Steps](#open-steps) keeps them. $\square$
+shared calls, and one step for each memoized rule. $\square$
+
+**Decided units at the position of the growth.** In the steps that
+*Failures at the position of the growth* does not leave out, let the unit $V$
+that holds $x$ be decided by its continuation $g$, and let $C$ be a call of a
+rule that calls no rule that $V$ passes alike before it parts. Then $C$
+examines at most a constant amount of the input, and $V$ fails at $p$ at the
+decisive symbol or inside a unit that condition 2 checks at $p$.
+
+*Proof.* The step reaches $V$ at $p$ through symbols that it passes at $p$
+without consuming input, its **route**: the left calls on the way, the
+lookaheads and the parts that match nothing. The left call of $g$ stands for
+the paths of the body of the leader, so $g$ has a path made of its symbols
+before that call, which pass at $p$ without consuming input since $g$ makes
+the call before it consumes input, then the route, then the path $P$ of $V$
+in the step: the copy of $P$ that the left call reaches. $V$ must part from
+it. When $g$ has no symbol before its left call and the route is empty, $P$ is
+compared with itself; the
+two pass the same symbols alike and reach the same symbol, at which either
+both go on or neither can, and neither is decisive ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)), so $V$ is not
+decided. So the copy is preceded by at least one symbol. Each symbol of $P$
+that is passed alike faces one of those symbols, which the step passed at $p$
+without consuming input, or an earlier symbol of $P$; by induction along $P$, both are at $p$
+and consume nothing, since symbols passed alike evaluate alike at one
+position. So $C$ is a call at $p$, evaluated in each step in a body of the
+cycle or in a call at $p$ that is not memoized at the call. If $C$ is inside
+a call memoized at the call of a rule off the cycle, so is $V$, and by
+*Evaluations that read no growing result* the memo answers that call in every
+step after the first that evaluates it. Otherwise the rule of $C$ calls no
+rule and is not memoized, so by condition 3 it holds no scanning source, and
+$C$ examines what Lemma 1 bounds.
+
+$V$ also fails at $p$ at the decisive symbol. The symbol on the side of the
+copy was passed at $p$ by the step: it precedes the copy or is an earlier
+symbol of $P$. If it is a literal, a class or a symbol whose first characters
+are disjoint from those of the symbol of $V$, $V$ fails there, at $p$. If it
+is a positive lookahead $\&K$ that matched at $p$, the next symbol of $V$ is
+disjoint from $K$ and fails at $p$. If it is a negative lookahead $!K$ whose
+expression failed at $p$, the rest of $P$ must match $K$, so $V$ fails within
+the symbols that $K$ reads. $K$ is the expression of a lookahead, a unit
+that condition 2 checks whether or not it fails, and the copy of $P$ follows
+it at $p$ without consuming input, so it is among the continuations of $K$.
+A scanning source of $V$ among the symbols that $K$ reads is matched by $K$
+over the same input, so $K$ contains one there too, and $K$ and the copy of
+$P$ begin with the same characters after the calls that they share. So $K$
+is committing for that copy only when its scanning sources lie inside calls
+that it shares with $P$ at their start, at $p$, which condition 3 and the
+memo bound as in the paragraph above. A symbol of $V$'s side that decides, a dead symbol, a lookahead or
+the end of the parse, fails $V$ at $p$ as well, or is evaluated by $V$ at
+$p$ as part of the unit that condition 2 checks. So $V$ examines at most a
+constant amount of the input beyond what Lemma 1 bounds in every step that
+the claims above do not leave out. $\square$
 
 So in each step, apart from a constant number of steps for each growth and
 each unit, what a step evaluates at $p$ outside the parts that read the seed
@@ -5272,12 +5364,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    also when the unit and the continuation share calls, and shows that the
    values of the variables change in a growth only through a binding at its
    position from a growing result, which leaves those claims in force (*Values
-   bound from a growing result*). One case
-   remains: a unit that its continuation decides: the unit fails within three
-   symbols in every step but a constant number, but among the symbols that it
-   passes alike, a call of a rule that calls no rule repeats its own scan in
-   each step, at the same position, and nothing yet bounds the number of such
-   steps or shows that the unit cannot be decided when that scan is long.
+   bound from a growing result*), and that a decided unit examines a constant
+   amount of the input there (*Decided units at the position of the growth*).
 3. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an
