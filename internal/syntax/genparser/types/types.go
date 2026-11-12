@@ -780,10 +780,10 @@ type True struct{ TNode[string] }
 // VarRef is the node type VarRef = node[string].
 type VarRef struct{ TNode[string] }
 
-// Action is the join type Action ~ Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error | ActionBlock | DefaultAction. Error (left by #recover) also implements it.
+// Action is the join type Action ~ Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | ActionBlock | DefaultAction. Error (left by #recover) also implements it.
 type Action interface{ isAction() }
 
-// ActionExpr is the join type ActionExpr ~ Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error. Error (left by #recover) also implements it.
+// ActionExpr is the join type ActionExpr ~ Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda. Error (left by #recover) also implements it.
 type ActionExpr interface{ isActionExpr() }
 
 // ActionStmt is the join type ActionStmt ~ ActionBind | Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error. Error (left by #recover) also implements it.
