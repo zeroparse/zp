@@ -30,8 +30,8 @@ var depMemoMutations = map[string][][2]string{
 		{"if d.kind == depSeed {\n\t\t\trest = k.add(d.val, rest)\n", "if d.kind == depSeed {\n\t\t\trest = k.add(0, rest)\n"},
 	},
 	"observations": {
-		{"v := p.obsValue(pos, gp, h.present, o)\n", "v := obsUnique + 0*uint64(o)\n"},
-		{"if d.kind == depObs {\n\t\t\trest = k.add(d.val, rest)\n", "if d.kind == depObs {\n\t\t\trest = k.add(obsUnique, rest)\n"},
+		{"v := p.obsValue(pos, gp, h.present, o)\n", "v := obsWide + 0*uint64(o)\n"},
+		{"if d.kind == depObs {\n\t\t\trest = k.add(d.val, rest)\n", "if d.kind == depObs {\n\t\t\trest = k.add(obsWide, rest)\n"},
 		{"if v, free := p.obsFree(g.start, g.gp, g.present, d.site, g.growKey()); v != d.val || !free {", "if false {"},
 	},
 	"present growths": {
