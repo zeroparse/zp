@@ -76,11 +76,12 @@ const (
 	unitRecover
 	unitOperand
 	unitOperator
+	unitStep
 )
 
 func (u unitKind) String() string {
 	return [...]string{"the alternative", "an iteration of the repetition", "the option", "the lookahead",
-		"the base of the #recover", "the operand", "the operator part"}[u]
+		"the base of the #recover", "the operand", "the operator part", "a step of the growth"}[u]
 }
 
 // contSpec is one continuation of a unit, with a description for witnesses.
@@ -1398,6 +1399,10 @@ func (k *classifier) checkUnits() {
 			k.checkGrowingUnit(u)
 			continue
 		}
+		if u.kind == unitStep {
+			k.checkStepUnit(u)
+			continue
+		}
 		if !k.unitFailsAfterSource(u) {
 			continue
 		}
@@ -1630,7 +1635,8 @@ func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 // memberStarts follows the body of the member rule, called where its cycle does not grow, through
 // the left calls of members of the cycle to the left calls of leaders, which start the growths,
 // and returns what follows those calls, continued by after. It fails when a left call of the cycle
-// is in an expression that it does not follow.
+// is in an expression that it does not follow. Applied to the body of a leader, followed by its
+// end, it gives the step tails of the leader (addStepUnits).
 func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []*cont, ok bool) {
 	ok = true
 	budget := leadBudget
@@ -1956,6 +1962,10 @@ func (k *classifier) checkNesting() {
 	}
 	for _, u := range nc {
 		switch {
+		case u.kind == unitStep:
+			// As for a growing unit, whose left call is a call of its recursion, the classifier
+			// gives no degree for a step that is not committing.
+			k.reason(u.rule, u.pos, "%s", k.stepMessage(u))
 		case unbounded[u]:
 			k.reason(u.rule, u.pos, "%s at %s is not committing against %s, and units that are not committing are nested in it without bound through a recursion of rule calls",
 				u.kind, at(u.rule, u.pos), u.witness)

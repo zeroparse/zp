@@ -114,8 +114,10 @@ func (k *classifier) collectRestarts() {
 		if u.growing || !k.recursive[u.rule] || !u.hasSource || u.unsupported != "" || !k.callsRecursion(u) {
 			continue
 		}
-		for _, cs := range u.conts {
-			k.strip(u.self, cs.paths, u)
+		for _, self := range k.selfPaths(u) {
+			for _, cs := range u.conts {
+				k.strip(self, cs.paths, u)
+			}
 		}
 	}
 }

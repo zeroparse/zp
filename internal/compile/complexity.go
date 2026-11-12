@@ -483,6 +483,7 @@ func (k *classifier) classify() *Complexity {
 	k.computeRuleSources()
 	k.computeFailRules()
 	k.computeFollow()
+	k.addStepUnits()
 	k.addRetried()
 	k.checkUnits()
 	k.checkCutLeftCalls()

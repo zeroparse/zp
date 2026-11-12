@@ -972,6 +972,22 @@ func Controls() []Control {
 			Input:  func(n int) string { return rep("b", n) },
 			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
 		},
+		// A step of the growth of S after the seed "bc" matches "a", and the last alternative of T
+		// scans the rest of the input and fails at its end. The step is dropped, the parser goes on
+		// at the end of the seed, and the next growth, four characters on, scans the rest again.
+		{
+			Name: "Dropped growth step that scans", Family: "growth steps",
+			Source: "rule main = (S / [ac-z])* $$\nrule S = (S \"a\" / \"b\") T\nrule T = \"c\" / \"d\" [a-z]* \"!\"\n",
+			Input:  func(n int) string { return rep("bcad", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+		},
+		// Without the scan in T no step can fail after a scanning source.
+		{
+			Name: "Dropped growth step without a scan", Family: "growth steps", Positive: true,
+			Source: "rule main = (S / [ac-z])* $$\nrule S = (S \"a\" / \"b\") T\nrule T = \"c\" / \"d\" \"!\"\n",
+			Input:  func(n int) string { return rep("bcad", n) },
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassLinear,
+		},
 		// A recovery ends after its skip, which reaches sp from every position of a run of letters.
 		{
 			Name: "Scan behind a recovery with many starts", Family: "bounded scans",
