@@ -2933,8 +2933,10 @@ paragraph above. The memo does not answer it, since $g'$ lies in it, so it
 grows the leader as the other outer growth of that key, which takes the steps
 of the first (*Second outer growths*). If $g'$ is that growth, it is the other
 outer growth of the key of $c_1$. Otherwise the call that starts $g'$ has a
-counterpart at the same place in the first outer growth, with the same key,
-made before it and in no context of growths, since $g'$ is outer; that call
+counterpart at the same place in the first outer growth, or, where that
+growth found a call above the place in the memo, in the earlier evaluation
+that stored the entry; either way the counterpart has the same key, is made
+before it and is in no context of growths, since $g'$ is outer; that call
 grew the leader or the memo answered it from an earlier growth of the key, so
 $g'$ is the second outer growth of its own key. $\square$
 
@@ -3093,8 +3095,9 @@ the memo answers it, or it starts the second outer growth of that key: no
 growth activation of a first outer growth repeats $\alpha$ between $\alpha$
 and $\alpha'$. When $\alpha'$ lies in the evaluation of the shared call that
 $\kappa$ makes, where $R$ grows again, the call that starts the growth of
-$\alpha'$ has a counterpart at the same place in the first growth of $R$,
-with the same key, made before it and in no context of growths; that call
+$\alpha'$ has a counterpart at the same place in the first growth of $R$, or
+in the earlier evaluation that stored an entry that growth found above the
+place, with the same key, made before it and in no context of growths; that call
 grew the leader or the memo answered it from an earlier growth of the key,
 so the growth of $\alpha'$ is the second outer growth of its key. The claim
 below takes the pairs where $\alpha'$ lies outside that evaluation, and
@@ -3115,8 +3118,9 @@ those of case 5, of a dropped step at the position of its growth, of a second
 outer growth, of the second case of *Repeats inside a growth* and of part 3
 of *Growths at many positions*. Then neither item 1 of *Repeats inside a
 family* nor the second alternative of its item 2 holds for $\alpha$ and
-$\alpha'$, apart from the case of a growth of a leader of another cycle that
-the proof leaves open.
+$\alpha'$, apart from the case that the proof leaves open: $\alpha'$ in a later
+step of a growth at $p$ that starts after $\alpha$, of any cycle, such as a
+growth of a leader of another cycle started in $\kappa$.
 
 *Proof.* Suppose that one of them holds. Then $w$ starts at $p$ with a call
 $c$ of a leader $R$ that it shares with its continuation $\kappa$, $\alpha$
