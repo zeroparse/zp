@@ -414,6 +414,12 @@ func TestClassifyComplexity(t *testing.T) {
 		{"start rule called from one place in a bounded list", "@start\nrule main = \"x\" (\",\" main)#repeat(0,3)\n", ClassLinear, 0},
 		{"rebinding after the left call", "var k int\nrule main = e $$\nrule e = e \"x\" {k := k + 1} / \"x\" {k >= 0}\n", ClassLinearEnv, 0},
 		{"non-leader cycle members", "rule main = c $$\nrule a = c \"+\" / \"n\"\nrule c = \"(\" c \")\" \"y\" / \"(\" c \")\" \"z\" / a\n", ClassLinear, 0},
+		// The negative lookahead of the later alternative fails wherever "c" "y" is, so the scan of
+		// the first alternative is not restarted.
+		{"later alternative decided by a negative lookahead", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = \"c\" \"q\" / \"c\" \"y\"\nrule f = [cxye]*\n", ClassLinear, 0},
+		// A cut commits the choice of k after "c", so k fails on "c" "y" and the lookahead passes:
+		// on ("cyx")^n "e" each step scans f to the end again.
+		{"later alternative behind a lookahead with a cut", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = \"c\" #cut \"q\" / \"c\" \"y\"\nrule f = [cxye]*\n", ClassPoly, 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)
