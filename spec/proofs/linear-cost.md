@@ -575,6 +575,16 @@ a unit is committing give the following cases.
    examines nothing that the alternative examined before its call of a
    leader, and makes only local cost after it; Lemma 5 counts the steps that
    the call starts.
+6. *Decided units.* A unit that
+   [decides](../runtime/parsing.md#conditions-for-linear-cost) the
+   continuation parts from it at a decisive symbol that at most one of them
+   passes, after symbols that both evaluate alike at the same positions. Before
+   that point the continuation evaluates again only cheap symbols, whose
+   activations lie in calls that the memo counts or that repeat a scan of the
+   unit at the same position, and a scanning source of the unit lies in an
+   expression that the comparison does not look into, which neither side
+   reaches without passing the decisive symbol ([Decided
+   Units](decided-units.md)).
 
 A unit that fails only before its sources examined input gives back no more
 input than its parts before the sources examined, which Lemma 1 bounds. A unit
@@ -620,7 +630,11 @@ source of $w$ outside the shared calls. In case 4 the path of $w$ that
 contains $\alpha$ matched its word $W$ from $t$, and $\sigma$ follows the word,
 so $q \ge t + |W|$; on that input every path of $\kappa$ fails, examines
 nothing more or meets a known negative lookahead before $t + |W|$, so the
-parser does not reach $q$. Only case 5 remains. $\square$
+parser does not reach $q$. In case 6 the
+[theorem](decided-units.md#theorem-decided-units-in-lemma-4) of the Decided
+Units proof excludes the pair, except when $\sigma$ is the operators of an
+Operators Rule whose evaluation contains $w$, which rests on step 3 of [Open
+Steps](#open-steps). Only case 5 remains. $\square$
 
 The claim covers the iterations and skip evaluations of a body and the
 operators that an Operators Rule applies, which are direct in its body
@@ -640,7 +654,10 @@ $\alpha$ is in $w$ after the shared calls, inside a call of $w$ or not, so the
 character at $t$ is a first character of both, and a call of $w$ after the
 shared calls that contains $\alpha$ contains a scanning source, so case 3 does
 not hold either. So $\alpha$ is in a shared call, which starts at or before
-$q$. $\square$
+$q$. For a unit that is committing only by case 6 the claim is open: the
+activations that the continuation repeats lie in calls that the comparison
+passes alike, which need not be shared ([Decided
+Units](decided-units.md#open-points), point 1). $\square$
 
 The claim does not place $\alpha'$ in an evaluation of the same call. The part
 of the shared call that holds $\alpha$ can be an abandoned unit that examined
