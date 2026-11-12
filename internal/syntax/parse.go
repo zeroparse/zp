@@ -186,6 +186,8 @@ func (m *messages) message(e *genparser.SyntaxError) string {
 	switch {
 	case typeSpellings[msg] != "" && i >= 1 && m.toks[i-1].kind == tIdent:
 		return fmt.Sprintf(typeSpellings[msg], m.toks[i-1].text)
+	case msg == "a capture is read with .$" && m.toks[i].kind == tIdent:
+		return msg + m.toks[i].text
 	case strings.HasPrefix(msg, "a capture is read by name") && m.toks[i].kind == tIndex:
 		return fmt.Sprintf("%s instead of $%d", msg, m.toks[i].num)
 	case msg == "unknown pragma" && i >= 2 && m.toks[i-1].kind == tIdent && m.toks[i-2].kind == tPunct && m.toks[i-2].text == "#":
