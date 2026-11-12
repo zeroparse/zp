@@ -1811,10 +1811,6 @@ function foldASCII(r: number): number {
 // failSeed is the identity of the failure that every growth starts from.
 const failSeed = 1;
 
-// maxCtxDeps is the most dependencies a result in a context table can have; a result with more is
-// evaluated again.
-const maxCtxDeps = 6;
-
 // The value of an observation for which no outcome is memoized. Outcomes are 0 and 1.
 const obsNone = -1;
 
@@ -3617,9 +3613,6 @@ export class Parser {
     for (const d of ds) {
       if (d.kind === depShadow) {
         continue;
-      }
-      if (seeds.length / 2 + obs.length === maxCtxDeps) {
-        return; // too many dependencies to index: the result is evaluated again
       }
       if (d.kind === depSeed) {
         seeds.push(d.rule, d.min);

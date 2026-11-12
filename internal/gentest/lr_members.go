@@ -331,11 +331,70 @@ rule L = T "!" / &T S "q" "q"`,
 	r := RandomRecoveringCycleGrammar(2964)
 	r.Inputs = append(r.Inputs, "baabcac")
 	cases = append(cases, r)
+	// A context with more dependencies than the context store holds inline.
+	cases = append(cases, Case{
+		Name:   "seven dependencies",
+		Src:    "@start\nrule main = " + ContextChain(7, 7, false),
+		Inputs: []string{"axy", "aaxx", "aaaxxx", "axq", "aaxzx", "aqax", "a", ""},
+	})
 	for s := int64(0); s < int64(seeds); s++ {
 		cases = append(cases, RandomCycleGrammar(s, false), RandomCycleGrammar(s, true), RandomRecoveringCycleGrammar(s))
 	}
 	return cases
 }
+
+// ContextChain returns the rules after "rule main = " of a chain of leaders L1..Ln nested around
+// L, whose every step calls B at the same position. B and G read the seeds of the first reads
+// leaders and G's growth consumes the a's: on the input a^m x^m (ContextChainInput), a parse
+// evaluates B at the start a number of times that does not grow with m, once the context store
+// indexes the dependencies (reads of them) and the present sets (n+1 leaders) of these contexts.
+// With missing, main also inserts a missing ";" at its end.
+func ContextChain(n, reads int, missing bool) string {
+	var b strings.Builder
+	b.WriteString("L1")
+	if missing {
+		b.WriteString(` ";" #missing`)
+	}
+	b.WriteString(" $$\n")
+	for i := 1; i <= n; i++ {
+		next := fmt.Sprintf("L%d", i+1)
+		if i == n {
+			next = "L"
+		}
+		fmt.Fprintf(&b, "rule L%d = L%d \"z\" / %s\n", i, i, next)
+	}
+	var r strings.Builder
+	for i := 1; i <= reads; i++ {
+		fmt.Fprintf(&r, "(L%d \"q\")? ", i)
+	}
+	b.WriteString("rule L = B \"y\" / L \"x\" / B\n")
+	b.WriteString("rule B = " + r.String() + "G\n")
+	b.WriteString("rule G = " + r.String() + "(G \"a\" / \"a\")\n")
+	return b.String()
+}
+
+// ContextChainInput is the input a^m x^m of ContextChain.
+func ContextChainInput(m int) string {
+	return strings.Repeat("a", m) + strings.Repeat("x", m)
+}
+
+// ContextStoreShapes are shapes of ContextChain whose contexts need more than the fixed-size keys
+// of the context store: more dependencies than its inline values, more leaders than one word of
+// present bits on each backend. Their parses evaluate a number of calls linear in the input but
+// with a large constant, so the tests compare small inputs (ContextStoreSizes) and check no long
+// input.
+var ContextStoreShapes = []DependencyMemoShape{
+	{"seven dependencies", ContextChain(7, 7, false), ContextChainInput},
+	{"nine dependencies", ContextChain(9, 9, false), ContextChainInput},
+}
+
+// ContextStoreSizes are the sizes m of the inputs of ContextStoreShapes that the tests compare: a
+// parse of the larger evaluates at most ContextStoreGrowth times the calls of the smaller, where a
+// context that the store cannot index makes the count quadratic in m.
+var ContextStoreSizes = [2]int{10, 40}
+
+// ContextStoreGrowth bounds the ratio of the evaluations at the two ContextStoreSizes.
+const ContextStoreGrowth = 5
 
 // DependencyMemoShape is a grammar whose leaders grow inside the growth of another leader at the
 // same position, with an input family whose parse evaluates a number of calls linear in its length.

@@ -59,7 +59,8 @@ func TestGeneratedTSLeftRecursionDependencyMemo(t *testing.T) {
 // doubling the input at most a little more than doubles the evaluations. Generated with budget
 // controls, they parse an input of length 10,000 within the default budget, which grows linearly
 // with the input and counts work that evaluations do not show, such as the scan of the jumps
-// recorded for a seed.
+// recorded for a seed. The shapes of gentest.ContextStoreShapes, whose constant is large, are
+// compared at gentest.ContextStoreSizes instead, without the long input.
 func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -78,6 +79,8 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 	write("package.json", []byte(`{"type":"module"}`))
 	var main strings.Builder
 	shapes := gentest.SampledShapes()
+	costly := len(shapes)
+	shapes = append(shapes, gentest.ContextStoreShapes...)
 	for i, s := range shapes {
 		code, err := gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), gen.GenOptions{Start: "main", Observability: true})
 		if err != nil {
@@ -100,6 +103,10 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		"};\n" +
 		"const withinBudget = (m, input) => m.parseWithOptions(input, {}).error === null;\n")
 	for i, s := range shapes {
+		if i >= costly {
+			fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), true);\n", i, strconv.Quote(s.Input(gentest.ContextStoreSizes[0])), strconv.Quote(s.Input(gentest.ContextStoreSizes[1])))
+			continue
+		}
 		fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), withinBudget(c%[1]d, %[4]s));\n", i, strconv.Quote(s.Input(80)), strconv.Quote(s.Input(160)), strconv.Quote(s.Input(10000)))
 	}
 	write("main.mjs", []byte(main.String()))
@@ -124,7 +131,11 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		if !long {
 			t.Errorf("%s: no parse at 10000 within the default budget", s.Name)
 		}
-		if small == 0 || large > small*5/2 {
+		if i >= costly {
+			if small == 0 || large > small*gentest.ContextStoreGrowth {
+				t.Errorf("%s: %d evaluations at m=%d, %d at m=%d", s.Name, small, gentest.ContextStoreSizes[0], large, gentest.ContextStoreSizes[1])
+			}
+		} else if small == 0 || large > small*5/2 {
 			t.Errorf("%s: %d evaluations at 80, %d at 160", s.Name, small, large)
 		}
 	}
