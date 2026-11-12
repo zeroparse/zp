@@ -2909,9 +2909,16 @@ those of the step tail that holds $c_1$, so the character at $t$ is one of
 them; when it is an evaluation
 $w'$ below the step, it holds $c_1$, and what the parser evaluates after it
 is its continuation. The shared call contains $c_1$, so it is $c_1$ or
-contains $E$. If it is $c_1$, the paragraph above makes $c_2$ the evaluation
-of that call in $\kappa$, with the key of $c_1$, and $g'$ the other outer
-growth of that key. $\square$
+contains $E$. If it is $c_1$, $g'$ lies in the evaluation of that call in
+$\kappa$, which has the key of $c_1$ and is in no context of growths, by the
+paragraph above. The memo does not answer it, since $g'$ lies in it, so it
+grows the leader as the other outer growth of that key, which takes the steps
+of the first (*Second outer growths*). If $g'$ is that growth, it is the other
+outer growth of the key of $c_1$. Otherwise the call that starts $g'$ has a
+counterpart at the same place in the first outer growth, with the same key,
+made before it and in no context of growths, since $g'$ is outer; that call
+grew the leader or the memo answered it from an earlier growth of the key, so
+$g'$ is the second outer growth of its own key. $\square$
 
 A shared call that is the call $c_1$ itself, made by the unit directly or as
 the first thing that the body of a call that it starts with evaluates, arises
@@ -2994,9 +3001,26 @@ The first step of the growth that the path enters repeats what the path left
 only when the path starts that growth: when a growth of the cycle is in
 progress at the position of the alternative, the path reads its growing
 result, and the step that evaluates the alternative again is a later one.
-Let the path start the growth, at the position $p_0$ of the alternative, and
-let its first step evaluate the alternative again, with the values of the
-variables that the alternative read when the path left it. The alternative
+Let the path start the growth, at the position $p_0$ of the alternative. Its
+first step evaluates the alternative again with the values of the variables
+that the alternative read when the path left it. These are variables that the
+rules of the cycle read, since the alternative is part of the body of one, the
+rule $r$ that holds it. The alternative and the path start at $p_0$, where $r$
+is called, since the path reaches a left call; the path reaches the call of
+the leader through left calls of rules of the cycle, and the first step
+reaches the call of $r$ that evaluates the alternative again from the body of
+the leader through calls made at $p_0$ before input is consumed, so through
+rules that are on the cycle too. A binding of a variable that the rules of a
+cycle read is a compile-time error where it may run before a call into the
+cycle that may run before consuming input, in the body of a rule of the
+cycle, and a binding in a called rule ends with that call ([Left
+Recursion](../language/parser-expressions.md#left-recursion)). A binding
+that runs in the body of a rule on these two chains of calls before the next
+call of the chain is of that kind, and so is a binding in $r$ before the
+alternative, since it also precedes the left call of the path. So these
+variables have the same values at the start of the alternative, at the call
+of the leader, in the body of the leader that the first step evaluates and
+at the start of the alternative in it. The alternative
 makes no left call of the cycle, so it reads no growing result and evaluates
 again as before, up to its calls, which read no variable and have the same
 keys. Those that are memoized at the call are outside contexts of growths: a
@@ -3011,21 +3035,7 @@ answers it in the first step, made inside the evaluation that holds the
 alternative and at the same place in it, so in the same lookahead state
 (*Answered calls*). The scanning sources of the alternative, the calls that
 start a growth among them, lie inside these calls, so the first step repeats
-none of their activations. When the variables that the alternative reads have
-other values in the first step, its path can differ and make its calls at
-other positions. Each of those calls reads no variable, is memoized at the
-call and lies outside contexts of growths by the argument above, so each
-evaluation of it is one of the at most three body evaluations of its variant,
-position and level (Lemma 3), or, for a leader, one of the at most two outer
-growths of its key, and an activation that the first step makes inside it is
-held by a memoized evaluation, which *Activations held by heads* charges to
-the head of its class. The path starts the growth, which is outer, so the
-first steps that evaluate the alternative at $p_0$ are at most two for each
-key of the leader there. What remains is the activations at $q$ that such a
-first step makes inside a head, which *Activations held by heads* leaves to
-this lemma as repeats of case 5: the heads that the first steps at the
-positions before $q$ reach in this way are not shown to be bounded in number
-at $q$.
+none of their activations.
 
 The growth activations that a dropped step repeats in a part that it
 evaluates at the position of its growth are charged as the count after
@@ -3074,9 +3084,11 @@ replaces the repeat of $\alpha$ by the call that the memo answers in its
 place.
 
 **Answered places.** Let $g$, $\sigma$ and $q$ be as in *Repeats inside a
-family*. A **stand-in** at $q$ is a call that starts a growth of the source
-$\sigma$, made in the family region of $g$ at a position at or before $q$,
-that the memo answers with a result that ends after $q$. Let $\alpha$ and
+family*. A **stand-in** at $q$ is a call of the leader at a call whose
+scanning source is $\sigma$, made in the family region of $g$ at a position at
+or before $q$, which would start a growth of $\sigma$, and which the memo
+answers with the result of an earlier outer growth of its key, a result that
+ends after $q$. Let $\alpha$ and
 $\alpha'$ be consecutive successful growth activations of $\sigma$ at $q$
 under the hypotheses of *Repeats inside a family*, and let $\alpha'$ be none
 of the growth activations that *Restarts of growth activations* and *Direct
@@ -3085,7 +3097,8 @@ those of case 5, of a dropped step at the position of its growth, of a second
 outer growth, of the second case of *Repeats inside a growth* and of part 3
 of *Growths at many positions*. Then neither item 1 of *Repeats inside a
 family* nor the second alternative of its item 2 holds for $\alpha$ and
-$\alpha'$.
+$\alpha'$, apart from the case of a growth of a leader of another cycle that
+the proof leaves open.
 
 *Proof.* Suppose that one of them holds. Then $w$ starts at $p$ with a call
 $c$ of a leader $R$ that it shares with its continuation $\kappa$, $\alpha$
@@ -3094,12 +3107,13 @@ growth at $p$ that contains $N$, and, by the paragraph above, $\alpha'$ lies
 outside the evaluation of $c$ that $\kappa$ makes. Let $x_0 = \alpha$, and let
 $x_k$, $w_k$, $c_k$, $R_k$ and $\kappa_k$ be such a call or activation and
 such a unit, shared call, leader and continuation, with $x_k$ in the growth
-of $R_k$ that $c_k$ makes in step $j$ and $\alpha'$ outside the evaluation of
+of $R_k$ that $c_k$ makes in a step $j_k$ of the innermost growth at $p$ that
+holds $w_k$, and $\alpha'$ outside the evaluation of
 $c_k$ that $\kappa_k$ makes, starting with $w$, $c$, $R$ and $\kappa$ for
-$k = 0$.
+$k = 0$ and $j_0 = j$.
 
 As in the proof of *Consecutive repeats inside a family*, $\kappa_k$ makes its
-call of $c_k$ after $w_k$ ends and before $\alpha'$, in step $j$, and $R_k$
+call of $c_k$ after $w_k$ ends and before $\alpha'$, in step $j_k$, and $R_k$
 grows again there and takes the same steps as the first time down to the
 place of $x_k$: every evaluation on that path lies in the family region and
 is evaluated again, with no reuse in a context, the calls off the path have
@@ -3115,26 +3129,61 @@ stand-in $x_{k+1}$, made after $x_k$ and before $\alpha'$. It lies in no call
 of a rule that calls no rule, as $x_k$ does not, and in no dropped step: the
 call of $c_k$ in $\kappa_k$ lies in the same steps of the growths at $p$ as the
 one in $w_k$, which hold $x_k$ and so are not dropped, and the growth of
-$R_k$ drops the same steps as the first time.
+$R_k$, and every growth at $p$ that it nests on the path down to $x_{k+1}$,
+drops the same steps as the first time, since it takes the same steps.
 
 *Restarts of growth activations*, *Direct growth activations*, *Repeats* and
 *Repeats inside a family* use of the earlier of the two activations only that
 it lies inside the evaluations above it on its path, that it is a call that
 starts a growth of $\sigma$, a scanning source of every unit that holds it,
 that it starts at or before $q$ and that the path consumes through it the
-input from its start to past $q$, that no dropped step and no call of a rule
-that calls no rule holds it, and that every evaluation on the path from $g$
-down to it lies in the family region. A stand-in has all of these, so they
-apply to $x_{k+1}$ and $\alpha'$, with $\alpha'$ none of the activations that
-they leave out, the second case of *Repeats inside a growth* among them. So
-they give a unit $w_{k+1}$ at $p$ and its continuation $\kappa_{k+1}$ that
-share a call containing $x_{k+1}$, made in the step that contains $x_{k+1}$,
-which is step $j$. That call is $x_{k+1}$ itself or a
-call $c_{k+1}$ of a leader $R_{k+1}$ that grows at $p$ and contains it. In the
-first case, by *Direct growth activations*, the growth of $\alpha'$ lies in
-the evaluation of that call that $\kappa_{k+1}$ makes, a call with the key of
-the growth of $\alpha$, so it is the second outer growth of that key, which is
-excluded. In the second case, if $\alpha'$ lies in the evaluation of
+input from its start to past $q$, that an outer growth of its key starts no
+later than it does, that no dropped step and no call of a rule that calls no
+rule holds it, and that every evaluation on the path from $g$ down to it lies
+in the family region. A stand-in has all of these, so they apply to $x_{k+1}$
+and $\alpha'$.
+
+Three kinds that they leave out are defined by the pair, through the
+abandoned evaluation $w_{k+1}$ that they take on the path down to $x_{k+1}$
+or the innermost evaluation $N_{k+1}$ that contains $x_{k+1}$ and $\alpha'$,
+and the counts of these kinds need an activation in place of $x_{k+1}$. They
+do not apply here, apart from the one case below. The third case of *Dropped
+steps* needs $w_{k+1}$ to be a dropped step, and $w_{k+1}$ holds $x_{k+1}$,
+which no dropped step holds. Case 5 places $\alpha'$ where the growth that the
+path from $w_{k+1}$ enters evaluates that alternative again; there, by
+*Second outer growths*, which uses of the pair only that place, the first
+step of the growth repeats no growth activation of the alternative, and a
+later evaluation of it finds each call that started an outer growth in the
+memo, so $\alpha'$ is of a second outer growth, which is excluded. The second
+case of *Repeats inside a growth* needs $N_{k+1}$ to be a growth at $p$ with
+$x_{k+1}$ in an earlier step than $\alpha'$, and $\alpha'$ on a path of its
+step that reads no growing result that succeeds. $N_{k+1}$ lies in $N$, which
+contains $x_{k+1}$ and $\alpha'$, since $x_{k+1}$ is made after $\alpha$ and
+before $\alpha'$. If $N_{k+1}$ contains $\alpha$, it contains $N$, so it is
+$N$; then $\alpha$ lies in a step of it no later than the one of $x_{k+1}$, and
+$\alpha'$ is of the second case for $\alpha$, which the hypothesis excludes.
+For $k = 0$, $N_1$ contains $\alpha$ when it is a growth of the cycle of $R$:
+it contains the call of $c$ in $\kappa$, which holds $x_1$ and not $\alpha'$,
+so also the call of $c$ in $w$, which holds $\alpha$, since the two calls lie
+in the same growths of that cycle (case 2). The case that remains is a
+growth $N_{k+1}$ at $p$ that starts after $\alpha$, with $\alpha'$ in a later
+step of it than $x_{k+1}$, on a path that reads no growing result that
+succeeds: for $k = 0$ a growth of a leader of another cycle than that of $R$,
+started in $\kappa$ after $w$ ends and before its call of $c$, which it
+contains. The claim does not cover it, and step 4 of [Open
+Steps](#open-steps) keeps it.
+
+Outside that case, the claims give a unit $w_{k+1}$ at $p$ and its
+continuation $\kappa_{k+1}$ that share a call containing $x_{k+1}$, made in
+the step $j_{k+1}$ of the innermost growth at $p$ that holds $w_{k+1}$. That
+call is $x_{k+1}$ itself or a call $c_{k+1}$ of a leader $R_{k+1}$ that grows
+at $p$ and contains it. In the first case, by *Direct growth activations*,
+the growth of $\alpha'$ lies in the evaluation of that call that
+$\kappa_{k+1}$ makes, a call with the key of the growth of $\alpha$ that the
+memo does not answer, since $\alpha'$ lies in it. So it grows the leader as
+the second outer growth of that key, and the growth of $\alpha'$ is that
+growth or, by the end of the proof of *Direct growth activations*, the second
+outer growth of its own key, which is excluded either way. In the second case, if $\alpha'$ lies in the evaluation of
 $c_{k+1}$ that $\kappa_{k+1}$ makes, its growth is the second outer growth of
 its key by the paragraph above, which is excluded; otherwise $k + 1$
 satisfies what $k$ did. The calls $x_1, x_2, \ldots$ are made one after
@@ -3142,16 +3191,12 @@ another before $\alpha'$, so there are finitely many of them, and the
 construction cannot go on forever. $\square$
 
 So the conclusion of *Consecutive repeats inside a family* holds for growth
-activations outside the kinds above: two consecutive ones are not of the
+activations outside the kinds above and the case that the proof leaves open: two consecutive ones are not of the
 first kind of *Repeats inside a family*, and if their innermost common
 evaluation is a growth, the later one is in the second case of *Repeats
 inside a growth*, whose count needs only an activation of $\sigma$ at $q$ in
 an earlier step of the same growth, which $\alpha$ is. The count after that
 claim then applies to them as written.
-
-One point remains open: the growth activations that case 5 makes inside heads
-in the first step of the growth that the path enters, when the alternative
-reads other values of its variables there.
 
 The claims from *Memoized links* to *Activations held by heads* apply to
 growth activations by the correspondences above. They use of an activation
@@ -3166,10 +3211,11 @@ holds a successful growth activation at $q$ where the one in $w$ does. The two
 take the same steps, and a growth inside them is outer in both or in neither.
 A growth of its cycle that is open at its call and is at a position after the
 start of the link started inside the evaluation. One at the position of the
-link is open at the start of both evaluations, or of one of them only, which is
-case (a) of the covered keys, or which is the growth of a step with an empty
-seed. No call at that position of a rule of the cycle of that growth is made
-inside the shared call (*Steps with an empty seed*).
+link is open at the start of both evaluations, or at the start of one of
+them only. In the second case it is case (a) of the covered keys, or the
+growth of a step with an empty seed, and then no call at that position of a
+rule of the cycle of that growth is made inside the shared call (*Steps with
+an empty seed*).
 
 ## Lemma 6 (Values and Copies)
 
@@ -5181,8 +5227,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    of the first, and places there the free activations whose reference link
    is the call that starts the growth itself and the growth activations that
    a path that enters the growth again repeats, in the first step of that
-   growth as well when the alternative reads the same values of its variables
-   there. *Dropped steps* and *Restarts of growth activations* give a
+   growth as well, where the alternative reads the values of its variables
+   that it read when the path left it. *Dropped steps* and *Restarts of growth activations* give a
    dropped step on the path of a restart, ordinary or of growth activations,
    a unit at the end of its seed or below it, and charge the repeats after a
    part that it evaluates at the position of its growth to the activations
@@ -5197,11 +5243,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    family*, whose second evaluation of the shared call finds the growth of
    the earlier activation in the memo. *Answered places* takes the call that
    the memo answers there in place of the repeat and gives that claim's
-   conclusion for growth activations. One point remains: the growth
-   activations that a path that enters the growth again makes in the first
-   step of the growth that it enters when the alternative reads other values
-   of its variables there: they lie in memoized evaluations of the calls of
-   the alternative, and those held by heads are not bounded at a position.
+   conclusion for growth activations, apart from one case: the later
+   activation lies in a later step of a growth at the position of the family
+   that starts after the earlier activation, on a path that reads no growing
+   result that succeeds, with the answered call in an earlier step, as a
+   growth of a leader of another cycle than that of the shared call can be
+   when it starts in the continuation before the shared call. The count of
+   the second case of *Repeats inside a growth* needs an activation in that
+   earlier step, which the answered call is not.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
