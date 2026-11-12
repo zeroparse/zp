@@ -62,7 +62,8 @@ func TestGenOptimize(t *testing.T) {
 }
 
 // TestGenPrintAfter checks that -print-after writes the Core IR after the named passes, and only
-// those, to the diagnostic stream, once for each Core module of the generation.
+// those, to the diagnostic stream, once for each Core module of the generation, and the Flow IR of
+// each function printed from it after flow.
 func TestGenPrintAfter(t *testing.T) {
 	g := writeFile(t, "opt.zp", optimizeGrammar)
 	run := func(list string, extra ...string) string {
@@ -95,8 +96,16 @@ func TestGenPrintAfter(t *testing.T) {
 	if strings.Count(guards, "-- Core IR of the") != strings.Count(all, "after guards --") || !strings.Contains(guards, "after guards --") || strings.Contains(guards, "after scans --") {
 		t.Errorf("-print-after guards prints %d sections:\n%.300s", strings.Count(guards, "-- Core IR"), guards)
 	}
-	if got := run("build,scans"); !strings.Contains(got, "after build --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") {
+	if got := run("build,scans"); !strings.Contains(got, "after build --") || !strings.Contains(got, "after scans --") || strings.Contains(got, "after guards --") || strings.Contains(got, "-- Flow IR") {
 		t.Errorf("-print-after build,scans prints the wrong sections")
+	}
+	// flow prints each function that the parser is printed from, as the lowering made it, and no Core IR.
+	flowIR := run("flow")
+	if !strings.Contains(flowIR, "-- Flow IR of ") || !strings.Contains(flowIR, " in the typed table after flow --\nfunc ") || strings.Contains(flowIR, "-- Core IR") {
+		t.Errorf("-print-after flow prints the wrong sections:\n%.300s", flowIR)
+	}
+	if n := strings.Count(all, " table after flow --"); n == 0 || n != strings.Count(flowIR, "-- Flow IR of ") {
+		t.Errorf("-print-after all prints %d lowered Flow functions, flow %d", n, strings.Count(flowIR, "-- Flow IR of "))
 	}
 }
 

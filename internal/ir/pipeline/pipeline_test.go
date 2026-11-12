@@ -150,3 +150,19 @@ func TestValidate(t *testing.T) {
 		t.Errorf("verification requirement: %v", err)
 	}
 }
+
+// A unit that its builder verified is not verified again when no pass runs, and is verified at the
+// end as usual once a pass has run.
+func TestBuiltVerifiedSkipsOnlyAnUnchangedUnit(t *testing.T) {
+	p := fakePipeline(logging("a", nil, nil))
+	off := func(string) bool { return false }
+	if _, err := p.Run(&unit{broken: "builder"}, mode{}, Options[*unit]{Enabled: off, BuiltVerified: true}); err != nil {
+		t.Errorf("an unchanged unit was verified again: %v", err)
+	}
+	if _, err := p.Run(&unit{broken: "builder"}, mode{}, Options[*unit]{Enabled: off}); err == nil {
+		t.Error("without BuiltVerified the final verification did not run")
+	}
+	if _, err := p.Run(&unit{broken: "builder"}, mode{}, Options[*unit]{BuiltVerified: true}); err == nil || !strings.HasPrefix(err.Error(), "verification:") {
+		t.Errorf("a unit that a pass ran on was not verified: %v", err)
+	}
+}

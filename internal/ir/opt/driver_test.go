@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/flow"
+	"zeroparse.dev/zp/internal/ir/pipeline"
 )
 
 // The driver runs the Core passes that the settings leave on, dumps the module after the selected
@@ -75,5 +77,78 @@ func TestDriverRunCoreError(t *testing.T) {
 	err := d.RunCore("typed", &core.Module{}, core.Mode{}, nil, nil)
 	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "internal error: ") {
 		t.Fatalf("error %v", err)
+	}
+}
+
+// testFlowPass is a Flow pass of the tests: it adds a comment to the function, which keeps it valid.
+const testFlowPass = "test-flow-comment"
+
+// withTestFlowPass registers testFlowPass, on in speed and off in a profile of its own, for the
+// duration of the test, and returns a FlowRun that runs a pipeline with it.
+func withTestFlowPass(t *testing.T) func(*flow.Func, *flow.Env, flow.RunOptions) ([]string, error) {
+	flags, defs := Flags, profileDefs
+	Flags = append(slices.Clone(Flags), Flag{Name: testFlowPass, Kind: FlowPass, Default: 1, Doc: "adds a comment"})
+	profileDefs = append(slices.Clone(profileDefs), profileDef{Name: "no-comment", Doc: "x", Values: map[string]int{testFlowPass: 0}})
+	t.Cleanup(func() { Flags, profileDefs = flags, defs })
+	p := *flow.Pipeline
+	p.Passes = append(slices.Clone(p.Passes), pipeline.Pass[*flow.Func, *flow.Env]{
+		Name: testFlowPass, Obligation: "a comment changes nothing",
+		Run: func(f *flow.Func, _ *flow.Env) error {
+			f.Body = append(f.Body, &flow.Comment{Text: "tested"})
+			return nil
+		}})
+	return func(f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error) {
+		return p.Run(f, env, o.Options(env))
+	}
+}
+
+func framed() *flow.Func {
+	return &flow.Func{Name: "r", Frame: true, Fail: &flow.Label{Name: "fail"}}
+}
+
+// A Flow pass runs when its flag is on, and a profile or a flag turns it off; the dumps show the
+// function as lowered under "flow" and after each selected pass, labeled with its table.
+func TestDriverRunFlow(t *testing.T) {
+	run := withTestFlowPass(t)
+	var dump strings.Builder
+	d := &Driver{FlowRun: run, PrintAfter: []string{PrintFlow, testFlowPass}, PrintTo: &dump, VerifyEach: true}
+	f := framed()
+	if err := d.RunFlow("rules", f, false); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Body) != 1 {
+		t.Errorf("the pass did not run: %d statements", len(f.Body))
+	}
+	got := dump.String()
+	for _, label := range []string{"-- Flow IR of r in the rules table after flow --", "-- Flow IR of r in the rules table after " + testFlowPass + " --"} {
+		if !strings.Contains(got, label) {
+			t.Errorf("dump lacks %q:\n%s", label, got)
+		}
+	}
+	byProfile, err := Profile("no-comment")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byFlag, err := Settings{}.Without(testFlowPass)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, s := range map[string]Settings{"profile": byProfile, "flag": byFlag} {
+		f := framed()
+		if err := (&Driver{Opt: s, FlowRun: run}).RunFlow("rules", f, false); err != nil {
+			t.Fatal(err)
+		}
+		if len(f.Body) != 0 {
+			t.Errorf("the pass ran although the %s turned it off", name)
+		}
+	}
+	// The real pipeline leaves a function alone and prints only the lowered function.
+	dump.Reset()
+	f = framed()
+	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunFlow("typed", f, true); err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(dump.String(), "-- Flow IR of r in the typed table after "); n != 1+len(flow.Pipeline.Passes) {
+		t.Errorf("all printed %d sections:\n%s", n, dump.String())
 	}
 }

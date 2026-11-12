@@ -424,7 +424,8 @@
         "spec/flow-ir/statements.md",
         "spec/flow-ir/expressions.md",
         "spec/flow-ir/invariants.md",
-        "spec/flow-ir/text-form.md"
+        "spec/flow-ir/text-form.md",
+        "spec/flow-ir/passes.md"
       ]
     },
     {

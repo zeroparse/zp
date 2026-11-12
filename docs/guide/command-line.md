@@ -265,8 +265,8 @@ parser (see [typescript.md](typescript.md)). `-g` is required (except with `-run
 types come from the dropped actions.
 `-optimize <profile>` selects an optimization profile (`speed`, the default, `memory` or `size`), `-opt <name>[=<count>][,...]`
 turns on an optimization that the profile leaves off or sets a count, `-no-opt <name>[,<name>]`
-turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR to standard error after the named
-passes. None of them changes what the generated parser returns; the names are in
+turns named optimizations off, and `-print-after <pass>[,<pass>]` writes the Core IR or Flow IR to standard error after
+the named steps and passes. None of them changes what the generated parser returns; the names are in
 [Optimizations](code-generation.md#optimizations). They cannot be combined with `-runtime only`.
 
 A `.zpc` compiled without `-default-value` cannot be used with `-default-value` in `parse`: the command

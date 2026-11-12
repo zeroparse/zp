@@ -9,8 +9,8 @@ evaluate terms and charge the budget. It holds no text of a target language, so 
 Flow IR is lowered from [Core IR](../core-ir/README.md); that lowering is not specified here, so this specification
 does not say which functions a grammar produces. Flow IR is lowered in turn to [Exec IR](../exec-ir/README.md) (see
 [Lowering From Flow IR](../exec-ir/lowering.md)), from which the backends print the rules of generated parsers.
-This specification defines the functions, their statements and expressions, the invariants that the verifier enforces
-and the text form. Flow IR is internal to the ZeroParse engine and written for engine maintainers and backend authors:
+This specification defines the functions, their statements and expressions, the invariants that the verifier enforces,
+the text form and the pass pipeline. Flow IR is internal to the ZeroParse engine and written for engine maintainers and backend authors:
 it is not a public API, and nothing here changes how a grammar behaves, which the
 [Grammar Language Specification](../language/README.md) and the [Parser and Runtime Specification](../runtime/README.md)
 define.
@@ -29,6 +29,7 @@ does not have.
 | 3 | [Expressions](expressions.md) | Every kind of expression and what it gives |
 | 4 | [Invariants](invariants.md) | What a well-formed function guarantees and what verification checks |
 | 5 | [Text Form](text-form.md) | The printed form of a function |
+| 6 | [Passes](passes.md) | The pass pipeline that every lowered function goes through |
 
 The [Glossary](../glossary.md) lists the terms of the specifications.
 

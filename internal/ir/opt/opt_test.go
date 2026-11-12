@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/flow"
 )
 
 // Every pass of the Core pipeline is an optimization that can be turned off, under its own name.
@@ -19,6 +20,22 @@ func TestEveryCorePassIsAFlag(t *testing.T) {
 		if _, ok := lookup(name); !ok {
 			t.Errorf("the flag %s is not registered", name)
 		}
+	}
+}
+
+// Every pass of the Flow pipeline is an optimization that can be turned off, under its own name, and
+// no Flow pass has the name of a Core pass.
+func TestEveryFlowPassIsAFlag(t *testing.T) {
+	for _, name := range flow.Pipeline.Names() {
+		if f, ok := lookup(name); !ok || f.Kind != FlowPass {
+			t.Errorf("pass %s is not a registered optimization of kind flow pass", name)
+		}
+		if slices.Contains(core.Pipeline.Names(), name) {
+			t.Errorf("pass %s is both a Core and a Flow pass", name)
+		}
+	}
+	if err := flow.Pipeline.Validate(); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -36,6 +53,7 @@ func TestRegistryIsValid(t *testing.T) {
 		{"on and off flag with a count", []Flag{{Name: "a", Doc: "x", Default: 2}}, "speed value is 2"},
 		{"output change that is on", []Flag{{Name: "a", Doc: "x", Default: 1, ChangesOutput: true}}, "must be an opt-in"},
 		{"integer output change that is on", []Flag{{Name: "a", Doc: "x", Int: true, Default: 4, ChangesOutput: true}}, "must be an opt-in"},
+		{"name of a step", []Flag{{Name: PrintFlow, Kind: FlowPass, Doc: "x"}}, "name of a step"},
 	} {
 		if err := check(c.flags); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want an error with %q", c.name, err, c.want)
@@ -100,8 +118,14 @@ func TestParsePrintAfter(t *testing.T) {
 	if _, err := ParsePrintAfter("guards,nonsense"); err == nil || !strings.Contains(err.Error(), "unknown pass") {
 		t.Errorf("unknown: %v", err)
 	}
-	if got := PrintNames(); got[0] != "build" || got[len(got)-1] != "all" || !slices.Contains(got, "class-runs") {
-		t.Errorf("names %v", got)
+	// The names follow the order the steps run in: the Core build and passes, then the Flow lowering
+	// and passes.
+	want := append(append(append(append([]string{"build"}, core.Pipeline.Names()...), "flow"), flow.Pipeline.Names()...), "all")
+	if got := PrintNames(); !slices.Equal(got, want) {
+		t.Errorf("names %v, want %v", got, want)
+	}
+	if got, err := ParsePrintAfter("flow"); err != nil || !slices.Equal(got, []string{"flow"}) {
+		t.Errorf("flow: %v, %v", got, err)
 	}
 }
 

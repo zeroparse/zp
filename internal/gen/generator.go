@@ -220,6 +220,25 @@ func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
 	return cr, true
 }
 
+// FlowPasses runs the pipeline of Flow passes on the function f that the lowering returned with err,
+// and returns it. Every function that a generator prints from Flow IR goes through it, labeled with
+// the table being generated ("typed" for the typed rules, as in the dumps of Core IR). An error of the
+// lowering is returned; a failure of the passes is kept as the first internal error of the
+// generation (FlowErr), which fails it, and the function is returned for the printing to go on.
+func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
+	if err != nil {
+		return nil, err
+	}
+	table := g.Table
+	if table == "trules" {
+		table = "typed"
+	}
+	if err := g.RunFlow(table, f, g.Observability); err != nil && g.FlowErr == nil {
+		g.FlowErr = fmt.Errorf("function %s of table %s: %w", f.Name, g.Table, err)
+	}
+	return f, nil
+}
+
 // FrameScope returns the scope of the frame whose slots the captures c name.
 func FrameScope(c flow.Captures) *compile.Scope {
 	s := compile.NewScope()
