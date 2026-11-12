@@ -144,10 +144,10 @@ rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
           lit ";"
 rule 2 name want memo transient plain scope-value(k=1,mode=1)
   text
-    repeat 1 -1
+    repeat 1 -1 scan-site=1
       class [a-z]
 rule 4 ws memo transient plain novalue
-  repeat 0 -1
+  repeat 0 -1 scan-site=3
     class [\u0020\u0009]
 ```
 
@@ -167,9 +167,9 @@ rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
           lit ";"
 rule 2 name want memo transient plain scope-value(k=1,mode=1)
   text
-    scan [a-z] 1 -1
+    scan [a-z] 1 -1 scan-site=1
 rule 4 ws memo transient plain novalue
-  scan [\u0020\u0009] 0 -1
+  scan [\u0020\u0009] 0 -1 scan-site=3
 ```
 
 Analysis also attaches the attributes that the printer shows in brackets. For the choice of `item` they are:

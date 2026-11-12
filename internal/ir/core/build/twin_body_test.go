@@ -17,6 +17,9 @@ import (
 // values that it builds (Evaluations of Rules in spec/runtime/parsing.md).
 func TestTwinBodies(t *testing.T) {
 	callee := regexp.MustCompile(`call \d+:`)
+	// Resume numbers count the repetitions as built, and a value-free repetition of one
+	// character matches as a scan and is never resumed, so only they may differ.
+	resume := regexp.MustCompile(` resume=\d+( shiftable)?`)
 	twins := 0
 	for _, path := range factstest.Corpus {
 		g, err := compiletest.Parse(factstest.Read(t, path))
@@ -36,8 +39,8 @@ func TestTwinBodies(t *testing.T) {
 				continue
 			}
 			twins++
-			rule := callee.ReplaceAllString(core.PrintNode(m, r.Body, false), "call ")
-			twin := callee.ReplaceAllString(core.PrintNode(m, r.Twin.Body, false), "call ")
+			rule := resume.ReplaceAllString(callee.ReplaceAllString(core.PrintNode(m, r.Body, false), "call "), "")
+			twin := resume.ReplaceAllString(callee.ReplaceAllString(core.PrintNode(m, r.Twin.Body, false), "call "), "")
 			if rule != twin {
 				t.Errorf("%s: the twin of %s has another body:\n%s\nthe rule:\n%s", path, r.Name, twin, rule)
 			}
