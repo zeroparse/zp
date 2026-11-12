@@ -479,10 +479,17 @@ bounded scan. The arguments of *Direct activations* and *Repeats* below use of
 $w$ only that it is checked against the continuation $\kappa$ that the parser
 evaluates from its start, that the parser returns to no position before that
 start until $\alpha'$, and that $\alpha$ is consumed in $w$ after the calls
-that $w$ and $\kappa$ share: the step examines the input from $e$ on through
-its step tails, whose first characters are those of the step, so the
-character at the end of the shared calls is one of them. They apply to $w$
-with $s = e$, as they apply to a growing unit in *Repeats inside a growth*.
+that $w$ and $\kappa$ share. Condition 2 compares the step with $\kappa$ one
+step tail at a time, and these arguments need only the step tail that holds
+$\alpha$: its evaluation $\tau$ in $w$ starts at $e$, at the end of the read,
+every path of it that examines the input begins with the calls that it
+shares with $\kappa$, and $\alpha$ is consumed in $\tau$ after them, so the
+character at the end of the shared calls is a first character of that tail.
+What other step tails of $w$ examine, before $\tau$ or after it, lies on no
+path from $w$ to $\alpha$, and the calls that they share with $\kappa$, or do
+not, play no part. They apply to $w$ with $s = e$, with the shared calls of
+the tail of $\tau$ in the place of those of $w$, as they apply to each
+growing alternative in *Repeats inside a growth*.
 
 In the second case, if no evaluation below $w$ on the path from $w$ to
 $\alpha$ failed, was the expression of a lookahead or was a dropped step, the
@@ -779,7 +786,8 @@ leaves out, are direct
 in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
 the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
 continuation $\kappa_i$, inside $w_i$, where $w_i$ can be a step of a growth
-after the first, a unit that starts at the end of its seed (*Dropped steps*), where $\kappa_i$ is the continuation
+after the first, a unit that starts at the end of its seed, whose shared calls
+are those of the step tail that holds $\alpha_{i-1}$ (*Dropped steps*), where $\kappa_i$ is the continuation
 that the parser evaluates from the start of $w_i$ the last time before
 $\alpha_i$, as in *Direct activations*. When $\alpha_i$ lies in the evaluation
 $e'_i$ of that call that $\kappa_i$ makes, at the same position (case 2), and
@@ -2914,8 +2922,9 @@ that $w$ and $\kappa$ share, outside case 5 and the activations that start
 after $q - c_W$, as in *Repeats*. It uses of $w$ only what *Dropped steps*
 gives of the unit that it gives: when that unit is a step at the end of its
 seed $e \le p$, the parser returns to no position before $e$ until
-$\alpha'$, and its first characters after the shared calls are those of its
-step tails, so the character at $t$ is one of them; when it is an evaluation
+$\alpha'$, and its shared calls and its first characters after them are
+those of the step tail that holds $c_1$, so the character at $t$ is one of
+them; when it is an evaluation
 $w'$ below the step, it holds $c_1$, and what the parser evaluates after it
 is its continuation. The shared call contains $c_1$, so it is $c_1$ or
 contains $E$. If it is $c_1$, the paragraph above makes $c_2$ the evaluation
@@ -3020,11 +3029,28 @@ evaluates at the position of its growth are charged as the count after
 
 Two points remain open. The growth activations that case 5 repeats in the
 first step of the growth that the path enters, when the alternative reads
-other values of its variables there, are not counted. And the claims from
-*Memoized links* to *Activations held by heads* and the family claims of this
-lemma are applied to growth activations by the correspondences above; *Direct
-growth activations* is checked for dropped steps, and the others are not yet
-checked one by one for a use of an activation that starts at its position.
+other values of its variables there, are not counted. And the family claims of
+this lemma are applied to growth activations by the correspondences above and
+are not yet checked one by one for a use of an activation that starts at its
+position.
+
+The claims from *Memoized links* to *Activations held by heads* apply to
+growth activations by the correspondences above. They use of an activation
+the evaluations that contain it, the order in which the activations start and
+its counterpart in $\mathcal{R}$, but not its position. *Memoized links*,
+*Links lead to repeated evaluations* and *Links to heads* speak of the two
+evaluations of a link, which contain the call that starts the growth of the
+activation. *Calls that call no rule* and *Memoized links keep positions* take
+a rule of the link that calls no rule, which no link of a growth activation
+has. *Reference links* needs that the evaluation in $\kappa$ of a shared call
+holds a successful growth activation at $q$ where the one in $w$ does. The two
+take the same steps, and a growth inside them is outer in both or in neither.
+A growth of its cycle that is open at its call and is at a position after the
+start of the link started inside the evaluation. One at the position of the
+link is open at the start of both evaluations, or of one of them only, which is
+case (a) of the covered keys, or which is the growth of a step with an empty
+seed. No call at that position of a rule of the cycle of that growth is made
+inside the shared call (*Steps with an empty seed*).
 
 ## Lemma 6 (Values and Copies)
 
@@ -4774,7 +4800,7 @@ names a term or condition of the specification and the lemmas that use it.
   alternatives that can fail only after a `#cut`: Lemma 4, its failure after a source, the cases of
   committing and its claims on links.
 - Condition 2 for the steps of a growth after the first, checked as units at
-  the end of the seed through the step tails of the leader: *Dropped steps*
+  the end of the seed and compared one step tail at a time: *Dropped steps*
   in Lemma 4, with *Restarts of growth activations* and the count after
   *Repeats inside a growth* in Lemma 5.
 - The paths that enter a growth again, for which an alternative is committing
