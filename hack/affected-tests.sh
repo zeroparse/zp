@@ -12,7 +12,8 @@
 #     runtime or of the generator test helpers changed, because those programs reach it through a copy or a
 #     replace directive that the import graph does not show.
 # A change of go.mod, go.work, go.sum or this script selects every package. The output ends with the lines
-# "# generate" and "# alpha" when `go generate ./gen ./bench` or hack/test-alpha-parsers.sh is affected.
+# "# site", "# generate" and "# alpha" when `cd site && go test ./...`, `go generate ./gen ./bench` or
+# hack/test-alpha-parsers.sh is affected.
 set -eu
 why=0
 [ "${1:-}" = -why ] && { why=1; shift; }
@@ -89,6 +90,7 @@ while work:
 if allp: pass
 for p in sorted(sel):
     print((p + "\t" + sel[p]) if why else p)
+if any(f.startswith(("docs/", "spec/", "site/", "README.md", "AGENTS.md")) for f in files): print("# site")
 if gen: print("# generate")
 if alpha: print("# alpha")
 ' "$why" "${TMPDIR:-/tmp}/affected.$$.files"
