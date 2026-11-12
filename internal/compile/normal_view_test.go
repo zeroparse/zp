@@ -32,9 +32,8 @@ func viewBodies(t *testing.T, src string, opts viewOptions) (map[string]string, 
 		t.Fatal(err)
 	}
 	rules := g.Rules()
-	an := AnalyzeControlled(rules, nil)
-	memo, _ := memoizedRules(rules, an, nil)
-	v := normalizeRules(rules, an, memo, opts, nil)
+	rf := testRuleFacts(t, g, rules)
+	v := normalizeRules(rules, rf.an, rf.memo, opts, nil)
 	bodies := map[string]string{}
 	for _, r := range v.rules {
 		bodies[r.Name] = grammar.FormatExpr(r.Expr)
@@ -279,9 +278,8 @@ func TestNormalViewText(t *testing.T) {
 				t.Fatal(err)
 			}
 			rules := g.Rules()
-			an := AnalyzeControlled(rules, nil)
-			memo, _ := memoizedRules(rules, an, nil)
-			v := normalizeRules(rules, an, memo, costView, nil)
+			rf := testRuleFacts(t, g, rules)
+			v := normalizeRules(rules, rf.an, rf.memo, costView, nil)
 			orig := map[grammar.Expr]bool{}
 			WalkExpr(rules[0].Expr, func(x grammar.Expr) { orig[x] = true })
 			got := map[string]string{}
@@ -348,9 +346,8 @@ func TestNormalViewCutKeepsTuple(t *testing.T) {
 				t.Fatal(err)
 			}
 			rules := g.Rules()
-			an := AnalyzeControlled(rules, nil)
-			memo, _ := memoizedRules(rules, an, nil)
-			v := normalizeRules(rules, an, memo, costView, nil)
+			rf := testRuleFacts(t, g, rules)
+			v := normalizeRules(rules, rf.an, rf.memo, costView, nil)
 			got := 0
 			for _, r := range v.rules {
 				WalkExpr(r.Expr, func(x grammar.Expr) {
