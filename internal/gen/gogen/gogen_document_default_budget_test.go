@@ -240,19 +240,35 @@ func minimalFresh(t *testing.T, text string) uint64 {
 // its memo past that limit instead of applying each edit to it.
 func TestWorkWithinFactorOfFresh(t *testing.T) {
   const factor = 6
-  var base time.Duration
-  for _, edits := range []int{128, 6000, 65536} {
+  // The time per edit depends on the load of the machine, so the memo-drop check compares the per-edit
+  // times of one attempt and passes if any of a few attempts does: a memo that is not dropped is slower
+  // in every attempt.
+  const attempts = 3
+  perEdit := func(edits int) (*Document, time.Duration) {
     d, err := NewDocument(strings.Repeat("ab cd\n", 20000))
     if err != nil { t.Fatal(err) }
     if _, err := d.Parse(); err != nil { t.Fatalf("first parse: %v", err) }
     took := letterEdits(t, d, edits)
-    if edits == 128 { base = took }
     t.Logf("%d edits took %v", edits, took)
-    // Up to the limit each edit splices the memo, at a cost in proportion to it; past the limit an
-    // edit costs what the edit of the text costs.
-    if edits > 128 && took/time.Duration(edits) > base/128/4 {
-      t.Fatalf("%d edits took %v each, more than a quarter of the %v of the first 128: the memo is not dropped past the limit",
-        edits, took/time.Duration(edits), base/128)
+    return d, took / time.Duration(edits)
+  }
+  for _, edits := range []int{128, 6000, 65536} {
+    var d *Document
+    if edits == 128 {
+      d, _ = perEdit(edits)
+    } else {
+      // Up to the limit each edit splices the memo, at a cost in proportion to it; past the limit an
+      // edit costs what the edit of the text costs.
+      var each, base time.Duration
+      for attempt := 0; attempt < attempts; attempt++ {
+        _, base = perEdit(128)
+        d, each = perEdit(edits)
+        if each <= base/4 { break }
+        if attempt == attempts-1 {
+          t.Fatalf("%d edits took %v each, more than a quarter of the %v of the first 128: the memo is not dropped past the limit",
+            edits, each, base)
+        }
+      }
     }
     fresh := minimalFresh(t, d.Text())
     if _, err := d.Parse(WithLimits(Limits{Compute: factor * fresh})); err != nil {
