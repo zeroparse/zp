@@ -2373,22 +2373,71 @@ the call that they place $\alpha$ in contains $\alpha$, so by the argument
 above it grows a leader at $p$, $w$ starts at $p$, and $\alpha$ lies inside
 step $j$ at $q \ge e_{j+1}$. $\square$
 
-The repeats of the first kind come in pairs of growths of one leader that one
-step of a growth at $p$ starts at $p$, at most $c_5$ of them for each step
-(*Calls in a context of growths*), and the growths that they nest have other
-leaders. In a step that the claims at $p$ do not leave out, the activations
-of the second case of *Repeats inside a growth* lie at most a constant after
-$p$, at most a constant for each step. So, by induction on the depth of the
-growths at $p$, which have distinct leaders, the activations of $\sigma$ at
-$q$ in the family region of $g$ number at most a constant, apart from a
-constant for each step of the family when $q$ is at most a constant after
-$p$, the activations inside calls of rules that call no rule, case 5 and the
-dropped steps, the constant number of steps of each growth that the claims at
-$p$ leave out, the pairs that step 2 of [Open Steps](#open-steps) keeps, and the steps
-$j$ of the second kind: steps in which a unit that starts at $p$ with a
-growth of a leader in the context is abandoned after that growth reached a
-position at or after $e_{j+1}$. Bounding the number of those steps that reach
-one position is part of step 4 of [Open Steps](#open-steps).
+**Consecutive repeats inside a family.** Under the hypotheses of *Repeats
+inside a family*, call $\alpha$ and $\alpha'$ **consecutive** when no successful
+activation of $\sigma$ at $q$ in the family region of $g$, outside calls of
+rules that call no rule and outside the dropped steps, starts after $\alpha$
+and before $\alpha'$. Then the second alternative of item 2 does not hold for
+consecutive $\alpha$ and $\alpha'$: if $N$ is a growth, $\alpha'$ is in the
+second case of *Repeats inside a growth*.
+
+*Proof.* Suppose that $w$ starts at $p$ with a call $c$ of a leader $R$ that it
+shares with its continuation $\kappa$, and that $\alpha$ lies in the growth of
+$R$ that $c$ makes in step $j$ of $N$, while $\alpha'$ lies in a later step.
+Every path of $\kappa$ that examines the input begins with the shared calls,
+and the evaluation of $\kappa$ contains $\alpha'$, so $\kappa$ makes its call
+of $c$ after $w$ ends and before $\alpha'$. By case 2 of the ways in which a
+unit is committing, that call lies in the same growths of the cycle as the one
+in $w$, so in step $j$, and $R$ grows again there from the same growing
+results and evaluates what it evaluated the first time. Every evaluation on
+the path from the growth of $R$ in $w$ down to $\alpha$ lies in the family
+region: it is a growth step at $p$, a call at $p$ in a context of growths or a
+call of a rule that the parse does not memoize, and not a call of a rule that
+calls no rule. The second growth evaluates each of them again: a call at $p$
+in a context is answered only by a growing result, which would hold no
+activation, or by a result or a step kept in a context, which the parse does
+not reuse here, and a call of a rule that the parse does not memoize is never
+answered. The calls off that path have the same results in both growths, by
+the [memoization
+theorem](memoization.md#theorem-memoization-never-changes-the-result) where
+the memo answers one of them, and the values of the variables do not change,
+so each evaluation on the path takes the same path in both. The second growth
+therefore holds a successful activation of $\sigma$ at $q$ at the place of
+$\alpha$, in the family region, outside a call of a rule that calls no rule and
+outside a dropped step, as $\alpha$ is. It starts after $\alpha$, and before
+$\alpha'$, since the growth ends inside step $j$; so $\alpha$ and $\alpha'$ are
+not consecutive. $\square$
+
+The claim holds whether $\alpha$ lies in a result of the growth of $R$ or in a
+part of one of its steps that the step abandons, and whether the growth of $R$
+includes the growing result of the growth $N$ or not: the second growth takes
+the same steps, abandoned parts included. It rests on the absence of reuse in
+a context: where the parse reuses a result or a step of the first growth in
+the second, the activation at the place of $\alpha$ is not evaluated again, and
+the next one can lie in a later step, which is why the count is made with no
+reuse, as *Reuse in a context* requires.
+
+So the activations of $\sigma$ at $q$ in the family region of $g$, outside
+calls of rules that call no rule, case 5 and the dropped steps, in the order
+in which they start, form consecutive pairs of two kinds. In the first kind of
+*Repeats inside a family*, the pair lies in one step of the innermost growth
+at $p$ that contains it, and comes from two growths of one leader that the
+step starts at $p$, at most $c_5$ of them for each step (*Calls in a context
+of growths*); the growths that they nest have other leaders. Otherwise the
+later activation of the pair lies in a later step, in the second case of
+*Repeats inside a growth*: in a step that the claims at $p$ do not leave out,
+at most a constant after $p$. So, by induction on the depth of the growths at
+$p$, which have distinct leaders, when $q$ is more than a constant after $p$
+the steps of one growth in the family that hold such an activation are the
+first of them, the constant number of steps that the claims at $p$ leave out
+and the steps that a pair kept by step 2 of [Open Steps](#open-steps) enters,
+and the activations of $\sigma$ at $q$ in the family region of $g$ number
+at most a constant, apart from a constant for each step of the family when $q$
+is at most a constant after $p$, the activations inside calls of rules that
+call no rule, case 5 and the dropped steps, what one evaluation of the parts
+at $p$ holds at $q$ in the constant number of steps of each growth that the
+claims at $p$ leave out, and the pairs that step 2 of [Open Steps](#open-steps)
+keeps.
 
 ## Lemma 6 (Values and Copies)
 
@@ -4364,14 +4413,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    *Memoized links keep positions* and *Nothing in a memoized link is a head*,
    with the definitions between them; *Activations that do not succeed* and *Activations held by heads* come
    after this step. Three counts remain. First, the repeats inside one family,
-   with no reuse in a context of growths. *Repeats inside a family* bounds the
-   activations of a source at a position in the family region of one outer
-   growth by a constant, apart from a constant for each step at the positions
-   at most a constant after the growth, and leaves three parts. The steps $j$
-   of a growth in which a unit that starts at the position of the growth with
-   a growth of another leader is abandoned after that growth reached the end
-   of the result of step $j$ or a later position: their number at one
-   position is not bounded. The activations that *Repeats inside a growth* leaves out of the
+   with no reuse in a context of growths. *Repeats inside a family* and
+   *Consecutive repeats inside a family* bound the activations of a source at a
+   position in the family region of one outer growth by a constant, apart from
+   a constant for each step at the positions at most a constant after the
+   growth, and leave two parts. The activations that *Repeats inside a growth* leaves out of the
    sequence of Lemma 4 in the constant number of steps of each growth that the
    claims at the position of the growth leave out, which number at most a
    constant times what one evaluation of those parts holds at the position.
