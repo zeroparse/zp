@@ -17,7 +17,10 @@
 // values, of the capture slots, of every term and of the named types and variables. The
 // expectations of the module begin with the fixed ones of the runtime (core.FixedDescs), so that Any
 // and the anchors, which name none, record those of the same index. A #stream repetition at the
-// top of a start rule is a Stream; elsewhere it streams nothing and is built as its repetition.
+// top of a start rule is a Stream if it is the first #stream of the rule body; elsewhere it
+// streams nothing and is built as its repetition. A body the compiler accepts has at most one
+// #stream; for one it rejects, the module has a Stream exactly where the compiler checks a #stream
+// against left recursion, so that the facts report that error where the compiler does.
 package build
 
 import (
@@ -26,6 +29,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/grammaranalysis"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/types"
 	"zeroparse.dev/zp/internal/value"
@@ -117,9 +121,9 @@ type coreBuilder struct {
 	classes map[string]*core.Class
 	// starts holds the start rules.
 	starts map[*Rule]bool
-	// streamTop holds the expressions of the rule being built where #stream makes a Stream: its
-	// body, the items of its body sequence and the operands of captures that are one of these.
-	streamTop map[grammar.Expr]bool
+	// stream is the #stream of the rule being built that makes a Stream: its first #stream in
+	// walk order, if that one is at the top of the body (check.StreamTops), else nil.
+	stream grammar.Expr
 	// looks is the number of lookaheads built (core.Look.Site).
 	looks int
 }
@@ -254,7 +258,7 @@ func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 	}
 	defer func() { b.proj = nil }()
 	body := r.Body
-	b.streamTop = check.StreamTops(body)
+	b.stream = firstStream(body)
 	s := b.scope(coreLayout(r, b.proj, body, !r.Lean).names, body)
 	n, err := b.expr(body, s, !r.Lean)
 	if err != nil {
@@ -578,10 +582,25 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 	return nil, fmt.Errorf("unsupported expression %T", e)
 }
 
+// firstStream returns the first #stream of body in walk order if it is at the top of body, else
+// nil.
+func firstStream(body grammar.Expr) grammar.Expr {
+	var first grammar.Expr
+	grammaranalysis.WalkExpr(body, func(e grammar.Expr) {
+		if first == nil && check.IsStream(e) {
+			first = e
+		}
+	})
+	if first == nil || !check.StreamTops(body)[first] {
+		return nil
+	}
+	return first
+}
+
 // attributed builds e under its attributes Attrs[:i+1], the last one outermost.
 func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && check.IsStream(e) && b.starts[b.cur] && b.streamTop[e] {
+		if rep, ok := e.Expr.(*grammar.Repeat); ok && e == b.stream && b.starts[b.cur] {
 			x, err := b.expr(rep, s, build)
 			if err != nil {
 				return nil, err
