@@ -37,6 +37,16 @@ rule R = (R #cut "b" / S "y" / "c") / S "x"`, ClassUnknown, "passed after a left
 rule R = (R (#cut "b") #recover(skip="q") / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
 		{"cut in the skip of a recovery", `rule S = S "w" / R "z"
 rule R = (R ("b") #recover(skip=#cut "q") / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
+		// The recovery attribute binds to the last item, so the group makes the left call part
+		// of the recovery's own base: the skip must see it.
+		{"cut in the skip of a recovery whose base makes the left call", `rule S = S "w" / R "z"
+rule R = ((R "b") #recover(skip=#cut "q") / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
+		// A repetition that may match nothing leaves the next item at the start, so a call after
+		// it is a left call.
+		{"cut after a left call following a repetition", `rule S = S "w" / R "z"
+rule R = ("x"* R #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
+		{"cut after a left call following a repetition in a capture", `rule S = S "w" / R "z"
+rule R = (v:("x"* R) #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", false},
 		{"cut after a left call in one choice", `rule S = S "w" / R "z"
 rule R = (R #cut "b" / "c") / S "y"`, ClassUnknown, "passed after a left call", true},
 		{"lookahead in the base of a recovery", `rule S = S "w" / R "z"
