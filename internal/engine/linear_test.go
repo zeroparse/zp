@@ -36,7 +36,7 @@ func TestDeclaredLinear(t *testing.T) {
 		{"recovery skip walked again", "@linear\npackage p\n@start\nrule main = (X / \"a\")* $$\nrule X = (Y #recover(skip=S)) \"c\"\nrule Y = \"b\"\nrule S = [a]+\n", []string{"5:1: the grammar from start rule main"}},
 		{"recovery skip run", "@linear\npackage p\n@start\nrule main = (X / \"a\")* $$\nrule X = (Y #recover(skip=[a]+)) \"c\"\nrule Y = \"b\"\n", nil},
 		{"linear given an environment bound", "@linear\npackage p\nvar k int\n@start\nrule main = e $$\nrule e = e \"x\" {k := k + 1} / \"x\" {k >= 0}\n", []string{"the grammar from start rule main is declared @linear, but its cost is linear only given a bound"}},
-		{"unknown", "@linear\npackage p\n@start\nrule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", []string{"the grammar from start rule main is declared @linear, but the classifier cannot prove its cost linear"}},
+		{"unknown", "@linear\npackage p\n@start\nrule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", []string{"the grammar from start rule main is declared @linear, but the classifier cannot prove its cost linear: a step of the growth of r", "the grammar from start rule main is declared @linear, but the classifier cannot prove its cost linear: the alternative"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := syntax.Parse(tc.src)

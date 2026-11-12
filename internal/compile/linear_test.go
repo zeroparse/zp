@@ -19,8 +19,11 @@ func TestLinearKeepsSites(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prog, err := CompileProgram(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+		prog, err := Check(g, Options{}, nil, desugar.InlineNames{}, nil)
 		if err != nil {
+			t.Fatal(err)
+		}
+		if err := CompileProgram(prog, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} }); err != nil {
 			t.Fatal(err)
 		}
 		return prog.NumRunSites, prog.NumScanSites
