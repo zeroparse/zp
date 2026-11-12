@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/lintrun"
 	"zeroparse.dev/zp/lint"
 )
 
@@ -40,11 +41,24 @@ func (d *document) fixer(ctx context.Context) *lintFixer {
 	if err != nil || len(findings) == 0 || a.prog == nil {
 		return nil
 	}
-	rewrites, err := lint.Rewrites(ctx, a.g, a.prog.DefaultStart(), findings)
+	rewrites, err := a.rewrites(ctx, findings)
 	if err != nil {
 		return nil
 	}
 	return &lintFixer{d: d, ctx: ctx, findings: findings, rewrites: rewrites}
+}
+
+// rewrites returns the rewrites of the findings, which lint.Rewrites proves on the compiled grammar.
+func (a *analysis) rewrites(ctx context.Context, findings []lint.Finding) ([]lint.Rewrite, error) {
+	res, err := a.frontResult()
+	if err != nil {
+		return nil, err
+	}
+	out, err := lintrun.Rewrites(ctx, res, a.g, a.prog.DefaultStart(), findings)
+	if err != nil {
+		return nil, err
+	}
+	return out.([]lint.Rewrite), nil
 }
 
 // fixerFor returns the fixer of the finding at index i alone, computing only its rewrite.
@@ -54,7 +68,7 @@ func (d *document) fixerFor(ctx context.Context, i int) *lintFixer {
 	if err != nil || i < 0 || i >= len(findings) || a.prog == nil {
 		return nil
 	}
-	one, err := lint.Rewrites(ctx, a.g, a.prog.DefaultStart(), findings[i:i+1])
+	one, err := a.rewrites(ctx, findings[i:i+1])
 	if err != nil {
 		return nil
 	}

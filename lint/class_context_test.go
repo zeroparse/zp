@@ -97,7 +97,7 @@ func TestClassRangeRunContextParity(t *testing.T) {
 		}
 		want := runUnchecked(g, "main", options{})
 		ctx := lintTestContext(t, 0)
-		got, err := runContext(ctx, g, "main", options{})
+		got, err := testRunContext(ctx, g, "main", options{})
 		if err != nil || !reflect.DeepEqual(got, want) {
 			t.Fatalf("range findings changed: %v/%v/%v", got, want, err)
 		}
@@ -105,7 +105,7 @@ func TestClassRangeRunContextParity(t *testing.T) {
 			t.Fatalf("fixture did not exercise findings: %s", source)
 		}
 		for _, at := range []int{1, ctx.calls - 1} {
-			out, err := runContext(lintTestContext(t, at), g, "main", options{})
+			out, err := testRunContext(lintTestContext(t, at), g, "main", options{})
 			if out != nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("partial findings=%v err=%v", out, err)
 			}

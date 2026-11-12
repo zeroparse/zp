@@ -26,7 +26,7 @@ func BenchmarkClassLintCancellation(b *testing.B) {
 			for b.Loop() {
 				var err error
 				if controlled {
-					proofLintBenchmarkFindings, err = runContext(ctx, g, "main", options{})
+					proofLintBenchmarkFindings, err = testRunContext(ctx, g, "main", options{})
 				} else {
 					proofLintBenchmarkFindings = runUnchecked(g, "main", options{})
 				}

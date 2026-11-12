@@ -140,12 +140,12 @@ func TestRunContextMetadataParity(t *testing.T) {
 		}
 		want := runUnchecked(g, "main", options{})
 		ctx := lintTestContext(t, 0)
-		got, err := runContext(ctx, g, "main", options{})
+		got, err := testRunContext(ctx, g, "main", options{})
 		if err != nil || !reflect.DeepEqual(got, want) {
 			t.Fatalf("metadata changed findings: %v / %v, %v", got, want, err)
 		}
 		for _, cancelAt := range []int{1, ctx.calls - 1} {
-			findings, err := runContext(lintTestContext(t, cancelAt), g, "main", options{})
+			findings, err := testRunContext(lintTestContext(t, cancelAt), g, "main", options{})
 			if findings != nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("metadata returned partial findings at %d: %v / %v", cancelAt, findings, err)
 			}

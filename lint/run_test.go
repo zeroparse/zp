@@ -89,7 +89,7 @@ func TestRun(t *testing.T) {
 	}
 }
 
-func TestRunUnchecked(t *testing.T) {
+func TestRunOptionsAndCancellation(t *testing.T) {
 	g, err := zp.ParseGrammar("@start\nrule main = \"a\" / \"ab\"\nrule unused = \"x\"")
 	if err != nil {
 		t.Fatal(err)
@@ -98,26 +98,24 @@ func TestRunUnchecked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unchecked, err := (lint.Config{}).RunUnchecked(context.Background(), g, "main")
-	if err != nil || !slices.Equal(unchecked, checked) {
-		t.Errorf("RunUnchecked = %v, %v; Run = %v", unchecked, err, checked)
+	if len(checked) != 2 {
+		t.Errorf("Run = %v, want the shadowed alternative and the unused rule", checked)
 	}
-	disabled, err := (lint.Config{Disable: []string{lint.CheckShadowedAlt}}).RunUnchecked(context.Background(), g, "main")
+	disabled, err := (lint.Config{Disable: []string{lint.CheckShadowedAlt}}).Run(context.Background(), g, "main")
 	if err != nil || len(disabled) != 1 || disabled[0].Check != lint.CheckUnreachableRule {
 		t.Errorf("disabled: %v %v", disabled, err)
 	}
-	if _, err := (lint.Config{Disable: []string{"no-such-check"}}).RunUnchecked(context.Background(), g, "main"); err == nil || !strings.Contains(err.Error(), `unknown check "no-such-check"`) {
+	if _, err := (lint.Config{Disable: []string{"no-such-check"}}).Run(context.Background(), g, "main"); err == nil || !strings.Contains(err.Error(), `unknown check "no-such-check"`) {
 		t.Errorf("unknown check: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if fs, err := (lint.Config{}).RunUnchecked(ctx, g, "main"); err != context.Canceled || fs != nil {
+	if fs, err := (lint.Config{}).Run(ctx, g, "main"); err != context.Canceled || fs != nil {
 		t.Errorf("cancelled: %v %v", fs, err)
 	}
 }
 
-// TestRunClassify checks the checks that come from the classification of the cost, through Run and
-// RunUnchecked, with and without a context that can end.
+// TestRunClassify checks the checks that come from the classification of the cost, through Run, with and without a context that can end.
 func TestRunClassify(t *testing.T) {
 	g, err := zp.ParseGrammar("var s string = \"a\"\n@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\" / \"x\" {s := s + s} a\n")
 	if err != nil {
@@ -145,10 +143,6 @@ func TestRunClassify(t *testing.T) {
 			}
 			if !slices.Equal(got, tc.want) {
 				t.Errorf("%+v: got %q, want %q", tc.config, got, tc.want)
-			}
-			unchecked, err := tc.config.RunUnchecked(ctx, g, "main")
-			if err != nil || !slices.Equal(unchecked, checked) {
-				t.Errorf("%+v: RunUnchecked = %v, %v; Run = %v", tc.config, unchecked, err, checked)
 			}
 		}
 	}
@@ -185,9 +179,9 @@ func TestChecksReturnsACopy(t *testing.T) {
 	}
 }
 
-// TestRunUncheckedDuplicateRule checks that a grammar that declares a rule twice, which does not
-// compile, is not looped on by the analyses that RunUnchecked runs.
-func TestRunUncheckedDuplicateRule(t *testing.T) {
+// TestRunDuplicateRule checks that a grammar that declares a rule twice, which does not compile,
+// is rejected by Run and not looped on.
+func TestRunDuplicateRule(t *testing.T) {
 	for _, src := range []string{
 		"@start\nrule main = main \"a\" / \"a\"\nrule main = main \"b\" / \"b\"",
 		"@start\nrule main = a\nrule a = \"a\" main?\nrule main = a \"b\"",
@@ -198,9 +192,9 @@ func TestRunUncheckedDuplicateRule(t *testing.T) {
 		}
 		for _, classify := range []bool{false, true} {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			_, err = (lint.Config{Classify: classify}).RunUnchecked(ctx, g, "main")
-			if ctx.Err() != nil {
-				t.Errorf("RunUnchecked(%q, Classify %v) did not return before the deadline: %v", src, classify, err)
+			_, err = (lint.Config{Classify: classify}).Run(ctx, g, "main")
+			if ctx.Err() != nil || err == nil {
+				t.Errorf("Run(%q, Classify %v) did not reject the grammar before the deadline: %v", src, classify, err)
 			}
 			cancel()
 		}
