@@ -1320,10 +1320,14 @@ The conditions below use these terms.
   variable and that is memoized at each of the two calls or calls no rule,
   itself included. A rule memoized in every parse is memoized at each of its
   calls, and a rule of a left-recursion cycle other than a leader at a call
-  that is not a left call. The call has the same result in both: the memo
-  answers it the second time, or, for a leader in a context of growths, it
-  grows again, or the rule repeats only its own scan, so the continuation pays
-  for it at most what the unit paid. In the same way the two share a literal
+  that is not a left call. A call of a rule of a left-recursion cycle is
+  shared only when the two calls lie in the same growths of that cycle:
+  neither is reached through a call of a rule of the cycle that the unit or
+  the continuation starts with, nor after leaving the body of a rule of the
+  cycle. The call has the same result in both: the memo answers it the second
+  time, or, for a leader in a context of growths, it grows again, or the rule
+  repeats only its own scan, so the continuation pays for it at most what the
+  unit paid. In the same way the two share a literal
   that is not empty when every path of both that examines the input begins
   with it, and the literal has the same case sensitivity in both: both consume
   it or both fail where they begin, so the calls after it are made at the same
