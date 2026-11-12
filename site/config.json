@@ -385,7 +385,8 @@
             "spec/runtime/generated-parsers.md",
             "spec/runtime/schemas-and-queries.md",
             "spec/runtime/lint.md",
-            "spec/runtime/test-formats.md"
+            "spec/runtime/test-formats.md",
+            "spec/runtime/go-packages.md"
           ],
           "first": [
             "spec/runtime/observability.md",
@@ -393,7 +394,8 @@
             "spec/runtime/generated-parsers.md",
             "spec/runtime/schemas-and-queries.md",
             "spec/runtime/lint.md",
-            "spec/runtime/test-formats.md"
+            "spec/runtime/test-formats.md",
+            "spec/runtime/go-packages.md"
           ]
         }
       ]

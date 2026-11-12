@@ -562,6 +562,7 @@ thin, and unit-test it with the engine and the generated parser alike.
 
 ## Related Topics
 
+- [The `gen` package](../../spec/runtime/go-packages.md#the-gen-package): the Go API behind `zp gen`, with the fields of `gen.Go` and `gen.TypeScript`.
 - [The Generated Go API](generated-go-api.md): `Parse`, recognition, call options, cancellation and compute limits.
 - [Typed Values in Generated Go](generated-typed-values.md), [Incremental Documents in Generated Go](generated-documents.md)
   and [Streams in Generated Go](generated-streams.md): the packages that `-types`, `-document` and `-stream` add.

@@ -661,3 +661,6 @@ lower coverage. In practice:
   `word` and `"true"` above), or reaching them may need many predicates to hold at once. More inputs or other seeds
   help with the latter.
 - **Inputs are not uniform** over the language and not minimized: they are test data, not a statistical sample.
+
+The exported API of both packages is defined in [`testing/sample`](../../spec/runtime/go-packages.md#package-testingsample) and
+[`testing/editfuzz`](../../spec/runtime/go-packages.md#package-testingeditfuzz).

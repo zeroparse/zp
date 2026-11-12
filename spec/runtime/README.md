@@ -39,6 +39,7 @@ Observing a parse, saving and generating parsers, describing their output and ch
 | 8 | [Output Schemas and Structural Queries](schemas-and-queries.md) | Describing the output of a grammar and searching result nodes (experimental) |
 | 9 | [Grammar Lint](lint.md) | The checks of the linter, severities and suppression directives |
 | 10 | [Fixture Suites and Edit Sequences](test-formats.md) | The JSON formats of `zp test` suites and `zp edit-fuzz` saved sequences |
+| 11 | [Public Go Packages](go-packages.md) | The public packages, and the exported API of `gen`, `grammar`, `testing/sample` and `testing/editfuzz` |
 
 The [Glossary](../glossary.md) lists the terms of the specifications, with the place
 where each is defined.

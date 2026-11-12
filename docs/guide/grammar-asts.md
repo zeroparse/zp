@@ -1,7 +1,7 @@
 # Building Grammars as ASTs and JSON
 
 Use package `grammar` when a tool builds a grammar in Go or loads its JSON
-representation. `zp.Compile` checks it and returns a parser; Go and
+representation (its exported API is defined in [Public Go Packages](../../spec/runtime/go-packages.md#the-grammar-package)). `zp.Compile` checks it and returns a parser; Go and
 TypeScript generation use the same compiler.
 
 ## Validate a Hand-Built Grammar
