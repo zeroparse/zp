@@ -1045,9 +1045,9 @@ transitional op obs.exit(ok bool, pos int, examined int, known bool)
   requires:
     // The parse is observed.
 
-transitional op doc.examinedBegin() int
+op doc.examinedBegin() int
   component call
-  reads call
+  reads call, pos
   writes call
   features document
   cost <= 0
@@ -1055,9 +1055,10 @@ transitional op doc.examinedBegin() int
     // Starts measuring how far an observed call examines the input: in a Document parse, the
     // frontier of the call starts at the position. Returns the enclosing call's frontier, for
     // doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the frontier as in
-    // an unobserved parse, so that observation does not change reuse.
+    // an unobserved parse, so that observation does not change reuse. Outside a Document parse it starts
+    // nothing and returns 0.
 
-transitional op doc.examinedEnd(enclosing int) (int, bool)
+op doc.examinedEnd(enclosing int) (int, bool)
   component call
   reads call
   writes call
@@ -1069,7 +1070,7 @@ transitional op doc.examinedEnd(enclosing int) (int, bool)
   requires:
     // enclosing is the result of the matching doc.examinedBegin.
 
-transitional op doc.enter(pos int) (int, int)
+op doc.enter(pos int) (int, int)
   component call
   reads call
   writes call
@@ -1080,8 +1081,10 @@ transitional op doc.enter(pos int) (int, int)
     // its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
     // whose matches extend the examined input to the end of each unit they read and whose calls do not
     // extend it past their end, as the empty range at pos.
+  requires:
+    // The parse reads a Document.
 
-transitional op doc.leave(high int, low int)
+op doc.leave(high int, low int)
   component call
   reads call
   writes call
@@ -1091,9 +1094,9 @@ transitional op doc.leave(high int, low int)
     // Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
     // range that holds [low, high) and the call's.
   requires:
-    // high and low are the results of the matching doc.enter.
+    // The parse reads a Document; high and low are the results of the matching doc.enter.
 
-transitional op doc.active() bool
+op doc.active() bool
   component call
   reads call
   features document
@@ -1101,25 +1104,27 @@ transitional op doc.active() bool
   contract:
     // Reports whether the parse reads a Document.
 
-transitional op doc.touch(end int)
+op doc.touch(end int)
   component call
   reads call
   writes call
   features document
   cost <= 0
   contract:
-    // Extends the examined frontier of the current call to end, if end is past it.
+    // Extends the examined frontier of the current call to end, if end is past it. A parse that reads
+    // no Document keeps none.
 
-transitional op doc.touchFrom(from int)
+op doc.touchFrom(from int)
   component call
   reads call
   writes call
   features document
   cost <= 0
   contract:
-    // Extends the examined input of the current call back to from, if from is before its start.
+    // Extends the examined input of the current call back to from, if from is before its start. A parse
+    // that reads no Document keeps none.
 
-transitional op doc.low() int
+op doc.low() int
   component call
   reads call
   features document
@@ -1129,7 +1134,7 @@ transitional op doc.low() int
   requires:
     // The parse reads a Document.
 
-transitional op doc.high() int
+op doc.high() int
   component call
   reads call
   features document
@@ -1140,7 +1145,7 @@ transitional op doc.high() int
   requires:
     // The parse reads a Document.
 
-transitional op doc.reused()
+op doc.reused()
   component call
   writes call
   features document
@@ -1150,7 +1155,7 @@ transitional op doc.reused()
   requires:
     // The parse reads a Document.
 
-transitional op doc.evaluated()
+op doc.evaluated()
   component call
   writes call
   features document

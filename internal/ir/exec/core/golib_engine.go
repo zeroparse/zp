@@ -520,6 +520,8 @@ func engineTarget() *execgo.Target {
 			return "p.Hw"
 		case "doc.reused":
 			return "p.Stats.Reused++"
+		case "doc.evaluated":
+			return "p.Stats.Evaluated++"
 		case "doc.leave":
 			// The binding level of a call is named min: the low end is lowered without the builtin.
 			return fmt.Sprintf("p.Hw = max(%s, p.Hw)\np.lw = Min2(%s, p.lw)", a[0], a[1])

@@ -67,6 +67,9 @@ type Suite struct {
 	// LazyEdits sets ref.Config.LazyEdits for the model of every case: the implementation is a memo
 	// that applies edits to an entry when it finds it.
 	LazyEdits bool
+	// DocEmptyEnter sets ref.Config.DocEmptyEnter: the implementation's doc.enter starts the examined
+	// range of a call as the empty range at its position.
+	DocEmptyEnter bool
 	// Exact are the operations whose charges must equal their cost bound, not stay within it: in a
 	// metered implementation, the model's quantities state the work to the unit.
 	Exact []string
@@ -151,6 +154,7 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	}
 	cfg := c.Config
 	cfg.LazyEdits = s.LazyEdits
+	cfg.DocEmptyEnter = s.DocEmptyEnter
 	p := &pair{suite: s, model: ref.New(cfg), impl: s.New(cfg),
 		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {
@@ -186,7 +190,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
 		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp,
-			c.Callee == ExpOp, c.Callee == PlaceholderOp:
+			c.Callee == ExpOp, c.Callee == PlaceholderOp, c.Callee == DocStatOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -261,6 +265,14 @@ func implCall(m exec.Machine, o *exec.Op, args []any) outcome {
 	return call(m, o, args)
 }
 
+// UseRegisters hands the registers of the run to the model and to an implementation that reads them.
+func (p *pair) UseRegisters(regs map[string]any) {
+	p.model.UseRegisters(regs)
+	if rm, ok := p.impl.(exec.RegisterMachine); ok {
+		rm.UseRegisters(regs)
+	}
+}
+
 func (p *pair) Call(o *exec.Op, args []any) []any {
 	refArgs, implArgs := make([]any, len(args)), make([]any, len(args))
 	shown := make([]string, len(args))
@@ -300,6 +312,14 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	}
 	if o.Name == PlaceholderOp {
 		return []any{p.wrap(ref.Placeholder, p.impl.(Expectations).Placeholder())}
+	}
+	if o.Name == DocStatOp {
+		i := args[0].(int64)
+		want, got := p.model.DocStat(i), p.impl.(Documents).DocStat(i)
+		if want != got {
+			panic(mismatch(fmt.Sprintf("statistic %d of the Document: model %d, implementation %d", i, want, got)))
+		}
+		return []any{got}
 	}
 	if !p.model.Allows(o, refArgs) {
 		panic(mismatch("the case breaks the precondition of " + o.Name))

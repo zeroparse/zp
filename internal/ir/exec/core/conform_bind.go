@@ -30,17 +30,30 @@ func ExpBindingName(op string) string {
 	return b.String()
 }
 
-// expBindings returns the module of the compositions with a binding function for each operation of
-// the expectation record and of expBindingMemoOps, and the bindings in the order of the declarations.
-func expBindings() (*exec.Module, []*exec.Func) {
-	m := Build()
+// docBindingEngineOps are the doc operations that the engine has a Go form for: it has no observation of
+// calls, so it has neither doc.examinedBegin nor doc.examinedEnd.
+var docBindingEngineOps = []string{"doc.enter", "doc.leave", "doc.active", "doc.touch", "doc.touchFrom", "doc.low", "doc.high",
+	"doc.reused", "doc.evaluated"}
+
+// docBindingOps are the doc operations of the node runtime.
+var docBindingOps = []string{"doc.examinedBegin", "doc.examinedEnd", "doc.enter", "doc.leave", "doc.active", "doc.touch",
+	"doc.touchFrom", "doc.low", "doc.high", "doc.reused", "doc.evaluated"}
+
+// expBindingOps returns the operations of the expectation record and of expBindingMemoOps.
+func expBindingOps() []string {
 	var names []string
-	for _, o := range m.Ops {
+	for _, o := range Build().Ops {
 		if o.Component == ops.Exp {
 			names = append(names, o.Name)
 		}
 	}
-	names = append(names, expBindingMemoOps...)
+	return append(names, expBindingMemoOps...)
+}
+
+// bindings returns the module of the compositions with a binding function for each operation of
+// names, and the bindings in that order.
+func bindings(names []string) (*exec.Module, []*exec.Func) {
+	m := Build()
 	var fs []*exec.Func
 	for _, name := range names {
 		o := m.Op(name)
@@ -72,8 +85,8 @@ func expBindings() (*exec.Module, []*exec.Func) {
 }
 
 // bindingFile prints the bindings with the target t into a Go file of package pkg.
-func bindingFile(pkg string, t *execgo.Target) (string, error) {
-	m, fs := expBindings()
+func bindingFile(pkg string, names []string, t *execgo.Target) (string, error) {
+	m, fs := bindings(names)
 	name := t.FuncName
 	t.FuncName = func(n string) string {
 		if strings.HasPrefix(n, "conf") {
@@ -95,10 +108,26 @@ func bindingFile(pkg string, t *execgo.Target) (string, error) {
 
 // EngineExpBindings returns the Go test file of the conformance bindings of the expectation record
 // for package core of the engine.
-func EngineExpBindings() (string, error) { return bindingFile("core", engineTarget()) }
+func EngineExpBindings() (string, error) { return bindingFile("core", expBindingOps(), engineTarget()) }
 
 // GoExpBindings returns the Go test file of the conformance bindings of the expectation record for
 // package runtime, for the node runtime's Parser.
 func GoExpBindings() (string, error) {
-	return bindingFile("runtime", goTarget(goSpec{fn: "expect", name: "Expect"}))
+	return bindingFile("runtime", expBindingOps(), goTarget(goSpec{fn: "expect", name: "Expect"}))
+}
+
+// EngineDocBindingsFile is the file of the engine's conformance bindings of the doc operations,
+// relative to the directory of this package. It is a test file of package core of the engine.
+const EngineDocBindingsFile = "../../../engine/core/doc_bind_exec_test.go"
+
+// EngineDocBindings returns the Go test file of the conformance bindings of the doc operations for
+// package core of the engine.
+func EngineDocBindings() (string, error) {
+	return bindingFile("core", docBindingEngineOps, engineTarget())
+}
+
+// GoDocBindings returns the Go test file of the conformance bindings of the doc operations for
+// package runtime, for the node runtime's Parser.
+func GoDocBindings() (string, error) {
+	return bindingFile("runtime", docBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}))
 }
