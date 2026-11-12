@@ -369,7 +369,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"operatorsRuleNud", "} else if p.cutFailed {", "} else if false {"}},
 			{{"LongestStep", "((st.Best.Op == nil) || p.Pos > st.Best.End)", "(st.Best.Op == nil)"}},
 		}},
-		{"^TestTerminalOperatorsRuleNeedsAction$", ".", [][]funcEdit{
+		{"^TestTextStructOperatorsRule$", ".", [][]funcEdit{
 			{{"NudOperand", "\tp.Frame = st.PrevFrame\n", ""}},
 		}},
 		{"^TestTracesAgreeAcrossBackends$", ".", [][]funcEdit{
