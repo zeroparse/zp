@@ -1,16 +1,15 @@
-# A150: VM Position and Lambda Chunks
+# A150: VM Position Chunks
 
-Putting an integer position in a generic operand can allocate a boxed value;
-allocating each lambda object also creates many small objects. VM-owned chunks
-amortize both.
+Putting an integer position in a generic operand can allocate a boxed value.
+VM-owned chunks amortize the cells. Term code evaluates lambdas in place, so the
+VMs make no lambda objects to allocate.
 
 ## Mechanism and Invariants
 
-`PUSHPOS` stores a pointer to an integer cell from `newPos`; sequence, atomic
-and repetition consumers dereference it. `EFUNC` takes lambda objects from
-`newFunc` chunks. Nested lambda locals still preserve required copies. These
-cells stay valid for their evaluation lifetime; the change does not alter
-logical positions or public results.
+`PUSHPOS` stores a pointer to an integer cell taken from a chunk; sequence, atomic
+and repetition consumers dereference it. These cells stay valid for their
+evaluation lifetime; the change does not alter logical positions or public
+results.
 
 ## Scope and State
 
@@ -19,7 +18,7 @@ Go/TypeScript use their own expression representations.
 
 ## Reference Control
 
-No maintained same-source per-box/per-lambda allocation reference exists.
+No maintained same-source per-box allocation reference exists.
 
 ## Evidence and Implementation
 
@@ -30,9 +29,8 @@ established throughput improvement.
 Evidence records:
 [016](../016-start-positions-and-lambdas-from-chunks-in-the-vms.md).
 
-Source owners: [`vm.Machine.newPos and
-newFunc`](../../../internal/engine/vm/vm.go), [`PUSHPOS and EFUNC
-evaluation`](../../../internal/engine/vm/vm.go), [`iterative value
+Source owners: [`position cells`](../../../internal/engine/vm/vm.go),
+[`PUSHPOS evaluation`](../../../internal/engine/vm/vm.go), [`iterative value
 consumers`](../../../internal/engine/vm/ivm.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

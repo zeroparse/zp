@@ -21,7 +21,7 @@ func TestWideRepetitionModuleValidation(t *testing.T) {
 		t.Skip("bounds exceed a 32-bit implementation's source integer range")
 	}
 	for _, scan := range []bool{false, true} {
-		for _, defect := range []string{"missing minimum", "missing maximum", "noninteger", "negative minimum", "negative maximum", "reversed bounds"} {
+		for _, defect := range []string{"missing minimum", "missing maximum", "minimum past the table", "negative minimum", "negative maximum", "reversed bounds"} {
 			t.Run(fmt.Sprintf("scan=%v/%s", scan, defect), func(t *testing.T) {
 				body := `"a" #repeat(0,4294967296)`
 				if scan {
@@ -44,13 +44,13 @@ func TestWideRepetitionModuleValidation(t *testing.T) {
 					case "missing minimum":
 						*min = -1
 					case "missing maximum":
-						*max = int32(len(m.Exprs))
-					case "noninteger":
-						m.Exprs[*min].Op = bytecode.ENil
+						*max = -1
+					case "minimum past the table":
+						*min = int32(len(m.Ints))
 					case "negative minimum":
-						m.Exprs[*min] = bytecode.Instr{Op: bytecode.EInt, A: -1}
+						m.Ints[*min] = -1
 					case "negative maximum":
-						m.Exprs[*max] = bytecode.Instr{Op: bytecode.EInt, A: -2}
+						m.Ints[*max] = -2
 					case "reversed bounds":
 						*min, *max = *max, *min
 					}

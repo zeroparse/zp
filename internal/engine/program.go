@@ -85,7 +85,11 @@ func (prog *Program) CheckStart(name string) error { return prog.Static().CheckS
 
 // Module compiles the program to bytecode. The result is stored in the program and reused on
 // subsequent calls.
-func (prog *Program) Module() *bytecode.Module { return prog.BytecodeModule() }
+func (prog *Program) Module() *bytecode.Module {
+	m := prog.BytecodeModule()
+	vm.CompileTerms(prog.Static(), m)
+	return m
+}
 
 // RuleType returns the type of the value of the rule name: its declared type, or the inferred
 // type of its value (for example "[]Expr | node[[]node[string]]"). In an inferred type, a

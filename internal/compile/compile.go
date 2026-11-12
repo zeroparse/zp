@@ -64,6 +64,10 @@ type Program struct {
 
 	BytecodeOnce sync.Once
 	Bytecode     *bytecode.Module
+	// BytecodeTerms holds the terms of Bytecode, by index of Module.Terms, when the compiler made it;
+	// the engine makes their term code once, under BytecodeTermsOnce.
+	BytecodeTerms     []TermSite
+	BytecodeTermsOnce sync.Once
 	// typeKinds holds the node kinds of the grammar's types (typeKind), made with the program.
 	typeKinds map[string]*noderep.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the

@@ -38,8 +38,8 @@ termchargespush/term 12: concat(list(1), P{L: list(2, 3)}.L, list()) | aaaa go-t
 termchargespush/term 12: concat(list(1), P{L: list(2, 3)}.L, list()) | aaaa go-typed-recognize	19 ok
 termchargespush/term 12: concat(list(1), P{L: list(2, 3)}.L, list()) | aaaa ts-node	81 ok
 termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa engine-closure	49 ok
-termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa engine-iterative	52 ok
-termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa engine-vm	52 ok
+termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa engine-iterative	51 ok
+termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa engine-vm	51 ok
 termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa go-node	54 ok
 termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa go-node-recognize	19 ok
 termchargespush/term 13: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | aaaa go-typed	55 ok
@@ -78,8 +78,8 @@ termchargespush/term 17: concat(P{L: list(1)}.L, list(2, 1 / len(P{}.L))) | aaaa
 termchargespush/term 17: concat(P{L: list(1)}.L, list(2, 1 / len(P{}.L))) | aaaa go-typed-recognize	19 ok
 termchargespush/term 17: concat(P{L: list(1)}.L, list(2, 1 / len(P{}.L))) | aaaa ts-node	61 action in main: division by zero
 termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa engine-closure	89 ok
-termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa engine-iterative	93 ok
-termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa engine-vm	93 ok
+termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa engine-iterative	91 ok
+termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa engine-vm	91 ok
 termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa go-node	95 ok
 termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa go-node-recognize	19 ok
 termchargespush/term 18: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | aaaa go-typed	91 ok
@@ -254,8 +254,8 @@ termchargespush/term 34: concat(list(1), P{L: list(2, 3)}.L, list()) | 😀😀�
 termchargespush/term 34: concat(list(1), P{L: list(2, 3)}.L, list()) | 😀😀😀😀 go-typed-recognize	43 ok
 termchargespush/term 34: concat(list(1), P{L: list(2, 3)}.L, list()) | 😀😀😀😀 ts-node	90 ok
 termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 engine-closure	73 ok
-termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 engine-iterative	76 ok
-termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 engine-vm	76 ok
+termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 engine-iterative	75 ok
+termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 engine-vm	75 ok
 termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 go-node	78 ok
 termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 go-node-recognize	43 ok
 termchargespush/term 35: concat(concat(list(1), list(2)), concat(list(3), map(list(4), (n) => n))) | 😀😀😀😀 go-typed	79 ok
@@ -302,8 +302,8 @@ termchargespush/term 3: len(list($x, $z, $y)) | aaaa go-typed	43 ok
 termchargespush/term 3: len(list($x, $z, $y)) | aaaa go-typed-recognize	19 ok
 termchargespush/term 3: len(list($x, $z, $y)) | aaaa ts-node	56 ok
 termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 engine-closure	113 ok
-termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 engine-iterative	117 ok
-termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 engine-vm	117 ok
+termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 engine-iterative	115 ok
+termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 engine-vm	115 ok
 termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 go-node	119 ok
 termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 go-node-recognize	43 ok
 termchargespush/term 40: len(map(list(1, 2), (n) => (n, list(n), P{L: list(n)}))) | 😀😀😀😀 go-typed	115 ok

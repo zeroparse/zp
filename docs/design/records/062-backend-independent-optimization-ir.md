@@ -669,9 +669,16 @@ stage of its first consumer, so its differential tests and negative controls run
    streams, and the TypeScript benchmarks (`bench/ts-*.mjs`). Then remove `tsGen.expr`, the TypeScript term
    lowering and the condition rewriting.
 4. **Bytecode**, in both families, with `NEST`, `ENDNEST`, the new instruction-set and container versions
-   and their specification. Gate: the call-preserving modules, main and recognition, have the module
-   layout bytes of today's modules, excluding the instruction-set version field, for all repository
-   grammars and the specification test data; the inlined family is verified by the
+   and their specification. Gate: the call-preserving modules, main and recognition, have the rule
+   table, match code, string table and character class table of today's modules, with term operands
+   compared by index only and the term table excluded, for all repository grammars and the
+   specification test data. Term code is the engine's translation of the Exec IR function that the
+   lowering of terms makes of each Core IR term, the program that the closure backend runs too, so it
+   cannot be byte-identical to the stack code that the grammar's terms compiled to; the term
+   differential tests and compiled-versus-loaded runs check it instead. Serializing the Exec IR
+   functions of terms and translating them at load remains an alternative if the term instruction
+   set changes often: its format would follow a specified IR, at the cost of larger files and a
+   translation at load. The inlined family is verified by the
    differential tests and by event-free equality with the call-preserving family (equal results, errors,
    expected sets, recovered errors and positions on every parse without events) in both VMs; saved
    programs of each mode load and run in their family; the VM benchmarks, `Compile` cost and

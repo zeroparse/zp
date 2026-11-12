@@ -359,12 +359,9 @@ docs/optimizations/011-generated-parsers-catch-up-with-changes-410.md	gofile	gen
 docs/optimizations/011-generated-parsers-catch-up-with-changes-410.md	unexport	operatorsRuleAttempt	1
 docs/optimizations/013-allocation-free-operators-rule-attempts-and-pooled-operators-rule-frames-in-the-engine-and-vms.md	unexport	ivmMachine	1
 docs/optimizations/013-allocation-free-operators-rule-attempts-and-pooled-operators-rule-frames-in-the-engine-and-vms.md	unexport	operatorsRuleAttempt	2
-docs/optimizations/014-one-operand-stack-for-vm-expression-code.md	unexport	vmFunc	1
 docs/optimizations/015-allocation-free-action-plumbing-in-all-backends.md	unexport	lineResult	1
 docs/optimizations/015-allocation-free-action-plumbing-in-all-backends.md	unexport	newList	1
-docs/optimizations/016-start-positions-and-lambdas-from-chunks-in-the-vms.md	unexport	newFunc	1
 docs/optimizations/016-start-positions-and-lambdas-from-chunks-in-the-vms.md	unexport	newPos	1
-docs/optimizations/016-start-positions-and-lambdas-from-chunks-in-the-vms.md	unexport	vmFunc	1
 docs/optimizations/018-memoizing-from-the-second-call-at-a-position.md	unexport	memoTable	1
 docs/optimizations/020-splicing-the-memo-table-on-document-edits.md	unexport	memoTable	1
 docs/optimizations/021-changes-18-and-19-in-the-generated-parsers.md	internal	internal/bench/gen	1
@@ -404,7 +401,6 @@ docs/optimizations/078-local-cuts-in-typed-direct-rules.md	unexport	cutInput	2
 docs/optimizations/081-scoped-cuts-in-unfinished-typed-go-bodies.md	unexport	cutFail	1
 docs/optimizations/082-match-typed-direct-frame-layouts.md	unexport	lrInput	1
 docs/optimizations/082-match-typed-direct-frame-layouts.md	unexport	operatorsRuleInput	1
-docs/optimizations/089-isolate-stream-prefixes-and-batch-scratch-cleanup.md	unexport	newFunc	1
 docs/optimizations/092-reuse-generated-node-capture-scratch.md	gofile	runtime/runtime.go	1
 docs/optimizations/092-reuse-generated-node-capture-scratch.md	unexport	nodeFrameScratch	2
 docs/optimizations/095-attribute-copy-on-change.md	gofile	compile.go	3
@@ -540,12 +536,10 @@ docs/optimizations/mechanisms/A140-construction-tracking-release.md	gofile	inter
 docs/optimizations/mechanisms/A140-construction-tracking-release.md	gofile	internal/engine/vm/vm.go	1
 docs/optimizations/mechanisms/A140-construction-tracking-release.md	gofile	runtime/runtime.go	1
 docs/optimizations/mechanisms/A140-construction-tracking-release.md	gofile	runtime/typed.go	1
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	codelink	internal/engine/vm/ivm.go	1
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	codelink	internal/engine/vm/vm.go	2
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	gofile	internal/engine/vm/ivm.go	1
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	gofile	internal/engine/vm/vm.go	2
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	unexport	newFunc	1
-docs/optimizations/mechanisms/A150-vm-position-and-lambda-chunks.md	unexport	newPos	1
+docs/optimizations/mechanisms/A150-vm-position-chunks.md	codelink	internal/engine/vm/ivm.go	1
+docs/optimizations/mechanisms/A150-vm-position-chunks.md	codelink	internal/engine/vm/vm.go	2
+docs/optimizations/mechanisms/A150-vm-position-chunks.md	gofile	internal/engine/vm/ivm.go	1
+docs/optimizations/mechanisms/A150-vm-position-chunks.md	gofile	internal/engine/vm/vm.go	2
 docs/optimizations/mechanisms/A160-whole-input-scratch-pooling.md	codelink	internal/engine/core/input.go	1
 docs/optimizations/mechanisms/A160-whole-input-scratch-pooling.md	codelink	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/A160-whole-input-scratch-pooling.md	codelink	runtime/runtime.go	1

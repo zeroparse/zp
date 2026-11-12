@@ -17,7 +17,7 @@ func (prog *Program) BytecodeModule() *bytecode.Module {
 	prog.BytecodeOnce.Do(func() {
 		c := &bcompiler{prog: prog, m: &bytecode.Module{SourceInfo: prog.RecordsSourceInfo, DefaultValue: prog.MakesDefaultValue}, strs: map[string]int{}}
 		c.compile()
-		prog.Bytecode = c.m
+		prog.Bytecode, prog.BytecodeTerms = c.m, c.terms
 	})
 	return prog.Bytecode
 }
@@ -30,15 +30,19 @@ type bcompiler struct {
 	proj map[string]string // projected captures of its body (ruleProjections)
 	m    *bytecode.Module
 	strs map[string]int
-	// lambdas are the lambdas whose body compilation has been deferred.
-	lambdas []pendingLambda
+	// terms are the terms of the module, whose code the engine makes (Program.BytecodeTerms).
+	terms []TermSite
 }
 
-type pendingLambda struct {
-	at     int // index of the EFUNC instruction
-	body   grammar.Term
-	scope  *Scope
-	locals []string
+// TermSite is a term of a bytecode module: the action, predicate or binding value Term, which reads
+// the frame of Scope, with the projected captures Proj of the rule whose action it is (nil for
+// other terms). The compiler leaves the term code of each site (Module.Terms) empty, because term
+// code is the engine's translation of the term's Core IR, which this package cannot make; the engine
+// fills it before a VM runs the module or a file saves it.
+type TermSite struct {
+	Term  grammar.Term
+	Scope *Scope
+	Proj  map[string]string
 }
 
 func (c *bcompiler) str(s string) int32 {
@@ -65,19 +69,10 @@ func (c *bcompiler) emit(op bytecode.Op, a, b, cc int32) int {
 
 func (c *bcompiler) here() int32 { return int32(len(c.m.Code)) }
 
-func (c *bcompiler) eemit(op bytecode.Op, a, b int32) int {
-	return c.eemit3(op, a, b, 0)
-}
-
-func (c *bcompiler) eemit3(op bytecode.Op, a, b, cc int32) int {
-	c.m.Exprs = append(c.m.Exprs, bytecode.Instr{Op: op, A: a, B: b, C: cc})
-	return len(c.m.Exprs) - 1
-}
-
-// integer stores a full implementation-int value using the EINT representation.
+// integer adds a wide integer to the module and returns its index.
 func (c *bcompiler) integer(value int) int32 {
-	lo := int32(value)
-	return int32(c.eemit(bytecode.EInt, lo, int32((uint64(value)-uint64(int64(lo)))>>32)))
+	c.m.Ints = append(c.m.Ints, int64(value))
+	return int32(len(c.m.Ints) - 1)
 }
 
 func (c *bcompiler) repetition(op bytecode.Op, min, max int, other int32) {
@@ -191,11 +186,7 @@ func (c *bcompiler) compile() {
 		}
 		ri.Scope = c.strs2(s.Names)
 		if r.Action != nil {
-			var locals []string
-			if ri.OperatorsRule >= 0 {
-				locals = OperatorsRuleActionLocals // $value is local 0
-			}
-			ri.Action = c.expr(r.Action, s, locals, true)
+			ri.Action = c.expr(r.Action, s, RuleProjections(c.prog, r))
 		}
 	}
 }
@@ -479,9 +470,9 @@ func (c *bcompiler) void(e grammar.Expr, s *Scope) {
 		c.emit(bytecode.OpAssert, 3, 0, 0)
 	case *grammar.Predicate:
 		if a, ok := e.Term.(*grammar.Bind); ok {
-			c.emit(bytecode.OpBind, int32(c.prog.Vars.Index(a.Name)), int32(c.expr(a.Value, s, nil, false)), 0)
+			c.emit(bytecode.OpBind, int32(c.prog.Vars.Index(a.Name)), int32(c.expr(a.Value, s, nil)), 0)
 		} else {
-			c.emit(bytecode.OpPred, int32(c.expr(e.Term, s, nil, false)), 0, 0)
+			c.emit(bytecode.OpPred, int32(c.expr(e.Term, s, nil)), 0, 0)
 		}
 	case *grammar.Attributed:
 		c.attributed(e, len(e.Attrs)-1, s)
@@ -745,25 +736,16 @@ func (c *bcompiler) line(e grammar.Expr, action grammar.Term, locals []string, k
 	c.emit(bytecode.OpEnd, 0, 0, 0)
 	li.Scope = c.strs2(s.Names)
 	if action != nil && !c.cur.Novalue {
-		li.Action = c.expr(action, s, locals, locals == nil)
+		li.Action = c.expr(action, s, nil)
 	}
 	return li
 }
 
-// expr compiles the value expression into expression code and returns its start position.
-func (c *bcompiler) expr(t grammar.Term, s *Scope, locals []string, allowIndex bool) int {
-	start := len(c.m.Exprs)
-	c.term(t, s, locals)
-	c.eemit(bytecode.ERet, 0, 0)
-	// Lambda bodies are placed after the expression that contains them.
-	for len(c.lambdas) > 0 {
-		l := c.lambdas[0]
-		c.lambdas = c.lambdas[1:]
-		c.m.Exprs[l.at].A = int32(len(c.m.Exprs))
-		c.term(l.body, l.scope, l.locals)
-		c.eemit(bytecode.ERet, 0, 0)
-	}
-	return start
+// expr adds the term t, which reads the frame of the scope s, to the module and returns its index.
+func (c *bcompiler) expr(t grammar.Term, s *Scope, proj map[string]string) int {
+	c.terms = append(c.terms, TermSite{Term: t, Scope: s, Proj: proj})
+	c.m.Terms = append(c.m.Terms, bytecode.Term{})
+	return len(c.m.Terms) - 1
 }
 
 // projectRepeat emits a repetition that gathers the values of the capture field of its elements
@@ -781,162 +763,4 @@ func (c *bcompiler) projectRepeat(e *grammar.Repeat, field string) {
 	c.m.Code[iter].A = c.here()
 	c.emit(bytecode.OpEndRepeat, 1, 0, 0)
 	c.m.Scopes[sc] = c.strs2(elemScope.Names)
-}
-
-// identity is the lambda (e) => e, which takes the place of the projection in a map call of a
-// projected repetition: the list holds the values already.
-var identity = &grammar.Lambda{Params: []string{"e"}, Body: &grammar.CaptureRef{Name: "e"}}
-
-// concatParts emits the code that gathers the elements of the arguments of a fusable concat call.
-func (c *bcompiler) concatParts(t *grammar.Call, s *Scope, locals []string) {
-	for _, a := range t.Args {
-		call := a.(*grammar.Call)
-		switch call.Func {
-		case "list":
-			for _, x := range call.Args {
-				c.term(x, s, locals)
-			}
-			c.eemit(bytecode.EListPush, int32(len(call.Args)), 0)
-		case "map":
-			c.term(call.Args[0], s, locals)
-			if c.prog.Projected[call] {
-				c.lambda(identity, s, locals)
-			} else {
-				c.lambda(call.Args[1], s, locals)
-			}
-			c.eemit(bytecode.EMapPush, 0, 0)
-		case "concat":
-			c.concatParts(call, s, locals)
-		}
-	}
-}
-
-// lambda emits a function value for the lambda t.
-func (c *bcompiler) lambda(t grammar.Term, s *Scope, locals []string) {
-	l, ok := t.(*grammar.Lambda)
-	if !ok {
-		c.term(t, s, locals)
-		return
-	}
-	at := c.eemit(bytecode.EFunc, 0, int32(len(l.Params)))
-	c.lambdas = append(c.lambdas, pendingLambda{at: at, body: l.Body, scope: s,
-		locals: append(append([]string(nil), locals...), l.Params...)})
-}
-
-func (c *bcompiler) term(t grammar.Term, s *Scope, locals []string) {
-	switch t := t.(type) {
-	case *grammar.IntLit:
-		// A holds the low 32 bits and B the rest (see EInt), so B is 0 for the values of int32.
-		lo := int32(t.Value)
-		c.eemit(bytecode.EInt, lo, int32((uint64(t.Value)-uint64(int64(lo)))>>32))
-	case *grammar.StringLit:
-		c.eemit(bytecode.EStr, c.str(t.Value), 0)
-	case *grammar.BoolLit:
-		c.eemit(bytecode.EBool, b2i(t.Value), 0)
-	case *grammar.NilLit:
-		c.eemit(bytecode.ENil, 0, 0)
-	case *grammar.CaptureRef:
-		for i := len(locals) - 1; i >= 0; i-- {
-			if locals[i] == t.Name {
-				c.eemit(bytecode.ELocal, int32(i), 0)
-				return
-			}
-		}
-		c.eemit(bytecode.ECap, int32(s.Slots[t.Name]), 0)
-	case *grammar.VarRef:
-		c.eemit(bytecode.EVar, int32(c.prog.Vars.Index(t.Name)), 0)
-	case *grammar.Member:
-		c.term(t.X, s, locals)
-		c.eemit(bytecode.EMember, c.str(t.Name), 0)
-	case *grammar.New:
-		if len(t.Args) != 0 {
-			n, _ := c.prog.NodeTypeOf(t.Type)
-			c.term(t.Args[0], s, locals)
-			c.eemit(bytecode.ENode, c.str(n.Name), 0)
-			return
-		}
-		name, _ := c.prog.StructType(t.Type)
-		names := make([]string, len(t.Fields))
-		for i, f := range t.Fields {
-			c.term(f.Value, s, locals)
-			names[i] = f.Name
-		}
-		c.m.FieldLists = append(c.m.FieldLists, c.strs2(names))
-		c.eemit(bytecode.ENew, c.str(name), int32(len(c.m.FieldLists)-1))
-	case *grammar.ListConstructor:
-		for _, item := range t.Items {
-			c.term(item, s, locals)
-		}
-		c.eemit(bytecode.ECall, bytecode.BuiltinList, int32(len(t.Items)))
-	case *grammar.TupleLit:
-		for _, x := range t.Elems {
-			c.term(x, s, locals)
-		}
-		c.eemit(bytecode.ETuple, int32(len(t.Elems)), 0)
-	case *grammar.Call:
-		if t.Func == "concat" && Fusable(t) {
-			// Gather the elements of list, map and concat arguments directly (see fusable).
-			c.eemit(bytecode.EListBegin, 0, 0)
-			c.concatParts(t, s, locals)
-			c.eemit(bytecode.EListEnd, 0, 0)
-			return
-		}
-		fn := 0
-		for i, n := range bytecode.BuiltinNames {
-			if n == t.Func {
-				fn = i
-			}
-		}
-		for _, a := range t.Args {
-			if l, ok := a.(*grammar.Lambda); ok {
-				if c.prog.Projected[t] {
-					l = identity
-				}
-				at := c.eemit(bytecode.EFunc, 0, int32(len(l.Params)))
-				c.lambdas = append(c.lambdas, pendingLambda{at: at, body: l.Body, scope: s,
-					locals: append(append([]string(nil), locals...), l.Params...)})
-				continue
-			}
-			c.term(a, s, locals)
-		}
-		c.eemit(bytecode.ECall, int32(fn), int32(len(t.Args)))
-	case *grammar.Binary:
-		switch t.Op {
-		case "&&", "||":
-			c.term(t.L, s, locals)
-			op := bytecode.EAnd
-			if t.Op == "||" {
-				op = bytecode.EOr
-			}
-			j := c.eemit(op, 0, 0)
-			c.term(t.R, s, locals)
-			c.eemit(bytecode.EBoolChk, c.str(t.Op), 0)
-			c.m.Exprs[j].A = int32(len(c.m.Exprs))
-		default:
-			if lx, ok := TextArg(t.L); ok && (t.Op == "==" || t.Op == "!=") {
-				if rx, ok := TextArg(t.R); ok {
-					// Compare the texts without making strings values (see evalCtx.binary). Each
-					// argument is checked right after it is evaluated, as text(...) would be.
-					c.term(lx, s, locals)
-					c.eemit(bytecode.ETextChk, 0, 0)
-					c.term(rx, s, locals)
-					c.eemit(bytecode.ETextChk, 0, 0)
-					c.eemit(bytecode.ETextEq, b2i(t.Op == "!="), 0)
-					return
-				}
-			}
-			c.term(t.L, s, locals)
-			c.term(t.R, s, locals)
-			c.eemit(bytecode.EBin, c.str(t.Op), 0)
-		}
-	case *grammar.Unary:
-		c.term(t.X, s, locals)
-		c.eemit(bytecode.EUnary, c.str(t.Op), 0)
-	case *grammar.Cast:
-		c.term(t.X, s, locals)
-		if ft := c.prog.CastType(t); ft != nil {
-			line, col := c.prog.CastPos(t)
-			c.eemit3(bytecode.ECast, c.str(ft.Text), int32(line), int32(col))
-		}
-	}
 }

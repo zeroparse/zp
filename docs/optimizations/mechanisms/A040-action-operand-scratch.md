@@ -50,6 +50,6 @@ context`](../../../internal/gen/gents/tsrt/runtime.ts).
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
 
-Related mechanisms: [A190](A190-evaluation-context-reuse.md), [A150](A150-vm-position-and-lambda-chunks.md).
+Related mechanisms: [A190](A190-evaluation-context-reuse.md), [A150](A150-vm-position-chunks.md).
 
 [Optimization Catalog](../README.md)

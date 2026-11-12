@@ -54,11 +54,9 @@ func (w *Encoder) WriteModule(m *Module) {
 		w.ints(t.Zeros)
 		w.Int(t.Node)
 	}
-	for _, lists := range [][][]int{m.FieldLists, m.Scopes} {
-		w.Uint(len(lists))
-		for _, l := range lists {
-			w.ints(l)
-		}
+	w.Uint(len(m.Scopes))
+	for _, l := range m.Scopes {
+		w.ints(l)
 	}
 	w.Uint(len(m.Vars))
 	for _, v := range m.Vars {
@@ -109,7 +107,52 @@ func (w *Encoder) WriteModule(m *Module) {
 		}
 	}
 	w.code(m.Code)
-	w.code(m.Exprs)
+	w.Uint(len(m.Ints))
+	for _, x := range m.Ints {
+		w.Body.Write(binary.AppendVarint(nil, x))
+	}
+	w.Uint(len(m.Terms))
+	for i := range m.Terms {
+		w.term(&m.Terms[i])
+	}
+}
+
+func (w *Encoder) term(t *Term) {
+	for _, n := range t.Regs {
+		w.Uint(n)
+	}
+	w.Uint(len(t.Consts))
+	for _, c := range t.Consts {
+		w.Byte(byte(c.Kind))
+		w.Body.Write(binary.AppendVarint(nil, c.Int))
+	}
+	w.ints(t.Names)
+	w.Uint(len(t.Members))
+	for _, x := range t.Members {
+		w.Int(x.Kind)
+		w.Int(x.Name)
+		w.Int(x.Field)
+	}
+	w.ints(t.NodeTypes)
+	w.Uint(len(t.Casts))
+	for _, x := range t.Casts {
+		w.Int(x.Type)
+		w.Int(x.Line)
+		w.Int(x.Col)
+	}
+	w.Uint(len(t.Structs))
+	for _, x := range t.Structs {
+		w.Int(x.Type)
+		w.Int(x.Fields)
+	}
+	w.Uint(len(t.Code))
+	for _, in := range t.Code {
+		w.Byte(in.Op)
+		w.Int(int(in.Dst))
+		w.Int(int(in.A))
+		w.Int(int(in.B))
+		w.Int(int(in.C))
+	}
 }
 
 // int32 reads an instruction operand.
@@ -178,11 +221,9 @@ func (r *Decoder) ReadModule() *Module {
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Types = append(m.Types, TypeInfo{Name: int(r.int32()), Fields: r.ints(), Zeros: r.ints(), Node: int(r.int32())})
 	}
-	for _, lists := range []*[][]int{&m.FieldLists, &m.Scopes} {
-		n = r.Count()
-		for i := 0; i < n && r.Err == nil; i++ {
-			*lists = append(*lists, r.ints())
-		}
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		m.Scopes = append(m.Scopes, r.ints())
 	}
 	n = r.Count()
 	for i := 0; i < n && r.Err == nil; i++ {
@@ -217,8 +258,59 @@ func (r *Decoder) ReadModule() *Module {
 		m.OperatorsRules = append(m.OperatorsRules, p)
 	}
 	m.Code = r.code()
-	m.Exprs = r.code()
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		m.Ints = append(m.Ints, r.int64())
+	}
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		m.Terms = append(m.Terms, r.term())
+	}
 	return m
+}
+
+// int64 reads a signed integer of 64 bits.
+func (r *Decoder) int64() int64 {
+	if r.Err != nil {
+		return 0
+	}
+	n, k := binary.Varint(r.Data[r.Pos:])
+	if k <= 0 {
+		r.Fail("invalid integer")
+		return 0
+	}
+	r.Pos += k
+	return n
+}
+
+func (r *Decoder) term() Term {
+	var t Term
+	for i := range t.Regs {
+		t.Regs[i] = r.Uint()
+	}
+	n := r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Consts = append(t.Consts, TermConst{Kind: int(r.Byte()), Int: r.int64()})
+	}
+	t.Names = r.ints()
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Members = append(t.Members, TermMember{Kind: int(r.int32()), Name: int(r.int32()), Field: int(r.int32())})
+	}
+	t.NodeTypes = r.ints()
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Casts = append(t.Casts, TermCast{Type: int(r.int32()), Line: int(r.int32()), Col: int(r.int32())})
+	}
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Structs = append(t.Structs, TermStruct{Type: int(r.int32()), Fields: int(r.int32())})
+	}
+	n = r.Count()
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Code = append(t.Code, TermInstr{Op: r.Byte(), Dst: r.int32(), A: r.int32(), B: r.int32(), C: r.int32()})
+	}
+	return t
 }
 
 // ValidateModule checks that every table and instruction reference in the module is in range
@@ -275,9 +367,6 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	if err == nil {
 		err = validateZeros(m)
 	}
-	for _, l := range m.FieldLists {
-		strs(l)
-	}
 	for _, l := range m.Scopes {
 		strs(l)
 	}
@@ -305,10 +394,19 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		}
 		return false
 	}
+	// structType reports whether name is a declared struct type.
+	structType := func(name string) bool {
+		for _, t := range m.Types {
+			if m.Strings[t.Name] == name {
+				return t.Node < 0
+			}
+		}
+		return false
+	}
 	line := func(l *LineInfo) {
 		in("entry", l.Entry, len(m.Code))
 		strs(l.Scope)
-		opt("action", l.Action, len(m.Exprs))
+		opt("action", l.Action, len(m.Terms))
 	}
 	seenVars := map[string]bool{}
 	for _, v := range m.Vars {
@@ -341,7 +439,7 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		str(r.Name)
 		in("entry", r.Entry, len(m.Code))
 		strs(r.Scope)
-		opt("action", r.Action, len(m.Exprs))
+		opt("action", r.Action, len(m.Terms))
 		opt("string", r.NodeType, len(m.Strings))
 		if err == nil && r.NodeType >= 0 && !nodeType(m.Strings[r.NodeType]) {
 			fail("type %q is not a named node type", m.Strings[r.NodeType])
@@ -393,16 +491,11 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		}
 	}
 	bound := func(index int32) int64 {
-		in("bound expression", int(index), len(m.Exprs))
-		if index < 0 || int(index) >= len(m.Exprs) {
+		in("wide integer", int(index), len(m.Ints))
+		if index < 0 || int(index) >= len(m.Ints) {
 			return 0
 		}
-		x := m.Exprs[index]
-		if x.Op != EInt {
-			fail("bound expression %d is not EINT", index)
-			return 0
-		}
-		n := x.Integer()
+		n := m.Ints[index]
 		if int64(int(n)) != n {
 			fail("repetition bound %d exceeds the implementation int range", n)
 		}
@@ -501,10 +594,10 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		case OpOperatorsRule:
 			in("operatorsRule", int(x.A), len(m.OperatorsRules))
 		case OpPred:
-			in("expression", int(x.A), len(m.Exprs))
+			in("term", int(x.A), len(m.Terms))
 		case OpBind:
 			in("variable", int(x.A), len(m.Vars))
-			in("expression", int(x.B), len(m.Exprs))
+			in("term", int(x.B), len(m.Terms))
 			flag(x.C, 0)
 		case OpLabel:
 			str(int(x.A))
@@ -532,48 +625,50 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			fail("invalid instruction %d at %d", x.Op, ip)
 		}
 	}
-	for ip, x := range m.Exprs {
-		switch x.Op {
-		case EInt, ENil, ERet, ETextChk, EListBegin, EMapPush, EListEnd:
-		case ETextEq:
-			flag(x.A, 1)
-		case EListPush, ETuple:
-			nonneg(x.A)
-		case EBool:
-			flag(x.A, 1)
-		case EVar:
-			in("variable", int(x.A), len(m.Vars))
-		case EStr, EUnary, EBoolChk, EMember, EBin:
-			str(int(x.A))
-		case ECap, ELocal:
-			nonneg(x.A)
-		case ENew:
-			str(int(x.A))
-			in("field list", int(x.B), len(m.FieldLists))
-		case ECast:
-			str(int(x.A))
-			checkType(int(x.A), fmt.Sprintf("at %d", ip))
-			nonneg(x.B)
-			nonneg(x.C)
-		case ENode:
-			str(int(x.A))
-			if err == nil && !nodeType(m.Strings[x.A]) {
-				fail("ENODE type %q is not a declared node type at %d", m.Strings[x.A], ip)
+	for i := range m.Terms {
+		t := &m.Terms[i]
+		where := fmt.Sprintf("in term %d", i)
+		for _, c := range t.Consts {
+			switch c.Kind {
+			case ConstNil, ConstInt:
+			case ConstString:
+				str(int(c.Int))
+			case ConstBool:
+				if c.Int != 0 && c.Int != 1 {
+					fail("invalid boolean constant %d %s", c.Int, where)
+				}
+			default:
+				fail("invalid constant kind %d %s", c.Kind, where)
 			}
-			flag(x.B, 0)
-		case EAnd, EOr:
-			forward(ip, x.A, len(m.Exprs))
-		case EFunc:
-			forward(ip, x.A, len(m.Exprs))
-			nonneg(x.B)
-		case ECall:
-			in("builtin", int(x.A), len(BuiltinNames))
-			nonneg(x.B)
-			if x.A == BuiltinFilter && x.B != 2 {
-				fail("filter requires two arguments, got %d", x.B)
+		}
+		strs(t.Names)
+		for _, x := range t.Members {
+			str(x.Name)
+			str(x.Field)
+		}
+		for _, x := range t.NodeTypes {
+			str(x)
+			if err == nil && !nodeType(m.Strings[x]) {
+				fail("type %q of a conversion is not a named node type %s", m.Strings[x], where)
 			}
-		default:
-			fail("invalid expression instruction %d at %d", x.Op, ip)
+		}
+		for _, x := range t.Casts {
+			opt("string", x.Type, len(m.Strings))
+			if x.Type >= 0 {
+				checkType(x.Type, where)
+			}
+			if x.Line < 0 || x.Col < 0 {
+				fail("invalid cast position %d:%d %s", x.Line, x.Col, where)
+			}
+		}
+		for _, x := range t.Structs {
+			str(x.Type)
+			if err == nil && !structType(m.Strings[x.Type]) {
+				fail("type %q of a struct literal is not a struct type %s", m.Strings[x.Type], where)
+			}
+			if x.Fields < 0 {
+				fail("invalid field count %d %s", x.Fields, where)
+			}
 		}
 	}
 	if err != nil {

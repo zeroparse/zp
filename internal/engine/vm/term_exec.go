@@ -12,7 +12,7 @@ func (vm *Program) predicate(p *core.Parser, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := vm.eval(ctx, t, nil)
+	v, err := vm.terms[t].Eval(ctx)
 	ok := err == nil
 	if !ok {
 		p.DropKids(kids)
@@ -36,7 +36,7 @@ func (vm *Program) bind(p *core.Parser, slot int, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := vm.eval(ctx, t, nil)
+	v, err := vm.terms[t].Eval(ctx)
 	ok := err == nil
 	if !ok {
 		p.DropKids(kids)

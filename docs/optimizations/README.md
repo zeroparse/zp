@@ -92,7 +92,7 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 | [A110](mechanisms/A110-expected-set-ids.md) | Interned expectation IDs and shared windows | All six; backend storage differs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [A120](mechanisms/A120-source-token-text.md) | Source substring token text | All six subject to input representation; stream separately | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [A140](mechanisms/A140-construction-tracking-release.md) | Release completed construction tracking | All six default; TS timing unmeasured | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
-| [A150](mechanisms/A150-vm-position-and-lambda-chunks.md) | VM boxed positions and lambda chunks | RVM/IVM only | — | ✓ | ✓ | — | — | — | Default | None maintained |
+| [A150](mechanisms/A150-vm-position-chunks.md) | VM boxed positions | RVM/IVM only | — | ✓ | ✓ | — | — | — | Default | None maintained |
 | [A160](mechanisms/A160-whole-input-scratch-pooling.md) | Pool whole-input scratch across calls | C/RVM/IVM/GN/TG; TS N/A | ✓ | ✓ | ✓ | ✓ | ✓ | — | Default | None maintained |
 | [A170](mechanisms/A170-operators-attempt-scratch.md) | Reusable Operators Rule candidate storage | C/RVM/IVM/GN/TG by route; TS does not use Go by-value attempt | Partial | Partial | Partial | Partial | Partial | — | Default | None maintained |
 | [A180](mechanisms/A180-typed-frame-reuse.md) | Release/reuse typed runtime capture frames | TG only | — | — | — | — | ✓ | — | Default | None maintained |

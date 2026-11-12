@@ -216,7 +216,7 @@ func TestNegativeMaximumWithWideMinimum(t *testing.T) {
 					continue
 				}
 				found = true
-				if p.Module().Exprs[index].Integer() != -1 {
+				if p.Module().Ints[index] != -1 {
 					t.Fatal("wide maximum is not canonical")
 				}
 			}
