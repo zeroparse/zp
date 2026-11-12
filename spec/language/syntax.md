@@ -233,7 +233,13 @@ rule type_tuple = "(" {ml := true} -ws (type_expr -ws "," -ws)* type_expr? -ws "
 
 // A variable definition gives a name, a type, an initial value, or a type with a value.
 rule var_decl = comments var_def_body &source_item_tail stmt_end
-rule var_def_body = "var" -word_end #cut ident var_type? var_value?
+rule var_def_body = (
+    "var" -word_end #cut ident var_type? var_value?
+    var_junk_end
+)
+// An = after the name or the type starts the value even when the value fails, so it is not text after a
+// complete declaration, and the error stays where the value failed.
+rule var_junk_end = !({junk} horizontal "=" ![=>])
 // The whitespace before the type and the value belongs to them, so a declaration with neither
 // ends at its name and does not take in a trailing comment.
 rule var_type = -ws type_expr
