@@ -1635,7 +1635,36 @@ necessary.
    The checks of growing units are made for alternatives, and after such a
    lookahead succeeds, the unit around it goes on at its start, where it
    examines the input as an alternative that is not growing would, though no
-   path through its left call failed. A unit whose only scanning
+   path through its left call failed.
+   A step of a growth after the first is checked as a unit too. A step that
+   fails is dropped, the growth ends with the seed, and the parser goes on at
+   the end of the seed with what follows the calls that start the growth, which
+   can examine again the input that the step examined there though no unit
+   failed: in `main = (S / [ac-z])* $$` with `S = (S "a" / "b") T` and
+   `T = "c" / "d" [a-z]* "!"`, on `bcad` repeated, the step after the seed
+   `bc` matches `a`, scans the rest of the input in the last alternative of
+   `T` and fails at its end, and the next growth, two characters on, scans it
+   again. The **step tails** of a leader are what its body evaluates after a
+   left call of the leader that reads the seed, made in the body or through
+   left calls of other rules of the cycle: from the end of such a left call
+   to the end of the body, through the ends of the bodies of the rules of the
+   cycle on the way, `"a" T` in `S` above. A step after the first is a unit
+   that starts at the end of the seed, whose first characters are those of
+   the step tails, compared as those of a growing unit are, and whose
+   continuations are what follows the calls that start the growth, at the
+   end of the seed, as for a growing unit. It is checked when a step tail
+   contains a scanning source and can fail after it, as a unit can, also
+   where no unit holds both the source and what fails after it: in `S`, `T`
+   follows the group that holds the growing unit `S "a"`, and a left call
+   can as well be in the last alternative of a choice. So `S`
+   above fails the condition, since `a` is a first character of both the
+   step and `[ac-z]`, and so does `S = F T` with `F = S "a" / "b"`; with
+   `T = "c" / "d" "!"` or with `"!"?` at the end of `T`, no step tail can
+   fail after a scanning source, and with `S ";"` in `main`, the step is
+   committing. A step that succeeds with a result no longer than the seed
+   is dropped as well, but it gives back the input that it examined beyond
+   its result only through the units in it that are abandoned, which this
+   condition checks in turn. A unit whose only scanning
    sources are bounded scans contains no scanning source in this sense: a
    restart repeats them, and their bound counts the repetition.
 3. **Growth.** No scanning source can be evaluated, outside the left calls of
