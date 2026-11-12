@@ -364,7 +364,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 		{"^TestRuleResultChecks$", ".", [][]funcEdit{
 			{{"NudOperand", "LineResult(r, o, st.F, v, st.M0.Pos, nil)", "LineResult(r, o, st.F, v, p.Pos, nil)"}},
 		}},
-		{"^TestSampleCorpus$", ".", [][]funcEdit{
+		{"^TestSampleCorpus$", "../../sample", [][]funcEdit{
 			{{"operatorsRuleNud", "\t\tif a.Cut {\n\t\t\treturn nil, false\n\t\t}\n", ""}},
 			{{"operatorsRuleNud", "\t\tp.Reset(m0)\n\t} else if", "\t} else if"}},
 			{{"operatorsRuleNud", "} else if p.cutFailed {", "} else if false {"}},
