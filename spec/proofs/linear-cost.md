@@ -1994,9 +1994,10 @@ after the first, start a growth of another leader $R$ at $p$, let $e$ be the
 end of the seed of the step, and let the hypotheses of *Steps that begin anew*
 hold for $R$ and $S$. Then the growth of $R$ is of one of three kinds.
 
-1. It reads no growing result of $S$, or the same growing results as an earlier
-   growth of $R$ in the context, and it takes the steps of that growth again,
-   at a constant cost for each step of $S$ beyond their first evaluation.
+1. It reads no growing result of $S$, or growing results that the parse finds
+   equal to those that an earlier growth of $R$ in the context read, and it
+   takes the steps of that growth again, at a constant cost for each step of
+   $S$ beyond their first evaluation.
 2. Its result includes the growing result of $S$, and it takes at most three
    steps more than the length by which its result passes $e$.
 3. Its result does not include the growing result of $S$, and it takes at
@@ -2053,6 +2054,33 @@ of M that holds the call. So a growth of $S$ that consumes $\ell$ characters
 evaluates in its context at most a constant times $\ell + 1$ body evaluations,
 apart from the growths at those sources, and the growths that it nests, which
 have other leaders, are bounded in the same way.
+
+**Reuse in a context.** The bounds of this lemma hold when the parse reuses no
+result and no step kept in a context of growths. Such a reuse needs every
+growing result that the result or the step read to be equal to the one there
+now, and every lookahead that it observed to have the same outcome
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). A parse
+may compare two results by their structure only up to a bound and take results
+that it has not shown equal as different, and where it records the input that
+evaluations examine, it takes results with different examined ranges as
+different too. Either way it evaluates again what it could have reused.
+
+*Proof.* *Calls in a context of growths* bounds the evaluations of a step by
+the calls of the bodies alone. *Evaluations that read no growing result* rests
+on the memo, whose entries hold results that read no growing result and are
+found by their key, not by a comparison of results. The second and the third
+kind of *Growths inside a step* bound the steps of a growth of $R$ by the
+length of its result, as every growth is bounded
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), and charge
+them to the input that the growth of $S$ consumes, to the constant number of
+steps of *Results that do not include the seed*, or to a scanning source. A
+growth of the first kind that the parse takes again in full, because it did not
+find the growing results equal, is a growth of the second or the third kind:
+by *Steps that begin anew*, every growth of $R$ that a step of $S$ nests either
+includes the growing result of $S$ in all its results from the first that is
+not empty, or reads it only on paths that fail, or not at all. So it is
+bounded as those kinds are, and the comparison changes the constant of the
+bound, not its form. $\square$
 
 ## Lemma 6 (Values and Copies)
 
@@ -3998,16 +4026,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    plain, the steps of a growth of a leader inside a step of another one by
    the input that the outer growth consumes, apart from the growths at calls
    that are scanning sources (*Steps that begin anew*, *Growths inside a
-   step*). Three parts remain. The first is the reads that are not plain: a
-   lookahead that examines the input before its left call of the leader
+   step*), and shows that these bounds do not rest on reuse in a context
+   (*Reuse in a context*). Two parts remain. The first is the reads that are
+   not plain: a lookahead that examines the input before its left call of the leader
    whose step it is in, and a cut passed after a read, which can make a later
    step take an alternative that the first step did not reach, as in
    `S = S "w" / R "z" / "c" Bs` with `R = (R #cut "b" / S "y" / "c") / S "x"`
    and `Bs = "b" Bs / ""`, whose growth of `R` covers the `b` characters again
    in each step of `S` on `cb...b xz...xz`, which the classification
-   rejects. The second is that the comparison of results by structure, which
-   is bounded, loses only reuse. The third is the sum over the positions
-   below. Lemma 4
+   rejects. The second is the sum over the positions below. Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
    growths, the activations that they own and the successful activations that
