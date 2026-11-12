@@ -86,16 +86,19 @@ returns the null value and false.
 A term of the action language, the action of a rule or of a line of an Operators Rule, the term of a predicate or the
 value of a binding, is lowered from Core IR into a function of its own, in a module that declares the parser VM, the
 compositions of the operators of terms ([Values](values.md)) with every function they call, the component `runtime`,
-and the transitional operations of the leaves of terms below. A term is not lowered, and the target evaluates it as a
-whole in its own way, when it holds
+and the transitional operations of the leaves of terms below. Two optimizations of a target are options of the
+lowering:
 
-- a comparison that an optimization of the target makes without making a value of an operand: a comparison with a field
-  read in a typed parser of Go (`field-compare`), and a predicate that compares the text of a capture with literals,
-  which a target prints as one switch over them (`text-dispatch`);
-- a cast to a type that every value fits, in TypeScript, because Core IR holds no check for it, though the target
-  charges one.
+- With `field-compare` (a typed parser of Go), a comparison (`==`, `!=`, `<`, `<=`, `>`, `>=`) of which an operand reads
+  a field is a call of `term.compare` on two operands: a field read is read by `term.fieldOperand`, after the value it
+  reads from, and any other operand is its value made an operand by `term.operand`, in the order written. A string
+  field is then compared without making a value of it.
+- With `text-dispatch`, a predicate that compares the text of one capture with string literals, `text($x) == "a" ||
+  text($x) == "b"` and so on, first tests `term.uncontrolled`: without limit controls it takes the text of the capture
+  with `text` and returns whether `term.textIn` finds it among the literals; with them it evaluates the term as written.
 
-A term of every other kind is lowered whole.
+A cast to a type that every value fits checks nothing; a target that charges a step for each subterm charges one for it
+too.
 
 The function evaluates the term's operands in the order that the term evaluates them and calls one composition for
 each operation of the term: `binary` for a binary operator, `unary` for a unary one, `member` for a member read, with
@@ -172,3 +175,8 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.keep` | none | Pushes an element of the elements that `items` returned, as it is, as the next element of the list that `filter` makes, charging nothing. |
 | `term.copyList` | none | Returns a new list value of the elements that `items` returned, as they are, charging for copying them under budget controls. |
 | `term.new`*N* | the struct literal | Returns the struct that the constructor of its type makes of the values of its N declared fields. |
+| `term.fieldOperand` | the name of the member | Reads the field of a value as `member` does and returns it as an operand of `term.compare`, with the failure of the read; a string field stays a string. |
+| `term.operand` | none | Returns a value as an operand of `term.compare`. |
+| `term.compare` | the comparison operator | Applies the comparison to two operands as `binary` does, comparing two strings directly, and returns the value and the failure. |
+| `term.uncontrolled` | none | Returns whether the parse runs without limit controls. |
+| `term.textIn` | the literals | Returns whether a string is one of the literals, charging nothing. |

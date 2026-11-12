@@ -87,6 +87,12 @@ const (
 	OpTermFromObj    = "term.fromObj"
 	OpTermKeep       = "term.keep"
 	OpTermCopyList   = "term.copyList"
+	// The operations of the lowering options FieldCompare and TextDispatch.
+	OpTermFieldOperand = "term.fieldOperand"
+	OpTermOperand      = "term.operand"
+	OpTermCompare      = "term.compare"
+	OpTermUncontrolled = "term.uncontrolled"
+	OpTermTextIn       = "term.textIn"
 	// OpTermNew is the prefix of term.newN, the call of the constructor of a struct type with N
 	// declared fields (TermOptions.StructCall).
 	OpTermNew = "term.new"
@@ -95,6 +101,9 @@ const (
 // opTermKids is the operation of the parser VM that returns the base of the elements of a list or a
 // tuple that starts being made: the number of elements gathered so far (act.push).
 const opTermKids = "term.kids"
+
+// HandleOperand is the handle type of an operand of term.compare.
+const HandleOperand = "Operand"
 
 // TermField is the immediate operand of term.field: the name of a member (Name) and the name of the
 // field or capture that it reads (Field), which is Name without the $ of a capture.
@@ -140,6 +149,15 @@ type TermOptions struct {
 	// Unbounded leaves out the steps that elements charge (seq.step), for a target whose parser
 	// does not bound the work and prints no charge.
 	Unbounded bool
+	// FieldCompare makes a comparison (==, !=, <, <=, >, >=) of which an operand reads a field a call
+	// of term.compare on operands, reading such a field with term.fieldOperand, so that a string field
+	// is compared without making a value of it.
+	FieldCompare bool
+	// TextDispatch makes a predicate that compares the text of one capture with string literals,
+	// text($x) == "a" || text($x) == "b" ..., test the text against the literals at once with
+	// term.textIn when the parse runs without limit controls, and evaluate the term as written
+	// otherwise. It applies to a term that the function returns (Result is empty).
+	TextDispatch bool
 	// Proj are the projected captures of the rule of the term, by name, with the capture of an element
 	// that each stands for (compile.RuleProjections). A call map($x, (e) => e.$f) of a projected capture
 	// x whose elements stand for f takes the elements of x as they are (term.copyList).
@@ -161,11 +179,17 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 		results = []exec.Type{datum, failT}
 	}
 	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded, proj: o.Proj,
-		params: map[*ir.Lambda][]exec.Expr{}, inPlace: o.Result != ""}
+		params: map[*ir.Lambda][]exec.Expr{}, inPlace: o.Result != "", fieldCompare: o.FieldCompare}
 	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
 		var res exec.Expr
 		if o.Result != "" {
 			res = b.Var(o.Result, datum)
+		}
+		if x, lits, ok := textMembership(t); ok && o.TextDispatch && res == nil {
+			b.If(exec.C(OpTermUncontrolled), func(b *exec.Builder) {
+				s := l.fallible(b, "ts", exec.C("text", imm(OpTermRead, TermRead{x})))
+				b.Return(exec.C("val.fromBool", &exec.Call{Callee: OpTermTextIn, Args: []exec.Expr{s}, Imm: lits}), exec.Null(failT))
+			})
 		}
 		v := l.value(b, t)
 		if res != nil {
@@ -236,7 +260,7 @@ func termModule() (*exec.Module, error) {
 	termBaseOnce.Do(func() {
 		base := core.Build()
 		m := &exec.Module{Name: "term", Features: base.Features, Components: slices.Clip(base.Components),
-			Registers: base.Registers, Handles: base.Handles, Ops: slices.Clip(base.Ops)}
+			Registers: base.Registers, Handles: slices.Clip(base.Handles), Ops: slices.Clip(base.Ops)}
 		m.AddComponent(Component, "The state of the hand-written runtime.")
 		addTermOps(m)
 		seen := map[string]bool{}
@@ -322,6 +346,19 @@ func addTermOps(m *exec.Module) {
 		Contract: "Pushes element i of items, which items returned, as it is (a box stays a box) as the next element of the list that filter makes, charging nothing."})
 	op(&exec.Op{Name: OpTermCopyList, Params: []exec.Param{exec.P("items", seq)}, Results: []exec.Type{datum}, Reads: reads, Writes: reads,
 		Contract: "Returns a new list value of the elements items, which items returned, as they are, charging for copying them under budget controls."})
+	m.Handles = append(m.Handles, &exec.HandleType{Name: HandleOperand, Component: Component,
+		Doc: "An operand of a comparison: a value, or a string field read without making a value of it."})
+	operand := exec.THandle(HandleOperand)
+	op(&exec.Op{Name: OpTermFieldOperand, Params: []exec.Param{exec.P("x", datum)}, Results: []exec.Type{operand, failT}, Reads: reads, Writes: reads,
+		Imm: "the name of the member (a string)", Contract: "Reads the field in Imm of x as member does, and returns it as an operand and the failure of the read; a string field stays a string, with no value made of it."})
+	op(&exec.Op{Name: OpTermOperand, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{operand},
+		Contract: "Returns the value v as an operand."})
+	op(&exec.Op{Name: OpTermCompare, Params: []exec.Param{exec.P("l", operand), exec.P("r", operand)}, Results: []exec.Type{datum, failT}, Reads: reads, Writes: reads,
+		Imm: "the comparison operator (a string)", Contract: "Applies the comparison in Imm to l and r as binary does, comparing two strings directly, and returns the value and the failure."})
+	op(&exec.Op{Name: OpTermUncontrolled, Results: []exec.Type{exec.TBool}, Reads: reads,
+		Contract: "Returns whether the parse runs without limit controls."})
+	op(&exec.Op{Name: OpTermTextIn, Params: []exec.Param{exec.P("s", str)}, Results: []exec.Type{exec.TBool},
+		Imm: "the literals (a []string)", Contract: "Returns whether s is one of the literals in Imm, charging nothing."})
 }
 
 type termLowerer struct {
@@ -334,7 +371,8 @@ type termLowerer struct {
 	// params holds the values of the parameters of each lambda whose body is being lowered.
 	params map[*ir.Lambda][]exec.Expr
 	// inPlace is set when the term is evaluated in place of an action (TermOptions.Result).
-	inPlace bool
+	inPlace      bool
+	fieldCompare bool
 }
 
 // raise ends the evaluation of the term with the failure f: the function returns it, or, in place of
@@ -427,6 +465,11 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 				}
 			}
 		}
+		if l.fieldCompare && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) {
+			x := l.operand(b, t.L)
+			y := l.operand(b, t.R)
+			return l.fallible(b, "tv", &exec.Call{Callee: OpTermCompare, Args: []exec.Expr{x, y}, Imm: t.Op})
+		}
 		x := l.value(b, t.L)
 		y := l.value(b, t.R)
 		return l.fallible(b, "tv", exec.C("binary", code(ops.BinaryOps, t.Op), x, y))
@@ -497,6 +540,10 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 		x := l.value(b, t.X)
 		return l.fallible(b, "tv", exec.C("convert", imm(OpTermNodeType, t.NodeType), x))
 	case *ir.Cast:
+		if t.Check == nil {
+			// Every value fits the type.
+			return l.value(b, t.X)
+		}
 		x := b.Let(l.local("tc"), l.value(b, t.X))
 		b.If(exec.Not(exec.C("conforms", imm(OpTermCastType, TermCast{t}), x)), func(b *exec.Builder) {
 			l.raise(b, &exec.Call{Callee: OpTermCastError, Args: []exec.Expr{x}, Imm: TermCast{t}})
@@ -742,6 +789,85 @@ func (l *termLowerer) logic(b *exec.Builder, t *ir.Binary) exec.Expr {
 }
 
 // textArg returns the argument of t if t is a call text(x).
+// comparison reports whether op is a comparison operator.
+func comparison(op string) bool {
+	switch op {
+	case "==", "!=", "<", "<=", ">", ">=":
+		return true
+	}
+	return false
+}
+
+// fieldRead reports whether t reads a field of a value, x.F, not a capture.
+func fieldRead(t ir.Term) bool {
+	m, ok := t.(*ir.Member)
+	return ok && (m.Name == "" || m.Name[0] != '$')
+}
+
+// operand lowers t, an operand of a comparison (FieldCompare): a field read is read by
+// term.fieldOperand, any other term is a value.
+func (l *termLowerer) operand(b *exec.Builder, t ir.Term) exec.Expr {
+	if !fieldRead(t) {
+		return exec.C(OpTermOperand, l.value(b, t))
+	}
+	if l.steps {
+		b.Do(OpTermSpend)
+	}
+	m := t.(*ir.Member)
+	x := l.value(b, m.X)
+	return l.fallible(b, "to", &exec.Call{Callee: OpTermFieldOperand, Args: []exec.Expr{x}, Imm: m.Name})
+}
+
+// textMembership reports whether t compares the text of one capture with string literals,
+// text($x) == "a" || ..., with the capture and the literals in the order written.
+func textMembership(t ir.Term) (ir.Term, []string, bool) {
+	var x ir.Term
+	var name string
+	var lits []string
+	var walk func(ir.Term) bool
+	walk = func(t ir.Term) bool {
+		b, ok := t.(*ir.Binary)
+		if ok && b.Op == "||" {
+			return walk(b.L) && walk(b.R)
+		}
+		if !ok || b.Op != "==" {
+			return false
+		}
+		arg, ok := textArg(b.L)
+		lit, isConst := b.R.(*ir.Const)
+		if !ok || !isConst {
+			arg, ok = textArg(b.R)
+			lit, isConst = b.L.(*ir.Const)
+		}
+		if !ok || !isConst {
+			return false
+		}
+		s, isStr := lit.Value.(string)
+		var n string
+		switch c := arg.(type) {
+		case *ir.SlotRef:
+			n = c.Name
+		case *ir.Local:
+			if c.Kind == ir.LocalParam {
+				return false
+			}
+			n = c.Name
+		default:
+			return false
+		}
+		if !isStr || (name != "" && n != name) {
+			return false
+		}
+		x, name = arg, n
+		lits = append(lits, s)
+		return true
+	}
+	if !walk(t) {
+		return nil, nil, false
+	}
+	return x, lits, true
+}
+
 func textArg(t ir.Term) (ir.Term, bool) {
 	if c, ok := t.(*ir.Builtin); ok && c.Func == "text" && len(c.Args) == 1 {
 		return c.Args[0], true
