@@ -19,7 +19,7 @@ though its emitter also uses native string comparison.
 
 ## Reference Control
 
-`-no-opt field-compare` makes the typed Go printer compare string fields in
+`-no-opt field-compare` makes the term lowering of typed Go compare string fields in
 actions and predicates through boxed values again, from the same generator. No
 control covers the other comparisons. Literal-text disjunction specialization is
 independently controlled by `text-dispatch` ([G070](G070-literal-text-predicates.md)). None of the ten
@@ -38,9 +38,9 @@ Evidence records: [036](../036-comparing-texts-without-boxing-them.md),
 
 Source owners: [`text equality evaluator`](../../../internal/engine/core/eval.go),
 [`ETEXTCHK and ETEXTEQ`](../../../internal/compile/bcompile.go), [`native text
-comparison instructions`](../../../internal/engine/vm/vm.go), [`text comparison
-emission`](../../../internal/gen/gogen/generator.go), [`TypeScript text comparison
-emission`](../../../internal/gen/tsgen/generator.go).
+comparison instructions`](../../../internal/engine/vm/vm.go), and, for generated
+parsers, the term lowering of the Exec IR, which the Go and TypeScript generators
+print.
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

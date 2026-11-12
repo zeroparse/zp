@@ -378,6 +378,9 @@ func TermString(t Term) string {
 	case *Unary:
 		return t.Op + TermString(t.X)
 	case *Cast:
+		if t.Check == nil {
+			return TermString(t.X) + ".(_)"
+		}
 		return TermString(t.X) + ".(" + fmt.Sprint(t.Check) + ")"
 	}
 	return fmt.Sprintf("%T", t)

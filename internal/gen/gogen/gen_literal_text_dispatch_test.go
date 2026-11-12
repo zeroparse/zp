@@ -2,6 +2,7 @@ package gogen_test
 
 import (
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -34,7 +35,7 @@ rule main = w:[a-z]+ #atomic {result := text($w) == "a" || text($w) == "b"} $$`,
 		if err != nil {
 			t.Fatalf("case %d: %v", i, err)
 		}
-		if strings.Contains(string(code), `switch c.TextStr(`) {
+		if regexp.MustCompile(`\(ts\d+ == "`).Match(code) {
 			t.Errorf("unsafe case %d was specialized", i)
 		}
 	}

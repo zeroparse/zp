@@ -721,11 +721,7 @@ docs/optimizations/mechanisms/G060-ordinary-typed-direct-rules.md	gofile	interna
 docs/optimizations/mechanisms/G060-ordinary-typed-direct-rules.md	gofile	runtime/typed.go	1
 docs/optimizations/mechanisms/G060-ordinary-typed-direct-rules.md	unexport	flowTypedRule	1
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	codelink	internal/gen/gen_literal_text_dispatch_test.go	1
-docs/optimizations/mechanisms/G070-literal-text-predicates.md	codelink	internal/gen/gogen/generator.go	1
-docs/optimizations/mechanisms/G070-literal-text-predicates.md	codelink	internal/gen/tsgen/generator.go	1
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/gen_literal_text_dispatch_test.go	1
-docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/gogen/generator.go	1
-docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/tsgen/generator.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	codelink	internal/compile/analysis.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	gofile	internal/compile/analysis.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/generator.go	1
@@ -888,13 +884,9 @@ docs/optimizations/mechanisms/M110-compact-vm-backtracking-state.md	gofile	inter
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	codelink	internal/compile/bcompile.go	1
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	codelink	internal/engine/core/eval.go	1
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	codelink	internal/engine/vm/vm.go	1
-docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	codelink	internal/gen/gogen/generator.go	1
-docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	codelink	internal/gen/tsgen/generator.go	1
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	gofile	internal/compile/bcompile.go	1
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	gofile	internal/engine/core/eval.go	1
 docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	gofile	internal/engine/vm/vm.go	1
-docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	gofile	internal/gen/gogen/generator.go	1
-docs/optimizations/mechanisms/M120-unboxed-text-comparisons.md	gofile	internal/gen/tsgen/generator.go	1
 docs/optimizations/mechanisms/M130-short-literal-comparisons.md	codelink	internal/ir/flow/lower/lower.go	1
 docs/optimizations/mechanisms/M130-short-literal-comparisons.md	codelink	runtime/runtime.go	1
 docs/optimizations/mechanisms/M130-short-literal-comparisons.md	gofile	internal/ir/flow/lower/lower.go	1

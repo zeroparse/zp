@@ -729,7 +729,19 @@ func i1(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
-		return c.Compare(rt.OpNe, c.FieldOperand(k1, "Start"), c.FieldOperand(k1, "End")), nil
+		to1, tf1 := c.TermFieldOperand(k1, "Start")
+		if tf1 != nil {
+			return nil, tf1
+		}
+		to2, tf2 := c.TermFieldOperand(k1, "End")
+		if tf2 != nil {
+			return nil, tf2
+		}
+		tv3, tf3 := c.TermCompare(rt.OpNe, to1, to2)
+		if tf3 != nil {
+			return nil, tf3
+		}
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -763,16 +775,16 @@ func i1(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "line"
 	{
-		var tr14 any
+		var tr15 any
 		{
 			tv1, tf1 := c.P.TermLength(k1)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := tmk_Line(c, true, tv1)
-			tr14 = tv2
+			tr15 = tv2
 		}
-		v = tr14
+		v = tr15
 	}
 	return v, true
 fail:
@@ -844,4 +856,4 @@ fail:
 
 const _ = types.ZPSchema_2e326dad401977ae
 
-const _ = rt.Protocol10
+const _ = rt.Protocol11

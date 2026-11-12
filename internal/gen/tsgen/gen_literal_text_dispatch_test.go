@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"regexp"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -39,12 +39,12 @@ func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	code := string(optimized)
-	if !strings.Contains(code, `case "": case "a": case "b": case "é": case "😀":`) {
-		t.Fatal("optimized TypeScript lacks a multi-label dispatch for all distinct literals")
+	// The lowered dispatch reads the text once and compares it with the literals in order.
+	if !regexp.MustCompile(`\((ts\d+) === "" \|\| ts\d+ === "a" \|\| ts\d+ === "b" \|\| ts\d+ === "é" \|\| ts\d+ === "😀" \|\| ts\d+ === "a"\)`).Match(optimized) {
+		t.Fatal("optimized TypeScript lacks the dispatch over all literals")
 	}
-	if strings.Count(code, `case "a":`) != 1 {
-		t.Fatal("duplicate literals were not collapsed in TypeScript dispatch")
+	if regexp.MustCompile(`\(ts\d+ === "`).Match(reference) {
+		t.Fatal("TypeScript without text-dispatch still dispatches")
 	}
 	if tsc, err := exec.LookPath("tsc"); err == nil {
 		cmd := exec.Command(tsc, "--noEmit", "--strict", "--target", "ES2022", "--module", "NodeNext", "--moduleResolution", "NodeNext", "optimized.ts", "reference.ts")

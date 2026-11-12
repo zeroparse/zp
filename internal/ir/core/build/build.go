@@ -844,11 +844,13 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		if err != nil {
 			return nil, err
 		}
-		check := b.prog.ResolveCheck(t.Type)
-		if check == nil {
-			return x, nil // every value fits the type
-		}
 		line, col := b.prog.CastPos(t)
+		// A cast to a type that every value fits has no check (Check nil); it stays a term, which a
+		// target may charge for.
+		var check any
+		if c := b.prog.ResolveCheck(t.Type); c != nil {
+			check = c
+		}
 		return &core.Cast{X: x, Check: check, Key: t, Line: line, Col: col}, nil
 	}
 	return nil, fmt.Errorf("unsupported term %T", t)

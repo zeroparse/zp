@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -20,6 +21,15 @@ func TestLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	gentest.EachMode(t, testLiteralTextPredicateDispatchGeneration)
 }
 
+// The lowered literal text dispatch tests the text of the capture against every literal at once:
+// (ts1 == "a" || ts1 == "b") in Go, (ts1 === "a" || ts1 === "b") in TypeScript.
+var (
+	goTextDispatch   = regexp.MustCompile(`\(ts\d+ == "`)
+	goTextDispatchAB = regexp.MustCompile(`\((ts\d+) == "a" \|\| ts\d+ == "b"\)`)
+	tsTextDispatch   = regexp.MustCompile(`\(ts\d+ === "`)
+	tsTextDispatchAB = regexp.MustCompile(`\((ts\d+) === "a" \|\| ts\d+ === "b"\)`)
+)
+
 func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	const source = `rule main = w:[a-z]+ #atomic {text($w) == "a" || "b" == text($w)} $$`
 	g, err := parseTest(source)
@@ -30,28 +40,28 @@ func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(code), `switch c.TextStr(`) || !strings.Contains(string(code), `case "a", "b":`) {
+	if !goTextDispatchAB.Match(code) {
 		t.Fatal("typed Go generator did not emit literal text dispatch")
 	}
 	baseline, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "dispatch", Start: "main", Types: true, NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(baseline), `switch c.TextStr(`) || strings.Contains(string(code), "disableLiteralTextDispatch") {
+	if goTextDispatch.Match(baseline) || strings.Contains(string(code), "disableLiteralTextDispatch") {
 		t.Fatal("generation-only control did not preserve the general baseline")
 	}
 	ts, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(ts), `switch (c.textStr(`) || !strings.Contains(string(ts), `case "a": case "b":`) {
+	if !tsTextDispatchAB.Match(ts) {
 		t.Fatal("TypeScript generator did not emit literal text dispatch")
 	}
 	tsBaseline, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(tsBaseline), `switch (c.textStr(`) {
+	if tsTextDispatch.Match(tsBaseline) {
 		t.Fatal("TypeScript generation-only control did not preserve the general baseline")
 	}
 }

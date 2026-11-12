@@ -265,8 +265,8 @@ Details:
 - Without `-s`, the grammar's default start rule is used.
 - With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp/runtime`
   (`go get zeroparse.dev/zp/runtime@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
-  generated for (`const _ = rt.Protocol10`), so a runtime that does not implement that protocol fails the build with
-  `undefined: rt.Protocol10` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
+  generated for (`const _ = rt.Protocol11`), so a runtime that does not implement that protocol fails the build with
+  `undefined: rt.Protocol11` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
   runtime version that implements the protocol.
 
 ### Choosing Entry Points
@@ -308,8 +308,8 @@ table changes output yet:
 | Name | Kind | Default | What it does and what it costs |
 | --- | --- | --- | --- |
 | `terminals` | pass | on | Value-free choices of many literals and classes run as one program (lean typed Go). Data against code: the choice becomes a table in the parser instead of nested alternatives |
-| `text-dispatch` | printer | on | The printers emit a predicate that compares the text of a capture with literals as one switch. One switch against a chain of comparisons, and the text is computed once |
-| `field-compare` | printer | on | The Go printer compares fields in the actions and predicates of typed rules without boxing string fields. Fewer allocations, no cost |
+| `text-dispatch` | lowering | on | A predicate that compares the text of a capture with literals tests them at once when the parse runs without limit controls. One test of the literals against a chain of comparisons, and the text is computed once |
+| `field-compare` | lowering | on | Typed Go compares fields in the actions and predicates of typed rules without boxing string fields. Fewer allocations, no cost |
 | `guards` | pass | on | Skip an alternative when the next character cannot start it. One read of the next character per choice against the attempts of alternatives that cannot match, and a little more code per choice |
 | `guarded-classes` | pass | on | A leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers). Saves a second read and test of that character |
 | `scans` | pass | on | A value-free repetition of a class or of any character runs as a scan. A loop against the general repetition |

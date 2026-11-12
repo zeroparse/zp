@@ -128,7 +128,7 @@ type Unary struct {
 }
 
 // Cast converts a value to a checked type. Check and Key are the backend's handles to the
-// checked type and to the cast.
+// checked type and to the cast; Check is nil for a type that every value fits, which checks nothing.
 type Cast struct {
 	termBase
 	X         Term
