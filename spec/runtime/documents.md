@@ -188,7 +188,8 @@ safe for concurrent reads while the document has one editing and parsing owner.
 
 Freezing preserves shared node identities, cycles, nil child slots and nil versus
 allocated-empty collections. It accepts field values of dynamic type `nil`, `int`,
-`string`, `bool` and `*Node`, including a typed nil `*Node`. Any other dynamic
+`string`, `bool` and `*Node`, including a typed nil `*Node`; a boxed value
+may have type `nil`, `int`, `string` or `bool`. Any other dynamic
 type returns no snapshot and a `*SnapshotCaptureError` that contains the
 deterministic path and the `reflect.Type`, without retaining the unsupported
 value; the error also carries a defensive copy of the ordinary parse error, if one
