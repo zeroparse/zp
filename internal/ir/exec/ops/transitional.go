@@ -242,18 +242,18 @@ far moves with it, by the same amount as its end.`})
 the records beside the entries.`})
 	ctxArg := exec.P("c", ctx)
 	resArg := []exec.Param{exec.P("s", res)}
-	add(&exec.Op{Name: "ctx.enter", Component: Growth, Params: call, Results: []exec.Type{ctx, res},
+	m.AddOp(&exec.Op{Name: "ctx.enter", Component: Growth, Params: call, Results: []exec.Type{ctx, res},
 		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1},
 		Contract: `Begins a memoized call of the rule at the position: returns its context state and, if the
 rule is a leader that grows at the position, its current seed, which the call reads (with the
 dependency on its identity); otherwise the null result. The context of a call of a rule of a
 left-recursive cycle is the growths of its cycle in progress at the position; another call has
 none.`})
-	add(&exec.Op{Name: "ctx.found", Component: Growth, Params: resArg, Results: []exec.Type{exec.TBool},
+	m.AddOp(&exec.Op{Name: "ctx.found", Component: Growth, Params: resArg, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether s is a result, not the null result.`})
-	add(&exec.Op{Name: "ctx.ok", Component: Growth, Params: resArg, Results: []exec.Type{exec.TBool}, Reads: []string{Growth},
+	m.AddOp(&exec.Op{Name: "ctx.ok", Component: Growth, Params: resArg, Results: []exec.Type{exec.TBool}, Reads: []string{Growth},
 		Contract: `Returns whether the result s succeeded.`})
-	add(&exec.Op{Name: "ctx.value", Component: Growth, Params: resArg, Results: []exec.Type{value}, Reads: []string{Growth},
+	m.AddOp(&exec.Op{Name: "ctx.value", Component: Growth, Params: resArg, Results: []exec.Type{value}, Reads: []string{Growth},
 		Contract: `Returns the value of the result s.`})
 	add(&exec.Op{Name: "ctx.replay", Component: Growth, Params: append(resArg, exec.P("seed", exec.TBool)),
 		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}}},
@@ -262,14 +262,14 @@ examined frontier of a Document parse, adds its expectations unless it is a seed
 the position to its end and records its recovered errors again. Outside the missing-token mode it
 records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
 them as missing.replay does, one by one when the tokens they inserted repeat.`})
-	add(&exec.Op{Name: "ctx.allows", Component: Growth, Params: append([]exec.Param{ctxArg}, entryArg...),
+	m.AddOp(&exec.Op{Name: "ctx.allows", Component: Growth, Params: append([]exec.Param{ctxArg}, entryArg...),
 		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Memo},
 		Contract: `Reports whether the call with the context state c may reuse the memo entry e: always outside a
 context, and in one only when the leaders growing there are among those that grew where e was stored
 (its present set).`})
-	add(&exec.Op{Name: "ctx.active", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TBool},
+	m.AddOp(&exec.Op{Name: "ctx.active", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether the call with the context state c is in a context.`})
-	add(&exec.Op{Name: "ctx.lookup", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("min", exec.TInt),
+	m.AddOp(&exec.Op{Name: "ctx.lookup", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("min", exec.TInt),
 		exec.P("key", values)}, Results: []exec.Type{res}, Reads: []string{Growth}, Writes: []string{Growth},
 		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}}},
 		Contract: `Returns the result kept in the context of the call for the rule at the position, the level
@@ -277,10 +277,10 @@ and the key that holds there: the seeds it read have the same identities, and th
 observed the same outcomes, in the current context; it records those dependencies for the enclosing
 call. Otherwise the null result.`,
 		Requires: `c is in a context.`})
-	add(&exec.Op{Name: "ctx.push", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
+	m.AddOp(&exec.Op{Name: "ctx.push", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
 		Contract: `Starts recording the dependencies of the evaluation of the call, if it is in a context.`})
-	add(&exec.Op{Name: "ctx.pop", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TInt},
-		Reads: []string{Growth}, Writes: []string{Growth},
+	m.AddOp(&exec.Op{Name: "ctx.pop", Component: Growth, Params: []exec.Param{ctxArg}, Results: []exec.Type{exec.TInt},
+		Reads: []string{Growth}, Writes: []string{Growth}, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
 		Contract: `Ends recording the dependencies of the evaluation and returns where its result goes:
 ctx.storeMemo for the memo (it read no seed and made no observation), ctx.storeCtx for the table of
 the context, or another value for nowhere (its context's leaders have no present set).`})
@@ -288,19 +288,19 @@ the context, or another value for nowhere (its context's leaders have no present
 		{"ctx.storeMemo", "Returns the value of ctx.pop for a result stored in the memo."},
 		{"ctx.storeCtx", "Returns the value of ctx.pop for a result kept in the table of its context."},
 	} {
-		add(&exec.Op{Name: a.name, Component: Growth, Results: []exec.Type{exec.TInt}, Contract: a.doc})
+		m.AddOp(&exec.Op{Name: a.name, Component: Growth, Results: []exec.Type{exec.TInt}, Contract: a.doc})
 	}
-	add(&exec.Op{Name: "memo.setPresent", Component: Memo, Params: append(entryArg, ctxArg), Reads: []string{Growth},
+	m.AddOp(&exec.Op{Name: "memo.setPresent", Component: Memo, Params: append(entryArg, ctxArg), Reads: []string{Growth},
 		Writes:   []string{Memo},
 		Contract: `Records with the entry e the present set of the context state c, for ctx.allows.`})
-	add(&exec.Op{Name: "ctx.keep", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("pos", exec.TInt),
+	m.AddOp(&exec.Op{Name: "ctx.keep", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("pos", exec.TInt),
 		exec.P("min", exec.TInt), exec.P("key", values), exec.P("ok", exec.TBool), exec.P("end", exec.TInt), exec.P("silent", exec.TBool),
 		exec.P("value", value), exec.P("errs", errs), exec.P("far", exec.TInt), exec.P("k", kept)},
 		Reads: []string{Growth, Call}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}}},
 		Contract: `Keeps the result of the call in the table of its context with the dependencies that ctx.pop
 ended, and the examined frontier of a Document parse.`,
 		Requires: `The last ctx.pop of c returned ctx.storeCtx.`})
-	add(&exec.Op{Name: "ctx.done", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
+	m.AddOp(&exec.Op{Name: "ctx.done", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
 		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
 		Contract: `Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.`})
 

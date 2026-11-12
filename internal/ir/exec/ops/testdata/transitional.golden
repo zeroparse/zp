@@ -829,7 +829,7 @@ transitional op memo.forgetDoc(e Entry)
     // Forgets the Document record of the entry e, which the call replaces, where the target keeps
     // the records beside the entries.
 
-transitional op ctx.enter(r Rule, min int) (Ctx, CtxResult)
+op ctx.enter(r Rule, min int) (Ctx, CtxResult)
   component growth
   reads growth, rules
   writes growth
@@ -842,20 +842,20 @@ transitional op ctx.enter(r Rule, min int) (Ctx, CtxResult)
     // left-recursive cycle is the growths of its cycle in progress at the position; another call has
     // none.
 
-transitional op ctx.found(s CtxResult) bool
+op ctx.found(s CtxResult) bool
   component growth
   cost <= 0
   contract:
     // Reports whether s is a result, not the null result.
 
-transitional op ctx.ok(s CtxResult) bool
+op ctx.ok(s CtxResult) bool
   component growth
   reads growth
   cost <= 0
   contract:
     // Returns whether the result s succeeded.
 
-transitional op ctx.value(s CtxResult) Value
+op ctx.value(s CtxResult) Value
   component growth
   reads growth
   cost <= 0
@@ -875,7 +875,7 @@ transitional op ctx.replay(s CtxResult, seed bool)
     // records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
     // them as missing.replay does, one by one when the tokens they inserted repeat.
 
-transitional op ctx.allows(c Ctx, e Entry) bool
+op ctx.allows(c Ctx, e Entry) bool
   component growth
   reads growth, memo
   cost <= 0
@@ -884,13 +884,13 @@ transitional op ctx.allows(c Ctx, e Entry) bool
     // context, and in one only when the leaders growing there are among those that grew where e was stored
     // (its present set).
 
-transitional op ctx.active(c Ctx) bool
+op ctx.active(c Ctx) bool
   component growth
   cost <= 0
   contract:
     // Reports whether the call with the context state c is in a context.
 
-transitional op ctx.lookup(c Ctx, r Rule, min int, key Values) CtxResult
+op ctx.lookup(c Ctx, r Rule, min int, key Values) CtxResult
   component growth
   reads growth
   writes growth
@@ -904,36 +904,36 @@ transitional op ctx.lookup(c Ctx, r Rule, min int, key Values) CtxResult
   requires:
     // c is in a context.
 
-transitional op ctx.push(c Ctx)
+op ctx.push(c Ctx)
   component growth
   writes growth
   cost <= 0
   contract:
     // Starts recording the dependencies of the evaluation of the call, if it is in a context.
 
-transitional op ctx.pop(c Ctx) int
+op ctx.pop(c Ctx) int
   component growth
   reads growth
   writes growth
-  cost <= 0
+  cost <= 0 + 1*deps
   contract:
     // Ends recording the dependencies of the evaluation and returns where its result goes:
     // ctx.storeMemo for the memo (it read no seed and made no observation), ctx.storeCtx for the table of
     // the context, or another value for nowhere (its context's leaders have no present set).
 
-transitional op ctx.storeMemo() int
+op ctx.storeMemo() int
   component growth
   cost <= 0
   contract:
     // Returns the value of ctx.pop for a result stored in the memo.
 
-transitional op ctx.storeCtx() int
+op ctx.storeCtx() int
   component growth
   cost <= 0
   contract:
     // Returns the value of ctx.pop for a result kept in the table of its context.
 
-transitional op memo.setPresent(e Entry, c Ctx)
+op memo.setPresent(e Entry, c Ctx)
   component memo
   reads growth
   writes memo
@@ -941,7 +941,7 @@ transitional op memo.setPresent(e Entry, c Ctx)
   contract:
     // Records with the entry e the present set of the context state c, for ctx.allows.
 
-transitional op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, end int, silent bool, value Value, errs Errs, far int, k ExpKept)
+op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, end int, silent bool, value Value, errs Errs, far int, k ExpKept)
   component growth
   reads growth, call
   writes growth
@@ -953,7 +953,7 @@ transitional op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, e
   requires:
     // The last ctx.pop of c returned ctx.storeCtx.
 
-transitional op ctx.done(c Ctx)
+op ctx.done(c Ctx)
   component growth
   writes growth
   noreturn

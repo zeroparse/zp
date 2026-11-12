@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // The reference model of the dependency memo of left recursion (the ctx operations): the growths in
@@ -50,6 +51,13 @@ type CtxResult struct {
 	kept           *ExpKept
 }
 
+// ctxRes returns the CtxResult handle a, nil for the null result, which the model returns as nil, as
+// every other null handle.
+func ctxRes(a any) *CtxResult {
+	r, _ := a.(*CtxResult)
+	return r
+}
+
 // CtxState is the model's Ctx handle: the context state of a memoized call.
 type CtxState struct {
 	gp                 int
@@ -58,6 +66,11 @@ type CtxState struct {
 	// ds are the dependencies that ctx.pop ended, and sd those that ctx.keep stores.
 	ds []ctxDep
 	sd []ctxSDep
+	// pushed, popped and done record the calls of ctx.push, ctx.pop (its result) and ctx.done
+	// with the state, for the preconditions; frame is the number of frames after ctx.push.
+	pushed, done bool
+	popped       int64
+	frame        int
 }
 
 type depKind uint8
@@ -130,6 +143,8 @@ type ctxTable struct {
 type lookRec struct {
 	site int64
 	high int64
+	// frame is the number of frames after the lookahead began.
+	frame int
 }
 
 // ctxModel is the state of the component growth.
@@ -141,8 +156,8 @@ type ctxModel struct {
 	guard   []int64
 	// units counts the table and dependency work of the operation in progress.
 	tableUnits, depUnits int64
-	// merge is the units that the merge of expectations of the last ctx.replay charged.
-	merge int64
+	// keyCost is Model.keyCost: what comparing the key of a result inspects.
+	keyCost func(int64) int64
 }
 
 func (m *Model) ctxRule(r RuleRef) CtxRule {
@@ -175,6 +190,12 @@ func (m *Model) leaderBit(r RuleRef) uint64 {
 }
 
 func (m *Model) pos() int64 { return m.regs["pos"].(int64) }
+
+// silent reports whether the parse is inside a lookahead (the register silent).
+func (m *Model) silent() bool {
+	n, _ := m.regs["silent"].(int64)
+	return n > 0
+}
 
 func (s *ctxModel) gammaAt(pos, cycle int64) int {
 	i := len(s.growths)
@@ -303,6 +324,9 @@ next:
 		}
 		for _, slot := range set.vals[valsKey(v)] {
 			s.tableUnits++
+			if !h.look {
+				s.tableUnits += s.keyCost(slot.key)
+			}
 			if slot.key == key {
 				return slot, set
 			}
@@ -358,6 +382,9 @@ func (s *ctxModel) store(pos int64, gp int, h ctxHead, ds []ctxSDep, slot *ctxSl
 	k := valsKey(v)
 	for i, x := range set.vals[k] {
 		s.tableUnits++
+		if !h.look {
+			s.tableUnits += s.keyCost(x.key)
+		}
 		if x.key == slot.key {
 			set.vals[k][i] = slot
 			return
@@ -430,10 +457,55 @@ const (
 	CtxLookEndOp   = "test.lookEnd"
 )
 
+// allowsCtx reports whether a call of a ctx operation or of a conformance operation of the growths
+// meets its precondition. Calls nest as the call protocol nests them: a frame or a lookahead ends
+// before the one that encloses it, and a growth ends after every frame that began inside it.
+func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
+	s := &m.ctx
+	switch o.Name {
+	case "ctx.ok", "ctx.value", "ctx.replay":
+		return ctxRes(args[0]) != nil
+	case "ctx.lookup":
+		c := args[0].(*CtxState)
+		return c.ctx && !c.pushed
+	case "ctx.push":
+		return !args[0].(*CtxState).pushed
+	case "ctx.pop":
+		c := args[0].(*CtxState)
+		return c.pushed && c.popped < 0 && len(s.frames) == c.frame
+	case "ctx.keep":
+		c := args[0].(*CtxState)
+		return c.popped == CtxStoreCtx && !c.done
+	case "ctx.done":
+		c := args[0].(*CtxState)
+		return c.popped >= 0 && !c.done
+	case CtxGrowOp:
+		r := args[0].(RuleRef)
+		cr, pos := m.ctxRule(r), m.pos()
+		if !cr.Leader || cr.Cycle == 0 {
+			return false
+		}
+		if n := len(s.growths); n > 0 && s.growths[n-1].pos == pos && s.growths[n-1].cycle != cr.Cycle {
+			return false
+		}
+		return s.gammaFind(s.gammaAt(pos, cr.Cycle), growKey{r.Index, args[1].(int64)}) < 0
+	case CtxReseedOp:
+		return len(s.growths) > 0
+	case CtxUngrowOp:
+		n := len(s.growths)
+		return n > 0 && !slices.ContainsFunc(s.frames, func(f ctxFrame) bool { return f.depth >= n })
+	case CtxLookBeginOp:
+		return args[0].(int64) >= 0
+	case CtxLookEndOp:
+		return len(s.looks) > 0 && s.looks[len(s.looks)-1].frame == len(s.frames)
+	}
+	return true
+}
+
 // callCtx runs the operations of the component growth and the conformance operations of its cases.
 func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	s := &m.ctx
-	s.tableUnits, s.depUnits = 0, 0
+	s.tableUnits, s.depUnits, s.keyCost = 0, 0, m.keyCost
 	switch o.Name {
 	case CtxGrowOp:
 		r := args[0].(RuleRef)
@@ -458,15 +530,16 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		if n := len(s.frames); n > 0 {
 			f := s.frames[n-1]
 			if g := len(s.growths); f.pos == pos && f.gp < g && s.growths[g-1].pos == pos && s.growths[g-1].cycle == s.growths[f.gp].cycle {
-				s.looks = append(s.looks, lookRec{site: args[0].(int64), high: m.doc.high})
+				high := m.doc.high
 				if m.cfg.Document {
 					m.doc.high = pos
 				}
 				s.frames = append(s.frames, ctxFrame{pos: pos, gp: f.gp, depth: len(s.growths)})
+				s.looks = append(s.looks, lookRec{site: args[0].(int64), high: high, frame: len(s.frames)})
 				return nil, true
 			}
 		}
-		s.looks = append(s.looks, lookRec{site: -1})
+		s.looks = append(s.looks, lookRec{site: -1, frame: len(s.frames)})
 		return nil, true
 	case CtxLookEndOp:
 		l := s.looks[len(s.looks)-1]
@@ -501,15 +574,15 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		return nil, true
 	case "ctx.enter":
 		r := args[0].(RuleRef)
-		c := &CtxState{}
+		c := &CtxState{popped: -1}
 		cr := m.ctxRule(r)
 		if cr.Cycle == 0 || len(s.growths) == 0 {
-			return []any{c, (*CtxResult)(nil)}, true
+			return []any{c, nil}, true
 		}
 		gp := s.gammaAt(m.pos(), cr.Cycle)
 		c.gp = gp
 		if gp == len(s.growths) {
-			return []any{c, (*CtxResult)(nil)}, true
+			return []any{c, nil}, true
 		}
 		if cr.Leader {
 			if i := s.gammaFind(gp, growKey{r.Index, args[1].(int64)}); i >= 0 {
@@ -520,15 +593,15 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		c.ctx = true
 		c.present, c.known = s.present(gp)
 		c.framed = c.known
-		return []any{c, (*CtxResult)(nil)}, true
+		return []any{c, nil}, true
 	case "ctx.found":
-		return []any{args[0].(*CtxResult) != nil}, true
+		return []any{ctxRes(args[0]) != nil}, true
 	case "ctx.ok":
-		return []any{args[0].(*CtxResult).ok}, true
+		return []any{ctxRes(args[0]).ok}, true
 	case "ctx.value":
-		return []any{args[0].(*CtxResult).value}, true
+		return []any{ctxRes(args[0]).value}, true
 	case "ctx.replay":
-		m.ctxReplay(args[0].(*CtxResult), args[1].(bool))
+		m.ctxReplay(ctxRes(args[0]), args[1].(bool))
 		return nil, true
 	case "ctx.allows":
 		c, e := args[0].(*CtxState), args[1].(*Entry)
@@ -538,36 +611,28 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	case "ctx.lookup":
 		c := args[0].(*CtxState)
 		if !c.framed {
-			return []any{(*CtxResult)(nil)}, true
+			return []any{nil}, true
 		}
 		r := args[1].(RuleRef)
 		pos := m.pos()
 		slot, _ := s.find(pos, c.gp, ctxHead{id: r.Index, min: args[2].(int64), present: c.present}, args[3].(int64))
-		if slot == nil || slot.res.silent && !m.regs["silent"].(bool) {
-			return []any{(*CtxResult)(nil)}, true
+		if slot == nil || slot.res.silent && !m.silent() {
+			return []any{nil}, true
 		}
 		s.replayDeps(pos, c.gp, c.present, slot.deps)
 		return []any{slot.res}, true
 	case "ctx.push":
-		if c := args[0].(*CtxState); c.framed {
+		c := args[0].(*CtxState)
+		c.pushed = true
+		if c.framed {
 			s.frames = append(s.frames, ctxFrame{pos: m.pos(), gp: c.gp, depth: len(s.growths)})
 		}
+		c.frame = len(s.frames)
 		return nil, true
 	case "ctx.pop":
 		c := args[0].(*CtxState)
-		if !c.ctx {
-			return []any{CtxStoreMemo}, true
-		}
-		if !c.framed {
-			return []any{CtxStoreNowhere}, true
-		}
-		_, c.ds = s.popFrame()
-		sd, read := s.stored(c.ds)
-		if !read {
-			return []any{CtxStoreMemo}, true
-		}
-		c.sd = sd
-		return []any{CtxStoreCtx}, true
+		c.popped = m.ctxPop(c)
+		return []any{c.popped}, true
 	case "ctx.storeMemo":
 		return []any{CtxStoreMemo}, true
 	case "ctx.storeCtx":
@@ -583,12 +648,30 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 			&ctxSlot{res: res, key: args[4].(int64)})
 		return nil, true
 	case "ctx.done":
-		if c := args[0].(*CtxState); c.framed {
+		c := args[0].(*CtxState)
+		c.done = true
+		if c.framed {
 			s.mergeDeps(c.ds)
 		}
 		return nil, true
 	}
 	return nil, false
+}
+
+func (m *Model) ctxPop(c *CtxState) int64 {
+	if !c.ctx {
+		return CtxStoreMemo
+	}
+	if !c.framed {
+		return CtxStoreNowhere
+	}
+	_, c.ds = m.ctx.popFrame()
+	sd, read := m.ctx.stored(c.ds)
+	if !read {
+		return CtxStoreMemo
+	}
+	c.sd = sd
+	return CtxStoreCtx
 }
 
 // ctxReplay applies the result r as the call that it records would have: a reuse in the call
@@ -601,7 +684,7 @@ func (m *Model) ctxReplay(r *CtxResult, seed bool) {
 		m.doc.reused++
 	}
 	if !seed {
-		m.ctx.merge = m.replayExpected(r.far, r.kept)
+		m.replayExpected(r.far, r.kept, true)
 	}
 	if !r.ok {
 		return
@@ -612,39 +695,123 @@ func (m *Model) ctxReplay(r *CtxResult, seed bool) {
 	}
 }
 
-// replayExpected records the expectations of k at far as the composition that merges a kept set does, and returns the
-// units it charges.
-func (m *Model) replayExpected(far int64, k *ExpKept) int64 {
+// replayExpected records the expectations of k at far as the composition that merges a kept set does,
+// and returns the units it charges. Unless apply is set it changes nothing and only counts them.
+func (m *Model) replayExpected(far int64, k *ExpKept, apply bool) int64 {
 	if k == nil {
 		return 0
 	}
 	units := int64(0)
 	s := &m.exp
+	cur := expRecord{far: s.cur.far, ids: slices.Clone(s.cur.ids)}
 	for _, id := range k.ids {
 		units++
-		if m.cfg.Document {
+		if apply && m.cfg.Document {
 			m.doc.high = max(m.doc.high, far+1)
 		}
-		if m.regs["silent"].(bool) || far < s.cur.far {
+		if m.silent() || far < cur.far {
 			continue
 		}
-		if far > s.cur.far {
-			s.cur = expRecord{far: far}
+		if far > cur.far {
+			cur = expRecord{far: far}
 		}
 		if m.cfg.NoExpectations {
-			if len(s.cur.ids) == 0 {
-				s.write(0)
-				s.cur.ids = append(slices.Clip(s.cur.ids), Placeholder)
+			if len(cur.ids) == 0 {
+				if apply {
+					s.write(0)
+				}
+				cur.ids = append(cur.ids, Placeholder)
 			}
 			continue
 		}
-		if slices.Contains(s.cur.ids, id) {
-			units += int64(slices.Index(s.cur.ids, id)) + 1
+		if slices.Contains(cur.ids, id) {
+			units += int64(slices.Index(cur.ids, id)) + 1
 			continue
 		}
-		units += int64(len(s.cur.ids))
-		s.write(len(s.cur.ids))
-		s.cur.ids = append(slices.Clip(s.cur.ids), id)
+		units += int64(len(cur.ids))
+		if apply {
+			s.write(len(cur.ids))
+		}
+		cur.ids = append(cur.ids, id)
+	}
+	if apply && (cur.far != s.cur.far || len(cur.ids) != len(s.cur.ids)) {
+		s.cur = cur
 	}
 	return units
+}
+
+// clone returns a copy of s that operations change apart from s.
+func (s *ctxModel) clone() ctxModel {
+	c := ctxModel{growths: slices.Clone(s.growths), looks: slices.Clone(s.looks), guard: slices.Clone(s.guard), keyCost: s.keyCost}
+	for _, f := range s.frames {
+		f.deps = slices.Clone(f.deps)
+		c.frames = append(c.frames, f)
+	}
+	for _, t := range s.tables {
+		u := &ctxTable{pos: t.pos, depth: t.depth, heads: map[ctxHead][]*ctxSet{}}
+		for h, sets := range t.heads {
+			for _, set := range sets {
+				x := &ctxSet{seeds: set.seeds, obs: set.obs, vals: map[string][]*ctxSlot{}}
+				for k, slots := range set.vals {
+					for _, slot := range slots {
+						y := *slot
+						x.vals[k] = append(x.vals[k], &y)
+					}
+				}
+				u.heads[h] = append(u.heads[h], x)
+			}
+		}
+		c.tables = append(c.tables, u)
+	}
+	return c
+}
+
+// ctxQuantity returns the cost quantity name of a call of the ctx operation o with args, in the state
+// before the call, and false for another operation: it runs the call on a copy of the state.
+func (m *Model) ctxQuantity(name string, o *exec.Op, args []any) (int64, bool) {
+	if o == nil {
+		return 0, false
+	}
+	switch o.Name {
+	case "ctx.lookup", "ctx.keep", "ctx.pop", "ctx.done":
+	case "ctx.replay":
+		r := ctxRes(args[0])
+		switch name {
+		case ops.QMerge:
+			if args[1].(bool) {
+				return 0, true
+			}
+			return m.replayExpected(r.far, r.kept, false), true
+		case ops.QErrs:
+			if l, ok := r.errs.(*ErrList); ok && r.ok {
+				return int64(l.n), true
+			}
+			return 0, true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+	saved := m.ctx
+	m.ctx = saved.clone()
+	defer func() { m.ctx = saved }()
+	cs := *args[0].(*CtxState)
+	a := slices.Clone(args)
+	a[0] = &cs
+	if o.Name == "ctx.pop" && cs.framed {
+		// The dependencies that the frame recorded are converted for the store.
+		return int64(len(m.ctx.frames[len(m.ctx.frames)-1].deps)), name == ops.QDeps
+	}
+	m.callCtx(o, a)
+	switch name {
+	case ops.QTable:
+		return m.ctx.tableUnits, true
+	case ops.QDeps:
+		if o.Name == "ctx.keep" {
+			// The dependencies that ctx.pop ended are converted for the store.
+			return int64(len(cs.ds)), true
+		}
+		return m.ctx.depUnits, true
+	}
+	return 0, false
 }
