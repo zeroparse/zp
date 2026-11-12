@@ -1,6 +1,10 @@
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import (
+	"encoding/binary"
+
+	"zeroparse.dev/zp/internal/value"
+)
 
 // The dependency memo of left recursion (see "Evaluations of Rules" in spec/runtime/parsing.md
 // and spec/proofs/memoization.md).
@@ -56,6 +60,7 @@ const (
 	CtxJumpAnySeed                // a jump uses observations whose outcomes read the growing seed
 	CtxStaleReplay                // a reuse replays the seeds its observations read where they were made
 	CtxNoReplayObs                // a reuse passes on only the seeds its observations read where they were made
+	CtxCapDeps                    // a result with more than maxCtxDeps dependencies is not stored
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -122,6 +127,8 @@ type ctxSet struct {
 	seeds []growKey
 	obs   []int32
 	vals  map[valsKey]*ctxSlot
+	// wide holds the results of a set of more than maxCtxDeps dependencies.
+	wide map[wideKey]*ctxSlot
 }
 
 type growKey struct {
@@ -129,11 +136,53 @@ type growKey struct {
 	ms        bool
 }
 
+// maxCtxDeps is the number of dependency values that a valsKey holds; a set with more dependencies
+// keys its results by a wideKey.
 const maxCtxDeps = 6
 
+// valsKey is the values of the dependencies of a result, in the order of its set.
 type valsKey struct {
 	n uint8
 	v [maxCtxDeps]uint64
+}
+
+// wideKey is the values of the dependencies of a result of a set of more than maxCtxDeps: the first
+// maxCtxDeps in k and the others in rest, eight little-endian bytes each.
+type wideKey struct {
+	k    valsKey
+	rest string
+}
+
+// add appends the value v of the next dependency to the key k, or to rest once k is full.
+func (k *valsKey) add(v uint64, rest []byte) []byte {
+	if k.n < maxCtxDeps {
+		k.v[k.n] = v
+		k.n++
+		return rest
+	}
+	return binary.LittleEndian.AppendUint64(rest, v)
+}
+
+// first returns the first result of the set with the dependency values k and rest.
+func (s *ctxSet) first(k valsKey, rest []byte) *ctxSlot {
+	if len(rest) == 0 {
+		return s.vals[k]
+	}
+	return s.wide[wideKey{k, string(rest)}]
+}
+
+// setFirst makes x the first result of the set with the dependency values k and rest, and returns
+// the bytes that a key of rest takes beyond the valsKey that ctxSlotBytes counts.
+func (s *ctxSet) setFirst(k valsKey, rest []byte, x *ctxSlot) uint64 {
+	if len(rest) == 0 {
+		s.vals[k] = x
+		return 0
+	}
+	if s.wide == nil {
+		s.wide = map[wideKey]*ctxSlot{}
+	}
+	s.wide[wideKey{k, string(rest)}] = x
+	return wideKeyBytes + uint64(len(rest))
 }
 
 // ctxSlot is a result in a context table: the entry, and for a growth step the identity of its
@@ -543,6 +592,7 @@ next:
 	for _, s := range *sets {
 		p.Spend()
 		var k valsKey
+		var rest []byte
 		for _, g := range s.seeds {
 			i := p.gammaFind(gp, int(g.rule), int(g.min), g.ms)
 			if i < 0 {
@@ -552,18 +602,16 @@ next:
 			if ContextMemoMutation == CtxIgnoreSeeds {
 				v = 0
 			}
-			k.v[k.n] = v
-			k.n++
+			rest = k.add(v, rest)
 		}
 		for _, o := range s.obs {
 			v := p.obsValue(pos, gp, h.present, o)
 			if v == obsNone {
 				continue next
 			}
-			k.v[k.n] = v
-			k.n++
+			rest = k.add(v, rest)
 		}
-		for x := s.vals[k]; x != nil; x = x.next {
+		for x := s.first(k, rest); x != nil; x = x.next {
 			p.Spend()
 			if env == nil && x.env == nil || p.memoKeyEqual(x.env, env) {
 				return x, s
@@ -579,12 +627,13 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	var seeds []growKey
 	var obs []int32
 	var k valsKey
+	var rest []byte
 	for _, d := range ds {
 		if d.kind == depShadow {
 			continue
 		}
-		if len(seeds)+len(obs) == maxCtxDeps {
-			return // too many dependencies to index: the result is evaluated again
+		if ContextMemoMutation == CtxCapDeps && len(seeds)+len(obs) == maxCtxDeps {
+			return
 		}
 		if d.kind == depSeed {
 			seeds = append(seeds, growKey{d.rule, d.min, d.ms})
@@ -599,8 +648,7 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 			if ContextMemoMutation == CtxIgnoreSeeds {
 				v = 0
 			}
-			k.v[k.n] = v
-			k.n++
+			rest = k.add(v, rest)
 		}
 	}
 	for _, d := range ds {
@@ -609,8 +657,7 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 			if ContextMemoMutation == CtxIgnoreObs {
 				v = obsIgnored
 			}
-			k.v[k.n] = v
-			k.n++
+			rest = k.add(v, rest)
 		}
 	}
 	t := p.table(pos, gp, true)
@@ -636,7 +683,7 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 	}
 	slot.deps = ds
 	t.bytes += ctxSlotBytes + uint64(len(ds))*sdepBytes + uint64(len(slot.env))*anyBytes + uint64(len(slot.exp))*expIDBytes
-	link := set.vals[k]
+	link := set.first(k, rest)
 	for x := link; x != nil; x = x.next {
 		p.Spend()
 		if x.env == nil && slot.env == nil || p.memoKeyEqual(x.env, slot.env) {
@@ -649,7 +696,9 @@ func (p *Parser) ctxStore(pos, gp int, h ctxHeadKey, ds []sdep, slot *ctxSlot) {
 		}
 	}
 	slot.next = link
-	set.vals[k] = slot
+	if added := set.setFirst(k, rest, slot); link == nil {
+		t.bytes += added
+	}
 }
 
 func equalGrowKeys(a, b []growKey) bool {
