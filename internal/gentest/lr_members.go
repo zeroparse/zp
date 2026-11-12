@@ -338,10 +338,33 @@ rule L = T "!" / &T S "q" "q"`,
 		Src:    "@start\nrule main = " + ContextChain(32, 7, false),
 		Inputs: []string{"axy", "aaxx", "aaaxxx", "axq", "aaxzx", "a", ""},
 	})
+	// More leaders than a word of present bits holds in the engine too, whose present sets of them are
+	// interned: rings of 66 leaders that the evaluation without memos finishes, which the chains
+	// above, with their nested leaders, do not.
+	for i, alt := range []string{`R%i "x" / &"y" R%n / "a"`, `R%i "x" / "a" R%n? / R%n "b"`} {
+		cases = append(cases, Case{
+			Name:   fmt.Sprintf("ring of 66 leaders %d", i+1),
+			Src:    LeaderRing(66, alt),
+			Inputs: []string{"a", "ax", "axb", "axxb", "", "xa", "ab", "yax", "ayx"},
+		})
+	}
 	for s := int64(0); s < int64(seeds); s++ {
 		cases = append(cases, RandomCycleGrammar(s, false), RandomCycleGrammar(s, true), RandomRecoveringCycleGrammar(s))
 	}
 	return cases
+}
+
+// LeaderRing returns the source of a grammar whose start rule calls R1 and whose rules R1..Rn each
+// have the body alt, in which %i stands for the rule and %n for the next one, the first after the
+// last: a cycle of n rules.
+func LeaderRing(n int, alt string) string {
+	var b strings.Builder
+	b.WriteString("@start\nrule main = R1\n")
+	for i := 1; i <= n; i++ {
+		next := i%n + 1
+		fmt.Fprintf(&b, "rule R%d = %s\n", i, strings.NewReplacer("%i", strconv.Itoa(i), "%n", strconv.Itoa(next)).Replace(alt))
+	}
+	return b.String()
 }
 
 // ContextChain returns the rules after "rule main = " of a chain of leaders L1..Ln nested around
