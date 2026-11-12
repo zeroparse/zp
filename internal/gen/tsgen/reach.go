@@ -29,9 +29,10 @@ type tsLive struct {
 
 // reachableRules returns the rules of prog and of the recognizer rec (nil if there is none) that a
 // parse can enter: every start rule of the Node table, which parseRule can name, and the rule start
-// that parse and recognize run.
-func reachableRules(prog, rec *compile.Program, start *compile.Rule) (*tsLive, error) {
-	return reachFrom(prog, rec, start, func(table string, p *compile.Program) (*core.Module, error) {
+// that parse and recognize run. document tells whether the parser has a Document, whose calls all
+// enter rules through their constants (callsPlain).
+func reachableRules(prog, rec *compile.Program, start *compile.Rule, document bool) (*tsLive, error) {
+	return reachFrom(prog, rec, start, document, func(table string, p *compile.Program) (*core.Module, error) {
 		return irbuild.CoreFrom(p, nil)
 	})
 }
@@ -40,7 +41,7 @@ func reachableRules(prog, rec *compile.Program, start *compile.Rule) (*tsLive, e
 // prints (checkCall), from the roots of reachableRules. Printing leaves out the calls that Core IR
 // has at points that the lowered code never reaches, such as after a lookahead that always fails.
 func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule) *tsLive {
-	l, _ := reachFrom(prog, rec, start, func(table string, p *compile.Program) (*core.Module, error) {
+	l, _ := reachFrom(prog, rec, start, g.Document, func(table string, p *compile.Program) (*core.Module, error) {
 		m := &core.Module{Calls: make([][]int, len(p.RuleList)+len(p.Twins))}
 		for from, to := range g.printed[table] {
 			m.Calls[from] = to
@@ -53,7 +54,7 @@ func (g *Generator) printedReach(prog, rec *compile.Program, start *compile.Rule
 
 // reachFrom computes the reach of reachableRules over the call graph of the module that module
 // returns for each table.
-func reachFrom(prog, rec *compile.Program, start *compile.Rule, module func(table string, p *compile.Program) (*core.Module, error)) (*tsLive, error) {
+func reachFrom(prog, rec *compile.Program, start *compile.Rule, document bool, module func(table string, p *compile.Program) (*core.Module, error)) (*tsLive, error) {
 	l := &tsLive{reach: map[string][]core.Entry{}}
 	for table, p := range map[string]*compile.Program{"rules": prog, "recRules": rec} {
 		if p == nil {
@@ -72,7 +73,7 @@ func reachFrom(prog, rec *compile.Program, start *compile.Rule, module func(tabl
 		roots = append(roots, core.Root{Rule: p.ByName[start.Name].ID, Entry: core.EnterSlot})
 		rules := append(append([]*compile.Rule(nil), p.RuleList...), p.Twins...)
 		l.reach[table] = m.Reach(roots, func(id int) core.Entry {
-			if callsPlain(rules[id]) {
+			if callsPlain(rules[id], document) {
 				return core.EnterWrapper
 			}
 			return core.EnterSlot
@@ -95,10 +96,11 @@ func (l *tsLive) equal(o *tsLive) bool {
 }
 
 // callsPlain reports whether a call of the rule r is printed as a call of its plain function
-// (tsFlowPrinter.call) rather than through its constant.
-func callsPlain(r *compile.Rule) bool {
+// (tsFlowPrinter.call) rather than through its constant. A parser with a Document calls every rule
+// through its constant, since a Document parse memoizes plain rules too.
+func callsPlain(r *compile.Rule, document bool) bool {
 	_, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
-	return r.Plain && !operatorsRule
+	return !document && r.Plain && !operatorsRule
 }
 
 // pruned reports whether the rule r of the current table is left out.
