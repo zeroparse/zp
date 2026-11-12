@@ -231,4 +231,4 @@ func r1(p *rt.Parser) (*rt.Node, bool) {
 	return v, ok
 }
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

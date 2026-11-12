@@ -153,24 +153,24 @@ var rulesExtras = [...]ruleExtra{
 	{23, "", "Bool", "", 0},
 }
 
-var lit71 = []rune("[")
-var lit72 = []rune("]")
-var lit74 = []rune("?")
-var lit75 = []rune(":")
-var lit77 = []rune("||")
-var lit79 = []rune("&&")
-var lit81 = []rune("==")
-var lit82 = []rune("!=")
-var lit83 = []rune("<=")
-var lit84 = []rune(">=")
-var lit85 = []rune("<")
-var lit86 = []rune(">")
-var lit88 = []rune("+")
-var lit89 = []rune("-")
-var lit91 = []rune("*")
-var lit92 = []rune("/")
-var lit93 = []rune("%")
-var lit95 = []rune("!")
+var lit70 = []rune("[")
+var lit71 = []rune("]")
+var lit73 = []rune("?")
+var lit74 = []rune(":")
+var lit76 = []rune("||")
+var lit78 = []rune("&&")
+var lit80 = []rune("==")
+var lit81 = []rune("!=")
+var lit82 = []rune("<=")
+var lit83 = []rune(">=")
+var lit84 = []rune("<")
+var lit85 = []rune(">")
+var lit87 = []rune("+")
+var lit88 = []rune("-")
+var lit90 = []rune("*")
+var lit91 = []rune("/")
+var lit92 = []rune("%")
+var lit94 = []rune("!")
 
 func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
@@ -186,7 +186,14 @@ func init() {
 		return any(tn1)
 	}
 	rules[1].Body = e3
-	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
+	rules[1].Action = func(c *rt.ActCtx) any {
+		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		return tv2
+	}
 	rules[2].Body = e6
 	rules[2].Action = func(c *rt.ActCtx) any {
 		tn1 := c.TermStruct("Block", 1)
@@ -296,10 +303,19 @@ func init() {
 	}
 	rules[11].Body = e21
 	rules[11].Action = func(c *rt.ActCtx) any {
-		b_64 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.EndList(b_64)
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		return any(tn5)
 	}
 	rules[12].Body = e22
 	rules[12].Action = func(c *rt.ActCtx) any {
@@ -316,16 +332,16 @@ func init() {
 		return c.Cap(0)
 	}
 	rules[14].OperatorsRule = &rt.OperatorsRule{
-		Skip: e65,
+		Skip: e64,
 		Operands: []*rt.OperatorsRuleLine{
+			&rt.OperatorsRuleLine{Scope: []string{}, M: e65, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e66, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e67, Action: nil, Value: sh38},
 			&rt.OperatorsRuleLine{Scope: []string{}, M: e68, Action: nil, Value: sh38},
-			&rt.OperatorsRuleLine{Scope: []string{}, M: e69, Action: nil, Value: sh38},
-			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e70, Action: func(c *rt.ActCtx) any {
+			&rt.OperatorsRuleLine{Scope: []string{"e"}, M: e69, Action: func(c *rt.ActCtx) any {
 				return c.Cap(0)
 			}, Value: sh57},
-			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e73, Action: func(c *rt.ActCtx) any {
+			&rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e72, Action: func(c *rt.ActCtx) any {
 				tm1 := len(c.P.KidStack)
 				c.P.Spend()
 				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
@@ -343,7 +359,7 @@ func init() {
 				return any(tn5)
 			}, Value: sh57},
 		},
-		Prefix: []*rt.OperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e96, Action: func(c *rt.ActCtx) any {
+		Prefix: []*rt.OperatorsRuleOp{{Id: 6, Kind: "prefix", Assoc: "", Level: 7, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e95, Action: func(c *rt.ActCtx) any {
 			tn1 := c.TermStruct("Unary", 2)
 			tfirst2 := true
 			c.P.Spend()
@@ -355,7 +371,7 @@ func init() {
 			c.P.TermMade(c, tn1, tfirst2)
 			return any(tn1)
 		}, Value: sh38}}},
-		Led: []*rt.OperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "right", Level: 1, Line: &rt.OperatorsRuleLine{Scope: []string{"t"}, M: e76, Action: func(c *rt.ActCtx) any {
+		Led: []*rt.OperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "right", Level: 1, Line: &rt.OperatorsRuleLine{Scope: []string{"t"}, M: e75, Action: func(c *rt.ActCtx) any {
 			tn1 := c.TermStruct("Cond", 3)
 			tfirst2 := true
 			c.P.Spend()
@@ -370,7 +386,7 @@ func init() {
 			c.P.TermMade(c, tn1, tfirst2)
 			return any(tn1)
 		}, Value: sh57}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e78, Action: func(c *rt.ActCtx) any {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e77, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Binary", 3)
 				tfirst2 := true
 				c.P.Spend()
@@ -385,7 +401,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh38}},
-			{Id: 2, Kind: "infix", Assoc: "left", Level: 3, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e80, Action: func(c *rt.ActCtx) any {
+			{Id: 2, Kind: "infix", Assoc: "left", Level: 3, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e79, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Binary", 3)
 				tfirst2 := true
 				c.P.Spend()
@@ -400,7 +416,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh38}},
-			{Id: 3, Kind: "infix", Assoc: "none", Level: 4, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e87, Action: func(c *rt.ActCtx) any {
+			{Id: 3, Kind: "infix", Assoc: "none", Level: 4, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e86, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Binary", 3)
 				tfirst2 := true
 				c.P.Spend()
@@ -415,7 +431,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh38}},
-			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e90, Action: func(c *rt.ActCtx) any {
+			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e89, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Binary", 3)
 				tfirst2 := true
 				c.P.Spend()
@@ -430,7 +446,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh38}},
-			{Id: 5, Kind: "infix", Assoc: "left", Level: 6, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e94, Action: func(c *rt.ActCtx) any {
+			{Id: 5, Kind: "infix", Assoc: "left", Level: 6, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e93, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Binary", 3)
 				tfirst2 := true
 				c.P.Spend()
@@ -445,7 +461,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh38}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e97, Action: func(c *rt.ActCtx) any {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"xs"}, M: e96, Action: func(c *rt.ActCtx) any {
 				tm1 := len(c.P.KidStack)
 				c.P.Spend()
 				tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
@@ -465,7 +481,7 @@ func init() {
 				c.P.TermMade(c, tn5, tfirst6)
 				return any(tn5)
 			}, Value: sh57}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"i"}, M: e98, Action: func(c *rt.ActCtx) any {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"i"}, M: e97, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Index", 2)
 				tfirst2 := true
 				c.P.Spend()
@@ -477,7 +493,7 @@ func init() {
 				c.P.TermMade(c, tn1, tfirst2)
 				return any(tn1)
 			}, Value: sh57}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"n"}, M: e99, Action: func(c *rt.ActCtx) any {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 8, Line: &rt.OperatorsRuleLine{Scope: []string{"n"}, M: e98, Action: func(c *rt.ActCtx) any {
 				tn1 := c.TermStruct("Member", 2)
 				tfirst2 := true
 				c.P.Spend()
@@ -493,10 +509,19 @@ func init() {
 	rules[14].Body = func(p *rt.Parser, min int) (*rt.Node, bool) { return p.OperatorsRuleParse(rules[14], min) }
 	rules[15].Body = e25
 	rules[15].Action = func(c *rt.ActCtx) any {
-		b_100 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.EndList(b_100)
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		return any(tn5)
 	}
 	rules[16].Body = e26
 	rules[17].Body = e27
@@ -2091,7 +2116,7 @@ fail:
 	return nil, false
 }
 
-func e65(p *rt.Parser) (*rt.Node, bool) {
+func e64(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = p.Call(rules[31], 0); !ok {
@@ -2102,7 +2127,7 @@ fail:
 	return nil, false
 }
 
-func e66(p *rt.Parser) (*rt.Node, bool) {
+func e65(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var v1 *rt.Node
@@ -2114,7 +2139,7 @@ fail:
 	return nil, false
 }
 
-func e67(p *rt.Parser) (*rt.Node, bool) {
+func e66(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var v1 *rt.Node
@@ -2126,7 +2151,7 @@ fail:
 	return nil, false
 }
 
-func e68(p *rt.Parser) (*rt.Node, bool) {
+func e67(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var v1 *rt.Node
@@ -2138,7 +2163,7 @@ fail:
 	return nil, false
 }
 
-func e69(p *rt.Parser) (*rt.Node, bool) {
+func e68(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var v1 *rt.Node
@@ -2150,7 +2175,7 @@ fail:
 	return nil, false
 }
 
-func e70(p *rt.Parser) (*rt.Node, bool) {
+func e69(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var v2 *rt.Node
@@ -2176,14 +2201,14 @@ fail:
 	return nil, false
 }
 
-func e73(p *rt.Parser) (*rt.Node, bool) {
+func e72(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
 	var v3, v6 *rt.Node
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit71, "[", 33, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit70, "[", 33, false); !ok {
 		goto fail
 	}
 	x2 = p.Mark()
@@ -2202,7 +2227,7 @@ L5:
 	}
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit72, "]", 34, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit71, "]", 34, false); !ok {
 		goto fail
 	}
 	return nil, true
@@ -2210,7 +2235,7 @@ fail:
 	return nil, false
 }
 
-func e76(p *rt.Parser) (*rt.Node, bool) {
+func e75(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1, x3, x8 int
 	var x2 []*rt.Node
@@ -2221,7 +2246,7 @@ func e76(p *rt.Parser) (*rt.Node, bool) {
 	x3 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 63) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit74, "?", 35, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit73, "?", 35, false); !ok {
 		goto fail
 	}
 	v4 = p.NewTerminal(x3, "?")
@@ -2238,7 +2263,7 @@ func e76(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 58) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit75, ":", 36, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit74, ":", 36, false); !ok {
 		goto fail
 	}
 	v9 = p.NewTerminal(x8, ":")
@@ -2249,7 +2274,7 @@ fail:
 	return nil, false
 }
 
-func e78(p *rt.Parser) (*rt.Node, bool) {
+func e77(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -2257,7 +2282,7 @@ func e78(p *rt.Parser) (*rt.Node, bool) {
 	x1 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 124 && p.In[p.Pos+1] == 124) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit77, "||", 37, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit76, "||", 37, false); !ok {
 		goto fail
 	}
 	v2 = p.NewTerminal(x1, "||")
@@ -2266,7 +2291,7 @@ fail:
 	return nil, false
 }
 
-func e80(p *rt.Parser) (*rt.Node, bool) {
+func e79(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -2274,7 +2299,7 @@ func e80(p *rt.Parser) (*rt.Node, bool) {
 	x1 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 38 && p.In[p.Pos+1] == 38) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit79, "&&", 38, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit78, "&&", 38, false); !ok {
 		goto fail
 	}
 	v2 = p.NewTerminal(x1, "&&")
@@ -2283,7 +2308,7 @@ fail:
 	return nil, false
 }
 
-func e87(p *rt.Parser) (*rt.Node, bool) {
+func e86(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17, v21, v25, v29 *rt.Node
@@ -2304,7 +2329,7 @@ func e87(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit81, "==", 39, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit80, "==", 39, false); !ok {
 		goto L7
 	}
 	v9 = p.NewTerminal(x8, "==")
@@ -2320,7 +2345,7 @@ L6:
 	x12 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 33 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit82, "!=", 40, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit81, "!=", 40, false); !ok {
 		goto L11
 	}
 	v13 = p.NewTerminal(x12, "!=")
@@ -2336,7 +2361,7 @@ L10:
 	x16 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 60 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit83, "<=", 41, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit82, "<=", 41, false); !ok {
 		goto L15
 	}
 	v17 = p.NewTerminal(x16, "<=")
@@ -2352,7 +2377,7 @@ L14:
 	x20 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 62 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.MatchLiteral(lit84, ">=", 42, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit83, ">=", 42, false); !ok {
 		goto L19
 	}
 	v21 = p.NewTerminal(x20, ">=")
@@ -2368,7 +2393,7 @@ L18:
 	x24 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 60) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit85, "<", 43, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit84, "<", 43, false); !ok {
 		goto L23
 	}
 	v25 = p.NewTerminal(x24, "<")
@@ -2384,7 +2409,7 @@ L22:
 	x28 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 62) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit86, ">", 44, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit85, ">", 44, false); !ok {
 		goto L27
 	}
 	v29 = p.NewTerminal(x28, ">")
@@ -2400,7 +2425,7 @@ fail:
 	return nil, false
 }
 
-func e90(p *rt.Parser) (*rt.Node, bool) {
+func e89(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13 *rt.Node
@@ -2421,7 +2446,7 @@ func e90(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 43) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit88, "+", 45, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit87, "+", 45, false); !ok {
 		goto L7
 	}
 	v9 = p.NewTerminal(x8, "+")
@@ -2437,7 +2462,7 @@ L6:
 	x12 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit89, "-", 46, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit88, "-", 46, false); !ok {
 		goto L11
 	}
 	v13 = p.NewTerminal(x12, "-")
@@ -2453,7 +2478,7 @@ fail:
 	return nil, false
 }
 
-func e94(p *rt.Parser) (*rt.Node, bool) {
+func e93(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17 *rt.Node
@@ -2474,7 +2499,7 @@ func e94(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 42) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit91, "*", 47, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit90, "*", 47, false); !ok {
 		goto L7
 	}
 	v9 = p.NewTerminal(x8, "*")
@@ -2490,7 +2515,7 @@ L6:
 	x12 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 47) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit92, "/", 48, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit91, "/", 48, false); !ok {
 		goto L11
 	}
 	v13 = p.NewTerminal(x12, "/")
@@ -2506,7 +2531,7 @@ L10:
 	x16 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 37) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit93, "%", 49, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit92, "%", 49, false); !ok {
 		goto L15
 	}
 	v17 = p.NewTerminal(x16, "%")
@@ -2522,7 +2547,7 @@ fail:
 	return nil, false
 }
 
-func e96(p *rt.Parser) (*rt.Node, bool) {
+func e95(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13 *rt.Node
@@ -2543,7 +2568,7 @@ func e96(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit89, "-", 46, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit88, "-", 46, false); !ok {
 		goto L7
 	}
 	v9 = p.NewTerminal(x8, "-")
@@ -2559,7 +2584,7 @@ L6:
 	x12 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 33) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit95, "!", 50, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit94, "!", 50, false); !ok {
 		goto L11
 	}
 	v13 = p.NewTerminal(x12, "!")
@@ -2575,7 +2600,7 @@ fail:
 	return nil, false
 }
 
-func e97(p *rt.Parser) (*rt.Node, bool) {
+func e96(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1, x3, x12 int
 	var x2 []*rt.Node
@@ -2622,7 +2647,7 @@ fail:
 	return nil, false
 }
 
-func e98(p *rt.Parser) (*rt.Node, bool) {
+func e97(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1, x3, x8 int
 	var x2 []*rt.Node
@@ -2633,7 +2658,7 @@ func e98(p *rt.Parser) (*rt.Node, bool) {
 	x3 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit71, "[", 33, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit70, "[", 33, false); !ok {
 		goto fail
 	}
 	v4 = p.NewTerminal(x3, "[")
@@ -2650,7 +2675,7 @@ func e98(p *rt.Parser) (*rt.Node, bool) {
 	x8 = p.Pos
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.MatchLiteral(lit72, "]", 34, false); !ok {
+	} else if _, ok = p.MatchLiteral(lit71, "]", 34, false); !ok {
 		goto fail
 	}
 	v9 = p.NewTerminal(x8, "]")
@@ -2661,7 +2686,7 @@ fail:
 	return nil, false
 }
 
-func e99(p *rt.Parser) (*rt.Node, bool) {
+func e98(p *rt.Parser) (*rt.Node, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []*rt.Node
@@ -2692,4 +2717,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

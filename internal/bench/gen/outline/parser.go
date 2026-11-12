@@ -207,7 +207,14 @@ func init() {
 		return c.Cap(0)
 	}
 	rules[1].Body = e3
-	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
+	rules[1].Action = func(c *rt.ActCtx) any {
+		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		return tv2
+	}
 	rules[2].Body = e4
 	rules[2].Action = func(c *rt.ActCtx) any {
 		tm1 := len(c.P.KidStack)
@@ -1021,11 +1028,11 @@ func i0(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr12 any
+		var tr13 any
 		{
-			tr12 = k1
+			tr13 = k1
 		}
-		v = tr12
+		v = tr13
 	}
 	v = c.Finish(v)
 	p.Env = prevEnv
@@ -1097,7 +1104,18 @@ func i1(p *rt.TParser) (any, bool) {
 	k1 = v13
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "block"
-	v = c.NewList(c.ListItems("map", k1))
+	{
+		var tr14 any
+		{
+			ti1, tf1 := c.P.TermItems("map", k1)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := (c.NewList(ti1))
+			tr14 = tv2
+		}
+		v = tr14
+	}
 	v = c.Finish(v)
 	p.Depth--
 	return v, true
@@ -1163,7 +1181,7 @@ L12:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "item"
 	{
-		var tr14 any
+		var tr16 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -1174,9 +1192,9 @@ L12:
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tv5 := tmk_Item(c, true, k4, any(tn4))
-			tr14 = tv5
+			tr16 = tv5
 		}
-		v = tr14
+		v = tr16
 	}
 	p.Depth--
 	return v, true
@@ -1263,11 +1281,11 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "children"
 	{
-		var tr17 any
+		var tr19 any
 		{
-			tr17 = k10
+			tr19 = k10
 		}
-		v = tr17
+		v = tr19
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -1440,4 +1458,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

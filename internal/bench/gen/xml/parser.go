@@ -966,11 +966,11 @@ var rulesExtras = [...]ruleExtra{
 	{71, "", "Nmtoken", "", 0},
 }
 
-var scope173 = []string{}
-var scope182 = []string{"n"}
-var scope184 = []string{}
-var scope186 = []string{}
-var scope190 = []string{}
+var scope168 = []string{}
+var scope177 = []string{"n"}
+var scope179 = []string{}
+var scope181 = []string{}
+var scope185 = []string{}
 
 var recRulesSpec = [...]ruleSpec{
 	{"main", &sh158, rt.RuleNovalue, 0, 0, 0},
@@ -1062,7 +1062,7 @@ var recRulesExtras = [...]ruleExtra{
 	{69, "", "Name", "", 0},
 }
 
-var scope195 = []string{"n"}
+var scope190 = []string{"n"}
 
 func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
@@ -1103,7 +1103,14 @@ func init() {
 		return any(tn6)
 	}
 	rules[1].Body = e4
-	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
+	rules[1].Action = func(c *rt.ActCtx) any {
+		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		return tv2
+	}
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) any {
 		tn1 := c.TermStruct("XMLDecl", 3)
@@ -1174,7 +1181,14 @@ func init() {
 		return any(tn5)
 	}
 	rules[16].Body = e41
-	rules[16].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
+	rules[16].Action = func(c *rt.ActCtx) any {
+		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		return tv2
+	}
 	rules[19].Body = e46
 	rules[20].Body = e48
 	rules[20].Action = func(c *rt.ActCtx) any {
@@ -1222,21 +1236,84 @@ func init() {
 	}
 	rules[32].Body = e75
 	rules[32].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Mixed", "Names", c.MapList(c.Cap(0), func(l_167 any) any { return c.Member(rt.UnboxValue(l_167), "$n") }))
+		tm1 := len(c.P.KidStack)
+		ti2, tf2 := c.P.TermItems("map", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tj3 := 0
+		for ; tj3 < len(ti2); tj3++ {
+			c.P.Spend()
+			tp5 := c.P.TermItemAt(ti2, tj3, false)
+			tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp5), "$n", "$n"[1:])
+			if tf7 != nil {
+				panic(tf7)
+			}
+			tv6 := tv7
+			tf8 := c.P.TermPush(c, "map", tv6)
+			if tf8 != nil {
+				panic(tf8)
+			}
+		}
+		tk9 := c.P.Kids(tm1)
+		tn10 := c.P.TermHull(c, false, tk9)
+		tn11 := c.TermStruct("Mixed", 1)
+		tfirst12 := true
+		c.P.Spend()
+		c.TermSetField(tn11, "Names", any(tn10))
+		tfirst12 = c.P.TermCover(tn11, any(tn10), tfirst12)
+		c.P.TermMade(c, tn11, tfirst12)
+		return any(tn11)
 	}
 	rules[33].Body = e77
 	rules[33].Action = func(c *rt.ActCtx) any {
-		b_168 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.NewStruct("Choice", "Items", c.EndList(b_168), "Occur", c.Cap(2))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tn6 := c.TermStruct("Choice", 2)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Items", any(tn5))
+		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "Occur", c.Cap(2))
+		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[34].Body = e80
 	rules[34].Action = func(c *rt.ActCtx) any {
-		b_169 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.NewStruct("Sequence", "Items", c.EndList(b_169), "Occur", c.Cap(2))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tn6 := c.TermStruct("Sequence", 2)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Items", any(tn5))
+		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.P.Spend()
+		c.TermSetField(tn6, "Occur", c.Cap(2))
+		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[35].Body = e82
 	rules[36].Body = e83
@@ -1254,7 +1331,21 @@ func init() {
 	}
 	rules[38].Body = e87
 	rules[38].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("AttlistDecl", "Name", c.Cap(0), "Defs", c.NewList(c.ListItems("map", c.Cap(1))))
+		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		tn3 := c.TermStruct("AttlistDecl", 2)
+		tfirst4 := true
+		c.P.Spend()
+		c.TermSetField(tn3, "Name", c.Cap(0))
+		tfirst4 = c.P.TermCover(tn3, c.Cap(0), tfirst4)
+		c.P.Spend()
+		c.TermSetField(tn3, "Defs", tv2)
+		tfirst4 = c.P.TermCover(tn3, tv2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3)
 	}
 	rules[39].Body = e88
 	rules[39].Action = func(c *rt.ActCtx) any {
@@ -1277,17 +1368,47 @@ func init() {
 	}
 	rules[44].Body = e106
 	rules[44].Action = func(c *rt.ActCtx) any {
-		b_170 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.NewStruct("NotationType", "Names", c.EndList(b_170))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tn6 := c.TermStruct("NotationType", 1)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Names", any(tn5))
+		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[45].Body = e108
 	rules[45].Action = func(c *rt.ActCtx) any {
-		b_171 := len(c.P.KidStack)
-		c.PushList(c.Cap(0))
-		c.PushItems(c.Cap(1))
-		return c.NewStruct("Enumeration", "Values", c.EndList(b_171))
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPush(c, "list", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
+		if tf3 != nil {
+			panic(tf3)
+		}
+		tk4 := c.P.Kids(tm1)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tn6 := c.TermStruct("Enumeration", 1)
+		tfirst7 := true
+		c.P.Spend()
+		c.TermSetField(tn6, "Values", any(tn5))
+		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6)
 	}
 	rules[47].Body = e112
 	rules[47].Action = func(c *rt.ActCtx) any {
@@ -1362,7 +1483,32 @@ func init() {
 	}
 	rules[55].Body = e127
 	rules[55].Action = func(c *rt.ActCtx) any {
-		return c.NewStruct("Element", "Name", c.Cap(0), "Attrs", c.NewList(c.ListItems("map", c.Cap(1))), "Content", c.Concat(c.Cap(2)))
+		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
+		if tf1 != nil {
+			panic(tf1)
+		}
+		tv2 := any(c.NewList(ti1))
+		tm3 := len(c.P.KidStack)
+		c.P.Spend()
+		tf4 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf4 != nil {
+			panic(tf4)
+		}
+		tk5 := c.P.Kids(tm3)
+		tn6 := c.P.TermHull(c, false, tk5)
+		tn7 := c.TermStruct("Element", 3)
+		tfirst8 := true
+		c.P.Spend()
+		c.TermSetField(tn7, "Name", c.Cap(0))
+		tfirst8 = c.P.TermCover(tn7, c.Cap(0), tfirst8)
+		c.P.Spend()
+		c.TermSetField(tn7, "Attrs", tv2)
+		tfirst8 = c.P.TermCover(tn7, tv2, tfirst8)
+		c.P.Spend()
+		c.TermSetField(tn7, "Content", any(tn6))
+		tfirst8 = c.P.TermCover(tn7, any(tn6), tfirst8)
+		c.P.TermMade(c, tn7, tfirst8)
+		return any(tn7)
 	}
 	rules[56].Body = e128
 	rules[56].Action = func(c *rt.ActCtx) any {
@@ -1449,24 +1595,24 @@ func init() {
 	zpGrammar.NodeTypes["YesNo"] = rt.NewNodeTypeKinds("YesNo")
 	recRules = rt.NewRules(recRulesSpec[:], recRulesStrs[:], recRulesExtras[:])
 	zpRecGrammar.SetRules(recRules, 16)
-	recRules[0].Body = e172
-	recRules[1].Body = e174
-	recRules[10].Body = e175
-	recRules[11].Body = e176
-	recRules[13].Body = e177
-	recRules[19].Body = e178
-	recRules[20].Body = e179
-	recRules[22].Body = e180
-	recRules[25].Body = e181
-	recRules[32].Body = e183
-	recRules[33].Body = e185
-	recRules[34].Body = e187
-	recRules[35].Body = e188
-	recRules[49].Body = e189
-	recRules[55].Body = e191
-	recRules[57].Body = e192
-	recRules[66].Body = e193
-	recRules[71].Body = e194
+	recRules[0].Body = e167
+	recRules[1].Body = e169
+	recRules[10].Body = e170
+	recRules[11].Body = e171
+	recRules[13].Body = e172
+	recRules[19].Body = e173
+	recRules[20].Body = e174
+	recRules[22].Body = e175
+	recRules[25].Body = e176
+	recRules[32].Body = e178
+	recRules[33].Body = e180
+	recRules[34].Body = e182
+	recRules[35].Body = e183
+	recRules[49].Body = e184
+	recRules[55].Body = e186
+	recRules[57].Body = e187
+	recRules[66].Body = e188
+	recRules[71].Body = e189
 	zpGrammar.Starts = []string{"main"}
 	zpGrammar.DefaultStart = "main"
 	zpRecGrammar.Share(zpGrammar)
@@ -6282,7 +6428,7 @@ fail:
 	return nil, false
 }
 
-func e172(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e167(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var v *rt.Node
 	var x1, x4, x7 int
@@ -6335,7 +6481,7 @@ fail:
 	return nil, false
 }
 
-func e174(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e169(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1, x2 *rt.CaptureFrame
 	var x4 rt.Mark
@@ -6344,7 +6490,7 @@ func e174(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Spend()
 		x4 = p.Mark()
 		x2 = p.Frame
-		x1 = p.NewFrame(len(scope173))
+		x1 = p.NewFrame(len(scope168))
 		p.Frame = x1
 		if _, ok = q74(p); !ok {
 			goto L5
@@ -6370,7 +6516,7 @@ fail:
 	return nil, false
 }
 
-func e175(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e170(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = q74(p); !ok {
@@ -6389,7 +6535,7 @@ fail:
 	return nil, false
 }
 
-func e176(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e171(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 60 && p.In[p.Pos+1] == 33 && p.In[p.Pos+2] == 45 && p.In[p.Pos+3] == 45) && p.Control.Take(4) {
@@ -6410,7 +6556,7 @@ fail:
 	return nil, false
 }
 
-func e177(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e172(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x4 int
@@ -6610,7 +6756,7 @@ fail:
 	return nil, false
 }
 
-func e178(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e173(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -6651,7 +6797,7 @@ fail:
 	return nil, false
 }
 
-func e179(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e174(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = p.MatchLiteral(lit47, "SYSTEM", 37, false); !ok {
@@ -6668,7 +6814,7 @@ fail:
 	return nil, false
 }
 
-func e180(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e175(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -6729,7 +6875,7 @@ fail:
 	return nil, false
 }
 
-func e181(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e176(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -6790,7 +6936,7 @@ fail:
 	return nil, false
 }
 
-func e183(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e178(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok, x20 bool
 	var x2, x3, x9 int
@@ -6815,7 +6961,7 @@ func e183(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Spend()
 		x7 = p.Mark()
 		x5 = p.Frame
-		x4 = p.NewFrame(len(scope182))
+		x4 = p.NewFrame(len(scope177))
 		p.Frame = x4
 		x9 = p.Pos
 		x10 = p.Nodes(1)[:0]
@@ -6838,7 +6984,7 @@ func e183(p *rt.Parser, _ int) (*rt.Node, bool) {
 		v13 = p.NewBranch(rt.RawKindSeq, x9, x10)
 		v14 = p.ScopeValue(sh72, v13, x7.Pos)
 		p.Frame = x5
-		v15 = p.AttachCaptures(v14, scope182, x4, x7.Pos, p.Pos)
+		v15 = p.AttachCaptures(v14, scope177, x4, x7.Pos, p.Pos)
 		p.KidStack = append(p.KidStack, v15)
 		if p.Pos == x7.Pos {
 			break
@@ -6907,7 +7053,7 @@ fail:
 	return nil, false
 }
 
-func e185(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e180(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x1, x2 *rt.CaptureFrame
@@ -6929,7 +7075,7 @@ func e185(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Spend()
 		x4 = p.Mark()
 		x2 = p.Frame
-		x1 = p.NewFrame(len(scope184))
+		x1 = p.NewFrame(len(scope179))
 		p.Frame = x1
 		if _, ok = q74(p); !ok {
 			goto L5
@@ -6980,7 +7126,7 @@ fail:
 	return nil, false
 }
 
-func e187(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e182(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x1, x2 *rt.CaptureFrame
@@ -7000,7 +7146,7 @@ func e187(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Spend()
 		x4 = p.Mark()
 		x2 = p.Frame
-		x1 = p.NewFrame(len(scope186))
+		x1 = p.NewFrame(len(scope181))
 		p.Frame = x1
 		if _, ok = q74(p); !ok {
 			goto L5
@@ -7047,7 +7193,7 @@ fail:
 	return nil, false
 }
 
-func e188(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e183(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -7099,7 +7245,7 @@ fail:
 	return nil, false
 }
 
-func e189(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e184(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -7160,7 +7306,7 @@ fail:
 	return nil, false
 }
 
-func e191(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e186(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok, x11 bool
 	var x19 int
@@ -7183,7 +7329,7 @@ func e191(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Spend()
 		x6 = p.Mark()
 		x4 = p.Frame
-		x3 = p.NewFrame(len(scope190))
+		x3 = p.NewFrame(len(scope185))
 		p.Frame = x3
 		if _, ok = q72(p); !ok {
 			goto L7
@@ -7286,7 +7432,7 @@ fail:
 	return nil, false
 }
 
-func e192(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e187(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -7347,7 +7493,7 @@ fail:
 	return nil, false
 }
 
-func e193(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e188(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var ok, x5 bool
@@ -7383,7 +7529,7 @@ fail:
 	return nil, false
 }
 
-func e194(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e189(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var x1 int
 	var x2 rt.Mark
@@ -10273,7 +10419,7 @@ L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr30 any
+		var tr39 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -10289,9 +10435,9 @@ L19:
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6 := tmk_Document(c, true, k4, any(tn5), k14, k24, k27)
-			tr30 = tv6
+			tr39 = tv6
 		}
-		v = tr30
+		v = tr39
 	}
 	return v, true
 fail:
@@ -10346,7 +10492,18 @@ func i1(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "misc_list"
-	v = c.NewList(c.ListItems("map", k1))
+	{
+		var tr40 any
+		{
+			ti1, tf1 := c.P.TermItems("map", k1)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := (c.NewList(ti1))
+			tr40 = tv2
+		}
+		v = tr40
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -10460,12 +10617,12 @@ L16:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "xml_decl"
 	{
-		var tr31 any
+		var tr41 any
 		{
 			tv1 := tmk_XMLDecl(c, true, k1, k4, k11)
-			tr31 = tv1
+			tr41 = tv1
 		}
-		v = tr31
+		v = tr41
 	}
 	return v, true
 fail:
@@ -10558,11 +10715,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "version_info"
 	{
-		var tr32 any
+		var tr42 any
 		{
-			tr32 = k2
+			tr42 = k2
 		}
-		v = tr32
+		v = tr42
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10707,11 +10864,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "encoding_decl"
 	{
-		var tr33 any
+		var tr43 any
 		{
-			tr33 = k2
+			tr43 = k2
 		}
-		v = tr33
+		v = tr43
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10859,11 +11016,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "sd_decl"
 	{
-		var tr34 any
+		var tr44 any
 		{
-			tr34 = k2
+			tr44 = k2
 		}
-		v = tr34
+		v = tr44
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10964,11 +11121,11 @@ func i11(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "comment"
 	{
-		var tr35 any
+		var tr45 any
 		{
-			tr35 = k1
+			tr45 = k1
 		}
-		v = tr35
+		v = tr45
 	}
 	v = c.Finish(v)
 	return v, true
@@ -11281,12 +11438,12 @@ L13:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pi"
 	{
-		var tr37 any
+		var tr47 any
 		{
 			tv1 := tmk_PI(c, true, k1, k10)
-			tr37 = tv1
+			tr47 = tv1
 		}
-		v = tr37
+		v = tr47
 	}
 	return v, true
 fail:
@@ -11464,7 +11621,7 @@ L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "doctype"
 	{
-		var tr38 any
+		var tr48 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -11475,9 +11632,9 @@ L15:
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tv5 := tmk_Doctype(c, true, k1, k5, any(tn4))
-			tr38 = tv5
+			tr48 = tv5
 		}
-		v = tr38
+		v = tr48
 	}
 	return v, true
 fail:
@@ -11529,7 +11686,18 @@ func i16(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "int_subset"
-	v = c.NewList(c.ListItems("map", k1))
+	{
+		var tr49 any
+		{
+			ti1, tf1 := c.P.TermItems("map", k1)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := (c.NewList(ti1))
+			tr49 = tv2
+		}
+		v = tr49
+	}
 	v = c.Finish(v)
 	return v, true
 fail:
@@ -11765,12 +11933,12 @@ func i20(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "system_id"
 	{
-		var tr39 any
+		var tr50 any
 		{
 			tv1 := tmk_ExternalID(c, true, any(nil), k1)
-			tr39 = tv1
+			tr50 = tv1
 		}
-		v = tr39
+		v = tr50
 	}
 	return v, true
 fail:
@@ -11814,12 +11982,12 @@ func i21(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "public_id"
 	{
-		var tr40 any
+		var tr51 any
 		{
 			tv1 := tmk_ExternalID(c, true, k1, k4)
-			tr40 = tv1
+			tr51 = tv1
 		}
-		v = tr40
+		v = tr51
 	}
 	return v, true
 fail:
@@ -11906,11 +12074,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "system_literal"
 	{
-		var tr41 any
+		var tr52 any
 		{
-			tr41 = k2
+			tr52 = k2
 		}
-		v = tr41
+		v = tr52
 	}
 	v = c.Finish(v)
 	return v, true
@@ -12078,11 +12246,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pubid_literal"
 	{
-		var tr42 any
+		var tr53 any
 		{
-			tr42 = k2
+			tr53 = k2
 		}
-		v = tr42
+		v = tr53
 	}
 	v = c.Finish(v)
 	return v, true
@@ -12215,12 +12383,12 @@ func i28(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "element_decl"
 	{
-		var tr43 any
+		var tr54 any
 		{
 			tv1 := tmk_ElementDecl(c, true, k1, k4)
-			tr43 = tv1
+			tr54 = tv1
 		}
-		v = tr43
+		v = tr54
 	}
 	return v, true
 fail:
@@ -12416,7 +12584,7 @@ func i32(p *rt.TParser) (any, bool) {
 		x10 = append(x10, v12)
 		v13 = p.NewNode("tuple", x9, p.Pos, x10)
 		v14 = p.ScopeValue(sh72, v13, x6)
-		v15 = p.AttachCaptures(v14, scope195, []any{k7}, x6, p.Pos)
+		v15 = p.AttachCaptures(v14, scope190, []any{k7}, x6, p.Pos)
 		p.PushKid(v15)
 		if p.Pos == x6 {
 			break
@@ -12481,7 +12649,35 @@ L23:
 L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "mixed"
-	v = tmk_Mixed(c, true, c.MapList(k1, func(l_196 any) any { return c.Member((l_196), "$n") }))
+	{
+		var tr56 any
+		{
+			tm1 := len(c.P.KidStack)
+			ti2, tf2 := c.P.TermItems("map", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tj3 := 0
+			for ; tj3 < len(ti2); tj3++ {
+				c.P.Spend()
+				tp5 := c.P.TermItemAt(ti2, tj3, false)
+				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$n", "$n"[1:])
+				if tf7 != nil {
+					panic(tf7)
+				}
+				tv6 := tv7
+				tf8 := c.P.TermPush(c, "map", tv6)
+				if tf8 != nil {
+					panic(tf8)
+				}
+			}
+			tk9 := c.P.Kids(tm1)
+			tn10 := c.P.TermHull(c, false, tk9)
+			tv11 := tmk_Mixed(c, true, any(tn10))
+			tr56 = tv11
+		}
+		v = tr56
+	}
 	return v, true
 fail:
 	return nil, false
@@ -12578,10 +12774,24 @@ L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "choice"
 	{
-		b_197 := len(c.P.KidStack)
-		c.PushList(k1)
-		c.PushItems(k4)
-		v = tmk_Choice(c, true, c.EndList(b_197), k14)
+		var tr57 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPush(c, "list", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf3 := c.P.TermPushItems(c, "concat", k4)
+			if tf3 != nil {
+				panic(tf3)
+			}
+			tk4 := c.P.Kids(tm1)
+			tn5 := c.P.TermHull(c, false, tk4)
+			tv6 := tmk_Choice(c, true, any(tn5), k14)
+			tr57 = tv6
+		}
+		v = tr57
 	}
 	p.Depth--
 	return v, true
@@ -12676,10 +12886,24 @@ L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "sequence"
 	{
-		b_198 := len(c.P.KidStack)
-		c.PushList(k1)
-		c.PushItems(k4)
-		v = tmk_Sequence(c, true, c.EndList(b_198), k14)
+		var tr58 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPush(c, "list", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf3 := c.P.TermPushItems(c, "concat", k4)
+			if tf3 != nil {
+				panic(tf3)
+			}
+			tk4 := c.P.Kids(tm1)
+			tn5 := c.P.TermHull(c, false, tk4)
+			tv6 := tmk_Sequence(c, true, any(tn5), k14)
+			tr58 = tv6
+		}
+		v = tr58
 	}
 	p.Depth--
 	return v, true
@@ -12796,12 +13020,12 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "name_particle"
 	{
-		var tr45 any
+		var tr59 any
 		{
 			tv1 := tmk_NameParticle(c, true, k1, k4)
-			tr45 = tv1
+			tr59 = tv1
 		}
-		v = tr45
+		v = tr59
 	}
 	return v, true
 fail:
@@ -12900,7 +13124,19 @@ func i38(p *rt.TParser) (any, bool) {
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attlist_decl"
-	v = tmk_AttlistDecl(c, true, k1, c.NewList(c.ListItems("map", k4)))
+	{
+		var tr60 any
+		{
+			ti1, tf1 := c.P.TermItems("map", k4)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := (c.NewList(ti1))
+			tv3 := tmk_AttlistDecl(c, true, k1, tv2)
+			tr60 = tv3
+		}
+		v = tr60
+	}
 	return v, true
 fail:
 	return nil, false
@@ -12977,12 +13213,12 @@ L12:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "att_def"
 	{
-		var tr46 any
+		var tr61 any
 		{
 			tv1 := tmk_AttDef(c, true, k1, k4, k8, k10)
-			tr46 = tv1
+			tr61 = tv1
 		}
-		v = tr46
+		v = tr61
 	}
 	return v, true
 fail:
@@ -13318,10 +13554,24 @@ func i44(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "notation_type"
 	{
-		b_199 := len(c.P.KidStack)
-		c.PushList(k1)
-		c.PushItems(k4)
-		v = tmk_NotationType(c, true, c.EndList(b_199))
+		var tr62 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPush(c, "list", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf3 := c.P.TermPushItems(c, "concat", k4)
+			if tf3 != nil {
+				panic(tf3)
+			}
+			tk4 := c.P.Kids(tm1)
+			tn5 := c.P.TermHull(c, false, tk4)
+			tv6 := tmk_NotationType(c, true, any(tn5))
+			tr62 = tv6
+		}
+		v = tr62
 	}
 	return v, true
 fail:
@@ -13399,10 +13649,24 @@ func i45(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "enumeration"
 	{
-		b_200 := len(c.P.KidStack)
-		c.PushList(k1)
-		c.PushItems(k4)
-		v = tmk_Enumeration(c, true, c.EndList(b_200))
+		var tr63 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPush(c, "list", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tf3 := c.P.TermPushItems(c, "concat", k4)
+			if tf3 != nil {
+				panic(tf3)
+			}
+			tk4 := c.P.Kids(tm1)
+			tn5 := c.P.TermHull(c, false, tk4)
+			tv6 := tmk_Enumeration(c, true, any(tn5))
+			tr63 = tv6
+		}
+		v = tr63
 	}
 	return v, true
 fail:
@@ -13546,12 +13810,12 @@ L11:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ge_decl"
 	{
-		var tr47 any
+		var tr64 any
 		{
 			tv1 := tmk_EntityDecl(c, true, any(false), k1, k5, k7, k9)
-			tr47 = tv1
+			tr64 = tv1
 		}
-		v = tr47
+		v = tr64
 	}
 	return v, true
 fail:
@@ -13630,12 +13894,12 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "pe_decl"
 	{
-		var tr48 any
+		var tr65 any
 		{
 			tv1 := tmk_EntityDecl(c, true, any(true), k1, k5, k7, any(nil))
-			tr48 = tv1
+			tr65 = tv1
 		}
-		v = tr48
+		v = tr65
 	}
 	return v, true
 fail:
@@ -13722,11 +13986,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "entity_value"
 	{
-		var tr49 any
+		var tr66 any
 		{
-			tr49 = k2
+			tr66 = k2
 		}
-		v = tr49
+		v = tr66
 	}
 	v = c.Finish(v)
 	return v, true
@@ -13897,12 +14161,12 @@ func i52(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "notation_decl"
 	{
-		var tr50 any
+		var tr67 any
 		{
 			tv1 := tmk_NotationDecl(c, true, k1, k4)
-			tr50 = tv1
+			tr67 = tv1
 		}
-		v = tr50
+		v = tr67
 	}
 	return v, true
 fail:
@@ -14003,12 +14267,12 @@ L8:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "public_notation"
 	{
-		var tr51 any
+		var tr68 any
 		{
 			tv1 := tmk_ExternalID(c, true, k1, k5)
-			tr51 = tv1
+			tr68 = tv1
 		}
-		v = tr51
+		v = tr68
 	}
 	return v, true
 fail:
@@ -14160,7 +14424,27 @@ L24:
 L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "element"
-	v = tmk_Element(c, true, k1, c.NewList(c.ListItems("map", k4)), c.Concat(k15))
+	{
+		var tr70 any
+		{
+			ti1, tf1 := c.P.TermItems("map", k4)
+			if tf1 != nil {
+				panic(tf1)
+			}
+			tv2 := (c.NewList(ti1))
+			tm3 := len(c.P.KidStack)
+			c.P.Spend()
+			tf4 := c.P.TermPushItems(c, "concat", k15)
+			if tf4 != nil {
+				panic(tf4)
+			}
+			tk5 := c.P.Kids(tm3)
+			tn6 := c.P.TermHull(c, false, tk5)
+			tv7 := tmk_Element(c, true, k1, tv2, any(tn6))
+			tr70 = tv7
+		}
+		v = tr70
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -14199,12 +14483,12 @@ func i56(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attribute"
 	{
-		var tr53 any
+		var tr71 any
 		{
 			tv1 := tmk_Attribute(c, true, k1, k4)
-			tr53 = tv1
+			tr71 = tv1
 		}
-		v = tr53
+		v = tr71
 	}
 	return v, true
 fail:
@@ -14291,11 +14575,11 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "att_value"
 	{
-		var tr54 any
+		var tr72 any
 		{
-			tr54 = k2
+			tr72 = k2
 		}
-		v = tr54
+		v = tr72
 	}
 	v = c.Finish(v)
 	return v, true
@@ -14593,11 +14877,11 @@ L7:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "markup"
 	{
-		var tr55 any
+		var tr73 any
 		{
-			tr55 = k3
+			tr73 = k3
 		}
-		v = tr55
+		v = tr73
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -14742,11 +15026,11 @@ func i64(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "cdsect"
 	{
-		var tr56 any
+		var tr74 any
 		{
-			tr56 = k1
+			tr74 = k1
 		}
-		v = tr56
+		v = tr74
 	}
 	v = c.Finish(v)
 	return v, true
@@ -15512,4 +15796,4 @@ fail:
 
 const _ = types.ZPSchema_b044f4d2cb8d65a3
 
-const _ = rt.Protocol8
+const _ = rt.Protocol9

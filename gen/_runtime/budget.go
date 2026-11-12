@@ -1524,7 +1524,7 @@ func (c *ActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any
 	items := c.ListItems(fn, list)
 	for i := range items {
 		c.P.Spend()
-		acc = f(acc, c.P.termItemAt(items, i, right))
+		acc = f(acc, c.P.TermItemAt(items, i, right))
 	}
 	return acc
 }
@@ -1634,7 +1634,7 @@ func (c *ActCtx) Or(l any, r func() any) any {
 // ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
 // the composition items (term_exec.go) reads them.
 func (c *ActCtx) ListItems(fn string, v any) []*Node {
-	items, e := c.P.termItems(fn, v)
+	items, e := c.P.TermItems(fn, v)
 	if e != nil {
 		panic(e)
 	}

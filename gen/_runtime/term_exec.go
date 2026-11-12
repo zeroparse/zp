@@ -401,11 +401,12 @@ func (p *Parser) TermPushItems(c *ActCtx, fn string, v any) any {
 	return p.termError(12, v, any(fn), 0, 0)
 }
 
-// termItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
+// TermItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
 // and those of a list or a tuple. Any other value fails.
+// TermItems is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function items of internal/ir/exec/core.
-func (p *Parser) termItems(fn string, v any) ([]*Node, any) {
+func (p *Parser) TermItems(fn string, v any) ([]*Node, any) {
 	items, ok := valItems(v)
 	if ok {
 		return items, nil
@@ -413,21 +414,24 @@ func (p *Parser) termItems(fn string, v any) ([]*Node, any) {
 	return items, p.termError(12, v, any(fn), 0, 0)
 }
 
-// termItemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
+// TermItemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
 // its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
+// TermItemAt is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function itemAt of internal/ir/exec/core.
-func (p *Parser) termItemAt(items []*Node, i int, right bool) any {
+func (p *Parser) TermItemAt(items []*Node, i int, right bool) any {
 	if right {
 		return UnboxNode(items[len(items)-1-i])
 	}
 	return UnboxNode(items[i])
 }
 
-// termFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
+// TermFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
+// TermFilterKeep is for generated parsers; not a stable API.
+//
 // Printed from Exec IR function filterKeep of internal/ir/exec/core.
-func (p *Parser) termFilterKeep(v any) (bool, any) {
+func (p *Parser) TermFilterKeep(v any) (bool, any) {
 	if valKind(v) != 3 {
 		return false, p.termError(16, v, nil, 0, 0)
 	}
@@ -967,11 +971,12 @@ func (p *TParser) TermPushItems(c *TActCtx, fn string, v any) any {
 	return p.termError(12, v, any(fn), 0, 0)
 }
 
-// termItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
+// TermItems returns the elements of v, an argument of the built-in function fn that takes a list: none for nil,
 // and those of a list or a tuple. Any other value fails.
+// TermItems is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function items of internal/ir/exec/core.
-func (p *TParser) termItems(fn string, v any) ([]any, any) {
+func (p *TParser) TermItems(fn string, v any) ([]any, any) {
 	items, ok := tvalItems(v)
 	if ok {
 		return items, nil
@@ -979,21 +984,24 @@ func (p *TParser) termItems(fn string, v any) ([]any, any) {
 	return items, p.termError(12, v, any(fn), 0, 0)
 }
 
-// termItemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
+// TermItemAt returns the element that a built-in function iterating over items (map, filter, foldl, foldr) passes to
 // its function at step i, with a box opened: element i, or element i from the end if right (foldr). It charges
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
+// TermItemAt is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function itemAt of internal/ir/exec/core.
-func (p *TParser) termItemAt(items []any, i int, right bool) any {
+func (p *TParser) TermItemAt(items []any, i int, right bool) any {
 	if right {
 		return items[len(items)-1-i]
 	}
 	return items[i]
 }
 
-// termFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
+// TermFilterKeep returns whether filter keeps an element for which its function returned v. A v that is not a bool fails.
+// TermFilterKeep is for generated parsers; not a stable API.
+//
 // Printed from Exec IR function filterKeep of internal/ir/exec/core.
-func (p *TParser) termFilterKeep(v any) (bool, any) {
+func (p *TParser) TermFilterKeep(v any) (bool, any) {
 	if valKind(v) != 3 {
 		return false, p.termError(16, v, nil, 0, 0)
 	}

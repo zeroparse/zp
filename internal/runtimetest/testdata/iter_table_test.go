@@ -7,8 +7,8 @@ import (
 )
 
 // The iteration table (conform.IterCases) on the compositions itemAt and filterKeep of the node and the typed
-// runtime (termItemAt and termFilterKeep, printed from Exec IR), through the methods that a generated parser
-// calls for foldl, foldr, map and filter.
+// runtime (TermItemAt and TermFilterKeep, printed from Exec IR), through the methods of a context
+// for foldl, foldr, map and filter.
 
 // iterCall calls the built-in function of the iteration table's call on v through the methods of a context:
 // fold, mapList and filterList are those of the node or the typed runtime.
