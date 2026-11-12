@@ -32,3 +32,6 @@ func (p *Program) CoreInput() *build.Input {
 	}
 	return in
 }
+
+// MissingTokens reports that the grammar uses #missing (build.Program).
+func (p *Program) MissingTokens() bool { return p.HasMissing }

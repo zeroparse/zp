@@ -177,6 +177,16 @@ type Repeat struct {
 	// the rest from the record of its start or records itself. A walk that builds a value uses the
 	// number after it, whose records hold the elements.
 	ScanSite int
+	// Run, if not 0, is the number of the run site the repetition is (compile.RunSite): its walks
+	// that span RunHotSpan characters or more record the rest of them. A repetition that delivers
+	// stream elements is none.
+	Run int
+	// Resume, if not 0, numbers the repetition among those of the module that an engine Document
+	// can resume: a later parse reuses the elements that an edit leaves intact. Shiftable reports
+	// that no rule the element calls reads positions, so that reused elements may move with an
+	// edit.
+	Resume    int
+	Shiftable bool
 }
 
 // Look is a lookahead: a silent scope that restores the position.
@@ -288,6 +298,9 @@ type Label struct {
 	Body       Node
 	Exp        ExpID
 	Diagnostic bool
+	// MissingScope reports an @error whose message labels the tokens inserted inside it
+	// (#missing), set in a module whose grammar uses #missing.
+	MissingScope bool
 }
 
 // Recover is #recover: on failure it records the error, skips with Skip and succeeds.
@@ -300,7 +313,13 @@ type Recover struct {
 // it.
 type Missing struct {
 	base
-	Lit *Lit
+	// Lit is the literal inserted; Body matches it: the literal itself, or the literal under the
+	// attributes written before #missing, such as @error.
+	Lit  *Lit
+	Body Node
+	// Site numbers the #missing attribute from 1 among those of the module: an insertion at a
+	// position is made once per site.
+	Site int
 }
 
 // Stream is the #stream repetition at the top of a rule body: in a stream parse, the invocation
@@ -364,7 +383,7 @@ func Children(n Node) []Node {
 	case *Recover:
 		return []Node{n.Body, n.Skip}
 	case *Missing:
-		return []Node{n.Lit}
+		return []Node{n.Body}
 	case *Stream:
 		return []Node{n.Repeat}
 	case *Terminal:

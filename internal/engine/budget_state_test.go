@@ -9,8 +9,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/engine/closure"
+	ir "zeroparse.dev/zp/internal/ir/core"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
@@ -225,12 +226,20 @@ rule arm = _`
 func TestBudgetStateProjectedFrameClear(t *testing.T) {
 	t.Parallel()
 	const count = 320
-	var items []grammar.Expr
+	var items []ir.Node
+	var slots []ir.Slot
 	for i := range count {
-		items = append(items, &grammar.Capture{Name: fmt.Sprintf("f%d", i), Expr: &grammar.Atomic{Expr: &grammar.Top{}}})
+		name := fmt.Sprintf("f%d", i)
+		text := &ir.Text{Body: &ir.Succeed{}}
+		text.Attrs().Want = true
+		items = append(items, &ir.Capture{Slot: i, Name: name, Body: text})
+		slots = append(slots, ir.Slot{Name: name})
 	}
-	c := newClosureWalker(&compile.Compiler{}, false)
-	m := c.ProjectRepeat(&grammar.Repeat{Expr: &grammar.Seq{Items: items}, Min: 0, Max: 1}, "f0")
+	rep := &ir.Repeat{Min: 0, Max: 1, Body: &ir.Seq{Items: items}, Scope: slots, Project: "f0"}
+	m, err := closure.Matcher(&compile.Program{}, &ir.Module{}, &ir.Capture{Name: "fs", Body: rep, Project: "f0"}, []ir.Slot{{Name: "fs"}}, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	p := stateBudgetParser(parse.Limits{Compute: 64})
 	if err := catchFatal(t, func() { m(p) }); !errors.Is(err, parse.ErrLimit) || len(p.Trail) != 0 {
 		t.Fatalf("projected clear err=%v capture writes=%d", err, len(p.Trail))

@@ -124,6 +124,12 @@ type coreBuilder struct {
 	stream grammar.Expr
 	// looks is the number of lookaheads built (core.Look.Site).
 	looks int
+	// resumes is the number of resumable repetitions built (core.Repeat.Resume).
+	resumes int
+	// missing numbers the #missing attributes (core.Missing.Site).
+	missing map[*grammar.Attribute]int
+	// streaming reports that the repetition being built delivers stream elements (core.Stream).
+	streaming bool
 }
 
 // callLevel returns the minimum binding level of a call of the rule r (core.Call.Level).
@@ -602,7 +608,9 @@ func firstStream(body grammar.Expr) grammar.Expr {
 func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
 	if i < 0 {
 		if rep, ok := e.Expr.(*grammar.Repeat); ok && e == b.stream {
+			b.streaming = true
 			x, err := b.expr(rep, s, build)
+			b.streaming = false
 			if err != nil {
 				return nil, err
 			}
@@ -620,6 +628,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 			return nil, err
 		}
 		n := &core.Label{Body: x, Diagnostic: a.Name == "diagnostic"}
+		n.MissingScope = !n.Diagnostic && b.prog.MissingTokens()
 		if n.Diagnostic {
 			n.Exp = b.exp(desugar.AttributeDiagnosticName(a))
 		} else {
@@ -661,12 +670,22 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if err != nil {
 			return nil, err
 		}
-		l, ok := x.(*core.Lit)
-		if !ok || l.Text == "" {
-			return nil, fmt.Errorf("#missing on %T, not a nonempty literal", x)
+		lit, ok := e.Expr.(*grammar.Literal)
+		if !ok || lit.Value == "" {
+			return nil, fmt.Errorf("#missing on %T, not a nonempty literal", e.Expr)
 		}
-		n := &core.Missing{Lit: l}
-		n.Attrs().Want, n.Attrs().Shape = l.Attrs().Want, l.Attrs().Shape
+		l := &core.Lit{Text: value.LiteralValue(lit.Value), Fold: lit.IgnoreCase, Exp: b.exp(core.LiteralDesc(lit))}
+		b.set(l, lit, x.Attrs().Want)
+		if b.missing == nil {
+			b.missing = map[*grammar.Attribute]int{}
+		}
+		site := b.missing[a]
+		if site == 0 {
+			site = len(b.missing) + 1
+			b.missing[a] = site
+		}
+		n := &core.Missing{Lit: l, Body: x, Site: site}
+		n.Attrs().Want, n.Attrs().Shape = x.Attrs().Want, x.Attrs().Shape
 		return n, nil
 	}
 	return nil, fmt.Errorf("unknown attribute %s", a.Name)
@@ -676,6 +695,17 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 // capture field of its elements.
 func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field string) (core.Node, error) {
 	n := &core.Repeat{Min: e.Min, Max: e.Max, Project: field, Site: b.prog.SkipSite(e), ScanSite: b.prog.ScanSite(e)}
+	stream := b.streaming
+	b.streaming = false
+	if !stream {
+		n.Run = b.prog.RunSite(e)
+	}
+	// A skip-run site and a projected repetition are never resumed, nor is a value-free repetition
+	// of one character outside a stream, which matches as a scan.
+	if n.Site == 0 && field == "" && (stream || build || !singleChar(e.Expr)) && b.prog.Resumable(e.Expr) {
+		b.resumes++
+		n.Resume, n.Shiftable = b.resumes, !b.prog.Positional(e.Expr)
+	}
 	es := s
 	if field != "" || check.ElementScoped(e.Expr) {
 		es = b.scope(coreLayout(b.cur, b.proj, e.Expr, build && field == "").names, e.Expr)
@@ -697,6 +727,15 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 		}
 	}
 	return b.set(n, e, build), nil
+}
+
+// singleChar reports that e is a character class or ".".
+func singleChar(e grammar.Expr) bool {
+	switch e.(type) {
+	case *grammar.CharClass, *grammar.Any:
+		return true
+	}
+	return false
 }
 
 // term builds the term t in the scope s, with its checked type; env maps the names of lambda

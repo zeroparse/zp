@@ -25,3 +25,7 @@ func (structural) ResolveCheck(grammar.TypeExpr) types.Ty { return nil }
 func (structural) CastPos(*grammar.Cast) (int, int)       { return 0, 0 }
 func (structural) SkipSite(*grammar.Repeat) int           { return 0 }
 func (structural) ScanSite(*grammar.Repeat) int           { return 0 }
+func (structural) RunSite(*grammar.Repeat) int            { return 0 }
+func (structural) Resumable(grammar.Expr) bool            { return false }
+func (structural) Positional(grammar.Expr) bool           { return false }
+func (structural) MissingTokens() bool                    { return false }

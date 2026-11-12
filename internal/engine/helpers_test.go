@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+	ir "zeroparse.dev/zp/internal/ir/core"
+	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -298,7 +300,38 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 	return conv(n), err
 }
 
-// newClosureWalker returns the walker that builds the closure backend's form for the compiler c.
-func newClosureWalker(c *compile.Compiler, plainDispatch bool) *compile.Walker[core.Matcher] {
-	return &compile.Walker[core.Matcher]{Compiler: c, Builder: closure.NewBuilder(c, plainDispatch)}
+// newCompileWalker returns the walker that checks rule bodies for the compiler c, building nothing.
+func newCompileWalker(c *compile.Compiler) *compile.Walker[struct{}] {
+	return compile.NewCheckWalker(c)
+}
+
+// closureExprMatcher returns the closure that the closure backend builds for the expression e of
+// the program prog, from the program's Core IR after the closure pipeline. The expression must be
+// one that a node of Core IR is built from.
+func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) core.Matcher {
+	t.Helper()
+	origin := map[ir.Node]grammar.Expr{}
+	m, err := irbuild.CoreFrom(prog, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	var found ir.Node
+	for _, r := range m.Rules {
+		ir.Walk(r.Body, func(n ir.Node) {
+			if found == nil && origin[n] == e {
+				found = n
+			}
+		})
+	}
+	if found == nil {
+		t.Fatal("no Core IR node of the expression")
+	}
+	f, err := closure.Matcher(prog, m, found, nil, nil, plainDispatch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
 }

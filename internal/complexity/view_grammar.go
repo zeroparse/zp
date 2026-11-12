@@ -365,7 +365,7 @@ func attrBody(n core.Node) core.Node {
 	case *core.Recover:
 		return n.Body
 	case *core.Missing:
-		return n.Lit
+		return n.Body
 	case *core.Stream:
 		return n.Repeat
 	}

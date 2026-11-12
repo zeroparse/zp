@@ -184,17 +184,9 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 	return compileChecked(g, opts, &cancel.Control{Ctx: ctx})
 }
 
-// lower builds the closure backend's form of the checked program prog.
+// lower builds the closure backend's form of the checked program prog from its Core IR.
 func lower(prog *compile.Program, opts compile.Options, control *cancel.Control) (*Program, error) {
-	var b *closure.Builder
-	err := compile.CompileProgram(prog, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
-		b = closure.NewBuilder(c, !opts.ControlledDispatch)
-		return b
-	})
-	if err != nil {
-		return nil, err
-	}
-	rules, err := b.Finish()
+	rules, err := closure.Build(prog, control, !opts.ControlledDispatch)
 	if err != nil {
 		return nil, err
 	}

@@ -76,8 +76,7 @@ func budgetGuardedChoiceSnapshot(n *parse.Node) *parse.Node {
 func TestBudgetGuardedChoiceSilentSkipLoopBudgetAndCancellation(t *testing.T) {
 	t.Parallel()
 	prog, choice := budgetGuardedChoiceProgram(t)
-	c := newClosureWalker(&compile.Compiler{Prog: prog.Static()}, false)
-	m := c.Expr(choice, compile.NewScope(), true)
+	m := closureExprMatcher(t, prog.Static(), choice, false)
 
 	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 		t.Run(unit.String()+"/budget", func(t *testing.T) {
@@ -106,8 +105,7 @@ func TestBudgetGuardedChoiceSilentSkipLoopBudgetAndCancellation(t *testing.T) {
 func TestBudgetGuardedChoiceExactSkipBudget(t *testing.T) {
 	t.Parallel()
 	prog, choice := budgetGuardedChoiceProgram(t)
-	c := newClosureWalker(&compile.Compiler{Prog: prog.Static()}, false)
-	m := c.Expr(choice, compile.NewScope(), false)
+	m := closureExprMatcher(t, prog.Static(), choice, false)
 	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 		for _, text := range []string{"z", ""} {
 			for _, silent := range []bool{true, false} {
@@ -136,7 +134,6 @@ func TestBudgetGuardedChoiceExactSkipBudget(t *testing.T) {
 
 func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 	t.Parallel()
-	prog, _ := budgetGuardedChoiceProgram(t)
 	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 		for _, skip := range []bool{false, true} {
 			t.Run(unit.String()+"/skip="+strconv.FormatBool(skip), func(t *testing.T) {
@@ -145,8 +142,9 @@ func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 				if skip {
 					alts = append([]grammar.Expr{&grammar.Literal{Value: "x"}}, alts...)
 				}
-				c := newClosureWalker(&compile.Compiler{Prog: prog.Static()}, false)
-				m := c.Expr(&grammar.Choice{Alts: alts}, compile.NewScope(), false)
+				choice := &grammar.Choice{Alts: alts}
+				prog := compileExprProgram(t, &grammar.Not{Expr: choice})
+				m := closureExprMatcher(t, prog.Static(), choice, false)
 				p := core.NewParser(&prog.sharedProgram, "z", unit, false)
 				p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: steps})
 				p.Silent = 1
@@ -254,4 +252,16 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 			t.Fatalf("pool retry node=%v err=%v; retained=%v", retry, retryErr, retained)
 		}
 	})
+}
+
+// compileExprProgram compiles the grammar whose start rule main is e.
+func compileExprProgram(t *testing.T, e grammar.Expr) *Program {
+	t.Helper()
+	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: e}}}}
+	starttest.MarkAll(g)
+	prog, err := Compile(g, compile.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return prog
 }
