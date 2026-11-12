@@ -136,6 +136,7 @@ func (m *ctxMachine) testOp(name string, args []any) {
 		p.Gamma = p.Gamma[:len(p.Gamma)-1]
 		if len(p.Gamma) == 0 {
 			clear(p.interned) // as GrowEnd does
+			p.internSeq = 0
 		}
 	case ref.CtxLookBeginOp:
 		p.LookBegin(int(args[0].(int64)))
@@ -264,7 +265,8 @@ func TestEngineCtxConformanceDetectsBrokenEngine(t *testing.T) {
 	for _, mu := range []struct {
 		name string
 		kind int
-	}{{"ignore seeds", CtxIgnoreSeeds}, {"ignore observations", CtxIgnoreObs}, {"ignore present sets", CtxIgnorePresent}} {
+	}{{"ignore seeds", CtxIgnoreSeeds}, {"ignore observations", CtxIgnoreObs}, {"ignore present sets", CtxIgnorePresent},
+		{"one identity for wide present sets", CtxConstWide}, {"narrow present sets", CtxNarrowPresent}} {
 		t.Run(mu.name, func(t *testing.T) {
 			ContextMemoMutation = mu.kind
 			defer func() { ContextMemoMutation = 0 }()

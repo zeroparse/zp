@@ -90,8 +90,11 @@ const (
 	// ctxNarrowLead is the first leader of the third cycle, which has a bit in a word of bits of present
 	// sets, ctxWideLead a leader of that cycle without one, and ctxWide a rule of that cycle.
 	ctxNarrowLead = 6
-	ctxWideLead   = 38
-	ctxWide       = 39
+	// ctxEdgeLead is the leader of index 31 of the third cycle, the first that a word of 31 bits
+	// leaves out.
+	ctxEdgeLead = 37
+	ctxWideLead = 38
+	ctxWide     = 39
 )
 
 // CtxCases returns the handwritten conformance cases of the dependency memo, in one module.
@@ -269,6 +272,12 @@ func CtxCases() []Case {
 		h := b.Let("h", exec.C("ctx.lookup", c2, rule(ctxMember), i(0), exec.C(ValuesOp, i(0))))
 		b.Do("ctx.replay", h, f)
 		b.Assert(eq(exec.C("exp.count"), i(2)), "replaying a result adds its expectations")
+	})
+	add("ctx_wide_edge", func(b *exec.Builder) {
+		grow(b, ctxEdgeLead, 0, true, 1, 7)
+		c, _ := enter(b, "c", ctxWide)
+		b.Do("ctx.push", c)
+		b.Assert(eq(exec.C("ctx.pop", c), exec.C("ctx.storeCtx")), "the leader of index 31 has no bit: a word holds 31 leaders")
 	})
 	add("ctx_wide_present", func(b *exec.Builder) {
 		grow(b, ctxWideLead, 0, true, 1, 7)
