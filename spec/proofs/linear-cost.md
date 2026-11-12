@@ -1993,28 +1993,40 @@ results. Each step except the last ends with a result longer than its seed, so
 no such result ends two steps. $\square$
 
 **Values bound from a growing result.** Let a step of a growth of a leader $R$
-at $p$ bind, at $p$, a variable that an evaluation of the step reads to a
-value that reads a growing result of the cycle at $p$. Then $R$ is the only
+at $p$ have in effect at $p$ a binding, made at $p$ or inside a positive
+lookahead at $p$, of a variable that an evaluation of the step reads, to a
+value that reads a growing result of the cycle at $p$, or let a predicate at
+$p$ read a capture of such a value made inside a positive lookahead at $p$
+without a variable, as `{text($c) != "zz"}` after `&(c:E)`. Then $R$ is the only
 leader of its cycle, and either no rule that $R$ reaches contains a scanning
 source other than bounded scans, or no evaluation that reads the value
 consumes input, and a step that succeeds on a path through the binding ends
-the growth. So the values of the variables change in the growth only through
-such bindings. In the first case the steps evaluate no scanning source
+the growth. So the values of the variables, and the outcomes of the
+predicates at $p$, change in the growth only through such bindings and
+captures. In the first case the steps evaluate no scanning source
 outside the left calls, so the claims of this lemma on scanning sources and
 on failures after them have nothing to bound in the growth, and the claims
 on nested growths do not apply, since those need two leaders. In the second
-case the claims hold as stated, except that the steps that *Failures at the
+case a step whose path goes through the binding or the capture either fails
+on that path, which undoes the binding, or ends the growth, so the claims,
+*Results that do not include the seed* among them, apply to the other paths,
+on which the values do not change, except that the steps that *Failures at the
 position of the growth* leaves out include one for each key at $p$ of a
 memoized rule that reads the value, at most $K$ for each rule.
 
 *Proof.* The values that the step reads at $p$ are those of the call that
 starts the growth, the same in every step, apart from the bindings that the
-step makes at $p$. A binding whose value reads no growing result binds the
-same value in every step (*Evaluations that read no growing result*). One
-whose value reads one, through a capture or the value of a call whose result
-includes a read, is still at $p$ although that result ends after $p$, so the
-read lies in a positive lookahead at $p$; a negative lookahead undoes its
-bindings ([Variables](../language/predicates.md#variables)). The read is a
+step makes that are in effect at $p$. A binding whose value reads no growing
+result binds the same value in every step (*Evaluations that read no growing
+result*). One whose value reads one, through a capture, the value of a call
+whose result includes a read, or the value of a call that holds a capture made
+in a lookahead of its own, as `y:M` with `M = &(c:E) => $c`, is in effect at
+$p$. When the seed is not empty, the read ends after $p$, so it lies in a
+positive lookahead at $p$; a negative lookahead undoes its bindings
+([Variables](../language/predicates.md#variables)). When the seed is empty,
+the read matches nothing and the binding needs no lookahead, but that is the
+step whose seed is empty, which the claims of this lemma leave out. The same
+holds for a capture that a predicate at $p$ reads without a variable. The read is a
 call at $p$ of a rule of the cycle, so a left call, made in a body of the
 cycle (*Calls in a context of growths*), and condition 5 forbids a lookahead
 that makes a left call in a cycle with more than one leader. The variable is
@@ -2023,7 +2035,9 @@ not run before a call into the cycle that may run before consuming input
 ([Left Recursion](../language/parser-expressions.md#left-recursion)): no
 evaluation that the binding reaches makes a call at $p$ of a rule of the
 cycle, and the value reaches the reads of the growing result neither directly
-nor through a binding that it reaches.
+nor through a binding that it reaches. A capture that a predicate reads
+without a variable has that predicate as its only reader, after the
+lookahead, so for it only the paragraphs below are needed.
 
 The expression of the lookahead reaches every rule of the cycle through its
 left call, and every rule that $R$ reaches. If one of those contains a
@@ -2032,8 +2046,12 @@ condition 2 checks it, as the expression of a lookahead, whether or not it
 fails. It cannot evaluate the left call before it examines the input, since
 it is not an alternative; it is not decided, since only a unit that is not a
 lookahead is; and it has no word on the path to the left call, which comes
-before it consumes input. So, after the calls that it shares with its
-continuations, which end at $p$ before the left call, its first characters
+before it consumes input. The left call is not among the calls that it shares with its continuations,
+since a read of the seed inside the expression of a lookahead is not shared
+with what follows the lookahead ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). So, after the calls
+that it shares with its continuations, which end at $p$ before the left call,
+its first characters
 and those of its continuations are disjoint, or no scanning source remains
 in it, which the left call that remains rules out. Its first characters
 include those of $R$, and in a step with a non-empty seed the character at
@@ -2053,7 +2071,8 @@ at $p$ (condition 3), which the memo answers in every step after the first
 with the same key, and the steps whose path through the binding fails end
 as where it fails, with values that do not change. $\square$
 
-**Failures at the position of the growth.** Leave out the steps of the claim above and
+**Failures at the position of the growth.** Leave out the steps of *Results that
+do not include the seed* and of *Values bound from a growing result*, and
 the first, the one whose seed is empty and the last. In every other step, let
 $x$ be an evaluation at $p$ that calls no rule of the cycle at $p$ and fails
 after one of its scanning sources has examined input. Then, apart from a
