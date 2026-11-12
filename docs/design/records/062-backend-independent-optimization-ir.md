@@ -53,7 +53,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
 `gen.go` and `gen_types*.go`, and TypeScript terms in `gen_ts.go`. In the non-test files of
 `internal/engine`, 123 function declarations in 23 files have a parameter of type `grammar.Expr` or
 `[]grammar.Expr` (counted with `go/ast`). Each lowering re-derives what an expression means for values
-(`build`, `isElems`, `valuedCount`), state (`mark`, `capSets`, `bindsVars`) and attributes (`#recover`,
+(`build`, `isElems` and the count of valued elements), state (`mark`, `capSets`, `bindsVars`) and attributes (`#recover`,
 `@error` and `@diagnostic` are interpreted from attribute lists in every lowering).
 
 ### Optimizations Written per Path
@@ -329,7 +329,7 @@ comparisons are choices of the printers, which read the terms of the grammar (re
 
 Every node carries attributes computed once and cached: **want** (whether its value is used), its value
 shape (none, one value, or elements spliced into the enclosing tuple, which is what `isElems` and
-`valuedCount` compute today), whether it is nullable, its first terminal, and an **effect summary**. Terms,
+the count of valued elements compute today), whether it is nullable, its first terminal, and an **effect summary**. Terms,
 capture slots and rule values carry their checked types; the value types of nodes are not attributes, and
 are not carried further: a Flow IR variable that holds a value has the one type `value`, which each target prints
 as its runtime's value type.
