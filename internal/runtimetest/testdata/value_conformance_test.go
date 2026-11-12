@@ -219,6 +219,75 @@ func TestValueBoxedOperands(t *testing.T) {
 	}
 }
 
+// TestValueBoxedStringCharges holds == and != of the node runtime on a boxed string to the same
+// comparison of the strings it holds, on every pair of strings of the pool and with the box on either
+// side or both: the same answer and, under a budget control, the same units. The box only changes how
+// the operand is carried, so it must neither skip the charge of the comparison nor add one.
+func TestValueBoxedStringCharges(t *testing.T) {
+	box := func(v any) *Node { return &Node{RawKind: kindBox, box: v} }
+	var strs []string
+	for _, v := range conform.ValuePool() {
+		if v.Kind == ref.KStr {
+			strs = append(strs, v.S)
+		}
+	}
+	// Each side has its own parser, so that the units one charges do not hide in the other's.
+	newSide := func(controlled bool) *Parser {
+		p := &Parser{}
+		if controlled {
+			p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		}
+		return p
+	}
+	used := func(p *Parser) uint64 {
+		if p.Control == nil {
+			return 0
+		}
+		return uint64(p.Control.budgetUsed())
+	}
+	sides := []struct {
+		name       string
+		boxL, boxR bool
+	}{{"left", true, false}, {"right", false, true}, {"both", true, true}}
+	charged := false
+	for _, controlled := range []bool{false, true} {
+		boxed, plain := newSide(controlled), newSide(controlled)
+		for _, op := range []int{OpEq, OpNe} {
+			for _, l := range strs {
+				for _, r := range strs {
+					for _, s := range sides {
+						var bl, br any = l, r
+						if s.boxL {
+							bl = box(l)
+						}
+						if s.boxR {
+							br = box(r)
+						}
+						beforeBoxed, beforePlain := used(boxed), used(plain)
+						want, e := plain.TermBinary(op, l, r)
+						if e != nil {
+							t.Fatalf("controlled=%v: %q op %d %q fails: %v", controlled, l, op, r, e)
+						}
+						got, e := boxed.TermBinary(op, bl, br)
+						if e != nil || got != want {
+							t.Errorf("controlled=%v, box %s: %q op %d %q = %v, %v; want %v", controlled, s.name, l, op, r, got, e, want)
+						}
+						ub, up := used(boxed)-beforeBoxed, used(plain)-beforePlain
+						if ub != up {
+							t.Errorf("controlled=%v, box %s: %q op %d %q charges %d, the unboxed comparison charges %d", controlled, s.name, l, op, r, ub, up)
+						}
+						charged = charged || up > 0
+					}
+				}
+			}
+		}
+	}
+	// Equal units are vacuous if no comparison charges any.
+	if !charged {
+		t.Error("no string comparison of the pool charged a unit under a budget control")
+	}
+}
+
 // TestValueCompareStrings holds the comparison of two unboxed strings of the typed runtime
 // (TActCtx.Compare, whose fast path decides in compareStrings) to the composition TermBinary on
 // every pair of strings of the pool, for each comparison operator: the same answer and, under a
