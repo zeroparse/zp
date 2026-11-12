@@ -68,6 +68,7 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 	t.decls(&tb)
 	t.rangeHelpers(&tb)
 	t.valueMethods(&tb)
+	t.backNodeTypes(&tb)
 	for helpers := 0; t.backHelpers(&tb, &helpers); {
 	}
 	t.inTypes = false
@@ -950,13 +951,19 @@ func (t *TypedGen) nodeMember(m *grammar.Member) bool {
 	return t.Info.NodeMembers[m]
 }
 
-// readsFields reports whether an action or predicate may read a field of a struct: a member
-// access whose name is a field of some struct type. A typed value keeps its fields converted to
-// their Go types (a list as a slice, an Error where a struct is expected as nil), so reading them
-// back would not give what the node's fields hold. A field of a plain type (see plainField) reads the
-// same where every struct with a field of that name declares it with the same plain type: a constructor that
-// leaves it out gives the Go zero value, a nil list or struct, which the typed runtime reads as the zero
-// value of the type (TZeroField).
+// readsFields reports whether an action or predicate may read a field of a struct in a way the typed
+// runtime cannot mirror: a member access whose name is a field of some struct type. A typed value keeps
+// its fields converted to their Go types (a list as a slice, an Error where a struct is expected as nil),
+// so reading them back would not give what the node's fields hold. Two kinds of reads give the same
+// result anyway:
+//
+//   - A field of a plain type (see plainField) reads the same where every struct with a field of that
+//     name declares it with the same plain type: a constructor that leaves it out gives the Go zero
+//     value, a nil list or struct, which the typed runtime reads as the zero value of the type
+//     (TZeroField).
+//   - A transfer (transfers) only carries the value into a field of the same type, where it is
+//     converted again; the conversion to a type gives the same value for a value that the conversion to
+//     that type made, so the target field holds what the conversion of the node's field gives.
 func (t *TypedGen) readsFields() bool {
 	fields := map[string]bool{}
 	// plain reports whether every struct with a field of that name declares it with the same plain type.
@@ -972,24 +979,169 @@ func (t *TypedGen) readsFields() bool {
 			plain[f.Name] = plain[f.Name] && t.plainField(f.T) && f.T.String() == fieldType[f.Name]
 		}
 	}
-	for name := range t.fieldReads() {
-		if !plain[name] {
+	transfers := t.transfers()
+	for _, m := range t.fieldReadMembers() {
+		if !plain[m.Name] && !transfers[m] {
 			return true
 		}
 	}
 	return false
 }
 
+// fieldType returns the declared type of the field name of the struct type st, and whether st declares
+// it.
+func (t *TypedGen) fieldType(st, name string) (compile.Ty, bool) {
+	for _, f := range t.Info.Fields[st] {
+		if f.Name == name {
+			return f.T, true
+		}
+	}
+	return nil, false
+}
+
+// transfers returns the member accesses of actions and predicates that only carry the value of a field
+// into a field of the same type: x.F, where every value of x is of one struct type, written in a place
+// that holds a value of the declared type of F:
+//
+//   - the value of a field of that type in a struct constructor;
+//   - in such a place of a list type, an argument of concat (which appends the elements of its
+//     arguments), an argument of list, or the body of the function of map, for an element.
+//
+// Each place converts the value it holds to its type and nothing else reads it.
+func (t *TypedGen) transfers() map[*grammar.Member]bool {
+	rec := t.G.Prog.ValueRecord()
+	out := map[*grammar.Member]bool{}
+	if rec == nil {
+		return out
+	}
+	var into func(x grammar.Term, want compile.Ty)
+	into = func(x grammar.Term, want compile.Ty) {
+		for {
+			g, ok := x.(*grammar.TermGroup)
+			if !ok {
+				break
+			}
+			x = g.Term
+		}
+		switch x := x.(type) {
+		case *grammar.Member:
+			st, ok := oneStruct(rec, rec.Terms[x.X])
+			if !ok {
+				return
+			}
+			if ft, ok := t.fieldType(st, x.Name); ok && ft.String() == want.String() {
+				out[x] = true
+			}
+		case *grammar.Call:
+			l, ok := want.(compile.ListTy)
+			if !ok {
+				return
+			}
+			switch x.Func {
+			case "concat":
+				for _, a := range x.Args {
+					into(a, want)
+				}
+			case "list":
+				for _, a := range x.Args {
+					into(a, l.Elem)
+				}
+			case "map":
+				if len(x.Args) == 2 {
+					if f, ok := x.Args[1].(*grammar.Lambda); ok {
+						into(f.Body, l.Elem)
+					}
+				}
+			}
+		}
+	}
+	for _, term := range t.actionTerms() {
+		compile.WalkTerm(term, func(y grammar.Term) {
+			n, ok := y.(*grammar.New)
+			if !ok {
+				return
+			}
+			st, def := t.G.Prog.StructType(n.Type)
+			if def == nil {
+				return
+			}
+			for _, fi := range n.Fields {
+				if ft, ok := t.fieldType(st, fi.Name); ok {
+					into(fi.Value, ft)
+				}
+			}
+		})
+	}
+	return out
+}
+
+// oneStruct returns the struct type of every value of type x, a rule's value standing for the value type
+// of the rule, and whether there is one.
+func oneStruct(rec *compile.ValueRecord, x compile.Ty) (string, bool) {
+	name := ""
+	seen := map[string]bool{}
+	var walk func(x compile.Ty) bool
+	walk = func(x compile.Ty) bool {
+		switch x := x.(type) {
+		case compile.RuleTy:
+			if seen[x.Name] {
+				return true
+			}
+			seen[x.Name] = true
+			v, ok := rec.Rules[x.Name]
+			return ok && walk(v)
+		case compile.JoinTy:
+			for _, a := range x.Alts {
+				if !walk(a) {
+					return false
+				}
+			}
+			return len(x.Alts) > 0
+		case compile.NamedTy:
+			if x.Kind != 's' || name != "" && name != x.Name {
+				return false
+			}
+			name = x.Name
+			return true
+		}
+		return false
+	}
+	return name, walk(x) && name != ""
+}
+
 // fieldReads returns the names of the fields of the struct types that an action or a predicate reads: those
 // of a member access that is not a read of the range or the value of a node. A name that is also that of a
 // capture is in it too.
 func (t *TypedGen) fieldReads() map[string]bool {
+	reads := map[string]bool{}
+	for _, m := range t.fieldReadMembers() {
+		reads[m.Name] = true
+	}
+	return reads
+}
+
+// fieldReadMembers returns the member accesses of actions and predicates whose name is that of a field of
+// a struct type and that are not reads of the range or the value of a node.
+func (t *TypedGen) fieldReadMembers() []*grammar.Member {
 	fields := map[string]bool{}
 	for _, name := range t.structs {
 		for _, f := range t.Info.Fields[name] {
 			fields[f.Name] = true
 		}
 	}
+	var out []*grammar.Member
+	for _, x := range t.actionTerms() {
+		compile.WalkTerm(x, func(y grammar.Term) {
+			if m, ok := y.(*grammar.Member); ok && fields[m.Name] && !t.nodeMember(m) {
+				out = append(out, m)
+			}
+		})
+	}
+	return out
+}
+
+// actionTerms returns the terms of the actions and predicates of the grammar.
+func (t *TypedGen) actionTerms() []grammar.Term {
 	var terms []grammar.Term
 	var expr func(e grammar.Expr)
 	expr = func(e grammar.Expr) {
@@ -1025,15 +1177,7 @@ func (t *TypedGen) fieldReads() map[string]bool {
 			terms = append(terms, r.Def.Action)
 		}
 	}
-	reads := map[string]bool{}
-	for _, x := range terms {
-		compile.WalkTerm(x, func(y grammar.Term) {
-			if m, ok := y.(*grammar.Member); ok && fields[m.Name] && !t.nodeMember(m) {
-				reads[m.Name] = true
-			}
-		})
-	}
-	return reads
+	return terms
 }
 
 // representable reports whether the typed runtime can build values of type x and read them back
@@ -1159,6 +1303,23 @@ func (t *TypedGen) zeroKind(ty compile.Ty) string {
 		}
 	}
 	return ""
+}
+
+// backNodeTypes writes an init function that completes ZPHooks.Back with the named node types: a value of
+// a named node type that an action reads back from a field of a join, node or any type becomes the
+// string, tuple or list node of the typed runtime with the type's index, which converts to the same value
+// again. The conversions read ZPHooks, so they cannot be part of its initializer.
+func (t *TypedGen) backNodeTypes(b *strings.Builder) {
+	var cases strings.Builder
+	for _, name := range t.NodeTypes {
+		if n, ok := t.G.Prog.NodeTypeOf(name); ok {
+			fmt.Fprintf(&cases, "\t\tcase *%s:\n\t\t\treturn %s\n", name, t.back(n, "x"))
+		}
+	}
+	if cases.Len() == 0 {
+		return
+	}
+	fmt.Fprintf(b, "func init() {\n\tback := %[1]s.Back\n\t%[1]s.Back = func(v any) any {\n\t\tswitch x := v.(type) {\n%[2]s\t\t}\n\t\treturn back(v)\n\t}\n}\n\n", hooksName, cases.String())
 }
 
 // back returns a Go expression converting x, an expression of the Go type of type ty, into a
