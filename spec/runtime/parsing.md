@@ -483,6 +483,8 @@ exceptions are these.
   [Conditions for Linear Cost](#conditions-for-linear-cost)) or another rule,
   is in the context of those growths. Only the growths of the rule's own
   cycle form its context: a call reads no growing result of another cycle.
+  A call there of a rule on none of their cycles is in no context of
+  growths: the memo answers and stores it as any call outside a growth.
   Its result is the result of evaluating its body with the growing results
   that they have reached. The call reuses a memoized result only if that
   result read no growing result, observed no lookahead that read one, and was
