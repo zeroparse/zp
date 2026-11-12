@@ -552,7 +552,19 @@ a unit is committing give the following cases.
    has the same result in both, by the [memoization
    theorem](memoization.md#theorem-memoization-never-changes-the-result) when
    the rule is memoized at both calls, or by repeating only its own scan when it
-   calls no rule, so the continuation pays for it at most what the unit paid. A
+   calls no rule, so the continuation pays for it at most what the unit paid.
+   For a rule of a left-recursion cycle, the two calls lie in the same growths
+   of the cycle: neither is reached through a call of a rule of the cycle that
+   the unit or the continuation starts with, so neither starts a growth of the
+   cycle that the other is outside, and the continuation reaches its call
+   without leaving the body of a rule of the cycle, so no growth of the cycle
+   in progress at the first call has ended or gone on to its next step at the
+   second, since a step ends only where the body of its leader ends. The
+   growing results of the cycle are then the same at both calls, so a leader
+   called in a context of growths grows again from the same growing results,
+   evaluates what it evaluated the first time and costs at most that, and
+   every other call of a rule of the cycle reads the same growing results or
+   is answered by the memo. A
    rule that calls no rule repeats its scan in every continuation that evaluates
    it again at the position, so a call of it is not shared where the
    continuation reaches it after leaving a body through a call that nests at one
@@ -613,7 +625,8 @@ $s$; let $\kappa$ be the one that it evaluates from $s$ the last time before
 $\alpha'$, whose evaluation contains $\alpha'$. Let $t$ be the position where
 the calls that $w$ and $\kappa$ share end in $w$. They end there in $\kappa$
 too: every path of both that examines the input begins with them, each has the
-same result in both (case 2), and each starts at the end of the one before.
+same result in both (case 2, which places the two calls of a rule of a cycle in
+the same growths of the cycle), and each starts at the end of the one before.
 
 Since $\alpha$ is in no call of $w$, it is not in the shared calls, so
 $q \ge t$, and the input from $t$ to the end of $\alpha$ is consumed in $w$
@@ -1627,9 +1640,10 @@ examines no input there: predicates and calls of rules off the cycle that
 match without examining the input, as `Z` with `Z = ""`. A shared call has the
 same result in both, since the memo answers it the second time, or the rule
 repeats only its own scan, or, for a leader called in a context of growths at
-$p$, it grows again from the same growing results, those of the growths at $p$
-in the step that contains $u$ and $g$, so the second growth evaluates what the
-first evaluated and costs at most what the first cost. So each such call that
+$p$, it grows again from the same growing results, since the two calls lie in
+the same growths of its cycle, in the same steps (case 2 of Lemma 4), so the
+second growth evaluates what the first evaluated and costs at most what the
+first cost. So each such call that
 $u$ shares ends at $p$ in $u$ as well and examines no input there. Condition 2 compares $u$ and $g$ after
 the shared calls are removed from their starts, one after another, so the
 parts after them start at $p$, are compared as the unit and the continuation,
