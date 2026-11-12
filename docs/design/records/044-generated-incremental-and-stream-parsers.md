@@ -115,8 +115,8 @@ shares nothing with the Document or with other results, so the caller may modify
 preserved. Every slice in a published value has capacity equal to its length, so appending to one result cannot write
 into another. Diagnostics returned as error results are copied on publication, because they are parser state that a
 later parse could otherwise share. An `*Error` inside a typed result points at the memo's error and shares its
-`Expected` and `Messages` slices with it. Under the read-only contract this is intended, and `CloneAST` copies them. CST `Node` values in fields that require concrete ZeroParse nodes, `_` values, and grammars with field-reading
-actions remain on the existing Node conversion path. That path converts the completed Node result for each call.
+`Expected` and `Messages` slices with it. Under the read-only contract this is intended, and `CloneAST` copies them. CST `Node` values in fields that require concrete ZeroParse nodes, `_` values, and grammars whose actions
+read fields without a plain form other than to copy them remain on the existing Node conversion path. That path converts the completed Node result for each call.
 Parsing, diagnostic copying and publication use the same invocation controller; interruption returns the result's
 zero value and clears reusable state as needed for a retry. The `Document` remains mutable and is not an immutable
 snapshot.
