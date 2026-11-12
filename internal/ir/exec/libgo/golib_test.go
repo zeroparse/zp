@@ -57,60 +57,29 @@ func TestGoStreamCurrent(t *testing.T) {
 // TestEngineCurrent checks that the printed compositions in the engine are those the compositions
 // print now.
 func TestEngineCurrent(t *testing.T) {
-	want, err := printEngine()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(engineFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineFile)
-	}
-	want, err = printEngineTerms()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err = os.ReadFile(engineTermsFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineTermsFile)
-	}
-	want, err = printEngineOperators()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err = os.ReadFile(engineOperatorsFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineOperatorsFile)
-	}
-	want, err = printEngineStream()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err = os.ReadFile(engineStreamFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineStreamFile)
-	}
-	want, err = printEngineDocument()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err = os.ReadFile(engineDocumentFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineDocumentFile)
+	for _, f := range []struct {
+		file string
+		gen  func() (string, error)
+	}{
+		{engineFile, printEngine},
+		{engineTermsFile, printEngineTerms},
+		{engineOperatorsFile, printEngineOperators},
+		{engineStreamFile, printEngineStream},
+		{engineDocumentFile, printEngineDocument},
+		{engineClosureTermFile, printEngineClosureTerms},
+		{engineVMTermFile, printEngineVMTerms},
+	} {
+		want, err := f.gen()
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := os.ReadFile(f.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != want {
+			t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", f.file)
+		}
 	}
 }
 

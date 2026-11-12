@@ -172,3 +172,37 @@ func TestTermChargesGatheredValues(t *testing.T) {
 		})
 	}
 }
+
+// TestTermChargesOperatorsLocals checks that reading an Operators Rule local charges one unit for
+// each local the lookup passes: an infix action holds $rhs, $lhs and $op, in the order the lookup
+// walks them, so finding $op passes two locals more than finding $rhs. Neither "rhs" nor "lhs" has
+// the length of "op", so passing them compares no text, which has charges of its own.
+func TestTermChargesOperatorsLocals(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	src := func(local string) string {
+		return `@start
+rule main = e $$
+rule e = #operators {
+    operand [a-z]
+    level { infix left "+" => ` + local + ` }
+}
+`
+	}
+	for _, be := range termBackends {
+		t.Run(be.name, func(t *testing.T) {
+			cost := map[string]uint64{}
+			for _, local := range []string{"$rhs", "$op"} {
+				p, err := zp.CompileSource(src(local), "main")
+				if err != nil {
+					t.Fatal(err)
+				}
+				cost[local] = minimumCompute(t, p, "a+b", be.b)
+			}
+			if d := cost["$op"] - cost["$rhs"]; d != 2 {
+				t.Errorf("$op costs %d units more than $rhs, want 2", d)
+			}
+		})
+	}
+}
