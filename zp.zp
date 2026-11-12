@@ -130,7 +130,7 @@ type ActionBind = { Name Ident; Expr ActionExpr }
 type ActionBlock = { Actions []ActionStmt; Comments []Comment }
 type DefaultAction = node[string]
 type ActionExpr ~ (
-    Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error
+    Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda
 )
 type BinaryOp = { Op string; L ActionExpr; R ActionExpr }
 type UnaryOp = { Op string; X ActionExpr }
@@ -484,9 +484,9 @@ rule end_input EndInput = ("$$") #atomic
 rule end_line EndLine = ("$" !(ident_start / digit)) #atomic
 rule any Any = ("." !"..") #atomic
 rule cut Cut = ("#cut" !ident_char !"(") #atomic
-// The cut was once written --. That spelling is an error in the current syntax, from which the
-// parse recovers.
-rule cut_spelling RuleExpr | error = (&"--" _|_ @error(message="the cut is written #cut")) #recover(skip="--")
+// The cut was once written --. That spelling is an error at the --: a recovery past it would let a
+// declaration that fails later drop the error with it.
+rule cut_spelling = &"--" _|_ @error(message="the cut is written #cut")
 rule predicate Predicate = b:action_block => Predicate{Actions: $b.Actions, Comments: $b.Comments}
 
 // Postfix pragmas have dedicated payloads. Metadata attributes retain ordered
@@ -681,10 +681,8 @@ rule false_lit False = ("false" !ident_char) #atomic
 rule nil_lit Nil = ("nil" !ident_char) #atomic
 rule capture_ref CaptureRef = (&("$" ident) "$" ident #atomic) #atomic
 // A capture is read by its label. $ and a number, a spelling the language no longer has, is an
-// error from which the parse recovers.
-rule index_capture ActionExpr | error = (
-    &("$" digit) _|_ @error(message="a capture is read by name: label the element (x:...) and write $x")
-) #recover(skip="$" digit+)
+// error at the $.
+rule index_capture = &("$" digit) _|_ @error(message="a capture is read by name: label the element (x:...) and write $x")
 rule var_name VarRef = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref VarRef = (!bottom ident !"(") #atomic
 

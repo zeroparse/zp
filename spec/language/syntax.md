@@ -316,8 +316,8 @@ rule end_input = "$$" #atomic
 rule end_line = ("$" !(ident_start / digit)) #atomic
 rule any = ("." !"..") #atomic
 rule cut = ("#cut" !ident_char !"(") #atomic
-// The cut was once written --. That spelling is an error in the current syntax, from which the
-// parse recovers.
+// The cut was once written --. That spelling is an error at the --: a recovery past it would let a
+// declaration that fails later drop the error with it.
 rule cut_spelling = &"--" _|_
 rule predicate = action_block
 rule repeat_args = (
@@ -473,7 +473,7 @@ rule false_lit = ("false" !ident_char) #atomic
 rule nil_lit = ("nil" !ident_char) #atomic
 rule capture_ref = (&("$" ident) "$" ident #atomic) #atomic
 // A capture is read by its label. $ and a number, a spelling the language no longer has, is an
-// error from which the parse recovers.
+// error at the $.
 rule index_capture = &("$" digit) _|_
 rule var_name = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref = (!bottom ident !"(") #atomic

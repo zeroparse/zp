@@ -2028,7 +2028,7 @@ var rulesSpec = [...]ruleSpec{
 	{"end_line", &sh11, 0, 0, 0, 0},
 	{"any", &sh11, 0, 0, 0, 0},
 	{"cut", &sh11, 0, 0, 0, 0},
-	{"cut_spelling", &sh11, 0, 0, 0, 0},
+	{"cut_spelling", &sh94, 0, 0, 0, 0},
 	{"predicate", &sh4, 0, 0, 30, 8},
 	{"repeat_args", &sh10, 0, 0, 30, 8},
 	{"repeat_range", &sh11, 0, 0, 0, 8},
@@ -2099,7 +2099,7 @@ var rulesSpec = [...]ruleSpec{
 	{"false_lit", &sh11, rt.RuleMemo, 48, 0, 0},
 	{"nil_lit", &sh11, rt.RuleMemo, 49, 0, 0},
 	{"capture_ref", &sh11, rt.RuleMemo, 50, 0, 0},
-	{"index_capture", &sh11, 0, 0, 0, 0},
+	{"index_capture", &sh94, 0, 0, 0, 0},
 	{"var_name", &sh11, rt.RuleMemo, 51, 0, 0},
 	{"var_ref", &sh11, 0, 0, 0, 0},
 	{"ws", &sh4, rt.RuleMemo, 52, 23, 8},
@@ -2384,38 +2384,38 @@ var scope418 = []string{"d"}
 var scope420 = []string{"a", "gap"}
 var fieldType1 = &rt.FieldType{Kind: 'l', Text: "[](TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom)", Elem: &rt.FieldType{Kind: 'u', Text: "TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "TypeRef", Name: "TypeRef"}, &rt.FieldType{Kind: 'N', Text: "TypeApp", Name: "TypeApp"}, &rt.FieldType{Kind: 'N', Text: "TypeGroup", Name: "TypeGroup"}, &rt.FieldType{Kind: 'N', Text: "TupleType", Name: "TupleType"}, &rt.FieldType{Kind: 'N', Text: "StructType", Name: "StructType"}, &rt.FieldType{Kind: 'N', Text: "OptionalType", Name: "OptionalType"}, &rt.FieldType{Kind: 'N', Text: "ListType", Name: "ListType"}, &rt.FieldType{Kind: 'N', Text: "JoinType", Name: "JoinType"}, &rt.FieldType{Kind: 'N', Text: "MeetType", Name: "MeetType"}, &rt.FieldType{Kind: 'N', Text: "Bottom", Name: "Bottom"}}}}
 var scope425 = []string{"a", "gap"}
-var scope427 = []string{"a"}
-var scope429 = []string{"i"}
-var scope431 = []string{"o"}
-var fieldType2 = &rt.FieldType{Kind: 'l', Text: "[](Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error)", Elem: &rt.FieldType{Kind: 'u', Text: "Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "Int", Name: "Int"}, &rt.FieldType{Kind: 'N', Text: "String", Name: "String"}, &rt.FieldType{Kind: 'N', Text: "True", Name: "True"}, &rt.FieldType{Kind: 'N', Text: "False", Name: "False"}, &rt.FieldType{Kind: 'N', Text: "Nil", Name: "Nil"}, &rt.FieldType{Kind: 'N', Text: "CaptureRef", Name: "CaptureRef"}, &rt.FieldType{Kind: 'N', Text: "VarRef", Name: "VarRef"}, &rt.FieldType{Kind: 'N', Text: "BinaryOp", Name: "BinaryOp"}, &rt.FieldType{Kind: 'N', Text: "UnaryOp", Name: "UnaryOp"}, &rt.FieldType{Kind: 'N', Text: "FieldAccess", Name: "FieldAccess"}, &rt.FieldType{Kind: 'N', Text: "CaptureAccess", Name: "CaptureAccess"}, &rt.FieldType{Kind: 'N', Text: "Cast", Name: "Cast"}, &rt.FieldType{Kind: 'N', Text: "Call", Name: "Call"}, &rt.FieldType{Kind: 'N', Text: "Constructor", Name: "Constructor"}, &rt.FieldType{Kind: 'N', Text: "ListConstructor", Name: "ListConstructor"}, &rt.FieldType{Kind: 'N', Text: "ActionTuple", Name: "ActionTuple"}, &rt.FieldType{Kind: 'N', Text: "ActionGroup", Name: "ActionGroup"}, &rt.FieldType{Kind: 'N', Text: "Lambda", Name: "Lambda"}, &rt.FieldType{Kind: 'E', Text: "error"}}}}
+var scope426 = []string{"a"}
+var scope428 = []string{"i"}
+var scope430 = []string{"o"}
+var fieldType2 = &rt.FieldType{Kind: 'l', Text: "[](Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda)", Elem: &rt.FieldType{Kind: 'u', Text: "Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "Int", Name: "Int"}, &rt.FieldType{Kind: 'N', Text: "String", Name: "String"}, &rt.FieldType{Kind: 'N', Text: "True", Name: "True"}, &rt.FieldType{Kind: 'N', Text: "False", Name: "False"}, &rt.FieldType{Kind: 'N', Text: "Nil", Name: "Nil"}, &rt.FieldType{Kind: 'N', Text: "CaptureRef", Name: "CaptureRef"}, &rt.FieldType{Kind: 'N', Text: "VarRef", Name: "VarRef"}, &rt.FieldType{Kind: 'N', Text: "BinaryOp", Name: "BinaryOp"}, &rt.FieldType{Kind: 'N', Text: "UnaryOp", Name: "UnaryOp"}, &rt.FieldType{Kind: 'N', Text: "FieldAccess", Name: "FieldAccess"}, &rt.FieldType{Kind: 'N', Text: "CaptureAccess", Name: "CaptureAccess"}, &rt.FieldType{Kind: 'N', Text: "Cast", Name: "Cast"}, &rt.FieldType{Kind: 'N', Text: "Call", Name: "Call"}, &rt.FieldType{Kind: 'N', Text: "Constructor", Name: "Constructor"}, &rt.FieldType{Kind: 'N', Text: "ListConstructor", Name: "ListConstructor"}, &rt.FieldType{Kind: 'N', Text: "ActionTuple", Name: "ActionTuple"}, &rt.FieldType{Kind: 'N', Text: "ActionGroup", Name: "ActionGroup"}, &rt.FieldType{Kind: 'N', Text: "Lambda", Name: "Lambda"}}}}
 var fieldType3 = &rt.FieldType{Kind: 'l', Text: "[]string", Elem: &rt.FieldType{Kind: 's', Text: "string"}}
-var scope436 = []string{"c"}
+var scope434 = []string{"c"}
 var fieldType4 = &rt.FieldType{Kind: 'l', Text: "[]string", Elem: &rt.FieldType{Kind: 's', Text: "string"}}
-var scope437 = []string{"c"}
+var scope435 = []string{"c"}
+var scope436 = []string{"c"}
+var scope437 = []string{"line", "body"}
 var scope438 = []string{"c"}
-var scope439 = []string{"line", "body"}
-var scope440 = []string{"c"}
-var scope441 = []string{"g"}
+var scope439 = []string{"g"}
 var fieldType5 = &rt.FieldType{Kind: 'l', Text: "[]CommentGap", Elem: &rt.FieldType{Kind: 'N', Text: "CommentGap", Name: "CommentGap"}}
-var lit448 = []rune("|")
-var lit450 = []rune("&")
-var lit458 = []rune("!")
-var lit461 = []rune("?")
-var lit463 = []rune("+")
-var lit465 = []rune("#atomic")
-var lit467 = []rune("#stream")
-var lit469 = []rune("#missing")
-var lit472 = []rune("#repeat")
-var lit474 = []rune("#recover")
-var lit480 = []rune("||")
-var lit482 = []rune("&&")
-var lit484 = []rune("==")
-var lit485 = []rune("!=")
-var lit486 = []rune("<=")
-var lit487 = []rune(">=")
-var lit488 = []rune("<")
-var lit489 = []rune(">")
-var lit492 = []rune("%")
+var lit446 = []rune("|")
+var lit448 = []rune("&")
+var lit456 = []rune("!")
+var lit459 = []rune("?")
+var lit461 = []rune("+")
+var lit463 = []rune("#atomic")
+var lit465 = []rune("#stream")
+var lit467 = []rune("#missing")
+var lit470 = []rune("#repeat")
+var lit472 = []rune("#recover")
+var lit478 = []rune("||")
+var lit480 = []rune("&&")
+var lit482 = []rune("==")
+var lit483 = []rune("!=")
+var lit484 = []rune("<=")
+var lit485 = []rune(">=")
+var lit486 = []rune("<")
+var lit487 = []rune(">")
+var lit490 = []rune("%")
 
 func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
@@ -2624,52 +2624,52 @@ func init() {
 	trules[64].Body = e424
 	trules[64].Action = ta64
 	trules[67].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e442,
+		Skip: e440,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e443, Action: nil, Value: sh11},
-			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e444, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e441, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e442, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeApp(c, true, c.Cap(0), c.Cap(1))
 				return tv1, nil
 			}, Value: sh10},
-			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e445, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e443, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeRef(c, true, c.Cap(0))
 				return tv1, nil
 			}, Value: sh4},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e446, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e444, Action: func(c *rt.TActCtx) (any, any) {
 				return c.Cap(0), nil
 			}, Value: sh4},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e447, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e445, Action: func(c *rt.TActCtx) (any, any) {
 				return c.Cap(0), nil
 			}, Value: sh4},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e452, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e450, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_ListType(c, true, (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OptionalType(c, true, (c.Rhs))
 				return tv1, nil
 			}, Value: sh11}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e449, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e447, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_JoinType(c, true, (c.Lhs), (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e449, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MeetType(c, true, (c.Lhs), (c.Rhs))
 				return tv1, nil
 			}, Value: sh11}}},
 	}
 	trules[67].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[67], min) }
 	trules[85].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e442,
+		Skip: e440,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e454, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e452, Action: nil, Value: sh11},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e457, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e455, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Capture(c, true, c.Cap(0), (c.Rhs))
 			return tv1, nil
 		}, Value: sh10}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e459, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e457, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2677,47 +2677,47 @@ func init() {
 				tv2 := tmk_Lookahead(c, true, any(ts1), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e460, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e458, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Discard(c, true, (c.Rhs))
 				return tv1, nil
 			}, Value: sh9}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e455, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Choice(c, true, (c.Lhs), (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e456, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e454, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Sequence(c, true, (c.Lhs), (c.Rhs))
 				return tv1, nil
 			}, Value: sh16}},
-			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e462, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e460, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Optional(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_ZeroOrMore(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e464, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e462, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OneOrMore(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e466, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e464, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Atomic(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e468, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e466, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Stream(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e470, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e468, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MissingPragma(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh9}},
-			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e471, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e469, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_IgnoreCase(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh9}},
-			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e473, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e471, Action: func(c *rt.TActCtx) (any, any) {
 				tv1, tf1 := c.P.TermMember(c, rt.MemberField, c.Cap(0), "Min", "Min")
 				if tf1 != nil {
 					return nil, tf1
@@ -2733,34 +2733,33 @@ func init() {
 				tv4 := tmk_Repeat(c, true, (c.Lhs), tv1, tv2, tv3)
 				return tv4, nil
 			}, Value: sh10}},
-			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e475, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e473, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Recover(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e476, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e474, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Attributed(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh4}},
-			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e477, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e475, Action: func(c *rt.TActCtx) (any, any) {
 				return (c.Lhs), nil
 			}, Value: sh11}}},
 	}
 	trules[85].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[85], min) }
-	trules[103].Body = e426
-	trules[126].Body = e428
+	trules[126].Body = e427
 	trules[126].Action = ta126
-	trules[129].Body = e430
+	trules[129].Body = e429
 	trules[129].Action = ta129
-	trules[136].Body = e432
+	trules[136].Body = e431
 	trules[136].Action = ta136
-	trules[146].Body = e433
+	trules[146].Body = e432
 	trules[146].Action = ta146
 	trules[151].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e478,
+		Skip: e476,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e479, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e477, Action: nil, Value: sh11},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e494, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e492, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
 				return nil, tf1
@@ -2768,7 +2767,7 @@ func init() {
 			tv2 := tmk_UnaryOp(c, true, any(ts1), (c.Rhs))
 			return tv2, nil
 		}, Value: sh11}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e481, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e479, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
 				return nil, tf1
@@ -2776,7 +2775,7 @@ func init() {
 			tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 			return tv2, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e483, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e481, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2784,7 +2783,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e490, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e488, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2792,7 +2791,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e491, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e489, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2800,7 +2799,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e493, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e491, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2808,26 +2807,25 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e495, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e493, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_CaptureAccess(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e496, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e494, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Cast(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e497, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e495, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_FieldAccess(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e498, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e496, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_BinaryOp(c, true, any("[]"), (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh4}}},
 	}
 	trules[151].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[151], min) }
-	trules[174].Body = e434
-	trules[202].Body = e435
+	trules[202].Body = e433
 	zpGrammar.Descs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", "\"@\"", "\"package\"", "expected package name", "expected type, var or rule declaration", "[)\\]}]", "expected semicolon, newline, or end of file", "\"=\"", "[=>]", "\"/*\"", "expected semicolon, newline, or closing brace", "\";\"", "\"}\"", "\"[\"", "\"(\"", "\"{\"", "\")\"", "\"]\"", "\"\\\\\"", "[^\\]\\\\\\n]", "\"rule\"", "\"type\"", "\"var\"", "\":\"", "\"/\"", "\"\\\"\"", "\"//\"", "\"~\"", "[:!<>=+*/%&|\\^\\-]", "\"=>\"", "[a-zA-Z0-9_]", "expected type", "expected type name", "\"node[\"", "expected '= {', '= node[' or '~'", "\"struct\"", "\"terminal\"", "a struct type is defined as type Name = { ... }", "a terminal type is the struct type Name = { Text string }", "expected '{' or 'node[' after '='; write type Name ~ Type for an alias", "\",\"", "a node type takes one type argument", "expected field name", "expected field type", "expected closing brace for struct", "expected variable name", "expected the initial value", "expected rule name", "expected '=' after rule header", "\"#\"", "unknown pragma", "an Operators Rule is written #operators { ... }", "\"operators\"", "\"skip\"", "\"operand\"", "\"level\"", "\"prefix\"", "\"postfix\"", "\"infix\"", "[a-zA-Z_]", "\"atomic\"", "\"stream\"", "\"missing\"", "\"ignorecase\"", "\"repeat\"", "\"recover\"", "\"cut\"", "expected closing parenthesis for rule group", "\"level(\"", "expected target rule in level call", "expected comma in level call", "expected level name", "expected closing parenthesis for level call", "\"_\"", "\"_|_\"", "\"^^\"", "\"^\"", "\"$$\"", "\"$\"", "[0-9]", "\".\"", "\"..\"", "\"#cut\"", "\"--\"", "the cut is written #cut", "#repeat requires a count", "expected closing parenthesis for #repeat", "\"-\"", "\"0\"", "expected skip= in #recover", "expected '=' after skip", "expected closing parenthesis for #recover", "expected attribute name", "expected closing parenthesis for attribute arguments", "expected attribute argument value", "\"true\"", "\"false\"", "\"nil\"", "\"#ignorecase\"", "only #ignorecase may follow an Operators Rule", "\"#operators\"", "expected closing brace for operators", "expected skip, operand, or level", "expected skip expression", "expected operand expression", "expected opening brace for level", "expected closing brace for level", "expected prefix, postfix, or infix", "expected prefix expression", "expected postfix expression", "\"left\"", "\"right\"", "\"none\"", "expected left, right, or none associativity", "expected infix expression", "\"...\"", "expected closing brace for action block", "\":=\"", "expected binding value", "expected closing parenthesis for tuple", "expected closing parenthesis for action expression", "expected closing parenthesis for function call", "\"[]\"", "expected opening brace for list constructor", "expected closing brace for list constructor", "expected closing brace for constructor", "expected initializer field name", "expected initializer value", "a capture is read by name: label the element (x:...) and write $x", "\"\\r\\n\"", "[\\r\\n]", "newline", "[ \\t\\n\\v\\f\\r\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "whitespace", "[^\"\\\\\\n]", "comment", "[^\\n\\r]", "\"*/\"", "\"i\"", "unterminated string", "expected closing bracket for character class", "[^\\r\\n]", "\"*\"", "[ \\t\\v\\f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "[({,]", "[({]", "\"|\"", "\"&\"", "an expression", "\"!\"", "\"?\"", "\"+\"", "\"#atomic\"", "\"#stream\"", "\"#missing\"", "\"#repeat\"", "\"#recover\"", "a value", "\"||\"", "\"&&\"", "\"==\"", "\"!=\"", "\"<=\"", "\">=\"", "\"<\"", "\">\"", "\"%\"", "identifier"}
 	zpGrammar.Expectations = true
 }
@@ -3328,69 +3326,7 @@ fail:
 	return nil, false
 }
 
-func e426(p *rt.TParser, _ int) (any, bool) {
-	p.Spend()
-	var x1 rt.Mark
-	var x2, x13 rt.ExpMark
-	var x3, x10, x14 int
-	var x4 []rt.ExpID
-	var v7 any
-	var ok bool
-	var x21 *rt.SyntaxError
-	x1 = p.Mark()
-	x2 = p.Isolate(p.Pos)
-	_ = p.NewVals(0)[:0]
-	x10 = p.Pos
-	p.Silent++
-	p.LookBegin(117)
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 45 && p.In[p.Pos+1] == 45) && p.Control.Take(2) {
-		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit168, "--", 87, false); !ok {
-		goto L11
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Pos = x10
-	goto L12
-L11:
-	p.LookEnd(false)
-	p.Silent--
-	p.Pos = x10
-	goto L5
-L12:
-	x13 = p.Isolate(p.Pos)
-	goto L16
-L16:
-	x14, _ = p.Unisolate(x13)
-	p.ExpectBudget(x14, rt.MsgBit|88)
-	goto L5
-L5:
-	x3, x4 = p.Unisolate(x2)
-	x4 = p.Keep(x4)
-	p.Reset(x1)
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 45 && p.In[p.Pos+1] == 45) && p.Control.Take(2) {
-		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit168, "--", 87, false); !ok {
-		goto L20
-	}
-	if p.Pos == x1.Pos {
-		goto L20
-	}
-	x21 = p.MakeError(x3, x4)
-	p.PushRecovered(x21)
-	v7 = rt.NewTError(x1.Pos, p.Pos, p.RecoveryErrorText(x21))
-	goto L6
-L20:
-	p.Reset(x1)
-	p.MergeExpected(x3, x4)
-	goto fail
-L6:
-	return v7, true
-fail:
-	return nil, false
-}
-
-func e428(p *rt.TParser, _ int) (any, bool) {
+func e427(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x2, x9, x11 rt.Mark
 	var v3, v6, v8 any
@@ -3454,7 +3390,7 @@ fail:
 	return nil, false
 }
 
-func e430(p *rt.TParser, _ int) (any, bool) {
+func e429(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6, x13 rt.Mark
 	var ok bool
@@ -3559,7 +3495,7 @@ fail:
 	return nil, false
 }
 
-func e432(p *rt.TParser, _ int) (any, bool) {
+func e431(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6, x13 rt.Mark
 	var ok bool
@@ -3664,7 +3600,7 @@ fail:
 	return nil, false
 }
 
-func e433(p *rt.TParser, _ int) (any, bool) {
+func e432(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6 rt.Mark
 	var ok bool
@@ -3740,99 +3676,7 @@ fail:
 	return nil, false
 }
 
-func e434(p *rt.TParser, _ int) (any, bool) {
-	p.Spend()
-	var x1, x22 rt.Mark
-	var x2, x13 rt.ExpMark
-	var x3, x10, x14, x21 int
-	var x4 []rt.ExpID
-	var v7 any
-	var ok bool
-	var x24 *rt.SyntaxError
-	x1 = p.Mark()
-	x2 = p.Isolate(p.Pos)
-	_ = p.NewVals(0)[:0]
-	x10 = p.Pos
-	p.Silent++
-	p.LookBegin(148)
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, "$", 82, false); !ok {
-		goto L11
-	}
-	if _, ok = s284(p); !ok {
-		goto L11
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Pos = x10
-	goto L12
-L11:
-	p.LookEnd(false)
-	p.Silent--
-	p.Pos = x10
-	goto L5
-L12:
-	x13 = p.Isolate(p.Pos)
-	goto L16
-L16:
-	x14, _ = p.Unisolate(x13)
-	p.ExpectBudget(x14, rt.MsgBit|132)
-	goto L5
-L5:
-	x3, x4 = p.Unisolate(x2)
-	x4 = p.Keep(x4)
-	p.Reset(x1)
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, "$", 82, false); !ok {
-		goto L20
-	}
-	p.SkipBegin(1)
-	x21 = 0
-	for {
-		p.Spend()
-		if x21 >= 1 {
-			if p.SkipHit() {
-				break
-			}
-		}
-		p.SkipVisit()
-		x22 = p.Mark()
-		if _, ok = s284(p); !ok {
-			goto L23
-		}
-		x21++
-		if p.Pos == x22.Pos {
-			break
-		}
-		continue
-	L23:
-		p.Reset(x22)
-		break
-	}
-	p.SkipEnd()
-	if x21 < 1 {
-		goto L20
-	}
-	if p.Pos == x1.Pos {
-		goto L20
-	}
-	x24 = p.MakeError(x3, x4)
-	p.PushRecovered(x24)
-	v7 = rt.NewTError(x1.Pos, p.Pos, p.RecoveryErrorText(x24))
-	goto L6
-L20:
-	p.Reset(x1)
-	p.MergeExpected(x3, x4)
-	goto fail
-L6:
-	return v7, true
-fail:
-	return nil, false
-}
-
-func e435(p *rt.TParser, _ int) (any, bool) {
+func e433(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x2, x13 rt.ExpMark
@@ -6007,7 +5851,7 @@ fail:
 	return nil, false
 }
 
-func e442(p *rt.TParser) (any, bool) {
+func e440(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = u177(p); !ok {
@@ -6018,7 +5862,7 @@ fail:
 	return nil, false
 }
 
-func e443(p *rt.TParser) (any, bool) {
+func e441(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v1 any
@@ -6030,7 +5874,7 @@ fail:
 	return nil, false
 }
 
-func e444(p *rt.TParser) (any, bool) {
+func e442(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2, v4 any
@@ -6047,7 +5891,7 @@ fail:
 	return nil, false
 }
 
-func e445(p *rt.TParser) (any, bool) {
+func e443(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
@@ -6060,7 +5904,7 @@ fail:
 	return nil, false
 }
 
-func e446(p *rt.TParser) (any, bool) {
+func e444(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
@@ -6073,7 +5917,7 @@ fail:
 	return nil, false
 }
 
-func e447(p *rt.TParser) (any, bool) {
+func e445(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
@@ -6086,7 +5930,7 @@ fail:
 	return nil, false
 }
 
-func e449(p *rt.TParser) (any, bool) {
+func e447(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -6094,7 +5938,7 @@ func e449(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 124) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit448, "|", 150, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit446, "|", 150, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "|", true)
@@ -6103,7 +5947,7 @@ fail:
 	return nil, false
 }
 
-func e451(p *rt.TParser) (any, bool) {
+func e449(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -6111,7 +5955,7 @@ func e451(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit450, "&", 151, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit448, "&", 151, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "&", true)
@@ -6120,7 +5964,7 @@ fail:
 	return nil, false
 }
 
-func e452(p *rt.TParser) (any, bool) {
+func e450(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -6137,7 +5981,7 @@ fail:
 	return nil, false
 }
 
-func e453(p *rt.TParser) (any, bool) {
+func e451(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7595,7 +7439,7 @@ fail:
 	return nil, false
 }
 
-func e454(p *rt.TParser) (any, bool) {
+func e452(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.ExpMark
 	var x2 int
@@ -7809,7 +7653,7 @@ fail:
 	return nil, false
 }
 
-func e455(p *rt.TParser) (any, bool) {
+func e453(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7826,12 +7670,12 @@ fail:
 	return nil, false
 }
 
-func e456(p *rt.TParser) (any, bool) {
+func e454(p *rt.TParser) (any, bool) {
 	p.Spend()
 	return nil, true
 }
 
-func e457(p *rt.TParser) (any, bool) {
+func e455(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x5 int
 	var x2 []any
@@ -7875,7 +7719,7 @@ fail:
 	return nil, false
 }
 
-func e459(p *rt.TParser) (any, bool) {
+func e457(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x12 rt.Mark
 	var v2, v11, v14, v15, v19 any
@@ -7899,7 +7743,7 @@ func e459(p *rt.TParser) (any, bool) {
 	x10 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit450, "&", 151, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit448, "&", 151, false); !ok {
 		goto L7
 	}
 	v11 = p.NewMatch(x10, p.Pos, "&", true)
@@ -7909,7 +7753,7 @@ func e459(p *rt.TParser) (any, bool) {
 	p.LookBegin(89)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit450, "&", 151, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit448, "&", 151, false); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -7934,7 +7778,7 @@ L6:
 	x18 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 33) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit458, "!", 153, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit456, "!", 153, false); !ok {
 		goto L17
 	}
 	v19 = p.NewMatch(x18, p.Pos, "!", true)
@@ -7950,7 +7794,7 @@ fail:
 	return nil, false
 }
 
-func e460(p *rt.TParser) (any, bool) {
+func e458(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7989,7 +7833,7 @@ fail:
 	return nil, false
 }
 
-func e462(p *rt.TParser) (any, bool) {
+func e460(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7997,7 +7841,7 @@ func e462(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 63) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit461, "?", 154, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit459, "?", 154, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "?", true)
@@ -8006,7 +7850,7 @@ fail:
 	return nil, false
 }
 
-func e464(p *rt.TParser) (any, bool) {
+func e462(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -8014,7 +7858,7 @@ func e464(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 43) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit463, "+", 155, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit461, "+", 155, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "+", true)
@@ -8023,7 +7867,7 @@ fail:
 	return nil, false
 }
 
-func e466(p *rt.TParser) (any, bool) {
+func e464(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8034,7 +7878,7 @@ func e466(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit465, "#atomic", 156, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit463, "#atomic", 156, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#atomic", true)
@@ -8102,7 +7946,7 @@ fail:
 	return nil, false
 }
 
-func e468(p *rt.TParser) (any, bool) {
+func e466(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8113,7 +7957,7 @@ func e468(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit467, "#stream", 157, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit465, "#stream", 157, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#stream", true)
@@ -8181,7 +8025,7 @@ fail:
 	return nil, false
 }
 
-func e470(p *rt.TParser) (any, bool) {
+func e468(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8191,7 +8035,7 @@ func e470(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(1)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit469, "#missing", 158, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit467, "#missing", 158, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#missing", true)
@@ -8232,7 +8076,7 @@ fail:
 	return nil, false
 }
 
-func e471(p *rt.TParser) (any, bool) {
+func e469(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8283,7 +8127,7 @@ fail:
 	return nil, false
 }
 
-func e473(p *rt.TParser) (any, bool) {
+func e471(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8293,7 +8137,7 @@ func e473(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit472, "#repeat", 159, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit470, "#repeat", 159, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#repeat", true)
@@ -8323,7 +8167,7 @@ fail:
 	return nil, false
 }
 
-func e475(p *rt.TParser) (any, bool) {
+func e473(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -8333,7 +8177,7 @@ func e475(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit474, "#recover", 160, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit472, "#recover", 160, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#recover", true)
@@ -8363,7 +8207,7 @@ fail:
 	return nil, false
 }
 
-func e476(p *rt.TParser) (any, bool) {
+func e474(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
@@ -8376,7 +8220,7 @@ fail:
 	return nil, false
 }
 
-func e477(p *rt.TParser) (any, bool) {
+func e475(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v1 any
@@ -9125,22 +8969,39 @@ fail:
 }
 
 func s103(p *rt.TParser) (any, bool) {
-	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
-	prevEnv, prevCut := p.Env, p.Cut
-	p.Cut = false
-	v, ok := e426(p, 0)
-	p.Cut = prevCut
-	p.DropTrail(trail)
-	if ok {
-		v = p.ScopeValue(trules[103].Value, v, start)
-		if n := rt.AsTval(v); n != nil {
-			n.TSetFresh(false)
-		}
-	} else {
-		p.Restore(start, rec)
+	p.Spend()
+	var start, rec, x3, x7 int
+	var ok bool
+	var x6 rt.ExpMark
+	start, rec = p.Pos, len(p.Recovered)
+	_ = p.NewVals(0)[:0]
+	x3 = p.Pos
+	p.Silent++
+	p.LookBegin(117)
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 45 && p.In[p.Pos+1] == 45) && p.Control.Take(2) {
+		p.Pos += 2
+	} else if _, ok = p.Parser.MatchLiteral(lit168, "--", 87, false); !ok {
+		goto L4
 	}
-	p.Env = prevEnv
-	return v, ok
+	p.LookEnd(true)
+	p.Silent--
+	p.Pos = x3
+	goto L5
+L4:
+	p.LookEnd(false)
+	p.Silent--
+	p.Pos = x3
+	goto fail
+L5:
+	x6 = p.Isolate(p.Pos)
+	goto L9
+L9:
+	x7, _ = p.Unisolate(x6)
+	p.ExpectBudget(x7, rt.MsgBit|88)
+	goto fail
+fail:
+	p.Restore(start, rec)
+	return nil, false
 }
 
 // rule predicate
@@ -10087,7 +9948,7 @@ func i116(p *rt.TParser) (any, bool) {
 		x14 = append(x14, v18)
 		v19 = p.NewNode("tuple", x13, p.Pos, x14)
 		v20 = p.ScopeValue(sh10, v19, x9)
-		v21 = p.AttachCaptures(v20, scope427, []any{k11}, x9, p.Pos)
+		v21 = p.AttachCaptures(v20, scope426, []any{k11}, x9, p.Pos)
 		p.PushKid(v21)
 		if p.Pos == x9 {
 			break
@@ -10887,7 +10748,7 @@ L9:
 		}
 		k20 = v24
 		v25 = p.ScopeValue(sh4, v24, x18)
-		v26 = p.AttachCaptures(v25, scope429, []any{k20}, x18, p.Pos)
+		v26 = p.AttachCaptures(v25, scope428, []any{k20}, x18, p.Pos)
 		p.PushKid(v26)
 		if p.Pos == x18 {
 			break
@@ -10979,7 +10840,7 @@ func i129(p *rt.TParser) (any, bool) {
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e430(p, 0)
+	v, ok := e429(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -11442,7 +11303,7 @@ L17:
 		}
 		k28 = v32
 		v33 = p.ScopeValue(sh4, v32, x26)
-		v34 = p.AttachCaptures(v33, scope431, []any{k28}, x26, p.Pos)
+		v34 = p.AttachCaptures(v33, scope430, []any{k28}, x26, p.Pos)
 		p.PushKid(v34)
 		if p.Pos == x26 {
 			break
@@ -11532,7 +11393,7 @@ func i136(p *rt.TParser) (any, bool) {
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e432(p, 0)
+	v, ok := e431(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -12278,7 +12139,7 @@ func i146(p *rt.TParser) (any, bool) {
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e433(p, 0)
+	v, ok := e432(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -12495,7 +12356,7 @@ fail:
 	return nil, false
 }
 
-func e478(p *rt.TParser) (any, bool) {
+func e476(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 rt.Mark
 	var ok bool
@@ -12542,7 +12403,7 @@ fail:
 	return nil, false
 }
 
-func e479(p *rt.TParser) (any, bool) {
+func e477(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.ExpMark
 	var x2 int
@@ -12695,7 +12556,7 @@ fail:
 	return nil, false
 }
 
-func e481(p *rt.TParser) (any, bool) {
+func e479(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -12703,7 +12564,7 @@ func e481(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 124 && p.In[p.Pos+1] == 124) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit480, "||", 162, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit478, "||", 162, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "||", true)
@@ -12712,7 +12573,7 @@ fail:
 	return nil, false
 }
 
-func e483(p *rt.TParser) (any, bool) {
+func e481(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -12720,7 +12581,7 @@ func e483(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 38 && p.In[p.Pos+1] == 38) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit482, "&&", 163, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit480, "&&", 163, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "&&", true)
@@ -12729,7 +12590,7 @@ fail:
 	return nil, false
 }
 
-func e490(p *rt.TParser) (any, bool) {
+func e488(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17, v21, v25, v29 any
@@ -12750,7 +12611,7 @@ func e490(p *rt.TParser) (any, bool) {
 	x8 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit484, "==", 164, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit482, "==", 164, false); !ok {
 		goto L7
 	}
 	v9 = p.NewMatch(x8, p.Pos, "==", true)
@@ -12766,7 +12627,7 @@ L6:
 	x12 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 33 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit485, "!=", 165, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit483, "!=", 165, false); !ok {
 		goto L11
 	}
 	v13 = p.NewMatch(x12, p.Pos, "!=", true)
@@ -12782,7 +12643,7 @@ L10:
 	x16 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 60 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit486, "<=", 166, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit484, "<=", 166, false); !ok {
 		goto L15
 	}
 	v17 = p.NewMatch(x16, p.Pos, "<=", true)
@@ -12798,7 +12659,7 @@ L14:
 	x20 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 62 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit487, ">=", 167, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit485, ">=", 167, false); !ok {
 		goto L19
 	}
 	v21 = p.NewMatch(x20, p.Pos, ">=", true)
@@ -12814,7 +12675,7 @@ L18:
 	x24 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 60) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit488, "<", 168, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit486, "<", 168, false); !ok {
 		goto L23
 	}
 	v25 = p.NewMatch(x24, p.Pos, "<", true)
@@ -12830,7 +12691,7 @@ L22:
 	x28 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 62) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit489, ">", 169, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit487, ">", 169, false); !ok {
 		goto L27
 	}
 	v29 = p.NewMatch(x28, p.Pos, ">", true)
@@ -12846,7 +12707,7 @@ fail:
 	return nil, false
 }
 
-func e491(p *rt.TParser) (any, bool) {
+func e489(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x16 rt.Mark
 	var v2, v9, v15, v18, v19 any
@@ -12868,7 +12729,7 @@ func e491(p *rt.TParser) (any, bool) {
 	x8 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 43) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit463, "+", 155, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit461, "+", 155, false); !ok {
 		goto L7
 	}
 	v9 = p.NewMatch(x8, p.Pos, "+", true)
@@ -12921,7 +12782,7 @@ fail:
 	return nil, false
 }
 
-func e493(p *rt.TParser) (any, bool) {
+func e491(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17 any
@@ -12974,7 +12835,7 @@ L10:
 	x16 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 37) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit492, "%", 170, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit490, "%", 170, false); !ok {
 		goto L15
 	}
 	v17 = p.NewMatch(x16, p.Pos, "%", true)
@@ -12990,7 +12851,7 @@ fail:
 	return nil, false
 }
 
-func e494(p *rt.TParser) (any, bool) {
+func e492(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x12, x22 rt.Mark
 	var v2, v11, v14, v15, v21, v24, v25 any
@@ -13051,7 +12912,7 @@ L6:
 	x20 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 33) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit458, "!", 153, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit456, "!", 153, false); !ok {
 		goto L17
 	}
 	v21 = p.NewMatch(x20, p.Pos, "!", true)
@@ -13086,7 +12947,7 @@ fail:
 	return nil, false
 }
 
-func e495(p *rt.TParser) (any, bool) {
+func e493(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -13116,7 +12977,7 @@ fail:
 	return nil, false
 }
 
-func e496(p *rt.TParser) (any, bool) {
+func e494(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -13146,7 +13007,7 @@ fail:
 	return nil, false
 }
 
-func e497(p *rt.TParser) (any, bool) {
+func e495(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3, x7 int
 	var x2 []any
@@ -13187,7 +13048,7 @@ fail:
 	return nil, false
 }
 
-func e498(p *rt.TParser) (any, bool) {
+func e496(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
@@ -15003,22 +14864,42 @@ fail:
 }
 
 func s174(p *rt.TParser) (any, bool) {
-	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
-	prevEnv, prevCut := p.Env, p.Cut
-	p.Cut = false
-	v, ok := e434(p, 0)
-	p.Cut = prevCut
-	p.DropTrail(trail)
-	if ok {
-		v = p.ScopeValue(trules[174].Value, v, start)
-		if n := rt.AsTval(v); n != nil {
-			n.TSetFresh(false)
-		}
-	} else {
-		p.Restore(start, rec)
+	p.Spend()
+	var start, rec, x3, x7 int
+	var ok bool
+	var x6 rt.ExpMark
+	start, rec = p.Pos, len(p.Recovered)
+	_ = p.NewVals(0)[:0]
+	x3 = p.Pos
+	p.Silent++
+	p.LookBegin(148)
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit161, "$", 82, false); !ok {
+		goto L4
 	}
-	p.Env = prevEnv
-	return v, ok
+	if _, ok = s284(p); !ok {
+		goto L4
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Pos = x3
+	goto L5
+L4:
+	p.LookEnd(false)
+	p.Silent--
+	p.Pos = x3
+	goto fail
+L5:
+	x6 = p.Isolate(p.Pos)
+	goto L9
+L9:
+	x7, _ = p.Unisolate(x6)
+	p.ExpectBudget(x7, rt.MsgBit|132)
+	goto fail
+fail:
+	p.Restore(start, rec)
+	return nil, false
 }
 
 // rule var_name
@@ -15753,11 +15634,11 @@ L6:
 		p.Pos += size
 		x8++
 		if x8 == 16 {
-			x8 = p.ScanReach(40, x7, x8)
+			x8 = p.ScanReach(39, x7, x8)
 		}
 	}
 	if 15 < x8 {
-		p.ScanEnd(40, x7, x8)
+		p.ScanEnd(39, x7, x8)
 	}
 	v9 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
 	v = p.ScopeValue(sh11, v9, start)
@@ -16454,7 +16335,7 @@ func s202(p *rt.TParser) (any, bool) {
 	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
 	p.Cut = false
-	v, ok := e435(p, 0)
+	v, ok := e433(p, 0)
 	p.Cut = prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -17615,7 +17496,7 @@ func i223(p *rt.TParser) (any, bool) {
 		x11 = append(x11, v13)
 		v14 = p.NewNode("tuple", x10, p.Pos, x11)
 		v15 = p.ScopeValue(sh9, v14, x6)
-		v16 = p.AttachCaptures(v15, scope436, []any{k8}, x6, p.Pos)
+		v16 = p.AttachCaptures(v15, scope434, []any{k8}, x6, p.Pos)
 		x5++
 		p.PushKid(v16)
 		if p.Pos == x6 {
@@ -18769,7 +18650,7 @@ func i240(p *rt.TParser) (any, bool) {
 		}
 		v22 = p.NewNode("tuple", x14, p.Pos, x15)
 		v23 = p.ScopeValue(sh9, v22, x10)
-		v24 = p.AttachCaptures(v23, scope437, []any{k12}, x10, p.Pos)
+		v24 = p.AttachCaptures(v23, scope435, []any{k12}, x10, p.Pos)
 		p.PushKid(v24)
 		if p.Pos == x10 {
 			break
@@ -19158,7 +19039,7 @@ func i250(p *rt.TParser) (any, bool) {
 		x14 = append(x14, v16)
 		v17 = p.NewNode("tuple", x13, p.Pos, x14)
 		v18 = p.ScopeValue(sh9, v17, x9)
-		v19 = p.AttachCaptures(v18, scope438, []any{k11}, x9, p.Pos)
+		v19 = p.AttachCaptures(v18, scope436, []any{k11}, x9, p.Pos)
 		p.PushKid(v19)
 		if p.Pos == x9 {
 			break
@@ -19369,7 +19250,7 @@ func i252(p *rt.TParser) (any, bool) {
 		x15 = append(x15, v23)
 		v24 = p.NewNode("tuple", x14, p.Pos, x15)
 		v25 = p.ScopeValue(sh10, v24, x9)
-		v26 = p.AttachCaptures(v25, scope439, []any{k11, k12}, x9, p.Pos)
+		v26 = p.AttachCaptures(v25, scope437, []any{k11, k12}, x9, p.Pos)
 		p.PushKid(v26)
 		if p.Pos == x9 {
 			break
@@ -19475,7 +19356,7 @@ func i254(p *rt.TParser) (any, bool) {
 		}
 		k8 = v11
 		v12 = p.ScopeValue(sh4, v11, x6)
-		v13 = p.AttachCaptures(v12, scope440, []any{k8}, x6, p.Pos)
+		v13 = p.AttachCaptures(v12, scope438, []any{k8}, x6, p.Pos)
 		p.PushKid(v13)
 		if p.Pos == x6 {
 			break
@@ -19920,7 +19801,7 @@ L7:
 		}
 		v53 = p.NewNode("tuple", x22, p.Pos, x23)
 		v54 = p.ScopeValue(sh9, v53, x18)
-		v55 = p.AttachCaptures(v54, scope441, []any{k20}, x18, p.Pos)
+		v55 = p.AttachCaptures(v54, scope439, []any{k20}, x18, p.Pos)
 		p.PushKid(v55)
 		if p.Pos == x18 {
 			break
@@ -25678,11 +25559,11 @@ L5:
 		p.Pos += size
 		x7++
 		if x7 == 16 {
-			x7 = p.ScanReach(40, x6, x7)
+			x7 = p.ScanReach(39, x6, x7)
 		}
 	}
 	if 15 < x7 {
-		p.ScanEnd(40, x6, x7)
+		p.ScanEnd(39, x6, x7)
 	}
 	v = nil
 	return v, true
