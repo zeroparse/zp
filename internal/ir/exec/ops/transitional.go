@@ -340,7 +340,7 @@ min begins.`,
 		exec.P("examined", exec.TInt), exec.P("known", exec.TBool)}, Writes: []string{Obs}, Features: []string{Observe}, NoReturn: true,
 		Contract: `Reports to the observation of the parse that the call that the last unmatched obs.enter began
 ends, with its success ok, at pos, and with the end of the input it examined if known.`,
-		Requires: `The parse is observed.`})
+		Requires: `The parse is observed, and a call that obs.enter began has not ended.`})
 	add(&exec.Op{Name: "doc.examinedBegin", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Writes: []string{Call}, Features: []string{Document},
 		Contract: `Starts measuring how far an observed call examines the input: in a Document parse, the

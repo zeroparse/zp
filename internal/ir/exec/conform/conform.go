@@ -357,6 +357,15 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 			panic(mismatch(fmt.Sprintf("listing %d recovered errors visits %d lists, not fewer than %d", k, n, 2*k)))
 		}
 	}
+	if ob, ok := p.impl.(Observer); ok {
+		for _, c := range o.Writes {
+			if w := p.model.Observe(c); w != nil {
+				if g := ob.Observe(c); !slices.Equal(w, g) {
+					panic(mismatch(fmt.Sprintf("%s: model %q, implementation %q", c, w, g)))
+				}
+			}
+		}
+	}
 	res := make([]any, len(want.res))
 	shown = shown[:0]
 	for i, w := range want.res {

@@ -1043,7 +1043,7 @@ transitional op obs.exit(ok bool, pos int, examined int, known bool)
     // Reports to the observation of the parse that the call that the last unmatched obs.enter began
     // ends, with its success ok, at pos, and with the end of the input it examined if known.
   requires:
-    // The parse is observed.
+    // The parse is observed, and a call that obs.enter began has not ended.
 
 transitional op doc.examinedBegin() int
   component call

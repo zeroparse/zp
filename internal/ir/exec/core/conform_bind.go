@@ -33,18 +33,28 @@ func ExpBindingName(op string) string {
 // expBindings returns the module of the compositions with a binding function for each operation of
 // the expectation record and of expBindingMemoOps, and the bindings in the order of the declarations.
 func expBindings() (*exec.Module, []*exec.Func) {
-	m := Build()
-	var names []string
-	for _, o := range m.Ops {
-		if o.Component == ops.Exp {
-			names = append(names, o.Name)
+	return bindingsOf(func(m *exec.Module) []string {
+		var names []string
+		for _, o := range m.Ops {
+			if o.Component == ops.Exp {
+				names = append(names, o.Name)
+			}
 		}
-	}
-	names = append(names, expBindingMemoOps...)
+		return append(names, expBindingMemoOps...)
+	})
+}
+
+// obsBindingOps are the operations of the observation of a parse.
+var obsBindingOps = []string{"obs.active", "obs.memoHit", "obs.enter", "obs.exit"}
+
+// bindingsOf returns the module of the compositions with a binding function for each operation that
+// names lists, and the bindings in that order.
+func bindingsOf(names func(*exec.Module) []string) (*exec.Module, []*exec.Func) {
+	m := Build()
 	var fs []*exec.Func
-	for _, name := range names {
+	for _, name := range names(m) {
 		o := m.Op(name)
-		f := m.AddFunc(ExpBindingName(name), o.Params, o.Results, nil, func(b *exec.Builder) {
+		f := m.AddFunc(ExpBindingName(name), o.Params, o.Results, o.Features, func(b *exec.Builder) {
 			args := make([]exec.Expr, len(o.Params))
 			for i, p := range o.Params {
 				args[i] = exec.L(p.Name)
@@ -71,9 +81,9 @@ func expBindings() (*exec.Module, []*exec.Func) {
 	return m, fs
 }
 
-// bindingFile prints the bindings with the target t into a Go file of package pkg.
-func bindingFile(pkg string, t *execgo.Target) (string, error) {
-	m, fs := expBindings()
+// bindingFile prints the bindings that bind returns with the target t into a Go file of package pkg.
+func bindingFile(pkg string, t *execgo.Target, bind func() (*exec.Module, []*exec.Func)) (string, error) {
+	m, fs := bind()
 	name := t.FuncName
 	t.FuncName = func(n string) string {
 		if strings.HasPrefix(n, "conf") {
@@ -95,10 +105,23 @@ func bindingFile(pkg string, t *execgo.Target) (string, error) {
 
 // EngineExpBindings returns the Go test file of the conformance bindings of the expectation record
 // for package core of the engine.
-func EngineExpBindings() (string, error) { return bindingFile("core", engineTarget()) }
+func EngineExpBindings() (string, error) { return bindingFile("core", engineTarget(), expBindings) }
 
 // GoExpBindings returns the Go test file of the conformance bindings of the expectation record for
 // package runtime, for the node runtime's Parser.
 func GoExpBindings() (string, error) {
-	return bindingFile("runtime", goTarget(goSpec{fn: "expect", name: "Expect"}))
+	return bindingFile("runtime", goTarget(goSpec{fn: "expect", name: "Expect"}), expBindings)
+}
+
+// GoObsBindingsFile is the file of the conformance bindings of the observation that the test of the
+// runtime prints, relative to the copy of the runtime.
+const GoObsBindingsFile = "obs_bind_exec_test.go"
+
+// GoObsBindings returns the Go test file of the conformance bindings of the observation for package
+// runtime, for the node runtime's Parser. The engine has no observation of this kind: it traces a call
+// on a path of its own.
+func GoObsBindings() (string, error) {
+	return bindingFile("runtime", goTarget(goSpec{fn: "expect", name: "Expect"}), func() (*exec.Module, []*exec.Func) {
+		return bindingsOf(func(*exec.Module) []string { return obsBindingOps })
+	})
 }

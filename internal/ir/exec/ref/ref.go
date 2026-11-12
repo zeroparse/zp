@@ -36,6 +36,8 @@ type Config struct {
 	RuleVars [][]int64
 	// NoExpectations makes a parse that does not record expectations (exp.recording is false).
 	NoExpectations bool
+	// Observed makes a parse that is observed (obs.active is true).
+	Observed bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -116,6 +118,9 @@ type Model struct {
 
 	// expected
 	exp expState
+
+	// observe
+	obs obsState
 }
 
 // Err is an Err handle of the model.
@@ -305,6 +310,9 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
+	}
+	if allowed, ok := m.allowsObs(o); ok {
+		return allowed
 	}
 	return m.allowsExp(o, args)
 }
@@ -508,6 +516,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return nil
 	}
 	if res, ok := m.callExp(o, args); ok {
+		return res
+	}
+	if res, ok := m.callObs(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
