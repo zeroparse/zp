@@ -63,7 +63,8 @@ const (
 	// QBody is the units that the evaluation of a rule's body that the call runs, and of the rule's
 	// action, charge, as the operations they call declare them.
 	QBody = "body"
-	// QCaptures is the number of the capture names of the rule of the call.
+	// QCaptures is, when the body of the call matched and the rule makes its value from its captures
+	// rather than with an action, the number of the capture names of the rule; zero otherwise.
 	QCaptures = "captures"
 	// QCaptureFields is, when a capture of the rule of the call matched, the number of its capture
 	// names and what setting the captures that matched as fields of the rule's value charges; zero

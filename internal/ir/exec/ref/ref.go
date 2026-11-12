@@ -481,10 +481,14 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 	case ops.QBody:
 		return m.bodyQuantity(o, args)
 	case ops.QCaptures:
-		return m.spec(args[0].(RuleRef).Index).Captures
+		// A scripted rule makes its value from its captures, which it searches only after a match.
+		i := args[0].(RuleRef).Index
+		if !m.next(i).OK {
+			return 0
+		}
+		return m.spec(i).Captures
 	case ops.QCaptureFields:
-		// A scripted body sets no capture, so no capture matches.
-		return 0
+		return m.captureFields(args[0].(RuleRef).Index)
 	case ops.QErrs:
 		return m.errsQuantity(o, args)
 	case ops.QTokens:

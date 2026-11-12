@@ -65,7 +65,13 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		r.Memo, r.DocMemo, r.Leader, r.Positional, r.Rec = s.Memo, s.DocMemo, s.Leader, s.Positional, s.Rec
 		r.Scope = nil
 		for k := range s.Captures {
-			r.Scope = append(r.Scope, fmt.Sprint("c", k))
+			r.Scope = append(r.Scope, ref.CaptureName(k))
+		}
+		// Every other rule's value is the tuple of the body's one element, as a sequence's is, so that
+		// the suite also holds the shaping of a value to the cost of the call.
+		r.Value = Shaper{}
+		if i%2 == 1 {
+			r.Value = Shaper{K: 1, Tuple: true}
 		}
 		index := int64(i)
 		r.Body = func(p *Parser, min int) (*Node, bool) { return eval(index, p, min) }
@@ -89,6 +95,9 @@ func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*Node, bool) 
 	}
 	if e.Touch > 0 {
 		p.confDocTouch(start + int(e.Touch))
+	}
+	for _, k := range e.Captures {
+		p.Frame.Vals[k] = &Node{}
 	}
 	p.Pos = start + int(e.Len)
 	if !e.OK {
@@ -165,7 +174,9 @@ var ruleRuntimeOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "
 	"rec.mark", "rec.truncate"}, conform.DocOps...)
 
 // ruleSuites are the suites of the runtime's operations of the rules. The controlled suite checks the
-// charges against the cost bounds.
+// charges against the cost bounds, but not to the unit: the runtime's call charges the unit of a call
+// before it invokes the rule, so that rule.invoke and rule.invokePlain charge one unit less than their
+// cost.
 func ruleSuites() []conform.Suite {
 	s := conform.Suite{Name: "node runtime rules", Ops: ruleRuntimeOps,
 		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
