@@ -11,7 +11,8 @@ import (
 )
 
 // costViewPorted are the rules that the cost view built on Core IR (internal/complexity) applies.
-var costViewPorted = []complexity.Law{complexity.N1, complexity.N2, complexity.N4, complexity.N6}
+var costViewPorted = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, complexity.N4, complexity.N6,
+	complexity.N8, complexity.N12}
 
 // TestCostViewMatchesCases checks the cost view built on Core IR against the view of this package
 // on the grammars of the view's unit tests, which reach the conditions of the rules that the
@@ -24,6 +25,9 @@ func TestCostViewMatchesCases(t *testing.T) {
 		srcs = append(srcs, "rule main = "+c.body+normalViewHelpers)
 	}
 	for _, c := range predicateCaptureCases {
+		srcs = append(srcs, c.src+"\n")
+	}
+	for _, c := range cheapRuleCases {
 		srcs = append(srcs, c.src+"\n")
 	}
 	for _, c := range valueFlowCases {
