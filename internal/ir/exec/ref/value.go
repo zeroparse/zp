@@ -23,6 +23,8 @@ const (
 	KTuple
 	KStruct
 	KNode
+	// KUnknown is a value that the caller of an evaluation does not know yet (see Unknown).
+	KUnknown
 )
 
 // V is a value of a term, tagged by its kind and held in the most naive form: an int is an int64, a
@@ -101,6 +103,8 @@ func (v V) TypeName() string {
 		return "(" + strings.TrimSuffix(strings.Repeat("_, ", len(v.Items)), ", ") + ")"
 	case KStruct:
 		return v.Type
+	case KUnknown:
+		return "unknown"
 	}
 	if v.Type != "" {
 		return v.Type // a named node type
