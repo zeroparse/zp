@@ -410,7 +410,8 @@
         "spec/core-ir/terms.md",
         "spec/core-ir/attributes.md",
         "spec/core-ir/invariants.md",
-        "spec/core-ir/text-form.md"
+        "spec/core-ir/text-form.md",
+        "spec/core-ir/cost-view.md"
       ]
     },
     {
