@@ -61,14 +61,7 @@ func (m *Model) callMissing(o *exec.Op, args []any) ([]any, bool) {
 	case "missing.mark":
 		return []any{int64(len(s.path))}, true
 	case "missing.reset":
-		if !m.cfg.Missing {
-			return nil, true
-		}
-		mark := args[0].(int64)
-		for _, t := range s.path[mark:] {
-			delete(s.installed, [2]int64{t.site, t.pos})
-		}
-		s.path = s.path[:mark]
+		m.resetMissing(args[0].(int64))
 		return nil, true
 	case "missing.replay":
 		e := args[0].(*Entry)
@@ -94,19 +87,37 @@ func (m *Model) callMissing(o *exec.Op, args []any) ([]any, bool) {
 		}
 		return nil, true
 	case MissingInsertOp:
-		t := missingToken{args[0].(int64), args[1].(int64), args[2].(*Err)}
-		if s.installed[[2]int64{t.site, t.pos}] {
-			return []any{false}, true
-		}
-		s.install(t)
-		m.rec = append(slices.Clip(m.rec), t.err.list())
-		return []any{true}, true
+		return []any{m.insertMissing(missingToken{args[0].(int64), args[1].(int64), args[2].(*Err)})}, true
 	case MissingSeedOp:
 		e := args[0].(*Entry)
 		e.seed = slices.Clone(s.path[args[1].(int64):])
 		return nil, true
 	}
 	return nil, false
+}
+
+// insertMissing inserts the token t and records its error, unless a token is at its site and
+// position, and reports whether it inserted it.
+func (m *Model) insertMissing(t missingToken) bool {
+	s := &m.missing
+	if s.installed[[2]int64{t.site, t.pos}] {
+		return false
+	}
+	s.install(t)
+	m.rec = append(slices.Clip(m.rec), t.err.list())
+	return true
+}
+
+// resetMissing removes the tokens inserted after mark, in the missing-token mode.
+func (m *Model) resetMissing(mark int64) {
+	s := &m.missing
+	if !m.cfg.Missing {
+		return
+	}
+	for _, t := range s.path[mark:] {
+		delete(s.installed, [2]int64{t.site, t.pos})
+	}
+	s.path = s.path[:mark]
 }
 
 func (s *missingState) install(t missingToken) {
@@ -180,6 +191,21 @@ func (m *Model) tokensQuantity(o *exec.Op, args []any) int64 {
 		return int64(len(m.missing.path)) - args[0].(int64)
 	case "missing.replay":
 		return int64(len(args[0].(*Entry).seed))
+	case "rule.invokePlain":
+		// The tokens that a failed evaluation inserted, which the call removes.
+		e := m.next(args[0].(RuleRef).Index)
+		if !m.cfg.Missing || e.OK {
+			return 0
+		}
+		n, seen := int64(0), map[[2]int64]bool{}
+		for _, t := range e.Missing {
+			k := [2]int64{t.Site, t.Pos}
+			if !m.missing.installed[k] && !seen[k] {
+				n++
+			}
+			seen[k] = true
+		}
+		return n
 	}
 	panic("ref: no quantity tokens for " + o.Name)
 }

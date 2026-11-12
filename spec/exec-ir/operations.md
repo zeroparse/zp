@@ -194,16 +194,16 @@ The operations of the component `rules`.
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
-| `op rule.memo(r Rule) bool` | none | `0` | Reports whether the rule is memoized. |
+| `op rule.memo(r Rule) bool` | none | `0` | Reports whether the rule is memoized. A parse in the missing-token mode memoizes no rule that can insert a missing token. |
 | `op rule.leader(r Rule) bool` | none | `0` | Reports whether the rule leads a left-recursive cycle. |
 | `op rule.plain(r Rule) bool` | none | `0` | Reports whether the rule has no captures, so that its plain body serves its invocation. |
 | `op rule.docMemo(r Rule) bool` | none | `0` | Reports whether a Document parse memoizes the rule. |
-| `op rule.docOnlyMemo(r Rule) bool` | none | `0` | Reports whether a Document parse memoizes the rule and a parse from scratch does not. |
+| `op rule.docOnlyMemo(r Rule) bool` | none | `0` | Reports whether a Document parse memoizes the rule and a parse from scratch does not; never for a rule that can insert a missing token in a parse in the missing-token mode. |
 | `op rule.docPlain(r Rule) bool` | none | `0` | Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol. |
 | `op rule.positional(r Rule) bool` | none | `0` | Reports whether the results of the rule may depend on positions, not only on the input they examine. |
 | `op rule.id(r Rule) int` | none | `0` | Returns the rule's index, the rule of its memo keys. |
-| `op rule.invoke(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `1 + 1*captures + 1*capture_fields + 1*body` | Runs the rule's body at the binding level min in a frame of its own and makes the rule's value; on failure the position is unspecified. The evaluation counts in the statistics of a Document parse, and that of a rule on a cycle of calls takes a nesting level while it runs. |
-| `op rule.invokePlain(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `1 + 1*body` | Runs the plain body of a rule without captures and returns its result, at the start position and without the errors it recovered on failure. The evaluation counts as rule.invoke's does. Requires: rule.plain is true of r. |
+| `op rule.invoke(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `1 + 1*captures + 1*capture_fields + 1*body` | Runs the rule's body at the binding level min in a frame of its own and makes the rule's value; on failure the position is unspecified. The evaluation counts in the statistics of a Document parse, and that of a rule on a cycle of calls takes a nesting level while it runs. The unit of the call is charged before the nesting level is taken, so that a call that both the budget and the nesting limit stop stops on the budget. |
+| `op rule.invokePlain(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `1 + 1*body + 1*tokens` | Runs the plain body of a rule without captures and returns its result, at the start position and without the errors it recovered on failure; in the missing-token mode a failure also removes the missing tokens that the body inserted, as missing.reset does. The evaluation counts, and the unit of the call comes before the nesting level, as in rule.invoke. Requires: rule.plain is true of r. |
 | `transitional op rule.run(inv Body) (Value, bool) noreturn` | writes rules, pos, silent | `0 + 1*body` | Runs the invocation inv of a rule at binding level 0 and returns its result; on failure the position is unspecified. The evaluation does not count in the statistics of a Document parse, which the caller counts with doc.evaluated. |
 | `transitional op opr.led(r Rule) Operators` | none | `0` | Returns the infix and postfix operators of the Operators Rule r, in declaration order. |
 | `transitional op opr.prefix(r Rule) Operators` | none | `0` | Returns the prefix operators of the Operators Rule r, in declaration order. |

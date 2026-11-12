@@ -577,7 +577,7 @@ op rule.memo(r Rule) bool
   component rules
   cost <= 0
   contract:
-    // Reports whether the rule is memoized.
+    // Reports whether the rule is memoized. A parse in the missing-token mode memoizes no rule that can insert a missing token.
 
 op rule.leader(r Rule) bool
   component rules
@@ -601,7 +601,7 @@ op rule.docOnlyMemo(r Rule) bool
   component rules
   cost <= 0
   contract:
-    // Reports whether a Document parse memoizes the rule and a parse from scratch does not.
+    // Reports whether a Document parse memoizes the rule and a parse from scratch does not; never for a rule that can insert a missing token in a parse in the missing-token mode.
 
 op rule.docPlain(r Rule) bool
   component rules
@@ -629,16 +629,20 @@ op rule.invoke(r Rule, min int) (Value, bool)
   contract:
     // Runs the rule's body at the binding level min in a frame of its own and makes the rule's
     // value; on failure the position is unspecified. The evaluation counts in the statistics of a Document
-    // parse, and that of a rule on a cycle of calls takes a nesting level while it runs.
+    // parse, and that of a rule on a cycle of calls takes a nesting level while it runs. The unit of the call
+    // is charged before the nesting level is taken, so that a call that both the budget and the nesting
+    // limit stop stops on the budget.
 
 op rule.invokePlain(r Rule, min int) (Value, bool)
   component rules
   writes rules, pos, silent
   noreturn
-  cost <= 1 + 1*body
+  cost <= 1 + 1*body + 1*tokens
   contract:
     // Runs the plain body of a rule without captures and returns its result, at the start
-    // position and without the errors it recovered on failure. The evaluation counts as rule.invoke's does.
+    // position and without the errors it recovered on failure; in the missing-token mode a failure also
+    // removes the missing tokens that the body inserted, as missing.reset does. The evaluation counts, and
+    // the unit of the call comes before the nesting level, as in rule.invoke.
   requires:
     // rule.plain is true of r.
 

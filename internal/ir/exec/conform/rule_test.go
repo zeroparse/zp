@@ -14,6 +14,7 @@ func (m modelImpl) Body(index int64) any { return ref.BodyRef{Index: index} }
 // ruleMutant breaks one operation of the rules of the model, with the registers at hand.
 type ruleMutant struct {
 	modelImpl
+	cfg  ref.Config
 	regs map[string]any
 	op   string
 	edit func(m *ruleMutant, args []any) []any
@@ -31,6 +32,14 @@ func (m *ruleMutant) Call(o *exec.Op, args []any) []any {
 	return m.Model.Call(o, args)
 }
 
+// spec returns what the configuration says of the rule of the arguments.
+func (m *ruleMutant) spec(a []any) ref.RuleSpec {
+	if i := a[0].(ref.RuleRef).Index; int(i) < len(m.cfg.RuleSpecs) {
+		return m.cfg.RuleSpecs[i]
+	}
+	return ref.RuleSpec{}
+}
+
 func (m *ruleMutant) call(name string, args ...any) []any {
 	return m.Model.Call(ruleModule.Op(name), args)
 }
@@ -40,13 +49,13 @@ var ruleModule = RuleModule()
 // ruleSuite is a suite of the rules over the model, broken by mu if it is not nil, and of a target
 // whose Document parse takes the call protocol if callMemo.
 func ruleSuite(name string, callMemo bool, mu *ruleMutant) Suite {
-	return Suite{Name: name, Ops: append(append(append([]string{}, RuleOps...), RuleCaseOps...), DocOps...), DocCallMemo: callMemo,
-		New: func(c ref.Config) Impl {
+	return Suite{Name: name, Ops: append(append(append(append([]string{}, RuleOps...), RuleCaseOps...), DocOps...), append(RuleMissingOps, "budget.charge", "budget.used")...),
+		DocCallMemo: callMemo, New: func(c ref.Config) Impl {
 			if mu == nil {
 				return modelImpl{ref.New(c)}
 			}
 			b := *mu
-			b.modelImpl = modelImpl{ref.New(c)}
+			b.modelImpl, b.cfg = modelImpl{ref.New(c)}, c
 			return &b
 		}}
 }
@@ -54,7 +63,7 @@ func ruleSuite(name string, callMemo bool, mu *ruleMutant) Suite {
 // randomRule returns the randomized case of the rules with the seed: every third parse reads a
 // Document.
 func randomRule(seed uint64) Case {
-	return RandomRule("random", rand.New(rand.NewPCG(seed, 9)), append(append([]string{}, RuleOps...), RuleCaseOps...), 60, seed%3 == 2)
+	return RandomRule("random", rand.New(rand.NewPCG(seed, 9)), append(append(append([]string{}, RuleOps...), RuleCaseOps...), RuleMissingOps...), 60, seed%3 == 2)
 }
 
 func TestRuleCasesVerify(t *testing.T) {
@@ -187,6 +196,24 @@ func ruleMutants() map[string]*ruleMutant {
 			}
 			return r
 		}},
+		// The rules that can insert a missing token are memoized as in a parse outside the mode.
+		"memo ignores the missing-token mode": {op: "rule.memo", edit: func(m *ruleMutant, a []any) []any {
+			s := m.spec(a)
+			return []any{s.Memo || m.cfg.DocCallMemo && m.cfg.Document && s.DocMemo}
+		}},
+		"docOnlyMemo ignores the missing-token mode": {op: "rule.docOnlyMemo", edit: func(m *ruleMutant, a []any) []any {
+			s := m.spec(a)
+			return []any{s.DocMemo && !s.Memo && !s.Leader && (!m.cfg.DocCallMemo || m.cfg.Document)}
+		}},
+		"invokePlain leaves the tokens of a failure": {op: "rule.invokePlain", edit: func(m *ruleMutant, a []any) []any {
+			start, mark := pos(m), m.call("rec.mark")[0]
+			r := m.call("rule.invoke", a...)
+			if !r[1].(bool) {
+				m.regs[ops.Pos] = start
+				m.call("rec.truncate", mark)
+			}
+			return r
+		}},
 		"invokePlain keeps the position of a failure": {op: "rule.invokePlain", edit: func(m *ruleMutant, a []any) []any {
 			return m.call("rule.invoke", a...)
 		}},
@@ -214,5 +241,22 @@ func TestRuleMutantsFail(t *testing.T) {
 				t.Error("no randomized case detected the mutant")
 			}
 		})
+	}
+}
+
+// TestRuleCallOrderMutantFails is the negative control of the order of the limits in a call: the model
+// that takes the nesting level before the unit of the call fails a handwritten case. Randomized cases
+// charge the budget only through a metered implementation, which the model is not.
+func TestRuleCallOrderMutantFails(t *testing.T) {
+	for _, op := range []string{"rule.invoke", "rule.invokePlain"} {
+		mu := &ruleMutant{op: op, edit: func(m *ruleMutant, a []any) []any {
+			if m.spec(a).Rec && m.call("depth.current")[0].(int64) >= m.cfg.MaxDepth {
+				panic(exec.Interrupt{Reason: "nesting"})
+			}
+			return m.call(op, a...)
+		}}
+		if handwritten, _ := ruleFails(ruleSuite(op+" takes the nesting level first", false, mu)); !handwritten {
+			t.Errorf("%s: no handwritten case detected the mutant", op)
+		}
 	}
 }

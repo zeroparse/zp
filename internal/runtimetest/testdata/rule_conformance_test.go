@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
@@ -176,12 +177,13 @@ var ruleRuntimeOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "
 // ruleSuites are the suites of the runtime's operations of the rules. The controlled suite checks the
 // charges against the cost bounds, but not to the unit: the runtime's call charges the unit of a call
 // before it invokes the rule, so that rule.invoke and rule.invokePlain charge one unit less than their
-// cost.
+// cost, and a call that reaches them has paid its unit (conform.Suite.CallUnitBefore).
 func ruleSuites() []conform.Suite {
-	s := conform.Suite{Name: "node runtime rules", Ops: ruleRuntimeOps,
+	s := conform.Suite{Name: "node runtime rules", Ops: ruleRuntimeOps, CallUnitBefore: true,
 		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
 	controlled := s
 	controlled.Name = "node runtime rules, controlled"
+	controlled.Ops = append(slices.Clone(ruleRuntimeOps), rtBudgetOps...)
 	controlled.New = func(c ref.Config) conform.Impl { return newRuleMachine(c, true) }
 	return []conform.Suite{s, controlled}
 }
