@@ -236,6 +236,9 @@ func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 		if err != nil {
 			return nil, err
 		}
+		if b.origin != nil {
+			b.origin[body] = o
+		}
 		cr.Body = body
 		cr.Finish = core.Finish{Kind: core.FinishSplice}
 		if r.Action != nil && !r.Novalue {

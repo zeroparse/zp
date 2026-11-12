@@ -1208,31 +1208,10 @@ func exprSource(e grammar.Expr) grammar.SourceInfo {
 // exclusion of alternatives, needs. Without matching it is the view that the complexity
 // classifier reads. g must compile.
 func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*grammar.Grammar, error) {
-	control.Check()
-	if desugar.HasInlineAction(g, control) {
-		lowered, errs := desugar.LowerInlineActionsControlled(g, desugar.InlineNames{}, control)
-		if errs != nil {
-			return nil, errs
-		}
-		g = lowered
-	}
-	g, err := desugar.NormalizeAttributesControlled(g, false, control)
+	v, g, err := normalViewOf(g, matching, control)
 	if err != nil {
 		return nil, err
 	}
-	rules, errs := desugar.UniqueRules(g, control)
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	rf, err := classifierFacts(g, rules, control)
-	if err != nil {
-		return nil, err
-	}
-	opts := costView
-	if matching {
-		opts = viewOptions{labels: true, inline: true}
-	}
-	v := normalizeRules(rules, rf.an, rf.memo, opts, control)
 	byName := map[string]*grammar.RuleDef{}
 	for _, r := range v.rules {
 		byName[r.Name] = r
