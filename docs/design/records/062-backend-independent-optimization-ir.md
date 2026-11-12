@@ -679,7 +679,8 @@ stage of its first consumer, so its differential tests and negative controls run
    `noPlain` checks.
 5. **Closures**, in both families. Gate: unchanged results and engine event streams; event-free equality
    of the two families; `Compile` plus the first-use build of the inlined family within noise of today's
-   `Compile` in time and allocations, and the first-use build of the call-preserving family measured. Then remove the closure builder (`closure/builder.go`), its helpers, the term compilation of
+   `Compile` in time and allocations, and the first-use build of the call-preserving family measured; these
+   two measurements are made in M2, with the benchmark work. Then remove the closure builder (`closure/builder.go`), its helpers, the term compilation of
    `closure/eval.go` and `noPlain`. If `Compile` time
    regresses, the stage does not flip; the remedies to measure are building Core IR per rule on first use
    and skipping optimizing passes and closure construction for compilations that only report diagnostics,
