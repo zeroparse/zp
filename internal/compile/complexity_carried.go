@@ -46,7 +46,7 @@ func (k *classifier) checkCarriedGrowth() {
 				continue
 			}
 			seen[s.caller+"\x00"+r] = true
-			k.cause(ClassPoly, 2, s.caller, exprPos(s.ref),
+			k.cause(CauseRegrowth, ClassPoly, 2, s.caller, exprPos(s.ref),
 				"%s: the call %s at %s grows %s where %s grows, from the growing result of %s, so each step of the growth of %s grows %s again over the same input",
 				degreeText(ClassPoly, 2), r, at(s.caller, exprPos(s.ref)), r, sname, sname, sname, r)
 			break

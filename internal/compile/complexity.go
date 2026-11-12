@@ -47,9 +47,46 @@ func (c ComplexityClass) String() string {
 	return fmt.Sprintf("ComplexityClass(%d)", int(c))
 }
 
+// ComplexityCauseKind is the pattern of grammar that a cause comes from. Each kind but
+// CauseOther is a pattern that the recipe of linear rewrites (docs/cookbook/linear-rewrites.md)
+// shows a rewrite for.
+type ComplexityCauseKind uint8
+
+const (
+	// CauseOther is a reason for the class unknown, or a cause of a pattern that no rewrite covers.
+	CauseOther ComplexityCauseKind = iota
+	// CauseRestartedRepetition is a repetition that a failed alternative restarts inside the input
+	// it examined.
+	CauseRestartedRepetition
+	// CauseLookaheadScan is a lookahead whose scan restarts at every iteration of a repetition.
+	CauseLookaheadScan
+	// CauseRecoverySkip is a #recover skip expression walked again after the recovery fails.
+	CauseRecoverySkip
+	// CauseRegrowth is a left-recursive rule or an Operators Rule that grows again over the same
+	// input, or a construct evaluated in each step of such a growth.
+	CauseRegrowth
+	// CauseDivergingBinding is a binding of a variable that reads its earlier value, or that makes the
+	// number of values of the variables unbounded.
+	CauseDivergingBinding
+	// CauseSelfGrowingValue is a value built from its own earlier value, or copied more often than
+	// the input bounds.
+	CauseSelfGrowingValue
+)
+
+func (k ComplexityCauseKind) String() string {
+	names := [...]string{"other", "restarted repetition", "lookahead scan", "recovery skip", "regrowth",
+		"diverging binding", "self-growing value"}
+	if int(k) < len(names) {
+		return names[k]
+	}
+	return fmt.Sprintf("ComplexityCauseKind(%d)", int(k))
+}
+
 // ComplexityCause is one polynomial or exponential cause, at the scanning source,
 // binding or operation that causes it, or one reason for the class unknown.
 type ComplexityCause struct {
+	// Kind is the pattern the cause comes from; CauseOther for a reason.
+	Kind  ComplexityCauseKind
 	Class ComplexityClass
 	// Degree is k of a polynomial cause.
 	Degree int
@@ -594,8 +631,8 @@ func abbreviate(s string) string {
 	return s[:n] + "..."
 }
 
-func (k *classifier) cause(class ComplexityClass, degree int, rule string, pos grammar.Pos, format string, args ...any) {
-	k.causes = append(k.causes, ComplexityCause{Class: class, Degree: degree, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
+func (k *classifier) cause(kind ComplexityCauseKind, class ComplexityClass, degree int, rule string, pos grammar.Pos, format string, args ...any) {
+	k.causes = append(k.causes, ComplexityCause{Kind: kind, Class: class, Degree: degree, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
 }
 
 func (k *classifier) reason(rule string, pos grammar.Pos, format string, args ...any) {
@@ -603,7 +640,7 @@ func (k *classifier) reason(rule string, pos grammar.Pos, format string, args ..
 }
 
 func (k *classifier) envCause(rule string, pos grammar.Pos, format string, args ...any) {
-	k.env = append(k.env, ComplexityCause{Class: ClassLinearEnv, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
+	k.env = append(k.env, ComplexityCause{Kind: CauseDivergingBinding, Class: ClassLinearEnv, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
 }
 
 func degreeText(class ComplexityClass, degree int) string {

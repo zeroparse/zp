@@ -17,6 +17,30 @@ import (
 // cannot prove linear.
 const linearRewrites = "https://zeroparse.dev/docs/cookbook/linear-rewrites/"
 
+// A rewrite is the advice of the recipe of linear rewrites for one kind of cause: the rewrite in a
+// few words and the anchor of its section.
+type rewrite struct{ advice, section string }
+
+// rewrites holds the rewrite of each kind of cause that the recipe has a section for, with the
+// advice of the section's row in the recipe's table.
+var rewrites = map[compile.ComplexityCauseKind]rewrite{
+	compile.CauseRestartedRepetition: {"scan once: put the scan and what may follow it in one alternative", "a-repetition-restarted-after-backtracking"},
+	compile.CauseLookaheadScan:       {"check once after the scan instead of at every iteration", "a-lookahead-over-a-scan"},
+	compile.CauseRecoverySkip:        {"write the repetition inside skip=", "a-recovery-skip-followed-by-failure"},
+	compile.CauseRegrowth:            {"call the rule once at a position: factor the caller", "a-left-recursive-rule-or-an-operators-rule-called-again-and-again"},
+	compile.CauseDivergingBinding:    {"bind a value that does not depend on the earlier value", "diverging-variable-bindings"},
+	compile.CauseSelfGrowingValue:    {"keep a count or another property of the value instead of the value", "self-growing-values"},
+}
+
+// rewriteOf returns the advice for a cause of kind k and the link to the recipe's section for it.
+// A kind the recipe has no section for gets general advice and the link to the recipe.
+func rewriteOf(k compile.ComplexityCauseKind) (advice, link string) {
+	if r, ok := rewrites[k]; ok {
+		return r.advice, linearRewrites + "#" + r.section
+	}
+	return "rewrite it so that the cost stays linear", linearRewrites
+}
+
 // checkDeclaredLinear checks the declarations of linear cost of g, which compiles: @linear on the
 // package clause declares every start rule linear, and @linear on a rule declares that rule linear,
 // classified as if parsing began at it. Each declaration covers every rule its start reaches. A
@@ -44,7 +68,10 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 	seen := map[key]bool{}
 	var out diag.ErrorList
 	check := func(subject string, at grammar.Pos, c *compile.Complexity) {
-		report := func(cause compile.ComplexityCause, format string) {
+		// report reports cause with format, whose verbs are the subject, the message of the cause,
+		// the advice and the link to the recipe's section for the kind of the cause. The advice is
+		// the section's, or advice when it is not empty.
+		report := func(cause compile.ComplexityCause, advice, format string) {
 			control.Poll()
 			pos := cause.Pos
 			if !pos.IsValid() {
@@ -58,7 +85,11 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 				return // another declaration reported the same cause
 			}
 			seen[k] = true
-			out = append(out, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, subject, cause.Message, linearRewrites)})
+			sectionAdvice, link := rewriteOf(cause.Kind)
+			if advice == "" {
+				advice = sectionAdvice
+			}
+			out = append(out, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, subject, cause.Message, advice, link)})
 		}
 		switch c.Class {
 		case compile.ClassLinear:
@@ -68,7 +99,8 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 				break
 			}
 			for _, env := range c.Env {
-				report(env, "%s is declared @linear, but its cost is linear only given a bound on the values of the variables: %s; keep the values of the variables bounded (see %s)")
+				// The section's advice is for a binding that diverges; a bound on the values suffices here.
+				report(env, "keep the values of the variables bounded", "%s is declared @linear, but its cost is linear only given a bound on the values of the variables: %s; %s (see %s)")
 			}
 			return
 		default:
@@ -76,10 +108,10 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 				break
 			}
 			for _, cause := range c.Causes {
-				report(cause, "%s is declared @linear, but %s; rewrite it so that the cost stays linear (see %s)")
+				report(cause, "", "%s is declared @linear, but %s; %s (see %s)")
 			}
 			for _, reason := range c.Reasons {
-				report(reason, "%s is declared @linear, but the classifier cannot prove its cost linear: %s; rewrite it so that the cost stays linear (see %s)")
+				report(reason, "", "%s is declared @linear, but the classifier cannot prove its cost linear: %s; %s (see %s)")
 			}
 			return
 		}

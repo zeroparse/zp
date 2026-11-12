@@ -872,7 +872,7 @@ func (k *classifier) checkFoldGrowth(call *grammar.Call, lam *grammar.Lambda, tc
 	}
 	pos := termPosOf(call)
 	if exp {
-		k.cause(ClassExp, 0, tc.rule, pos, "%s: the value of the lambda of %s at %s can hold its accumulator %s more than once, which can double it on each step",
+		k.cause(CauseSelfGrowingValue, ClassExp, 0, tc.rule, pos, "%s: the value of the lambda of %s at %s can hold its accumulator %s more than once, which can double it on each step",
 			degreeText(ClassExp, 0), k.showTerm(call), at(tc.rule, pos), lam.Params[0])
 		return
 	}
@@ -886,6 +886,6 @@ func (k *classifier) checkFoldGrowth(call *grammar.Call, lam *grammar.Lambda, tc
 			k.showTerm(call), at(tc.rule, pos))
 		return
 	}
-	k.cause(ClassPoly, d, tc.rule, pos, "%s: the steps of %s at %s build values that grow with the steps, the input and its accumulator %s",
+	k.cause(CauseSelfGrowingValue, ClassPoly, d, tc.rule, pos, "%s: the steps of %s at %s build values that grow with the steps, the input and its accumulator %s",
 		degreeText(ClassPoly, d), k.showTerm(call), at(tc.rule, pos), lam.Params[0])
 }

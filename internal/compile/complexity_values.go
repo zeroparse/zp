@@ -967,7 +967,7 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 	} else if all.sum >= 2 {
 		// The copies of the elements of a list over the evaluations of the lambda add up to the
 		// sum of their sizes.
-		k.cause(ClassPoly, all.sum, tc.rule, pos, "%s: %s at %s copies elements whose sizes add up to more than the input",
+		k.cause(CauseSelfGrowingValue, ClassPoly, all.sum, tc.rule, pos, "%s: %s at %s copies elements whose sizes add up to more than the input",
 			degreeText(ClassPoly, all.sum), text, at(tc.rule, pos))
 	}
 	if n, count := worst(all.acc); count > 0 {
@@ -981,19 +981,19 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 			k.reason(tc.rule, pos, "%s at %s copies the fold accumulator %s in runs whose number the classifier does not bound",
 				text, at(tc.rule, pos), n)
 		} else {
-			k.cause(class, degree, tc.rule, pos, "%s: %s at %s copies the fold accumulator %s%s",
+			k.cause(CauseSelfGrowingValue, class, degree, tc.rule, pos, "%s: %s at %s copies the fold accumulator %s%s",
 				degreeText(class, degree), text, at(tc.rule, pos), n, times(count))
 		}
 	} else if n, count := worst(all.rec); count > 0 && !doubles {
 		// A copy of the value of a call on the recursion costs its size, which adds up over the
 		// levels of the recursion to at most its size degree plus one, however many times it is
 		// copied, unless the copies double the value itself (below).
-		k.cause(ClassPoly, 2, tc.rule, pos, "%s: %s at %s copies %s, which holds a call on a recursion with rule %s%s",
+		k.cause(CauseSelfGrowingValue, ClassPoly, 2, tc.rule, pos, "%s: %s at %s copies %s, which holds a call on a recursion with rule %s%s",
 			degreeText(ClassPoly, 2), text, at(tc.rule, pos), n, tc.rule, times(count))
 	}
 	if doubles {
 		n, count := worst(all.held)
-		k.cause(ClassExp, 0, tc.rule, pos, "%s: %s at %s copies %s%s into the value of rule %s, and %s holds a call on a recursion whose value holds the value of rule %s, so the value can double on each level of the recursion",
+		k.cause(CauseSelfGrowingValue, ClassExp, 0, tc.rule, pos, "%s: %s at %s copies %s%s into the value of rule %s, and %s holds a call on a recursion whose value holds the value of rule %s, so the value can double on each level of the recursion",
 			degreeText(ClassExp, 0), text, at(tc.rule, pos), n, times(count), tc.rule, n, tc.rule)
 	}
 	if all.outer {
@@ -1011,7 +1011,7 @@ func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all con
 	}
 	if all.unbounded || len(all.rec) > 0 || len(all.acc) > 0 {
 		s := &source{rule: tc.rule, pos: pos, what: "the copying operation " + text}
-		k.addSource(tc.c, pos, s.what)
+		k.addSource(tc.c, pos, CauseOther, s.what)
 		if tc.pred != nil && k.predicateSource[tc.pred] == nil {
 			k.predicateSource[tc.pred] = s
 		}
@@ -1211,7 +1211,11 @@ func (k *classifier) checkValues() {
 			continue
 		}
 		if via, ok := k.reaches(b, false); ok {
-			k.cause(ClassExp, 0, b.rule, pos, "%s: the binding %s at %s reads the earlier value of %s, and %s evaluates the binding again with the value it binds",
+			kind := CauseDivergingBinding
+			if k.bindingDoubles(b) {
+				kind = CauseSelfGrowingValue // the value grows, whatever the memo shares
+			}
+			k.cause(kind, ClassExp, 0, b.rule, pos, "%s: the binding %s at %s reads the earlier value of %s, and %s evaluates the binding again with the value it binds",
 				degreeText(ClassExp, 0), text, at(b.rule, pos), b.b.Name, via)
 		}
 	}
@@ -1223,25 +1227,31 @@ func (k *classifier) checkValues() {
 func (k *classifier) growingBindings() []GrowingBinding {
 	var out []GrowingBinding
 	for _, b := range k.binds {
-		v := b.b.Name
-		if k.varType[v] != "string" {
-			continue
-		}
-		n := 0
-		for _, x := range k.joined(b.b.Value, nil) {
-			if r, ok := ungroupTerm(x).(*grammar.VarRef); ok && r.Name == v {
-				n++
-			}
-		}
-		if n < 2 {
+		if !k.bindingDoubles(b) {
 			continue
 		}
 		if _, ok := k.reaches(b, true); !ok || !k.canHoldNonEmpty(b) {
 			continue
 		}
-		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: v, Text: grammar.FormatTerm(b.b)})
+		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: grammar.FormatTerm(b.b)})
 	}
 	return out
+}
+
+// bindingDoubles reports whether b binds a string variable to a value that joins the variable's
+// own value at least twice, which can double its size at each evaluation.
+func (k *classifier) bindingDoubles(b *binding) bool {
+	v := b.b.Name
+	if k.varType[v] != "string" {
+		return false
+	}
+	n := 0
+	for _, x := range k.joined(b.b.Value, nil) {
+		if r, ok := ungroupTerm(x).(*grammar.VarRef); ok && r.Name == v {
+			n++
+		}
+	}
+	return n >= 2
 }
 
 // canHoldNonEmpty reports whether the variable of the binding can hold a non-empty value at it:
