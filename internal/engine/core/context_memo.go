@@ -61,6 +61,7 @@ const (
 	CtxStaleReplay                // a reuse replays the seeds its observations read where they were made
 	CtxNoReplayObs                // a reuse passes on only the seeds its observations read where they were made
 	CtxCapDeps                    // a result with more than maxCtxDeps dependencies is not stored
+	CtxNarrowPresent              // a context whose present set needs more than a word records nothing
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -69,7 +70,8 @@ type growRec struct {
 	seed  *MemoEntry
 	id    uint64
 	bit   uint64 // Rule.LeaderBit
-	cycle int    // Rule.Cycle
+	idx   int32  // Rule.LeaderIndex
+	cycle int32  // Rule.Cycle
 }
 
 // depKind is the kind of a dependency.
@@ -278,7 +280,7 @@ func (p *Parser) strictCtx() bool {
 // another cycle, there is none.
 func (p *Parser) gammaAt(pos, cycle int) int {
 	i := len(p.Gamma)
-	for i > 0 && p.Gamma[i-1].key.Pos == pos && p.Gamma[i-1].cycle == cycle {
+	for i > 0 && p.Gamma[i-1].key.Pos == pos && int(p.Gamma[i-1].cycle) == cycle {
 		i--
 	}
 	return i
@@ -296,18 +298,75 @@ func (p *Parser) gammaFind(gp int, rule, min int, ms bool) int {
 	return -1
 }
 
-// present returns the present set of the context Gamma[gp:], and false if a leader in it has no
-// bit, so that the set cannot be told from others.
-func (p *Parser) present(gp int) (uint64, bool) {
+// presentWide tags the present set of a context with a leader that has no bit (Rule.LeaderBit): the
+// identity that intern gives the set, which no word of bits equals. A memo entry holds a word of
+// bits (MemoEntry.Present), so a result in such a context goes to the table of the context even if
+// it read no seed (ctxPop), and no entry answers a call there (ctxAllows).
+const presentWide uint64 = 1 << 63
+
+// The kinds of keys that intern holds.
+const (
+	internPresent = iota
+	internOutcome
+)
+
+// present returns the present set of the context Gamma[gp:]: the bits of its leaders, or the
+// identity of the set if a leader has no bit (presentWide).
+func (p *Parser) present(gp int) uint64 {
 	var m uint64
 	for i := gp; i < len(p.Gamma); i++ {
 		b := p.Gamma[i].bit
 		if b == 0 {
-			return 0, false
+			return p.presentWide(gp)
 		}
 		m |= b
 	}
-	return m, true
+	return m
+}
+
+// presentWide returns the identity of the present set of the context Gamma[gp:]: its words of bits,
+// by Rule.LeaderIndex, interned.
+func (p *Parser) presentWide(gp int) uint64 {
+	var w []uint64
+	for i := gp; i < len(p.Gamma); i++ {
+		p.Spend()
+		k := int(p.Gamma[i].idx)
+		for len(w) <= k/64 {
+			w = append(w, 0)
+		}
+		w[k/64] |= 1 << (k % 64)
+	}
+	key := make([]byte, 1, 1+8*len(w))
+	key[0] = internPresent
+	for _, x := range w {
+		key = binary.LittleEndian.AppendUint64(key, x)
+	}
+	return p.intern(key, presentWide)
+}
+
+// intern returns the identity of key: tag with a number that no other key has while a growth is in
+// progress. The identities are those of present sets and outcomes too large for a word; they appear
+// only in the context tables and dependencies of growths in progress, and the parser forgets them
+// when the last growth ends (GrowEnd).
+func (p *Parser) intern(key []byte, tag uint64) uint64 {
+	if v, ok := p.interned[string(key)]; ok {
+		return v
+	}
+	if p.interned == nil {
+		p.interned = map[string]uint64{}
+	}
+	p.Spend()
+	p.internSeq++
+	v := tag | p.internSeq
+	p.interned[string(key)] = v
+	p.MemUsed += internBytes + uint64(len(key))
+	return v
+}
+
+// recordsIn reports whether evaluations in a context with the present set present record their
+// dependencies, so that their results are kept.
+func (p *Parser) recordsIn(present uint64) bool {
+	return !p.ContextMemoOff && (ContextMemoMutation != CtxNarrowPresent || present&presentWide == 0)
 }
 
 // pushFrame starts recording the dependencies of an evaluation at pos, in the context of the
@@ -785,8 +844,8 @@ func (p *Parser) LookEnd(ok bool) {
 	}
 	val, ok2 := obsOutcome(ok, f.pos, examined, from)
 	gp := f.gp
-	present, known := p.present(gp)
-	ok2 = ok2 && known
+	present := p.present(gp)
+	ok2 = ok2 && p.recordsIn(present)
 	sd, _ := p.stored(ds)
 	if ok2 {
 		p.ctxStore(f.pos, gp, ctxHeadKey{kind: ctxLook, id: site, present: present}, sd, &ctxSlot{id: val})

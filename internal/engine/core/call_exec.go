@@ -257,7 +257,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 //
 // Printed from Exec IR function grow of internal/ir/exec/core.
 func (p *Parser) grow(r *Rule, min int) (*value.Node, bool) {
-	g := p.GrowBegin(p.GrowKey(r, min), r.LeaderBit, r.Cycle)
+	g := p.GrowBegin(p.GrowKey(r, min), r)
 	for {
 		if !p.GrowNext(&g) {
 			break
