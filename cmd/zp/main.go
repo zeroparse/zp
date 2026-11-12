@@ -137,7 +137,8 @@ Commands:
       syntax error expects. -optimize selects an optimization profile
       (speed, memory or size); -opt and -no-opt turn single optimizations
       on, off or to a count after the profile is applied; -print-after
-      writes the Core IR to standard error after the named passes. No
+      writes the Core IR or Flow IR to standard error after the named
+      steps and passes. No
       optimization option changes what the parser returns: "zp gen -h"
       lists the profiles, the optimizations and the pass names.
 
@@ -719,7 +720,7 @@ func isFlagSet(fs *flag.FlagSet, name string) bool {
 	return set
 }
 
-// genDiagnostics receives the Core IR that zp gen -print-after writes; tests replace it.
+// genDiagnostics receives the IR that zp gen -print-after writes; tests replace it.
 var genDiagnostics io.Writer = os.Stderr
 
 func genCmd(args []string, stdout io.Writer) error {
@@ -748,7 +749,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	optimize := fs.String("optimize", "", "optimization profile: "+profileHelp()+"; no profile changes what the parser returns")
 	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+iropt.Summaries())
 	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+iropt.Summaries())
-	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(iropt.PrintNames(), ", "))
+	printAfter := fs.String("print-after", "", "write the IR to standard error after the named steps and passes, separated by commas: build and the Core passes print the Core IR of each table, flow and the Flow passes each function printed from Flow IR; a pass that does not apply to the parser prints nothing: "+strings.Join(iropt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

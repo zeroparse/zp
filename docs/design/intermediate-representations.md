@@ -206,7 +206,8 @@ the budget charges go. It never changes meaning. A charge of one step is one res
 charges several steps, or the code points of a literal, with one call keeps them separate reservations: the runtime
 reserves a run that fits at once and, when the run does not fit, fails at the unit that does not, as the separate charges
 would, and reports that unit as the reservation that failed. Decisions about meaning are made on Core IR, and Flow IR optimizations may
-use the effects that Core IR computed to know what must be kept.
+use the effects that Core IR computed to know what must be kept. They run as passes of the Flow pipeline on each lowered
+function, with the Flow verifier after them, as described in [the optimization pipeline](optimization-pipeline.md).
 
 ## How Targets Use the Result
 

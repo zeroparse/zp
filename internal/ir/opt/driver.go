@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/flow"
 )
 
 // A Driver runs the pass pipelines of the IR under one Settings value: it turns the passes on and
@@ -17,7 +18,8 @@ type Driver struct {
 	// Opt holds the optimizations that are on.
 	Opt Settings
 	// PrintAfter lists the names (PrintNames) after which a unit is written to PrintTo; "all"
-	// selects every pass, and "build" the unit before the first pass.
+	// selects every step and pass, "build" the Core IR before the first Core pass and "flow" each
+	// Flow function before the first Flow pass.
 	PrintAfter []string
 	PrintTo    io.Writer
 	// VerifyEach verifies the unit after every pass instead of once at the end, so that the error
@@ -29,11 +31,14 @@ type Driver struct {
 	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that run a pipeline of
 	// their own.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	// FlowRun, if set, runs the Flow passes in place of flow.Run, for tests that run a pipeline of
+	// their own; table names the table of the function, as in the dumps.
+	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
 }
 
 // prints reports whether the unit is dumped after the named pass.
 func (d *Driver) prints(pass string) bool {
-	return d.PrintTo != nil && (slices.Contains(d.PrintAfter, pass) || slices.Contains(d.PrintAfter, "all"))
+	return d.PrintTo != nil && (slices.Contains(d.PrintAfter, pass) || slices.Contains(d.PrintAfter, PrintAll))
 }
 
 // RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the driver.
@@ -59,6 +64,37 @@ func (d *Driver) RunCore(table string, m *core.Module, mode core.Mode, local fun
 		}
 	}
 	if _, err := run(m, env, core.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}); err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+	return nil
+}
+
+// RunFlow runs the pipeline of Flow passes on the function f, which the lowering has verified, with
+// the optimizations of the driver; observe says that the parser reports its rules and skipped
+// alternatives (flow.Env). The function belongs to the table named table, which the printed Flow IR
+// is labeled with, as the dump of "flow" before the first pass. A failure is an internal error that
+// names the pass.
+func (d *Driver) RunFlow(table string, f *flow.Func, observe bool) error {
+	env := &flow.Env{Observe: observe, Flag: d.Opt.On}
+	var dump func(pass string, f *flow.Func)
+	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
+		dump = func(pass string, f *flow.Func) {
+			if pass == PrintBuild {
+				pass = PrintFlow
+			}
+			if d.prints(pass) {
+				fmt.Fprintf(d.PrintTo, "-- Flow IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, flow.String(f))
+			}
+		}
+	}
+	o := flow.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}
+	var err error
+	if d.FlowRun != nil {
+		_, err = d.FlowRun(table, f, env, o)
+	} else {
+		_, err = flow.Run(f, env, o)
+	}
+	if err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil
