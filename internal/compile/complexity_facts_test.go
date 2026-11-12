@@ -62,8 +62,33 @@ func classifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []*gra
 	return g, rules
 }
 
-// renderRuleFacts writes the rule facts of rules one line per rule, with the cycles numbered in
-// the order of their first rule, so that two numberings of the same cycles render alike.
+// testRuleFacts returns the rule facts of rules, the rules of g, for a test of the normal view,
+// which may take rules that the classifier would canonicalize first: the facts are those of the
+// canonical rules of g (classifierRules), by name. The view tests also take grammars that the
+// compiler rejects (a predicate that reads a capture out of its scope), of which Core IR cannot
+// be built; for those it takes the analyses of the grammar, with the leaders and the rules off
+// every cycle that are not transient memoized (none of those grammars has #missing).
+func testRuleFacts(t *testing.T, g *grammar.Grammar, rules []*grammar.RuleDef) *ruleFacts {
+	t.Helper()
+	canon, canonRules := classifierRules(t, g)
+	if rf, err := classifierFacts(canon, canonRules, nil); err == nil {
+		return rf
+	} else if _, cerr := compileStatic(starttest.MarkAll(g), Options{}, nil); cerr == nil {
+		t.Fatalf("no Core IR of a grammar that compiles: %v", err)
+	}
+	an := AnalyzeControlled(rules, nil)
+	transient := transientRules(rules, nil)
+	memo := map[string]bool{}
+	for _, r := range rules {
+		memo[r.Name] = an.leaders[r.Name] || !an.cyclic[r.Name] && !transient[r.Name]
+	}
+	return &ruleFacts{an: an, memo: memo, members: map[string]bool{}, vars: ruleVariables(rules)}
+}
+
+// renderRuleFacts writes the rule facts of rules that the analyses of the grammar compute too, one
+// line per rule, with the cycles numbered in the order of their first rule, so that two numberings
+// of the same cycles render alike. The memoized rules are checked against the compiled rules
+// instead (TestComplexityMemoPolicy).
 func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
 	var b strings.Builder
 	cycles := map[int]int{}
@@ -78,24 +103,21 @@ func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
 			}
 			cycle = c
 		}
-		fmt.Fprintf(&b, "%s nullable=%v succeeds=%v leader=%v cyclic=%v cycle=%d positional=%v recovering=%v memo=%v member=%v vars=%v\n",
+		fmt.Fprintf(&b, "%s nullable=%v succeeds=%v leader=%v cyclic=%v cycle=%d positional=%v recovering=%v vars=%v\n",
 			n, rf.an.nullable[n], rf.an.succeeding[n], rf.an.leaders[n], rf.an.cyclic[n], cycle, rf.an.positional[n],
-			rf.an.recovering[n] != "", rf.memo[n], rf.members[n], rf.vars[n])
+			rf.an.recovering[n] != "", rf.vars[n])
 	}
 	return b.String()
 }
 
 // astRuleFacts returns the rule facts of rules as the analyses of the grammar compute them.
 func astRuleFacts(rules []*grammar.RuleDef) *ruleFacts {
-	an := AnalyzeControlled(rules, nil)
-	memo, members := memoizedRules(rules, an, nil)
-	return &ruleFacts{an: an, memo: memo, members: members, vars: ruleVariables(rules)}
+	return &ruleFacts{an: AnalyzeControlled(rules, nil), vars: ruleVariables(rules)}
 }
 
 // TestClassifierFactsMatchAnalysis requires the rule facts that the classifier reads from the
 // Core IR module of a grammar to equal those that the analyses of the grammar compute, for every
-// grammar of the corpus, as written and with every rule a start rule (which makes rules
-// memoized that are otherwise transient).
+// grammar of the corpus, as written and with every rule a start rule.
 func TestClassifierFactsMatchAnalysis(t *testing.T) {
 	t.Parallel()
 	for path, src := range classifierCorpus(t) {
@@ -107,10 +129,7 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 			}
 			for _, g := range []*grammar.Grammar{parsed, starttest.MarkAll(parsed)} {
 				g, rules := classifierRules(t, g)
-				rf, err := classifierFacts(g, rules, nil)
-				if err != nil {
-					t.Fatal(err)
-				}
+				rf := testRuleFacts(t, g, rules)
 				if got, want := renderRuleFacts(rules, rf), renderRuleFacts(rules, astRuleFacts(rules)); got != want {
 					t.Errorf("facts differ\nfacts:\n%s\nanalysis:\n%s", got, want)
 				}
@@ -127,20 +146,17 @@ func TestClassifierFactsDetectsDifference(t *testing.T) {
 		t.Fatal(err)
 	}
 	g, rules := classifierRules(t, g)
-	rf, err := classifierFacts(g, rules, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rf := testRuleFacts(t, g, rules)
 	want := renderRuleFacts(rules, rf)
 	for _, flip := range []func(*ruleFacts){
 		func(f *ruleFacts) { f.an.leaders = map[string]bool{} },
-		func(f *ruleFacts) { f.memo["b"] = !f.memo["b"] },
+		func(f *ruleFacts) { f.vars = map[string][]string{"b": {"v"}} },
 		func(f *ruleFacts) { f.an.cyclic["b"], f.an.cycle["b"] = true, f.an.cycle["a"]+1 },
 	} {
 		mutant := *rf
 		an := *rf.an
 		an.leaders, an.cyclic, an.cycle = maps.Clone(an.leaders), maps.Clone(an.cyclic), maps.Clone(an.cycle)
-		mutant.an, mutant.memo = &an, maps.Clone(rf.memo)
+		mutant.an = &an
 		flip(&mutant)
 		if renderRuleFacts(rules, &mutant) == want {
 			t.Errorf("a changed fact renders alike:\n%s", want)

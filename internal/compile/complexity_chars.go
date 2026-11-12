@@ -142,9 +142,10 @@ func recoverSkip(e *grammar.Attributed) grammar.Expr {
 	return nil
 }
 
-// nullable reports whether e can succeed without consuming input. It over-approximates: a literal
-// with #missing can be inserted, and a repetition of a nullable element is nullable whatever its
-// minimum.
+// nullable reports whether e can succeed without consuming input when token insertion is enabled,
+// as the nullable rules (nullRule) are: a literal with #missing can be inserted, a repetition of a
+// nullable element is nullable whatever its minimum, and a #recover is nullable as its body (the
+// skip runs only when the body fails, and an empty skip does not recover).
 func (k *classifier) nullable(e grammar.Expr) bool {
 	k.control.Poll()
 	switch e := e.(type) {
@@ -188,12 +189,9 @@ func (k *classifier) nullable(e grammar.Expr) bool {
 	case *grammar.InlineAction:
 		return k.nullable(e.Expr)
 	case *grammar.Recovery:
-		return k.nullable(e.Expr) || k.nullable(e.Skip)
+		return k.nullable(e.Expr)
 	case *grammar.Attributed:
 		if hasPragma(e, "missing") {
-			return true
-		}
-		if skip := recoverSkip(e); skip != nil && k.nullable(skip) {
 			return true
 		}
 		return k.nullable(e.Expr)
@@ -333,18 +331,8 @@ func ungroup(e grammar.Expr) grammar.Expr {
 	}
 }
 
-// computeFirst computes the nullable rules and the first characters of every rule as fixed
-// points.
+// computeFirst computes the first characters of every rule as a fixed point.
 func (k *classifier) computeFirst() {
-	for changed := true; changed; {
-		changed = false
-		for _, r := range k.rules {
-			if !k.nullRule[r.Name] && k.nullable(r.Expr) {
-				k.nullRule[r.Name] = true
-				changed = true
-			}
-		}
-	}
 	for changed := true; changed; {
 		changed = false
 		for _, r := range k.rules {
