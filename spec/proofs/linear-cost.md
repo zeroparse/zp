@@ -3200,9 +3200,9 @@ and $|\varepsilon|$ is their number.
 
 **Lemma 16.** Let the start call of a parse match from $p$ to $q$. Its
 recovered errors, counted as often as they occur, number at most
-$D \, (2 (q - p) - 1)$ if $q > p$, and none if $q = p$, where $D$ depends only
+$D_\varepsilon \, (2 (q - p) - 1)$ if $q > p$, and none if $q = p$, where $D_\varepsilon$ depends only
 on the grammar. Outside a Document, $q - p \le C$, so listing them visits at
-most $4 D C$ lists.
+most $4 D_\varepsilon C$ lists.
 
 *Proof.* **Spans nest.** A child's span lies within its parent's, by
 [Positions do not decrease](../runtime/parsing.md#growths-of-left-recursion).
@@ -3264,24 +3264,24 @@ segments, where $N$ is the number of keys of
 at most $B$ calls by its Lemma 1.
 
 Between two calls of a segment, and above its first or below its last, the
-nodes are nested parts of one body: subexpressions, iterations of a
-repetition, or applications of operators of an Operators Rule. At most two
-applications have one span, because a prefix or postfix operator consumes
-input and an infix operator that consumes none ends the expression. So such a
-stretch holds at most $d + 2$ nodes, where $d$ is the greatest depth of the
-subexpressions of a rule body. Let $r \le d + 2$ be the greatest number of
+nodes are parts of one body, and a recovery node among them is the evaluation of
+a `#recover` expression of that body. Within one body a path of nodes enters one
+iteration of a repetition, one operand or operator part of an Operators Rule
+(which is a whole body, so no `#recover` wraps it), and one choice branch, so
+the recovery nodes of a stretch are evaluations of distinct `#recover`
+expressions, each nested in the one before. Let $d_\varepsilon$ be the greatest
+number of `#recover` expressions that enclose one another, the expression itself
+included, in a rule body, and $m \le d_\varepsilon$ the greatest number of
 recovery nodes that one stretch holds. The $N + 1$ segments hold at most $B + 1$
 stretches each, and the calls of a segment are not recovery nodes, so $\pi$
-holds at most $D = (N + 1)(B + 1)\,r$ recovery nodes.
+holds at most $D_\varepsilon = (N + 1)(B + 1)\,m$ recovery nodes, where $N$ and
+$B$ are those of Left-Recursion Growth.
 
 **The count.** The recovery nodes with one span lie on one path of that span,
-so at most $D = (N + 1)(B + 1)\,r$ of them share a span, and the distinct spans number at most
+so at most $D_\varepsilon = (N + 1)(B + 1)\,m$ of them share a span, and the distinct spans number at most
 $2 (q - p) - 1$; if $q = p$ no recovery node fits in the derivation.
 
-**Matched input.** The bound by $C$ is for a backend that counts compute
-units: the engine's three backends and the Go parsers generated with limit
-controls. A parser generated without them counts none, and for it only the
-first part of the lemma, the number of errors, holds. Outside a Document the
+**Matched input.** Outside a Document the
 parse starts with an empty memo and no record of a walk. Its position passes
 a character only where a terminal matches the character, which $C$ counts as
 input examined, or where it takes an outcome, a current result or a record that
@@ -3290,18 +3290,20 @@ this parse made earlier from such matches. A record of a
 characters ([Skip Runs](skip-runs.md#lemma-1-exactness) and
 [Cost](skip-runs.md#lemma-2-cost)); so is a record of a
 [run site](run-sites.md#lemma-1-exactness), counted by its
-[cost](run-sites.md#lemma-3-cost-before-hot), and a record of a scan site
+[cost once hot](run-sites.md#lemma-2-cost-once-hot), and a record of a scan site
 ([Exactness](run-sites.md#lemma-4-exactness-of-scan-records) and
 [Cost](run-sites.md#lemma-5-cost-of-scan-records)). The generated parsers keep
 records only for skip runs ([Scope](run-sites.md#scope)). So each of the
-$q - p$ characters was examined by a step that $C$ counts, and $q - p \le C$.
+$q - p$ characters was examined by a step that $C$ counts, on every backend, and $q - p \le C$. Listing charges no Compute, so
+the lists that it visits are not units.
 By Lemma 14 listing $k$ recovered errors visits at most $2k$ lists, so listing
-those of the outcome visits at most $4 D C$. $\square$
+those of the outcome visits at most $4 D_\varepsilon C$. $\square$
 
 **Scope.** The lemma holds in the units of the cost and for every grammar,
 without the conditions for linear cost. It excludes a parse with missing-token
 insertion and a parse that a limit stops. A stream lists a part of the errors
-of the parse of the input that it has read, so the bound holds for it too.
+of the parse of the input that it has read, since its commits change no
+evaluation, as in Lemma 15, so the bound holds for it too.
 
 A recovery inside the skip expression of another can share its span: with
 `rule item = ("a" ";") #recover(skip=inner)` and
@@ -3312,7 +3314,7 @@ step that a growth reads recur in the outcome, but each read keeps the step
 over a span shorter than that of the step that reads it, so the steps of one
 growth at one position add no errors over one span beyond the bound.
 
-In a Document the count is the same, at most $D \, (2 (q - p) - 1)$, but the
+In a Document the count is the same, at most $D_\varepsilon \, (2 (q - p) - 1)$, but the
 parse need not examine the input that it reuses, so the bound by $C$ does not
 follow. In the missing-token mode an insertion records an error over no input,
 and the parse records the errors of every reused result one by one; the lemma

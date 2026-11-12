@@ -354,8 +354,8 @@ counted ([linear cost proof](../proofs/linear-cost.md#lemma-16-errors-of-an-outc
 The memory that a parse allocates is at most proportional to its cost plus the
 input, because each memo entry, node and value is built by cost that is counted,
 and the list of recovered errors is at most a constant times the input. A parse
-with missing-token insertion is an exception to both, as below: no bound relates
-the number of its errors to the input or the cost.
+with missing-token insertion is an exception to both, as below: the specification
+gives no bound of the number of its errors by the input or the cost.
 The cost of a parse is measured in compute units, which
 differ between backends, and the budget of
 [compute limits](#cancellation-and-compute-limits) caps it. Each backend that
