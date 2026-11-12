@@ -68,9 +68,8 @@ type View struct {
 	replaces map[core.Node]core.Node
 }
 
-// Build returns the view of src with opts. It applies every rule but N7 and N13 so far; until it
-// applies every rule, the complexity classifier reads the view that compile.NormalView builds on
-// the grammar's rules.
+// Build returns the view of src with opts. Until the complexity classifier reads it, the
+// classifier reads the view that compile.NormalView builds on the grammar's rules.
 func Build(src *Source, opts Options, control *cancel.Control) *View {
 	m := *src.Module
 	m.Rules = make([]*core.Rule, len(src.Module.Rules))
