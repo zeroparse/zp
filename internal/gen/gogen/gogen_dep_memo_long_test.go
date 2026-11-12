@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
@@ -75,21 +76,28 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 	// The mutated runtimes have no limit controls.
 	gentest.PinOrdinary(t)
 	pkgs, rt := depMemoPackages(t, depMemoGenCases(t, 120))
-	// Every program is built and run by its own go command. They share one build cache, so the
-	// packages that a mutation leaves alone are built once, and run concurrently up to a bound
-	// that keeps the memory of their linkers in check.
+	// Every program is built by its own go command. They share one build cache, so the packages
+	// that a mutation leaves alone are built once, and the mutations run concurrently up to a
+	// bound that keeps the memory of their linkers in check. The runtime as it is runs first: its run time bounds those of the mutations, which may
+	// make the parsers exponential (the dependency cap does). A run stopped at the bound counts
+	// as a difference.
+	const flags = "-mod=mod -trimpath"
+	want, took, stopped, err := depMemoOutcomes(t, goBin, pkgs, rt, "", flags, 0)
+	if err != nil || stopped {
+		t.Fatalf("GOFLAGS %q: the runtime as it is: stopped %v: %v", flags, stopped, err)
+	}
+	limit := depMemoMutantLimit(took)
+	t.Logf("the runtime as it is ran %v; each mutation runs at most %v", took, limit)
 	sem := make(chan struct{}, 6)
 	type run struct {
-		flags, mutation string
-		out             string
-		err             error
+		mutation string
+		out      string
+		stopped  bool
+		err      error
 	}
 	var runs []*run
-	for _, flags := range []string{"-mod=mod -trimpath"} {
-		runs = append(runs, &run{flags: flags})
-		for name := range depMemoMutations {
-			runs = append(runs, &run{flags: flags, mutation: name})
-		}
+	for name := range depMemoMutations {
+		runs = append(runs, &run{mutation: name})
 	}
 	var wg sync.WaitGroup
 	for _, r := range runs {
@@ -98,24 +106,27 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			r.out, r.err = depMemoOutcomes(goBin, pkgs, rt, r.mutation, r.flags)
+			r.out, _, r.stopped, r.err = depMemoOutcomes(t, goBin, pkgs, rt, r.mutation, flags, limit)
 		}()
 	}
 	wg.Wait()
-	want := map[string]string{}
 	for _, r := range runs {
-		if r.err != nil {
-			t.Fatalf("GOFLAGS %q: mutation %q: %v", r.flags, r.mutation, r.err)
-		}
-		if r.mutation == "" {
-			want[r.flags] = r.out
+		switch {
+		case r.err != nil:
+			t.Errorf("GOFLAGS %q: mutation %q: %v", flags, r.mutation, r.err)
+		case r.stopped:
+			t.Logf("GOFLAGS %q: %s: detected: the run did not end within %v", flags, r.mutation, limit)
+		case r.out == want:
+			t.Errorf("GOFLAGS %q: %s: the mutation went undetected", flags, r.mutation)
 		}
 	}
-	for _, r := range runs {
-		if r.mutation != "" && r.out == want[r.flags] {
-			t.Errorf("GOFLAGS %q: %s: the mutation went undetected", r.flags, r.mutation)
-		}
-	}
+}
+
+// depMemoMutantLimit bounds the run of a mutated runtime of the dependency memo controls, given
+// how long the runtime as it is took on the same inputs: far more than the slowdown that a
+// loaded machine causes, and far less than an exponential run takes.
+func depMemoMutantLimit(took time.Duration) time.Duration {
+	return time.Minute + 20*took
 }
 
 // depMemoPackage is a generated package of a grammar of the dependency memo tests, without the
@@ -179,11 +190,13 @@ func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []ge
 // depMemoOutcomes writes the packages of depMemoPackages, with the runtime changed by the mutation
 // (none if ""), parses their inputs, untyped and typed, with a program built with the GOFLAGS flags
 // and returns the outcomes. The values record the rules that produced them: two step results that
-// differ only in that are different seeds.
-func depMemoOutcomes(goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile, mutation, flags string) (string, error) {
+// differ only in that are different seeds. The program runs for at most limit (no bound if
+// limit <= 0) and stops before the test's deadline; the results also give how long it ran and
+// whether it was stopped, with the outcomes printed by then.
+func depMemoOutcomes(t *testing.T, goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile, mutation, flags string, limit time.Duration) (string, time.Duration, bool, error) {
 	dir, err := os.MkdirTemp("", "depmemo-")
 	if err != nil {
-		return "", err
+		return "", 0, false, err
 	}
 	defer os.RemoveAll(dir)
 	write := func(name string, content []byte) error {
@@ -194,7 +207,7 @@ func depMemoOutcomes(goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile
 		return os.WriteFile(path, content, 0o644)
 	}
 	if err := write("go.mod", []byte("module depmemo\n\ngo 1.27.1\n")); err != nil {
-		return "", err
+		return "", 0, false, err
 	}
 	reps := depMemoMutations[mutation]
 	applied := make([]bool, len(reps))
@@ -203,7 +216,7 @@ func depMemoOutcomes(goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile
 		if mutation != "" {
 			for k, r := range reps {
 				if n := strings.Count(content, r[0]); n > 1 {
-					return "", fmt.Errorf("mutation %s: %q is not unique", mutation, r[0])
+					return "", 0, false, fmt.Errorf("mutation %s: %q is not unique", mutation, r[0])
 				} else if n == 1 {
 					content = strings.Replace(content, r[0], r[1], 1)
 					applied[k] = true
@@ -211,19 +224,19 @@ func depMemoOutcomes(goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile
 			}
 		}
 		if err := write(f.Path, []byte(content)); err != nil {
-			return "", err
+			return "", 0, false, err
 		}
 	}
 	for k, ok := range applied {
 		if !ok {
-			return "", fmt.Errorf("mutation %s: %q not in the runtime", mutation, reps[k][0])
+			return "", 0, false, fmt.Errorf("mutation %s: %q not in the runtime", mutation, reps[k][0])
 		}
 	}
 	var imports, calls strings.Builder
 	for _, p := range pkgs {
 		for _, f := range p.files {
 			if err := write(p.name+"/"+f.Path, f.Content); err != nil {
-				return "", err
+				return "", 0, false, err
 			}
 		}
 		fmt.Fprintf(&imports, "\t%q\n", "depmemo/"+p.name)
@@ -244,14 +257,32 @@ func show(n any, err error) {
 func main() {
 `+calls.String()+`}
 `)); err != nil {
-		return "", err
+		return "", 0, false, err
 	}
-	cmd := exec.Command(goBin, "run", ".")
+	// The program is built and then run, not run by go run, so that the process that a stop kills
+	// is the program itself.
+	buildCtx, cancelBuild := gentest.ChildContext(t, 0)
+	defer cancelBuild()
+	build := exec.CommandContext(buildCtx, goBin, "build", "-o", "depmemo.bin", ".")
+	build.Dir = dir
+	build.Env = append(os.Environ(), "GOFLAGS="+flags, "GOTOOLCHAIN=local")
+	build.WaitDelay = gentest.ChildWaitDelay
+	if out, err := build.CombinedOutput(); err != nil {
+		return "", 0, false, fmt.Errorf("go build: %v\n%s", err, out)
+	}
+	ctx, cancel := gentest.ChildContext(t, limit)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, filepath.Join(dir, "depmemo.bin"))
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS="+flags, "GOTOOLCHAIN=local")
+	cmd.WaitDelay = gentest.ChildWaitDelay
+	start := time.Now()
 	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("%v\n%s", err, out)
+	took := time.Since(start)
+	if err != nil && ctx.Err() != nil {
+		return string(out), took, true, nil
 	}
-	return string(out), nil
+	if err != nil {
+		return "", took, false, fmt.Errorf("%v\n%s", err, out)
+	}
+	return string(out), took, false, nil
 }
