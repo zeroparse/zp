@@ -123,8 +123,8 @@ docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/docume
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	sample/sample.go	1
 docs/design/records/038-structured-output-schema.md	gofile	grammar/ast.go	1
 docs/design/records/038-structured-output-schema.md	gofile	internal/engine/compiled_schema_test.go	1
-docs/design/records/038-structured-output-schema.md	gofile	internal/engine/output_schema_export_bench_test.go	2
-docs/design/records/038-structured-output-schema.md	gofile	internal/engine/output_schema_validate_bench_test.go	1
+docs/design/records/038-structured-output-schema.md	gofile	internal/schema/output_schema_export_bench_test.go	2
+docs/design/records/038-structured-output-schema.md	gofile	schema/output_schema_validate_bench_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/diff_bench_test.go	1
 docs/design/records/038-structured-output-schema.md	qualified	engine.Program	1
 docs/design/records/041-missing-token-recovery.md	codelink	runtime/runtime.go	1

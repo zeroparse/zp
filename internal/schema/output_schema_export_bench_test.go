@@ -1,4 +1,4 @@
-package engine
+package schema_test
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -29,15 +31,15 @@ func BenchmarkOutputSchemaExport(b *testing.B) {
 	}
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
-			g, err := parseTest(tc.source)
+			g, err := enginetest.Parse(tc.source)
 			if err != nil {
 				b.Fatal(err)
 			}
-			p, err := Compile(g, compile.Options{})
+			p, err := engine.Compile(g, compile.Options{})
 			if err != nil {
 				b.Fatal(err)
 			}
-			schema, err := outputSchemaPrototype(p, "main", false)
+			schema, err := enginetest.OutputSchema(p, "main", false)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -49,7 +51,7 @@ func BenchmarkOutputSchemaExport(b *testing.B) {
 				b.Run(fmt.Sprintf("JSON%t", serialize), func(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
-						s, err := outputSchemaPrototype(p, "main", false)
+						s, err := enginetest.OutputSchema(p, "main", false)
 						if err != nil {
 							b.Fatal(err)
 						}
