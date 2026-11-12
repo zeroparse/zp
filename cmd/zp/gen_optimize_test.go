@@ -107,6 +107,14 @@ func TestGenPrintAfter(t *testing.T) {
 	if n := strings.Count(all, " table after flow --"); n == 0 || n != strings.Count(flowIR, "-- Flow IR of ") {
 		t.Errorf("-print-after all prints %d lowered Flow functions, flow %d", n, strings.Count(flowIR, "-- Flow IR of "))
 	}
+	// exec prints each function printed from Exec IR, as lowered from Flow IR, and nothing else.
+	execIR := run("exec")
+	if !strings.Contains(execIR, "-- Exec IR of ") || !strings.Contains(execIR, " in the typed table after exec --\n") || strings.Contains(execIR, "-- Core IR") || strings.Contains(execIR, "-- Flow IR") {
+		t.Errorf("-print-after exec prints the wrong sections:\n%.300s", execIR)
+	}
+	if n := strings.Count(all, " table after exec --"); n == 0 || n != strings.Count(execIR, "-- Exec IR of ") {
+		t.Errorf("-print-after all prints %d lowered Exec functions, exec %d", n, strings.Count(execIR, "-- Exec IR of "))
+	}
 }
 
 // TestGenOpt checks -opt: it gives a value to an optimization after the profile and before -no-opt,

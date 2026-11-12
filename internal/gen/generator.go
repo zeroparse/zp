@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/ir/opt"
@@ -229,14 +230,28 @@ func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
 	if err != nil {
 		return nil, err
 	}
-	table := g.Table
-	if table == "trules" {
-		table = "typed"
-	}
-	if err := g.RunFlow(table, f, g.Observability); err != nil && g.FlowErr == nil {
+	if err := g.RunFlow(g.irTable(), f, g.Observability); err != nil && g.FlowErr == nil {
 		g.FlowErr = fmt.Errorf("function %s of table %s: %w", f.Name, g.Table, err)
 	}
 	return f, nil
+}
+
+// ExecPasses runs the pipeline of Exec passes on the module m that the lowering of a Flow IR function
+// made, labeled with the table being generated as FlowPasses labels it. A failure is kept as the
+// first internal error of the generation (FlowErr), which fails it.
+func (g *Generator) ExecPasses(m *exec.Module) {
+	if err := g.RunExec(g.irTable(), m, g.Observability); err != nil && g.FlowErr == nil {
+		g.FlowErr = fmt.Errorf("table %s: %w", g.Table, err)
+	}
+}
+
+// irTable is the name of the table being generated in the dumps of the IR: "typed" for the typed
+// rules, as Core IR names it, and the name of the table otherwise.
+func (g *Generator) irTable() string {
+	if g.Table == "trules" {
+		return "typed"
+	}
+	return g.Table
 }
 
 // FrameScope returns the scope of the frame whose slots the captures c name.

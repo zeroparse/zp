@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -39,6 +40,22 @@ func TestEveryFlowPassIsAFlag(t *testing.T) {
 	}
 }
 
+// Every pass of the Exec pipeline is an optimization that can be turned off, under its own name, and
+// no Exec pass has the name of a Core or Flow pass.
+func TestEveryExecPassIsAFlag(t *testing.T) {
+	for _, name := range exec.Pipeline.Names() {
+		if f, ok := lookup(name); !ok || f.Kind != ExecPass {
+			t.Errorf("pass %s is not a registered optimization of kind exec pass", name)
+		}
+		if slices.Contains(core.Pipeline.Names(), name) || slices.Contains(flow.Pipeline.Names(), name) {
+			t.Errorf("pass %s is also a Core or Flow pass", name)
+		}
+	}
+	if err := exec.Pipeline.Validate(); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestRegistryIsValid(t *testing.T) {
 	if err := check(Flags); err != nil {
 		t.Error(err)
@@ -54,6 +71,7 @@ func TestRegistryIsValid(t *testing.T) {
 		{"output change that is on", []Flag{{Name: "a", Doc: "x", Default: 1, ChangesOutput: true}}, "must be an opt-in"},
 		{"integer output change that is on", []Flag{{Name: "a", Doc: "x", Int: true, Default: 4, ChangesOutput: true}}, "must be an opt-in"},
 		{"name of a step", []Flag{{Name: PrintFlow, Kind: FlowPass, Doc: "x"}}, "name of a step"},
+		{"name of the Exec step", []Flag{{Name: PrintExec, Kind: ExecPass, Doc: "x"}}, "name of a step"},
 	} {
 		if err := check(c.flags); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want an error with %q", c.name, err, c.want)
@@ -119,8 +137,11 @@ func TestParsePrintAfter(t *testing.T) {
 		t.Errorf("unknown: %v", err)
 	}
 	// The names follow the order the steps run in: the Core build and passes, then the Flow lowering
-	// and passes.
-	want := append(append(append(append([]string{"build"}, core.Pipeline.Names()...), "flow"), flow.Pipeline.Names()...), "all")
+	// and passes, then the Exec lowering and passes.
+	want := append([]string{"build"}, core.Pipeline.Names()...)
+	want = append(append(want, "flow"), flow.Pipeline.Names()...)
+	want = append(append(want, "exec"), exec.Pipeline.Names()...)
+	want = append(want, "all")
 	if got := PrintNames(); !slices.Equal(got, want) {
 		t.Errorf("names %v, want %v", got, want)
 	}
