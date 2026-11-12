@@ -10,15 +10,15 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // Terms printed from Exec IR.
 //
-// A term of a kind that lower.Term lowers is printed from Exec IR: the calls of the compositions of the
+// A term of a kind that execlower.Term lowers is printed from Exec IR: the calls of the compositions of the
 // runtime (TermBinary, ...) with the failure of each checked after it, the leaves as the term printer
 // prints them. Any other term is printed by the term printer (term), whole.
 
@@ -54,8 +54,8 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 	if t == nil || g.fieldCompared(t) {
 		return "", false
 	}
-	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget})
-	if err == lower.ErrUnsupported {
+	l, err := execlower.Term(t, execlower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget})
+	if err == execlower.ErrUnsupported {
 		return "", false
 	}
 	if err != nil {
@@ -67,7 +67,7 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 }
 
 // actionBody returns the body of a function that returns the value of the term ct of Core IR, printed
-// from Exec IR if lower.Term lowers it, and otherwise the body that the term printer prints for t, the
+// from Exec IR if execlower.Term lowers it, and otherwise the body that the term printer prints for t, the
 // grammar term that ct is built from.
 func (g *Generator) actionBody(ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
 	if body, ok := g.loweredBody(ct, s, locals); ok {
@@ -118,7 +118,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 	return &execgo.Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
-			n, ok := core.GoTermExports[name]
+			n, ok := execcore.GoTermExports[name]
 			if !ok {
 				panic("gogen: the runtime does not export the composition " + name)
 			}
@@ -126,8 +126,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		},
 		Op: func(c *exec.Call, a []string) string {
 			switch c.Callee {
-			case lower.OpTermConst:
-				switch v := c.Imm.(lower.TermConst).Value.(type) {
+			case execlower.OpTermConst:
+				switch v := c.Imm.(execlower.TermConst).Value.(type) {
 				case nil:
 					return "any(nil)"
 				case string:
@@ -135,8 +135,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				default:
 					return fmt.Sprintf("any(%v)", v)
 				}
-			case lower.OpTermRead:
-				switch x := c.Imm.(lower.TermRead).Term.(type) {
+			case execlower.OpTermRead:
+				switch x := c.Imm.(execlower.TermRead).Term.(type) {
 				case *irc.SlotRef:
 					return g.term(&grammar.CaptureRef{Name: x.Name}, s, locals)
 				case *irc.Local:
@@ -144,48 +144,48 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				case *irc.VarRef:
 					return g.term(&grammar.VarRef{Name: x.Name}, s, locals)
 				}
-			case lower.OpTermCtx:
+			case execlower.OpTermCtx:
 				return "c"
-			case lower.OpTermName:
+			case execlower.OpTermName:
 				return strconv.Quote(c.Imm.(string))
-			case lower.OpTermField:
+			case execlower.OpTermField:
 				// The name is cut from the name of the member, as ActCtx.Member cuts it: compareTextControlled
 				// charges a constant for the same string data, and a literal of the bare name would share its
 				// data with the names of the captures, so a member would charge less here than in the runtime.
-				f := c.Imm.(lower.TermField)
+				f := c.Imm.(execlower.TermField)
 				if cut := len(f.Name) - len(f.Field); cut > 0 {
 					return fmt.Sprintf("%s[%d:]", strconv.Quote(f.Name), cut)
 				}
 				return strconv.Quote(f.Field)
-			case lower.OpTermNodeType:
+			case execlower.OpTermNodeType:
 				if g.Table == "trules" {
 					return g.nodeTypeID(c.Imm.(string))
 				}
 				return "c.P." + rtTermNodeType + "(" + strconv.Quote(c.Imm.(string)) + ")"
-			case lower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
-			case lower.OpTermRaise:
+			case execlower.OpTermCastType:
+				return g.castTypeVar(c.Imm.(execlower.TermCast).Cast)
+			case execlower.OpTermRaise:
 				return "panic(" + a[0] + ")"
-			case lower.OpTermCastError:
-				x := c.Imm.(lower.TermCast).Cast
+			case execlower.OpTermCastError:
+				x := c.Imm.(execlower.TermCast).Cast
 				return fmt.Sprintf("c.%s(%s, %s, %d, %d)", rtTermCastFailed, a[0], g.castTypeVar(x), x.Line, x.Col)
-			case lower.OpTermTextEqual:
+			case execlower.OpTermTextEqual:
 				return "c.P.TextEqual(" + a[0] + ", " + a[1] + ")"
-			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
+			case execlower.OpTermFromStr, execlower.OpTermFromObj, "val.fromBool":
 				return "any(" + a[0] + ")"
 			case "term.kids":
 				return "len(c.P.KidStack)"
-			case lower.OpTermElemsAbove:
+			case execlower.OpTermElemsAbove:
 				return "c.P.Kids(" + a[0] + ")"
 			case "seq.step":
 				return "c.P.Spend()"
-			case lower.OpTermStruct:
-				t := c.Imm.(lower.TermNew).New
+			case execlower.OpTermStruct:
+				t := c.Imm.(execlower.TermNew).New
 				return fmt.Sprintf("c.%s(%q, %d)", rtTermStruct, t.Type, len(t.Fields))
-			case lower.OpTermSetField:
+			case execlower.OpTermSetField:
 				return fmt.Sprintf("c.%s(%s, %q, %s)", rtTermSetField, a[0], c.Imm.(string), a[1])
 			}
-			if t, ok := c.Imm.(lower.TermNew); ok && strings.HasPrefix(c.Callee, lower.OpTermNew) {
+			if t, ok := c.Imm.(execlower.TermNew); ok && strings.HasPrefix(c.Callee, execlower.OpTermNew) {
 				// The typed runtime calls the constructor of the type (tmk_T, see typedRuntime).
 				return "tmk_" + t.New.Type + "(" + strings.Join(append([]string{"c", strconv.FormatBool(t.New.Final)}, a...), ", ") + ")"
 			}
@@ -195,7 +195,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		Name: termConstName,
 		Pure: func(c *exec.Call) bool {
 			switch c.Callee {
-			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool":
+			case execlower.OpTermConst, execlower.OpTermName, execlower.OpTermField, execlower.OpTermCtx, execlower.OpTermFromStr, "val.fromBool":
 				return true
 			}
 			return false
@@ -204,11 +204,11 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 }
 
 // loweredTermNames returns the names of the runtime functions and methods that only lowered terms
-// call: the compositions of core.GoTermExports and the operations of the leaves that the runtime
+// call: the compositions of execcore.GoTermExports and the operations of the leaves that the runtime
 // exports for them.
 func loweredTermNames() []string {
 	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField}
-	for _, n := range core.GoTermExports {
+	for _, n := range execcore.GoTermExports {
 		names = append(names, n)
 	}
 	return names

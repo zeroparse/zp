@@ -1,4 +1,4 @@
-package lower
+package execlower
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
@@ -202,7 +202,7 @@ var (
 // call.
 func termModule() (*exec.Module, error) {
 	termBaseOnce.Do(func() {
-		base := core.Build()
+		base := execcore.Build()
 		m := &exec.Module{Name: "term", Features: base.Features, Components: slices.Clip(base.Components),
 			Registers: base.Registers, Handles: base.Handles, Ops: slices.Clip(base.Ops)}
 		m.AddComponent(Component, "The state of the hand-written runtime.")

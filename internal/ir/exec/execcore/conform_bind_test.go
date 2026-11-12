@@ -1,4 +1,4 @@
-package core
+package execcore
 
 import (
 	"os"
@@ -17,7 +17,7 @@ func TestEngineExpBindingsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineExpBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineExpBindingsFile)
 	}
 }
 
@@ -33,6 +33,6 @@ func TestEngineDocBindingsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineDocBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineDocBindingsFile)
 	}
 }

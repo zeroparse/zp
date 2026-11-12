@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 )
 
 func TestMain(m *testing.M) {
@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 }
 
 // runtimeCopy writes the runtime module, with the tests of testdata and the conformance bindings that
-// the runtime's printer prints (core.GoExpBindings, core.GoDocBindings), into a temporary directory and returns it. mutate,
+// the runtime's printer prints (execcore.GoExpBindings, execcore.GoDocBindings), into a temporary directory and returns it. mutate,
 // if it is not nil, changes the source of a file of the runtime from its name.
 func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	t.Helper()
@@ -59,14 +59,14 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	for _, e := range tests {
 		copyFile(filepath.Join("testdata", e.Name()), filepath.Join(dir, e.Name()), nil)
 	}
-	bindings, err := core.GoExpBindings()
+	bindings, err := execcore.GoExpBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "exp_bind_exec_test.go"), []byte(bindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	docBindings, err := core.GoDocBindings()
+	docBindings, err := execcore.GoDocBindings()
 	if err != nil {
 		t.Fatal(err)
 	}

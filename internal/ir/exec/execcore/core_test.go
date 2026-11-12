@@ -1,4 +1,4 @@
-package core
+package execcore
 
 import (
 	"os"
@@ -20,7 +20,7 @@ func TestGoRuntimeCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core ./gen", GoRuntimeFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore ./gen", GoRuntimeFile)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestGoTermsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core ./gen", GoTermsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore ./gen", GoTermsFile)
 	}
 }
 
@@ -53,7 +53,7 @@ func TestGoStreamCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core ./gen", GoStreamFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore ./gen", GoStreamFile)
 	}
 }
 
@@ -69,7 +69,7 @@ func TestEngineCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineFile)
 	}
 	want, err = EngineTerms()
 	if err != nil {
@@ -80,7 +80,7 @@ func TestEngineCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineTermsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineTermsFile)
 	}
 	want, err = EngineOperators()
 	if err != nil {
@@ -91,7 +91,7 @@ func TestEngineCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineOperatorsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineOperatorsFile)
 	}
 	want, err = EngineStream()
 	if err != nil {
@@ -102,7 +102,7 @@ func TestEngineCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineStreamFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineStreamFile)
 	}
 	want, err = EngineDocument()
 	if err != nil {
@@ -113,7 +113,7 @@ func TestEngineCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineDocumentFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/execcore", EngineDocumentFile)
 	}
 }
 

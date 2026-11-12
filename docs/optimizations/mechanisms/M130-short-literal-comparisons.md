@@ -35,7 +35,7 @@ Evidence records:
 [136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`Flow literal comparison
-lowering`](../../../internal/ir/flow/lower/lower.go),
+lowering`](../../../internal/ir/flow/flowlower/lower.go),
 [`parser.matchLiteral`](../../../runtime/runtime.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

@@ -23,7 +23,7 @@
 //
 // Variables and labels are numbered from one counter in the order they are made; the variables
 // shared by the whole function (ok, ch, size, bv) are made once, at their first use.
-package lower
+package flowlower
 
 import (
 	"fmt"

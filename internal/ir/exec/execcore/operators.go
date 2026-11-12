@@ -1,4 +1,4 @@
-package core
+package execcore
 
 import (
 	. "zeroparse.dev/zp/internal/ir/exec"

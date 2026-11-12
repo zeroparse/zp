@@ -134,7 +134,7 @@ contract is [Observability](../../spec/runtime/observability.md).
 | The bytecode VMs, recursive and iterative | `internal/engine/vm/` |
 | The incremental Document, its snapshots and change reports | `internal/engine/document/` |
 | Output schemas and structural queries | `schema/` (the types, their validation and `Compare`), `internal/schema/` (the export), `query/` (the queries) |
-| Core, Flow and Exec IR and their passes | `internal/ir/core/`, `internal/ir/flow/`, `internal/ir/exec/`; the pass runner in `internal/ir/pipeline/`, the Core builder in `internal/ir/core/build/`, the Flow lowering in `internal/ir/flow/lower/` and the Exec lowering in `internal/ir/exec/lower/` |
+| Core, Flow and Exec IR and their passes | `internal/ir/core/`, `internal/ir/flow/`, `internal/ir/exec/`; the pass runner in `internal/ir/pipeline/`, the Core builder in `internal/ir/core/build/`, the Flow lowering in `internal/ir/flow/flowlower/` and the Exec lowering in `internal/ir/exec/execlower/` |
 | Generated Go and TypeScript | The public entry points in `gen/`, the Go generator in `internal/gen/gogen/`, the TypeScript generator in `internal/gen/tsgen/`, the optimization settings in `internal/gen/opt/` and the runtimes in `runtime/` and `internal/gen/tsgen/tsrt/` |
 | The public API | `zp.go`, `grammar/` |
 | Commands, linter, language server | `cmd/zp/`, `lint/`, `internal/lsp/` |

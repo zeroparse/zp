@@ -2,7 +2,7 @@ package gogen
 
 import (
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 	"zeroparse.dev/zp/internal/ir/exec/pass"
 )
 
@@ -28,7 +28,7 @@ func ExecVarsError(text string, dead ...string) error {
 	for _, v := range dead {
 		res.Stores.Dead[v] = true
 	}
-	(&flowPrinter{g: g}).execVars(&lower.Lowered{}, res)
+	(&flowPrinter{g: g}).execVars(&execlower.Lowered{}, res)
 	return g.FlowErr
 }
 

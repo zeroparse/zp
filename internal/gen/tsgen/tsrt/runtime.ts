@@ -2602,7 +2602,7 @@ export class Parser {
 
   // reset returns to a mark: the position, variables, recovered errors and captures (undoing the
   // trail) at the time it was taken.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   reset(pos: number, env: Env | null, trail: number, recovered: number): void {
     throw new Error("the printed method replaces this one");
   }
@@ -2658,19 +2658,19 @@ export class Parser {
     return this.unit === Bytes ? utf8Len(s) : runeCount(s);
   }
 
-  // expect records that id was expected at pos. Its text is printed from Exec IR (internal/ir/exec/core).
+  // expect records that id was expected at pos. Its text is printed from Exec IR (internal/ir/exec/execcore).
   expect(pos: number, id: number): void {
     throw new Error("the printed method replaces this one");
   }
 
   // keep returns exp[from:to] as a set that outlives the record. Its text is printed from Exec IR
-  // (internal/ir/exec/core).
+  // (internal/ir/exec/execcore).
   keep(from: number, to: number): number[] {
     throw new Error("the printed method replaces this one");
   }
 
   // mergeExpected records the expectations exp[from:to] at far. Its text is printed from Exec IR
-  // (internal/ir/exec/core).
+  // (internal/ir/exec/execcore).
   mergeExpected(far: number, from: number, to: number): void {
     throw new Error("the printed method replaces this one");
   }
@@ -2727,7 +2727,7 @@ export class Parser {
   }
 
   // mergeKept records the expectations that a memo entry kept at far. Its text is printed from Exec IR
-  // (internal/ir/exec/core).
+  // (internal/ir/exec/execcore).
   mergeKept(far: number, ids: number[]): void {
     throw new Error("the printed method replaces this one");
   }
@@ -4396,160 +4396,160 @@ export class Parser {
   }
 
   // predicate evaluates the term of a predicate.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   predicate(t: Action): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // bind binds the value of the term of a binding to the variable in slot.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   bind(slot: number, t: Action): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // termEqual applies == to l and r.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termEqual(l: Value, r: Value): [boolean, boolean] {
     throw new Error("the printed method replaces this one");
   }
 
   // termIndex indexes the list or tuple l by r.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termIndex(l: Value, r: Value): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termBinary applies a binary operator; it returns the value and the failure, null if there is none.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termBinary(op: number, l: Value, r: Value): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termUnary applies a unary operator.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termUnary(op: number, x: Value): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termLogic checks the operand of a logical operator.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termLogic(op: number, x: Value): [boolean, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termMember reads a member of a value; it returns the value and the failure, null if there is none.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termMember(c: Actx, kind: number, x: Value, name: string, field: string): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termPush pushes a value as the next element of the list or the tuple that fn makes; it returns the failure,
   // null if there is none.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termPush(c: Actx, fn: string, v: Value): Value {
     throw new Error("the printed method replaces this one");
   }
 
   // termPushItems pushes the elements of an argument of the built-in function fn that concatenates lists; it
   // returns the failure, null if there is none.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termPushItems(c: Actx, fn: string, v: Value): Value {
     throw new Error("the printed method replaces this one");
   }
 
   // termItems returns the elements of an argument of the built-in function fn that takes a list, and the failure.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termItems(fn: string, v: Value): [readonly (Node | null)[], Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termItemAt returns the element that map, filter, foldl or foldr passes to its function at step i; the loop
   // charges the step.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termItemAt(items: readonly (Node | null)[], i: number, right: boolean): Value {
     throw new Error("the printed method replaces this one");
   }
 
   // termFilterKeep returns whether filter keeps an element for which its function returned v, and the failure.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termFilterKeep(v: Value): [boolean, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termLength is the built-in function len; it returns the length and the failure.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termLength(x: Value): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termText is the built-in function text; it returns the text and the failure.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termText(x: Value): [string, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termConvert is the conversion T{x} to the named node type typ; it returns the node and the failure.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termConvert(typ: string, x: Value): [Value, Value] {
     throw new Error("the printed method replaces this one");
   }
 
   // termCover widens the range of the struct n to cover the field value v; it returns whether n still has
-  // no node among its field values. Its text is printed from Exec IR (internal/ir/exec/core).
+  // no node among its field values. Its text is printed from Exec IR (internal/ir/exec/execcore).
   termCover(n: Node, v: Value, first: boolean): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // termMade finishes the struct n that c made: n takes the range of the rule if no field value is a node,
-  // and c records n. Its text is printed from Exec IR (internal/ir/exec/core).
+  // and c records n. Its text is printed from Exec IR (internal/ir/exec/execcore).
   termMade(c: Actx, n: Node, first: boolean): void {
     throw new Error("the printed method replaces this one");
   }
 
   // termHull makes the tuple value, if tuple, or the list value of the elements kids, with the range that covers them. Its
-  // text is printed from Exec IR (internal/ir/exec/core).
+  // text is printed from Exec IR (internal/ir/exec/execcore).
   termHull(c: Actx, tuple: boolean, kids: readonly (Node | null)[]): Node {
     throw new Error("the printed method replaces this one");
   }
 
   // fieldConforms returns whether v is a value of the type t of a cast in the value model, charging a step for
-  // each element of a list or a tuple it examines. Its text is printed from Exec IR (internal/ir/exec/core).
+  // each element of a list or a tuple it examines. Its text is printed from Exec IR (internal/ir/exec/execcore).
   fieldConforms(t: FieldType, v: Value): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // valueConforms returns whether the value of the node n, whose shape is shape, is of the type t. Its text is
-  // printed from Exec IR (internal/ir/exec/core).
+  // printed from Exec IR (internal/ir/exec/execcore).
   valueConforms(t: FieldType, n: Node, shape: number): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // elemsConform returns whether every element of items is of the element type of the list type t. Its text is
-  // printed from Exec IR (internal/ir/exec/core).
+  // printed from Exec IR (internal/ir/exec/execcore).
   elemsConform(t: FieldType, items: readonly (Node | null)[]): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // tupleConform returns whether the elements items of a tuple are of the element types of the tuple type t. Its
-  // text is printed from Exec IR (internal/ir/exec/core).
+  // text is printed from Exec IR (internal/ir/exec/execcore).
   tupleConform(t: FieldType, items: readonly (Node | null)[]): boolean {
     throw new Error("the printed method replaces this one");
   }
 
   // memberKind returns the kind of the member read name.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   memberKind(name: string): number {
     throw new Error("the printed method replaces this one");
   }
 
   // memberName returns the name of the field or capture that the member read name of the kind reads.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   memberName(kind: number, name: string): string {
     throw new Error("the printed method replaces this one");
   }
 
   // termError returns the text of a failure of a term.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   termError(code: number, a: Value, b: Value, op: number, n: number): string {
     throw new Error("the printed method replaces this one");
   }
@@ -4584,13 +4584,13 @@ export class Parser {
   // --- OperatorsRule expressions ---
 
   // skipTrivia skips the trivia of an Operators Rule.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   skipTrivia(r: Rule): void {
     throw new Error("the printed method replaces this one");
   }
 
   // longest tries every operator of ops and returns the longest match, or null.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   longest(ops: OperatorsRuleOp[]): OperatorsRuleAttempt | null {
     throw new Error("the printed method replaces this one");
   }
@@ -4607,19 +4607,19 @@ export class Parser {
   afterEmpty = false;
 
   // operatorsRuleParse parses an expression with operators that bind tighter than min.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   operatorsRuleParse(r: Rule, min: number): R {
     throw new Error("the printed method replaces this one");
   }
 
   // operatorsRuleExpr parses an operand or a prefix application and the operators after it.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   operatorsRuleExpr(r: Rule, min: number): R {
     throw new Error("the printed method replaces this one");
   }
 
   // operatorsRuleNud parses an operand or a prefix application.
-  // Its text is printed from Exec IR (internal/ir/exec/core).
+  // Its text is printed from Exec IR (internal/ir/exec/execcore).
   operatorsRuleNud(r: Rule): R {
     throw new Error("the printed method replaces this one");
   }

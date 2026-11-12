@@ -8,7 +8,7 @@
 // parse. The Go backend prints
 // them into the generated Go runtime (GoRuntime) and the TypeScript backend into the TypeScript
 // runtime (TSMethods).
-package core
+package execcore
 
 import (
 	. "zeroparse.dev/zp/internal/ir/exec"

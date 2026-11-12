@@ -43,7 +43,7 @@ Source owners: [`Walker.scanRepeat`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),
 [`SCAN lowering`](../../../internal/compile/bcompile.go),
 [`Scans pass`](../../../internal/ir/core/passes.go),
-[`Flow scan lowering`](../../../internal/ir/flow/lower/lower.go), which lowers the
+[`Flow scan lowering`](../../../internal/ir/flow/flowlower/lower.go), which lowers the
 scans of generated Go and TypeScript.
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
