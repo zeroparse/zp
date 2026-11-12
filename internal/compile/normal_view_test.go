@@ -119,6 +119,7 @@ func TestNormalView(t *testing.T) {
 		{name: "C6 keeps a prefix that calls a rule with a predicate", body: `p "xy" / p "zw"`, want: `p "xy" / p "zw"`},
 		{name: "P1 inlines a rule that is not memoized", rule: ruleN13, body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
 		{name: "N13 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
+		{name: "P1 inlines a rule declared @linear", rule: ruleN13, body: `a "x"` + "\n@linear\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
 		{name: "P1 keeps a rule with a capture", body: `a "x"` + "\nrule a = c:\"y\" \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
 		{name: "P1 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 	} {
