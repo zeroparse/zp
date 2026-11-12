@@ -1,6 +1,6 @@
 # 066. Limits Chosen by Purpose
 
-- **Status**: Partially Implemented
+- **Status**: Implemented
 - **Author**: @ornew
 - **Date**: 2026-11-01
 
