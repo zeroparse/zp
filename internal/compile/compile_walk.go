@@ -345,7 +345,7 @@ func (c *Walker[M]) ProjectRepeat(e *grammar.Repeat, field string) M {
 // predicate checks a Predicate Action { ... } and walks it.
 func (c *Walker[M]) predicate(e *grammar.Predicate, s *Scope) M {
 	if a, ok := e.Term.(*grammar.Bind); ok {
-		if c.Prog.Vars.lookup(a.Name) == nil {
+		if c.Prog.Vars.Lookup(a.Name) == nil {
 			c.errorf(a.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", a.Name, a.Name)
 		}
 		c.CheckTerm(a.Value, s, nil)
