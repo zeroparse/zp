@@ -123,7 +123,7 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 // copy of the runtime module that requires this module for the conformance suite.
 func TestRuntimeExecConformance(t *testing.T) {
 	dir := runtimeCopy(t, nil)
-	args := []string{"test", "-count=1", "-v", "-run", "^Test(ExecConformance|ValueConformance|ValueBoxedOperands|ValueCompareStrings|ValueMemberTable|ValueBuiltinTable|ValueStructTable|ValueHullTable|ValueIterTable|ValuePushTable|ValueCastTable)"}
+	args := []string{"test", "-count=1", "-v", "-run", "^Test(ExecConformance|ValueConformance|ValueBoxedOperands|ValueBoxedStringCharges|ValueCompareStrings|ValueMemberTable|ValueBuiltinTable|ValueStructTable|ValueHullTable|ValueIterTable|ValuePushTable|ValueCastTable)"}
 	if testing.Short() {
 		args = append(args, "-short")
 	}
@@ -134,7 +134,7 @@ func TestRuntimeExecConformance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)
 	}
-	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime", "TestExecConformanceRule", "TestExecConformanceRuleDetectsBrokenRuntime", "TestExecConformanceObs", "TestExecConformanceObsDetectsBrokenRuntime", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenRuntime", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenRuntime", "TestExecConformanceOpr", "TestExecConformanceOprDetectsBrokenRuntime", "TestExecConformanceCtx", "TestExecConformanceCtxDetectsBrokenRuntime", "TestExecConformanceFrame", "TestExecConformanceFrameDetectsBrokenRuntime", "TestValueConformance", "TestValueConformanceDetectsBrokenRuntime", "TestValueBoxedOperands", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
+	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime", "TestExecConformanceRule", "TestExecConformanceRuleDetectsBrokenRuntime", "TestExecConformanceObs", "TestExecConformanceObsDetectsBrokenRuntime", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenRuntime", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenRuntime", "TestExecConformanceOpr", "TestExecConformanceOprDetectsBrokenRuntime", "TestExecConformanceCtx", "TestExecConformanceCtxDetectsBrokenRuntime", "TestExecConformanceFrame", "TestExecConformanceFrameDetectsBrokenRuntime", "TestValueConformance", "TestValueConformanceDetectsBrokenRuntime", "TestValueBoxedOperands", "TestValueBoxedStringCharges", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
 		if !strings.Contains(string(out), "--- PASS: "+name+" ") {
 			t.Errorf("go test did not run %s:\n%s", name, out)
 		}
