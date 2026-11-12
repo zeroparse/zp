@@ -21,6 +21,8 @@ import (
 type Facts struct {
 	// Rules holds the facts of each rule, by rule ID.
 	Rules []Rule
+	// c answers the node queries (see node.go) with the rule facts above.
+	c *computer
 }
 
 // Rule holds the facts of one rule.
@@ -99,7 +101,7 @@ func Compute(m *core.Module, control *cancel.Control) *Facts {
 			c.rules[r.ID] = c.rules[c.canon[r.ID]]
 		}
 	}
-	return &Facts{Rules: c.rules}
+	return &Facts{Rules: c.rules, c: c}
 }
 
 type computer struct {
