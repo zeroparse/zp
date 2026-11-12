@@ -65,8 +65,8 @@ type Flag struct {
 // Flags lists the optimizations in the order the reference documents them.
 var Flags = []Flag{
 	{Name: core.PassTerminals, Kind: Pass, Default: 1, Doc: "value-free choices of many literals and classes run as one program (lean typed Go)"},
-	{Name: "text-dispatch", Kind: Printer, Default: 1, Doc: "the printers emit a predicate that compares the text of a capture with literals as one switch"},
-	{Name: "field-compare", Kind: Printer, Default: 1, Doc: "the Go printer compares fields in the actions and predicates of typed rules without boxing string fields"},
+	{Name: "text-dispatch", Kind: Lowering, Default: 1, Doc: "a predicate that compares the text of a capture with literals tests them at once when the parse runs without limit controls"},
+	{Name: "field-compare", Kind: Lowering, Default: 1, Doc: "typed Go compares fields in the actions and predicates of typed rules without boxing string fields"},
 	{Name: core.PassGuards, Kind: Pass, Default: 1, Doc: "skip an alternative when the next character cannot start it"},
 	{Name: core.FlagGuardedClasses, Kind: Pass, Default: 1, Doc: "a leading class of a guarded alternative consumes the character its guard read (ordinary Go parsers)"},
 	{Name: core.PassScans, Kind: Pass, Default: 1, Doc: "a value-free repetition of a class or of any character runs as a scan"},

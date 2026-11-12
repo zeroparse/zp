@@ -519,20 +519,21 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 	}
 }
 
-// TestTermPrinterDetectsBrokenTargets is the negative control of the comparisons of generated parsers
-// with the engine for the terms that the term printer still prints whole instead of Exec IR: the terms
-// of typed Go rules that compare a field without boxing it, the predicates that compare a captured text
-// with literals, whose switch gives way to the printed term under budget controls, and the TypeScript
-// terms with a cast to _. Each mutant changes one pattern of the printer's output, which must occur, and
-// the comparison must then fail. The predicates run without budget controls here, so their mutants also
-// replace the test of the controls, so that the printed term runs; a control that only does that, and
-// one that changes nothing, must find no mismatch.
-func TestTermPrinterDetectsBrokenTargets(t *testing.T) {
+// TestTermLoweringOptionsDetectBrokenTargets is the negative control of the comparisons of generated
+// parsers with the engine for the terms that the lowering options change: the terms of typed Go rules
+// that compare a field without boxing it (field-compare), the predicates that compare a captured text
+// with literals, whose test of the literals gives way to the term as written under limit controls
+// (text-dispatch), and the TypeScript terms with a cast to _, which checks nothing. Each mutant changes
+// one pattern of the generated code, which must occur, and the comparison must then fail. The
+// predicates run without limit controls here, so the mutants of the term as written also replace the
+// test of the controls, so that the term runs; a control that only does that, and one that changes
+// nothing, must find no mismatch.
+func TestTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermPrinterDetectsBrokenTargets)
+	gentest.EachMode(t, testTermLoweringOptionsDetectBrokenTargets)
 }
 
-func testTermPrinterDetectsBrokenTargets(t *testing.T) {
+func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -547,7 +548,8 @@ func testTermPrinterDetectsBrokenTargets(t *testing.T) {
 		{Name: "arithmetic", Src: "type T = { S string; N int }\nrule main = t:item $$ => $t.N == $t.N * 2 - 3 && $t.S != \"y\"\n" +
 			"rule item T = s:[a-z] #atomic => T{S: text($s), N: 3}", Inputs: []string{"x", "y", ""}},
 	}
-	type mutant struct{ name, force, from, to string }
+	// A mutant replaces force, if any, by forced, and from by to.
+	type mutant struct{ name, force, forced, from, to string }
 	run := func(target string, cases []gentest.Case, m mutant, mismatches func(mutate func(string) string) []string) {
 		hits := 0
 		got := mismatches(func(s string) string {
@@ -556,7 +558,7 @@ func testTermPrinterDetectsBrokenTargets(t *testing.T) {
 			}
 			hits++
 			if m.force != "" {
-				s = strings.ReplaceAll(s, m.force, map[bool]string{true: "if true {", false: "false ?"}[strings.HasPrefix(m.force, "if ")])
+				s = strings.ReplaceAll(s, m.force, m.forced)
 			}
 			return strings.ReplaceAll(s, m.from, m.to)
 		})
@@ -574,22 +576,26 @@ func testTermPrinterDetectsBrokenTargets(t *testing.T) {
 		return func(code []byte) []byte { return []byte(mutate(string(code))) }
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	const goForce = `if c.P.Control != nil {`
+	// The Go parsers run under the default limit controls, so the term as written runs, and the mutants
+	// of the test of the literals force it.
+	const goForce, goForced = `if c.P.Control == nil {`, `if true {`
 	for _, m := range []mutant{
-		{"control: the printed predicate runs", goForce, `c.Or(`, `c.Or(`},
-		{"a predicate's equality becomes not equal", goForce, `c.Binary(rt.OpEq,`, `c.Binary(rt.OpNe,`},
-		{"a predicate's or becomes and", goForce, `c.Or(`, `c.And(`},
+		{"control: unchanged", "", "", `c.P.TermBinary(rt.OpEq,`, `c.P.TermBinary(rt.OpEq,`},
+		{"a predicate's equality becomes not equal", "", "", `c.P.TermBinary(rt.OpEq,`, `c.P.TermBinary(rt.OpNe,`},
+		{"a predicate's or does not decide", "", "", `if !tb`, `if tb`},
+		{"control: the literals are tested", goForce, goForced, ` == "a" ||`, ` == "a" ||`},
+		{"a tested literal is not matched", goForce, goForced, ` == "a" ||`, ` == "\x00" ||`},
 	} {
 		run("Go", literal, m, func(mutate func(string) string) []string {
 			return gentest.GeneratedParsersMismatches(t, goBin, literal, gen.GenOptions{}, goBytes(mutate))
 		})
 	}
 	for _, m := range []mutant{
-		{"control: unchanged", "", `c.Compare(rt.OpEq,`, `c.Compare(rt.OpEq,`},
-		{"a field equality becomes not equal", "", `c.Compare(rt.OpEq,`, `c.Compare(rt.OpNe,`},
-		{"a field less becomes greater or equal", "", `c.Compare(rt.OpLt,`, `c.Compare(rt.OpGe,`},
-		{"times becomes plus", "", `c.Binary(rt.OpMul,`, `c.Binary(rt.OpAdd,`},
-		{"minus becomes plus", "", `c.Binary(rt.OpSub,`, `c.Binary(rt.OpAdd,`},
+		{"control: unchanged", "", "", `c.TermCompare(rt.OpEq,`, `c.TermCompare(rt.OpEq,`},
+		{"a field equality becomes not equal", "", "", `c.TermCompare(rt.OpEq,`, `c.TermCompare(rt.OpNe,`},
+		{"a field less becomes greater or equal", "", "", `c.TermCompare(rt.OpLt,`, `c.TermCompare(rt.OpGe,`},
+		{"times becomes plus", "", "", `c.P.TermBinary(rt.OpMul,`, `c.P.TermBinary(rt.OpAdd,`},
+		{"minus becomes plus", "", "", `c.P.TermBinary(rt.OpSub,`, `c.P.TermBinary(rt.OpAdd,`},
 	} {
 		run("typed Go", fieldCompared, m, func(mutate func(string) string) []string {
 			return gentest.GeneratedTypesMismatches(t, goBin, fieldCompared, gen.GenOptions{ConvertTypes: true}, goBytes(mutate), len(fieldCompared))
@@ -599,12 +605,14 @@ func testTermPrinterDetectsBrokenTargets(t *testing.T) {
 	if err != nil {
 		return
 	}
-	const tsForce = `c.p.control === null ?`
-	// The TypeScript printer names an operator by its code: 5 is ==, 6 is !=.
+	const tsForce, tsForced = `if (c.p.control === null) {`, `if (false) {`
+	// TypeScript names an operator by its code: 5 is ==, 6 is !=; 0 is && and 1 is || for logic.
 	for _, m := range []mutant{
-		{"control: the printed predicate runs", tsForce, `c.or(`, `c.or(`},
-		{"a predicate's equality becomes not equal", tsForce, `c.binary(5,`, `c.binary(6,`},
-		{"a predicate's or becomes and", tsForce, `c.or(`, `c.and(`},
+		{"control: the term as written runs", tsForce, tsForced, `c.p.termLogic(1,`, `c.p.termLogic(1,`},
+		{"a predicate's equality becomes not equal", tsForce, tsForced, `c.p.termBinary(5,`, `c.p.termBinary(6,`},
+		{"a predicate's or does not decide", tsForce, tsForced, `if (!tb`, `if (tb`},
+		{"control: the literals are tested", "", "", ` === "a" ||`, ` === "a" ||`},
+		{"a tested literal is not matched", "", "", ` === "a" ||`, ` === "\x00" ||`},
 	} {
 		run("TypeScript", literal, m, func(mutate func(string) string) []string {
 			return gentest.TSParsersMismatches(t, node, literal, gen.GenOptions{}, mutate)
@@ -612,9 +620,9 @@ func testTermPrinterDetectsBrokenTargets(t *testing.T) {
 	}
 	casts := gentest.CompareCases()
 	for _, m := range []mutant{
-		{"control: unchanged", "", `c.binary(5,`, `c.binary(5,`},
-		{"a cast term's equality becomes not equal", "", `c.binary(5,`, `c.binary(6,`},
-		{"a cast term's and becomes or", "", `c.and(`, `c.or(`},
+		{"control: unchanged", "", "", `c.p.termBinary(5,`, `c.p.termBinary(5,`},
+		{"a cast term's equality becomes not equal", "", "", `c.p.termBinary(5,`, `c.p.termBinary(6,`},
+		{"a cast term's and does not decide", "", "", `if (tb`, `if (!tb`},
 	} {
 		run("TypeScript", casts, m, func(mutate func(string) string) []string {
 			return gentest.TSParsersMismatches(t, node, casts, gen.GenOptions{}, mutate)

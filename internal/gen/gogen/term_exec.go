@@ -7,7 +7,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/core"
@@ -35,7 +34,7 @@ const (
 // failure, printed from Exec IR, or reports false if t is printed by the term printer. The scope s and the locals resolve
 // the leaves as for term.
 func (g *Generator) loweredBody(t irc.Term, s *compile.Scope, locals map[string]string) (string, bool) {
-	return g.lowered(t, s, locals, "")
+	return g.lowered(t, s, locals, "", false)
 }
 
 // loweredStmts returns the statements that compute the value of the term t into a local that they
@@ -43,18 +42,21 @@ func (g *Generator) loweredBody(t irc.Term, s *compile.Scope, locals map[string]
 // computation are scoped to a block.
 func (g *Generator) loweredStmts(t irc.Term, s *compile.Scope, locals map[string]string) (string, string, bool) {
 	res := fmt.Sprintf("tr%d", g.LoweredTerms)
-	text, ok := g.lowered(t, s, locals, res)
+	text, ok := g.lowered(t, s, locals, res, false)
 	if !ok {
 		return "", "", false
 	}
 	return fmt.Sprintf("var %s any\n{\n%s}\n", res, text), res, true
 }
 
-func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]string, result string) (string, bool) {
-	if t == nil || g.fieldCompared(t) {
+// lowered prints the term t from Exec IR, into the local result if it is not empty; dispatch makes a
+// predicate that compares the text of a capture with literals test them at once (text-dispatch).
+func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]string, result string, dispatch bool) (string, bool) {
+	if t == nil {
 		return "", false
 	}
-	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj})
+	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj,
+		FieldCompare: g.Table == "trules" && g.Opt.On("field-compare"), TextDispatch: dispatch})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -77,36 +79,13 @@ func (g *Generator) actionBody(ct irc.Term, t grammar.Term, s *compile.Scope, lo
 }
 
 // predicate returns the body of the function of a predicate with the term ct of Core IR, built from
-// the grammar term t: a membership of a captured text in literals is a switch (predicateBody).
+// the grammar term t: a membership of a captured text in literals tests them at once without limit
+// controls (text-dispatch).
 func (g *Generator) predicate(ct irc.Term, t grammar.Term, s *compile.Scope) string {
-	if g.Opt.On("text-dispatch") {
-		if _, _, ok := gen.LiteralTextMembership(t); ok {
-			return g.predicateBody(t, s, nil)
-		}
+	if body, ok := g.lowered(ct, s, nil, "", g.Opt.On("text-dispatch")); ok {
+		return body
 	}
-	return g.actionBody(ct, t, s, nil)
-}
-
-// fieldCompared reports whether the typed table compares a field read of t without boxing it
-// (field-compare), which the term printer prints.
-func (g *Generator) fieldCompared(t irc.Term) bool {
-	if g.Table != "trules" || !g.Opt.On("field-compare") {
-		return false
-	}
-	found := false
-	irc.WalkTerm(t, func(x irc.Term) {
-		b, ok := x.(*irc.Binary)
-		if ok && comparison(b.Op) && (coreFieldRead(b.L) || coreFieldRead(b.R)) {
-			found = true
-		}
-	})
-	return found
-}
-
-// coreFieldRead reports whether t reads a field of a value, x.F (fieldRead).
-func coreFieldRead(t irc.Term) bool {
-	m, ok := t.(*irc.Member)
-	return ok && (m.Name == "" || m.Name[0] != '$')
+	return g.predicateBody(t, s, nil)
 }
 
 // termTarget returns the Go implementation of the operations of a lowered term whose leaves the scope
@@ -114,7 +93,7 @@ func coreFieldRead(t irc.Term) bool {
 func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *execgo.Target {
 	handles := map[string]string{ops.Datum: "any", ops.Fail: "any", ops.Str: "string", ops.Name: "string",
 		ops.Act: "*" + g.ctxType(), ops.FType: "*FieldType", ops.NodeType: g.pick("*nodeTypeKinds", "uint16"),
-		ops.Seq: g.pick("[]*Node", "[]any"), ops.Obj: g.pick("*Node", "TVal")}
+		ops.Seq: g.pick("[]*Node", "[]any"), ops.Obj: g.pick("*Node", "TVal"), lower.HandleOperand: "TOperand"}
 	return &execgo.Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
@@ -186,6 +165,20 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return g.pick("UnboxValue(", "(") + a[0] + ")"
 			case lower.OpTermKeep:
 				return fmt.Sprintf("c.P.KidStack = append(c.P.KidStack, %s[%s])", a[0], a[1])
+			case lower.OpTermFieldOperand:
+				return fmt.Sprintf("c.TermFieldOperand(%s, %q)", a[0], c.Imm.(string))
+			case lower.OpTermOperand:
+				return "TOperand{V: " + a[0] + "}"
+			case lower.OpTermCompare:
+				return fmt.Sprintf("c.TermCompare(rt.%s, %s, %s)", ops.OperatorIdent(c.Imm.(string), false, false), a[0], a[1])
+			case lower.OpTermUncontrolled:
+				return "c.P.Control == nil"
+			case lower.OpTermTextIn:
+				var eqs []string
+				for _, lit := range c.Imm.([]string) {
+					eqs = append(eqs, a[0]+" == "+strconv.Quote(lit))
+				}
+				return "(" + strings.Join(eqs, " || ") + ")"
 			case lower.OpTermCopyList:
 				return g.pick("any(c.NewList(", "(c.NewList(") + a[0] + "))"
 			case lower.OpTermStruct:
@@ -205,7 +198,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		Pure: func(c *exec.Call) bool {
 			switch c.Callee {
 			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool",
-				"val.unbox", "seq.len":
+				"val.unbox", "seq.len", lower.OpTermOperand, lower.OpTermTextIn:
 				return true
 			}
 			return false
@@ -217,7 +210,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 // call: the compositions of core.GoTermExports and the operations of the leaves that the runtime
 // exports for them.
 func loweredTermNames() []string {
-	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField, "TermRaise"}
+	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField, "TermRaise", "TermFieldOperand", "TermCompare"}
 	for _, n := range core.GoTermExports {
 		names = append(names, n)
 	}

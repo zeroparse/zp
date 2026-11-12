@@ -84,8 +84,8 @@ the registry gives all of them the same interface. A flag has a kind, which says
 | Kind | What it changes | Examples |
 |:--|:--|:--|
 | Pass | a pass over Core IR, or a variant of one | `terminals`, `guards`, `guarded-classes`, `scans`, `class-runs` |
-| Lowering | an option of the lowering from Core IR to Flow | `inline-literals`, `class-tables` |
-| Printer | what the Go and TypeScript printers emit | `text-dispatch`, `field-compare`, `method-sharing`, `literal-sharing` |
+| Lowering | an option of the lowering from Core IR to Flow or Exec IR | `inline-literals`, `class-tables`, `text-dispatch`, `field-compare` |
+| Printer | what the Go and TypeScript printers emit | `method-sharing`, `literal-sharing` |
 | Runtime | a control of the runtime structures that the printers emit | `typed-object-slabs`, `typed-list-slabs`, `sparse-memo` |
 
 A flag is on or off, or it has an integer parameter, where 0 turns it off. The registry checks itself: names and

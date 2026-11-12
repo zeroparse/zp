@@ -590,4 +590,4 @@ fail:
 
 var streamRule *rt.Rule
 
-const _ = rt.Protocol10
+const _ = rt.Protocol11

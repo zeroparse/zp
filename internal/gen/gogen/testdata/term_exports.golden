@@ -22,6 +22,8 @@ Parser.TermPushItems
 Parser.TermText
 Parser.TermUnary
 TActCtx.TermCastFailed
+TActCtx.TermCompare
+TActCtx.TermFieldOperand
 TActCtx.TermRaise
 TParser.TermBinary
 TParser.TermConforms
