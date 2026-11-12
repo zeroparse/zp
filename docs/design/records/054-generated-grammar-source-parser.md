@@ -542,10 +542,12 @@ and [`bench/sourceparser.sh`](../../../bench/sourceparser.sh) runs it in 20
 rounds of 500 ms per source and frontend, rotating the order of the frontends
 from round to round. `manual` is the hand-written lexer and parser returning the
 public grammar AST, `manual-aa` the same function again, whose difference from
-`manual` is the noise of the run, and `generated-typed` is `ParseAST` of the
-checked-in parser generated from the source grammar, without the adapter to the
-grammar AST. The generated column therefore does less than the full frontend
-does and is a lower bound of its cost. Compilation and code generation are
+`manual` is the noise of the run. The generated columns of the table below are
+`ParseAST` of the checked-in parser generated from the source grammar, without
+the adapter to the grammar AST, so they do less than the full frontend does and
+are a lower bound of its cost. The `generated` and `generated-exp` frontends of
+the benchmark add the adapter, and `generated-exp` also collects what each
+syntax error expects. Compilation and code generation are
 outside the timed region. The sources are a one-line grammar
 (`rule main = [a-z]+ #atomic`), 64 commented rules, the source grammar, the
 grammars of `testdata/grammars` (those of the ready-made parsers) and a copy of

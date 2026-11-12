@@ -320,8 +320,8 @@ rule type_def_body TypeDefBody = (
     -((&("=" comments ("{" / "node[" !"]")) "=" -ws) @error(message="expected '= {', '= node[' or '~'"))
     t:(struct_type / node_type)
 ) => TypeDefBody{Name: $name, Type: $t}
-// A type definition written in a spelling that the language no longer has fails with the
-// definition in the current syntax. The check of each spelling stands outside its message, so a
+// A type definition written in a spelling that is not the syntax of a type definition fails
+// with the definition in the syntax of the language. The check of each spelling stands outside its message, so a
 // spelling that is absent leaves the expectations of the definition as they are.
 rule type_def_spelling = (
     !(("struct" / "terminal") !ident_char / "=" !(comments ("{" / "node[" !"]")))
@@ -488,8 +488,8 @@ rule end_input EndInput = ("$$") #atomic
 rule end_line EndLine = ("$" !(ident_start / digit)) #atomic
 rule any Any = ("." !"..") #atomic
 rule cut Cut = ("#cut" !ident_char !"(") #atomic
-// The cut was once written --. That spelling is an error at the --: a recovery past it would let a
-// declaration that fails later drop the error with it.
+// The cut is #cut, and -- is an error at the --: a recovery past it would let a declaration that
+// fails later drop the error with it.
 rule cut_spelling = &"--" _|_ @error(message="the cut is written #cut")
 rule predicate Predicate = b:action_block => Predicate{Actions: $b.Actions, Comments: $b.Comments}
 
@@ -691,8 +691,7 @@ rule true_lit True = ("true" !ident_char) #atomic
 rule false_lit False = ("false" !ident_char) #atomic
 rule nil_lit Nil = ("nil" !ident_char) #atomic
 rule capture_ref CaptureRef = (&("$" ident) "$" ident #atomic) #atomic
-// A capture is read by its label. $ and a number, a spelling the language no longer has, is an
-// error at the $.
+// A capture is read by its label. $ and a number is an error at the $.
 rule index_capture = &("$" digit) _|_ @error(message="a capture is read by name: label the element (x:...) and write $x")
 rule var_name VarRef = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref VarRef = (!bottom ident !"(") #atomic

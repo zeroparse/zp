@@ -184,8 +184,8 @@ rule type_def_body = (
     -(&("=" comments ("{" / "node[" !"]")) "=" -ws)
     (struct_type / node_type)
 )
-// A type definition written in a spelling that the language no longer has fails with the
-// definition in the current syntax. The check of each spelling stands outside its message, so a
+// A type definition written in a spelling that is not the syntax of a type definition fails
+// with the definition in the syntax of the language. The check of each spelling stands outside its message, so a
 // spelling that is absent leaves the expectations of the definition as they are.
 rule type_def_spelling = (
     !(("struct" / "terminal") !ident_char / "=" !(comments ("{" / "node[" !"]")))
@@ -322,8 +322,8 @@ rule end_input = "$$" #atomic
 rule end_line = ("$" !(ident_start / digit)) #atomic
 rule any = ("." !"..") #atomic
 rule cut = ("#cut" !ident_char !"(") #atomic
-// The cut was once written --. That spelling is an error at the --: a recovery past it would let a
-// declaration that fails later drop the error with it.
+// The cut is #cut, and -- is an error at the --: a recovery past it would let a declaration that
+// fails later drop the error with it.
 rule cut_spelling = &"--" _|_
 rule predicate = action_block
 rule repeat_args = (
@@ -485,8 +485,7 @@ rule true_lit = ("true" !ident_char) #atomic
 rule false_lit = ("false" !ident_char) #atomic
 rule nil_lit = ("nil" !ident_char) #atomic
 rule capture_ref = (&("$" ident) "$" ident #atomic) #atomic
-// A capture is read by its label. $ and a number, a spelling the language no longer has, is an
-// error at the $.
+// A capture is read by its label. $ and a number is an error at the $.
 rule index_capture = &("$" digit) _|_
 rule var_name = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref = (!bottom ident !"(") #atomic

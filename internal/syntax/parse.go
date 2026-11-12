@@ -150,8 +150,8 @@ var starts = map[string]map[string]bool{
 	"a value":       {`"!"`: true, `"-"`: true, `"("`: true},
 }
 
-// typeSpellings word the errors of a type definition in a spelling that the language no longer
-// has, which the grammar of the source gives without the name of the type, with that name.
+// typeSpellings word the errors of a type definition in a spelling that is not the syntax of a type
+// definition, which the grammar of the source gives without the name of the type, with that name.
 var typeSpellings = map[string]string{
 	"a struct type is defined as type Name = { ... }":                        "a struct type is defined as type %[1]s = {...}",
 	"a terminal type is the struct type Name = { Text string }":              "a terminal type is the struct type %[1]s = { Text string }",
@@ -175,8 +175,8 @@ func newMessages(lx *lexed) *messages {
 // that says only what is expected also says what was found: the token at the error. An error after the
 // name of a pragma that does not exist names it, and an expected value on the line after "=>", or
 // after an operator where a line break ends a statement, is the mistake of a value that does not start on the line of
-// its operator. The errors of a spelling that
-// the language no longer has name what to write.
+// its operator. The errors of a spelling that is not the syntax of the language name what to
+// write.
 func (m *messages) message(e *genparser.SyntaxError) string {
 	var msg string
 	if len(e.Messages) > 0 {
