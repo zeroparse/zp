@@ -1764,9 +1764,9 @@ the evaluations at $p$ call no rule of the cycle at $p$ outside the left calls
 that failed and the left calls of other leaders whose results do not include
 the seed, and the outcomes of the other evaluations at $p$ are fixed by the
 previous claim; what follows them starts after $p$ and reads no growing result
-of the cycle at $p$. When the reads of those other growths are plain, each of
-their results is one of a constant number (*Growths inside a step*, at the end
-of this lemma); step 4 of [Open Steps](#open-steps) keeps the other case. So
+of the cycle at $p$. The reads of those other growths are plain (*Plain
+reads*, below), so each of their results is one of a constant number
+(*Growths inside a step*, at the end of this lemma). So
 the result is fixed by the alternatives that the path takes at $p$, in the
 body of the leader and in the bodies of the rules of the cycle that its left
 calls of rules other than leaders reach, which are a constant number of
@@ -1960,16 +1960,32 @@ and includes it; if not, every path through such a read in a step of $T$ fails
 or behaves as where the read fails, so the steps of $T$ are those it takes
 where the read fails. $\square$
 
-The lookaheads that the claim leaves out read the growing result of a leader
-at its own position and are units that are not alternatives. When such a
-lookahead can evaluate its left call before it examines the input, it contains
-the body of that leader, and condition 2 rejects it if that body contains a
-scanning source, as it does when the body calls another leader, a call that is
-a scanning source. A cut passed after a read can make the enclosing choice
-fail where the first step went on, so that a later step takes an alternative
-that the first step did not reach ([Cut](../language/parser-expressions.md#cut)).
-Step 4 of [Open Steps](#open-steps) keeps the lookaheads that examine the
-input before their left call and the cuts.
+**Plain reads.** Under condition 5, the reads of every growth of a leader $R$
+at $p$ whose steps nest, or are nested in, a growth of another leader at $p$
+are plain.
+
+*Proof.* The growths of two leaders nest at $p$ only when both are on one
+cycle with more than one leader (*Calls in a context of growths*). A read at
+$p$ is a call at $p$ of a rule of the cycle, so it is a left call, made in a
+body of the cycle or inside a call of a rule of the cycle at $p$, which is a
+left call too; a body off the cycle evaluated at $p$ makes no call at $p$ of a
+rule of the cycle. A lookahead that reads a growing result therefore makes a
+left call in a body of the cycle, which condition 5 excludes. A cut commits
+only the innermost choice, option or repetition around it in its own rule
+([Cut](../language/parser-expressions.md#cut)). A cut whose committed
+alternative, iteration or option does not hold the read before the cut is
+passed whether or not the read succeeds, or in a choice that starts after the
+read; passing it fails that choice only where it fails when the read fails as
+well, so the paths through the read behave as the proof of *Steps that begin
+anew* states. A cut whose committed part holds the read, or a call whose
+result includes one, before the cut is passed after a left call of that part,
+which condition 5 excludes. $\square$
+
+So the hypothesis of plain reads in the claims of this lemma is a consequence
+of the conditions. Without that clause of condition 5, a cut passed after a
+read can make the enclosing choice fail where the first step went on, and a
+lookahead can change its outcome between steps, so that a later step takes an
+alternative that the first step did not reach.
 
 **Growths inside a step.** Let a step of the growth of a leader $S$ at $p$,
 after the first, start a growth of another leader $R$ at $p$, let $e$ be the
@@ -4012,14 +4028,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the input that the outer growth consumes, apart from the growths at calls
    that are scanning sources (*Steps that begin anew*, *Growths inside a
    step*), and shows that these bounds do not rest on reuse in a context
-   (*Reuse in a context*). Two parts remain. The first is the reads that are
-   not plain: a lookahead that examines the input before its left call of the leader
-   whose step it is in, and a cut passed after a read, which can make a later
-   step take an alternative that the first step did not reach, as in
-   `S = S "w" / R "z" / "c" Bs` with `R = (R #cut "b" / S "y" / "c") / S "x"`
-   and `Bs = "b" Bs / ""`, whose growth of `R` covers the `b` characters again
-   in each step of `S` on `cb...b xz...xz`, which the classification
-   rejects. The second is the sum over the positions below. Lemma 4
+   (*Reuse in a context*), and that condition 5 makes the reads plain
+   (*Plain reads*). One part remains: the sum over the positions below.
+   Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
    growths, the activations that they own and the successful activations that
