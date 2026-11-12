@@ -895,7 +895,9 @@ export type R = Node | null | undefined;
 
 export type Matcher = (p: Parser) => R;
 
-export type Action = (c: Actx) => Value;
+// Action evaluates a term: it returns the value and the failure that ends the evaluation, null if
+// there is none.
+export type Action = (c: Actx) => [Value, Value];
 
 export type Frame = (Node | null)[];
 
@@ -4809,7 +4811,10 @@ export class Actx {
 
   result(action: Action, where: string): Node | null {
     try {
-      const v = action(this);
+      const [v, f] = action(this);
+      if (f !== null) {
+        return evalError(f as string);
+      }
       if (v === null) {
         return null;
       }

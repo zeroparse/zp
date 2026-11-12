@@ -64,7 +64,7 @@ let depthErrors=0;
 		}
 		prog := mustCompile(t, c.Src)
 		if i == 0 {
-			code = append(code, []byte(fmt.Sprintf("\nexport function installTestAction(fn: () => void): void { R%d.action = () => {fn(); return null;}; }\n", prog.ByName["trigger"].ID))...)
+			code = append(code, []byte(fmt.Sprintf("\nexport function installTestAction(fn: () => void): void { R%d.action = () => {fn(); return [null, null];}; }\n", prog.ByName["trigger"].ID))...)
 		}
 		path := filepath.Join(dir, fmt.Sprintf("g%d.ts", i))
 		if err := os.WriteFile(path, code, 0644); err != nil {

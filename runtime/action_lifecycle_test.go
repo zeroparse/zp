@@ -3,8 +3,9 @@ package runtime
 import "testing"
 
 func TestActionTrackingReleasesReferences(t *testing.T) {
-	// Any value but a function is a result: a value other than a node is boxed.
-	for _, name := range []string{"nil", "node", "value", "invalid", "error"} {
+	// Any value but a function is a result: a value other than a node is boxed. An action fails by
+	// returning its failure ("failure") or, printed by the term printer, by an evaluation error ("error").
+	for _, name := range []string{"nil", "node", "value", "invalid", "error", "failure"} {
 		t.Run(name, func(t *testing.T) {
 			prefix := &Node{RawText: "keep"}
 			made := &Node{RawFresh: true}
@@ -14,23 +15,28 @@ func TestActionTrackingReleasesReferences(t *testing.T) {
 			var panicValue any
 			func() {
 				defer func() { panicValue = recover() }()
-				got = c.result(func(*ActCtx) any {
+				got = c.result(func(*ActCtx) (any, any) {
 					p.created = append(p.created, made)
 					switch name {
 					case "node":
-						return made
+						return made, nil
 					case "value":
-						return 1
+						return 1, nil
 					case "invalid":
-						return func(...any) any { return nil }
+						return func(...any) any { return nil }, nil
 					case "error":
 						evalErrorf("failed")
+					case "failure":
+						return nil, evalError{"failed"}
 					}
-					return nil
+					return nil, nil
 				}, "test")
 			}()
-			if (panicValue != nil) != (name == "invalid" || name == "error") {
+			if (panicValue != nil) != (name == "invalid" || name == "error" || name == "failure") {
 				t.Fatalf("unexpected panic: %v", panicValue)
+			}
+			if f, ok := panicValue.(fatal); (name == "error" || name == "failure") && (!ok || f.err.Error() != "action in test: failed") {
+				t.Fatalf("failure ends the parse with %v", panicValue)
 			}
 			if len(p.created) != 1 || p.created[0] != prefix || p.created[:cap(p.created)][1] != nil {
 				t.Fatal("tracking retains a discarded reference or changed its prefix")

@@ -891,7 +891,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 // fails, and holds on every other value.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
-func (p *Parser) Predicate(t func(*ActCtx) any) bool {
+func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
 	v, ok := p.evalTerm(t)
@@ -912,7 +912,7 @@ func (p *Parser) Predicate(t func(*ActCtx) any) bool {
 // value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
-func (p *Parser) Bind(slot int, t func(*ActCtx) any) bool {
+func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
 	v, ok := p.evalTerm(t)
@@ -936,7 +936,7 @@ func (p *Parser) Bind(slot int, t func(*ActCtx) any) bool {
 // fails, and holds on every other value.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
-func (p *TParser) Predicate(t func(*TActCtx) any) bool {
+func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	v, ok := p.evalTerm(t)
@@ -957,7 +957,7 @@ func (p *TParser) Predicate(t func(*TActCtx) any) bool {
 // value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
-func (p *TParser) Bind(slot int, t func(*TActCtx) any) bool {
+func (p *TParser) Bind(slot int, t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	v, ok := p.evalTerm(t)

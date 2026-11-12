@@ -40,10 +40,20 @@ for (const unit of [CodePoints, Bytes]) {
     p.created = [n];
     const c = p.useCtx(emptyFrame, 0, 4, null, null, null);
     let failed = false;
-    try { c.result(() => { p.created.push(n); return v; }, "test"); }
+    try { c.result(() => { p.created.push(n); return [v, null]; }, "test"); }
     catch { failed = true; }
     if (failed !== (typeof v === "function")) throw new Error("wrong result validation");
     if (p.created.length !== 1 || p.created[0] !== n) throw new Error("result tracking cleanup");
+  }
+  // A returned failure ends the parse with the evaluation error of the action.
+  {
+    p.created = [n];
+    const c = p.useCtx(emptyFrame, 0, 4, null, null, null);
+    let msg = "";
+    try { c.result(() => { p.created.push(n); return [null, "failed"]; }, "test"); }
+    catch (x) { msg = String((x as { err?: Error }).err?.message); }
+    if (msg !== "action in test: failed") throw new Error("returned failure: " + msg);
+    if (p.created.length !== 1 || p.created[0] !== n) throw new Error("failure tracking cleanup");
   }
   p.created = [n];
   const c = p.useCtx(emptyFrame, 0, 4, null, null, null);
