@@ -1503,7 +1503,8 @@ lead to an activation held by a head.
 ## Lemma 5 (Growth)
 
 *Outline.* Under conditions 2, 3 and 5, and with the growths at the calls
-that are not left calls bounded as scanning sources by the claims of Lemma 4
+that are scanning sources, those that are not left calls and the calls of a
+leader in the body of another rule, bounded as scanning sources by the claims of Lemma 4
 that count nothing, the
 evaluations that Lemma 3 leaves out for memoized rules number at most a
 constant times $K \hat{n}$: the growth steps, and the body evaluations of
@@ -1528,7 +1529,7 @@ calls there in the same lookahead state or a greater one.
 A growth at $p$ takes at most two more steps than the length it consumes
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)). By
 condition 3, no step evaluates a
-scanning source at $p$ itself outside the left call that grows and outside
+scanning source at $p$ itself outside the left calls of rules of the cycle and outside
 memoized calls of rules off the cycle. A step can still evaluate a scanning
 source at a position after $p$ that it reaches without reading the seed, as
 `[a-z]*` in the first alternative of `E = "x" [a-z]* "!" / E "+" T / "x"`, and
@@ -1670,7 +1671,8 @@ input from the end of one seed to the end of the next is examined by one
 step, and what a step examines beyond the end of its own result is the
 failure of a growing unit after a scanning source, which condition 2 checks.
 A growth is itself a scanning source at each call of a rule of its cycle
-other than a left call, so its repetitions are those of a scanning source: the
+other than a left call, and at each call of a leader in the body of another
+rule, where it can start, so its repetitions are those of a scanning source: the
 restarts and the links of Lemma 4, which count nothing, relate the repetitions
 at one position, and *Memoized links* bounds the links of one leader at one
 position and level; the sum over the positions is step 4 of [Open
@@ -1879,7 +1881,15 @@ evaluation. A growth of R from a result that includes the growing result of S
 is new in each step of S. By condition 5 either the step of S keeps the result
 of R, and the input that R examines past the end of the seed of S is the input
 that this step consumes, or R grows past that end only where the growth of S
-stops, which happens once per growth.
+stops, which happens once per growth. A growth of S that stops can still
+throw away what R consumed past the end of its seed, and the growths of S at
+other positions can cover that input again. The call of R is a scanning source,
+since it is a call of a leader in the body of another rule, so condition 2
+checks the unit around it that fails after R has grown, and the cases of
+Lemma 4 bound what the parser evaluates again after that unit. The same holds
+when the body of a rule M of the cycle other than a leader calls R where no
+growth of the cycle is in progress: the growth of R there is a scanning source
+of the unit of M that holds the call.
 
 ## Lemma 6 (Values and Copies)
 
@@ -3851,7 +3861,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    evaluations of a key, and those that evaluations in a context of growths
    own, and for the growths
    that start at many positions, each at a call of a rule of the cycle that is
-   not a left call, as the repetitions of a scanning source.
+   not a left call or at a call of a leader in the body of another rule, as
+   the repetitions of a scanning source.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
