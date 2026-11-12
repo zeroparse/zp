@@ -70,6 +70,9 @@ type Suite struct {
 	// DocEmptyEnter sets ref.Config.DocEmptyEnter: the implementation's doc.enter starts the examined
 	// range of a call as the empty range at its position.
 	DocEmptyEnter bool
+	// DocCallMemo sets ref.Config.DocCallMemo: the implementation's Document parse calls rules through
+	// the call protocol of a parse from scratch.
+	DocCallMemo bool
 	// Exact are the operations whose charges must equal their cost bound, not stay within it: in a
 	// metered implementation, the model's quantities state the work to the unit.
 	Exact []string
@@ -155,6 +158,7 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	cfg := c.Config
 	cfg.LazyEdits = s.LazyEdits
 	cfg.DocEmptyEnter = s.DocEmptyEnter
+	cfg.DocCallMemo = s.DocCallMemo
 	p := &pair{suite: s, model: ref.New(cfg), impl: s.New(cfg),
 		refOrd: ordinals{at: map[any]int{}}, implOrd: ordinals{at: map[any]int{}}, handles: map[any]*handle{}}
 	fail := func(msg string) error {
@@ -190,7 +194,7 @@ func provides(s Suite, m *exec.Module, f *exec.Func, visited map[string]bool) bo
 	walkCalls(f.Body, func(c *exec.Call) {
 		switch {
 		case c.Callee == ValuesOp, c.Callee == ErrsOp, c.Callee == ErrOp, c.Callee == DatumOp, c.Callee == RuleOp,
-			c.Callee == ExpOp, c.Callee == PlaceholderOp, c.Callee == DocStatOp, isOprTestOp(c.Callee):
+			c.Callee == ExpOp, c.Callee == PlaceholderOp, c.Callee == DocStatOp, isOprTestOp(c.Callee), c.Callee == BodyOp:
 		case m.Op(c.Callee) != nil:
 			ok = ok && slices.Contains(s.Ops, c.Callee)
 		case m.Func(c.Callee) != nil:
@@ -227,6 +231,8 @@ type pair struct {
 	// number, so that an implementation may reuse it.
 	refOrd, implOrd ordinals
 	handles         map[any]*handle // by the model's handle
+	// regs are the registers of the run, and refRegs and implRegs each side's (UseRegisters).
+	regs, refRegs, implRegs map[string]any
 }
 
 // ordinals numbers handles in the order they first appear.
@@ -265,11 +271,37 @@ func implCall(m exec.Machine, o *exec.Op, args []any) outcome {
 	return call(m, o, args)
 }
 
-// UseRegisters hands the registers of the run to the model and to an implementation that reads them.
+// UseRegisters keeps the registers of the run, and hands the model and an implementation that reads
+// them registers of their own, which Call sets from the run's before each call and compares after it.
 func (p *pair) UseRegisters(regs map[string]any) {
-	p.model.UseRegisters(regs)
+	p.regs, p.refRegs, p.implRegs = regs, map[string]any{}, map[string]any{}
+	p.model.UseRegisters(p.refRegs)
 	if rm, ok := p.impl.(exec.RegisterMachine); ok {
-		rm.UseRegisters(regs)
+		rm.UseRegisters(p.implRegs)
+	}
+}
+
+// syncRegisters sets the registers of each side from the run's.
+func (p *pair) syncRegisters() {
+	for r, v := range p.regs {
+		p.refRegs[r], p.implRegs[r] = v, v
+	}
+}
+
+// writeRegisters compares the registers that the call of o wrote on each side, except those the model
+// leaves unspecified, and gives the run the model's.
+func (p *pair) writeRegisters(o *exec.Op, res []any) {
+	_, reads := p.impl.(exec.RegisterMachine)
+	unspecified := p.model.Unspecified(o, res)
+	for _, r := range o.Writes {
+		w, ok := p.refRegs[r]
+		if !ok {
+			continue
+		}
+		if g := p.implRegs[r]; reads && g != w && !slices.Contains(unspecified, r) {
+			panic(mismatch(fmt.Sprintf("register %s: model %v, implementation %v", r, w, g)))
+		}
+		p.regs[r] = w
 	}
 }
 
@@ -316,6 +348,10 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if isOprTestOp(o.Name) {
 		return []any{p.wrap(p.model.OprHandle(o.Name), p.impl.(Operators).Handle(o.Name))}
 	}
+	if o.Name == BodyOp {
+		i := args[0].(int64)
+		return []any{p.wrap(ref.BodyRef{Index: i}, p.impl.(Bodies).Body(i))}
+	}
 	if o.Name == DocStatOp {
 		i := args[0].(int64)
 		want, got := p.model.DocStat(i), p.impl.(Documents).DocStat(i)
@@ -336,6 +372,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if metered {
 		before = meter.Used()
 	}
+	p.syncRegisters()
 	want := call(p.model, o, refArgs)
 	got := implCall(p.impl, o, implArgs)
 	charges := metered && o.Name != "budget.charge"
@@ -378,6 +415,16 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 		}
 		if n, k := r.Unrolled(), len(p.model.Recovered()); n >= 2*k && n > 0 {
 			panic(mismatch(fmt.Sprintf("listing %d recovered errors visits %d lists, not fewer than %d", k, n, 2*k)))
+		}
+	}
+	p.writeRegisters(o, want.res)
+	if ob, ok := p.impl.(Observer); ok {
+		for _, c := range o.Writes {
+			if w := p.model.Observe(c); w != nil {
+				if g := ob.Observe(c); !slices.Equal(w, g) {
+					panic(mismatch(fmt.Sprintf("%s: model %q, implementation %q", c, w, g)))
+				}
+			}
 		}
 	}
 	res := make([]any, len(want.res))

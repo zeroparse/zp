@@ -102,11 +102,11 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 					b.Return(states...)
 				}
 			case 1:
-				// A declared result, since a nil result has no type of its own.
-				// A result that a parameter does not name.
+				// A declared result, since a nil result has no type of its own, named apart from the
+				// parameters.
 				res := "r"
-				if slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
-					res = "res"
+				for slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
+					res += "r"
 				}
 				b.Var(res, o.Results[0])
 				b.Set(res, exec.C(name, args...))
@@ -259,4 +259,28 @@ func GoFrameBindings() (string, error) {
 // package runtime, for the typed runtime's TParser.
 func GoTypedFrameBindings() (string, error) {
 	return bindingFile("runtime", frameBindingGoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTFrameBindings")
+}
+
+// EngineRuleBindingsFile is the file of the engine's conformance bindings of the operations of the
+// rules, relative to the directory of this package. It is a test file of package core of the engine.
+const EngineRuleBindingsFile = "../../../engine/core/rule_bind_exec_test.go"
+
+// ruleBindingEngineOps are the operations of the rules that the engine provides.
+var ruleBindingEngineOps = []string{"rule.memo", "rule.leader", "rule.plain", "rule.docOnlyMemo", "rule.docPlain",
+	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain"}
+
+// ruleBindingOps are the operations of the rules that the node runtime provides.
+var ruleBindingOps = []string{"rule.memo", "rule.leader", "rule.plain", "rule.docMemo", "rule.docOnlyMemo",
+	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain"}
+
+// EngineRuleBindings returns the Go test file of the conformance bindings of the operations of the rules
+// for package core of the engine.
+func EngineRuleBindings() (string, error) {
+	return bindingFile("core", ruleBindingEngineOps, engineTarget(), "", "zeroparse.dev/zp/internal/value")
+}
+
+// GoRuleBindings returns the Go test file of the conformance bindings of the operations of the rules for
+// package runtime, for the node runtime's Parser.
+func GoRuleBindings() (string, error) {
+	return bindingFile("runtime", ruleBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }

@@ -220,7 +220,8 @@ func interrupted() {
 		if !ok {
 			panic(x)
 		}
-		if _, limit := f.err.(*LimitError); limit {
+		// The nesting limit is a LimitError too, of its own kind.
+		if le, limit := f.err.(*LimitError); limit && le.Kind != LimitDepth {
 			panic(exec.Interrupt{Reason: "limit"})
 		}
 		panic(exec.Interrupt{Reason: "nesting"})

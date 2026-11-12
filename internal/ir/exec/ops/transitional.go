@@ -60,6 +60,15 @@ const (
 	// the last step that read another seed): one, one for each jump recorded before from its seed,
 	// and the expectations of its set when its farthest position is that of the steps after it.
 	QRun = "run"
+	// QBody is the units that the evaluation of a rule's body that the call runs, and of the rule's
+	// action, charge, as the operations they call declare them.
+	QBody = "body"
+	// QCaptures is the number of the capture names of the rule of the call.
+	QCaptures = "captures"
+	// QCaptureFields is, when a capture of the rule of the call matched, the number of its capture
+	// names and what setting the captures that matched as fields of the rule's value charges; zero
+	// otherwise.
+	QCaptureFields = "capture_fields"
 	// QSteps is the number of memoized steps and jumps that the call takes.
 	QSteps = "steps"
 	// QTerm is what evaluating the term of the call charges, which the term's expression decides.
@@ -104,7 +113,7 @@ what the calls in their contexts depend on, and the tables of the results kept i
 dependency memo).`)
 
 	rule := exec.THandle(Rule)
-	body := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
+	bodyH := m.AddHandle(Body, Rules, "The invocation of a rule's body that a generated call passes.")
 	mark := m.AddHandle(Mark, Exp, "The record that an isolation set aside.")
 	set := m.AddHandle(Set, Exp, "The expectations an isolation recorded, which a target may keep where the record grows next: valid as exp.setAt requires.")
 	expID := m.AddHandle(ExpID, Exp, "An expectation: the identifier of a description or message of the grammar.")
@@ -131,7 +140,7 @@ node runtime also in an observed parse.`})
 	add(&exec.Op{Name: "call.track", Component: Call, Params: call, Results: result, Writes: append([]string{Call}, regs...),
 		Features: []string{Document}, NoReturn: true,
 		Contract: `Calls the rule at the binding level min on the target's tracked path and returns its result.`})
-	add(&exec.Op{Name: "call.trackBody", Component: Call, Params: []exec.Param{exec.P("r", rule), exec.P("inv", body)},
+	add(&exec.Op{Name: "call.trackBody", Component: Call, Params: []exec.Param{exec.P("r", rule), exec.P("inv", bodyH)},
 		Results: result, Writes: append([]string{Call}, regs...), Features: []string{Document}, NoReturn: true,
 		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
 result.`})
@@ -150,21 +159,27 @@ stream, or for a rule without a seen index).`})
 		{"rule.docPlain", "Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol."},
 		{"rule.positional", "Reports whether the results of the rule may depend on positions, not only on the input they examine."},
 	} {
-		add(&exec.Op{Name: a.name, Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TBool}, Contract: a.doc})
+		m.AddOp(&exec.Op{Name: a.name, Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TBool}, Contract: a.doc})
 	}
-	add(&exec.Op{Name: "rule.id", Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "rule.id", Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the rule's index, the rule of its memo keys.`})
-	add(&exec.Op{Name: "rule.invoke", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
-		NoReturn: true,
+	body := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QBody}}}
+	invoke := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QCaptures}, {Coef: 1, Quantity: QCaptureFields}, {Coef: 1, Quantity: QBody}}}
+	m.AddOp(&exec.Op{Name: "rule.invoke", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
+		NoReturn: true, Cost: invoke,
 		Contract: `Runs the rule's body at the binding level min in a frame of its own and makes the rule's
-value; on failure the position is unspecified.`})
-	add(&exec.Op{Name: "rule.invokePlain", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
-		NoReturn: true,
+value; on failure the position is unspecified. The evaluation counts in the statistics of a Document
+parse, and that of a rule on a cycle of calls takes a nesting level while it runs.`})
+	m.AddOp(&exec.Op{Name: "rule.invokePlain", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
+		NoReturn: true, Cost: exec.Cost{Const: 1, Terms: body.Terms},
 		Contract: `Runs the plain body of a rule without captures and returns its result, at the start
-position on failure.`})
-	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", body)}, Results: result,
-		Writes: append([]string{Rules}, regs...), NoReturn: true,
-		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result.`})
+position and without the errors it recovered on failure. The evaluation counts as rule.invoke's does.`,
+		Requires: `rule.plain is true of r.`})
+	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", bodyH)}, Results: result,
+		Writes: append([]string{Rules}, regs...), NoReturn: true, Cost: body,
+		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result; on failure the
+position is unspecified. The evaluation does not count in the statistics of a Document parse, which
+the caller counts with doc.evaluated.`})
 
 	add(&exec.Op{Name: "exp.isolate", Component: Exp, Params: []exec.Param{exec.P("pos", exec.TInt)}, Results: []exec.Type{mark},
 		Writes:   []string{Exp},

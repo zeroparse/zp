@@ -573,79 +573,84 @@ transitional op call.first(r Rule) bool
     // seen.first for a rule whose memoization the target defers, false for one it memoizes eagerly (in a
     // stream, or for a rule without a seen index).
 
-transitional op rule.memo(r Rule) bool
+op rule.memo(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the rule is memoized.
 
-transitional op rule.leader(r Rule) bool
+op rule.leader(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the rule leads a left-recursive cycle.
 
-transitional op rule.plain(r Rule) bool
+op rule.plain(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the rule has no captures, so that its plain body serves its invocation.
 
-transitional op rule.docMemo(r Rule) bool
+op rule.docMemo(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether a Document parse memoizes the rule.
 
-transitional op rule.docOnlyMemo(r Rule) bool
+op rule.docOnlyMemo(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether a Document parse memoizes the rule and a parse from scratch does not.
 
-transitional op rule.docPlain(r Rule) bool
+op rule.docPlain(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether a parse from scratch calls the plain body of the rule directly, at a call site, without the call protocol.
 
-transitional op rule.positional(r Rule) bool
+op rule.positional(r Rule) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the results of the rule may depend on positions, not only on the input they examine.
 
-transitional op rule.id(r Rule) int
+op rule.id(r Rule) int
   component rules
   cost <= 0
   contract:
     // Returns the rule's index, the rule of its memo keys.
 
-transitional op rule.invoke(r Rule, min int) (Value, bool)
+op rule.invoke(r Rule, min int) (Value, bool)
   component rules
   writes rules, pos, silent
   noreturn
-  cost <= 0
+  cost <= 1 + 1*captures + 1*capture_fields + 1*body
   contract:
     // Runs the rule's body at the binding level min in a frame of its own and makes the rule's
-    // value; on failure the position is unspecified.
+    // value; on failure the position is unspecified. The evaluation counts in the statistics of a Document
+    // parse, and that of a rule on a cycle of calls takes a nesting level while it runs.
 
-transitional op rule.invokePlain(r Rule, min int) (Value, bool)
+op rule.invokePlain(r Rule, min int) (Value, bool)
   component rules
   writes rules, pos, silent
   noreturn
-  cost <= 0
+  cost <= 1 + 1*body
   contract:
     // Runs the plain body of a rule without captures and returns its result, at the start
-    // position on failure.
+    // position and without the errors it recovered on failure. The evaluation counts as rule.invoke's does.
+  requires:
+    // rule.plain is true of r.
 
 transitional op rule.run(inv Body) (Value, bool)
   component rules
   writes rules, pos, silent
   noreturn
-  cost <= 0
+  cost <= 0 + 1*body
   contract:
-    // Runs the invocation inv of a rule at binding level 0 and returns its result.
+    // Runs the invocation inv of a rule at binding level 0 and returns its result; on failure the
+    // position is unspecified. The evaluation does not count in the statistics of a Document parse, which
+    // the caller counts with doc.evaluated.
 
 transitional op exp.isolate(pos int) ExpMark
   component expected

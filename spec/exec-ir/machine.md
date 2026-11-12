@@ -168,13 +168,17 @@ bound could exceed the limit.
 
 A charge that pays for one call, step, iteration or line is made by the function that runs it, with `budget.charge`;
 an operation of constant work charges nothing, because the call or step around it has paid. An operation that runs a
-rule body or a term declares no bound: what it charges includes the grammar code or the term it runs.
+rule body or a term bounds its charges by what the grammar code or the term it runs charges (the quantities `body` and
+`term`), and its own work besides.
 
 A bound is written `c + k*q + ...`, where `c` is the constant and each `k*q` a coefficient and a quantity. The
 quantities are the following.
 
 | Quantity | Measures |
 |:--|:--|
+| `body` | The units that the evaluation of a rule's body that the call runs, and of the rule's action, charge, as the operations they call declare them. |
+| `capture_fields` | When a capture of the rule of the call matched, the number of the capture names of the rule, and what setting each capture that matched as a field of the rule's value charges: one unit for each field that the value already has, and the comparison of its name with the capture's; zero otherwise. |
+| `captures` | The number of the capture names of the rule of the call. |
 | `covered` | The number of positions the memo covers from its floor: the slots that a target keeps per position pays for when it prunes them, moves the rest and drops the indexes of crowded positions. |
 | `deps` | The number of dependencies that the call passes to the enclosing evaluation or stores: those that the frame of the evaluation it ends recorded, and those stored with the results, steps and jumps it reuses, with the observations they lead to. |
 | `dropped` | The number of values above the mark of the call. |

@@ -317,6 +317,20 @@ conformance cases that run on the engine and, for all but the records, on genera
 the targets' printed bindings by reflection serves both. The operations that run grammar code or build values
 (`opr.skip`, `opr.match`, the value of a line, `opr.build`, `opr.buildTyped`, `opr.attemptMissing`, `opr.replay`) stay
 transitional until the scripted-rule model covers them. *Target*: the representation of lists, lines and attempts.
+**Rules.** What the grammar says of a rule (whether a parse from scratch or a Document parse memoizes it, whether it
+leads a cycle, its captures, whether its results depend on positions) and the evaluation of its body are the
+operations of the component `rules` other than `rule.run` (`rule.memo`, `rule.leader`, `rule.plain`, their Document
+forms, `rule.positional`, `rule.id`, `rule.invoke` and `rule.invokePlain`), with a reference model and conformance
+cases that run on generated Go and the engine. The body is the grammar's code, which the machine does not model: a case
+states what each evaluation of a body does (its charges, the errors it recovers, how far it examines the input,
+where it ends and whether it matches), and the model and each target run that script, the target through a rule
+whose body calls the target's own operations, so that compositions that call rules can be checked without a
+grammar. A call charges one unit, what the body and the rule's action charge, one unit for each capture name to
+find the captures that matched and, when one did, one more for each name and what setting the fields charges, on
+every backend. A script sets no capture, so the cases check only the search; a case with a matched capture needs a
+capture in the script vocabulary. A target whose Document parse calls rules through the call protocol of a parse from scratch (the engine)
+reports there through `rule.memo` the rules that the Document memoizes, which the suite states as a configuration
+of the model. *Target*: how rules and their bodies are represented and called.
 
 **Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that
 a replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists
