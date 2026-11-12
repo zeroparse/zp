@@ -428,6 +428,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 		var before string
 		count := 0
 		var controller *core.BudgetControl
+		last := 0
 		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
 			count++
 			node = n
@@ -437,15 +438,17 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			// Force the normal inactive-capacity clear at the next commit.
 			p.Trail = make([]core.Undo, 0, 129)
 			p.Memo.Base = p.Pos - 1024
-			frames, keep := 0, 0
-			for i := range p.FrameSlab {
-				frames++
-				if &p.FrameSlab[i] == p.Frame {
-					keep = i + 1
-					break
+			// The charges of the commit, in order and as requested: the line starts it scans
+			// and the input it compacts, then, with the frame scratch, the frames it scans for
+			// the one in use and those after it that it clears, then, with the undo cleanup, the
+			// trail capacity it clears. The reference builds of the stream mechanisms lack one
+			// of the last two, so the commit ends at another charge there.
+			var charges []int
+			charge := func(n, chunk int) {
+				for ; n > 0; n -= chunk {
+					charges = append(charges, min(n, chunk))
 				}
 			}
-			frames += len(p.FrameSlab) - keep
 			copyCount := 0
 			if removed := p.Pos - 1 - p.Base; removed > 0 && 2*removed >= len(p.In)+len(p.Bs) {
 				copyCount = len(p.In) + len(p.Bs) - removed
@@ -460,11 +463,37 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 					lineSteps = min(p.Pos-1, p.Loaded()) - p.Base
 				}
 			}
-			controller.Limits.Compute = controller.Used + uint64(lineSteps+copyCount+frames+128)
+			charge(lineSteps, 1)
+			charge(copyCount, 128)
+			if core.StreamFrameScratch {
+				keep := 0
+				for i := range p.FrameSlab {
+					charge(1, 1)
+					if &p.FrameSlab[i] == p.Frame {
+						keep = i + 1
+						break
+					}
+				}
+				charge(len(p.FrameSlab)-keep, 128)
+			}
+			if core.StreamUndoCleanup {
+				charge(cap(p.Trail), 128)
+			}
+			if len(charges) == 0 {
+				t.Fatal("the commit charges nothing")
+			}
+			// The limit lets every charge but the last through, so the commit is interrupted at
+			// its end, after it has released what the element held.
+			last = charges[len(charges)-1]
+			total := 0
+			for _, n := range charges {
+				total += n
+			}
+			controller.Limits.Compute = controller.Used + uint64(total-last)
 			return nil
 		}, o)
 		var we *limits.LimitError
-		if !errors.As(err, &we) || we.Kind != limits.LimitCompute || we.Requested != 1 || we.Used != controller.Limits.Compute || count != 1 {
+		if !errors.As(err, &we) || we.Kind != limits.LimitCompute || we.Requested != uint64(last) || we.Used != controller.Limits.Compute || count != 1 {
 			t.Fatalf("normal commit interruption error=%v emits=%d", err, count)
 		}
 		assertTraceParserDetached(t, core.TraceParser(saved), false)
