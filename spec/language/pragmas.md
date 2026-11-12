@@ -152,8 +152,9 @@ an element are reported immediately before that element is handed over. A
 diagnostic callback error stops the parse without handing over that element;
 errors from branches later backtracked are never reported.
 
-Therefore a rule body contains at most one `#stream`, on the complete body, a
-top-level sequence element, or the expression captured by such an element.
+Therefore a rule body contains at most one `#stream`, on the complete body or a
+top-level sequence element, or on the expression that such a body or element
+captures, through any number of nested captures (`x:(y:item* #stream)`).
 `#recover` cannot wrap the same repetition in either order, and a rule on a
 left-recursion cycle cannot have `#stream`, because growing the cycle would
 evaluate delivered elements again. In an ordinary

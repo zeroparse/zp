@@ -171,6 +171,33 @@ rule inner = "b"* #stream
 	}
 }
 
+// TestCoreBuildStreamUnderNestedCaptures checks that a #stream repetition that a top-level item
+// captures through nested captures is built as a Stream under those captures, and verifies, in a
+// start rule and in a rule that is not one.
+func TestCoreBuildStreamUnderNestedCaptures(t *testing.T) {
+	prog := coreProgram(t, `@start
+rule main = x:(y:"a"* #stream) inner $$
+rule inner = u:(v:"b"* #stream)
+`)
+	m, err := build.CoreFrom(prog, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	core.Analyze(m)
+	if err := core.Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	got := core.Print(m, false)
+	for _, want := range []string{
+		"    capture 0 x\n      capture 1 y\n        stream\n          repeat 0 -1\n",
+		"  capture 0 u\n    capture 1 v\n      stream\n        repeat 0 -1\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Print does not contain %q:\n%s", want, got)
+		}
+	}
+}
+
 // TestFollowRepeatsThroughStream checks that the Scan that takes the place of the #stream
 // repetition of a rule that is not a start rule gets the origin of that repetition.
 func TestFollowRepeatsThroughStream(t *testing.T) {

@@ -301,3 +301,26 @@ func TestStreamOutsideLeftRecursion(t *testing.T) {
 		}
 	}
 }
+
+// TestStreamUnderNestedCaptures checks that #stream may annotate a repetition that a top-level
+// item captures through nested captures, and that each element is delivered once on every backend;
+// the same captures below the top level are rejected.
+func TestStreamUnderNestedCaptures(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = x:(y:item* #stream) $$
+rule item = "a" ";"`)
+	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
+		got := 0
+		err := prog.ParseStreamWith("main", strings.NewReader("a;a;a;"), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend})
+		if err != nil || got != 3 {
+			t.Errorf("%v: %d elements, %v; want 3", backend, got, err)
+		}
+	}
+	if _, err := prog.Parse("main", "a;a;"); err != nil {
+		t.Errorf("ordinary parse: %v", err)
+	}
+	const want = `#stream is only allowed at the top level of a rule body`
+	if got := compileError(t, `rule main = "b" (x:(y:"a"* #stream))? "c"`); !strings.Contains(got, want) {
+		t.Errorf("nested captures below the top: got %s\nwant %s", got, want)
+	}
+}
