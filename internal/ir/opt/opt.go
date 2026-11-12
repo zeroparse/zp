@@ -2,7 +2,7 @@
 // pass pipelines of the IR under them (design 063). It sits beside the IR pipelines so that every
 // backend that lowers from the IR, not only the generators, reads one registry.
 //
-// An optimization is a flag with a name. A pass of the Core IR pipeline is one (its name is the
+// An optimization is a flag with a name. A pass of the Core IR or Flow IR pipeline is one (its name is the
 // pass's); so are the options of Flow lowering, what the printers emit, and the
 // controls of the runtime structures that they emit. A Settings value says which are on, and an
 // integer parameter where there is one. A profile is a preset: a name for fixed values of flags,
@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/flow"
 )
 
 // Kind says what an optimization changes.
@@ -33,6 +34,8 @@ const (
 	Printer
 	// Runtime is a control of the runtime structures that the printers emit.
 	Runtime
+	// FlowPass is a pass over Flow IR (internal/ir/flow, Pipeline).
+	FlowPass
 )
 
 func (k Kind) String() string {
@@ -43,6 +46,8 @@ func (k Kind) String() string {
 		return "lowering"
 	case Printer:
 		return "printer"
+	case FlowPass:
+		return "flow pass"
 	}
 	return "runtime"
 }
@@ -85,8 +90,8 @@ var Flags = []Flag{
 }
 
 // check reports a flag list that breaks the rules of the registry: a name or a description missing or
-// repeated, a value that is neither 0 or 1 nor a count, and an optimization that changes the output
-// without being an opt-in.
+// repeated, a value that is neither 0 or 1 nor a count, an optimization that changes the output
+// without being an opt-in, and a name that PrintNames gives a step that is not a pass.
 func check(flags []Flag) error {
 	seen := map[string]bool{}
 	for _, f := range flags {
@@ -99,6 +104,8 @@ func check(flags []Flag) error {
 			return fmt.Errorf("flag %s is on or off but its speed value is %d", f.Name, f.Default)
 		case f.ChangesOutput && f.Default != 0:
 			return fmt.Errorf("flag %s changes the output but is on in the speed profile: it must be an opt-in", f.Name)
+		case f.Name == PrintBuild || f.Name == PrintFlow || f.Name == PrintAll:
+			return fmt.Errorf("flag %s has the name of a step that -print-after selects", f.Name)
 		}
 		seen[f.Name] = true
 	}
@@ -341,13 +348,25 @@ func ProfileValues(name string) map[string]int {
 	return nil
 }
 
-// PrintNames returns the names that select the module to print after: "build", the passes, and
-// "all".
-func PrintNames() []string {
-	return append([]string{"build"}, append(corePassNames(), "all")...)
-}
+// The names of the steps that build a unit of the IR, which select its dump as built.
+const (
+	// PrintBuild is the Core IR as the builder made it.
+	PrintBuild = "build"
+	// PrintFlow is a function of Flow IR as the lowering made it.
+	PrintFlow = "flow"
+	// PrintAll selects every step and every pass.
+	PrintAll = "all"
+)
 
-func corePassNames() []string { return core.Pipeline.Names() }
+// PrintNames returns the names that select what to print after, in the order the steps run: "build",
+// the Core passes, "flow", the Flow passes, and "all".
+func PrintNames() []string {
+	out := []string{PrintBuild}
+	out = append(out, core.Pipeline.Names()...)
+	out = append(out, PrintFlow)
+	out = append(out, flow.Pipeline.Names()...)
+	return append(out, PrintAll)
+}
 
 // ParsePrintAfter validates a comma-separated list of pass names for printing, and returns the names
 // in order. The empty string selects nothing.

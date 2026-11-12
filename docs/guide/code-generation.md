@@ -202,7 +202,7 @@ zp gen -runtime only -o <directory> [-lang go|ts]
 | `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed`, `memory` or `size`; any other name is an error that lists the valid ones |
 | `-opt` | none | Optimizations to give a value after the profile is applied and before `-no-opt`, separated by commas, as `name` or `name=count`: a name alone turns on an optimization that the profile leaves off (`-opt ts-literal-sharing`), a count sets an integer one (`-opt class-tables=3`), and `0` turns one off. An unknown name, a count that is not a number, or a value that the optimization does not take is an error |
 | `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
-| `-print-after` | none | Write the Core IR that the generator builds to standard error, as text, after the named passes, separated by commas: `build`, a pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
+| `-print-after` | none | Write the intermediate representation that the generator builds to standard error, as text, after the named steps and passes, separated by commas: `build`, a Core pass name, `flow`, a Flow pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
 
 Details:
 
@@ -341,7 +341,9 @@ never turns on a pass for a parser that it is unsound for. `-no-opt guards` also
 `-print-after` shows the Core IR, the form the passes work on, for debugging the generator. A pass that does not apply to the
 parser (the lean passes in a parser with limit controls, for example) prints nothing. Only the generation that
 writes the output prints, and the text starts with `-- Core IR of the <table> after <pass> --`, where `<table>` is
-`typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables.
+`typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables. `-print-after flow` shows
+the next form: each function that the parser is printed from, in Flow IR, as lowered from the Core IR, under
+`-- Flow IR of <function> in the <table> table after flow --`; the passes over Flow IR print under their own names.
 
 ### From Go
 

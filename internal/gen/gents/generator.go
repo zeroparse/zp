@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/ir/opt"
 )
 
@@ -57,6 +58,9 @@ func Generate(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions) ([]gen.Ge
 type Hooks struct {
 	// Generator, if not nil, is called with the generator once it has generated.
 	Generator func(*Generator)
+	// FlowRun runs the Flow passes in place of flow.Run (opt.Driver.FlowRun), so that a test
+	// generates with a pipeline of its own, for example one with a pass that breaks a function added.
+	FlowRun func(table string, f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
 }
 
 // GenerateParser generates the files of Generate with the hooks h, which may be nil.
@@ -115,7 +119,7 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	var dumped *bytes.Buffer
 	newGen := func(live *tsLive) (*Generator, error) {
 		dumped = &bytes.Buffer{}
-		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
+		tsg := &Generator{Generator: gen.Generator{Prog: prog, Table: "rules", Observability: opts.Observability, Document: opts.Document, TypeScript: true, Opt: settings, VerifyEach: opts.VerifyEachPass, FlowRun: h.FlowRun}, plainUsed: map[*compile.Rule]bool{}, live: live, printed: map[string]map[int][]int{}}
 		tsg.NoBudget = !opts.LimitControls
 		if opts.PrintTo != nil {
 			tsg.PrintAfter, tsg.PrintTo = printAfter, dumped

@@ -93,6 +93,50 @@ rule num = [0-9]+
 	}
 }
 
+// pipelineTables are builds that print functions of the given table from Flow IR and Exec IR: the
+// Node table, the recognizer table and the typed table. The label of the table is the one of the
+// dumps and errors.
+var pipelineTables = []struct {
+	table string
+	opts  gen.GenOptions
+}{
+	{"rules", gen.GenOptions{Module: "example.com/p", Runtime: gen.RuntimeImport}},
+	{"recRules", gen.GenOptions{Recognize: true, Module: "example.com/p", Runtime: gen.RuntimeImport}},
+	{"typed", gen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Runtime: gen.RuntimeImport}},
+}
+
+// Every function that the generator prints from Flow IR runs through the Flow pipeline, in each
+// table, and a Flow pass that breaks a function is caught by the Flow verifier: at the end of the run
+// without VerifyEachPass, and by name right after the pass with it.
+func TestVerifyEachPassNamesTheBreakingFlowPass(t *testing.T) {
+	pg, err := parseTest(`rule main = (word / num / -" ")* $$
+rule word = "if" / "else" / [a-z]+
+rule num = [0-9]+
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range pipelineTables {
+		t.Run(c.table, func(t *testing.T) {
+			seen := 0
+			hooks := &gengo.Hooks{FlowRun: gentest.BrokenFlowRun(c.table, &seen)}
+			opts := c.opts
+			_, err := gengo.GenerateParser(pg, gentest.Compile, opts, hooks)
+			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-flow") {
+				t.Fatalf("without VerifyEachPass: %v", err)
+			}
+			if seen == 0 {
+				t.Fatal("no function ran through the Flow pipeline")
+			}
+			opts.VerifyEachPass = true
+			_, err = gengo.GenerateParser(pg, gentest.Compile, opts, hooks)
+			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-flow:") {
+				t.Fatalf("with VerifyEachPass: %v", err)
+			}
+		})
+	}
+}
+
 // A request to print the Core IR needs a writer to print to.
 func TestPrintAfterNeedsAWriter(t *testing.T) {
 	pg, err := parseTest("rule main = [a-z]+ $$\n")

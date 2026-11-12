@@ -56,7 +56,14 @@ it can match the empty string, the set of characters it can start with and its e
 `class-runs` replace nodes, so they invalidate it; `guards` reads it.
 
 The package `internal/ir/pipeline` is generic: it knows nothing about Core IR, only about passes, analyses and an
-ordered list. A second representation would declare its own pipeline and reuse the manager.
+ordered list. Flow IR declares a pipeline of its own on the same manager. Its unit is one lowered function (a rule, a
+framed body, a line of an Operators Rule or an outlined node), and its verifier is the Flow verifier. Every function that a
+generator prints from Flow IR runs through it after the lowering, so a pass placed there reaches every backend that prints
+from Flow IR. The lowering has already verified the function, so a run in which no Flow pass runs does not verify it again.
+The Flow pipeline has no pass yet: the representation choices that the lowering makes from Core effects (what to save and
+restore at a backtracking point, which variables and blocks to use) are the candidates. A Flow pass is a flag of its own
+kind in the registry, and its name differs from every Core pass name, so one name selects one pass in the flags and in
+the dumps.
 
 `Validate` checks the declarations before anything runs: names are non-empty and distinct, every required analysis can be
 computed, and every pass named in a `follow` list precedes the pass that names it. A declaration that cannot be
@@ -133,7 +140,8 @@ so a run can verify after **every** pass: the error then names the first pass th
 diagnosis ask for this; it costs generation time and changes no output.
 
 A run can also **dump** the module as text: after the build, and after each pass that ran. `zp gen -print-after guards`
-(or `all`) prints the Core IR after the named passes to standard error. A pass that did not apply prints nothing, which is
+(or `all`) prints the Core IR after the named passes to standard error. The names follow the order the steps run in:
+`build`, the Core passes, then `flow` (each Flow function as the lowering made it) and the Flow passes. A pass that did not apply prints nothing, which is
 itself information: the dump is the way to see why an optimization did not happen for a parser.
 
 ```mermaid
