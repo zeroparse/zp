@@ -81,6 +81,7 @@ func splitExpr(p *Parser, r *Rule, min int) (*value.Node, bool) {
 	p.Enter()
 	defer func() { p.Depth-- }()
 	st := ExprState{Min: min}
+	p.ExprBegin(&st)
 	lhs, ok := splitNud(p, r)
 	if done, ok := p.ExprStart(r, &st, lhs, ok); done {
 		return st.Lhs, ok

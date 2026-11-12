@@ -192,6 +192,7 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"ExprLed", "rmin := level\n\tif op.Assoc == grammar.AssocRight {", "rmin := level\n\tif true {"}},
 			{{"ExprRhs", "\t\tp.Reset(st.M0)\n\t\treturn true, true\n", "\t\treturn true, true\n"}},
 			{{"ExprRhs", "\t\tst.LastNone = op.Level\n", ""}},
+			{{"ExprRhs", "\tif p.Pos == st.M0.Pos {\n\t\treturn true, true\n\t}\n", ""}},
 			// The bound of the loop: the tightest level that may follow the start or the last operator.
 			{{"operatorsRuleExpr", "level > bound ||", "level > bound && false ||"}},
 			{{"operatorsRuleExpr", "bound := p.nudBound", "bound := 1073741824"}},
