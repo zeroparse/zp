@@ -20,6 +20,12 @@ func TestAdaptiveMemoCounters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The runtime calls the helpers of the budget module, which the generator places before it.
+	helpers, err := os.ReadFile("budget.ts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source = append(helpers, source...)
 	path := filepath.Join(t.TempDir(), "adaptive_memo.ts")
 	if err := os.WriteFile(path, append(source, []byte(adaptiveMemoTypeScriptTest)...), 0o600); err != nil {
 		t.Fatal(err)
