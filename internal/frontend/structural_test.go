@@ -113,3 +113,32 @@ func TestRunRejectsStreamOnCycleInAnyRule(t *testing.T) {
 		t.Fatalf("Run error %v, want %s", err, want)
 	}
 }
+
+// TestRunRejectsFactErrors requires Run, and the facts of the untyped module alone, to reject every
+// kind of error that depends on the facts with the message and position given here rather than the
+// compiler's, so that none is lost when the compiler stops reporting them. Run then has to look
+// for them also when checking succeeds.
+func TestRunRejectsFactErrors(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ src, want string }{
+		{"var k int\n@start\nrule main = R $$\nrule R = {k := k + 1} R \"x\" / \"x\"",
+			"4:11: rule R binds variable k before its left-recursive call of R; the left recursion reads k"},
+		{"var k int\n@start\nrule main = A $$\nrule A = {k := k + 1} B \"x\" / \"x\"\nrule B = A \"y\"",
+			"4:11: rule A binds variable k before its left-recursive call of B; the left recursion reads k"},
+		{"@start\nrule main = (main / \"y\")+ #stream",
+			"2:27: #stream cannot be used in rule main, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered"},
+		{"@start\nrule main = _s\nrule _s = \"x\" _s",
+			"3:1: rule _s contains itself in its sequence of elements, so it has no fixed number of them"},
+	} {
+		g, err := compiletest.Parse(tc.src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Run(g, compile.Options{}, nil); err == nil || err.Error() != tc.want {
+			t.Errorf("Run error %v, want %s", err, tc.want)
+		}
+		if got := structuralErrors(g, compile.Options{}, desugar.InlineNames{}, nil); got.Error() != tc.want {
+			t.Errorf("structural errors %v, want %s", got, tc.want)
+		}
+	}
+}
