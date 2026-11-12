@@ -282,6 +282,13 @@ semantic validation pipeline.
 
 ### Default Selection
 
+The end state is one frontend: the default switches to the generated typed
+parser, which builds its source tree directly, with no intermediate generic
+node tree. The adapter that reads the generic node tree, which the differential
+tests use today, is interim, and the typed parser needs an adapter of its own to
+`grammar.Grammar`. Layout and formatting parity is a separate goal from the
+acceptance, grammar and diagnostic parity that the switch requires.
+
 Keep the manual parser as the initial default. When parser-performance work is
 resumed, first profile and tune its lexer/parser on representative grammar
 sources; do not treat its current implementation as a permanently fixed
