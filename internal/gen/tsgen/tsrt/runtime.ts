@@ -219,9 +219,8 @@ export function convertNode(typ: string, v: Value): Node | null {
   return retypeNode(v, typ);
 }
 
-// retypeNode is the operation node.convert: it returns v, a string, tuple or list node, as a node of
-// the named node type typ: a copy of v with the same range and content, or v itself if it already has
-// the type.
+// retypeNode returns v, a string, tuple or list node, as a node of the named node type typ: a copy
+// of v with the same range and content, or v itself if it already has the type.
 export function retypeNode(v: Node, typ: string): Node {
   if (v.type === typ) {
     return v;
@@ -2156,6 +2155,8 @@ export class Parser {
       this.ctxs.length + this.looks.length + this.obsGuard.length + this.skipVisits.length + this.scanCold.length;
     return 8 * slots;
   }
+  // retyped is the operation node.convert: retypeNode, counting the copy it makes.
+  retyped(v: Node, typ: string): Node { const n = retypeNode(v, typ); this.allocRetyped(v, n); return n; }
   // allocRetyped counts n when it is a copy that retypeNode made of the node v.
   allocRetyped(v: Value, n: Value): void {
     if (this.control !== null && n instanceof Node && n !== v && v instanceof Node) {
@@ -4948,7 +4949,6 @@ export class Actx {
   // convert evaluates a node type constructor T{v}: it converts v to the named node type typ.
   convert(typ: string, v: Value): Value {
     const [n, e] = this.p.termConvert(typ, v);
-    this.p.allocRetyped(v, n);
     if (e !== null) {
       return evalError(e as string);
     }
@@ -4990,7 +4990,6 @@ export class Actx {
   // listNode returns a list value with the child list kids (which it takes over). Its range, which
   // the value model does not show, covers the elements that are nodes.
   listNode(kids: (Node | null)[]): Node {
-    this.p.alloc(nodeBytes);
     return this.p.termHull(this, false, kids);
   }
 
@@ -5002,7 +5001,6 @@ export class Actx {
       this.spend();
       this.push("tuple", a);
     }
-    this.p.alloc(nodeBytes);
     return this.p.termHull(this, true, this.p.kids(base));
   }
 
