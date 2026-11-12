@@ -149,6 +149,7 @@ type canonical struct {
 	// information; a nil target is a node that the AST does not keep.
 	nodes   []sourceast.Node
 	targets []*grammar.SourceInfo
+	events  []sourceast.Event // the backing array of the events of nodes
 	// comments are all the comments of the file in order, and gapList its
 	// comment gaps.
 	comments []types.Comment
@@ -248,7 +249,10 @@ func (c *canonical) separators(off int, sep rune, most int) []int {
 
 // add records a node, completed once, with the span of the events.
 func (c *canonical) add(target *grammar.SourceInfo, events ...sourceast.Event) int {
-	c.nodes = append(c.nodes, sourceast.Node{Events: events, Created: sourceast.Unset})
+	// The events of all nodes share one backing array, so that a node does not allocate its own.
+	start := len(c.events)
+	c.events = append(c.events, events...)
+	c.nodes = append(c.nodes, sourceast.Node{Events: c.events[start:len(c.events):len(c.events)], Created: sourceast.Unset})
 	c.targets = append(c.targets, target)
 	return len(c.nodes) - 1
 }
