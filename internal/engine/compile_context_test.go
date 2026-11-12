@@ -78,7 +78,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-verify", "closure-build"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify", "closure-build"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -140,12 +140,14 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				_, _ = closure.Matcher(&compile.Program{DescTable: []string{`"a"`}}, &ir.Module{Exps: []string{`"a"`}}, &ir.Seq{Items: items}, nil, control, false)
 			case "core-build":
 				_, _ = corebuild.CoreControlled(p.Static(), control)
-			case "core-analysis", "core-passes", "core-verify":
+			case "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify":
 				m, err := corebuild.CoreFrom(p.Static(), nil)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if phase == "core-verify" {
+				// A pipeline run cancels in its first analysis, so each pass and Verify run on an
+				// analyzed module to reach the checkpoint through their own polls.
+				if phase != "core-analysis" && phase != "core-passes" {
 					ir.Analyze(m)
 				}
 				m.Control = control
@@ -154,6 +156,14 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 					ir.Analyze(m)
 				case "core-passes":
 					_, _ = ir.Run(m, &ir.Env{}, ir.RunOptions{})
+				case "core-pass-terminals":
+					ir.Terminals(m, func(*ir.Rule) bool { return true })
+				case "core-pass-guards":
+					ir.Guards(m, true)
+				case "core-pass-scans":
+					ir.Scans(m)
+				case "core-pass-class-runs":
+					ir.ClassRuns(m)
 				case "core-verify":
 					_ = ir.Verify(m)
 				}
