@@ -837,16 +837,12 @@ func (p *tsFlowPrinter) decl(name, s string) {
 // call returns the call of the rule r from the Operators Rule level min.
 func (p *tsFlowPrinter) call(r *compile.Rule, min int) string {
 	g := p.g
-	_, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
 	g.checkCall(r)
 	switch {
-	case g.Document:
-		// Document parses route every call through call, which memoizes per rule.docMemo, plain
-		// rules included.
-	case r.Plain && !operatorsRule:
+	case callsPlain(r, g.Document):
 		g.plainUsed[r] = true
 		return fmt.Sprintf("%s%d(p)", g.plainPrefix(), r.ID)
-	case r.Plain:
+	case r.Plain && !g.Document:
 		return fmt.Sprintf("p.invokePlain(%s, %d)", g.ruleVar(r), min)
 	}
 	return fmt.Sprintf("p.call(%s, %d)", g.ruleVar(r), min)
