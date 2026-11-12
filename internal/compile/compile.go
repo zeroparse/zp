@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode"
-	"unicode/utf8"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
@@ -22,12 +21,9 @@ import (
 // engine's Program adds what the parser runs.
 type Program struct {
 	HasMissing bool // immutable syntax metadata; bytecode/generation are unsupported
-	// shapeControl is the compilation's cancellation control while the program is being built, so that
-	// the shape analysis of rule bodies (shapeElems) polls it; nil otherwise.
-	shapeControl *cancel.Control
-	// bottoms are the rules of type _|_ (bottomRules), computed once.
-	bottomsOnce sync.Once
-	bottoms     map[string]bool
+	// chk checks the types of the program (Checker), made on first use.
+	chk         *check.Checker
+	checkerOnce sync.Once
 	Grammar     *grammar.Grammar
 	// Source is the grammar as written when Grammar is its lowering (inline actions replaced by
 	// hidden rules, inline_actions.go); nil when Grammar is the grammar itself.
@@ -60,8 +56,6 @@ type Program struct {
 	fieldTypes sync.Map
 	// structZeros caches the zero descriptors of the struct types (StructZeroOf) by name.
 	structZeros sync.Map
-	// structHasZero caches whether the struct types have a zero value (HasZero) by name.
-	structHasZero sync.Map
 	// Opts are the options the program was compiled with. The engine builds further programs from the
 	// same grammar later (the controlled closure graph and the recognizer) and derives their options
 	// from these, so that none is lost (engine.Program.lazyOptions).
@@ -74,8 +68,6 @@ type Program struct {
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeKinds map[string]*value.NodeTypeKinds
-	// nodeTypeCache holds the results of nodeTypeOf by type name: a nodeTy, or false.
-	nodeTypeCache sync.Map
 	// skipSites numbers the skip-run sites (skip_sites.go), NumSkipSites of them; inSite holds,
 	// while they are marked, the repetitions inside a site.
 	skipSites    map[*grammar.Repeat]int
@@ -418,9 +410,9 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		DescTable: append([]string(nil), FixedDescs...)}
 	c := &Compiler{Control: control, Prog: prog, opts: opts}
 	if control != nil {
-		prog.shapeControl = control
+		prog.Checker().SetShapeControl(control)
 		defer func() {
-			prog.shapeControl = nil
+			prog.Checker().SetShapeControl(nil)
 			c.Control = nil
 			if c.an != nil {
 				c.an.Control = nil
@@ -441,7 +433,7 @@ func CompileProgram[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, 
 		switch {
 		case builtinTypes[td.DeclName()]:
 			c.errorf(td.Diagnostic(), "type %s is reserved", td.DeclName())
-		case !startsUpper(td.DeclName()):
+		case !check.StartsUpper(td.DeclName()):
 			c.errorf(td.Diagnostic(), "type %s must start with an uppercase letter", td.DeclName())
 		case prog.Types[td.DeclName()] != nil:
 			c.errorf(td.Diagnostic(), "type %s is already defined", td.DeclName())
@@ -762,13 +754,6 @@ func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams
 		}
 	}
 	return needed
-}
-
-// startsUpper reports whether name starts with an uppercase letter, as user-defined type and field
-// names must.
-func startsUpper(name string) bool {
-	r, _ := utf8.DecodeRuneInString(name)
-	return unicode.IsUpper(r)
 }
 
 // hasStream reports whether the expression contains #stream.

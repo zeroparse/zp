@@ -3,6 +3,7 @@ package compile
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/internal/check"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -131,7 +132,7 @@ func TestPruneSpliceTypesFollowsTheStructureOfTypes(t *testing.T) {
 		{"no reference", TupleTy{Elems: []Ty{TyStringNode}}, false},
 		{"a name that holds the rule's", RuleTy{Name: "x_m"}, false},
 	} {
-		out := pruneSpliceTypes(p, rules, map[string]Ty{"main": c.main, "_m": TyStringNode})
+		out := check.PruneSpliceTypes(p.Checker(), rules, map[string]Ty{"main": c.main, "_m": TyStringNode})
 		if _, got := out["_m"]; got != c.kept {
 			t.Errorf("%s: kept %v, want %v", c.name, got, c.kept)
 		}

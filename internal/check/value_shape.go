@@ -1,4 +1,4 @@
-package compile
+package check
 
 import (
 	"zeroparse.dev/zp/grammar"
@@ -10,9 +10,9 @@ import (
 // The static shapes of values in the value model. Every backend builds the values of an
 // expression from these, so that they agree with the inferred types (value_types.go).
 
-// shapeElems returns the elements e contributes to the tuple of its scope, without types of rule
+// ShapeElems returns the elements e contributes to the tuple of its scope, without types of rule
 // calls (they do not change the shape).
-func shapeElems(p *Program, e grammar.Expr) []valueElem {
+func ShapeElems(p *Checker, e grammar.Expr) []ValueElem {
 	var control *cancel.Control
 	if p != nil {
 		control = p.shapeControl
@@ -22,11 +22,11 @@ func shapeElems(p *Program, e grammar.Expr) []valueElem {
 
 // SpliceBody returns the body of the rule name if it is a splice rule: a rule that makes no node of
 // its own, so that a call of it contributes what its body does, as a group (Rule.Splice).
-func (p *Program) SpliceBody(name string) (grammar.Expr, bool) {
+func (p *Checker) SpliceBody(name string) (grammar.Expr, bool) {
 	if p == nil {
 		return nil, false
 	}
-	if r := p.ByName[name]; r != nil && r.Splice {
+	if r := p.Rule(name); r.Splice {
 		return r.Def.Expr, true
 	}
 	return nil, false
@@ -34,18 +34,18 @@ func (p *Program) SpliceBody(name string) (grammar.Expr, bool) {
 
 // isSeq reports whether e is a sequence, as grouped, with attributes other than recovery, or as the
 // body of a splice rule it calls.
-func isSeq(p *Program, e grammar.Expr) bool { return isSeqOf(p.SpliceBody, e) }
+func isSeq(p *Checker, e grammar.Expr) bool { return IsSeqOf(p.SpliceBody, e) }
 
-// isSeqOf is isSeq with spliceBody, which returns the body of a splice rule, in place of a program.
-func isSeqOf(spliceBody func(string) (grammar.Expr, bool), e grammar.Expr) bool {
+// IsSeqOf is isSeq with spliceBody, which returns the body of a splice rule, in place of a program.
+func IsSeqOf(spliceBody func(string) (grammar.Expr, bool), e grammar.Expr) bool {
 	var seen map[string]bool
 	for {
-		switch x := ungroupExpr(e).(type) {
+		switch x := UngroupExpr(e).(type) {
 		case *grammar.Seq:
 			return true
 		case *grammar.Attributed:
 			// An attribute other than recovery only labels e; recovery makes it one element.
-			if recovers(x) {
+			if Recovers(x) {
 				return false
 			}
 			e = x.Expr
@@ -67,9 +67,9 @@ func isSeqOf(spliceBody func(string) (grammar.Expr, bool), e grammar.Expr) bool 
 
 // ValuedCount returns the number of tuple elements e contributes: its elements with a value.
 // Elements without one only hold captures kept beside the tuple.
-func ValuedCount(p *Program, e grammar.Expr) int {
+func ValuedCount(p *Checker, e grammar.Expr) int {
 	n := 0
-	for _, el := range shapeElems(p, e) {
+	for _, el := range ShapeElems(p, e) {
 		if el.t != nil {
 			n++
 		}
@@ -79,16 +79,16 @@ func ValuedCount(p *Program, e grammar.Expr) int {
 
 // IsElems reports whether e builds the sequence of its elements, a tuple node that a sequence
 // containing e flattens: a sequence, possibly grouped or with attributes other than recovery.
-func IsElems(p *Program, e grammar.Expr) bool {
+func IsElems(p *Checker, e grammar.Expr) bool {
 	return isElemsSeen(p, e, nil)
 }
 
-func isElemsSeen(p *Program, e grammar.Expr, seen map[string]bool) bool {
-	switch e := ungroupExpr(e).(type) {
+func isElemsSeen(p *Checker, e grammar.Expr, seen map[string]bool) bool {
+	switch e := UngroupExpr(e).(type) {
 	case *grammar.Seq:
 		return true
 	case *grammar.Attributed:
-		return !recovers(e) && isElemsSeen(p, e.Expr, seen)
+		return !Recovers(e) && isElemsSeen(p, e.Expr, seen)
 	case *grammar.Ref:
 		if body, ok := p.SpliceBody(e.Name); ok && !seen[e.Name] {
 			if seen == nil {
@@ -101,8 +101,8 @@ func isElemsSeen(p *Program, e grammar.Expr, seen map[string]bool) bool {
 	return false
 }
 
-// recovers reports whether e has #recover or #missing, which make it one element.
-func recovers(e *grammar.Attributed) bool {
+// Recovers reports whether e has #recover or #missing, which make it one element.
+func Recovers(e *grammar.Attributed) bool {
 	for _, a := range e.Attrs {
 		if a.Name == "recover" || a.Name == "missing" {
 			return true
@@ -116,18 +116,18 @@ func recovers(e *grammar.Attributed) bool {
 type SingleMode uint8
 
 const (
-	singleNone  SingleMode = iota // no value
+	SingleNone  SingleMode = iota // no value
 	SinglePass                    // the one element
 	SingleTuple                   // the node of the tuple of the elements
 )
 
 // SingleModeOf returns how single takes the value of e.
-func SingleModeOf(p *Program, e grammar.Expr) SingleMode {
+func SingleModeOf(p *Checker, e grammar.Expr) SingleMode {
 	k := ValuedCount(p, e)
 	seq := isSeq(p, e)
 	switch {
 	case k == 0:
-		return singleNone
+		return SingleNone
 	case k == 1 && !seq:
 		return SinglePass
 	}
@@ -136,8 +136,8 @@ func SingleModeOf(p *Program, e grammar.Expr) SingleMode {
 
 // ScopeTuple reports whether the value of a scope with the body e (a rule body, a repetition
 // element or an Operators Rule line) is the node of its tuple, rather than its one element.
-func ScopeTuple(p *Program, e grammar.Expr) bool {
-	elems := shapeElems(p, e)
+func ScopeTuple(p *Checker, e grammar.Expr) bool {
+	elems := ShapeElems(p, e)
 	seq := isSeq(p, e)
 	return seq || len(elems) != 1 || elems[0].t == nil || len(elems[0].caps) != 0
 }
@@ -151,17 +151,17 @@ type Shaper struct {
 }
 
 // ShaperOf returns the Shaper of e.
-func ShaperOf(p *Program, e grammar.Expr) Shaper {
+func ShaperOf(p *Checker, e grammar.Expr) Shaper {
 	return Shaper{Elems: IsElems(p, e), Shared: SharesTuple(p, e), K: ValuedCount(p, e)}
 }
 
 // SharesTuple reports whether the tuple node e builds (isElems) is the result of a splice rule,
 // shared through its memo entry: a node that takes it as its own takes a copy.
-func SharesTuple(p *Program, e grammar.Expr) bool {
+func SharesTuple(p *Checker, e grammar.Expr) bool {
 	for {
-		switch x := ungroupExpr(e).(type) {
+		switch x := UngroupExpr(e).(type) {
 		case *grammar.Attributed:
-			if recovers(x) {
+			if Recovers(x) {
 				return false
 			}
 			e = x.Expr

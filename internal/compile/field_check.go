@@ -67,7 +67,7 @@ func (prog *Program) ResolveCheck(t grammar.TypeExpr) Ty {
 	if t == nil {
 		return nil
 	}
-	if r := (&TypeResolver{Prog: prog}).Resolve(t); NewFieldType(r) != nil {
+	if r := (&TypeResolver{Prog: prog.Checker()}).Resolve(t); NewFieldType(r) != nil {
 		return r
 	}
 	return nil

@@ -46,7 +46,7 @@ func NewValueResolver(p *compile.Program, ownType func(compile.Ty) bool) ValueRe
 func (t *ValueResolver) RuleRef(name string) compile.Ty {
 	var legacy compile.Ty = compile.TyAny
 	if def := t.ruleDefs[name]; def != nil && def.Type != nil {
-		legacy = (&compile.TypeResolver{Prog: t.Prog}).Resolve(def.Type)
+		legacy = (&compile.TypeResolver{Prog: t.Prog.Checker()}).Resolve(def.Type)
 	}
 	if !t.usesValue(name, legacy) {
 		return legacy

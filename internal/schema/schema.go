@@ -172,7 +172,7 @@ func cutPrefix(s, prefix string) (string, bool) {
 
 // declared describes the type a field declares.
 func declared(p *compile.Program, t grammar.TypeExpr) (schema.Shape, error) {
-	k := &compile.TypeResolver{Prog: p}
+	k := &compile.TypeResolver{Prog: p.Checker()}
 	return shapeOf(k.Resolve(t))
 }
 

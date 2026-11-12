@@ -1,4 +1,4 @@
-package compile
+package check
 
 import (
 	"fmt"
@@ -67,7 +67,7 @@ func (v *ValueInference) shownSeen(t Ty, seen map[string]bool) Ty {
 		if !ok || seen[r.Name] {
 			return nil, false
 		}
-		if rl := v.Prog.ByName[r.Name]; rl == nil || rl.Where == "" {
+		if rl := v.Prog.Rule(r.Name); rl.Def == nil || rl.Where == "" {
 			return nil, false
 		}
 		next := maps.Clone(seen)
@@ -184,7 +184,7 @@ func (v *ValueInference) declared(rd *grammar.RuleDef, t Ty) Ty {
 		return t
 	}
 	d := v.resolve(rd.Type)
-	if dn, ok := v.Prog.ruleNodeType(rd); ok {
+	if dn, ok := v.Prog.RuleNodeType(rd); ok {
 		// The rule converts its value to its named node type.
 		if !v.convertible(t, dn) {
 			v.errorf(rd.Diagnostic(), "rule %s produces %s, which cannot be converted to %s", rd.Name, v.display(t), dn)
@@ -419,7 +419,7 @@ func (v *ValueInference) nodeValue(n NodeTy) Ty {
 
 // nodeValueOf returns the type of the value of a node of type n, reading the value of a named
 // node type from its definition.
-func (prog *Program) nodeValueOf(n NodeTy) Ty {
+func (prog *Checker) nodeValueOf(n NodeTy) Ty {
 	if n.Name != "" {
 		if d, ok := prog.NodeTypeOf(n.Name); ok {
 			return d.Value
@@ -430,8 +430,8 @@ func (prog *Program) nodeValueOf(n NodeTy) Ty {
 
 // NodeTypeOf returns the named node type that the type name names, through aliases. Its value is
 // resolved once and cached.
-func (prog *Program) NodeTypeOf(name string) (NodeTy, bool) {
-	switch prog.Types[name].(type) {
+func (prog *Checker) NodeTypeOf(name string) (NodeTy, bool) {
+	switch prog.TypeDecls()[name].(type) {
 	case *grammar.TypeDef, *grammar.TypeAlias:
 	default:
 		return NodeTy{}, false
@@ -450,22 +450,22 @@ func (prog *Program) NodeTypeOf(name string) (NodeTy, bool) {
 	return n, true
 }
 
-// ruleNodeType returns the named node type that the value of rule rd is converted to: its declared
+// RuleNodeType returns the named node type that the value of rule rd is converted to: its declared
 // type, through aliases, when that is exactly a named node type. An Operators Rule without a
-// whole-rule action converts the nodes of its operators instead (operatorsNodeType), never its
+// whole-rule action converts the nodes of its operators instead (OperatorsNodeType), never its
 // value as a whole; with one, it converts the action's result, as an ordinary rule does.
-func (prog *Program) ruleNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) RuleNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 	if _, ok := rd.Expr.(*grammar.OperatorsRule); ok && rd.Action == nil {
 		return NodeTy{}, false
 	}
 	return prog.declaredNodeType(rd)
 }
 
-// operatorsNodeType returns the named node type that every operator node of the Operators Rule
+// OperatorsNodeType returns the named node type that every operator node of the Operators Rule
 // rd is converted to: the rule's declared type, through aliases, when that is exactly a named node
 // type and the rule has no whole-rule action, whose result the declared type describes instead.
 // The values of its operand lines are not converted.
-func (prog *Program) operatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) OperatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 	if _, ok := rd.Expr.(*grammar.OperatorsRule); !ok || rd.Action != nil {
 		return NodeTy{}, false
 	}
@@ -474,7 +474,7 @@ func (prog *Program) operatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 
 // declaredNodeType returns the named node type that is the declared type of rule rd, through
 // aliases.
-func (prog *Program) declaredNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) declaredNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 	if rd.Type == nil {
 		return NodeTy{}, false
 	}
@@ -486,14 +486,14 @@ func (prog *Program) declaredNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 // convertsResult reports whether the value that key produces (see checkInfo.results) is converted
 // to a named node type, which its run-time check then sees converted: a rule's value, or the value
 // of an operator of an Operators Rule.
-func (prog *Program) convertsResult(key any, rd *grammar.RuleDef) (NodeTy, bool) {
+func (prog *Checker) convertsResult(key any, rd *grammar.RuleDef) (NodeTy, bool) {
 	switch key.(type) {
 	case *grammar.RuleDef:
 		if key == any(rd) {
-			return prog.ruleNodeType(rd)
+			return prog.RuleNodeType(rd)
 		}
 	case *grammar.OperatorsRuleOperator:
-		return prog.operatorsNodeType(rd)
+		return prog.OperatorsNodeType(rd)
 	}
 	return NodeTy{}, false
 }
@@ -531,7 +531,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		v.errorf(t.Diagnostic(), "$%s has no value in its scope", t.Name)
 		return TyAny
 	case *grammar.VarRef:
-		if d := v.Prog.Vars.Lookup(t.Name); d != nil {
+		if d := v.Prog.Vars().Lookup(t.Name); d != nil {
 			return d.Typ
 		}
 		return TyAny // an undeclared variable was reported when names were resolved
@@ -576,7 +576,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		for _, item := range t.Items {
 			it := v.term(item, env)
 			if elem != TyAny && v.unknown(it) || !v.assignable(it, elem) {
-				v.errorf(termPos(item, t.Diagnostic()), "cannot use %s as %s in list constructor%s", v.display(it), elem, v.castHint(it, elem))
+				v.errorf(TermPos(item, t.Diagnostic()), "cannot use %s as %s in list constructor%s", v.display(it), elem, v.castHint(it, elem))
 			}
 		}
 		return ListTy{Elem: elem}
@@ -733,7 +733,7 @@ func (v *ValueInference) index(x, i Ty, t *grammar.Binary) Ty {
 			out = append(out, a.Elem)
 			return true
 		case TupleTy:
-			if lit, ok := ungroupTerm(t.R).(*grammar.IntLit); ok {
+			if lit, ok := UngroupTerm(t.R).(*grammar.IntLit); ok {
 				if lit.Value < 0 || lit.Value >= len(a.Elems) {
 					v.errorf(t.Diagnostic(), "index %d is out of range for %s", lit.Value, a)
 					return false
@@ -779,7 +779,7 @@ func (v *ValueInference) index(x, i Ty, t *grammar.Binary) Ty {
 	return Vjoin(out...)
 }
 
-func ungroupTerm(t grammar.Term) grammar.Term {
+func UngroupTerm(t grammar.Term) grammar.Term {
 	for {
 		g, ok := t.(*grammar.TermGroup)
 		if !ok {
@@ -843,7 +843,7 @@ func (v *ValueInference) member(x Ty, m *grammar.Member) Ty {
 			if a == TyMissing && (m.Name == "Start" || m.Name == "End") {
 				found = append(found, TyInt)
 			}
-			if st, ok := v.Prog.Types[a.Name].(*grammar.TypeDef); ok {
+			if st, ok := v.Prog.TypeDecls()[a.Name].(*grammar.TypeDef); ok {
 				if f := FieldOf(st, m.Name); f != nil {
 					found = append(found, v.resolve(f.Type))
 				}

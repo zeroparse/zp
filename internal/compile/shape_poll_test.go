@@ -30,7 +30,7 @@ func TestShapeAnalysisPollsContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if prog.shapeControl != nil {
+	if prog.Checker().ShapeControl() != nil {
 		t.Fatal("the compilation's control outlives the compilation")
 	}
 	expr := prog.RuleList[0].Def.Expr
@@ -39,14 +39,14 @@ func TestShapeAnalysisPollsContext(t *testing.T) {
 		t.Fatalf("shape has %d elements, want %d", want, items)
 	}
 	ctx := compileTestContext(t, 1<<20)
-	prog.shapeControl = &cancel.Control{Ctx: ctx}
+	prog.Checker().SetShapeControl(&cancel.Control{Ctx: ctx})
 	if got := len(shapeElems(prog, expr)); got != want {
 		t.Fatalf("shape with a control has %d elements, want %d", got, want)
 	}
 	if got := checks(ctx); got < items/cancel.PollStride {
 		t.Errorf("the shape analysis of %d items made %d checks, want at least %d", items, got, items/cancel.PollStride)
 	}
-	prog.shapeControl = nil
+	prog.Checker().SetShapeControl(nil)
 	ctx = compileTestContext(t, 1<<20)
 	shapeElems(prog, expr)
 	if got := checks(ctx); got != 0 {

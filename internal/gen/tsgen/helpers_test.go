@@ -108,6 +108,6 @@ func inferredType(p *engine.Program, name string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	v := &compile.ValueInference{Prog: p.Static(), Out: p.Typed.Values}
+	v := &compile.ValueInference{Prog: p.Static().Checker(), Out: p.Typed.Values}
 	return v.Expand(t).String(), true
 }

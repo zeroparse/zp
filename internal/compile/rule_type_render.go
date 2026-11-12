@@ -14,7 +14,7 @@ func (p *Program) RuleTypeWithPoll(name string, poll func()) (string, bool) {
 	if p.Typed == nil {
 		return "", false
 	}
-	t, ok := p.Typed.shown[name]
+	t, ok := p.Typed.Shown(name)
 	if !ok {
 		return "", false
 	}

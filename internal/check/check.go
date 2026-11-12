@@ -1,4 +1,4 @@
-package compile
+package check
 
 import (
 	"sync"
@@ -29,17 +29,17 @@ func dropRepeatedErrors(errs *diag.ErrorList, from int) {
 }
 
 // CheckTypes checks the types of the whole grammar.
-func CheckTypes(prog *Program, errs *diag.ErrorList) {
+func CheckTypes(prog *Checker, errs *diag.ErrorList) {
 	CheckTypesControlled(prog, errs, nil)
 }
 
 // CheckTypesControlled is CheckTypes polling control for cancellation; a nil control never
 // cancels.
-func CheckTypesControlled(prog *Program, errs *diag.ErrorList, control *cancel.Control) {
+func CheckTypesControlled(prog *Checker, errs *diag.ErrorList, control *cancel.Control) {
 	defer dropRepeatedErrors(errs, len(*errs))
 	k := &TypeResolver{control: control, Prog: prog, errs: errs, report: true}
 	k.checkTypeDefinitions()
-	rules := control.Rules(prog.Grammar)
+	rules := control.Rules(prog.Grammar())
 	for _, rd := range rules {
 		control.Poll()
 		if rd.Type != nil {
@@ -57,7 +57,7 @@ func CheckTypesControlled(prog *Program, errs *diag.ErrorList, control *cancel.C
 	info.valuesOnce.Do(func() {})
 	info.shown = shownRuleTypes(prog, rules, values, control)
 	k.report = false
-	for _, td := range control.Types(prog.Grammar) {
+	for _, td := range control.Types(prog.Grammar()) {
 		control.Poll()
 		switch spec := td.(type) {
 		case *grammar.TypeDef:
@@ -93,7 +93,7 @@ type TypeInfo struct {
 // ValueRecord returns the types the value inference gives the parts of the type-checked program
 // (valueRecord), or nil if its types were not checked. Only code generation reads them, so they
 // are recorded by a second run of the inference on first use rather than on every Compile.
-func (p *Program) ValueRecord() *ValueRecord {
+func (p *Checker) ValueRecord() *ValueRecord {
 	if p.Typed == nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (p *Program) ValueRecord() *ValueRecord {
 }
 
 // RuleType is RuleType.
-func (p *Program) RuleType(name string) (string, bool) {
+func (p *Checker) RuleType(name string) (string, bool) {
 	if p.Typed == nil {
 		return "", false
 	}
@@ -147,18 +147,18 @@ type typedField struct {
 	T    Ty
 }
 
-// concreteType resolves aliases and normalized singleton joins to their node type.
+// ConcreteType resolves aliases and normalized singleton joins to their node type.
 // It does not report errors; validation still uses the type expression as written.
-func (prog *Program) concreteType(t grammar.TypeExpr) (string, grammar.TypeDecl) {
+func (prog *Checker) ConcreteType(t grammar.TypeExpr) (string, grammar.TypeDecl) {
 	if ref, ok := t.(*grammar.TypeRef); ok {
-		switch spec := prog.Types[ref.Name].(type) {
+		switch spec := prog.TypeDecls()[ref.Name].(type) {
 		case *grammar.TypeDef:
 			return ref.Name, spec
 		}
 	}
 	k := &TypeResolver{Prog: prog}
 	if n, ok := k.Resolve(t).(NamedTy); ok && n.Kind == 's' {
-		return n.Name, prog.Types[n.Name]
+		return n.Name, prog.TypeDecls()[n.Name]
 	}
 	return "", nil
 }
@@ -166,8 +166,8 @@ func (prog *Program) concreteType(t grammar.TypeExpr) (string, grammar.TypeDecl)
 // StructType returns the struct type definition that the type named name denotes, following
 // aliases, with the name of that definition; it returns "" and nil when name denotes no struct
 // type.
-func (prog *Program) StructType(name string) (string, *grammar.TypeDef) {
-	switch spec := prog.Types[name].(type) {
+func (prog *Checker) StructType(name string) (string, *grammar.TypeDef) {
+	switch spec := prog.TypeDecls()[name].(type) {
 	case *grammar.TypeDef:
 		return name, spec
 	case *grammar.TypeAlias:
@@ -175,7 +175,7 @@ func (prog *Program) StructType(name string) (string, *grammar.TypeDef) {
 	default:
 		return "", nil
 	}
-	canonical, spec := prog.concreteType(&grammar.TypeRef{Name: name})
+	canonical, spec := prog.ConcreteType(&grammar.TypeRef{Name: name})
 	st, _ := spec.(*grammar.TypeDef)
 	return canonical, st
 }
@@ -199,11 +199,11 @@ func concreteListElement(t Ty) bool {
 	return t != TyAny
 }
 
-// termPos returns the position of term t for a diagnostic, or def if it has none.
-func termPos(t grammar.Term, def grammar.Pos) grammar.Pos {
+// TermPos returns the position of term t for a diagnostic, or def if it has none.
+func TermPos(t grammar.Term, def grammar.Pos) grammar.Pos {
 	switch t := t.(type) {
 	case *grammar.TermGroup:
-		return termPos(t.Term, def)
+		return TermPos(t.Term, def)
 	case *grammar.CaptureRef:
 		return t.Diagnostic()
 	case *grammar.IndexRef:
@@ -232,4 +232,10 @@ func termPos(t grammar.Term, def grammar.Pos) grammar.Pos {
 		return t.Diagnostic()
 	}
 	return def
+}
+
+// Shown returns the type of the rule name as RuleType shows it, before it is written out.
+func (i *TypeInfo) Shown(name string) (Ty, bool) {
+	t, ok := i.shown[name]
+	return t, ok
 }
