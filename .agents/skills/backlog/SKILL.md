@@ -9,7 +9,8 @@ description: Keep ZeroParse backlog issues and the Issue #1 work-status page cur
 
 - The backlog is one GitHub issue per item, all in the public project
   https://github.com/orgs/zeroparse/projects/2. Project fields: Status (Backlog, Ready,
-  In progress, In review, Done), Start date, Target date, Tier (Core P0-P3, After the
+  In progress, Pending, In review, Done; Pending means started but not moving because it
+  waits on another issue or a landing, or is paused on purpose), Start date, Target date, Tier (Core P0-P3, After the
   core), Category (Bug, Optimization, Feature, Improvement, Quality, Docs, Ready-made
   parser, Release), Priority and Legacy ID (the former two-digit ID, kept for lookup
   only; never allocate new ones). Milestones are M1 and M2 (and M3 for release).
@@ -34,13 +35,19 @@ in the same step as its event, never later.
   (JST) and Target date=the planned end. Link the parent and blocked-by issues.
 - **Decision**: post a "Decided: ..." comment at once and update the body's decisions.
 - **Progress**: tick the checklist; revise the Target date when the plan moves.
-- **Ready**: set Status=In review and comment the branch, SHA and checks.
+- **Blocked/waiting**: set Status=Pending, add a blocked-by link and comment what it
+  waits on.
+- **Ready**: set Status=In review (under review, or reviewed and queued to land) and
+  comment the branch, SHA and checks.
 - **Landed/close**: set Status=Done and Target date=the close date (JST). Add the commit
   link and one outcome sentence to Recently completed in the Issue #1 body (drop the
   oldest beyond ten). Fix the parent epic's dates. Keep any unfinished scope open.
-- **Pause**: comment the reason and where the WIP lives (branch), keep Status=In
-  progress, and keep the Target date realistic.
+- **Pause**: set Status=Pending and comment the reason and where the WIP lives
+  (branch); keep the Target date realistic.
 - **New issue**: set Tier, Category, Milestone, dates, parent and blocked-by at creation.
+
+Every Status change updates Status, the Start/Target dates and the blocked-by or parent
+links in the same step.
 
 Members keep their own issues current but do not edit the Issue #1 body; the backlog
 writer owns it, plus the Landed/close step if the integrator has not done it.
