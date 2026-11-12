@@ -161,7 +161,7 @@ cannot both succeed. It walks both from the start:
   when K and the next symbol of q are disjoint. Lookaheads in q decide symmetrically.
 - **A dead symbol** on one side decides: that side fails there, having examined nothing beyond the symbols passed alike.
 - **Neither side can go on**: in strict mode none of the above decides where both sides are stuck before they consume
-  more input, each at a dead symbol, a symbol that matches no character, a `!K` that the rest of its own path must
+  more input, each at a dead symbol, a symbol that no input matches, a `!K` that the rest of its own path must
   match, or a `&K` disjoint from its own next symbol. Two paths that fail at one point after the symbols passed alike
   bound nothing, and a path of a unit compared with its own copy, which a continuation reaches through a left call of
   the unit's rule, can only reach such a point: in a growth that call reads the growing result while each step
