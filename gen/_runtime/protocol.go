@@ -15,5 +15,5 @@ package runtime
 // undefined name; regenerate the parser, or require a version of zeroparse.dev/zp/runtime that
 // implements its protocol.
 
-// Protocol10 is declared because the runtime implements protocol version 10.
-const Protocol10 = 10
+// Protocol11 is declared because the runtime implements protocol version 11.
+const Protocol11 = 11

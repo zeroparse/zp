@@ -6,7 +6,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/core"
@@ -25,11 +24,13 @@ import (
 // termStmts returns the statements of a function that returns the value of the term ct of Core IR,
 // built from the grammar term t, printed from Exec IR, or reports false if the term printer prints it.
 // The scope s and the locals resolve the leaves as for term.
-func (g *Generator) termStmts(ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) (string, bool) {
-	if ct == nil || !g.castsChecked(t) {
+// A predicate that compares the text of a capture with literals tests them at once without limit
+// controls if dispatch is set (text-dispatch).
+func (g *Generator) termStmts(ct irc.Term, s *compile.Scope, locals map[string]string, dispatch bool) (string, bool) {
+	if ct == nil {
 		return "", false
 	}
-	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj})
+	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj, TextDispatch: dispatch})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -44,22 +45,10 @@ func (g *Generator) termStmts(ct irc.Term, t grammar.Term, s *compile.Scope, loc
 	return text, true
 }
 
-// castsChecked reports whether every cast of t checks its value: a cast to a type that every value
-// fits has no term of Core IR, while the term printer charges a step for it under budget controls.
-func (g *Generator) castsChecked(t grammar.Term) bool {
-	ok := true
-	compile.WalkTerm(t, func(x grammar.Term) {
-		if c, is := x.(*grammar.Cast); is && g.Prog.ResolveCheck(c.Type) == nil {
-			ok = false
-		}
-	})
-	return ok
-}
-
 // actionFunc returns the function that evaluates the term ct of Core IR, built from the grammar term t,
 // printed from Exec IR if it can be and by the term printer otherwise, declared with the name name.
 func (g *Generator) actionFunc(name string, ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if body, ok := g.termStmts(ct, t, s, locals); ok {
+	if body, ok := g.termStmts(ct, s, locals, false); ok {
 		return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n%s}\n\n", name, tsActxParam(body), body)
 	}
 	val := g.term(t, s, locals)
@@ -67,16 +56,11 @@ func (g *Generator) actionFunc(name string, ct irc.Term, t grammar.Term, s *comp
 }
 
 // predicateFunc returns the arrow function of a predicate with the term ct of Core IR, built from the
-// grammar term t: a membership of a captured text in literals is a switch (predicateTerm).
+// grammar term t: a membership of a captured text in literals tests them at once without limit
+// controls (text-dispatch).
 func (g *Generator) predicateFunc(ct irc.Term, t grammar.Term, s *compile.Scope) string {
-	dispatch := false
-	if g.Opt.On("text-dispatch") {
-		_, _, dispatch = gen.LiteralTextMembership(t)
-	}
-	if !dispatch {
-		if body, ok := g.termStmts(ct, t, s, nil); ok {
-			return fmt.Sprintf("(%s): [Value, Value] => {\n%s}", tsActxParam(body), body)
-		}
+	if body, ok := g.termStmts(ct, s, nil, g.Opt.On("text-dispatch")); ok {
+		return fmt.Sprintf("(%s): [Value, Value] => {\n%s}", tsActxParam(body), body)
 	}
 	body := g.predicateTerm(t, s)
 	return fmt.Sprintf("(%s): [Value, Value] => [%s, null]", tsActxParam(body), body)
@@ -120,6 +104,14 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return TsString(c.Imm.(lower.TermField).Field)
 			case lower.OpTermCastType:
 				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
+			case lower.OpTermUncontrolled:
+				return "c.p.control === null"
+			case lower.OpTermTextIn:
+				var eqs []string
+				for _, lit := range c.Imm.([]string) {
+					eqs = append(eqs, a[0]+" === "+TsString(lit))
+				}
+				return "(" + strings.Join(eqs, " || ") + ")"
 			case lower.OpTermCastError:
 				x := c.Imm.(lower.TermCast).Cast
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)

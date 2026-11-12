@@ -1911,6 +1911,39 @@ func (c *TActCtx) FieldOperand(x any, name string) TOperand {
 	return TOperand{V: c.Member(x, name)}
 }
 
+// TermFieldOperand is FieldOperand that returns the failure of the member read instead of raising it.
+//
+// TermFieldOperand is for generated parsers; not a stable API.
+func (c *TActCtx) TermFieldOperand(x any, name string) (TOperand, any) {
+	// A string field of a struct costs no steps to read under budget controls either: see TFieldSpend.
+	if n, ok := x.(tstrFields); ok {
+		if s, ok := n.TStrField(name); ok {
+			return TOperand{Str: s, IsStr: true}, nil
+		}
+	}
+	kind, field := memberKind(name)
+	v, e := c.P.TermMember(c, kind, x, name, field)
+	return TOperand{V: v}, e
+}
+
+// TermCompare is Compare that returns the failure of the comparison instead of raising it.
+//
+// TermCompare is for generated parsers; not a stable API.
+func (c *TActCtx) TermCompare(op int, l, r TOperand) (any, any) {
+	if !l.IsStr {
+		l.Str, l.IsStr = l.V.(string)
+	}
+	if !r.IsStr {
+		r.Str, r.IsStr = r.V.(string)
+	}
+	if l.IsStr && r.IsStr {
+		if v, ok := c.P.compareStrings(op, l.Str, r.Str); ok {
+			return v, nil
+		}
+	}
+	return c.P.TermBinary(op, l.value(), r.value())
+}
+
 // Compare applies a comparison operator as binary does, comparing two strings directly.
 func (c *TActCtx) Compare(op int, l, r TOperand) any {
 	if !l.IsStr {
