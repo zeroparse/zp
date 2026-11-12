@@ -131,11 +131,15 @@ The generator prunes candidates that the parser would read differently from how 
   variables, the generator falls back to a check that `e` match whatever the rest of the input turns out to be.
   (Using only the check made the Python grammar's coverage slightly worse: forcing `&")"` or `&(ws ":")` guides
   what follows.)
-- **Predicates and variables.** Predicates are evaluated on the generated text with three-valued logic: literals,
-  captures (with the kind of value the parser would build: a terminal, a list with its length, `nil`, a node), variables
-  (scoped per rule invocation and undone on backtracking), `len`, `text`, comparisons, arithmetic and boolean operators.
-  A predicate fails a decision only when it certainly fails; values the generator cannot compute (results of actions,
-  fields, other functions) make it unknown, and the parser decides.
+- **Predicates and variables.** Predicates are evaluated by the reference evaluator of terms that the conformance
+  tests of the backends use (`internal/ir/exec/ref`), so the generator and the parser give a term the same meaning.
+  The generator passes it the values that the parser would build, as far as it tracks them: string nodes, list nodes
+  with their elements, nodes of rules and of repetition iterations with their captures, `nil` for a capture that did
+  not match, and variables (scoped per rule invocation and undone on backtracking). What it does not track is an
+  unknown value: the results of actions and Operators Rules, valueless captures, and the elements and type of other
+  nodes (a node of unknown shape keeps its range, text and, where known, captures). The evaluator decides a predicate
+  only when no value of the unknown parts could change the outcome, also through `&&`, `||` and `!`; a predicate fails a
+  decision only when it certainly fails, and otherwise the parser decides.
 - **Repeated texts.** A predicate such as `{text($e) == text($n)}` (matching XML tags) almost never holds for two
   independently generated names. For a rule call captured by a capture that a predicate of the same rule reads, the
   generator may repeat the text of an earlier call of the same rule in the same rule invocation.
@@ -293,7 +297,7 @@ few milliseconds for the others.
 ## Limitations
 
 - Lookaheads, predicates and variables are handled by evaluation where the generator can compute them and otherwise
-  only by generating and checking: predicates over the results of actions or struct fields, and checks the matcher
+  only by generating and checking: predicates over the results of actions or the elements of sequences, and checks the matcher
   cannot decide (inside Operators Rule bodies, left-recursive rules, cuts, `#recover`), cost retries.
 - Checks are sound with respect to the derivation, not the language: they may reject a text that the parser accepts
   through another derivation (whitespace written by an Operators Rule skip after an empty `ws`, for example). Such texts are only

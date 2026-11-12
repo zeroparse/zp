@@ -26,10 +26,18 @@ var unknownMutants = []struct{ name, file, old, new string }{
 	{"an unknown predicate holds", "unknown.go", "if unknown {\n\t\treturn false, false\n\t}\n\treturn Holds", "if unknown {\n\t\treturn true, true\n\t}\n\treturn Holds"},
 	{"an unknown value is taken as known", "unknown.go", "return v, \"\", v.Kind == KUnknown", "return v, \"\", false"},
 	{"Eval turns Unknown into nil", "term.go", "v, err = Unknown, \"\"", "v, err = Nil, \"\""},
+	{"a partial node has a value", "value.go", "\tcase UnknownShape:\n\t\tneed(Unknown)\n", ""},
+	{"a partial node has no captures", "term.go", "if x.Shape == UnknownShape && x.Caps == nil {\n\t\t\t\tneed(Unknown)\n\t\t\t}\n", ""},
+	{"a partial node has no elements", "term.go", "\t\tcase UnknownShape:\n\t\t\tneed(Unknown)\n\t\t}\n\t}\n\tfail(\"%s: expected a list", "\t\t}\n\t}\n\tfail(\"%s: expected a list"},
+	{"a partial node has a length", "term.go", "if x.Shape == UnknownShape {\n\t\t\t\tneed(Unknown)\n\t\t\t}\n", ""},
+	{"a partial node has no type", "term.go", "if x.Kind == KNode && x.Shape == UnknownShape {\n\t\t\tneed(Unknown) // the type of the node is unknown\n\t\t}\n", ""},
+	{"a cast ignores aliases", "term.go", "if a, ok := e.Aliases[t.Name]; ok {\n\t\t\treturn e.admits(a, x)\n\t\t}\n", ""},
+	{"a constructor keeps the alias", "term.go", "x.Type = e.typeName(t.Type)", "x.Type = t.Type"},
 }
 
-// TestUnknownMutants is the proof that TestUnknownNeverLeaks and TestUnknownResults hold the handling
-// of Unknown: each mutant, built over the package's sources with -overlay, fails one of them.
+// TestUnknownMutants is the proof that TestUnknownNeverLeaks and TestUnknownResults, with
+// TestPartialNodeNeverLeaks and TestPartialNodeResults for nodes of UnknownShape and aliases, hold the
+// handling of Unknown: each mutant, built over the package's sources with -overlay, fails one of them.
 func TestUnknownMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
@@ -59,13 +67,13 @@ func TestUnknownMutants(t *testing.T) {
 			if err := os.WriteFile(ov, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", ov, "-run", "^TestUnknown(NeverLeaks|Results)$", ".")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", ov, "-run", "^Test(Unknown|PartialNode)(NeverLeaks|Results)$", ".")
 			cmd.Dir = dir
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("the tests pass with the mutant:\n%s", out)
 			}
-			if !strings.Contains(string(out), "--- FAIL: TestUnknown") {
+			if !strings.Contains(string(out), "--- FAIL: TestUnknown") && !strings.Contains(string(out), "--- FAIL: TestPartialNode") {
 				t.Fatalf("the mutant fails no Unknown test:\n%s", out)
 			}
 		})
