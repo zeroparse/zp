@@ -314,8 +314,6 @@ const (
 	ENil
 	// ECAP s: push the value of capture slot s.
 	ECap
-	// EITEM n: push $n.
-	EItem
 	// ELOCAL i: push the i-th local (lambda argument, $lhs, $rhs, $op).
 	ELocal
 	// EVAR name: push the value of a variable.
@@ -356,11 +354,6 @@ const (
 	// ELISTEND: push a list of the elements gathered since the matching ELISTBEGIN
 	// (instruction set 2).
 	EListEnd
-	// eRetired124 was ETERMINAL, which built a terminal of a declared type (ISA 5 to 13).
-	eRetired124
-	// eRetired125 was ECHECK, which checked a constructed field value against its declared type
-	// (ISA 9 to 23).
-	eRetired125
 	// ECAST t: fail unless the top value fits type t, the type of a cast x.(T); the value stays
 	// (ISA 12).
 	ECast
@@ -393,7 +386,7 @@ var opNames = map[Op]string{
 	OpEndLabel: "ENDLABEL", OpRecover: "RECOVER", OpEndRecover: "ENDRECOVER", OpEndSkip: "ENDSKIP",
 	OpReturn: "RETURN", OpEnd: "END", OpScan: "SCAN", OpGuard: "GUARD",
 	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT", OpScanSite: "SCANSITE",
-	EInt: "EINT", EStr: "ESTR", EBool: "EBOOL", ENil: "ENIL", ECap: "ECAP", EItem: "EITEM",
+	EInt: "EINT", EStr: "ESTR", EBool: "EBOOL", ENil: "ENIL", ECap: "ECAP",
 	ELocal: "ELOCAL", EVar: "EVAR", EMember: "EMEMBER", ENew: "ENEW", EBin: "EBIN", EUnary: "EUNARY",
 	EAnd: "EAND", EOr: "EOR", EBoolChk: "EBOOLCHK", EFunc: "EFUNC", ECall: "ECALL", ERet: "ERET",
 	ETextChk: "ETEXTCHK", ETextEq: "ETEXTEQ", EListBegin: "ELISTBEGIN", EListPush: "ELISTPUSH",
@@ -411,4 +404,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 33
+const ISAVersion = 34

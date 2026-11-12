@@ -545,7 +545,7 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 			in("variable", int(x.A), len(m.Vars))
 		case EStr, EUnary, EBoolChk, EMember, EBin:
 			str(int(x.A))
-		case ECap, EItem, ELocal:
+		case ECap, ELocal:
 			nonneg(x.A)
 		case ENew:
 			str(int(x.A))

@@ -203,7 +203,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return str(a)
 	case EInt:
 		return strconv.FormatInt(int64(a)+int64(bb)<<32, 10)
-	case EItem, ELocal, ECap, EListPush, ETuple:
+	case ELocal, ECap, EListPush, ETuple:
 		return strconv.Itoa(a)
 	case EBool:
 		return strconv.FormatBool(a == 1)

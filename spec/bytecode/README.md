@@ -271,29 +271,26 @@ Actions and predicates are evaluated by stack-based expression code. An evaluati
 | 102 | `EBOOL` | A value | Push a boolean (0 or 1). |
 | 103 | `ENIL` | | Push nil. |
 | 104 | `ECAP` | A slot | Push the value of a capture slot. |
-| 105 | `EITEM` | A n | Reserved. No grammar compiles to it, because the language has no positional references. |
-| 106 | `ELOCAL` | A index | Push a local (a lambda parameter, `$lhs`, `$rhs`, `$op`, or `$value`). |
-| 107 | `EVAR` | A variable | Push the value of variable A, an index into the variable table. |
-| 108 | `EMEMBER` | A name | Pop a value and push its field. `Start`, `End` and `Value` are built in for a node with a range: the range, and the text of a string node or the elements of a tuple or list node. A field not declared by the struct type is an error; a declared field that is absent yields the zero value of its declared type (a field of a type that has none is always present). A name `$y` reads capture `y`: it is an error on a struct value, and an unmatched capture yields nil. |
-| 109 | `ENEW` | A type, B field list | Pop as many values as the field list has names, and push a struct node. |
-| 110 | `EBIN` | A operator | Pop two values and push the result of the operation. The operator `[]` indexes the list below with the `int` on top. |
-| 111 | `EUNARY` | A operator | Pop a value and push the result of the operation. |
-| 112, 113 | `EAND` / `EOR` | A target | It is an error if the top value is not a boolean. `EAND` on false, and `EOR` on true, leave the value and jump to A. Otherwise pop the value and continue. |
-| 114 | `EBOOLCHK` | A operator | It is an error if the top value is not a boolean. |
-| 115 | `EFUNC` | A start, B parameter count | Push a function that captures the current locals. |
-| 116 | `ECALL` | A built-in, B argument count | Pop the arguments, call the built-in function, and push the result. |
-| 117 | `ERET` | | Return the top value as the value of the expression. |
-| 118 | `ETEXTCHK` | | It is an error (the same as `text`'s) if `text` of the top value is not defined. The value stays. |
-| 119 | `ETEXTEQ` | A neg | Pop two values and push whether their texts (as `text` gives them; both were checked with `ETEXTCHK`) are equal, or unequal if neg is 1. |
-| 120 | `ELISTBEGIN` | | Start gathering the elements of a list. Gatherings nest. |
-| 121 | `ELISTPUSH` | A n | Pop n values and add them, in order, to the list being gathered, with the checks of `list`. |
-| 122 | `EMAPPUSH` | | Pop a function and a list (the list below) and add the results of calling the function on each element, with the checks of `map`. |
-| 123 | `ELISTEND` | | Finish the innermost gathering and push its elements as a list value, as `concat` builds it. |
-| 124 | | | Not used. |
-| 125 | | | Not used. |
-| 126 | `ECAST` | A type, B line, C column | Check that the value on top of the stack, which stays there, fits type A, for a cast `x.(T)` (see [Casts](../language/actions.md#casts)); a mismatch raises the evaluation error `cannot cast <value type> to <A> at input position <N> (line <L>, column <C>)`, where N is the position where the evaluation started, followed by `; cast at grammar position <B>:<C>` when B is positive. B and C are the grammar position of the cast, or 0 and 0 when the module has no source information (the compiler writes them only then). Each list element examined is one execution step. A is the type after alias resolution, as the value checker writes it (`*Ident`, `[]*(Ident \| Number)`, `int \| string`): a join with `nil` is an optional type. The compiler omits it when every value fits the type, such as `_` or a type containing `_`. It is the only instruction that checks the type of a value: the compiler proves every other value fits the location it flows to, or rejects the grammar. |
-| 127 | `ENODE` | A type, B 0 | Pop a node and push it converted to the named node type A, for a conversion `N{x}`: a copy of the node with the same range, value and captures, whose type is A and which has no rule name. A node that already has type A is pushed unchanged. A value that is not a string, tuple or list node raises the evaluation error `cannot convert <value type> to <A>`; whether the value fits the underlying type of A is decided when the grammar is compiled. |
-| 128 | `ETUPLE` | A n | Pop n values and push a tuple value of them, in order, for a tuple literal `(x, y)`. As in `list`, a value that is not a node, `nil`, an int, a string or a bool raises an evaluation error, and an int, string or bool becomes a box element. |
+| 105 | `ELOCAL` | A index | Push a local (a lambda parameter, `$lhs`, `$rhs`, `$op`, or `$value`). |
+| 106 | `EVAR` | A variable | Push the value of variable A, an index into the variable table. |
+| 107 | `EMEMBER` | A name | Pop a value and push its field. `Start`, `End` and `Value` are built in for a node with a range: the range, and the text of a string node or the elements of a tuple or list node. A field not declared by the struct type is an error; a declared field that is absent yields the zero value of its declared type (a field of a type that has none is always present). A name `$y` reads capture `y`: it is an error on a struct value, and an unmatched capture yields nil. |
+| 108 | `ENEW` | A type, B field list | Pop as many values as the field list has names, and push a struct node. |
+| 109 | `EBIN` | A operator | Pop two values and push the result of the operation. The operator `[]` indexes the list below with the `int` on top. |
+| 110 | `EUNARY` | A operator | Pop a value and push the result of the operation. |
+| 111, 112 | `EAND` / `EOR` | A target | It is an error if the top value is not a boolean. `EAND` on false, and `EOR` on true, leave the value and jump to A. Otherwise pop the value and continue. |
+| 113 | `EBOOLCHK` | A operator | It is an error if the top value is not a boolean. |
+| 114 | `EFUNC` | A start, B parameter count | Push a function that captures the current locals. |
+| 115 | `ECALL` | A built-in, B argument count | Pop the arguments, call the built-in function, and push the result. |
+| 116 | `ERET` | | Return the top value as the value of the expression. |
+| 117 | `ETEXTCHK` | | It is an error (the same as `text`'s) if `text` of the top value is not defined. The value stays. |
+| 118 | `ETEXTEQ` | A neg | Pop two values and push whether their texts (as `text` gives them; both were checked with `ETEXTCHK`) are equal, or unequal if neg is 1. |
+| 119 | `ELISTBEGIN` | | Start gathering the elements of a list. Gatherings nest. |
+| 120 | `ELISTPUSH` | A n | Pop n values and add them, in order, to the list being gathered, with the checks of `list`. |
+| 121 | `EMAPPUSH` | | Pop a function and a list (the list below) and add the results of calling the function on each element, with the checks of `map`. |
+| 122 | `ELISTEND` | | Finish the innermost gathering and push its elements as a list value, as `concat` builds it. |
+| 123 | `ECAST` | A type, B line, C column | Check that the value on top of the stack, which stays there, fits type A, for a cast `x.(T)` (see [Casts](../language/actions.md#casts)); a mismatch raises the evaluation error `cannot cast <value type> to <A> at input position <N> (line <L>, column <C>)`, where N is the position where the evaluation started, followed by `; cast at grammar position <B>:<C>` when B is positive. B and C are the grammar position of the cast, or 0 and 0 when the module has no source information (the compiler writes them only then). Each list element examined is one execution step. A is the type after alias resolution, as the value checker writes it (`*Ident`, `[]*(Ident \| Number)`, `int \| string`): a join with `nil` is an optional type. The compiler omits it when every value fits the type, such as `_` or a type containing `_`. It is the only instruction that checks the type of a value: the compiler proves every other value fits the location it flows to, or rejects the grammar. |
+| 124 | `ENODE` | A type, B 0 | Pop a node and push it converted to the named node type A, for a conversion `N{x}`: a copy of the node with the same range, value and captures, whose type is A and which has no rule name. A node that already has type A is pushed unchanged. A value that is not a string, tuple or list node raises the evaluation error `cannot convert <value type> to <A>`; whether the value fits the underlying type of A is decided when the grammar is compiled. |
+| 125 | `ETUPLE` | A n | Pop n values and push a tuple value of them, in order, for a tuple literal `(x, y)`. As in `list`, a value that is not a node, `nil`, an int, a string or a bool raises an evaluation error, and an int, string or bool becomes a box element. |
 
 Names (`EMEMBER`), operators (`EBIN`, `EUNARY`, `EBOOLCHK`, written as their source symbol such as `+` or `&&`) and type names (`ENEW`) are string-table indices.
 
@@ -303,7 +300,7 @@ per-element concrete-type guard.
 
 Calling a function evaluates its code from its start, with the locals captured at creation followed by the arguments as its locals.
 
-Instructions 118–123 are shortcuts with the same results as the general instructions. The reference compiler emits `ETEXTCHK` after each operand and `ETEXTEQ` for `text(a) == text(b)` and `text(a) != text(b)`, which compares the texts without making them values, and `ELISTBEGIN`, `ELISTPUSH`/`EMAPPUSH` per argument and `ELISTEND` for a `concat` call whose arguments are all `list`, `map` or such `concat` calls, which builds no intermediate list. In both cases the errors arise in the same order as with `ECALL`.
+Instructions 117–122 are shortcuts with the same results as the general instructions. The reference compiler emits `ETEXTCHK` after each operand and `ETEXTEQ` for `text(a) == text(b)` and `text(a) != text(b)`, which compares the texts without making them values, and `ELISTBEGIN`, `ELISTPUSH`/`EMAPPUSH` per argument and `ELISTEND` for a `concat` call whose arguments are all `list`, `map` or such `concat` calls, which builds no intermediate list. In both cases the errors arise in the same order as with `ECALL`.
 
 Built-in function indices: 0 `len`, 1 `text`, 2 `foldl`, 3 `foldr`, 4 `map`, 5 `list`, 6 `concat`, 7 `filter`. Their semantics are defined in [Actions](../language/actions.md#operators-and-functions).
 
@@ -321,7 +318,7 @@ A compiled grammar uses container version 8. It stores one execution-only compil
 | Magic | `ZPC\x00` (6 bytes) |
 | Version | 1 byte: 8. A loader refuses any other value. |
 | Mode | 1 byte: 0 parse, 1 recognize, 2 document. The module serves the operations of this mode only. A parse-mode or document-mode module is the module of the grammar; a recognize-mode module is the module of its recognizer. A loader refuses any other value. |
-| Instruction-set version | Unsigned integer for this module: 33. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
+| Instruction-set version | Unsigned integer for this module: 34. Every module uses this version, whatever instructions it contains; a runtime rejects a module of another version and asks for the grammar to be compiled again. |
 | String table | Count, then each string (byte length and UTF-8 bytes), all unsigned. The module's string table is a prefix of this table. |
 | Start rule | String index, unsigned: the start rule the saved parser uses. It is a start rule of the module, or the empty string for the module's default start rule. |
 | Module | See below |
