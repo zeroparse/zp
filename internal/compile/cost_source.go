@@ -66,19 +66,49 @@ func classifierRules(g *grammar.Grammar, control *cancel.Control) (*grammar.Gram
 	return g, rules, nil
 }
 
-// CostViewRules returns the rules of the normal view of g (NormalView) and the number of rewrites
-// of each normalization rule, by its name ("N1" to "N13"). If laws is not nil, only the rules it
-// names apply. It is what the cost view built on Core IR is compared with.
-func CostViewRules(g *grammar.Grammar, matching bool, laws []string, control *cancel.Control) ([]*grammar.RuleDef, map[string]int, error) {
+// RuleView is the normal view of the rules of a grammar (NormalView), which the cost view built on
+// Core IR is compared with.
+type RuleView struct {
+	// Source are the rules the view is built from, and Rules the rules of the view.
+	Source, Rules []*grammar.RuleDef
+	// Applied counts the rewrites by the name of their rule ("N1" to "N13").
+	Applied map[string]int
+	// Text gives, for an expression that the view builds, the source text of the expressions that
+	// it stands for.
+	Text map[grammar.Expr]string
+}
+
+// CostViewRules returns the normal view of the rules of g (NormalView). If laws is not nil, only
+// the rules it names apply.
+func CostViewRules(g *grammar.Grammar, matching bool, laws []string, control *cancel.Control) (*RuleView, error) {
 	v, _, err := normalViewOf(g, matching, laws, control)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	applied := map[string]int{}
 	for r, n := range v.applied {
 		applied[string(r)] = n
 	}
-	return slices.Clone(v.rules), applied, nil
+	return &RuleView{Source: v.source, Rules: slices.Clone(v.rules), Applied: applied, Text: v.text}, nil
+}
+
+// BuiltTexts returns, for each expression of the rules of the view that the view builds, its
+// spelling and the text it stands for, as "spelling = text", sorted.
+func (v *RuleView) BuiltTexts() []string {
+	src := map[grammar.Expr]bool{}
+	for _, r := range v.Source {
+		WalkExpr(r.Expr, func(x grammar.Expr) { src[x] = true })
+	}
+	var out []string
+	for _, r := range v.Rules {
+		WalkExpr(r.Expr, func(x grammar.Expr) {
+			if !src[x] {
+				out = append(out, grammar.FormatExpr(x)+" = "+v.Text[x])
+			}
+		})
+	}
+	slices.Sort(out)
+	return out
 }
 
 // normalViewOf returns the normal view of the classifier's rules of g, and the grammar they are

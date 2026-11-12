@@ -37,6 +37,9 @@ type Options struct {
 	Labels bool
 	// Inline applies N13. It changes which evaluations the memo answers.
 	Inline bool
+	// Laws, if not nil, holds the only rules that apply, for comparing views that apply some rules
+	// only. N7 and N13 apply only if Labels and Inline select them, too.
+	Laws []Law
 }
 
 // Source is what a view is built from: an untyped Core IR module (build.Structural), the
@@ -60,16 +63,47 @@ type View struct {
 	Text map[core.Node]string
 	// Applied counts the rewrites by rule.
 	Applied map[Law]int
+	// replaces gives, for a node that the view builds by giving a node new parts, the node of the
+	// module that it replaces (Grammar). A node that the view builds has no attributes.
+	replaces map[core.Node]core.Node
 }
 
-// Build returns the view of src with opts.
+// Build returns the view of src with opts. It applies N1, N2, N4 and N6 so far; until it applies
+// every rule, the complexity classifier reads the view that compile.NormalView builds on the
+// grammar's rules.
 func Build(src *Source, opts Options, control *cancel.Control) *View {
 	m := *src.Module
 	m.Rules = make([]*core.Rule, len(src.Module.Rules))
+	v := &View{Module: &m, Origin: src.Origin, Text: map[core.Node]string{}, Applied: map[Law]int{},
+		replaces: map[core.Node]core.Node{}}
+	b := &builder{src: src, opts: opts, control: control, view: v, orig: map[core.Node]bool{},
+		values: valueReaders(src.Module)}
+	for _, r := range src.Module.Rules {
+		core.Walk(r.Body, func(n core.Node) { b.orig[n] = true })
+	}
 	for i, r := range src.Module.Rules {
 		control.Poll()
+		b.cur, b.depth = i, 0
+		if b.values.valued[i] {
+			b.depth = 1
+		}
 		cp := *r
+		cp.Body = b.fix(r.Body)
 		m.Rules[i] = &cp
 	}
-	return &View{Module: &m, Origin: src.Origin, Text: map[core.Node]string{}, Applied: map[Law]int{}}
+	return v
+}
+
+// textOf returns the source text that the node n of the view stands for.
+func (v *View) textOf(n core.Node) string {
+	if t, ok := v.Text[n]; ok {
+		return t
+	}
+	if e, ok := v.Origin[n]; ok {
+		return grammar.FormatExpr(e)
+	}
+	if e, err := v.expr(n); err == nil {
+		return grammar.FormatExpr(e)
+	}
+	return ""
 }

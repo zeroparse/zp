@@ -16,3 +16,8 @@ func (f *Facts) Fails(n core.Node) bool { return f.c.alwaysFails(n) }
 // LeftCalls returns the rules n may call before it consumes input, in the order of the body, a
 // rule called at several such places listed at each; with token insertion enabled if ins.
 func (f *Facts) LeftCalls(n core.Node, ins bool) []int { return f.c.leftCalls(n, nil, ins) }
+
+// LooseCut reports a cut in n that can commit the choice, option or repetition around n: one
+// outside nested choices, options, repetitions, lookaheads and calls. A recovery's skip runs in
+// the scope of its body, so a cut in it counts.
+func LooseCut(n core.Node) bool { return looseCut(n) }
