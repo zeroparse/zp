@@ -219,6 +219,23 @@ func (v *Object) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+func init() {
+	back := ZPHooks.Back
+	ZPHooks.Back = func(v any) any {
+		switch x := v.(type) {
+		case *Bool:
+			return tb1(x)
+		case *Null:
+			return tb2(x)
+		case *Number:
+			return tb3(x)
+		case *String:
+			return tb0(x)
+		}
+		return back(v)
+	}
+}
+
 func tb0(v *String) any {
 	if v == nil {
 		return nil
@@ -226,11 +243,32 @@ func tb0(v *String) any {
 	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[4])
 }
 
+func tb1(v *Bool) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[1])
+}
+
+func tb2(v *Null) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[2])
+}
+
+func tb3(v *Number) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[3])
+}
+
 // ZPNodeTypes holds the registered indexes of the named node types by their generated index; index 0
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [5]uint16
 
-// ZPSchema_341a4aaa83c568ba ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_a9bcd9d1b71f161a ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_341a4aaa83c568ba = 0
+const ZPSchema_a9bcd9d1b71f161a = 0
