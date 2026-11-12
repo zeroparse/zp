@@ -24,3 +24,4 @@ func (structural) Checker() *check.Checker                { return nil }
 func (structural) ResolveCheck(grammar.TypeExpr) types.Ty { return nil }
 func (structural) CastPos(*grammar.Cast) (int, int)       { return 0, 0 }
 func (structural) SkipSite(*grammar.Repeat) int           { return 0 }
+func (structural) ScanSite(*grammar.Repeat) int           { return 0 }
