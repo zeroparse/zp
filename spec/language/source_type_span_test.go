@@ -3,9 +3,9 @@ package language_test
 import (
 	"reflect"
 	"testing"
-
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
@@ -25,7 +25,7 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assertCanonicalTypeSpans(t, p, tc.source, tc.spans)
-			manual, err := zp.ParseGrammar(tc.source)
+			manual, err := syntax.ParseReference(tc.source)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -38,7 +38,7 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 
 func assertCanonicalTypeSpans(t *testing.T, p *zp.Parser, source string, expected []string) {
 	t.Helper()
-	manual, err := zp.ParseGrammar(source)
+	manual, err := syntax.ParseReference(source)
 	if err != nil {
 		t.Fatal(err)
 	}

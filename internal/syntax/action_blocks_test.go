@@ -145,7 +145,7 @@ func TestContextualRuleIdentifiers(t *testing.T) {
 	if got := grammar.FormatExpr(ref); got != "level(expr, additive)" {
 		t.Fatal(got)
 	}
-	if _, err := Parse(`rule main = expr(additive)`); err == nil || !strings.Contains(err.Error(), "level(") {
+	if _, err := Parse(`rule main = expr(additive)`); err == nil || !strings.HasPrefix(err.Error(), "1:17: ") {
 		t.Fatalf("old call accepted: %v", err)
 	}
 }

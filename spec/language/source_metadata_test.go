@@ -3,9 +3,9 @@ package language_test
 import (
 	"reflect"
 	"testing"
-
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
@@ -25,7 +25,7 @@ func TestCanonicalPackageMetadataParity(t *testing.T) {
 		"package p\n\n// unowned\n",
 	} {
 		t.Run(src, func(t *testing.T) {
-			manual, manualErr := zp.ParseGrammar(src)
+			manual, manualErr := syntax.ParseReference(src)
 			for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 				n, err := p.Parse(src, zp.WithBackend(backend))
 				if (err == nil) != (manualErr == nil) {

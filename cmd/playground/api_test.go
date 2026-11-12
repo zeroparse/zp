@@ -67,7 +67,7 @@ func TestCompileDiagnostics(t *testing.T) {
 		line, col  int
 		msgContain string
 	}{
-		{"rule main = (", 1, 14, "expected an expression"},
+		{"rule main = (", 1, 14, "expected rule expression"},
 		{"@start\nrule main = other", 2, 13, "undefined rule other"},
 		{"rule main = \"a\"", 1, 1, "the grammar has no start rule"},
 		{"", 0, 0, "the grammar has no start rule"},

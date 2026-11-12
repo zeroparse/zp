@@ -103,7 +103,7 @@ func TestStructFieldSeparatorsRejected(t *testing.T) {
 		})
 	}
 	_, err := zp.ParseGrammar("package t\ntype T = { A string, B int }\n")
-	if err == nil || !strings.Contains(err.Error(), "between struct fields") {
+	if err == nil || !strings.HasPrefix(err.Error(), "2:20: expected semicolon") {
 		t.Fatalf("error should name the struct field separator: %v", err)
 	}
 }

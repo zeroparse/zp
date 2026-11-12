@@ -145,7 +145,7 @@ func firstDifference(want, got []string) string {
 // agree. Where both reject src, only the rejection is compared.
 func grammarDiff(t *testing.T, frontend func(string) (*grammar.Grammar, error), src string) string {
 	t.Helper()
-	manual, merr := zp.ParseGrammar(src)
+	manual, merr := syntax.ParseReference(src)
 	got, err := frontend(src)
 	switch {
 	case merr != nil && err != nil:
@@ -199,7 +199,7 @@ var frontendRejections = []string{
 
 func TestCanonicalFrontendRejections(t *testing.T) {
 	for _, src := range frontendRejections {
-		if _, err := zp.ParseGrammar(src); err == nil {
+		if _, err := syntax.ParseReference(src); err == nil {
 			t.Errorf("%q: the hand-written parser accepts it", src)
 		}
 		if _, err := adaptCanonical(src); err == nil {
@@ -229,7 +229,7 @@ var frontendAgreements = []string{
 
 func TestCanonicalFrontendAgreements(t *testing.T) {
 	for _, src := range frontendAgreements {
-		if _, err := zp.ParseGrammar(src); err != nil {
+		if _, err := syntax.ParseReference(src); err != nil {
 			t.Errorf("%q: the hand-written parser rejects it: %v", src, err)
 		}
 		compareGrammars(t, src, src)

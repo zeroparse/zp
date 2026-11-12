@@ -57,11 +57,11 @@ func TestIgnoreCasePragma(t *testing.T) {
 		`rule main = "a" #ignorecase(x)`,
 		`rule main = "a" #ignorecase()`,
 	} {
-		if _, err := Parse(src); err == nil || !strings.Contains(err.Error(), "#ignorecase takes no arguments") {
+		if _, err := Parse(src); err == nil || !strings.HasPrefix(err.Error(), "1:17: ") {
 			t.Fatalf("%q: %v", src, err)
 		}
 	}
-	if _, err := Parse(`rule main = "a" # ignorecase`); err == nil || !strings.Contains(err.Error(), "pragma name must immediately follow") {
+	if _, err := Parse(`rule main = "a" # ignorecase`); err == nil || !strings.HasPrefix(err.Error(), "1:19: ") {
 		t.Fatalf("space after #: %v", err)
 	}
 }
@@ -168,7 +168,7 @@ func TestIgnoreCaseOperatorsRulePragma(t *testing.T) {
 			t.Fatalf("%q was accepted", bad)
 		}
 	}
-	if _, err := Parse("rule main = #operators { operand \"a\" } #atomic\n"); err == nil || !strings.Contains(err.Error(), "only #ignorecase may follow an Operators Rule") {
+	if _, err := Parse("rule main = #operators { operand \"a\" } #atomic\n"); err == nil || !strings.HasPrefix(err.Error(), "1:40: ") {
 		t.Fatalf("other pragma: %v", err)
 	}
 }

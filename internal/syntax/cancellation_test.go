@@ -11,6 +11,10 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
+// neverDone is the Done channel of cancelOnCheck. It is not nil, because a parser does not poll a
+// context whose Done is nil: such a context can never be cancelled.
+var neverDone = make(chan struct{})
+
 // cancelOnCheck cancels at a known polling point, so the test does not rely on
 // scheduling a goroutine during a fast lexing pass.
 type cancelOnCheck struct {
@@ -19,7 +23,7 @@ type cancelOnCheck struct {
 }
 
 func (*cancelOnCheck) Deadline() (deadline time.Time, ok bool) { return }
-func (*cancelOnCheck) Done() <-chan struct{}                   { return nil }
+func (*cancelOnCheck) Done() <-chan struct{}                   { return neverDone }
 func (*cancelOnCheck) Value(any) any                           { return nil }
 func (c *cancelOnCheck) Err() error {
 	c.checks++

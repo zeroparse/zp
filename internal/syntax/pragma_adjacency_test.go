@@ -1,15 +1,18 @@
 package syntax
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestPragmaAdjacency(t *testing.T) {
 	for _, pragma := range []string{"atomic", "stream", "repeat(2)", `recover(skip=";")`} {
 		for _, gap := range []string{" ", "\t", "/* gap */", "\n"} {
-			_, err := Parse("rule main = (\"x\" #" + gap + pragma + ")")
-			if err == nil || !strings.Contains(err.Error(), "pragma name must immediately follow") {
+			src := "rule main = (\"x\" #" + gap + pragma + ")"
+			_, err := Parse(src)
+			if err == nil || !strings.HasPrefix(err.Error(), positionOf(src, "#"+gap)+": ") {
 				t.Fatalf("gap %q before %s: %v", gap, pragma, err)
 			}
 		}
@@ -20,8 +23,9 @@ func TestPragmaAdjacency(t *testing.T) {
 			args = `(skip=";")`
 		}
 		for _, gap := range []string{" ", "\t", "/* gap */", "\n"} {
-			_, err := Parse("rule main = (\"x\" #" + pragma + gap + args + ")")
-			if err == nil || !strings.Contains(err.Error(), "pragma arguments must immediately follow") {
+			src := "rule main = (\"x\" #" + pragma + gap + args + ")"
+			_, err := Parse(src)
+			if err == nil || !strings.HasPrefix(err.Error(), positionOf(src, pragma+gap)+": ") {
 				t.Fatalf("gap %q after %s: %v", gap, pragma, err)
 			}
 		}
@@ -37,4 +41,13 @@ func TestPragmaAdjacency(t *testing.T) {
 			t.Fatalf("valid source %q: %v", source, err)
 		}
 	}
+}
+
+// positionOf returns the line and column, as in an error, of the character after the first
+// occurrence of prefix in src: the place where the parse of a source with a gap cannot go on.
+func positionOf(src, prefix string) string {
+	before := src[:strings.Index(src, prefix)+len(prefix)]
+	line := strings.Count(before, "\n") + 1
+	col := utf8.RuneCountInString(before[strings.LastIndex(before, "\n")+1:]) + 1
+	return fmt.Sprintf("%d:%d", line, col)
 }

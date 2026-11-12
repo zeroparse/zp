@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
-
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
@@ -208,7 +208,7 @@ func sortedKeys(m map[string]grammar.SourceInfo) []string {
 // assertOwnerParity requires identical owners from both frontends for src.
 func assertOwnerParity(t *testing.T, p *zp.Parser, name, src string) {
 	t.Helper()
-	manual, err := zp.ParseGrammar(src)
+	manual, err := syntax.ParseReference(src)
 	if err != nil {
 		return // acceptance parity is checked by TestSyntaxSummary
 	}
@@ -343,7 +343,7 @@ func TestCanonicalOwnerParityNegativeControl(t *testing.T) {
 	if b := got["RuleDef@4:1"]; b.LeadingComments != " next\n" {
 		t.Fatalf("unexpected owner %+v", b)
 	}
-	manual, err := zp.ParseGrammar(strings.Replace(src, "// trail", "// other", 1))
+	manual, err := syntax.ParseReference(strings.Replace(src, "// trail", "// other", 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -413,7 +413,7 @@ var emptyStatements = []string{
 func TestEmptyStatementsAreRejected(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	for _, src := range emptyStatements {
-		_, merr := zp.ParseGrammar(src)
+		_, merr := syntax.ParseReference(src)
 		_, cerr := p.Parse(src)
 		if merr == nil || cerr == nil {
 			t.Errorf("%q: hand-written error %v, canonical error %v; both must reject", src, merr, cerr)

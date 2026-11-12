@@ -11,7 +11,6 @@ import (
 	"testing"
 	"unicode"
 
-	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
@@ -106,7 +105,7 @@ func shortMsg(m string) string {
 // add compares the errors of the frontends on src, which edits changed in the ranges of code points that
 // edits holds (nil when it is not known).
 func (s *harmStats) add(t *testing.T, src string, edits [][2]int) {
-	_, merr := zp.ParseGrammar(src)
+	_, merr := syntax.ParseReference(src)
 	_, err := adaptCanonical(src)
 	if merr == nil || err == nil {
 		return
@@ -597,7 +596,7 @@ func TestErrorPositionClasses(t *testing.T) {
 		{"unclosed", "type R = { S string; N int; T string) =>\nvar k1 int\nrule main R = {k1 := 1} a:\"x\"\n"},
 	}
 	for _, c := range cases {
-		_, merr := zp.ParseGrammar(c.src)
+		_, merr := syntax.ParseReference(c.src)
 		_, err := adaptCanonical(c.src)
 		h, g := errorsOf(c.src, merr), errorsOf(c.src, err)
 		if len(h) == 0 || len(g) == 0 {

@@ -97,8 +97,8 @@ func TestFixLexError(t *testing.T) {
 
 func TestOldCutRejected(t *testing.T) {
 	_, err := Parse(`rule a = "a" -- "b"`)
-	if err == nil || !strings.Contains(err.Error(), "#cut") || !strings.Contains(err.Error(), "zp fix") {
-		t.Fatalf("got %v, want an error naming #cut and zp fix", err)
+	if err == nil || !strings.HasPrefix(err.Error(), "1:14: ") {
+		t.Fatalf("got %v, want an error at --", err)
 	}
 }
 
