@@ -17,7 +17,7 @@ func TestIncompletePackageClause(t *testing.T) {
 	c.open(uri, "rule a = b\n")
 	for i, text := range []string{"package ", "package", "package {", "package\nrule a = \"x\""} {
 		d := change(c, uri, i+2, map[string]any{"text": text})
-		if len(d) != 1 || d[0].Message != "expected package name" {
+		if len(d) != 1 || !strings.HasPrefix(d[0].Message, "expected package name, found ") {
 			t.Errorf("%q: diagnostics %+v", text, d)
 		}
 		c.request("textDocument/hover", at(uri, 0, 1))

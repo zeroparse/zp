@@ -224,7 +224,7 @@ Details:
   ```
 
   ```text
-  zp: broken.zp:4:1: expected rule expression
+  zp: broken.zp:4:1: expected an expression, found end of file
   ```
 
   An action that reads a capture the rule does not have is a compile error:

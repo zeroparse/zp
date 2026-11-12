@@ -1,6 +1,8 @@
 package language_test
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"strconv"
@@ -263,7 +265,8 @@ func TestGrammarComparisonSeesMutantGrammars(t *testing.T) {
 		}
 		g, err := unchanged(src)
 		want, werr := adaptCanonical(src)
-		if (err != nil) != (werr != nil) || err != nil && err.Error() != werr.Error() {
+		// The engine run does not record expectations, so the errors agree in their positions.
+		if (err != nil) != (werr != nil) || err != nil && errorPositions(err) != errorPositions(werr) {
 			t.Fatalf("%q: the engine run rejects with %v, the generated parser with %v", src, err, werr)
 		}
 		if err == nil {
@@ -384,4 +387,17 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 			t.Fatalf("no source of the corpus shows the broken adapter (%d trees changed)", changed)
 		})
 	}
+}
+
+// errorPositions returns the positions of the errors in err, a syntax.ErrorList, or its text.
+func errorPositions(err error) string {
+	var list syntax.ErrorList
+	if !errors.As(err, &list) {
+		return err.Error()
+	}
+	var b strings.Builder
+	for _, e := range list {
+		fmt.Fprintf(&b, "%v;", e.Pos)
+	}
+	return b.String()
 }

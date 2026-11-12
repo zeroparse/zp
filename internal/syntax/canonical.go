@@ -1,8 +1,10 @@
 package syntax
 
 import (
+	"cmp"
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -39,10 +41,21 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 		c.fail("the source tree is not a File")
 	}
 	g = c.file(root)
+	// The lexer checks the nesting of the source, which the grammar does not.
+	lexical := &errorList{}
+	toks := lex(src, lexical)
+	for _, e := range lexical.list {
+		if e.Msg == msgNestingTooDeep {
+			c.errs.list = append(c.errs.list, e)
+		}
+	}
 	if len(c.errs.list) > 0 {
+		slices.SortStableFunc(c.errs.list, func(a, b *Error) int {
+			return cmp.Or(cmp.Compare(a.Pos.Line, b.Pos.Line), cmp.Compare(a.Pos.Col, b.Pos.Col))
+		})
 		return nil, c.errs.list
 	}
-	replayLayout(src, g)
+	replayLayout(toks, g)
 	return g, nil
 }
 
@@ -88,7 +101,7 @@ func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, Erro
 		g.File.Pos = c.pos.At(len(c.src))
 		g.File.End = g.File.Pos
 	}
-	replayLayout(src, g)
+	replayLayout(lex(src, &errorList{}), g)
 	return g, c.errs.list
 }
 

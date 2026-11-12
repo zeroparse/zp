@@ -21,20 +21,12 @@ import (
 // grammar and of its source metadata. The raw comment tokens that only the
 // formatter reads are not in it.
 
-// adaptCanonical parses src with the generated parser of the canonical grammar
-// and builds the public AST from its typed values. It rejects a source with
-// the errors in the form of the hand-written parser, a syntax.ErrorList: the
-// lexical errors, then the errors of the grammar or of the checks on the tree.
+// adaptCanonical parses src as the source APIs do: with syntax.Parse, which runs the generated
+// parser of the canonical grammar with its limits and expectations and builds the public AST from
+// its typed values. It rejects a source with a syntax.ErrorList: the lexical errors, then the
+// errors of the grammar or of the checks on the tree.
 func adaptCanonical(src string) (*grammar.Grammar, error) {
-	text, invalid := syntax.WithoutInvalidCharacters(src)
-	f, err := genparser.ParseAST(text)
-	if err != nil {
-		return nil, canonicalErrors(src, err)
-	}
-	if invalid {
-		return nil, syntax.SourceErrors(src, nil)
-	}
-	return syntax.FromSourceTree(src, f)
+	return syntax.Parse(src)
 }
 
 // canonicalErrors converts the error that the canonical grammar returns for src.

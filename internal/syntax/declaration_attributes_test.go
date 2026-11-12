@@ -79,13 +79,13 @@ func TestDeclarationAttributesAfterExpressionAttribute(t *testing.T) {
 // The errors of declaration attributes are at the token that cannot follow them.
 func TestDeclarationAttributesErrors(t *testing.T) {
 	for _, tc := range []struct{ src, want string }{
-		{"@start rule a = \"x\"\n", "1:8: syntax error: expected"},
-		{"@start /* c */ rule a = \"x\"\n", "1:16: syntax error: expected"},
-		{"@start @foo rule a = \"x\"\n", "1:13: syntax error: expected"},
-		{"@start\ntype T = node[string]\n", "2:1: syntax error: expected"},
-		{"@start\nvar v = 1\nrule a = \"x\"\n", "2:1: syntax error: expected"},
-		{"@start\n", "2:1: syntax error: expected"},
-		{"@start\nfoo\n", "2:1: syntax error: expected"},
+		{"@start rule a = \"x\"\n", "1:8: expected newline, found 'rule'"},
+		{"@start /* c */ rule a = \"x\"\n", "1:16: expected newline, found 'rule'"},
+		{"@start @foo rule a = \"x\"\n", "1:13: expected newline, found 'rule'"},
+		{"@start\ntype T = node[string]\n", `2:1: expected "@", "rule", found 'type'`},
+		{"@start\nvar v = 1\nrule a = \"x\"\n", `2:1: expected "@", "rule", found 'var'`},
+		{"@start\n", `2:1: expected "@", "rule", found end of file`},
+		{"@start\nfoo\n", `2:1: expected "@", "rule", found 'foo'`},
 		{"@ start\nrule a = \"x\"\n", "1:3: expected attribute name"},
 	} {
 		_, err := Parse(tc.src)

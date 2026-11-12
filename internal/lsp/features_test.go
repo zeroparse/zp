@@ -24,13 +24,13 @@ func TestDiagnostics(t *testing.T) {
 		{
 			// The ")" follows an astral character, which takes two UTF-16 code units.
 			"syntax error", "rule a = \"😀\" )\n",
-			[]Diagnostic{{Range: rng(0, 14, 0, 15), Message: "expected semicolon, newline, or end of file"}},
+			[]Diagnostic{{Range: rng(0, 14, 0, 15), Message: "expected semicolon, newline, or end of file, found ')'"}},
 		},
 		{
 			"several syntax errors", "rule a = (\nrule b = \"名前\"\n]\nrule c = \"ok\"",
 			[]Diagnostic{
-				{Range: rng(1, 7, 1, 8), Message: "expected rule expression"},
-				{Range: rng(2, 0, 2, 1), Message: "expected type, var or rule declaration"},
+				{Range: rng(1, 7, 1, 8), Message: "expected closing parenthesis for rule group, found '='"},
+				{Range: rng(2, 0, 2, 1), Message: "expected type, var or rule declaration, found ']'"},
 			},
 		},
 		{
@@ -125,7 +125,7 @@ func TestIncrementalChanges(t *testing.T) {
 	if len(syms) != 1 || syms[0].Name != "main" || syms[0].Range != rng(0, 0, 1, 22) {
 		t.Errorf("symbols %+v", syms)
 	}
-	if d := change(c, uri, 5, map[string]any{"text": "rule"}); messages(d) != "expected rule name" {
+	if d := change(c, uri, 5, map[string]any{"text": "rule"}); messages(d) != "expected rule name, found end of file" {
 		t.Errorf("after replacing the document: %+v", d)
 	}
 	// Saving and closing.

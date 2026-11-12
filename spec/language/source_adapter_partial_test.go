@@ -12,22 +12,12 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/genparser"
 )
 
-// partialCanonical parses src as ParsePartial does, with the generated parser of the canonical
-// grammar and the partial mode of its adapter: the declarations that are complete, and the
-// syntax errors followed by the errors of the checks.
+// partialCanonical parses src as the editor APIs do, with syntax.ParsePartial: the declarations
+// that are complete, and the syntax errors followed by the errors of the checks.
 func partialCanonical(src string) (*grammar.Grammar, syntax.ErrorList) {
-	text, _ := syntax.WithoutInvalidCharacters(src)
-	f, err := genparser.ParseAST(text, genparser.WithExpectations())
-	var errs []syntax.SourceError
-	if err != nil {
-		errs, _ = sourceErrorsOf(err)
-	}
-	list := syntax.SourceErrors(src, errs)
-	g, checks := syntax.FromPartialSourceTree(src, f)
-	return g, append(list, checks...)
+	return syntax.ParsePartial(src)
 }
 
 // declJSON returns the JSON form of every declaration of g by its kind, name and start.
