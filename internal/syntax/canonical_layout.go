@@ -50,13 +50,6 @@ func (r *layoutReplay) seekStart(pos grammar.Pos) {
 	}
 }
 
-// seekPast consumes the tokens up to the one that ends at end.
-func (r *layoutReplay) seekPast(end grammar.Pos) {
-	if i, ok := r.ends[end]; ok {
-		r.seek(i + 1)
-	}
-}
-
 // seekText consumes the tokens before the next one that is the punctuation
 // or name text, outside the brackets that open after the current token.
 func (r *layoutReplay) seekText(text string) {
@@ -167,7 +160,8 @@ func (r *layoutReplay) varDef(d *grammar.VarDef) {
 		r.typ(d.Type)
 	}
 	if d.Value != nil {
-		r.seekPast(d.Value.(grammar.SourceNode).Source().End)
+		p.next() // =
+		r.term(d.Value)
 	}
 }
 
@@ -197,8 +191,9 @@ func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
 	}
 	if operators {
 		r.operatorsBody(d.Expr)
+	} else {
+		r.bodyChoice(d.Expr)
 	}
-	r.seekPast(d.Expr.(grammar.SourceNode).Source().End)
 	if d.Action != nil || d.DefaultAction {
 		if p.tok().lineBefore {
 			d.ActionBreak = p.lineBreak()
@@ -206,11 +201,7 @@ func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
 			p.afterGap(d.Expr)
 		}
 		p.next() // =>
-		if d.Action != nil {
-			r.seekPast(d.Action.(grammar.SourceNode).Source().End)
-		} else {
-			p.next() // ...
-		}
+		r.actionTerm(d.Action, d.DefaultAction)
 	}
 }
 
@@ -267,16 +258,24 @@ func (r *layoutReplay) attribute(a *grammar.Attribute) {
 		p.next()
 		return
 	}
-	for {
+	values := append([]any(nil), a.Args...)
+	for _, k := range a.KeywordOrder {
+		values = append(values, a.KwArgs[k])
+	}
+	for i, v := range values {
 		var layout *grammar.SourceLayout
 		if len(list.Elems) > 0 {
 			layout = p.takeTermLayout()
 		}
-		r.seekArgumentEnd()
+		if i >= len(a.Args) {
+			p.next() // the name
+			p.next() // =
+		}
+		r.attributeValue(v)
 		list.Elems = append(list.Elems, layout)
 		last := &list.Elems[len(list.Elems)-1]
 		p.takeAfter(last)
-		if p.is(")") || p.tok().kind == tEOF {
+		if p.is(")") {
 			break
 		}
 		p.next() // ,
@@ -288,32 +287,6 @@ func (r *layoutReplay) attribute(a *grammar.Attribute) {
 	}
 	list.CloseBreak = p.lineBreak()
 	p.next() // )
-}
-
-// seekArgumentEnd consumes an attribute argument, up to the comma or closing
-// parenthesis after it.
-func (r *layoutReplay) seekArgumentEnd() {
-	p := r.p
-	depth := 0
-	for p.tok().kind != tEOF {
-		t := p.tok()
-		if t.kind == tPunct {
-			switch t.text {
-			case "(", "[", "{":
-				depth++
-			case ")", "]", "}":
-				if depth == 0 {
-					return
-				}
-				depth--
-			case ",":
-				if depth == 0 {
-					return
-				}
-			}
-		}
-		p.next()
-	}
 }
 
 // typ replays the type t, which starts at the current token.
@@ -472,13 +445,19 @@ func (r *layoutReplay) operatorsRule(pr *grammar.OperatorsRule) {
 	if pr.Skip != nil {
 		items = append(items, item{pr.SkipSource.Pos, func(b *grammar.LineBreak) {
 			pr.SkipBreak = b
-			r.seekPast(pr.Skip.(grammar.SourceNode).Source().End)
+			p.next() // skip
+			r.choice(pr.Skip)
 		}})
 	}
 	for _, o := range pr.Operands {
 		items = append(items, item{o.Pos, func(b *grammar.LineBreak) {
 			o.Break = b
-			r.seekPast(o.Source().End)
+			p.next() // operand
+			r.choice(o.Expr)
+			if p.is("=>") {
+				p.next()
+				r.actionTerm(o.Action, o.DefaultAction)
+			}
 		}})
 	}
 	for _, l := range pr.Levels {
@@ -527,7 +506,11 @@ func (r *layoutReplay) level(l *grammar.OperatorsRuleLevel) {
 				}
 			})
 		}
-		r.seekPast(op.Source().End)
+		r.choice(op.Expr)
+		if p.is("=>") {
+			p.next()
+			r.actionTerm(op.Action, op.DefaultAction)
+		}
 		r.separator()
 	}
 	l.CloseBreak = p.statementBreak()

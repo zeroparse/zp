@@ -124,8 +124,16 @@ completes nodes. The grammar adds no wrapper node per expression.
 `internal/syntax.FromSourceTree` builds the public `grammar.Grammar` from the
 canonical tree: it decodes literals and character classes, flattens chains,
 resolves lambda parameters, merges attribute runs and applies the checks that
-the grammar does not make. The raw formatter state (`SourceInfo.Layout` and the
-line breaks) is not constructed. The differential tests compare, for every
+the grammar does not make. The raw formatter state (`SourceInfo.Layout`, the
+line breaks and the comment tokens they hold) depends on where the hand-written
+parser takes each comment, so the adapter replays it: after the canonical
+ownership is assigned, it reads the tokens of the source with the lexer once
+more and walks the grammar in source order, calling the parser's own layout
+primitives at the tokens where the parser calls them. The grammar already
+decides every branch, so the replay needs no lookahead; the cost is one more
+lexing pass per parse. A layout differential test compares every exported
+field, the formatter-only ones included, and the text that `Format` writes, for
+the same corpus, mutations and comment insertions. The differential tests compare, for every
 repository grammar, documentation example, comment insertion, line-ending
 variant and a seeded set of mutated sources, whether both frontends accept the
 source and, when they do, the JSON form of the AST (fields and source metadata)
