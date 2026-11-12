@@ -50,8 +50,15 @@ list. Where a struct or terminal type is expected, an `Error` node becomes `nil`
 When every value `ParseAST` can return has a Go type of its own (`runtimeOK`: no `Seq`, `List`, `Operator`, record,
 `node`, `terminal` or `_` in the result type or in any struct field) and no action or predicate reads a field of a
 struct whose type has no plain form (a typed value keeps its fields converted, so reading back a `node`, a named node
-type, a join, an `any` or a record would differ from the node's field), the generated parser builds the values
-directly. A field of a plain type (an `int`, `string` or `bool`, an optional one, a struct, and a tuple or list of
+type, a join, an `any` or a record would differ from the node's field) other than to copy it, the generated parser
+builds the values directly. A copy writes `x.F`, where every value of `x` has one struct type, in a place that holds a
+value of the declared type of `F`: the value of a field of that type in a struct constructor and, in such a place of a
+list type, an argument of `concat` or, for an element, an argument of `list` or the result of the function of `map`.
+The read converts the Go value back into a value of the typed runtime and the place converts it to the same type
+again; converting to a type a value that the conversion to that type made gives the same value (an `Error` that
+became `nil` where a struct is expected stays `nil`, one that a join keeps stays), so the place holds what the
+conversion of the node's field gives. A value of a named node type reads back through `ZPHooks.Back`, which the types
+package completes in an `init` function, since the conversions of those values refer to the hooks themselves. A field of a plain type (an `int`, `string` or `bool`, an optional one, a struct, and a tuple or list of
 these, declared with one type by every struct that has a field of the name) reads as it does from a node: a list or
 struct field that a constructor leaves out is a nil slice or pointer, which a read turns into the zero value of the
 type, an empty list or the struct with no field set. `runtime/typed.go` is a second runtime that mirrors `runtime/runtime.go` step by step, with values of type
