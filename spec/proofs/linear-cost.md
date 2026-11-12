@@ -3116,11 +3116,12 @@ of the growth activations that *Restarts of growth activations* and *Direct
 growth activations* leave out: those whose growth starts after $q - c_W$,
 those of case 5, of a dropped step at the position of its growth, of a second
 outer growth, of the second case of *Repeats inside a growth* and of part 3
-of *Growths at many positions*. Then neither item 1 of *Repeats inside a
-family* nor the second alternative of its item 2 holds for $\alpha$ and
-$\alpha'$, apart from the case that the proof leaves open: $\alpha'$ in a later
-step of a growth at $p$ that starts after $\alpha$, of any cycle, such as a
-growth of a leader of another cycle started in $\kappa$.
+of *Growths at many positions*. Then the second alternative of item 2 of
+*Repeats inside a family* does not hold for $\alpha$ and $\alpha'$, unless
+$\alpha'$ lies in the second step of a growth whose first result is empty, and
+item 1 holds only when $\alpha'$ lies in a growth at $p$ that starts after
+$\alpha$, in a later step of it than a stand-in at $q$, such as a growth of a
+leader of another cycle started in $\kappa$.
 
 *Proof.* Suppose that one of them holds. Then $w$ starts at $p$ with a call
 $c$ of a leader $R$ that it shares with its continuation $\kappa$, $\alpha$
@@ -3187,13 +3188,25 @@ $\alpha'$ is of the second case for $\alpha$, which the hypothesis excludes.
 For $k = 0$, $N_1$ contains $\alpha$ when it is a growth of the cycle of $R$:
 it contains the call of $c$ in $\kappa$, which holds $x_1$ and not $\alpha'$,
 so also the call of $c$ in $w$, which holds $\alpha$, since the two calls lie
-in the same growths of that cycle (case 2). The case that remains is a
-growth $N_{k+1}$ at $p$ that starts after $\alpha$, with $\alpha'$ in a later
-step of it than $x_{k+1}$, on a path that reads no growing result that
-succeeds: for $k = 0$ a growth of a leader of another cycle than that of $R$,
-started in $\kappa$ after $w$ ends and before its call of $c$, which it
-contains. The claim does not cover it, and step 4 of [Open
-Steps](#open-steps) keeps it.
+in the same growths of that cycle (case 2). There remains a growth $N_{k+1}$
+at $p$ that starts after $\alpha$, with $\alpha'$ in a later step of it than
+$x_{k+1}$, on a path that reads no growing result that succeeds: for $k = 0$
+a growth of a leader of another cycle than that of $R$, started in $\kappa$
+after $w$ ends and before its call of $c$, which it contains. $N_{k+1}$ lies in
+$N$ and is not $N$, which contains $\alpha$. If $N$ is not a growth, this is
+the case of item 1 that the claim states. If $N$ is a growth, with $\alpha$ in
+its step $j$ and $\alpha'$ in a later step $j'$, then $N_{k+1}$, which $N$
+nests and which contains $\alpha'$, lies in step $j'$ and starts at $p$. A read
+of the growing result of $N$ that succeeds in step $j'$ ends at the end
+$e_{j'}$ of the seed of the step, and a call whose result includes one ends
+there or later. When that seed is not empty, $e_{j'} > p$, so the path from
+step $j'$ down to the call that starts $N_{k+1}$ at $p$ goes on from the end
+of no such read or call, and inside $N_{k+1}$ the path down to $\alpha'$ reads
+no growing result that succeeds. So $\alpha'$ lies in a part that step $j'$
+evaluates on a path that reads no growing result that succeeds, in the second
+case of *Repeats inside a growth* for $\alpha$, which the hypothesis excludes.
+When the seed is empty, step $j'$ is the second step of $N$ and the first
+result of $N$ is empty, the case that the claim states.
 
 Outside that case, the claims give a unit $w_{k+1}$ at $p$ and its
 continuation $\kappa_{k+1}$ that share a call containing $x_{k+1}$, made in
@@ -3213,12 +3226,19 @@ another before $\alpha'$, so there are finitely many of them, and the
 construction cannot go on forever. $\square$
 
 So the conclusion of *Consecutive repeats inside a family* holds for growth
-activations outside the kinds above and the case that the proof leaves open: two consecutive ones are not of the
-first kind of *Repeats inside a family*, and if their innermost common
-evaluation is a growth, the later one is in the second case of *Repeats
-inside a growth*, whose count needs only an activation of $\sigma$ at $q$ in
-an earlier step of the same growth, which $\alpha$ is. The count after that
-claim then applies to them as written.
+activations outside the kinds above: if the innermost common evaluation of
+two consecutive ones is a growth, the later one is in the second case of
+*Repeats inside a growth*, whose count needs only an activation of $\sigma$
+at $q$ in an earlier step of the same growth, which $\alpha$ is, or it lies
+in the second step of a growth whose first result is empty, a single step of
+each growth, which the count takes with the first of the steps that hold such
+an activation. The count after that claim then applies to them as written.
+For the pairs of the first kind, which the claim leaves where the later
+activation lies in a growth that starts after the earlier one, it uses of a
+pair only that both lie in one step of the innermost growth at $p$ that
+contains them and that the earlier one lies in a growth at $p$ that the step
+starts, which item 1 gives; it charges the pair to the earlier one, and
+consecutive pairs have distinct earlier ones.
 
 The claims from *Memoized links* to *Activations held by heads* apply to
 growth activations by the correspondences above. They use of an activation
@@ -5262,14 +5282,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    family*, whose second evaluation of the shared call finds the growth of
    the earlier activation in the memo. *Answered places* takes the call that
    the memo answers there in place of the repeat and gives that claim's
-   conclusion for growth activations, apart from one case: the later
-   activation lies in a later step of a growth at the position of the family
-   that starts after the earlier activation, on a path that reads no growing
-   result that succeeds, with the answered call in an earlier step, as a
-   growth of a leader of another cycle than that of the shared call can be
-   when it starts in the continuation before the shared call. The count of
-   the second case of *Repeats inside a growth* needs an activation in that
-   earlier step, which the answered call is not.
+   conclusion for growth activations, apart from the second step of a growth
+   whose first result is empty, which the count takes with the first steps.
+   Where the later activation lies in a later step of a growth that starts
+   after the earlier activation, with the answered call in an earlier step,
+   the pair lies in one step of the innermost growth that contains it, and
+   the count charges it to the earlier activation as it does the first kind
+   of *Repeats inside a family*.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
