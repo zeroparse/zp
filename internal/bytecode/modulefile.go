@@ -147,11 +147,22 @@ func (w *Encoder) term(t *Term) {
 	}
 	w.Uint(len(t.Code))
 	for _, in := range t.Code {
+		// Most operands of term code are zero or unused: an instruction writes its opcode, a byte
+		// whose bits 0 to 3 mark the operands D, A, B and C that are not zero, and those operands.
+		ops := [4]int32{in.Dst, in.A, in.B, in.C}
+		var mask byte
+		for i, x := range ops {
+			if x != 0 {
+				mask |= 1 << i
+			}
+		}
 		w.Byte(in.Op)
-		w.Int(int(in.Dst))
-		w.Int(int(in.A))
-		w.Int(int(in.B))
-		w.Int(int(in.C))
+		w.Byte(mask)
+		for _, x := range ops {
+			if x != 0 {
+				w.Int(int(x))
+			}
+		}
 	}
 }
 
@@ -324,9 +335,29 @@ func (r *Decoder) term() Term {
 	n = r.Count()
 	t.Code = sized[TermInstr](n)
 	for i := 0; i < n && r.Err == nil; i++ {
-		t.Code = append(t.Code, TermInstr{Op: r.Byte(), Dst: r.int32(), A: r.int32(), B: r.int32(), C: r.int32()})
+		t.Code = append(t.Code, r.termInstr())
 	}
 	return t
+}
+
+// termInstr reads an instruction of term code: its opcode, the mask of its operands that are not
+// zero, and those operands. A mask with other bits, or a marked operand that is zero, is invalid,
+// so that each instruction has one encoding.
+func (r *Decoder) termInstr() TermInstr {
+	op, mask := r.Byte(), r.Byte()
+	if r.Err == nil && mask > 0xf {
+		r.Fail("invalid term operand mask %#x", mask)
+	}
+	var ops [4]int32
+	for i := range ops {
+		if mask&(1<<i) == 0 || r.Err != nil {
+			continue
+		}
+		if ops[i] = r.int32(); r.Err == nil && ops[i] == 0 {
+			r.Fail("term operand marked but zero")
+		}
+	}
+	return TermInstr{Op: op, Dst: ops[0], A: ops[1], B: ops[2], C: ops[3]}
 }
 
 // ValidateModule checks that every table and instruction reference in the module is in range
