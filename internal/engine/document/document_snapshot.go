@@ -494,6 +494,19 @@ type snapshotFrame struct {
 	edge     snapshotEdge
 }
 
+// unsupportedBox returns the dynamic type of the value of a box node that a snapshot cannot hold, as
+// it cannot hold a field value of that type, and nil for any other node.
+func unsupportedBox(n *value.Node) reflect.Type {
+	if n == nil || value.D(n).Kind != value.BoxKind {
+		return nil
+	}
+	switch value.D(n).Box.(type) {
+	case nil, int, string, bool:
+		return nil
+	}
+	return reflect.TypeOf(value.D(n).Box)
+}
+
 // freezeSnapshotGraph registers identities before following their edges. The
 // explicit DFS stack gives deterministic child-then-field rejection paths and
 // supports arbitrary depth and caller-created cycles without recursion.
@@ -529,6 +542,9 @@ func freezeSnapshotGraph(p *core.Parser, root *value.Node) (snapshotGraph, *Snap
 		seen[n] = id
 		return id, true
 	}
+	if t := unsupportedBox(root); t != nil {
+		return snapshotGraph{}, &SnapshotCaptureError{Path: "root", ValueType: t}
+	}
 	g.root, _ = register(root)
 	stack := []snapshotFrame{{node: root, id: g.root}}
 	for len(stack) > 0 {
@@ -557,6 +573,9 @@ func freezeSnapshotGraph(p *core.Parser, root *value.Node) (snapshotGraph, *Snap
 				return snapshotGraph{}, &SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
 			}
 			g.nodes[f.id-1].fields[i] = value.NodeField{Name: field.Name, Value: val}
+		}
+		if t := unsupportedBox(child); t != nil {
+			return snapshotGraph{}, &SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}
 		}
 		id, fresh := register(child)
 		if edge.child {

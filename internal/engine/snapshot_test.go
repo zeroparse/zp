@@ -68,3 +68,27 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 		t.Fatal("retry", err)
 	}
 }
+
+// A boxed value of a type that a snapshot cannot hold is rejected like a field of that type, never
+// dropped; a boxed int is kept.
+func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = "x"`)
+	d, _ := prog.NewDocument("main", "x")
+	legacy, err := d.Parse()
+	if err != nil {
+		t.Fatal(err)
+	}
+	value.D(legacy).Kind = value.TupleValueKind
+	value.SetNodeElems(legacy, []*value.Node{value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 5)})
+	s, err := d.SnapshotWith(ParseOptions{})
+	if err != nil || s.Root().Child(0).Value() != 5 {
+		t.Fatal("boxed int", s, err)
+	}
+	value.SetNodeElems(legacy, []*value.Node{value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, []int{1})})
+	s, err = d.SnapshotWith(ParseOptions{})
+	var capture *SnapshotCaptureError
+	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {
+		t.Fatal("unsupported boxed element", s, err)
+	}
+}
