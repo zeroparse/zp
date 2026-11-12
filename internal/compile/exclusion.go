@@ -108,6 +108,10 @@ type excl struct {
 	owner *unit
 	// last is the tag of the latest comparison that the analysis did not decide (no).
 	last *string
+	// sourceless makes matchesExact refuse a call of the lookahead body that the path passes
+	// alike when the call contains a scanning source, as excludes needs for a negative lookahead
+	// of the continuation.
+	sourceless bool
 }
 
 // exitMark marks, in a path of a continuation, the end of the body of rule: of the rule of the
@@ -873,7 +877,13 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		case symNot:
 			// The continuation evaluates the lookahead: the alternatives before the one that matches
 			// what the unit matched are its own evaluations, and must cost a constant in strict mode.
-			if end, alt, ok := x.impliesAt(s.p[s.i:], b.e); ok && (!x.strict || x.freshBefore(b.e, alt)) {
+			// In strict mode no call of that alternative that the unit passes alike may contain a
+			// scanning source: where the continuation reaches a copy of the unit through a left
+			// call, each growth step evaluates the unit again, and the memo need not answer the
+			// call, so its scan could repeat in every step.
+			y := x
+			y.sourceless = x.strict
+			if end, alt, ok := y.impliesAt(s.p[s.i:], b.e); ok && (!x.strict || x.freshBefore(b.e, alt)) {
 				return decisive(a, s.p[s.i+end].item, s.steps+1)
 			}
 			if x.strict && !x.freshAll(b.e) {
@@ -1230,7 +1240,7 @@ func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end in
 			}
 		}
 		if y.sameSym(a, b) {
-			if y.strict && !y.cheap(a) {
+			if y.strict && !y.cheap(a) || y.sourceless && x.k.containsSource(a) {
 				return 0, false
 			}
 			j, m = j+1, m+1
