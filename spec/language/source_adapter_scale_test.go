@@ -5,12 +5,18 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
 // The recovery of a declaration skips to the next one over the brackets it opens. A bracket that is not
 // closed makes it try the group and then go on without it, so a source of many open brackets must not
-// make the skip grow faster than the source. These sources fail, and the parse time of 8 times as many
-// brackets is compared with the time of the first size.
+// make the skip grow faster than the source. A "[" that does not close on its line is a class that the
+// skip ends at the end of the line, unless it follows a name, ")" or "]", so the skip must not try the
+// class again from every later "[". These sources fail, and the parse time of 8 times as many brackets
+// is compared with the time of the first size. The generated parser of the grammar source keeps no
+// records of the walks that the engine reuses, so the grammar itself must keep the recovery linear.
 var scaleSources = []struct {
 	name string
 	make func(n int) string
@@ -30,6 +36,12 @@ var scaleSources = []struct {
 	{"classes", func(n int) string { return "rule a = " + strings.Repeat("[a-z]", n/5) + " )\n" }},
 	{"broken declarations", func(n int) string { return strings.Repeat("rule a = )\n", n/10) }},
 	{"strings", func(n int) string { return "rule a = " + strings.Repeat("\"(\" ", n/4) + " )\n" }},
+	{"open classes with escapes", func(n int) string { return "rule a = x" + strings.Repeat("[\\", n/2) + "\nrule b = c\n" }},
+	{"open indexes", func(n int) string { return "rule a = " + strings.Repeat("a[", n/2) + "\nrule b = c\n" }},
+	{"empty brackets and an open one", func(n int) string { return "rule a = x" + strings.Repeat("[]", n/2) + "[\nrule b = c\n" }},
+	{"indexes of groups", func(n int) string { return "rule a = " + strings.Repeat("(a)[", n/4) + "\nrule b = c\n" }},
+	{"classes in open groups", func(n int) string { return "rule a = " + strings.Repeat("( [", n/3) + "\nrule b = c\n" }},
+	{"open index on each line", func(n int) string { return "rule a = " + strings.Repeat("x[\n", n/3) + "\nrule b = c\n" }},
 }
 
 // bestTime returns the least time over a few runs of run.
@@ -79,12 +91,11 @@ func scalesLinearly(t *testing.T, small int, measure func(n int) time.Duration) 
 }
 
 func TestRecoveryScalesLinearly(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, c := range scaleSources {
 		t.Run(c.name, func(t *testing.T) {
 			ratio, ok := scalesLinearly(t, 2000, func(n int) time.Duration {
 				src := c.make(n)
-				return bestTime(func() { p.Parse(src) })
+				return bestTime(func() { genparser.ParseAST(src) })
 			})
 			if !ok {
 				t.Errorf("the time grows %.1f times for %d times as many brackets in each attempt (limit 24)", ratio, scaleFactor)
@@ -134,6 +145,24 @@ func TestScaleDetectorSeesQuadraticTime(t *testing.T) {
 			t.Errorf("linear work failed with ratio %.1f", ratio)
 		}
 	})
+}
+
+// TestScaleDetectorSeesGeneratedClassRetries is the negative control of TestRecoveryScalesLinearly on a
+// generated parser: the parser of a repetition that tries a class from every "[" and falls back to any
+// character, as the recovery of declarations did before it ended an open class at the end of its line,
+// takes time that grows with the square of the line, and the measure must report it.
+func TestScaleDetectorSeesGeneratedClassRetries(t *testing.T) {
+	ratio, ok := scalesLinearly(t, 250, func(n int) time.Duration {
+		src := strings.Repeat("[", n) + "\n"
+		return bestTime(func() {
+			if _, err := classretry.Parse(src); err != nil {
+				t.Fatal(err)
+			}
+		})
+	})
+	if ok {
+		t.Errorf("class retries of the generated parser passed with ratio %.1f", ratio)
+	}
 }
 
 // TestScaleAttemptsAbsorbNoise checks the attempts of scalesLinearly with times that are given, not

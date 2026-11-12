@@ -86,17 +86,23 @@ rule empty_field_sep = ";" / nl / &"}" / &$$
 // are skipped whole, so that a line inside them is not taken for a declaration, whatever it starts with.
 // A group that is not closed before a place with the shape of a declaration (below) is not skipped whole:
 // from its opening bracket on, only such a place resumes. Strings, classes and comments are skipped as
-// units, so that a bracket or a keyword inside them counts for nothing. The item and field recoveries
-// consume their own separator and stop before the next item.
+// units, so that a bracket or a keyword inside them counts for nothing. As for the lexer, a "[" directly
+// after a name, ")" or "]" opens a bracket, and any other "[" that is not "[]" starts a class, which ends at
+// its "]" or at the end of the line; so a "[" that does not close on its line is never tried as a bracket
+// group too. The item and field recoveries consume their own separator and stop before the next item.
 rule stmt_sync = -comments (attrs_prefix / sync_unit) sync_top* (sync_open (!decl_start sync_unit)*)? (";" / nl / &$$)
-rule sync_top = attr_call / sync_class / sync_closed / !sync_open !top_start sync_unit
-rule sync_open = "(" / "{" / "["
-rule sync_class = "[" ("\\" . / [^\]\\\n])* "]"
+rule sync_top = attr_call / sync_class / sync_closed / sync_word / !sync_open !top_start sync_unit
+rule sync_open = "(" / "{" / "[" / (!digit ident_char+ / ")" / "]") "["
+rule sync_class = "[" !"]" ("\\" . / [^\]\\\n])* "]"?
 rule attr_call = "@" ident_char+ space_no_line* attr_paren
-rule sync_closed = sync_closed_paren / sync_closed_brace / sync_closed_bracket
-rule sync_closed_paren = "(" (attr_call / sync_class / sync_closed / !")" !sync_open !decl_start sync_unit)* ")"
-rule sync_closed_brace = "{" (attr_call / sync_class / sync_closed / !"}" !sync_open !decl_start sync_unit)* "}"
-rule sync_closed_bracket = "[" (attr_call / sync_class / sync_closed / !"]" !sync_open !decl_start sync_unit)* "]"
+// A name or a closed group with the brackets that follow it. It fails if one of them is not closed.
+rule sync_word = !digit ident_char+ sync_index
+rule sync_closed = (sync_closed_paren / sync_closed_bracket) sync_index / sync_closed_brace
+rule sync_index = sync_closed_bracket* !"["
+rule sync_inner = attr_call / sync_class / sync_closed / sync_word
+rule sync_closed_paren = "(" (sync_inner / !")" !sync_open !decl_start sync_unit)* ")"
+rule sync_closed_brace = "{" (sync_inner / !"}" !sync_open !decl_start sync_unit)* "}"
+rule sync_closed_bracket = "[" (sync_inner / !"]" !sync_open !decl_start sync_unit)* "]"
 // A declaration at the top level: a keyword that is not part of a longer name, the attributes of a rule, or
 // an attribute named like a keyword.
 rule top_start = (nl / ";") comments (decl_keyword !ident_char / attrs_start / "@" decl_keyword !ident_char)
