@@ -300,18 +300,13 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 	return conv(n), err
 }
 
-// newCompileWalker returns the walker that checks rule bodies for the compiler c, building nothing.
-func newCompileWalker(c *compile.Compiler) *compile.Walker[struct{}] {
-	return compile.NewCheckWalker(c)
-}
-
 // closureExprMatcher returns the closure that the closure backend builds for the expression e of
 // the program prog, from the program's Core IR after the closure pipeline. The expression must be
 // one that a node of Core IR is built from.
 func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) core.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
-	f, err := closure.Matcher(prog, m, found, nil, nil, plainDispatch)
+	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,4 +342,14 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 		t.Fatal("no Core IR node of the expression")
 	}
 	return m, found
+}
+
+// inlinedRules returns the rules that the closure backend runs in the inlined family, by ID.
+func inlinedRules(t testing.TB, prog *Program) []*core.Rule {
+	t.Helper()
+	rules, err := prog.familyRules(closure.Inlined)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rules
 }

@@ -236,7 +236,7 @@ func TestBudgetStateProjectedFrameClear(t *testing.T) {
 		slots = append(slots, ir.Slot{Name: name})
 	}
 	rep := &ir.Repeat{Min: 0, Max: 1, Body: &ir.Seq{Items: items}, Scope: slots, Project: "f0"}
-	m, err := closure.Matcher(&compile.Program{}, &ir.Module{}, &ir.Capture{Name: "fs", Body: rep, Project: "f0"}, []ir.Slot{{Name: "fs"}}, nil, false)
+	m, err := closure.Matcher(&compile.Program{}, &ir.Module{}, &ir.Capture{Name: "fs", Body: rep, Project: "f0"}, []ir.Slot{{Name: "fs"}}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

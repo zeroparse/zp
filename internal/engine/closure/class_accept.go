@@ -2,10 +2,7 @@ package closure
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/engine/core"
-
-	"zeroparse.dev/zp/internal/compile"
 )
 
 // ClassAccept returns the membership test of a character class. Classes of one or two ranges,
@@ -35,38 +32,6 @@ func ClassAccept(e *grammar.CharClass) func(*core.Parser, rune) bool {
 			ascii[r>>6] |= 1 << (r & 63)
 		}
 	}
-	return func(p *core.Parser, r rune) bool {
-		if uint32(r) < 128 {
-			return ascii[r>>6]&(1<<(r&63)) != 0
-		}
-		if !core.BudgetControlsEnabled || p.Control == nil {
-			return slow(r)
-		}
-		for _, rg := range ranges {
-			p.Spend()
-			if rg.Lo <= r && r <= rg.Hi {
-				return !neg
-			}
-		}
-		return neg
-	}
-}
-
-func ClassAcceptControlled(e *grammar.CharClass, control *cancel.Control) func(*core.Parser, rune) bool {
-	if control == nil || len(e.Ranges) <= 2 {
-		return ClassAccept(e)
-	}
-	ranges := compile.CopyClassRanges(e.Ranges, control)
-	neg := e.Negated
-	slow := func(r rune) bool {
-		for _, rg := range ranges {
-			if rg.Lo <= r && r <= rg.Hi {
-				return !neg
-			}
-		}
-		return neg
-	}
-	ascii := compile.ClassASCII(ranges, neg, control)
 	return func(p *core.Parser, r rune) bool {
 		if uint32(r) < 128 {
 			return ascii[r>>6]&(1<<(r&63)) != 0

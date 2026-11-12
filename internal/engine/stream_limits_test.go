@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/runtime/parse"
 )
@@ -152,7 +153,7 @@ func BenchmarkStreamRepetitionLimit(b *testing.B) {
 		input := strings.Repeat("a", 10000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			b.Run(tc.name+"/"+backend.String(), func(b *testing.B) {
-				if _, err := prog.rule(backend, "main"); err != nil {
+				if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(input)))

@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/runtime/parse"
@@ -44,7 +45,7 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *parse.No
 	if err := prog.checkMode(o, false); err != nil {
 		return nil, err
 	}
-	active, _, control, err := prog.admitParse(start, o, false, input)
+	active, _, control, err := prog.admitParse(start, o, optionsFamily(o), false, input)
 	if err != nil {
 		return nil, err
 	}
@@ -124,16 +125,56 @@ func (prog *Program) backend(b Backend) Backend {
 	return b
 }
 
-// closureRule returns the rule the closure backend runs for the rule name, or nil if there is none.
-func (prog *Program) closureRule(name string) *core.Rule {
-	if sr := prog.ByName[name]; sr != nil {
-		return prog.closureRules[sr.ID]
+// family returns the closure rule set that the parse p runs: the call-preserving one when every rule
+// call of p must go through core.Parser.Call (core.Parser.NoPlain: p is traced or reads a Document),
+// and otherwise the inlined one. The parse's options set NoPlain before it runs.
+func family(p *core.Parser) closure.Family {
+	if p.NoPlain {
+		return closure.CallPreserving
 	}
-	return nil
+	return closure.Inlined
 }
 
-// rule returns the rule name for backend b.
-func (prog *Program) rule(b Backend, name string) (*core.Rule, error) {
+// optionsFamily is family for a parse with the options o that does not read a Document (a Document's
+// parses run the call-preserving family): such a parse sets NoPlain exactly when it is traced
+// (core.Parser.SetTrace).
+func optionsFamily(o ParseOptions) closure.Family {
+	if o.Trace != nil {
+		return closure.CallPreserving
+	}
+	return closure.Inlined
+}
+
+// familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
+// building them on first use.
+func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
+	fam := &prog.families[f]
+	fam.once.Do(func() {
+		if prog.buildFamily == nil {
+			fam.err = errClosureNeedsSource
+			return
+		}
+		fam.rules, fam.err = prog.buildFamily(f)
+	})
+	return fam.rules, fam.err
+}
+
+// closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
+// if there is none.
+func (prog *Program) closureRule(name string, f closure.Family) (*core.Rule, error) {
+	sr := prog.ByName[name]
+	if sr == nil {
+		return nil, nil
+	}
+	rules, err := prog.familyRules(f)
+	if err != nil {
+		return nil, err
+	}
+	return rules[sr.ID], nil
+}
+
+// rule returns the rule name for backend b; the closure backend returns it from the family f.
+func (prog *Program) rule(b Backend, name string, f closure.Family) (*core.Rule, error) {
 	if err := desugar.EntryError(name); err != nil {
 		return nil, err
 	}
@@ -152,7 +193,10 @@ func (prog *Program) rule(b Backend, name string) (*core.Rule, error) {
 		if prog.Grammar == nil {
 			return nil, errClosureNeedsSource
 		}
-		r = prog.closureRule(name)
+		var err error
+		if r, err = prog.closureRule(name, f); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown backend %d", b)
 	}
@@ -207,7 +251,7 @@ func recoverParse(x any, b Backend, err *error) {
 // Run parses the whole input of p with the start rule start.
 func (prog *Program) Run(p *core.Parser, b Backend, start string) (n *parse.Node, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start)
+	r, err := prog.rule(b, start, family(p))
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +340,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*parse
 	if err := prog.checkMode(o, false); err != nil {
 		return err
 	}
-	_, rule, control, err := prog.admitParse(start, o, true, "")
+	_, rule, control, err := prog.admitParse(start, o, optionsFamily(o), true, "")
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package closure
 
 import (
-	"zeroparse.dev/zp/internal/cancel"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
@@ -17,11 +16,13 @@ import (
 type Builder struct {
 	prog *compile.Program
 	m    *ir.Module
-	// control is the control of the compilation, or nil; node polls it for each node it builds.
-	control *cancel.Control
 	// plainDispatch leaves out the budget charge of the loop iterations (Options.ControlledDispatch
 	// builds the metered closure graph).
 	plainDispatch bool
+	// family is the rule set being built, which decides how the call sites call plain rules.
+	family Family
+	// static holds the static rules of the program, by ID: the rules and then their twins.
+	static []*compile.Rule
 	// rules holds the rules the parser runs, by ID (staticRule.ID). They are made when a body or a
 	// call needs them and get the facts of their static rules in Build.
 	rules []*core.Rule
@@ -177,14 +178,17 @@ func (b *Builder) literal(val string, fold bool, desc core.ExpID, build bool) co
 	}
 }
 
+// call returns the matcher of a call of the rule of the ID id at binding level min. In the inlined
+// family a call of a plain rule invokes it directly, which is what core.Parser.Call does for such a
+// rule without its checks; every other call, and every call in the call-preserving family, goes
+// through Call. The rule gets the facts of its static rule only at the end of Build, so the
+// static rule decides (a Matcher of a test may call a rule its program lacks: not plain).
 func (b *Builder) call(id, min int) core.Matcher {
 	r := b.rule(id)
-	return func(p *core.Parser) (*parse.Node, bool) {
-		if r.Plain && !p.NoPlain {
-			return p.InvokePlain(r, min) // what call does for such a rule, without its checks
-		}
-		return p.Call(r, min)
+	if b.family == Inlined && id < len(b.static) && b.static[id].Plain {
+		return func(p *core.Parser) (*parse.Node, bool) { return p.InvokePlain(r, min) }
 	}
+	return func(p *core.Parser) (*parse.Node, bool) { return p.Call(r, min) }
 }
 
 func (b *Builder) seq(ms []core.Matcher, flat, valued []bool, n int, build bool) core.Matcher {

@@ -39,7 +39,7 @@ func TestTextFieldComparisons(t *testing.T) {
 func parseSteps(t *testing.T, prog *Program, backend Backend, unit parse.PositionUnit, input string) (uint64, string) {
 	t.Helper()
 	o := ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Compute: 1 << 40}}
-	active, _, control, err := prog.admitParse("main", o, false, input)
+	active, _, control, err := prog.admitParse("main", o, optionsFamily(o), false, input)
 	if err != nil {
 		t.Fatal(err)
 	}

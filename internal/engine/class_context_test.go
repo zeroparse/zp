@@ -10,7 +10,6 @@ import (
 	"testing"
 	"weak"
 	"zeroparse.dev/zp/internal/cancel"
-	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -41,20 +40,6 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 		run  func(*cancel.Control)
 	}{
 		{"descriptor", func(c *cancel.Control) { compile.CharClassStringControlled(cl, c) }},
-		{"copy", func(c *cancel.Control) { compile.CopyClassRanges(cl.Ranges, c) }},
-		{"bitmap", func(c *cancel.Control) { compile.ClassASCII(cl.Ranges, false, c) }},
-		{"accept-construction", func(c *cancel.Control) { closure.ClassAcceptControlled(cl, c) }},
-		{"matcher", func(c *cancel.Control) {
-			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.ClassNode{Class: coreClass(cl)}, nil, c, false)
-		}},
-		{"choice-guard", func(c *cancel.Control) {
-			ic := coreClass(cl)
-			alt := &ir.Alt{Body: &ir.ClassNode{Class: ic}, Guard: &ir.First{Class: ic}}
-			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.Choice{Alts: []*ir.Alt{alt}}, nil, c, false)
-		}},
-		{"scan-repeat", func(c *cancel.Control) {
-			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.Scan{Class: coreClass(cl), Max: -1}, nil, c, false)
-		}},
 		{"guard-extraction", func(c *cancel.Control) {
 			compile.FirstTerminalControlled(&compile.Program{}, deep, 0, map[string]bool{}, c)
 		}},
@@ -90,28 +75,24 @@ func TestClassConstructionContextFacts(t *testing.T) {
 				if got := compile.CharClassStringControlled(cl, c); got != compile.CharClassString(cl) {
 					t.Fatalf("descriptor %s", got)
 				}
-				ordinary, controlled := closure.ClassAccept(cl), closure.ClassAcceptControlled(cl, c)
+				accept := closure.ClassAccept(cl)
 				runes := []rune{'β', '😀', 0x10ffff}
 				for r := rune(0); r < 256; r++ {
 					runes = append(runes, r)
 				}
 				for _, r := range runes {
 					for _, active := range []bool{false, true} {
-						p, q := &core.Parser{}, &core.Parser{}
+						p := &core.Parser{}
 						if active {
 							p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
-							q.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 						}
 						expected := false
 						for _, rg := range rs {
 							expected = expected || rg.Lo <= r && r <= rg.Hi
 						}
 						expected = expected != neg
-						if ordinary(p, r) != expected || controlled(q, r) != expected {
+						if accept(p, r) != expected {
 							t.Fatalf("membership rune %U active=%t", r, active)
-						}
-						if active && p.Control.Used != q.Control.Used {
-							t.Fatal("runtime budget charge changed")
 						}
 					}
 				}
@@ -124,7 +105,7 @@ func TestClassConstructionContextFacts(t *testing.T) {
 	}
 	rs := contextClassRanges()
 	cl = &grammar.CharClass{Ranges: rs}
-	accept := closure.ClassAcceptControlled(cl, &cancel.Control{Ctx: context.Background()})
+	accept := closure.ClassAccept(cl)
 	rs[0] = grammar.CharRange{Lo: 'a', Hi: 'a'}
 	if !accept(&core.Parser{}, 256) || accept(&core.Parser{}, 'a') {
 		t.Fatal("matcher aliases source range slice")
@@ -231,13 +212,4 @@ func TestClassConstructionProgramReleasesCompileContext(t *testing.T) {
 		}
 	}
 	runtime.KeepAlive(p)
-}
-
-// coreClass returns the Core IR class of the class expression cl, recording the expectation 0.
-func coreClass(cl *grammar.CharClass) *ir.Class {
-	c := &ir.Class{Negated: cl.Negated}
-	for _, r := range cl.Ranges {
-		c.Ranges = append(c.Ranges, ir.Range{Lo: r.Lo, Hi: r.Hi})
-	}
-	return c
 }

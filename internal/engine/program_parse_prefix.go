@@ -40,7 +40,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 	if err := prog.checkMode(o, false); err != nil {
 		return PrefixResult{}, err
 	}
-	active, _, control, err := prog.admitParse(start, o, false, input)
+	active, _, control, err := prog.admitParse(start, o, optionsFamily(o), false, input)
 	if err != nil {
 		return PrefixResult{}, err
 	}
@@ -70,7 +70,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 
 func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result PrefixResult, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start)
+	r, err := prog.rule(b, start, family(p))
 	if err != nil {
 		return PrefixResult{}, err
 	}

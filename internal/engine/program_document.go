@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/document"
 )
@@ -41,7 +42,7 @@ func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Doc
 	if err := prog.checkMode(o, true); err != nil {
 		return nil, err
 	}
-	_, _, c, err := prog.admitParse(start, o, false, text)
+	_, _, c, err := prog.admitParse(start, o, closure.CallPreserving, false, text)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +77,15 @@ func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runn
 	active, err := prog.prepareControlledProgram(b, c)
 	if err != nil {
 		return nil, err
+	}
+	if active.backend(b) == Closure && active.Grammar != nil {
+		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
+		// here, between checks of the control, rather than inside the parse.
+		c.Check()
+		if _, err := active.familyRules(closure.CallPreserving); err != nil {
+			return nil, err
+		}
+		c.Check()
 	}
 	return active, nil
 }

@@ -9,12 +9,6 @@ type noExprs struct{}
 
 var _ ExprBuilder[struct{}] = noExprs{}
 
-// NewCheckWalker returns the walker of Check for the compiler c: it checks rule bodies and builds
-// nothing.
-func NewCheckWalker(c *Compiler) *Walker[struct{}] {
-	return &Walker[struct{}]{Compiler: c, Builder: noExprs{}}
-}
-
 func (noExprs) Literal(e *grammar.Literal, desc ExpID, build bool) struct{} {
 	return struct{}{}
 }

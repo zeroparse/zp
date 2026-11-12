@@ -329,7 +329,7 @@ rule expr = expr "a" / "a"`)
 	retained := value.Ptr(value.Data{Text: "retained", Children: []*parse.Node{value.Ptr(value.Data{Text: "child"})}})
 	before, _ := json.Marshal(retained)
 	key := core.MemoKey{Rule: prog.ByName["expr"].ID}
-	g := p.GrowBegin(key, prog.closureRules[prog.ByName["expr"].ID])
+	g := p.GrowBegin(key, inlinedRules(t, prog)[prog.ByName["expr"].ID])
 	oldSeed := g.Best
 	budgetMemoPrefix(p.Memo, retained)
 	oldHead := p.Memo.Slots[0]
@@ -442,7 +442,7 @@ rule expr = expr "a" / "a"`)
 	// The units of a begun growth and of a growing step, with room for all.
 	expr := prog.ByName["expr"]
 	p := parser(1 << 10)
-	g := p.GrowBegin(key, prog.closureRules[expr.ID])
+	g := p.GrowBegin(key, inlinedRules(t, prog)[expr.ID])
 	begin := 1<<10 - (p.Control.Limits.Compute - p.Control.Used)
 	p.Pos = 1
 	used := p.Control.Used
@@ -461,7 +461,7 @@ rule expr = expr "a" / "a"`)
 
 	// Short of one unit, neither publishes.
 	p = parser(begin - 1)
-	if err := catchFatal(t, func() { p.GrowBegin(key, prog.closureRules[expr.ID]) }); !errors.Is(err, parse.ErrLimit) {
+	if err := catchFatal(t, func() { p.GrowBegin(key, inlinedRules(t, prog)[expr.ID]) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("growth begun short of a unit: %v", err)
 	}
 	if _, ok := p.GrowingSeed(key); ok {
@@ -470,7 +470,7 @@ rule expr = expr "a" / "a"`)
 	p.ReleaseScratch()
 
 	p = parser(begin + step - 1)
-	g = p.GrowBegin(key, prog.closureRules[expr.ID])
+	g = p.GrowBegin(key, inlinedRules(t, prog)[expr.ID])
 	seed := g.Best
 	p.Pos = 1
 	if err := catchFatal(t, func() { p.GrowStep(&g, retained, true) }); !errors.Is(err, parse.ErrLimit) {

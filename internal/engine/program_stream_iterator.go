@@ -35,7 +35,7 @@ func (prog *Program) Iterate(start string, r io.Reader, o ParseOptions) (it *par
 	if err := prog.checkMode(o, false); err != nil {
 		return nil, err
 	}
-	if _, _, _, err = prog.admitParse(start, o, true, ""); err != nil {
+	if _, _, _, err = prog.admitParse(start, o, optionsFamily(o), true, ""); err != nil {
 		return nil, err
 	}
 	return parse.NewStreamIterator(func(yield func(*parse.Node) bool) error {
