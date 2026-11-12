@@ -31,17 +31,17 @@ var termChargePairs = []struct {
 	engine         int64
 }{
 	{"a predicate forgets the nodes its term created",
-		termPredicate(`list(T{N: 1})`), termPredicate(`list(T{N: 1}, T{N: 2})`), 7, 4, 6},
+		termPredicate(`list(T{N: 1})`), termPredicate(`list(T{N: 1}, T{N: 2})`), 6, 4, 6},
 	{"a binding forgets the nodes its term created",
-		termBinding(`len(list(T{N: 1}))`), termBinding(`len(list(T{N: 1}, T{N: 2}))`), 7, 4, 6},
+		termBinding(`len(list(T{N: 1}))`), termBinding(`len(list(T{N: 1}, T{N: 2}))`), 6, 4, 6},
 	{"a failed predicate forgets the values its term gathered",
 		termFailedPredicate(`concat(list(1), list(10 / (1 - len($x))))`), termFailedPredicate(`concat(list(1, 2), list(10 / (1 - len($x))))`), 3, 2, 2},
 	{"a failed binding forgets the values its term gathered",
 		termFailedBinding(`concat(list(1), list(10 / (1 - len($x))))`), termFailedBinding(`concat(list(1, 2), list(10 / (1 - len($x))))`), 3, 2, 2},
 	{"a failed predicate forgets the nodes its term created",
-		termFailedPredicate(`list(T{N: 1}, 10 / (1 - len($x)))`), termFailedPredicate(`list(T{N: 1}, T{N: 2}, 10 / (1 - len($x)))`), 4, 1, 2},
+		termFailedPredicate(`list(T{N: 1}, 10 / (1 - len($x)))`), termFailedPredicate(`list(T{N: 1}, T{N: 2}, 10 / (1 - len($x)))`), 3, 1, 2},
 	{"a failed binding forgets the nodes its term created",
-		termFailedBinding(`list(T{N: 1}, 10 / (1 - len($x)))`), termFailedBinding(`list(T{N: 1}, T{N: 2}, 10 / (1 - len($x)))`), 4, 1, 2},
+		termFailedBinding(`list(T{N: 1}, 10 / (1 - len($x)))`), termFailedBinding(`list(T{N: 1}, T{N: 2}, 10 / (1 - len($x)))`), 3, 1, 2},
 }
 
 func termPredicate(term string) string {
