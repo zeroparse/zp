@@ -78,10 +78,6 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 		}
 		fmt.Fprintf(&b, "## %s %s\n", rule, what)
 		l, err := lower.Term(x, lower.TermOptions{})
-		if err == lower.ErrUnsupported {
-			fmt.Fprintf(&b, "not lowered: %s\n\n", unsupported(x))
-			return
-		}
 		if err != nil {
 			t.Fatalf("%s %s: %v", rule, what, err)
 		}
@@ -111,33 +107,31 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 	return b.String()
 }
 
-// unsupported returns the kinds of the subterms of x that Term does not lower, in preorder, each
-// once.
-func unsupported(x core.Term) string {
-	seen := map[string]bool{}
-	var kinds []string
-	core.WalkTerm(x, func(s core.Term) {
-		var k string
-		switch s := s.(type) {
-		case *core.New:
-			k = "New"
-		case *core.Tuple:
-			k = "Tuple"
-		case *core.Lambda:
-			k = "Lambda"
-		case *core.Local:
-			if s.Kind == core.LocalParam {
-				k = "param"
-			}
-		case *core.Builtin:
-			if s.Func != "len" && s.Func != "text" {
-				k = s.Func
-			}
+// TestTermRejectsMalformedTerms checks that Term reports an error, and no lowered function, for terms
+// that the front end does not build, so that a generator fails loudly instead of printing them.
+func TestTermRejectsMalformedTerms(t *testing.T) {
+	one := &core.Const{Value: 1}
+	f := &core.Lambda{Params: []string{"e"}}
+	e := &core.Local{Kind: core.LocalParam, Name: "e", Lambda: f}
+	f.Body = e
+	mapped := &core.Builtin{Func: "map", Args: []core.Term{&core.Builtin{Func: "list", Args: []core.Term{one}}, f}}
+	for _, x := range []core.Term{
+		e, // a parameter outside its lambda
+		&core.Binary{Op: "+", L: mapped, R: e},
+		&core.Builtin{Func: "nope", Args: []core.Term{one}},
+		&core.Builtin{Func: "len", Args: []core.Term{one, one}},
+		&core.Builtin{Func: "map", Args: []core.Term{one, one}},
+		&core.Lambda{Body: one},
+		&core.Binary{Op: "+", L: one, R: &core.Lambda{Params: []string{"e"}, Body: one}},
+	} {
+		if l, err := lower.Term(x, lower.TermOptions{}); err == nil || l != nil {
+			t.Errorf("Term(%s) = %v, %v; want an error", core.TermString(x), l, err)
 		}
-		if k != "" && !seen[k] {
-			seen[k] = true
-			kinds = append(kinds, k)
-		}
-	})
-	return strings.Join(kinds, ", ")
+	}
+	if _, err := lower.Term(&core.Builtin{Func: "len", Args: []core.Term{one}}, lower.TermOptions{}); err != nil {
+		t.Errorf("Term(len(1)): %v", err)
+	}
+	if _, err := lower.Term(mapped, lower.TermOptions{}); err != nil {
+		t.Errorf("Term(%s): %v", core.TermString(mapped), err)
+	}
 }

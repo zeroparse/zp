@@ -639,15 +639,9 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.UseCtx(TActCtx{P: p, Start: %s, End: p.Pos, Cbase: len(p.Created)})", p.expr(x.Start))
 	case *flow.Eval:
 		defer p.caps(x.Caps)()
-		if stmts, res, ok := g.loweredStmts(x.Term, compile.NewScope(), nil); ok {
-			p.pre += stmts
-			return res
-		}
-		g.final = g.Cur.Action
-		defer func() { g.final = nil }()
-		stmts, expr := g.stmts(func() string { return g.term(g.Cur.Action, compile.NewScope(), nil) })
+		stmts, res := g.loweredStmts(x.Term, compile.NewScope(), nil)
 		p.pre += stmts
-		return expr
+		return res
 	case *flow.CtxFinish:
 		return fmt.Sprintf("%s.Finish(%s)", x.C.Name, p.expr(x.X))
 	}
@@ -692,17 +686,17 @@ func (p *flowPrinter) not(x flow.Expr) string {
 	case *flow.Pred:
 		if x.Caps.Vars == nil {
 			// The term reads the current frame.
-			return fmt.Sprintf("!p.Predicate(func(c *%s) (any, any) { %s })", g.ctxType(), g.predicate(x.Node.Term, p.term(x.Node), gen.FrameScope(x.Caps)))
+			return fmt.Sprintf("!p.Predicate(func(c *%s) (any, any) { %s })", g.ctxType(), g.predicate(x.Node.Term, gen.FrameScope(x.Caps)))
 		}
 		defer p.caps(x.Caps)()
-		return fmt.Sprintf("!p.Predicate(func(c *TActCtx) (any, any) { %s })", g.predicate(x.Node.Term, p.term(x.Node), compile.NewScope()))
+		return fmt.Sprintf("!p.Predicate(func(c *TActCtx) (any, any) { %s })", g.predicate(x.Node.Term, compile.NewScope()))
 	case *flow.Bind:
 		b := p.term(x.Node).(*grammar.Bind)
 		if x.Caps.Vars == nil {
-			return fmt.Sprintf("!p.Bind(%d, func(c *%s) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.ctxType(), g.actionBody(x.Node.Term, b.Value, gen.FrameScope(x.Caps), nil))
+			return fmt.Sprintf("!p.Bind(%d, func(c *%s) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.ctxType(), g.actionBody(x.Node.Term, gen.FrameScope(x.Caps), nil))
 		}
 		defer p.caps(x.Caps)()
-		return fmt.Sprintf("!p.Bind(%d, func(c *TActCtx) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.actionBody(x.Node.Term, b.Value, compile.NewScope(), nil))
+		return fmt.Sprintf("!p.Bind(%d, func(c *TActCtx) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.actionBody(x.Node.Term, compile.NewScope(), nil))
 	}
 	return "!" + p.expr(x)
 }
