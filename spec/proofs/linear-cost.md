@@ -1367,13 +1367,36 @@ $y$ finds open with the current result that $y'$ found. In both cases the induct
 $y'$ gives an evaluation of the key of $z$ before $y'$ ended, and so before $x$
 ends. What remains is case (a). $\square$
 
+**Steps with an empty seed.** Let a step of a growth $G$ of a leader $R$ at
+$p$ after the first have an empty seed, so that condition 2 takes it as a unit
+that starts at $p$, and let $c$ be a call that the step and its continuation
+$\kappa$ share. Then the rule of $c$ is not on the cycle of $R$, and no
+evaluation inside either evaluation of $c$ reads $G$.
+
+*Proof.* $\kappa$ is what follows the calls that start $G$, which the parser
+evaluates after it leaves the body of $R$ that the step evaluates, so a call
+of a rule of the cycle in $\kappa$ is reached after leaving the body of a rule
+of the cycle, and the two share no such call (case 2). A call that reads $G$
+is a call at $p$ of a rule of the cycle made while $G$ is in progress ([Lemma 2
+of the memoization proof](memoization.md#lemma-2-reading-an-open-growth)), so
+$G$ is evaluating, at $p$, every rule on the way from $R$ to it, and all of
+them are on the cycle ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost), the left calls). If it
+were inside the evaluation of $c$ in the step, $c$ would be at $p$ and its rule
+among them. Inside the evaluation of $c$ in $\kappa$, $G$ has ended. $\square$
+
+So $G$, open at the start of the evaluation of $c$ in the step and not of the
+one in $\kappa$, is read by neither. A read would not differ either: during a
+dropped step the current result of its growth is the seed, the result that the
+growth ends with.
+
 **Reference links.** $\mathcal{R}$ is the instance of the parse that stores
 nothing, so the restarts, *Direct activations* and *Repeats* hold of it, with
 its own dropped steps and its own paths that enter a growth again. Let $\beta'$
 be a successful activation of $\sigma$ at $q$ in $\mathcal{R}$, $\beta$ the one
 before it, and $w$ and $\kappa$ as in the restarts, where $w$ is the unit that
 *Dropped steps* gives when the abandoned evaluation is a dropped step, with no
-dropped step at the position of its growth, no step whose seed is empty and no
+dropped step at the position of its growth and no
 path that enters the growth again of $\mathcal{R}$ leading from $w$ to
 $\beta'$. Let $e^k$ be the first of the calls that $w$ and $\kappa$ share whose
 evaluation inside $w$ holds a successful activation of $\sigma$ at $q$, let
@@ -1394,7 +1417,10 @@ position of that growth and of a rule of its cycle ([Lemma 2 of the
 memoization proof](memoization.md#lemma-2-reading-an-open-growth)), and two
 such calls that a unit and its continuation share lie in the same growths of
 the cycle, which have the same growing results at both (case 2), so the two
-evaluations read the same results and take the same steps. So a shared call before $e^k$ holds no successful activation of
+evaluations read the same results and take the same steps. When $w$ is a step
+whose seed is empty, the growth of the step is open at the start of the
+evaluation inside $w$ only, and neither reads it (*Steps with an empty
+seed*). So a shared call before $e^k$ holds no successful activation of
 $\sigma$ at $q$ in $\kappa$ either, and nor does $e^{k\prime}$ before the
 activation that corresponds to $\beta_f$. Nothing that the parser evaluates between the end of $w$ and that
 activation holds one either, since $\beta'$ is the first after $\beta$, which
@@ -1448,7 +1474,9 @@ start of $e^k$ is at the position of $z^\circ$, which is then the position of
 $e^k$, and of the cycle of the rule of $e^k$, since every call between them is
 made there without consuming input ([Lemma 2 of the memoization
 proof](memoization.md#lemma-2-reading-an-open-growth)); so it is open at the
-start of $e^{k\prime}$ too (case 2). One that started inside $e^k$ corresponds
+start of $e^{k\prime}$ too (case 2), since the growth of a step whose seed is
+empty, open at the start of $e^k$ alone, is read by no call inside it (*Steps
+with an empty seed*). One that started inside $e^k$ corresponds
 to one that started at the same place inside $e^{k\prime}$. $\mathcal{R}(Z)$,
 taking the same steps as $z^\circ$, would read the corresponding growth,
 which it does not, since the call of $Z$ reads no growth open at its
@@ -1457,7 +1485,8 @@ heads in the reference parse, $Z$ is not the head of its class. $\square$
 
 **Links lead to repeated evaluations.** Let the $i$-th link of $\sigma$ at $q$
 be memoized, and let every growth at the position of the link that is open at
-the start of $e_i$ or of $e'_i$ be open at the start of both. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
+the start of $e_i$ or of $e'_i$ be open at the start of both or be read by
+neither. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
 class, unless case (a) or (b) of the covered keys arises on the path from
 $\mathcal{R}(e_i)$ down to the call that corresponds to $Z$. Case (a) arises
 only at a call that is in a context of growths, or inside a lookahead while
@@ -1483,7 +1512,8 @@ $N$: a call reads only growths of the cycle of its rule at its position
 proof](memoization.md#lemma-2-reading-an-open-growth)), and a call of a rule
 of that cycle that $w_i$ and $\kappa_i$ share is reached in $\kappa_i$ without
 leaving the body of a rule of the cycle (case 2), so in the step of $N$ that
-holds $w_i$, while $e'_i$ holds $\alpha_i$, which lies in a later step. So the
+holds $w_i$, while $e'_i$ holds $\alpha_i$, which lies in a later step. A
+growth open at the start of only one of them is read by neither. So the
 two calls find the growths that they read open with the same current results.
 When neither reads one,
 $\mathcal{R}(e_i)$ and $\mathcal{R}(e'_i)$ take the same steps up to the
@@ -1503,7 +1533,7 @@ reads no growth open at its start, since the call of $Z$ reads none.
 $z^\circ$ reads none either: a growth open at its start that it reads was
 open at the start of $e_i$, at the position of $e_i$ and of the cycle of its
 rule, since every call between them is made there without consuming input, so
-$e_i$ reads it, it is not the growth $N$ above, and it is open at the start of
+$e_i$ reads it, it is not the growth $N$ above, and so it is open at the start of
 $e'_i$ with the same current result; or it started
 inside $\mathcal{R}(e_i)$ and corresponds to one that started at the same
 place inside $\mathcal{R}(e'_i)$, and $z$, which takes the same steps, reads
@@ -1561,14 +1591,14 @@ start of only one of them is at the position of the link, so that evaluation
 is in a context of growths, where case (a) of the covered keys arises. When
 $w_i$ is a step of a growth $G$ after the first, $G$ is open at the start of
 $e_i$ and not of $e'_i$, which starts after $G$ ends; $G$ is at the position of
-the link only when the seed of the step is empty, and a call of a rule of its
-cycle there is then in a context of growths, where case (a) arises too.
+the link only when the seed of the step is empty, and then neither evaluation
+reads it (*Steps with an empty seed*), so the claim above applies.
 
 So by the claim above every linked $\alpha_i$ that is held by a head follows a
 link with case (a) or (b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
 is the counterpart of a successful activation of $\mathcal{R}$ at $q$. That
 activation has no reference link when a dropped step at the position of its
-growth, a step whose seed is empty or a path that enters a growth again of
+growth or a path that enters a growth again of
 $\mathcal{R}$ leads to it. When it has one, of a memoized
 rule as every link here is, by *Reference links lead to repeated evaluations*
 $\alpha_i$ is held by a head only with case (a) or (b) on its path.
@@ -1637,14 +1667,14 @@ holds are part of step 1 of [Open Steps](#open-steps).
 **Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
 (b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
 counterpart of an activation of $\mathcal{R}$ that has a reference link with
-neither case (a) nor (b) on its path, or that a dropped step at the position of its growth, a step
-whose seed is empty or a path that enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
+neither case (a) nor (b) on its path, or that a dropped step at the position of its growth
+or a path that enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
 activations and since a class has at most six
 memoized evaluations, the successful activations of
 $\sigma$ at $q$ held by memoized evaluations are at most six times those
 held by heads, which are $\alpha_1$, those that case 5 or a dropped step at the position of its growth
-repeats, and the free ones that a dropped step at the position of its growth, a step whose seed is
-empty or a path that enters a growth again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
+repeats, and the free ones that a dropped step at the position of its growth
+or a path that enters a growth again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
 leaves to count. The free ones whose reference link meets case (a) or (b) are
 outside the hypothesis, and step 1 leaves them open too. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
@@ -4784,7 +4814,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    activations alone. An activation need not follow a link of the parse: the
    memo can answer the shared call in the continuation (*Repeats*), and the
    claims follow it through its reference link instead. The activations of the
-   reference parse that a dropped step at the position of its growth, a step whose seed is empty or a
+   reference parse that a dropped step at the position of its growth or a
    path that enters a growth again of the reference parse leads to, which have no reference link, are more than
    those of the parse, and Lemma 5 must count those that are counterparts of
    activations of the parse; this is not shown. Nor are the activations of the
@@ -4930,7 +4960,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    after a source*, the restarts, *Direct activations*, *Repeats*, *Memoized
    links*, *Calls that call no rule*, *Nesting at one end*, *Seed reads*, *Own regions*, *Counterparts in the
    reference parse*, *Replays*, *Replayed activations*, *Answered calls*, *Covered keys*,
-   *Reference links*, *Heads in the reference parse*, *Reference links lead to
+   *Steps with an empty seed*, *Reference links*, *Heads in the reference parse*, *Reference links lead to
    repeated evaluations*, *Links lead to repeated evaluations*, *Links to heads*,
    *Memoized links keep positions* and *Nothing in a memoized link is a head*,
    with the definitions between them; *Activations that do not succeed* and *Activations held by heads* come
@@ -4943,8 +4973,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    links inside a family, with the open parts of step 1, and the pairs that
    step 2 keeps. Second, the heads of keys
    whose first activation at a position is of a kind that *First activations
-   of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth,
-   a step whose seed is empty or a path that enters a growth again of the
+   of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth
+   or a path that enters a growth again of the
    reference parse leads to,
    and the activations
    that *Heads hold what later growths hold* leaves out, through a result or
@@ -4967,8 +4997,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    part that it evaluates at the position of its growth to the activations
    there. The claims from *Memoized links* to *Activations held by heads* take
    a step of a growth after the first as $w_i$, as a unit at the end of its
-   seed, apart from a step whose seed is empty, where the growth of the step
-   is at the position of the link. Two points remain: the growth activations
+   seed, also when the seed is empty and the growth of the step is at the
+   position of the link, since no shared call reads it (*Steps with an empty
+   seed*). Two points remain: the growth activations
    that a path that enters the growth again repeats in the first step of the
    growth that it enters; and a check, claim by
    claim, that the claims from *Memoized links* to *Activations held by heads*
