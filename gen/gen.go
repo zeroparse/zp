@@ -14,7 +14,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gen/tsgen"
@@ -295,22 +295,35 @@ func (c TypeScript) GenerateRuntime() ([]File, error) {
 	return tsgen.Generate(nil, compileForGenerator, gen.GenOptions{Runtime: gen.RuntimeOnly})
 }
 
-// compileForGenerator is the gen.Compiler that the generators compile grammars with: it compiles g
-// with the engine and builds the recognizer of the program (engine.Program.Recognizer) on first
-// use.
+// compileForGenerator is the gen.Compiler that the generators compile grammars with: it checks g
+// to its static program, which is all a generator reads, and checks the recognizer of the program
+// (as the runtime's Program.Recognizer makes it) on first use. No backend of the runtime is built.
 func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
-	prog, err := engine.Compile(g, opts)
+	prog, err := check(g, opts, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	recognizer := func() (*compile.Program, error) {
-		rec, err := prog.Recognizer()
-		if err != nil {
-			return nil, err
+		source := prog.Grammar
+		if prog.Source != nil {
+			source = prog.Source
 		}
-		return rec.Static(), nil
+		o := prog.Opts
+		o.Recognize, o.Recognizer, o.ControlledDispatch = true, true, false
+		return check(source, o, prog.Flags())
 	}
-	return prog.Static(), recognizer, nil
+	return prog, recognizer, nil
+}
+
+// check checks g with opts and, if not nil, the rule flags flags, naming the hidden rules of
+// inline actions in errors as written.
+func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) (*compile.Program, error) {
+	names := desugar.InlineNames{}
+	prog, err := compile.Check(g, opts, flags, names, nil)
+	if err != nil {
+		return nil, names.Rewrite(err)
+	}
+	return prog, nil
 }
 
 // runtimeFiles holds a copy of the files of the runtime package, which Go.Generate copies into
