@@ -183,7 +183,7 @@ func (a *analyzer) node(n Node) (bool, bool, Effects) {
 		// An insertion consumes no input; without insertion the literal must match, and with it the
 		// literal fails where it was already inserted at the same position. An insertion can exceed
 		// the limit of missing tokens.
-		null, _, _ = a.node(n.Lit)
+		null, _, _ = a.node(n.Body)
 		ins = true
 		e.Set = EffConsume | EffFail | EffExpect | EffRecover | EffRaise
 	case *Stream:

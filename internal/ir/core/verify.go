@@ -338,7 +338,7 @@ func (v *verifier) node(n Node, scope []Slot) error {
 			return err
 		}
 	case *Missing:
-		if n.Lit == nil || n.Lit.Text == "" {
+		if n.Lit == nil || n.Lit.Text == "" || n.Body == nil {
 			return fmt.Errorf("missing without literal")
 		}
 	case *Stream:

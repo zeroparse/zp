@@ -488,7 +488,7 @@ func (l *lowerer) node(n core.Node, s *scope, build bool, fail *flow.Label) flow
 	case *core.Lit:
 		return l.lit(n, build, fail)
 	case *core.Missing:
-		return l.lit(n.Lit, build, fail)
+		return l.node(n.Body, s, build, fail)
 	case *core.ClassNode:
 		if n == l.guarded {
 			return l.guardedClass(build)

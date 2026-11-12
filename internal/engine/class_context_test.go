@@ -10,6 +10,7 @@ import (
 	"testing"
 	"weak"
 	"zeroparse.dev/zp/internal/cancel"
+	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -44,13 +45,15 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 		{"bitmap", func(c *cancel.Control) { compile.ClassASCII(cl.Ranges, false, c) }},
 		{"accept-construction", func(c *cancel.Control) { closure.ClassAcceptControlled(cl, c) }},
 		{"matcher", func(c *cancel.Control) {
-			newClosureWalker(&compile.Compiler{Control: c}, false).Expr(cl, compile.NewScope(), true)
+			newCompileWalker(&compile.Compiler{Control: c}).Expr(cl, compile.NewScope(), true)
 		}},
 		{"choice-guard", func(c *cancel.Control) {
-			closure.NewBuilder(&compile.Compiler{Control: c}, false).Guard(compile.First{Term: cl})
+			ic := coreClass(cl)
+			alt := &ir.Alt{Body: &ir.ClassNode{Class: ic}, Guard: &ir.First{Class: ic}}
+			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.Choice{Alts: []*ir.Alt{alt}}, nil, c, false)
 		}},
 		{"scan-repeat", func(c *cancel.Control) {
-			closure.NewBuilder(&compile.Compiler{Control: c}, false).ScanRepeat(&grammar.Repeat{Expr: cl, Max: -1}, 0, 0)
+			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.Scan{Class: coreClass(cl), Max: -1}, nil, c, false)
 		}},
 		{"guard-extraction", func(c *cancel.Control) {
 			compile.FirstTerminalControlled(&compile.Program{}, deep, 0, map[string]bool{}, c)
@@ -228,4 +231,13 @@ func TestClassConstructionProgramReleasesCompileContext(t *testing.T) {
 		}
 	}
 	runtime.KeepAlive(p)
+}
+
+// coreClass returns the Core IR class of the class expression cl, recording the expectation 0.
+func coreClass(cl *grammar.CharClass) *ir.Class {
+	c := &ir.Class{Negated: cl.Negated}
+	for _, r := range cl.Ranges {
+		c.Ranges = append(c.Ranges, ir.Range{Lo: r.Lo, Hi: r.Hi})
+	}
+	return c
 }

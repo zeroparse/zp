@@ -169,15 +169,11 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 // buildNamed is buildControlled; names receives the hidden rules that the lowering of inline actions
 // generates.
 func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
-	var b *closure.Builder
-	prog, err := compile.CompileProgram(g, opts, flags, names, control, func(c *compile.Compiler) compile.ExprBuilder[core.Matcher] {
-		b = closure.NewBuilder(c, !opts.ControlledDispatch)
-		return b
-	})
+	prog, err := compile.CompileProgram(g, opts, flags, names, control, func(*compile.Compiler) compile.ExprBuilder[struct{}] { return compile.NoExprs{} })
 	if err != nil {
 		return nil, err
 	}
-	rules, err := b.Finish()
+	rules, err := closure.Build(prog, control, !opts.ControlledDispatch)
 	if err != nil {
 		return nil, err
 	}

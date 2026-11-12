@@ -220,7 +220,8 @@ func TestAnalyzeLimitsRaise(t *testing.T) {
 	call := &Call{Rule: 1}
 	plain := &Call{Rule: 2}
 	nest := &Nest{Rule: 2, Body: lit("c")}
-	missing := &Missing{Lit: lit(";")}
+	semi := lit(";")
+	missing := &Missing{Lit: semi, Body: semi}
 	analyzed(t, module(rule(0, "a", seq(call, plain, nest, missing)), rule(1, "b", choice(lit("b"), &Call{Rule: 1})), rule(2, "c", lit("c"))))
 	for _, c := range []struct {
 		n     Node
