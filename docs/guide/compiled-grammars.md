@@ -360,8 +360,8 @@ A file carries two version numbers after its magic number:
 
 | Number | Now | Meaning |
 |:--|--:|:--|
-| Format version | 8 | The layout of the file. A runtime loads version 8 only. |
-| Instruction-set version | 35 | The bytecode of the value model (see the [specification](../../spec/runtime/compiled-grammars.md#versions-and-compatibility)). Every module declares it. |
+| Format version | 8 | The outer frame of the file: its header and the order of its sections. A runtime loads version 8 only. |
+| Instruction-set version | 35 | The encoding of the compiled grammar inside the frame, its actions included (see the [specification](../../spec/runtime/compiled-grammars.md#versions-and-compatibility)). Every module declares it. |
 
 The consequences:
 

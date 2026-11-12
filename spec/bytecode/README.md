@@ -340,7 +340,7 @@ Expectation strings are those the compiler placed in the string table: literals 
 
 ## File Format
 
-A compiled grammar uses container version 8. It stores one execution-only compile result: the module of one mode and the start rule, with no grammar AST and no output schema (see [Compiled Grammars](../runtime/compiled-grammars.md)). The container version and the module's instruction-set version are separate version axes. A loader accepts only container version 8. Integers are variable-length: unsigned integers use LEB128 and signed integers use zigzag-encoded LEB128. A boolean is one byte (0 or 1).
+A compiled grammar uses container version 8. It stores one execution-only compile result: the module of one mode and the start rule, with no grammar AST and no output schema (see [Compiled Grammars](../runtime/compiled-grammars.md)). The container version and the module's instruction-set version cover separate layers: the container version covers the outer frame, the header and the order of the parts below, and the instruction-set version covers the encoding of the module's contents, term code included. A change to the module layout therefore bumps only the instruction-set version. A loader accepts only container version 8. Integers are variable-length: unsigned integers use LEB128 and signed integers use zigzag-encoded LEB128. A boolean is one byte (0 or 1).
 
 | Part | Contents |
 |:--|:--|

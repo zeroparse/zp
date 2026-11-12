@@ -618,8 +618,9 @@ separate interpreter is maintained.
 ### Compatibility and Backend Support
 
 The public API and the grammar language do not change. The bytecode instruction set gains `NEST` and
-`ENDNEST`, and the instruction-set version of every module goes from 26 to 27. The compiled-file container
-gets a new version. A saved file holds one module of one mode: a parse-mode file the inlined family's, a
+`ENDNEST`, and the instruction-set version of every module is bumped, because it covers the encoding of
+the module's contents; the container version covers only the header of a compiled file and the order of
+its sections, and changes only when they do. A saved file holds one module of one mode: a parse-mode file the inlined family's, a
 document-mode file the call-preserving family's, and a recognize-mode file the recognition specialization
 of the inlined family. Loaders reject earlier versions, which are compiled again; the format keeps no compatibility before the first
 release. `spec/bytecode/README.md` specifies the two instructions, their failure handling and cut base, the
@@ -672,8 +673,8 @@ stage of its first consumer, so its differential tests and negative controls run
 3. **TypeScript.** Gate: the TypeScript parity tests in `bench` and `internal/engine`, TypeScript event
    streams, and the TypeScript benchmarks (`bench/ts-*.mjs`). Then remove `tsGen.expr`, the TypeScript term
    lowering and the condition rewriting.
-4. **Bytecode**, in both families, with `NEST`, `ENDNEST`, the new instruction-set and container versions
-   and their specification. Gate: the call-preserving modules, main and recognition, have the rule
+4. **Bytecode**, in both families, with `NEST`, `ENDNEST`, the new instruction-set version and their
+   specification. Gate: the call-preserving modules, main and recognition, have the rule
    table, match code, string table and character class table of today's modules, with term operands
    compared by index only and the term table excluded, for all repository grammars and the
    specification test data. Term code is the engine's translation of the Exec IR function that the
@@ -818,8 +819,10 @@ Each enabled pass records its measured effect in the [optimization catalog](../.
    with a design of their own if VM profiles show that terminal and class runs dominate.
 4. **Saved programs.** A saved file holds one module of one mode: parse stores the inlined family,
    document the call-preserving family and recognize the recognition specialization, and the file serves
-   only that mode's parses. The container and instruction-set
-   versions change, and the format keeps no compatibility before the first release.
+   only that mode's parses. The two versions of a file cover separate layers: the container version
+   the header and the order of the sections, the instruction-set version the encoding of the module's
+   contents, term code included. A change to the module layout bumps only the instruction-set version.
+   The format keeps no compatibility before the first release.
 5. **Closure backend.** Closures are compiled from Core IR. An IR interpreter is unmeasured and would give
    up the dispatch that closures resolve when they compile; the closure compiler over unoptimized Core IR
    serves as the rewrite reference without new code. Closures compile the same two families as bytecode.

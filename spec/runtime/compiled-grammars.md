@@ -88,18 +88,19 @@ source:
 
 ### Versions and Compatibility
 
-A file carries two version numbers after its magic number.
+A file carries two version numbers after its magic number. They cover separate
+layers, so a change to the encoding of the module bumps only the instruction-set
+version.
 
 | Number | Current value | Meaning |
 |:--|--:|:--|
-| Format version | 8 | The layout of the file. A runtime loads only version 8 and refuses any other version |
-| Instruction-set version | 35 | The bytecode of the value model. Every module declares it |
+| Format version | 8 | The outer frame of the file: its header and the order of its sections. A runtime loads only version 8 and refuses any other version |
+| Instruction-set version | 35 | The encoding of the module's contents, its term code included. Every module declares it |
 
 - A runtime refuses a file of another format version with
   `unsupported compiled grammar version N (want 8): compile the grammar again`.
-- A runtime refuses a module of an earlier instruction set: its bytecode builds the
-  syntax trees that preceded the value model. The error asks for the grammar to be
-  compiled again. A file that requires a newer instruction set is refused with
+- A runtime refuses a module of an earlier instruction set, whose contents it does
+  not decode. The error asks for the grammar to be compiled again. A file that requires a newer instruction set is refused with
   `unsupported instruction set version N`.
 - A file records whether the program was compiled with source information, and the
   loaded program keeps it.
