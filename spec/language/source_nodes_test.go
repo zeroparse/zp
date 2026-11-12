@@ -182,8 +182,17 @@ func (s *shaper) statement(label string, n *zp.Node, sep []int) {
 func (s *shaper) file(root *zp.Node) {
 	if pkg, ok := root.Field("Pkg").(*zp.Node); ok && pkg != nil && pkg.Type() == "Pkg" {
 		span := sourceField(s.t, sourceField(s.t, pkg, "Source"), "Span")
+		attrs := listNodes(pkg, "Attrs")
+		for _, attr := range attrs {
+			s.attr(attr)
+		}
 		i := s.span("Pkg", span)
 		s.joined(i, separators(s.src, span.End(), ';', 1<<30))
+		if len(attrs) > 0 {
+			// The hand-written parser gives a package clause with attributes
+			// the position of "package" for diagnostics.
+			s.created(i, nextToken(s.src, attrs[len(attrs)-1].End()))
+		}
 	}
 	for _, d := range listNodes(root, "Decls") {
 		s.decl(d)

@@ -234,7 +234,7 @@ func TestPackageAttributesParse(t *testing.T) {
 
 func TestPackageAttributesErrors(t *testing.T) {
 	for _, tc := range []struct{ src, want string }{
-		{"@linear package p\nrule a = \"x\"\n", "1:9: expected 'rule' after the declaration attributes, found 'package'"},
+		{"@linear package p\nrule a = \"x\"\n", "1:9: expected a newline between the declaration attributes and 'package'"},
 		{"rule a = \"x\"\n@linear\npackage p\n", "3:1: expected 'rule' after the declaration attributes, found 'package'"},
 		// Unclosed arguments do not reach "package", so they are a rule's.
 		{"@linear(\npackage p\nrule a = \"x\"\n", "3:8: expected ',', found '='"},
