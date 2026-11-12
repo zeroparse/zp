@@ -17,7 +17,6 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 //go:embed tsrt/runtime.ts
@@ -453,10 +452,11 @@ func tsActxParam(body string) string {
 	return "_c"
 }
 
-// action emits a function that evaluates the term t (an action or a predicate) and returns its name.
-func (g *Generator) action(ct core.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
+// action emits a function that evaluates the term ct of Core IR (an action or a predicate) and
+// returns its name.
+func (g *Generator) action(ct core.Term, s *compile.Scope, locals map[string]string) string {
 	name := g.Name("a")
-	g.Methods.WriteString(g.actionFunc(name, ct, t, s, locals))
+	g.Methods.WriteString(g.actionFunc(name, ct, s, locals))
 	return name
 }
 
@@ -544,7 +544,7 @@ func (g *Generator) rules() {
 			if r.Action != nil && !r.Novalue {
 				// The whole-rule action, which the runtime runs on the folded value after each call.
 				locals := map[string]string{compile.OperatorsRuleValue: "c.value"}
-				fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), r.Action, compile.NewScope(), locals))
+				fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), compile.NewScope(), locals))
 			}
 			continue
 		}
@@ -553,7 +553,7 @@ func (g *Generator) rules() {
 		}
 		if r.Action != nil && g.tableRow(r) {
 			g.Proj = g.Projections(r)
-			fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), r.Action, scopes[r], nil))
+			fmt.Fprintf(init, "%s.action = %s;\n", g.ruleVar(r), g.action(g.CoreAction(r), scopes[r], nil))
 			g.Proj = nil
 		}
 	}
@@ -725,7 +725,7 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if l != nil {
 			ct = l.Action
 		}
-		act = g.action(ct, action, s, locals)
+		act = g.action(ct, s, locals)
 	}
 	return fmt.Sprintf("{ scope: %s, m: %s, action: %s, value: %d }", TsStrings(s.Names), m, act, tsShaper(g.Prog, e))
 }
@@ -738,179 +738,6 @@ func tsInt(v int) string {
 		return strconv.Itoa(v)
 	}
 	return "BigInt(\"" + strconv.Itoa(v) + "\")"
-}
-
-// term converts a value expression into a TypeScript expression of type Value, charging a step for
-// it with limit controls. locals maps names, such as lambda parameters, to TypeScript expressions.
-func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if g.NoBudget {
-		return g.termBody(t, s, locals)
-	}
-	return "(c.spend(), " + g.termBody(t, s, locals) + ")"
-}
-
-func (g *Generator) termBody(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	switch t := t.(type) {
-	case *grammar.IntLit:
-		return tsInt(t.Value)
-	case *grammar.StringLit:
-		return TsString(t.Value)
-	case *grammar.BoolLit:
-		return strconv.FormatBool(t.Value)
-	case *grammar.NilLit:
-		return "null"
-	case *grammar.CaptureRef:
-		if l, ok := locals[t.Name]; ok {
-			return "unboxValue(" + l + ")"
-		}
-		return fmt.Sprintf("c.cap(%d)", s.Slots[t.Name])
-	case *grammar.VarRef:
-		return fmt.Sprintf("c.variable(%d)", g.Prog.Vars.Index(t.Name))
-	case *grammar.Member:
-		return fmt.Sprintf("c.member(%s, %s)", g.term(t.X, s, locals), TsString(t.Name))
-	case *grammar.New:
-		if len(t.Args) != 0 {
-			// A node type constructor converts its value (see evalCtx.convert).
-			x := g.term(t.Args[0], s, locals)
-			n, _ := g.Prog.NodeTypeOf(t.Type) // the type's own name, also for an alias of it
-			return fmt.Sprintf("c.convert(%s, %s)", TsString(n.Name), x)
-		}
-		name, _ := g.Prog.StructType(t.Type)
-		args := []string{TsString(name)}
-		for _, f := range t.Fields {
-			args = append(args, TsString(f.Name), g.term(f.Value, s, locals))
-		}
-		return "c.newStruct(" + strings.Join(args, ", ") + ")"
-	case *grammar.ListConstructor:
-		return g.term(&grammar.Call{Func: "list", Args: t.Items}, s, locals)
-	case *grammar.TupleLit:
-		args := make([]string, len(t.Elems))
-		for i, x := range t.Elems {
-			args[i] = g.term(x, s, locals)
-		}
-		return "c.tuple(" + strings.Join(args, ", ") + ")"
-	case *grammar.Call:
-		if t.Func == "concat" && compile.Fusable(t) {
-			// Push the elements of list, map and concat arguments directly (see fusable and
-			// evalCtx.pushConcatArg).
-			var b strings.Builder
-			b.WriteString("((): Value => { const b = c.p.kidStack.length; ")
-			g.concatParts(&b, t, s, locals)
-			b.WriteString("return c.endList(b); })()")
-			return b.String()
-		}
-		args := make([]string, len(t.Args))
-		for i, a := range t.Args {
-			if _, ok := a.(*grammar.Lambda); !ok {
-				args[i] = g.term(a, s, locals)
-			}
-		}
-		switch t.Func {
-		case "len":
-			return "c.length(" + args[0] + ")"
-		case "text":
-			return "c.text(" + args[0] + ")"
-		case "foldl", "foldr":
-			return fmt.Sprintf("rtFold(c, %s, %v, %s, %s, %s)", TsString(t.Func), t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
-		case "map":
-			if x, ok := g.Projected(t, locals); ok {
-				return "c.newList(c.listItems(\"map\", " + g.term(x, s, locals) + "))"
-			}
-			return fmt.Sprintf("c.mapList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
-		case "filter":
-			return fmt.Sprintf("c.filterList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
-		case "list":
-			return "c.list(" + strings.Join(args, ", ") + ")"
-		case "concat":
-			return "c.concat(" + strings.Join(args, ", ") + ")"
-		}
-	case *grammar.Binary:
-		if lx, ok := compile.TextArg(t.L); ok && (t.Op == "==" || t.Op == "!=") {
-			if rx, ok := compile.TextArg(t.R); ok {
-				// Compare the strings directly (see evalCtx.binary).
-				return fmt.Sprintf("c.binary(%d, c.textStr(%s), c.textStr(%s))", ops.BinaryCode(t.Op), g.term(lx, s, locals), g.term(rx, s, locals))
-			}
-		}
-		l, r := g.term(t.L, s, locals), g.term(t.R, s, locals)
-		switch t.Op {
-		case "&&":
-			return fmt.Sprintf("c.and(%s, (): Value => %s)", l, r)
-		case "||":
-			return fmt.Sprintf("c.or(%s, (): Value => %s)", l, r)
-		}
-		return fmt.Sprintf("c.binary(%d, %s, %s)", ops.BinaryCode(t.Op), l, r)
-	case *grammar.Unary:
-		return fmt.Sprintf("c.unary(%d, %s)", ops.UnaryCode(t.Op), g.term(t.X, s, locals))
-	case *grammar.Cast:
-		x := g.term(t.X, s, locals)
-		ft := g.Prog.ResolveCheck(t.Type)
-		if ft == nil {
-			return x
-		}
-		line, col := g.Prog.CastPos(t)
-		return fmt.Sprintf("castValue(c, %s, %s, %d, %d)", x, g.FieldTypeVar(t, ft, tsFieldTypeDecl), line, col)
-	}
-	panic(fmt.Sprintf("unsupported term %T", t))
-}
-
-func (g *Generator) predicateTerm(t grammar.Term, s *compile.Scope) string {
-	if g.Opt.On("text-dispatch") {
-		if name, literals, ok := gen.LiteralTextMembership(t); ok {
-			var cases []string
-			seen := map[string]bool{}
-			for _, literal := range literals {
-				if !seen[literal] {
-					seen[literal] = true
-					cases = append(cases, "case "+TsString(literal)+":")
-				}
-			}
-			fast := fmt.Sprintf("((): Value => { switch (c.textStr(%s)) { %s return true; default: return false; } })()", g.term(&grammar.CaptureRef{Name: name}, s, nil), strings.Join(cases, " "))
-			return "(c.p.control === null ? " + fast + " : " + g.term(t, s, nil) + ")"
-		}
-	}
-	return g.term(t, s, nil)
-}
-
-// concatParts writes the statements that push the elements of the arguments of the concat call t.
-func (g *Generator) concatParts(b *strings.Builder, t *grammar.Call, s *compile.Scope, locals map[string]string) {
-	for _, a := range t.Args {
-		call, ok := a.(*grammar.Call)
-		switch {
-		case ok && call.Func == "list":
-			args := make([]string, len(call.Args))
-			for i, x := range call.Args {
-				args[i] = g.term(x, s, locals)
-			}
-			b.WriteString("c.pushList(" + strings.Join(args, ", ") + "); ")
-		case ok && call.Func == "map" && len(call.Args) == 2:
-			if x, ok := g.Projected(call, locals); ok {
-				b.WriteString("c.pushItems(" + g.term(x, s, locals) + "); ")
-				break
-			}
-			fmt.Fprintf(b, "c.pushMap(%s, %s); ", g.term(call.Args[0], s, locals), g.lambda(call.Args[1], s, locals))
-		case ok && call.Func == "concat":
-			g.concatParts(b, call, s, locals)
-		default:
-			b.WriteString("c.pushItems(" + g.term(a, s, locals) + "); ")
-		}
-	}
-}
-
-func (g *Generator) lambda(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	l := t.(*grammar.Lambda)
-	inner := map[string]string{}
-	for k, v := range locals {
-		inner[k] = v
-	}
-	params := make([]string, len(l.Params))
-	for i, p := range l.Params {
-		params[i] = g.Name("_l") // a leading _: an unused parameter is not reported
-		inner[p] = params[i]
-	}
-	for i := range params {
-		params[i] += ": Value"
-	}
-	return fmt.Sprintf("(%s): Value => %s", strings.Join(params, ", "), g.term(l.Body, s, inner))
 }
 
 // tsIntList returns xs as a TypeScript array literal of numbers.

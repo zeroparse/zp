@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -16,24 +15,20 @@ import (
 
 // Terms printed from Exec IR.
 //
-// A term of a kind that lower.Term lowers is printed from Exec IR as the statements of a function: the
+// Every term is lowered by lower.Term and printed from Exec IR as the statements of a function: the
 // calls of the compositions of the runtime's Parser (termBinary, ...) with the failure of each checked
-// after it, a step charged for each subterm under budget controls, the leaves as the term printer
-// prints them. Any other term is printed by the term printer (term), whole.
+// after it, a step charged for each subterm under budget controls, and the leaves, which read the
+// captures and variables of the action.
 
 // termStmts returns the statements of a function that returns the value of the term ct of Core IR,
-// built from the grammar term t, printed from Exec IR, or reports false if the term printer prints it.
-// The scope s and the locals resolve the leaves as for term.
-// A predicate that compares the text of a capture with literals tests them at once without limit
-// controls if dispatch is set (text-dispatch).
-func (g *Generator) termStmts(ct irc.Term, s *compile.Scope, locals map[string]string, dispatch bool) (string, bool) {
+// printed from Exec IR. The scope s and the locals resolve the leaves (leaf). A predicate that
+// compares the text of a capture with literals tests them at once without limit controls if
+// dispatch is set (text-dispatch).
+func (g *Generator) termStmts(ct irc.Term, s *compile.Scope, locals map[string]string, dispatch bool) string {
 	if ct == nil {
-		return "", false
+		panic(fmt.Errorf("rule %s: a term without Core IR", g.Cur.Name))
 	}
 	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget, Unbounded: g.NoBudget, Proj: g.Proj, TextDispatch: dispatch})
-	if err == lower.ErrUnsupported {
-		return "", false
-	}
 	if err != nil {
 		panic(fmt.Errorf("rule %s: %w", g.Cur.Name, err))
 	}
@@ -42,28 +37,33 @@ func (g *Generator) termStmts(ct irc.Term, s *compile.Scope, locals map[string]s
 		panic(fmt.Errorf("rule %s: %w", g.Cur.Name, err))
 	}
 	g.LoweredTerms++
-	return text, true
+	return text
 }
 
-// actionFunc returns the function that evaluates the term ct of Core IR, built from the grammar term t,
-// printed from Exec IR if it can be and by the term printer otherwise, declared with the name name.
-func (g *Generator) actionFunc(name string, ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if body, ok := g.termStmts(ct, s, locals, false); ok {
-		return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n%s}\n\n", name, tsActxParam(body), body)
-	}
-	val := g.term(t, s, locals)
-	return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n  return [%s, null];\n}\n\n", name, tsActxParam(val), val)
+// actionFunc returns the function that evaluates the term ct of Core IR, declared with the name name.
+func (g *Generator) actionFunc(name string, ct irc.Term, s *compile.Scope, locals map[string]string) string {
+	body := g.termStmts(ct, s, locals, false)
+	return fmt.Sprintf("function %s(%s: Actx): [Value, Value] {\n%s}\n\n", name, tsActxParam(body), body)
 }
 
-// predicateFunc returns the arrow function of a predicate with the term ct of Core IR, built from the
-// grammar term t: a membership of a captured text in literals tests them at once without limit
-// controls (text-dispatch).
-func (g *Generator) predicateFunc(ct irc.Term, t grammar.Term, s *compile.Scope) string {
-	if body, ok := g.termStmts(ct, s, nil, g.Opt.On("text-dispatch")); ok {
-		return fmt.Sprintf("(%s): [Value, Value] => {\n%s}", tsActxParam(body), body)
+// predicateFunc returns the arrow function of a predicate with the term ct of Core IR: a membership
+// of a captured text in literals tests them at once without limit controls (text-dispatch).
+func (g *Generator) predicateFunc(ct irc.Term, s *compile.Scope) string {
+	body := g.termStmts(ct, s, nil, g.Opt.On("text-dispatch"))
+	return fmt.Sprintf("(%s): [Value, Value] => {\n%s}", tsActxParam(body), body)
+}
+
+// leaf returns the expression that reads the capture (or, if variable is set, the variable) name of
+// an action: a local that holds it (a parameter or $lhs, $rhs and $op, which may hold boxes that
+// stand for their values), or the slot of the scope s.
+func (g *Generator) leaf(name string, variable bool, s *compile.Scope, locals map[string]string) string {
+	if variable {
+		return fmt.Sprintf("c.variable(%d)", g.Prog.Vars.Index(name))
 	}
-	body := g.predicateTerm(t, s)
-	return fmt.Sprintf("(%s): [Value, Value] => [%s, null]", tsActxParam(body), body)
+	if l, ok := locals[name]; ok {
+		return "unboxValue(" + l + ")"
+	}
+	return fmt.Sprintf("c.cap(%d)", s.Slots[name])
 }
 
 // termTarget returns the TypeScript implementation of the operations of a lowered term whose leaves
@@ -90,11 +90,11 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case lower.OpTermRead:
 				switch x := c.Imm.(lower.TermRead).Term.(type) {
 				case *irc.SlotRef:
-					return g.termBody(&grammar.CaptureRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, false, s, locals)
 				case *irc.Local:
-					return g.termBody(&grammar.CaptureRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, false, s, locals)
 				case *irc.VarRef:
-					return g.termBody(&grammar.VarRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, true, s, locals)
 				}
 			case lower.OpTermCtx:
 				return "c"
@@ -116,7 +116,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				x := c.Imm.(lower.TermCast).Cast
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
 			case lower.OpTermTextEqual:
-				// As the term printer does, == of two strings, which charges as it does.
+				// == of two strings, which charges as binary does.
 				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", core.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
 			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
 				return a[0]
@@ -127,7 +127,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case "seq.len":
 				return a[0] + ".length"
 			case "val.unbox":
-				// As the term printer reads a parameter, which may hold a box.
+				// A parameter may hold a box, which stands for its value.
 				return "unboxValue(" + a[0] + ")"
 			case lower.OpTermKeep:
 				return fmt.Sprintf("c.p.kidStack.push(%s[%s]!)", a[0], a[1])

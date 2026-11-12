@@ -6,8 +6,6 @@ import (
 	"go/token"
 	"math"
 	"path"
-	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,7 +16,6 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
 // defaultPackageName returns the package name of the generated code for a module path: its last
@@ -468,9 +465,6 @@ type Generator struct {
 	// typedOnly leaves out the untyped Node family: the rule table keeps only the metadata the
 	// typed table shares.
 	typedOnly bool
-	// final is the struct constructor that makes an action's result in the typed runtime: its
-	// range is the rule's (see tctx.result), so it computes none and is not recorded as created.
-	final grammar.Term
 	// caps maps capture names to the Go variables that hold them in a flat rule of the typed
 	// runtime (see flowrule.go), instead of frame slots.
 	caps map[string]string
@@ -764,11 +758,9 @@ func (g *Generator) rules() {
 			if r.Action != nil && !r.Novalue {
 				// The whole-rule action, which the runtime runs on the folded value after each call.
 				if g.Table == "trules" {
-					g.final = r.Action // re-ranged by TActCtx.Result, as an action's result
 				}
 				locals := map[string]string{compile.OperatorsRuleValue: "c.Value"}
-				fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) (any, any) { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), r.Action, compile.NewScope(), locals))
-				g.final = nil
+				fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) (any, any) { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), compile.NewScope(), locals))
 			}
 			continue
 		}
@@ -782,13 +774,13 @@ func (g *Generator) rules() {
 		}
 		if r.Action != nil && g.Table == "trules" {
 			// A function of its own, which typedCall calls directly.
-			g.Proj, g.final = g.Projections(r), r.Action
-			fmt.Fprintf(&g.Methods, "// The action of %s.\nfunc ta%d(c *TActCtx) (any, any) { %s }\n\n", r.Name, r.ID, g.actionBody(g.CoreAction(r), r.Action, scopes[r], nil))
-			g.Proj, g.final = nil, nil
+			g.Proj = g.Projections(r)
+			fmt.Fprintf(&g.Methods, "// The action of %s.\nfunc ta%d(c *TActCtx) (any, any) { %s }\n\n", r.Name, r.ID, g.actionBody(g.CoreAction(r), scopes[r], nil))
+			g.Proj = nil
 			fmt.Fprintf(init, "\ttrules[%d].Action = ta%d\n", r.ID, r.ID)
 		} else if r.Action != nil {
 			g.Proj = g.Projections(r)
-			fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) (any, any) { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), r.Action, scopes[r], nil))
+			fmt.Fprintf(init, "\t%s[%d].Action = func(c *%s) (any, any) { %s }\n", g.Table, r.ID, g.ctxType(), g.actionBody(g.CoreAction(r), scopes[r], nil))
 			g.Proj = nil
 		}
 		if g.Table == "trules" {
@@ -1077,31 +1069,6 @@ func (g *Generator) recv() string    { return g.pick("Parser", "TParser") }
 func (g *Generator) valType() string { return g.pick("*Node", "any") }
 func (g *Generator) ctxType() string { return g.pick("ActCtx", "TActCtx") }
 
-// comparison reports whether op compares two values.
-func comparison(op string) bool {
-	switch op {
-	case "==", "!=", "<", "<=", ">", ">=":
-		return true
-	}
-	return false
-}
-
-// fieldRead reports whether t reads a field of a value, x.F.
-func fieldRead(t grammar.Term) bool {
-	m, ok := t.(*grammar.Member)
-	return ok && !strings.HasPrefix(m.Name, "$")
-}
-
-// operand returns an operand (TOperand) of a comparison: a field read keeps a string field
-// unboxed.
-func (g *Generator) operand(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if fieldRead(t) {
-		m := t.(*grammar.Member)
-		return fmt.Sprintf("c.FieldOperand(%s, %q)", g.term(m.X, s, locals), m.Name)
-	}
-	return "TOperand{V: " + g.term(t, s, locals) + "}"
-}
-
 // step returns the statement that charges one step to the budget control of recv, if there is one.
 func (g *Generator) step(recv string) string {
 	if g.NoBudget {
@@ -1380,15 +1347,11 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if operator {
 			locals = map[string]string{"lhs": "c.Lhs", "rhs": "c.Rhs", "op": "c.Op"}
 		}
-		if g.Table == "trules" {
-			g.final = action // re-ranged by tctx.result, as an action's result
-		}
 		var ct core.Term
 		if l != nil {
 			ct = l.Action
 		}
-		act = fmt.Sprintf("func(c *%s) (any, any) { %s }", g.ctxType(), g.actionBody(ct, action, s, locals))
-		g.final = nil
+		act = fmt.Sprintf("func(c *%s) (any, any) { %s }", g.ctxType(), g.actionBody(ct, s, locals))
 	}
 	return fmt.Sprintf("&%s{Scope: %s, M: %s, Action: %s, Value: %s}", g.pick("OperatorsRuleLine", "TOperatorsRuleLine"), goStrings(s.Names), m, act, g.shaper(e))
 }
@@ -1420,315 +1383,6 @@ func (g *Generator) ruleCall(r *compile.Rule, min int) string {
 		return fmt.Sprintf("p.InvokePlain(%s[%d], %d)", g.Table, r.ID, min)
 	}
 	return fmt.Sprintf("p.Call(%s[%d], %d)", g.Table, r.ID, min)
-}
-
-// term converts a value expression into a Go expression of type any. locals maps names, such as lambda
-// parameters, to Go expressions.
-func (g *Generator) term(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	switch t := t.(type) {
-	case *grammar.IntLit:
-		return fmt.Sprintf("any(%d)", t.Value)
-	case *grammar.StringLit:
-		return fmt.Sprintf("any(%q)", t.Value)
-	case *grammar.BoolLit:
-		return fmt.Sprintf("any(%v)", t.Value)
-	case *grammar.NilLit:
-		return "any(nil)"
-	case *grammar.CaptureRef:
-		if l, ok := locals[t.Name]; ok {
-			// Parameters and $lhs, $rhs and $op may hold boxes, which stand for their values.
-			return g.pick("UnboxValue(", "(") + l + ")"
-		}
-		if g.caps != nil {
-			return g.caps[t.Name]
-		}
-		return fmt.Sprintf("c.Cap(%d)", s.Slots[t.Name])
-	case *grammar.VarRef:
-		return fmt.Sprintf("c.Var(%d)", g.Prog.Vars.Index(t.Name))
-	case *grammar.Member:
-		return fmt.Sprintf("c.Member(%s, %q)", g.term(t.X, s, locals), t.Name)
-	case *grammar.New:
-		if len(t.Args) != 0 {
-			// A node type constructor converts its value (see evalCtx.convert).
-			x := g.term(t.Args[0], s, locals)
-			n, _ := g.Prog.NodeTypeOf(t.Type) // the type's own name, also for an alias of it
-			if g.Table == "trules" {
-				// The typed runtime names the type by its registered index.
-				return fmt.Sprintf("c.Convert(%s, %s)", g.nodeTypeID(n.Name), x)
-			}
-			return fmt.Sprintf("c.Convert(%q, %s)", n.Name, x)
-		}
-		name, spec := g.Prog.StructType(t.Type)
-		if g.Table == "trules" {
-			// The typed runtime calls the constructor of the type (tmk_T, see typedRuntime) with
-			// the fields in declaration order.
-			// The fields are evaluated in the order written (an error in one must win over the
-			// next), then passed in declaration order.
-			// The fields can be the arguments themselves when they are written in declaration order: Go
-			// evaluates the arguments from left to right.
-			fields := compile.DefFields(spec)
-			args := []string{"c", strconv.FormatBool(grammar.Term(t) == g.final)}
-			next, inOrder := 0, true
-			for _, given := range t.Fields {
-				for next < len(fields) && fields[next].Name != given.Name {
-					next++
-				}
-				if next == len(fields) {
-					inOrder = false
-					break
-				}
-				next++
-			}
-			vals := map[string]string{}
-			if inOrder {
-				parts := make([]func() string, len(t.Fields))
-				for i, given := range t.Fields {
-					parts[i] = func() string { return g.term(given.Value, s, locals) }
-				}
-				for i, v := range g.seq(parts...) {
-					vals[t.Fields[i].Name] = v
-				}
-			} else {
-				// Otherwise the temporaries are assigned in the order written, because an error in one
-				// field has to win over the next.
-				for _, given := range t.Fields {
-					v := g.Name("f_")
-					g.emit(fmt.Sprintf("%s := %s", v, g.term(given.Value, s, locals)))
-					vals[given.Name] = v
-				}
-			}
-			for _, f := range fields {
-				if v, ok := vals[f.Name]; ok {
-					args = append(args, v)
-				} else {
-					args = append(args, "nil")
-				}
-			}
-			return "tmk_" + name + "(" + strings.Join(args, ", ") + ")"
-		}
-		values := make([]grammar.Term, len(t.Fields))
-		for i, f := range t.Fields {
-			values[i] = f.Value
-		}
-		args := []string{strconv.Quote(name)}
-		for i, v := range g.terms(values, s, locals) {
-			args = append(args, strconv.Quote(t.Fields[i].Name), v)
-		}
-		return "c.NewStruct(" + strings.Join(args, ", ") + ")"
-	case *grammar.ListConstructor:
-		return g.term(&grammar.Call{Func: "list", Args: t.Items}, s, locals)
-	case *grammar.TupleLit:
-		return "c.Tuple(" + strings.Join(g.terms(t.Elems, s, locals), ", ") + ")"
-	case *grammar.Call:
-		if t.Func == "concat" && compile.Fusable(t) {
-			// Push the elements of list, map and concat arguments directly (see fusable and
-			// evalCtx.pushConcatArg).
-			base := g.Name("b_")
-			g.emit(base + " := len(c.P.KidStack)")
-			g.concatParts(t, s, locals)
-			return "c.EndList(" + base + ")"
-		}
-		// The arguments other than lambdas, in the order written.
-		var args []string
-		if t.Func != "map" || len(t.Args) != 2 {
-			args = g.terms(t.Args, s, locals)
-		} else if _, ok := g.Projected(t, locals); !ok {
-			args = g.terms(t.Args[:1], s, locals)
-		}
-		switch t.Func {
-		case "len":
-			return "c.Length(" + args[0] + ")"
-		case "text":
-			return "c.Text(" + args[0] + ")"
-		case "foldl", "foldr":
-			return fmt.Sprintf("c.Fold(%q, %v, %s, %s, %s)", t.Func, t.Func == "foldr", args[0], args[1], g.lambda(t.Args[2], s, locals))
-		case "map":
-			if x, ok := g.Projected(t, locals); ok {
-				return "c.NewList(c.ListItems(\"map\", " + g.term(x, s, locals) + "))"
-			}
-			return fmt.Sprintf("c.MapList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
-		case "filter":
-			return fmt.Sprintf("c.FilterList(%s, %s)", args[0], g.lambda(t.Args[1], s, locals))
-		case "list":
-			return "c.List(" + strings.Join(args, ", ") + ")"
-		case "concat":
-			return "c.Concat(" + strings.Join(args, ", ") + ")"
-		}
-	case *grammar.Binary:
-		if lx, ok := compile.TextArg(t.L); ok && (t.Op == "==" || t.Op == "!=") {
-			if rx, ok := compile.TextArg(t.R); ok {
-				// Compare the strings directly (see evalCtx.binary).
-				xs := g.terms([]grammar.Term{lx, rx}, s, locals)
-				return fmt.Sprintf("any(c.P.TextEqual(c.TextStr(%s), c.TextStr(%s)) == %v)", xs[0], xs[1], t.Op == "==")
-			}
-		}
-		if g.Table == "trules" && comparison(t.Op) && (fieldRead(t.L) || fieldRead(t.R)) && g.Opt.On("field-compare") {
-			// Compare string fields without boxing them (see tctx.compare).
-			xs := g.seq(func() string { return g.operand(t.L, s, locals) }, func() string { return g.operand(t.R, s, locals) })
-			return fmt.Sprintf("c.Compare(rt.%s, %s, %s)", ops.OperatorIdent(t.Op, false, false), xs[0], xs[1])
-		}
-		if t.Op == "&&" || t.Op == "||" {
-			// The right operand is evaluated only if the left one does not decide the result.
-			l, r := g.term(t.L, s, locals), g.closure(t.R, s, locals)
-			fn := map[string]string{"&&": "And", "||": "Or"}[t.Op]
-			return fmt.Sprintf("c.%s(%s, %s)", fn, l, r)
-		}
-		xs := g.terms([]grammar.Term{t.L, t.R}, s, locals)
-		l, r := xs[0], xs[1]
-		return fmt.Sprintf("c.Binary(rt.%s, %s, %s)", ops.OperatorIdent(t.Op, false, false), l, r)
-	case *grammar.Cast:
-		x := g.term(t.X, s, locals)
-		ft := g.Prog.ResolveCheck(t.Type)
-		if ft == nil {
-			return x
-		}
-		v := g.FieldTypeVar(t, ft, func(v string, t *compile.FieldType) string { return fmt.Sprintf("var %s = %s\n", v, goFieldType(t)) })
-		line, col := g.Prog.CastPos(t)
-		return fmt.Sprintf("c.Cast(%s, %s, %d, %d)", x, v, line, col)
-	case *grammar.Unary:
-		return fmt.Sprintf("c.Unary(rt.%s, %s)", ops.OperatorIdent(t.Op, true, false), g.term(t.X, s, locals))
-	}
-	panic(fmt.Sprintf("unsupported term %T", t))
-}
-
-// predicateBody returns the body of a function that returns the value of the predicate term t. A
-// membership of a captured text in literals is a switch.
-func (g *Generator) predicateBody(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if g.Opt.On("text-dispatch") {
-		if name, literals, ok := gen.LiteralTextMembership(t); ok {
-			var cases []string
-			seen := map[string]bool{}
-			for _, literal := range literals {
-				if !seen[literal] {
-					seen[literal] = true
-					cases = append(cases, strconv.Quote(literal))
-				}
-			}
-			_, text := g.stmts(func() string { return g.term(&grammar.CaptureRef{Name: name}, s, locals) })
-			fast := fmt.Sprintf("switch c.TextStr(%s) { case %s: return true, nil }; return false, nil", text, strings.Join(cases, ", "))
-			return "if c.P.Control != nil { " + g.termBody(t, s, locals) + ", nil }; " + fast
-		}
-	}
-	return g.termBody(t, s, locals) + ", nil"
-}
-
-// concatParts emits the statements that push the elements of the arguments of the concat call t.
-func (g *Generator) concatParts(t *grammar.Call, s *compile.Scope, locals map[string]string) {
-	for _, a := range t.Args {
-		call, ok := a.(*grammar.Call)
-		switch {
-		case ok && call.Func == "list":
-			g.emit("c.PushList(" + strings.Join(g.terms(call.Args, s, locals), ", ") + ")")
-		case ok && call.Func == "map" && len(call.Args) == 2:
-			if x, ok := g.Projected(call, locals); ok {
-				g.emit("c.PushItems(" + g.term(x, s, locals) + ")")
-				break
-			}
-			list := g.term(call.Args[0], s, locals)
-			g.emit(fmt.Sprintf("c.PushMap(%s, %s)", list, g.lambda(call.Args[1], s, locals)))
-		case ok && call.Func == "concat":
-			g.concatParts(call, s, locals)
-		default:
-			g.emit("c.PushItems(" + g.term(a, s, locals) + ")")
-		}
-	}
-}
-
-// emit adds a statement to run before the expression of the term being printed.
-func (g *Generator) emit(stmt string) {
-	if g.hoist == nil {
-		panic("generator: a term is printed outside a statement context")
-	}
-	*g.hoist = append(*g.hoist, stmt)
-}
-
-// stmts prints with f, which prints terms, and returns the statements the terms need before the
-// expression f returns, joined as the statements of a block.
-func (g *Generator) stmts(f func() string) (stmts, expr string) {
-	prev := g.hoist
-	var own []string
-	g.hoist = &own
-	defer func() { g.hoist = prev }()
-	expr = f()
-	var b strings.Builder
-	for _, st := range own {
-		b.WriteString(st + "; ")
-	}
-	return b.String(), expr
-}
-
-// termBody returns the body of a function that returns the value of t: the statements t needs, then
-// the return of its expression.
-func (g *Generator) termBody(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	stmts, expr := g.stmts(func() string { return g.term(t, s, locals) })
-	return stmts + "return " + expr
-}
-
-// closure returns a function literal that evaluates t when it is called, for a term that is
-// evaluated only if needed.
-func (g *Generator) closure(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	return "func() any { " + g.termBody(t, s, locals) + " }"
-}
-
-// terms prints the terms of ts, other than lambdas, in the order they are evaluated (see seq). The
-// lambdas stay empty.
-func (g *Generator) terms(ts []grammar.Term, s *compile.Scope, locals map[string]string) []string {
-	parts := make([]func() string, len(ts))
-	for i, t := range ts {
-		parts[i] = func() string {
-			if _, ok := t.(*grammar.Lambda); ok {
-				return ""
-			}
-			return g.term(t, s, locals)
-		}
-	}
-	return g.seq(parts...)
-}
-
-// seq prints the operands of an expression in the order Go evaluates them. If an operand needs
-// statements before its expression, the expressions of the operands before it are assigned to
-// temporaries first, ahead of those statements, so they are still evaluated before it.
-func (g *Generator) seq(parts ...func() string) []string {
-	out := make([]string, len(parts))
-	for i, part := range parts {
-		mark := len(*g.hoist)
-		out[i] = part()
-		if len(*g.hoist) == mark {
-			continue
-		}
-		var spill []string
-		for j := range i {
-			if out[j] == "" || fixedValue.MatchString(out[j]) {
-				continue
-			}
-			v := g.Name("t_")
-			spill = append(spill, v+" := "+out[j])
-			out[j] = v
-		}
-		h := *g.hoist
-		*g.hoist = slices.Concat(h[:mark:mark], spill, h[mark:])
-	}
-	return out
-}
-
-// fixedValue matches the expressions of operands that no statement changes: literals, a read of a
-// capture slot, the variables of captures (k1, v2), and the bare names of lambda parameters and
-// temporaries, alone or in the parentheses or UnboxValue call that print a parameter (see term).
-var fixedValue = regexp.MustCompile(`^(any\((-?\d+|"([^"\\]|\\.)*"|true|false|nil)\)|c\.Cap\(\d+\)|(?:(?:\w+\.)?UnboxValue)?\(l_\d+\)|[lt]_\d+|[kv]\d+)$`)
-
-func (g *Generator) lambda(t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	l := t.(*grammar.Lambda)
-	inner := map[string]string{}
-	for k, v := range locals {
-		inner[k] = v
-	}
-	params := make([]string, len(l.Params))
-	for i, p := range l.Params {
-		params[i] = g.Name("l_")
-		inner[p] = params[i]
-	}
-	// The body charges nothing: the runtime built-in that calls the lambda charges one step per element.
-	return fmt.Sprintf("func(%s any) any { %s }", strings.Join(params, ", "), g.termBody(l.Body, s, inner))
 }
 
 // ControlledClassReject preserves the compact inactive condition while bounded
