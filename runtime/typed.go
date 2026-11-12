@@ -2194,7 +2194,7 @@ func (p *TParser) setValueFieldControlled(n *TSeq, name string, v any) {
 			return
 		}
 	}
-	p.Spend()
+	// Adding the field is constant work, which the step that sets it has paid.
 	n.fields = append(n.fields, tfield{name, v})
 }
 func (p *TParser) undoCaptures(from int) {

@@ -1508,7 +1508,7 @@ func (p *Parser) setValueFieldControlled(fs *Fields, name string, v any) {
 			return
 		}
 	}
-	p.Spend()
+	// Adding the field is constant work, which the step that sets it has paid.
 	*fs = append(*fs, NodeField{name, v})
 }
 func (p *Parser) pushKid(v *Node) { p.Spend(); p.KidStack = append(p.KidStack, v) }
