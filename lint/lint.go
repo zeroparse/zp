@@ -17,8 +17,10 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend"
 )
 
 // Severity tells how likely a finding is to be a mistake.
@@ -163,16 +165,37 @@ func (c Config) Run(ctx context.Context, g *grammar.Grammar, start string) ([]Fi
 	if err != nil {
 		return nil, err
 	}
-	prog, err := engine.CompileContext(ctx, g, engine.Options{})
+	res, err := checkGrammar(ctx, g)
 	if err != nil {
 		return nil, err
 	}
+	prog := res.Program
 	if start == "" {
-		start = prog.DefaultStart()
+		start = prog.DefaultStartRule
 	} else if err := prog.CheckStart(start); err != nil {
 		return nil, err
 	}
 	return runContext(ctx, g, start, opts)
+}
+
+// checkGrammar runs the front end on g. Cancellation discards the result and its errors.
+func checkGrammar(ctx context.Context, g *grammar.Grammar) (res *frontend.Result, err error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if ctx.Done() == nil {
+		return frontend.Run(g, compile.Options{}, nil)
+	}
+	defer func() {
+		if failure := recover(); failure != nil {
+			if cancelled, ok := failure.(cancel.Cancellation); ok {
+				res, err = nil, cancelled.Err
+			} else {
+				panic(failure)
+			}
+		}
+	}()
+	return frontend.Run(g, compile.Options{}, &cancel.Control{Ctx: ctx})
 }
 
 // RunUnchecked lints g from start as Run does, without compiling g: it is for a caller that has
