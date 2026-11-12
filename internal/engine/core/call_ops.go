@@ -158,7 +158,7 @@ func (p *Parser) ctxEnter(c *CtxState, r *Rule, min int) ctxHit {
 	}
 	c.ctx = true
 	c.present = p.present(gp)
-	c.framed = !p.strictCtx() && p.recordsIn(c.present)
+	c.framed = !p.strictCtx() && !p.inserts(r) && p.recordsIn(c.present)
 	return ctxHit{}
 }
 

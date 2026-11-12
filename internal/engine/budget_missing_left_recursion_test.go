@@ -37,9 +37,9 @@ func leastLimit(t *testing.T, with func(n uint64) limits.Limits, parse func(limi
 }
 
 // TestBudgetUnrecordedContextCalls pins the compute and memory of a parse whose left-recursive
-// calls run in a context that records no dependencies, as with missing tokens or without the
-// context memo: their results go to no table, so such a call allocates no entry and copies no
-// recovered errors. It covers missing tokens in the Closure parse and recognition, and the parse
+// calls run in a context that records no dependencies, as for rules that contain #missing with
+// missing tokens, or without the context memo: their results go to no table, so such a call
+// allocates no entry and copies no recovered errors. It covers missing tokens in the Closure parse and recognition, and the parse
 // without the context memo on every backend.
 func TestBudgetUnrecordedContextCalls(t *testing.T) {
 	t.Parallel()
@@ -47,7 +47,8 @@ func TestBudgetUnrecordedContextCalls(t *testing.T) {
 	const grammar = `rule e = f "+" "a" / f "-" "a" / "a" g
 rule f = e ("x" / "y" / "z")?
 rule g = ";" / "x" #recover(skip=[b]+)`
-	missingProg, prog := mustCompile(t, grammar+"\nrule h = \"q\" #missing"), mustCompile(t, grammar)
+	// In missingProg, g may call h, so every rule of the cycle contains #missing.
+	missingProg, prog := mustCompile(t, grammar+" / h\nrule h = \"q\" #missing"), mustCompile(t, grammar)
 	type run struct {
 		backend   Backend
 		recognize bool
@@ -56,8 +57,8 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 	}
 	type usage struct{ compute, memory uint64 }
 	want := map[run]usage{
-		{Closure, false, 10, false}:         {248, 81016},
-		{Closure, true, 10, false}:          {214, 46160},
+		{Closure, false, 10, false}:         {157, 80492},
+		{Closure, true, 10, false}:          {123, 45636},
 		{Closure, false, 0, true}:           {245, 81820},
 		{Bytecode, false, 0, true}:          {295, 90316},
 		{BytecodeIterative, false, 0, true}: {294, 91612},

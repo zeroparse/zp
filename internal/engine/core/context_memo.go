@@ -63,6 +63,7 @@ const (
 	CtxCapDeps                    // a result with more than maxCtxDeps dependencies is not stored
 	CtxNarrowPresent              // a context whose present set needs more than a word records nothing
 	CtxNarrowOutcome              // a lookahead whose examined range needs more than a word is not stored
+	CtxStrictMissing              // a parse with missing-token insertion keeps no result in a context
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -266,7 +267,18 @@ func KeepSeedResults(t *MemoTable, p *Parser) {
 
 // strictCtx reports that results in a context are not memoized in this parse.
 func (p *Parser) strictCtx() bool {
-	return p.ContextMemoOff || p.Missing != nil
+	return p.ContextMemoOff || ContextMemoMutation == CtxStrictMissing && p.Missing != nil
+}
+
+// inserts reports that the results of r depend on the insertions before them in this parse: r
+// contains #missing, directly or through the rules it calls, in a parse with missing-token
+// insertion. Such a rule is evaluated again at every call, in a context as outside one, and its
+// evaluations there record no dependencies of their own: a call of it is part of an evaluation
+// of another such rule or of a lookahead, which takes the seeds it reads. Any other rule inserts
+// nothing and reads only seeds of leaders that insert nothing, so its results do not depend on
+// the insertions, and are kept in contexts as in a parse without insertion.
+func (p *Parser) inserts(r *Rule) bool {
+	return p.Missing != nil && r.Missing
 }
 
 // gammaAt returns the index of the first growth of the cycle at pos that the innermost growths
