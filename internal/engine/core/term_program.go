@@ -69,23 +69,23 @@ type termOp uint8
 const (
 	tNop termOp = iota
 	// Moves and constants.
-	tConst   // a[dst] = consts[a]
-	tIntK    // n[dst] = a
-	tMoveA   // a[dst] = a[a]
-	tMoveN   // n[dst] = n[a]
-	tMoveS   // s[dst] = s[a]
-	tMoveT   // t[dst] = t[a]
-	tCap     // a[dst] = the capture in slot a of the frame
-	tLocal   // a[dst] = the Operators Rule local names[a]
-	tVar     // a[dst] = the variable in slot a
-	tUnbox   // a[dst] = unboxed a[a]
-	tFromB   // a[dst] = bool n[a]
-	tFromT   // a[dst] = string t[a]
-	tNot     // n[dst] = !n[a]
-	tLt      // n[dst] = n[a] < n[b]
-	tAdd     // n[dst] = n[a] + n[b]
-	tEqN     // n[dst] = n[a] == n[b]
-	tIsNil   // n[dst] = a[a] == nil
+	tConst // a[dst] = consts[a]
+	tIntK  // n[dst] = a
+	tMoveA // a[dst] = a[a]
+	tMoveN // n[dst] = n[a]
+	tMoveS // s[dst] = s[a]
+	tMoveT // t[dst] = t[a]
+	tCap   // a[dst] = the capture in slot a of the frame
+	tLocal // a[dst] = the Operators Rule local names[a]
+	tVar   // a[dst] = the variable in slot a
+	tUnbox // a[dst] = unboxed a[a]
+	tFromB // a[dst] = bool n[a]
+	tFromT // a[dst] = string t[a]
+	tNot   // n[dst] = !n[a]
+	tLt    // n[dst] = n[a] < n[b]
+	tAdd   // n[dst] = n[a] + n[b]
+	tEqN   // n[dst] = n[a] == n[b]
+	tIsNil // n[dst] = a[a] == nil
 	// Compositions; those marked fallible end Eval with their failure.
 	tMember   // fallible: a[dst] = member(kind, a[a]) of members[b]
 	tUnary    // fallible: a[dst] = unary(b, a[a])
