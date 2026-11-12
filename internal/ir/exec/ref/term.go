@@ -24,6 +24,8 @@ type TermEnv struct {
 	// Zeros are the zero values of the fields of the struct types by type and field name: what a field
 	// that a constructor left unset reads as (spec/language/types.md#zero-values).
 	Zeros map[string]map[string]V
+	// Vars are the values of the grammar's variables by name; reading a variable that is absent fails.
+	Vars map[string]V
 }
 
 // failure is the panic value of an evaluation error.
@@ -34,6 +36,10 @@ type failure string
 func (e *TermEnv) Eval(t grammar.Term) (v V, err string) {
 	defer func() {
 		if x := recover(); x != nil {
+			if _, ok := x.(unknownSignal); ok {
+				v, err = Unknown, ""
+				return
+			}
 			f, ok := x.(failure)
 			if !ok {
 				panic(x)
@@ -76,6 +82,12 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 			return p[t.Name]
 		}
 		return e.Captures[t.Name]
+	case *grammar.VarRef:
+		v, ok := e.Vars[t.Name]
+		if !ok {
+			fail("undefined variable %s", t.Name)
+		}
+		return v
 	case *grammar.Member:
 		return e.member(e.eval(t.X, p), t.Name)
 	case *grammar.New:
@@ -83,6 +95,7 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 			// N{x} converts the node x to the named node type N: it keeps the range and the content
 			// of x and carries the name N (types.md, Named Node Types). The checker admits only nodes.
 			x := e.eval(t.Args[0], p)
+			need(x)
 			if x.Kind != KNode {
 				panic("ref: conversion of a value that is not a node: " + x.TypeName())
 			}
@@ -101,7 +114,9 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 	case *grammar.Binary:
 		return e.binary(t, p)
 	case *grammar.Unary:
-		v, msg := Unary(t.Op, e.eval(t.X, p))
+		x := e.eval(t.X, p)
+		need(x)
+		v, msg := Unary(t.Op, x)
 		if msg != "" {
 			fail("%s", msg)
 		}
@@ -121,6 +136,7 @@ func (e *TermEnv) terms(ts []grammar.Term, p params) []V {
 }
 
 func (e *TermEnv) member(x V, name string) V {
+	need(x)
 	switch x.Kind {
 	case KNode:
 		switch name {
@@ -151,21 +167,11 @@ func (e *TermEnv) member(x V, name string) V {
 
 func (e *TermEnv) binary(t *grammar.Binary, p params) V {
 	if t.Op == "&&" || t.Op == "||" {
-		l, msg := Truth(t.Op, e.eval(t.L, p))
-		if msg != "" {
-			fail("%s", msg)
-		}
-		if l == (t.Op == "||") {
-			return Bool(l) // the right operand decides nothing
-		}
-		r, msg := Truth(t.Op, e.eval(t.R, p))
-		if msg != "" {
-			fail("%s", msg)
-		}
-		return Bool(r)
+		return e.logic(t, p)
 	}
 	l := e.eval(t.L, p)
 	r := e.eval(t.R, p)
+	need(l, r)
 	v, msg := Binary(t.Op, l, r) // "[]" indexes a list or a tuple
 	if msg != "" {
 		fail("%s", msg)
@@ -173,8 +179,30 @@ func (e *TermEnv) binary(t *grammar.Binary, p params) V {
 	return v
 }
 
+// strictLogic applies && or || as the language does: the left operand first, and the right one only
+// if the left one does not decide.
+func (e *TermEnv) strictLogic(t *grammar.Binary, p params) V {
+	lv := e.eval(t.L, p)
+	need(lv)
+	l, msg := Truth(t.Op, lv)
+	if msg != "" {
+		fail("%s", msg)
+	}
+	if l == (t.Op == "||") {
+		return Bool(l) // the right operand decides nothing
+	}
+	rv := e.eval(t.R, p)
+	need(rv)
+	r, msg := Truth(t.Op, rv)
+	if msg != "" {
+		fail("%s", msg)
+	}
+	return Bool(r)
+}
+
 // items returns the elements of a list value or a list node; nil is the empty list.
 func (e *TermEnv) items(fn string, v V) []V {
+	need(v)
 	switch v.Kind {
 	case KNil:
 		return nil
@@ -195,6 +223,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 	switch c.Func {
 	case "len":
 		x := e.eval(c.Args[0], p)
+		need(x)
 		switch x.Kind {
 		case KNil:
 			return Int(0)
@@ -211,6 +240,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		fail("len: invalid argument %s", x.TypeName())
 	case "text":
 		x := e.eval(c.Args[0], p)
+		need(x)
 		switch x.Kind {
 		case KNil:
 			return Str("")
@@ -239,6 +269,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		var out []V
 		for _, it := range e.items("filter", e.eval(c.Args[0], p)) {
 			keep := apply(lambda(1), it)
+			need(keep)
 			if keep.Kind != KBool {
 				fail("filter: predicate must produce a bool, got %s", keep.TypeName())
 			}
@@ -282,6 +313,7 @@ func castName(t grammar.TypeExpr) string {
 // other than a built-in one is a declared struct type or named node type, which admits only its own
 // values. The model has no values of error recovery, so error admits none.
 func admits(t grammar.TypeExpr, x V) bool {
+	need(x)
 	switch t := t.(type) {
 	case *grammar.TypeGroup:
 		return admits(t.Type, x)
