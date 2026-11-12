@@ -2178,9 +2178,12 @@ step. In the constant number of steps of a growth that the claims leave out,
 the parts that hold them read no growing result and are evaluated alike in
 every step that reaches them (*Evaluations that read no growing result*), so
 at each position they number at most a constant times what one evaluation of
-those parts holds there. Bounding that by the activations of the sequence in
-the growth, summed over the positions, is part of step 4 of [Open
-Steps](#open-steps), as are the pairs that step 2 keeps.
+those parts holds there, which *Consecutive repeats inside a family* below
+bounds by a constant for each family of growths. Each of them follows an
+activation of $\sigma$ at $q$ in an earlier step of the same growth, so a
+growth that holds one also holds one of the sequence, or one of case 5 or a
+dropped step, and they add no growth to the count over the positions below.
+The pairs that step 2 of [Open Steps](#open-steps) keeps remain open.
 
 **Families of growths.** A growth of a leader at $p$ is **outer** when no
 growth of its cycle is in progress at $p$ where its call is made. The
@@ -2409,17 +2412,19 @@ of growths*); the growths that they nest have other leaders. Otherwise the
 later activation of the pair lies in a later step, in the second case of
 *Repeats inside a growth*: in a step that the claims at $p$ do not leave out,
 at most a constant after $p$. So, by induction on the depth of the growths at
-$p$, which have distinct leaders, when $q$ is more than a constant after $p$
-the steps of one growth in the family that hold such an activation are the
-first of them, the constant number of steps that the claims at $p$ leave out
-and the steps that a pair kept by step 2 of [Open Steps](#open-steps) enters,
-and the activations of $\sigma$ at $q$ in the family region of $g$ number
-at most a constant, apart from a constant for each step of the family when $q$
-is at most a constant after $p$, the activations inside calls of rules that
-call no rule, case 5 and the dropped steps, what one evaluation of the parts
-at $p$ holds at $q$ in the constant number of steps of each growth that the
-claims at $p$ leave out, and the pairs that step 2 of [Open Steps](#open-steps)
-keeps.
+$p$, which have distinct leaders, one step holds at most a constant of them:
+the earlier activation of each pair in the step lies in one of the at most
+$c_5$ growths that the step starts at $p$, each of which holds at most a
+constant by the induction. This holds in the steps that the claims at $p$
+leave out too, whose parts at $p$ can examine the input far from $p$. When
+$q$ is more than a constant after $p$, the steps of one growth in the family
+that hold such an activation are the first of them, the constant number of
+steps that the claims at $p$ leave out and the steps that a pair kept by step
+2 of [Open Steps](#open-steps) enters. So the activations of $\sigma$ at $q$ in
+the family region of $g$ number at most a constant, apart from a constant for
+each step of the family when $q$ is at most a constant after $p$, the
+activations inside calls of rules that call no rule, case 5 and the dropped
+steps, and the pairs that step 2 of [Open Steps](#open-steps) keeps.
 
 ## Lemma 6 (Values and Copies)
 
@@ -4402,12 +4407,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    *Consecutive repeats inside a family* bound the activations of a source at a
    position in the family region of one outer growth by a constant, apart from
    a constant for each step at the positions at most a constant after the
-   growth, and leave two parts. The activations that *Repeats inside a growth* leaves out of the
-   sequence of Lemma 4 in the constant number of steps of each growth that the
-   claims at the position of the growth leave out, which number at most a
-   constant times what one evaluation of those parts holds at the position.
-   And the activations inside calls of rules that call no rule, the leaf links
-   inside a family, with the open parts of step 1. Second, the heads of keys
+   growth, and leave the activations inside calls of rules that call no rule, the leaf
+   links inside a family, with the open parts of step 1, and the pairs that
+   step 2 keeps. Second, the heads of keys
    that hold a free activation or one that a link of a kind that *Links to heads* leaves
    out leads to, and the activations that *Heads hold what later growths hold*
    leaves out, through a result or step kept in a smaller lookahead state or
