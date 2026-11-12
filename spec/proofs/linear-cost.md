@@ -1777,15 +1777,20 @@ steps of a growth whose values of variables do not change have a result that
 does not include the seed.
 
 *Proof.* Such a result is the match of a path of the body of the leader that
-makes no successful left call at $p$. On it, the evaluations at $p$ call no
-rule of the cycle at $p$ outside the left calls that failed, and their outcomes
-are fixed by the previous claim; what follows them starts after $p$ and reads
-no growing result of the cycle at $p$. So the result is fixed by the
-alternatives that the path takes at $p$, in the body of the leader and in the
-bodies of the rules of the cycle that its left calls of rules other than
-leaders reach, which are a constant number of choices, since every cycle of
-left calls passes through a leader. Each step except the last ends with a
-result longer than its seed, so no such result ends two steps. $\square$
+makes no successful left call at $p$ whose result includes the seed. On it,
+the evaluations at $p$ call no rule of the cycle at $p$ outside the left calls
+that failed and the left calls of other leaders whose results do not include
+the seed, and the outcomes of the other evaluations at $p$ are fixed by the
+previous claim; what follows them starts after $p$ and reads no growing result
+of the cycle at $p$. When the reads of those other growths are plain, each of
+their results is one of a constant number (*Growths inside a step*, at the end
+of this lemma); step 4 of [Open Steps](#open-steps) keeps the other case. So
+the result is fixed by the alternatives that the path takes at $p$, in the
+body of the leader and in the bodies of the rules of the cycle that its left
+calls of rules other than leaders reach, which are a constant number of
+choices, since every cycle of left calls passes through a leader, and by those
+results. Each step except the last ends with a result longer than its seed, so
+no such result ends two steps. $\square$
 
 **Failures at the position of the growth.** Leave out the steps of the claim above and
 the first, the one whose seed is empty and the last. In every other step, let
@@ -1889,25 +1894,165 @@ is local cost of the body evaluations that it continues, which Lemma 1 counts.
 Leaving these paths out of condition 2 therefore adds a constant for each
 evaluation of A, beyond the steps that are counted here.
 
-A leader R called at $p$ in a step of the growth of another leader S of its
-cycle grows there in the context of that growth. A step of R from a result
-that read no growing result of S, or the same one, is the step that an earlier
-growth of R took from it: equal results of a step share their identity, the
-steps are reused, and a run of steps that read only R's own result is taken at
-once, so these steps cost a constant for each step of S beyond their first
-evaluation. A growth of R from a result that includes the growing result of S
-is new in each step of S. By condition 5 either the step of S keeps the result
-of R, and the input that R examines past the end of the seed of S is the input
-that this step consumes, or R grows past that end only where the growth of S
-stops, which happens once per growth. A growth of S that stops can still
-throw away what R consumed past the end of its seed, and the growths of S at
-other positions can cover that input again. The call of R is a scanning source,
+**Calls in a context of growths.** Let a growth of a leader $S$ be in progress
+at $p$. Every call at $p$ of a rule of its cycle made while it is in progress
+is made in a step of that growth, or of a growth of another leader that a step
+starts at $p$, through left calls of rules of the cycle from the body of the
+leader of that step. Outside an Operators Rule, a body evaluation at $p$ makes
+each call of its body at $p$ at most once, so a step makes at most a constant
+$c_5$ of evaluations in the context of the growth outside the steps of the
+growths of other leaders that it starts, and those growths are nested at most
+as deep as the cycle has leaders.
+
+*Proof.* The growth starts at $p$ and ends before its caller goes on, so a
+call made while it is in progress is made inside one of its steps, each of
+which evaluates the body of $S$ from $p$. Positions do not decrease, so every
+body on the way from that body to a call at $p$ started at $p$, and each call
+on the way was made before its caller's body consumed input. The analysis of
+left calls finds each of them ([Growths of Left
+Recursion](../runtime/parsing.md#growths-of-left-recursion)), and each rule on
+the way is reached from $S$ and reaches the rule called at $p$, which is on
+the cycle, so it is on the cycle and the calls are left calls. In one body
+evaluation, an expression starts at $p$ at most once: a choice and a lookahead
+go back only to the start of one of their own parts, a repetition stops at the
+first iteration that consumes nothing
+([Repetition](../language/parser-expressions.md#repetition)), so at most one of its
+iterations starts at $p$, and a `#recover` evaluates its base and its skip
+expression once each. So a body evaluation at $p$ makes at most $b$ calls at
+$p$, where $b$ is the largest number of calls in a body. A left call of $S$
+reads the growing result and evaluates no body. A left call of a rule other
+than a leader is not memoized in the context and evaluates its body; a chain of
+such calls has fewer than $|\text{rules}|$ calls, since every cycle of left
+calls passes through a leader. A left call of another leader $R$ reads the
+growing result of $R$ when $R$ grows at $p$ already, and otherwise grows $R$
+there, in the context, or takes the steps of an earlier growth of $R$ in it.
+So outside those growths, the evaluations of a step in the context form a tree
+of fewer than $|\text{rules}|$ levels with at most $b$ children at each, and
+$c_5 = b^{|\text{rules}|}$ bounds them. A growth of $R$ inside a growth of
+another leader at $p$ starts no growth of a leader that grows at $p$ already,
+so the growths at $p$ that enclose one another have distinct leaders. $\square$
+
+A **read** of the growing result of a leader $R$ at $p$ is a call of $R$ at
+$p$ while $R$ grows there, made in a step of $R$ or in a step of a growth that
+such a step nests at $p$. A result **includes** that growing result when its
+match passes through a read that succeeds, directly or through the result of a
+call that includes it.
+
+**Steps that begin anew.** Let the values of the variables not change in a
+growth of a leader $R$ at $p$, and let its reads be **plain**: no lookahead
+evaluated at $p$ in its steps, or in the steps of the growths that they nest
+at $p$, reads the growing result of the leader of the step that it is in, and
+no cut in a body evaluated at $p$ is passed after such a read or after a call
+whose result includes one. Let $\bar{r}$ be the first result
+of the growth that is not empty, the result of its first or second step. Then
+every result of the growth after $\bar{r}$ begins with the result before it, so
+every result from $\bar{r}$ on includes $\bar{r}$. A growth of another leader $T$ that
+a step of $R$ nests at $p$ either has only results, from its first result that
+is not empty on, that include the growing result of $R$, or reads it only on
+paths that fail and takes the steps it takes where that read fails.
+
+*Proof.* By induction on the number of leaders that do not grow at $p$, the
+claim for $T$ first. In a step of $R$, the evaluations at $p$ read the same
+input and values in every step, and only the reads of the growing result of
+$R$ return something else: in the first step they fail, and once a result
+that is not empty is the growing result, they succeed and the path goes on
+after $p$. Positions do not decrease, and outside a lookahead nothing that
+follows a call goes back to the position where the call started, other than a
+failure that goes back to a choice, an option or a repetition, as a failure of
+the call itself would; the bindings made after that point are undone
+([Variables](../language/predicates.md#variables)), and no cut is passed
+after the read. A step of a nested growth of
+$T$ goes back to $p$, but by the claim for $T$, $T$ either returns a result
+that includes the growing result of $R$, which ends after $p$, or returns what
+it returns where that read fails. So in a step after $\bar{r}$, every path at $p$
+through a read either succeeds with a result that begins with the growing
+result, or fails, or behaves as where the read fails. If the step ends with a
+result that does not begin with the growing result, it took the same choices at
+$p$ as the first step and ends with the result of the first step, which is not
+longer than its seed, so the growth ends with it. The results from $\bar{r}$ on
+each begin with the one before, so they include $\bar{r}$. For $T$, the same
+argument applies to its steps, with the reads of the growing result of $R$ in
+the role of the first step's failing reads: if the first result of $T$ that is
+not empty passes through a read that succeeds, every later one begins with it
+and includes it; if not, every path through such a read in a step of $T$ fails
+or behaves as where the read fails, so the steps of $T$ are those it takes
+where the read fails. $\square$
+
+The lookaheads that the claim leaves out read the growing result of a leader
+at its own position and are units that are not alternatives. When such a
+lookahead can evaluate its left call before it examines the input, it contains
+the body of that leader, and condition 2 rejects it if that body contains a
+scanning source, as it does when the body calls another leader, a call that is
+a scanning source. A cut passed after a read can make the enclosing choice
+fail where the first step went on, so that a later step takes an alternative
+that the first step did not reach ([Cut](../language/parser-expressions.md#cut)).
+Step 4 of [Open Steps](#open-steps) keeps the lookaheads that examine the
+input before their left call and the cuts.
+
+**Growths inside a step.** Let a step of the growth of a leader $S$ at $p$,
+after the first, start a growth of another leader $R$ at $p$, let $e$ be the
+end of the seed of the step, and let the hypotheses of *Steps that begin anew*
+hold for $R$ and $S$. Then the growth of $R$ is of one of three kinds.
+
+1. It reads no growing result of $S$, or the same growing results as an earlier
+   growth of $R$ in the context, and it takes the steps of that growth again,
+   at a constant cost for each step of $S$ beyond their first evaluation.
+2. Its result includes the growing result of $S$, and it takes at most three
+   steps more than the length by which its result passes $e$.
+3. Its result does not include the growing result of $S$, and it takes at
+   most two steps more than the length of its result, which is one of a
+   constant number of results.
+
+*Proof.* A step of $R$ from a result that read no growing result of $S$, or
+the same growing results as an earlier step, is the step that an earlier
+growth of $R$ in the context took from it ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), and the growth of $S$ is
+in progress, so the context keeps it; a run of steps that read only the result
+of $R$ is taken at once. By *Steps that begin anew* for the growth of $S$,
+applied to the growth of $R$ that its step nests, that growth either includes
+the growing result of $S$ in all its results from the first that is not
+empty, or reads it only on paths that fail and takes the steps it takes where
+that read fails. In the first
+case the results that include the growing result of $S$ end at $e$ or after
+it and each is longer than the one before, so there are at most one more of
+them than the length by which the last passes $e$, one step ends the growth,
+and a first result that is empty, which includes no growing result that is not
+empty, adds one more. In the second case, the steps of $R$ depend
+on the growing result of $S$ only through the outcomes of the paths through
+its reads: the reads are calls of $S$ at $p$, which return the same result in
+every step of $R$, and what follows them starts at $e$, after $p$, where
+nothing reads a growing result at $p$ (*Evaluations that read no growing
+result*). By *Calls in a context of growths* there are at most a constant
+number of such paths, so the outcomes take a constant number of combinations,
+and each fixes the growth of $R$ and its result. The growth takes at most two
+steps more than the length of its result ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)). $\square$
+
+So the growths of $R$ of the first kind cost a constant for each step of $S$
+beyond one growth. For the second kind, by condition 5, either the step of $S$
+keeps the result of $R$, and the length by which it passes $e$ is at most what
+the step adds to the result of $S$, so their sum over the steps of $S$ is at
+most the length that the growth of $S$ consumes; or the step can throw the
+result away, and $R$ passes $e$ only in the step where the growth of $S$
+stops, once per growth of $S$. For the third kind, when the step of $S$ keeps
+the result of $R$, the result of the step does not include the seed, which
+*Results that do not include the seed* allows in a constant number of steps,
+and the growth of $R$ takes at most two steps more than the length of that
+result, at most $\ell + 2$ for a growth of $S$ that consumes $\ell$
+characters. When the step can throw the result away, in the second kind where
+the growth of $S$ stops or in the third kind in any step, a growth of $S$ that
+stops can throw away what $R$ consumed, and the growths of $S$ at other
+positions can cover that input again. The call of $R$ is a scanning source,
 since it is a call of a leader in the body of another rule, so condition 2
-checks the unit around it that fails after R has grown, and the cases of
-Lemma 4 bound what the parser evaluates again after that unit. The same holds
-when the body of a rule M of the cycle other than a leader calls R where no
-growth of the cycle is in progress: the growth of R there is a scanning source
-of the unit of M that holds the call.
+checks the unit around it that fails after $R$ has grown, and the growth of
+$R$ is an activation of that source, which the cases of Lemma 4 bound with
+what the parser evaluates again after that unit. The same holds when the body
+of a rule M of the cycle other than a leader calls R where no growth of the
+cycle is in progress: the growth of R there is a scanning source of the unit
+of M that holds the call. So a growth of $S$ that consumes $\ell$ characters
+evaluates in its context at most a constant times $\ell + 1$ body evaluations,
+apart from the growths at those sources, and the growths that it nests, which
+have other leaders, are bounded in the same way.
 
 ## Lemma 6 (Values and Copies)
 
@@ -3847,13 +3992,22 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    nests at one end. The rule then nests, the call of `R` that the
    continuation reaches after an operand is not shared, and the condition
    excludes the grammar.
-4. **Contexts of growths in Lemma 5.** The proof must bound the evaluations
-   that a context of growths repeats, which Lemma 3 leaves out: the calls
-   that find no result with the same growing results and lookahead outcomes,
-   and the growths of leaders inside other growths at their position, whose
-   steps are shared only through equal results. It must show that the
-   comparison of results by structure, which is bounded, loses only reuse,
-   and that condition 5 covers every growth that is new in each step. Lemma 4
+4. **Contexts of growths in Lemma 5.** Lemma 5 bounds the evaluations that a
+   step of a growth makes in its context outside the growths that it nests
+   (*Calls in a context of growths*), and, when the reads of the growths are
+   plain, the steps of a growth of a leader inside a step of another one by
+   the input that the outer growth consumes, apart from the growths at calls
+   that are scanning sources (*Steps that begin anew*, *Growths inside a
+   step*). Three parts remain. The first is the reads that are not plain: a
+   lookahead that examines the input before its left call of the leader
+   whose step it is in, and a cut passed after a read, which can make a later
+   step take an alternative that the first step did not reach, as in
+   `S = S "w" / R "z" / "c" Bs` with `R = (R #cut "b" / S "y" / "c") / S "x"`
+   and `Bs = "b" Bs / ""`, whose growth of `R` covers the `b` characters again
+   in each step of `S` on `cb...b xz...xz`, which the classification
+   rejects. The second is that the comparison of results by structure, which
+   is bounded, loses only reuse. The third is the sum over the positions
+   below. Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
    growths, the activations that they own and the successful activations that
