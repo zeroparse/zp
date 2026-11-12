@@ -67,7 +67,7 @@ func (g *Generator) flowTypedRule(r *compile.Rule) *flatRule {
 	if !flowlower.LocalRule(cr) {
 		return nil
 	}
-	f, err := flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
 	}
@@ -93,7 +93,7 @@ func (g *Generator) flowFrameBody(r *compile.Rule, scope *compile.Scope) string 
 	if g.Flow.Opts.Node {
 		panic("internal error: a typed rule is lowered with the options of the Node tables")
 	}
-	f, err := flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, cr.Want, r.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, cr.Want, r.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // FramedBody holds
 	}
@@ -117,7 +117,7 @@ func (g *Generator) flowNodeFrameBody(r *compile.Rule, scope *compile.Scope) str
 	if !g.Flow.Opts.Node {
 		panic("internal error: a Node rule is lowered with the options of the typed table")
 	}
-	f, err := flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // FramedBody holds
 	}
@@ -137,7 +137,7 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *compile.Scope) string
 	}
 	opts := g.Flow.Opts
 	opts.Stream = true
-	f, err := flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, opts)
+	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, opts))
 	if err != nil {
 		panic(fmt.Errorf("stream body of rule %s: %w", r.Name, err)) // FramedBody holds
 	}
@@ -162,7 +162,7 @@ func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e grammar.Expr, scope 
 	if g.Table != "trules" && !flowlower.BodyOK(e, true, true) {
 		return ""
 	}
-	f, err := flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("line of Operators Rule %s in table %s: %w", g.Cur.Name, g.Table, err)) // FramedBody holds
 	}

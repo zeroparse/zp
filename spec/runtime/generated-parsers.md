@@ -56,7 +56,7 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
 | `-optimize` | `Optimize` | The [optimization profile](#optimization-options): `speed` (default, also the empty name), `memory` or `size`. An unknown profile is an error that lists the valid names. Rejected with `-runtime only` |
 | `-opt` | `Opt` (a map from name to value) | Gives single optimizations a value, as `name` or `name=count`. Rejected with `-runtime only` |
 | `-no-opt` | `NoOpt` | Turns the named optimizations off. Rejected with `-runtime only` |
-| `-print-after` | `PrintAfter` and `PrintTo` | Writes the Core IR to standard error (`PrintTo`, which `PrintAfter` requires) after the named passes. Rejected with `-runtime only` |
+| `-print-after` | `PrintAfter` and `PrintTo` | Writes the intermediate representation to standard error (`PrintTo`, which `PrintAfter` requires) after the named steps and passes. Rejected with `-runtime only` |
 | `-nodoc` | `OmitPackageDoc` | Omit the package comment (Go only; rejected with `-lang ts`) |
 | `-max-depth` | `MaxDepth` | The default nested recursive rule-call limit; zero selects 100,000, a positive value overrides it, a negative value fails generation. TypeScript also requires a safe integer |
 
@@ -111,8 +111,10 @@ count.
   take, a count that is not a decimal number, an empty item and a name given twice in `-opt` are errors, and generation fails before it writes a file.
 - **Languages.** The options apply to Go and TypeScript. An optimization that concerns only one language,
   such as the slabs of typed Go values, has no effect on the other, and naming it is not an error.
-- **`-print-after`** takes `build` (the Core IR as built), the name of a pass, or `all`. A pass that does
-  not apply to the parser prints nothing. An unknown name is an error that lists the valid ones.
+- **`-print-after`** takes `build` (the Core IR of each rule table as built), the name of a Core pass,
+  `flow` (each function printed from Flow IR, as lowered from Core IR), the name of a Flow pass, or `all`.
+  A pass that does not apply to the parser prints nothing. An unknown name is an error that lists the
+  valid ones.
 
 ### Generated Go API
 

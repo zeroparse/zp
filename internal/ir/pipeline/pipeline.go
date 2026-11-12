@@ -6,8 +6,9 @@
 // pass's required analyses valid, after it marks the invalidated ones stale, and it verifies the unit,
 // once at the end or after every pass. A pass that breaks an invariant is named in the error.
 //
-// The package knows nothing about the unit M or the context X that its callers choose: Core IR is the
-// first user (internal/ir/core, Pipeline). It holds no state between runs.
+// The package knows nothing about the unit M or the context X that its callers choose: Core IR
+// (internal/ir/core, Pipeline) and Flow IR (internal/ir/flow, Pipeline) use it. It holds no state
+// between runs.
 package pipeline
 
 import "fmt"
@@ -62,6 +63,9 @@ type Options[M any] struct {
 	// Dump, if not nil, is called with "build" before the first pass and with the name of each pass
 	// after it ran, before it is verified.
 	Dump func(pass string, m M)
+	// BuiltVerified reports that the builder of the unit has verified it, so that a run in which no
+	// pass ran does not verify it again.
+	BuiltVerified bool
 }
 
 // Validate checks the declarations: names are distinct and non-empty, every analysis a pass or
@@ -158,6 +162,9 @@ func (p *Pipeline[M, X]) Run(m M, x X, o Options[M]) ([]string, error) {
 				return ran, err
 			}
 		}
+	}
+	if o.BuiltVerified && len(ran) == 0 {
+		return ran, nil
 	}
 	if err := verify("verification"); err != nil {
 		return ran, err

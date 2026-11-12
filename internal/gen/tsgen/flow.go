@@ -62,7 +62,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *compile.Scope) (call string
 	cr := g.Flow.M.Rules[r.ID]
 	if flowlower.RecEligible(r) && flowlower.LocalRule(cr) {
 		var err error
-		if f, err = flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts); err != nil {
+		if f, err = g.FlowPasses(flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts)); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
 		}
 		if f.Binds {
@@ -74,7 +74,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *compile.Scope) (call string
 			return "", false
 		}
 		var err error
-		if f, err = flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, g.Flow.Opts); err != nil {
+		if f, err = g.FlowPasses(flowlower.LowerFrame(g.Flow.M, cr, cr.Body, cr.Scope, !r.Lean, r.Name, g.Flow.Opts)); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // FramedBody holds
 		}
 		slots = cr.Scope
@@ -940,7 +940,7 @@ func (g *Generator) flowLine(l *core.OpLine, e grammar.Expr, scope *compile.Scop
 	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return "", false
 	}
-	f, err := flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("line of Operators Rule %s in table %s: %w", g.Cur.Name, g.Table, err)) // FramedBody holds
 	}
@@ -960,7 +960,7 @@ func (p *tsFlowPrinter) outline(x *flow.CallOutline) string {
 		return call
 	}
 	g := p.g
-	f, err := flowlower.LowerOutline(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], x.Node, x.Slots, x.Build, g.Cur.Name, g.Flow.Opts)
+	f, err := g.FlowPasses(flowlower.LowerOutline(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], x.Node, x.Slots, x.Build, g.Cur.Name, g.Flow.Opts))
 	if err != nil {
 		panic(fmt.Errorf("outlined node of rule %s in table %s: %w", g.Cur.Name, g.Table, err)) // Outlinable holds
 	}
