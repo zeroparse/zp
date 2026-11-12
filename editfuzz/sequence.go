@@ -10,6 +10,10 @@
 // Fuzz generates sequences from a seed and an initial-text corpus, Replay runs a saved sequence and
 // Minimize shortens a failing one while it fails the same way. The design is described in
 // docs/design/records/037-replayable-edit-fuzzing.md.
+//
+// Its audience is Go programs that fuzz their own grammars and documents from Go tests; the zp command
+// uses it for the same purpose. At v0.x its API and the sequence file format are unstable and may change
+// in any release.
 package editfuzz
 
 import (
