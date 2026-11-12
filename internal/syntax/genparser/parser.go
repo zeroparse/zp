@@ -64,29 +64,29 @@ func tinit() {
 	for i, name := range []string{"Any", "BeginInput", "BeginLine", "Bottom", "CaptureRef", "Char", "Cut", "DefaultAction", "EndInput", "EndLine", "False", "Ident", "Int", "Nil", "String", "Top", "True", "VarRef"} {
 		types.ZPNodeTypes[i+1] = rt.TRegisterNodeType(name, tnamedPub)
 	}
-	trules[90].Nt = types.ZPNodeTypes[16]
-	trules[91].Nt = types.ZPNodeTypes[4]
-	trules[92].Nt = types.ZPNodeTypes[2]
-	trules[93].Nt = types.ZPNodeTypes[3]
-	trules[94].Nt = types.ZPNodeTypes[9]
-	trules[95].Nt = types.ZPNodeTypes[10]
-	trules[96].Nt = types.ZPNodeTypes[1]
-	trules[97].Nt = types.ZPNodeTypes[7]
-	trules[104].Nt = types.ZPNodeTypes[13]
-	trules[118].Nt = types.ZPNodeTypes[13]
-	trules[138].Nt = types.ZPNodeTypes[8]
-	trules[152].Nt = types.ZPNodeTypes[12]
-	trules[164].Nt = types.ZPNodeTypes[13]
-	trules[165].Nt = types.ZPNodeTypes[17]
-	trules[166].Nt = types.ZPNodeTypes[11]
-	trules[167].Nt = types.ZPNodeTypes[14]
-	trules[168].Nt = types.ZPNodeTypes[5]
-	trules[169].Nt = types.ZPNodeTypes[18]
-	trules[170].Nt = types.ZPNodeTypes[18]
-	trules[190].Nt = types.ZPNodeTypes[12]
-	trules[194].Nt = types.ZPNodeTypes[15]
-	trules[195].Nt = types.ZPNodeTypes[15]
-	trules[198].Nt = types.ZPNodeTypes[6]
+	trules[92].Nt = types.ZPNodeTypes[16]
+	trules[93].Nt = types.ZPNodeTypes[4]
+	trules[94].Nt = types.ZPNodeTypes[2]
+	trules[95].Nt = types.ZPNodeTypes[3]
+	trules[96].Nt = types.ZPNodeTypes[9]
+	trules[97].Nt = types.ZPNodeTypes[10]
+	trules[98].Nt = types.ZPNodeTypes[1]
+	trules[99].Nt = types.ZPNodeTypes[7]
+	trules[106].Nt = types.ZPNodeTypes[13]
+	trules[120].Nt = types.ZPNodeTypes[13]
+	trules[140].Nt = types.ZPNodeTypes[8]
+	trules[154].Nt = types.ZPNodeTypes[12]
+	trules[166].Nt = types.ZPNodeTypes[13]
+	trules[167].Nt = types.ZPNodeTypes[17]
+	trules[168].Nt = types.ZPNodeTypes[11]
+	trules[169].Nt = types.ZPNodeTypes[14]
+	trules[170].Nt = types.ZPNodeTypes[5]
+	trules[171].Nt = types.ZPNodeTypes[18]
+	trules[172].Nt = types.ZPNodeTypes[18]
+	trules[192].Nt = types.ZPNodeTypes[12]
+	trules[196].Nt = types.ZPNodeTypes[15]
+	trules[199].Nt = types.ZPNodeTypes[15]
+	trules[202].Nt = types.ZPNodeTypes[6]
 }
 
 func tmk_ActionBind(c *rt.TActCtx, final bool, f0 any, f1 any) any {
@@ -1832,88 +1832,88 @@ var sh9 = rt.Shaper{Elems: true, K: 1, Mode: 2, Tuple: true, Shared: false}
 var sh10 = rt.Shaper{Elems: true, K: 2, Mode: 2, Tuple: true, Shared: false}
 var sh11 = rt.Shaper{Elems: false, K: 1, Mode: 1, Tuple: false, Shared: false}
 var sh16 = rt.Shaper{Elems: false, K: 0, Mode: 0, Tuple: true, Shared: false}
-var lit26 = []rune(";")
-var lit28 = []rune("}")
-var lit33 = []rune("(")
-var lit34 = []rune("{")
-var lit35 = []rune("[")
-var lit36 = []rune(")")
-var lit37 = []rune("]")
-var lit39 = []rune("\\")
-var lit50 = []rune("rule")
-var lit53 = []rune("type")
-var lit54 = []rune("var")
-var lit59 = []rune(":")
-var lit60 = []rune("/")
-var lit61 = []rune("//")
-var lit62 = []rune("=")
-var lit63 = []rune("~")
-var budgetClass66 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 58, Hi: 58}, {Lo: 33, Hi: 33}, {Lo: 60, Hi: 60}, {Lo: 62, Hi: 62}, {Lo: 61, Hi: 61}, {Lo: 43, Hi: 43}, {Lo: 42, Hi: 42}, {Lo: 47, Hi: 47}, {Lo: 37, Hi: 37}, {Lo: 38, Hi: 38}, {Lo: 124, Hi: 124}, {Lo: 94, Hi: 94}, {Lo: 45, Hi: 45}}, false)
-var lit67 = []rune("=>")
-var lit85 = []rune("node[")
-var lit87 = []rune(",")
-var lit94 = []rune("terminal")
-var lit95 = []rune("Match")
-var lit96 = []rune("Seq")
-var lit97 = []rune("List")
-var lit98 = []rune("Operator")
-var lit99 = []rune("Error")
-var lit121 = []rune("#")
-var lit124 = []rune("operators")
-var lit125 = []rune("skip")
-var lit126 = []rune("operand")
-var lit127 = []rune("level")
-var lit128 = []rune("prefix")
-var lit129 = []rune("postfix")
-var lit130 = []rune("infix")
-var lit131 = []rune("\"")
-var budgetClass132 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 32, Hi: 32}, {Lo: 9, Hi: 9}, {Lo: 10, Hi: 10}, {Lo: 11, Hi: 11}, {Lo: 12, Hi: 12}, {Lo: 13, Hi: 13}, {Lo: 133, Hi: 133}, {Lo: 160, Hi: 160}, {Lo: 5760, Hi: 5760}, {Lo: 8192, Hi: 8202}, {Lo: 8232, Hi: 8232}, {Lo: 8233, Hi: 8233}, {Lo: 8239, Hi: 8239}, {Lo: 8287, Hi: 8287}, {Lo: 12288, Hi: 12288}}, false)
-var sh133 = rt.Shaper{Elems: true, K: 3, Mode: 2, Tuple: true, Shared: false}
-var sh134 = rt.Shaper{Elems: true, K: 5, Mode: 2, Tuple: true, Shared: false}
-var lit136 = []rune("atomic")
-var lit137 = []rune("stream")
-var lit138 = []rune("missing")
-var lit139 = []rune("ignorecase")
-var lit140 = []rune("repeat")
-var lit141 = []rune("recover")
-var lit142 = []rune("cut")
-var lit147 = []rune("level(")
-var lit149 = []rune("_")
-var lit151 = []rune("_|_")
-var lit153 = []rune("^^")
-var lit155 = []rune("^")
-var lit157 = []rune("$$")
-var lit159 = []rune("$")
-var lit161 = []rune(".")
-var lit162 = []rune("..")
-var lit164 = []rune("#cut")
-var lit172 = []rune("-")
-var lit173 = []rune("0")
-var lit192 = []rune("#ignorecase")
-var lit195 = []rune("#operators")
-var lit212 = []rune("left")
-var lit213 = []rune("right")
-var lit214 = []rune("none")
-var lit217 = []rune("...")
-var lit224 = []rune(":=")
-var lit227 = []rune("startPos")
-var lit228 = []rune("endPos")
-var lit229 = []rune("children")
-var lit230 = []rune("expected")
-var lit231 = []rune("message")
-var lit247 = []rune("[]")
-var lit255 = []rune("true")
-var lit257 = []rune("false")
-var lit259 = []rune("nil")
-var lit271 = []rune("\r\n")
-var lit276 = []rune("/*")
-var lit286 = []rune("*/")
-var lit294 = []rune("i")
-var lit347 = []rune("*")
-var budgetClass355 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 32, Hi: 32}, {Lo: 9, Hi: 9}, {Lo: 11, Hi: 11}, {Lo: 12, Hi: 12}, {Lo: 133, Hi: 133}, {Lo: 160, Hi: 160}, {Lo: 5760, Hi: 5760}, {Lo: 8192, Hi: 8202}, {Lo: 8232, Hi: 8232}, {Lo: 8233, Hi: 8233}, {Lo: 8239, Hi: 8239}, {Lo: 8287, Hi: 8287}, {Lo: 12288, Hi: 12288}}, false)
-var sh412 = rt.Shaper{Elems: true, K: 0, Mode: 0, Tuple: true, Shared: false}
-var sh413 = rt.Shaper{Elems: true, K: 4, Mode: 2, Tuple: true, Shared: false}
-var sh414 = rt.Shaper{Elems: true, K: 6, Mode: 2, Tuple: true, Shared: false}
+var lit21 = []rune("=")
+var lit22 = []rune("/*")
+var lit30 = []rune(";")
+var lit32 = []rune("}")
+var lit37 = []rune("(")
+var lit38 = []rune("{")
+var lit39 = []rune("[")
+var lit40 = []rune(")")
+var lit41 = []rune("]")
+var lit43 = []rune("\\")
+var lit54 = []rune("rule")
+var lit57 = []rune("type")
+var lit58 = []rune("var")
+var lit63 = []rune(":")
+var lit64 = []rune("/")
+var lit65 = []rune("//")
+var lit66 = []rune("~")
+var budgetClass69 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 58, Hi: 58}, {Lo: 33, Hi: 33}, {Lo: 60, Hi: 60}, {Lo: 62, Hi: 62}, {Lo: 61, Hi: 61}, {Lo: 43, Hi: 43}, {Lo: 42, Hi: 42}, {Lo: 47, Hi: 47}, {Lo: 37, Hi: 37}, {Lo: 38, Hi: 38}, {Lo: 124, Hi: 124}, {Lo: 94, Hi: 94}, {Lo: 45, Hi: 45}}, false)
+var lit70 = []rune("=>")
+var lit88 = []rune("node[")
+var lit90 = []rune(",")
+var lit97 = []rune("terminal")
+var lit98 = []rune("Match")
+var lit99 = []rune("Seq")
+var lit100 = []rune("List")
+var lit101 = []rune("Operator")
+var lit102 = []rune("Error")
+var lit124 = []rune("#")
+var lit127 = []rune("operators")
+var lit128 = []rune("skip")
+var lit129 = []rune("operand")
+var lit130 = []rune("level")
+var lit131 = []rune("prefix")
+var lit132 = []rune("postfix")
+var lit133 = []rune("infix")
+var lit134 = []rune("\"")
+var budgetClass135 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 32, Hi: 32}, {Lo: 9, Hi: 9}, {Lo: 10, Hi: 10}, {Lo: 11, Hi: 11}, {Lo: 12, Hi: 12}, {Lo: 13, Hi: 13}, {Lo: 133, Hi: 133}, {Lo: 160, Hi: 160}, {Lo: 5760, Hi: 5760}, {Lo: 8192, Hi: 8202}, {Lo: 8232, Hi: 8232}, {Lo: 8233, Hi: 8233}, {Lo: 8239, Hi: 8239}, {Lo: 8287, Hi: 8287}, {Lo: 12288, Hi: 12288}}, false)
+var sh136 = rt.Shaper{Elems: true, K: 3, Mode: 2, Tuple: true, Shared: false}
+var sh137 = rt.Shaper{Elems: true, K: 5, Mode: 2, Tuple: true, Shared: false}
+var lit139 = []rune("atomic")
+var lit140 = []rune("stream")
+var lit141 = []rune("missing")
+var lit142 = []rune("ignorecase")
+var lit143 = []rune("repeat")
+var lit144 = []rune("recover")
+var lit145 = []rune("cut")
+var lit150 = []rune("level(")
+var lit152 = []rune("_")
+var lit154 = []rune("_|_")
+var lit156 = []rune("^^")
+var lit158 = []rune("^")
+var lit160 = []rune("$$")
+var lit162 = []rune("$")
+var lit164 = []rune(".")
+var lit165 = []rune("..")
+var lit167 = []rune("#cut")
+var lit175 = []rune("-")
+var lit176 = []rune("0")
+var lit195 = []rune("#ignorecase")
+var lit198 = []rune("#operators")
+var lit215 = []rune("left")
+var lit216 = []rune("right")
+var lit217 = []rune("none")
+var lit220 = []rune("...")
+var lit227 = []rune(":=")
+var lit230 = []rune("startPos")
+var lit231 = []rune("endPos")
+var lit232 = []rune("children")
+var lit233 = []rune("expected")
+var lit234 = []rune("message")
+var lit250 = []rune("[]")
+var lit258 = []rune("true")
+var lit260 = []rune("false")
+var lit262 = []rune("nil")
+var lit274 = []rune("\r\n")
+var lit288 = []rune("*/")
+var lit296 = []rune("i")
+var sh298 = rt.Shaper{Elems: true, K: 0, Mode: 0, Tuple: true, Shared: false}
+var lit352 = []rune("*")
+var budgetClass360 = rt.NewBudgetClass([]rt.BudgetRange{{Lo: 32, Hi: 32}, {Lo: 9, Hi: 9}, {Lo: 11, Hi: 11}, {Lo: 12, Hi: 12}, {Lo: 133, Hi: 133}, {Lo: 160, Hi: 160}, {Lo: 5760, Hi: 5760}, {Lo: 8192, Hi: 8202}, {Lo: 8232, Hi: 8232}, {Lo: 8233, Hi: 8233}, {Lo: 8239, Hi: 8239}, {Lo: 8287, Hi: 8287}, {Lo: 12288, Hi: 12288}}, false)
+var sh417 = rt.Shaper{Elems: true, K: 4, Mode: 2, Tuple: true, Shared: false}
+var sh418 = rt.Shaper{Elems: true, K: 6, Mode: 2, Tuple: true, Shared: false}
 
 type ruleSpec struct {
 	Name  string
@@ -1935,94 +1935,96 @@ type ruleExtra struct {
 var rulesSpec = [...]ruleSpec{
 	{"main", &sh4, 0, 0, 1, 2},
 	{"file", &sh9, 0, 0, 3, 2},
-	{"file_contents", &sh133, 0, 0, 4, 2},
+	{"file_contents", &sh136, 0, 0, 4, 2},
 	{"package_entry", &sh9, 0, 0, 5, 2},
-	{"package_attrs", &sh134, 0, 0, 0, 0},
-	{"package_stmt", &sh133, 0, 0, 6, 2},
-	{"package_body", &sh133, 0, 0, 7, 2},
-	{"decl", &sh9, 0, 0, 8, 2},
-	{"stmt_end", &sh10, rt.RuleMemo, 1, 9, 0},
-	{"stmt_skip", &sh412, 0, 0, 0, 0},
-	{"item_end", &sh10, rt.RuleMemo, 2, 9, 0},
-	{"field_end", &sh10, 0, 0, 9, 0},
+	{"package_attrs", &sh137, 0, 0, 0, 0},
+	{"package_stmt", &sh136, 0, 0, 6, 2},
+	{"package_body", &sh136, 0, 0, 7, 8},
+	{"decl", &sh9, 0, 0, 9, 2},
+	{"junk_decl", &sh9, 0, 0, 9, 2},
+	{"stmt_end", &sh10, rt.RuleMemo, 1, 10, 11},
+	{"stmt_skip", &sh298, 0, 0, 0, 0},
+	{"stmt_junk", &sh298, 0, 0, 0, 11},
+	{"item_end", &sh10, rt.RuleMemo, 2, 10, 0},
+	{"field_end", &sh10, 0, 0, 10, 0},
 	{"stmt_sep", &sh11, rt.RuleMemo, 3, 0, 0},
 	{"item_sep", &sh11, 0, 0, 0, 0},
 	{"field_sep", &sh11, 0, 0, 0, 0},
-	{"block_sep", &sh4, rt.RuleMemo, 4, 10, 0},
+	{"block_sep", &sh4, rt.RuleMemo, 4, 12, 0},
 	{"empty_stmt_sep", &sh11, 0, 0, 0, 0},
 	{"empty_item_sep", &sh11, 0, 0, 0, 0},
 	{"empty_field_sep", &sh11, 0, 0, 0, 0},
-	{"stmt_sync", &sh413, rt.RuleMemo, 5, 0, 0},
+	{"stmt_sync", &sh417, rt.RuleMemo, 5, 0, 0},
 	{"sync_top", &sh11, 0, 0, 0, 0},
 	{"sync_open", &sh11, rt.RuleMemo, 6, 0, 0},
-	{"sync_class", &sh133, 0, 0, 0, 0},
-	{"attr_call", &sh413, rt.RuleMemo, 7, 0, 0},
+	{"sync_class", &sh136, 0, 0, 0, 0},
+	{"attr_call", &sh417, rt.RuleMemo, 7, 0, 0},
 	{"sync_word", &sh10, rt.RuleMemo | rt.RuleRec, 8, 0, 0},
 	{"sync_closed", &sh11, rt.RuleMemo | rt.RuleRec, 9, 0, 0},
 	{"sync_index", &sh9, rt.RuleMemo | rt.RuleRec, 10, 0, 0},
 	{"sync_inner", &sh11, rt.RuleMemo | rt.RuleRec, 11, 0, 0},
-	{"sync_closed_paren", &sh133, rt.RuleRec, 0, 0, 0},
-	{"sync_closed_brace", &sh133, rt.RuleRec, 0, 0, 0},
-	{"sync_closed_bracket", &sh133, rt.RuleMemo | rt.RuleRec, 12, 0, 0},
-	{"top_start", &sh133, 0, 0, 0, 0},
+	{"sync_closed_paren", &sh136, rt.RuleRec, 0, 0, 0},
+	{"sync_closed_brace", &sh136, rt.RuleRec, 0, 0, 0},
+	{"sync_closed_bracket", &sh136, rt.RuleMemo | rt.RuleRec, 12, 0, 0},
+	{"top_start", &sh136, 0, 0, 0, 0},
 	{"attrs_prefix", &sh10, 0, 0, 0, 0},
-	{"decl_start", &sh133, rt.RuleMemo, 13, 0, 0},
+	{"decl_start", &sh136, rt.RuleMemo, 13, 0, 0},
 	{"decl_keyword", &sh11, 0, 0, 0, 0},
 	{"decl_shape", &sh10, rt.RuleMemo, 14, 0, 0},
 	{"rule_shape", &sh10, 0, 0, 0, 0},
 	{"decl_tail", &sh11, rt.RuleMemo, 15, 0, 0},
-	{"decl_shape_line", &sh133, 0, 0, 0, 0},
+	{"decl_shape_line", &sh136, 0, 0, 0, 0},
 	{"decl_shape_end", &sh10, 0, 0, 0, 0},
 	{"assign_op", &sh11, 0, 0, 0, 0},
 	{"declaration_ahead", &sh16, rt.RuleMemo, 16, 0, 0},
 	{"sync_unit", &sh11, rt.RuleMemo, 17, 0, 0},
-	{"attrs_start", &sh413, 0, 0, 0, 0},
-	{"attrs_decl", &sh133, 0, 0, 0, 0},
+	{"attrs_start", &sh417, 0, 0, 0, 0},
+	{"attrs_decl", &sh136, 0, 0, 0, 0},
 	{"attr_unit", &sh11, rt.RuleMemo, 18, 0, 0},
-	{"attr_paren", &sh133, rt.RuleMemo | rt.RuleRec, 19, 0, 0},
+	{"attr_paren", &sh136, rt.RuleMemo | rt.RuleRec, 19, 0, 0},
 	{"item_sync", &sh10, rt.RuleMemo, 20, 0, 0},
 	{"field_sync", &sh10, 0, 0, 0, 0},
 	{"sync_ml", &sh11, rt.RuleMemo | rt.RuleRec, 21, 0, 0},
-	{"sync_ml_paren", &sh133, rt.RuleRec, 0, 0, 0},
-	{"sync_ml_brace", &sh133, rt.RuleRec, 0, 0, 0},
-	{"type_decl", &sh11, 0, 0, 0, 2},
-	{"type_alias_head", &sh413, 0, 0, 0, 2},
-	{"type_alias", &sh133, 0, 0, 11, 2},
-	{"type_def", &sh133, 0, 0, 11, 2},
-	{"type_alias_body", &sh413, 0, 0, 12, 2},
-	{"type_def_body", &sh133, 0, 0, 12, 2},
-	{"node_type", &sh413, 0, 0, 13, 2},
-	{"field_spec", &sh9, rt.RuleRec, 0, 1, 2},
-	{"field", &sh133, rt.RuleRec, 0, 11, 2},
-	{"field_body", &sh10, rt.RuleRec, 0, 12, 2},
-	{"type_expr", nil, rt.RuleMemo | rt.RuleRec, 22, 0, 2},
-	{"struct_type", &sh133, rt.RuleMemo | rt.RuleRec, 23, 14, 2},
-	{"retired_type", &sh9, rt.RuleMemo, 24, 0, 0},
-	{"type_args", &sh134, rt.RuleRec, 0, 15, 2},
-	{"type_group", &sh11, rt.RuleRec, 0, 0, 2},
-	{"type_paren", &sh133, rt.RuleRec, 0, 16, 2},
-	{"type_tuple", &sh413, rt.RuleRec, 0, 17, 2},
-	{"var_decl", &sh133, 0, 0, 11, 2},
-	{"var_def_body", &sh413, 0, 0, 18, 2},
-	{"var_type", &sh9, 0, 0, 16, 2},
-	{"var_value", &sh10, 0, 0, 19, 2},
-	{"rule_decl", &sh133, 0, 0, 11, 2},
-	{"rule_def_body", &sh414, 0, 0, 20, 2},
-	{"decl_attr_gap", &sh11, rt.RuleMemo, 25, 0, 0},
-	{"decl_attr_same_line", &sh9, 0, 0, 21, 0},
-	{"decl_attr_line_end", &sh10, 0, 0, 22, 0},
-	{"decl_attr_trivia", &sh9, rt.RuleMemo, 26, 23, 0},
-	{"whole_action", &sh10, 0, 0, 19, 2},
-	{"trailing_action", &sh9, rt.RuleMemo, 27, 19, 2},
-	{"rule_expr", nil, rt.RuleMemo | rt.RuleRec, 28, 0, 2},
+	{"sync_ml_paren", &sh136, rt.RuleRec, 0, 0, 0},
+	{"sync_ml_brace", &sh136, rt.RuleRec, 0, 0, 0},
+	{"type_decl", &sh11, rt.RuleMemo, 22, 0, 2},
+	{"type_alias_head", &sh417, 0, 0, 0, 8},
+	{"type_alias", &sh136, 0, 0, 13, 2},
+	{"type_def", &sh136, 0, 0, 13, 2},
+	{"type_alias_body", &sh417, 0, 0, 14, 8},
+	{"type_def_body", &sh136, 0, 0, 14, 8},
+	{"node_type", &sh417, 0, 0, 15, 8},
+	{"field_spec", &sh9, rt.RuleRec, 0, 1, 8},
+	{"field", &sh136, rt.RuleRec, 0, 13, 8},
+	{"field_body", &sh10, rt.RuleRec, 0, 14, 8},
+	{"type_expr", nil, rt.RuleMemo | rt.RuleRec, 23, 0, 8},
+	{"struct_type", &sh136, rt.RuleMemo | rt.RuleRec, 24, 16, 8},
+	{"retired_type", &sh9, rt.RuleMemo, 25, 0, 0},
+	{"type_args", &sh137, rt.RuleRec, 0, 17, 8},
+	{"type_group", &sh11, rt.RuleRec, 0, 0, 8},
+	{"type_paren", &sh136, rt.RuleRec, 0, 18, 8},
+	{"type_tuple", &sh417, rt.RuleRec, 0, 19, 8},
+	{"var_decl", &sh136, rt.RuleMemo, 26, 13, 2},
+	{"var_def_body", &sh417, 0, 0, 20, 8},
+	{"var_type", &sh9, 0, 0, 18, 8},
+	{"var_value", &sh10, 0, 0, 21, 8},
+	{"rule_decl", &sh136, rt.RuleMemo, 27, 13, 2},
+	{"rule_def_body", &sh418, 0, 0, 22, 8},
+	{"decl_attr_gap", &sh11, rt.RuleMemo, 28, 0, 0},
+	{"decl_attr_same_line", &sh9, 0, 0, 23, 0},
+	{"decl_attr_line_end", &sh10, 0, 0, 24, 0},
+	{"decl_attr_trivia", &sh9, rt.RuleMemo, 29, 25, 0},
+	{"whole_action", &sh10, 0, 0, 21, 8},
+	{"trailing_action", &sh9, rt.RuleMemo, 30, 21, 8},
+	{"rule_expr", nil, rt.RuleMemo | rt.RuleRec, 31, 0, 8},
 	{"unknown_pragma", &sh10, 0, 0, 0, 0},
-	{"rule_body_expr", &sh9, 0, 0, 24, 2},
-	{"legacy_operators_start", &sh134, 0, 0, 0, 0},
+	{"rule_body_expr", &sh9, 0, 0, 26, 8},
+	{"legacy_operators_start", &sh137, 0, 0, 0, 0},
 	{"known_pragma", &sh11, 0, 0, 0, 0},
-	{"rule_group", &sh10, rt.RuleRec, 0, 24, 2},
-	{"inline_action", &sh133, rt.RuleRec, 0, 25, 2},
-	{"rule_ref", &sh9, 0, 0, 26, 0},
-	{"level_call", &sh133, 0, 0, 27, 2},
+	{"rule_group", &sh10, rt.RuleRec, 0, 26, 8},
+	{"inline_action", &sh136, rt.RuleRec, 0, 27, 8},
+	{"rule_ref", &sh9, 0, 0, 28, 0},
+	{"level_call", &sh136, 0, 0, 29, 8},
 	{"top", &sh11, 0, 0, 0, 0},
 	{"bottom", &sh11, 0, 0, 0, 0},
 	{"begin_input", &sh11, 0, 0, 0, 0},
@@ -2031,267 +2033,272 @@ var rulesSpec = [...]ruleSpec{
 	{"end_line", &sh11, 0, 0, 0, 0},
 	{"any", &sh11, 0, 0, 0, 0},
 	{"cut", &sh11, 0, 0, 0, 0},
-	{"predicate", &sh4, 0, 0, 28, 2},
-	{"repeat_args", &sh10, 0, 0, 28, 2},
-	{"repeat_range", &sh11, 0, 0, 0, 2},
-	{"repeat_from", &sh133, 0, 0, 29, 2},
-	{"repeat_to", &sh10, 0, 0, 30, 2},
-	{"repeat_count", &sh4, 0, 0, 31, 2},
-	{"repeat_int", &sh11, rt.RuleMemo, 29, 0, 2},
-	{"recover_args", &sh10, rt.RuleRec, 0, 24, 2},
-	{"empty_args", &sh10, rt.RuleMemo, 30, 0, 2},
-	{"attr", &sh133, rt.RuleMemo | rt.RuleRec, 31, 32, 2},
-	{"attr_args", &sh10, rt.RuleRec, 0, 19, 2},
-	{"attr_named_args", &sh133, rt.RuleMemo | rt.RuleRec, 32, 15, 2},
-	{"attr_mixed_args", &sh133, rt.RuleRec, 0, 33, 2},
+	{"predicate", &sh4, 0, 0, 30, 8},
+	{"repeat_args", &sh10, 0, 0, 30, 8},
+	{"repeat_range", &sh11, 0, 0, 0, 8},
+	{"repeat_from", &sh136, 0, 0, 31, 8},
+	{"repeat_to", &sh10, 0, 0, 32, 8},
+	{"repeat_count", &sh4, 0, 0, 33, 8},
+	{"repeat_int", &sh11, rt.RuleMemo, 32, 0, 8},
+	{"recover_args", &sh10, rt.RuleRec, 0, 26, 8},
+	{"empty_args", &sh10, rt.RuleMemo, 33, 0, 8},
+	{"attr", &sh136, rt.RuleMemo | rt.RuleRec, 34, 34, 8},
+	{"attr_args", &sh10, rt.RuleRec, 0, 21, 8},
+	{"attr_named_args", &sh136, rt.RuleMemo | rt.RuleRec, 35, 17, 8},
+	{"attr_mixed_args", &sh136, rt.RuleRec, 0, 35, 8},
 	{"attr_no_args", &sh16, 0, 0, 0, 0},
 	{"attr_no_values", &sh16, 0, 0, 0, 0},
-	{"attr_trailing_comma", &sh11, 0, 0, 0, 2},
-	{"attr_named_tail", &sh10, rt.RuleRec, 0, 31, 2},
-	{"attr_slot", &sh9, rt.RuleMemo | rt.RuleRec, 33, 34, 2},
-	{"attr_named", &sh133, rt.RuleMemo | rt.RuleRec, 34, 35, 2},
-	{"attr_value", &sh11, rt.RuleMemo | rt.RuleRec, 35, 0, 2},
-	{"signed_int", &sh11, 0, 0, 0, 2},
-	{"ops_rule_body", &sh11, 0, 0, 0, 2},
-	{"ops_rule_ignorecase", &sh10, rt.RuleLeader | rt.RuleRec, 0, 36, 2},
-	{"ops_rule_plain", &sh9, 0, 0, 36, 2},
-	{"ops_rule_expr", &sh413, rt.RuleMemo, 36, 37, 2},
-	{"ops_stmt", &sh9, 0, 0, 38, 2},
-	{"ops_skip_stmt", &sh133, 0, 0, 11, 2},
-	{"ops_skip_body", &sh10, 0, 0, 24, 2},
-	{"ops_operand_stmt", &sh133, 0, 0, 11, 2},
-	{"ops_operand_body", &sh133, 0, 0, 25, 2},
-	{"ops_level_stmt", &sh133, 0, 0, 39, 2},
-	{"ops_level_body", &sh413, 0, 0, 40, 2},
-	{"ops_operator", &sh9, 0, 0, 38, 2},
-	{"ops_prefix", &sh133, 0, 0, 11, 2},
-	{"ops_prefix_body", &sh133, 0, 0, 25, 2},
-	{"ops_postfix", &sh133, 0, 0, 11, 2},
-	{"ops_postfix_body", &sh133, 0, 0, 25, 2},
-	{"ops_infix", &sh133, 0, 0, 11, 2},
-	{"ops_infix_body", &sh413, 0, 0, 41, 2},
-	{"action", &sh11, rt.RuleMemo, 37, 0, 2},
+	{"attr_trailing_comma", &sh11, 0, 0, 0, 8},
+	{"attr_named_tail", &sh10, rt.RuleRec, 0, 33, 8},
+	{"attr_slot", &sh9, rt.RuleMemo | rt.RuleRec, 36, 36, 8},
+	{"attr_named", &sh136, rt.RuleMemo | rt.RuleRec, 37, 37, 8},
+	{"attr_value", &sh11, rt.RuleMemo | rt.RuleRec, 38, 0, 8},
+	{"signed_int", &sh11, 0, 0, 0, 8},
+	{"ops_rule_body", &sh11, 0, 0, 0, 8},
+	{"ops_rule_ignorecase", &sh10, rt.RuleLeader | rt.RuleRec, 0, 38, 8},
+	{"ops_rule_plain", &sh9, 0, 0, 38, 8},
+	{"ops_rule_expr", &sh417, rt.RuleMemo, 39, 39, 8},
+	{"ops_stmt", &sh9, 0, 0, 40, 8},
+	{"ops_skip_stmt", &sh136, 0, 0, 13, 8},
+	{"ops_skip_body", &sh10, 0, 0, 26, 8},
+	{"ops_operand_stmt", &sh136, 0, 0, 13, 8},
+	{"ops_operand_body", &sh136, 0, 0, 27, 8},
+	{"ops_level_stmt", &sh136, 0, 0, 41, 8},
+	{"ops_level_body", &sh417, 0, 0, 42, 8},
+	{"ops_operator", &sh9, 0, 0, 40, 8},
+	{"ops_prefix", &sh136, 0, 0, 13, 8},
+	{"ops_prefix_body", &sh136, 0, 0, 27, 8},
+	{"ops_postfix", &sh136, 0, 0, 13, 8},
+	{"ops_postfix_body", &sh136, 0, 0, 27, 8},
+	{"ops_infix", &sh136, 0, 0, 13, 8},
+	{"ops_infix_body", &sh417, 0, 0, 43, 8},
+	{"action", &sh11, rt.RuleMemo, 40, 0, 8},
 	{"default_action", &sh11, 0, 0, 0, 0},
-	{"action_block", &sh133, rt.RuleMemo, 38, 42, 2},
-	{"action_block_stmt", &sh9, 0, 0, 24, 2},
-	{"action_block_value", &sh9, 0, 0, 24, 2},
-	{"action_stmt", &sh11, 0, 0, 0, 2},
-	{"action_bind_stmt", &sh133, 0, 0, 43, 2},
-	{"action_expr", &sh11, rt.RuleMemo | rt.RuleRec, 39, 0, 2},
-	{"action_ops", nil, rt.RuleRec, 0, 0, 2},
+	{"action_block", &sh136, rt.RuleMemo, 41, 44, 8},
+	{"action_block_stmt", &sh9, 0, 0, 26, 8},
+	{"action_block_value", &sh9, 0, 0, 26, 8},
+	{"action_stmt", &sh11, 0, 0, 0, 8},
+	{"action_bind_stmt", &sh136, 0, 0, 45, 8},
+	{"action_expr", &sh11, rt.RuleMemo | rt.RuleRec, 42, 0, 8},
+	{"action_ops", nil, rt.RuleRec, 0, 0, 8},
 	{"capture_member", &sh9, 0, 0, 0, 0},
-	{"index_suffix", &sh133, rt.RuleRec, 0, 44, 2},
-	{"cast_type", &sh133, 0, 0, 16, 2},
-	{"lambda", &sh133, rt.RuleRec, 0, 45, 2},
-	{"lambda_head", &sh133, 0, 0, 46, 2},
-	{"lambda_params", &sh133, 0, 0, 15, 2},
-	{"lambda_param", &sh9, rt.RuleMemo, 40, 44, 2},
-	{"action_tuple", &sh11, rt.RuleRec, 0, 0, 2},
-	{"action_unit", &sh10, 0, 0, 0, 2},
-	{"action_elems", &sh133, rt.RuleRec, 0, 47, 2},
-	{"action_group", &sh10, rt.RuleRec, 0, 24, 2},
-	{"call", &sh133, rt.RuleRec, 0, 32, 2},
-	{"action_args", &sh133, rt.RuleMemo | rt.RuleRec, 41, 15, 2},
-	{"list_constructor", &sh413, rt.RuleRec, 0, 48, 2},
-	{"constructor", &sh413, rt.RuleRec, 0, 49, 2},
-	{"constructor_fields", &sh133, rt.RuleRec, 0, 15, 2},
-	{"init_field", &sh10, rt.RuleMemo | rt.RuleRec, 42, 50, 2},
-	{"init_field_body", &sh10, rt.RuleRec, 0, 43, 2},
+	{"index_suffix", &sh136, rt.RuleRec, 0, 46, 8},
+	{"cast_type", &sh136, 0, 0, 18, 8},
+	{"lambda", &sh136, rt.RuleRec, 0, 47, 8},
+	{"lambda_head", &sh136, 0, 0, 48, 8},
+	{"lambda_params", &sh136, 0, 0, 17, 8},
+	{"lambda_param", &sh9, rt.RuleMemo, 43, 46, 8},
+	{"action_tuple", &sh11, rt.RuleRec, 0, 0, 8},
+	{"action_unit", &sh10, 0, 0, 0, 8},
+	{"action_elems", &sh136, rt.RuleRec, 0, 49, 8},
+	{"action_group", &sh10, rt.RuleRec, 0, 26, 8},
+	{"call", &sh136, rt.RuleRec, 0, 34, 8},
+	{"action_args", &sh136, rt.RuleMemo | rt.RuleRec, 44, 17, 8},
+	{"list_constructor", &sh417, rt.RuleRec, 0, 50, 8},
+	{"constructor", &sh417, rt.RuleRec, 0, 51, 8},
+	{"constructor_fields", &sh136, rt.RuleRec, 0, 17, 8},
+	{"init_field", &sh10, rt.RuleMemo | rt.RuleRec, 45, 52, 8},
+	{"init_field_body", &sh10, rt.RuleRec, 0, 45, 8},
 	{"int", &sh11, 0, 0, 0, 0},
-	{"true_lit", &sh11, rt.RuleMemo, 43, 0, 0},
-	{"false_lit", &sh11, rt.RuleMemo, 44, 0, 0},
-	{"nil_lit", &sh11, rt.RuleMemo, 45, 0, 0},
-	{"capture_ref", &sh11, rt.RuleMemo, 46, 0, 0},
-	{"var_name", &sh11, rt.RuleMemo, 47, 0, 0},
+	{"true_lit", &sh11, rt.RuleMemo, 46, 0, 0},
+	{"false_lit", &sh11, rt.RuleMemo, 47, 0, 0},
+	{"nil_lit", &sh11, rt.RuleMemo, 48, 0, 0},
+	{"capture_ref", &sh11, rt.RuleMemo, 49, 0, 0},
+	{"var_name", &sh11, rt.RuleMemo, 50, 0, 0},
 	{"var_ref", &sh11, 0, 0, 0, 0},
-	{"ws", &sh4, rt.RuleMemo, 48, 21, 2},
-	{"comments", &sh9, rt.RuleMemo, 49, 23, 0},
-	{"horizontal", &sh9, rt.RuleMemo, 50, 23, 0},
-	{"word_end", &sh412, rt.RuleMemo, 51, 0, 2},
-	{"space_no_line", &sh9, rt.RuleMemo, 52, 0, 0},
+	{"ws", &sh4, rt.RuleMemo, 51, 23, 8},
+	{"comments", &sh9, rt.RuleMemo, 52, 25, 0},
+	{"horizontal", &sh9, rt.RuleMemo, 53, 25, 0},
+	{"word_end", &sh298, rt.RuleMemo, 54, 0, 8},
+	{"space_no_line", &sh9, rt.RuleMemo, 55, 0, 0},
 	{"nl", &sh11, 0, 0, 0, 0},
 	{"space", &sh11, 0, 0, 0, 0},
-	{"source_comments", &sh9, 0, 0, 23, 0},
-	{"source_non_comment", &sh11, rt.RuleMemo, 53, 0, 0},
-	{"source_string", &sh133, 0, 0, 0, 0},
-	{"source_class", &sh133, 0, 0, 0, 0},
-	{"incomplete_comment", &sh10, rt.RuleMemo, 54, 0, 0},
-	{"comment", &sh11, rt.RuleMemo, 55, 0, 0},
-	{"comment_group", &sh10, 0, 0, 15, 0},
-	{"line_comment", &sh4, rt.RuleMemo, 56, 10, 0},
+	{"source_comments", &sh9, 0, 0, 25, 0},
+	{"source_non_comment", &sh11, rt.RuleMemo, 56, 0, 0},
+	{"source_string", &sh136, 0, 0, 0, 0},
+	{"source_class", &sh136, 0, 0, 0, 0},
+	{"incomplete_comment", &sh10, rt.RuleMemo, 57, 0, 0},
+	{"comment", &sh11, rt.RuleMemo, 58, 0, 0},
+	{"comment_group", &sh10, 0, 0, 17, 0},
+	{"line_comment", &sh4, rt.RuleMemo, 59, 12, 0},
 	{"comment_line", &sh11, 0, 0, 0, 0},
-	{"inline_comment", &sh133, rt.RuleMemo | rt.RuleRec, 57, 51, 0},
-	{"block_no_line", &sh133, rt.RuleMemo | rt.RuleRec, 58, 51, 0},
-	{"block_with_line", &sh133, rt.RuleMemo | rt.RuleRec, 59, 51, 0},
-	{"ident", &sh11, rt.RuleMemo, 60, 0, 0},
+	{"inline_comment", &sh136, rt.RuleMemo | rt.RuleRec, 60, 53, 0},
+	{"block_no_line", &sh136, rt.RuleMemo | rt.RuleRec, 61, 53, 0},
+	{"block_with_line", &sh136, rt.RuleMemo | rt.RuleRec, 62, 53, 0},
+	{"ident", &sh11, rt.RuleMemo, 63, 0, 0},
 	{"ident_start", &sh11, 0, 0, 0, 0},
 	{"ident_char", &sh11, 0, 0, 0, 0},
 	{"digit", &sh11, 0, 0, 0, 0},
-	{"string", &sh11, rt.RuleMemo, 61, 0, 0},
+	{"string", &sh11, rt.RuleMemo, 64, 0, 0},
+	{"string_open", &sh11, 0, 0, 0, 0},
+	{"string_open_text", &sh10, 0, 0, 0, 0},
 	{"action_string", &sh11, 0, 0, 0, 0},
-	{"char_class", &sh133, rt.RuleMemo, 62, 52, 0},
-	{"char_class_rng", &sh133, 0, 0, 53, 0},
+	{"char_class", &sh136, rt.RuleMemo, 65, 54, 0},
+	{"char_class_rng", &sh136, 0, 0, 55, 0},
 	{"char_class_chr", &sh11, 0, 0, 0, 0},
-	{"source_head", &sh4, 0, 0, 28, 0},
-	{"source_head_open", &sh4, rt.RuleMemo, 63, 28, 0},
+	{"source_head", &sh4, 0, 0, 30, 0},
+	{"source_head_open", &sh4, rt.RuleMemo, 66, 30, 0},
 	{"source_empty_boundary", &sh16, 0, 0, 0, 0},
-	{"source_item_tail", &sh11, rt.RuleMemo, 64, 0, 0},
-	{"source_tail_after_separator_trailing", &sh133, 0, 0, 54, 0},
-	{"source_tail_after_separator", &sh133, 0, 0, 54, 0},
-	{"source_tail_plain", &sh4, rt.RuleMemo, 65, 16, 0},
+	{"source_item_tail", &sh11, rt.RuleMemo, 67, 0, 0},
+	{"source_tail_after_separator_trailing", &sh136, 0, 0, 56, 0},
+	{"source_tail_after_separator", &sh136, 0, 0, 56, 0},
+	{"source_tail_plain", &sh4, rt.RuleMemo, 68, 18, 0},
 	{"source_tail_empty", &sh16, 0, 0, 0, 0},
-	{"source_semis", &sh10, rt.RuleMemo, 66, 0, 0},
+	{"source_semis", &sh10, rt.RuleMemo, 69, 0, 0},
 	{"source_trivia", &sh11, 0, 0, 0, 0},
 	{"source_comma_tail", &sh11, 0, 0, 0, 0},
-	{"source_comma_after_separator_trailing", &sh133, 0, 0, 55, 0},
-	{"source_comma_after_separator", &sh133, 0, 0, 54, 0},
-	{"source_after_boundary", &sh11, rt.RuleMemo, 67, 0, 0},
-	{"source_inline_line_boundary", &sh10, rt.RuleMemo, 68, 56, 0},
-	{"source_inline_run_boundary", &sh133, rt.RuleMemo, 69, 57, 0},
+	{"source_comma_after_separator_trailing", &sh136, 0, 0, 57, 0},
+	{"source_comma_after_separator", &sh136, 0, 0, 56, 0},
+	{"source_after_boundary", &sh11, rt.RuleMemo, 70, 0, 0},
+	{"source_inline_line_boundary", &sh10, rt.RuleMemo, 71, 58, 0},
+	{"source_inline_run_boundary", &sh136, rt.RuleMemo, 72, 59, 0},
 	{"source_run_tail", &sh11, 0, 0, 0, 0},
-	{"source_run_line", &sh9, 0, 0, 10, 0},
+	{"source_run_line", &sh9, 0, 0, 12, 0},
 	{"source_run_end", &sh16, 0, 0, 0, 0},
-	{"source_inline_block_boundary", &sh10, rt.RuleMemo, 70, 56, 0},
-	{"source_after_opener_boundary", &sh11, rt.RuleMemo, 71, 0, 0},
-	{"source_opener_block_boundary", &sh9, 0, 0, 10, 0},
-	{"source_after_delimiter_boundary", &sh11, rt.RuleMemo, 72, 0, 0},
-	{"source_delimiter_scope_boundary", &sh9, 0, 0, 28, 0},
+	{"source_inline_block_boundary", &sh10, rt.RuleMemo, 73, 58, 0},
+	{"source_after_opener_boundary", &sh11, rt.RuleMemo, 74, 0, 0},
+	{"source_opener_block_boundary", &sh9, 0, 0, 12, 0},
+	{"source_after_delimiter_boundary", &sh11, rt.RuleMemo, 75, 0, 0},
+	{"source_delimiter_scope_boundary", &sh9, 0, 0, 30, 0},
 	{"source_scope_run", &sh10, 0, 0, 0, 0},
-	{"source_ambiguous_block_boundary", &sh9, 0, 0, 10, 0},
-	{"source_newline_boundary", &sh10, rt.RuleMemo, 73, 56, 0},
-	{"source_after_boundary_trailing", &sh11, rt.RuleMemo, 74, 0, 0},
-	{"source_newline_trailing_boundary", &sh10, 0, 0, 56, 0},
-	{"source_first_trailing", &sh4, rt.RuleMemo, 75, 10, 0},
-	{"source_remaining", &sh11, rt.RuleMemo, 76, 0, 0},
-	{"source_scope_tail", &sh9, 0, 0, 23, 0},
-	{"source_next_boundary", &sh10, 0, 0, 58, 0},
+	{"source_ambiguous_block_boundary", &sh9, 0, 0, 12, 0},
+	{"source_newline_boundary", &sh10, rt.RuleMemo, 76, 58, 0},
+	{"source_after_boundary_trailing", &sh11, rt.RuleMemo, 77, 0, 0},
+	{"source_newline_trailing_boundary", &sh10, 0, 0, 58, 0},
+	{"source_first_trailing", &sh4, rt.RuleMemo, 78, 12, 0},
+	{"source_remaining", &sh11, rt.RuleMemo, 79, 0, 0},
+	{"source_scope_tail", &sh9, 0, 0, 25, 0},
+	{"source_next_boundary", &sh10, 0, 0, 60, 0},
 	{"source_empty_comment", &sh16, 0, 0, 0, 0},
-	{"source_detached_group", &sh4, 0, 0, 10, 0},
-	{"source_leading_group", &sh9, 0, 0, 10, 0},
-	{"source_line_flush", &sh10, rt.RuleMemo, 77, 0, 0},
-	{"source_block_flush", &sh10, rt.RuleMemo, 78, 0, 0},
-	{"source_next_token", &sh9, rt.RuleMemo, 79, 0, 0},
+	{"source_detached_group", &sh4, 0, 0, 12, 0},
+	{"source_leading_group", &sh9, 0, 0, 12, 0},
+	{"source_line_flush", &sh10, rt.RuleMemo, 80, 0, 0},
+	{"source_block_flush", &sh10, rt.RuleMemo, 81, 0, 0},
+	{"source_next_token", &sh9, rt.RuleMemo, 82, 0, 0},
 	{"source_scope_end", &sh11, 0, 0, 0, 0},
 	{"source_comment_start", &sh11, 0, 0, 0, 0},
-	{"source_comment", &sh11, rt.RuleMemo, 80, 0, 0},
-	{"source_line_group", &sh10, rt.RuleMemo, 81, 15, 0},
-	{"source_line_comment", &sh133, rt.RuleMemo, 82, 59, 0},
-	{"source_block_comment", &sh413, rt.RuleMemo | rt.RuleRec, 83, 15, 0},
+	{"source_comment", &sh11, rt.RuleMemo, 83, 0, 0},
+	{"source_line_group", &sh10, rt.RuleMemo, 84, 17, 0},
+	{"source_line_comment", &sh136, rt.RuleMemo, 85, 61, 0},
+	{"source_block_comment", &sh417, rt.RuleMemo | rt.RuleRec, 86, 17, 0},
 	{"source_block_star", &sh9, 0, 0, 0, 0},
-	{"source_block_line", &sh4, rt.RuleMemo | rt.RuleRec, 84, 23, 0},
+	{"source_block_line", &sh4, rt.RuleMemo | rt.RuleRec, 87, 25, 0},
 	{"source_block_piece", &sh11, rt.RuleRec, 0, 0, 0},
-	{"source_nested_piece", &sh4, rt.RuleRec, 0, 10, 0},
-	{"source_character_piece", &sh4, 0, 0, 10, 0},
+	{"source_nested_piece", &sh4, rt.RuleRec, 0, 12, 0},
+	{"source_character_piece", &sh4, 0, 0, 12, 0},
 	{"source_nl", &sh11, 0, 0, 0, 0},
-	{"source_horizontal", &sh11, rt.RuleMemo, 85, 0, 0},
+	{"source_horizontal", &sh11, rt.RuleMemo, 88, 0, 0},
 	{"source_horizontal_char", &sh11, 0, 0, 0, 0},
-	{"source_space", &sh11, rt.RuleMemo, 86, 0, 0},
-	{"source_gaps", &sh10, 0, 0, 60, 0},
-	{"source_gap_skip", &sh9, rt.RuleMemo, 87, 0, 0},
+	{"source_space", &sh11, rt.RuleMemo, 89, 0, 0},
+	{"source_gaps", &sh10, 0, 0, 62, 0},
+	{"source_gap_skip", &sh9, rt.RuleMemo, 90, 0, 0},
 	{"source_gap_opens", &sh9, 0, 0, 0, 0},
 	{"source_open_char", &sh11, 0, 0, 0, 0},
 	{"source_delimiter_char", &sh11, 0, 0, 0, 0},
-	{"source_bracket", &sh10, rt.RuleMemo, 88, 0, 0},
-	{"source_gap_run", &sh10, rt.RuleMemo, 89, 0, 0},
-	{"source_gap_head", &sh412, 0, 0, 28, 0},
-	{"source_gap", &sh9, 0, 0, 61, 0},
-	{"source_open_gap", &sh9, 0, 0, 61, 0},
-	{"source_delimiter_gap", &sh9, 0, 0, 61, 0},
-	{"source_gap_flag", &sh16, rt.RuleMemo, 90, 0, 0},
-	{"package_attrs", &sh134, rt.RuleNovalue, 0, 0, 0},
+	{"source_bracket", &sh10, rt.RuleMemo, 91, 0, 0},
+	{"source_gap_run", &sh10, rt.RuleMemo, 92, 0, 0},
+	{"source_gap_head", &sh298, 0, 0, 30, 0},
+	{"source_gap", &sh9, 0, 0, 63, 0},
+	{"source_open_gap", &sh9, 0, 0, 63, 0},
+	{"source_delimiter_gap", &sh9, 0, 0, 63, 0},
+	{"source_gap_flag", &sh16, rt.RuleMemo, 93, 0, 0},
+	{"package_attrs", &sh137, rt.RuleNovalue, 0, 0, 0},
 	{"ident_char", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"stmt_sync", &sh413, rt.RuleMemo | rt.RuleNovalue, 91, 0, 0},
-	{"word_end", &sh412, rt.RuleMemo | rt.RuleNovalue, 92, 0, 2},
-	{"stmt_sep", &sh11, rt.RuleMemo | rt.RuleNovalue, 93, 0, 0},
+	{"stmt_sync", &sh417, rt.RuleMemo | rt.RuleNovalue, 94, 0, 0},
+	{"word_end", &sh298, rt.RuleMemo | rt.RuleNovalue, 95, 0, 8},
+	{"stmt_sep", &sh11, rt.RuleMemo | rt.RuleNovalue, 96, 0, 0},
+	{"decl_keyword", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"nl", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"decl_start", &sh133, rt.RuleMemo | rt.RuleNovalue, 94, 0, 0},
-	{"sync_open", &sh11, rt.RuleMemo | rt.RuleNovalue, 95, 0, 0},
-	{"top_start", &sh133, rt.RuleNovalue, 0, 0, 0},
+	{"decl_start", &sh136, rt.RuleMemo | rt.RuleNovalue, 97, 0, 0},
+	{"sync_open", &sh11, rt.RuleMemo | rt.RuleNovalue, 98, 0, 0},
+	{"top_start", &sh136, rt.RuleNovalue, 0, 0, 0},
 	{"digit", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"decl_shape", &sh10, rt.RuleMemo | rt.RuleNovalue, 96, 0, 0},
+	{"decl_shape", &sh10, rt.RuleMemo | rt.RuleNovalue, 99, 0, 0},
 	{"rule_shape", &sh10, rt.RuleNovalue, 0, 0, 0},
-	{"type_alias_head", &sh413, rt.RuleNovalue, 0, 0, 2},
-	{"declaration_ahead", &sh16, rt.RuleMemo | rt.RuleNovalue, 97, 0, 0},
+	{"type_alias_head", &sh417, rt.RuleNovalue, 0, 0, 8},
+	{"declaration_ahead", &sh16, rt.RuleMemo | rt.RuleNovalue, 100, 0, 0},
 	{"field_sync", &sh10, rt.RuleNovalue, 0, 0, 0},
-	{"retired_type", &sh9, rt.RuleMemo | rt.RuleNovalue, 98, 0, 0},
-	{"space_no_line", &sh9, rt.RuleMemo | rt.RuleNovalue, 99, 0, 0},
+	{"retired_type", &sh9, rt.RuleMemo | rt.RuleNovalue, 101, 0, 0},
+	{"space_no_line", &sh9, rt.RuleMemo | rt.RuleNovalue, 102, 0, 0},
 	{"known_pragma", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"legacy_operators_start", &sh134, rt.RuleNovalue, 0, 0, 0},
+	{"legacy_operators_start", &sh137, rt.RuleNovalue, 0, 0, 0},
 	{"ident_start", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"ident", &sh11, rt.RuleMemo | rt.RuleNovalue, 100, 0, 0},
-	{"item_sync", &sh10, rt.RuleMemo | rt.RuleNovalue, 101, 0, 0},
+	{"ident", &sh11, rt.RuleMemo | rt.RuleNovalue, 103, 0, 0},
+	{"item_sync", &sh10, rt.RuleMemo | rt.RuleNovalue, 104, 0, 0},
 	{"capture_member", &sh9, rt.RuleNovalue, 0, 0, 0},
-	{"true_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 102, 0, 0},
-	{"false_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 103, 0, 0},
-	{"nil_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 104, 0, 0},
+	{"true_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 105, 0, 0},
+	{"false_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 106, 0, 0},
+	{"nil_lit", &sh11, rt.RuleMemo | rt.RuleNovalue, 107, 0, 0},
 	{"bottom", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"space", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"source_non_comment", &sh11, rt.RuleMemo | rt.RuleNovalue, 105, 0, 0},
-	{"source_semis", &sh10, rt.RuleMemo | rt.RuleNovalue, 106, 0, 0},
+	{"source_non_comment", &sh11, rt.RuleMemo | rt.RuleNovalue, 108, 0, 0},
+	{"string_open_text", &sh10, rt.RuleNovalue, 0, 0, 0},
+	{"source_semis", &sh10, rt.RuleMemo | rt.RuleNovalue, 109, 0, 0},
 	{"source_trivia", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"source_after_boundary", &sh11, rt.RuleMemo | rt.RuleNovalue, 107, 0, 0},
-	{"source_horizontal", &sh11, rt.RuleMemo | rt.RuleNovalue, 108, 0, 0},
+	{"source_after_boundary", &sh11, rt.RuleMemo | rt.RuleNovalue, 110, 0, 0},
+	{"source_horizontal", &sh11, rt.RuleMemo | rt.RuleNovalue, 111, 0, 0},
 	{"source_nl", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"source_scope_end", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"source_comment_start", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"source_next_token", &sh9, rt.RuleMemo | rt.RuleNovalue, 109, 0, 0},
+	{"source_next_token", &sh9, rt.RuleMemo | rt.RuleNovalue, 112, 0, 0},
 	{"source_scope_run", &sh10, rt.RuleNovalue, 0, 0, 0},
-	{"source_space", &sh11, rt.RuleMemo | rt.RuleNovalue, 110, 0, 0},
-	{"source_line_flush", &sh10, rt.RuleMemo | rt.RuleNovalue, 111, 0, 0},
-	{"source_block_flush", &sh10, rt.RuleMemo | rt.RuleNovalue, 112, 0, 0},
+	{"source_space", &sh11, rt.RuleMemo | rt.RuleNovalue, 113, 0, 0},
+	{"source_line_flush", &sh10, rt.RuleMemo | rt.RuleNovalue, 114, 0, 0},
+	{"source_block_flush", &sh10, rt.RuleMemo | rt.RuleNovalue, 115, 0, 0},
 	{"source_block_star", &sh9, rt.RuleNovalue, 0, 0, 0},
-	{"source_gap_skip", &sh9, rt.RuleMemo | rt.RuleNovalue, 113, 0, 0},
+	{"source_gap_skip", &sh9, rt.RuleMemo | rt.RuleNovalue, 116, 0, 0},
 	{"source_delimiter_char", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"source_gap_opens", &sh9, rt.RuleNovalue, 0, 0, 0},
-	{"source_gap_run", &sh10, rt.RuleMemo | rt.RuleNovalue, 114, 0, 0},
-	{"source_after_boundary_trailing", &sh11, rt.RuleMemo | rt.RuleNovalue, 115, 0, 0},
-	{"attr_unit", &sh11, rt.RuleMemo | rt.RuleNovalue, 116, 0, 0},
+	{"source_gap_run", &sh10, rt.RuleMemo | rt.RuleNovalue, 117, 0, 0},
+	{"source_after_boundary_trailing", &sh11, rt.RuleMemo | rt.RuleNovalue, 118, 0, 0},
+	{"attr_unit", &sh11, rt.RuleMemo | rt.RuleNovalue, 119, 0, 0},
 	{"attrs_prefix", &sh10, rt.RuleNovalue, 0, 0, 0},
-	{"sync_unit", &sh11, rt.RuleMemo | rt.RuleNovalue, 117, 0, 0},
+	{"sync_unit", &sh11, rt.RuleMemo | rt.RuleNovalue, 120, 0, 0},
 	{"sync_top", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"attrs_decl", &sh133, rt.RuleNovalue, 0, 0, 0},
-	{"decl_keyword", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"attrs_start", &sh413, rt.RuleNovalue, 0, 0, 0},
-	{"decl_tail", &sh11, rt.RuleMemo | rt.RuleNovalue, 118, 0, 0},
-	{"sync_ml", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 119, 0, 0},
-	{"source_string", &sh133, rt.RuleNovalue, 0, 0, 0},
-	{"source_class", &sh133, rt.RuleNovalue, 0, 0, 0},
-	{"incomplete_comment", &sh10, rt.RuleMemo | rt.RuleNovalue, 120, 0, 0},
-	{"source_remaining", &sh11, rt.RuleMemo | rt.RuleNovalue, 121, 0, 0},
+	{"attrs_decl", &sh136, rt.RuleNovalue, 0, 0, 0},
+	{"attrs_start", &sh417, rt.RuleNovalue, 0, 0, 0},
+	{"decl_tail", &sh11, rt.RuleMemo | rt.RuleNovalue, 121, 0, 0},
+	{"sync_ml", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 122, 0, 0},
+	{"source_string", &sh136, rt.RuleNovalue, 0, 0, 0},
+	{"source_class", &sh136, rt.RuleNovalue, 0, 0, 0},
+	{"incomplete_comment", &sh10, rt.RuleMemo | rt.RuleNovalue, 123, 0, 0},
+	{"source_remaining", &sh11, rt.RuleMemo | rt.RuleNovalue, 124, 0, 0},
 	{"source_horizontal_char", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"source_comment", &sh11, rt.RuleMemo | rt.RuleNovalue, 122, 0, 0},
-	{"source_bracket", &sh10, rt.RuleMemo | rt.RuleNovalue, 123, 0, 0},
+	{"source_comment", &sh11, rt.RuleMemo | rt.RuleNovalue, 125, 0, 0},
+	{"source_bracket", &sh10, rt.RuleMemo | rt.RuleNovalue, 126, 0, 0},
 	{"source_open_char", &sh11, rt.RuleNovalue, 0, 0, 0},
 	{"comment_line", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"attr_paren", &sh133, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 124, 0, 0},
-	{"attr_call", &sh413, rt.RuleMemo | rt.RuleNovalue, 125, 0, 0},
-	{"sync_class", &sh133, rt.RuleNovalue, 0, 0, 0},
-	{"sync_closed", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 126, 0, 0},
-	{"sync_word", &sh10, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 127, 0, 0},
-	{"decl_shape_line", &sh133, rt.RuleNovalue, 0, 0, 0},
+	{"attr_paren", &sh136, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 127, 0, 0},
+	{"attr_call", &sh417, rt.RuleMemo | rt.RuleNovalue, 128, 0, 0},
+	{"sync_class", &sh136, rt.RuleNovalue, 0, 0, 0},
+	{"sync_closed", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 129, 0, 0},
+	{"sync_word", &sh10, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 130, 0, 0},
+	{"decl_shape_line", &sh136, rt.RuleNovalue, 0, 0, 0},
 	{"decl_shape_end", &sh10, rt.RuleNovalue, 0, 0, 0},
-	{"string", &sh11, rt.RuleMemo | rt.RuleNovalue, 128, 0, 0},
-	{"sync_ml_paren", &sh133, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
-	{"sync_ml_brace", &sh133, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
-	{"sync_closed_paren", &sh133, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
-	{"sync_closed_bracket", &sh133, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 129, 0, 0},
-	{"sync_index", &sh9, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 130, 0, 0},
-	{"sync_closed_brace", &sh133, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
+	{"string", &sh11, rt.RuleMemo | rt.RuleNovalue, 131, 0, 0},
+	{"sync_ml_paren", &sh136, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
+	{"sync_ml_brace", &sh136, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
+	{"sync_closed_paren", &sh136, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
+	{"sync_closed_bracket", &sh136, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 132, 0, 0},
+	{"sync_index", &sh9, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 133, 0, 0},
+	{"sync_closed_brace", &sh136, rt.RuleNovalue | rt.RuleRec, 0, 0, 0},
 	{"assign_op", &sh11, rt.RuleNovalue, 0, 0, 0},
-	{"sync_inner", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 131, 0, 0},
+	{"sync_inner", &sh11, rt.RuleMemo | rt.RuleNovalue | rt.RuleRec, 134, 0, 0},
 }
 
 var rulesStrs = [...][]string{
 	nil,
 	{"f"},
-	{"ml"},
+	{"junk", "ml"},
 	{"cs", "gaps", "src", "f"},
 	{"head", "pkg", "decls", "tc"},
 	{"p"},
 	{"lead", "cs", "body", "tail", "tc"},
 	{"attrs", "name"},
+	{"ml"},
 	{"d"},
 	{"cs", "tail"},
+	{"junk"},
 	{"c"},
 	{"cs", "d", "tail", "tc"},
 	{"name", "t"},
@@ -2347,72 +2354,72 @@ var rulesStrs = [...][]string{
 }
 
 var rulesExtras = [...]ruleExtra{
-	{90, "", "Top", "", 0},
-	{91, "", "Bottom", "", 0},
-	{92, "", "BeginInput", "", 0},
-	{93, "", "BeginLine", "", 0},
-	{94, "", "EndInput", "", 0},
-	{95, "", "EndLine", "", 0},
-	{96, "", "Any", "", 0},
-	{97, "", "Cut", "", 0},
-	{104, "", "Int", "", 0},
-	{118, "", "Int", "", 0},
-	{120, "", "", "", 186},
-	{138, "", "DefaultAction", "", 0},
-	{152, "", "Ident", "", 0},
-	{164, "", "Int", "", 0},
-	{165, "", "True", "", 0},
-	{166, "", "False", "", 0},
-	{167, "", "Nil", "", 0},
-	{168, "", "CaptureRef", "", 0},
-	{169, "", "VarRef", "", 0},
-	{170, "", "VarRef", "", 0},
-	{190, "", "Ident", "", 0},
-	{194, "", "String", "", 0},
-	{195, "", "String", "", 0},
-	{198, "", "Char", "", 0},
+	{92, "", "Top", "", 0},
+	{93, "", "Bottom", "", 0},
+	{94, "", "BeginInput", "", 0},
+	{95, "", "BeginLine", "", 0},
+	{96, "", "EndInput", "", 0},
+	{97, "", "EndLine", "", 0},
+	{98, "", "Any", "", 0},
+	{99, "", "Cut", "", 0},
+	{106, "", "Int", "", 0},
+	{120, "", "Int", "", 0},
+	{122, "", "", "", 190},
+	{140, "", "DefaultAction", "", 0},
+	{154, "", "Ident", "", 0},
+	{166, "", "Int", "", 0},
+	{167, "", "True", "", 0},
+	{168, "", "False", "", 0},
+	{169, "", "Nil", "", 0},
+	{170, "", "CaptureRef", "", 0},
+	{171, "", "VarRef", "", 0},
+	{172, "", "VarRef", "", 0},
+	{192, "", "Ident", "", 0},
+	{196, "", "String", "", 0},
+	{199, "", "String", "", 0},
+	{202, "", "Char", "", 0},
 }
 
-var scope415 = []string{"d"}
-var scope417 = []string{"a", "gap"}
-var fieldType1 = &rt.FieldType{Kind: 'l', Text: "[](TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom)", Elem: &rt.FieldType{Kind: 'u', Text: "TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "TypeRef", Name: "TypeRef"}, &rt.FieldType{Kind: 'N', Text: "TypeApp", Name: "TypeApp"}, &rt.FieldType{Kind: 'N', Text: "TypeGroup", Name: "TypeGroup"}, &rt.FieldType{Kind: 'N', Text: "TupleType", Name: "TupleType"}, &rt.FieldType{Kind: 'N', Text: "StructType", Name: "StructType"}, &rt.FieldType{Kind: 'N', Text: "OptionalType", Name: "OptionalType"}, &rt.FieldType{Kind: 'N', Text: "ListType", Name: "ListType"}, &rt.FieldType{Kind: 'N', Text: "JoinType", Name: "JoinType"}, &rt.FieldType{Kind: 'N', Text: "MeetType", Name: "MeetType"}, &rt.FieldType{Kind: 'N', Text: "Bottom", Name: "Bottom"}}}}
+var scope419 = []string{"d"}
 var scope421 = []string{"a", "gap"}
-var scope422 = []string{"a"}
-var scope424 = []string{"i"}
-var scope426 = []string{"o"}
+var fieldType1 = &rt.FieldType{Kind: 'l', Text: "[](TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom)", Elem: &rt.FieldType{Kind: 'u', Text: "TypeRef | TypeApp | TypeGroup | TupleType | StructType | OptionalType | ListType | JoinType | MeetType | Bottom", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "TypeRef", Name: "TypeRef"}, &rt.FieldType{Kind: 'N', Text: "TypeApp", Name: "TypeApp"}, &rt.FieldType{Kind: 'N', Text: "TypeGroup", Name: "TypeGroup"}, &rt.FieldType{Kind: 'N', Text: "TupleType", Name: "TupleType"}, &rt.FieldType{Kind: 'N', Text: "StructType", Name: "StructType"}, &rt.FieldType{Kind: 'N', Text: "OptionalType", Name: "OptionalType"}, &rt.FieldType{Kind: 'N', Text: "ListType", Name: "ListType"}, &rt.FieldType{Kind: 'N', Text: "JoinType", Name: "JoinType"}, &rt.FieldType{Kind: 'N', Text: "MeetType", Name: "MeetType"}, &rt.FieldType{Kind: 'N', Text: "Bottom", Name: "Bottom"}}}}
+var scope426 = []string{"a", "gap"}
+var scope427 = []string{"a"}
+var scope429 = []string{"i"}
+var scope431 = []string{"o"}
 var fieldType2 = &rt.FieldType{Kind: 'l', Text: "[](Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda)", Elem: &rt.FieldType{Kind: 'u', Text: "Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda", Alts: []*rt.FieldType{&rt.FieldType{Kind: 'N', Text: "Int", Name: "Int"}, &rt.FieldType{Kind: 'N', Text: "String", Name: "String"}, &rt.FieldType{Kind: 'N', Text: "True", Name: "True"}, &rt.FieldType{Kind: 'N', Text: "False", Name: "False"}, &rt.FieldType{Kind: 'N', Text: "Nil", Name: "Nil"}, &rt.FieldType{Kind: 'N', Text: "CaptureRef", Name: "CaptureRef"}, &rt.FieldType{Kind: 'N', Text: "VarRef", Name: "VarRef"}, &rt.FieldType{Kind: 'N', Text: "BinaryOp", Name: "BinaryOp"}, &rt.FieldType{Kind: 'N', Text: "UnaryOp", Name: "UnaryOp"}, &rt.FieldType{Kind: 'N', Text: "FieldAccess", Name: "FieldAccess"}, &rt.FieldType{Kind: 'N', Text: "CaptureAccess", Name: "CaptureAccess"}, &rt.FieldType{Kind: 'N', Text: "Cast", Name: "Cast"}, &rt.FieldType{Kind: 'N', Text: "Call", Name: "Call"}, &rt.FieldType{Kind: 'N', Text: "Constructor", Name: "Constructor"}, &rt.FieldType{Kind: 'N', Text: "ListConstructor", Name: "ListConstructor"}, &rt.FieldType{Kind: 'N', Text: "ActionTuple", Name: "ActionTuple"}, &rt.FieldType{Kind: 'N', Text: "ActionGroup", Name: "ActionGroup"}, &rt.FieldType{Kind: 'N', Text: "Lambda", Name: "Lambda"}}}}
 var fieldType3 = &rt.FieldType{Kind: 'l', Text: "[]string", Elem: &rt.FieldType{Kind: 's', Text: "string"}}
-var scope429 = []string{"c"}
+var scope435 = []string{"c"}
 var fieldType4 = &rt.FieldType{Kind: 'l', Text: "[]string", Elem: &rt.FieldType{Kind: 's', Text: "string"}}
-var scope430 = []string{"c"}
-var scope431 = []string{"c"}
-var scope432 = []string{"line", "body"}
-var scope433 = []string{"c"}
-var scope434 = []string{"g"}
+var scope436 = []string{"c"}
+var scope437 = []string{"c"}
+var scope438 = []string{"line", "body"}
+var scope439 = []string{"c"}
+var scope440 = []string{"g"}
 var fieldType5 = &rt.FieldType{Kind: 'l', Text: "[]CommentGap", Elem: &rt.FieldType{Kind: 'N', Text: "CommentGap", Name: "CommentGap"}}
-var lit441 = []rune("|")
-var lit443 = []rune("&")
-var lit451 = []rune("!")
-var lit454 = []rune("?")
-var lit456 = []rune("+")
-var lit458 = []rune("#atomic")
-var lit460 = []rune("#stream")
-var lit462 = []rune("#missing")
-var lit465 = []rune("#repeat")
-var lit467 = []rune("#recover")
-var lit473 = []rune("||")
-var lit475 = []rune("&&")
-var lit477 = []rune("==")
-var lit478 = []rune("!=")
-var lit479 = []rune("<=")
-var lit480 = []rune(">=")
-var lit481 = []rune("<")
-var lit482 = []rune(">")
-var lit485 = []rune("%")
+var lit447 = []rune("|")
+var lit449 = []rune("&")
+var lit457 = []rune("!")
+var lit460 = []rune("?")
+var lit462 = []rune("+")
+var lit464 = []rune("#atomic")
+var lit466 = []rune("#stream")
+var lit468 = []rune("#missing")
+var lit471 = []rune("#repeat")
+var lit473 = []rune("#recover")
+var lit479 = []rune("||")
+var lit481 = []rune("&&")
+var lit483 = []rune("==")
+var lit484 = []rune("!=")
+var lit485 = []rune("<=")
+var lit486 = []rune(">=")
+var lit487 = []rune("<")
+var lit488 = []rune(">")
+var lit491 = []rune("%")
 
 func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
-	zpGrammar.SetRules(rules, 131)
+	zpGrammar.SetRules(rules, 134)
 	zpGrammar.DeclareStruct("ActionBind", "Name", "-", "Expr", "-")
 	zpGrammar.TypeKinds["ActionBind"] = rt.KindOf("ActionBind", "")
 	zpGrammar.DeclareStruct("ActionBlock", "Actions", "l", "Comments", "l")
@@ -2601,66 +2608,68 @@ func init() {
 	zpGrammar.NodeTypes["VarRef"] = rt.NewNodeTypeKinds("VarRef")
 	zpGrammar.Starts = []string{"main", "file"}
 	zpGrammar.DefaultStart = "main"
-	zpGrammar.SetVars([]string{"ml"}, []any{false})
+	zpGrammar.SetVars([]string{"ml", "junk"}, []any{false, false})
 	trules = rt.NewTRules(rules)
 	defer tinit()
 	trules[0].Entry = u0
 	trules[1].Entry = u1
-	trules[3].Body = e416
+	trules[3].Body = e420
 	trules[3].Action = ta3
-	trules[7].Body = e418
+	trules[7].Body = e422
 	trules[7].Action = ta7
-	trules[9].Body = e419
-	trules[9].Action = ta9
-	trules[59].Body = e420
-	trules[59].Action = ta59
-	trules[62].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e435,
+	trules[10].Body = e423
+	trules[10].Action = ta10
+	trules[11].Body = e424
+	trules[11].Action = ta11
+	trules[61].Body = e425
+	trules[61].Action = ta61
+	trules[64].OperatorsRule = &rt.TOperatorsRule{
+		Skip: e441,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e436, Action: nil, Value: sh11},
-			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e437, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e442, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e443, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeApp(c, true, c.Cap(0), c.Cap(1))
 				return tv1, nil
 			}, Value: sh10},
-			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e438, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e444, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeRef(c, true, c.Cap(0))
 				return tv1, nil
 			}, Value: sh9},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e439, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e445, Action: func(c *rt.TActCtx) (any, any) {
 				return c.Cap(0), nil
 			}, Value: sh4},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e440, Action: func(c *rt.TActCtx) (any, any) {
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e446, Action: func(c *rt.TActCtx) (any, any) {
 				return c.Cap(0), nil
 			}, Value: sh4},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e445, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_ListType(c, true, (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e446, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e452, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OptionalType(c, true, (c.Rhs))
 				return tv1, nil
 			}, Value: sh11}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e442, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e448, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_JoinType(c, true, (c.Lhs), (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e444, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e450, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MeetType(c, true, (c.Lhs), (c.Rhs))
 				return tv1, nil
 			}, Value: sh11}}},
 	}
-	trules[62].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[62], min) }
-	trules[81].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e435,
+	trules[64].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[64], min) }
+	trules[83].OperatorsRule = &rt.TOperatorsRule{
+		Skip: e441,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e447, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: nil, Value: sh11},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e450, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e456, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Capture(c, true, c.Cap(0), (c.Rhs))
 			return tv1, nil
 		}, Value: sh10}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e452, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e458, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2668,47 +2677,47 @@ func init() {
 				tv2 := tmk_Lookahead(c, true, any(ts1), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e459, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Discard(c, true, (c.Rhs))
 				return tv1, nil
 			}, Value: sh9}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e448, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e454, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Choice(c, true, (c.Lhs), (c.Rhs))
 			return tv1, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e449, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e455, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Sequence(c, true, (c.Lhs), (c.Rhs))
 				return tv1, nil
 			}, Value: sh16}},
-			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e455, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e461, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Optional(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e446, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e452, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_ZeroOrMore(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e457, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e463, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OneOrMore(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh11}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e459, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e465, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Atomic(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e461, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e467, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Stream(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e463, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e469, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MissingPragma(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh9}},
-			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e464, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e470, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_IgnoreCase(c, true, (c.Lhs))
 				return tv1, nil
 			}, Value: sh9}},
-			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e466, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e472, Action: func(c *rt.TActCtx) (any, any) {
 				tv1, tf1 := c.P.TermMember(c, rt.MemberField, c.Cap(0), "Min", "Min")
 				if tf1 != nil {
 					return nil, tf1
@@ -2724,33 +2733,33 @@ func init() {
 				tv4 := tmk_Repeat(c, true, (c.Lhs), tv1, tv2, tv3)
 				return tv4, nil
 			}, Value: sh10}},
-			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e468, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e474, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Recover(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e469, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e475, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Attributed(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh4}},
-			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e470, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e476, Action: func(c *rt.TActCtx) (any, any) {
 				return (c.Lhs), nil
 			}, Value: sh11}}},
 	}
-	trules[81].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[81], min) }
-	trules[120].Body = e423
-	trules[120].Action = ta120
-	trules[123].Body = e425
-	trules[123].Action = ta123
-	trules[130].Body = e427
-	trules[130].Action = ta130
-	trules[140].Body = e428
-	trules[140].Action = ta140
-	trules[145].OperatorsRule = &rt.TOperatorsRule{
-		Skip: e471,
+	trules[83].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[83], min) }
+	trules[122].Body = e428
+	trules[122].Action = ta122
+	trules[125].Body = e430
+	trules[125].Action = ta125
+	trules[132].Body = e432
+	trules[132].Action = ta132
+	trules[142].Body = e433
+	trules[142].Action = ta142
+	trules[147].OperatorsRule = &rt.TOperatorsRule{
+		Skip: e477,
 		Operands: []*rt.TOperatorsRuleLine{
-			&rt.TOperatorsRuleLine{Scope: []string{}, M: e472, Action: nil, Value: sh11},
+			&rt.TOperatorsRuleLine{Scope: []string{}, M: e478, Action: nil, Value: sh11},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e487, Action: func(c *rt.TActCtx) (any, any) {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e493, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
 				return nil, tf1
@@ -2758,7 +2767,7 @@ func init() {
 			tv2 := tmk_UnaryOp(c, true, any(ts1), (c.Rhs))
 			return tv2, nil
 		}, Value: sh11}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e474, Action: func(c *rt.TActCtx) (any, any) {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e480, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
 				return nil, tf1
@@ -2766,7 +2775,7 @@ func init() {
 			tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 			return tv2, nil
 		}, Value: sh11}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e476, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e482, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2774,7 +2783,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e483, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e489, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2782,7 +2791,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e484, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e490, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2790,7 +2799,7 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e486, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e492, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
 					return nil, tf1
@@ -2798,29 +2807,30 @@ func init() {
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
 				return tv2, nil
 			}, Value: sh11}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e488, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e494, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_CaptureAccess(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e489, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e495, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Cast(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e490, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e496, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_FieldAccess(c, true, (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh10}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e491, Action: func(c *rt.TActCtx) (any, any) {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e497, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_BinaryOp(c, true, any("[]"), (c.Lhs), c.Cap(0))
 				return tv1, nil
 			}, Value: sh4}}},
 	}
-	trules[145].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[145], min) }
-	zpGrammar.Descs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", "\"@\"", "\"package\"", "expected package name", "expected type, var or rule declaration", "[)\\]}]", "expected semicolon, newline, or end of file", "expected semicolon, newline, or closing brace", "\"/*\"", "\";\"", "\"}\"", "\"[\"", "\"(\"", "\"{\"", "\")\"", "\"]\"", "\"\\\\\"", "[^\\]\\\\\\n]", "\"rule\"", "\"type\"", "\"var\"", "\":\"", "\"/\"", "\"\\\"\"", "\"//\"", "\"=\"", "\"~\"", "[:!<>=+*/%&|\\^\\-]", "\"=>\"", "[a-zA-Z0-9_]", "expected type", "expected type name", "\"node[\"", "expected '= {', '= node[' or '~'", "\",\"", "a node type takes one type argument", "expected field name", "expected field type", "expected closing brace for struct", "\"terminal\"", "\"Match\"", "\"Seq\"", "\"List\"", "\"Operator\"", "\"Error\"", "expected variable name", "expected the initial value", "expected rule name", "expected '=' after rule header", "expected rule expression", "expected value action after '=>'", "\"#\"", "\"operators\"", "\"skip\"", "\"operand\"", "\"level\"", "\"prefix\"", "\"postfix\"", "\"infix\"", "[a-zA-Z_]", "[ \\t\\n\\v\\f\\r\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "\"atomic\"", "\"stream\"", "\"missing\"", "\"ignorecase\"", "\"repeat\"", "\"recover\"", "\"cut\"", "expected closing parenthesis for rule group", "\"level(\"", "expected target rule in level call", "expected comma in level call", "expected level name", "expected closing parenthesis for level call", "\"_\"", "\"_|_\"", "\"^^\"", "\"^\"", "\"$$\"", "\"$\"", "[0-9]", "\".\"", "\"..\"", "\"#cut\"", "expected closing parenthesis for #repeat", "\"-\"", "\"0\"", "expected skip= in #recover", "expected '=' after skip", "expected closing parenthesis for #recover", "expected attribute name", "expected closing parenthesis for attribute arguments", "expected attribute argument value", "\"true\"", "\"false\"", "\"nil\"", "\"#ignorecase\"", "only #ignorecase may follow an Operators Rule", "\"#operators\"", "expected closing brace for operators", "expected skip, operand, or level", "expected skip expression", "expected operand expression", "expected opening brace for level", "expected closing brace for level", "expected prefix, postfix, or infix", "expected prefix expression", "expected postfix expression", "\"left\"", "\"right\"", "\"none\"", "expected left, right, or none associativity", "expected infix expression", "\"...\"", "expected closing brace for action block", "\":=\"", "expected binding value", "\"startPos\"", "\"endPos\"", "\"children\"", "\"expected\"", "\"message\"", "[a-z_]", "expected closing parenthesis for tuple", "expected closing parenthesis for action expression", "expected closing parenthesis for function call", "\"[]\"", "expected opening brace for list constructor", "expected closing brace for list constructor", "expected closing brace for constructor", "expected initializer field name", "expected initializer value", "\"\\r\\n\"", "[\\r\\n]", "[^\"\\\\\\n]", "[^\\n\\r]", "\"*/\"", "\"i\"", "expected closing bracket for character class", "[^\\r\\n]", "\"*\"", "[ \\t\\v\\f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "[({,]", "[({]", "\"|\"", "\"&\"", "\"!\"", "\"?\"", "\"+\"", "\"#atomic\"", "\"#stream\"", "\"#missing\"", "\"#repeat\"", "\"#recover\"", "\"||\"", "\"&&\"", "\"==\"", "\"!=\"", "\"<=\"", "\">=\"", "\"<\"", "\">\"", "\"%\""}
+	trules[147].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[147], min) }
+	trules[197].Body = e434
+	zpGrammar.Descs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line", "\"@\"", "\"package\"", "expected package name", "expected type, var or rule declaration", "[)\\]}]", "expected semicolon, newline, or end of file", "\"=\"", "[=>]", "\"/*\"", "expected semicolon, newline, or closing brace", "\";\"", "\"}\"", "\"[\"", "\"(\"", "\"{\"", "\")\"", "\"]\"", "\"\\\\\"", "[^\\]\\\\\\n]", "\"rule\"", "\"type\"", "\"var\"", "\":\"", "\"/\"", "\"\\\"\"", "\"//\"", "\"~\"", "[:!<>=+*/%&|\\^\\-]", "\"=>\"", "[a-zA-Z0-9_]", "expected type", "expected type name", "\"node[\"", "expected '= {', '= node[' or '~'", "\",\"", "a node type takes one type argument", "expected field name", "expected field type", "expected closing brace for struct", "\"terminal\"", "\"Match\"", "\"Seq\"", "\"List\"", "\"Operator\"", "\"Error\"", "expected variable name", "expected the initial value", "expected rule name", "expected '=' after rule header", "expected rule expression", "expected value action after '=>'", "\"#\"", "\"operators\"", "\"skip\"", "\"operand\"", "\"level\"", "\"prefix\"", "\"postfix\"", "\"infix\"", "[a-zA-Z_]", "[ \\t\\n\\v\\f\\r\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "\"atomic\"", "\"stream\"", "\"missing\"", "\"ignorecase\"", "\"repeat\"", "\"recover\"", "\"cut\"", "expected closing parenthesis for rule group", "\"level(\"", "expected target rule in level call", "expected comma in level call", "expected level name", "expected closing parenthesis for level call", "\"_\"", "\"_|_\"", "\"^^\"", "\"^\"", "\"$$\"", "\"$\"", "[0-9]", "\".\"", "\"..\"", "\"#cut\"", "expected closing parenthesis for #repeat", "\"-\"", "\"0\"", "expected skip= in #recover", "expected '=' after skip", "expected closing parenthesis for #recover", "expected attribute name", "expected closing parenthesis for attribute arguments", "expected attribute argument value", "\"true\"", "\"false\"", "\"nil\"", "\"#ignorecase\"", "only #ignorecase may follow an Operators Rule", "\"#operators\"", "expected closing brace for operators", "expected skip, operand, or level", "expected skip expression", "expected operand expression", "expected opening brace for level", "expected closing brace for level", "expected prefix, postfix, or infix", "expected prefix expression", "expected postfix expression", "\"left\"", "\"right\"", "\"none\"", "expected left, right, or none associativity", "expected infix expression", "\"...\"", "expected closing brace for action block", "\":=\"", "expected binding value", "\"startPos\"", "\"endPos\"", "\"children\"", "\"expected\"", "\"message\"", "[a-z_]", "expected closing parenthesis for tuple", "expected closing parenthesis for action expression", "expected closing parenthesis for function call", "\"[]\"", "expected opening brace for list constructor", "expected closing brace for list constructor", "expected closing brace for constructor", "expected initializer field name", "expected initializer value", "\"\\r\\n\"", "[\\r\\n]", "[^\"\\\\\\n]", "[^\\n\\r]", "\"*/\"", "\"i\"", "unterminated string", "expected closing bracket for character class", "[^\\r\\n]", "\"*\"", "[ \\t\\v\\f\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]", "[({,]", "[({]", "\"|\"", "\"&\"", "\"!\"", "\"?\"", "\"+\"", "\"#atomic\"", "\"#stream\"", "\"#missing\"", "\"#repeat\"", "\"#recover\"", "\"||\"", "\"&&\"", "\"==\"", "\"!=\"", "\"<=\"", "\">=\"", "\"<\"", "\">\"", "\"%\""}
 	zpGrammar.Expectations = true
 }
 
-func e416(p *rt.TParser, _ int) (any, bool) {
+func e420(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x17 int
 	var ok, x7 bool
@@ -2833,7 +2843,7 @@ func e416(p *rt.TParser, _ int) (any, bool) {
 	x1 = p.Pos
 	p.Silent++
 	p.LookBegin(2)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L2
 	}
 	x4 = p.Mark()
@@ -2847,7 +2857,7 @@ func e416(p *rt.TParser, _ int) (any, bool) {
 		p.ExpectBudget(p.Pos, 5)
 		goto L8
 	}
-	if _, ok = s265(p); !ok {
+	if _, ok = s269(p); !ok {
 		goto L9
 	}
 	goto L5
@@ -2864,7 +2874,7 @@ L8:
 	x12 = p.Mark()
 	p.Silent++
 	p.LookBegin(1)
-	if _, ok = s266(p); !ok {
+	if _, ok = s270(p); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -2904,7 +2914,7 @@ L19:
 	x17, x18 = p.Unisolate(x16)
 	x18 = p.Keep(x18)
 	p.Reset(x15)
-	if _, ok = u267(p); !ok {
+	if _, ok = u271(p); !ok {
 		goto L23
 	}
 	if p.Pos == x15.Pos {
@@ -2925,19 +2935,19 @@ fail:
 	return nil, false
 }
 
-func e418(p *rt.TParser, _ int) (any, bool) {
+func e422(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x4, x11 rt.Mark
 	var ok bool
-	var x6, x22 int
-	var x5, x21 rt.ExpMark
+	var x6, x24 int
+	var x5, x23 rt.ExpMark
 	var x7 []rt.ExpID
-	var v10, v12, v15, v17, v19 any
-	var x28 *rt.SyntaxError
+	var v10, v12, v15, v17, v19, v21 any
+	var x30 *rt.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(7)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L2
 	}
 	if !p.AtEndBatch() {
@@ -2955,34 +2965,41 @@ L2:
 	x4 = p.Mark()
 	x5 = p.Isolate(p.Pos)
 	x11 = p.Mark()
-	if v15, ok = s52(p); !ok {
+	if v15, ok = u54(p); !ok {
 		goto L14
 	}
 	v12 = v15
 	goto L13
 L14:
 	p.Reset(x11)
-	if v17, ok = u69(p); !ok {
+	if v17, ok = u71(p); !ok {
 		goto L16
 	}
 	v12 = v17
 	goto L13
 L16:
 	p.Reset(x11)
-	if v19, ok = u73(p); !ok {
+	if v19, ok = u75(p); !ok {
 		goto L18
 	}
 	v12 = v19
 	goto L13
 L18:
 	p.Reset(x11)
-	x21 = p.Isolate(p.Pos)
-	goto L24
-L24:
-	x22, _ = p.Unisolate(x21)
-	p.ExpectBudget(x22, rt.MsgBit|8)
-	goto L20
+	if v21, ok = u8(p); !ok {
+		goto L20
+	}
+	v12 = v21
+	goto L13
 L20:
+	p.Reset(x11)
+	x23 = p.Isolate(p.Pos)
+	goto L26
+L26:
+	x24, _ = p.Unisolate(x23)
+	p.ExpectBudget(x24, rt.MsgBit|8)
+	goto L22
+L22:
 	p.Reset(x11)
 	goto L8
 L13:
@@ -2994,17 +3011,17 @@ L8:
 	x6, x7 = p.Unisolate(x5)
 	x7 = p.Keep(x7)
 	p.Reset(x4)
-	if _, ok = u267(p); !ok {
-		goto L27
+	if _, ok = u271(p); !ok {
+		goto L29
 	}
 	if p.Pos == x4.Pos {
-		goto L27
+		goto L29
 	}
-	x28 = p.MakeError(x6, x7)
-	p.PushRecovered(x28)
-	v10 = rt.NewTError(x4.Pos, p.Pos, p.RecoveryErrorText(x28))
+	x30 = p.MakeError(x6, x7)
+	p.PushRecovered(x30)
+	v10 = rt.NewTError(x4.Pos, p.Pos, p.RecoveryErrorText(x30))
 	goto L9
-L27:
+L29:
 	p.Reset(x4)
 	p.MergeExpected(x6, x7)
 	goto fail
@@ -3015,7 +3032,7 @@ fail:
 	return nil, false
 }
 
-func e419(p *rt.TParser, _ int) (any, bool) {
+func e423(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, size, x6, x11 int
 	var ch rune
@@ -3051,7 +3068,7 @@ L3:
 	x4 = p.Mark()
 	x5 = p.Isolate(p.Pos)
 	x10 = p.Isolate(p.Pos)
-	if _, ok = u269(p); !ok {
+	if _, ok = u273(p); !ok {
 		goto L13
 	}
 	x11, x12 = p.Unisolate(x10)
@@ -3069,7 +3086,7 @@ L8:
 	x6, x7 = p.Unisolate(x5)
 	x7 = p.Keep(x7)
 	p.Reset(x4)
-	if _, ok = u267(p); !ok {
+	if _, ok = u271(p); !ok {
 		goto L15
 	}
 	if p.Pos == x4.Pos {
@@ -3088,7 +3105,152 @@ fail:
 	return nil, false
 }
 
-func e420(p *rt.TParser, _ int) (any, bool) {
+func e424(p *rt.TParser, _ int) (any, bool) {
+	p.Spend()
+	var x1, size, x19, x24 int
+	var x4, x7, x13, x17 rt.Mark
+	var ok, x10 bool
+	var x9, ch rune
+	var x18, x23 rt.ExpMark
+	var x20, x25 []rt.ExpID
+	var x29 *rt.SyntaxError
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
+		tv1 := c.Var(1)
+		return tv1, nil
+	}) {
+		goto fail
+	}
+	x1 = p.Pos
+	p.Silent++
+	p.LookBegin(11)
+	x4 = p.Mark()
+	if _, ok = s274(p); !ok {
+		goto L6
+	}
+	x7 = p.Mark()
+	p.Silent++
+	p.LookBegin(9)
+	if _, ok = s270(p); !ok {
+		goto L8
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Reset(x7)
+	goto L6
+L8:
+	p.LookEnd(false)
+	p.Silent--
+	p.Reset(x7)
+	goto L5
+L6:
+	p.Reset(x4)
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x9, _, x10 = p.In[p.Pos], 1, true
+	} else {
+		x9, _, x10 = p.Peek()
+	}
+	if !(x10 && (x9 == 61)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 11)
+		goto L11
+	}
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
+		goto L12
+	}
+	x13 = p.Mark()
+	p.Silent++
+	p.LookBegin(10)
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		ch, size, ok = p.In[p.Pos], 1, true
+	} else {
+		ch, size, ok = p.Peek()
+	}
+	if !ok || !(ch == 61 || ch == 62) {
+		p.ExpectBudget(p.Pos, 12)
+		goto L14
+	}
+	p.Pos += size
+	p.LookEnd(true)
+	p.Silent--
+	p.Reset(x13)
+	goto L12
+L14:
+	p.LookEnd(false)
+	p.Silent--
+	p.Reset(x13)
+	goto L5
+L12:
+	p.Reset(x4)
+L11:
+	if !(x10 && (x9 == 47)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 13)
+		goto L15
+	}
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
+		p.Pos += 2
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
+		goto L16
+	}
+	goto L5
+L16:
+	p.Reset(x4)
+L15:
+	goto L2
+L5:
+	p.LookEnd(true)
+	p.Silent--
+	p.Pos = x1
+	goto L3
+L2:
+	p.LookEnd(false)
+	p.Silent--
+	p.Pos = x1
+	goto fail
+L3:
+	x17 = p.Mark()
+	x18 = p.Isolate(p.Pos)
+	x23 = p.Isolate(p.Pos)
+	if _, ok = u273(p); !ok {
+		goto L26
+	}
+	x24, x25 = p.Unisolate(x23)
+	p.MergeExpected(x24, x25)
+	goto L27
+L26:
+	x24, x25 = p.Unisolate(x23)
+	p.ExpectBudget(x24, rt.MsgBit|10)
+	goto L21
+L27:
+	x19, x20 = p.Unisolate(x18)
+	p.MergeExpected(x19, x20)
+	goto L22
+L21:
+	x19, x20 = p.Unisolate(x18)
+	x20 = p.Keep(x20)
+	p.Reset(x17)
+	if _, ok = u271(p); !ok {
+		goto L28
+	}
+	if p.Pos == x17.Pos {
+		goto L28
+	}
+	x29 = p.MakeError(x19, x20)
+	p.PushRecovered(x29)
+	goto L22
+L28:
+	p.Reset(x17)
+	p.MergeExpected(x19, x20)
+	goto fail
+L22:
+	return nil, true
+fail:
+	return nil, false
+}
+
+func e425(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6 rt.Mark
 	var ok bool
@@ -3099,13 +3261,13 @@ func e420(p *rt.TParser, _ int) (any, bool) {
 	var x15 *rt.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
-	p.LookBegin(65)
-	if _, ok = u172(p); !ok {
+	p.LookBegin(68)
+	if _, ok = u174(p); !ok {
 		goto L2
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -3118,8 +3280,8 @@ L2:
 	p.Reset(x1)
 	x3 = p.Mark()
 	p.Silent++
-	p.LookBegin(66)
-	if _, ok = u278(p); !ok {
+	p.LookBegin(69)
+	if _, ok = u283(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -3132,7 +3294,7 @@ L4:
 	p.Reset(x3)
 	x6 = p.Mark()
 	x7 = p.Isolate(p.Pos)
-	if v13, ok = u60(p); !ok {
+	if v13, ok = u62(p); !ok {
 		goto L10
 	}
 	v12 = v13
@@ -3143,7 +3305,7 @@ L10:
 	x8, x9 = p.Unisolate(x7)
 	x9 = p.Keep(x9)
 	p.Reset(x6)
-	if _, ok = s279(p); !ok {
+	if _, ok = s284(p); !ok {
 		goto L14
 	}
 	if p.Pos == x6.Pos {
@@ -3164,20 +3326,20 @@ fail:
 	return nil, false
 }
 
-func e423(p *rt.TParser, _ int) (any, bool) {
+func e428(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x2, x9, x11 rt.Mark
 	var v3, v6, v8 any
 	var ok bool
 	x2 = p.Mark()
-	if v6, ok = p.Call(trules[120], 0); !ok {
+	if v6, ok = p.Call(trules[122], 0); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Reset(x2)
-	if v8, ok = u122(p); !ok {
+	if v8, ok = u124(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -3187,16 +3349,16 @@ L7:
 	goto fail
 L4:
 	p.SetCapture(0, v3)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if _, ok = p.Parser.MatchLiteral(lit192, "#ignorecase", 100, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit195, "#ignorecase", 101, false); !ok {
 		goto fail
 	}
 	x9 = p.Mark()
 	p.Silent++
-	p.LookBegin(104)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(107)
+	if _, ok = s270(p); !ok {
 		goto L10
 	}
 	p.LookEnd(true)
@@ -3209,10 +3371,10 @@ L10:
 	p.Reset(x9)
 	x11 = p.Mark()
 	p.Silent++
-	p.LookBegin(105)
+	p.LookBegin(108)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L12
 	}
 	p.LookEnd(true)
@@ -3228,7 +3390,7 @@ fail:
 	return nil, false
 }
 
-func e425(p *rt.TParser, _ int) (any, bool) {
+func e430(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6, x13 rt.Mark
 	var ok bool
@@ -3238,133 +3400,28 @@ func e425(p *rt.TParser, _ int) (any, bool) {
 	var v12, v14, v17, v19, v21 any
 	var x30 *rt.SyntaxError
 	x1 = p.Mark()
-	p.Silent++
-	p.LookBegin(111)
-	if _, ok = u172(p); !ok {
-		goto L2
-	}
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
-		goto L2
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Reset(x1)
-	goto fail
-L2:
-	p.LookEnd(false)
-	p.Silent--
-	p.Reset(x1)
-	x3 = p.Mark()
-	p.Silent++
-	p.LookBegin(112)
-	if _, ok = u278(p); !ok {
-		goto L4
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Reset(x3)
-	goto fail
-L4:
-	p.LookEnd(false)
-	p.Silent--
-	p.Reset(x3)
-	x6 = p.Mark()
-	x7 = p.Isolate(p.Pos)
-	x13 = p.Mark()
-	if v17, ok = u124(p); !ok {
-		goto L16
-	}
-	v14 = v17
-	goto L15
-L16:
-	p.Reset(x13)
-	if v19, ok = u126(p); !ok {
-		goto L18
-	}
-	v14 = v19
-	goto L15
-L18:
-	p.Reset(x13)
-	if v21, ok = u128(p); !ok {
-		goto L20
-	}
-	v14 = v21
-	goto L15
-L20:
-	p.Reset(x13)
-	x23 = p.Isolate(p.Pos)
-	goto L26
-L26:
-	x24, _ = p.Unisolate(x23)
-	p.ExpectBudget(x24, rt.MsgBit|104)
-	goto L22
-L22:
-	p.Reset(x13)
-	goto L10
-L15:
-	v12 = v14
-	x8, x9 = p.Unisolate(x7)
-	p.MergeExpected(x8, x9)
-	goto L11
-L10:
-	x8, x9 = p.Unisolate(x7)
-	x9 = p.Keep(x9)
-	p.Reset(x6)
-	if _, ok = u286(p); !ok {
-		goto L29
-	}
-	if p.Pos == x6.Pos {
-		goto L29
-	}
-	x30 = p.MakeError(x8, x9)
-	p.PushRecovered(x30)
-	v12 = rt.NewTError(x6.Pos, p.Pos, p.RecoveryErrorText(x30))
-	goto L11
-L29:
-	p.Reset(x6)
-	p.MergeExpected(x8, x9)
-	goto fail
-L11:
-	p.SetCapture(0, v12)
-	return nil, true
-fail:
-	return nil, false
-}
-
-func e427(p *rt.TParser, _ int) (any, bool) {
-	p.Spend()
-	var x1, x3, x6, x13 rt.Mark
-	var ok bool
-	var x8, x24 int
-	var x7, x23 rt.ExpMark
-	var x9 []rt.ExpID
-	var v12, v14, v17, v19, v21 any
-	var x30 *rt.SyntaxError
-	x1 = p.Mark()
-	p.Silent++
-	p.LookBegin(113)
-	if _, ok = u172(p); !ok {
-		goto L2
-	}
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
-		goto L2
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Reset(x1)
-	goto fail
-L2:
-	p.LookEnd(false)
-	p.Silent--
-	p.Reset(x1)
-	x3 = p.Mark()
 	p.Silent++
 	p.LookBegin(114)
-	if _, ok = u278(p); !ok {
+	if _, ok = u174(p); !ok {
+		goto L2
+	}
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
+		goto L2
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Reset(x1)
+	goto fail
+L2:
+	p.LookEnd(false)
+	p.Silent--
+	p.Reset(x1)
+	x3 = p.Mark()
+	p.Silent++
+	p.LookBegin(115)
+	if _, ok = u283(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -3378,21 +3435,21 @@ L4:
 	x6 = p.Mark()
 	x7 = p.Isolate(p.Pos)
 	x13 = p.Mark()
-	if v17, ok = u131(p); !ok {
+	if v17, ok = u126(p); !ok {
 		goto L16
 	}
 	v14 = v17
 	goto L15
 L16:
 	p.Reset(x13)
-	if v19, ok = u133(p); !ok {
+	if v19, ok = u128(p); !ok {
 		goto L18
 	}
 	v14 = v19
 	goto L15
 L18:
 	p.Reset(x13)
-	if v21, ok = u135(p); !ok {
+	if v21, ok = u130(p); !ok {
 		goto L20
 	}
 	v14 = v21
@@ -3403,7 +3460,7 @@ L20:
 	goto L26
 L26:
 	x24, _ = p.Unisolate(x23)
-	p.ExpectBudget(x24, rt.MsgBit|109)
+	p.ExpectBudget(x24, rt.MsgBit|105)
 	goto L22
 L22:
 	p.Reset(x13)
@@ -3417,7 +3474,7 @@ L10:
 	x8, x9 = p.Unisolate(x7)
 	x9 = p.Keep(x9)
 	p.Reset(x6)
-	if _, ok = u286(p); !ok {
+	if _, ok = u291(p); !ok {
 		goto L29
 	}
 	if p.Pos == x6.Pos {
@@ -3438,7 +3495,112 @@ fail:
 	return nil, false
 }
 
-func e428(p *rt.TParser, _ int) (any, bool) {
+func e432(p *rt.TParser, _ int) (any, bool) {
+	p.Spend()
+	var x1, x3, x6, x13 rt.Mark
+	var ok bool
+	var x8, x24 int
+	var x7, x23 rt.ExpMark
+	var x9 []rt.ExpID
+	var v12, v14, v17, v19, v21 any
+	var x30 *rt.SyntaxError
+	x1 = p.Mark()
+	p.Silent++
+	p.LookBegin(116)
+	if _, ok = u174(p); !ok {
+		goto L2
+	}
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
+		goto L2
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Reset(x1)
+	goto fail
+L2:
+	p.LookEnd(false)
+	p.Silent--
+	p.Reset(x1)
+	x3 = p.Mark()
+	p.Silent++
+	p.LookBegin(117)
+	if _, ok = u283(p); !ok {
+		goto L4
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Reset(x3)
+	goto fail
+L4:
+	p.LookEnd(false)
+	p.Silent--
+	p.Reset(x3)
+	x6 = p.Mark()
+	x7 = p.Isolate(p.Pos)
+	x13 = p.Mark()
+	if v17, ok = u133(p); !ok {
+		goto L16
+	}
+	v14 = v17
+	goto L15
+L16:
+	p.Reset(x13)
+	if v19, ok = u135(p); !ok {
+		goto L18
+	}
+	v14 = v19
+	goto L15
+L18:
+	p.Reset(x13)
+	if v21, ok = u137(p); !ok {
+		goto L20
+	}
+	v14 = v21
+	goto L15
+L20:
+	p.Reset(x13)
+	x23 = p.Isolate(p.Pos)
+	goto L26
+L26:
+	x24, _ = p.Unisolate(x23)
+	p.ExpectBudget(x24, rt.MsgBit|110)
+	goto L22
+L22:
+	p.Reset(x13)
+	goto L10
+L15:
+	v12 = v14
+	x8, x9 = p.Unisolate(x7)
+	p.MergeExpected(x8, x9)
+	goto L11
+L10:
+	x8, x9 = p.Unisolate(x7)
+	x9 = p.Keep(x9)
+	p.Reset(x6)
+	if _, ok = u291(p); !ok {
+		goto L29
+	}
+	if p.Pos == x6.Pos {
+		goto L29
+	}
+	x30 = p.MakeError(x8, x9)
+	p.PushRecovered(x30)
+	v12 = rt.NewTError(x6.Pos, p.Pos, p.RecoveryErrorText(x30))
+	goto L11
+L29:
+	p.Reset(x6)
+	p.MergeExpected(x8, x9)
+	goto fail
+L11:
+	p.SetCapture(0, v12)
+	return nil, true
+fail:
+	return nil, false
+}
+
+func e433(p *rt.TParser, _ int) (any, bool) {
 	p.Spend()
 	var x1, x3, x6 rt.Mark
 	var ok bool
@@ -3449,13 +3611,13 @@ func e428(p *rt.TParser, _ int) (any, bool) {
 	var x15 *rt.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
-	p.LookBegin(115)
-	if _, ok = u172(p); !ok {
+	p.LookBegin(118)
+	if _, ok = u174(p); !ok {
 		goto L2
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -3468,8 +3630,8 @@ L2:
 	p.Reset(x1)
 	x3 = p.Mark()
 	p.Silent++
-	p.LookBegin(116)
-	if _, ok = u278(p); !ok {
+	p.LookBegin(119)
+	if _, ok = u283(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -3482,7 +3644,7 @@ L4:
 	p.Reset(x3)
 	x6 = p.Mark()
 	x7 = p.Isolate(p.Pos)
-	if v13, ok = u141(p); !ok {
+	if v13, ok = u143(p); !ok {
 		goto L10
 	}
 	v12 = v13
@@ -3493,7 +3655,7 @@ L10:
 	x8, x9 = p.Unisolate(x7)
 	x9 = p.Keep(x9)
 	p.Reset(x6)
-	if _, ok = u286(p); !ok {
+	if _, ok = u291(p); !ok {
 		goto L14
 	}
 	if p.Pos == x6.Pos {
@@ -3510,6 +3672,66 @@ L14:
 L11:
 	p.SetCapture(0, v12)
 	return nil, true
+fail:
+	return nil, false
+}
+
+func e434(p *rt.TParser, _ int) (any, bool) {
+	p.Spend()
+	var x1 rt.Mark
+	var x2, x13 rt.ExpMark
+	var x3, x10, x14 int
+	var x4 []rt.ExpID
+	var v7 any
+	var ok bool
+	var x21 *rt.SyntaxError
+	x1 = p.Mark()
+	x2 = p.Isolate(p.Pos)
+	_ = p.NewVals(0)[:0]
+	x10 = p.Pos
+	p.Silent++
+	p.LookBegin(147)
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
+		goto L11
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Pos = x10
+	goto L12
+L11:
+	p.LookEnd(false)
+	p.Silent--
+	p.Pos = x10
+	goto L5
+L12:
+	x13 = p.Isolate(p.Pos)
+	goto L16
+L16:
+	x14, _ = p.Unisolate(x13)
+	p.ExpectBudget(x14, rt.MsgBit|143)
+	goto L5
+L5:
+	x3, x4 = p.Unisolate(x2)
+	x4 = p.Keep(x4)
+	p.Reset(x1)
+	if _, ok = s299(p); !ok {
+		goto L20
+	}
+	if p.Pos == x1.Pos {
+		goto L20
+	}
+	x21 = p.MakeError(x3, x4)
+	p.PushRecovered(x21)
+	v7 = rt.NewTError(x1.Pos, p.Pos, p.RecoveryErrorText(x21))
+	goto L6
+L20:
+	p.Reset(x1)
+	p.MergeExpected(x3, x4)
+	goto fail
+L6:
+	return v7, true
 fail:
 	return nil, false
 }
@@ -3540,11 +3762,11 @@ func i0(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr24 any
+		var tr27 any
 		{
-			tr24 = k1
+			tr27 = k1
 		}
-		v = tr24
+		v = tr27
 	}
 	v = c.Finish(v)
 	return v, true
@@ -3571,7 +3793,7 @@ func i1(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	if v6, ok = u178(p); !ok {
+	if v6, ok = u180(p); !ok {
 		goto L2
 	}
 	k4 = v6
@@ -3585,7 +3807,7 @@ L2:
 L3:
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u253(p); !ok {
+	if v12, ok = u257(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -3624,7 +3846,7 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "file"
 	{
-		var tr25 any
+		var tr28 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k20, "Pkg", "Pkg")
 			if tf1 != nil {
@@ -3647,9 +3869,9 @@ L9:
 				c.TermRaise(tf5)
 			}
 			tv6 := tmk_File(c, true, tv1, tv2, k4, tv3, any(ts4), tv5, k10)
-			tr25 = tv6
+			tr28 = tv6
 		}
-		v = tr25
+		v = tr28
 	}
 	return v, true
 fail:
@@ -3682,7 +3904,7 @@ func i2(p *rt.TParser) (any, bool) {
 	}
 	x1 = p.Pos
 	p.Silent++
-	if v6, ok = u199(p); !ok {
+	if v6, ok = u203(p); !ok {
 		goto L2
 	}
 	k4 = v6
@@ -3715,7 +3937,7 @@ L13:
 		}
 		k22 = v25
 		v26 = p.ScopeValue(sh4, v25, x20)
-		v27 = p.AttachCaptures(v26, scope415, []any{k22}, x20, p.Pos)
+		v27 = p.AttachCaptures(v26, scope419, []any{k22}, x20, p.Pos)
 		p.PushKid(v27)
 		if p.Pos == x20 {
 			break
@@ -3727,7 +3949,7 @@ L13:
 	}
 	v28 = p.NewNode("list", x17, p.Pos, p.Kids(x18))
 	k15 = v28
-	if v31, ok = u172(p); !ok {
+	if v31, ok = u174(p); !ok {
 		goto fail
 	}
 	k29 = v31
@@ -3738,7 +3960,7 @@ L13:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "file_contents"
 	{
-		var tr27 any
+		var tr30 any
 		{
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k15)
@@ -3762,9 +3984,9 @@ L13:
 			tk9 := c.P.Kids(tm1)
 			tn10 := c.P.TermHull(c, false, tk9)
 			tv11 := tmk_File(c, true, k7, any(tn10), any(nil), k29, any(nil), k4, any(nil))
-			tr27 = tv11
+			tr30 = tv11
 		}
-		v = tr27
+		v = tr30
 	}
 	p.Env = prevEnv
 	return v, true
@@ -3793,7 +4015,7 @@ func i3(p *rt.TParser) (any, bool) {
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e416(p, 0)
+	v, ok := e420(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -3824,7 +4046,7 @@ func i5(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	if v6, ok = u229(p); !ok {
+	if v6, ok = u233(p); !ok {
 		goto L2
 	}
 	k4 = v6
@@ -3836,7 +4058,7 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if v9, ok = u172(p); !ok {
+	if v9, ok = u174(p); !ok {
 		goto fail
 	}
 	k7 = v9
@@ -3846,7 +4068,7 @@ L3:
 	k10 = v12
 	x13 = p.Pos
 	p.Silent++
-	if v18, ok = u202(p); !ok {
+	if v18, ok = u206(p); !ok {
 		goto L14
 	}
 	k16 = v18
@@ -3858,14 +4080,14 @@ L14:
 	p.Pos = x13
 	goto fail
 L15:
-	if v21, ok = u8(p); !ok {
+	if v21, ok = u9(p); !ok {
 		goto fail
 	}
 	k19 = v21
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "package_stmt"
 	{
-		var tr28 any
+		var tr31 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k10, "Attrs", "Attrs")
 			if tf1 != nil {
@@ -3920,9 +4142,9 @@ L15:
 			tf18 := tv17
 			tv19 := tmk_SourceMetadata(c, false, tf10, tf12, tf16, tf14, tf18)
 			tv20 := tmk_Pkg(c, true, tv1, tv2, any(tn9), tv19)
-			tr28 = tv20
+			tr31 = tv20
 		}
-		v = tr28
+		v = tr31
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -3959,19 +4181,19 @@ func i6(p *rt.TParser) (any, bool) {
 		cut11 = false
 		x12 = p.Pos
 		x13 = p.NewVals(2)[:0]
-		if v15, ok = u107(p); !ok {
+		if v15, ok = u109(p); !ok {
 			goto L10
 		}
 		k8 = v15
 		x13 = append(x13, v15)
-		if v17, ok = u75(p); !ok {
+		if v17, ok = u77(p); !ok {
 			goto L10
 		}
 		k9 = v17
 		x13 = append(x13, v17)
 		v18 = p.NewNode("tuple", x12, p.Pos, x13)
 		v19 = p.ScopeValue(sh10, v18, x6)
-		v20 = p.AttachCaptures(v19, scope417, []any{k8, k9}, x6, p.Pos)
+		v20 = p.AttachCaptures(v19, scope421, []any{k8, k9}, x6, p.Pos)
 		p.PushKid(v20)
 		if p.Pos == x6 {
 			break
@@ -3990,11 +4212,11 @@ func i6(p *rt.TParser) (any, bool) {
 	if _, ok = p.Parser.MatchLiteral(lit6, "package", 6, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x24 = p.Isolate(p.Pos)
-	if v29, ok = u190(p); !ok {
+	if v29, ok = u192(p); !ok {
 		goto L27
 	}
 	x25, x26 = p.Unisolate(x24)
@@ -4009,7 +4231,7 @@ L28:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "package_body"
 	{
-		var tr29 any
+		var tr32 any
 		{
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k1)
@@ -4066,9 +4288,9 @@ L28:
 				ta15 = tv20
 			}
 			tv27 := tmk_PkgBody(c, true, any(tn10), ta15, k22)
-			tr29 = tv27
+			tr32 = tv27
 		}
-		v = tr29
+		v = tr32
 	}
 	return v, true
 fail:
@@ -4095,7 +4317,7 @@ func i7(p *rt.TParser) (any, bool) {
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e418(p, 0)
+	v, ok := e422(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
@@ -4107,11 +4329,8 @@ func i7(p *rt.TParser) (any, bool) {
 	return v, ok
 }
 
-// rule stmt_end
+// rule junk_decl
 func u8(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[8]) {
-		return p.CallMemo(trules[8], i8)
-	}
 	start, rec := p.Pos, len(p.Recovered)
 	v, ok := i8(p)
 	if !ok {
@@ -4122,29 +4341,110 @@ func u8(p *rt.TParser) (any, bool) {
 
 func i8(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start, x3, x4 int
+	var v, k1, v5, v8, v10, v12 any
+	var c *rt.TActCtx
+	var prevEnv *rt.Env
+	var ok bool
+	start = p.Pos
+	prevEnv = p.Env
+	if !p.Bind(1, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
+	}) {
+		goto fail
+	}
+	x3, x4 = p.Pos, len(p.Recovered)
+	if v8, ok = u54(p); !ok {
+		goto L7
+	}
+	v5 = v8
+	goto L6
+L7:
+	p.Restore(x3, x4)
+	if v10, ok = u71(p); !ok {
+		goto L9
+	}
+	v5 = v10
+	goto L6
+L9:
+	p.Restore(x3, x4)
+	if v12, ok = u75(p); !ok {
+		goto L11
+	}
+	v5 = v12
+	goto L6
+L11:
+	p.Restore(x3, x4)
+	goto fail
+L6:
+	k1 = v5
+	if !p.Bind(1, func(c *rt.TActCtx) (any, any) {
+		return any(false), nil
+	}) {
+		goto fail
+	}
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "junk_decl"
+	{
+		var tr35 any
+		{
+			tr35 = k1
+		}
+		v = tr35
+	}
+	v = c.Finish(v)
+	p.Env = prevEnv
+	return v, true
+fail:
+	p.Env = prevEnv
+	return nil, false
+}
+
+// rule stmt_end
+func u9(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[9]) {
+		return p.CallMemo(trules[9], i9)
+	}
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i9(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i9(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, x6, x7 int
-	var v, k1, v3, k4, v8, v11, v13 any
+	var v, k1, v3, k4, v8, v11, v13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u173(p); !ok {
+	if v3, ok = u175(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x6, x7 = p.Pos, len(p.Recovered)
-	if v11, ok = u12(p); !ok {
+	if v11, ok = u14(p); !ok {
 		goto L10
 	}
 	v8 = v11
 	goto L9
 L10:
 	p.Restore(x6, x7)
-	if v13, ok = s9(p); !ok {
+	if v13, ok = s10(p); !ok {
 		goto L12
 	}
 	v8 = v13
 	goto L9
 L12:
+	p.Restore(x6, x7)
+	if v15, ok = s11(p); !ok {
+		goto L14
+	}
+	v8 = v15
+	goto L9
+L14:
 	p.Restore(x6, x7)
 	goto fail
 L9:
@@ -4152,7 +4452,7 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "stmt_end"
 	{
-		var tr30 any
+		var tr36 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -4167,9 +4467,9 @@ L9:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr30 = any(tn5)
+			tr36 = any(tn5)
 		}
-		v = tr30
+		v = tr36
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4177,23 +4477,47 @@ fail:
 	return nil, false
 }
 
-func ta9(c *rt.TActCtx) (any, any) {
+func ta10(c *rt.TActCtx) (any, any) {
 	tm1 := len(c.P.KidStack)
 	tk2 := c.P.Kids(tm1)
 	tn3 := c.P.TermHull(c, false, tk2)
 	return any(tn3), nil
 }
 
-func s9(p *rt.TParser) (any, bool) {
+func s10(p *rt.TParser) (any, bool) {
 	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
 	p.Cut = false
-	v, ok := e419(p, 0)
+	v, ok := e423(p, 0)
 	p.Cut = prevCut
 	p.DropTrail(trail)
 	if ok {
 		c := p.UseCtx(rt.TActCtx{P: p, F: rt.EmptyTFrame, Start: start, End: p.Pos, Cbase: len(p.Created)})
-		v = c.Result(ta9, "stmt_skip")
+		v = c.Result(ta10, "stmt_skip")
+	} else {
+		p.Restore(start, rec)
+	}
+	p.Env = prevEnv
+	return v, ok
+}
+
+func ta11(c *rt.TActCtx) (any, any) {
+	tm1 := len(c.P.KidStack)
+	tk2 := c.P.Kids(tm1)
+	tn3 := c.P.TermHull(c, false, tk2)
+	return any(tn3), nil
+}
+
+func s11(p *rt.TParser) (any, bool) {
+	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
+	prevEnv, prevCut := p.Env, p.Cut
+	p.Cut = false
+	v, ok := e424(p, 0)
+	p.Cut = prevCut
+	p.DropTrail(trail)
+	if ok {
+		c := p.UseCtx(rt.TActCtx{P: p, F: rt.EmptyTFrame, Start: start, End: p.Pos, Cbase: len(p.Created)})
+		v = c.Result(ta11, "stmt_junk")
 	} else {
 		p.Restore(start, rec)
 	}
@@ -4202,19 +4526,19 @@ func s9(p *rt.TParser) (any, bool) {
 }
 
 // rule item_end
-func u10(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[10]) {
-		return p.CallMemo(trules[10], i10)
+func u12(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[12]) {
+		return p.CallMemo(trules[12], i12)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i10(p)
+	v, ok := i12(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i10(p *rt.TParser) (any, bool) {
+func i12(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v11 any
@@ -4223,12 +4547,12 @@ func i10(p *rt.TParser) (any, bool) {
 	var x6 rt.ExpMark
 	var x8 []rt.ExpID
 	start = p.Pos
-	if v3, ok = u173(p); !ok {
+	if v3, ok = u175(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x6 = p.Isolate(p.Pos)
-	if v11, ok = s13(p); !ok {
+	if v11, ok = s15(p); !ok {
 		goto L9
 	}
 	x7, x8 = p.Unisolate(x6)
@@ -4236,14 +4560,14 @@ func i10(p *rt.TParser) (any, bool) {
 	goto L10
 L9:
 	x7, x8 = p.Unisolate(x6)
-	p.ExpectBudget(x7, rt.MsgBit|11)
+	p.ExpectBudget(x7, rt.MsgBit|14)
 	goto fail
 L10:
 	k4 = v11
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "item_end"
 	{
-		var tr31 any
+		var tr38 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -4258,9 +4582,9 @@ L10:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr31 = any(tn5)
+			tr38 = any(tn5)
 		}
-		v = tr31
+		v = tr38
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4269,16 +4593,16 @@ fail:
 }
 
 // rule field_end
-func u11(p *rt.TParser) (any, bool) {
+func u13(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i11(p)
+	v, ok := i13(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i11(p *rt.TParser) (any, bool) {
+func i13(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v11 any
@@ -4287,12 +4611,12 @@ func i11(p *rt.TParser) (any, bool) {
 	var x6 rt.ExpMark
 	var x8 []rt.ExpID
 	start = p.Pos
-	if v3, ok = u173(p); !ok {
+	if v3, ok = u175(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x6 = p.Isolate(p.Pos)
-	if v11, ok = s14(p); !ok {
+	if v11, ok = s16(p); !ok {
 		goto L9
 	}
 	x7, x8 = p.Unisolate(x6)
@@ -4300,14 +4624,14 @@ func i11(p *rt.TParser) (any, bool) {
 	goto L10
 L9:
 	x7, x8 = p.Unisolate(x6)
-	p.ExpectBudget(x7, rt.MsgBit|11)
+	p.ExpectBudget(x7, rt.MsgBit|14)
 	goto fail
 L10:
 	k4 = v11
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "field_end"
 	{
-		var tr32 any
+		var tr39 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -4322,9 +4646,9 @@ L10:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr32 = any(tn5)
+			tr39 = any(tn5)
 		}
-		v = tr32
+		v = tr39
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4333,14 +4657,14 @@ fail:
 }
 
 // rule stmt_sep
-func u12(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[12]) {
-		return p.CallMemo(trules[12], v12)
+func u14(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[14]) {
+		return p.CallMemo(trules[14], v14)
 	}
-	return v12(p)
+	return v14(p)
 }
 
-func v12(p *rt.TParser) (any, bool) {
+func v14(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v11 any
@@ -4355,100 +4679,10 @@ func v12(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L7
 	}
-	if v9, ok = u15(p); !ok {
-		goto L8
-	}
-	v3 = v9
-	goto L4
-L8:
-	p.Restore(x1, x2)
-L7:
-	if v11, ok = s16(p); !ok {
-		goto L10
-	}
-	v3 = v11
-	goto L4
-L10:
-	p.Restore(x1, x2)
-	goto fail
-L4:
-	v = p.ScopeValue(sh11, v3, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s13(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, x2 int
-	var v, v3, v9, v11 any
-	var x5 rune
-	var x6, ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1, x2 = p.Pos, len(p.Recovered)
-	if p.Pos < len(p.In) {
-		p.Control.Take(1)
-		x5, _, x6 = p.In[p.Pos], 1, true
-	} else {
-		x5, _, x6 = p.Peek()
-	}
-	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
-		goto L7
-	}
-	if v9, ok = u15(p); !ok {
-		goto L8
-	}
-	v3 = v9
-	goto L4
-L8:
-	p.Restore(x1, x2)
-L7:
-	if v11, ok = s17(p); !ok {
-		goto L10
-	}
-	v3 = v11
-	goto L4
-L10:
-	p.Restore(x1, x2)
-	goto fail
-L4:
-	v = p.ScopeValue(sh11, v3, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s14(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, x2 int
-	var v, v3, v9, v11 any
-	var x5 rune
-	var x6, ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1, x2 = p.Pos, len(p.Recovered)
-	if p.Pos < len(p.In) {
-		p.Control.Take(1)
-		x5, _, x6 = p.In[p.Pos], 1, true
-	} else {
-		x5, _, x6 = p.Peek()
-	}
-	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
-		goto L7
-	}
-	if v9, ok = u15(p); !ok {
+	if v9, ok = u17(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -4475,34 +4709,124 @@ fail:
 	return nil, false
 }
 
+func s15(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1, x2 int
+	var v, v3, v9, v11 any
+	var x5 rune
+	var x6, ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1, x2 = p.Pos, len(p.Recovered)
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x5, _, x6 = p.In[p.Pos], 1, true
+	} else {
+		x5, _, x6 = p.Peek()
+	}
+	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 13)
+		goto L7
+	}
+	if v9, ok = u17(p); !ok {
+		goto L8
+	}
+	v3 = v9
+	goto L4
+L8:
+	p.Restore(x1, x2)
+L7:
+	if v11, ok = s19(p); !ok {
+		goto L10
+	}
+	v3 = v11
+	goto L4
+L10:
+	p.Restore(x1, x2)
+	goto fail
+L4:
+	v = p.ScopeValue(sh11, v3, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+func s16(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1, x2 int
+	var v, v3, v9, v11 any
+	var x5 rune
+	var x6, ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1, x2 = p.Pos, len(p.Recovered)
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x5, _, x6 = p.In[p.Pos], 1, true
+	} else {
+		x5, _, x6 = p.Peek()
+	}
+	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 13)
+		goto L7
+	}
+	if v9, ok = u17(p); !ok {
+		goto L8
+	}
+	v3 = v9
+	goto L4
+L8:
+	p.Restore(x1, x2)
+L7:
+	if v11, ok = s20(p); !ok {
+		goto L10
+	}
+	v3 = v11
+	goto L4
+L10:
+	p.Restore(x1, x2)
+	goto fail
+L4:
+	v = p.ScopeValue(sh11, v3, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
 // rule block_sep
-func u15(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[15]) {
-		return p.CallMemo(trules[15], i15)
+func u17(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[17]) {
+		return p.CallMemo(trules[17], i17)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i15(p)
+	v, ok := i17(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i15(p *rt.TParser) (any, bool) {
+func i17(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u189(p); !ok {
+	if v3, ok = u191(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "block_sep"
 	{
-		var tr33 any
+		var tr40 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -4512,9 +4836,9 @@ func i15(p *rt.TParser) (any, bool) {
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
-			tr33 = any(tn4)
+			tr40 = any(tn4)
 		}
-		v = tr33
+		v = tr40
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4522,7 +4846,7 @@ fail:
 	return nil, false
 }
 
-func s16(p *rt.TParser) (any, bool) {
+func s18(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x10 int
 	var v any
@@ -4538,19 +4862,19 @@ func s16(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L6
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -4558,7 +4882,7 @@ L8:
 	p.Restore(x1, x2)
 	x10 = p.Pos
 	p.Silent++
-	p.LookBegin(9)
+	p.LookBegin(12)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L11
@@ -4581,14 +4905,14 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "empty_stmt_sep"
 	{
-		var tr34 any
+		var tr41 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
 			tn3 := c.P.TermHull(c, false, tk2)
-			tr34 = any(tn3)
+			tr41 = any(tn3)
 		}
-		v = tr34
+		v = tr41
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4597,7 +4921,7 @@ fail:
 	return nil, false
 }
 
-func s17(p *rt.TParser) (any, bool) {
+func s19(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x10, x14 int
 	var v any
@@ -4613,19 +4937,19 @@ func s17(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L6
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -4633,10 +4957,10 @@ L8:
 	p.Restore(x1, x2)
 	x10 = p.Pos
 	p.Silent++
-	p.LookBegin(10)
+	p.LookBegin(13)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L11
 	}
 	p.LookEnd(true)
@@ -4654,7 +4978,7 @@ L9:
 	p.Restore(x1, x2)
 	x14 = p.Pos
 	p.Silent++
-	p.LookBegin(11)
+	p.LookBegin(14)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L15
@@ -4677,14 +5001,14 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "empty_item_sep"
 	{
-		var tr35 any
+		var tr42 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
 			tn3 := c.P.TermHull(c, false, tk2)
-			tr35 = any(tn3)
+			tr42 = any(tn3)
 		}
-		v = tr35
+		v = tr42
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4693,7 +5017,7 @@ fail:
 	return nil, false
 }
 
-func s18(p *rt.TParser) (any, bool) {
+func s20(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x10, x14 int
 	var v any
@@ -4709,19 +5033,19 @@ func s18(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L6
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -4729,10 +5053,10 @@ L8:
 	p.Restore(x1, x2)
 	x10 = p.Pos
 	p.Silent++
-	p.LookBegin(12)
+	p.LookBegin(15)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L11
 	}
 	p.LookEnd(true)
@@ -4750,7 +5074,7 @@ L9:
 	p.Restore(x1, x2)
 	x14 = p.Pos
 	p.Silent++
-	p.LookBegin(13)
+	p.LookBegin(16)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L15
@@ -4773,14 +5097,14 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "empty_field_sep"
 	{
-		var tr36 any
+		var tr43 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
 			tn3 := c.P.TermHull(c, false, tk2)
-			tr36 = any(tn3)
+			tr43 = any(tn3)
 		}
-		v = tr36
+		v = tr43
 	}
 	v = c.Finish(v)
 	return v, true
@@ -4789,21 +5113,29 @@ fail:
 	return nil, false
 }
 
-func s52(p *rt.TParser) (any, bool) {
+// rule type_decl
+func u54(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[54]) {
+		return p.CallMemo(trules[54], v54)
+	}
+	return v54(p)
+}
+
+func v54(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u54(p); !ok {
+	if v6, ok = u56(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u55(p); !ok {
+	if v8, ok = u57(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -4823,16 +5155,16 @@ fail:
 }
 
 // rule type_alias
-func u54(p *rt.TParser) (any, bool) {
+func u56(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i54(p)
+	v, ok := i56(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i54(p *rt.TParser) (any, bool) {
+func i56(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x10 int
 	var v, k4, v6, k7, v9, k13, v15, k16, v18 any
@@ -4841,8 +5173,8 @@ func i54(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(61)
-	if _, ok = s277(p); !ok {
+	p.LookBegin(64)
+	if _, ok = s282(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -4855,17 +5187,17 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if v6, ok = u172(p); !ok {
+	if v6, ok = u174(p); !ok {
 		goto fail
 	}
 	k4 = v6
-	if v9, ok = u56(p); !ok {
+	if v9, ok = u58(p); !ok {
 		goto fail
 	}
 	k7 = v9
 	x10 = p.Pos
 	p.Silent++
-	if v15, ok = u202(p); !ok {
+	if v15, ok = u206(p); !ok {
 		goto L11
 	}
 	k13 = v15
@@ -4877,14 +5209,14 @@ L11:
 	p.Pos = x10
 	goto fail
 L12:
-	if v18, ok = u8(p); !ok {
+	if v18, ok = u9(p); !ok {
 		goto fail
 	}
 	k16 = v18
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_alias"
 	{
-		var tr37 any
+		var tr44 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Name", "Name")
 			if tf1 != nil {
@@ -4908,9 +5240,9 @@ L12:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_TypeAlias(c, true, tv1, tv2, any(tn7), k7, k13)
-			tr37 = tv8
+			tr44 = tv8
 		}
-		v = tr37
+		v = tr44
 	}
 	return v, true
 fail:
@@ -4918,33 +5250,33 @@ fail:
 }
 
 // rule type_def
-func u55(p *rt.TParser) (any, bool) {
+func u57(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i55(p)
+	v, ok := i57(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i55(p *rt.TParser) (any, bool) {
+func i57(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u57(p); !ok {
+	if v6, ok = u59(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -4956,14 +5288,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u8(p); !ok {
+	if v15, ok = u9(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_def"
 	{
-		var tr38 any
+		var tr45 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
@@ -4987,9 +5319,9 @@ L9:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_TypeDef(c, true, tv1, tv2, any(tn7), k4, k10)
-			tr38 = tv8
+			tr45 = tv8
 		}
-		v = tr38
+		v = tr45
 	}
 	return v, true
 fail:
@@ -4997,16 +5329,16 @@ fail:
 }
 
 // rule type_alias_body
-func u56(p *rt.TParser) (any, bool) {
+func u58(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i56(p)
+	v, ok := i58(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i56(p *rt.TParser) (any, bool) {
+func i58(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v11 any
@@ -5017,29 +5349,29 @@ func i56(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 121 && p.In[p.Pos+2] == 112 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit53, "type", 23, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit57, "type", 25, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
-	if v3, ok = u190(p); !ok {
+	if v3, ok = u192(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 126) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit63, "~", 30, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit66, "~", 31, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x6 = p.Isolate(p.Pos)
-	if v11, ok = p.Call(trules[62], 0); !ok {
+	if v11, ok = p.Call(trules[64], 0); !ok {
 		goto L9
 	}
 	x7, x8 = p.Unisolate(x6)
@@ -5047,19 +5379,19 @@ func i56(p *rt.TParser) (any, bool) {
 	goto L10
 L9:
 	x7, x8 = p.Unisolate(x6)
-	p.ExpectBudget(x7, rt.MsgBit|34)
+	p.ExpectBudget(x7, rt.MsgBit|35)
 	goto fail
 L10:
 	k4 = v11
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_alias_body"
 	{
-		var tr39 any
+		var tr46 any
 		{
 			tv1 := tmk_TypeAliasBody(c, true, k1, k4)
-			tr39 = tv1
+			tr46 = tv1
 		}
-		v = tr39
+		v = tr46
 	}
 	return v, true
 fail:
@@ -5067,16 +5399,16 @@ fail:
 }
 
 // rule type_def_body
-func u57(p *rt.TParser) (any, bool) {
+func u59(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i57(p)
+	v, ok := i59(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i57(p *rt.TParser) (any, bool) {
+func i59(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x10, x14, x17, x18, x28, x29, x33, x34 int
 	var v, k1, v8, k31, v35, v42, v45 any
@@ -5088,14 +5420,14 @@ func i57(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 121 && p.In[p.Pos+2] == 112 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit53, "type", 23, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit57, "type", 25, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -5103,23 +5435,23 @@ func i57(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|35)
+	p.ExpectBudget(x4, rt.MsgBit|36)
 	goto fail
 L7:
 	k1 = v8
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x9 = p.Isolate(p.Pos)
 	x14 = p.Pos
 	p.Silent++
-	p.LookBegin(63)
+	p.LookBegin(66)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L15
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L15
 	}
 	x17, x18 = p.Pos, len(p.Recovered)
@@ -5130,13 +5462,13 @@ L7:
 		x20, _, x21 = p.Peek()
 	}
 	if !(x21 && (x20 == 123)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L22
 	}
 	cut24 = false
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L23
 	}
 	goto L19
@@ -5147,19 +5479,19 @@ L23:
 	}
 L22:
 	if !(x21 && (x20 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 36)
+		p.ExpectBudget(p.Pos, 37)
 		goto L25
 	}
 	cut27 = false
-	if _, ok = p.Parser.MatchLiteral(lit85, "node[", 36, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit88, "node[", 37, false); !ok {
 		goto L26
 	}
 	x28, x29 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(62)
+	p.LookBegin(65)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L30
 	}
 	p.LookEnd(true)
@@ -5191,10 +5523,10 @@ L15:
 L16:
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L12
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L12
 	}
 	x10, x11 = p.Unisolate(x9)
@@ -5202,7 +5534,7 @@ L16:
 	goto L13
 L12:
 	x10, x11 = p.Unisolate(x9)
-	p.ExpectBudget(x10, rt.MsgBit|37)
+	p.ExpectBudget(x10, rt.MsgBit|38)
 	goto fail
 L13:
 	x33, x34 = p.Pos, len(p.Recovered)
@@ -5213,11 +5545,11 @@ L13:
 		x37, _, x38 = p.Peek()
 	}
 	if !(x38 && (x37 == 123)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L39
 	}
 	cut41 = false
-	if v42, ok = u63(p); !ok {
+	if v42, ok = u65(p); !ok {
 		goto L40
 	}
 	v35 = v42
@@ -5229,7 +5561,7 @@ L40:
 	}
 L39:
 	cut44 = false
-	if v45, ok = u58(p); !ok {
+	if v45, ok = u60(p); !ok {
 		goto L43
 	}
 	v35 = v45
@@ -5245,12 +5577,12 @@ L36:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_def_body"
 	{
-		var tr40 any
+		var tr47 any
 		{
 			tv1 := tmk_TypeDefBody(c, true, k1, k31)
-			tr40 = tv1
+			tr47 = tv1
 		}
-		v = tr40
+		v = tr47
 	}
 	return v, true
 fail:
@@ -5258,16 +5590,16 @@ fail:
 }
 
 // rule node_type
-func u58(p *rt.TParser) (any, bool) {
+func u60(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i58(p)
+	v, ok := i60(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i58(p *rt.TParser) (any, bool) {
+func i60(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x10, x11, x15 int
 	var v, k4, v6, k7, v9 any
@@ -5280,8 +5612,8 @@ func i58(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(64)
-	if _, ok = p.Parser.MatchLiteral(lit85, "node[", 36, false); !ok {
+	p.LookBegin(67)
+	if _, ok = p.Parser.MatchLiteral(lit88, "node[", 37, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -5294,13 +5626,13 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if v6, ok = u190(p); !ok {
+	if v6, ok = u192(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -5308,33 +5640,33 @@ L3:
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v9, ok = p.Call(trules[62], 0); !ok {
+	if v9, ok = p.Call(trules[64], 0); !ok {
 		goto fail
 	}
 	k7 = v9
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x10, x11 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L12
 	}
 	goto L13
 L12:
 	p.Restore(x10, x11)
 L13:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x14 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L17
 	}
 	x15, x16 = p.Unisolate(x14)
@@ -5342,13 +5674,13 @@ L13:
 	goto L18
 L17:
 	x15, x16 = p.Unisolate(x14)
-	p.ExpectBudget(x15, rt.MsgBit|39)
+	p.ExpectBudget(x15, rt.MsgBit|40)
 	goto fail
 L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "node_type"
 	{
-		var tr42 any
+		var tr49 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -5359,9 +5691,9 @@ L18:
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tv5 := tmk_TypeApp(c, true, k4, any(tn4))
-			tr42 = tv5
+			tr49 = tv5
 		}
-		v = tr42
+		v = tr49
 	}
 	p.Env = prevEnv
 	return v, true
@@ -5370,34 +5702,34 @@ fail:
 	return nil, false
 }
 
-func ta59(c *rt.TActCtx) (any, any) {
+func ta61(c *rt.TActCtx) (any, any) {
 	return c.Cap(0), nil
 }
 
 // rule field_spec
-func u59(p *rt.TParser) (any, bool) {
+func u61(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i59(p)
+	v, ok := i61(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i59(p *rt.TParser) (any, bool) {
+func i61(p *rt.TParser) (any, bool) {
 	f := p.NewFrame(1)
 	prevFrame, prevEnv, prevCut, trail := p.Frame, p.Env, p.Cut, len(p.Trail)
 	p.Frame, p.Cut = f, false
 	p.Enter()
 	start := p.Pos
 	_ = start
-	v, ok := e420(p, 0)
+	v, ok := e425(p, 0)
 	p.Depth--
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
 		c := p.UseCtx(rt.TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
-		v = c.Result(ta59, "field_spec")
+		v = c.Result(ta61, "field_spec")
 	}
 	p.Env = prevEnv
 	p.FreeFrame(f)
@@ -5405,16 +5737,16 @@ func i59(p *rt.TParser) (any, bool) {
 }
 
 // rule field
-func u60(p *rt.TParser) (any, bool) {
+func u62(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i60(p)
+	v, ok := i62(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i60(p *rt.TParser) (any, bool) {
+func i62(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
@@ -5422,17 +5754,17 @@ func i60(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u61(p); !ok {
+	if v6, ok = u63(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -5444,14 +5776,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u11(p); !ok {
+	if v15, ok = u13(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "field"
 	{
-		var tr43 any
+		var tr50 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
@@ -5475,9 +5807,9 @@ L9:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_Field(c, true, tv1, tv2, any(tn7), k4, k10)
-			tr43 = tv8
+			tr50 = tv8
 		}
-		v = tr43
+		v = tr50
 	}
 	p.Depth--
 	return v, true
@@ -5487,16 +5819,16 @@ fail:
 }
 
 // rule field_body
-func u61(p *rt.TParser) (any, bool) {
+func u63(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i61(p)
+	v, ok := i63(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i61(p *rt.TParser) (any, bool) {
+func i63(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x12 int
 	var v, k1, v8, k9, v16 any
@@ -5507,7 +5839,7 @@ func i61(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	p.Enter()
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -5515,15 +5847,15 @@ func i61(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|40)
+	p.ExpectBudget(x4, rt.MsgBit|41)
 	goto fail
 L7:
 	k1 = v8
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x11 = p.Isolate(p.Pos)
-	if v16, ok = p.Call(trules[62], 0); !ok {
+	if v16, ok = p.Call(trules[64], 0); !ok {
 		goto L14
 	}
 	x12, x13 = p.Unisolate(x11)
@@ -5531,19 +5863,19 @@ L7:
 	goto L15
 L14:
 	x12, x13 = p.Unisolate(x11)
-	p.ExpectBudget(x12, rt.MsgBit|41)
+	p.ExpectBudget(x12, rt.MsgBit|42)
 	goto fail
 L15:
 	k9 = v16
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "field_body"
 	{
-		var tr44 any
+		var tr51 any
 		{
 			tv1 := tmk_FieldBody(c, true, k1, k9)
-			tr44 = tv1
+			tr51 = tv1
 		}
-		v = tr44
+		v = tr51
 	}
 	p.Depth--
 	return v, true
@@ -5552,10 +5884,10 @@ fail:
 	return nil, false
 }
 
-func e435(p *rt.TParser) (any, bool) {
+func e441(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	return nil, true
@@ -5563,11 +5895,11 @@ fail:
 	return nil, false
 }
 
-func e436(p *rt.TParser) (any, bool) {
+func e442(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v1 any
-	if v1, ok = s91(p); !ok {
+	if v1, ok = s93(p); !ok {
 		goto fail
 	}
 	return v1, true
@@ -5575,15 +5907,15 @@ fail:
 	return nil, false
 }
 
-func e437(p *rt.TParser) (any, bool) {
+func e443(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var ok bool
 	var v4, v6 any
 	x1 = p.Mark()
 	p.Silent++
-	p.LookBegin(67)
-	if _, ok = u280(p); !ok {
+	p.LookBegin(70)
+	if _, ok = u285(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -5594,11 +5926,11 @@ L2:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x1)
-	if v4, ok = u190(p); !ok {
+	if v4, ok = u192(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v4)
-	if v6, ok = u65(p); !ok {
+	if v6, ok = u67(p); !ok {
 		goto fail
 	}
 	p.SetCapture(1, v6)
@@ -5607,15 +5939,15 @@ fail:
 	return nil, false
 }
 
-func e438(p *rt.TParser) (any, bool) {
+func e444(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var ok bool
 	var v4 any
 	x1 = p.Mark()
 	p.Silent++
-	p.LookBegin(68)
-	if _, ok = u280(p); !ok {
+	p.LookBegin(71)
+	if _, ok = u285(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -5626,7 +5958,7 @@ L2:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x1)
-	if v4, ok = u190(p); !ok {
+	if v4, ok = u192(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v4)
@@ -5635,11 +5967,11 @@ fail:
 	return nil, false
 }
 
-func e439(p *rt.TParser) (any, bool) {
+func e445(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
-	if v2, ok = s66(p); !ok {
+	if v2, ok = s68(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v2)
@@ -5648,11 +5980,11 @@ fail:
 	return nil, false
 }
 
-func e440(p *rt.TParser) (any, bool) {
+func e446(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
-	if v2, ok = u63(p); !ok {
+	if v2, ok = u65(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v2)
@@ -5661,7 +5993,7 @@ fail:
 	return nil, false
 }
 
-func e442(p *rt.TParser) (any, bool) {
+func e448(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -5669,7 +6001,7 @@ func e442(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 124) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit441, "|", 148, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit447, "|", 150, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "|", true)
@@ -5678,7 +6010,7 @@ fail:
 	return nil, false
 }
 
-func e444(p *rt.TParser) (any, bool) {
+func e450(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -5686,7 +6018,7 @@ func e444(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit443, "&", 149, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit449, "&", 151, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "&", true)
@@ -5695,7 +6027,7 @@ fail:
 	return nil, false
 }
 
-func e445(p *rt.TParser) (any, bool) {
+func e451(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -5703,7 +6035,7 @@ func e445(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 91 && p.In[p.Pos+1] == 93) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit247, "[]", 130, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit250, "[]", 131, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "[]", true)
@@ -5712,7 +6044,7 @@ fail:
 	return nil, false
 }
 
-func e446(p *rt.TParser) (any, bool) {
+func e452(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -5720,7 +6052,7 @@ func e446(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 42) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit347, "*", 144, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit352, "*", 146, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "*", true)
@@ -5730,19 +6062,19 @@ fail:
 }
 
 // rule struct_type
-func u63(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[63]) {
-		return p.CallMemo(trules[63], i63)
+func u65(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[65]) {
+		return p.CallMemo(trules[65], i65)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i63(p)
+	v, ok := i65(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i63(p *rt.TParser) (any, bool) {
+func i65(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x8, x9, x11, x12, x22 int
 	var v, k4, v6, k7, k13, v16, v17, k18, v20 any
@@ -5756,7 +6088,7 @@ func i63(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -5766,7 +6098,7 @@ func i63(p *rt.TParser) (any, bool) {
 	}
 	x1 = p.Pos
 	p.Silent++
-	if v6, ok = u200(p); !ok {
+	if v6, ok = u204(p); !ok {
 		goto L2
 	}
 	k4 = v6
@@ -5783,7 +6115,7 @@ L3:
 		p.Spend()
 		x11, x12 = p.Pos, len(p.Recovered)
 		k13 = nil
-		if v16, ok = u59(p); !ok {
+		if v16, ok = u61(p); !ok {
 			goto L14
 		}
 		k13 = v16
@@ -5798,14 +6130,14 @@ L3:
 	}
 	v17 = p.NewNode("list", x8, p.Pos, p.Kids(x9))
 	k7 = v17
-	if v20, ok = u172(p); !ok {
+	if v20, ok = u174(p); !ok {
 		goto fail
 	}
 	k18 = v20
 	x21 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L24
 	}
 	x22, x23 = p.Unisolate(x21)
@@ -5813,13 +6145,13 @@ L3:
 	goto L25
 L24:
 	x22, x23 = p.Unisolate(x21)
-	p.ExpectBudget(x22, rt.MsgBit|42)
+	p.ExpectBudget(x22, rt.MsgBit|43)
 	goto fail
 L25:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "struct_type"
 	{
-		var tr46 any
+		var tr53 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k7)
 			if tf1 != nil {
@@ -5827,9 +6159,9 @@ L25:
 			}
 			tv2 := (c.NewList(ti1))
 			tv3 := tmk_StructType(c, true, tv2, k18, k4)
-			tr46 = tv3
+			tr53 = tv3
 		}
-		v = tr46
+		v = tr53
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -5841,16 +6173,16 @@ fail:
 }
 
 // rule type_args
-func u65(p *rt.TParser) (any, bool) {
+func u67(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i65(p)
+	v, ok := i67(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i65(p *rt.TParser) (any, bool) {
+func i67(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8, x9, x15, x16 int
 	var v, k1, v3, k4, k10, v13, v14 any
@@ -5862,7 +6194,7 @@ func i65(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -5870,10 +6202,10 @@ func i65(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = p.Call(trules[62], 0); !ok {
+	if v3, ok = p.Call(trules[64], 0); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -5882,18 +6214,18 @@ func i65(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L11
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
-		if v13, ok = p.Call(trules[62], 0); !ok {
+		if v13, ok = p.Call(trules[64], 0); !ok {
 			goto L11
 		}
 		k10 = v13
@@ -5908,31 +6240,31 @@ func i65(p *rt.TParser) (any, bool) {
 	}
 	v14 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
 	k4 = v14
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x15, x16 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L17
 	}
 	goto L18
 L17:
 	p.Restore(x15, x16)
 L18:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_args"
 	{
-		var tr48 any
+		var tr55 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -5946,9 +6278,9 @@ L18:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr48 = any(tn5)
+			tr55 = any(tn5)
 		}
-		v = tr48
+		v = tr55
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -5960,7 +6292,7 @@ fail:
 	return nil, false
 }
 
-func s66(p *rt.TParser) (any, bool) {
+func s68(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12 any
@@ -5976,10 +6308,10 @@ func s66(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L7
 	}
-	if v9, ok = u67(p); !ok {
+	if v9, ok = u69(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -5988,10 +6320,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L10
 	}
-	if v12, ok = u68(p); !ok {
+	if v12, ok = u70(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -6014,16 +6346,16 @@ fail:
 }
 
 // rule type_paren
-func u67(p *rt.TParser) (any, bool) {
+func u69(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i67(p)
+	v, ok := i69(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i67(p *rt.TParser) (any, bool) {
+func i69(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
@@ -6035,7 +6367,7 @@ func i67(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -6043,30 +6375,30 @@ func i67(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = p.Call(trules[62], 0); !ok {
+	if v3, ok = p.Call(trules[64], 0); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_paren"
 	{
-		var tr50 any
+		var tr57 any
 		{
 			tv1 := tmk_TypeGroup(c, true, k1)
-			tr50 = tv1
+			tr57 = tv1
 		}
-		v = tr50
+		v = tr57
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -6078,16 +6410,16 @@ fail:
 }
 
 // rule type_tuple
-func u68(p *rt.TParser) (any, bool) {
+func u70(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i68(p)
+	v, ok := i70(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i68(p *rt.TParser) (any, bool) {
+func i70(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x5, x6, x14, x15 int
 	var v, k1, k7, v10, v11, k12, v16, v19 any
@@ -6099,7 +6431,7 @@ func i68(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -6107,7 +6439,7 @@ func i68(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x2, x3, _ = p.Pos, len(p.KidStack), 0
@@ -6115,19 +6447,19 @@ func i68(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x5, x6 = p.Pos, len(p.Recovered)
 		k7 = nil
-		if v10, ok = p.Call(trules[62], 0); !ok {
+		if v10, ok = p.Call(trules[64], 0); !ok {
 			goto L8
 		}
 		k7 = v10
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L8
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L8
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L8
 		}
 		p.PushKid(k7)
@@ -6142,7 +6474,7 @@ func i68(p *rt.TParser) (any, bool) {
 	v11 = p.NewNode("list", x2, p.Pos, p.Kids(x3))
 	k1 = v11
 	x14, x15 = p.Pos, len(p.Recovered)
-	if v19, ok = p.Call(trules[62], 0); !ok {
+	if v19, ok = p.Call(trules[64], 0); !ok {
 		goto L17
 	}
 	v16 = v19
@@ -6152,18 +6484,18 @@ L17:
 	v16 = nil
 L18:
 	k12 = v16
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "type_tuple"
 	{
-		var tr52 any
+		var tr59 any
 		{
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
@@ -6220,9 +6552,9 @@ L18:
 				c.TermRaise(c.TermCastFailed(tc1, fieldType1, 0, 0))
 			}
 			tv23 := tmk_TupleType(c, true, tc1)
-			tr52 = tv23
+			tr59 = tv23
 		}
-		v = tr52
+		v = tr59
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -6234,33 +6566,36 @@ fail:
 }
 
 // rule var_decl
-func u69(p *rt.TParser) (any, bool) {
+func u71(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[71]) {
+		return p.CallMemo(trules[71], i71)
+	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i69(p)
+	v, ok := i71(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i69(p *rt.TParser) (any, bool) {
+func i71(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u70(p); !ok {
+	if v6, ok = u72(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -6272,14 +6607,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u8(p); !ok {
+	if v15, ok = u9(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "var_decl"
 	{
-		var tr53 any
+		var tr60 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
@@ -6307,9 +6642,9 @@ L9:
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
 			tv9 := tmk_VarDef(c, true, tv1, tv2, tv3, any(tn8), k4, k10)
-			tr53 = tv9
+			tr60 = tv9
 		}
-		v = tr53
+		v = tr60
 	}
 	return v, true
 fail:
@@ -6317,16 +6652,16 @@ fail:
 }
 
 // rule var_def_body
-func u70(p *rt.TParser) (any, bool) {
+func u72(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i70(p)
+	v, ok := i72(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i70(p *rt.TParser) (any, bool) {
+func i72(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x11, x12, x20, x21 int
 	var v, k1, v8, k9, v13, v17, k18, v22, v26 any
@@ -6337,14 +6672,14 @@ func i70(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 118 && p.In[p.Pos+1] == 97 && p.In[p.Pos+2] == 114) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit54, "var", 24, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit58, "var", 26, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -6352,13 +6687,13 @@ func i70(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|49)
+	p.ExpectBudget(x4, rt.MsgBit|50)
 	goto fail
 L7:
 	k1 = v8
 	x11, x12 = p.Pos, len(p.Recovered)
 	cut16 = false
-	if v17, ok = u71(p); !ok {
+	if v17, ok = u73(p); !ok {
 		goto L14
 	}
 	v13 = v17
@@ -6373,7 +6708,7 @@ L15:
 	k9 = v13
 	x20, x21 = p.Pos, len(p.Recovered)
 	cut25 = false
-	if v26, ok = u72(p); !ok {
+	if v26, ok = u74(p); !ok {
 		goto L23
 	}
 	v22 = v26
@@ -6389,12 +6724,12 @@ L24:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "var_def_body"
 	{
-		var tr54 any
+		var tr61 any
 		{
 			tv1 := tmk_VarDefBody(c, true, k1, k9, k18)
-			tr54 = tv1
+			tr61 = tv1
 		}
-		v = tr54
+		v = tr61
 	}
 	return v, true
 fail:
@@ -6402,103 +6737,6 @@ fail:
 }
 
 // rule var_type
-func u71(p *rt.TParser) (any, bool) {
-	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i71(p)
-	if !ok {
-		p.Restore(start, rec)
-	}
-	return v, ok
-}
-
-func i71(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start int
-	var v, k1, v3 any
-	var c *rt.TActCtx
-	var ok bool
-	start = p.Pos
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if v3, ok = p.Call(trules[62], 0); !ok {
-		goto fail
-	}
-	k1 = v3
-	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "var_type"
-	{
-		var tr55 any
-		{
-			tr55 = k1
-		}
-		v = tr55
-	}
-	v = c.Finish(v)
-	return v, true
-fail:
-	return nil, false
-}
-
-// rule var_value
-func u72(p *rt.TParser) (any, bool) {
-	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i72(p)
-	if !ok {
-		p.Restore(start, rec)
-	}
-	return v, ok
-}
-
-func i72(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, x4 int
-	var v, k1, v8 any
-	var c *rt.TActCtx
-	var ok bool
-	var x3 rt.ExpMark
-	var x5 []rt.ExpID
-	start = p.Pos
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
-		goto fail
-	}
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	x3 = p.Isolate(p.Pos)
-	if v8, ok = u144(p); !ok {
-		goto L6
-	}
-	x4, x5 = p.Unisolate(x3)
-	p.MergeExpected(x4, x5)
-	goto L7
-L6:
-	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|50)
-	goto fail
-L7:
-	k1 = v8
-	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "var_value"
-	{
-		var tr56 any
-		{
-			tr56 = k1
-		}
-		v = tr56
-	}
-	v = c.Finish(v)
-	return v, true
-fail:
-	return nil, false
-}
-
-// rule rule_decl
 func u73(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
 	v, ok := i73(p)
@@ -6510,22 +6748,122 @@ func u73(p *rt.TParser) (any, bool) {
 
 func i73(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start int
+	var v, k1, v3 any
+	var c *rt.TActCtx
+	var ok bool
+	start = p.Pos
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if v3, ok = p.Call(trules[64], 0); !ok {
+		goto fail
+	}
+	k1 = v3
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "var_type"
+	{
+		var tr62 any
+		{
+			tr62 = k1
+		}
+		v = tr62
+	}
+	v = c.Finish(v)
+	return v, true
+fail:
+	return nil, false
+}
+
+// rule var_value
+func u74(p *rt.TParser) (any, bool) {
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i74(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i74(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, x4 int
+	var v, k1, v8 any
+	var c *rt.TActCtx
+	var ok bool
+	var x3 rt.ExpMark
+	var x5 []rt.ExpID
+	start = p.Pos
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
+		goto fail
+	}
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	x3 = p.Isolate(p.Pos)
+	if v8, ok = u146(p); !ok {
+		goto L6
+	}
+	x4, x5 = p.Unisolate(x3)
+	p.MergeExpected(x4, x5)
+	goto L7
+L6:
+	x4, x5 = p.Unisolate(x3)
+	p.ExpectBudget(x4, rt.MsgBit|51)
+	goto fail
+L7:
+	k1 = v8
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "var_value"
+	{
+		var tr63 any
+		{
+			tr63 = k1
+		}
+		v = tr63
+	}
+	v = c.Finish(v)
+	return v, true
+fail:
+	return nil, false
+}
+
+// rule rule_decl
+func u75(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[75]) {
+		return p.CallMemo(trules[75], i75)
+	}
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i75(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i75(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u74(p); !ok {
+	if v6, ok = u76(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -6537,14 +6875,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u8(p); !ok {
+	if v15, ok = u9(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "rule_decl"
 	{
-		var tr57 any
+		var tr64 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Attrs", "Attrs")
 			if tf1 != nil {
@@ -6589,9 +6927,9 @@ L9:
 			tk11 := c.P.Kids(tm7)
 			tn12 := c.P.TermHull(c, false, tk11)
 			tv13 := tmk_RuleDef(c, true, tv1, tv2, tv3, tv4, tv5, any(tn12), k4, k10)
-			tr57 = tv13
+			tr64 = tv13
 		}
-		v = tr57
+		v = tr64
 	}
 	return v, true
 fail:
@@ -6599,16 +6937,16 @@ fail:
 }
 
 // rule rule_def_body
-func u74(p *rt.TParser) (any, bool) {
+func u76(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i74(p)
+	v, ok := i76(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i74(p *rt.TParser) (any, bool) {
+func i76(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x6, x7, x12, x25, x32, x33, x40, x47, x51, x52, x63, x64 int
 	var v, k1, k8, k9, v15, v17, v18, v19, v20, v21, k22, v29, k30, v34, v38, k44, v53, v57, v60, k61, v65, v69 any
@@ -6627,19 +6965,19 @@ func i74(p *rt.TParser) (any, bool) {
 		cut11 = false
 		x12 = p.Pos
 		x13 = p.NewVals(2)[:0]
-		if v15, ok = u107(p); !ok {
+		if v15, ok = u109(p); !ok {
 			goto L10
 		}
 		k8 = v15
 		x13 = append(x13, v15)
-		if v17, ok = u75(p); !ok {
+		if v17, ok = u77(p); !ok {
 			goto L10
 		}
 		k9 = v17
 		x13 = append(x13, v17)
 		v18 = p.NewNode("tuple", x12, p.Pos, x13)
 		v19 = p.ScopeValue(sh10, v18, x6)
-		v20 = p.AttachCaptures(v19, scope421, []any{k8, k9}, x6, p.Pos)
+		v20 = p.AttachCaptures(v19, scope426, []any{k8, k9}, x6, p.Pos)
 		p.PushKid(v20)
 		if p.Pos == x6 {
 			break
@@ -6657,14 +6995,14 @@ func i74(p *rt.TParser) (any, bool) {
 	k1 = v21
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x24 = p.Isolate(p.Pos)
-	if v29, ok = u190(p); !ok {
+	if v29, ok = u192(p); !ok {
 		goto L27
 	}
 	x25, x26 = p.Unisolate(x24)
@@ -6672,16 +7010,16 @@ func i74(p *rt.TParser) (any, bool) {
 	goto L28
 L27:
 	x25, x26 = p.Unisolate(x24)
-	p.ExpectBudget(x25, rt.MsgBit|51)
+	p.ExpectBudget(x25, rt.MsgBit|52)
 	goto fail
 L28:
 	k22 = v29
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x32, x33 = p.Pos, len(p.Recovered)
 	cut37 = false
-	if v38, ok = p.Call(trules[62], 0); !ok {
+	if v38, ok = p.Call(trules[64], 0); !ok {
 		goto L35
 	}
 	v34 = v38
@@ -6694,13 +7032,13 @@ L35:
 	v34 = nil
 L36:
 	k30 = v34
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x39 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L42
 	}
 	x40, x41 = p.Unisolate(x39)
@@ -6708,16 +7046,16 @@ L36:
 	goto L43
 L42:
 	x40, x41 = p.Unisolate(x39)
-	p.ExpectBudget(x40, rt.MsgBit|52)
+	p.ExpectBudget(x40, rt.MsgBit|53)
 	goto fail
 L43:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x46 = p.Isolate(p.Pos)
 	x51, x52 = p.Pos, len(p.Recovered)
 	cut56 = false
-	if v57, ok = s119(p); !ok {
+	if v57, ok = s121(p); !ok {
 		goto L55
 	}
 	v53 = v57
@@ -6728,7 +7066,7 @@ L55:
 		goto L49
 	}
 	cut59 = false
-	if v60, ok = u83(p); !ok {
+	if v60, ok = u85(p); !ok {
 		goto L58
 	}
 	v53 = v60
@@ -6745,13 +7083,13 @@ L54:
 	goto L50
 L49:
 	x47, x48 = p.Unisolate(x46)
-	p.ExpectBudget(x47, rt.MsgBit|53)
+	p.ExpectBudget(x47, rt.MsgBit|54)
 	goto fail
 L50:
 	k44 = v53
 	x63, x64 = p.Pos, len(p.Recovered)
 	cut68 = false
-	if v69, ok = u80(p); !ok {
+	if v69, ok = u82(p); !ok {
 		goto L66
 	}
 	v65 = v69
@@ -6767,7 +7105,7 @@ L67:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "rule_def_body"
 	{
-		var tr58 any
+		var tr65 any
 		{
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k1)
@@ -6824,9 +7162,9 @@ L67:
 				ta15 = tv20
 			}
 			tv27 := tmk_RuleDefBody(c, true, any(tn10), ta15, k22, k30, k44, k61)
-			tr58 = tv27
+			tr65 = tv27
 		}
-		v = tr58
+		v = tr65
 	}
 	return v, true
 fail:
@@ -6834,28 +7172,28 @@ fail:
 }
 
 // rule decl_attr_gap
-func u75(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[75]) {
-		return p.CallMemo(trules[75], v75)
+func u77(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[77]) {
+		return p.CallMemo(trules[77], v77)
 	}
-	return v75(p)
+	return v77(p)
 }
 
-func v75(p *rt.TParser) (any, bool) {
+func v77(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u76(p); !ok {
+	if v6, ok = u78(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u77(p); !ok {
+	if v8, ok = u79(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -6875,29 +7213,29 @@ fail:
 }
 
 // rule decl_attr_same_line
-func u76(p *rt.TParser) (any, bool) {
+func u78(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i76(p)
+	v, ok := i78(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i76(p *rt.TParser) (any, bool) {
+func i78(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4 int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u78(p); !ok {
+	if v3, ok = u80(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x4 = p.Pos
 	p.Silent++
-	p.LookBegin(70)
+	p.LookBegin(73)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
@@ -6916,11 +7254,11 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "decl_attr_same_line"
 	{
-		var tr59 any
+		var tr66 any
 		{
-			tr59 = k1
+			tr66 = k1
 		}
-		v = tr59
+		v = tr66
 	}
 	v = c.Finish(v)
 	return v, true
@@ -6929,37 +7267,37 @@ fail:
 }
 
 // rule decl_attr_line_end
-func u77(p *rt.TParser) (any, bool) {
+func u79(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i77(p)
+	v, ok := i79(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i77(p *rt.TParser) (any, bool) {
+func i79(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u78(p); !ok {
+	if v3, ok = u80(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto fail
 	}
-	if v6, ok = u172(p); !ok {
+	if v6, ok = u174(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "decl_attr_line_end"
 	{
-		var tr60 any
+		var tr67 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -6974,9 +7312,9 @@ func i77(p *rt.TParser) (any, bool) {
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr60 = any(tn5)
+			tr67 = any(tn5)
 		}
-		v = tr60
+		v = tr67
 	}
 	v = c.Finish(v)
 	return v, true
@@ -6985,19 +7323,19 @@ fail:
 }
 
 // rule decl_attr_trivia
-func u78(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[78]) {
-		return p.CallMemo(trules[78], i78)
+func u80(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[80]) {
+		return p.CallMemo(trules[80], i80)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i78(p)
+	v, ok := i80(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i78(p *rt.TParser) (any, bool) {
+func i80(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x6, x7, x9, x10, x14, x15, x27, x28 int
 	var v, k5, k11, v16, v22, v25, v30 any
@@ -7008,7 +7346,7 @@ func i78(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -7032,10 +7370,10 @@ func i78(p *rt.TParser) (any, bool) {
 			x18, _, x19 = p.Peek()
 		}
 		if !(x19 && (x18 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 28)
+			p.ExpectBudget(p.Pos, 30)
 			goto L20
 		}
-		if v22, ok = u185(p); !ok {
+		if v22, ok = u187(p); !ok {
 			goto L21
 		}
 		v16 = v22
@@ -7044,10 +7382,10 @@ func i78(p *rt.TParser) (any, bool) {
 		p.Restore(x14, x15)
 	L20:
 		if !(x19 && (x18 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L23
 		}
-		if v25, ok = u187(p); !ok {
+		if v25, ok = u189(p); !ok {
 			goto L24
 		}
 		v16 = v25
@@ -7061,7 +7399,7 @@ func i78(p *rt.TParser) (any, bool) {
 		for {
 			p.Spend()
 			x27, x28 = p.Pos, len(p.Recovered)
-			if _, ok = u281(p); !ok {
+			if _, ok = u286(p); !ok {
 				goto L29
 			}
 			if p.Pos == x27 {
@@ -7086,32 +7424,32 @@ func i78(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "decl_attr_trivia"
 	{
-		var tr61 any
+		var tr68 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
-			tr61 = tv2
+			tr68 = tv2
 		}
-		v = tr61
+		v = tr68
 	}
 	v = c.Finish(v)
 	return v, true
 }
 
 // rule whole_action
-func u79(p *rt.TParser) (any, bool) {
+func u81(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i79(p)
+	v, ok := i81(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i79(p *rt.TParser) (any, bool) {
+func i81(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4 int
 	var v, k1, v8 any
@@ -7122,14 +7460,14 @@ func i79(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 62) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit67, "=>", 32, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit70, "=>", 33, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u137(p); !ok {
+	if v8, ok = u139(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -7137,18 +7475,18 @@ func i79(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|54)
+	p.ExpectBudget(x4, rt.MsgBit|55)
 	goto fail
 L7:
 	k1 = v8
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "whole_action"
 	{
-		var tr62 any
+		var tr69 any
 		{
-			tr62 = k1
+			tr69 = k1
 		}
-		v = tr62
+		v = tr69
 	}
 	v = c.Finish(v)
 	return v, true
@@ -7157,40 +7495,40 @@ fail:
 }
 
 // rule trailing_action
-func u80(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[80]) {
-		return p.CallMemo(trules[80], i80)
+func u82(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[82]) {
+		return p.CallMemo(trules[82], i82)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i80(p)
+	v, ok := i82(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i80(p *rt.TParser) (any, bool) {
+func i82(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = u79(p); !ok {
+	if v3, ok = u81(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "trailing_action"
 	{
-		var tr63 any
+		var tr70 any
 		{
-			tr63 = k1
+			tr70 = k1
 		}
-		v = tr63
+		v = tr70
 	}
 	v = c.Finish(v)
 	return v, true
@@ -7198,10 +7536,10 @@ fail:
 	return nil, false
 }
 
-func e447(p *rt.TParser) (any, bool) {
+func e453(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v8, v11, v14, v17, v20, v23, v26, v29, v32, v35, v38, v41, v44, v47 any
+	var v2, v8, v11, v14, v17, v20, v23, v26, v29, v32, v35, v38, v41, v43, v46, v49 any
 	var x4 rune
 	var x5, ok bool
 	x1 = p.Mark()
@@ -7212,10 +7550,10 @@ func e447(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L6
 	}
-	if v8, ok = u86(p); !ok {
+	if v8, ok = u88(p); !ok {
 		goto L7
 	}
 	v2 = v8
@@ -7224,10 +7562,10 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 123)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L9
 	}
-	if v11, ok = u98(p); !ok {
+	if v11, ok = u100(p); !ok {
 		goto L10
 	}
 	v2 = v11
@@ -7236,10 +7574,10 @@ L10:
 	p.Reset(x1)
 L9:
 	if !(x5 && (x4 == 108)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 73)
+		p.ExpectBudget(p.Pos, 74)
 		goto L12
 	}
-	if v14, ok = u89(p); !ok {
+	if v14, ok = u91(p); !ok {
 		goto L13
 	}
 	v2 = v14
@@ -7248,10 +7586,10 @@ L13:
 	p.Reset(x1)
 L12:
 	if !(x5 && (x4 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 79)
+		p.ExpectBudget(p.Pos, 80)
 		goto L15
 	}
-	if v17, ok = s91(p); !ok {
+	if v17, ok = s93(p); !ok {
 		goto L16
 	}
 	v2 = v17
@@ -7260,10 +7598,10 @@ L16:
 	p.Reset(x1)
 L15:
 	if !(x5 && (x4 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 78)
+		p.ExpectBudget(p.Pos, 79)
 		goto L18
 	}
-	if v20, ok = s90(p); !ok {
+	if v20, ok = s92(p); !ok {
 		goto L19
 	}
 	v2 = v20
@@ -7272,10 +7610,10 @@ L19:
 	p.Reset(x1)
 L18:
 	if !(x5 && (x4 == 94)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 80)
+		p.ExpectBudget(p.Pos, 81)
 		goto L21
 	}
-	if v23, ok = s92(p); !ok {
+	if v23, ok = s94(p); !ok {
 		goto L22
 	}
 	v2 = v23
@@ -7284,10 +7622,10 @@ L22:
 	p.Reset(x1)
 L21:
 	if !(x5 && (x4 == 94)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 81)
+		p.ExpectBudget(p.Pos, 82)
 		goto L24
 	}
-	if v26, ok = s93(p); !ok {
+	if v26, ok = s95(p); !ok {
 		goto L25
 	}
 	v2 = v26
@@ -7296,10 +7634,10 @@ L25:
 	p.Reset(x1)
 L24:
 	if !(x5 && (x4 == 36)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 82)
+		p.ExpectBudget(p.Pos, 83)
 		goto L27
 	}
-	if v29, ok = s94(p); !ok {
+	if v29, ok = s96(p); !ok {
 		goto L28
 	}
 	v2 = v29
@@ -7308,10 +7646,10 @@ L28:
 	p.Reset(x1)
 L27:
 	if !(x5 && (x4 == 36)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 83)
+		p.ExpectBudget(p.Pos, 84)
 		goto L30
 	}
-	if v32, ok = s95(p); !ok {
+	if v32, ok = s97(p); !ok {
 		goto L31
 	}
 	v2 = v32
@@ -7320,10 +7658,10 @@ L31:
 	p.Reset(x1)
 L30:
 	if !(x5 && (x4 == 46)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 85)
+		p.ExpectBudget(p.Pos, 86)
 		goto L33
 	}
-	if v35, ok = s96(p); !ok {
+	if v35, ok = s98(p); !ok {
 		goto L34
 	}
 	v2 = v35
@@ -7332,10 +7670,10 @@ L34:
 	p.Reset(x1)
 L33:
 	if !(x5 && (x4 == 35)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 87)
+		p.ExpectBudget(p.Pos, 88)
 		goto L36
 	}
-	if v38, ok = s97(p); !ok {
+	if v38, ok = s99(p); !ok {
 		goto L37
 	}
 	v2 = v38
@@ -7344,10 +7682,10 @@ L37:
 	p.Reset(x1)
 L36:
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L39
 	}
-	if v41, ok = u194(p); !ok {
+	if v41, ok = u196(p); !ok {
 		goto L40
 	}
 	v2 = v41
@@ -7355,30 +7693,37 @@ L36:
 L40:
 	p.Reset(x1)
 L39:
-	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+	if v43, ok = s197(p); !ok {
 		goto L42
 	}
-	if v44, ok = u196(p); !ok {
-		goto L43
-	}
-	v2 = v44
+	v2 = v43
 	goto L3
-L43:
-	p.Reset(x1)
 L42:
-	if !(x5 && (x4 >= 97 && x4 <= 122 || x4 >= 65 && x4 <= 90 || x4 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 63)
+	p.Reset(x1)
+	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 17)
+		goto L44
+	}
+	if v46, ok = u200(p); !ok {
 		goto L45
 	}
-	if v47, ok = u88(p); !ok {
-		goto L46
-	}
-	v2 = v47
+	v2 = v46
 	goto L3
-L46:
-	p.Reset(x1)
 L45:
+	p.Reset(x1)
+L44:
+	if !(x5 && (x4 >= 97 && x4 <= 122 || x4 >= 65 && x4 <= 90 || x4 == 95)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 64)
+		goto L47
+	}
+	if v49, ok = u90(p); !ok {
+		goto L48
+	}
+	v2 = v49
+	goto L3
+L48:
+	p.Reset(x1)
+L47:
 	goto fail
 L3:
 	return v2, true
@@ -7386,7 +7731,7 @@ fail:
 	return nil, false
 }
 
-func e448(p *rt.TParser) (any, bool) {
+func e454(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7394,7 +7739,7 @@ func e448(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 47) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit60, "/", 26, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit64, "/", 28, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "/", true)
@@ -7403,12 +7748,12 @@ fail:
 	return nil, false
 }
 
-func e449(p *rt.TParser) (any, bool) {
+func e455(p *rt.TParser) (any, bool) {
 	p.Spend()
 	return nil, true
 }
 
-func e450(p *rt.TParser) (any, bool) {
+func e456(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x5 int
 	var x2 []any
@@ -7417,7 +7762,7 @@ func e450(p *rt.TParser) (any, bool) {
 	var x7 rt.Mark
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
-	if v4, ok = u190(p); !ok {
+	if v4, ok = u192(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v4)
@@ -7425,17 +7770,17 @@ func e450(p *rt.TParser) (any, bool) {
 	x5 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 58) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit59, ":", 25, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit63, ":", 27, false); !ok {
 		goto fail
 	}
 	v6 = p.NewMatch(x5, p.Pos, ":", true)
 	x2 = append(x2, v6)
 	x7 = p.Mark()
 	p.Silent++
-	p.LookBegin(71)
+	p.LookBegin(74)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L8
 	}
 	p.LookEnd(true)
@@ -7452,7 +7797,7 @@ fail:
 	return nil, false
 }
 
-func e452(p *rt.TParser) (any, bool) {
+func e458(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x12 rt.Mark
 	var v2, v11, v14, v15, v19 any
@@ -7468,7 +7813,7 @@ func e452(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 38)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 149)
+		p.ExpectBudget(p.Pos, 151)
 		goto L6
 	}
 	x8 = p.Pos
@@ -7476,17 +7821,17 @@ func e452(p *rt.TParser) (any, bool) {
 	x10 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit443, "&", 149, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit449, "&", 151, false); !ok {
 		goto L7
 	}
 	v11 = p.NewMatch(x10, p.Pos, "&", true)
 	x9 = append(x9, v11)
 	x12 = p.Mark()
 	p.Silent++
-	p.LookBegin(72)
+	p.LookBegin(75)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 38) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit443, "&", 149, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit449, "&", 151, false); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -7505,13 +7850,13 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 33)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 150)
+		p.ExpectBudget(p.Pos, 152)
 		goto L16
 	}
 	x18 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 33) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit451, "!", 150, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit457, "!", 152, false); !ok {
 		goto L17
 	}
 	v19 = p.NewMatch(x18, p.Pos, "!", true)
@@ -7527,7 +7872,7 @@ fail:
 	return nil, false
 }
 
-func e453(p *rt.TParser) (any, bool) {
+func e459(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7539,17 +7884,17 @@ func e453(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "-", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(73)
+	p.LookBegin(76)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7566,7 +7911,7 @@ fail:
 	return nil, false
 }
 
-func e455(p *rt.TParser) (any, bool) {
+func e461(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7574,7 +7919,7 @@ func e455(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 63) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit454, "?", 151, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit460, "?", 153, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "?", true)
@@ -7583,7 +7928,7 @@ fail:
 	return nil, false
 }
 
-func e457(p *rt.TParser) (any, bool) {
+func e463(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -7591,7 +7936,7 @@ func e457(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 43) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit456, "+", 152, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit462, "+", 154, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "+", true)
@@ -7600,7 +7945,7 @@ fail:
 	return nil, false
 }
 
-func e459(p *rt.TParser) (any, bool) {
+func e465(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7611,15 +7956,15 @@ func e459(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit458, "#atomic", 153, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit464, "#atomic", 155, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#atomic", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(74)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(77)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7638,10 +7983,10 @@ L6:
 		x10, _, x11 = p.Peek()
 	}
 	if !(x11 && (x10 == 40)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L12
 	}
-	if v14, ok = u106(p); !ok {
+	if v14, ok = u108(p); !ok {
 		goto L13
 	}
 	v8 = v14
@@ -7651,10 +7996,10 @@ L13:
 L12:
 	x16 = p.Mark()
 	p.Silent++
-	p.LookBegin(75)
+	p.LookBegin(78)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L17
 	}
 	p.LookEnd(true)
@@ -7679,7 +8024,7 @@ fail:
 	return nil, false
 }
 
-func e461(p *rt.TParser) (any, bool) {
+func e467(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7690,15 +8035,15 @@ func e461(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit460, "#stream", 154, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit466, "#stream", 156, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#stream", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(76)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(79)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7717,10 +8062,10 @@ L6:
 		x10, _, x11 = p.Peek()
 	}
 	if !(x11 && (x10 == 40)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L12
 	}
-	if v14, ok = u106(p); !ok {
+	if v14, ok = u108(p); !ok {
 		goto L13
 	}
 	v8 = v14
@@ -7730,10 +8075,10 @@ L13:
 L12:
 	x16 = p.Mark()
 	p.Silent++
-	p.LookBegin(77)
+	p.LookBegin(80)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L17
 	}
 	p.LookEnd(true)
@@ -7758,7 +8103,7 @@ fail:
 	return nil, false
 }
 
-func e463(p *rt.TParser) (any, bool) {
+func e469(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7768,15 +8113,15 @@ func e463(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(1)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit462, "#missing", 155, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit468, "#missing", 157, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#missing", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(78)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(81)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7789,10 +8134,10 @@ L6:
 	p.Reset(x5)
 	x7 = p.Mark()
 	p.Silent++
-	p.LookBegin(79)
+	p.LookBegin(82)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L8
 	}
 	p.LookEnd(true)
@@ -7809,7 +8154,7 @@ fail:
 	return nil, false
 }
 
-func e464(p *rt.TParser) (any, bool) {
+func e470(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7819,15 +8164,15 @@ func e464(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(1)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit192, "#ignorecase", 100, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit195, "#ignorecase", 101, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#ignorecase", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(80)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(83)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7840,10 +8185,10 @@ L6:
 	p.Reset(x5)
 	x7 = p.Mark()
 	p.Silent++
-	p.LookBegin(81)
+	p.LookBegin(84)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L8
 	}
 	p.LookEnd(true)
@@ -7860,7 +8205,7 @@ fail:
 	return nil, false
 }
 
-func e466(p *rt.TParser) (any, bool) {
+func e472(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7870,15 +8215,15 @@ func e466(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit465, "#repeat", 156, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit471, "#repeat", 158, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#repeat", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(82)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(85)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7889,7 +8234,7 @@ L6:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x5)
-	if v8, ok = u99(p); !ok {
+	if v8, ok = u101(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v8)
@@ -7900,7 +8245,7 @@ fail:
 	return nil, false
 }
 
-func e468(p *rt.TParser) (any, bool) {
+func e474(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -7910,15 +8255,15 @@ func e468(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.NewVals(2)[:0]
 	x3 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit467, "#recover", 157, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit473, "#recover", 159, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#recover", true)
 	x2 = append(x2, v4)
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(83)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(86)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -7929,7 +8274,7 @@ L6:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x5)
-	if v8, ok = u105(p); !ok {
+	if v8, ok = u107(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v8)
@@ -7940,11 +8285,11 @@ fail:
 	return nil, false
 }
 
-func e469(p *rt.TParser) (any, bool) {
+func e475(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
-	if v2, ok = u107(p); !ok {
+	if v2, ok = u109(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v2)
@@ -7953,11 +8298,11 @@ fail:
 	return nil, false
 }
 
-func e470(p *rt.TParser) (any, bool) {
+func e476(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v1 any
-	if v1, ok = s82(p); !ok {
+	if v1, ok = s84(p); !ok {
 		goto fail
 	}
 	return v1, true
@@ -7965,7 +8310,7 @@ fail:
 	return nil, false
 }
 
-func s82(p *rt.TParser) (any, bool) {
+func s84(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x3, x5, x6, x8, x9 int
 	var x2 []any
@@ -7976,21 +8321,21 @@ func s82(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 35) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit121, "#", 55, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit124, "#", 56, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "#", true)
 	x2 = append(x2, v4)
 	x5, x6 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(85)
-	if _, ok = s282(p); !ok {
+	p.LookBegin(88)
+	if _, ok = s287(p); !ok {
 		goto L7
 	}
 	x8, x9 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(84)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(87)
+	if _, ok = s270(p); !ok {
 		goto L10
 	}
 	p.LookEnd(true)
@@ -8009,7 +8354,7 @@ L7:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x5, x6)
-	if v11, ok = u190(p); !ok {
+	if v11, ok = u192(p); !ok {
 		goto fail
 	}
 	x2 = append(x2, v11)
@@ -8020,16 +8365,16 @@ fail:
 }
 
 // rule rule_body_expr
-func u83(p *rt.TParser) (any, bool) {
+func u85(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i83(p)
+	v, ok := i85(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i83(p *rt.TParser) (any, bool) {
+func i85(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2 int
 	var v, k4, v6 any
@@ -8038,8 +8383,8 @@ func i83(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(86)
-	if _, ok = s283(p); !ok {
+	p.LookBegin(89)
+	if _, ok = s288(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -8050,18 +8395,18 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if v6, ok = p.Call(trules[81], 0); !ok {
+	if v6, ok = p.Call(trules[83], 0); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "rule_body_expr"
 	{
-		var tr64 any
+		var tr71 any
 		{
-			tr64 = k4
+			tr71 = k4
 		}
-		v = tr64
+		v = tr71
 	}
 	v = c.Finish(v)
 	return v, true
@@ -8070,16 +8415,16 @@ fail:
 }
 
 // rule rule_group
-func u86(p *rt.TParser) (any, bool) {
+func u88(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i86(p)
+	v, ok := i88(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i86(p *rt.TParser) (any, bool) {
+func i88(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x12 int
 	var v, k1, v5, v8, v10 any
@@ -8093,7 +8438,7 @@ func i86(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -8101,18 +8446,18 @@ func i86(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = u87(p); !ok {
+	if v8, ok = u89(p); !ok {
 		goto L7
 	}
 	v5 = v8
 	goto L6
 L7:
 	p.Restore(x3, x4)
-	if v10, ok = p.Call(trules[81], 0); !ok {
+	if v10, ok = p.Call(trules[83], 0); !ok {
 		goto L9
 	}
 	v5 = v10
@@ -8122,13 +8467,13 @@ L9:
 	goto fail
 L6:
 	k1 = v5
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x11 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L14
 	}
 	x12, x13 = p.Unisolate(x11)
@@ -8136,18 +8481,18 @@ L6:
 	goto L15
 L14:
 	x12, x13 = p.Unisolate(x11)
-	p.ExpectBudget(x12, rt.MsgBit|72)
+	p.ExpectBudget(x12, rt.MsgBit|73)
 	goto fail
 L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "rule_group"
 	{
-		var tr66 any
+		var tr73 any
 		{
 			tv1 := tmk_RuleGroup(c, true, k1)
-			tr66 = tv1
+			tr73 = tv1
 		}
-		v = tr66
+		v = tr73
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -8159,16 +8504,16 @@ fail:
 }
 
 // rule inline_action
-func u87(p *rt.TParser) (any, bool) {
+func u89(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i87(p)
+	v, ok := i89(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i87(p *rt.TParser) (any, bool) {
+func i89(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
@@ -8176,34 +8521,34 @@ func i87(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = p.Call(trules[81], 0); !ok {
+	if v3, ok = p.Call(trules[83], 0); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 62) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit67, "=>", 32, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit70, "=>", 33, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v6, ok = u137(p); !ok {
+	if v6, ok = u139(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "inline_action"
 	{
-		var tr67 any
+		var tr74 any
 		{
 			tv1 := tmk_InlineAction(c, true, k1, k4)
-			tr67 = tv1
+			tr74 = tv1
 		}
-		v = tr67
+		v = tr74
 	}
 	p.Depth--
 	return v, true
@@ -8213,32 +8558,32 @@ fail:
 }
 
 // rule rule_ref
-func u88(p *rt.TParser) (any, bool) {
+func u90(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i88(p)
+	v, ok := i90(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i88(p *rt.TParser) (any, bool) {
+func i90(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x5, x7, x8 int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u190(p); !ok {
+	if v3, ok = u192(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x4, x5 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(92)
+	p.LookBegin(95)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -8251,10 +8596,10 @@ L6:
 	p.Restore(x4, x5)
 	x7, x8 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(93)
+	p.LookBegin(96)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L9
 	}
 	p.LookEnd(true)
@@ -8268,12 +8613,12 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "rule_ref"
 	{
-		var tr68 any
+		var tr75 any
 		{
 			tv1 := tmk_RuleRef(c, true, k1)
-			tr68 = tv1
+			tr75 = tv1
 		}
-		v = tr68
+		v = tr75
 	}
 	return v, true
 fail:
@@ -8281,16 +8626,16 @@ fail:
 }
 
 // rule level_call
-func u89(p *rt.TParser) (any, bool) {
+func u91(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i89(p)
+	v, ok := i91(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i89(p *rt.TParser) (any, bool) {
+func i91(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x10, x17, x23 int
 	var v, k1, v8, k14, v21 any
@@ -8301,7 +8646,7 @@ func i89(p *rt.TParser) (any, bool) {
 	var x5, x11, x18, x24 []rt.ExpID
 	start = p.Pos
 	prevEnv = p.Env
-	if _, ok = p.Parser.MatchLiteral(lit147, "level(", 73, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit150, "level(", 74, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -8309,11 +8654,11 @@ func i89(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -8321,17 +8666,17 @@ func i89(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|74)
+	p.ExpectBudget(x4, rt.MsgBit|75)
 	goto fail
 L7:
 	k1 = v8
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x9 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L12
 	}
 	x10, x11 = p.Unisolate(x9)
@@ -8339,14 +8684,14 @@ L7:
 	goto L13
 L12:
 	x10, x11 = p.Unisolate(x9)
-	p.ExpectBudget(x10, rt.MsgBit|75)
+	p.ExpectBudget(x10, rt.MsgBit|76)
 	goto fail
 L13:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x16 = p.Isolate(p.Pos)
-	if v21, ok = u190(p); !ok {
+	if v21, ok = u192(p); !ok {
 		goto L19
 	}
 	x17, x18 = p.Unisolate(x16)
@@ -8354,17 +8699,17 @@ L13:
 	goto L20
 L19:
 	x17, x18 = p.Unisolate(x16)
-	p.ExpectBudget(x17, rt.MsgBit|76)
+	p.ExpectBudget(x17, rt.MsgBit|77)
 	goto fail
 L20:
 	k14 = v21
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x22 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L25
 	}
 	x23, x24 = p.Unisolate(x22)
@@ -8372,18 +8717,18 @@ L20:
 	goto L26
 L25:
 	x23, x24 = p.Unisolate(x22)
-	p.ExpectBudget(x23, rt.MsgBit|77)
+	p.ExpectBudget(x23, rt.MsgBit|78)
 	goto fail
 L26:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "level_call"
 	{
-		var tr70 any
+		var tr77 any
 		{
 			tv1 := tmk_LevelCall(c, true, k1, k14)
-			tr70 = tv1
+			tr77 = tv1
 		}
-		v = tr70
+		v = tr77
 	}
 	p.Env = prevEnv
 	return v, true
@@ -8392,7 +8737,7 @@ fail:
 	return nil, false
 }
 
-func s90(p *rt.TParser) (any, bool) {
+func s92(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3 int
 	var v, v5, bv any
@@ -8401,13 +8746,13 @@ func s90(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 95) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit149, "_", 78, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit152, "_", 79, false); !ok {
 		goto fail
 	}
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(94)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(97)
+	if _, ok = s270(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -8421,56 +8766,6 @@ L4:
 	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
 	bv = rt.TFreshNode(v5)
 	v = p.ScopeValue(sh11, v5, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	v = p.TConvertResultOwned(trules[90], v, bv)
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s91(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1 int
-	var v, v2, bv any
-	var ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1 = p.Pos
-	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 95 && p.In[p.Pos+1] == 124 && p.In[p.Pos+2] == 95) && p.Control.Take(3) {
-		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit151, "_|_", 79, false); !ok {
-		goto fail
-	}
-	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v2)
-	v = p.ScopeValue(sh11, v2, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	v = p.TConvertResultOwned(trules[91], v, bv)
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s92(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1 int
-	var v, v2, bv any
-	var ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1 = p.Pos
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 94 && p.In[p.Pos+1] == 94) && p.Control.Take(2) {
-		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit153, "^^", 80, false); !ok {
-		goto fail
-	}
-	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v2)
-	v = p.ScopeValue(sh11, v2, start)
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
@@ -8488,9 +8783,9 @@ func s93(p *rt.TParser) (any, bool) {
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 94) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit155, "^", 81, false); !ok {
+	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 95 && p.In[p.Pos+1] == 124 && p.In[p.Pos+2] == 95) && p.Control.Take(3) {
+		p.Pos += 3
+	} else if _, ok = p.Parser.MatchLiteral(lit154, "_|_", 80, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
@@ -8513,9 +8808,9 @@ func s94(p *rt.TParser) (any, bool) {
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 36 && p.In[p.Pos+1] == 36) && p.Control.Take(2) {
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 94 && p.In[p.Pos+1] == 94) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit157, "$$", 82, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit156, "^^", 81, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
@@ -8533,6 +8828,56 @@ fail:
 
 func s95(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start, rec, x1 int
+	var v, v2, bv any
+	var ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1 = p.Pos
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 94) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit158, "^", 82, false); !ok {
+		goto fail
+	}
+	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v2)
+	v = p.ScopeValue(sh11, v2, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	v = p.TConvertResultOwned(trules[95], v, bv)
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+func s96(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1 int
+	var v, v2, bv any
+	var ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1 = p.Pos
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 36 && p.In[p.Pos+1] == 36) && p.Control.Take(2) {
+		p.Pos += 2
+	} else if _, ok = p.Parser.MatchLiteral(lit160, "$$", 83, false); !ok {
+		goto fail
+	}
+	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v2)
+	v = p.ScopeValue(sh11, v2, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	v = p.TConvertResultOwned(trules[96], v, bv)
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+func s97(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, rec, x1, x2, x3, x5, x6 int
 	var v, v14, bv any
 	var ok, x9 bool
@@ -8541,12 +8886,12 @@ func s95(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit159, "$", 83, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit162, "$", 84, false); !ok {
 		goto fail
 	}
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(95)
+	p.LookBegin(98)
 	x5, x6 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -8555,10 +8900,10 @@ func s95(p *rt.TParser) (any, bool) {
 		x8, _, x9 = p.Peek()
 	}
 	if !(x9 && (x8 >= 97 && x8 <= 122 || x8 >= 65 && x8 <= 90 || x8 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 63)
+		p.ExpectBudget(p.Pos, 64)
 		goto L10
 	}
-	if _, ok = s284(p); !ok {
+	if _, ok = s289(p); !ok {
 		goto L11
 	}
 	goto L7
@@ -8566,10 +8911,10 @@ L11:
 	p.Restore(x5, x6)
 L10:
 	if !(x9 && (x8 >= 48 && x8 <= 57)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 84)
+		p.ExpectBudget(p.Pos, 85)
 		goto L12
 	}
-	if _, ok = s274(p); !ok {
+	if _, ok = s279(p); !ok {
 		goto L13
 	}
 	goto L7
@@ -8592,14 +8937,14 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[95], v, bv)
+	v = p.TConvertResultOwned(trules[97], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
 	return nil, false
 }
 
-func s96(p *rt.TParser) (any, bool) {
+func s98(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3 int
 	var v, v5, bv any
@@ -8608,15 +8953,15 @@ func s96(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, ".", 85, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit164, ".", 86, false); !ok {
 		goto fail
 	}
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(96)
+	p.LookBegin(99)
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 46 && p.In[p.Pos+1] == 46) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit162, "..", 86, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit165, "..", 87, false); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -8633,14 +8978,14 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[96], v, bv)
+	v = p.TConvertResultOwned(trules[98], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
 	return nil, false
 }
 
-func s97(p *rt.TParser) (any, bool) {
+func s99(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x5, x6 int
 	var v, v8, bv any
@@ -8649,13 +8994,13 @@ func s97(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 35 && p.In[p.Pos+1] == 99 && p.In[p.Pos+2] == 117 && p.In[p.Pos+3] == 116) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit164, "#cut", 87, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit167, "#cut", 88, false); !ok {
 		goto fail
 	}
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(97)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(100)
+	if _, ok = s270(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -8668,10 +9013,10 @@ L4:
 	p.Restore(x2, x3)
 	x5, x6 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(98)
+	p.LookBegin(101)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L7
 	}
 	p.LookEnd(true)
@@ -8688,7 +9033,7 @@ L7:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[97], v, bv)
+	v = p.TConvertResultOwned(trules[99], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -8696,30 +9041,30 @@ fail:
 }
 
 // rule predicate
-func u98(p *rt.TParser) (any, bool) {
+func u100(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i98(p)
+	v, ok := i100(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i98(p *rt.TParser) (any, bool) {
+func i100(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u139(p); !ok {
+	if v3, ok = u141(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "predicate"
 	{
-		var tr71 any
+		var tr78 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Actions", "Actions")
 			if tf1 != nil {
@@ -8730,9 +9075,9 @@ func i98(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf2)
 			}
 			tv3 := tmk_Predicate(c, true, tv1, tv2)
-			tr71 = tv3
+			tr78 = tv3
 		}
-		v = tr71
+		v = tr78
 	}
 	return v, true
 fail:
@@ -8740,16 +9085,16 @@ fail:
 }
 
 // rule repeat_args
-func u99(p *rt.TParser) (any, bool) {
+func u101(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i99(p)
+	v, ok := i101(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i99(p *rt.TParser) (any, bool) {
+func i101(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x12 int
 	var v, k1, v5, v8, v10 any
@@ -8762,7 +9107,7 @@ func i99(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -8770,18 +9115,18 @@ func i99(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = s100(p); !ok {
+	if v8, ok = s102(p); !ok {
 		goto L7
 	}
 	v5 = v8
 	goto L6
 L7:
 	p.Restore(x3, x4)
-	if v10, ok = u103(p); !ok {
+	if v10, ok = u105(p); !ok {
 		goto L9
 	}
 	v5 = v10
@@ -8791,13 +9136,13 @@ L9:
 	goto fail
 L6:
 	k1 = v5
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x11 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L14
 	}
 	x12, x13 = p.Unisolate(x11)
@@ -8805,17 +9150,17 @@ L6:
 	goto L15
 L14:
 	x12, x13 = p.Unisolate(x11)
-	p.ExpectBudget(x12, rt.MsgBit|88)
+	p.ExpectBudget(x12, rt.MsgBit|89)
 	goto fail
 L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "repeat_args"
 	{
-		var tr73 any
+		var tr80 any
 		{
-			tr73 = k1
+			tr80 = k1
 		}
-		v = tr73
+		v = tr80
 	}
 	v = c.Finish(v)
 	p.Env = prevEnv
@@ -8825,7 +9170,7 @@ fail:
 	return nil, false
 }
 
-func s100(p *rt.TParser) (any, bool) {
+func s102(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v11 any
@@ -8833,7 +9178,7 @@ func s100(p *rt.TParser) (any, bool) {
 	var x7 rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u101(p); !ok {
+	if v6, ok = u103(p); !ok {
 		goto L5
 	}
 	v3 = v6
@@ -8847,10 +9192,10 @@ L5:
 		x7, _, x8 = p.Peek()
 	}
 	if !(x8 && (x7 == 44)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 38)
+		p.ExpectBudget(p.Pos, 39)
 		goto L9
 	}
-	if v11, ok = u102(p); !ok {
+	if v11, ok = u104(p); !ok {
 		goto L10
 	}
 	v3 = v11
@@ -8871,39 +9216,39 @@ fail:
 }
 
 // rule repeat_from
-func u101(p *rt.TParser) (any, bool) {
+func u103(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i101(p)
+	v, ok := i103(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i101(p *rt.TParser) (any, bool) {
+func i103(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x6, x7 int
 	var v, k1, v3, k4, v8, v11 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u104(p); !ok {
+	if v3, ok = u106(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x6, x7 = p.Pos, len(p.Recovered)
-	if v11, ok = u104(p); !ok {
+	if v11, ok = u106(p); !ok {
 		goto L9
 	}
 	v8 = v11
@@ -8916,12 +9261,12 @@ L10:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "repeat_from"
 	{
-		var tr74 any
+		var tr81 any
 		{
 			tv1 := tmk_RepeatBounds(c, true, k1, k4, any(true))
-			tr74 = tv1
+			tr81 = tv1
 		}
-		v = tr74
+		v = tr81
 	}
 	return v, true
 fail:
@@ -8929,16 +9274,16 @@ fail:
 }
 
 // rule repeat_to
-func u102(p *rt.TParser) (any, bool) {
+func u104(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i102(p)
+	v, ok := i104(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i102(p *rt.TParser) (any, bool) {
+func i104(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
@@ -8947,25 +9292,25 @@ func i102(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = u104(p); !ok {
+	if v3, ok = u106(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "repeat_to"
 	{
-		var tr75 any
+		var tr82 any
 		{
 			tv1 := tmk_RepeatBounds(c, true, any(nil), k1, any(true))
-			tr75 = tv1
+			tr82 = tv1
 		}
-		v = tr75
+		v = tr82
 	}
 	return v, true
 fail:
@@ -8973,35 +9318,35 @@ fail:
 }
 
 // rule repeat_count
-func u103(p *rt.TParser) (any, bool) {
+func u105(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i103(p)
+	v, ok := i105(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i103(p *rt.TParser) (any, bool) {
+func i105(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u104(p); !ok {
+	if v3, ok = u106(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "repeat_count"
 	{
-		var tr76 any
+		var tr83 any
 		{
 			tv1 := tmk_RepeatBounds(c, true, k1, k1, any(false))
-			tr76 = tv1
+			tr83 = tv1
 		}
-		v = tr76
+		v = tr83
 	}
 	return v, true
 fail:
@@ -9009,14 +9354,14 @@ fail:
 }
 
 // rule repeat_int
-func u104(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[104]) {
-		return p.CallMemo(trules[104], v104)
+func u106(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[106]) {
+		return p.CallMemo(trules[106], v106)
 	}
-	return v104(p)
+	return v106(p)
 }
 
-func v104(p *rt.TParser) (any, bool) {
+func v106(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x6, x7, x8, x14, x15, x16, x18, x19 int
 	var v, v21, bv any
@@ -9029,7 +9374,7 @@ func v104(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x7, x8 = p.Pos, len(p.Recovered)
-		if _, ok = s274(p); !ok {
+		if _, ok = s279(p); !ok {
 			goto L9
 		}
 		x6++
@@ -9054,15 +9399,15 @@ L5:
 		x10, _, x11 = p.Peek()
 	}
 	if !(x11 && (x10 == 45)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 89)
+		p.ExpectBudget(p.Pos, 90)
 		goto L12
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L13
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L13
 	}
 	x14 = 0
@@ -9071,7 +9416,7 @@ L5:
 		x15, x16 = p.Pos, len(p.Recovered)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 48) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit173, "0", 90, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit176, "0", 91, false); !ok {
 			goto L17
 		}
 		x14++
@@ -9088,8 +9433,8 @@ L5:
 	}
 	x18, x19 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(99)
-	if _, ok = s274(p); !ok {
+	p.LookBegin(102)
+	if _, ok = s279(p); !ok {
 		goto L20
 	}
 	p.LookEnd(true)
@@ -9112,7 +9457,7 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[104], v, bv)
+	v = p.TConvertResultOwned(trules[106], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -9120,16 +9465,16 @@ fail:
 }
 
 // rule recover_args
-func u105(p *rt.TParser) (any, bool) {
+func u107(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i105(p)
+	v, ok := i107(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i105(p *rt.TParser) (any, bool) {
+func i107(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x7, x15 int
 	var v, k11, v13 any
@@ -9143,7 +9488,7 @@ func i105(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -9151,13 +9496,13 @@ func i105(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x1 = p.Isolate(p.Pos)
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 115 && p.In[p.Pos+1] == 107 && p.In[p.Pos+2] == 105 && p.In[p.Pos+3] == 112) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit125, "skip", 57, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit128, "skip", 58, false); !ok {
 		goto L4
 	}
 	x2, x3 = p.Unisolate(x1)
@@ -9165,16 +9510,16 @@ func i105(p *rt.TParser) (any, bool) {
 	goto L5
 L4:
 	x2, x3 = p.Unisolate(x1)
-	p.ExpectBudget(x2, rt.MsgBit|91)
+	p.ExpectBudget(x2, rt.MsgBit|92)
 	goto fail
 L5:
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x6 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L9
 	}
 	x7, x8 = p.Unisolate(x6)
@@ -9182,23 +9527,23 @@ L5:
 	goto L10
 L9:
 	x7, x8 = p.Unisolate(x6)
-	p.ExpectBudget(x7, rt.MsgBit|92)
+	p.ExpectBudget(x7, rt.MsgBit|93)
 	goto fail
 L10:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v13, ok = p.Call(trules[81], 0); !ok {
+	if v13, ok = p.Call(trules[83], 0); !ok {
 		goto fail
 	}
 	k11 = v13
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x14 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L17
 	}
 	x15, x16 = p.Unisolate(x14)
@@ -9206,17 +9551,17 @@ L10:
 	goto L18
 L17:
 	x15, x16 = p.Unisolate(x14)
-	p.ExpectBudget(x15, rt.MsgBit|93)
+	p.ExpectBudget(x15, rt.MsgBit|94)
 	goto fail
 L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "recover_args"
 	{
-		var tr78 any
+		var tr85 any
 		{
-			tr78 = k11
+			tr85 = k11
 		}
-		v = tr78
+		v = tr85
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -9229,14 +9574,14 @@ fail:
 }
 
 // rule empty_args
-func u106(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[106]) {
-		return p.CallMemo(trules[106], v106)
+func u108(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[108]) {
+		return p.CallMemo(trules[108], v108)
 	}
-	return v106(p)
+	return v108(p)
 }
 
-func v106(p *rt.TParser) (any, bool) {
+func v108(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x3, x5 int
 	var v, v4, v6, v7 any
@@ -9250,7 +9595,7 @@ func v106(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "(", true)
@@ -9260,13 +9605,13 @@ func v106(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x5 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	v6 = p.NewMatch(x5, p.Pos, ")", true)
@@ -9285,19 +9630,19 @@ fail:
 }
 
 // rule attr
-func u107(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[107]) {
-		return p.CallMemo(trules[107], i107)
+func u109(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[109]) {
+		return p.CallMemo(trules[109], i109)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i107(p)
+	v, ok := i109(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i107(p *rt.TParser) (any, bool) {
+func i109(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x11, x12 int
 	var v, k1, v8, k9, v13, v19, v21 any
@@ -9314,7 +9659,7 @@ func i107(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -9322,7 +9667,7 @@ func i107(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|94)
+	p.ExpectBudget(x4, rt.MsgBit|95)
 	goto fail
 L7:
 	k1 = v8
@@ -9334,10 +9679,10 @@ L7:
 		x15, _, x16 = p.Peek()
 	}
 	if !(x16 && (x15 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L17
 	}
-	if v19, ok = u108(p); !ok {
+	if v19, ok = u110(p); !ok {
 		goto L18
 	}
 	v13 = v19
@@ -9345,7 +9690,7 @@ L7:
 L18:
 	p.Restore(x11, x12)
 L17:
-	if v21, ok = s111(p); !ok {
+	if v21, ok = s113(p); !ok {
 		goto L20
 	}
 	v13 = v21
@@ -9358,7 +9703,7 @@ L14:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr"
 	{
-		var tr80 any
+		var tr87 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k9, "Args", "Args")
 			if tf1 != nil {
@@ -9369,9 +9714,9 @@ L14:
 				c.TermRaise(tf2)
 			}
 			tv3 := tmk_Attr(c, true, k1, tv1, tv2)
-			tr80 = tv3
+			tr87 = tv3
 		}
-		v = tr80
+		v = tr87
 	}
 	p.Depth--
 	return v, true
@@ -9381,16 +9726,16 @@ fail:
 }
 
 // rule attr_args
-func u108(p *rt.TParser) (any, bool) {
+func u110(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i108(p)
+	v, ok := i110(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i108(p *rt.TParser) (any, bool) {
+func i110(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x14 int
 	var v, k1, v5, v8, v10, v12 any
@@ -9404,7 +9749,7 @@ func i108(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -9412,25 +9757,25 @@ func i108(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = s112(p); !ok {
+	if v8, ok = s114(p); !ok {
 		goto L7
 	}
 	v5 = v8
 	goto L6
 L7:
 	p.Restore(x3, x4)
-	if v10, ok = u109(p); !ok {
+	if v10, ok = u111(p); !ok {
 		goto L9
 	}
 	v5 = v10
 	goto L6
 L9:
 	p.Restore(x3, x4)
-	if v12, ok = u110(p); !ok {
+	if v12, ok = u112(p); !ok {
 		goto L11
 	}
 	v5 = v12
@@ -9440,13 +9785,13 @@ L11:
 	goto fail
 L6:
 	k1 = v5
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x13 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L16
 	}
 	x14, x15 = p.Unisolate(x13)
@@ -9454,17 +9799,17 @@ L6:
 	goto L17
 L16:
 	x14, x15 = p.Unisolate(x13)
-	p.ExpectBudget(x14, rt.MsgBit|95)
+	p.ExpectBudget(x14, rt.MsgBit|96)
 	goto fail
 L17:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_args"
 	{
-		var tr82 any
+		var tr89 any
 		{
-			tr82 = k1
+			tr89 = k1
 		}
-		v = tr82
+		v = tr89
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -9477,19 +9822,19 @@ fail:
 }
 
 // rule attr_named_args
-func u109(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[109]) {
-		return p.CallMemo(trules[109], i109)
+func u111(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[111]) {
+		return p.CallMemo(trules[111], i111)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i109(p)
+	v, ok := i111(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i109(p *rt.TParser) (any, bool) {
+func i111(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8, x9, x15, x16 int
 	var v, k1, v3, k4, k10, v13, v14 any
@@ -9497,7 +9842,7 @@ func i109(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u116(p); !ok {
+	if v3, ok = u118(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -9506,18 +9851,18 @@ func i109(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L11
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
-		if v13, ok = u116(p); !ok {
+		if v13, ok = u118(p); !ok {
 			goto L11
 		}
 		k10 = v13
@@ -9533,15 +9878,15 @@ func i109(p *rt.TParser) (any, bool) {
 	v14 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
 	k4 = v14
 	x15, x16 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L17
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	goto L18
@@ -9551,7 +9896,7 @@ L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_named_args"
 	{
-		var tr83 any
+		var tr90 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -9569,9 +9914,9 @@ L18:
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
 			tv9 := tmk_AttrArgs(c, true, any(tn3), any(tn8))
-			tr83 = tv9
+			tr90 = tv9
 		}
-		v = tr83
+		v = tr90
 	}
 	p.Depth--
 	return v, true
@@ -9581,16 +9926,16 @@ fail:
 }
 
 // rule attr_mixed_args
-func u110(p *rt.TParser) (any, bool) {
+func u112(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i110(p)
+	v, ok := i112(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i110(p *rt.TParser) (any, bool) {
+func i112(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x6, x7, x9, x10, x13, x15, x25, x26 int
 	var v, k1, v3, k4, k11, v16, v18, v19, v20, v21, v22, k23, v27, v30, v32 any
@@ -9599,7 +9944,7 @@ func i110(p *rt.TParser) (any, bool) {
 	var x14 []any
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u115(p); !ok {
+	if v3, ok = u117(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -9610,28 +9955,28 @@ func i110(p *rt.TParser) (any, bool) {
 		k11 = nil
 		x13 = p.Pos
 		x14 = p.NewVals(2)[:0]
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L12
 		}
 		x15 = p.Pos
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L12
 		}
 		v16 = p.NewMatch(x15, p.Pos, ",", true)
 		x14 = append(x14, v16)
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L12
 		}
-		if v18, ok = u115(p); !ok {
+		if v18, ok = u117(p); !ok {
 			goto L12
 		}
 		k11 = v18
 		x14 = append(x14, v18)
 		v19 = p.NewNode("tuple", x13, p.Pos, x14)
 		v20 = p.ScopeValue(sh10, v19, x9)
-		v21 = p.AttachCaptures(v20, scope422, []any{k11}, x9, p.Pos)
+		v21 = p.AttachCaptures(v20, scope427, []any{k11}, x9, p.Pos)
 		p.PushKid(v21)
 		if p.Pos == x9 {
 			break
@@ -9644,14 +9989,14 @@ func i110(p *rt.TParser) (any, bool) {
 	v22 = p.NewNode("list", x6, p.Pos, p.Kids(x7))
 	k4 = v22
 	x25, x26 = p.Pos, len(p.Recovered)
-	if v30, ok = u114(p); !ok {
+	if v30, ok = u116(p); !ok {
 		goto L29
 	}
 	v27 = v30
 	goto L28
 L29:
 	p.Restore(x25, x26)
-	if v32, ok = s113(p); !ok {
+	if v32, ok = s115(p); !ok {
 		goto L31
 	}
 	v27 = v32
@@ -9664,7 +10009,7 @@ L28:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_mixed_args"
 	{
-		var tr84 any
+		var tr91 any
 		{
 			tm1 := len(c.P.KidStack)
 			tv2, tf2 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
@@ -9705,9 +10050,9 @@ L28:
 				c.TermRaise(tf14)
 			}
 			tv15 := tmk_AttrArgs(c, true, any(tn13), tv14)
-			tr84 = tv15
+			tr91 = tv15
 		}
-		v = tr84
+		v = tr91
 	}
 	p.Depth--
 	return v, true
@@ -9716,7 +10061,7 @@ fail:
 	return nil, false
 }
 
-func s111(p *rt.TParser) (any, bool) {
+func s113(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -9725,10 +10070,10 @@ func s111(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(100)
+	p.LookBegin(103)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -9742,7 +10087,7 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_no_args"
 	{
-		var tr85 any
+		var tr92 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -9751,9 +10096,9 @@ L3:
 			tk5 := c.P.Kids(tm4)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_AttrArgs(c, true, any(tn3), any(tn6))
-			tr85 = tv7
+			tr92 = tv7
 		}
-		v = tr85
+		v = tr92
 	}
 	return v, true
 fail:
@@ -9761,7 +10106,7 @@ fail:
 	return nil, false
 }
 
-func s112(p *rt.TParser) (any, bool) {
+func s114(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1 int
 	var v any
@@ -9770,10 +10115,10 @@ func s112(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(101)
+	p.LookBegin(104)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -9789,7 +10134,7 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_no_values"
 	{
-		var tr86 any
+		var tr93 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -9798,9 +10143,9 @@ L3:
 			tk5 := c.P.Kids(tm4)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_AttrArgs(c, true, any(tn3), any(tn6))
-			tr86 = tv7
+			tr93 = tv7
 		}
-		v = tr86
+		v = tr93
 	}
 	return v, true
 fail:
@@ -9808,7 +10153,7 @@ fail:
 	return nil, false
 }
 
-func s113(p *rt.TParser) (any, bool) {
+func s115(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2 int
 	var v any
@@ -9816,15 +10161,15 @@ func s113(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L3
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L3
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L3
 	}
 	goto L4
@@ -9834,7 +10179,7 @@ L4:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_trailing_comma"
 	{
-		var tr87 any
+		var tr94 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -9843,24 +10188,24 @@ L4:
 			tk5 := c.P.Kids(tm4)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_AttrArgs(c, true, any(tn3), any(tn6))
-			tr87 = tv7
+			tr94 = tv7
 		}
-		v = tr87
+		v = tr94
 	}
 	return v, true
 }
 
 // rule attr_named_tail
-func u114(p *rt.TParser) (any, bool) {
+func u116(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i114(p)
+	v, ok := i116(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i114(p *rt.TParser) (any, bool) {
+func i116(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
@@ -9868,29 +10213,29 @@ func i114(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = u109(p); !ok {
+	if v3, ok = u111(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_named_tail"
 	{
-		var tr88 any
+		var tr95 any
 		{
-			tr88 = k1
+			tr95 = k1
 		}
-		v = tr88
+		v = tr95
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -9901,19 +10246,19 @@ fail:
 }
 
 // rule attr_slot
-func u115(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[115]) {
-		return p.CallMemo(trules[115], i115)
+func u117(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[117]) {
+		return p.CallMemo(trules[117], i117)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i115(p)
+	v, ok := i117(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i115(p *rt.TParser) (any, bool) {
+func i117(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2 int
 	var v, k4, v6 any
@@ -9923,16 +10268,16 @@ func i115(p *rt.TParser) (any, bool) {
 	p.Enter()
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(102)
-	if _, ok = u285(p); !ok {
+	p.LookBegin(105)
+	if _, ok = u290(p); !ok {
 		goto L3
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L3
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -9943,19 +10288,19 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if v6, ok = u117(p); !ok {
+	if v6, ok = u119(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_slot"
 	{
-		var tr89 any
+		var tr96 any
 		{
 			tv1 := tmk_AttrSlot(c, true, k4)
-			tr89 = tv1
+			tr96 = tv1
 		}
-		v = tr89
+		v = tr96
 	}
 	p.Depth--
 	return v, true
@@ -9965,19 +10310,19 @@ fail:
 }
 
 // rule attr_named
-func u116(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[116]) {
-		return p.CallMemo(trules[116], i116)
+func u118(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[118]) {
+		return p.CallMemo(trules[118], i118)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i116(p)
+	v, ok := i118(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i116(p *rt.TParser) (any, bool) {
+func i118(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x10 int
 	var v, k4, v6, k7, v14 any
@@ -9989,16 +10334,16 @@ func i116(p *rt.TParser) (any, bool) {
 	p.Enter()
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(103)
-	if _, ok = u285(p); !ok {
+	p.LookBegin(106)
+	if _, ok = u290(p); !ok {
 		goto L2
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L2
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -10011,23 +10356,23 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if v6, ok = u190(p); !ok {
+	if v6, ok = u192(p); !ok {
 		goto fail
 	}
 	k4 = v6
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x9 = p.Isolate(p.Pos)
-	if v14, ok = u117(p); !ok {
+	if v14, ok = u119(p); !ok {
 		goto L12
 	}
 	x10, x11 = p.Unisolate(x9)
@@ -10035,19 +10380,19 @@ L3:
 	goto L13
 L12:
 	x10, x11 = p.Unisolate(x9)
-	p.ExpectBudget(x10, rt.MsgBit|96)
+	p.ExpectBudget(x10, rt.MsgBit|97)
 	goto fail
 L13:
 	k7 = v14
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "attr_named"
 	{
-		var tr90 any
+		var tr97 any
 		{
 			tv1 := tmk_AttrNamed(c, true, k4, k7)
-			tr90 = tv1
+			tr97 = tv1
 		}
-		v = tr90
+		v = tr97
 	}
 	p.Depth--
 	return v, true
@@ -10057,14 +10402,14 @@ fail:
 }
 
 // rule attr_value
-func u117(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[117]) {
-		return p.CallMemo(trules[117], v117)
+func u119(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[119]) {
+		return p.CallMemo(trules[119], v119)
 	}
-	return v117(p)
+	return v119(p)
 }
 
-func v117(p *rt.TParser) (any, bool) {
+func v119(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12, v15, v17, v19 any
@@ -10080,10 +10425,10 @@ func v117(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 97)
+		p.ExpectBudget(p.Pos, 98)
 		goto L7
 	}
-	if v9, ok = u165(p); !ok {
+	if v9, ok = u167(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -10092,10 +10437,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 102)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 98)
+		p.ExpectBudget(p.Pos, 99)
 		goto L10
 	}
-	if v12, ok = u166(p); !ok {
+	if v12, ok = u168(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -10104,10 +10449,10 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x6 && (x5 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 99)
+		p.ExpectBudget(p.Pos, 100)
 		goto L13
 	}
-	if v15, ok = u167(p); !ok {
+	if v15, ok = u169(p); !ok {
 		goto L14
 	}
 	v3 = v15
@@ -10115,14 +10460,14 @@ L10:
 L14:
 	p.Restore(x1, x2)
 L13:
-	if v17, ok = s118(p); !ok {
+	if v17, ok = s120(p); !ok {
 		goto L16
 	}
 	v3 = v17
 	goto L4
 L16:
 	p.Restore(x1, x2)
-	if v19, ok = p.Call(trules[81], 0); !ok {
+	if v19, ok = p.Call(trules[83], 0); !ok {
 		goto L18
 	}
 	v3 = v19
@@ -10143,7 +10488,7 @@ fail:
 	return nil, false
 }
 
-func s118(p *rt.TParser) (any, bool) {
+func s120(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x6, x7, x8 int
 	var v, v10, bv any
@@ -10153,10 +10498,10 @@ func s118(p *rt.TParser) (any, bool) {
 	x2, x3 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L4
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L4
 	}
 	goto L5
@@ -10167,7 +10512,7 @@ L5:
 	for {
 		p.Spend()
 		x7, x8 = p.Pos, len(p.Recovered)
-		if _, ok = s274(p); !ok {
+		if _, ok = s279(p); !ok {
 			goto L9
 		}
 		x6++
@@ -10188,28 +10533,28 @@ L5:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[118], v, bv)
+	v = p.TConvertResultOwned(trules[120], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
 	return nil, false
 }
 
-func s119(p *rt.TParser) (any, bool) {
+func s121(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = p.Call(trules[120], 0); !ok {
+	if v6, ok = p.Call(trules[122], 0); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u121(p); !ok {
+	if v8, ok = u123(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -10228,22 +10573,22 @@ fail:
 	return nil, false
 }
 
-func ta120(c *rt.TActCtx) (any, any) {
+func ta122(c *rt.TActCtx) (any, any) {
 	tv1 := tmk_IgnoreCase(c, true, c.Cap(0))
 	return tv1, nil
 }
 
 // rule ops_rule_plain
-func u121(p *rt.TParser) (any, bool) {
+func u123(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i121(p)
+	v, ok := i123(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i121(p *rt.TParser) (any, bool) {
+func i123(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x5, x8, x11, x12, x14, x15, x18 int
 	var v, k1, v3 any
@@ -10251,32 +10596,32 @@ func i121(p *rt.TParser) (any, bool) {
 	var ok bool
 	var x17 rt.ExpMark
 	start = p.Pos
-	if v3, ok = u122(p); !ok {
+	if v3, ok = u124(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x4, x5 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L6
 	}
 	x8 = p.Pos
 	p.Silent++
-	p.LookBegin(108)
+	p.LookBegin(111)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 35) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit121, "#", 55, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit124, "#", 56, false); !ok {
 		goto L9
 	}
 	x11, x12 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(107)
-	if _, ok = p.Parser.MatchLiteral(lit139, "ignorecase", 68, false); !ok {
+	p.LookBegin(110)
+	if _, ok = p.Parser.MatchLiteral(lit142, "ignorecase", 69, false); !ok {
 		goto L13
 	}
 	x14, x15 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(106)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(109)
+	if _, ok = s270(p); !ok {
 		goto L16
 	}
 	p.LookEnd(true)
@@ -10309,18 +10654,18 @@ L10:
 	goto L20
 L20:
 	x18, _ = p.Unisolate(x17)
-	p.ExpectBudget(x18, rt.MsgBit|101)
+	p.ExpectBudget(x18, rt.MsgBit|102)
 	goto L6
 L6:
 	p.Restore(x4, x5)
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_rule_plain"
 	{
-		var tr91 any
+		var tr98 any
 		{
-			tr91 = k1
+			tr98 = k1
 		}
-		v = tr91
+		v = tr98
 	}
 	v = c.Finish(v)
 	return v, true
@@ -10329,19 +10674,19 @@ fail:
 }
 
 // rule ops_rule_expr
-func u122(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[122]) {
-		return p.CallMemo(trules[122], i122)
+func u124(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[124]) {
+		return p.CallMemo(trules[124], i124)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i122(p)
+	v, ok := i124(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i122(p *rt.TParser) (any, bool) {
+func i124(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x4, x5, x7, x15, x16, x18, x19, x32 int
 	var v, k10, v12, k13, k20, v24, v25, v26, v27, k28, v30 any
@@ -10354,14 +10699,14 @@ func i122(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(110)
-	if _, ok = p.Parser.MatchLiteral(lit195, "#operators", 102, false); !ok {
+	p.LookBegin(113)
+	if _, ok = p.Parser.MatchLiteral(lit198, "#operators", 103, false); !ok {
 		goto L2
 	}
 	x4, x5 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(109)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(112)
+	if _, ok = s270(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -10372,12 +10717,12 @@ L6:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x4, x5)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L2
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -10390,15 +10735,15 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if _, ok = p.Parser.MatchLiteral(lit195, "#operators", 102, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit198, "#operators", 103, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -10408,7 +10753,7 @@ L3:
 	}
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u200(p); !ok {
+	if v12, ok = u204(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -10426,12 +10771,12 @@ L9:
 		x18, x19 = p.Pos, len(p.Recovered)
 		k20 = nil
 		cut22 = false
-		if v24, ok = u123(p); !ok {
+		if v24, ok = u125(p); !ok {
 			goto L21
 		}
 		k20 = v24
 		v25 = p.ScopeValue(sh4, v24, x18)
-		v26 = p.AttachCaptures(v25, scope424, []any{k20}, x18, p.Pos)
+		v26 = p.AttachCaptures(v25, scope429, []any{k20}, x18, p.Pos)
 		p.PushKid(v26)
 		if p.Pos == x18 {
 			break
@@ -10447,14 +10792,14 @@ L9:
 	}
 	v27 = p.NewNode("list", x15, p.Pos, p.Kids(x16))
 	k13 = v27
-	if v30, ok = u172(p); !ok {
+	if v30, ok = u174(p); !ok {
 		goto fail
 	}
 	k28 = v30
 	x31 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L34
 	}
 	x32, x33 = p.Unisolate(x31)
@@ -10462,13 +10807,13 @@ L9:
 	goto L35
 L34:
 	x32, x33 = p.Unisolate(x31)
-	p.ExpectBudget(x32, rt.MsgBit|103)
+	p.ExpectBudget(x32, rt.MsgBit|104)
 	goto fail
 L35:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_rule_expr"
 	{
-		var tr93 any
+		var tr100 any
 		{
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k13)
@@ -10492,9 +10837,9 @@ L35:
 			tk9 := c.P.Kids(tm1)
 			tn10 := c.P.TermHull(c, false, tk9)
 			tv11 := tmk_OperatorsRule(c, true, any(tn10), k28, k10)
-			tr93 = tv11
+			tr100 = tv11
 		}
-		v = tr93
+		v = tr100
 	}
 	p.Env = prevEnv
 	return v, true
@@ -10503,32 +10848,32 @@ fail:
 	return nil, false
 }
 
-func ta123(c *rt.TActCtx) (any, any) {
+func ta125(c *rt.TActCtx) (any, any) {
 	return c.Cap(0), nil
 }
 
 // rule ops_stmt
-func u123(p *rt.TParser) (any, bool) {
+func u125(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i123(p)
+	v, ok := i125(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i123(p *rt.TParser) (any, bool) {
+func i125(p *rt.TParser) (any, bool) {
 	f := p.NewFrame(1)
 	prevFrame, prevEnv, prevCut, trail := p.Frame, p.Env, p.Cut, len(p.Trail)
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e425(p, 0)
+	v, ok := e430(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
 		c := p.UseCtx(rt.TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
-		v = c.Result(ta123, "ops_stmt")
+		v = c.Result(ta125, "ops_stmt")
 	}
 	p.Env = prevEnv
 	p.FreeFrame(f)
@@ -10536,33 +10881,33 @@ func i123(p *rt.TParser) (any, bool) {
 }
 
 // rule ops_skip_stmt
-func u124(p *rt.TParser) (any, bool) {
+func u126(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i124(p)
+	v, ok := i126(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i124(p *rt.TParser) (any, bool) {
+func i126(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u125(p); !ok {
+	if v6, ok = u127(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -10574,14 +10919,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_skip_stmt"
 	{
-		var tr94 any
+		var tr101 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
@@ -10601,9 +10946,9 @@ L9:
 			tk5 := c.P.Kids(tm2)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_OperatorsSkip(c, true, tv1, any(tn6), k4, k10)
-			tr94 = tv7
+			tr101 = tv7
 		}
-		v = tr94
+		v = tr101
 	}
 	return v, true
 fail:
@@ -10611,16 +10956,16 @@ fail:
 }
 
 // rule ops_skip_body
-func u125(p *rt.TParser) (any, bool) {
+func u127(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i125(p)
+	v, ok := i127(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i125(p *rt.TParser) (any, bool) {
+func i127(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4 int
 	var v, k1, v8 any
@@ -10631,14 +10976,14 @@ func i125(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 115 && p.In[p.Pos+1] == 107 && p.In[p.Pos+2] == 105 && p.In[p.Pos+3] == 112) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit125, "skip", 57, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit128, "skip", 58, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = p.Call(trules[81], 0); !ok {
+	if v8, ok = p.Call(trules[83], 0); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -10646,19 +10991,19 @@ func i125(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|105)
+	p.ExpectBudget(x4, rt.MsgBit|106)
 	goto fail
 L7:
 	k1 = v8
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_skip_body"
 	{
-		var tr95 any
+		var tr102 any
 		{
 			tv1 := tmk_OperatorsSkipBody(c, true, k1)
-			tr95 = tv1
+			tr102 = tv1
 		}
-		v = tr95
+		v = tr102
 	}
 	return v, true
 fail:
@@ -10666,33 +11011,33 @@ fail:
 }
 
 // rule ops_operand_stmt
-func u126(p *rt.TParser) (any, bool) {
+func u128(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i126(p)
+	v, ok := i128(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i126(p *rt.TParser) (any, bool) {
+func i128(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u127(p); !ok {
+	if v6, ok = u129(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -10704,14 +11049,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_operand_stmt"
 	{
-		var tr96 any
+		var tr103 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
@@ -10735,9 +11080,9 @@ L9:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_OperatorsOperand(c, true, tv1, tv2, any(tn7), k4, k10)
-			tr96 = tv8
+			tr103 = tv8
 		}
-		v = tr96
+		v = tr103
 	}
 	return v, true
 fail:
@@ -10745,16 +11090,16 @@ fail:
 }
 
 // rule ops_operand_body
-func u127(p *rt.TParser) (any, bool) {
+func u129(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i127(p)
+	v, ok := i129(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i127(p *rt.TParser) (any, bool) {
+func i129(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x11, x12 int
 	var v, k1, v8, k9, v13, v17 any
@@ -10763,14 +11108,14 @@ func i127(p *rt.TParser) (any, bool) {
 	var x3 rt.ExpMark
 	var x5 []rt.ExpID
 	start = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit126, "operand", 58, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit129, "operand", 59, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = p.Call(trules[81], 0); !ok {
+	if v8, ok = p.Call(trules[83], 0); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -10778,13 +11123,13 @@ func i127(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|106)
+	p.ExpectBudget(x4, rt.MsgBit|107)
 	goto fail
 L7:
 	k1 = v8
 	x11, x12 = p.Pos, len(p.Recovered)
 	cut16 = false
-	if v17, ok = u80(p); !ok {
+	if v17, ok = u82(p); !ok {
 		goto L14
 	}
 	v13 = v17
@@ -10800,12 +11145,12 @@ L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_operand_body"
 	{
-		var tr97 any
+		var tr104 any
 		{
 			tv1 := tmk_OperatorsOperandBody(c, true, k1, k9)
-			tr97 = tv1
+			tr104 = tv1
 		}
-		v = tr97
+		v = tr104
 	}
 	return v, true
 fail:
@@ -10813,33 +11158,33 @@ fail:
 }
 
 // rule ops_level_stmt
-func u128(p *rt.TParser) (any, bool) {
+func u130(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i128(p)
+	v, ok := i130(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i128(p *rt.TParser) (any, bool) {
+func i130(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u129(p); !ok {
+	if v6, ok = u131(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -10851,14 +11196,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_level_stmt"
 	{
-		var tr98 any
+		var tr105 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
@@ -10895,9 +11240,9 @@ L9:
 				c.TermRaise(tf10)
 			}
 			tv11 := tmk_OperatorsLevel(c, true, tv1, tv2, any(tn9), tv10, k4, k10)
-			tr98 = tv11
+			tr105 = tv11
 		}
-		v = tr98
+		v = tr105
 	}
 	return v, true
 fail:
@@ -10905,16 +11250,16 @@ fail:
 }
 
 // rule ops_level_body
-func u129(p *rt.TParser) (any, bool) {
+func u131(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i129(p)
+	v, ok := i131(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i129(p *rt.TParser) (any, bool) {
+func i131(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x11, x15, x23, x24, x26, x27, x40 int
 	var v, k1, v5, v9, k18, v20, k21, k28, v32, v33, v34, v35, k36, v38 any
@@ -10923,15 +11268,15 @@ func i129(p *rt.TParser) (any, bool) {
 	var x10, x39 rt.ExpMark
 	var x12, x41 []rt.ExpID
 	start = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit127, "level", 59, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit130, "level", 60, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.Recovered)
 	cut8 = false
-	if v9, ok = u190(p); !ok {
+	if v9, ok = u192(p); !ok {
 		goto L6
 	}
 	v5 = v9
@@ -10944,13 +11289,13 @@ L6:
 	v5 = nil
 L7:
 	k1 = v5
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x10 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L13
 	}
 	x11, x12 = p.Unisolate(x10)
@@ -10958,12 +11303,12 @@ L7:
 	goto L14
 L13:
 	x11, x12 = p.Unisolate(x10)
-	p.ExpectBudget(x11, rt.MsgBit|107)
+	p.ExpectBudget(x11, rt.MsgBit|108)
 	goto fail
 L14:
 	x15 = p.Pos
 	p.Silent++
-	if v20, ok = u200(p); !ok {
+	if v20, ok = u204(p); !ok {
 		goto L16
 	}
 	k18 = v20
@@ -10981,12 +11326,12 @@ L17:
 		x26, x27 = p.Pos, len(p.Recovered)
 		k28 = nil
 		cut30 = false
-		if v32, ok = u130(p); !ok {
+		if v32, ok = u132(p); !ok {
 			goto L29
 		}
 		k28 = v32
 		v33 = p.ScopeValue(sh4, v32, x26)
-		v34 = p.AttachCaptures(v33, scope426, []any{k28}, x26, p.Pos)
+		v34 = p.AttachCaptures(v33, scope431, []any{k28}, x26, p.Pos)
 		p.PushKid(v34)
 		if p.Pos == x26 {
 			break
@@ -11002,14 +11347,14 @@ L17:
 	}
 	v35 = p.NewNode("list", x23, p.Pos, p.Kids(x24))
 	k21 = v35
-	if v38, ok = u172(p); !ok {
+	if v38, ok = u174(p); !ok {
 		goto fail
 	}
 	k36 = v38
 	x39 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L42
 	}
 	x40, x41 = p.Unisolate(x39)
@@ -11017,13 +11362,13 @@ L17:
 	goto L43
 L42:
 	x40, x41 = p.Unisolate(x39)
-	p.ExpectBudget(x40, rt.MsgBit|108)
+	p.ExpectBudget(x40, rt.MsgBit|109)
 	goto fail
 L43:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_level_body"
 	{
-		var tr99 any
+		var tr106 any
 		{
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k21)
@@ -11047,41 +11392,41 @@ L43:
 			tk9 := c.P.Kids(tm1)
 			tn10 := c.P.TermHull(c, false, tk9)
 			tv11 := tmk_OperatorsLevelBody(c, true, k1, any(tn10), k18, k36)
-			tr99 = tv11
+			tr106 = tv11
 		}
-		v = tr99
+		v = tr106
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func ta130(c *rt.TActCtx) (any, any) {
+func ta132(c *rt.TActCtx) (any, any) {
 	return c.Cap(0), nil
 }
 
 // rule ops_operator
-func u130(p *rt.TParser) (any, bool) {
+func u132(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i130(p)
+	v, ok := i132(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i130(p *rt.TParser) (any, bool) {
+func i132(p *rt.TParser) (any, bool) {
 	f := p.NewFrame(1)
 	prevFrame, prevEnv, prevCut, trail := p.Frame, p.Env, p.Cut, len(p.Trail)
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e427(p, 0)
+	v, ok := e432(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
 		c := p.UseCtx(rt.TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
-		v = c.Result(ta130, "ops_operator")
+		v = c.Result(ta132, "ops_operator")
 	}
 	p.Env = prevEnv
 	p.FreeFrame(f)
@@ -11089,33 +11434,33 @@ func i130(p *rt.TParser) (any, bool) {
 }
 
 // rule ops_prefix
-func u131(p *rt.TParser) (any, bool) {
+func u133(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i131(p)
+	v, ok := i133(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i131(p *rt.TParser) (any, bool) {
+func i133(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u132(p); !ok {
+	if v6, ok = u134(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -11127,14 +11472,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_prefix"
 	{
-		var tr100 any
+		var tr107 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
@@ -11158,9 +11503,9 @@ L9:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_Prefix(c, true, tv1, tv2, any(tn7), k4, k10)
-			tr100 = tv8
+			tr107 = tv8
 		}
-		v = tr100
+		v = tr107
 	}
 	return v, true
 fail:
@@ -11168,16 +11513,16 @@ fail:
 }
 
 // rule ops_prefix_body
-func u132(p *rt.TParser) (any, bool) {
+func u134(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i132(p)
+	v, ok := i134(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i132(p *rt.TParser) (any, bool) {
+func i134(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x11, x12 int
 	var v, k1, v8, k9, v13, v17 any
@@ -11186,14 +11531,14 @@ func i132(p *rt.TParser) (any, bool) {
 	var x3 rt.ExpMark
 	var x5 []rt.ExpID
 	start = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit128, "prefix", 60, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit131, "prefix", 61, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = p.Call(trules[81], 0); !ok {
+	if v8, ok = p.Call(trules[83], 0); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -11201,13 +11546,13 @@ func i132(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|110)
+	p.ExpectBudget(x4, rt.MsgBit|111)
 	goto fail
 L7:
 	k1 = v8
 	x11, x12 = p.Pos, len(p.Recovered)
 	cut16 = false
-	if v17, ok = u80(p); !ok {
+	if v17, ok = u82(p); !ok {
 		goto L14
 	}
 	v13 = v17
@@ -11223,12 +11568,12 @@ L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_prefix_body"
 	{
-		var tr101 any
+		var tr108 any
 		{
 			tv1 := tmk_OperatorsOperatorBody(c, true, any(""), k1, k9)
-			tr101 = tv1
+			tr108 = tv1
 		}
-		v = tr101
+		v = tr108
 	}
 	return v, true
 fail:
@@ -11236,33 +11581,33 @@ fail:
 }
 
 // rule ops_postfix
-func u133(p *rt.TParser) (any, bool) {
+func u135(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i133(p)
+	v, ok := i135(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i133(p *rt.TParser) (any, bool) {
+func i135(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u134(p); !ok {
+	if v6, ok = u136(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -11274,14 +11619,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_postfix"
 	{
-		var tr102 any
+		var tr109 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
@@ -11305,9 +11650,9 @@ L9:
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_Postfix(c, true, tv1, tv2, any(tn7), k4, k10)
-			tr102 = tv8
+			tr109 = tv8
 		}
-		v = tr102
+		v = tr109
 	}
 	return v, true
 fail:
@@ -11315,16 +11660,16 @@ fail:
 }
 
 // rule ops_postfix_body
-func u134(p *rt.TParser) (any, bool) {
+func u136(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i134(p)
+	v, ok := i136(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i134(p *rt.TParser) (any, bool) {
+func i136(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x11, x12 int
 	var v, k1, v8, k9, v13, v17 any
@@ -11333,14 +11678,14 @@ func i134(p *rt.TParser) (any, bool) {
 	var x3 rt.ExpMark
 	var x5 []rt.ExpID
 	start = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit129, "postfix", 61, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit132, "postfix", 62, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = p.Call(trules[81], 0); !ok {
+	if v8, ok = p.Call(trules[83], 0); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -11348,13 +11693,13 @@ func i134(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|111)
+	p.ExpectBudget(x4, rt.MsgBit|112)
 	goto fail
 L7:
 	k1 = v8
 	x11, x12 = p.Pos, len(p.Recovered)
 	cut16 = false
-	if v17, ok = u80(p); !ok {
+	if v17, ok = u82(p); !ok {
 		goto L14
 	}
 	v13 = v17
@@ -11370,12 +11715,12 @@ L15:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_postfix_body"
 	{
-		var tr103 any
+		var tr110 any
 		{
 			tv1 := tmk_OperatorsOperatorBody(c, true, any(""), k1, k9)
-			tr103 = tv1
+			tr110 = tv1
 		}
-		v = tr103
+		v = tr110
 	}
 	return v, true
 fail:
@@ -11383,33 +11728,33 @@ fail:
 }
 
 // rule ops_infix
-func u135(p *rt.TParser) (any, bool) {
+func u137(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i135(p)
+	v, ok := i137(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i135(p *rt.TParser) (any, bool) {
+func i137(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u136(p); !ok {
+	if v6, ok = u138(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = u202(p); !ok {
+	if v12, ok = u206(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -11421,14 +11766,14 @@ L8:
 	p.Pos = x7
 	goto fail
 L9:
-	if v15, ok = u10(p); !ok {
+	if v15, ok = u12(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_infix"
 	{
-		var tr104 any
+		var tr111 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Assoc", "Assoc")
 			if tf1 != nil {
@@ -11456,9 +11801,9 @@ L9:
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
 			tv9 := tmk_Infix(c, true, tv1, tv2, tv3, any(tn8), k4, k10)
-			tr104 = tv9
+			tr111 = tv9
 		}
-		v = tr104
+		v = tr111
 	}
 	return v, true
 fail:
@@ -11466,16 +11811,16 @@ fail:
 }
 
 // rule ops_infix_body
-func u136(p *rt.TParser) (any, bool) {
+func u138(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i136(p)
+	v, ok := i138(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i136(p *rt.TParser) (any, bool) {
+func i138(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x8, x9, x17, x22, x27, x32, x39, x40 int
 	var v, k1, v10, v18, v23, v28, k29, v36, k37, v41, v45 any
@@ -11485,10 +11830,10 @@ func i136(p *rt.TParser) (any, bool) {
 	var x5, x33 []rt.ExpID
 	var x12 rune
 	start = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit130, "infix", 62, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit133, "infix", 63, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x3 = p.Isolate(p.Pos)
@@ -11500,14 +11845,14 @@ func i136(p *rt.TParser) (any, bool) {
 		x12, _, x13 = p.Peek()
 	}
 	if !(x13 && (x12 == 108)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 112)
+		p.ExpectBudget(p.Pos, 113)
 		goto L14
 	}
 	cut16 = false
 	x17 = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 108 && p.In[p.Pos+1] == 101 && p.In[p.Pos+2] == 102 && p.In[p.Pos+3] == 116) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit212, "left", 112, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit215, "left", 113, false); !ok {
 		goto L15
 	}
 	v18 = p.NewMatch(x17, p.Pos, "left", true)
@@ -11520,12 +11865,12 @@ L15:
 	}
 L14:
 	if !(x13 && (x12 == 114)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 113)
+		p.ExpectBudget(p.Pos, 114)
 		goto L19
 	}
 	cut21 = false
 	x22 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit213, "right", 113, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit216, "right", 114, false); !ok {
 		goto L20
 	}
 	v23 = p.NewMatch(x22, p.Pos, "right", true)
@@ -11538,14 +11883,14 @@ L20:
 	}
 L19:
 	if !(x13 && (x12 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 114)
+		p.ExpectBudget(p.Pos, 115)
 		goto L24
 	}
 	cut26 = false
 	x27 = p.Pos
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 110 && p.In[p.Pos+1] == 111 && p.In[p.Pos+2] == 110 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit214, "none", 114, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit217, "none", 115, false); !ok {
 		goto L25
 	}
 	v28 = p.NewMatch(x27, p.Pos, "none", true)
@@ -11564,15 +11909,15 @@ L11:
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|115)
+	p.ExpectBudget(x4, rt.MsgBit|116)
 	goto fail
 L7:
 	k1 = v10
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
 	x31 = p.Isolate(p.Pos)
-	if v36, ok = p.Call(trules[81], 0); !ok {
+	if v36, ok = p.Call(trules[83], 0); !ok {
 		goto L34
 	}
 	x32, x33 = p.Unisolate(x31)
@@ -11580,13 +11925,13 @@ L7:
 	goto L35
 L34:
 	x32, x33 = p.Unisolate(x31)
-	p.ExpectBudget(x32, rt.MsgBit|116)
+	p.ExpectBudget(x32, rt.MsgBit|117)
 	goto fail
 L35:
 	k29 = v36
 	x39, x40 = p.Pos, len(p.Recovered)
 	cut44 = false
-	if v45, ok = u80(p); !ok {
+	if v45, ok = u82(p); !ok {
 		goto L42
 	}
 	v41 = v45
@@ -11602,16 +11947,16 @@ L43:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ops_infix_body"
 	{
-		var tr105 any
+		var tr112 any
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := tmk_OperatorsOperatorBody(c, true, any(ts1), k29, k37)
-			tr105 = tv2
+			tr112 = tv2
 		}
-		v = tr105
+		v = tr112
 	}
 	return v, true
 fail:
@@ -11619,14 +11964,14 @@ fail:
 }
 
 // rule action
-func u137(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[137]) {
-		return p.CallMemo(trules[137], v137)
+func u139(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[139]) {
+		return p.CallMemo(trules[139], v139)
 	}
-	return v137(p)
+	return v139(p)
 }
 
-func v137(p *rt.TParser) (any, bool) {
+func v139(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12, v14 any
@@ -11641,10 +11986,10 @@ func v137(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 46)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 117)
+		p.ExpectBudget(p.Pos, 118)
 		goto L7
 	}
-	if v9, ok = s138(p); !ok {
+	if v9, ok = s140(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -11653,10 +11998,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 123)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L10
 	}
-	if v12, ok = u139(p); !ok {
+	if v12, ok = u141(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -11664,7 +12009,7 @@ L7:
 L11:
 	p.Restore(x1, x2)
 L10:
-	if v14, ok = u144(p); !ok {
+	if v14, ok = u146(p); !ok {
 		goto L13
 	}
 	v3 = v14
@@ -11683,7 +12028,7 @@ fail:
 	return nil, false
 }
 
-func s138(p *rt.TParser) (any, bool) {
+func s140(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1 int
 	var v, v2, bv any
@@ -11692,7 +12037,7 @@ func s138(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 46 && p.In[p.Pos+1] == 46 && p.In[p.Pos+2] == 46) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit217, "...", 117, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit220, "...", 118, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
@@ -11701,7 +12046,7 @@ func s138(p *rt.TParser) (any, bool) {
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[138], v, bv)
+	v = p.TConvertResultOwned(trules[140], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -11709,19 +12054,19 @@ fail:
 }
 
 // rule action_block
-func u139(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[139]) {
-		return p.CallMemo(trules[139], i139)
+func u141(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[141]) {
+		return p.CallMemo(trules[141], i141)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i139(p)
+	v, ok := i141(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i139(p *rt.TParser) (any, bool) {
+func i141(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x5, x6, x16 int
 	var v, k1, k7, v10, v11, k12, v14 any
@@ -11734,7 +12079,7 @@ func i139(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -11747,7 +12092,7 @@ func i139(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x5, x6 = p.Pos, len(p.Recovered)
 		k7 = nil
-		if v10, ok = u140(p); !ok {
+		if v10, ok = u142(p); !ok {
 			goto L8
 		}
 		k7 = v10
@@ -11762,14 +12107,14 @@ func i139(p *rt.TParser) (any, bool) {
 	}
 	v11 = p.NewNode("list", x2, p.Pos, p.Kids(x3))
 	k1 = v11
-	if v14, ok = u172(p); !ok {
+	if v14, ok = u174(p); !ok {
 		goto fail
 	}
 	k12 = v14
 	x15 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L18
 	}
 	x16, x17 = p.Unisolate(x15)
@@ -11777,13 +12122,13 @@ func i139(p *rt.TParser) (any, bool) {
 	goto L19
 L18:
 	x16, x17 = p.Unisolate(x15)
-	p.ExpectBudget(x16, rt.MsgBit|118)
+	p.ExpectBudget(x16, rt.MsgBit|119)
 	goto fail
 L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_block"
 	{
-		var tr107 any
+		var tr114 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k1)
 			if tf1 != nil {
@@ -11791,9 +12136,9 @@ L19:
 			}
 			tv2 := (c.NewList(ti1))
 			tv3 := tmk_ActionBlock(c, true, tv2, k12)
-			tr107 = tv3
+			tr114 = tv3
 		}
-		v = tr107
+		v = tr114
 	}
 	p.Env = prevEnv
 	return v, true
@@ -11802,32 +12147,32 @@ fail:
 	return nil, false
 }
 
-func ta140(c *rt.TActCtx) (any, any) {
+func ta142(c *rt.TActCtx) (any, any) {
 	return c.Cap(0), nil
 }
 
 // rule action_block_stmt
-func u140(p *rt.TParser) (any, bool) {
+func u142(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i140(p)
+	v, ok := i142(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i140(p *rt.TParser) (any, bool) {
+func i142(p *rt.TParser) (any, bool) {
 	f := p.NewFrame(1)
 	prevFrame, prevEnv, prevCut, trail := p.Frame, p.Env, p.Cut, len(p.Trail)
 	p.Frame, p.Cut = f, false
 	start := p.Pos
 	_ = start
-	v, ok := e428(p, 0)
+	v, ok := e433(p, 0)
 	p.Frame, p.Cut = prevFrame, prevCut
 	p.DropTrail(trail)
 	if ok {
 		c := p.UseCtx(rt.TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
-		v = c.Result(ta140, "action_block_stmt")
+		v = c.Result(ta142, "action_block_stmt")
 	}
 	p.Env = prevEnv
 	p.FreeFrame(f)
@@ -11835,40 +12180,40 @@ func i140(p *rt.TParser) (any, bool) {
 }
 
 // rule action_block_value
-func u141(p *rt.TParser) (any, bool) {
+func u143(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i141(p)
+	v, ok := i143(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i141(p *rt.TParser) (any, bool) {
+func i143(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
-	if v3, ok = s142(p); !ok {
+	if v3, ok = s144(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u10(p); !ok {
+	if _, ok = u12(p); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_block_value"
 	{
-		var tr108 any
+		var tr115 any
 		{
-			tr108 = k1
+			tr115 = k1
 		}
-		v = tr108
+		v = tr115
 	}
 	v = c.Finish(v)
 	return v, true
@@ -11876,7 +12221,7 @@ fail:
 	return nil, false
 }
 
-func s142(p *rt.TParser) (any, bool) {
+func s144(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v11 any
@@ -11891,10 +12236,10 @@ func s142(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 >= 97 && x5 <= 122 || x5 >= 65 && x5 <= 90 || x5 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 63)
+		p.ExpectBudget(p.Pos, 64)
 		goto L7
 	}
-	if v9, ok = u143(p); !ok {
+	if v9, ok = u145(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -11902,7 +12247,7 @@ func s142(p *rt.TParser) (any, bool) {
 L8:
 	p.Restore(x1, x2)
 L7:
-	if v11, ok = u144(p); !ok {
+	if v11, ok = u146(p); !ok {
 		goto L10
 	}
 	v3 = v11
@@ -11922,16 +12267,16 @@ fail:
 }
 
 // rule action_bind_stmt
-func u143(p *rt.TParser) (any, bool) {
+func u145(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i143(p)
+	v, ok := i145(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i143(p *rt.TParser) (any, bool) {
+func i145(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v11 any
@@ -11940,23 +12285,23 @@ func i143(p *rt.TParser) (any, bool) {
 	var x6 rt.ExpMark
 	var x8 []rt.ExpID
 	start = p.Pos
-	if v3, ok = u190(p); !ok {
+	if v3, ok = u192(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 58 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit224, ":=", 119, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit227, ":=", 120, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x6 = p.Isolate(p.Pos)
-	if v11, ok = u144(p); !ok {
+	if v11, ok = u146(p); !ok {
 		goto L9
 	}
 	x7, x8 = p.Unisolate(x6)
@@ -11964,19 +12309,19 @@ func i143(p *rt.TParser) (any, bool) {
 	goto L10
 L9:
 	x7, x8 = p.Unisolate(x6)
-	p.ExpectBudget(x7, rt.MsgBit|120)
+	p.ExpectBudget(x7, rt.MsgBit|121)
 	goto fail
 L10:
 	k4 = v11
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_bind_stmt"
 	{
-		var tr109 any
+		var tr116 any
 		{
 			tv1 := tmk_ActionBind(c, true, k1, k4)
-			tr109 = tv1
+			tr116 = tv1
 		}
-		v = tr109
+		v = tr116
 	}
 	return v, true
 fail:
@@ -11984,14 +12329,14 @@ fail:
 }
 
 // rule action_expr
-func u144(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[144]) {
-		return p.CallMemo(trules[144], v144)
+func u146(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[146]) {
+		return p.CallMemo(trules[146], v146)
 	}
-	return v144(p)
+	return v146(p)
 }
 
-func v144(p *rt.TParser) (any, bool) {
+func v146(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v11 any
@@ -12007,10 +12352,10 @@ func v144(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L7
 	}
-	if v9, ok = u149(p); !ok {
+	if v9, ok = u151(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -12018,7 +12363,7 @@ func v144(p *rt.TParser) (any, bool) {
 L8:
 	p.Restore(x1, x2)
 L7:
-	if v11, ok = p.InvokePlain(trules[145], 0); !ok {
+	if v11, ok = p.InvokePlain(trules[147], 0); !ok {
 		goto L10
 	}
 	v3 = v11
@@ -12039,27 +12384,27 @@ fail:
 	return nil, false
 }
 
-func e471(p *rt.TParser) (any, bool) {
+func e477(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 rt.Mark
 	var ok bool
 	x1 = p.Mark()
 	p.Silent++
-	p.LookBegin(118)
-	if _, ok = u171(p); !ok {
+	p.LookBegin(121)
+	if _, ok = u173(p); !ok {
 		goto L2
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L2
 	}
 	x3 = p.Mark()
 	p.Silent++
-	p.LookBegin(117)
+	p.LookBegin(120)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -12078,7 +12423,7 @@ L2:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x1)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	return nil, true
@@ -12086,7 +12431,7 @@ fail:
 	return nil, false
 }
 
-func e472(p *rt.TParser) (any, bool) {
+func e478(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v8, v10, v12, v14, v17, v19, v22, v25, v28, v31, v33, v35 any
@@ -12100,10 +12445,10 @@ func e472(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 91)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 130)
+		p.ExpectBudget(p.Pos, 131)
 		goto L6
 	}
-	if v8, ok = u159(p); !ok {
+	if v8, ok = u161(p); !ok {
 		goto L7
 	}
 	v2 = v8
@@ -12111,21 +12456,21 @@ func e472(p *rt.TParser) (any, bool) {
 L7:
 	p.Reset(x1)
 L6:
-	if v10, ok = u160(p); !ok {
+	if v10, ok = u162(p); !ok {
 		goto L9
 	}
 	v2 = v10
 	goto L3
 L9:
 	p.Reset(x1)
-	if v12, ok = u157(p); !ok {
+	if v12, ok = u159(p); !ok {
 		goto L11
 	}
 	v2 = v12
 	goto L3
 L11:
 	p.Reset(x1)
-	if v14, ok = s153(p); !ok {
+	if v14, ok = s155(p); !ok {
 		goto L13
 	}
 	v2 = v14
@@ -12133,10 +12478,10 @@ L11:
 L13:
 	p.Reset(x1)
 	if !(x5 && (x4 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L15
 	}
-	if v17, ok = u156(p); !ok {
+	if v17, ok = u158(p); !ok {
 		goto L16
 	}
 	v2 = v17
@@ -12144,7 +12489,7 @@ L13:
 L16:
 	p.Reset(x1)
 L15:
-	if v19, ok = s164(p); !ok {
+	if v19, ok = s166(p); !ok {
 		goto L18
 	}
 	v2 = v19
@@ -12152,10 +12497,10 @@ L15:
 L18:
 	p.Reset(x1)
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L20
 	}
-	if v22, ok = s195(p); !ok {
+	if v22, ok = s199(p); !ok {
 		goto L21
 	}
 	v2 = v22
@@ -12164,10 +12509,10 @@ L21:
 	p.Reset(x1)
 L20:
 	if !(x5 && (x4 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 97)
+		p.ExpectBudget(p.Pos, 98)
 		goto L23
 	}
-	if v25, ok = u165(p); !ok {
+	if v25, ok = u167(p); !ok {
 		goto L24
 	}
 	v2 = v25
@@ -12176,10 +12521,10 @@ L24:
 	p.Reset(x1)
 L23:
 	if !(x5 && (x4 == 102)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 98)
+		p.ExpectBudget(p.Pos, 99)
 		goto L26
 	}
-	if v28, ok = u166(p); !ok {
+	if v28, ok = u168(p); !ok {
 		goto L27
 	}
 	v2 = v28
@@ -12188,10 +12533,10 @@ L27:
 	p.Reset(x1)
 L26:
 	if !(x5 && (x4 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 99)
+		p.ExpectBudget(p.Pos, 100)
 		goto L29
 	}
-	if v31, ok = u167(p); !ok {
+	if v31, ok = u169(p); !ok {
 		goto L30
 	}
 	v2 = v31
@@ -12199,14 +12544,14 @@ L26:
 L30:
 	p.Reset(x1)
 L29:
-	if v33, ok = u168(p); !ok {
+	if v33, ok = u170(p); !ok {
 		goto L32
 	}
 	v2 = v33
 	goto L3
 L32:
 	p.Reset(x1)
-	if v35, ok = s170(p); !ok {
+	if v35, ok = s172(p); !ok {
 		goto L34
 	}
 	v2 = v35
@@ -12220,7 +12565,7 @@ fail:
 	return nil, false
 }
 
-func e474(p *rt.TParser) (any, bool) {
+func e480(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -12228,7 +12573,7 @@ func e474(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 124 && p.In[p.Pos+1] == 124) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit473, "||", 158, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit479, "||", 160, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "||", true)
@@ -12237,7 +12582,7 @@ fail:
 	return nil, false
 }
 
-func e476(p *rt.TParser) (any, bool) {
+func e482(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
@@ -12245,7 +12590,7 @@ func e476(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 38 && p.In[p.Pos+1] == 38) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit475, "&&", 159, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit481, "&&", 161, false); !ok {
 		goto fail
 	}
 	v2 = p.NewMatch(x1, p.Pos, "&&", true)
@@ -12254,7 +12599,7 @@ fail:
 	return nil, false
 }
 
-func e483(p *rt.TParser) (any, bool) {
+func e489(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17, v21, v25, v29 any
@@ -12269,13 +12614,13 @@ func e483(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 61)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 160)
+		p.ExpectBudget(p.Pos, 162)
 		goto L6
 	}
 	x8 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit477, "==", 160, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit483, "==", 162, false); !ok {
 		goto L7
 	}
 	v9 = p.NewMatch(x8, p.Pos, "==", true)
@@ -12285,13 +12630,13 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 33)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 161)
+		p.ExpectBudget(p.Pos, 163)
 		goto L10
 	}
 	x12 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 33 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit478, "!=", 161, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit484, "!=", 163, false); !ok {
 		goto L11
 	}
 	v13 = p.NewMatch(x12, p.Pos, "!=", true)
@@ -12301,13 +12646,13 @@ L11:
 	p.Reset(x1)
 L10:
 	if !(x5 && (x4 == 60)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 162)
+		p.ExpectBudget(p.Pos, 164)
 		goto L14
 	}
 	x16 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 60 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit479, "<=", 162, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit485, "<=", 164, false); !ok {
 		goto L15
 	}
 	v17 = p.NewMatch(x16, p.Pos, "<=", true)
@@ -12317,13 +12662,13 @@ L15:
 	p.Reset(x1)
 L14:
 	if !(x5 && (x4 == 62)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 163)
+		p.ExpectBudget(p.Pos, 165)
 		goto L18
 	}
 	x20 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 62 && p.In[p.Pos+1] == 61) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit480, ">=", 163, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit486, ">=", 165, false); !ok {
 		goto L19
 	}
 	v21 = p.NewMatch(x20, p.Pos, ">=", true)
@@ -12333,13 +12678,13 @@ L19:
 	p.Reset(x1)
 L18:
 	if !(x5 && (x4 == 60)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 164)
+		p.ExpectBudget(p.Pos, 166)
 		goto L22
 	}
 	x24 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 60) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit481, "<", 164, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit487, "<", 166, false); !ok {
 		goto L23
 	}
 	v25 = p.NewMatch(x24, p.Pos, "<", true)
@@ -12349,13 +12694,13 @@ L23:
 	p.Reset(x1)
 L22:
 	if !(x5 && (x4 == 62)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 165)
+		p.ExpectBudget(p.Pos, 167)
 		goto L26
 	}
 	x28 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 62) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit482, ">", 165, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit488, ">", 167, false); !ok {
 		goto L27
 	}
 	v29 = p.NewMatch(x28, p.Pos, ">", true)
@@ -12371,7 +12716,7 @@ fail:
 	return nil, false
 }
 
-func e484(p *rt.TParser) (any, bool) {
+func e490(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x16 rt.Mark
 	var v2, v9, v15, v18, v19 any
@@ -12387,13 +12732,13 @@ func e484(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 43)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 152)
+		p.ExpectBudget(p.Pos, 154)
 		goto L6
 	}
 	x8 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 43) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit456, "+", 152, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit462, "+", 154, false); !ok {
 		goto L7
 	}
 	v9 = p.NewMatch(x8, p.Pos, "+", true)
@@ -12403,7 +12748,7 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 45)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 89)
+		p.ExpectBudget(p.Pos, 90)
 		goto L10
 	}
 	x12 = p.Pos
@@ -12411,17 +12756,17 @@ L6:
 	x14 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L11
 	}
 	v15 = p.NewMatch(x14, p.Pos, "-", true)
 	x13 = append(x13, v15)
 	x16 = p.Mark()
 	p.Silent++
-	p.LookBegin(119)
+	p.LookBegin(122)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L17
 	}
 	p.LookEnd(true)
@@ -12446,7 +12791,7 @@ fail:
 	return nil, false
 }
 
-func e486(p *rt.TParser) (any, bool) {
+func e492(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var v2, v9, v13, v17 any
@@ -12461,13 +12806,13 @@ func e486(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 42)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 144)
+		p.ExpectBudget(p.Pos, 146)
 		goto L6
 	}
 	x8 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 42) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit347, "*", 144, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit352, "*", 146, false); !ok {
 		goto L7
 	}
 	v9 = p.NewMatch(x8, p.Pos, "*", true)
@@ -12477,13 +12822,13 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 26)
+		p.ExpectBudget(p.Pos, 28)
 		goto L10
 	}
 	x12 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 47) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit60, "/", 26, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit64, "/", 28, false); !ok {
 		goto L11
 	}
 	v13 = p.NewMatch(x12, p.Pos, "/", true)
@@ -12493,13 +12838,13 @@ L11:
 	p.Reset(x1)
 L10:
 	if !(x5 && (x4 == 37)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 166)
+		p.ExpectBudget(p.Pos, 168)
 		goto L14
 	}
 	x16 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 37) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit485, "%", 166, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit491, "%", 168, false); !ok {
 		goto L15
 	}
 	v17 = p.NewMatch(x16, p.Pos, "%", true)
@@ -12515,7 +12860,7 @@ fail:
 	return nil, false
 }
 
-func e487(p *rt.TParser) (any, bool) {
+func e493(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x12, x22 rt.Mark
 	var v2, v11, v14, v15, v21, v24, v25 any
@@ -12531,7 +12876,7 @@ func e487(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 45)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 89)
+		p.ExpectBudget(p.Pos, 90)
 		goto L6
 	}
 	x8 = p.Pos
@@ -12539,17 +12884,17 @@ func e487(p *rt.TParser) (any, bool) {
 	x10 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L7
 	}
 	v11 = p.NewMatch(x10, p.Pos, "-", true)
 	x9 = append(x9, v11)
 	x12 = p.Mark()
 	p.Silent++
-	p.LookBegin(120)
+	p.LookBegin(123)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -12568,7 +12913,7 @@ L7:
 	p.Reset(x1)
 L6:
 	if !(x5 && (x4 == 33)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 150)
+		p.ExpectBudget(p.Pos, 152)
 		goto L16
 	}
 	x18 = p.Pos
@@ -12576,17 +12921,17 @@ L6:
 	x20 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 33) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit451, "!", 150, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit457, "!", 152, false); !ok {
 		goto L17
 	}
 	v21 = p.NewMatch(x20, p.Pos, "!", true)
 	x19 = append(x19, v21)
 	x22 = p.Mark()
 	p.Silent++
-	p.LookBegin(121)
+	p.LookBegin(124)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L23
 	}
 	p.LookEnd(true)
@@ -12611,7 +12956,7 @@ fail:
 	return nil, false
 }
 
-func e488(p *rt.TParser) (any, bool) {
+func e494(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -12622,15 +12967,15 @@ func e488(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, ".", 85, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit164, ".", 86, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, ".", true)
 	x2 = append(x2, v4)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v6, ok = u168(p); !ok {
+	if v6, ok = u170(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v6)
@@ -12641,7 +12986,7 @@ fail:
 	return nil, false
 }
 
-func e489(p *rt.TParser) (any, bool) {
+func e495(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -12652,15 +12997,15 @@ func e489(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, ".", 85, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit164, ".", 86, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, ".", true)
 	x2 = append(x2, v4)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v6, ok = u148(p); !ok {
+	if v6, ok = u150(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v6)
@@ -12671,7 +13016,7 @@ fail:
 	return nil, false
 }
 
-func e490(p *rt.TParser) (any, bool) {
+func e496(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var x1, x3 int
 	var x2 []any
@@ -12683,18 +13028,18 @@ func e490(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 46) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit161, ".", 85, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit164, ".", 86, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, ".", true)
 	x2 = append(x2, v4)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x5 = p.Mark()
 	p.Silent++
-	p.LookBegin(122)
-	if _, ok = s287(p); !ok {
+	p.LookBegin(125)
+	if _, ok = s292(p); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -12705,7 +13050,7 @@ L6:
 	p.LookEnd(false)
 	p.Silent--
 	p.Reset(x5)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v8)
@@ -12716,11 +13061,11 @@ fail:
 	return nil, false
 }
 
-func e491(p *rt.TParser) (any, bool) {
+func e497(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var ok bool
 	var v2 any
-	if v2, ok = u147(p); !ok {
+	if v2, ok = u149(p); !ok {
 		goto fail
 	}
 	p.SetCapture(0, v2)
@@ -12730,131 +13075,6 @@ fail:
 }
 
 // rule index_suffix
-func u147(p *rt.TParser) (any, bool) {
-	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i147(p)
-	if !ok {
-		p.Restore(start, rec)
-	}
-	return v, ok
-}
-
-func i147(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start int
-	var v, k1, v3 any
-	var c *rt.TActCtx
-	var prevEnv *rt.Env
-	var ok bool
-	start = p.Pos
-	prevEnv = p.Env
-	p.Enter()
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
-		goto fail
-	}
-	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
-		return any(true), nil
-	}) {
-		goto fail
-	}
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if v3, ok = u144(p); !ok {
-		goto fail
-	}
-	k1 = v3
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
-		goto fail
-	}
-	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "index_suffix"
-	{
-		var tr111 any
-		{
-			tr111 = k1
-		}
-		v = tr111
-	}
-	v = c.Finish(v)
-	p.Depth--
-	p.Env = prevEnv
-	return v, true
-fail:
-	p.Depth--
-	p.Env = prevEnv
-	return nil, false
-}
-
-// rule cast_type
-func u148(p *rt.TParser) (any, bool) {
-	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i148(p)
-	if !ok {
-		p.Restore(start, rec)
-	}
-	return v, ok
-}
-
-func i148(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start int
-	var v, k1, v3 any
-	var c *rt.TActCtx
-	var prevEnv *rt.Env
-	var ok bool
-	start = p.Pos
-	prevEnv = p.Env
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
-		goto fail
-	}
-	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
-		return any(true), nil
-	}) {
-		goto fail
-	}
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if v3, ok = p.Call(trules[62], 0); !ok {
-		goto fail
-	}
-	k1 = v3
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
-		goto fail
-	}
-	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "cast_type"
-	{
-		var tr113 any
-		{
-			tr113 = k1
-		}
-		v = tr113
-	}
-	v = c.Finish(v)
-	p.Env = prevEnv
-	return v, true
-fail:
-	p.Env = prevEnv
-	return nil, false
-}
-
-// rule lambda
 func u149(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
 	v, ok := i149(p)
@@ -12867,48 +13087,58 @@ func u149(p *rt.TParser) (any, bool) {
 func i149(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
-	var v, k1, v3, k4, v6 any
+	var v, k1, v3 any
 	var c *rt.TActCtx
+	var prevEnv *rt.Env
 	var ok bool
 	start = p.Pos
+	prevEnv = p.Env
 	p.Enter()
-	if v3, ok = u150(p); !ok {
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
+		goto fail
+	}
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
+	}) {
+		goto fail
+	}
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if v3, ok = u146(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 62) && p.Control.Take(2) {
-		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit67, "=>", 32, false); !ok {
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
-		goto fail
-	}
-	if v6, ok = u144(p); !ok {
-		goto fail
-	}
-	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "lambda"
+	p.Where = "index_suffix"
 	{
-		var tr114 any
+		var tr118 any
 		{
-			tv1 := tmk_Lambda(c, true, k1, k4)
-			tr114 = tv1
+			tr118 = k1
 		}
-		v = tr114
+		v = tr118
 	}
+	v = c.Finish(v)
 	p.Depth--
+	p.Env = prevEnv
 	return v, true
 fail:
 	p.Depth--
+	p.Env = prevEnv
 	return nil, false
 }
 
-// rule lambda_head
+// rule cast_type
 func u150(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
 	v, ok := i150(p)
@@ -12920,8 +13150,8 @@ func u150(p *rt.TParser) (any, bool) {
 
 func i150(p *rt.TParser) (any, bool) {
 	p.Spend()
-	var start, x3, x4 int
-	var v, k1, v5, v8 any
+	var start int
+	var v, k1, v3 any
 	var c *rt.TActCtx
 	var prevEnv *rt.Env
 	var ok bool
@@ -12929,7 +13159,7 @@ func i150(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -12937,44 +13167,29 @@ func i150(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = u151(p); !ok {
-		goto L6
+	if v3, ok = p.Call(trules[64], 0); !ok {
+		goto fail
 	}
-	v5 = v8
-	goto L7
-L6:
-	p.Restore(x3, x4)
-	v5 = nil
-L7:
-	k1 = v5
-	if _, ok = u171(p); !ok {
+	k1 = v3
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "lambda_head"
+	p.Where = "cast_type"
 	{
-		var tr116 any
+		var tr120 any
 		{
-			tm1 := len(c.P.KidStack)
-			c.P.Spend()
-			tf2 := c.P.TermPushItems(c, "concat", k1)
-			if tf2 != nil {
-				c.TermRaise(tf2)
-			}
-			tk3 := c.P.Kids(tm1)
-			tn4 := c.P.TermHull(c, false, tk3)
-			tr116 = any(tn4)
+			tr120 = k1
 		}
-		v = tr116
+		v = tr120
 	}
 	v = c.Finish(v)
 	p.Env = prevEnv
@@ -12984,7 +13199,7 @@ fail:
 	return nil, false
 }
 
-// rule lambda_params
+// rule lambda
 func u151(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
 	v, ok := i151(p)
@@ -12996,12 +13211,142 @@ func u151(p *rt.TParser) (any, bool) {
 
 func i151(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start int
+	var v, k1, v3, k4, v6 any
+	var c *rt.TActCtx
+	var ok bool
+	start = p.Pos
+	p.Enter()
+	if v3, ok = u152(p); !ok {
+		goto fail
+	}
+	k1 = v3
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 62) && p.Control.Take(2) {
+		p.Pos += 2
+	} else if _, ok = p.Parser.MatchLiteral(lit70, "=>", 33, false); !ok {
+		goto fail
+	}
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if v6, ok = u146(p); !ok {
+		goto fail
+	}
+	k4 = v6
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "lambda"
+	{
+		var tr121 any
+		{
+			tv1 := tmk_Lambda(c, true, k1, k4)
+			tr121 = tv1
+		}
+		v = tr121
+	}
+	p.Depth--
+	return v, true
+fail:
+	p.Depth--
+	return nil, false
+}
+
+// rule lambda_head
+func u152(p *rt.TParser) (any, bool) {
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i152(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i152(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, x3, x4 int
+	var v, k1, v5, v8 any
+	var c *rt.TActCtx
+	var prevEnv *rt.Env
+	var ok bool
+	start = p.Pos
+	prevEnv = p.Env
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
+		goto fail
+	}
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
+	}) {
+		goto fail
+	}
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	x3, x4 = p.Pos, len(p.Recovered)
+	if v8, ok = u153(p); !ok {
+		goto L6
+	}
+	v5 = v8
+	goto L7
+L6:
+	p.Restore(x3, x4)
+	v5 = nil
+L7:
+	k1 = v5
+	if _, ok = u173(p); !ok {
+		goto fail
+	}
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
+		goto fail
+	}
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "lambda_head"
+	{
+		var tr123 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPushItems(c, "concat", k1)
+			if tf2 != nil {
+				c.TermRaise(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tr123 = any(tn4)
+		}
+		v = tr123
+	}
+	v = c.Finish(v)
+	p.Env = prevEnv
+	return v, true
+fail:
+	p.Env = prevEnv
+	return nil, false
+}
+
+// rule lambda_params
+func u153(p *rt.TParser) (any, bool) {
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i153(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i153(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, x5, x6, x8, x9, x15, x16 int
 	var v, k1, v3, k4, k10, v13, v14 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u152(p); !ok {
+	if v3, ok = u154(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -13010,18 +13355,18 @@ func i151(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L11
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
-		if v13, ok = u152(p); !ok {
+		if v13, ok = u154(p); !ok {
 			goto L11
 		}
 		k10 = v13
@@ -13037,12 +13382,12 @@ func i151(p *rt.TParser) (any, bool) {
 	v14 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
 	k4 = v14
 	x15, x16 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L17
 	}
 	goto L18
@@ -13052,7 +13397,7 @@ L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "lambda_params"
 	{
-		var tr117 any
+		var tr124 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -13066,9 +13411,9 @@ L18:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr117 = any(tn5)
+			tr124 = any(tn5)
 		}
-		v = tr117
+		v = tr124
 	}
 	v = c.Finish(v)
 	return v, true
@@ -13077,19 +13422,19 @@ fail:
 }
 
 // rule lambda_param
-func u152(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[152]) {
-		return p.CallMemo(trules[152], i152)
+func u154(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[154]) {
+		return p.CallMemo(trules[154], i154)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i152(p)
+	v, ok := i154(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i152(p *rt.TParser) (any, bool) {
+func i154(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2, x4, x5, x15, x18, x19 int
 	var v, k27, v29 any
@@ -13099,7 +13444,7 @@ func i152(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(126)
+	p.LookBegin(129)
 	x4, x5 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -13108,10 +13453,10 @@ func i152(p *rt.TParser) (any, bool) {
 		x7, _, x8 = p.Peek()
 	}
 	if !(x8 && (x7 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 97)
+		p.ExpectBudget(p.Pos, 98)
 		goto L9
 	}
-	if _, ok = u288(p); !ok {
+	if _, ok = u293(p); !ok {
 		goto L10
 	}
 	goto L6
@@ -13119,10 +13464,10 @@ L10:
 	p.Restore(x4, x5)
 L9:
 	if !(x8 && (x7 == 102)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 98)
+		p.ExpectBudget(p.Pos, 99)
 		goto L11
 	}
-	if _, ok = u289(p); !ok {
+	if _, ok = u294(p); !ok {
 		goto L12
 	}
 	goto L6
@@ -13130,10 +13475,10 @@ L12:
 	p.Restore(x4, x5)
 L11:
 	if !(x8 && (x7 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 99)
+		p.ExpectBudget(p.Pos, 100)
 		goto L13
 	}
-	if _, ok = u290(p); !ok {
+	if _, ok = u295(p); !ok {
 		goto L14
 	}
 	goto L6
@@ -13142,12 +13487,12 @@ L14:
 L13:
 	goto L3
 L6:
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L3
 	}
 	x15 = p.Pos
 	p.Silent++
-	p.LookBegin(125)
+	p.LookBegin(128)
 	x18, x19 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -13156,12 +13501,12 @@ L6:
 		x21, _, x22 = p.Peek()
 	}
 	if !(x22 && (x21 == 44)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 38)
+		p.ExpectBudget(p.Pos, 39)
 		goto L23
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L24
 	}
 	goto L20
@@ -13169,12 +13514,12 @@ L24:
 	p.Restore(x18, x19)
 L23:
 	if !(x22 && (x21 == 41)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 18)
+		p.ExpectBudget(p.Pos, 20)
 		goto L25
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L26
 	}
 	goto L20
@@ -13201,27 +13546,27 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if v29, ok = u190(p); !ok {
+	if v29, ok = u192(p); !ok {
 		goto fail
 	}
 	k27 = v29
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "lambda_param"
 	{
-		var tr118 any
+		var tr125 any
 		{
-			tr118 = k27
+			tr125 = k27
 		}
-		v = tr118
+		v = tr125
 	}
 	v = c.Finish(v)
-	v = p.TConvertResult(trules[152], v)
+	v = p.TConvertResult(trules[154], v)
 	return v, true
 fail:
 	return nil, false
 }
 
-func s153(p *rt.TParser) (any, bool) {
+func s155(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12 any
@@ -13237,10 +13582,10 @@ func s153(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 40)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L7
 	}
-	if v9, ok = s154(p); !ok {
+	if v9, ok = s156(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -13249,10 +13594,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L10
 	}
-	if v12, ok = u155(p); !ok {
+	if v12, ok = u157(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -13274,7 +13619,7 @@ fail:
 	return nil, false
 }
 
-func s154(p *rt.TParser) (any, bool) {
+func s156(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec int
 	var v any
@@ -13285,7 +13630,7 @@ func s154(p *rt.TParser) (any, bool) {
 	prevEnv = p.Env
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -13293,26 +13638,26 @@ func s154(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_unit"
 	{
-		var tr120 any
+		var tr127 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
 			tn3 := c.P.TermHull(c, false, tk2)
 			tv4 := tmk_ActionTuple(c, true, any(tn3))
-			tr120 = tv4
+			tr127 = tv4
 		}
-		v = tr120
+		v = tr127
 	}
 	p.Env = prevEnv
 	return v, true
@@ -13323,16 +13668,16 @@ fail:
 }
 
 // rule action_elems
-func u155(p *rt.TParser) (any, bool) {
+func u157(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i155(p)
+	v, ok := i157(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i155(p *rt.TParser) (any, bool) {
+func i157(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x4, x5, x6, x14, x15, x21 int
 	var v, k1, k7, v10, v11, k12, v16, v19 any
@@ -13346,7 +13691,7 @@ func i155(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -13354,7 +13699,7 @@ func i155(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x2, x3, x4 = p.Pos, len(p.KidStack), 0
@@ -13362,19 +13707,19 @@ func i155(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x5, x6 = p.Pos, len(p.Recovered)
 		k7 = nil
-		if v10, ok = u144(p); !ok {
+		if v10, ok = u146(p); !ok {
 			goto L8
 		}
 		k7 = v10
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L8
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L8
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L8
 		}
 		x4++
@@ -13394,7 +13739,7 @@ func i155(p *rt.TParser) (any, bool) {
 	v11 = p.NewNode("list", x2, p.Pos, p.Kids(x3))
 	k1 = v11
 	x14, x15 = p.Pos, len(p.Recovered)
-	if v19, ok = u144(p); !ok {
+	if v19, ok = u146(p); !ok {
 		goto L17
 	}
 	v16 = v19
@@ -13404,13 +13749,13 @@ L17:
 	v16 = nil
 L18:
 	k12 = v16
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x20 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L23
 	}
 	x21, x22 = p.Unisolate(x20)
@@ -13418,13 +13763,13 @@ L18:
 	goto L24
 L23:
 	x21, x22 = p.Unisolate(x20)
-	p.ExpectBudget(x21, rt.MsgBit|127)
+	p.ExpectBudget(x21, rt.MsgBit|128)
 	goto fail
 L24:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_elems"
 	{
-		var tr122 any
+		var tr129 any
 		{
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
@@ -13481,9 +13826,9 @@ L24:
 				c.TermRaise(c.TermCastFailed(tc1, fieldType2, 0, 0))
 			}
 			tv23 := tmk_ActionTuple(c, true, tc1)
-			tr122 = tv23
+			tr129 = tv23
 		}
-		v = tr122
+		v = tr129
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -13495,16 +13840,16 @@ fail:
 }
 
 // rule action_group
-func u156(p *rt.TParser) (any, bool) {
+func u158(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i156(p)
+	v, ok := i158(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i156(p *rt.TParser) (any, bool) {
+func i158(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5 int
 	var v, k1, v3 any
@@ -13518,7 +13863,7 @@ func i156(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -13526,20 +13871,20 @@ func i156(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = u144(p); !ok {
+	if v3, ok = u146(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x4 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L7
 	}
 	x5, x6 = p.Unisolate(x4)
@@ -13547,18 +13892,18 @@ func i156(p *rt.TParser) (any, bool) {
 	goto L8
 L7:
 	x5, x6 = p.Unisolate(x4)
-	p.ExpectBudget(x5, rt.MsgBit|128)
+	p.ExpectBudget(x5, rt.MsgBit|129)
 	goto fail
 L8:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_group"
 	{
-		var tr124 any
+		var tr131 any
 		{
 			tv1 := tmk_ActionGroup(c, true, k1)
-			tr124 = tv1
+			tr131 = tv1
 		}
-		v = tr124
+		v = tr131
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -13570,16 +13915,16 @@ fail:
 }
 
 // rule call
-func u157(p *rt.TParser) (any, bool) {
+func u159(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i157(p)
+	v, ok := i159(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i157(p *rt.TParser) (any, bool) {
+func i159(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x6, x7, x14 int
 	var v, k1, v3, k4, v8, v12 any
@@ -13591,13 +13936,13 @@ func i157(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	prevEnv = p.Env
 	p.Enter()
-	if v3, ok = u169(p); !ok {
+	if v3, ok = u171(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -13605,12 +13950,12 @@ func i157(p *rt.TParser) (any, bool) {
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x6, x7 = p.Pos, len(p.Recovered)
 	cut11 = false
-	if v12, ok = u158(p); !ok {
+	if v12, ok = u160(p); !ok {
 		goto L9
 	}
 	v8 = v12
@@ -13623,13 +13968,13 @@ L9:
 	v8 = nil
 L10:
 	k4 = v8
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x13 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L16
 	}
 	x14, x15 = p.Unisolate(x13)
@@ -13637,13 +13982,13 @@ L10:
 	goto L17
 L16:
 	x14, x15 = p.Unisolate(x13)
-	p.ExpectBudget(x14, rt.MsgBit|129)
+	p.ExpectBudget(x14, rt.MsgBit|130)
 	goto fail
 L17:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "call"
 	{
-		var tr126 any
+		var tr133 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -13654,9 +13999,9 @@ L17:
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tv5 := tmk_Call(c, true, k1, any(tn4))
-			tr126 = tv5
+			tr133 = tv5
 		}
-		v = tr126
+		v = tr133
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -13668,19 +14013,19 @@ fail:
 }
 
 // rule action_args
-func u158(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[158]) {
-		return p.CallMemo(trules[158], i158)
+func u160(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[160]) {
+		return p.CallMemo(trules[160], i160)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i158(p)
+	v, ok := i160(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i158(p *rt.TParser) (any, bool) {
+func i160(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8, x9, x15, x16 int
 	var v, k1, v3, k4, k10, v13, v14 any
@@ -13688,7 +14033,7 @@ func i158(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u144(p); !ok {
+	if v3, ok = u146(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -13697,18 +14042,18 @@ func i158(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L11
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
-		if v13, ok = u144(p); !ok {
+		if v13, ok = u146(p); !ok {
 			goto L11
 		}
 		k10 = v13
@@ -13724,15 +14069,15 @@ func i158(p *rt.TParser) (any, bool) {
 	v14 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
 	k4 = v14
 	x15, x16 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L17
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	goto L18
@@ -13742,7 +14087,7 @@ L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "action_args"
 	{
-		var tr127 any
+		var tr134 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -13756,9 +14101,9 @@ L18:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr127 = any(tn5)
+			tr134 = any(tn5)
 		}
-		v = tr127
+		v = tr134
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -13769,16 +14114,16 @@ fail:
 }
 
 // rule list_constructor
-func u159(p *rt.TParser) (any, bool) {
+func u161(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i159(p)
+	v, ok := i161(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i159(p *rt.TParser) (any, bool) {
+func i161(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x11, x12, x22 int
 	var v, k1, v3, k9, v13, v17, k18, v20 any
@@ -13792,23 +14137,23 @@ func i159(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 91 && p.In[p.Pos+1] == 93) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit247, "[]", 130, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit250, "[]", 131, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
-	if v3, ok = p.Call(trules[62], 2); !ok {
+	if v3, ok = p.Call(trules[64], 2); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x4 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L7
 	}
 	x5, x6 = p.Unisolate(x4)
@@ -13816,7 +14161,7 @@ func i159(p *rt.TParser) (any, bool) {
 	goto L8
 L7:
 	x5, x6 = p.Unisolate(x4)
-	p.ExpectBudget(x5, rt.MsgBit|131)
+	p.ExpectBudget(x5, rt.MsgBit|132)
 	goto fail
 L8:
 	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
@@ -13824,12 +14169,12 @@ L8:
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x11, x12 = p.Pos, len(p.Recovered)
 	cut16 = false
-	if v17, ok = u158(p); !ok {
+	if v17, ok = u160(p); !ok {
 		goto L14
 	}
 	v13 = v17
@@ -13842,14 +14187,14 @@ L14:
 	v13 = nil
 L15:
 	k9 = v13
-	if v20, ok = u172(p); !ok {
+	if v20, ok = u174(p); !ok {
 		goto fail
 	}
 	k18 = v20
 	x21 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L24
 	}
 	x22, x23 = p.Unisolate(x21)
@@ -13857,13 +14202,13 @@ L15:
 	goto L25
 L24:
 	x22, x23 = p.Unisolate(x21)
-	p.ExpectBudget(x22, rt.MsgBit|132)
+	p.ExpectBudget(x22, rt.MsgBit|133)
 	goto fail
 L25:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "list_constructor"
 	{
-		var tr129 any
+		var tr136 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -13874,9 +14219,9 @@ L25:
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tv5 := tmk_ListConstructor(c, true, k1, any(tn4), k18)
-			tr129 = tv5
+			tr136 = tv5
 		}
-		v = tr129
+		v = tr136
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -13888,16 +14233,16 @@ fail:
 }
 
 // rule constructor
-func u160(p *rt.TParser) (any, bool) {
+func u162(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i160(p)
+	v, ok := i162(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i160(p *rt.TParser) (any, bool) {
+func i162(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x10, x11, x19, x20, x36 int
 	var v, k1, v3, k7, v9, k12, x13, k14, x15, x21, x22, v27, v31, k32, v34 any
@@ -13909,21 +14254,21 @@ func i160(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	prevEnv = p.Env
 	p.Enter()
-	if v3, ok = u169(p); !ok {
+	if v3, ok = u171(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	x4 = p.Pos
 	p.Silent++
-	if v9, ok = u200(p); !ok {
+	if v9, ok = u204(p); !ok {
 		goto L5
 	}
 	k7 = v9
@@ -13940,7 +14285,7 @@ L6:
 	}) {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x10, x11 = p.Pos, len(p.Recovered)
@@ -13951,7 +14296,7 @@ L6:
 	x21 = k12
 	x22 = k14
 	cut25 = false
-	if v27, ok = u161(p); !ok {
+	if v27, ok = u163(p); !ok {
 		goto L24
 	}
 	k12 = v27
@@ -13964,7 +14309,7 @@ L24:
 		goto L16
 	}
 	cut29 = false
-	if v31, ok = u158(p); !ok {
+	if v31, ok = u160(p); !ok {
 		goto L28
 	}
 	k14 = v31
@@ -13987,14 +14332,14 @@ L16:
 		goto fail
 	}
 L17:
-	if v34, ok = u172(p); !ok {
+	if v34, ok = u174(p); !ok {
 		goto fail
 	}
 	k32 = v34
 	x35 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L38
 	}
 	x36, x37 = p.Unisolate(x35)
@@ -14002,13 +14347,13 @@ L17:
 	goto L39
 L38:
 	x36, x37 = p.Unisolate(x35)
-	p.ExpectBudget(x36, rt.MsgBit|133)
+	p.ExpectBudget(x36, rt.MsgBit|134)
 	goto fail
 L39:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "constructor"
 	{
-		var tr131 any
+		var tr138 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -14027,9 +14372,9 @@ L39:
 			tk7 := c.P.Kids(tm5)
 			tn8 := c.P.TermHull(c, false, tk7)
 			tv9 := tmk_Constructor(c, true, k1, any(tn4), any(tn8), k32, k7)
-			tr131 = tv9
+			tr138 = tv9
 		}
-		v = tr131
+		v = tr138
 	}
 	p.Depth--
 	p.Env = prevEnv
@@ -14041,16 +14386,16 @@ fail:
 }
 
 // rule constructor_fields
-func u161(p *rt.TParser) (any, bool) {
+func u163(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i161(p)
+	v, ok := i163(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i161(p *rt.TParser) (any, bool) {
+func i163(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8, x9, x15, x16 int
 	var v, k1, v3, k4, k10, v13, v14 any
@@ -14058,7 +14403,7 @@ func i161(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u162(p); !ok {
+	if v3, ok = u164(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -14067,18 +14412,18 @@ func i161(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L11
 		}
-		if _, ok = u171(p); !ok {
+		if _, ok = u173(p); !ok {
 			goto L11
 		}
-		if v13, ok = u162(p); !ok {
+		if v13, ok = u164(p); !ok {
 			goto L11
 		}
 		k10 = v13
@@ -14094,15 +14439,15 @@ func i161(p *rt.TParser) (any, bool) {
 	v14 = p.NewNode("list", x5, p.Pos, p.Kids(x6))
 	k4 = v14
 	x15, x16 = p.Pos, len(p.Recovered)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto L17
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto L17
 	}
 	goto L18
@@ -14112,7 +14457,7 @@ L18:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "constructor_fields"
 	{
-		var tr132 any
+		var tr139 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -14126,9 +14471,9 @@ L18:
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr132 = any(tn5)
+			tr139 = any(tn5)
 		}
-		v = tr132
+		v = tr139
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -14139,19 +14484,19 @@ fail:
 }
 
 // rule init_field
-func u162(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[162]) {
-		return p.CallMemo(trules[162], i162)
+func u164(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[164]) {
+		return p.CallMemo(trules[164], i164)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i162(p)
+	v, ok := i164(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i162(p *rt.TParser) (any, bool) {
+func i164(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x7 int
 	var v, k1, v3, k4, v6, k10, v12 any
@@ -14159,17 +14504,17 @@ func i162(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u172(p); !ok {
+	if v3, ok = u174(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u163(p); !ok {
+	if v6, ok = u165(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	x7 = p.Pos
 	p.Silent++
-	if v12, ok = s209(p); !ok {
+	if v12, ok = s213(p); !ok {
 		goto L8
 	}
 	k10 = v12
@@ -14184,7 +14529,7 @@ L9:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "init_field"
 	{
-		var tr133 any
+		var tr140 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
@@ -14195,9 +14540,9 @@ L9:
 				c.TermRaise(tf2)
 			}
 			tv3 := tmk_InitField(c, true, tv1, tv2, k1, k4, k10)
-			tr133 = tv3
+			tr140 = tv3
 		}
-		v = tr133
+		v = tr140
 	}
 	p.Depth--
 	return v, true
@@ -14207,16 +14552,16 @@ fail:
 }
 
 // rule init_field_body
-func u163(p *rt.TParser) (any, bool) {
+func u165(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i163(p)
+	v, ok := i165(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i163(p *rt.TParser) (any, bool) {
+func i165(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x12 int
 	var v, k1, v8, k9, v16 any
@@ -14227,7 +14572,7 @@ func i163(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	p.Enter()
 	x3 = p.Isolate(p.Pos)
-	if v8, ok = u190(p); !ok {
+	if v8, ok = u192(p); !ok {
 		goto L6
 	}
 	x4, x5 = p.Unisolate(x3)
@@ -14235,23 +14580,23 @@ func i163(p *rt.TParser) (any, bool) {
 	goto L7
 L6:
 	x4, x5 = p.Unisolate(x3)
-	p.ExpectBudget(x4, rt.MsgBit|134)
+	p.ExpectBudget(x4, rt.MsgBit|135)
 	goto fail
 L7:
 	k1 = v8
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 58) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit59, ":", 25, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit63, ":", 27, false); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	x11 = p.Isolate(p.Pos)
-	if v16, ok = u144(p); !ok {
+	if v16, ok = u146(p); !ok {
 		goto L14
 	}
 	x12, x13 = p.Unisolate(x11)
@@ -14259,19 +14604,19 @@ L7:
 	goto L15
 L14:
 	x12, x13 = p.Unisolate(x11)
-	p.ExpectBudget(x12, rt.MsgBit|135)
+	p.ExpectBudget(x12, rt.MsgBit|136)
 	goto fail
 L15:
 	k9 = v16
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "init_field_body"
 	{
-		var tr134 any
+		var tr141 any
 		{
 			tv1 := tmk_InitFieldBody(c, true, k1, k9)
-			tr134 = tv1
+			tr141 = tv1
 		}
-		v = tr134
+		v = tr141
 	}
 	p.Depth--
 	return v, true
@@ -14280,7 +14625,7 @@ fail:
 	return nil, false
 }
 
-func s164(p *rt.TParser) (any, bool) {
+func s166(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x4, x6, x7 int
 	var v, v9, bv any
@@ -14291,7 +14636,7 @@ func s164(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x3, x4 = p.Pos, len(p.Recovered)
-		if _, ok = s274(p); !ok {
+		if _, ok = s279(p); !ok {
 			goto L5
 		}
 		x2++
@@ -14308,10 +14653,10 @@ func s164(p *rt.TParser) (any, bool) {
 	}
 	x6, x7 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(127)
+	p.LookBegin(130)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L8
 	}
 	p.LookEnd(true)
@@ -14328,98 +14673,6 @@ L8:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[164], v, bv)
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-// rule true_lit
-func u165(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[165]) {
-		return p.CallMemo(trules[165], v165)
-	}
-	return v165(p)
-}
-
-func v165(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, x2, x3 int
-	var v, v5, bv any
-	var ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1 = p.Pos
-	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 114 && p.In[p.Pos+2] == 117 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
-		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit255, "true", 97, false); !ok {
-		goto fail
-	}
-	x2, x3 = p.Pos, len(p.Recovered)
-	p.Silent++
-	p.LookBegin(128)
-	if _, ok = s266(p); !ok {
-		goto L4
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Restore(x2, x3)
-	goto fail
-L4:
-	p.LookEnd(false)
-	p.Silent--
-	p.Restore(x2, x3)
-	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v5)
-	v = p.ScopeValue(sh11, v5, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	v = p.TConvertResultOwned(trules[165], v, bv)
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-// rule false_lit
-func u166(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[166]) {
-		return p.CallMemo(trules[166], v166)
-	}
-	return v166(p)
-}
-
-func v166(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, x2, x3 int
-	var v, v5, bv any
-	var ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1 = p.Pos
-	if _, ok = p.Parser.MatchLiteral(lit257, "false", 98, false); !ok {
-		goto fail
-	}
-	x2, x3 = p.Pos, len(p.Recovered)
-	p.Silent++
-	p.LookBegin(129)
-	if _, ok = s266(p); !ok {
-		goto L4
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Restore(x2, x3)
-	goto fail
-L4:
-	p.LookEnd(false)
-	p.Silent--
-	p.Restore(x2, x3)
-	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v5)
-	v = p.ScopeValue(sh11, v5, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
 	v = p.TConvertResultOwned(trules[166], v, bv)
 	return v, true
 fail:
@@ -14427,7 +14680,7 @@ fail:
 	return nil, false
 }
 
-// rule nil_lit
+// rule true_lit
 func u167(p *rt.TParser) (any, bool) {
 	if !p.FirstCall(rules[167]) {
 		return p.CallMemo(trules[167], v167)
@@ -14442,15 +14695,15 @@ func v167(p *rt.TParser) (any, bool) {
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
-	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 110 && p.In[p.Pos+1] == 105 && p.In[p.Pos+2] == 108) && p.Control.Take(3) {
-		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit259, "nil", 99, false); !ok {
+	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 114 && p.In[p.Pos+2] == 117 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
+		p.Pos += 4
+	} else if _, ok = p.Parser.MatchLiteral(lit258, "true", 98, false); !ok {
 		goto fail
 	}
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(130)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(131)
+	if _, ok = s270(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -14474,7 +14727,7 @@ fail:
 	return nil, false
 }
 
-// rule capture_ref
+// rule false_lit
 func u168(p *rt.TParser) (any, bool) {
 	if !p.FirstCall(rules[168]) {
 		return p.CallMemo(trules[168], v168)
@@ -14484,6 +14737,98 @@ func u168(p *rt.TParser) (any, bool) {
 
 func v168(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start, rec, x1, x2, x3 int
+	var v, v5, bv any
+	var ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1 = p.Pos
+	if _, ok = p.Parser.MatchLiteral(lit260, "false", 99, false); !ok {
+		goto fail
+	}
+	x2, x3 = p.Pos, len(p.Recovered)
+	p.Silent++
+	p.LookBegin(132)
+	if _, ok = s270(p); !ok {
+		goto L4
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Restore(x2, x3)
+	goto fail
+L4:
+	p.LookEnd(false)
+	p.Silent--
+	p.Restore(x2, x3)
+	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v5)
+	v = p.ScopeValue(sh11, v5, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	v = p.TConvertResultOwned(trules[168], v, bv)
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+// rule nil_lit
+func u169(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[169]) {
+		return p.CallMemo(trules[169], v169)
+	}
+	return v169(p)
+}
+
+func v169(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1, x2, x3 int
+	var v, v5, bv any
+	var ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1 = p.Pos
+	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 110 && p.In[p.Pos+1] == 105 && p.In[p.Pos+2] == 108) && p.Control.Take(3) {
+		p.Pos += 3
+	} else if _, ok = p.Parser.MatchLiteral(lit262, "nil", 100, false); !ok {
+		goto fail
+	}
+	x2, x3 = p.Pos, len(p.Recovered)
+	p.Silent++
+	p.LookBegin(133)
+	if _, ok = s270(p); !ok {
+		goto L4
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Restore(x2, x3)
+	goto fail
+L4:
+	p.LookEnd(false)
+	p.Silent--
+	p.Restore(x2, x3)
+	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	bv = rt.TFreshNode(v5)
+	v = p.ScopeValue(sh11, v5, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	v = p.TConvertResultOwned(trules[169], v, bv)
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+// rule capture_ref
+func u170(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[170]) {
+		return p.CallMemo(trules[170], v170)
+	}
+	return v170(p)
+}
+
+func v170(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v5, bv any
 	var ok bool
@@ -14491,13 +14836,13 @@ func v168(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2 = p.Pos
 	p.Silent++
-	p.LookBegin(131)
+	p.LookBegin(134)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit159, "$", 83, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit162, "$", 84, false); !ok {
 		goto L3
 	}
-	if _, ok = u285(p); !ok {
+	if _, ok = u290(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -14512,10 +14857,10 @@ L3:
 L4:
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 36) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit159, "$", 83, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit162, "$", 84, false); !ok {
 		goto fail
 	}
-	if _, ok = u285(p); !ok {
+	if _, ok = u290(p); !ok {
 		goto fail
 	}
 	v5 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
@@ -14524,7 +14869,7 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[168], v, bv)
+	v = p.TConvertResultOwned(trules[170], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -14532,14 +14877,14 @@ fail:
 }
 
 // rule var_name
-func u169(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[169]) {
-		return p.CallMemo(trules[169], v169)
+func u171(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[171]) {
+		return p.CallMemo(trules[171], v171)
 	}
-	return v169(p)
+	return v171(p)
 }
 
-func v169(p *rt.TParser) (any, bool) {
+func v171(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x5, x6 int
 	var v, v18, bv any
@@ -14549,7 +14894,7 @@ func v169(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(132)
+	p.LookBegin(135)
 	x5, x6 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -14558,10 +14903,10 @@ func v169(p *rt.TParser) (any, bool) {
 		x8, _, x9 = p.Peek()
 	}
 	if !(x9 && (x8 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 97)
+		p.ExpectBudget(p.Pos, 98)
 		goto L10
 	}
-	if _, ok = u288(p); !ok {
+	if _, ok = u293(p); !ok {
 		goto L11
 	}
 	goto L7
@@ -14569,10 +14914,10 @@ L11:
 	p.Restore(x5, x6)
 L10:
 	if !(x9 && (x8 == 102)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 98)
+		p.ExpectBudget(p.Pos, 99)
 		goto L12
 	}
-	if _, ok = u289(p); !ok {
+	if _, ok = u294(p); !ok {
 		goto L13
 	}
 	goto L7
@@ -14580,10 +14925,10 @@ L13:
 	p.Restore(x5, x6)
 L12:
 	if !(x9 && (x8 == 110)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 99)
+		p.ExpectBudget(p.Pos, 100)
 		goto L14
 	}
-	if _, ok = u290(p); !ok {
+	if _, ok = u295(p); !ok {
 		goto L15
 	}
 	goto L7
@@ -14591,10 +14936,10 @@ L15:
 	p.Restore(x5, x6)
 L14:
 	if !(x9 && (x8 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 79)
+		p.ExpectBudget(p.Pos, 80)
 		goto L16
 	}
-	if _, ok = s291(p); !ok {
+	if _, ok = s296(p); !ok {
 		goto L17
 	}
 	goto L7
@@ -14611,7 +14956,7 @@ L4:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x2, x3)
-	if _, ok = u285(p); !ok {
+	if _, ok = u290(p); !ok {
 		goto fail
 	}
 	v18 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
@@ -14620,14 +14965,14 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[169], v, bv)
+	v = p.TConvertResultOwned(trules[171], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
 	return nil, false
 }
 
-func s170(p *rt.TParser) (any, bool) {
+func s172(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x5, x6 int
 	var v, v8, bv any
@@ -14636,8 +14981,8 @@ func s170(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	x2, x3 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(133)
-	if _, ok = s291(p); !ok {
+	p.LookBegin(136)
+	if _, ok = s296(p); !ok {
 		goto L4
 	}
 	p.LookEnd(true)
@@ -14648,15 +14993,15 @@ L4:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x2, x3)
-	if _, ok = u285(p); !ok {
+	if _, ok = u290(p); !ok {
 		goto fail
 	}
 	x5, x6 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(134)
+	p.LookBegin(137)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L7
 	}
 	p.LookEnd(true)
@@ -14673,7 +15018,7 @@ L7:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[170], v, bv)
+	v = p.TConvertResultOwned(trules[172], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -14681,19 +15026,19 @@ fail:
 }
 
 // rule ws
-func u171(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[171]) {
-		return p.CallMemo(trules[171], i171)
+func u173(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[173]) {
+		return p.CallMemo(trules[173], i173)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i171(p)
+	v, ok := i173(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i171(p *rt.TParser) (any, bool) {
+func i173(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2 int
 	var v, k3, x4, v8, v11 any
@@ -14708,7 +15053,7 @@ func i171(p *rt.TParser) (any, bool) {
 	}) {
 		goto L6
 	}
-	if v8, ok = u172(p); !ok {
+	if v8, ok = u174(p); !ok {
 		goto L6
 	}
 	k3 = v8
@@ -14716,7 +15061,7 @@ func i171(p *rt.TParser) (any, bool) {
 L6:
 	p.Restore(x1, x2)
 	k3 = x4
-	if v11, ok = u173(p); !ok {
+	if v11, ok = u175(p); !ok {
 		goto L9
 	}
 	k3 = v11
@@ -14729,11 +15074,11 @@ L5:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "ws"
 	{
-		var tr136 any
+		var tr143 any
 		{
-			tr136 = k3
+			tr143 = k3
 		}
-		v = tr136
+		v = tr143
 	}
 	v = c.Finish(v)
 	return v, true
@@ -14742,19 +15087,19 @@ fail:
 }
 
 // rule comments
-func u172(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[172]) {
-		return p.CallMemo(trules[172], i172)
+func u174(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[174]) {
+		return p.CallMemo(trules[174], i174)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i172(p)
+	v, ok := i174(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i172(p *rt.TParser) (any, bool) {
+func i174(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x6, x7, x9, x10, x16, x17 int
 	var v, k5, k11, v14, v19 any
@@ -14764,7 +15109,7 @@ func i172(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = s292(p); !ok {
+		if _, ok = s297(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -14780,14 +15125,14 @@ func i172(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x9, x10 = p.Pos, len(p.Recovered)
 		k11 = nil
-		if v14, ok = u183(p); !ok {
+		if v14, ok = u185(p); !ok {
 			goto L12
 		}
 		k11 = v14
 		for {
 			p.Spend()
 			x16, x17 = p.Pos, len(p.Recovered)
-			if _, ok = s292(p); !ok {
+			if _, ok = s297(p); !ok {
 				goto L18
 			}
 			if p.Pos == x16 {
@@ -14812,35 +15157,35 @@ func i172(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "comments"
 	{
-		var tr137 any
+		var tr144 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
-			tr137 = tv2
+			tr144 = tv2
 		}
-		v = tr137
+		v = tr144
 	}
 	v = c.Finish(v)
 	return v, true
 }
 
 // rule horizontal
-func u173(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[173]) {
-		return p.CallMemo(trules[173], i173)
+func u175(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[175]) {
+		return p.CallMemo(trules[175], i175)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i173(p)
+	v, ok := i175(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i173(p *rt.TParser) (any, bool) {
+func i175(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x6, x7, x9, x10, x14, x15, x27, x28 int
 	var v, k5, k11, v16, v22, v25, v30 any
@@ -14851,7 +15196,7 @@ func i173(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -14875,10 +15220,10 @@ func i173(p *rt.TParser) (any, bool) {
 			x18, _, x19 = p.Peek()
 		}
 		if !(x19 && (x18 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 28)
+			p.ExpectBudget(p.Pos, 30)
 			goto L20
 		}
-		if v22, ok = u185(p); !ok {
+		if v22, ok = u187(p); !ok {
 			goto L21
 		}
 		v16 = v22
@@ -14887,10 +15232,10 @@ func i173(p *rt.TParser) (any, bool) {
 		p.Restore(x14, x15)
 	L20:
 		if !(x19 && (x18 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L23
 		}
-		if v25, ok = u188(p); !ok {
+		if v25, ok = u190(p); !ok {
 			goto L24
 		}
 		v16 = v25
@@ -14904,7 +15249,7 @@ func i173(p *rt.TParser) (any, bool) {
 		for {
 			p.Spend()
 			x27, x28 = p.Pos, len(p.Recovered)
-			if _, ok = u281(p); !ok {
+			if _, ok = u286(p); !ok {
 				goto L29
 			}
 			if p.Pos == x27 {
@@ -14929,32 +15274,32 @@ func i173(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "horizontal"
 	{
-		var tr138 any
+		var tr145 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
-			tr138 = tv2
+			tr145 = tv2
 		}
-		v = tr138
+		v = tr145
 	}
 	v = c.Finish(v)
 	return v, true
 }
 
 // rule source_comments
-func u178(p *rt.TParser) (any, bool) {
+func u180(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i178(p)
+	v, ok := i180(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i178(p *rt.TParser) (any, bool) {
+func i180(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x6, x7, x9, x10, x16, x17 int
 	var v, k5, k11, v14, v19 any
@@ -14964,7 +15309,7 @@ func i178(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u293(p); !ok {
+		if _, ok = u298(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -14980,14 +15325,14 @@ func i178(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x9, x10 = p.Pos, len(p.Recovered)
 		k11 = nil
-		if v14, ok = u183(p); !ok {
+		if v14, ok = u185(p); !ok {
 			goto L12
 		}
 		k11 = v14
 		for {
 			p.Spend()
 			x16, x17 = p.Pos, len(p.Recovered)
-			if _, ok = u293(p); !ok {
+			if _, ok = u298(p); !ok {
 				goto L18
 			}
 			if p.Pos == x16 {
@@ -15016,16 +15361,16 @@ func i178(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_comments"
 	{
-		var tr139 any
+		var tr146 any
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
-			tr139 = tv2
+			tr146 = tv2
 		}
-		v = tr139
+		v = tr146
 	}
 	v = c.Finish(v)
 	return v, true
@@ -15034,14 +15379,14 @@ fail:
 }
 
 // rule comment
-func u183(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[183]) {
-		return p.CallMemo(trules[183], v183)
+func u185(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[185]) {
+		return p.CallMemo(trules[185], v185)
 	}
-	return v183(p)
+	return v185(p)
 }
 
-func v183(p *rt.TParser) (any, bool) {
+func v185(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12 any
@@ -15056,10 +15401,10 @@ func v183(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L7
 	}
-	if v9, ok = u184(p); !ok {
+	if v9, ok = u186(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -15068,10 +15413,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L10
 	}
-	if v12, ok = u187(p); !ok {
+	if v12, ok = u189(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -15092,23 +15437,23 @@ fail:
 }
 
 // rule comment_group
-func u184(p *rt.TParser) (any, bool) {
+func u186(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i184(p)
+	v, ok := i186(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i184(p *rt.TParser) (any, bool) {
+func i186(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8, x9, x13, x14 int
 	var v, k1, v3, k4, k10, v17, v18 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = s186(p); !ok {
+	if v3, ok = s188(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -15117,13 +15462,13 @@ func i184(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x8, x9 = p.Pos, len(p.Recovered)
 		k10 = nil
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L11
 		}
 		for {
 			p.Spend()
 			x13, x14 = p.Pos, len(p.Recovered)
-			if _, ok = u281(p); !ok {
+			if _, ok = u286(p); !ok {
 				goto L15
 			}
 			if p.Pos == x13 {
@@ -15134,7 +15479,7 @@ func i184(p *rt.TParser) (any, bool) {
 			p.Restore(x13, x14)
 			break
 		}
-		if v17, ok = s186(p); !ok {
+		if v17, ok = s188(p); !ok {
 			goto L11
 		}
 		k10 = v17
@@ -15152,7 +15497,7 @@ func i184(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "comment_group"
 	{
-		var tr140 any
+		var tr147 any
 		{
 			tm1 := len(c.P.KidStack)
 			c.P.Spend()
@@ -15167,9 +15512,9 @@ func i184(p *rt.TParser) (any, bool) {
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6 := tmk_CommentGroup(c, true, any(tn5))
-			tr140 = tv6
+			tr147 = tv6
 		}
-		v = tr140
+		v = tr147
 	}
 	return v, true
 fail:
@@ -15177,99 +15522,6 @@ fail:
 }
 
 // rule line_comment
-func u185(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[185]) {
-		return p.CallMemo(trules[185], i185)
-	}
-	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i185(p)
-	if !ok {
-		p.Restore(start, rec)
-	}
-	return v, ok
-}
-
-func i185(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start int
-	var v, k1, v3 any
-	var c *rt.TActCtx
-	var ok bool
-	start = p.Pos
-	if v3, ok = s186(p); !ok {
-		goto fail
-	}
-	k1 = v3
-	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
-	p.Where = "line_comment"
-	{
-		var tr141 any
-		{
-			tm1 := len(c.P.KidStack)
-			c.P.Spend()
-			tf2 := c.P.TermPush(c, "list", k1)
-			if tf2 != nil {
-				c.TermRaise(tf2)
-			}
-			tk3 := c.P.Kids(tm1)
-			tn4 := c.P.TermHull(c, false, tk3)
-			tv5 := tmk_CommentGroup(c, true, any(tn4))
-			tr141 = tv5
-		}
-		v = tr141
-	}
-	return v, true
-fail:
-	return nil, false
-}
-
-func s186(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, size, x2, x3 int
-	var v, v4 any
-	var ok bool
-	var ch rune
-	start, rec = p.Pos, len(p.Recovered)
-	x1 = p.Pos
-	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
-		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
-		goto fail
-	}
-	x2 = p.Pos
-	x3 = 0
-	for {
-		if p.Pos < len(p.In) {
-			p.Control.Take(1)
-			ch, size, ok = p.In[p.Pos], 1, true
-		} else {
-			ch, size, ok = p.Peek()
-		}
-		if !ok || (ch == 10 || ch == 13) {
-			p.ExpectBudget(p.Pos, 139)
-			break
-		}
-		p.Pos += size
-		x3++
-		if x3 == 16 {
-			x3 = p.ScanReach(71, x2, x3)
-		}
-	}
-	if 15 < x3 {
-		p.ScanEnd(71, x2, x3)
-	}
-	v4 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	v = p.ScopeValue(sh11, v4, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-// rule inline_comment
 func u187(p *rt.TParser) (any, bool) {
 	if !p.FirstCall(rules[187]) {
 		return p.CallMemo(trules[187], i187)
@@ -15284,6 +15536,99 @@ func u187(p *rt.TParser) (any, bool) {
 
 func i187(p *rt.TParser) (any, bool) {
 	p.Spend()
+	var start int
+	var v, k1, v3 any
+	var c *rt.TActCtx
+	var ok bool
+	start = p.Pos
+	if v3, ok = s188(p); !ok {
+		goto fail
+	}
+	k1 = v3
+	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
+	p.Where = "line_comment"
+	{
+		var tr148 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPush(c, "list", k1)
+			if tf2 != nil {
+				c.TermRaise(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tv5 := tmk_CommentGroup(c, true, any(tn4))
+			tr148 = tv5
+		}
+		v = tr148
+	}
+	return v, true
+fail:
+	return nil, false
+}
+
+func s188(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1, size, x2, x3 int
+	var v, v4 any
+	var ok bool
+	var ch rune
+	start, rec = p.Pos, len(p.Recovered)
+	x1 = p.Pos
+	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
+		p.Pos += 2
+	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
+		goto fail
+	}
+	x2 = p.Pos
+	x3 = 0
+	for {
+		if p.Pos < len(p.In) {
+			p.Control.Take(1)
+			ch, size, ok = p.In[p.Pos], 1, true
+		} else {
+			ch, size, ok = p.Peek()
+		}
+		if !ok || (ch == 10 || ch == 13) {
+			p.ExpectBudget(p.Pos, 140)
+			break
+		}
+		p.Pos += size
+		x3++
+		if x3 == 16 {
+			x3 = p.ScanReach(72, x2, x3)
+		}
+	}
+	if 15 < x3 {
+		p.ScanEnd(72, x2, x3)
+	}
+	v4 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
+	v = p.ScopeValue(sh11, v4, start)
+	if n := rt.AsTval(v); n != nil {
+		n.TSetFresh(false)
+	}
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+// rule inline_comment
+func u189(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[189]) {
+		return p.CallMemo(trules[189], i189)
+	}
+	start, rec := p.Pos, len(p.Recovered)
+	v, ok := i189(p)
+	if !ok {
+		p.Restore(start, rec)
+	}
+	return v, ok
+}
+
+func i189(p *rt.TParser) (any, bool) {
+	p.Spend()
 	var start, x3, x7, x9, x10, x12, x13, x20, x21, x23, x24, size, x35 int
 	var v, k1, v4, k5, v32, k33, v36 any
 	var c *rt.TActCtx
@@ -15294,7 +15639,7 @@ func i187(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "/*", true)
@@ -15311,10 +15656,10 @@ func i187(p *rt.TParser) (any, bool) {
 			x15, _, x16 = p.Peek()
 		}
 		if !(x16 && (x15 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L17
 		}
-		if _, ok = u187(p); !ok {
+		if _, ok = u189(p); !ok {
 			goto L18
 		}
 		goto L14
@@ -15323,7 +15668,7 @@ func i187(p *rt.TParser) (any, bool) {
 	L17:
 		x20, x21 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(139)
+		p.LookBegin(142)
 		x23, x24 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -15332,12 +15677,12 @@ func i187(p *rt.TParser) (any, bool) {
 			x26, _, x27 = p.Peek()
 		}
 		if !(x27 && (x26 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L28
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 			goto L29
 		}
 		goto L25
@@ -15345,12 +15690,12 @@ func i187(p *rt.TParser) (any, bool) {
 		p.Restore(x23, x24)
 	L28:
 		if !(x27 && (x26 == 42)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 140)
+			p.ExpectBudget(p.Pos, 141)
 			goto L30
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 			goto L31
 		}
 		goto L25
@@ -15396,7 +15741,7 @@ func i187(p *rt.TParser) (any, bool) {
 	x35 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 		goto fail
 	}
 	v36 = p.NewMatch(x35, p.Pos, "*/", true)
@@ -15404,12 +15749,12 @@ func i187(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "inline_comment"
 	{
-		var tr142 any
+		var tr149 any
 		{
 			tv1 := tmk_InlineComment(c, true, k1, k5, k33)
-			tr142 = tv1
+			tr149 = tv1
 		}
-		v = tr142
+		v = tr149
 	}
 	p.Depth--
 	return v, true
@@ -15419,19 +15764,19 @@ fail:
 }
 
 // rule block_no_line
-func u188(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[188]) {
-		return p.CallMemo(trules[188], i188)
+func u190(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[190]) {
+		return p.CallMemo(trules[190], i190)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i188(p)
+	v, ok := i190(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i188(p *rt.TParser) (any, bool) {
+func i190(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x7, x9, x10, x12, x13, x20, x21, x23, x24, size, x36 int
 	var v, k1, v4, k5, v33, k34, v37 any
@@ -15443,7 +15788,7 @@ func i188(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "/*", true)
@@ -15460,10 +15805,10 @@ func i188(p *rt.TParser) (any, bool) {
 			x15, _, x16 = p.Peek()
 		}
 		if !(x16 && (x15 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L17
 		}
-		if _, ok = u188(p); !ok {
+		if _, ok = u190(p); !ok {
 			goto L18
 		}
 		goto L14
@@ -15472,7 +15817,7 @@ func i188(p *rt.TParser) (any, bool) {
 	L17:
 		x20, x21 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(140)
+		p.LookBegin(143)
 		x23, x24 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -15481,12 +15826,12 @@ func i188(p *rt.TParser) (any, bool) {
 			x26, _, x27 = p.Peek()
 		}
 		if !(x27 && (x26 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L28
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 			goto L29
 		}
 		goto L25
@@ -15494,19 +15839,19 @@ func i188(p *rt.TParser) (any, bool) {
 		p.Restore(x23, x24)
 	L28:
 		if !(x27 && (x26 == 42)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 140)
+			p.ExpectBudget(p.Pos, 141)
 			goto L30
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 			goto L31
 		}
 		goto L25
 	L31:
 		p.Restore(x23, x24)
 	L30:
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L32
 		}
 		goto L25
@@ -15551,7 +15896,7 @@ func i188(p *rt.TParser) (any, bool) {
 	x36 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 		goto fail
 	}
 	v37 = p.NewMatch(x36, p.Pos, "*/", true)
@@ -15559,12 +15904,12 @@ func i188(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "block_no_line"
 	{
-		var tr143 any
+		var tr150 any
 		{
 			tv1 := tmk_InlineComment(c, true, k1, k5, k34)
-			tr143 = tv1
+			tr150 = tv1
 		}
-		v = tr143
+		v = tr150
 	}
 	p.Depth--
 	return v, true
@@ -15574,19 +15919,19 @@ fail:
 }
 
 // rule block_with_line
-func u189(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[189]) {
-		return p.CallMemo(trules[189], i189)
+func u191(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[191]) {
+		return p.CallMemo(trules[191], i191)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i189(p)
+	v, ok := i191(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i189(p *rt.TParser) (any, bool) {
+func i191(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x7, x9, x10, x12, x13, x20, x21, x23, x24, size, x33, x34, x42, x43, x45, x46, x53, x54, x56, x57, x68 int
 	var v, k1, v4, k5, v65, k66, v69 any
@@ -15598,7 +15943,7 @@ func i189(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto fail
 	}
 	v4 = p.NewMatch(x3, p.Pos, "/*", true)
@@ -15615,10 +15960,10 @@ func i189(p *rt.TParser) (any, bool) {
 			x15, _, x16 = p.Peek()
 		}
 		if !(x16 && (x15 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L17
 		}
-		if _, ok = u188(p); !ok {
+		if _, ok = u190(p); !ok {
 			goto L18
 		}
 		goto L14
@@ -15627,7 +15972,7 @@ func i189(p *rt.TParser) (any, bool) {
 	L17:
 		x20, x21 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(141)
+		p.LookBegin(144)
 		x23, x24 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -15636,12 +15981,12 @@ func i189(p *rt.TParser) (any, bool) {
 			x26, _, x27 = p.Peek()
 		}
 		if !(x27 && (x26 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L28
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 			goto L29
 		}
 		goto L25
@@ -15649,19 +15994,19 @@ func i189(p *rt.TParser) (any, bool) {
 		p.Restore(x23, x24)
 	L28:
 		if !(x27 && (x26 == 42)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 140)
+			p.ExpectBudget(p.Pos, 141)
 			goto L30
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 			goto L31
 		}
 		goto L25
 	L31:
 		p.Restore(x23, x24)
 	L30:
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L32
 		}
 		goto L25
@@ -15702,7 +16047,7 @@ func i189(p *rt.TParser) (any, bool) {
 		break
 	}
 	x33, x34 = p.Pos, len(p.Recovered)
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L36
 	}
 	goto L35
@@ -15715,10 +16060,10 @@ L36:
 		x37, _, x38 = p.Peek()
 	}
 	if !(x38 && (x37 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L39
 	}
-	if _, ok = u189(p); !ok {
+	if _, ok = u191(p); !ok {
 		goto L40
 	}
 	goto L35
@@ -15738,10 +16083,10 @@ L35:
 			x48, _, x49 = p.Peek()
 		}
 		if !(x49 && (x48 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L50
 		}
-		if _, ok = u187(p); !ok {
+		if _, ok = u189(p); !ok {
 			goto L51
 		}
 		goto L47
@@ -15750,7 +16095,7 @@ L35:
 	L50:
 		x53, x54 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(142)
+		p.LookBegin(145)
 		x56, x57 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -15759,12 +16104,12 @@ L35:
 			x59, _, x60 = p.Peek()
 		}
 		if !(x60 && (x59 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L61
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 			goto L62
 		}
 		goto L58
@@ -15772,12 +16117,12 @@ L35:
 		p.Restore(x56, x57)
 	L61:
 		if !(x60 && (x59 == 42)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 140)
+			p.ExpectBudget(p.Pos, 141)
 			goto L63
 		}
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 			goto L64
 		}
 		goto L58
@@ -15823,7 +16168,7 @@ L35:
 	x68 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 		goto fail
 	}
 	v69 = p.NewMatch(x68, p.Pos, "*/", true)
@@ -15831,12 +16176,12 @@ L35:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "block_with_line"
 	{
-		var tr144 any
+		var tr151 any
 		{
 			tv1 := tmk_InlineComment(c, true, k1, k5, k66)
-			tr144 = tv1
+			tr151 = tv1
 		}
-		v = tr144
+		v = tr151
 	}
 	p.Depth--
 	return v, true
@@ -15846,27 +16191,27 @@ fail:
 }
 
 // rule ident
-func u190(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[190]) {
-		return p.CallMemo(trules[190], v190)
+func u192(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[192]) {
+		return p.CallMemo(trules[192], v192)
 	}
-	return v190(p)
+	return v192(p)
 }
 
-func v190(p *rt.TParser) (any, bool) {
+func v192(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x3, x4 int
 	var v, v6, bv any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
-	if _, ok = s284(p); !ok {
+	if _, ok = s289(p); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x3, x4 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L5
 		}
 		if p.Pos == x3 {
@@ -15883,7 +16228,7 @@ func v190(p *rt.TParser) (any, bool) {
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[190], v, bv)
+	v = p.TConvertResultOwned(trules[192], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -15891,14 +16236,14 @@ fail:
 }
 
 // rule string
-func u194(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[194]) {
-		return p.CallMemo(trules[194], v194)
+func u196(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[196]) {
+		return p.CallMemo(trules[196], v196)
 	}
-	return v194(p)
+	return v196(p)
 }
 
-func v194(p *rt.TParser) (any, bool) {
+func v196(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x3, x4, x6, x7, size, x15, x16, x19, x20 int
 	var v, v22, bv any
@@ -15908,7 +16253,7 @@ func v194(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	for {
@@ -15922,12 +16267,12 @@ func v194(p *rt.TParser) (any, bool) {
 			x9, _, x10 = p.Peek()
 		}
 		if !(x10 && (x9 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L12
 		}
 		if p.Pos < len(p.In) {
@@ -15946,7 +16291,7 @@ func v194(p *rt.TParser) (any, bool) {
 		p.Restore(x6, x7)
 	L11:
 		if !(x10 && (!(x9 == 34 || x9 == 92 || x9 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L13
 		}
 		if p.Pos < len(p.In) {
@@ -15956,7 +16301,7 @@ func v194(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L14
 		}
 		p.Pos += size
@@ -15976,19 +16321,19 @@ func v194(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	x15, x16 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 105) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit294, "i", 141, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit296, "i", 142, false); !ok {
 		goto L17
 	}
 	x19, x20 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(143)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(146)
+	if _, ok = s270(p); !ok {
 		goto L21
 	}
 	p.LookEnd(true)
@@ -16009,14 +16354,33 @@ L18:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[194], v, bv)
+	v = p.TConvertResultOwned(trules[196], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
 	return nil, false
 }
 
-func s195(p *rt.TParser) (any, bool) {
+func s197(p *rt.TParser) (any, bool) {
+	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
+	prevEnv, prevCut := p.Env, p.Cut
+	p.Cut = false
+	v, ok := e434(p, 0)
+	p.Cut = prevCut
+	p.DropTrail(trail)
+	if ok {
+		v = p.ScopeValue(trules[197].Value, v, start)
+		if n := rt.AsTval(v); n != nil {
+			n.TSetFresh(false)
+		}
+	} else {
+		p.Restore(start, rec)
+	}
+	p.Env = prevEnv
+	return v, ok
+}
+
+func s199(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x3, x4, x6, x7, size, x15, x16 int
 	var v, v18, bv any
@@ -16026,7 +16390,7 @@ func s195(p *rt.TParser) (any, bool) {
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	for {
@@ -16040,12 +16404,12 @@ func s195(p *rt.TParser) (any, bool) {
 			x9, _, x10 = p.Peek()
 		}
 		if !(x10 && (x9 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L11
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L12
 		}
 		if p.Pos < len(p.In) {
@@ -16064,7 +16428,7 @@ func s195(p *rt.TParser) (any, bool) {
 		p.Restore(x6, x7)
 	L11:
 		if !(x10 && (!(x9 == 34 || x9 == 92 || x9 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L13
 		}
 		if p.Pos < len(p.In) {
@@ -16074,7 +16438,7 @@ func s195(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L14
 		}
 		p.Pos += size
@@ -16094,15 +16458,15 @@ func s195(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	x15, x16 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(144)
+	p.LookBegin(148)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L17
 	}
 	p.LookEnd(true)
@@ -16119,7 +16483,7 @@ L17:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[195], v, bv)
+	v = p.TConvertResultOwned(trules[199], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -16127,19 +16491,19 @@ fail:
 }
 
 // rule char_class
-func u196(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[196]) {
-		return p.CallMemo(trules[196], i196)
+func u200(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[200]) {
+		return p.CallMemo(trules[200], i200)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i196(p)
+	v, ok := i200(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i196(p *rt.TParser) (any, bool) {
+func i200(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x8, x12, x13, x14, x15, x16, x18, x19, x29 int
 	var v, k1, v5, v9, k10, v20, v23, v25, v26, v27 any
@@ -16150,14 +16514,14 @@ func i196(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.Recovered)
 	x8 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 94) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit155, "^", 81, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit158, "^", 82, false); !ok {
 		goto L6
 	}
 	v9 = p.NewMatch(x8, p.Pos, "^", true)
@@ -16174,14 +16538,14 @@ L7:
 		p.Spend()
 		x15, x16 = p.Pos, len(p.Recovered)
 		x18, x19 = p.Pos, len(p.Recovered)
-		if v23, ok = u197(p); !ok {
+		if v23, ok = u201(p); !ok {
 			goto L22
 		}
 		v20 = v23
 		goto L21
 	L22:
 		p.Restore(x18, x19)
-		if v25, ok = s198(p); !ok {
+		if v25, ok = s202(p); !ok {
 			goto L24
 		}
 		v20 = v25
@@ -16210,7 +16574,7 @@ L7:
 	x28 = p.Isolate(p.Pos)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L31
 	}
 	x29, x30 = p.Unisolate(x28)
@@ -16218,13 +16582,13 @@ L7:
 	goto L32
 L31:
 	x29, x30 = p.Unisolate(x28)
-	p.ExpectBudget(x29, rt.MsgBit|142)
+	p.ExpectBudget(x29, rt.MsgBit|144)
 	goto fail
 L32:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "char_class"
 	{
-		var tr145 any
+		var tr152 any
 		{
 			tv1, tf1 := c.P.TermBinary(rt.OpNe, k1, any(nil))
 			if tf1 != nil {
@@ -16235,9 +16599,9 @@ L32:
 				c.TermRaise(tf2)
 			}
 			tv3 := tmk_CharClass(c, true, tv1, tv2)
-			tr145 = tv3
+			tr152 = tv3
 		}
-		v = tr145
+		v = tr152
 	}
 	return v, true
 fail:
@@ -16245,37 +16609,37 @@ fail:
 }
 
 // rule char_class_rng
-func u197(p *rt.TParser) (any, bool) {
+func u201(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i197(p)
+	v, ok := i201(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i197(p *rt.TParser) (any, bool) {
+func i201(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x5 int
 	var v, k1, v3, k7, v9 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = s198(p); !ok {
+	if v3, ok = s202(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 45) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit172, "-", 89, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit175, "-", 90, false); !ok {
 		goto fail
 	}
 	x4, x5 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(145)
+	p.LookBegin(149)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L6
 	}
 	p.LookEnd(true)
@@ -16286,26 +16650,26 @@ L6:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x4, x5)
-	if v9, ok = s198(p); !ok {
+	if v9, ok = s202(p); !ok {
 		goto fail
 	}
 	k7 = v9
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "char_class_rng"
 	{
-		var tr146 any
+		var tr153 any
 		{
 			tv1 := tmk_CharRng(c, true, k1, k7)
-			tr146 = tv1
+			tr153 = tv1
 		}
-		v = tr146
+		v = tr153
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func s198(p *rt.TParser) (any, bool) {
+func s202(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, size int
 	var v, v11, bv any
@@ -16321,12 +16685,12 @@ func s198(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 92)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 20)
+		p.ExpectBudget(p.Pos, 22)
 		goto L7
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 		goto L8
 	}
 	if p.Pos < len(p.In) {
@@ -16345,7 +16709,7 @@ L8:
 	p.Restore(x2, x3)
 L7:
 	if !(x6 && (!(x5 == 93 || x5 == 92 || x5 == 10))) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 21)
+		p.ExpectBudget(p.Pos, 23)
 		goto L9
 	}
 	if p.Pos < len(p.In) {
@@ -16355,7 +16719,7 @@ L7:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || (ch == 93 || ch == 92 || ch == 10) {
-		p.ExpectBudget(p.Pos, 21)
+		p.ExpectBudget(p.Pos, 23)
 		goto L10
 	}
 	p.Pos += size
@@ -16371,7 +16735,7 @@ L4:
 	if n := rt.AsTval(v); n != nil {
 		n.TSetFresh(false)
 	}
-	v = p.TConvertResultOwned(trules[198], v, bv)
+	v = p.TConvertResultOwned(trules[202], v, bv)
 	return v, true
 fail:
 	p.Restore(start, rec)
@@ -16379,16 +16743,16 @@ fail:
 }
 
 // rule source_head
-func u199(p *rt.TParser) (any, bool) {
+func u203(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i199(p)
+	v, ok := i203(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i199(p *rt.TParser) (any, bool) {
+func i203(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4 int
 	var v, k1, v5, v8, v10 any
@@ -16396,14 +16760,14 @@ func i199(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = u229(p); !ok {
+	if v8, ok = u233(p); !ok {
 		goto L7
 	}
 	v5 = v8
 	goto L6
 L7:
 	p.Restore(x3, x4)
-	if v10, ok = s201(p); !ok {
+	if v10, ok = s205(p); !ok {
 		goto L9
 	}
 	v5 = v10
@@ -16416,7 +16780,7 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_head"
 	{
-		var tr147 any
+		var tr154 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf1 != nil {
@@ -16431,9 +16795,9 @@ L6:
 				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceLead(c, true, tv1, tv2, tv3)
-			tr147 = tv4
+			tr154 = tv4
 		}
-		v = tr147
+		v = tr154
 	}
 	return v, true
 fail:
@@ -16441,19 +16805,19 @@ fail:
 }
 
 // rule source_head_open
-func u200(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[200]) {
-		return p.CallMemo(trules[200], i200)
+func u204(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[204]) {
+		return p.CallMemo(trules[204], i204)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i200(p)
+	v, ok := i204(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i200(p *rt.TParser) (any, bool) {
+func i204(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4 int
 	var v, k1, v5, v8, v10 any
@@ -16461,14 +16825,14 @@ func i200(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = u221(p); !ok {
+	if v8, ok = u225(p); !ok {
 		goto L7
 	}
 	v5 = v8
 	goto L6
 L7:
 	p.Restore(x3, x4)
-	if v10, ok = s201(p); !ok {
+	if v10, ok = s205(p); !ok {
 		goto L9
 	}
 	v5 = v10
@@ -16481,7 +16845,7 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_head_open"
 	{
-		var tr148 any
+		var tr155 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf1 != nil {
@@ -16496,16 +16860,16 @@ L6:
 				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceLead(c, true, tv1, tv2, tv3)
-			tr148 = tv4
+			tr155 = tv4
 		}
-		v = tr148
+		v = tr155
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func s201(p *rt.TParser) (any, bool) {
+func s205(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v any
@@ -16514,7 +16878,7 @@ func s201(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_empty_boundary"
 	{
-		var tr149 any
+		var tr156 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -16523,50 +16887,50 @@ func s201(p *rt.TParser) (any, bool) {
 			tk5 := c.P.Kids(tm4)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_SourceBoundary(c, true, any(tn3), any(""), any(tn6), any(false))
-			tr149 = tv7
+			tr156 = tv7
 		}
-		v = tr149
+		v = tr156
 	}
 	return v, true
 }
 
 // rule source_item_tail
-func u202(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[202]) {
-		return p.CallMemo(trules[202], v202)
+func u206(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[206]) {
+		return p.CallMemo(trules[206], v206)
 	}
-	return v202(p)
+	return v206(p)
 }
 
-func v202(p *rt.TParser) (any, bool) {
+func v206(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8, v10, v12 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u203(p); !ok {
+	if v6, ok = u207(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u204(p); !ok {
+	if v8, ok = u208(p); !ok {
 		goto L7
 	}
 	v3 = v8
 	goto L4
 L7:
 	p.Restore(x1, x2)
-	if v10, ok = u205(p); !ok {
+	if v10, ok = u209(p); !ok {
 		goto L9
 	}
 	v3 = v10
 	goto L4
 L9:
 	p.Restore(x1, x2)
-	if v12, ok = s206(p); !ok {
+	if v12, ok = s210(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -16586,37 +16950,37 @@ fail:
 }
 
 // rule source_tail_after_separator_trailing
-func u203(p *rt.TParser) (any, bool) {
+func u207(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i203(p)
+	v, ok := i207(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i203(p *rt.TParser) (any, bool) {
+func i207(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u212(p); !ok {
+	if v3, ok = u216(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u294(p); !ok {
+	if _, ok = u300(p); !ok {
 		goto fail
 	}
-	if v6, ok = u226(p); !ok {
+	if v6, ok = u230(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_tail_after_separator_trailing"
 	{
-		var tr150 any
+		var tr157 any
 		{
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf2 != nil {
@@ -16657,9 +17021,9 @@ func i203(p *rt.TParser) (any, bool) {
 			}
 			tv12 := tmk_SourceLead(c, false, tv9, tv10, tv11)
 			tv13 := tmk_SourceItem(c, true, tc1, tv12)
-			tr150 = tv13
+			tr157 = tv13
 		}
-		v = tr150
+		v = tr157
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -16668,37 +17032,37 @@ fail:
 }
 
 // rule source_tail_after_separator
-func u204(p *rt.TParser) (any, bool) {
+func u208(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i204(p)
+	v, ok := i208(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i204(p *rt.TParser) (any, bool) {
+func i208(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u212(p); !ok {
+	if v3, ok = u216(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u294(p); !ok {
+	if _, ok = u300(p); !ok {
 		goto fail
 	}
-	if v6, ok = u212(p); !ok {
+	if v6, ok = u216(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_tail_after_separator"
 	{
-		var tr151 any
+		var tr158 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -16718,9 +17082,9 @@ func i204(p *rt.TParser) (any, bool) {
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
-			tr151 = tv6
+			tr158 = tv6
 		}
-		v = tr151
+		v = tr158
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -16729,33 +17093,33 @@ fail:
 }
 
 // rule source_tail_plain
-func u205(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[205]) {
-		return p.CallMemo(trules[205], i205)
+func u209(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[209]) {
+		return p.CallMemo(trules[209], i209)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i205(p)
+	v, ok := i209(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i205(p *rt.TParser) (any, bool) {
+func i209(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u212(p); !ok {
+	if v3, ok = u216(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_tail_plain"
 	{
-		var tr152 any
+		var tr159 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -16775,9 +17139,9 @@ func i205(p *rt.TParser) (any, bool) {
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
-			tr152 = tv6
+			tr159 = tv6
 		}
-		v = tr152
+		v = tr159
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -16785,7 +17149,7 @@ fail:
 	return nil, false
 }
 
-func s206(p *rt.TParser) (any, bool) {
+func s210(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v any
@@ -16794,7 +17158,7 @@ func s206(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_tail_empty"
 	{
-		var tr153 any
+		var tr160 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -16804,43 +17168,43 @@ func s206(p *rt.TParser) (any, bool) {
 			tn6 := c.P.TermHull(c, false, tk5)
 			tv7 := tmk_SourceLead(c, false, any(""), any(tn6), any(false))
 			tv8 := tmk_SourceItem(c, true, any(tn3), tv7)
-			tr153 = tv8
+			tr160 = tv8
 		}
-		v = tr153
+		v = tr160
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
 }
 
-func s209(p *rt.TParser) (any, bool) {
+func s213(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8, v10, v12 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u210(p); !ok {
+	if v6, ok = u214(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u211(p); !ok {
+	if v8, ok = u215(p); !ok {
 		goto L7
 	}
 	v3 = v8
 	goto L4
 L7:
 	p.Restore(x1, x2)
-	if v10, ok = u205(p); !ok {
+	if v10, ok = u209(p); !ok {
 		goto L9
 	}
 	v3 = v10
 	goto L4
 L9:
 	p.Restore(x1, x2)
-	if v12, ok = s206(p); !ok {
+	if v12, ok = s210(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -16860,38 +17224,38 @@ fail:
 }
 
 // rule source_comma_after_separator_trailing
-func u210(p *rt.TParser) (any, bool) {
+func u214(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i210(p)
+	v, ok := i214(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i210(p *rt.TParser) (any, bool) {
+func i214(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u296(p); !ok {
+	if _, ok = u302(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto fail
 	}
-	if v3, ok = u226(p); !ok {
+	if v3, ok = u230(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_comma_after_separator_trailing"
 	{
-		var tr154 any
+		var tr161 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -16911,9 +17275,9 @@ func i210(p *rt.TParser) (any, bool) {
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
-			tr154 = tv6
+			tr161 = tv6
 		}
-		v = tr154
+		v = tr161
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -16922,39 +17286,39 @@ fail:
 }
 
 // rule source_comma_after_separator
-func u211(p *rt.TParser) (any, bool) {
+func u215(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i211(p)
+	v, ok := i215(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i211(p *rt.TParser) (any, bool) {
+func i215(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u212(p); !ok {
+	if v3, ok = u216(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 		goto fail
 	}
-	if v6, ok = u219(p); !ok {
+	if v6, ok = u223(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_comma_after_separator"
 	{
-		var tr155 any
+		var tr162 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -16974,9 +17338,9 @@ func i211(p *rt.TParser) (any, bool) {
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
-			tr155 = tv6
+			tr162 = tv6
 		}
-		v = tr155
+		v = tr162
 	}
 	p.DropCreated(c.Cbase)
 	return v, true
@@ -16985,56 +17349,56 @@ fail:
 }
 
 // rule source_after_boundary
-func u212(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[212]) {
-		return p.CallMemo(trules[212], v212)
+func u216(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[216]) {
+		return p.CallMemo(trules[216], v216)
 	}
-	return v212(p)
+	return v216(p)
 }
 
-func v212(p *rt.TParser) (any, bool) {
+func v216(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8, v10, v12, v14, v16 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u213(p); !ok {
+	if v6, ok = u217(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u214(p); !ok {
+	if v8, ok = u218(p); !ok {
 		goto L7
 	}
 	v3 = v8
 	goto L4
 L7:
 	p.Restore(x1, x2)
-	if v10, ok = u218(p); !ok {
+	if v10, ok = u222(p); !ok {
 		goto L9
 	}
 	v3 = v10
 	goto L4
 L9:
 	p.Restore(x1, x2)
-	if v12, ok = u224(p); !ok {
+	if v12, ok = u228(p); !ok {
 		goto L11
 	}
 	v3 = v12
 	goto L4
 L11:
 	p.Restore(x1, x2)
-	if v14, ok = u225(p); !ok {
+	if v14, ok = u229(p); !ok {
 		goto L13
 	}
 	v3 = v14
 	goto L4
 L13:
 	p.Restore(x1, x2)
-	if v16, ok = u229(p); !ok {
+	if v16, ok = u233(p); !ok {
 		goto L15
 	}
 	v3 = v16
@@ -17054,40 +17418,40 @@ fail:
 }
 
 // rule source_inline_line_boundary
-func u213(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[213]) {
-		return p.CallMemo(trules[213], i213)
+func u217(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[217]) {
+		return p.CallMemo(trules[217], i217)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i213(p)
+	v, ok := i217(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i213(p *rt.TParser) (any, bool) {
+func i217(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u242(p); !ok {
+	if v3, ok = u246(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u229(p); !ok {
+	if v6, ok = u233(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_inline_line_boundary"
 	{
-		var tr156 any
+		var tr163 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -17114,9 +17478,9 @@ func i213(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
-			tr156 = tv9
+			tr163 = tv9
 		}
-		v = tr156
+		v = tr163
 	}
 	return v, true
 fail:
@@ -17124,19 +17488,19 @@ fail:
 }
 
 // rule source_inline_run_boundary
-func u214(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[214]) {
-		return p.CallMemo(trules[214], i214)
+func u218(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[218]) {
+		return p.CallMemo(trules[218], i218)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i214(p)
+	v, ok := i218(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i214(p *rt.TParser) (any, bool) {
+func i218(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x5, x6, x7, x10 int
 	var v, k1, k8, v13, v14, v15, v16, v17, k18, v20, k21, v23 any
@@ -17152,17 +17516,17 @@ func i214(p *rt.TParser) (any, bool) {
 		k8 = nil
 		x10 = p.Pos
 		x11 = p.NewVals(1)[:0]
-		if _, ok = u297(p); !ok {
+		if _, ok = u303(p); !ok {
 			goto L9
 		}
-		if v13, ok = u243(p); !ok {
+		if v13, ok = u247(p); !ok {
 			goto L9
 		}
 		k8 = v13
 		x11 = append(x11, v13)
 		v14 = p.NewNode("tuple", x10, p.Pos, x11)
 		v15 = p.ScopeValue(sh9, v14, x6)
-		v16 = p.AttachCaptures(v15, scope429, []any{k8}, x6, p.Pos)
+		v16 = p.AttachCaptures(v15, scope435, []any{k8}, x6, p.Pos)
 		x5++
 		p.PushKid(v16)
 		if p.Pos == x6 {
@@ -17179,18 +17543,18 @@ func i214(p *rt.TParser) (any, bool) {
 	}
 	v17 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
 	k1 = v17
-	if v20, ok = s215(p); !ok {
+	if v20, ok = s219(p); !ok {
 		goto fail
 	}
 	k18 = v20
-	if v23, ok = u229(p); !ok {
+	if v23, ok = u233(p); !ok {
 		goto fail
 	}
 	k21 = v23
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_inline_run_boundary"
 	{
-		var tr157 any
+		var tr164 any
 		{
 			tm2 := len(c.P.KidStack)
 			ti3, tf3 := c.P.TermItems("map", k1)
@@ -17247,30 +17611,30 @@ func i214(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf20)
 			}
 			tv21 := tmk_SourceBoundary(c, true, tc1, tv18, tv19, tv20)
-			tr157 = tv21
+			tr164 = tv21
 		}
-		v = tr157
+		v = tr164
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func s215(p *rt.TParser) (any, bool) {
+func s219(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u216(p); !ok {
+	if v6, ok = u220(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = s217(p); !ok {
+	if v8, ok = s221(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -17290,33 +17654,33 @@ fail:
 }
 
 // rule source_run_line
-func u216(p *rt.TParser) (any, bool) {
+func u220(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i216(p)
+	v, ok := i220(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i216(p *rt.TParser) (any, bool) {
+func i220(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u242(p); !ok {
+	if v3, ok = u246(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_run_line"
 	{
-		var tr158 any
+		var tr165 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -17330,9 +17694,9 @@ func i216(p *rt.TParser) (any, bool) {
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
-			tr158 = any(tn5)
+			tr165 = any(tn5)
 		}
-		v = tr158
+		v = tr165
 	}
 	v = c.Finish(v)
 	return v, true
@@ -17340,7 +17704,7 @@ fail:
 	return nil, false
 }
 
-func s217(p *rt.TParser) (any, bool) {
+func s221(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x4, x5 int
 	var v any
@@ -17349,18 +17713,18 @@ func s217(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(146)
-	if _, ok = u297(p); !ok {
+	p.LookBegin(150)
+	if _, ok = u303(p); !ok {
 		goto L2
 	}
 	x4, x5 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L7
 	}
 	goto L6
 L7:
 	p.Restore(x4, x5)
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L8
 	}
 	goto L6
@@ -17381,14 +17745,14 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_run_end"
 	{
-		var tr159 any
+		var tr166 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
 			tn3 := c.P.TermHull(c, false, tk2)
-			tr159 = any(tn3)
+			tr166 = any(tn3)
 		}
-		v = tr159
+		v = tr166
 	}
 	v = c.Finish(v)
 	return v, true
@@ -17398,52 +17762,52 @@ fail:
 }
 
 // rule source_inline_block_boundary
-func u218(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[218]) {
-		return p.CallMemo(trules[218], i218)
+func u222(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[222]) {
+		return p.CallMemo(trules[222], i222)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i218(p)
+	v, ok := i222(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i218(p *rt.TParser) (any, bool) {
+func i222(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4, x7, x8 int
 	var v, k1, v3, k13, v15 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u243(p); !ok {
+	if v3, ok = u247(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	x4 = p.Pos
 	p.Silent++
-	p.LookBegin(147)
-	if _, ok = u297(p); !ok {
+	p.LookBegin(151)
+	if _, ok = u303(p); !ok {
 		goto L5
 	}
 	x7, x8 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L10
 	}
 	goto L9
 L10:
 	p.Restore(x7, x8)
-	if _, ok = s300(p); !ok {
+	if _, ok = s306(p); !ok {
 		goto L11
 	}
 	goto L9
 L11:
 	p.Restore(x7, x8)
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L12
 	}
 	goto L9
@@ -17461,14 +17825,14 @@ L5:
 	p.Pos = x4
 	goto fail
 L6:
-	if v15, ok = u229(p); !ok {
+	if v15, ok = u233(p); !ok {
 		goto fail
 	}
 	k13 = v15
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_inline_block_boundary"
 	{
-		var tr160 any
+		var tr167 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -17495,9 +17859,9 @@ L6:
 				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
-			tr160 = tv9
+			tr167 = tv9
 		}
-		v = tr160
+		v = tr167
 	}
 	return v, true
 fail:
@@ -17505,56 +17869,56 @@ fail:
 }
 
 // rule source_after_opener_boundary
-func u219(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[219]) {
-		return p.CallMemo(trules[219], v219)
+func u223(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[223]) {
+		return p.CallMemo(trules[223], v223)
 	}
-	return v219(p)
+	return v223(p)
 }
 
-func v219(p *rt.TParser) (any, bool) {
+func v223(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8, v10, v12, v14, v16 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u213(p); !ok {
+	if v6, ok = u217(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u214(p); !ok {
+	if v8, ok = u218(p); !ok {
 		goto L7
 	}
 	v3 = v8
 	goto L4
 L7:
 	p.Restore(x1, x2)
-	if v10, ok = u218(p); !ok {
+	if v10, ok = u222(p); !ok {
 		goto L9
 	}
 	v3 = v10
 	goto L4
 L9:
 	p.Restore(x1, x2)
-	if v12, ok = u220(p); !ok {
+	if v12, ok = u224(p); !ok {
 		goto L11
 	}
 	v3 = v12
 	goto L4
 L11:
 	p.Restore(x1, x2)
-	if v14, ok = u225(p); !ok {
+	if v14, ok = u229(p); !ok {
 		goto L13
 	}
 	v3 = v14
 	goto L4
 L13:
 	p.Restore(x1, x2)
-	if v16, ok = u229(p); !ok {
+	if v16, ok = u233(p); !ok {
 		goto L15
 	}
 	v3 = v16
@@ -17574,36 +17938,36 @@ fail:
 }
 
 // rule source_opener_block_boundary
-func u220(p *rt.TParser) (any, bool) {
+func u224(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i220(p)
+	v, ok := i224(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i220(p *rt.TParser) (any, bool) {
+func i224(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4 int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u243(p); !ok {
+	if v3, ok = u247(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
 	x4 = p.Pos
 	p.Silent++
-	p.LookBegin(148)
-	if _, ok = u301(p); !ok {
+	p.LookBegin(152)
+	if _, ok = u307(p); !ok {
 		goto L5
 	}
 	p.LookEnd(true)
@@ -17619,7 +17983,7 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_opener_block_boundary"
 	{
-		var tr161 any
+		var tr168 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -17632,9 +17996,9 @@ L6:
 			tk6 := c.P.Kids(tm5)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_SourceBoundary(c, true, any(tn3), tv4, any(tn7), any(true))
-			tr161 = tv8
+			tr168 = tv8
 		}
-		v = tr161
+		v = tr168
 	}
 	return v, true
 fail:
@@ -17642,28 +18006,28 @@ fail:
 }
 
 // rule source_after_delimiter_boundary
-func u221(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[221]) {
-		return p.CallMemo(trules[221], v221)
+func u225(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[225]) {
+		return p.CallMemo(trules[225], v225)
 	}
-	return v221(p)
+	return v225(p)
 }
 
-func v221(p *rt.TParser) (any, bool) {
+func v225(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u222(p); !ok {
+	if v6, ok = u226(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u229(p); !ok {
+	if v8, ok = u233(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -17683,16 +18047,16 @@ fail:
 }
 
 // rule source_delimiter_scope_boundary
-func u222(p *rt.TParser) (any, bool) {
+func u226(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i222(p)
+	v, ok := i226(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i222(p *rt.TParser) (any, bool) {
+func i226(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1 int
 	var v, k4, v6 any
@@ -17701,8 +18065,8 @@ func i222(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(149)
-	if _, ok = s302(p); !ok {
+	p.LookBegin(153)
+	if _, ok = s308(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -17715,18 +18079,18 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if v6, ok = u219(p); !ok {
+	if v6, ok = u223(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_delimiter_scope_boundary"
 	{
-		var tr162 any
+		var tr169 any
 		{
-			tr162 = k4
+			tr169 = k4
 		}
-		v = tr162
+		v = tr169
 	}
 	v = c.Finish(v)
 	return v, true
@@ -17735,36 +18099,36 @@ fail:
 }
 
 // rule source_ambiguous_block_boundary
-func u224(p *rt.TParser) (any, bool) {
+func u228(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i224(p)
+	v, ok := i228(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i224(p *rt.TParser) (any, bool) {
+func i228(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x4 int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u243(p); !ok {
+	if v3, ok = u247(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
 	x4 = p.Pos
 	p.Silent++
-	p.LookBegin(150)
-	if _, ok = u301(p); !ok {
+	p.LookBegin(154)
+	if _, ok = u307(p); !ok {
 		goto L5
 	}
 	p.LookEnd(true)
@@ -17780,7 +18144,7 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_ambiguous_block_boundary"
 	{
-		var tr163 any
+		var tr170 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -17794,9 +18158,9 @@ L6:
 			tk6 := c.P.Kids(tm4)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tv8 := tmk_SourceBoundary(c, true, any(tn3), any(""), any(tn7), any(true))
-			tr163 = tv8
+			tr170 = tv8
 		}
-		v = tr163
+		v = tr170
 	}
 	return v, true
 fail:
@@ -17804,46 +18168,46 @@ fail:
 }
 
 // rule source_newline_boundary
-func u225(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[225]) {
-		return p.CallMemo(trules[225], i225)
+func u229(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[229]) {
+		return p.CallMemo(trules[229], i229)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i225(p)
+	v, ok := i229(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i225(p *rt.TParser) (any, bool) {
+func i229(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto fail
 	}
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u228(p); !ok {
+	if v3, ok = u232(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u229(p); !ok {
+	if v6, ok = u233(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_newline_boundary"
 	{
-		var tr164 any
+		var tr171 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -17870,9 +18234,9 @@ func i225(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
-			tr164 = tv9
+			tr171 = tv9
 		}
-		v = tr164
+		v = tr171
 	}
 	return v, true
 fail:
@@ -17880,42 +18244,42 @@ fail:
 }
 
 // rule source_after_boundary_trailing
-func u226(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[226]) {
-		return p.CallMemo(trules[226], v226)
+func u230(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[230]) {
+		return p.CallMemo(trules[230], v230)
 	}
-	return v226(p)
+	return v230(p)
 }
 
-func v226(p *rt.TParser) (any, bool) {
+func v230(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8, v10, v12 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u213(p); !ok {
+	if v6, ok = u217(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u214(p); !ok {
+	if v8, ok = u218(p); !ok {
 		goto L7
 	}
 	v3 = v8
 	goto L4
 L7:
 	p.Restore(x1, x2)
-	if v10, ok = u218(p); !ok {
+	if v10, ok = u222(p); !ok {
 		goto L9
 	}
 	v3 = v10
 	goto L4
 L9:
 	p.Restore(x1, x2)
-	if v12, ok = u227(p); !ok {
+	if v12, ok = u231(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -17935,43 +18299,43 @@ fail:
 }
 
 // rule source_newline_trailing_boundary
-func u227(p *rt.TParser) (any, bool) {
+func u231(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i227(p)
+	v, ok := i231(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i227(p *rt.TParser) (any, bool) {
+func i231(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3, k4, v6 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto fail
 	}
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
-	if v3, ok = u228(p); !ok {
+	if v3, ok = u232(p); !ok {
 		goto fail
 	}
 	k1 = v3
-	if v6, ok = u229(p); !ok {
+	if v6, ok = u233(p); !ok {
 		goto fail
 	}
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_newline_trailing_boundary"
 	{
-		var tr165 any
+		var tr172 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -17998,9 +18362,9 @@ func i227(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
-			tr165 = tv9
+			tr172 = tv9
 		}
-		v = tr165
+		v = tr172
 	}
 	return v, true
 fail:
@@ -18008,19 +18372,19 @@ fail:
 }
 
 // rule source_first_trailing
-func u228(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[228]) {
-		return p.CallMemo(trules[228], i228)
+func u232(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[232]) {
+		return p.CallMemo(trules[232], i232)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i228(p)
+	v, ok := i232(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i228(p *rt.TParser) (any, bool) {
+func i232(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2, x12, x19 int
 	var v, k3, x4, v11, v18 any
@@ -18037,17 +18401,17 @@ func i228(p *rt.TParser) (any, bool) {
 		x6, _, x7 = p.Peek()
 	}
 	if !(x7 && (x6 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L8
 	}
-	if v11, ok = u241(p); !ok {
+	if v11, ok = u245(p); !ok {
 		goto L9
 	}
 	k3 = v11
 	x12 = p.Pos
 	p.Silent++
-	p.LookBegin(151)
-	if _, ok = u304(p); !ok {
+	p.LookBegin(155)
+	if _, ok = u310(p); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -18066,17 +18430,17 @@ L9:
 	k3 = x4
 L8:
 	if !(x7 && (x6 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L15
 	}
-	if v18, ok = u243(p); !ok {
+	if v18, ok = u247(p); !ok {
 		goto L16
 	}
 	k3 = v18
 	x19 = p.Pos
 	p.Silent++
-	p.LookBegin(152)
-	if _, ok = u305(p); !ok {
+	p.LookBegin(156)
+	if _, ok = u311(p); !ok {
 		goto L20
 	}
 	p.LookEnd(true)
@@ -18099,11 +18463,11 @@ L5:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_first_trailing"
 	{
-		var tr166 any
+		var tr173 any
 		{
-			tr166 = k3
+			tr173 = k3
 		}
-		v = tr166
+		v = tr173
 	}
 	v = c.Finish(v)
 	return v, true
@@ -18112,28 +18476,28 @@ fail:
 }
 
 // rule source_remaining
-func u229(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[229]) {
-		return p.CallMemo(trules[229], v229)
+func u233(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[233]) {
+		return p.CallMemo(trules[233], v233)
 	}
-	return v229(p)
+	return v233(p)
 }
 
-func v229(p *rt.TParser) (any, bool) {
+func v233(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v6, v8 any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if v6, ok = u230(p); !ok {
+	if v6, ok = u234(p); !ok {
 		goto L5
 	}
 	v3 = v6
 	goto L4
 L5:
 	p.Restore(x1, x2)
-	if v8, ok = u231(p); !ok {
+	if v8, ok = u235(p); !ok {
 		goto L7
 	}
 	v3 = v8
@@ -18153,16 +18517,16 @@ fail:
 }
 
 // rule source_scope_tail
-func u230(p *rt.TParser) (any, bool) {
+func u234(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i230(p)
+	v, ok := i234(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i230(p *rt.TParser) (any, bool) {
+func i234(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x6, x7, x9, x10, x16, x17, x20 int
 	var v, k5, k11, v14, v19 any
@@ -18172,7 +18536,7 @@ func i230(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -18188,14 +18552,14 @@ func i230(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x9, x10 = p.Pos, len(p.Recovered)
 		k11 = nil
-		if v14, ok = u240(p); !ok {
+		if v14, ok = u244(p); !ok {
 			goto L12
 		}
 		k11 = v14
 		for {
 			p.Spend()
 			x16, x17 = p.Pos, len(p.Recovered)
-			if _, ok = u303(p); !ok {
+			if _, ok = u309(p); !ok {
 				goto L18
 			}
 			if p.Pos == x16 {
@@ -18219,8 +18583,8 @@ func i230(p *rt.TParser) (any, bool) {
 	k5 = v19
 	x20 = p.Pos
 	p.Silent++
-	p.LookBegin(153)
-	if _, ok = s299(p); !ok {
+	p.LookBegin(157)
+	if _, ok = s305(p); !ok {
 		goto L21
 	}
 	p.LookEnd(true)
@@ -18236,7 +18600,7 @@ L22:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_scope_tail"
 	{
-		var tr167 any
+		var tr174 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -18247,9 +18611,9 @@ L22:
 			}
 			tv5 := (c.NewList(ti4))
 			tv6 := tmk_SourceBoundary(c, true, any(tn3), any(""), tv5, any(false))
-			tr167 = tv6
+			tr174 = tv6
 		}
-		v = tr167
+		v = tr174
 	}
 	return v, true
 fail:
@@ -18257,16 +18621,16 @@ fail:
 }
 
 // rule source_next_boundary
-func u231(p *rt.TParser) (any, bool) {
+func u235(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i231(p)
+	v, ok := i235(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i231(p *rt.TParser) (any, bool) {
+func i235(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x2, x3, x7, x8, x10, x11, x14, x19, x20, x28, x29, x37, x38, x40 int
 	var v, k5, k12, v17, v22, v23, v24, v25, k26, v30, v33, v35 any
@@ -18277,7 +18641,7 @@ func i231(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -18295,7 +18659,7 @@ func i231(p *rt.TParser) (any, bool) {
 		k12 = nil
 		x14 = p.Pos
 		x15 = p.NewVals(1)[:0]
-		if v17, ok = u233(p); !ok {
+		if v17, ok = u237(p); !ok {
 			goto L13
 		}
 		k12 = v17
@@ -18303,7 +18667,7 @@ func i231(p *rt.TParser) (any, bool) {
 		for {
 			p.Spend()
 			x19, x20 = p.Pos, len(p.Recovered)
-			if _, ok = u303(p); !ok {
+			if _, ok = u309(p); !ok {
 				goto L21
 			}
 			if p.Pos == x19 {
@@ -18316,7 +18680,7 @@ func i231(p *rt.TParser) (any, bool) {
 		}
 		v22 = p.NewNode("tuple", x14, p.Pos, x15)
 		v23 = p.ScopeValue(sh9, v22, x10)
-		v24 = p.AttachCaptures(v23, scope430, []any{k12}, x10, p.Pos)
+		v24 = p.AttachCaptures(v23, scope436, []any{k12}, x10, p.Pos)
 		p.PushKid(v24)
 		if p.Pos == x10 {
 			break
@@ -18329,14 +18693,14 @@ func i231(p *rt.TParser) (any, bool) {
 	v25 = p.NewNode("list", x7, p.Pos, p.Kids(x8))
 	k5 = v25
 	x28, x29 = p.Pos, len(p.Recovered)
-	if v33, ok = u234(p); !ok {
+	if v33, ok = u238(p); !ok {
 		goto L32
 	}
 	v30 = v33
 	goto L31
 L32:
 	p.Restore(x28, x29)
-	if v35, ok = s232(p); !ok {
+	if v35, ok = s236(p); !ok {
 		goto L34
 	}
 	v30 = v35
@@ -18349,7 +18713,7 @@ L31:
 	for {
 		p.Spend()
 		x37, x38 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L39
 		}
 		if p.Pos == x37 {
@@ -18362,8 +18726,8 @@ L31:
 	}
 	x40 = p.Pos
 	p.Silent++
-	p.LookBegin(154)
-	if _, ok = u301(p); !ok {
+	p.LookBegin(158)
+	if _, ok = u307(p); !ok {
 		goto L41
 	}
 	p.LookEnd(true)
@@ -18379,7 +18743,7 @@ L42:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_next_boundary"
 	{
-		var tr168 any
+		var tr175 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -18410,16 +18774,16 @@ L42:
 			tk13 := c.P.Kids(tm5)
 			tn14 := c.P.TermHull(c, false, tk13)
 			tv15 := tmk_SourceBoundary(c, true, any(tn3), tv4, any(tn14), any(true))
-			tr168 = tv15
+			tr175 = tv15
 		}
-		v = tr168
+		v = tr175
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func s232(p *rt.TParser) (any, bool) {
+func s236(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v any
@@ -18428,27 +18792,27 @@ func s232(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_empty_comment"
 	{
-		var tr169 any
+		var tr176 any
 		{
 			tv1 := tmk_SourceComment(c, true, any(""))
-			tr169 = tv1
+			tr176 = tv1
 		}
-		v = tr169
+		v = tr176
 	}
 	return v, true
 }
 
 // rule source_detached_group
-func u233(p *rt.TParser) (any, bool) {
+func u237(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i233(p)
+	v, ok := i237(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i233(p *rt.TParser) (any, bool) {
+func i237(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x2, x12, x19 int
 	var v, k3, x4, v11, v18 any
@@ -18465,17 +18829,17 @@ func i233(p *rt.TParser) (any, bool) {
 		x6, _, x7 = p.Peek()
 	}
 	if !(x7 && (x6 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L8
 	}
-	if v11, ok = u241(p); !ok {
+	if v11, ok = u245(p); !ok {
 		goto L9
 	}
 	k3 = v11
 	x12 = p.Pos
 	p.Silent++
-	p.LookBegin(155)
-	if _, ok = u304(p); !ok {
+	p.LookBegin(159)
+	if _, ok = u310(p); !ok {
 		goto L13
 	}
 	p.LookEnd(true)
@@ -18494,17 +18858,17 @@ L9:
 	k3 = x4
 L8:
 	if !(x7 && (x6 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L15
 	}
-	if v18, ok = u243(p); !ok {
+	if v18, ok = u247(p); !ok {
 		goto L16
 	}
 	k3 = v18
 	x19 = p.Pos
 	p.Silent++
-	p.LookBegin(156)
-	if _, ok = u305(p); !ok {
+	p.LookBegin(160)
+	if _, ok = u311(p); !ok {
 		goto L20
 	}
 	p.LookEnd(true)
@@ -18527,11 +18891,11 @@ L5:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_detached_group"
 	{
-		var tr170 any
+		var tr177 any
 		{
-			tr170 = k3
+			tr177 = k3
 		}
-		v = tr170
+		v = tr177
 	}
 	v = c.Finish(v)
 	return v, true
@@ -18540,30 +18904,30 @@ fail:
 }
 
 // rule source_leading_group
-func u234(p *rt.TParser) (any, bool) {
+func u238(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i234(p)
+	v, ok := i238(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i234(p *rt.TParser) (any, bool) {
+func i238(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x5, x6, x8 int
 	var v, k1, v3 any
 	var c *rt.TActCtx
 	var ok bool
 	start = p.Pos
-	if v3, ok = u240(p); !ok {
+	if v3, ok = u244(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	for {
 		p.Spend()
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L7
 		}
 		if p.Pos == x5 {
@@ -18576,8 +18940,8 @@ func i234(p *rt.TParser) (any, bool) {
 	}
 	x8 = p.Pos
 	p.Silent++
-	p.LookBegin(157)
-	if _, ok = u301(p); !ok {
+	p.LookBegin(161)
+	if _, ok = u307(p); !ok {
 		goto L9
 	}
 	p.LookEnd(true)
@@ -18593,11 +18957,11 @@ L10:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_leading_group"
 	{
-		var tr171 any
+		var tr178 any
 		{
-			tr171 = k1
+			tr178 = k1
 		}
-		v = tr171
+		v = tr178
 	}
 	v = c.Finish(v)
 	return v, true
@@ -18606,14 +18970,14 @@ fail:
 }
 
 // rule source_comment
-func u240(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[240]) {
-		return p.CallMemo(trules[240], v240)
+func u244(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[244]) {
+		return p.CallMemo(trules[244], v244)
 	}
-	return v240(p)
+	return v244(p)
 }
 
-func v240(p *rt.TParser) (any, bool) {
+func v244(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v12 any
@@ -18628,10 +18992,10 @@ func v240(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L7
 	}
-	if v9, ok = u241(p); !ok {
+	if v9, ok = u245(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -18640,10 +19004,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L10
 	}
-	if v12, ok = u243(p); !ok {
+	if v12, ok = u247(p); !ok {
 		goto L11
 	}
 	v3 = v12
@@ -18664,19 +19028,19 @@ fail:
 }
 
 // rule source_line_group
-func u241(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[241]) {
-		return p.CallMemo(trules[241], i241)
+func u245(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[245]) {
+		return p.CallMemo(trules[245], i245)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i241(p)
+	v, ok := i245(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i241(p *rt.TParser) (any, bool) {
+func i245(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x6, x7, x9, x10, x13 int
 	var v, k1, v3, k4, k11, v16, v17, v18, v19, v20 any
@@ -18684,7 +19048,7 @@ func i241(p *rt.TParser) (any, bool) {
 	var ok bool
 	var x14 []any
 	start = p.Pos
-	if v3, ok = u242(p); !ok {
+	if v3, ok = u246(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -18695,17 +19059,17 @@ func i241(p *rt.TParser) (any, bool) {
 		k11 = nil
 		x13 = p.Pos
 		x14 = p.NewVals(1)[:0]
-		if _, ok = u297(p); !ok {
+		if _, ok = u303(p); !ok {
 			goto L12
 		}
-		if v16, ok = u242(p); !ok {
+		if v16, ok = u246(p); !ok {
 			goto L12
 		}
 		k11 = v16
 		x14 = append(x14, v16)
 		v17 = p.NewNode("tuple", x13, p.Pos, x14)
 		v18 = p.ScopeValue(sh9, v17, x9)
-		v19 = p.AttachCaptures(v18, scope431, []any{k11}, x9, p.Pos)
+		v19 = p.AttachCaptures(v18, scope437, []any{k11}, x9, p.Pos)
 		p.PushKid(v19)
 		if p.Pos == x9 {
 			break
@@ -18720,7 +19084,7 @@ func i241(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_line_group"
 	{
-		var tr172 any
+		var tr179 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -18752,9 +19116,9 @@ func i241(p *rt.TParser) (any, bool) {
 				ta3 = tv8
 			}
 			tv12 := tmk_SourceComment(c, true, ta3)
-			tr172 = tv12
+			tr179 = tv12
 		}
-		v = tr172
+		v = tr179
 	}
 	return v, true
 fail:
@@ -18762,19 +19126,19 @@ fail:
 }
 
 // rule source_line_comment
-func u242(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[242]) {
-		return p.CallMemo(trules[242], i242)
+func u246(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[246]) {
+		return p.CallMemo(trules[246], i246)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i242(p)
+	v, ok := i246(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i242(p *rt.TParser) (any, bool) {
+func i246(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x6, x7, size, x9, x15, x16 int
 	var v, k1, v10, v11, v12, k13, v17, v20 any
@@ -18784,7 +19148,7 @@ func i242(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 		goto fail
 	}
 	x3, x4 = p.Pos, len(p.KidStack)
@@ -18798,7 +19162,7 @@ func i242(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 13 || ch == 10) {
-			p.ExpectBudget(p.Pos, 143)
+			p.ExpectBudget(p.Pos, 145)
 			goto L8
 		}
 		x9 = p.Pos
@@ -18817,7 +19181,7 @@ func i242(p *rt.TParser) (any, bool) {
 	v12 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
 	k1 = v12
 	x15, x16 = p.Pos, len(p.Recovered)
-	if v20, ok = s249(p); !ok {
+	if v20, ok = s253(p); !ok {
 		goto L18
 	}
 	v17 = v20
@@ -18830,7 +19194,7 @@ L19:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_line_comment"
 	{
-		var tr173 any
+		var tr180 any
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
@@ -18845,9 +19209,9 @@ L19:
 				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceComment(c, true, tv3)
-			tr173 = tv4
+			tr180 = tv4
 		}
-		v = tr173
+		v = tr180
 	}
 	return v, true
 fail:
@@ -18855,19 +19219,19 @@ fail:
 }
 
 // rule source_block_comment
-func u243(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[243]) {
-		return p.CallMemo(trules[243], i243)
+func u247(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[247]) {
+		return p.CallMemo(trules[247], i247)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i243(p)
+	v, ok := i247(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i243(p *rt.TParser) (any, bool) {
+func i247(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x6, x7, x9, x10, x14, x18, x19 int
 	var v, k1, v3, k4, k11, k12, v17, v23, v24, v25, v26, v27 any
@@ -18878,10 +19242,10 @@ func i243(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto fail
 	}
-	if v3, ok = u245(p); !ok {
+	if v3, ok = u249(p); !ok {
 		goto fail
 	}
 	k1 = v3
@@ -18893,30 +19257,30 @@ func i243(p *rt.TParser) (any, bool) {
 		k12 = nil
 		x14 = p.Pos
 		x15 = p.NewVals(2)[:0]
-		if v17, ok = s249(p); !ok {
+		if v17, ok = s253(p); !ok {
 			goto L13
 		}
 		k11 = v17
 		x15 = append(x15, v17)
-		if _, ok = u297(p); !ok {
+		if _, ok = u303(p); !ok {
 			goto L13
 		}
 		x18, x19 = p.Pos, len(p.Recovered)
-		if _, ok = s306(p); !ok {
+		if _, ok = s312(p); !ok {
 			goto L20
 		}
 		goto L21
 	L20:
 		p.Restore(x18, x19)
 	L21:
-		if v23, ok = u245(p); !ok {
+		if v23, ok = u249(p); !ok {
 			goto L13
 		}
 		k12 = v23
 		x15 = append(x15, v23)
 		v24 = p.NewNode("tuple", x14, p.Pos, x15)
 		v25 = p.ScopeValue(sh10, v24, x9)
-		v26 = p.AttachCaptures(v25, scope432, []any{k11, k12}, x9, p.Pos)
+		v26 = p.AttachCaptures(v25, scope438, []any{k11, k12}, x9, p.Pos)
 		p.PushKid(v26)
 		if p.Pos == x9 {
 			break
@@ -18930,13 +19294,13 @@ func i243(p *rt.TParser) (any, bool) {
 	k4 = v27
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_block_comment"
 	{
-		var tr174 any
+		var tr181 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -18980,9 +19344,9 @@ func i243(p *rt.TParser) (any, bool) {
 				ta3 = tv8
 			}
 			tv15 := tmk_SourceComment(c, true, ta3)
-			tr174 = tv15
+			tr181 = tv15
 		}
-		v = tr174
+		v = tr181
 	}
 	p.Depth--
 	return v, true
@@ -18992,19 +19356,19 @@ fail:
 }
 
 // rule source_block_line
-func u245(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[245]) {
-		return p.CallMemo(trules[245], i245)
+func u249(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[249]) {
+		return p.CallMemo(trules[249], i249)
 	}
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i245(p)
+	v, ok := i249(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i245(p *rt.TParser) (any, bool) {
+func i249(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x6, x7 int
 	var v, k1, k8, v11, v12, v13, v14 any
@@ -19017,12 +19381,12 @@ func i245(p *rt.TParser) (any, bool) {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
 		k8 = nil
-		if v11, ok = s246(p); !ok {
+		if v11, ok = s250(p); !ok {
 			goto L9
 		}
 		k8 = v11
 		v12 = p.ScopeValue(sh4, v11, x6)
-		v13 = p.AttachCaptures(v12, scope433, []any{k8}, x6, p.Pos)
+		v13 = p.AttachCaptures(v12, scope439, []any{k8}, x6, p.Pos)
 		p.PushKid(v13)
 		if p.Pos == x6 {
 			break
@@ -19037,7 +19401,7 @@ func i245(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_block_line"
 	{
-		var tr175 any
+		var tr182 any
 		{
 			ti1, tf1 := c.P.TermItems("foldl", k1)
 			if tf1 != nil {
@@ -19065,15 +19429,15 @@ func i245(p *rt.TParser) (any, bool) {
 				ta2 = tv7
 			}
 			tv11 := tmk_SourceComment(c, true, ta2)
-			tr175 = tv11
+			tr182 = tv11
 		}
-		v = tr175
+		v = tr182
 	}
 	p.Depth--
 	return v, true
 }
 
-func s246(p *rt.TParser) (any, bool) {
+func s250(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v, v3, v9, v11 any
@@ -19089,10 +19453,10 @@ func s246(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth+2 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L7
 	}
-	if v9, ok = u247(p); !ok {
+	if v9, ok = u251(p); !ok {
 		goto L8
 	}
 	v3 = v9
@@ -19100,7 +19464,7 @@ func s246(p *rt.TParser) (any, bool) {
 L8:
 	p.Restore(x1, x2)
 L7:
-	if v11, ok = u248(p); !ok {
+	if v11, ok = u252(p); !ok {
 		goto L10
 	}
 	v3 = v11
@@ -19122,16 +19486,16 @@ fail:
 }
 
 // rule source_nested_piece
-func u247(p *rt.TParser) (any, bool) {
+func u251(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i247(p)
+	v, ok := i251(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i247(p *rt.TParser) (any, bool) {
+func i251(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start int
 	var v, k1, v3 any
@@ -19139,14 +19503,14 @@ func i247(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	p.Enter()
-	if v3, ok = u243(p); !ok {
+	if v3, ok = u247(p); !ok {
 		goto fail
 	}
 	k1 = v3
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_nested_piece"
 	{
-		var tr176 any
+		var tr183 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
@@ -19161,9 +19525,9 @@ func i247(p *rt.TParser) (any, bool) {
 				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceComment(c, true, tv3)
-			tr176 = tv4
+			tr183 = tv4
 		}
-		v = tr176
+		v = tr183
 	}
 	p.Depth--
 	return v, true
@@ -19173,16 +19537,16 @@ fail:
 }
 
 // rule source_character_piece
-func u248(p *rt.TParser) (any, bool) {
+func u252(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i248(p)
+	v, ok := i252(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i248(p *rt.TParser) (any, bool) {
+func i252(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x5, x7, x8, size int
 	var v, k1, v17 any
@@ -19193,9 +19557,9 @@ func i248(p *rt.TParser) (any, bool) {
 	x3 = p.Pos
 	x4, x5 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(160)
+	p.LookBegin(164)
 	x7, x8 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L10
 	}
 	goto L9
@@ -19208,12 +19572,12 @@ L10:
 		x11, _, x12 = p.Peek()
 	}
 	if !(x12 && (x11 == 42)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 140)
+		p.ExpectBudget(p.Pos, 141)
 		goto L13
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 42 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit286, "*/", 140, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit288, "*/", 141, false); !ok {
 		goto L14
 	}
 	goto L9
@@ -19221,12 +19585,12 @@ L14:
 	p.Restore(x7, x8)
 L13:
 	if !(x12 && (x11 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L15
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto L16
 	}
 	goto L9
@@ -19259,23 +19623,23 @@ L6:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_character_piece"
 	{
-		var tr177 any
+		var tr184 any
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
 				c.TermRaise(tf1)
 			}
 			tv2 := tmk_SourceComment(c, true, any(ts1))
-			tr177 = tv2
+			tr184 = tv2
 		}
-		v = tr177
+		v = tr184
 	}
 	return v, true
 fail:
 	return nil, false
 }
 
-func s249(p *rt.TParser) (any, bool) {
+func s253(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x9, size, x13 int
 	var v, v3, v10, v14 any
@@ -19290,13 +19654,13 @@ func s249(p *rt.TParser) (any, bool) {
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 13)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 136)
+		p.ExpectBudget(p.Pos, 137)
 		goto L7
 	}
 	x9 = p.Pos
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 13 && p.In[p.Pos+1] == 10) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit271, "\r\n", 136, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit274, "\r\n", 137, false); !ok {
 		goto L8
 	}
 	v10 = p.NewMatch(x9, p.Pos, "\r\n", true)
@@ -19306,7 +19670,7 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 13 || x5 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L11
 	}
 	if p.Pos < len(p.In) {
@@ -19316,7 +19680,7 @@ L7:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch == 13 || ch == 10) {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L12
 	}
 	x13 = p.Pos
@@ -19340,16 +19704,16 @@ fail:
 }
 
 // rule source_gaps
-func u253(p *rt.TParser) (any, bool) {
+func u257(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i253(p)
+	v, ok := i257(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i253(p *rt.TParser) (any, bool) {
+func i257(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x3, x4, x10, x11, x15, x16, x18, x19, x22, x24, x25, x30, x40, x50, x51 int
 	var v, k1, v5, v8, k13, k20, x26, v27, v33, v34, v35, v43, v44, v45, v48, v53, v54, v55, v56 any
@@ -19359,7 +19723,7 @@ func i253(p *rt.TParser) (any, bool) {
 	var x36 rune
 	start = p.Pos
 	x3, x4 = p.Pos, len(p.Recovered)
-	if v8, ok = u260(p); !ok {
+	if v8, ok = u264(p); !ok {
 		goto L6
 	}
 	v5 = v8
@@ -19372,7 +19736,7 @@ L7:
 	for {
 		p.Spend()
 		x10, x11 = p.Pos, len(p.Recovered)
-		if _, ok = u307(p); !ok {
+		if _, ok = u313(p); !ok {
 			goto L12
 		}
 		if p.Pos == x10 {
@@ -19394,10 +19758,10 @@ L7:
 		x26 = k20
 		x30 = p.Pos
 		x31 = p.NewVals(1)[:0]
-		if _, ok = s308(p); !ok {
+		if _, ok = s314(p); !ok {
 			goto L29
 		}
-		if v33, ok = u263(p); !ok {
+		if v33, ok = u267(p); !ok {
 			goto L29
 		}
 		k20 = v33
@@ -19416,17 +19780,17 @@ L7:
 			x36, _, x37 = p.Peek()
 		}
 		if !(x37 && (x36 == 44)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 38)
+			p.ExpectBudget(p.Pos, 39)
 			goto L38
 		}
 		x40 = p.Pos
 		x41 = p.NewVals(1)[:0]
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 44) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit87, ",", 38, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit90, ",", 39, false); !ok {
 			goto L39
 		}
-		if v43, ok = u262(p); !ok {
+		if v43, ok = u266(p); !ok {
 			goto L39
 		}
 		k20 = v43
@@ -19439,7 +19803,7 @@ L7:
 		p.Restore(x24, x25)
 		k20 = x26
 	L38:
-		if v48, ok = u261(p); !ok {
+		if v48, ok = u265(p); !ok {
 			goto L46
 		}
 		k20 = v48
@@ -19454,7 +19818,7 @@ L7:
 		for {
 			p.Spend()
 			x50, x51 = p.Pos, len(p.Recovered)
-			if _, ok = u307(p); !ok {
+			if _, ok = u313(p); !ok {
 				goto L52
 			}
 			if p.Pos == x50 {
@@ -19467,7 +19831,7 @@ L7:
 		}
 		v53 = p.NewNode("tuple", x22, p.Pos, x23)
 		v54 = p.ScopeValue(sh9, v53, x18)
-		v55 = p.AttachCaptures(v54, scope434, []any{k20}, x18, p.Pos)
+		v55 = p.AttachCaptures(v54, scope440, []any{k20}, x18, p.Pos)
 		p.PushKid(v55)
 		if p.Pos == x18 {
 			break
@@ -19486,7 +19850,7 @@ L7:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_gaps"
 	{
-		var tr178 any
+		var tr185 any
 		{
 			tm2 := len(c.P.KidStack)
 			c.P.Spend()
@@ -19558,9 +19922,9 @@ L7:
 			if !c.P.TermConforms(fieldType5, tc1) {
 				c.TermRaise(c.TermCastFailed(tc1, fieldType5, 0, 0))
 			}
-			tr178 = tc1
+			tr185 = tc1
 		}
-		v = tr178
+		v = tr185
 	}
 	v = c.Finish(v)
 	return v, true
@@ -19569,16 +19933,16 @@ fail:
 }
 
 // rule source_gap_head
-func u260(p *rt.TParser) (any, bool) {
+func u264(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i260(p)
+	v, ok := i264(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i260(p *rt.TParser) (any, bool) {
+func i264(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x4, x9, x10 int
 	var v, k7, v11, v14, v16 any
@@ -19591,8 +19955,8 @@ func i260(p *rt.TParser) (any, bool) {
 	}
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(165)
-	if _, ok = u310(p); !ok {
+	p.LookBegin(169)
+	if _, ok = u316(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -19608,14 +19972,14 @@ L3:
 	x4 = p.Pos
 	p.Silent++
 	x9, x10 = p.Pos, len(p.Recovered)
-	if v14, ok = u229(p); !ok {
+	if v14, ok = u233(p); !ok {
 		goto L13
 	}
 	v11 = v14
 	goto L12
 L13:
 	p.Restore(x9, x10)
-	if v16, ok = s201(p); !ok {
+	if v16, ok = s205(p); !ok {
 		goto L15
 	}
 	v11 = v16
@@ -19633,13 +19997,13 @@ L5:
 	p.Pos = x4
 	goto fail
 L6:
-	if _, ok = u310(p); !ok {
+	if _, ok = u316(p); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_gap_head"
 	{
-		var tr179 any
+		var tr186 any
 		{
 			tm1 := len(c.P.KidStack)
 			tk2 := c.P.Kids(tm1)
@@ -19657,9 +20021,9 @@ L6:
 				c.TermRaise(tf6)
 			}
 			tv7 := tmk_CommentGap(c, true, any(tn3), any(false), tv4, tv5, tv6)
-			tr179 = tv7
+			tr186 = tv7
 		}
-		v = tr179
+		v = tr186
 	}
 	return v, true
 fail:
@@ -19667,16 +20031,16 @@ fail:
 }
 
 // rule source_gap
-func u261(p *rt.TParser) (any, bool) {
+func u265(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i261(p)
+	v, ok := i265(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i261(p *rt.TParser) (any, bool) {
+func i265(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x4, x9, x10, x19, x20 int
 	var v, k7, v11, v14, v16, k17, v21, v24 any
@@ -19685,8 +20049,8 @@ func i261(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(166)
-	if _, ok = u310(p); !ok {
+	p.LookBegin(170)
+	if _, ok = u316(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -19702,14 +20066,14 @@ L3:
 	x4 = p.Pos
 	p.Silent++
 	x9, x10 = p.Pos, len(p.Recovered)
-	if v14, ok = u212(p); !ok {
+	if v14, ok = u216(p); !ok {
 		goto L13
 	}
 	v11 = v14
 	goto L12
 L13:
 	p.Restore(x9, x10)
-	if v16, ok = s201(p); !ok {
+	if v16, ok = s205(p); !ok {
 		goto L15
 	}
 	v11 = v16
@@ -19728,7 +20092,7 @@ L5:
 	goto fail
 L6:
 	x19, x20 = p.Pos, len(p.Recovered)
-	if v24, ok = u264(p); !ok {
+	if v24, ok = u268(p); !ok {
 		goto L22
 	}
 	v21 = v24
@@ -19738,13 +20102,13 @@ L22:
 	v21 = nil
 L23:
 	k17 = v21
-	if _, ok = u310(p); !ok {
+	if _, ok = u316(p); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_gap"
 	{
-		var tr180 any
+		var tr187 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -19767,9 +20131,9 @@ L23:
 				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
-			tr180 = tv6
+			tr187 = tv6
 		}
-		v = tr180
+		v = tr187
 	}
 	return v, true
 fail:
@@ -19777,16 +20141,16 @@ fail:
 }
 
 // rule source_open_gap
-func u262(p *rt.TParser) (any, bool) {
+func u266(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i262(p)
+	v, ok := i266(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i262(p *rt.TParser) (any, bool) {
+func i266(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x4, x9, x10, x19, x20 int
 	var v, k7, v11, v14, v16, k17, v21, v24 any
@@ -19795,8 +20159,8 @@ func i262(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(167)
-	if _, ok = u310(p); !ok {
+	p.LookBegin(171)
+	if _, ok = u316(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -19812,14 +20176,14 @@ L3:
 	x4 = p.Pos
 	p.Silent++
 	x9, x10 = p.Pos, len(p.Recovered)
-	if v14, ok = u219(p); !ok {
+	if v14, ok = u223(p); !ok {
 		goto L13
 	}
 	v11 = v14
 	goto L12
 L13:
 	p.Restore(x9, x10)
-	if v16, ok = s201(p); !ok {
+	if v16, ok = s205(p); !ok {
 		goto L15
 	}
 	v11 = v16
@@ -19838,7 +20202,7 @@ L5:
 	goto fail
 L6:
 	x19, x20 = p.Pos, len(p.Recovered)
-	if v24, ok = u264(p); !ok {
+	if v24, ok = u268(p); !ok {
 		goto L22
 	}
 	v21 = v24
@@ -19848,13 +20212,13 @@ L22:
 	v21 = nil
 L23:
 	k17 = v21
-	if _, ok = u310(p); !ok {
+	if _, ok = u316(p); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_open_gap"
 	{
-		var tr181 any
+		var tr188 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -19877,9 +20241,9 @@ L23:
 				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
-			tr181 = tv6
+			tr188 = tv6
 		}
-		v = tr181
+		v = tr188
 	}
 	return v, true
 fail:
@@ -19887,16 +20251,16 @@ fail:
 }
 
 // rule source_delimiter_gap
-func u263(p *rt.TParser) (any, bool) {
+func u267(p *rt.TParser) (any, bool) {
 	start, rec := p.Pos, len(p.Recovered)
-	v, ok := i263(p)
+	v, ok := i267(p)
 	if !ok {
 		p.Restore(start, rec)
 	}
 	return v, ok
 }
 
-func i263(p *rt.TParser) (any, bool) {
+func i267(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, x1, x4, x9, x10, x19, x20 int
 	var v, k7, v11, v14, v16, k17, v21, v24 any
@@ -19905,8 +20269,8 @@ func i263(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(168)
-	if _, ok = u310(p); !ok {
+	p.LookBegin(172)
+	if _, ok = u316(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -19922,14 +20286,14 @@ L3:
 	x4 = p.Pos
 	p.Silent++
 	x9, x10 = p.Pos, len(p.Recovered)
-	if v14, ok = u221(p); !ok {
+	if v14, ok = u225(p); !ok {
 		goto L13
 	}
 	v11 = v14
 	goto L12
 L13:
 	p.Restore(x9, x10)
-	if v16, ok = s201(p); !ok {
+	if v16, ok = s205(p); !ok {
 		goto L15
 	}
 	v11 = v16
@@ -19948,7 +20312,7 @@ L5:
 	goto fail
 L6:
 	x19, x20 = p.Pos, len(p.Recovered)
-	if v24, ok = u264(p); !ok {
+	if v24, ok = u268(p); !ok {
 		goto L22
 	}
 	v21 = v24
@@ -19958,13 +20322,13 @@ L22:
 	v21 = nil
 L23:
 	k17 = v21
-	if _, ok = u310(p); !ok {
+	if _, ok = u316(p); !ok {
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_delimiter_gap"
 	{
-		var tr182 any
+		var tr189 any
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
@@ -19987,9 +20351,9 @@ L23:
 				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
-			tr182 = tv6
+			tr189 = tv6
 		}
-		v = tr182
+		v = tr189
 	}
 	return v, true
 fail:
@@ -19997,14 +20361,14 @@ fail:
 }
 
 // rule source_gap_flag
-func u264(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[264]) {
-		return p.CallMemo(trules[264], v264)
+func u268(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[268]) {
+		return p.CallMemo(trules[268], v268)
 	}
-	return v264(p)
+	return v268(p)
 }
 
-func v264(p *rt.TParser) (any, bool) {
+func v268(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1 int
 	var v any
@@ -20013,8 +20377,8 @@ func v264(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(169)
-	if _, ok = u311(p); !ok {
+	p.LookBegin(173)
+	if _, ok = u317(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -20030,12 +20394,12 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "source_gap_flag"
 	{
-		var tr183 any
+		var tr190 any
 		{
 			tv1 := tmk_GapFlag(c, true)
-			tr183 = tv1
+			tr190 = tv1
 		}
-		v = tr183
+		v = tr190
 	}
 	return v, true
 fail:
@@ -20043,7 +20407,7 @@ fail:
 	return nil, false
 }
 
-func s265(p *rt.TParser) (any, bool) {
+func s269(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x9, x10, x12, x13, x16, x19, x20 int
 	var v any
@@ -20060,14 +20424,14 @@ func s265(p *rt.TParser) (any, bool) {
 		x5, x6 = p.Pos, len(p.Recovered)
 		x9, x10 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(171)
+		p.LookBegin(175)
 		if _, ok = p.Parser.MatchLiteral(lit6, "package", 6, false); !ok {
 			goto L11
 		}
 		x12, x13 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(170)
-		if _, ok = s266(p); !ok {
+		p.LookBegin(174)
+		if _, ok = s270(p); !ok {
 			goto L14
 		}
 		p.LookEnd(true)
@@ -20086,21 +20450,21 @@ func s265(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x9, x10)
-		if _, ok = u312(p); !ok {
+		if _, ok = u318(p); !ok {
 			goto L8
 		}
 		goto L7
 	L8:
 		p.Restore(x5, x6)
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L15
 		}
-		if _, ok = u172(p); !ok {
+		if _, ok = u174(p); !ok {
 			goto L15
 		}
 		x16 = p.Pos
 		p.Silent++
-		p.LookBegin(172)
+		p.LookBegin(176)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
@@ -20129,10 +20493,10 @@ func s265(p *rt.TParser) (any, bool) {
 		p.Restore(x2, x3)
 		break
 	}
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto fail
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	if _, ok = p.Parser.MatchLiteral(lit6, "package", 6, false); !ok {
@@ -20140,8 +20504,8 @@ func s265(p *rt.TParser) (any, bool) {
 	}
 	x19, x20 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(173)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(177)
+	if _, ok = s270(p); !ok {
 		goto L21
 	}
 	p.LookEnd(true)
@@ -20159,7 +20523,7 @@ fail:
 	return nil, false
 }
 
-func s266(p *rt.TParser) (any, bool) {
+func s270(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size int
 	var v any
@@ -20173,7 +20537,7 @@ func s266(p *rt.TParser) (any, bool) {
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90 || ch >= 48 && ch <= 57 || ch == 95) {
-		p.ExpectBudget(p.Pos, 33)
+		p.ExpectBudget(p.Pos, 34)
 		goto fail
 	}
 	p.Pos += size
@@ -20185,21 +20549,21 @@ fail:
 }
 
 // rule stmt_sync
-func u267(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[267]) {
-		return p.CallMemo(trules[267], v267)
+func u271(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[271]) {
+		return p.CallMemo(trules[271], v271)
 	}
-	return v267(p)
+	return v271(p)
 }
 
-func v267(p *rt.TParser) (any, bool) {
+func v271(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x10, x11, x13, x14, x18, x19, x21, x22, x24, x25, x33 int
 	var v any
 	var ok, x5, x28 bool
 	var x4, x27 rune
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
@@ -20213,14 +20577,14 @@ func v267(p *rt.TParser) (any, bool) {
 		p.ExpectBudget(p.Pos, 5)
 		goto L6
 	}
-	if _, ok = s313(p); !ok {
+	if _, ok = s319(p); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = u314(p); !ok {
+	if _, ok = u320(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -20231,7 +20595,7 @@ L3:
 	for {
 		p.Spend()
 		x10, x11 = p.Pos, len(p.Recovered)
-		if _, ok = s315(p); !ok {
+		if _, ok = s321(p); !ok {
 			goto L12
 		}
 		if p.Pos == x10 {
@@ -20243,7 +20607,7 @@ L3:
 		break
 	}
 	x13, x14 = p.Pos, len(p.Recovered)
-	if _, ok = u272(p); !ok {
+	if _, ok = u277(p); !ok {
 		goto L15
 	}
 	for {
@@ -20251,8 +20615,8 @@ L3:
 		x18, x19 = p.Pos, len(p.Recovered)
 		x21, x22 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(174)
-		if _, ok = u271(p); !ok {
+		p.LookBegin(178)
+		if _, ok = u276(p); !ok {
 			goto L23
 		}
 		p.LookEnd(true)
@@ -20263,7 +20627,7 @@ L3:
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x21, x22)
-		if _, ok = u314(p); !ok {
+		if _, ok = u320(p); !ok {
 			goto L20
 		}
 		if p.Pos == x18 {
@@ -20286,19 +20650,19 @@ L16:
 		x27, _, x28 = p.Peek()
 	}
 	if !(x28 && (x27 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L29
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L30
 	}
 	goto L26
 L30:
 	p.Restore(x24, x25)
 L29:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L31
 	}
 	goto L26
@@ -20306,7 +20670,7 @@ L31:
 	p.Restore(x24, x25)
 	x33 = p.Pos
 	p.Silent++
-	p.LookBegin(175)
+	p.LookBegin(179)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L34
@@ -20334,14 +20698,14 @@ fail:
 }
 
 // rule word_end
-func u268(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[268]) {
-		return p.CallMemo(trules[268], v268)
+func u272(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[272]) {
+		return p.CallMemo(trules[272], v272)
 	}
-	return v268(p)
+	return v272(p)
 }
 
-func v268(p *rt.TParser) (any, bool) {
+func v272(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -20349,8 +20713,8 @@ func v268(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(176)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(180)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -20361,7 +20725,7 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -20372,14 +20736,14 @@ fail:
 }
 
 // rule stmt_sep
-func u269(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[269]) {
-		return p.CallMemo(trules[269], v269)
+func u273(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[273]) {
+		return p.CallMemo(trules[273], v273)
 	}
-	return v269(p)
+	return v273(p)
 }
 
-func v269(p *rt.TParser) (any, bool) {
+func v273(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -20394,17 +20758,17 @@ func v269(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L6
 	}
-	if _, ok = u15(p); !ok {
+	if _, ok = u17(p); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = s16(p); !ok {
+	if _, ok = s18(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -20419,7 +20783,69 @@ fail:
 	return nil, false
 }
 
-func s270(p *rt.TParser) (any, bool) {
+func s274(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x1, x2 int
+	var v any
+	var x4 rune
+	var x5, ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	x1, x2 = p.Pos, len(p.Recovered)
+	if p.Pos < len(p.In) {
+		p.Control.Take(1)
+		x4, _, x5 = p.In[p.Pos], 1, true
+	} else {
+		x4, _, x5 = p.Peek()
+	}
+	if !(x5 && (x4 == 114)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 24)
+		goto L6
+	}
+	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
+		p.Pos += 4
+	} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
+		goto L7
+	}
+	goto L3
+L7:
+	p.Restore(x1, x2)
+L6:
+	if !(x5 && (x4 == 116)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 25)
+		goto L8
+	}
+	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 121 && p.In[p.Pos+2] == 112 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
+		p.Pos += 4
+	} else if _, ok = p.Parser.MatchLiteral(lit57, "type", 25, false); !ok {
+		goto L9
+	}
+	goto L3
+L9:
+	p.Restore(x1, x2)
+L8:
+	if !(x5 && (x4 == 118)) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 26)
+		goto L10
+	}
+	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 118 && p.In[p.Pos+1] == 97 && p.In[p.Pos+2] == 114) && p.Control.Take(3) {
+		p.Pos += 3
+	} else if _, ok = p.Parser.MatchLiteral(lit58, "var", 26, false); !ok {
+		goto L11
+	}
+	goto L3
+L11:
+	p.Restore(x1, x2)
+L10:
+	goto fail
+L3:
+	v = nil
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+func s275(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -20434,12 +20860,12 @@ func s270(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 13)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 136)
+		p.ExpectBudget(p.Pos, 137)
 		goto L6
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 13 && p.In[p.Pos+1] == 10) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit271, "\r\n", 136, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit274, "\r\n", 137, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -20447,7 +20873,7 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 13 || x4 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L8
 	}
 	if p.Pos < len(p.In) {
@@ -20457,7 +20883,7 @@ L6:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch == 13 || ch == 10) {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L9
 	}
 	p.Pos += size
@@ -20475,14 +20901,14 @@ fail:
 }
 
 // rule decl_start
-func u271(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[271]) {
-		return p.CallMemo(trules[271], v271)
+func u276(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[276]) {
+		return p.CallMemo(trules[276], v276)
 	}
-	return v271(p)
+	return v276(p)
 }
 
-func v271(p *rt.TParser) (any, bool) {
+func v276(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x9, x10 int
 	var v any
@@ -20490,7 +20916,7 @@ func v271(p *rt.TParser) (any, bool) {
 	var x5, x13 rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -20503,12 +20929,12 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L7
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L8
 	}
 	goto L3
@@ -20517,11 +20943,11 @@ L8:
 L7:
 	goto fail
 L3:
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	x9, x10 = p.Pos, len(p.Recovered)
-	if _, ok = u275(p); !ok {
+	if _, ok = u280(p); !ok {
 		goto L12
 	}
 	goto L11
@@ -20537,7 +20963,7 @@ L12:
 		p.ExpectBudget(p.Pos, 5)
 		goto L15
 	}
-	if _, ok = s316(p); !ok {
+	if _, ok = s322(p); !ok {
 		goto L16
 	}
 	goto L11
@@ -20554,14 +20980,14 @@ fail:
 }
 
 // rule sync_open
-func u272(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[272]) {
-		return p.CallMemo(trules[272], v272)
+func u277(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[277]) {
+		return p.CallMemo(trules[277], v277)
 	}
-	return v272(p)
+	return v277(p)
 }
 
-func v272(p *rt.TParser) (any, bool) {
+func v277(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x13, x14, x17, x18, x20, x21, x22 int
 	var v any
@@ -20576,12 +21002,12 @@ func v272(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 40)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L6
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -20589,12 +21015,12 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 123)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L8
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -20602,12 +21028,12 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L10
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L11
 	}
 	goto L3
@@ -20617,8 +21043,8 @@ L10:
 	x13, x14 = p.Pos, len(p.Recovered)
 	x17, x18 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(177)
-	if _, ok = s274(p); !ok {
+	p.LookBegin(181)
+	if _, ok = s279(p); !ok {
 		goto L19
 	}
 	p.LookEnd(true)
@@ -20633,7 +21059,7 @@ L19:
 	for {
 		p.Spend()
 		x21, x22 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L23
 		}
 		x20++
@@ -20658,12 +21084,12 @@ L16:
 		x24, _, x25 = p.Peek()
 	}
 	if !(x25 && (x24 == 41)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 18)
+		p.ExpectBudget(p.Pos, 20)
 		goto L26
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L27
 	}
 	goto L15
@@ -20671,12 +21097,12 @@ L27:
 	p.Restore(x13, x14)
 L26:
 	if !(x25 && (x24 == 93)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 19)
+		p.ExpectBudget(p.Pos, 21)
 		goto L28
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L29
 	}
 	goto L15
@@ -20687,7 +21113,7 @@ L28:
 L15:
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L12
 	}
 	goto L3
@@ -20702,7 +21128,7 @@ fail:
 	return nil, false
 }
 
-func s273(p *rt.TParser) (any, bool) {
+func s278(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x9, x10, x13, x14, x22, x23 int
 	var v any
@@ -20710,7 +21136,7 @@ func s273(p *rt.TParser) (any, bool) {
 	var x5, x16 rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -20723,12 +21149,12 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L7
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L8
 	}
 	goto L3
@@ -20737,17 +21163,17 @@ L8:
 L7:
 	goto fail
 L3:
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	x9, x10 = p.Pos, len(p.Recovered)
-	if _, ok = s317(p); !ok {
+	if _, ok = s274(p); !ok {
 		goto L12
 	}
 	x13, x14 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(178)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(182)
+	if _, ok = s270(p); !ok {
 		goto L15
 	}
 	p.LookEnd(true)
@@ -20771,7 +21197,7 @@ L12:
 		p.ExpectBudget(p.Pos, 5)
 		goto L18
 	}
-	if _, ok = s318(p); !ok {
+	if _, ok = s323(p); !ok {
 		goto L19
 	}
 	goto L11
@@ -20787,13 +21213,13 @@ L18:
 	} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
 		goto L21
 	}
-	if _, ok = s317(p); !ok {
+	if _, ok = s274(p); !ok {
 		goto L21
 	}
 	x22, x23 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(179)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(183)
+	if _, ok = s270(p); !ok {
 		goto L24
 	}
 	p.LookEnd(true)
@@ -20817,7 +21243,7 @@ fail:
 	return nil, false
 }
 
-func s274(p *rt.TParser) (any, bool) {
+func s279(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size int
 	var v any
@@ -20831,7 +21257,7 @@ func s274(p *rt.TParser) (any, bool) {
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch >= 48 && ch <= 57) {
-		p.ExpectBudget(p.Pos, 84)
+		p.ExpectBudget(p.Pos, 85)
 		goto fail
 	}
 	p.Pos += size
@@ -20843,26 +21269,26 @@ fail:
 }
 
 // rule decl_shape
-func u275(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[275]) {
-		return p.CallMemo(trules[275], v275)
+func u280(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[280]) {
+		return p.CallMemo(trules[280], v280)
 	}
-	return v275(p)
+	return v280(p)
 }
 
-func v275(p *rt.TParser) (any, bool) {
+func v280(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = s317(p); !ok {
+	if _, ok = s274(p); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(180)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(184)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -20873,7 +21299,7 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if _, ok = u319(p); !ok {
+	if _, ok = u324(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -20883,7 +21309,7 @@ fail:
 	return nil, false
 }
 
-func s276(p *rt.TParser) (any, bool) {
+func s281(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -20891,13 +21317,13 @@ func s276(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(181)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(185)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -20908,7 +21334,7 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if _, ok = u319(p); !ok {
+	if _, ok = u324(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -20918,32 +21344,32 @@ fail:
 	return nil, false
 }
 
-func s277(p *rt.TParser) (any, bool) {
+func s282(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 121 && p.In[p.Pos+2] == 112 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit53, "type", 23, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit57, "type", 25, false); !ok {
 		goto fail
 	}
-	if _, ok = u268(p); !ok {
+	if _, ok = u272(p); !ok {
 		goto fail
 	}
-	if _, ok = u285(p); !ok {
+	if _, ok = u290(p); !ok {
 		goto fail
 	}
-	if _, ok = u171(p); !ok {
+	if _, ok = u173(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 126) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit63, "~", 30, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit66, "~", 31, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -20954,14 +21380,14 @@ fail:
 }
 
 // rule declaration_ahead
-func u278(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[278]) {
-		return p.CallMemo(trules[278], v278)
+func u283(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[283]) {
+		return p.CallMemo(trules[283], v283)
 	}
-	return v278(p)
+	return v283(p)
 }
 
-func v278(p *rt.TParser) (any, bool) {
+func v283(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1 int
 	var v any
@@ -20969,11 +21395,11 @@ func v278(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(182)
-	if _, ok = u172(p); !ok {
+	p.LookBegin(186)
+	if _, ok = u174(p); !ok {
 		goto L2
 	}
-	if _, ok = u275(p); !ok {
+	if _, ok = u280(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -20993,21 +21419,21 @@ fail:
 	return nil, false
 }
 
-func s279(p *rt.TParser) (any, bool) {
+func s284(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, size, x23, x24, x32, x36 int
 	var v any
 	var ok, x17, x27 bool
 	var x16, x26 rune
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u320(p); !ok {
+		if _, ok = u325(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -21015,7 +21441,7 @@ func s279(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(183)
+		p.LookBegin(187)
 		x13, x14 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -21024,31 +21450,31 @@ func s279(p *rt.TParser) (any, bool) {
 			x16, _, x17 = p.Peek()
 		}
 		if !(x17 && (x16 == 59)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 13)
+			p.ExpectBudget(p.Pos, 15)
 			goto L18
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 			goto L19
 		}
 		goto L15
 	L19:
 		p.Restore(x13, x14)
 	L18:
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L20
 		}
 		goto L15
 	L20:
 		p.Restore(x13, x14)
 		if !(x17 && (x16 == 125)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 14)
+			p.ExpectBudget(p.Pos, 16)
 			goto L21
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 			goto L22
 		}
 		goto L15
@@ -21097,19 +21523,19 @@ func s279(p *rt.TParser) (any, bool) {
 		x26, _, x27 = p.Peek()
 	}
 	if !(x27 && (x26 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L28
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L29
 	}
 	goto L25
 L29:
 	p.Restore(x23, x24)
 L28:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L30
 	}
 	goto L25
@@ -21117,10 +21543,10 @@ L30:
 	p.Restore(x23, x24)
 	x32 = p.Pos
 	p.Silent++
-	p.LookBegin(184)
+	p.LookBegin(188)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L33
 	}
 	p.LookEnd(true)
@@ -21138,7 +21564,7 @@ L31:
 	p.Restore(x23, x24)
 	x36 = p.Pos
 	p.Silent++
-	p.LookBegin(185)
+	p.LookBegin(189)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L37
@@ -21166,14 +21592,14 @@ fail:
 }
 
 // rule retired_type
-func u280(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[280]) {
-		return p.CallMemo(trules[280], v280)
+func u285(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[285]) {
+		return p.CallMemo(trules[285], v285)
 	}
-	return v280(p)
+	return v285(p)
 }
 
-func v280(p *rt.TParser) (any, bool) {
+func v285(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x18, x19 int
 	var v any
@@ -21188,10 +21614,10 @@ func v280(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 43)
+		p.ExpectBudget(p.Pos, 44)
 		goto L6
 	}
-	if _, ok = p.Parser.MatchLiteral(lit94, "terminal", 43, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit97, "terminal", 44, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -21199,10 +21625,10 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 77)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 44)
+		p.ExpectBudget(p.Pos, 45)
 		goto L8
 	}
-	if _, ok = p.Parser.MatchLiteral(lit95, "Match", 44, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit98, "Match", 45, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -21210,12 +21636,12 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 83)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 45)
+		p.ExpectBudget(p.Pos, 46)
 		goto L10
 	}
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 83 && p.In[p.Pos+1] == 101 && p.In[p.Pos+2] == 113) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit96, "Seq", 45, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit99, "Seq", 46, false); !ok {
 		goto L11
 	}
 	goto L3
@@ -21223,12 +21649,12 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 76)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 46)
+		p.ExpectBudget(p.Pos, 47)
 		goto L12
 	}
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 76 && p.In[p.Pos+1] == 105 && p.In[p.Pos+2] == 115 && p.In[p.Pos+3] == 116) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit97, "List", 46, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit100, "List", 47, false); !ok {
 		goto L13
 	}
 	goto L3
@@ -21236,10 +21662,10 @@ L13:
 	p.Restore(x1, x2)
 L12:
 	if !(x5 && (x4 == 79)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 47)
+		p.ExpectBudget(p.Pos, 48)
 		goto L14
 	}
-	if _, ok = p.Parser.MatchLiteral(lit98, "Operator", 47, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit101, "Operator", 48, false); !ok {
 		goto L15
 	}
 	goto L3
@@ -21247,10 +21673,10 @@ L15:
 	p.Restore(x1, x2)
 L14:
 	if !(x5 && (x4 == 69)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 48)
+		p.ExpectBudget(p.Pos, 49)
 		goto L16
 	}
-	if _, ok = p.Parser.MatchLiteral(lit99, "Error", 48, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit102, "Error", 49, false); !ok {
 		goto L17
 	}
 	goto L3
@@ -21261,8 +21687,8 @@ L16:
 L3:
 	x18, x19 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(186)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(190)
+	if _, ok = s270(p); !ok {
 		goto L20
 	}
 	p.LookEnd(true)
@@ -21281,14 +21707,14 @@ fail:
 }
 
 // rule space_no_line
-func u281(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[281]) {
-		return p.CallMemo(trules[281], v281)
+func u286(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[286]) {
+		return p.CallMemo(trules[286], v286)
 	}
-	return v281(p)
+	return v286(p)
 }
 
-func v281(p *rt.TParser) (any, bool) {
+func v286(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -21296,8 +21722,8 @@ func v281(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(187)
-	if _, ok = s270(p); !ok {
+	p.LookBegin(191)
+	if _, ok = s275(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -21308,7 +21734,7 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if _, ok = s292(p); !ok {
+	if _, ok = s297(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -21318,7 +21744,7 @@ fail:
 	return nil, false
 }
 
-func s282(p *rt.TParser) (any, bool) {
+func s287(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x22 int
 	var v any
@@ -21333,10 +21759,10 @@ func s282(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 97)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 65)
+		p.ExpectBudget(p.Pos, 66)
 		goto L6
 	}
-	if _, ok = p.Parser.MatchLiteral(lit136, "atomic", 65, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit139, "atomic", 66, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -21344,10 +21770,10 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 115)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 66)
+		p.ExpectBudget(p.Pos, 67)
 		goto L8
 	}
-	if _, ok = p.Parser.MatchLiteral(lit137, "stream", 66, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit140, "stream", 67, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -21355,10 +21781,10 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 109)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 67)
+		p.ExpectBudget(p.Pos, 68)
 		goto L10
 	}
-	if _, ok = p.Parser.MatchLiteral(lit138, "missing", 67, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit141, "missing", 68, false); !ok {
 		goto L11
 	}
 	goto L3
@@ -21366,10 +21792,10 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 105)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 68)
+		p.ExpectBudget(p.Pos, 69)
 		goto L12
 	}
-	if _, ok = p.Parser.MatchLiteral(lit139, "ignorecase", 68, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit142, "ignorecase", 69, false); !ok {
 		goto L13
 	}
 	goto L3
@@ -21377,10 +21803,10 @@ L13:
 	p.Restore(x1, x2)
 L12:
 	if !(x5 && (x4 == 114)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 69)
+		p.ExpectBudget(p.Pos, 70)
 		goto L14
 	}
-	if _, ok = p.Parser.MatchLiteral(lit140, "repeat", 69, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit143, "repeat", 70, false); !ok {
 		goto L15
 	}
 	goto L3
@@ -21388,10 +21814,10 @@ L15:
 	p.Restore(x1, x2)
 L14:
 	if !(x5 && (x4 == 114)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 70)
+		p.ExpectBudget(p.Pos, 71)
 		goto L16
 	}
-	if _, ok = p.Parser.MatchLiteral(lit141, "recover", 70, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit144, "recover", 71, false); !ok {
 		goto L17
 	}
 	goto L3
@@ -21399,12 +21825,12 @@ L17:
 	p.Restore(x1, x2)
 L16:
 	if !(x5 && (x4 == 99)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 71)
+		p.ExpectBudget(p.Pos, 72)
 		goto L18
 	}
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 99 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 116) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit142, "cut", 71, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit145, "cut", 72, false); !ok {
 		goto L19
 	}
 	goto L3
@@ -21412,21 +21838,21 @@ L19:
 	p.Restore(x1, x2)
 L18:
 	if !(x5 && (x4 == 111)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 56)
+		p.ExpectBudget(p.Pos, 57)
 		goto L20
 	}
-	if _, ok = p.Parser.MatchLiteral(lit124, "operators", 56, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit127, "operators", 57, false); !ok {
 		goto L21
 	}
 	x22 = p.Pos
 	p.Silent++
-	p.LookBegin(188)
-	if _, ok = u173(p); !ok {
+	p.LookBegin(192)
+	if _, ok = u175(p); !ok {
 		goto L23
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L23
 	}
 	p.LookEnd(true)
@@ -21452,20 +21878,20 @@ fail:
 	return nil, false
 }
 
-func s283(p *rt.TParser) (any, bool) {
+func s288(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x4, x5, x8, x9, x25, x26, x28, x29, x32, x33, x51, x52, x54, x55, x65, x66 int
 	var v any
 	var ok, x12, x36, x44, x48, x58 bool
 	var x11, x35, x43, x47, x57 rune
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = p.Parser.MatchLiteral(lit124, "operators", 56, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit127, "operators", 57, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(189)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(193)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -21476,15 +21902,15 @@ L3:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x1, x2)
-	if _, ok = u173(p); !ok {
+	if _, ok = u175(p); !ok {
 		goto fail
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	x4, x5 = p.Pos, len(p.Recovered)
@@ -21496,12 +21922,12 @@ L3:
 		x11, _, x12 = p.Peek()
 	}
 	if !(x12 && (x11 == 115)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 57)
+		p.ExpectBudget(p.Pos, 58)
 		goto L13
 	}
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 115 && p.In[p.Pos+1] == 107 && p.In[p.Pos+2] == 105 && p.In[p.Pos+3] == 112) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit125, "skip", 57, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit128, "skip", 58, false); !ok {
 		goto L14
 	}
 	goto L10
@@ -21509,10 +21935,10 @@ L14:
 	p.Restore(x8, x9)
 L13:
 	if !(x12 && (x11 == 111)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 58)
+		p.ExpectBudget(p.Pos, 59)
 		goto L15
 	}
-	if _, ok = p.Parser.MatchLiteral(lit126, "operand", 58, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit129, "operand", 59, false); !ok {
 		goto L16
 	}
 	goto L10
@@ -21520,10 +21946,10 @@ L16:
 	p.Restore(x8, x9)
 L15:
 	if !(x12 && (x11 == 108)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 59)
+		p.ExpectBudget(p.Pos, 60)
 		goto L17
 	}
-	if _, ok = p.Parser.MatchLiteral(lit127, "level", 59, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit130, "level", 60, false); !ok {
 		goto L18
 	}
 	goto L10
@@ -21531,10 +21957,10 @@ L18:
 	p.Restore(x8, x9)
 L17:
 	if !(x12 && (x11 == 112)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 60)
+		p.ExpectBudget(p.Pos, 61)
 		goto L19
 	}
-	if _, ok = p.Parser.MatchLiteral(lit128, "prefix", 60, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit131, "prefix", 61, false); !ok {
 		goto L20
 	}
 	goto L10
@@ -21542,10 +21968,10 @@ L20:
 	p.Restore(x8, x9)
 L19:
 	if !(x12 && (x11 == 112)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 61)
+		p.ExpectBudget(p.Pos, 62)
 		goto L21
 	}
-	if _, ok = p.Parser.MatchLiteral(lit129, "postfix", 61, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit132, "postfix", 62, false); !ok {
 		goto L22
 	}
 	goto L10
@@ -21553,10 +21979,10 @@ L22:
 	p.Restore(x8, x9)
 L21:
 	if !(x12 && (x11 == 105)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 62)
+		p.ExpectBudget(p.Pos, 63)
 		goto L23
 	}
-	if _, ok = p.Parser.MatchLiteral(lit130, "infix", 62, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit133, "infix", 63, false); !ok {
 		goto L24
 	}
 	goto L10
@@ -21567,8 +21993,8 @@ L23:
 L10:
 	x25, x26 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(190)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(194)
+	if _, ok = s270(p); !ok {
 		goto L27
 	}
 	p.LookEnd(true)
@@ -21580,7 +22006,7 @@ L27:
 	p.Silent--
 	p.Restore(x25, x26)
 	x28, x29 = p.Pos, len(p.Recovered)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L31
 	}
 	x32, x33 = p.Pos, len(p.Recovered)
@@ -21591,12 +22017,12 @@ L27:
 		x35, _, x36 = p.Peek()
 	}
 	if !(x36 && (x35 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L37
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto L38
 	}
 	goto L34
@@ -21604,12 +22030,12 @@ L38:
 	p.Restore(x32, x33)
 L37:
 	if !(x36 && (x35 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L39
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L40
 	}
 	goto L34
@@ -21617,10 +22043,10 @@ L40:
 	p.Restore(x32, x33)
 L39:
 	if !(x36 && (x35 >= 97 && x35 <= 122 || x35 >= 65 && x35 <= 90 || x35 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 63)
+		p.ExpectBudget(p.Pos, 64)
 		goto L41
 	}
-	if _, ok = s284(p); !ok {
+	if _, ok = s289(p); !ok {
 		goto L42
 	}
 	goto L34
@@ -21638,19 +22064,19 @@ L31:
 	} else {
 		x43, _, x44 = p.Peek()
 	}
-	if !(x44 && (!((p.Control != nil && p.RejectBudgetClass(x43, budgetClass132)) || (p.Control == nil && (!(x43 == 32 || x43 == 9 || x43 == 10 || x43 == 11 || x43 == 12 || x43 == 13 || x43 == 133 || x43 == 160 || x43 == 5760 || x43 >= 8192 && x43 <= 8202 || x43 == 8232 || x43 == 8233 || x43 == 8239 || x43 == 8287 || x43 == 12288)))))) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 64)
+	if !(x44 && (!((p.Control != nil && p.RejectBudgetClass(x43, budgetClass135)) || (p.Control == nil && (!(x43 == 32 || x43 == 9 || x43 == 10 || x43 == 11 || x43 == 12 || x43 == 13 || x43 == 133 || x43 == 160 || x43 == 5760 || x43 >= 8192 && x43 <= 8202 || x43 == 8232 || x43 == 8233 || x43 == 8239 || x43 == 8287 || x43 == 12288)))))) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 65)
 		goto L45
 	}
-	if _, ok = s292(p); !ok {
+	if _, ok = s297(p); !ok {
 		goto L46
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L46
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto L46
 	}
 	goto L30
@@ -21669,16 +22095,16 @@ L7:
 		x47, _, x48 = p.Peek()
 	}
 	if !(x48 && (x47 == 108)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 59)
+		p.ExpectBudget(p.Pos, 60)
 		goto L49
 	}
-	if _, ok = p.Parser.MatchLiteral(lit127, "level", 59, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit130, "level", 60, false); !ok {
 		goto L50
 	}
 	x51, x52 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(191)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(195)
+	if _, ok = s270(p); !ok {
 		goto L53
 	}
 	p.LookEnd(true)
@@ -21689,15 +22115,15 @@ L53:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x51, x52)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L50
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto L50
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto L50
 	}
 	x54, x55 = p.Pos, len(p.Recovered)
@@ -21708,10 +22134,10 @@ L53:
 		x57, _, x58 = p.Peek()
 	}
 	if !(x58 && (x57 == 112)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 60)
+		p.ExpectBudget(p.Pos, 61)
 		goto L59
 	}
-	if _, ok = p.Parser.MatchLiteral(lit128, "prefix", 60, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit131, "prefix", 61, false); !ok {
 		goto L60
 	}
 	goto L56
@@ -21719,10 +22145,10 @@ L60:
 	p.Restore(x54, x55)
 L59:
 	if !(x58 && (x57 == 112)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 61)
+		p.ExpectBudget(p.Pos, 62)
 		goto L61
 	}
-	if _, ok = p.Parser.MatchLiteral(lit129, "postfix", 61, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit132, "postfix", 62, false); !ok {
 		goto L62
 	}
 	goto L56
@@ -21730,10 +22156,10 @@ L62:
 	p.Restore(x54, x55)
 L61:
 	if !(x58 && (x57 == 105)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 62)
+		p.ExpectBudget(p.Pos, 63)
 		goto L63
 	}
-	if _, ok = p.Parser.MatchLiteral(lit130, "infix", 62, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit133, "infix", 63, false); !ok {
 		goto L64
 	}
 	goto L56
@@ -21744,8 +22170,8 @@ L63:
 L56:
 	x65, x66 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(192)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(196)
+	if _, ok = s270(p); !ok {
 		goto L67
 	}
 	p.LookEnd(true)
@@ -21769,7 +22195,7 @@ fail:
 	return nil, false
 }
 
-func s284(p *rt.TParser) (any, bool) {
+func s289(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size int
 	var v any
@@ -21783,7 +22209,7 @@ func s284(p *rt.TParser) (any, bool) {
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90 || ch == 95) {
-		p.ExpectBudget(p.Pos, 63)
+		p.ExpectBudget(p.Pos, 64)
 		goto fail
 	}
 	p.Pos += size
@@ -21795,26 +22221,26 @@ fail:
 }
 
 // rule ident
-func u285(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[285]) {
-		return p.CallMemo(trules[285], v285)
+func u290(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[290]) {
+		return p.CallMemo(trules[290], v290)
 	}
-	return v285(p)
+	return v290(p)
 }
 
-func v285(p *rt.TParser) (any, bool) {
+func v290(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = s284(p); !ok {
+	if _, ok = s289(p); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -21833,28 +22259,28 @@ fail:
 }
 
 // rule item_sync
-func u286(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[286]) {
-		return p.CallMemo(trules[286], v286)
+func u291(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[291]) {
+		return p.CallMemo(trules[291], v291)
 	}
-	return v286(p)
+	return v291(p)
 }
 
-func v286(p *rt.TParser) (any, bool) {
+func v291(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, size, x23, x24, x32, x36 int
 	var v any
 	var ok, x17, x27 bool
 	var x16, x26 rune
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u320(p); !ok {
+		if _, ok = u325(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -21862,7 +22288,7 @@ func v286(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(193)
+		p.LookBegin(197)
 		x13, x14 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -21871,31 +22297,31 @@ func v286(p *rt.TParser) (any, bool) {
 			x16, _, x17 = p.Peek()
 		}
 		if !(x17 && (x16 == 59)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 13)
+			p.ExpectBudget(p.Pos, 15)
 			goto L18
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 			goto L19
 		}
 		goto L15
 	L19:
 		p.Restore(x13, x14)
 	L18:
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L20
 		}
 		goto L15
 	L20:
 		p.Restore(x13, x14)
 		if !(x17 && (x16 == 125)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 14)
+			p.ExpectBudget(p.Pos, 16)
 			goto L21
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 			goto L22
 		}
 		goto L15
@@ -21944,19 +22370,19 @@ func v286(p *rt.TParser) (any, bool) {
 		x26, _, x27 = p.Peek()
 	}
 	if !(x27 && (x26 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L28
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L29
 	}
 	goto L25
 L29:
 	p.Restore(x23, x24)
 L28:
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L30
 	}
 	goto L25
@@ -21964,10 +22390,10 @@ L30:
 	p.Restore(x23, x24)
 	x32 = p.Pos
 	p.Silent++
-	p.LookBegin(194)
+	p.LookBegin(198)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L33
 	}
 	p.LookEnd(true)
@@ -21985,7 +22411,7 @@ L31:
 	p.Restore(x23, x24)
 	x36 = p.Pos
 	p.Silent++
-	p.LookBegin(195)
+	p.LookBegin(199)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L37
@@ -22012,7 +22438,7 @@ fail:
 	return nil, false
 }
 
-func s287(p *rt.TParser) (any, bool) {
+func s292(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x4, x5, x19, x20, size int
 	var v any
@@ -22021,7 +22447,7 @@ func s287(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(197)
+	p.LookBegin(201)
 	x4, x5 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -22030,10 +22456,10 @@ func s287(p *rt.TParser) (any, bool) {
 		x7, _, x8 = p.Peek()
 	}
 	if !(x8 && (x7 == 115)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 121)
+		p.ExpectBudget(p.Pos, 122)
 		goto L9
 	}
-	if _, ok = p.Parser.MatchLiteral(lit227, "startPos", 121, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit230, "startPos", 122, false); !ok {
 		goto L10
 	}
 	goto L6
@@ -22041,10 +22467,10 @@ L10:
 	p.Restore(x4, x5)
 L9:
 	if !(x8 && (x7 == 101)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 122)
+		p.ExpectBudget(p.Pos, 123)
 		goto L11
 	}
-	if _, ok = p.Parser.MatchLiteral(lit228, "endPos", 122, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit231, "endPos", 123, false); !ok {
 		goto L12
 	}
 	goto L6
@@ -22052,10 +22478,10 @@ L12:
 	p.Restore(x4, x5)
 L11:
 	if !(x8 && (x7 == 99)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 123)
+		p.ExpectBudget(p.Pos, 124)
 		goto L13
 	}
-	if _, ok = p.Parser.MatchLiteral(lit229, "children", 123, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit232, "children", 124, false); !ok {
 		goto L14
 	}
 	goto L6
@@ -22063,10 +22489,10 @@ L14:
 	p.Restore(x4, x5)
 L13:
 	if !(x8 && (x7 == 101)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 124)
+		p.ExpectBudget(p.Pos, 125)
 		goto L15
 	}
-	if _, ok = p.Parser.MatchLiteral(lit230, "expected", 124, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit233, "expected", 125, false); !ok {
 		goto L16
 	}
 	goto L6
@@ -22074,10 +22500,10 @@ L16:
 	p.Restore(x4, x5)
 L15:
 	if !(x8 && (x7 == 109)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 125)
+		p.ExpectBudget(p.Pos, 126)
 		goto L17
 	}
-	if _, ok = p.Parser.MatchLiteral(lit231, "message", 125, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit234, "message", 126, false); !ok {
 		goto L18
 	}
 	goto L6
@@ -22088,8 +22514,8 @@ L17:
 L6:
 	x19, x20 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(196)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(200)
+	if _, ok = s270(p); !ok {
 		goto L21
 	}
 	p.LookEnd(true)
@@ -22115,7 +22541,7 @@ L3:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch >= 97 && ch <= 122 || ch == 95) {
-		p.ExpectBudget(p.Pos, 126)
+		p.ExpectBudget(p.Pos, 127)
 		goto fail
 	}
 	p.Pos += size
@@ -22127,14 +22553,14 @@ fail:
 }
 
 // rule true_lit
-func u288(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[288]) {
-		return p.CallMemo(trules[288], v288)
+func u293(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[293]) {
+		return p.CallMemo(trules[293], v293)
 	}
-	return v288(p)
+	return v293(p)
 }
 
-func v288(p *rt.TParser) (any, bool) {
+func v293(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22142,13 +22568,13 @@ func v288(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 114 && p.In[p.Pos+2] == 117 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit255, "true", 97, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit258, "true", 98, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(198)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(202)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -22167,26 +22593,26 @@ fail:
 }
 
 // rule false_lit
-func u289(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[289]) {
-		return p.CallMemo(trules[289], v289)
+func u294(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[294]) {
+		return p.CallMemo(trules[294], v294)
 	}
-	return v289(p)
+	return v294(p)
 }
 
-func v289(p *rt.TParser) (any, bool) {
+func v294(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = p.Parser.MatchLiteral(lit257, "false", 98, false); !ok {
+	if _, ok = p.Parser.MatchLiteral(lit260, "false", 99, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(199)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(203)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -22205,14 +22631,14 @@ fail:
 }
 
 // rule nil_lit
-func u290(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[290]) {
-		return p.CallMemo(trules[290], v290)
+func u295(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[295]) {
+		return p.CallMemo(trules[295], v295)
 	}
-	return v290(p)
+	return v295(p)
 }
 
-func v290(p *rt.TParser) (any, bool) {
+func v295(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22220,13 +22646,13 @@ func v290(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 110 && p.In[p.Pos+1] == 105 && p.In[p.Pos+2] == 108) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit259, "nil", 99, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit262, "nil", 100, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(200)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(204)
+	if _, ok = s270(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -22244,7 +22670,7 @@ fail:
 	return nil, false
 }
 
-func s291(p *rt.TParser) (any, bool) {
+func s296(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec int
 	var v any
@@ -22252,7 +22678,7 @@ func s291(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 95 && p.In[p.Pos+1] == 124 && p.In[p.Pos+2] == 95) && p.Control.Take(3) {
 		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit151, "_|_", 79, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit154, "_|_", 80, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -22262,7 +22688,7 @@ fail:
 	return nil, false
 }
 
-func s292(p *rt.TParser) (any, bool) {
+func s297(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size int
 	var v any
@@ -22275,8 +22701,8 @@ func s292(p *rt.TParser) (any, bool) {
 	} else {
 		ch, size, ok = p.Peek()
 	}
-	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass132)) || (p.Control == nil && (!(ch == 32 || ch == 9 || ch == 10 || ch == 11 || ch == 12 || ch == 13 || ch == 133 || ch == 160 || ch == 5760 || ch >= 8192 && ch <= 8202 || ch == 8232 || ch == 8233 || ch == 8239 || ch == 8287 || ch == 12288)))) {
-		p.ExpectBudget(p.Pos, 64)
+	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass135)) || (p.Control == nil && (!(ch == 32 || ch == 9 || ch == 10 || ch == 11 || ch == 12 || ch == 13 || ch == 133 || ch == 160 || ch == 5760 || ch >= 8192 && ch <= 8202 || ch == 8232 || ch == 8233 || ch == 8239 || ch == 8287 || ch == 12288)))) {
+		p.ExpectBudget(p.Pos, 65)
 		goto fail
 	}
 	p.Pos += size
@@ -22288,14 +22714,14 @@ fail:
 }
 
 // rule source_non_comment
-func u293(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[293]) {
-		return p.CallMemo(trules[293], v293)
+func u298(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[298]) {
+		return p.CallMemo(trules[298], v298)
 	}
-	return v293(p)
+	return v298(p)
 }
 
-func v293(p *rt.TParser) (any, bool) {
+func v298(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x12, x13, x15, x16, size int
 	var v any
@@ -22310,10 +22736,10 @@ func v293(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L6
 	}
-	if _, ok = s321(p); !ok {
+	if _, ok = s326(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -22321,17 +22747,17 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L8
 	}
-	if _, ok = s322(p); !ok {
+	if _, ok = s327(p); !ok {
 		goto L9
 	}
 	goto L3
 L9:
 	p.Restore(x1, x2)
 L8:
-	if _, ok = u323(p); !ok {
+	if _, ok = u328(p); !ok {
 		goto L10
 	}
 	goto L3
@@ -22339,7 +22765,7 @@ L10:
 	p.Restore(x1, x2)
 	x12, x13 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(201)
+	p.LookBegin(205)
 	x15, x16 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -22348,12 +22774,12 @@ L10:
 		x18, _, x19 = p.Peek()
 	}
 	if !(x19 && (x18 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L20
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 		goto L21
 	}
 	goto L17
@@ -22361,12 +22787,12 @@ L21:
 	p.Restore(x15, x16)
 L20:
 	if !(x19 && (x18 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L22
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto L23
 	}
 	goto L17
@@ -22406,15 +22832,97 @@ fail:
 	return nil, false
 }
 
-// rule source_semis
-func u294(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[294]) {
-		return p.CallMemo(trules[294], v294)
+func s299(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x2, x3, x5, x6, size int
+	var v any
+	var ok, x9 bool
+	var x8, ch rune
+	start, rec = p.Pos, len(p.Recovered)
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
+		goto fail
 	}
-	return v294(p)
+	for {
+		p.Spend()
+		x2, x3 = p.Pos, len(p.Recovered)
+		x5, x6 = p.Pos, len(p.Recovered)
+		if p.Pos < len(p.In) {
+			p.Control.Take(1)
+			x8, _, x9 = p.In[p.Pos], 1, true
+		} else {
+			x8, _, x9 = p.Peek()
+		}
+		if !(x9 && (x8 == 92)) && p.Depth <= p.MaxDepth {
+			p.ExpectBudget(p.Pos, 22)
+			goto L10
+		}
+		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
+			p.Pos++
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
+			goto L11
+		}
+		if p.Pos < len(p.In) {
+			p.Control.Take(1)
+			_, size, ok = p.In[p.Pos], 1, true
+		} else {
+			_, size, ok = p.Peek()
+		}
+		if !ok {
+			p.ExpectBudget(p.Pos, rt.IdAny)
+			goto L11
+		}
+		p.Pos += size
+		goto L7
+	L11:
+		p.Restore(x5, x6)
+	L10:
+		if !(x9 && (!(x8 == 34 || x8 == 92 || x8 == 10))) && p.Depth <= p.MaxDepth {
+			p.ExpectBudget(p.Pos, 139)
+			goto L12
+		}
+		if p.Pos < len(p.In) {
+			p.Control.Take(1)
+			ch, size, ok = p.In[p.Pos], 1, true
+		} else {
+			ch, size, ok = p.Peek()
+		}
+		if !ok || (ch == 34 || ch == 92 || ch == 10) {
+			p.ExpectBudget(p.Pos, 139)
+			goto L13
+		}
+		p.Pos += size
+		goto L7
+	L13:
+		p.Restore(x5, x6)
+	L12:
+		goto L4
+	L7:
+		if p.Pos == x2 {
+			break
+		}
+		continue
+	L4:
+		p.Restore(x2, x3)
+		break
+	}
+	v = nil
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
 }
 
-func v294(p *rt.TParser) (any, bool) {
+// rule source_semis
+func u300(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[300]) {
+		return p.CallMemo(trules[300], v300)
+	}
+	return v300(p)
+}
+
+func v300(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x6, x7 int
 	var v any
@@ -22422,7 +22930,7 @@ func v294(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto fail
 	}
 	for {
@@ -22431,7 +22939,7 @@ func v294(p *rt.TParser) (any, bool) {
 		for {
 			p.Spend()
 			x6, x7 = p.Pos, len(p.Recovered)
-			if _, ok = s295(p); !ok {
+			if _, ok = s301(p); !ok {
 				goto L8
 			}
 			if p.Pos == x6 {
@@ -22444,7 +22952,7 @@ func v294(p *rt.TParser) (any, bool) {
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -22462,7 +22970,7 @@ fail:
 	return nil, false
 }
 
-func s295(p *rt.TParser) (any, bool) {
+func s301(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22470,7 +22978,7 @@ func s295(p *rt.TParser) (any, bool) {
 	var x5 rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u303(p); !ok {
+	if _, ok = u309(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -22483,10 +22991,10 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L7
 	}
-	if _, ok = u242(p); !ok {
+	if _, ok = u246(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -22494,10 +23002,10 @@ L8:
 	p.Restore(x1, x2)
 L7:
 	if !(x6 && (x5 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L9
 	}
-	if _, ok = u243(p); !ok {
+	if _, ok = u247(p); !ok {
 		goto L10
 	}
 	goto L3
@@ -22514,51 +23022,51 @@ fail:
 }
 
 // rule source_after_boundary
-func u296(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[296]) {
-		return p.CallMemo(trules[296], v296)
+func u302(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[302]) {
+		return p.CallMemo(trules[302], v302)
 	}
-	return v296(p)
+	return v302(p)
 }
 
-func v296(p *rt.TParser) (any, bool) {
+func v302(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u213(p); !ok {
+	if _, ok = u217(p); !ok {
 		goto L4
 	}
 	goto L3
 L4:
 	p.Restore(x1, x2)
-	if _, ok = u214(p); !ok {
+	if _, ok = u218(p); !ok {
 		goto L5
 	}
 	goto L3
 L5:
 	p.Restore(x1, x2)
-	if _, ok = u218(p); !ok {
+	if _, ok = u222(p); !ok {
 		goto L6
 	}
 	goto L3
 L6:
 	p.Restore(x1, x2)
-	if _, ok = u224(p); !ok {
+	if _, ok = u228(p); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
-	if _, ok = u225(p); !ok {
+	if _, ok = u229(p); !ok {
 		goto L8
 	}
 	goto L3
 L8:
 	p.Restore(x1, x2)
-	if _, ok = u324(p); !ok {
+	if _, ok = u329(p); !ok {
 		goto L9
 	}
 	goto L3
@@ -22574,14 +23082,14 @@ fail:
 }
 
 // rule source_horizontal
-func u297(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[297]) {
-		return p.CallMemo(trules[297], v297)
+func u303(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[303]) {
+		return p.CallMemo(trules[303], v303)
 	}
-	return v297(p)
+	return v303(p)
 }
 
-func v297(p *rt.TParser) (any, bool) {
+func v303(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var v any
 	var x2, x3 int
@@ -22589,7 +23097,7 @@ func v297(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = s325(p); !ok {
+		if _, ok = s330(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -22604,7 +23112,7 @@ func v297(p *rt.TParser) (any, bool) {
 	return v, true
 }
 
-func s298(p *rt.TParser) (any, bool) {
+func s304(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -22619,12 +23127,12 @@ func s298(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 13)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 136)
+		p.ExpectBudget(p.Pos, 137)
 		goto L6
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 13 && p.In[p.Pos+1] == 10) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit271, "\r\n", 136, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit274, "\r\n", 137, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -22632,7 +23140,7 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 13 || x4 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L8
 	}
 	if p.Pos < len(p.In) {
@@ -22642,7 +23150,7 @@ L6:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch == 13 || ch == 10) {
-		p.ExpectBudget(p.Pos, 137)
+		p.ExpectBudget(p.Pos, 138)
 		goto L9
 	}
 	p.Pos += size
@@ -22659,7 +23167,7 @@ fail:
 	return nil, false
 }
 
-func s299(p *rt.TParser) (any, bool) {
+func s305(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22674,12 +23182,12 @@ func s299(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 41)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 18)
+		p.ExpectBudget(p.Pos, 20)
 		goto L6
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -22687,12 +23195,12 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 93)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 19)
+		p.ExpectBudget(p.Pos, 21)
 		goto L8
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -22700,12 +23208,12 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 125)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 14)
+		p.ExpectBudget(p.Pos, 16)
 		goto L10
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L11
 	}
 	goto L3
@@ -22713,12 +23221,12 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 59)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 13)
+		p.ExpectBudget(p.Pos, 15)
 		goto L12
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 		goto L13
 	}
 	goto L3
@@ -22741,7 +23249,7 @@ fail:
 	return nil, false
 }
 
-func s300(p *rt.TParser) (any, bool) {
+func s306(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22756,12 +23264,12 @@ func s300(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L6
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -22769,12 +23277,12 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L8
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -22791,14 +23299,14 @@ fail:
 }
 
 // rule source_next_token
-func u301(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[301]) {
-		return p.CallMemo(trules[301], v301)
+func u307(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[307]) {
+		return p.CallMemo(trules[307], v307)
 	}
-	return v301(p)
+	return v307(p)
 }
 
-func v301(p *rt.TParser) (any, bool) {
+func v307(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x4, x5, size int
 	var v any
@@ -22806,21 +23314,21 @@ func v301(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(202)
+	p.LookBegin(206)
 	x4, x5 = p.Pos, len(p.Recovered)
-	if _, ok = u303(p); !ok {
+	if _, ok = u309(p); !ok {
 		goto L7
 	}
 	goto L6
 L7:
 	p.Restore(x4, x5)
-	if _, ok = s300(p); !ok {
+	if _, ok = s306(p); !ok {
 		goto L8
 	}
 	goto L6
 L8:
 	p.Restore(x4, x5)
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L9
 	}
 	goto L6
@@ -22854,7 +23362,7 @@ fail:
 	return nil, false
 }
 
-func s302(p *rt.TParser) (any, bool) {
+func s308(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x6, x7, x10, x11 int
 	var v any
@@ -22863,7 +23371,7 @@ func s302(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -22877,13 +23385,13 @@ func s302(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
-		if _, ok = u326(p); !ok {
+		if _, ok = u331(p); !ok {
 			goto L8
 		}
 		for {
 			p.Spend()
 			x10, x11 = p.Pos, len(p.Recovered)
-			if _, ok = u303(p); !ok {
+			if _, ok = u309(p); !ok {
 				goto L12
 			}
 			if p.Pos == x10 {
@@ -22902,7 +23410,7 @@ func s302(p *rt.TParser) (any, bool) {
 		p.Restore(x6, x7)
 		break
 	}
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -22913,14 +23421,14 @@ fail:
 }
 
 // rule source_space
-func u303(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[303]) {
-		return p.CallMemo(trules[303], v303)
+func u309(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[309]) {
+		return p.CallMemo(trules[309], v309)
 	}
-	return v303(p)
+	return v309(p)
 }
 
-func v303(p *rt.TParser) (any, bool) {
+func v309(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -22934,18 +23442,18 @@ func v303(p *rt.TParser) (any, bool) {
 	} else {
 		x4, _, x5 = p.Peek()
 	}
-	if !(x5 && (!((p.Control != nil && p.RejectBudgetClass(x4, budgetClass355)) || (p.Control == nil && (!(x4 == 32 || x4 == 9 || x4 == 11 || x4 == 12 || x4 == 133 || x4 == 160 || x4 == 5760 || x4 >= 8192 && x4 <= 8202 || x4 == 8232 || x4 == 8233 || x4 == 8239 || x4 == 8287 || x4 == 12288)))))) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 145)
+	if !(x5 && (!((p.Control != nil && p.RejectBudgetClass(x4, budgetClass360)) || (p.Control == nil && (!(x4 == 32 || x4 == 9 || x4 == 11 || x4 == 12 || x4 == 133 || x4 == 160 || x4 == 5760 || x4 >= 8192 && x4 <= 8202 || x4 == 8232 || x4 == 8233 || x4 == 8239 || x4 == 8287 || x4 == 12288)))))) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 147)
 		goto L6
 	}
-	if _, ok = s325(p); !ok {
+	if _, ok = s330(p); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -22961,25 +23469,25 @@ fail:
 }
 
 // rule source_line_flush
-func u304(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[304]) {
-		return p.CallMemo(trules[304], v304)
+func u310(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[310]) {
+		return p.CallMemo(trules[310], v310)
 	}
-	return v304(p)
+	return v310(p)
 }
 
-func v304(p *rt.TParser) (any, bool) {
+func v310(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok, x6 bool
 	var x5 rune
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -22992,19 +23500,19 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L7
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto L8
 	}
 	goto L3
 L8:
 	p.Restore(x1, x2)
 L7:
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L9
 	}
 	goto L3
@@ -23020,43 +23528,43 @@ fail:
 }
 
 // rule source_block_flush
-func u305(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[305]) {
-		return p.CallMemo(trules[305], v305)
+func u311(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[311]) {
+		return p.CallMemo(trules[311], v311)
 	}
-	return v305(p)
+	return v311(p)
 }
 
-func v305(p *rt.TParser) (any, bool) {
+func v311(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x5, x6 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L4
 	}
-	if _, ok = u297(p); !ok {
+	if _, ok = u303(p); !ok {
 		goto L4
 	}
 	x5, x6 = p.Pos, len(p.Recovered)
-	if _, ok = s298(p); !ok {
+	if _, ok = s304(p); !ok {
 		goto L8
 	}
 	goto L7
 L8:
 	p.Restore(x5, x6)
-	if _, ok = s300(p); !ok {
+	if _, ok = s306(p); !ok {
 		goto L9
 	}
 	goto L7
 L9:
 	p.Restore(x5, x6)
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L10
 	}
 	goto L7
@@ -23067,13 +23575,13 @@ L7:
 	goto L3
 L4:
 	p.Restore(x1, x2)
-	if _, ok = s300(p); !ok {
+	if _, ok = s306(p); !ok {
 		goto L11
 	}
 	goto L3
 L11:
 	p.Restore(x1, x2)
-	if _, ok = s299(p); !ok {
+	if _, ok = s305(p); !ok {
 		goto L12
 	}
 	goto L3
@@ -23088,7 +23596,7 @@ fail:
 	return nil, false
 }
 
-func s306(p *rt.TParser) (any, bool) {
+func s312(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -23096,15 +23604,15 @@ func s306(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 42) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit347, "*", 144, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit352, "*", 146, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(203)
+	p.LookBegin(207)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 47) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit60, "/", 26, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit64, "/", 28, false); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -23123,14 +23631,14 @@ fail:
 }
 
 // rule source_gap_skip
-func u307(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[307]) {
-		return p.CallMemo(trules[307], v307)
+func u313(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[313]) {
+		return p.CallMemo(trules[313], v313)
 	}
-	return v307(p)
+	return v313(p)
 }
 
-func v307(p *rt.TParser) (any, bool) {
+func v313(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x4, x5, x16, x17, x18, x20, x21, x23, x24, x33, x34, x36, x37, size int
 	var v any
@@ -23139,8 +23647,8 @@ func v307(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(204)
-	if _, ok = s309(p); !ok {
+	p.LookBegin(208)
+	if _, ok = s315(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -23159,34 +23667,34 @@ L3:
 		x7, _, x8 = p.Peek()
 	}
 	if !(x8 && (x7 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L9
 	}
-	if _, ok = s321(p); !ok {
+	if _, ok = s326(p); !ok {
 		goto L10
 	}
 	goto L6
 L10:
 	p.Restore(x4, x5)
 L9:
-	if _, ok = u327(p); !ok {
+	if _, ok = u332(p); !ok {
 		goto L11
 	}
 	goto L6
 L11:
 	p.Restore(x4, x5)
 	if !(x8 && (x7 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L12
 	}
-	if _, ok = s322(p); !ok {
+	if _, ok = s327(p); !ok {
 		goto L13
 	}
 	goto L6
 L13:
 	p.Restore(x4, x5)
 L12:
-	if _, ok = u323(p); !ok {
+	if _, ok = u328(p); !ok {
 		goto L14
 	}
 	goto L6
@@ -23196,7 +23704,7 @@ L14:
 	for {
 		p.Spend()
 		x17, x18 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L19
 		}
 		x16++
@@ -23213,7 +23721,7 @@ L14:
 	}
 	x20, x21 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(205)
+	p.LookBegin(209)
 	x23, x24 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -23222,10 +23730,10 @@ L14:
 		x26, _, x27 = p.Peek()
 	}
 	if !(x27 && (x26 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L28
 	}
-	if _, ok = u242(p); !ok {
+	if _, ok = u246(p); !ok {
 		goto L29
 	}
 	goto L25
@@ -23233,10 +23741,10 @@ L29:
 	p.Restore(x23, x24)
 L28:
 	if !(x27 && (x26 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L30
 	}
-	if _, ok = u243(p); !ok {
+	if _, ok = u247(p); !ok {
 		goto L31
 	}
 	goto L25
@@ -23258,15 +23766,15 @@ L15:
 	p.Restore(x4, x5)
 	x33, x34 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(206)
+	p.LookBegin(210)
 	x36, x37 = p.Pos, len(p.Recovered)
-	if _, ok = u303(p); !ok {
+	if _, ok = u309(p); !ok {
 		goto L39
 	}
 	goto L38
 L39:
 	p.Restore(x36, x37)
-	if _, ok = s300(p); !ok {
+	if _, ok = s306(p); !ok {
 		goto L40
 	}
 	goto L38
@@ -23305,7 +23813,7 @@ fail:
 	return nil, false
 }
 
-func s308(p *rt.TParser) (any, bool) {
+func s314(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -23313,7 +23821,7 @@ func s308(p *rt.TParser) (any, bool) {
 	var x5, ch rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u327(p); !ok {
+	if _, ok = u332(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -23326,7 +23834,7 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 40 || x5 == 123)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 147)
+		p.ExpectBudget(p.Pos, 149)
 		goto L7
 	}
 	if p.Pos < len(p.In) {
@@ -23336,7 +23844,7 @@ L4:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch == 40 || ch == 123) {
-		p.ExpectBudget(p.Pos, 147)
+		p.ExpectBudget(p.Pos, 149)
 		goto L8
 	}
 	p.Pos += size
@@ -23353,19 +23861,19 @@ fail:
 	return nil, false
 }
 
-func s309(p *rt.TParser) (any, bool) {
+func s315(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
-	if _, ok = s328(p); !ok {
+	if _, ok = s333(p); !ok {
 		goto fail
 	}
 	x1 = p.Pos
 	p.Silent++
-	p.LookBegin(207)
-	if _, ok = u310(p); !ok {
+	p.LookBegin(211)
+	if _, ok = u316(p); !ok {
 		goto L2
 	}
 	p.LookEnd(true)
@@ -23386,14 +23894,14 @@ fail:
 }
 
 // rule source_gap_run
-func u310(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[310]) {
-		return p.CallMemo(trules[310], v310)
+func u316(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[316]) {
+		return p.CallMemo(trules[316], v316)
 	}
-	return v310(p)
+	return v316(p)
 }
 
-func v310(p *rt.TParser) (any, bool) {
+func v316(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x15, x16, x18, x19 int
 	var v any
@@ -23403,7 +23911,7 @@ func v310(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -23422,10 +23930,10 @@ func v310(p *rt.TParser) (any, bool) {
 		x8, _, x9 = p.Peek()
 	}
 	if !(x9 && (x8 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L10
 	}
-	if _, ok = u242(p); !ok {
+	if _, ok = u246(p); !ok {
 		goto L11
 	}
 	goto L7
@@ -23433,10 +23941,10 @@ L11:
 	p.Restore(x5, x6)
 L10:
 	if !(x9 && (x8 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L12
 	}
-	if _, ok = u243(p); !ok {
+	if _, ok = u247(p); !ok {
 		goto L13
 	}
 	goto L7
@@ -23449,7 +23957,7 @@ L7:
 		p.Spend()
 		x15, x16 = p.Pos, len(p.Recovered)
 		x18, x19 = p.Pos, len(p.Recovered)
-		if _, ok = u303(p); !ok {
+		if _, ok = u309(p); !ok {
 			goto L21
 		}
 		goto L20
@@ -23462,10 +23970,10 @@ L7:
 			x22, _, x23 = p.Peek()
 		}
 		if !(x23 && (x22 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 28)
+			p.ExpectBudget(p.Pos, 30)
 			goto L24
 		}
-		if _, ok = u242(p); !ok {
+		if _, ok = u246(p); !ok {
 			goto L25
 		}
 		goto L20
@@ -23473,10 +23981,10 @@ L7:
 		p.Restore(x18, x19)
 	L24:
 		if !(x23 && (x22 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L26
 		}
-		if _, ok = u243(p); !ok {
+		if _, ok = u247(p); !ok {
 			goto L27
 		}
 		goto L20
@@ -23501,39 +24009,39 @@ fail:
 }
 
 // rule source_after_boundary_trailing
-func u311(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[311]) {
-		return p.CallMemo(trules[311], v311)
+func u317(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[317]) {
+		return p.CallMemo(trules[317], v317)
 	}
-	return v311(p)
+	return v317(p)
 }
 
-func v311(p *rt.TParser) (any, bool) {
+func v317(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u213(p); !ok {
+	if _, ok = u217(p); !ok {
 		goto L4
 	}
 	goto L3
 L4:
 	p.Restore(x1, x2)
-	if _, ok = u214(p); !ok {
+	if _, ok = u218(p); !ok {
 		goto L5
 	}
 	goto L3
 L5:
 	p.Restore(x1, x2)
-	if _, ok = u218(p); !ok {
+	if _, ok = u222(p); !ok {
 		goto L6
 	}
 	goto L3
 L6:
 	p.Restore(x1, x2)
-	if _, ok = u227(p); !ok {
+	if _, ok = u231(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -23549,14 +24057,14 @@ fail:
 }
 
 // rule attr_unit
-func u312(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[312]) {
-		return p.CallMemo(trules[312], v312)
+func u318(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[318]) {
+		return p.CallMemo(trules[318], v318)
 	}
-	return v312(p)
+	return v318(p)
 }
 
-func v312(p *rt.TParser) (any, bool) {
+func v318(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -23571,17 +24079,17 @@ func v312(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 >= 97 && x4 <= 122 || x4 >= 65 && x4 <= 90 || x4 >= 48 && x4 <= 57 || x4 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 33)
+		p.ExpectBudget(p.Pos, 34)
 		goto L6
 	}
-	if _, ok = s266(p); !ok {
+	if _, ok = s270(p); !ok {
 		goto L7
 	}
 	goto L3
 L7:
 	p.Restore(x1, x2)
 L6:
-	if _, ok = u281(p); !ok {
+	if _, ok = u286(p); !ok {
 		goto L8
 	}
 	goto L3
@@ -23601,10 +24109,10 @@ L10:
 	p.Restore(x1, x2)
 L9:
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L11
 	}
-	if _, ok = s321(p); !ok {
+	if _, ok = s326(p); !ok {
 		goto L12
 	}
 	goto L3
@@ -23612,10 +24120,10 @@ L12:
 	p.Restore(x1, x2)
 L11:
 	if !(x5 && (x4 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L13
 	}
-	if _, ok = u187(p); !ok {
+	if _, ok = u189(p); !ok {
 		goto L14
 	}
 	goto L3
@@ -23623,10 +24131,10 @@ L14:
 	p.Restore(x1, x2)
 L13:
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L15
 	}
-	if _, ok = s329(p); !ok {
+	if _, ok = s334(p); !ok {
 		goto L16
 	}
 	goto L3
@@ -23634,10 +24142,10 @@ L16:
 	p.Restore(x1, x2)
 L15:
 	if !(x5 && (x4 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L17
 	}
-	if _, ok = u330(p); !ok {
+	if _, ok = u335(p); !ok {
 		goto L18
 	}
 	goto L3
@@ -23653,7 +24161,7 @@ fail:
 	return nil, false
 }
 
-func s313(p *rt.TParser) (any, bool) {
+func s319(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x9, x10, x12, x13, x16 int
 	var v any
@@ -23670,16 +24178,16 @@ func s313(p *rt.TParser) (any, bool) {
 		x5, x6 = p.Pos, len(p.Recovered)
 		x9, x10 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(209)
+		p.LookBegin(213)
 		if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 			p.Pos += 4
-		} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
 			goto L11
 		}
 		x12, x13 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(208)
-		if _, ok = s266(p); !ok {
+		p.LookBegin(212)
+		if _, ok = s270(p); !ok {
 			goto L14
 		}
 		p.LookEnd(true)
@@ -23698,21 +24206,21 @@ func s313(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x9, x10)
-		if _, ok = u312(p); !ok {
+		if _, ok = u318(p); !ok {
 			goto L8
 		}
 		goto L7
 	L8:
 		p.Restore(x5, x6)
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L15
 		}
-		if _, ok = u172(p); !ok {
+		if _, ok = u174(p); !ok {
 			goto L15
 		}
 		x16 = p.Pos
 		p.Silent++
-		p.LookBegin(210)
+		p.LookBegin(214)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
 			p.Pos++
 		} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
@@ -23749,14 +24257,14 @@ fail:
 }
 
 // rule sync_unit
-func u314(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[314]) {
-		return p.CallMemo(trules[314], v314)
+func u320(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[320]) {
+		return p.CallMemo(trules[320], v320)
 	}
-	return v314(p)
+	return v320(p)
 }
 
-func v314(p *rt.TParser) (any, bool) {
+func v320(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x16, x17, x18, size int
 	var v any
@@ -23771,10 +24279,10 @@ func v314(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L6
 	}
-	if _, ok = s321(p); !ok {
+	if _, ok = s326(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -23782,10 +24290,10 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L8
 	}
-	if _, ok = s322(p); !ok {
+	if _, ok = s327(p); !ok {
 		goto L9
 	}
 	goto L3
@@ -23793,10 +24301,10 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L10
 	}
-	if _, ok = u187(p); !ok {
+	if _, ok = u189(p); !ok {
 		goto L11
 	}
 	goto L3
@@ -23804,17 +24312,17 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L12
 	}
-	if _, ok = s329(p); !ok {
+	if _, ok = s334(p); !ok {
 		goto L13
 	}
 	goto L3
 L13:
 	p.Restore(x1, x2)
 L12:
-	if _, ok = u323(p); !ok {
+	if _, ok = u328(p); !ok {
 		goto L14
 	}
 	goto L3
@@ -23824,7 +24332,7 @@ L14:
 	for {
 		p.Spend()
 		x17, x18 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L19
 		}
 		x16++
@@ -23865,7 +24373,7 @@ fail:
 	return nil, false
 }
 
-func s315(p *rt.TParser) (any, bool) {
+func s321(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x13, x14, x16, x17 int
 	var v any
@@ -23883,7 +24391,7 @@ func s315(p *rt.TParser) (any, bool) {
 		p.ExpectBudget(p.Pos, 5)
 		goto L6
 	}
-	if _, ok = u331(p); !ok {
+	if _, ok = u336(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -23891,23 +24399,23 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L8
 	}
-	if _, ok = s332(p); !ok {
+	if _, ok = s337(p); !ok {
 		goto L9
 	}
 	goto L3
 L9:
 	p.Restore(x1, x2)
 L8:
-	if _, ok = u333(p); !ok {
+	if _, ok = u338(p); !ok {
 		goto L10
 	}
 	goto L3
 L10:
 	p.Restore(x1, x2)
-	if _, ok = u334(p); !ok {
+	if _, ok = u339(p); !ok {
 		goto L11
 	}
 	goto L3
@@ -23915,8 +24423,8 @@ L11:
 	p.Restore(x1, x2)
 	x13, x14 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(211)
-	if _, ok = u272(p); !ok {
+	p.LookBegin(215)
+	if _, ok = u277(p); !ok {
 		goto L15
 	}
 	p.LookEnd(true)
@@ -23929,8 +24437,8 @@ L15:
 	p.Restore(x13, x14)
 	x16, x17 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(212)
-	if _, ok = s273(p); !ok {
+	p.LookBegin(216)
+	if _, ok = s278(p); !ok {
 		goto L18
 	}
 	p.LookEnd(true)
@@ -23941,7 +24449,7 @@ L18:
 	p.LookEnd(false)
 	p.Silent--
 	p.Restore(x16, x17)
-	if _, ok = u314(p); !ok {
+	if _, ok = u320(p); !ok {
 		goto L12
 	}
 	goto L3
@@ -23956,193 +24464,9 @@ fail:
 	return nil, false
 }
 
-func s316(p *rt.TParser) (any, bool) {
+func s322(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x9, x10, x12, x13, x16, x19, x20, x23 int
-	var v any
-	var ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
-		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
-		goto fail
-	}
-	for {
-		p.Spend()
-		x2, x3 = p.Pos, len(p.Recovered)
-		x5, x6 = p.Pos, len(p.Recovered)
-		x9, x10 = p.Pos, len(p.Recovered)
-		p.Silent++
-		p.LookBegin(214)
-		if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
-			p.Pos += 4
-		} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
-			goto L11
-		}
-		x12, x13 = p.Pos, len(p.Recovered)
-		p.Silent++
-		p.LookBegin(213)
-		if _, ok = s266(p); !ok {
-			goto L14
-		}
-		p.LookEnd(true)
-		p.Silent--
-		p.Restore(x12, x13)
-		goto L11
-	L14:
-		p.LookEnd(false)
-		p.Silent--
-		p.Restore(x12, x13)
-		p.LookEnd(true)
-		p.Silent--
-		p.Restore(x9, x10)
-		goto L8
-	L11:
-		p.LookEnd(false)
-		p.Silent--
-		p.Restore(x9, x10)
-		if _, ok = u312(p); !ok {
-			goto L8
-		}
-		goto L7
-	L8:
-		p.Restore(x5, x6)
-		if _, ok = s270(p); !ok {
-			goto L15
-		}
-		if _, ok = u172(p); !ok {
-			goto L15
-		}
-		x16 = p.Pos
-		p.Silent++
-		p.LookBegin(215)
-		if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
-			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
-			goto L17
-		}
-		p.LookEnd(true)
-		p.Silent--
-		p.Pos = x16
-		goto L18
-	L17:
-		p.LookEnd(false)
-		p.Silent--
-		p.Pos = x16
-		goto L15
-	L18:
-		goto L7
-	L15:
-		p.Restore(x5, x6)
-		goto L4
-	L7:
-		if p.Pos == x2 {
-			break
-		}
-		continue
-	L4:
-		p.Restore(x2, x3)
-		break
-	}
-	x19, x20 = p.Pos, len(p.Recovered)
-	if _, ok = s270(p); !ok {
-		goto L21
-	}
-	if _, ok = u172(p); !ok {
-		goto L21
-	}
-	goto L22
-L21:
-	p.Restore(x19, x20)
-L22:
-	x23 = p.Pos
-	p.Silent++
-	p.LookBegin(216)
-	if _, ok = s276(p); !ok {
-		goto L24
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Pos = x23
-	goto L25
-L24:
-	p.LookEnd(false)
-	p.Silent--
-	p.Pos = x23
-	goto fail
-L25:
-	v = nil
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s317(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x1, x2 int
-	var v any
-	var x4 rune
-	var x5, ok bool
-	start, rec = p.Pos, len(p.Recovered)
-	x1, x2 = p.Pos, len(p.Recovered)
-	if p.Pos < len(p.In) {
-		p.Control.Take(1)
-		x4, _, x5 = p.In[p.Pos], 1, true
-	} else {
-		x4, _, x5 = p.Peek()
-	}
-	if !(x5 && (x4 == 114)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 22)
-		goto L6
-	}
-	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
-		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
-		goto L7
-	}
-	goto L3
-L7:
-	p.Restore(x1, x2)
-L6:
-	if !(x5 && (x4 == 116)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 23)
-		goto L8
-	}
-	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 116 && p.In[p.Pos+1] == 121 && p.In[p.Pos+2] == 112 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
-		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit53, "type", 23, false); !ok {
-		goto L9
-	}
-	goto L3
-L9:
-	p.Restore(x1, x2)
-L8:
-	if !(x5 && (x4 == 118)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 24)
-		goto L10
-	}
-	if (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 118 && p.In[p.Pos+1] == 97 && p.In[p.Pos+2] == 114) && p.Control.Take(3) {
-		p.Pos += 3
-	} else if _, ok = p.Parser.MatchLiteral(lit54, "var", 24, false); !ok {
-		goto L11
-	}
-	goto L3
-L11:
-	p.Restore(x1, x2)
-L10:
-	goto fail
-L3:
-	v = nil
-	return v, true
-fail:
-	p.Restore(start, rec)
-	return nil, false
-}
-
-func s318(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, rec, x2, x3, x5, x6, x9, x10, x12, x13, x16, x19, x20, x23, x24 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
@@ -24160,13 +24484,13 @@ func s318(p *rt.TParser) (any, bool) {
 		p.LookBegin(218)
 		if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 			p.Pos += 4
-		} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
 			goto L11
 		}
 		x12, x13 = p.Pos, len(p.Recovered)
 		p.Silent++
 		p.LookBegin(217)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L14
 		}
 		p.LookEnd(true)
@@ -24185,16 +24509,16 @@ func s318(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x9, x10)
-		if _, ok = u312(p); !ok {
+		if _, ok = u318(p); !ok {
 			goto L8
 		}
 		goto L7
 	L8:
 		p.Restore(x5, x6)
-		if _, ok = s270(p); !ok {
+		if _, ok = s275(p); !ok {
 			goto L15
 		}
-		if _, ok = u172(p); !ok {
+		if _, ok = u174(p); !ok {
 			goto L15
 		}
 		x16 = p.Pos
@@ -24229,10 +24553,132 @@ func s318(p *rt.TParser) (any, bool) {
 		break
 	}
 	x19, x20 = p.Pos, len(p.Recovered)
-	if _, ok = s270(p); !ok {
+	if _, ok = s275(p); !ok {
 		goto L21
 	}
-	if _, ok = u172(p); !ok {
+	if _, ok = u174(p); !ok {
+		goto L21
+	}
+	goto L22
+L21:
+	p.Restore(x19, x20)
+L22:
+	x23 = p.Pos
+	p.Silent++
+	p.LookBegin(220)
+	if _, ok = s281(p); !ok {
+		goto L24
+	}
+	p.LookEnd(true)
+	p.Silent--
+	p.Pos = x23
+	goto L25
+L24:
+	p.LookEnd(false)
+	p.Silent--
+	p.Pos = x23
+	goto fail
+L25:
+	v = nil
+	return v, true
+fail:
+	p.Restore(start, rec)
+	return nil, false
+}
+
+func s323(p *rt.TParser) (any, bool) {
+	p.Spend()
+	var start, rec, x2, x3, x5, x6, x9, x10, x12, x13, x16, x19, x20, x23, x24 int
+	var v any
+	var ok bool
+	start, rec = p.Pos, len(p.Recovered)
+	if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
+		p.Pos++
+	} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
+		goto fail
+	}
+	for {
+		p.Spend()
+		x2, x3 = p.Pos, len(p.Recovered)
+		x5, x6 = p.Pos, len(p.Recovered)
+		x9, x10 = p.Pos, len(p.Recovered)
+		p.Silent++
+		p.LookBegin(222)
+		if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
+			p.Pos += 4
+		} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
+			goto L11
+		}
+		x12, x13 = p.Pos, len(p.Recovered)
+		p.Silent++
+		p.LookBegin(221)
+		if _, ok = s270(p); !ok {
+			goto L14
+		}
+		p.LookEnd(true)
+		p.Silent--
+		p.Restore(x12, x13)
+		goto L11
+	L14:
+		p.LookEnd(false)
+		p.Silent--
+		p.Restore(x12, x13)
+		p.LookEnd(true)
+		p.Silent--
+		p.Restore(x9, x10)
+		goto L8
+	L11:
+		p.LookEnd(false)
+		p.Silent--
+		p.Restore(x9, x10)
+		if _, ok = u318(p); !ok {
+			goto L8
+		}
+		goto L7
+	L8:
+		p.Restore(x5, x6)
+		if _, ok = s275(p); !ok {
+			goto L15
+		}
+		if _, ok = u174(p); !ok {
+			goto L15
+		}
+		x16 = p.Pos
+		p.Silent++
+		p.LookBegin(223)
+		if (p.Pos < len(p.In) && p.In[p.Pos] == 64) && p.Control.Take(1) {
+			p.Pos++
+		} else if _, ok = p.Parser.MatchLiteral(lit8, "@", 5, false); !ok {
+			goto L17
+		}
+		p.LookEnd(true)
+		p.Silent--
+		p.Pos = x16
+		goto L18
+	L17:
+		p.LookEnd(false)
+		p.Silent--
+		p.Pos = x16
+		goto L15
+	L18:
+		goto L7
+	L15:
+		p.Restore(x5, x6)
+		goto L4
+	L7:
+		if p.Pos == x2 {
+			break
+		}
+		continue
+	L4:
+		p.Restore(x2, x3)
+		break
+	}
+	x19, x20 = p.Pos, len(p.Recovered)
+	if _, ok = s275(p); !ok {
+		goto L21
+	}
+	if _, ok = u174(p); !ok {
 		goto L21
 	}
 	goto L22
@@ -24241,13 +24687,13 @@ L21:
 L22:
 	if (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 114 && p.In[p.Pos+1] == 117 && p.In[p.Pos+2] == 108 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
 		p.Pos += 4
-	} else if _, ok = p.Parser.MatchLiteral(lit50, "rule", 22, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit54, "rule", 24, false); !ok {
 		goto fail
 	}
 	x23, x24 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(220)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(224)
+	if _, ok = s270(p); !ok {
 		goto L25
 	}
 	p.LookEnd(true)
@@ -24266,27 +24712,27 @@ fail:
 }
 
 // rule decl_tail
-func u319(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[319]) {
-		return p.CallMemo(trules[319], v319)
+func u324(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[324]) {
+		return p.CallMemo(trules[324], v324)
 	}
-	return v319(p)
+	return v324(p)
 }
 
-func v319(p *rt.TParser) (any, bool) {
+func v324(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = s335(p); !ok {
+	if _, ok = s340(p); !ok {
 		goto L4
 	}
 	goto L3
 L4:
 	p.Restore(x1, x2)
-	if _, ok = s336(p); !ok {
+	if _, ok = s341(p); !ok {
 		goto L5
 	}
 	goto L3
@@ -24302,14 +24748,14 @@ fail:
 }
 
 // rule sync_ml
-func u320(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[320]) {
-		return p.CallMemo(trules[320], v320)
+func u325(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[325]) {
+		return p.CallMemo(trules[325], v325)
 	}
-	return v320(p)
+	return v325(p)
 }
 
-func v320(p *rt.TParser) (any, bool) {
+func v325(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -24325,10 +24771,10 @@ func v320(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 34)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 27)
+		p.ExpectBudget(p.Pos, 29)
 		goto L6
 	}
-	if _, ok = u337(p); !ok {
+	if _, ok = u342(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -24336,10 +24782,10 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L8
 	}
-	if _, ok = u196(p); !ok {
+	if _, ok = u200(p); !ok {
 		goto L9
 	}
 	goto L3
@@ -24347,10 +24793,10 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L10
 	}
-	if _, ok = u187(p); !ok {
+	if _, ok = u189(p); !ok {
 		goto L11
 	}
 	goto L3
@@ -24358,10 +24804,10 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L12
 	}
-	if _, ok = s329(p); !ok {
+	if _, ok = s334(p); !ok {
 		goto L13
 	}
 	goto L3
@@ -24369,10 +24815,10 @@ L13:
 	p.Restore(x1, x2)
 L12:
 	if !(x5 && (x4 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L14
 	}
-	if _, ok = s338(p); !ok {
+	if _, ok = s343(p); !ok {
 		goto L15
 	}
 	goto L3
@@ -24380,10 +24826,10 @@ L15:
 	p.Restore(x1, x2)
 L14:
 	if !(x5 && (x4 == 123)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L16
 	}
-	if _, ok = s339(p); !ok {
+	if _, ok = s344(p); !ok {
 		goto L17
 	}
 	goto L3
@@ -24401,7 +24847,7 @@ fail:
 	return nil, false
 }
 
-func s321(p *rt.TParser) (any, bool) {
+func s326(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, size, x14, x15 int
 	var v any
@@ -24410,7 +24856,7 @@ func s321(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	for {
@@ -24424,12 +24870,12 @@ func s321(p *rt.TParser) (any, bool) {
 			x8, _, x9 = p.Peek()
 		}
 		if !(x9 && (x8 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L10
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L11
 		}
 		if p.Pos < len(p.In) {
@@ -24448,7 +24894,7 @@ func s321(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L10:
 		if !(x9 && (!(x8 == 34 || x8 == 92 || x8 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L12
 		}
 		if p.Pos < len(p.In) {
@@ -24458,7 +24904,7 @@ func s321(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L13
 		}
 		p.Pos += size
@@ -24479,7 +24925,7 @@ func s321(p *rt.TParser) (any, bool) {
 	x14, x15 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto L16
 	}
 	goto L17
@@ -24493,7 +24939,7 @@ fail:
 	return nil, false
 }
 
-func s322(p *rt.TParser) (any, bool) {
+func s327(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, size, x14, x15 int
 	var v any
@@ -24502,7 +24948,7 @@ func s322(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	for {
@@ -24516,12 +24962,12 @@ func s322(p *rt.TParser) (any, bool) {
 			x8, _, x9 = p.Peek()
 		}
 		if !(x9 && (x8 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L10
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L11
 		}
 		if p.Pos < len(p.In) {
@@ -24540,7 +24986,7 @@ func s322(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L10:
 		if !(x9 && (!(x8 == 93 || x8 == 92 || x8 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 21)
+			p.ExpectBudget(p.Pos, 23)
 			goto L12
 		}
 		if p.Pos < len(p.In) {
@@ -24550,7 +24996,7 @@ func s322(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 93 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 21)
+			p.ExpectBudget(p.Pos, 23)
 			goto L13
 		}
 		p.Pos += size
@@ -24571,7 +25017,7 @@ func s322(p *rt.TParser) (any, bool) {
 	x14, x15 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L16
 	}
 	goto L17
@@ -24586,14 +25032,14 @@ fail:
 }
 
 // rule incomplete_comment
-func u323(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[323]) {
-		return p.CallMemo(trules[323], v323)
+func u328(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[328]) {
+		return p.CallMemo(trules[328], v328)
 	}
-	return v323(p)
+	return v328(p)
 }
 
-func v323(p *rt.TParser) (any, bool) {
+func v328(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -24601,8 +25047,8 @@ func v323(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(221)
-	if _, ok = u187(p); !ok {
+	p.LookBegin(225)
+	if _, ok = u189(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -24615,7 +25061,7 @@ L3:
 	p.Restore(x1, x2)
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 42) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit276, "/*", 12, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit22, "/*", 13, false); !ok {
 		goto fail
 	}
 	for {
@@ -24643,27 +25089,27 @@ fail:
 }
 
 // rule source_remaining
-func u324(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[324]) {
-		return p.CallMemo(trules[324], v324)
+func u329(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[329]) {
+		return p.CallMemo(trules[329], v329)
 	}
-	return v324(p)
+	return v329(p)
 }
 
-func v324(p *rt.TParser) (any, bool) {
+func v329(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
 	var ok bool
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u230(p); !ok {
+	if _, ok = u234(p); !ok {
 		goto L4
 	}
 	goto L3
 L4:
 	p.Restore(x1, x2)
-	if _, ok = u231(p); !ok {
+	if _, ok = u235(p); !ok {
 		goto L5
 	}
 	goto L3
@@ -24678,7 +25124,7 @@ fail:
 	return nil, false
 }
 
-func s325(p *rt.TParser) (any, bool) {
+func s330(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size int
 	var v any
@@ -24691,8 +25137,8 @@ func s325(p *rt.TParser) (any, bool) {
 	} else {
 		ch, size, ok = p.Peek()
 	}
-	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass355)) || (p.Control == nil && (!(ch == 32 || ch == 9 || ch == 11 || ch == 12 || ch == 133 || ch == 160 || ch == 5760 || ch >= 8192 && ch <= 8202 || ch == 8232 || ch == 8233 || ch == 8239 || ch == 8287 || ch == 12288)))) {
-		p.ExpectBudget(p.Pos, 145)
+	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass360)) || (p.Control == nil && (!(ch == 32 || ch == 9 || ch == 11 || ch == 12 || ch == 133 || ch == 160 || ch == 5760 || ch >= 8192 && ch <= 8202 || ch == 8232 || ch == 8233 || ch == 8239 || ch == 8287 || ch == 12288)))) {
+		p.ExpectBudget(p.Pos, 147)
 		goto fail
 	}
 	p.Pos += size
@@ -24704,14 +25150,14 @@ fail:
 }
 
 // rule source_comment
-func u326(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[326]) {
-		return p.CallMemo(trules[326], v326)
+func u331(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[331]) {
+		return p.CallMemo(trules[331], v331)
 	}
-	return v326(p)
+	return v331(p)
 }
 
-func v326(p *rt.TParser) (any, bool) {
+func v331(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -24726,10 +25172,10 @@ func v326(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 28)
+		p.ExpectBudget(p.Pos, 30)
 		goto L6
 	}
-	if _, ok = u241(p); !ok {
+	if _, ok = u245(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -24737,10 +25183,10 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 47)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 12)
+		p.ExpectBudget(p.Pos, 13)
 		goto L8
 	}
-	if _, ok = u243(p); !ok {
+	if _, ok = u247(p); !ok {
 		goto L9
 	}
 	goto L3
@@ -24757,14 +25203,14 @@ fail:
 }
 
 // rule source_bracket
-func u327(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[327]) {
-		return p.CallMemo(trules[327], v327)
+func u332(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[332]) {
+		return p.CallMemo(trules[332], v332)
 	}
-	return v327(p)
+	return v332(p)
 }
 
-func v327(p *rt.TParser) (any, bool) {
+func v332(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -24779,10 +25225,10 @@ func v327(p *rt.TParser) (any, bool) {
 		x4, _, x5 = p.Peek()
 	}
 	if !(x5 && (x4 >= 97 && x4 <= 122 || x4 >= 65 && x4 <= 90 || x4 >= 48 && x4 <= 57 || x4 == 95)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 33)
+		p.ExpectBudget(p.Pos, 34)
 		goto L6
 	}
-	if _, ok = s266(p); !ok {
+	if _, ok = s270(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -24790,12 +25236,12 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 41)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 18)
+		p.ExpectBudget(p.Pos, 20)
 		goto L8
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -24803,12 +25249,12 @@ L9:
 	p.Restore(x1, x2)
 L8:
 	if !(x5 && (x4 == 93)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 19)
+		p.ExpectBudget(p.Pos, 21)
 		goto L10
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L11
 	}
 	goto L3
@@ -24816,12 +25262,12 @@ L11:
 	p.Restore(x1, x2)
 L10:
 	if !(x5 && (x4 == 125)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 14)
+		p.ExpectBudget(p.Pos, 16)
 		goto L12
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto L13
 	}
 	goto L3
@@ -24832,7 +25278,7 @@ L12:
 L3:
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -24842,7 +25288,7 @@ fail:
 	return nil, false
 }
 
-func s328(p *rt.TParser) (any, bool) {
+func s333(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -24850,7 +25296,7 @@ func s328(p *rt.TParser) (any, bool) {
 	var x5, ch rune
 	start, rec = p.Pos, len(p.Recovered)
 	x1, x2 = p.Pos, len(p.Recovered)
-	if _, ok = u327(p); !ok {
+	if _, ok = u332(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -24863,7 +25309,7 @@ L4:
 		x5, _, x6 = p.Peek()
 	}
 	if !(x6 && (x5 == 40 || x5 == 123 || x5 == 44)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 146)
+		p.ExpectBudget(p.Pos, 148)
 		goto L7
 	}
 	if p.Pos < len(p.In) {
@@ -24873,7 +25319,7 @@ L4:
 		ch, size, ok = p.Peek()
 	}
 	if !ok || !(ch == 40 || ch == 123 || ch == 44) {
-		p.ExpectBudget(p.Pos, 146)
+		p.ExpectBudget(p.Pos, 148)
 		goto L8
 	}
 	p.Pos += size
@@ -24890,7 +25336,7 @@ fail:
 	return nil, false
 }
 
-func s329(p *rt.TParser) (any, bool) {
+func s334(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, size, x1, x2 int
 	var v any
@@ -24899,7 +25345,7 @@ func s329(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 		goto fail
 	}
 	x1 = p.Pos
@@ -24912,17 +25358,17 @@ func s329(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 10 || ch == 13) {
-			p.ExpectBudget(p.Pos, 139)
+			p.ExpectBudget(p.Pos, 140)
 			break
 		}
 		p.Pos += size
 		x2++
 		if x2 == 16 {
-			x2 = p.ScanReach(71, x1, x2)
+			x2 = p.ScanReach(72, x1, x2)
 		}
 	}
 	if 15 < x2 {
-		p.ScanEnd(71, x1, x2)
+		p.ScanEnd(72, x1, x2)
 	}
 	v = nil
 	return v, true
@@ -24932,14 +25378,14 @@ fail:
 }
 
 // rule attr_paren
-func u330(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[330]) {
-		return p.CallMemo(trules[330], v330)
+func u335(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[335]) {
+		return p.CallMemo(trules[335], v335)
 	}
-	return v330(p)
+	return v335(p)
 }
 
-func v330(p *rt.TParser) (any, bool) {
+func v335(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x19, x20, x22, x23, size int
 	var v any
@@ -24949,7 +25395,7 @@ func v330(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	for {
@@ -24963,10 +25409,10 @@ func v330(p *rt.TParser) (any, bool) {
 			x8, _, x9 = p.Peek()
 		}
 		if !(x9 && (x8 == 40)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 16)
+			p.ExpectBudget(p.Pos, 18)
 			goto L10
 		}
-		if _, ok = u330(p); !ok {
+		if _, ok = u335(p); !ok {
 			goto L11
 		}
 		goto L7
@@ -24974,10 +25420,10 @@ func v330(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L10:
 		if !(x9 && (x8 == 34)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 27)
+			p.ExpectBudget(p.Pos, 29)
 			goto L12
 		}
-		if _, ok = s321(p); !ok {
+		if _, ok = s326(p); !ok {
 			goto L13
 		}
 		goto L7
@@ -24985,10 +25431,10 @@ func v330(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L12:
 		if !(x9 && (x8 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L14
 		}
-		if _, ok = u187(p); !ok {
+		if _, ok = u189(p); !ok {
 			goto L15
 		}
 		goto L7
@@ -24996,10 +25442,10 @@ func v330(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L14:
 		if !(x9 && (x8 == 47)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 28)
+			p.ExpectBudget(p.Pos, 30)
 			goto L16
 		}
-		if _, ok = s329(p); !ok {
+		if _, ok = s334(p); !ok {
 			goto L17
 		}
 		goto L7
@@ -25008,7 +25454,7 @@ func v330(p *rt.TParser) (any, bool) {
 	L16:
 		x19, x20 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(222)
+		p.LookBegin(226)
 		x22, x23 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25017,12 +25463,12 @@ func v330(p *rt.TParser) (any, bool) {
 			x25, _, x26 = p.Peek()
 		}
 		if !(x26 && (x25 == 40)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 16)
+			p.ExpectBudget(p.Pos, 18)
 			goto L27
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 			goto L28
 		}
 		goto L24
@@ -25030,12 +25476,12 @@ func v330(p *rt.TParser) (any, bool) {
 		p.Restore(x22, x23)
 	L27:
 		if !(x26 && (x25 == 41)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 18)
+			p.ExpectBudget(p.Pos, 20)
 			goto L29
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 			goto L30
 		}
 		goto L24
@@ -25078,7 +25524,7 @@ func v330(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -25091,14 +25537,14 @@ fail:
 }
 
 // rule attr_call
-func u331(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[331]) {
-		return p.CallMemo(trules[331], v331)
+func u336(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[336]) {
+		return p.CallMemo(trules[336], v336)
 	}
-	return v331(p)
+	return v336(p)
 }
 
-func v331(p *rt.TParser) (any, bool) {
+func v336(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x6, x7 int
 	var v any
@@ -25113,7 +25559,7 @@ func v331(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L4
 		}
 		x1++
@@ -25131,7 +25577,7 @@ func v331(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L8
 		}
 		if p.Pos == x6 {
@@ -25142,7 +25588,7 @@ func v331(p *rt.TParser) (any, bool) {
 		p.Restore(x6, x7)
 		break
 	}
-	if _, ok = u330(p); !ok {
+	if _, ok = u335(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -25152,7 +25598,7 @@ fail:
 	return nil, false
 }
 
-func s332(p *rt.TParser) (any, bool) {
+func s337(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x5, x6, x8, x9, size, x17, x18 int
 	var v any
@@ -25161,15 +25607,15 @@ func s332(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(223)
+	p.LookBegin(227)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -25191,12 +25637,12 @@ L3:
 			x11, _, x12 = p.Peek()
 		}
 		if !(x12 && (x11 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L13
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L14
 		}
 		if p.Pos < len(p.In) {
@@ -25215,7 +25661,7 @@ L3:
 		p.Restore(x8, x9)
 	L13:
 		if !(x12 && (!(x11 == 93 || x11 == 92 || x11 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 21)
+			p.ExpectBudget(p.Pos, 23)
 			goto L15
 		}
 		if p.Pos < len(p.In) {
@@ -25225,7 +25671,7 @@ L3:
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 93 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 21)
+			p.ExpectBudget(p.Pos, 23)
 			goto L16
 		}
 		p.Pos += size
@@ -25246,7 +25692,7 @@ L3:
 	x17, x18 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto L19
 	}
 	goto L20
@@ -25261,14 +25707,14 @@ fail:
 }
 
 // rule sync_closed
-func u333(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[333]) {
-		return p.CallMemo(trules[333], v333)
+func u338(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[338]) {
+		return p.CallMemo(trules[338], v338)
 	}
-	return v333(p)
+	return v338(p)
 }
 
-func v333(p *rt.TParser) (any, bool) {
+func v338(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x5, x6 int
 	var v any
@@ -25285,10 +25731,10 @@ func v333(p *rt.TParser) (any, bool) {
 		x8, _, x9 = p.Peek()
 	}
 	if !(x9 && (x8 == 40)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 16)
+		p.ExpectBudget(p.Pos, 18)
 		goto L10
 	}
-	if _, ok = s340(p); !ok {
+	if _, ok = s345(p); !ok {
 		goto L11
 	}
 	goto L7
@@ -25296,10 +25742,10 @@ L11:
 	p.Restore(x5, x6)
 L10:
 	if !(x9 && (x8 == 91)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L12
 	}
-	if _, ok = u341(p); !ok {
+	if _, ok = u346(p); !ok {
 		goto L13
 	}
 	goto L7
@@ -25308,7 +25754,7 @@ L13:
 L12:
 	goto L4
 L7:
-	if _, ok = u342(p); !ok {
+	if _, ok = u347(p); !ok {
 		goto L4
 	}
 	goto L3
@@ -25321,10 +25767,10 @@ L4:
 		x14, _, x15 = p.Peek()
 	}
 	if !(x15 && (x14 == 123)) && p.Depth+1 <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 17)
+		p.ExpectBudget(p.Pos, 19)
 		goto L16
 	}
-	if _, ok = s343(p); !ok {
+	if _, ok = s348(p); !ok {
 		goto L17
 	}
 	goto L3
@@ -25343,14 +25789,14 @@ fail:
 }
 
 // rule sync_word
-func u334(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[334]) {
-		return p.CallMemo(trules[334], v334)
+func u339(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[339]) {
+		return p.CallMemo(trules[339], v339)
 	}
-	return v334(p)
+	return v339(p)
 }
 
-func v334(p *rt.TParser) (any, bool) {
+func v339(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x4, x5, x6 int
 	var v any
@@ -25359,8 +25805,8 @@ func v334(p *rt.TParser) (any, bool) {
 	p.Enter()
 	x1, x2 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(224)
-	if _, ok = s274(p); !ok {
+	p.LookBegin(228)
+	if _, ok = s279(p); !ok {
 		goto L3
 	}
 	p.LookEnd(true)
@@ -25375,7 +25821,7 @@ L3:
 	for {
 		p.Spend()
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L7
 		}
 		x4++
@@ -25390,7 +25836,7 @@ L3:
 	if x4 < 1 {
 		goto fail
 	}
-	if _, ok = u342(p); !ok {
+	if _, ok = u347(p); !ok {
 		goto fail
 	}
 	v = nil
@@ -25402,7 +25848,7 @@ fail:
 	return nil, false
 }
 
-func s335(p *rt.TParser) (any, bool) {
+func s340(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x3, x5, x6, x8, x9, x18, x19, x21, x22, x34, x35, x37, x38, x40, x41, x43, x44, size, x62, x63 int
 	var v any
@@ -25413,7 +25859,7 @@ func s335(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L4
 		}
 		x1++
@@ -25430,7 +25876,7 @@ func s335(p *rt.TParser) (any, bool) {
 	}
 	x5, x6 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(225)
+	p.LookBegin(229)
 	x8, x9 = p.Pos, len(p.Recovered)
 	if p.Pos < len(p.In) {
 		p.Control.Take(1)
@@ -25439,12 +25885,12 @@ func s335(p *rt.TParser) (any, bool) {
 		x11, _, x12 = p.Peek()
 	}
 	if !(x12 && (x11 == 58)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 25)
+		p.ExpectBudget(p.Pos, 27)
 		goto L13
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 58) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit59, ":", 25, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit63, ":", 27, false); !ok {
 		goto L14
 	}
 	goto L10
@@ -25452,12 +25898,12 @@ L14:
 	p.Restore(x8, x9)
 L13:
 	if !(x12 && (x11 == 47)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 26)
+		p.ExpectBudget(p.Pos, 28)
 		goto L15
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 47) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit60, "/", 26, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit64, "/", 28, false); !ok {
 		goto L16
 	}
 	goto L10
@@ -25478,7 +25924,7 @@ L7:
 		p.Spend()
 		x18, x19 = p.Pos, len(p.Recovered)
 		x21, x22 = p.Pos, len(p.Recovered)
-		if _, ok = s344(p); !ok {
+		if _, ok = s349(p); !ok {
 			goto L24
 		}
 		goto L23
@@ -25491,10 +25937,10 @@ L7:
 			x25, _, x26 = p.Peek()
 		}
 		if !(x26 && (x25 == 34)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 27)
+			p.ExpectBudget(p.Pos, 29)
 			goto L27
 		}
-		if _, ok = s321(p); !ok {
+		if _, ok = s326(p); !ok {
 			goto L28
 		}
 		goto L23
@@ -25502,10 +25948,10 @@ L7:
 		p.Restore(x21, x22)
 	L27:
 		if !(x26 && (x25 == 91)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 15)
+			p.ExpectBudget(p.Pos, 17)
 			goto L29
 		}
-		if _, ok = s322(p); !ok {
+		if _, ok = s327(p); !ok {
 			goto L30
 		}
 		goto L23
@@ -25513,10 +25959,10 @@ L7:
 		p.Restore(x21, x22)
 	L29:
 		if !(x26 && (x25 == 47)) && p.Depth+1 <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 12)
+			p.ExpectBudget(p.Pos, 13)
 			goto L31
 		}
-		if _, ok = u187(p); !ok {
+		if _, ok = u189(p); !ok {
 			goto L32
 		}
 		goto L23
@@ -25525,8 +25971,8 @@ L7:
 	L31:
 		x34, x35 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(226)
-		if _, ok = s270(p); !ok {
+		p.LookBegin(230)
+		if _, ok = s275(p); !ok {
 			goto L36
 		}
 		p.LookEnd(true)
@@ -25539,10 +25985,10 @@ L7:
 		p.Restore(x34, x35)
 		x37, x38 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(227)
+		p.LookBegin(231)
 		if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 47 && p.In[p.Pos+1] == 47) && p.Control.Take(2) {
 			p.Pos += 2
-		} else if _, ok = p.Parser.MatchLiteral(lit61, "//", 28, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit65, "//", 30, false); !ok {
 			goto L39
 		}
 		p.LookEnd(true)
@@ -25555,7 +26001,7 @@ L7:
 		p.Restore(x37, x38)
 		x40, x41 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(228)
+		p.LookBegin(232)
 		x43, x44 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25564,12 +26010,12 @@ L7:
 			x46, _, x47 = p.Peek()
 		}
 		if !(x47 && (x46 == 61)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 29)
+			p.ExpectBudget(p.Pos, 11)
 			goto L48
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 			goto L49
 		}
 		goto L45
@@ -25577,12 +26023,12 @@ L7:
 		p.Restore(x43, x44)
 	L48:
 		if !(x47 && (x46 == 126)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 30)
+			p.ExpectBudget(p.Pos, 31)
 			goto L50
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 126) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit63, "~", 30, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit66, "~", 31, false); !ok {
 			goto L51
 		}
 		goto L45
@@ -25590,12 +26036,12 @@ L7:
 		p.Restore(x43, x44)
 	L50:
 		if !(x47 && (x46 == 59)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 13)
+			p.ExpectBudget(p.Pos, 15)
 			goto L52
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 59) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit26, ";", 13, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit30, ";", 15, false); !ok {
 			goto L53
 		}
 		goto L45
@@ -25603,12 +26049,12 @@ L7:
 		p.Restore(x43, x44)
 	L52:
 		if !(x47 && (x46 == 123)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 17)
+			p.ExpectBudget(p.Pos, 19)
 			goto L54
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 			goto L55
 		}
 		goto L45
@@ -25616,12 +26062,12 @@ L7:
 		p.Restore(x43, x44)
 	L54:
 		if !(x47 && (x46 == 125)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 14)
+			p.ExpectBudget(p.Pos, 16)
 			goto L56
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 			goto L57
 		}
 		goto L45
@@ -25629,12 +26075,12 @@ L7:
 		p.Restore(x43, x44)
 	L56:
 		if !(x47 && (x46 == 40)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 16)
+			p.ExpectBudget(p.Pos, 18)
 			goto L58
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 			goto L59
 		}
 		goto L45
@@ -25642,12 +26088,12 @@ L7:
 		p.Restore(x43, x44)
 	L58:
 		if !(x47 && (x46 == 41)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 18)
+			p.ExpectBudget(p.Pos, 20)
 			goto L60
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 			goto L61
 		}
 		goto L45
@@ -25696,12 +26142,12 @@ L7:
 		x65, _, x66 = p.Peek()
 	}
 	if !(x66 && (x65 == 61)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 29)
+		p.ExpectBudget(p.Pos, 11)
 		goto L67
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L68
 	}
 	goto L64
@@ -25709,12 +26155,12 @@ L68:
 	p.Restore(x62, x63)
 L67:
 	if !(x66 && (x65 == 126)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 30)
+		p.ExpectBudget(p.Pos, 31)
 		goto L69
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 126) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit63, "~", 30, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit66, "~", 31, false); !ok {
 		goto L70
 	}
 	goto L64
@@ -25730,7 +26176,7 @@ fail:
 	return nil, false
 }
 
-func s336(p *rt.TParser) (any, bool) {
+func s341(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, x5, x6, x7, x9, x10, x11, x14, x15, x17 int
 	var v any
@@ -25741,7 +26187,7 @@ func s336(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x6, x7 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L8
 		}
 		x5++
@@ -25760,7 +26206,7 @@ func s336(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x10, x11 = p.Pos, len(p.Recovered)
-		if _, ok = s266(p); !ok {
+		if _, ok = s270(p); !ok {
 			goto L12
 		}
 		x9++
@@ -25782,7 +26228,7 @@ L4:
 	for {
 		p.Spend()
 		x14, x15 = p.Pos, len(p.Recovered)
-		if _, ok = u281(p); !ok {
+		if _, ok = u286(p); !ok {
 			goto L16
 		}
 		if p.Pos == x14 {
@@ -25795,7 +26241,7 @@ L4:
 	}
 	x17 = p.Pos
 	p.Silent++
-	p.LookBegin(229)
+	p.LookBegin(233)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
 		goto L18
@@ -25818,14 +26264,14 @@ fail:
 }
 
 // rule string
-func u337(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[337]) {
-		return p.CallMemo(trules[337], v337)
+func u342(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[342]) {
+		return p.CallMemo(trules[342], v342)
 	}
-	return v337(p)
+	return v342(p)
 }
 
-func v337(p *rt.TParser) (any, bool) {
+func v342(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, size, x14, x15, x18, x19 int
 	var v any
@@ -25834,7 +26280,7 @@ func v337(p *rt.TParser) (any, bool) {
 	start, rec = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	for {
@@ -25848,12 +26294,12 @@ func v337(p *rt.TParser) (any, bool) {
 			x8, _, x9 = p.Peek()
 		}
 		if !(x9 && (x8 == 92)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 20)
+			p.ExpectBudget(p.Pos, 22)
 			goto L10
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 92) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit39, "\\", 20, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit43, "\\", 22, false); !ok {
 			goto L11
 		}
 		if p.Pos < len(p.In) {
@@ -25872,7 +26318,7 @@ func v337(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 	L10:
 		if !(x9 && (!(x8 == 34 || x8 == 92 || x8 == 10))) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L12
 		}
 		if p.Pos < len(p.In) {
@@ -25882,7 +26328,7 @@ func v337(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 34 || ch == 92 || ch == 10) {
-			p.ExpectBudget(p.Pos, 138)
+			p.ExpectBudget(p.Pos, 139)
 			goto L13
 		}
 		p.Pos += size
@@ -25902,19 +26348,19 @@ func v337(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit131, "\"", 27, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit134, "\"", 29, false); !ok {
 		goto fail
 	}
 	x14, x15 = p.Pos, len(p.Recovered)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 105) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit294, "i", 141, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit296, "i", 142, false); !ok {
 		goto L16
 	}
 	x18, x19 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(230)
-	if _, ok = s266(p); !ok {
+	p.LookBegin(234)
+	if _, ok = s270(p); !ok {
 		goto L20
 	}
 	p.LookEnd(true)
@@ -25936,7 +26382,7 @@ fail:
 	return nil, false
 }
 
-func s338(p *rt.TParser) (any, bool) {
+func s343(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, size int
 	var v any
@@ -25946,14 +26392,14 @@ func s338(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u320(p); !ok {
+		if _, ok = u325(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -25961,7 +26407,7 @@ func s338(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(231)
+		p.LookBegin(235)
 		x13, x14 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -25970,12 +26416,12 @@ func s338(p *rt.TParser) (any, bool) {
 			x16, _, x17 = p.Peek()
 		}
 		if !(x17 && (x16 == 40)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 16)
+			p.ExpectBudget(p.Pos, 18)
 			goto L18
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 			goto L19
 		}
 		goto L15
@@ -25983,12 +26429,12 @@ func s338(p *rt.TParser) (any, bool) {
 		p.Restore(x13, x14)
 	L18:
 		if !(x17 && (x16 == 41)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 18)
+			p.ExpectBudget(p.Pos, 20)
 			goto L20
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 			goto L21
 		}
 		goto L15
@@ -26031,7 +26477,7 @@ func s338(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -26043,7 +26489,7 @@ fail:
 	return nil, false
 }
 
-func s339(p *rt.TParser) (any, bool) {
+func s344(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, size int
 	var v any
@@ -26053,14 +26499,14 @@ func s339(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u320(p); !ok {
+		if _, ok = u325(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -26068,7 +26514,7 @@ func s339(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(232)
+		p.LookBegin(236)
 		x13, x14 = p.Pos, len(p.Recovered)
 		if p.Pos < len(p.In) {
 			p.Control.Take(1)
@@ -26077,12 +26523,12 @@ func s339(p *rt.TParser) (any, bool) {
 			x16, _, x17 = p.Peek()
 		}
 		if !(x17 && (x16 == 123)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 17)
+			p.ExpectBudget(p.Pos, 19)
 			goto L18
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 			goto L19
 		}
 		goto L15
@@ -26090,12 +26536,12 @@ func s339(p *rt.TParser) (any, bool) {
 		p.Restore(x13, x14)
 	L18:
 		if !(x17 && (x16 == 125)) && p.Depth <= p.MaxDepth {
-			p.ExpectBudget(p.Pos, 14)
+			p.ExpectBudget(p.Pos, 16)
 			goto L20
 		}
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 			goto L21
 		}
 		goto L15
@@ -26138,7 +26584,7 @@ func s339(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -26150,7 +26596,7 @@ fail:
 	return nil, false
 }
 
-func s340(p *rt.TParser) (any, bool) {
+func s345(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, x16, x17 int
 	var v any
@@ -26159,14 +26605,14 @@ func s340(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit33, "(", 16, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit37, "(", 18, false); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u345(p); !ok {
+		if _, ok = u350(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -26174,10 +26620,10 @@ func s340(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(233)
+		p.LookBegin(237)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 			goto L12
 		}
 		p.LookEnd(true)
@@ -26190,8 +26636,8 @@ func s340(p *rt.TParser) (any, bool) {
 		p.Restore(x10, x11)
 		x13, x14 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(234)
-		if _, ok = u272(p); !ok {
+		p.LookBegin(238)
+		if _, ok = u277(p); !ok {
 			goto L15
 		}
 		p.LookEnd(true)
@@ -26204,8 +26650,8 @@ func s340(p *rt.TParser) (any, bool) {
 		p.Restore(x13, x14)
 		x16, x17 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(235)
-		if _, ok = u271(p); !ok {
+		p.LookBegin(239)
+		if _, ok = u276(p); !ok {
 			goto L18
 		}
 		p.LookEnd(true)
@@ -26216,7 +26662,7 @@ func s340(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x16, x17)
-		if _, ok = u314(p); !ok {
+		if _, ok = u320(p); !ok {
 			goto L9
 		}
 		goto L7
@@ -26234,7 +26680,7 @@ func s340(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 41) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit36, ")", 18, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit40, ")", 20, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -26247,14 +26693,14 @@ fail:
 }
 
 // rule sync_closed_bracket
-func u341(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[341]) {
-		return p.CallMemo(trules[341], v341)
+func u346(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[346]) {
+		return p.CallMemo(trules[346], v346)
 	}
-	return v341(p)
+	return v346(p)
 }
 
-func v341(p *rt.TParser) (any, bool) {
+func v346(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, x16, x17 int
 	var v any
@@ -26263,14 +26709,14 @@ func v341(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u345(p); !ok {
+		if _, ok = u350(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -26278,10 +26724,10 @@ func v341(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(236)
+		p.LookBegin(240)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 			goto L12
 		}
 		p.LookEnd(true)
@@ -26294,8 +26740,8 @@ func v341(p *rt.TParser) (any, bool) {
 		p.Restore(x10, x11)
 		x13, x14 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(237)
-		if _, ok = u272(p); !ok {
+		p.LookBegin(241)
+		if _, ok = u277(p); !ok {
 			goto L15
 		}
 		p.LookEnd(true)
@@ -26308,8 +26754,8 @@ func v341(p *rt.TParser) (any, bool) {
 		p.Restore(x13, x14)
 		x16, x17 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(238)
-		if _, ok = u271(p); !ok {
+		p.LookBegin(242)
+		if _, ok = u276(p); !ok {
 			goto L18
 		}
 		p.LookEnd(true)
@@ -26320,7 +26766,7 @@ func v341(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x16, x17)
-		if _, ok = u314(p); !ok {
+		if _, ok = u320(p); !ok {
 			goto L9
 		}
 		goto L7
@@ -26338,7 +26784,7 @@ func v341(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 93) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit37, "]", 19, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit41, "]", 21, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -26351,14 +26797,14 @@ fail:
 }
 
 // rule sync_index
-func u342(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[342]) {
-		return p.CallMemo(trules[342], v342)
+func u347(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[347]) {
+		return p.CallMemo(trules[347], v347)
 	}
-	return v342(p)
+	return v347(p)
 }
 
-func v342(p *rt.TParser) (any, bool) {
+func v347(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6 int
 	var v any
@@ -26368,7 +26814,7 @@ func v342(p *rt.TParser) (any, bool) {
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
-		if _, ok = u341(p); !ok {
+		if _, ok = u346(p); !ok {
 			goto L4
 		}
 		if p.Pos == x2 {
@@ -26381,10 +26827,10 @@ func v342(p *rt.TParser) (any, bool) {
 	}
 	x5, x6 = p.Pos, len(p.Recovered)
 	p.Silent++
-	p.LookBegin(239)
+	p.LookBegin(243)
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit35, "[", 15, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit39, "[", 17, false); !ok {
 		goto L7
 	}
 	p.LookEnd(true)
@@ -26404,7 +26850,7 @@ fail:
 	return nil, false
 }
 
-func s343(p *rt.TParser) (any, bool) {
+func s348(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x2, x3, x5, x6, x10, x11, x13, x14, x16, x17 int
 	var v any
@@ -26413,14 +26859,14 @@ func s343(p *rt.TParser) (any, bool) {
 	p.Enter()
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit34, "{", 17, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit38, "{", 19, false); !ok {
 		goto fail
 	}
 	for {
 		p.Spend()
 		x2, x3 = p.Pos, len(p.Recovered)
 		x5, x6 = p.Pos, len(p.Recovered)
-		if _, ok = u345(p); !ok {
+		if _, ok = u350(p); !ok {
 			goto L8
 		}
 		goto L7
@@ -26428,10 +26874,10 @@ func s343(p *rt.TParser) (any, bool) {
 		p.Restore(x5, x6)
 		x10, x11 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(240)
+		p.LookBegin(244)
 		if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 			p.Pos++
-		} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+		} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 			goto L12
 		}
 		p.LookEnd(true)
@@ -26444,8 +26890,8 @@ func s343(p *rt.TParser) (any, bool) {
 		p.Restore(x10, x11)
 		x13, x14 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(241)
-		if _, ok = u272(p); !ok {
+		p.LookBegin(245)
+		if _, ok = u277(p); !ok {
 			goto L15
 		}
 		p.LookEnd(true)
@@ -26458,8 +26904,8 @@ func s343(p *rt.TParser) (any, bool) {
 		p.Restore(x13, x14)
 		x16, x17 = p.Pos, len(p.Recovered)
 		p.Silent++
-		p.LookBegin(242)
-		if _, ok = u271(p); !ok {
+		p.LookBegin(246)
+		if _, ok = u276(p); !ok {
 			goto L18
 		}
 		p.LookEnd(true)
@@ -26470,7 +26916,7 @@ func s343(p *rt.TParser) (any, bool) {
 		p.LookEnd(false)
 		p.Silent--
 		p.Restore(x16, x17)
-		if _, ok = u314(p); !ok {
+		if _, ok = u320(p); !ok {
 			goto L9
 		}
 		goto L7
@@ -26488,7 +26934,7 @@ func s343(p *rt.TParser) (any, bool) {
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 125) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit28, "}", 14, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit32, "}", 16, false); !ok {
 		goto fail
 	}
 	v = nil
@@ -26500,7 +26946,7 @@ fail:
 	return nil, false
 }
 
-func s344(p *rt.TParser) (any, bool) {
+func s349(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2, size int
 	var v any
@@ -26514,8 +26960,8 @@ func s344(p *rt.TParser) (any, bool) {
 	} else {
 		x4, _, x5 = p.Peek()
 	}
-	if !(x5 && (!((p.Control != nil && p.RejectBudgetClass(x4, budgetClass66)) || (p.Control == nil && (!(x4 == 58 || x4 == 33 || x4 == 60 || x4 == 62 || x4 == 61 || x4 == 43 || x4 == 42 || x4 == 47 || x4 == 37 || x4 == 38 || x4 == 124 || x4 == 94 || x4 == 45)))))) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 31)
+	if !(x5 && (!((p.Control != nil && p.RejectBudgetClass(x4, budgetClass69)) || (p.Control == nil && (!(x4 == 58 || x4 == 33 || x4 == 60 || x4 == 62 || x4 == 61 || x4 == 43 || x4 == 42 || x4 == 47 || x4 == 37 || x4 == 38 || x4 == 124 || x4 == 94 || x4 == 45)))))) && p.Depth <= p.MaxDepth {
+		p.ExpectBudget(p.Pos, 32)
 		goto L6
 	}
 	if p.Pos < len(p.In) {
@@ -26524,14 +26970,14 @@ func s344(p *rt.TParser) (any, bool) {
 	} else {
 		ch, size, ok = p.Peek()
 	}
-	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass66)) || (p.Control == nil && (!(ch == 58 || ch == 33 || ch == 60 || ch == 62 || ch == 61 || ch == 43 || ch == 42 || ch == 47 || ch == 37 || ch == 38 || ch == 124 || ch == 94 || ch == 45)))) {
-		p.ExpectBudget(p.Pos, 31)
+	if !ok || ((p.Control != nil && p.RejectBudgetClass(ch, budgetClass69)) || (p.Control == nil && (!(ch == 58 || ch == 33 || ch == 60 || ch == 62 || ch == 61 || ch == 43 || ch == 42 || ch == 47 || ch == 37 || ch == 38 || ch == 124 || ch == 94 || ch == 45)))) {
+		p.ExpectBudget(p.Pos, 32)
 		goto L7
 	}
 	p.Pos += size
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 61) && p.Control.Take(1) {
 		p.Pos++
-	} else if _, ok = p.Parser.MatchLiteral(lit62, "=", 29, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit21, "=", 11, false); !ok {
 		goto L7
 	}
 	goto L3
@@ -26539,12 +26985,12 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 61)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 32)
+		p.ExpectBudget(p.Pos, 33)
 		goto L8
 	}
 	if (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 61 && p.In[p.Pos+1] == 62) && p.Control.Take(2) {
 		p.Pos += 2
-	} else if _, ok = p.Parser.MatchLiteral(lit67, "=>", 32, false); !ok {
+	} else if _, ok = p.Parser.MatchLiteral(lit70, "=>", 33, false); !ok {
 		goto L9
 	}
 	goto L3
@@ -26561,14 +27007,14 @@ fail:
 }
 
 // rule sync_inner
-func u345(p *rt.TParser) (any, bool) {
-	if !p.FirstCall(rules[345]) {
-		return p.CallMemo(trules[345], v345)
+func u350(p *rt.TParser) (any, bool) {
+	if !p.FirstCall(rules[350]) {
+		return p.CallMemo(trules[350], v350)
 	}
-	return v345(p)
+	return v350(p)
 }
 
-func v345(p *rt.TParser) (any, bool) {
+func v350(p *rt.TParser) (any, bool) {
 	p.Spend()
 	var start, rec, x1, x2 int
 	var v any
@@ -26587,7 +27033,7 @@ func v345(p *rt.TParser) (any, bool) {
 		p.ExpectBudget(p.Pos, 5)
 		goto L6
 	}
-	if _, ok = u331(p); !ok {
+	if _, ok = u336(p); !ok {
 		goto L7
 	}
 	goto L3
@@ -26595,23 +27041,23 @@ L7:
 	p.Restore(x1, x2)
 L6:
 	if !(x5 && (x4 == 91)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 15)
+		p.ExpectBudget(p.Pos, 17)
 		goto L8
 	}
-	if _, ok = s332(p); !ok {
+	if _, ok = s337(p); !ok {
 		goto L9
 	}
 	goto L3
 L9:
 	p.Restore(x1, x2)
 L8:
-	if _, ok = u333(p); !ok {
+	if _, ok = u338(p); !ok {
 		goto L10
 	}
 	goto L3
 L10:
 	p.Restore(x1, x2)
-	if _, ok = u334(p); !ok {
+	if _, ok = u339(p); !ok {
 		goto L11
 	}
 	goto L3

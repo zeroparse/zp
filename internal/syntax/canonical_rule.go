@@ -163,6 +163,11 @@ func (c *canonical) rule(n types.RuleExpr) grammar.Expr {
 		return c.predicate(n)
 	case *types.OperatorsRule:
 		return c.operators(n)
+	case *types.Error:
+		if lit := c.openLiteral(n); lit != nil {
+			c.span(&lit.SourceInfo, n)
+			return lit
+		}
 	}
 	c.fail("unexpected rule expression %T", n)
 	return nil
@@ -355,6 +360,11 @@ func (c *canonical) attrValue(v types.AttrValue) any {
 		lit := c.literal(v)
 		c.span(nil, v)
 		return lit.Value
+	case *types.Error:
+		if lit := c.openLiteral(v); lit != nil {
+			c.span(nil, v)
+			return lit.Value
+		}
 	}
 	x, ok := v.(types.RuleExpr)
 	if !ok {
