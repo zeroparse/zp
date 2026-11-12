@@ -905,6 +905,25 @@ type lead struct {
 	up bool
 	// via: the calls whose bodies the path looked through to reach the lead.
 	via *refList
+	// left: the cycles (bit i for cycle i) of the rules whose body ends the path passed.
+	left uint64
+}
+
+// sameGrowths reports whether a call of rule, reached through via and after leaving the bodies in
+// left, lies in the same growths of its cycle as the start of the path.
+func (k *classifier) sameGrowths(rule string, via *refList, left uint64) bool {
+	if !k.an.cyclic[rule] {
+		return true
+	}
+	if c := k.an.cycle[rule]; c >= 64 || left&(1<<c) != 0 {
+		return false
+	}
+	for v := via; v != nil; v = v.next {
+		if k.sameCycle(v.ref.Name, rule) {
+			return false
+		}
+	}
+	return true
 }
 
 // refList is a list of calls, the last one looked through first.
@@ -938,13 +957,15 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 	// which the path entered it, which the leads after it carry.
 	type upKey struct {
 		endKey
-		up  bool
-		via *refList
+		up   bool
+		via  *refList
+		left uint64
 	}
 	ended := map[upKey]bool{}
 	type state struct {
-		up  bool
-		via *refList
+		up   bool
+		via  *refList
+		left uint64
 	}
 	var visit func(p *cont, st state)
 	visit = func(p *cont, st state) {
@@ -957,7 +978,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 				return
 			}
 			if p == nil {
-				out = append(out, lead{done: true, up: up, via: st.via})
+				out = append(out, lead{done: true, up: up, via: st.via, left: st.left})
 				return
 			}
 			if len(p.items) == 0 {
@@ -970,19 +991,25 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					if p.inner {
 						key.via = st.via
 					}
+					key.left = st.left
 					if ended[key] {
 						return
 					}
 					ended[key] = true
 				}
+				if p.end != endNone && k.an.cyclic[p.rule] {
+					if c := k.an.cycle[p.rule]; c < 64 {
+						st.left |= 1 << c
+					}
+				}
 				switch p.end {
 				case endNone:
-					out = append(out, lead{done: true, up: up, via: st.via})
+					out = append(out, lead{done: true, up: up, via: st.via, left: st.left})
 				case endOps:
-					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), st.via}) })
-					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via}) })
+					k.opsLeads(p.rule, p.inner, func(c *cont) { visit(c, state{k.nestsOps(p.rule), st.via, st.left}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via, st.left}) })
 				case endRule:
-					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via}) })
+					k.endLeads(p.rule, func(c *cont, s *site) { visit(c, state{k.nestsEnd(s), st.via, st.left}) })
 				}
 				return
 			}
@@ -1014,12 +1041,12 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 				p = rest
 			case *grammar.EndInput:
 				// At the end of the input nothing more is examined.
-				out = append(out, lead{done: true, up: up, via: st.via})
+				out = append(out, lead{done: true, up: up, via: st.via, left: st.left})
 				return
 			case *grammar.Literal:
 				if e.Value != "" {
 					if only == nil {
-						out = append(out, lead{lit: e, rest: rest, up: up, via: st.via})
+						out = append(out, lead{lit: e, rest: rest, up: up, via: st.via, left: st.left})
 					} else {
 						out = append(out, lead{})
 					}
@@ -1051,11 +1078,12 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					out = append(out, lead{})
 					return
 				}
-				if k.shareable(e) && (only == nil || *only == e.Name) {
-					out = append(out, lead{call: e, rest: rest, up: up, via: st.via})
+				share := k.shareable(e) && k.sameGrowths(e.Name, st.via, st.left)
+				if share && (only == nil || *only == e.Name) {
+					out = append(out, lead{call: e, rest: rest, up: up, via: st.via, left: st.left})
 					return
 				}
-				if k.shareable(e) && seen != nil {
+				if share && seen != nil {
 					seen[e.Name] = true
 				}
 				st.via = &refList{e, st.via}
@@ -1073,7 +1101,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 	for i, p := range paths {
 		var st state
 		if from != nil {
-			st = state{from[i].up, from[i].via}
+			st = state{from[i].up, from[i].via, from[i].left}
 		}
 		visit(p, st)
 	}
