@@ -1,0 +1,282 @@
+{"input":"[3.150e-70,\r\n0/E-78]","base":"[3.150e-70,\r\n0E-78]","offset":14,"mutation":"insert \"/\" at 14"}
+{"input":"\n\t\t[\tnull,\"\\\"\\uea2eI=\",[\t],\r\r\r[  ]","base":"\n\t\t[\tnull,\"\\\"\\uea2eI=\",[\t],\r\r\r[]  ]","offset":31,"mutation":"delete \"]\" at 31"}
+{"input":"{ \"GⓊ\":\n[\r-2.0e07,\n[]\r\n\n,\t0-e+63\t ,\"Z\\udcd5本\"\r\t\r]}","base":"{ \"GⓊ\":\n[\r-2.0e07,\n[]\r\n\n,\t-0e+63\t ,\"Z\\udcd5本\"\r\t\r]}","offset":28,"mutation":"swap \"-\" and \"0\" at 28"}
+{"input":"\n[42,n","base":"\n[42,null ]\r","offset":6,"mutation":"truncate at 6"}
+{"input":"[{},\n-7.0842;e47]\t","base":"[{},\n-7.0842e47]\t","offset":12,"mutation":"insert \";\" at 12"}
+{"input":"{ \"\"\t\t\n:\r{\"\":null}\t,\"\\uaa6A\"\\uaa6A\"  \n:[\t\r] }\n","base":"{ \"\"\t\t\n:\r{\"\":null}\t,\"\\uaa6A\"  \n:[\t\r] }\n","offset":28,"mutation":"duplicate \"\\\\uaa6A\\\"\" at 21"}
+{"input":" [\n\r{\r\"\\ue9c9G\\uB9Fb\":\n \r{\n\r\r}\r,\"\"\n \r:null\t \n,\"\" :3.false4051,\"\\u7603\":\r\r null},null]\t","base":" [\n\r{\r\"\\ue9c9G\\uB9Fb\":\n \r{\n\r\r}\r,\"\"\n \r:null\t \n,\"\" :3.4051,\"\\u7603\":\r\r null},null]\t","offset":52,"mutation":"insert \"false\" at 52"}
+{"input":"\n[ \t 0.9,\t\r {\r}\t,\n {\r},\r 4.\t3\n\t]","base":"\n[ \t 0.9,\t\r {\r}\t,\n {\r},\r 4.3\t\n\t]","offset":27,"mutation":"swap \"3\" and \"\\t\" at 27"}
+{"input":"[\n{\"\\u533Ee\": null,\"1\\f\\r\" :[true\n ]\r \r}   ,\r","base":"[\n{\"\\u533Ee\": null,\"1\\f\\r\" :[true\n ]\r \r}   ,\r[null,true\r ]]\r","offset":45,"mutation":"truncate at 45"}
+{"input":"[\r[ \n true],{},{ }\t\r,\t-6","base":"[\r[ \n true],{},{ }\t\r,\t-610.8851\r\r\t]\t\t\r","offset":24,"mutation":"truncate at 24"}
+{"input":"[  \"\\u51AF\"',\n0e0839,\r\"\",true \r]","base":"[  \"\\u51AF\",\n0e0839,\r\"\",true \r]","offset":11,"mutation":"insert \"'\" at 11"}
+{"input":"{\"C\\r\":  00.332,\t\n \"ྜ\"\t :\t\tnull\r\n}\r","base":"{\"C\\r\":  0.332,\t\n \"ྜ\"\t :\t\tnull\r\n}\r","offset":10,"mutation":"insert \"0\" at 10"}
+{"input":"{\r \"\\\"/:-0.95e4 ,\n\"᳒\"\r:null}","base":"{\r \"\\/\":-0.95e4 ,\n\"᳒\"\r:null}","offset":5,"mutation":"swap \"/\" and \"\\\"\" at 5"}
+{"input":"\t{\r\"\\\"\u0026\":null\tnull\t\t ,\"UgW\":true \t\n,\"M\":\n\r[[\r\r\r]\t \r] ,\r\t\r\"\"\r\r\t: \"\"} ","base":"\t{\r\"\\\"\u0026\":null\t\t ,\"UgW\":true \t\n,\"M\":\n\r[[\r\r\r]\t \r] ,\r\t\r\"\"\r\r\t: \"\"} ","offset":14,"mutation":"duplicate \"null\\t\" at 9"}
+{"input":" \r[[\nnull\r], [ true,\rnull],\"\n\t]","base":" \r[[\nnull\r], [ true,\rnull],\"\"\t]","offset":28,"mutation":"replace \"\\\"\" at 28 with \"\\n\""}
+{"input":"[t rue\n,\"\\b\\/\",\"\\n\"]","base":"[ true\n,\"\\b\\/\",\"\\n\"]","offset":1,"mutation":"swap \" \" and \"t\" at 1"}
+{"input":"[\r \n\"\", \n \tnull],\t\"\"]","base":"[\r \n\"\", [\n \tnull],\t\"\"]","offset":8,"mutation":"delete \"[\" at 8"}
+{"input":"\t{  \"\":{\"\":true,\t\"\":null},\n \"\": [ \r\nnull\",3\"]} ","base":"\t{  \"\":{\"\":true,\t\"\":null},\n \"\": [ \r\nnull,\"3\"]} ","offset":40,"mutation":"swap \",\" and \"\\\"\" at 40"}
+{"input":"[;\r\r\t[\r],\"$\"\r\t ,[true,\n\t\ntrue\t,null,null],\t[\rtrue\r,null] \t] ","base":"[\r\r\t[\r],\"$\"\r\t ,[true,\n\t\ntrue\t,null,null],\t[\rtrue\r,null] \t] ","offset":1,"mutation":"insert \";\" at 1"}
+{"input":"\n\n[[],\t\"\\n\"\n\t\r,0.4009e+6\n\n,{\"\\u7b8b\"\r:\r [true\r\n ] ,\"M\\\\\\r\"\t:\r[tru],\"\\uA4fFm\\uf8Ba\" :\r\r\r\"\"\t,\"\\/\":\n\"\"\t}]","base":"\n\n[[],\t\"\\n\"\n\t\r,0.4009e+6\n\n,{\"\\u7b8b\"\r:\r [true\r\n ] ,\"M\\\\\\r\"\t:\r[true],\"\\uA4fFm\\uf8Ba\" :\r\r\r\"\"\t,\"\\/\":\n\"\"\t}]","offset":65,"mutation":"delete \"e\" at 65"}
+{"input":"{\n\t\r\"U'\\\\\\u3e1b\":true ,\r\r\n\"\":\r[\ne ]}","base":"{\n\t\r\"U'\\\\\\u3e1b\":true ,\r\r\n\"\":\r[\n ]}","offset":32,"mutation":"insert \"e\" at 32"}
+{"input":"[\t\t\rnull,\r[null\r\r,true]\r,,true]\r,\t-0.8, \"\\\"3\\u0ba5\"\t ]","base":"[\t\t\rnull,\r[null\r\r,true]\r,\t-0.8, \"\\\"3\\u0ba5\"\t ]","offset":25,"mutation":"duplicate \",true]\\r,\" at 17"}
+{"input":"\r[[\n","base":"\r[[\nnull\t,true]]","offset":4,"mutation":"truncate at 4"}
+{"input":"\n","base":"\n{\"\\uF2cfv\"\r\t:\t-0.7E988, \"\":false}\n","offset":1,"mutation":"truncate at 1"}
+{"input":"{\"\\u4714\":true ,\"\\\"h\\ueeC\"4:\n [[null]  ]}","base":"{\"\\u4714\":true ,\"\\\"h\\ueeC4\":\n [[null]  ]}","offset":25,"mutation":"swap \"4\" and \"\\\"\" at 25"}
+{"input":" \r[true,\r-3392.7 ,\t\n\"ᵻ\\\"\\r\",\n[ ]\\r\",\n[ ] \t]\t","base":" \r[true,\r-3392.7 ,\t\n\"ᵻ\\\"\\r\",\n[ ] \t]\t","offset":34,"mutation":"duplicate \"\\\\r\\\",\\n[ ]\" at 26"}
+{"input":"{\n \"Rc\\n","base":"{\n \"Rc\\n\":null\t \r,\"\":\tnull}\n\t","offset":8,"mutation":"truncate at 8"}
+{"input":"{\"\":\tn ull,\n \r\"\u003e\\fu\":\n false,\t\"\":true \t,  \"\":{}} ","base":"{\"\":\t null,\n \r\"\u003e\\fu\":\n false,\t\"\":true \t,  \"\":{}} ","offset":5,"mutation":"swap \" \" and \"n\" at 5"}
+{"input":"\t{ \"\\r\"\r: \r\nnullull,\t\n\"\\u0dbd\\uBC2Fé\":\ntrue\r\t}","base":"\t{ \"\\r\"\r: \r\nnull,\t\n\"\\u0dbd\\uBC2Fé\":\ntrue\r\t}","offset":16,"mutation":"duplicate \"ull\" at 13"}
+{"input":"{\"5ሿ\"\n:\t\r{\n\n}\n\n\n,\"\":\r-91.","base":"{\"5ሿ\"\n:\t\r{\n\n}\n\n\n,\"\":\r-91.8229E+65 \r ,  \"\\u8b2bᲰ\":6, \r\t\"\" :\r\ttrue }","offset":27,"mutation":"truncate at 27"}
+{"input":" \"{mT\\\"\":{\"\":true }\n ,\r\n \"\":[]}\t\r","base":" {\"mT\\\"\":{\"\":true }\n ,\r\n \"\":[]}\t\r","offset":1,"mutation":"swap \"{\" and \"\\\"\" at 1"}
+{"input":"[[\ttrue, true\t\n,null,n\n","base":"[[\ttrue, true\t\n,null,null\n\n\r]]\n","offset":22,"mutation":"delete \"ull\\n\\n\\r]]\" at 22"}
+{"input":"\n\n{\"\\u+9a9Fᦣa\"\n\n:\rfalse,\t\n\"\"  \t:\t[ ],\"\":0.931,\t\n\n\"\":\r[ ]}\r","base":"\n\n{\"\\u9a9Fᦣa\"\n\n:\rfalse,\t\n\"\"  \t:\t[ ],\"\":0.931,\t\n\n\"\":\r[ ]}\r","offset":6,"mutation":"insert \"+\" at 6"}
+{"input":" {  \"\"\t\r:\t },\")\\u9D9a\"\r:{}\n }\t\t","base":" {  \"\"\t\r:\t {},\")\\u9D9a\"\r:{}\n }\t\t","offset":11,"mutation":"delete \"{\" at 11"}
+{"input":"\r{ \t\t\"\\t\": {\"\":trurue \t\t},\n\"jI\" :\"\",\"\\ub8BA\" :\ttrue\t\n ,\"\" :null}  ","base":"\r{ \t\t\"\\t\": {\"\":true \t\t},\n\"jI\" :\"\",\"\\ub8BA\" :\ttrue\t\n ,\"\" :null}  ","offset":18,"mutation":"duplicate \"ru\" at 16"}
+{"input":"\r[null, 7.96el, 7.96e+3,[\t\t]\r\r]\t\n","base":"\r[null, 7.96e+3,[\t\t]\r\r]\t\n","offset":13,"mutation":"duplicate \"l, 7.96e\" at 5"}
+{"input":"[\r [-] ,null]","base":"[\r [ ] ,null]","offset":4,"mutation":"replace \" \" at 4 with \"-\""}
+{"input":"\t\r{\"\"\n \r: null\t\\f\\u40eD\":\"\\\"\\\"\"\t\t\t}\t\t","base":"\t\r{\"\"\n \r: null\t\n\r,\"\\f\\u40eD\":\"\\\"\\\"\"\t\t\t}\t\t","offset":15,"mutation":"delete \"\\n\\r,\\\"\" at 15"}
+{"input":"{\"\"\t:\n\"\\uF2Ba \\\\\"\t\"ᓴ\\f\"\n\n\r:\n\t\tnull\n\r ,\"\"\r \t:true}\t","base":"{\"\"\t:\n\"\\uF2Ba \\\\\"\t,\"ᓴ\\f\"\n\n\r:\n\t\tnull\n\r ,\"\"\r \t:true}\t","offset":18,"mutation":"delete \",\" at 18"}
+{"input":"[true\n, \"h◛x\"\r\n]  \n]  \n","base":"[true\n, \"h◛x\"\r\n]  \n","offset":21,"mutation":"duplicate \"]  \\n\" at 17"}
+{"input":" {\n\"₏l\\f0\": \t\tnull\n},\ntrue\r \t]","base":" [{\n\"₏l\\f0\": \t\tnull\n},\ntrue\r \t]","offset":1,"mutation":"delete \"[\" at 1"}
+{"input":"{\"CR\\ua5a3\"\t\r:\r \nnull\t \n,\"ᑙq~\\~\\ueEafR\":\t[ false]\n}","base":"{\"CR\\ua5a3\"\t\r:\r \nnull\t \n,\"ᑙq~\\ueEafR\":\t[ false]\n}","offset":32,"mutation":"duplicate \"~\\\\\" at 30"}
+{"input":"\n{\"\"  \n:[-6\t.3219\n  ]\n \t,\r\"\": \"ß\\/\\uf8f9\",\"m\\n\\t\"\t\t:\rnull}\t","base":"\n{\"\"  \n:[-69.3219\n  ]\n \t,\r\"\": \"ß\\/\\uf8f9\",\"m\\n\\t\"\t\t:\rnull}\t","offset":11,"mutation":"replace \"9\" at 11 with \"\\t\""}
+{"input":"{\"\":\r\"h\":\n null\t}\t\t","base":"{\"\":84.2\t,\r\r\"h\":\n null\t}\t\t","offset":4,"mutation":"delete \"84.2\\t,\\r\" at 4"}
+{"input":"{\"Dz\":{\r\n },\n \n\"\"\n:\n\t0 ","base":"{\"Dz\":{\r\n },\n \n\"\"\n:\n\t0 \t,\"\\ubEDB\"\n \t:0\r }","offset":23,"mutation":"truncate at 23"}
+{"input":"[[\rtrue,\n\ttru","base":"[[\rtrue,\n\ttrue]\t ]","offset":13,"mutation":"delete \"e]\\t ]\" at 13"}
+{"input":"\r\"֩\\AuC957,H\"","base":"\r\"֩\\uAC957,H\"","offset":5,"mutation":"swap \"u\" and \"A\" at 5"}
+{"input":"\n\r\n{\"f\\r\\","base":"\n\r\n{\"f\\r\\u8A79\":[\tfalse] \r\r,\n\"\"\t\t:\"\\u0e27\\u78AD\"}\t\r\n","offset":9,"mutation":"truncate at 9"}
+{"input":"{\"\":\t[\"\"\r,\r\t{\"\":null \t\t}, { \"\":null\n\r}\n\n,[ ]]\t\n,u9fEe\":\n\"\"} ","base":"{\"\":\t[\"\"\r,\r\t{\"\":null \t\t}, { \"\":null\n\r}\n\n,[ ]]\t\n,\"\\u9fEe\":\n\"\"} ","offset":48,"mutation":"delete \"\\\"\\\\\" at 48"}
+{"input":"\n{\t\"\"   :{},\n\n \"\":\t null,\"⪣@\"\t \n:{f\"\":true\r}\r}","base":"\n{\t\"\"   :{},\n\n \"\":\t null,\"⪣@\"\t \n:{\r\"\":true\r}\r}","offset":36,"mutation":"replace \"\\r\" at 36 with \"f\""}
+{"input":"\t\n{\n\"\"\n:\r-3","base":"\t\n{\n\"\"\n:\r-308\t, \"\":{}\n, \"\\/\": {\"\":null\n \r}\t \t}","offset":11,"mutation":"truncate at 11"}
+{"input":"  [nul","base":"  [null\r,\"\"] ","offset":6,"mutation":"truncate at 6"}
+{"input":"[\n{","base":"[\n{ }\n,\t [ null,\ttrue]\t\r]\r","offset":3,"mutation":"truncate at 3"}
+{"input":"{ \"\u0026\":{\n\r\"\":true\n,\r\"\":true\t\r}\n,\"C\" :\"\\r\",\t\"\":\t \rtr:ue \t}","base":"{ \"\u0026\":{\n\r\"\":true\n,\r\"\":true\t\r}\n,\"C\" :\"\\r\",\t\"\":\t \rtrue \t}","offset":50,"mutation":"insert \":\" at 50"}
+{"input":"\n\r {\"\\t\\u30E4ᦣ\":null,\n\"\\b\"\r:fales ,\"\":false\r\n\n}","base":"\n\r {\"\\t\\u30E4ᦣ\":null,\n\"\\b\"\r:false ,\"\":false\r\n\n}","offset":33,"mutation":"swap \"s\" and \"e\" at 33"}
+{"input":"{\"\"\t:\nnull\r\r,\"\"\n:\"\\u5Cdf\",\"\"\n: null ,  \n\"ഢ\"  \nnull[\t]} ","base":"{\"\"\t:\nnull\r\r,\"\"\n:\"\\u5Cdf\",\"\"\n: null ,  \n\"ഢ\"  \n:[\t]} ","offset":48,"mutation":"replace \":\" at 48 with \"null\""}
+{"input":"[\rfalse\r,fal","base":"[\rfalse\r,false \r\t,{\r\t},\"\"]\r","offset":12,"mutation":"truncate at 12"}
+{"input":"[null,{ \"E:\":[null\n ]\n},u\t\t-0.14, []]","base":"[null,{ \"E:\":[null\n ]\n},\n\t\t-0.14, []]","offset":24,"mutation":"replace \"\\n\" at 24 with \"u\""}
+{"input":"\t{\"\\\\\"  \r:-57E-3","base":"\t{\"\\\\\"  \r:-57E-3 ,\n\r \"\\r\\ua9FC\":\n[ \t 0\r,\t{\"\":null}]\r \t} \r\r","offset":16,"mutation":"truncate at 16"}
+{"input":"{\"日ޣल\":\t\n\rt0ue,\n\t\r\"本\":\nnull}\t\t","base":"{\"日ޣल\":\t\n\rtrue,\n\t\r\"本\":\nnull}\t\t","offset":16,"mutation":"replace \"r\" at 16 with \"0\""}
+{"input":"\r{\"\" \n:-8E-57,\"\"\t\t","base":"\r{\"\" \n:-8E-57,\"\"\t\t:\t\t{}}","offset":18,"mutation":"truncate at 18"}
+{"input":"{\r\"\"\n\t :\rnu\nl\n\r\t,\n\t\r\"Ἒ̝\"\n\r\r:\r\r true\r\n\n}","base":"{\r\"\"\n\t :\rnull\n\r\t,\n\t\r\"Ἒ̝\"\n\r\r:\r\r true\r\n\n}","offset":11,"mutation":"replace \"l\" at 11 with \"\\n\""}
+{"input":"{\"h\\uBF16\"\n: [\n \ttrue  ,null],\"\"\r\n:-0\t\r,\"\"\t\r\r:\t-05.,\n\"\":9E6}\t\t\r","base":"{\"h\\uBF16\"\n: [\n \ttrue  ,null],\"\"\r\n:-0\t\r,\"\"\t\r\r:\t-0.5,\n\"\":9E6}\t\t\r","offset":49,"mutation":"swap \".\" and \"5\" at 49"}
+{"input":"[\t\ttrue\t\n\t\t [null,true\r\n ,null]\n\n,true\t]\n ","base":"[\t\ttrue\t\n\t,\t [null,true\r\n ,null]\n\n,true\t]\n ","offset":10,"mutation":"delete \",\" at 10"}
+{"input":"\r{\"\":\tnull,\"\\u847f\"   : {\"\":null\t},\t\"\" \t:\rnull,\t a\t\"\\f$\\ubeD1\":\"\"  }\t  ","base":"\r{\"\":\tnull,\"\\u847f\"   : {\"\":null\t},\t\"\" \t:\rnull,\t \t\"\\f$\\ubeD1\":\"\"  }\t  ","offset":49,"mutation":"insert \"a\" at 49"}
+{"input":"\n[-8t,rue]\t\n","base":"\n[-8,true]\t\n","offset":4,"mutation":"swap \",\" and \"t\" at 4"}
+{"input":" {\"\": \r[\r],\t\"\"\n: \r -0.6,\r\"","base":" {\"\": \r[\r],\t\"\"\n: \r -0.6,\r\"\\uc2bE\\ud9Ab\" \n: { \"\":true \t,\"\":true\r, \t \"\":true\n \r} }","offset":26,"mutation":"truncate at 26"}
+{"input":"\t\r [ 7833.87\r, \t\nfal\"e\n\r]","base":"\t\r [ 7833.87\r, \t\nfalse\n\r]","offset":20,"mutation":"replace \"s\" at 20 with \"\\\"\""}
+{"input":";{\"(ᩦ%$\\t\"\r:\t[]\t\r,\r \n\"8u\u003cn\":\t\n-9E-8}","base":"{\"(ᩦ%$\\t\"\r:\t[]\t\r,\r \n\"8u\u003cn\":\t\n-9E-8}","offset":0,"mutation":"insert \";\" at 0"}
+{"input":"[\"\\uaD8c\"\t\r,{.\"\\uFBB9\"\r :\t[]\n\r,\".\\uD5f7\" \r:\r\t\r{\"\":true},\"\" \t:\"\" \t\n},false\n\t\n]","base":"[\"\\uaD8c\"\t\r,{\"\\uFBB9\"\r :\t[]\n\r,\".\\uD5f7\" \r:\r\t\r{\"\":true},\"\" \t:\"\" \t\n},false\n\t\n]","offset":13,"mutation":"insert \".\" at 13"}
+{"input":"{\"\\udaeb\":\t\nnull,\n\r\n\"*\"\r :{\":\"true} \n\t,\"\"\r\t:\t\r {}\r ,\"\":-0E40} \n\r","base":"{\"\\udaeb\":\t\nnull,\n\r\n\"*\"\r :{\"\":true} \n\t,\"\"\r\t:\t\r {}\r ,\"\":-0E40} \n\r","offset":28,"mutation":"swap \"\\\"\" and \":\" at 28"}
+{"input":"{\r\n{\r\n\r\"語\" \n :\n\"😀\", \"\" :\n\n\t{\t}\n \n}","base":"{\r\n\r\"語\" \n :\n\"😀\", \"\" :\n\n\t{\t}\n \n}","offset":3,"mutation":"duplicate \"{\\r\\n\" at 0"}
+{"input":"\n{\"WȈiᮢ\\\\\":0.2\r,\"B\":\"\\f\\\"\",\"֫ͧ\r\n :\n\n{ \r\r\"\":true} }","base":"\n{\"WȈiᮢ\\\\\":0.2\r,\"B\":\"\\f\\\"\",\"֫ͧ\"\r\n :\n\n{ \r\r\"\":true} }","offset":35,"mutation":"delete \"\\\"\" at 35"}
+{"input":"{ \"t\":\r\"\\u2d6e\"\t,\n \r\"é\\ubaFb\\uE:ddc\":\r\nfalse}\n\r\t","base":"{ \"t\":\r\"\\u2d6e\"\t,\n \r\"é\\ubaFb\\uEddc\":\r\nfalse}\n\r\t","offset":32,"mutation":"insert \":\" at 32"}
+{"input":"[null,\r{null,\r{\n}]\n","base":"[null,\r{\n}]\n","offset":8,"mutation":"duplicate \"null,\\r{\" at 1"}
+{"input":"\t){\"\\uA6bB+\"\n\n:[\"éΩ\"]\t  ,\"\":[\n \t],\"\":\t\r\r\"\",\"\":true \r}","base":"\t{\"\\uA6bB+\"\n\n:[\"éΩ\"]\t  ,\"\":[\n \t],\"\":\t\r\r\"\",\"\":true \r}","offset":1,"mutation":"insert \")\" at 1"}
+{"input":"\n\t\t{\"\\r\"\r:[]\t\t ,\"\\uE23eUUY\"  \n/0e+99}","base":"\n\t\t{\"\\r\"\r:[]\t\t ,\"\\uE23eUUY\"  \n:0e+99}","offset":30,"mutation":"replace \":\" at 30 with \"/\""}
+{"input":"\r{\"ж8ᓾ@\\/\\f\"\r\n\n:\n\"\\\\\"\n,  \"%\"\n:\n[\n\t]\t\n\r,\"b\"\n:true \n\n,\"ae2⮨\" \r\r:2⮨\" \r\r:\"😀?క\\ueD4A\"}\r","base":"\r{\"ж8ᓾ@\\/\\f\"\r\n\n:\n\"\\\\\"\n,  \"%\"\n:\n[\n\t]\t\n\r,\"b\"\n:true \n\n,\"ae2⮨\" \r\r:\"😀?క\\ueD4A\"}\r","offset":67,"mutation":"duplicate \"2⮨\\\" \\r\\r:\" at 58"}
+{"input":"[-","base":"[-0,[]\t]\n\t","offset":2,"mutation":"truncate at 2"}
+{"input":"{ \"\"\r\r:\t\u0000\t[]],\r\"\\t\": []  }","base":"{ \"\"\r\r:\t[\t[]],\r\"\\t\": []  }","offset":8,"mutation":"replace \"[\" at 8 with \"\\x00\""}
+{"input":"{ \"\"\n : {\"\":null,\"\":null}}+","base":"{ \"\"\n : {\"\":null,\"\":null}} ","offset":26,"mutation":"replace \" \" at 26 with \"+\""}
+{"input":"\r \t[7E-0,\"\\/\u003cᨈ\\uD0E\\\" ]","base":"\r \t[7E-0,\"\\/\u003cᨈ\\uD0E1\" ]","offset":21,"mutation":"replace \"1\" at 21 with \"\\\\\""}
+{"input":"\r\t\t\",F\\/\\\\\" \" ","base":"\r\t\t\",F\\/\\\\\" ","offset":12,"mutation":"duplicate \"\\\" \" at 10"}
+{"input":", \r{ \t},\r\rtrue\n, {\n\n\"\":{}\n}\n\t\r]","base":"\t[-1e-9\n, \r{ \t},\r\rtrue\n, {\n\n\"\":{}\n}\n\t\r]","offset":0,"mutation":"delete \"\\t[-1e-9\\n\" at 0"}
+{"input":" [\r{}\t\r{}\t,null,null,null]","base":" [\r{}\t,null,null,null]","offset":6,"mutation":"duplicate \"\\r{}\\t\" at 2"}
+{"input":"\t\n\t{\"жJ\\u35d8\"\r\r\r: \n{\r\n}, \"\r\n}, \"}₇Q\":false,\"W6\u003cާ\":null,\t \"\":-0.1E9}\r  ","base":"\t\n\t{\"жJ\\u35d8\"\r\r\r: \n{\r\n}, \"}₇Q\":false,\"W6\u003cާ\":null,\t \"\":-0.1E9}\r  ","offset":28,"mutation":"duplicate \"\\r\\n}, \\\"\" at 22"}
+{"input":"\n\t{\"\":{},\"\\/\":\n{\"\":null \t","base":"\n\t{\"\":{},\"\\/\":\n{\"\":null \t, \"\":null\t \t,\"\":true, \n\n\"\":null\t}}","offset":25,"mutation":"truncate at 25"}
+{"input":"\t{ \"\":\t0E-289\t\n\t,\n\"\":\n\"\"\t,\t \"\":\"\"\n\n, \"\\uD80d⟌ᦌ\"\t  :{  \"\":true ","base":"\t{ \"\":\t0E-289\t\n\t,\n\"\":\n\"\"\t,\t \"\":\"\"\n\n, \"\\uD80d⟌ᦌ\"\t  :{  \"\":true ,\"\":null\t}\r}\t ","offset":66,"mutation":"truncate at 66"}
+{"input":"{\"\":flase,  \"\":null\r}   ","base":"{\"\":false,  \"\":null\r}   ","offset":5,"mutation":"swap \"a\" and \"l\" at 5"}
+{"input":"\r\n{ \n\"\r\n{ \n\"c\"\r:[]\n\r\n,\n\"=\":\r\r\n{\r  }\t\t\r}\r\t","base":"\r\n{ \n\"c\"\r:[]\n\r\n,\n\"=\":\r\r\n{\r  }\t\t\r}\r\t","offset":6,"mutation":"duplicate \"\\r\\n{ \\n\\\"\" at 0"}
+{"input":" {[},false]","base":" [{},false]","offset":1,"mutation":"swap \"[\" and \"{\" at 1"}
+{"input":"\t \n[\r5.99, \t[\r\t\n]\r","base":"\t \n[\r5.99, \t[\r\t\n]   ]\r","offset":17,"mutation":"delete \"]   \" at 16"}
+{"input":"{\r \n\"\\b\":[\t[]\r,null\r\t\n}\r]}\r","base":"{\r \n\"\\b\":[\t[]\r,null\r\t\n,{ \n}\r]}\r","offset":22,"mutation":"delete \"\\n,{ \" at 21"}
+{"input":"{\"\\\\d\"\n:-3'.3,\"\" :false}\r\n","base":"{\"\\\\d\"\n:-3.3,\"\" :false}\r\n","offset":10,"mutation":"insert \"'\" at 10"}
+{"input":"{\"\":nul\"\":null,\"\"\t\n:\t\r\n0E+6013}\r","base":"{\"\":null,\"\"\t\n:\t\r\n0E+6013}\r","offset":7,"mutation":"duplicate \"\\\"\\\":nul\" at 1"}
+{"input":"\t  )\n\r\r\"\\uCb7d\\u24ED\\u4c37\":{\r\r\r\"\":true\t \r,\"\":true\t,\"\":null\n\n }}\t\t\t","base":"\t  {\n\r\r\"\\uCb7d\\u24ED\\u4c37\":{\r\r\r\"\":true\t \r,\"\":true\t,\"\":null\n\n }}\t\t\t","offset":3,"mutation":"replace \"{\" at 3 with \")\""}
+{"input":"{\\\\ue4c8\"  : \"\\n\",\r \t\"\"\t:\n []}\r\r\r","base":"{\"\\ue4c8\"  : \"\\n\",\r \t\"\"\t:\n []}\r\r\r","offset":1,"mutation":"replace \"\\\"\" at 1 with \"\\\\\""}
+{"input":"{\"\"\r\r:\r\t { ;,\r\t\r\"\"\t\t:\n{}\n\n, \n\"\"\t\n : [\r\r],\t\t\"\" \t: true}\n","base":"{\"\"\r\r:\r\t { },\r\t\r\"\"\t\t:\n{}\n\n, \n\"\"\t\n : [\r\r],\t\t\"\" \t: true}\n","offset":11,"mutation":"replace \"}\" at 11 with \";\""}
+{"input":"\t{\n\"\"\n:1e+0\r\n,\"\"\n\t:\t\"X:%\"","base":"\t{\n\"\"\n:1e+0\r\n,\"\"\n\t:\t\"X:%\"}","offset":25,"mutation":"truncate at 25"}
+{"input":"{\"\\\"\\ \n :{ \"\":null \n,\t\"\":null},\n\"\\r%\": {}}  ","base":"{\"\\\\\" \n :{ \"\":null \n,\t\"\":null},\n\"\\r%\": {}}  ","offset":3,"mutation":"swap \"\\\\\" and \"\\\"\" at 3"}
+{"input":" {\t\t\"\":null\t0,\"ඒ)г\":\n \t{}}\n","base":" {\t\t\"\":null\t,\"ඒ)г\":\n \t{}}\n","offset":12,"mutation":"insert \"0\" at 12"}
+{"input":"{\"\" :\r\n\nfalse, \"\"\r :\"\\uBcE4\",  \"Pw!Ↄ\\u9e0A\\ue944\" :  \n-2730.3E00\t\n,\t\"\\uC1B6\"\n: -40.31E+false428}\r\t\n","base":"{\"\" :\r\n\nfalse, \"\"\r :\"\\uBcE4\",  \"Pw!Ↄ\\u9e0A\\ue944\" :  \n-2730.3E00\t\n,\t\"\\uC1B6\"\n: -40.31E+2428}\r\t\n","offset":89,"mutation":"replace \"2\" at 89 with \"false\""}
+{"input":" {\t\"{U\"\r\t:\rnull,\n\"\":[[],],\r[\rnull]  \r,88.084E-0903,\r []] }\t","base":" {\t\"{U\"\r\t:\rnull,\n\"\":[[],\r[\rnull]  \r,88.084E-0903,\r []] }\t","offset":24,"mutation":"duplicate \"],\" at 22"}
+{"input":"[\"\"\r,null\r\t,[null\t,null","base":"[\"\"\r,null\r\t,[null\t,null]]\r\t","offset":23,"mutation":"truncate at 23"}
+{"input":"[\r{\"⋂\\u25fa\"\r:\t[\t]\r,\"\" :\r\r0 :\r\r0E9},\r\t\nnull]\t","base":"[\r{\"⋂\\u25fa\"\r:\t[\t]\r,\"\" :\r\r0E9},\r\t\nnull]\t","offset":29,"mutation":"duplicate \" :\\r\\r0\" at 24"}
+{"input":"\t{\"\"\n:\t  \"u\",\"h日\":\ttrue\r  ,\"\\f\\\\語♳~⳸\": -0.0165 \r,\"┠⽫ࢮR\\n\"\r:nu\nl\r}\n ","base":"\t{\"\"\n:\t  \"u\",\"h日\":\ttrue\r  ,\"\\f\\\\語♳~⳸\": -0.0165 \r,\"┠⽫ࢮR\\n\"\r:null\r}\n ","offset":75,"mutation":"replace \"l\" at 75 with \"\\n\""}
+{"input":" {\"\"\\\"\n  :\"௜日\",\"\":true}","base":" {\"\\\"\"\n  :\"௜日\",\"\":true}","offset":3,"mutation":"swap \"\\\\\" and \"\\\"\" at 3"}
+{"input":"[377.,\t [\t\t ]\n\n]","base":"[37.7,\t [\t\t ]\n\n]","offset":3,"mutation":"swap \".\" and \"7\" at 3"}
+{"input":" [\t\t53,true]]\t","base":" [\t\t53,true]\t","offset":12,"mutation":"duplicate \"]\" at 11"}
+{"input":"\",","base":"\",d_\\/\"\t","offset":2,"mutation":"delete \"d_\\\\/\\\"\\t\" at 2"}
+{"input":"{\"\":\t\n[ -7\n,]\"\\b\":null\r\r\t,\"\":[ -0E2,\r\r[]]}","base":"{\"\":\t\n[ -7\n],\"\\b\":null\r\r\t,\"\":[ -0E2,\r\r[]]}","offset":11,"mutation":"swap \"]\" and \",\" at 11"}
+{"input":"\n[\r{},\r{\"\" :true\n},0.4ue\n},0.4844e3\r]","base":"\n[\r{},\r{\"\" :true\n},0.4844e3\r]","offset":22,"mutation":"duplicate \"ue\\n},0.4\" at 14"}
+{"input":"{\t\n\n\"\" :0]6947,\"\\/\": \"\\uDBec\"\t}\t\r ","base":"{\t\n\n\"\" :0E6947,\"\\/\": \"\\uDBec\"\t}\t\r ","offset":9,"mutation":"replace \"E\" at 9 with \"]\""}
+{"input":"\n \r{\"\"\t\t:-44.8","base":"\n \r{\"\"\t\t:-44.8\n\t\r,\n\r\"\":\"4\"}","offset":14,"mutation":"truncate at 14"}
+{"input":" {\"\":t0rue\r,\r\t\"]\" \n:[\"`\\uFbeA\\n\"]}","base":" {\"\":true\r,\r\t\"]\" \n:[\"`\\uFbeA\\n\"]}","offset":6,"mutation":"insert \"0\" at 6"}
+{"input":" [\"\\u52A\"\t,\t{ \"\"\n\t\t:\n\t24.2e62, \"\":\r\n[ \r\r]}\t]","base":" [\"\\u582A\"\t,\t{ \"\"\n\t\t:\n\t24.2e62, \"\":\r\n[ \r\r]}\t]","offset":6,"mutation":"delete \"8\" at 6"}
+{"input":"\r\n\t{\t\"\":\r\t\r[\t ],\r\n\r\"\"\n:\r {\r\t}\n,\n\"\\uu1A3Ax\\ubb0c\"\r\n :\"\"}","base":"\r\n\t{\t\"\":\r\t\r[\t ],\r\n\r\"\"\n:\r {\r\t}\n,\n\"\\u1A3Ax\\ubb0c\"\r\n :\"\"}","offset":35,"mutation":"duplicate \"u\" at 34"}
+{"input":"\r[-.70E5533\t ,\r\"d\\fE9R\"\r] ","base":"\r[-7.0E5533\t ,\r\"d\\fE9R\"\r] ","offset":3,"mutation":"swap \"7\" and \".\" at 3"}
+{"input":" {\"x≦u\\ED68\"\r\n\n:\r  \"\",\"\\\\\":\rfalse}\n ","base":" {\"x≦\\uED68\"\r\n\n:\r  \"\",\"\\\\\":\rfalse}\n ","offset":7,"mutation":"swap \"\\\\\" and \"u\" at 7"}
+{"input":"[{\"\"\n: \r\t\"\": \r\t\"\"} \r,\t[ ]]","base":"[{\"\"\n: \r\t\"\"} \r,\t[ ]]","offset":11,"mutation":"duplicate \": \\r\\t\\\"\\\"\" at 5"}
+{"input":"[\nfalse,Full]\r","base":"[\nfalse,null]\r","offset":8,"mutation":"replace \"n\" at 8 with \"F\""}
+{"input":"{\"\"\t:true\t,\r \"\":null  \t, \"\\u5B5E\":\nnul }\n\r","base":"{\"\"\t:true\t,\r \"\":null  \t, \"\\u5B5E\":\nnull }\n\r","offset":38,"mutation":"delete \"l\" at 37"}
+{"input":"{ \"\\uCf8B$C\\uEAdF\"\r\t:\"\\uD6D7\" \t\nuC9aa\\f\":\n[\r\n\"\"] }\r\n ","base":"{ \"\\uCf8B$C\\uEAdF\"\r\t:\"\\uD6D7\" \t\n,\t\t\"⸿\\uC9aa\\f\":\n[\r\n\"\"] }\r\n ","offset":32,"mutation":"delete \",\\t\\t\\\"⸿\\\\\" at 32"}
+{"input":"\n{\"s\\n\\\\\":\t\t\r{}\t\n ,\r\r \"\":\"\\u6FBB\"} \n\"} \n","base":"\n{\"s\\n\\\\\":\t\t\r{}\t\n ,\r\r \"\":\"\\u6FBB\"} \n","offset":36,"mutation":"duplicate \"\\\"} \\n\" at 32"}
+{"input":" {\"\" \t:[\t {\r\n \"\":null}\t,fals,\"\"\n\n\t:null,\n\n\t\"\\u6eAB\" \r\t:\"ᛍ\"\n}","base":" {\"\" \t:[\t {\r\n \"\":null}\t,false ] ,\"\"\n\n\t:null,\n\n\t\"\\u6eAB\" \r\t:\"ᛍ\"\n}","offset":28,"mutation":"delete \"e ] \" at 28"}
+{"input":"\r{\"\\/⵲^F᧣\":\":\",\"\" : -0.6}}","base":"\r{\"\\/⵲^F᧣\":\":\",\"\" : -0.6}","offset":29,"mutation":"duplicate \"}\" at 28"}
+{"input":"[  \n\"dz\\uE9aE","base":"[  \n\"dz\\uE9aE\" ,true, [\n\ntrue]]","offset":13,"mutation":"truncate at 13"}
+{"input":"\n {\"\"\t:\t{\"\":tru e\n\n,\"\":null\t} \n}","base":"\n {\"\"\t:\t{\"\":true \n\n,\"\":null\t} \n}","offset":15,"mutation":"swap \"e\" and \" \" at 15"}
+{"input":"[true\n,\t\r[null  ,\ttru\ne,true]]","base":"[true\n,\t\r[null  ,\ttrue\n,true]]","offset":21,"mutation":"swap \"e\" and \"\\n\" at 21"}
+{"input":"{\"\\n\"\r\n:\t\r{ },\"u\\1fA6\" :0E9925}","base":"{\"\\n\"\r\n:\t\r{ },\"\\u1fA6\" :0E9925}","offset":15,"mutation":"swap \"\\\\\" and \"u\" at 15"}
+{"input":"\n\r [-0e-5233,f,false\t,[true,\rtrue]\n \t]","base":"\n\r [-0e-5233,false\t,[true,\rtrue]\n \t]","offset":14,"mutation":"duplicate \",f\" at 12"}
+{"input":"\r\n[null\t,{\"\" :\r [\rnull],\"\\u1cA0ছ\\r\"\t :\r\r'ull \r,\t\n\t\"\" \t :[],\"?\"\t:\r\tnull},\r{\r\"\":{}}\r,\r\t[]]","base":"\r\n[null\t,{\"\" :\r [\rnull],\"\\u1cA0ছ\\r\"\t :\r\rnull \r,\t\n\t\"\" \t :[],\"?\"\t:\r\tnull},\r{\r\"\":{}}\r,\r\t[]]","offset":42,"mutation":"replace \"n\" at 42 with \"'\""}
+{"input":"\n[\"\" \t,{  \t\"+\\uc3b5語_qᓎ\":\\\"\\u963C஧₎\"\r,\n\r\t\"\\b\" \n :  false ,  \"\"\n:{\n}, \"\"\n\t :[ \n\nnull]}  ]\r\t\n","base":"\n[\"\" \t,{  \t\"+\\uc3b5語_qᓎ\":\"\\u963C஧₎\"\r,\n\r\t\"\\b\" \n :  false ,  \"\"\n:{\n}, \"\"\n\t :[ \n\nnull]}  ]\r\t\n","offset":29,"mutation":"insert \"\\\\\" at 29"}
+{"input":" { \t\"\\\"\\b\"\n\r: {\"\":null \n,\"\":true  ,\r\r\"\":null\n, \n\"\":null\r\r}\t,\t\"\"\t:2\n,\n\n\"\\uB514XK\\ubD35\" \r:tr]e\t,\"\"\n\r:\t66E+5\t\n\t} \r\t","base":" { \t\"\\\"\\b\"\n\r: {\"\":null \n,\"\":true  ,\r\r\"\":null\n, \n\"\":null\r\r}\t,\t\"\"\t:2\n,\n\n\"\\uB514XK\\ubD35\" \r:true\t,\"\"\n\r:\t66E+5\t\n\t} \r\t","offset":91,"mutation":"replace \"u\" at 91 with \"]\""}
+{"input":"\r[\t[true\r,\n\t\nnull\nnull]]\r","base":"\r[\t[true\r,\n\t\nnull]]\r","offset":17,"mutation":"duplicate \"\\nnull\" at 12"}
+{"input":"\\[ true,3.9 \t\r]","base":"\r[ true,3.9 \t\r]","offset":0,"mutation":"replace \"\\r\" at 0 with \"\\\\\""}
+{"input":"{\"\\u2cbd\"\"\\u2cbd\":\t{ \r}  \r,\"\\uE15c\": [\t{\n \n}   ]\t}\t","base":"{\"\\u2cbd\":\t{ \r}  \r,\"\\uE15c\": [\t{\n \n}   ]\t}\t","offset":9,"mutation":"duplicate \"\\\"\\\\u2cbd\\\"\" at 1"}
+{"input":"[\rnul\\\"\"\t]","base":"[\rnull,\r\r\"ᇊT\\\"\"\t]","offset":5,"mutation":"delete \"l,\\r\\r\\\"ᇊT\" at 5"}
+{"input":"{} \"0\":\r\t\nfalse,\"\":\n  false}\r\r","base":"{\n \"0\":\r\t\nfalse,\"\":\n  false}\r\r","offset":1,"mutation":"replace \"\\n\" at 1 with \"}\""}
+{"input":"\t\r\t[\n\r\r{\n\"\":\r\t\n\"\\f\"\r\t,\"A\" :\t\"\\u4FEEi\", \"\"\t:nul:l\r}\n,\n\n\"\"]\t\r ","base":"\t\r\t[\n\r\r{\n\"\":\r\t\n\"\\f\"\r\t,\"A\" :\t\"\\u4FEEi\", \"\"\t:null\r}\n,\n\n\"\"]\t\r ","offset":46,"mutation":"insert \":\" at 46"}
+{"input":"\r\n {\":\n  -403   ,\r\"~|gT\\u26fe\":[ \n]\r ,\"\":null} ","base":"\r\n {\"\":\n  -403   ,\r\"~|gT\\u26fe\":[ \n]\r ,\"\":null} ","offset":5,"mutation":"delete \"\\\"\" at 5"}
+{"input":"{\"\"\t:\r{},\n\n \"\"\t:nul","base":"{\"\"\t:\r{},\n\n \"\"\t:null\r \n}","offset":19,"mutation":"truncate at 19"}
+{"input":"[ \"\\/\\uca","base":"[ \"\\/\\ucab4\",\"D⪎⊪\" ]\r\t ","offset":9,"mutation":"truncate at 9"}
+{"input":"{\"\": \rtrue\r\n , \"΢日|$\\ua63b\\uE8DC\"\n:{\"\":null\t}\n\t, \"\":{\t\"\":tru","base":"{\"\": \rtrue\r\n , \"΢日|$\\ua63b\\uE8DC\"\n:{\"\":null\t}\n\t, \"\":{\t\"\":true}\n}","offset":63,"mutation":"delete \"e}\\n}\" at 63"}
+{"input":"{\"\"\t:\n\rnull,\r\r \"\":\n \n-0 ,\r \"\"\n:é [\t\n ] ,\r \t\"\":\t -44}","base":"{\"\"\t:\n\rnull,\r\r \"\":\n \n-0 ,\r \"\"\n:  [\t\n ] ,\r \t\"\":\t -44}","offset":31,"mutation":"replace \" \" at 31 with \"é\""}
+{"input":"\n;\"\"\r:true,\"\"\t \r:\n\t {\t\r\r},\"\\\\\\u23c4\\ud5C7\":\ntrue \r,\"\\\"⼡(3t\"\n: null }\r","base":"\n{\"\"\r:true,\"\"\t \r:\n\t {\t\r\r},\"\\\\\\u23c4\\ud5C7\":\ntrue \r,\"\\\"⼡(3t\"\n: null }\r","offset":1,"mutation":"replace \"{\" at 1 with \";\""}
+{"input":"{\r\"X\":\"\"\n,\"\"\n:\rnull,\"\\u127A\"\t \t: \r-861.444-e84\r }","base":"{\r\"X\":\"\"\n,\"\"\n:\rnull,\"\\u127A\"\t \t: \r-861.444e-84\r }","offset":42,"mutation":"swap \"e\" and \"-\" at 42"}
+{"input":"[null,\n\t\rfalse\n  ,\"eu\\0C9d\" \t,4\r]","base":"[null,\n\t\rfalse\n  ,\"e\\u0C9d\" \t,4\r]","offset":20,"mutation":"swap \"\\\\\" and \"u\" at 20"}
+{"input":"{\t\"\":{\"\":t:{\"\":true\r\t\t}, \"\"\r:\t\nnull,\"\\u3E28\"\t :\nnull  } \n\n","base":"{\t\"\":{\"\":true\r\t\t}, \"\"\r:\t\nnull,\"\\u3E28\"\t :\nnull  } \n\n","offset":10,"mutation":"duplicate \":{\\\"\\\":t\" at 4"}
+{"input":"\t {\"e\\\\\\u61a1\":\t\"\\\"\r,\"♢\\nTO\"\n\n:\r\n\n\"ˑ\\u2ed3S\"\n,\"\": \"ejk\"}\t","base":"\t {\"e\\\\\\u61a1\":\t\"\\t\"\r,\"♢\\nTO\"\n\n:\r\n\n\"ˑ\\u2ed3S\"\n,\"\": \"ejk\"}\t","offset":18,"mutation":"delete \"t\" at 18"}
+{"input":" \r\r[\t\t-4.0,-0[.6\n]\r\t\n","base":" \r\r[\t\t-4.0,-0.6\n]\r\t\n","offset":13,"mutation":"insert \"[\" at 13"}
+{"input":"{\"ß0,j\"  : é [\n ],\t\"⌱\\rE\"\t:[]  \r}","base":"{\"ß0,j\"  :  [\n ],\t\"⌱\\rE\"\t:[]  \r}","offset":12,"mutation":"insert \"é\" at 12"}
+{"input":"\t\r{\"\"","base":"\t\r{\"\" : \"\\r\\fCHkL\",\r\"S\\t\" \t:-0.1930\r}","offset":5,"mutation":"truncate at 5"}
+{"input":"[\t\t\tfalse\n,093974E-68,[  true] ,true]","base":"[\t\t\tfalse\n,0.3974E-68,[  true] ,true]","offset":12,"mutation":"replace \".\" at 12 with \"9\""}
+{"input":"\t{\r\n\"\"\t\n:\"\",\"\\uEB2C\"\t\t\t","base":"\t{\r\n\"\"\t\n:\"\",\"\\uEB2C\"\t\t\t:\"\"\t\t}","offset":23,"mutation":"truncate at 23"}
+{"input":"[null,[\nnull\t]  \n,\t]  \n,\t \t-3\r\n]\r\n","base":"[null,[\nnull\t]  \n,\t \t-3\r\n]\r\n","offset":19,"mutation":"duplicate \"]  \\n,\\t\" at 13"}
+{"input":"\n  [false, \t\n0,\n\"\"  1\"\" ]\t","base":"\n  [false, \t\n0,\n\"\"  ,\"\" ]\t","offset":20,"mutation":"replace \",\" at 20 with \"1\""}
+{"input":"\n {\"\\r\"\n\n :{} \r,\"\" :\r3.","base":"\n {\"\\r\"\n\n :{} \r,\"\" :\r3.02\t\n\r, \t\n\"\":false}\t\r\n","offset":23,"mutation":"truncate at 23"}
+{"input":"[{\r\"R֨","base":"[{\r\"R֨Y\":[]},\t\t\"\\\"$#⠗᭾\\uAfbe\", \"P#v\\n\" ]\n\r","offset":7,"mutation":"truncate at 7"}
+{"input":"\n[\t \n-2.6 \n,\n\n\nnull.]\t ","base":"\n[\t \n-2.6 \n,\n\n\nnull ]\t ","offset":19,"mutation":"replace \" \" at 19 with \".\""}
+{"input":"[[\ttrue ],\ntrue","base":"[[\ttrue ],\ntrue,0.9E-9 ,{}\n ]","offset":15,"mutation":"truncate at 15"}
+{"input":"\t\n{\"\" \r :{\t\"\" \r :{\t  }\n,\n\"\"\t\t\t:null,\t\"\":\n\n null,\r\n\"\": 0.1\t}\t\r","base":"\t\n{\"\" \r :{\t  }\n,\n\"\"\t\t\t:null,\t\"\":\n\n null,\r\n\"\": 0.1\t}\t\r","offset":11,"mutation":"duplicate \"\\\"\\\" \\r :{\\t\" at 3"}
+{"input":"[ null\n,7E4-,\t672\r\r\t]","base":"[ null\n,7E-4,\t672\r\r\t]","offset":10,"mutation":"swap \"-\" and \"4\" at 10"}
+{"input":"\r \t{ \"\":  \r[\r\"\"] ,\"HQp/\"\n:\rfalse\r,\r\"\\uDb5C\"}\t \n\"\"\n\t\r}","base":"\r \t{ \"\":  \r[\r\"\"] ,\"HQp/\"\n:\rfalse\r,\r\"\\uDb5C\":\t \n\"\"\n\t\r}","offset":43,"mutation":"replace \":\" at 43 with \"}\""}
+{"input":"{\t\"2j,1\\u2EFa\\/\"\t:true,\n\"ᡟ\\uDe1f\\r\":\t-0\n,\"\"  :\n\t1E4\t,\n\"\":\n\n","base":"{\t\"2j,1\\u2EFa\\/\"\t:true,\n\"ᡟ\\uDe1f\\r\":\t-0\n,\"\"  :\n\t1E4\t,\n\"\":\n\n\n-88.9}  \t","offset":61,"mutation":"truncate at 61"}
+{"input":"{\"\\uab3f-V\":[-4468.6453]\t,\"\" :\r{\r},\r\"᫸\\uE7Edlvжg\":{\"\":true ,\r\"\":true\"\":true}} ","base":"{\"\\uab3f-V\":[-4468.6453]\t,\"\" :\r{\r},\r\"᫸\\uE7Edlvжg\":{\"\":true ,\r\"\":true}} ","offset":71,"mutation":"duplicate \"\\\"\\\":true\" at 64"}
+{"input":"[\t -0e08\t,0.7855 ","base":"[\t -0e08\t,0.7855e+2 ]\n ","offset":16,"mutation":"delete \"e+2 ]\\n\" at 16"}
+{"input":"[ {} ,falsese\n,[]\n,\"\"\t\n]","base":"[ {} ,false\n,[]\n,\"\"\t\n]","offset":11,"mutation":"duplicate \"se\" at 9"}
+{"input":"\r{ \"ᑭ↨ሙ\\u12c5\\\"\"\r\n:\"\\uc1Aa\", \t ","base":"\r{ \"ᑭ↨ሙ\\u12c5\\\"\"\r\n:\"\\uc1Aa\", \t \"\"\t:false,\n\"\\b\\b\": \"\"}","offset":37,"mutation":"truncate at 37"}
+{"input":"{\"\" :-0.8369e83,\n \r","base":"{\"\" :-0.8369e83,\n \r\"\\\"\\t\": \t -8e-494\t } \t ","offset":19,"mutation":"truncate at 19"}
+{"input":"  [[:null  \n,\n\r\rtrue\n,null\t]]","base":"  [[null  \n,\n\r\rtrue\n,null\t]]","offset":4,"mutation":"insert \":\" at 4"}
+{"input":"[\"\\u5bCh18\\t\",\"e\\ufeDe\"\t]","base":"[\"\\u5bC1h8\\t\",\"e\\ufeDe\"\t]","offset":7,"mutation":"swap \"1\" and \"h\" at 7"}
+{"input":"{\n\n\t\"\":\t\n\"\",\n \t\"⢯\\uE41b\" \r:\t\r0, \t\"\"[]\t,\t\"\" \n:\t\t\t\"\\u34AD\"}\n \t","base":"{\n\n\t\"\":\t\n\"\",\n \t\"⢯\\uE41b\" \r:\t\r0, \t\"\":[]\t,\t\"\" \n:\t\t\t\"\\u34AD\"}\n \t","offset":37,"mutation":"delete \":\" at 37"}
+{"input":"\n{ \r\"\"\t : \r2e5,\"\"\n\t:\"n\", \t\"\\uE0BuFbFF3\" \n\r:\"l\"\n\t\n}\n","base":"\n{ \r\"\"\t : \r2e5,\"\"\n\t:\"n\", \t\"\\uE0Bb\\uFbFF3\" \n\r:\"l\"\n\t\n}\n","offset":32,"mutation":"delete \"b\\\\\" at 32"}
+{"input":"\t\r\r{\r\"\\b\"\r: [false\t]\t\n ,\"ᶦ\\/\"\r\t\r:{}\t,\"\" \n\r:\n ","base":"\t\r\r{\r\"\\b\"\r: [false\t]\t\n ,\"ᶦ\\/\"\r\t\r:{}\t,\"\" \n\r:\n {\t\n\"\":true}\r}","offset":47,"mutation":"truncate at 47"}
+{"input":"{\"\" \t :\"F\", \t :\"F\",\r\"\"\r :\n\r [\t\n\n\"\",-0e+85,{}]} \t ","base":"{\"\" \t :\"F\",\r\"\"\r :\n\r [\t\n\n\"\",-0e+85,{}]} \t ","offset":11,"mutation":"duplicate \" \\t :\\\"F\\\",\" at 3"}
+{"input":"\r{\"\" b: [{\n\"\":null}\t\n\r,\rnull\r ] \t\n}\n","base":"\r{\"\" : [{\n\"\":null}\t\n\r,\rnull\r ] \t\n}\n","offset":5,"mutation":"insert \"b\" at 5"}
+{"input":"\t\n [\"\",.96E51  ]\n","base":"\t\n [\"\", \"\",0.96E51  ]\n","offset":7,"mutation":"delete \" \\\"\\\",0\" at 7"}
+{"input":" \t [null\n\n ,\n{\n\r}] : \n","base":" \t [null\n\n ,\n{\n\r}]  \n","offset":19,"mutation":"insert \":\" at 19"}
+{"input":"\r[[\r\r]\t,nullull]\t\t","base":"\r[[\r\r]\t,null]\t\t","offset":12,"mutation":"duplicate \"ull\" at 9"}
+{"input":"{\t\"\" : false\t,\"ɍb\":-40","base":"{\t\"\" : false\t,\"ɍb\":-40}","offset":23,"mutation":"truncate at 23"}
+{"input":"\t[\n\n null\t, [\t","base":"\t[\n\n null\t, [\t\t\nnull\n]]","offset":14,"mutation":"truncate at 14"}
+{"input":"[\r\r0.545E+2,\",\"\\u6BCb⽙g\\n\"\t,null\n\r ]","base":"[\r\r0.545E+2,\"\\u6BCb⽙g\\n\"\t,null\n\r ]","offset":13,"mutation":"duplicate \",\\\"\" at 11"}
+{"input":"\n[\n\tnull\n,n;ull,0,true]\t","base":"\n[\n\tnull\n,null,0,true]\t","offset":11,"mutation":"insert \";\" at 11"}
+{"input":"\r \r{\t\"\"\r: \": null\r}","base":"\r \r{\t\"\"\r:  null ,\"\": null\r}","offset":10,"mutation":"delete \" null ,\\\"\" at 10"}
+{"input":"[{},,6[ \r\t] \n\t,[\r\t\r]]\n\r","base":"[{},6,[ \r\t] \n\t,[\r\t\r]]\n\r","offset":4,"mutation":"swap \"6\" and \",\" at 4"}
+{"input":":true \t,\t\"\"\t:\r\n {\t\n\t} \t }\t\r\r","base":"\r{\"\" :true \t,\t\"\"\t:\r\n {\t\n\t} \t }\t\r\r","offset":0,"mutation":"delete \"\\r{\\\"\\\" \" at 0"}
+{"input":"[[null,true,\n  true , \t\tt\u0000ue]\r \t,true,true\t\r\r]\t","base":"[[null,true,\n  true , \t\ttrue]\r \t,true,true\t\r\r]\t","offset":25,"mutation":"replace \"r\" at 25 with \"\\x00\""}
+{"input":"\n[[null,\ntrue\n \ntrue\n ]] ","base":"\n[[null,\ntrue\n ]] ","offset":15,"mutation":"duplicate \"\\ntrue\\n \" at 8"}
+{"input":"[{},\n\t\"\\uD\r41fv\u003e\\n\"]","base":"[{},\n\t\"\\uD41fv\u003e\\n\"]","offset":10,"mutation":"insert \"\\r\" at 10"}
+{"input":"{\"\" : \n-7 ,\r\"\":ture,\r\r\"⩵\":-0E-331\r\t\t,\"\"\n:\r \rnull}","base":"{\"\" : \n-7 ,\r\"\":true,\r\r\"⩵\":-0E-331\r\t\t,\"\"\n:\r \rnull}","offset":16,"mutation":"swap \"r\" and \"u\" at 16"}
+{"input":"[ [null]1\n,\rnull\n]\r\r","base":"[ [null]\n,\rnull\n]\r\r","offset":8,"mutation":"insert \"1\" at 8"}
+{"input":"  \r{\"],\t\n\"\\\\\\/\":\r\t\n\"\"\r ,\t\n\"\"\n:\r\rfalse \r }","base":"  \r{\"/sb\":[ \t],\t\n\"\\\\\\/\":\r\t\n\"\"\r ,\t\n\"\"\n:\r\rfalse \r }","offset":5,"mutation":"delete \"/sb\\\":[ \\t\" at 5"}
+{"input":"[[ tru e,null,null\t]\n,\t \r\"J\"\r\r\n] ","base":"[[ true ,null,null\t]\n,\t \r\"J\"\r\r\n] ","offset":6,"mutation":"swap \"e\" and \" \" at 6"}
+{"input":" \n\t{\t\n\"\":\r{","base":" \n\t{\t\n\"\":\r{}\n\t\r, \"\\/\\u9467\":{\"\":null\n,\n\t \"\":null}}\n\t","offset":11,"mutation":"truncate at 11"}
+{"input":"[[[true],null\r]\t","base":"[[true],null\r]\t","offset":2,"mutation":"duplicate \"[\" at 0"}
+{"input":"[ \nfalse\t\r\n,null]]","base":"[ \nfalse\t\r\n,null]","offset":17,"mutation":"duplicate \"]\" at 16"}
+{"input":"[{\"\":\t 0.5","base":"[{\"\":\t 0.59e-1863 \n },781\t,\r\n{}\n] \r","offset":10,"mutation":"truncate at 10"}
+{"input":"[\n\t\t-0,[","base":"[\n\t\t-0,[null\r \r]]","offset":8,"mutation":"truncate at 8"}
+{"input":"\r\r{\"\":nul","base":"\r\r{\"\":null, \"\" :null,\"\\\"⽩\":\n\"\"}","offset":9,"mutation":"truncate at 9"}
+{"input":" {\t\r\t\"\\uc8DarC\\uB8ef\":[0.50\r,\n[true],\t[  null\r\t]\n \n,\"\\uDdFB\n\\u9fEC-日\"] }","base":" {\t\r\t\"\\uc8DarC\\uB8ef\":[0.50\r,\n[true],\t[  null\r\t]\n \n,\"\\uDdFB\\u9fEC-日\"] }","offset":59,"mutation":"insert \"\\n\" at 59"}
+{"input":"\r \r[\r{\t\"\" :-7E-37,\"\\f\\uB6EF\" -:0.8e-85}] \n","base":"\r \r[\r{\t\"\" :-7E-37,\"\\f\\uB6EF\" :-0.8e-85}] \n","offset":29,"mutation":"swap \":\" and \"-\" at 29"}
+{"input":" {\"\" :\ntrée\r,\"\" :\r true,\"uE\"\n\r:\rnull \t\n}\t","base":" {\"\" :\ntrue\r,\"\" :\r true,\"uE\"\n\r:\rnull \t\n}\t","offset":9,"mutation":"replace \"u\" at 9 with \"é\""}
+{"input":"{\"\\\"\\u4083\" :{\"\":true, \"\":true,\n:\":true,\"\":true  }\t\r}\n ","base":"{\"\\\"\\u4083\" :{\"\":true, \"\":true,\n\"\":true,\"\":true  }\t\r}\n ","offset":32,"mutation":"replace \"\\\"\" at 32 with \":\""}
+{"input":"{\"\"\t:\r{\"\":true\t\n\t,\t\"\":null},\"l\"\t\r:false\"\"\"\r\t\t:null,\"\" :\t\n\t{} }","base":"{\"\"\t:\r{\"\":true\t\n\t,\t\"\":null},\"l\"\t\r:false,\"\"\r\t\t:null,\"\" :\t\n\t{} }","offset":39,"mutation":"replace \",\" at 39 with \"\\\"\""}
+{"input":"{\"\\u56fD*7i؆\":  \n{},\"`::[\"\\uDeEF\\f\\uFFB2\"\n,0 ]}\t\n\n","base":"{\"\\u56fD*7i؆\":  \n{},\"`\":[\"\\uDeEF\\f\\uFFB2\"\n,0 ]}\t\n\n","offset":23,"mutation":"replace \"\\\"\" at 23 with \":\""}
+{"input":"[\"\",\n\n\rtrue,\n\"\",","base":"[\"\",\n\n\rtrue,\n\"\",null\r]","offset":16,"mutation":"truncate at 16"}
+{"input":" \t null\r,\"\",\ttrue,-5.6E-79\n\r\r]","base":"\t[ \t null\r,\"\",\ttrue,-5.6E-79\n\r\r]","offset":0,"mutation":"delete \"\\t[\" at 0"}
+{"input":"{\"\\t\" \t:[[nuull\n],\"\"\t,\"\\r\",\r null\r]  \n}\n\r","base":"{\"\\t\" \t:[[null\n],\"\"\t,\"\\r\",\r null\r]  \n}\n\r","offset":12,"mutation":"duplicate \"u\" at 11"}
+{"input":"{\r\"\":\r\r\n\"\u0026\"\t,\"\":\rnull,\"⛨\\uc58C\"\n:\"\"\r ,\"\"\t:[\t ],}","base":"{\r\"\":\r\r\n\"\u0026\"\t,\"\":\rnull,\"⛨\\uc58C\"\n:\"\"\r ,\"\"\t:[\t ]}","offset":48,"mutation":"insert \",\" at 48"}
+{"input":"\r{\"é);ὂ\\u8434\\uAAAb\":\"\" ,\"\\/:\r\n{}\n}","base":"\r{\"é);ὂ\\u8434\\uAAAb\":\"\" ,\"\\/\" :\r\n{}\n}","offset":31,"mutation":"delete \"\\\" \" at 31"}
+{"input":"\t \n\"\": [\r\r\r{},[\t\t\nnull]\n]\r\n,\t\"2\": [\nnull\r\r\t,false]}","base":"\t{ \n\"\": [\r\r\r{},[\t\t\nnull]\n]\r\n,\t\"2\": [\nnull\r\r\t,false]}","offset":1,"mutation":"delete \"{\" at 1"}
+{"input":"\r{\t\"r\\u58","base":"\r{\t\"r\\u58Ef\"\n:\n\n{\"\":true,\"\":null}\n}","offset":9,"mutation":"truncate at 9"}
+{"input":"{\n \"\\n\":\n\n[],\"\\b\":fa","base":"{\n \"\\n\":\n\n[],\"\\b\":false}","offset":20,"mutation":"truncate at 20"}
+{"input":" [ \"\"\n\n ,\n \n-0.88\n,\tnall\r,\t{\"\":\n\rnull,\"\":true}\r]","base":" [ \"\"\n\n ,\n \n-0.88\n,\tnull\r,\t{\"\":\n\rnull,\"\":true}\r]","offset":21,"mutation":"replace \"u\" at 21 with \"a\""}
+{"input":"{\t\r\"\"\t\r:\n \n[]\n,\"\"\r\n:0E6517\r}0","base":"{\t\r\"\"\t\r:\n \n[]\n,\"\"\r\n:0E6517\r}","offset":28,"mutation":"insert \"0\" at 28"}
+{"input":"-0.5, \n\"\"\t\n,\rtrue,null \t]\r","base":"[-0.5, \n\"\"\t\n,\rtrue,null \t]\r","offset":0,"mutation":"delete \"[\" at 0"}
+{"input":"[{}\t,\n","base":"[{}\t,\n\n -0E6 ]","offset":6,"mutation":"truncate at 6"}
+{"input":"\t{\n\r\"$p\":[[\nnull]]null]], \"{\":\"\"\t\r}","base":"\t{\n\r\"$p\":[[\nnull]], \"{\":\"\"\t\r}","offset":18,"mutation":"duplicate \"null]]\" at 12"}
+{"input":"{\t\n\n\":\\\"\":null\t \t,\r\r\r\"\"\": \r[]\t\t ,\t\"\\t\"\r:[\t ],\"\":\r\"\\tsX\\\"\"\n}","base":"{\t\n\n\":\\\"\":null\t \t,\r\r\r\"\\\"\": \r[]\t\t ,\t\"\\t\"\r:[\t ],\"\":\r\"\\tsX\\\"\"\n}","offset":22,"mutation":"delete \"\\\\\" at 22"}
+{"input":"\r\t\t{\"\"\r\r\r:true, \n\"\"\"ਢc7\\u6faC\"} \n\r","base":"\r\t\t{\"\"\r\r\r:true, \n\"\":\"ਢc7\\u6faC\"} \n\r","offset":19,"mutation":"delete \":\" at 19"}
+{"input":"[[null\n\r],[null]null]  \n,0.970\n , null]","base":"[[null\n\r],[null]  \n,0.970\n , null]","offset":16,"mutation":"duplicate \"null]\" at 11"}
+{"input":"\n \r[\t{\n,} null,\"\",false \t ] \r","base":"\n \r[\t{\n}, null,\"\",false \t ] \r","offset":7,"mutation":"swap \"}\" and \",\" at 7"}
+{"input":"[\tnull   ,{\t\"\\n\"\t:null }\n,{\n","base":"[\tnull   ,{\t\"\\n\"\t:null }\n,{\n\n}]","offset":28,"mutation":"truncate at 28"}
+{"input":"\r\r\n[{\n \"\"\n\t:b\ttrue,\r\"\\f\\t\\ucAcD\":\nfalse}] ","base":"\r\r\n[{\n \"\"\n\t:\r\ttrue,\r\"\\f\\t\\ucAcD\":\nfalse}] ","offset":12,"mutation":"replace \"\\r\" at 12 with \"b\""}
+{"input":"{\r\n\n\"\"\r:\"\"\r:{\r} ,\t\n\t\"\"\n:\ttrue}","base":"{\r\n\n\"\"\r:{\r} ,\t\n\t\"\"\n:\ttrue}","offset":8,"mutation":"duplicate \"\\\"\\\"\\r:\" at 4"}
+{"input":"\r\r\n[[true , null\r , ttrue, null]]","base":"\r\r\n[[true , null\r , true, null]]","offset":21,"mutation":"duplicate \"t\" at 20"}
+{"input":"\r\t\n[[tru\t,\rtrue, null\n\r,true]\r,\ntrue]","base":"\r\t\n[[true\t,\rtrue, null\n\r,true]\r,\ntrue]","offset":8,"mutation":"delete \"e\" at 8"}
+{"input":"\r[\t\r[ \ntrue],{\"}\t\r\n]","base":"\r[\t\r[ \ntrue],{}\t\r\n]","offset":14,"mutation":"insert \"\\\"\" at 14"}
+{"input":"[[ \r nu]l]\n\r, \t[\r\t ],\t\n\r0.1,[\r]\r]","base":"[[ \r null]\n\r, \t[\r\t ],\t\n\r0.1,[\r]\r]","offset":7,"mutation":"replace \"l\" at 7 with \"]\""}
+{"input":"\n ull, \n\r\"\\rw[;0\" :\t\r0 \r\t}\n\r\r","base":"\n { \"\"\r\t:null, \n\r\"\\rw[;0\" :\t\r0 \r\t}\n\r\r","offset":2,"mutation":"delete \"{ \\\"\\\"\\r\\t:n\" at 2"}
+{"input":"\r{\"\"\n \n:\r\t\n{\r \"\":tru","base":"\r{\"\"\n \n:\r\t\n{\r \"\":true\r\n\n,\"\":null \r} \t\n}\t","offset":20,"mutation":"truncate at 20"}
+{"input":"[\t\t{\"\"\r  :\n\n\"\",\n\"\":\r","base":"[\t\t{\"\"\r  :\n\n\"\",\n\"\":\r\"\\/\\\"\\n\",\r \"\\u9ef1\\u0cD0\\uBfC6\":\t \t\"\\u031C\"}]\r","offset":20,"mutation":"truncate at 20"}
+{"input":"{\"QP\\uA05f[Ⲡ\":  \rflse, \"k\" :\"\\uddC4\"} ","base":"{\"QP\\uA05f[Ⲡ\":  \rfalse, \"k\" :\"\\uddC4\"} ","offset":22,"mutation":"delete \"a\" at 22"}
+{"input":"[0.4\t\r\n,\rnull\r\t,\r\\false\n\t\t]","base":"[0.4\t\r\n,\rnull\r\t,\rfalse\n\t\t]","offset":17,"mutation":"insert \"\\\\\" at 17"}
+{"input":"\r[[null\t,null ,tr\r,   null]\n\r ]\r","base":"\r[[null\t,null ,true\r,   null]\n\r ]\r","offset":17,"mutation":"delete \"ue\" at 17"}
+{"input":"\r{\n\t\"\": trutrue\r, \"N\" \r\r:\t  -5.83E-4 \n,\"\\/]ኬ\\b\"\r\r:\tnull\r\n}","base":"\r{\n\t\"\": true\r, \"N\" \r\r:\t  -5.83E-4 \n,\"\\/]ኬ\\b\"\r\r:\tnull\r\n}","offset":11,"mutation":"duplicate \"tru\" at 8"}
+{"input":"{  \"\\uC7ad\"\n\r\r:fals\ne, \"\\n\"  :\"\\b\"\n,\"\u003c\":\t\r\t{\n\"\":null\r}}\t\r","base":"{  \"\\uC7ad\"\n\r\r:false\n, \"\\n\"  :\"\\b\"\n,\"\u003c\":\t\r\t{\n\"\":null\r}}\t\r","offset":19,"mutation":"swap \"e\" and \"\\n\" at 19"}
+{"input":"[ \t\r\"\\b⨱\" \r\t, nul[l\r]","base":"[ \t\r\"\\b⨱\" \r\t, null\r]","offset":19,"mutation":"insert \"[\" at 19"}
+{"input":" [ \n-0e+3\n,false,falsen ] ","base":" [ \n-0e+3\n,false,false\r ] ","offset":22,"mutation":"replace \"\\r\" at 22 with \"n\""}
+{"input":"\r  r\"t7j,\\u0FFD\"","base":"\r  \"t7j,\\u0FFD\"","offset":3,"mutation":"insert \"r\" at 3"}
+{"input":"{\t\"\"\t:3.697e4,\"\":\r[null]","base":"{\t\"\"\t:3.697e4,\"\":\r[null]}\n\n","offset":24,"mutation":"truncate at 24"}
+{"input":"\r \t{\n\"\\u43b5\":{\t}\t,\t\"\":{}\r\t,\"\\rp[\":\t \t[\"\"\n],\"\".\t\"\\/\"}","base":"\r \t{\n\"\\u43b5\":{\t}\t,\t\"\":{}\r\t,\"\\rp[\":\t \t[\"\"\n],\"\":\t\"\\/\"}","offset":46,"mutation":"replace \":\" at 46 with \".\""}
+{"input":"\r{\t\t\"|\"\t:571.5,\n\n\"\"\r\n:[],\t","base":"\r{\t\t\"|\"\t:571.5,\n\n\"\"\r\n:[],\t  \"}uu\\uCCC5\":\t-0E-0\t\r}","offset":26,"mutation":"truncate at 26"}
+{"input":"[\"\"\r, [],\t[\t\n\rtrue]\t","base":"[\"\"\r, [],\t[\t\n\r]]\t","offset":14,"mutation":"replace \"]\" at 14 with \"true\""}
+{"input":" {\"\"\r\t\t:\n\t\rnull\t \r,\n \n\" gT2\"\r:\"Ƹ:\"ƸK\"\t}\t","base":" {\"\"\r\t\t:\n\t\rnull\t \r,\n \n\" gT2\"\r:\"ƸK\"\t}\t","offset":33,"mutation":"duplicate \":\\\"Ƹ\" at 29"}
+{"input":"[\t{\t\t}n,ull]","base":"[\t{\t\t},null]","offset":6,"mutation":"swap \",\" and \"n\" at 6"}
+{"input":"{\r\r\t\"\"\r:\n\"\",\"\\t\":\t\n{\r\"\":true}\t,\r\"\t/ጣ0A\":\t\r\nnull}\t\t\r","base":"{\r\r\t\"\"\r:\n\"\",\"\\t\":\t\n{\r\"\":true}\t,\r\t\"/ጣ0A\":\t\r\nnull}\t\t\r","offset":32,"mutation":"swap \"\\t\" and \"\\\"\" at 32"}
+{"input":"{\"\"\n:-66.05E913,\t\t\"\" \r:-0.8e94,\r \r\"\"\r\n\n:\tfalse\t\r\n,\"\\u26ce\\udDf8\"\r: \r[\rtr","base":"{\"\"\n:-66.05E913,\t\t\"\" \r:-0.8e94,\r \r\"\"\r\n\n:\tfalse\t\r\n,\"\\u26ce\\udDf8\"\r: \r[\rtrue ]}\t","offset":72,"mutation":"truncate at 72"}
+{"input":"[0.1189e3739\r,true\t ","base":"[0.1189e3739\r,true\t  ,\"Kଲ\"\r,\n{\"\\uf7e1x]\\f\"\t:null}]","offset":20,"mutation":"truncate at 20"}
+{"input":"{\"K\\r\"  :null,  \"\\u6","base":"{\"K\\r\"  :null,  \"\\u631A\\naᣑ\":\"\\ubb6F⇳\\n\"} \n","offset":20,"mutation":"truncate at 20"}
+{"input":"[true,\t \"\"\n\t\t,\r\t\r[null\t,\t\t\rtrue\n\\\n]]\t","base":"[true,\t \"\"\n\t\t,\r\t\r[null\t,\t\t\rtrue\n\n\n]]\t","offset":32,"mutation":"replace \"\\n\" at 32 with \"\\\\\""}
+{"input":"[[],\t{\t \t,\tnull\r,[true\n]\t\r]","base":"[[],\t{\t}\t,\tnull\r,[true\n]\t\r]","offset":7,"mutation":"replace \"}\" at 7 with \" \""}
+{"input":"[\r{\"\\\"\":  7\t,\"\" :[\r\r\t] \t\n,\t\t\"\",\t\t\"\"\t:false,\r\r\"語S\\u00c2\\r\"\n:\n\t[\n]},\t-0\t\t,\r\"\"\n\t\t]","base":"[\r{\"\\\"\":  7\t,\"\" :[\r\r\t] \t\n,\t\t\"\"\t:false,\r\r\"語S\\u00c2\\r\"\n:\n\t[\n]},\t-0\t\t,\r\"\"\n\t\t]","offset":30,"mutation":"duplicate \",\\t\\t\\\"\\\"\" at 25"}
+{"input":"{\r\"\":-94,\"\":[ \nnull   ,{\n\t\"\":null\t\t},-0.5136,  \n\"\\r6,  \n\"\\r\\uEa09~\"],\"j\" : null\r}","base":"{\r\"\":-94,\"\":[ \nnull   ,{\n\t\"\":null\t\t},-0.5136,  \n\"\\r\\uEa09~\"],\"j\" : null\r}","offset":51,"mutation":"duplicate \"6,  \\n\\\"\\\\r\" at 43"}
+{"input":"{ \t\n\"\"\r:\t\r\n\"😀/M\"  , \"\": {\t }, \"\":","base":"{ \t\n\"\"\r:\t\r\n\"😀/M\"  , \"\": {\t }, \"\": 940e3451\t,\"\":\ntrue}","offset":36,"mutation":"truncate at 36"}
+{"input":"[\t\t\t\"O\\t,\nnull]\t","base":"[\t\t\t\"O\\t\",\nnull]\t","offset":8,"mutation":"delete \"\\\"\" at 8"}
+{"input":"null\t,true]\r","base":"\n[   null\t,true]\r","offset":0,"mutation":"delete \"\\n[   \" at 0"}
+{"input":"[ \n73+23  ,{  }]","base":"[ \n73e+23  ,{  }]","offset":5,"mutation":"delete \"e\" at 5"}
+{"input":"\n {\ra\n\"O\\uF6ee\\n\"\t:null \n,\"\": \"\\\\\",\t\n\"-⮏\"\n: \tnull }","base":"\n {\r\n\"O\\uF6ee\\n\"\t:null \n,\"\": \"\\\\\",\t\n\"-⮏\"\n: \tnull }","offset":4,"mutation":"insert \"a\" at 4"}
+{"input":"{\r\"\\/:\"null, \"ຟ\\f\"\n\r:[\r{\"\":null}\n]\r,\"\" :\rnull,\t\n\"k\":false \n\n}\t","base":"{\r\"\\/\":null, \"ຟ\\f\"\n\r:[\r{\"\":null}\n]\r,\"\" :\rnull,\t\n\"k\":false \n\n}\t","offset":5,"mutation":"swap \"\\\"\" and \":\" at 5"}
+{"input":"[ [\t],]3,17\t\r,\t\t0\r]\t","base":"[ [\t],\n3,17\t\r,\t\t0\r]\t","offset":6,"mutation":"replace \"\\n\" at 6 with \"]\""}
+{"input":"[fal","base":"[false\n\r,  76e74] \n ","offset":4,"mutation":"truncate at 4"}
+{"input":"\n\r {\"\\uEBeE\"/\r:[ \r-0.5E+7,false\r]} ","base":"\n\r {\"\\uEBeE\"\r\r:[ \r-0.5E+7,false\r]} ","offset":12,"mutation":"replace \"\\r\" at 12 with \"/\""}
+{"input":" {  \"\":  \n[\n\r},\"\",null,\"\" \r\t], \"^\\t\"\n:null}","base":" {  \"\":  \n[{\n\r},\"\",null,\"\" \r\t], \"^\\t\"\n:null}","offset":11,"mutation":"delete \"{\" at 11"}
+{"input":"\r{\t\"%\" :\t.false,\"\"  \t:\r\"\"\r}\n\n ","base":"\r{\t\"%\" :\t\rfalse,\"\"  \t:\r\"\"\r}\n\n ","offset":9,"mutation":"replace \"\\r\" at 9 with \".\""}
+{"input":"[-0\n,5e+\r","base":"[-0\n,5e+72]\r","offset":8,"mutation":"delete \"72]\" at 8"}
+{"input":"\t[  \n{ \n}\r.,\r \r1e3 ]","base":"\t[  \n{ \n}\r,\r \r1e3 ]","offset":10,"mutation":"insert \".\" at 10"}
+{"input":"\r{\t\r \"\":null\n,a\"\"  \t:\rfalse}\n\n\r","base":"\r{\t\r \"\":null\n,\"\"  \t:\rfalse}\n\n\r","offset":14,"mutation":"insert \"a\" at 14"}
+{"input":" {\n\"\"  \n:\n0.7E4,\t\"\\ufAtrueC\"\t\r:null,\"\":[],\"\\/j\" :\r \"\\uf7DF#U;d\"}","base":" {\n\"\"  \n:\n0.7E4,\t\"\\ufA7C\"\t\r:null,\"\":[],\"\\/j\" :\r \"\\uf7DF#U;d\"}","offset":22,"mutation":"replace \"7\" at 22 with \"true\""}
+{"input":"{\t\"\\t\\u7a3F\"\t:true ,\t\n \"\":\t\tnull\r\r,\"\"\t\r:\"\r-0.9E-1   ,\"\"  \n:\"\\u1DeB(``༕\\uCBff\"\n} \r","base":"{\t\"\\t\\u7a3F\"\t:true ,\t\n \"\":\t\tnull\r\r,\"\"\t\r:\r-0.9E-1   ,\"\"  \n:\"\\u1DeB(``༕\\uCBff\"\n} \r","offset":40,"mutation":"insert \"\\\"\" at 40"}
+{"input":"\t{\"C\\\"oᐏ\"\r:\t\r\t[\n \"\" ,\n-2.1e-3748,\n\r\t\"\"  ,\t{\"\":nlul } ] ,\"\\uA0Ec\"\n:\"༺US\" }","base":"\t{\"C\\\"oᐏ\"\r:\t\r\t[\n \"\" ,\n-2.1e-3748,\n\r\t\"\"  ,\t{\"\":null } ] ,\"\\uA0Ec\"\n:\"༺US\" }","offset":49,"mutation":"swap \"u\" and \"l\" at 49"}
+{"input":"[\n\r[null\t,null, \r true\r\r],\n[\n\ntrue,null\n\t,\t\rn\"ull\t\r ],\n\r{} \r]","base":"[\n\r[null\t,null, \r true\r\r],\n[\n\ntrue,null\n\t,\t\rnull\t\r ],\n\r{} \r]","offset":45,"mutation":"insert \"\\\"\" at 45"}
+{"input":" \t{\n\t\"\":  \r[\n \ttrue\r\rfalse\n\r] \r,\"\":\n\n\t-43.26 \t\t}","base":" \t{\n\t\"\":  \r[\n \ttrue\r\r\t,\r\rfalse\n\r] \r,\"\":\n\n\t-43.26 \t\t}","offset":21,"mutation":"delete \"\\r\\r\\t,\" at 19"}
+{"input":"\n[[\t\n\rnull,nul\rl] \n,\nnull\t\t]","base":"\n[[\t\n\rnull,null\r] \n,\nnull\t\t]","offset":14,"mutation":"swap \"l\" and \"\\r\" at 14"}
+{"input":"{\"\":[]\ttrue ,\"\": \n \"\"}\r","base":"{\"\":[]\t ,\"\": \n \"\"}\r","offset":7,"mutation":"insert \"true\" at 7"}
+{"input":"\r{\t\r\r\")^hM\":-0.58E-364\n,\"\" \r :rue}\t","base":"\r{\t\r\r\")^hM\":-0.58E-364\n,\"\" \r :true}\t","offset":30,"mutation":"delete \"t\" at 30"}
+{"input":"[\n\"\"\n,[ trutrue\n\r,true]\r]\r","base":"[\n\"\"\n,[ true\n\r,true]\r]\r","offset":11,"mutation":"duplicate \"tru\" at 8"}
+{"input":"\n{\"жe\":\n\n\t\"],\n\"\"  :0.046e4367}\r","base":"\n{\"жe\":\n\n\t[],\n\"\"  :0.046e4367}\r","offset":11,"mutation":"replace \"[\" at 11 with \"\\\"\""}
+{"input":"[   nu\r\ntrue\t\n]\r","base":"[   null,\n\r\ntrue\t\n]\r","offset":6,"mutation":"delete \"ll,\\n\" at 6"}
+{"input":" [59.1,\tnul","base":" [59.1,\tnull\r\n,\t{\r}\t]","offset":11,"mutation":"truncate at 11"}
+{"input":"\r[\r\r \"\" \r,-30E-854\t{\"^\\f\\ue3Da\" \n:{\t\"\":true}}] ","base":"\r[\r\r \"\" \r,-30E-854\t,{\"^\\f\\ue3Da\" \n:{\t\"\":true}}] ","offset":19,"mutation":"delete \",\" at 19"}

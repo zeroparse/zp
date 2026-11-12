@@ -1,0 +1,140 @@
+// CEL with recovery: the ready-made cel grammar, plus #recover on the arguments of a call, the elements of a
+// list and the entries and fields of a map and a message, so that a broken one is skipped up to the next
+// "," or bracket. The comments of the original are dropped.
+package cel
+
+type Ident = node[string]
+type Name = node[string]
+type IntLit = node[string]
+type UintLit = node[string]
+type DoubleLit = node[string]
+type StringLit = node[string]
+type BytesLit = node[string]
+type BoolLit = node[string]
+type NullLit = node[string]
+
+type Paren = { X Expr }
+type Select = { X Expr; Field Name; Optional bool }
+type Index = { X Expr; Index Expr; Optional bool }
+type Call = { Target *Expr; Func Ident; Args []Expr }
+type Unary = { Op node[string]; X Expr }
+type Binary = { Left Expr; Op node[string]; Right Expr }
+type Conditional = { Cond Expr; Then Expr; Else Expr }
+type ListLit = { Elems []Expr }
+type MapLit = { Entries []Entry }
+type EntryV = { Key Expr; Value Expr; Optional bool }
+type Entry ~ EntryV | error
+type MessageLit = { Type Ident; Fields []Field }
+type FieldV = { Name Name; Value Expr; Optional bool }
+type Field ~ FieldV | error
+type Optional = { X Expr }
+
+type Expr ~ error | Ident | IntLit | UintLit | DoubleLit | StringLit | BytesLit | BoolLit | NullLit | Paren | Select | Index | Call | Unary | Binary | Conditional | ListLit | MapLit | MessageLit | Optional
+
+@start
+rule main Expr = ws e:expr ws $$ => $e
+
+
+rule expr Expr = #operators {
+    skip ws
+    operand unary
+    level { infix right "?" ws then:level(expr, or) ws ":" => Conditional{Cond: $lhs, Then: $then, Else: $rhs} }
+    level or { infix left "||" => Binary{Left: $lhs, Op: $op, Right: $rhs} }
+    level { infix left "&&" => Binary{Left: $lhs, Op: $op, Right: $rhs} }
+    level { infix left "<=" / "<" / ">=" / ">" / "==" / "!=" / ("in" ![A-Za-z0-9_]) #atomic => Binary{Left: $lhs, Op: $op, Right: $rhs} }
+    level { infix left "+" / "-" => Binary{Left: $lhs, Op: $op, Right: $rhs} }
+    level { infix left "*" / "/" / "%" => Binary{Left: $lhs, Op: $op, Right: $rhs} }
+}
+
+rule unary Expr = member / not_unary / neg_unary
+rule not_unary Expr = ops:(o:"!" -ws)+ m:member => foldr($m, $ops, (acc, i) => Unary{Op: i.$o, X: acc})
+rule neg_unary Expr = ops:(o:"-" -ws)+ m:member => foldr($m, $ops, (acc, i) => Unary{Op: i.$o, X: acc})
+
+rule member Expr = #operators {
+    skip ws
+    operand primary
+    level {
+        postfix "." ws q:"?"? ws f:name => Select{X: $lhs, Field: $f, Optional: len($q) > 0}
+        postfix "." ws f:name_plain ws "(" ws as:args? ws ")" => Call{Target: $lhs, Func: $f, Args: concat($as)}
+        postfix "[" ws q:"?"? ws i:expr ws "]" => Index{X: $lhs, Index: $i, Optional: len($q) > 0}
+    }
+}
+
+
+rule primary Expr = (
+    &[A-Za-z_] v:(word_lit / message / ident_only / call) / &[0-9] v:(int_plain / double / uint / int) / &["'] v:string / &"." v:(double / message / call / ident) / &"-" v:(double / int) / v:(paren / list / map / expected_start)
+) => $v
+rule expected_start IntLit = (![A-Za-z_] [A-Za-z_] / ![0-9] [0-9] / !["'] ["'] / !"." "." / !"-" "-") #atomic
+rule word_lit Expr = &[tf] v:bool / &"n" v:null / &[rR] v:string / &[bB] v:bytes => $v
+
+rule paren Paren = "(" ws e:expr ws ")" => Paren{X: $e}
+
+rule ident_only Ident = i:ident !(ws "(") => $i
+rule ident Ident = (("." ws)? name_global) #atomic
+rule call Call = f:ident ws "(" ws as:args? ws ")" => Call{Target: nil, Func: $f, Args: concat($as)}
+rule args = first:arg rest:(-ws -"," -ws x:arg)* => concat(list($first), map($rest, (r) => r.$x))
+
+rule list ListLit = "[" ws es:elems? ws ","? ws "]" => ListLit{Elems: concat($es)}
+rule elems = first:elem rest:(-ws -"," -ws x:elem)* => concat(list($first), map($rest, (r) => r.$x))
+rule elem Expr = (optional / expr) #recover(skip=[^,()\[\]{}]+)
+rule arg Expr = expr #recover(skip=[^,()\[\]{}]+)
+rule optional Optional = "?" ws x:expr => Optional{X: $x}
+
+rule map MapLit = "{" ws es:entries? ws ","? ws "}" => MapLit{Entries: concat($es)}
+rule entries = first:entry rest:(-ws -"," -ws x:entry)* => concat(list($first), map($rest, (r) => r.$x))
+rule entry Entry = (opt_entry / plain_entry) #recover(skip=[^,()\[\]{}]+)
+rule opt_entry EntryV = "?" ws k:expr ws ":" ws v:expr => EntryV{Key: $k, Value: $v, Optional: true}
+rule plain_entry EntryV = k:expr ws ":" ws v:expr => EntryV{Key: $k, Value: $v, Optional: false}
+
+rule message MessageLit = (
+    &(("." ws)? [A-Za-z_] [A-Za-z0-9_]* (ws "." ws [A-Za-z_] [A-Za-z0-9_]*)* ws "{")
+    t:type_name ws "{" ws fs:fields? ws ","? ws "}"
+) => MessageLit{Type: $t, Fields: concat($fs)}
+rule type_name Ident = (("." ws)? name_plain (ws "." ws name_plain)*) #atomic
+rule fields = first:field rest:(-ws -"," -ws x:field)* => concat(list($first), map($rest, (r) => r.$x))
+rule field Field = (opt_field / plain_field) #recover(skip=[^,()\[\]{}]+)
+rule opt_field FieldV = "?" ws n:name ws ":" ws v:expr => FieldV{Name: $n, Value: $v, Optional: true}
+rule plain_field FieldV = n:name ws ":" ws v:expr => FieldV{Name: $n, Value: $v, Optional: false}
+
+
+rule bool BoolLit = (("true" / "false") ![A-Za-z0-9_]) #atomic
+rule null NullLit = ("null" ![A-Za-z0-9_]) #atomic
+
+rule int_plain IntLit = ([0-9]+ ![0-9a-zA-Z_.]) #atomic
+rule sign = "-" ws
+rule double DoubleLit = (sign? ([0-9]+ "." [0-9]+ exponent? / [0-9]+ exponent / "." [0-9]+ exponent?)) #atomic
+rule exponent = [eE] [+\-]? [0-9]+
+rule uint UintLit = (("0x" [0-9a-fA-F]+ / [0-9]+) [uU]) #atomic
+rule int IntLit = (sign? ("0x" [0-9a-fA-F]+ / [0-9]+) ![uU]) #atomic
+
+rule string StringLit = ([rR] &["'] raw_body / str_body) #atomic
+rule bytes BytesLit = ([bB] ([rR] &["'] raw_body / bytes_body)) #atomic
+
+rule raw_body = "\"\"\"" (!"\"\"\"" .)* "\"\"\"" / "'''" (!"'''" .)* "'''" / "\"" [^"\n\r]* "\"" / "'" [^'\n\r]* "'"
+
+rule str_body = (
+    "\"" ("\"\"" (str_esc / [^"\\]+ / "\"" !"\"\"")* "\"\"\"" / (str_esc / [^"\\\n\r]+)* "\"")
+    / "'" ("''" (str_esc / [^'\\]+ / "'" !"''")* "'''" / (str_esc / [^'\\\n\r]+)* "'")
+)
+rule bytes_body = (
+    "\"" ("\"\"" (bytes_esc / [^"\\]+ / "\"" !"\"\"")* "\"\"\"" / (bytes_esc / [^"\\\n\r]+)* "\"")
+    / "'" ("''" (bytes_esc / [^'\\]+ / "'" !"''")* "'''" / (bytes_esc / [^'\\\n\r]+)* "'")
+)
+
+rule bytes_esc = "\\" ([abfnrtv"'\\?`] / [0-3] [0-7] [0-7] / [xX] hex hex)
+rule str_esc = (
+    bytes_esc
+    / "\\u" !([dD] [89a-fA-F]) hex hex hex hex
+    / "\\U" !("0000" [dD] [89a-fA-F]) "00" ("0" hex #repeat(5) / "10" hex #repeat(4))
+)
+rule hex = [0-9a-fA-F]
+
+
+rule name_plain Ident = (!(("true" / "false" / "null" / "in") ![A-Za-z0-9_]) [A-Za-z_] [A-Za-z0-9_]*) #atomic
+rule name_global = (
+    !(("true" / "false" / "null" / "in" / "as" / "break" / "const" / "continue" / "else" / "for" / "function" / "if" / "import" / "let" / "loop" / "package" / "namespace" / "return" / "var" / "void" / "while") ![A-Za-z0-9_])
+    [A-Za-z_] [A-Za-z0-9_]*
+)
+rule name Name = (name_plain / "`" [A-Za-z0-9_.\-/ ]+ "`") #atomic
+
+rule ws = [ \t\r\n\u{c}]* ("//" [^\n]* [ \t\r\n\u{c}]*)*

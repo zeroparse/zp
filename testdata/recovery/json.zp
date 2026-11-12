@@ -1,0 +1,45 @@
+// JSON (RFC 8259) with recovery: the ready-made json grammar, plus #recover on the members of an
+// object and the elements of an array, so that a broken one is skipped up to the next "," or closer.
+package json
+
+type Object = { Members []Member }
+type Member ~ MemberValue | error
+type MemberValue = { Key String; Value Value }
+type Array = { Elements []Value }
+type String = node[string]
+type Number = node[string]
+type Bool = node[string]
+type Null = node[string]
+type Value ~ Object | Array | String | Number | Bool | Null | error
+
+@start
+rule main Value = ws v:value ws $$ => $v
+
+rule value Value = object / array / string / number / bool / null
+
+rule object Object = "{" ws ms:members? ws "}" @error(message="expected ',' or '}'") => Object{Members: concat($ms)}
+rule members = (
+    first:member rest:(-ws -"," -ws m:member)*
+) => concat(list($first), map($rest, (r) => r.$m))
+rule member Member = (k:string ws ":" ws v:value => MemberValue{Key: $k, Value: $v}) #recover(skip=[^,}\n]+)
+
+rule array Array = "[" ws es:elements? ws "]" @error(message="expected ',' or ']'") => Array{Elements: concat($es)}
+rule elements = (
+    first:element rest:(-ws -"," -ws v:element)*
+) => concat(list($first), map($rest, (r) => r.$v))
+rule element Value = value #recover(skip=[^,\]\n]+)
+
+rule string = "\"" s:chars "\"" => $s
+rule chars String = (([^"\\\u{0}-\u{1f}]+ / escape)*) #atomic
+rule escape = "\\" (["\\/bfnrt] / "u" hex hex hex hex)
+rule hex = [0-9a-fA-F]
+
+rule number Number = ("-"? int frac? exp?) #atomic
+rule int = "0" / [1-9] [0-9]*
+rule frac = "." [0-9]+
+rule exp = [eE] [+\-]? [0-9]+
+
+rule bool Bool = ("true" / "false") #atomic
+rule null Null = ("null") #atomic
+
+rule ws = [ \t\r\n]*
