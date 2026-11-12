@@ -119,6 +119,11 @@ func missingConformanceFailures(s conform.Suite, seeds, n int) (fails []error, r
 	return fails, ran
 }
 
+// missingExact are the operations of the mode whose charges the controlled suite holds to their exact
+// cost: one unit for each token that missing.reset removes or missing.replay records again, and for each
+// error that missing.replay copies.
+var missingExact = []string{"missing.reset", "missing.replay"}
+
 func TestEngineMissingConformance(t *testing.T) {
 	seeds := 300
 	if testing.Short() {
@@ -129,7 +134,7 @@ func TestEngineMissingConformance(t *testing.T) {
 		if controlled {
 			ops = append(ops, engineBudgetOps...)
 		}
-		s := conform.Suite{Name: fmt.Sprintf("engine missing tokens (controlled=%v)", controlled), Ops: ops, Exact: []string{"missing.reset"},
+		s := conform.Suite{Name: fmt.Sprintf("engine missing tokens (controlled=%v)", controlled), Ops: ops, Exact: missingExact,
 			New: func(c ref.Config) conform.Impl { return newMissingMachineControlled(c, controlled) }}
 		t.Run(s.Name, func(t *testing.T) {
 			fails, ran := missingConformanceFailures(s, seeds, 150)
@@ -189,6 +194,62 @@ func TestEngineMissingConformanceDetectsBrokenEngine(t *testing.T) {
 	}
 }
 
+// TestEngineMissingChargesArePinned is the negative control of the charges: the engine whose
+// missing.reset or missing.replay charges one unit more or nothing at all fails the controlled suite,
+// so that a change of what they charge for the tokens and the errors fails a test.
+func TestEngineMissingChargesArePinned(t *testing.T) {
+	uncharged := func(f func(m *missingMachine, args []any)) func(m *missingMachine, args []any) []any {
+		return func(m *missingMachine, args []any) []any {
+			c := m.p.Control
+			m.p.Control = nil
+			defer func() { m.p.Control = c }()
+			f(m, args)
+			return nil
+		}
+	}
+	more := func(f func(m *missingMachine, args []any)) func(m *missingMachine, args []any) []any {
+		return func(m *missingMachine, args []any) []any {
+			f(m, args)
+			if m.p.Missing != nil {
+				m.p.Spend()
+			}
+			return nil
+		}
+	}
+	reset := func(m *missingMachine, args []any) { m.p.confMissingReset(int(args[0].(int64))) }
+	replay := func(m *missingMachine, args []any) { m.p.confMissingReplay(args[0].(*MemoEntry)) }
+	variants := map[string]func(m *missingMachine, args []any) []any{
+		"missing.reset charges nothing":   uncharged(reset),
+		"missing.reset charges one more":  more(reset),
+		"missing.replay charges nothing":  uncharged(replay),
+		"missing.replay charges one more": more(replay),
+		"missing.replay charges every error": func(m *missingMachine, args []any) []any {
+			replay(m, args)
+			for range args[0].(*MemoEntry).Errs.AppendErrors(nil) {
+				m.p.Spend()
+			}
+			return nil
+		},
+	}
+	ops := append(slices.Clone(conform.MissingOps), engineBudgetOps...)
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			op := strings.Fields(name)[0]
+			s := conform.Suite{Name: name, Ops: ops, Exact: missingExact, New: func(c ref.Config) conform.Impl {
+				m := newMissingMachineControlled(c, true).(meteredMissing)
+				return meteredBrokenMissing{brokenMissing{m.missingMachine, op, v}}
+			}}
+			if fails, _ := missingConformanceFailures(s, 100, 150); len(fails) == 0 {
+				t.Fatal("no case detected the changed charge")
+			}
+		})
+	}
+}
+
+type meteredBrokenMissing struct{ brokenMissing }
+
+func (m meteredBrokenMissing) Used() uint64 { return m.p.Control.Used }
+
 // brokenMissing is the engine with one operation of the mode replaced.
 type brokenMissing struct {
 	*missingMachine
@@ -198,6 +259,7 @@ type brokenMissing struct {
 
 func (b brokenMissing) Call(o *exec.Op, args []any) []any {
 	if o.Name == b.op {
+		defer interrupt()
 		return b.call(b.missingMachine, args)
 	}
 	return b.missingMachine.Call(o, args)
