@@ -13,9 +13,9 @@ func (p *Parser) confMissingActive() bool {
 // confMissingRecompute runs missing.recompute for the conformance suite.
 // Printed from Exec IR function confMissingRecompute of internal/ir/exec/core, specialized for missing.
 func (p *Parser) confMissingRecompute(r *Rule) bool {
-	var rr bool
-	rr = p.Missing != nil && r.Missing
-	return rr
+	var res bool
+	res = p.Missing != nil && r.Missing
+	return res
 }
 
 // confMissingMark runs missing.mark for the conformance suite.

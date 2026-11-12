@@ -96,8 +96,9 @@ func (m *ctxMachine) Call(o *exec.Op, args []any) []any {
 			k++
 		}
 	}
-	if o.Name == "ctx.replay" && int64(p.Pos) != m.regs[ops.Pos].(int64) {
-		panic(fmt.Sprintf("ctx.replay moved to %d, not %d", p.Pos, m.regs[ops.Pos]))
+	if slices.Contains(o.Writes, ops.Pos) {
+		// The run compares the position that the operation wrote with the model's.
+		m.regs[ops.Pos] = int64(p.Pos)
 	}
 	return res[:len(o.Results)]
 }

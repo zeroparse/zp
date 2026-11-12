@@ -364,6 +364,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 		}
 		return []any{got}
 	}
+	p.syncRegisters()
 	if !p.model.Allows(o, refArgs) {
 		panic(mismatch("the case breaks the precondition of " + o.Name))
 	}
@@ -376,7 +377,6 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if metered {
 		before = meter.Used()
 	}
-	p.syncRegisters()
 	want := call(p.model, o, refArgs)
 	got := implCall(p.impl, o, implArgs)
 	charges := metered && o.Name != "budget.charge"

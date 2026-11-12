@@ -7,57 +7,57 @@ import "zeroparse.dev/zp/internal/value"
 // confRuleMemo runs rule.memo for the conformance suite.
 // Printed from Exec IR function confRuleMemo of internal/ir/exec/core.
 func (p *Parser) confRuleMemo(r *Rule) bool {
-	var rr bool
-	rr = p.memoized(r)
-	return rr
+	var res bool
+	res = p.memoized(r)
+	return res
 }
 
 // confRuleLeader runs rule.leader for the conformance suite.
 // Printed from Exec IR function confRuleLeader of internal/ir/exec/core.
 func (p *Parser) confRuleLeader(r *Rule) bool {
-	var rr bool
-	rr = r.Leader
-	return rr
+	var res bool
+	res = r.Leader
+	return res
 }
 
 // confRulePlain runs rule.plain for the conformance suite.
 // Printed from Exec IR function confRulePlain of internal/ir/exec/core.
 func (p *Parser) confRulePlain(r *Rule) bool {
-	var rr bool
-	rr = len(r.Scope.Names) == 0
-	return rr
+	var res bool
+	res = len(r.Scope.Names) == 0
+	return res
 }
 
 // confRuleDocOnlyMemo runs rule.docOnlyMemo for the conformance suite.
 // Printed from Exec IR function confRuleDocOnlyMemo of internal/ir/exec/core.
 func (p *Parser) confRuleDocOnlyMemo(r *Rule) bool {
-	var rr bool
-	rr = p.docOnlyMemo(r)
-	return rr
+	var res bool
+	res = p.docOnlyMemo(r)
+	return res
 }
 
 // confRuleDocPlain runs rule.docPlain for the conformance suite.
 // Printed from Exec IR function confRuleDocPlain of internal/ir/exec/core.
 func (p *Parser) confRuleDocPlain(r *Rule) bool {
-	var rr bool
-	rr = r.Plain
-	return rr
+	var res bool
+	res = r.Plain
+	return res
 }
 
 // confRulePositional runs rule.positional for the conformance suite.
 // Printed from Exec IR function confRulePositional of internal/ir/exec/core.
 func (p *Parser) confRulePositional(r *Rule) bool {
-	var rr bool
-	rr = r.Positional
-	return rr
+	var res bool
+	res = r.Positional
+	return res
 }
 
 // confRuleId runs rule.id for the conformance suite.
 // Printed from Exec IR function confRuleId of internal/ir/exec/core.
 func (p *Parser) confRuleId(r *Rule) int {
-	var rr int
-	rr = r.ID
-	return rr
+	var res int
+	res = r.ID
+	return res
 }
 
 // confRuleInvoke runs rule.invoke for the conformance suite.

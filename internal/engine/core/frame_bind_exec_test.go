@@ -37,7 +37,7 @@ func (p *Parser) confFrameMarkEnv(m Mark) *Env {
 }
 
 // confFrameMarkMissing runs frame.markMissing for the conformance suite.
-// Printed from Exec IR function confFrameMarkMissing of internal/ir/exec/core.
+// Printed from Exec IR function confFrameMarkMissing of internal/ir/exec/core, specialized for missing.
 func (p *Parser) confFrameMarkMissing(m Mark) int {
 	var r int
 	r = m.missing

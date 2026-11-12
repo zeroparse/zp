@@ -102,11 +102,11 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 					b.Return(states...)
 				}
 			case 1:
-				// A declared result, since a nil result has no type of its own, named apart from the
-				// parameters.
+				// A declared result, since a nil result has no type of its own.
+				// A result that a parameter does not name.
 				res := "r"
-				for slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
-					res += "r"
+				if slices.ContainsFunc(o.Params, func(p exec.Param) bool { return p.Name == res }) {
+					res = "res"
 				}
 				b.Var(res, o.Results[0])
 				b.Set(res, exec.C(name, args...))
