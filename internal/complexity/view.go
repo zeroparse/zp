@@ -68,9 +68,9 @@ type View struct {
 	replaces map[core.Node]core.Node
 }
 
-// Build returns the view of src with opts. It applies N1, N2, N4 and N6 so far; until it applies
-// every rule, the complexity classifier reads the view that compile.NormalView builds on the
-// grammar's rules.
+// Build returns the view of src with opts. It applies N1, N2, N3, N4, N6, N8 and N12 so far;
+// until it applies every rule, the complexity classifier reads the view that compile.NormalView
+// builds on the grammar's rules.
 func Build(src *Source, opts Options, control *cancel.Control) *View {
 	m := *src.Module
 	m.Rules = make([]*core.Rule, len(src.Module.Rules))
@@ -81,6 +81,7 @@ func Build(src *Source, opts Options, control *cancel.Control) *View {
 	for _, r := range src.Module.Rules {
 		core.Walk(r.Body, func(n core.Node) { b.orig[n] = true })
 	}
+	b.cheapRules()
 	for i, r := range src.Module.Rules {
 		control.Poll()
 		b.cur, b.depth = i, 0

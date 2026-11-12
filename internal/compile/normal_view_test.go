@@ -106,6 +106,20 @@ func TestNormalViewPredicateValueFlow(t *testing.T) {
 	}
 }
 
+// TestNormalViewCheapRules checks which calls the view drops as evaluated again cheaply
+// (cheapRules): calls of a memoized rule and of a rule whose body is cheap, and not calls of a rule
+// that a parse with insertion does not memoize, of a rule with an action, or of an Operators Rule.
+func TestNormalViewCheapRules(t *testing.T) {
+	for _, c := range cheapRuleCases {
+		t.Run(c.name, func(t *testing.T) {
+			got, _ := viewBodies(t, c.src+"\n", costView)
+			if got["main"] != c.want {
+				t.Errorf("view of rule main = %s, want %s", got["main"], c.want)
+			}
+		})
+	}
+}
+
 // TestNormalViewText checks that every expression that the view builds stands for text of the
 // grammar, which messages quote: a factored rest for its whole alternative, a factored sequence for
 // the first alternative of its run, and an alternative without its cuts for itself.
@@ -280,6 +294,12 @@ var normalViewCases = []struct {
 	{name: "C5 drops an alternative that an earlier one prefixes", rule: ruleN3, body: `"ab" / "ab" "cd"`, want: `"ab"`},
 	{name: "C5 keeps a literal that no earlier alternative prefixes", body: `"=" "x" / "==" "y" / "="`, want: `"=" "x" / "==" "y" / "="`},
 	{name: "C5 drops a longer literal", rule: ruleN3, body: `"=" / "=="`, want: `"="`},
+	{name: "C5 keeps a longer literal after one without case", body: `"a"i / "ab"`, want: `"a"i / "ab"`},
+	{name: "C5 keeps a longer literal without case", body: `"a" / "ab"i`, want: `"a" / "ab"i`},
+	{name: "C1 keeps a duplicate recovery", body: `"a" #recover(skip="z") / "a" #recover(skip="z")`, want: `"a" #recover(skip="z") / "a" #recover(skip="z")`},
+	{name: "C1 keeps a duplicate insertion", body: `"a" #missing / "a" #missing`, want: `"a" #missing / "a" #missing`},
+	{name: "C6 ends a run at an alternative with a cut", body: `"a" "b" / "a" #cut "c" / "d"`, want: `"a" "b" / "a" #cut "c" / "d"`},
+	{name: "C9 keeps a class with the replacement character", body: `[\u{fff0}-\u{ffff}] / "b"`, want: `[\u{fff0}-\u{ffff}] / "b"`},
 	{name: "C1 keeps a duplicate with a predicate", body: `{true} "ab" / {true} "ab"`, want: `{true} "ab" / {true} "ab"`},
 	{name: "C1 keeps a duplicate that calls a rule with a predicate", body: `p / p`, want: `p / p`},
 	{name: "C4 drops a bottom alternative", rule: ruleN4, body: `_|_ / "ab" / "cd"`, want: `"ab" / "cd"`},
@@ -328,6 +348,8 @@ var normalViewCases = []struct {
 	{name: "R7 unrolls a cheap rule", rule: ruleN11, body: `r* ("c" r*)*`, want: `(r / "c")*`},
 	{name: "K4 turns self exclusion into bottom", rule: ruleN12, body: `!"ab" "ab"`, want: `_|_`},
 	{name: "K4 keeps self exclusion of a call", body: `!r r`, want: `!r r`},
+	{name: "K4 turns self exclusion of a bounded repetition into bottom", rule: ruleN12, body: `!"a"#repeat(2) "a"#repeat(2)`, want: `_|_`},
+	{name: "K4 keeps self exclusion of an unbounded repetition", body: `!"a"+ "a"+`, want: `!"a"+ "a"+`},
 	{name: "C6 factors a shared first item", rule: ruleN12, body: `"(" "xy" / "(" "zw"`, want: `"(" ("xy" / "zw")`},
 	{name: "C6 factors a call of a cheap rule", rule: ruleN12, body: `r "xy" / r "zw" / "q"`, want: `r ("xy" / "zw") / "q"`},
 	{name: "C6 keeps a cut", body: `"(" #cut "xy" / "(" "zw"`, want: `"(" #cut "xy" / "(" "zw"`},
@@ -396,6 +418,26 @@ var predicateCaptureCases = []struct {
 	{name: "a rule called under a discard is normalized",
 		src:  "rule main = y:(\"q\" -r) {len($y) == 2}\nrule r = \"a\"* \"a\"*",
 		want: map[string]string{"r": `"a"*`}},
+}
+
+// cheapRuleCases are the cases of TestNormalViewCheapRules: a grammar and the view of its rule
+// main.
+var cheapRuleCases = []struct {
+	name string
+	src  string
+	want string
+}{
+	{name: "a duplicate call of a memoized rule is dropped",
+		src: "rule main = m / m\nrule m = q \"x\"\nrule q = \"y\"", want: `m`},
+	{name: "a duplicate call of a rule that meets an insertion stays",
+		src: "rule main = m / m\nrule m = q \"x\"\nrule q = \"y\" #missing", want: `m / m`},
+	{name: "a duplicate call of a rule with a cheap body is dropped",
+		src: "rule main = a / a\nrule a = \"x\"", want: `a`},
+	{name: "a duplicate call of a rule with an action stays",
+		src: "rule main = a / a\nrule a = \"x\" => 1", want: `a / a`},
+	{name: "a duplicate call of an Operators Rule stays",
+		src:  "rule main = e / e\nrule e = #operators {\n  operand \"x\"\n  level add { infix left \"+\" }\n}",
+		want: `e / e`},
 }
 
 // valueFlowCases are the cases of TestNormalViewPredicateValueFlow.
