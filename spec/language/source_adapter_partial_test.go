@@ -55,6 +55,7 @@ func declJSON(t *testing.T, g *grammar.Grammar) map[string]string {
 func TestPartialSourceTree(t *testing.T) {
 	corpus := mutationCorpus(t)
 	rng := rand.New(rand.NewSource(7))
+	classes := map[string]int{}
 	cases, rejected, fewer, firstErr, differ, manualKept, canonicalKept := 0, 0, 0, 0, 0, 0, 0
 	for i := 0; i < 3000; i++ {
 		s := mutatedSource(rng, corpus)
@@ -78,6 +79,14 @@ func TestPartialSourceTree(t *testing.T) {
 			g, ok := got[k]
 			if !ok {
 				fewer++
+				cls := "other"
+				if len(merrs) > 0 {
+					cls = merrs[0].Msg
+					if len(cls) > 28 {
+						cls = cls[:28]
+					}
+				}
+				classes[cls]++
 				if fewer <= 5 {
 					t.Logf("missing %s in %q (errors %v)", k, s, gerrs)
 				}
@@ -98,6 +107,7 @@ func TestPartialSourceTree(t *testing.T) {
 	if canonicalKept*100 < manualKept*85 {
 		t.Errorf("the canonical partial parse keeps %d declarations, the hand-written parser %d", canonicalKept, manualKept)
 	}
+	t.Logf("missing by first manual error: %v", classes)
 	t.Logf("%d sources, %d rejected, %d declarations missing, %d differ, %d first errors differ", cases, rejected, fewer, differ, firstErr)
 }
 
