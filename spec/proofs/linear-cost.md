@@ -2310,7 +2310,69 @@ that the family evaluates at $p$ or a call of a rule that calls no rule
 (*Repeats* and *Repeats inside a growth*): a shared call whose later
 evaluation is a memoized evaluation would own the later activation. Bounding the second part, and the
 heads that hold free activations, at each position, is part of step 4 of
-[Open Steps](#open-steps).
+[Open Steps](#open-steps); the following claim reduces the second part.
+
+**Repeats inside a family.** Let $g$ be an outer growth at $p$, let the values
+of the variables not change in the growths of its family, and let the parse
+reuse no result and no step kept in a context of growths. Let $\alpha$ and
+$\alpha'$ be successful activations of $\sigma$ at $q$ in the family region of
+$g$, $\alpha$ first, neither of them inside a call of a rule that calls no
+rule, outside case 5 and the dropped steps, and let $N$ be the innermost
+evaluation that contains both.
+
+1. If $N$ is not a growth, $\alpha$ lies in a growth of a leader $R$ at $p$
+   that the abandoned unit $w$ of the restarts starts with a call that it
+   shares with its continuation, and the continuation calls $R$ at $p$ again
+   in the same step of the innermost growth at $p$ that contains $N$, where
+   $R$ grows again.
+2. If $N$ is a growth at $p$, with $\alpha$ in its step $j$ and $\alpha'$ in a
+   later step, then either $\alpha'$ is in the second case of *Repeats inside
+   a growth*, or $w$ starts at $p$ and $\alpha$ lies in a growth of a leader
+   at $p$ that $w$ starts with a call that it shares with its continuation, in
+   step $j$, and reaches $q \ge e_{j+1}$.
+
+*Proof.* A call made in the family region that evaluates a body there is a
+call of a rule that the parse does not memoize, a call of a leader that grows
+at $p$, or a call in a context of growths at $p$; a call of a rule that the
+parse memoizes, made in it at another position or outside a context of
+growths, is answered or is a memoized evaluation or a growth at another
+position, whose activations lie in no family region of $g$. In the
+first case the restarts give $w$, a unit, since no dropped step lies on the
+path. If $\alpha$ and $\alpha'$ are direct in one body evaluation, the proof
+of *Direct activations* applies, since $N$ lies in that body below every call,
+and leaves only case 5. Otherwise *Repeats* places $\alpha$ in the evaluation
+inside $w$ of a call $c$ that $w$ and its continuation $\kappa$ share, which
+is a call of a rule that calls no rule or that is memoized at the call. $c$
+contains $\alpha$, so it is not the former, and it is evaluated in the family
+region, so it is made in a context of growths at $p$. A rule of a cycle other
+than a leader is not memoized at a left call, and a read of a growing result
+evaluates nothing, so $c$ grows a leader $R$ at $p$, and $w$ starts at $p$. $N$ starts at $p$ and
+lies in one step of the innermost growth at $p$ that contains it, and so does
+the evaluation of $c$ in $\kappa$, which starts after $w$ ends and lies in
+$N$; with no reuse in a context, $R$ grows again there. In
+the second case, outside the second case of *Repeats inside a growth*, the
+first case of that claim gives $w$ and its continuation through the reads of
+the seed, to which *Direct activations* and *Repeats* apply as stated there;
+the call that they place $\alpha$ in contains $\alpha$, so by the argument
+above it grows a leader at $p$, $w$ starts at $p$, and $\alpha$ lies inside
+step $j$ at $q \ge e_{j+1}$. $\square$
+
+The repeats of the first kind come in pairs of growths of one leader that one
+step of a growth at $p$ starts at $p$, at most $c_5$ of them for each step
+(*Calls in a context of growths*), and the growths that they nest have other
+leaders. In a step that the claims at $p$ do not leave out, the activations
+of the second case of *Repeats inside a growth* lie at most a constant after
+$p$, at most a constant for each step. So, by induction on the depth of the
+growths at $p$, which have distinct leaders, the activations of $\sigma$ at
+$q$ in the family region of $g$ number at most a constant, apart from a
+constant for each step of the family when $q$ is at most a constant after
+$p$, the activations inside calls of rules that call no rule, case 5 and the
+dropped steps, the constant number of steps of each growth that the claims at
+$p$ leave out, the pairs that step 2 of [Open Steps](#open-steps) keeps, and the steps
+$j$ of the second kind: steps in which a unit that starts at $p$ with a
+growth of a leader in the context is abandoned after that growth reached a
+position at or after $e_{j+1}$. Bounding the number of those steps that reach
+one position is part of step 4 of [Open Steps](#open-steps).
 
 ## Lemma 6 (Values and Copies)
 
@@ -4285,19 +4347,21 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    repeated evaluations*, *Links lead to repeated evaluations*, *Links to heads*,
    *Memoized links keep positions* and *Nothing in a memoized link is a head*,
    with the definitions between them; *Activations that do not succeed* and *Activations held by heads* come
-   after this step. Three counts remain. First, the repeats inside one family:
-   the activations of a source at a position in the family region of one outer
-   growth after the first one there, which are related through a call that the
-   family evaluates at the position of the growth or a call of a rule that
-   calls no rule, with no reuse in a context of growths. *Calls in a context of
-   growths* bounds the evaluations that one step makes at that position, and
-   *Growths inside a step* the steps of the growths that it nests, but neither
-   bounds how many of them hold an activation at one later position. This
-   includes the activations that *Repeats inside a growth* leaves out of the
-   sequence of Lemma 4, in the constant number of steps of each growth that the
-   claims at the position of the growth leave out, and the leaf links inside a
-   family, with the open parts of step 1. Second, the heads of keys that hold a
-   free activation or one that a link of a kind that *Links to heads* leaves
+   after this step. Three counts remain. First, the repeats inside one family,
+   with no reuse in a context of growths. *Repeats inside a family* bounds the
+   activations of a source at a position in the family region of one outer
+   growth by a constant, apart from a constant for each step at the positions
+   at most a constant after the growth, and leaves three parts. The steps $j$
+   of a growth in which a unit that starts at the position of the growth with
+   a growth of another leader is abandoned after that growth reached the end
+   of the result of step $j$ or a later position: their number at one
+   position is not bounded. The activations that *Repeats inside a growth* leaves out of the
+   sequence of Lemma 4 in the constant number of steps of each growth that the
+   claims at the position of the growth leave out, which number at most a
+   constant times what one evaluation of those parts holds at the position.
+   And the activations inside calls of rules that call no rule, the leaf links
+   inside a family, with the open parts of step 1. Second, the heads of keys
+   that hold a free activation or one that a link of a kind that *Links to heads* leaves
    out leads to, and the activations that *Heads hold what later growths hold*
    leaves out, through a result or step kept in a smaller lookahead state or
    the lookaheads that it observed, with the open gap stated with (D) of the
