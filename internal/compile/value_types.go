@@ -373,7 +373,7 @@ func (v *ValueInference) predicates(e grammar.Expr, env *valueEnv) {
 	case *grammar.Predicate:
 		if a, ok := e.Term.(*grammar.Bind); ok {
 			t := v.term(a.Value, env)
-			if d := v.Prog.Vars.lookup(a.Name); d != nil {
+			if d := v.Prog.Vars.Lookup(a.Name); d != nil {
 				switch {
 				case !v.assignable(t, d.Typ):
 					v.errorf(a.Diagnostic(), "cannot use %s as %s in the binding of variable %s%s", v.display(t), d.Typ, a.Name, v.castHint(t, d.Typ))
