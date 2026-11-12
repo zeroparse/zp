@@ -1160,8 +1160,7 @@ evaluations as below, (a) the parse answers a call from an entry of an earlier
 parse of a [Document](../runtime/documents.md), or (b) the parse answers a call
 or step, or takes it in a run of steps, from what it keeps apart from the
 table, (D) of the [memoization proof](memoization.md#setting), and $z$ lies
-inside a lookahead that it observed, or the result was kept in a smaller
-lookahead state, which the open gap stated with (D) leaves out, or (c) the
+inside a lookahead that it observed, or (c) the
 parse skips by the next character an alternative on the path. Case (c) does
 not arise when $z$ holds an activation in $\mathcal{R}$.
 
@@ -1193,10 +1192,11 @@ $y$ from what it keeps, or takes it in a run of steps at once, the result is
 that of an evaluation $y'$ of the parse that ended before $y$, with the same
 key and present set (for a step, which (D) treats as a call, the same leader,
 position and level and an equal current result to start from), which found each growth that it read with an equal
-current result and each lookahead that it observed with the same observation;
-outside case (b) it is in the same lookahead state.
+current result and each lookahead that it observed with the same observation,
+in the lookahead state of $y$ or a smaller one.
 By the argument of [Lemma 4 of the memoization
-proof](memoization.md#lemma-4-answering-from-a-dependent-result),
+proof](memoization.md#lemma-4-answering-from-a-dependent-result), which covers
+an answer in a larger lookahead state and applies to a step as to a call,
 $\mathcal{R}(y)$ and $\mathcal{R}(y')$ take the same steps outside the
 lookaheads that $y'$ observed, and answer a call of a leader with a current
 result in both or in neither, so outside case (b) the path goes on in
@@ -1494,9 +1494,7 @@ meet an entry of an earlier parse that answers a call in a context of growths,
 or a call whose corresponding call in the later evaluation is in a smaller
 lookahead state, in a context of growths or of the other variant, and a link
 that meets a result kept in a context of growths can lead into a lookahead that
-the result observed, or meet one kept in a smaller lookahead state, which the
-open gap stated with (D) of the memoization proof leaves out; such a link can
-lead to an activation held by a head.
+the result observed; such a link can lead to an activation held by a head.
 
 ## Lemma 5 (Growth)
 
@@ -3415,8 +3413,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    growths, or a call whose corresponding call in the later evaluation is in a
    smaller lookahead state, in a context of growths or of the other variant,
    and no result kept in a
-   context of growths that was kept in a smaller lookahead state or whose
-   observed lookahead it enters. So the sum over the positions is proved for the
+   context of growths whose observed lookahead it enters. So the sum over the positions is proved for the
    activations owned by memoized evaluations of every source in a rule that
    calls a rule or is memoized at its calls, when its memoized links are of that
    kind, apart from the activations that a dropped step of a growth or a path
@@ -3469,9 +3466,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    a context of growths, or a call whose corresponding call in the later
    evaluation is in a smaller lookahead state, in a context of growths or of
    the other variant; and a link whose comparison enters a
-   lookahead that a result kept in a context of growths observed, or meets a
-   result kept in a smaller lookahead state, which the open gap of the
-   memoization proof leaves out. Such a link can lead to
+   lookahead that a result kept in a context of growths observed. Such a link can lead to
    an activation held by a head. The activations include
    those of the copying operations, the units of the own spans that they read
    (Lemma 6). Two points of the claims proved in step 1 are left to make
