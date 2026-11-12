@@ -27,19 +27,20 @@ var sourceLimits = genparser.WithLimits(genparser.Limits{Compute: genparser.Unli
 // syntax errors and the errors of the checks that the grammar does not make,
 // in the order of the source.
 func Parse(src string) (*grammar.Grammar, error) {
-	text, invalid := WithoutInvalidCharacters(src)
+	lx := lexSource(src)
+	text, invalid := lx.withoutInvalidCharacters()
 	f, err := genparser.ParseAST(text, genparser.WithExpectations(), sourceLimits)
 	if err != nil {
-		errs, ok := sourceErrorsOf(src, err)
+		errs, ok := lx.sourceErrorsOf(err)
 		if !ok {
 			return nil, err
 		}
-		return nil, SourceErrors(src, errs)
+		return nil, lx.sourceErrors(errs)
 	}
 	if invalid {
-		return nil, SourceErrors(src, nil)
+		return nil, lx.sourceErrors(nil)
 	}
-	return FromSourceTree(src, f)
+	return lx.fromSourceTree(f)
 }
 
 // ParsePartial parses src like Parse, but returns the grammar even when there
@@ -60,7 +61,8 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
-	text, _ := WithoutInvalidCharacters(src)
+	lx := lexSource(src)
+	text, _ := lx.withoutInvalidCharacters()
 	f, err := genparser.ParseAST(text, genparser.WithExpectations(), sourceLimits, genparser.WithContext(ctx))
 	var errs []SourceError
 	if err != nil {
@@ -68,12 +70,12 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 			return nil, nil, ctxErr
 		}
 		var ok bool
-		if errs, ok = sourceErrorsOf(src, err); !ok {
+		if errs, ok = lx.sourceErrorsOf(err); !ok {
 			return nil, nil, err
 		}
 	}
-	list := SourceErrors(src, errs)
-	g, checks := FromPartialSourceTree(src, f)
+	list := lx.sourceErrors(errs)
+	g, checks := lx.fromPartialSourceTree(f)
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
@@ -91,34 +93,46 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 	return g, list, nil
 }
 
+// lexed is a source lexed once: its tokens and lexical errors, which the steps
+// of Parse share.
+type lexed struct {
+	src  string
+	toks []token
+	errs []*Error
+}
+
+func lexSource(src string) *lexed {
+	errs := &errorList{}
+	toks := lex(src, errs)
+	return &lexed{src: src, toks: toks, errs: errs.list}
+}
+
 // sourceErrorsOf returns the syntax errors that the generated parser reports
-// in err for src, and whether err holds them. A source that the parser cannot
+// in err for lx, and whether err holds them. A source that the parser cannot
 // nest has no syntax errors to report: the lexer reports it as nesting too
 // deep, and SourceErrors adds the lexical errors. Should the lexer not, the
 // source is reported as nesting too deep at its deepest opening delimiter.
-func sourceErrorsOf(src string, err error) ([]SourceError, bool) {
+func (lx *lexed) sourceErrorsOf(err error) ([]SourceError, bool) {
 	var list genparser.SyntaxErrors
 	var one *genparser.SyntaxError
 	var limit *genparser.LimitError
 	switch {
 	case errors.As(err, &limit) && limit.Kind == genparser.LimitDepth:
-		lexical := &errorList{}
-		lex(src, lexical)
-		for _, e := range lexical.list {
+		for _, e := range lx.errs {
 			if e.Msg == msgNestingTooDeep {
 				return nil, true
 			}
 		}
-		return []SourceError{{Offset: deepestOpening(src), Msg: msgNestingTooDeep}}, true
+		return []SourceError{{Offset: deepestOpening(lx), Msg: msgNestingTooDeep}}, true
 	case errors.As(err, &list):
-		m := newMessages(src)
+		m := newMessages(lx)
 		out := make([]SourceError, 0, len(list))
 		for _, e := range list {
 			out = append(out, SourceError{Offset: e.Pos, Msg: m.message(e)})
 		}
 		return out, true
 	case errors.As(err, &one):
-		return []SourceError{{Offset: one.Pos, Msg: newMessages(src).message(one)}}, true
+		return []SourceError{{Offset: one.Pos, Msg: newMessages(lx).message(one)}}, true
 	}
 	return nil, false
 }
@@ -152,8 +166,8 @@ type messages struct {
 	ends []bool // see lineEndsStatement
 }
 
-func newMessages(src string) *messages {
-	return &messages{toks: lex(src, &errorList{}), pos: sourceast.NewPositions(src)}
+func newMessages(lx *lexed) *messages {
+	return &messages{toks: lx.toks, pos: sourceast.NewPositions(lx.src)}
 }
 
 // message is the message of a syntax error e. Without explicit messages, it lists what e expects,
@@ -245,21 +259,21 @@ func (m *messages) tokenAt(i int) int {
 	})
 }
 
-// deepestOpening returns the code point offset in src of the first opening
+// deepestOpening returns the code point offset in the source of lx of the first opening
 // parenthesis, bracket or brace at the greatest depth of nesting, or 0 if there
 // is none.
-func deepestOpening(src string) int {
+func deepestOpening(lx *lexed) int {
 	var lines []int // the offset of the start of each line
 	lines = append(lines, 0)
 	n := 0
-	for _, r := range src {
+	for _, r := range lx.src {
 		n++
 		if r == '\n' {
 			lines = append(lines, n)
 		}
 	}
 	depth, deepest, at := 0, 0, 0
-	for _, t := range lex(src, &errorList{}) {
+	for _, t := range lx.toks {
 		if t.kind != tPunct {
 			continue
 		}

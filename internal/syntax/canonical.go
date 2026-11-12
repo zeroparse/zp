@@ -26,7 +26,13 @@ import (
 // errors of those checks, in the form of Parse, when the source is not a valid
 // grammar. The raw comment tokens and line breaks that Format reads are
 // replayed from the tokens of src (see layoutReplay).
-func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error) {
+func FromSourceTree(src string, root *types.File) (*grammar.Grammar, error) {
+	return lexSource(src).fromSourceTree(root)
+}
+
+// fromSourceTree is FromSourceTree with the tokens and lexical errors of lx.
+func (lx *lexed) fromSourceTree(root *types.File) (g *grammar.Grammar, err error) {
+	src := lx.src
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src)}
 	defer func() {
 		if x := recover(); x != nil {
@@ -42,9 +48,7 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 	}
 	g = c.file(root)
 	// The lexer checks the nesting of the source, which the grammar does not.
-	lexical := &errorList{}
-	toks := lex(src, lexical)
-	for _, e := range lexical.list {
+	for _, e := range lx.errs {
 		if e.Msg == msgNestingTooDeep {
 			c.errs.list = append(c.errs.list, e)
 		}
@@ -55,7 +59,7 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 		})
 		return nil, c.errs.list
 	}
-	replayLayout(toks, g)
+	replayLayout(lx.toks, g)
 	return g, nil
 }
 
@@ -69,6 +73,12 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 // the form of SourceErrors. root must come from a parse of src with the
 // default position unit.
 func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, ErrorList) {
+	return lexSource(src).fromPartialSourceTree(root)
+}
+
+// fromPartialSourceTree is FromPartialSourceTree with the tokens of lx.
+func (lx *lexed) fromPartialSourceTree(root *types.File) (*grammar.Grammar, ErrorList) {
+	src := lx.src
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src), partial: true}
 	g := &grammar.Grammar{}
 	if root == nil {
@@ -101,7 +111,7 @@ func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, Erro
 		g.File.Pos = c.pos.At(len(c.src))
 		g.File.End = g.File.Pos
 	}
-	replayLayout(lex(src, &errorList{}), g)
+	replayLayout(lx.toks, g)
 	return g, c.errs.list
 }
 

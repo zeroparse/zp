@@ -48,12 +48,21 @@ type SourceError struct {
 // parse WithoutInvalidCharacters(src) when that differs, and pass the offsets
 // of the failure there: the offsets are those of src.
 func SourceErrors(src string, errs []SourceError) ErrorList {
-	out := &errorList{}
+	return lexSource(src).sourceErrors(errs)
+}
+
+// sourceErrors is SourceErrors with the tokens and lexical errors of lx.
+func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
+	src := lx.src
+	out := &errorList{list: slices.Clone(lx.errs)}
+	if len(errs) == 0 {
+		return out.list
+	}
 	// The hand-written parser reports in the order of the source, and keeps the first errors when it caps the
 	// list. The grammar lists the failure that ends the parse before the mistakes it recovered from.
 	errs = slices.Clone(errs)
 	slices.SortStableFunc(errs, func(a, b SourceError) int { return cmp.Compare(a.Offset, b.Offset) })
-	toks := lex(src, out)
+	toks := lx.toks
 	rs := []rune(src)
 	pos := sourceast.NewPositions(src)
 	offsets := make(map[grammar.Pos]int, len(rs)+1)
@@ -189,10 +198,14 @@ func SourceErrors(src string, errs []SourceError) ErrorList {
 // run as an error and skips it, so the hand-written parser parses the source
 // without it. The offsets of the result are those of src.
 func WithoutInvalidCharacters(src string) (string, bool) {
-	errs := &errorList{}
-	lex(src, errs)
+	return lexSource(src).withoutInvalidCharacters()
+}
+
+// withoutInvalidCharacters is WithoutInvalidCharacters with the lexical errors of lx.
+func (lx *lexed) withoutInvalidCharacters() (string, bool) {
+	src := lx.src
 	var runs []*Error
-	for _, e := range errs.list {
+	for _, e := range lx.errs {
 		if strings.HasPrefix(e.Msg, "unexpected character") {
 			runs = append(runs, e)
 		}
