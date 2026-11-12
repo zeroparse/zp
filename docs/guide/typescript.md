@@ -471,14 +471,14 @@ null
 
 ## Cancellation and Compute Limits
 
-A parser generated with `-limits` accepts `signal` and the `compute` field of `limits` in the
+A parser generated with `-limits` accepts `signal` and the `compute` and `memory` fields of `limits` in the
 options-aware entry points to stop a parse of input you do not control. Without the option the parser emits no code that spends budget and sets no control, its options type has
-neither, and a call that passes a signal or a finite `compute` returns an error. An unknown option or `limits` key is an
+neither, and a call that passes a signal, a finite `compute` or a finite `memory` returns an error. An unknown option or `limits` key is an
 error in both forms. A parser has one form: with the option it is the controlled one, and a
 parse that sets no limit runs the same code, so generate two parsers if you need the plain form as well. `signal` is any object with `aborted` and an optional `reason`, so an `AbortSignal` fits; each limit is a
 nonnegative safe integer. A zero `compute` (or omitting it) selects the default of `max(2^20, 1024 * n)` for an input of `n` units
 (code points, or bytes with `Bytes`), which also applies to `parse` and the other entry points without options; the
-exported `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit. `input` bounds the input in the same unit (default `Unlimited`), with or without `-limits`: a longer input is rejected before parsing with kind `"input-limit"`. An interrupted parse returns no tree and a
+exported `Unlimited` (`Number.MAX_SAFE_INTEGER`) disables the limit. `input` bounds the input in the same unit (default `Unlimited`), with or without `-limits`: a longer input is rejected before parsing with kind `"input-limit"`. `memory` bounds the bytes of storage the parse takes into use, estimated from the sizes of the runtime's objects in a 64-bit JavaScript engine (default `Unlimited`); a parse whose count passes it stops with kind `"memory-limit"`, and the same input and options give the same count on every run. It bounds what the parser holds, not the process heap. An interrupted parse returns no tree and a
 `ParseInterruptionError` whose `kind` says what happened:
 
 ```ts

@@ -263,6 +263,15 @@ func (p *tsFlowPrinter) read(xs ...flow.Expr) {
 	}
 }
 
+// counted returns the expression node, which constructs a node, counted for the memory limit as
+// bytes, an expression of the runtime's size model, when the parser has limit controls.
+func (p *tsFlowPrinter) counted(node, bytes string) string {
+	if p.g.NoBudget {
+		return node
+	}
+	return "p.counted(" + node + ", " + bytes + ")"
+}
+
 // tsSpend returns the statement that charges n steps, as n one-unit charges.
 func tsSpend(n int) string {
 	if n == 1 {
@@ -759,7 +768,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		return fmt.Sprintf("p.recoveredError(%s, %s)", p.expr(x.Far), p.expr(x.Exps))
 	case *flow.NewErrorNode:
 		start := p.expr(x.Start)
-		return fmt.Sprintf("new Node(\"error\", \"\", %s, p.pos, \"\", noNodes, [{ name: \"message\", value: %s!.message }], true, true)", start, p.expr(x.X))
+		return p.counted(fmt.Sprintf("new Node(\"error\", \"\", %s, p.pos, \"\", noNodes, [{ name: \"message\", value: %s!.message }], true, true)", start, p.expr(x.X)), "nodeBytes + arrayBytes(1) + objectBytes(2)")
 	case *flow.Text:
 		p.read(x.Start)
 		return fmt.Sprintf("p.text(%s, p.pos)", p.expr(x.Start))
@@ -770,13 +779,13 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 	case *flow.Str:
 		return TsString(x.S)
 	case *flow.NewTerminalNode:
-		return fmt.Sprintf("new Node(\"string\", \"\", %s, p.pos, %s, noNodes, noFields, true, true)", p.expr(x.Start), p.expr(x.Text))
+		return p.counted(fmt.Sprintf("new Node(\"string\", \"\", %s, p.pos, %s, noNodes, noFields, true, true)", p.expr(x.Start), p.expr(x.Text)), "nodeBytes")
 	case *flow.NewBranchNode:
 		kind := "tuple"
 		if x.List {
 			kind = "list"
 		}
-		return fmt.Sprintf("new Node(\"%s\", \"\", %s, p.pos, \"\", %s, noFields, true, false)", kind, p.expr(x.Start), p.expr(x.Kids))
+		return p.counted(fmt.Sprintf("new Node(\"%s\", \"\", %s, p.pos, \"\", %s, noFields, true, false)", kind, p.expr(x.Start), p.expr(x.Kids)), "nodeBytes")
 	case *flow.NewVals:
 		return "[]"
 	case *flow.Kids:
