@@ -902,6 +902,11 @@ func TestStrictConditions(t *testing.T) {
 		{"a later lookahead whose earlier alternatives cost a constant", `"a" "y"`, `!("b" / "a") "b"`, true, true, ""},
 		// The match of the lookahead evaluates id again where the unit evaluated it.
 		{"a later lookahead that matches a shared call that is not cheap", `id "("`, `!(id "(") id "."`, true, false, "qnot-notcheap"},
+		// A cut in an earlier alternative of the lookahead body can commit its choice after "a", so
+		// the body fails without trying "a" "y" and the lookahead passes on either side.
+		{"a later lookahead with a cut before the matching alternative", `"a" "y" "z" "w"`, `!("a" #cut "q" / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
+		{"a lookahead with a cut before the matching alternative", `!("a" #cut "q" / "a" "y") "a" "y" "z" "w"`, `"a" "y" "z"`, false, false, "same-bound"},
+		{"a later lookahead with a cut after the matching alternative", `"a" "y" "z" "w"`, `!("a" "y" / "a" #cut "q") "a" "y" "z"`, true, true, ""},
 	} {
 		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
 		if got, tag := comparePaths(t, src, false, 3); got != c.loose {

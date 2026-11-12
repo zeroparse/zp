@@ -1502,7 +1502,11 @@ The conditions below use these terms.
   through calls of rules that are not on a left-recursion cycle and make up
   the whole expression, `K` is a choice, or a single alternative, and one of
   its alternatives, `A`, is a sequence of calls, literals, character classes
-  and `.`, through groups, captures, discarded expressions and `#atomic`.
+  and `.`, through groups, captures, discarded expressions and `#atomic`. No
+  alternative of `K` before `A` has a
+  [cut](../language/parser-expressions.md#cut) that commits the choice, a cut
+  in the skip of a `#recover` included: an alternative that fails after such
+  a cut fails `K` without trying `A`.
   Every path of the rest of the other side passes the symbols of `A` in
   order: a literal of `A` by literals of the same case sensitivity that it
   begins with or that begin with it, a class of `A` by a class that it

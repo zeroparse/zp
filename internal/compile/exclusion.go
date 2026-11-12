@@ -1167,9 +1167,15 @@ func (x excl) lookAlts(body grammar.Expr) []grammar.Expr {
 // exactPaths returns the paths of a lookahead body for which a match of the path is a match of the
 // body: the alternatives of a top-level choice, through calls that make up the whole body, whose
 // items are calls, literals, classes and any characters. A path through an option, a repetition
-// or a nested choice can match where the body, which is greedy and ordered, does not.
+// or a nested choice can match where the body, which is greedy and ordered, does not. It stops
+// after an alternative with a cut that commits the choice: that alternative can fail after its cut
+// where a later one matches, and the body then fails without trying the later one.
 func (x excl) exactPaths(body grammar.Expr) (out [][]grammar.Expr, index []int) {
-	for i, alt := range x.lookAlts(body) {
+	alts := x.lookAlts(body)
+	for i, alt := range alts {
+		if i > 0 && x.k.looseCut(alts[i-1]) {
+			break
+		}
 		var p []grammar.Expr
 		ok := true
 		var add func(e grammar.Expr)
