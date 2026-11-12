@@ -630,8 +630,10 @@ the specification allows.
 ### Implementation Sequence
 
 **Status of the stages.** Stage 3 is implemented, as are the typed-Go and value-free Node and recognizer parts of
-stages 1 and 2; the rest of generated Go still reads the grammar. Stages 4 and 5 are not implemented: the bytecode
-compiler and the closure builder work from the program, not from Core IR, and the instruction set has no `NEST` or
+stages 1 and 2; the rest of generated Go still reads the grammar. Stage 5 is implemented apart from its cleanup and
+its cost gate: the closure backend is built from Core IR in both families. Of stage 4, only the terms are built
+from Core IR: a module stores the term programs that the closure backend runs, while the bytecode compiler still
+lowers the match code from the program, the VMs still check `noPlain`, and the instruction set has no `NEST` or
 `ENDNEST`. The text below states the intended end state and the gates of each stage, and the record is Partially
 Implemented until every stage lands.
 
@@ -690,8 +692,11 @@ stage of its first consumer, so its differential tests and negative controls run
    the closure pipeline, with actions, predicates and bindings run as term programs compiled from Core IR
    terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
    Core-driven builder. `Compile` builds Core IR and runs the closure pipeline under the compile
-   control and keeps the module; the closures of each family are built from that module, which the
-   builds only read, on first use and without interruption. A call site of a plain rule takes the plain
+   control and keeps the module until both families are built; the closures of each family are built
+   from that module, which the builds only read, on first use and without interruption. Nothing else
+   reads the module, so the program drops it after the second build; it stays as long as a family
+   is unbuilt. The terms moved to Core IR before the rest of the closure backend, in the same change
+   as the closures (see decision 6). A call site of a plain rule takes the plain
    path only in the inlined family, so the closures no longer check `noPlain`; the families are checked
    by their budget charges, which are those of the former run-time choice, and by event-free equality on
    the corpus. What remains of the stage is the removal of what the compile walker still computes only
@@ -818,10 +823,18 @@ Each enabled pass records its measured effect in the [optimization catalog](../.
 5. **Closure backend.** Closures are compiled from Core IR. An IR interpreter is unmeasured and would give
    up the dispatch that closures resolve when they compile; the closure compiler over unoptimized Core IR
    serves as the rewrite reference without new code. Closures compile the same two families as bytecode.
-6. **Closures last.** The closure backend migrates in the last stage, so the AST closure backend remains a
-   reference independent of the Core IR builder through the other stages, and the families and `NEST` are
-   proven on bytecode, whose call-preserving modules have a layout-identical gate, before the default backend
-   adopts them. The AST lowerings that remain receive fixes only.
+6. **Closures with their terms.** The closure backend was to migrate last, so that the AST closure
+   backend remained a reference independent of the Core IR builder through the other stages, and the
+   families were proven on bytecode first. It migrated before the match code of stage 4 instead: its
+   terms became term programs lowered from Core IR terms, the closures followed in the same change,
+   and the bytecode modules store the same term programs. From then on no backend evaluates terms
+   independently of the Core IR builder and the lowering of terms, so a defect there gives the same
+   wrong value on every backend, and the differential tests between backends no longer detect it.
+   Terms are checked instead against the expected values of the engine and conformance tests, and by
+   compiled-versus-loaded runs. For matching, the bytecode compiler still lowers the program and stays
+   the reference for the closures until stage 4 replaces it. Keeping a second term evaluator as a
+   reference meant making every change to term semantics twice, in two evaluators that could
+   disagree. The AST lowerings that remain receive fixes only.
 7. **Stages before the first release.** All five stages precede the first release, so that no AST
    lowering ships and every backend has the Core passes. The stages are ordered so that a release can be
    cut after any completed stage.
