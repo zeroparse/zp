@@ -196,9 +196,15 @@ rule decl Decl = (
     !(comments $$)
     d:((type_decl / var_decl / rule_decl / _|_ @error(message="expected type, var or rule declaration")) #recover(skip=stmt_sync))
 ) => $d
+// A declaration that is complete but followed by a closing bracket instead of a separator is kept: the
+// error is reported and the rest of its statement is skipped. Any other text there could continue the
+// declaration, so the declaration fails as a whole, and the error is where the farthest attempt stopped.
 rule stmt_end []Comment = (
-    cs:horizontal tail:(stmt_sep @error(message="expected semicolon, newline, or end of file"))
+    cs:horizontal tail:(stmt_sep / stmt_skip)
 ) => concat($cs, $tail)
+// The recovered value is discarded and replaced by an empty list because concat does not yet accept a
+// "[]T | error" value in the type checker; use concat directly once the checker accepts it.
+rule stmt_skip []Comment = &[)\]}] -((stmt_sep @error(message="expected semicolon, newline, or end of file")) #recover(skip=stmt_sync)) => list()
 rule item_end []Comment = (
     cs:horizontal tail:(item_sep @error(message="expected semicolon, newline, or closing brace"))
 ) => concat($cs, $tail)
