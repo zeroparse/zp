@@ -591,4 +591,5 @@ zp: 1:6: expected ',' or ']'
 - [Error Messages](error-messages.md): `@error` labels, cuts and the shape of `SyntaxError`.
 - [Context-Sensitive Parsing](context-sensitive.md): a `skip` that reads variables, such as the indentation.
 - [Running Parsers](running-parsers.md): the outcomes of `Parse`, including `SyntaxErrors`.
+- [Recovery Quality](recovery-quality.md): how much of broken JSON and CEL input recovery repairs.
 - [Debugging and Profiling](debugging.md): tracing a recovery that does not do what you expect.

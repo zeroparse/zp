@@ -15,6 +15,7 @@ complete, runnable examples, and points to the [specification](../../spec/README
 | [Context-Sensitive Parsing](context-sensitive.md) | Predicates, variables, lookahead and attributes; matching tags, indentation blocks, here-documents and other recipes; the cost of variables |
 | [Error Messages](error-messages.md) | How syntax errors are reported, getting them out on the command line and in Go, readable messages with `@error`, cuts |
 | [Recovering from Errors](recovery.md) | Recovering with `#recover`, what happens to the errors, handling them in Go, inserting missing literals, recipes |
+| [Recovery Quality](recovery-quality.md) | What recovery repairs on broken JSON and CEL input, with the method and the corpus |
 
 ## Running Parsers
 
