@@ -279,11 +279,15 @@ This section covers the records of [scan sites](../runtime/parsing.md#scan-sites
 exactness of a reused record, Lemma 5 bounds what the records add to the cost of a parse, and Lemma 6
 bounds what evaluating a scan-only rule again at one position costs.
 
-**Setting.** A scan site $\sigma$ repeats a character class $C$ (or any character) without an upper
-bound, with minimum $c_{\min}$, in a rule that calls no rule; it is neither a site of a skip run nor
-a `#stream` repetition. The iteration of $\sigma$ is the test of $C$ and nothing else: it calls no
+**Setting.** A scan site $\sigma$ repeats a body $B$ without an upper bound, with minimum
+$c_{\min}$, in a rule that calls no rule, where $B$ is a character class $C$, any character, or a body
+of literals: a literal that is not empty and does not ignore case, or an ordered choice
+$\ell_1 / \dots / \ell_m$ of such literals (in groups) in which no $\ell_j$ is a proper prefix of an $\ell_i$
+with $i < j$. The text below writes "a character of $C$" for the characters that $B$ matches at a position
+when $B$ is a class, and treats the literals in the paragraph that follows the definition of $\mathrm{Rest}$; it is neither a site of a skip run nor
+a `#stream` repetition. The iteration of $\sigma$ is the test of $B$ and nothing else: it calls no
 rule, binds and reads no variable, and has no predicate, lookahead, capture or action inside it,
-whatever the rule has around $\sigma$. So an iteration reads the one character at its position and
+whatever the rule has around $\sigma$. So an iteration reads the characters of one literal, or the one character, at its position and
 nothing else, and no state of the parse outside the input and the position changes what it gives.
 What the rule does around $\sigma$ (a capture or label of it, an action that reads its list, a
 predicate, a lookahead, an attribute) runs after the walk or before it and sees only what the walk
@@ -305,6 +309,21 @@ nothing else. Define $\mathrm{Rest}(r)$ as the tuple of
 - the elements: one value for each of the $k$ characters, which depends on the character and its
   position alone,
 - the failure of the iteration at $q$: the expectation of $C$ at $q$.
+
+For a body of literals, an iteration at a position $r'$ matches the first $\ell_i$ that the input holds at
+$r'$ (the only one, for a single literal), and $\mathrm{end}(r)$ is the position where the iterations
+from $r$ first find no literal; the count $k$ is the number of iterations, each at least one
+character, the elements are the values of the iterations, and the examined range ends at the
+furthest position that an iteration examined. That range is a function of $r$ and the input,
+and a record holds it whole. The expectations need one more step. A literal $\ell_j$ that fails in an
+iteration that matches $\ell_i$ ($j < i$) fails at an offset below $|\ell_i|$: they differ at a first offset
+$d < \min(|\ell_j|, |\ell_i|)$, since $\ell_i$ is not a proper prefix of $\ell_j$ and $\ell_j$ is not a
+prefix of $\ell_i$ (it would have matched). The expectation of that failure is at a position
+below the end $r' + |\ell_i|$ of the iteration, which is at most $q = \mathrm{end}(r)$. The parse keeps the
+expectations of the furthest failure only (`Expect`), and the failed iteration at $q$ reports at a position
+of at least $q$, so it replaces every expectation of an iteration that succeeded, with records or
+without. The expectations of the walk are therefore those of the iteration at $q$, as for a class,
+and a record holds none.
 
 $\mathrm{Rest}(r)$ is a function of $r$ and the input alone, by the setting. A parse with missing-token
 insertion keeps no records, so assume it inserts none. The record holds $q$ and $k$ as separate fields,

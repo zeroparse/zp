@@ -806,19 +806,32 @@ lookahead, a run site that the document can resume is resumed as before.
 
 ### Scan Sites
 
-A repetition of one character, as a run of blanks, is walked again by every
-failed alternative that leads back to its start, and its walk keeps no record
-because a run site does not repeat a single character. A **scan site** is a
-repetition without an upper bound whose expression is a character class or any
-character, in a rule that calls no rule, unless it is a site of a
-[skip run](#skip-runs) or a `#stream` repetition. The rule may be called from any
-number of places, and the repetition may stand under a capture, a label, an
-action or an attribute: an iteration tests one character and nothing else, so
-the walk from a start ends at a position, matches a number of characters,
-builds elements and examines a range of input that depend on the start and the
-input alone, whatever the rule does with them. A capture or an action reads only
-the list that the walk gives, and a predicate, lookahead or call around the
-repetition is evaluated as without records.
+A repetition of one character, as a run of blanks, or of one literal, as a run of
+`"  "`, is walked again by every failed alternative that leads back to its start,
+and its walk keeps no record because a run site does not repeat a single
+character. A **scan site** is a repetition without an upper bound, in a rule that
+calls no rule, unless it is a site of a [skip run](#skip-runs) or a `#stream`
+repetition, whose expression is one of
+
+- a character class or any character;
+- a literal that is not empty and does not ignore case;
+- an alternative of such literals, in which no literal is a proper prefix of one
+  before it (`"ab" / "a"` is none, `"a" / "ab"` and `"ab" / "cd"` are), possibly in
+  groups.
+
+An iteration of a scan site tests one character or one of these literals and
+nothing else, and matches at least one character. A literal that fails inside
+an iteration that another literal matches stops before the end of that match,
+because no literal is a proper prefix of an earlier one, so the failure is
+before the position where the walk ends and a later failure at that position or
+beyond it replaces its expectations. The walk from a start therefore ends at a
+position, matches a number of iterations, builds elements and examines a range of
+input that depend on the start and the input alone, and gives the expectations
+of its last test alone, whatever the rule does with them. The rule may be called
+from any number of places, and the repetition may stand under a capture, a label,
+an action or an attribute. A capture or an action reads only the list that the
+walk gives, and a predicate, lookahead or call around the repetition is evaluated
+as without records.
 
 A rule that matches input, calls no rule and is a **pure scan rule** has, in
 addition, all of the following:
@@ -837,10 +850,10 @@ input range it examines depend on the position and the input alone, so its
 records need no environment.
 
 A walk of a scan site charges and examines as an ordinary repetition for its
-first 16 characters, the constant `T` (which is not the hot span of run sites:
-a site turns hot after walks of `T` characters that overlap, as a run site does
-after its own hot span). If the site is hot, the walk that has matched `T`
-characters looks for the record of its start. A scan site keeps at most one
+first 16 iterations, the constant `T` (which is not the hot span of run sites:
+a site turns hot after walks of `T` iterations whose characters overlap, as a run
+site does after its own hot span). If the site is hot, the walk that has matched
+`T` iterations looks for the record of its start. A scan site keeps at most one
 record for a walk, at the start of the walk, and none for the positions inside
 it. A walk that builds a value and one that does not are recorded apart.
 
@@ -848,11 +861,12 @@ A record holds what a later walk from its start cannot obtain without walking
 again:
 
 - the position where the walk ended;
-- the number of characters it matched;
+- the number of iterations it matched, which is the number of characters for a
+  character class and for a literal of one character;
 - for a walk that builds a value, the elements;
 - the range of input the walk examined, which runs from the start to the
-  character whose test ended the walk, or further when a test of an earlier
-  character examined units after it, as the test of an invalid byte of a
+  character or literal whose test ended the walk, or further when a test of an
+  earlier iteration examined units after it, as the test of an invalid byte of a
   bytes-unit input can. A parser whose test of a character examines no unit
   after that character need not store it, since the walk that takes the record
   makes the last test again and that test reaches furthest.
@@ -876,8 +890,8 @@ and the test is a safeguard only. A stream drops the records of the starts
 before the input it commits.
 
 The elements of a record are shared with the lists of the walks that take them.
-They are final, as those of run sites are. A walk whose number of characters
-falls short of the repetition's minimum fails as it would without records.
+They are final, as those of run sites are. A walk whose number
+of iterations falls short of the repetition's minimum fails as it would without records.
 
 A scan site that a [document](documents.md) resumes is resumed as before: a
 repetition that is resumed neither looks up nor makes records. That affects only
@@ -888,7 +902,7 @@ of scan sites.
 A parse with scan sites gives the result of a parse without them, with the same
 expectations and examined ranges. The steps a parse charges exceed those of a
 parse without scan sites by at most two steps for each walk that reached
-`T` characters. A walk that starts at another position than a recorded start
+`T` iterations. A walk that starts at another position than a recorded start
 inside the same run does not reuse the record, and costs its own length.
 
 Parsers generated as Go or TypeScript source keep the records of scan sites as
