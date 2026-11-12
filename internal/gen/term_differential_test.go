@@ -195,8 +195,7 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 }
 
 // TestTermDifferentialDetectsBrokenTargets is the negative control of TestTermGeneratedTargets: with an
-// operator of the generated Go or TypeScript parsers swapped for another, a map turned into a filter, a
-// failure of a term left unraised, the right operand of a logical operator always evaluated or an
+// operator of the generated Go or TypeScript parsers swapped for another, a failure of a term left unraised, the right operand of a logical operator always evaluated or an
 // equality of texts negated, the comparison with the engine fails on some generated or fixed scalar term.
 func TestTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	t.Parallel()
@@ -215,11 +214,8 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	// Each mutant changes one pattern of the code. A term printed from Exec IR calls the compositions with
-	// the constant of the operator; a term of a kind that is not lowered (constructors, tuples, list
-	// built-ins, lambdas) is printed by the term printer, which calls the wrappers. The mutants of the
-	// first kind name only the first pattern, so a mismatch comes from lowered code, and each pattern must
-	// occur in the generated code.
+	// Each mutant changes one pattern of the code, which must occur in the generated code. Every term of
+	// these cases is printed from Exec IR, which calls the compositions with the constant of the operator.
 	for _, m := range []struct{ name, from, to string }{
 		{"lowered: plus becomes minus", `c.P.TermBinary(rt.OpAdd,`, `c.P.TermBinary(rt.OpSub,`},
 		{"lowered: times becomes plus", `c.P.TermBinary(rt.OpMul,`, `c.P.TermBinary(rt.OpAdd,`},
@@ -234,9 +230,6 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: a logical operator always evaluates its right operand", `if !tb`, `if true || !tb`},
 		{"lowered: a logical operator always evaluates its right operand (||)", `if tb`, `if true || tb`},
 		{"lowered: a text equality is negated", `any(c.P.TextEqual(`, `any(!c.P.TextEqual(`},
-		{"term printer: plus becomes minus", `c.Binary(rt.OpAdd`, `c.Binary(rt.OpSub`},
-		{"term printer: times becomes plus", `c.Binary(rt.OpMul`, `c.Binary(rt.OpAdd`},
-		{"term printer: map becomes filter", `c.MapList(`, `c.FilterList(`},
 	} {
 		hits := 0
 		got := gentest.GeneratedParsersMismatches(t, goBin, list, gen.GenOptions{}, func(code []byte) []byte {
@@ -271,9 +264,6 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: a failure is not raised", `evalError(tf`, `void (tf`},
 		{"lowered: a logical operator always evaluates its right operand", `if (!tb`, `if (true || !tb`},
 		{"lowered: a logical operator always evaluates its right operand (||)", `if (tb`, `if (true || tb`},
-		{"term printer: plus becomes minus", `c.binary(0,`, `c.binary(1,`},
-		{"term printer: equal becomes not equal", `c.binary(5,`, `c.binary(6,`},
-		{"term printer: length becomes zero", `c.length(`, `((x) => (c.length(x), 0))(`},
 	} {
 		hits := 0
 		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {
@@ -393,6 +383,128 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 		{"an element is pushed as nil", `c.p.termPush(c, "list", `, `c.p.termPush(c, "list", null); void (`},
 		{"a field is set to nil", `c.termSetField(`, `((n: Node, f: string, _v: Value) => c.termSetField(n, f, null))(`},
 		{"a struct ignores the ranges of its fields", `c.p.termCover(`, `((n: Node, v: Value, _f: boolean) => c.p.termCover(n, v, true))(`},
+	} {
+		hits := 0
+		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {
+			if strings.Contains(code, m.from) {
+				hits++
+				code = strings.ReplaceAll(code, m.from, m.to)
+			}
+			return code
+		})
+		check("TypeScript", m, hits, got)
+	}
+}
+
+// TestTermIterationsDetectBrokenTargets is the negative control of TestTermFixedGeneratedTargets for the
+// loops of map, filter, foldl and foldr printed from Exec IR on generated Go (node and typed) and TypeScript
+// parsers: each mutant changes one pattern of the lowered loops, which must occur, and the comparison with
+// the engine on the fixed iteration terms must then fail. The control changes nothing and must find no
+// mismatch.
+func TestTermIterationsDetectBrokenTargets(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testTermIterationsDetectBrokenTargets)
+}
+
+// iterMutantHelpers are the functions that the mutants of TestTermIterationsDetectBrokenTargets call in
+// generated Go, for the node and the typed parser alike.
+const iterMutantHelpers = `
+func itemAtFirst[S any, P interface{ TermItemAt(S, int, bool) any }](p P, items S, i int, _ bool) any {
+	return p.TermItemAt(items, i, false)
+}
+func itemAtLast[S any, P interface{ TermItemAt(S, int, bool) any }](p P, items S, i int, _ bool) any {
+	return p.TermItemAt(items, i, true)
+}
+func keepAll[P interface{ TermFilterKeep(any) (bool, any) }](p P, v any) (bool, any) {
+	_, f := p.TermFilterKeep(v)
+	return true, f
+}
+`
+
+func testTermIterationsDetectBrokenTargets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds generated consumers")
+	}
+	cases, _ := wellTypedCases(t, gentest.IterTermCases())
+	list := termCaseList(cases)
+	for i := range list {
+		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
+	}
+	type mutant struct{ name, from, to string }
+	check := func(target string, m mutant, hits int, got []string) {
+		t.Logf("%s: %s: parsers changed %d of %d cases, mismatches %d", target, m.name, hits, len(list), len(got))
+		switch {
+		case hits == 0:
+			t.Errorf("%s: %s: the generated code has no %q", target, m.name, m.from)
+		case m.from == m.to && len(got) != 0:
+			t.Errorf("%s: %s: %d mismatches without a change: %v", target, m.name, len(got), got)
+		case m.from != m.to && len(got) == 0:
+			t.Errorf("%s: %s: no generated term notices", target, m.name)
+		}
+	}
+	goMutants := []mutant{
+		{"control: unchanged", `c.P.TermItemAt(`, `c.P.TermItemAt(`},
+		{"the folds take the elements from the first", `c.P.TermItemAt(`, `itemAtFirst(c.P, `},
+		{"the iterations take the elements from the last", `c.P.TermItemAt(`, `itemAtLast(c.P, `},
+		{"filter keeps every element", `c.P.TermFilterKeep(`, `keepAll(c.P, `},
+		{"map pushes nil for every element", `c.P.TermPush(c, "map", `, `c.P.TermPush(c, "map", any(nil)); _ = (`},
+		{"map takes no elements", `c.P.TermItems("map", `, `c.P.TermItems("map", any(nil)); _ = (`},
+		{"foldl takes no elements", `c.P.TermItems("foldl", `, `c.P.TermItems("foldl", any(nil)); _ = (`},
+	}
+	mutate := func(m mutant, hits *int) func(code []byte) []byte {
+		return func(code []byte) []byte {
+			s := string(code)
+			if strings.Contains(s, m.from) {
+				*hits++
+				s = strings.ReplaceAll(s, m.from, m.to) + iterMutantHelpers
+			}
+			return []byte(s)
+		}
+	}
+	// The map of a projected repetition makes a list of no elements. A typed parser holds node and typed
+	// actions, which print the call as any(c.NewList(...)) and (c.NewList(...)), of the elements in a local
+	// named ti.
+	noList := mutant{"the map of a projected repetition makes no elements", `c.NewList(ti`, `newListNone(c, ti`}
+	mutateGo := func(m mutant, hits *int) func(code []byte) []byte {
+		if m != noList {
+			return mutate(m, hits)
+		}
+		return func(code []byte) []byte {
+			s := string(code)
+			if strings.Contains(s, m.from) {
+				*hits++
+				s = strings.ReplaceAll(s, "any("+m.from, "any("+m.to)
+				s = strings.ReplaceAll(s, m.from, "newListNoneT(c, ti")
+				s += "\nfunc newListNone(c *rt.ActCtx, _ []*rt.Node) *rt.Node { return c.NewList(nil) }\n" +
+					"func newListNoneT(c *rt.TActCtx, _ []any) any { return c.NewList(nil) }\n"
+			}
+			return []byte(s)
+		}
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, m := range append(goMutants, noList) {
+		hits := 0
+		got := gentest.GeneratedParsersMismatches(t, goBin, list, gen.GenOptions{}, mutateGo(m, &hits))
+		check("Go", m, hits, got)
+	}
+	for _, m := range append(goMutants, noList) {
+		hits := 0
+		got := gentest.GeneratedTypesMismatches(t, goBin, list, gen.GenOptions{ConvertTypes: true}, mutateGo(m, &hits), 0)
+		check("typed Go", m, hits, got)
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		return
+	}
+	for _, m := range []mutant{
+		{"control: unchanged", `c.p.termItemAt(`, `c.p.termItemAt(`},
+		{"the folds take the elements from the first", `c.p.termItemAt(`, `((it: readonly (Node | null)[], i: number, _r: boolean) => c.p.termItemAt(it, i, false))(`},
+		{"the iterations take the elements from the last", `c.p.termItemAt(`, `((it: readonly (Node | null)[], i: number, _r: boolean) => c.p.termItemAt(it, i, true))(`},
+		{"filter keeps every element", `c.p.termFilterKeep(`, `((v: Value): [boolean, Value] => [true, c.p.termFilterKeep(v)[1]])(`},
+		{"map pushes nil for every element", `c.p.termPush(c, "map", `, `c.p.termPush(c, "map", null); void (`},
+		{"map takes no elements", `c.p.termItems("map", `, `c.p.termItems("map", null); void (`},
+		{"foldl takes no elements", `c.p.termItems("foldl", `, `c.p.termItems("foldl", null); void (`},
+		{"the map of a projected repetition makes no elements", `c.newList(`, `c.newList([]); void (`},
 	} {
 		hits := 0
 		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {
