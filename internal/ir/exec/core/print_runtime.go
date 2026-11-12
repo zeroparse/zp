@@ -107,4 +107,11 @@ func main() {
 	if err := os.WriteFile(core.EngineExpBindingsFile, []byte(expBindings), 0o644); err != nil {
 		log.Fatal(err)
 	}
+	ruleBindings, err := core.EngineRuleBindings()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(core.EngineRuleBindingsFile, []byte(ruleBindings), 0o644); err != nil {
+		log.Fatal(err)
+	}
 }

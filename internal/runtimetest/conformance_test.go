@@ -19,8 +19,9 @@ func TestMain(m *testing.M) {
 }
 
 // runtimeCopy writes the runtime module, with the tests of testdata and the conformance bindings that
-// the runtime's printer prints (core.GoExpBindings, core.GoDocBindings), into a temporary directory and returns it. mutate,
-// if it is not nil, changes the source of a file of the runtime from its name.
+// the runtime's printer prints (core.GoExpBindings, core.GoDocBindings, core.GoRuleBindings), into a
+// temporary directory and returns it. mutate, if it is not nil, changes the source of a file of the
+// runtime from its name.
 func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	t.Helper()
 	root := gentest.ModuleRoot()
@@ -73,6 +74,13 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	if err := os.WriteFile(filepath.Join(dir, "doc_bind_exec_test.go"), []byte(docBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	ruleBindings, err := core.GoRuleBindings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "rule_bind_exec_test.go"), []byte(ruleBindings), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	mod := "module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => " + root + "\n"
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(mod), 0o644); err != nil {
 		t.Fatal(err)
@@ -96,7 +104,7 @@ func TestRuntimeExecConformance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)
 	}
-	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenRuntime", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenRuntime", "TestValueConformance", "TestValueConformanceDetectsBrokenRuntime", "TestValueBoxedOperands", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
+	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenRuntime", "TestExecConformanceDetectsBrokenTypedRuntime", "TestExecConformanceRule", "TestExecConformanceRuleDetectsBrokenRuntime", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenRuntime", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenRuntime", "TestValueConformance", "TestValueConformanceDetectsBrokenRuntime", "TestValueBoxedOperands", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
 		if !strings.Contains(string(out), "--- PASS: "+name+" ") {
 			t.Errorf("go test did not run %s:\n%s", name, out)
 		}

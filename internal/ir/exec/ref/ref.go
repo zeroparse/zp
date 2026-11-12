@@ -42,6 +42,13 @@ type Config struct {
 	// range at its position, where the others start it as [pos, pos+1) (as the engine does: its matches
 	// extend the examined input to the end of each unit they read).
 	DocEmptyEnter bool
+	// RuleSpecs are what the grammar says of the rules of RuleVars, by index, and the scripts of their
+	// bodies; a rule without one has none of the properties and a body that fails at once.
+	RuleSpecs []RuleSpec
+	// DocCallMemo models a target whose Document parse calls rules through the call protocol of a
+	// parse from scratch (as the engine's does): rule.memo reports the rules that the Document parse
+	// memoizes, and rule.docOnlyMemo is false outside a Document parse.
+	DocCallMemo bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -126,6 +133,9 @@ type Model struct {
 	// call: the doc operations
 	doc  docState
 	regs map[string]any
+
+	// rules
+	rule ruleState
 }
 
 // Err is an Err handle of the model.
@@ -316,6 +326,9 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
+	if allowed, ok := m.allowsRule(o, args); ok {
+		return allowed
+	}
 	return m.allowsExp(o, args) && m.allowsDoc(o, args)
 }
 
@@ -401,6 +414,13 @@ func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 		return 2 * int64(len(s))
 	case ops.QSet:
 		return setSize(args)
+	case ops.QBody:
+		return m.bodyQuantity(o, args)
+	case ops.QCaptures:
+		return m.spec(args[0].(RuleRef).Index).Captures
+	case ops.QCaptureFields:
+		// A scripted body sets no capture, so no capture matches.
+		return 0
 	}
 	panic("ref: unknown quantity " + name)
 }
@@ -521,6 +541,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return res
 	}
 	if res, ok := m.callDoc(o, args); ok {
+		return res
+	}
+	if res, ok := m.callRule(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))

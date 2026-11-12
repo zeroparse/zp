@@ -1,0 +1,282 @@
+package core
+
+import (
+	"fmt"
+	"math/rand/v2"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/ir/exec/ops"
+	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/internal/value"
+)
+
+// The engine's operations of the rules under conformance: every operation runs through its binding in
+// rule_bind_exec_test.go, which the engine's printer prints from the operation, so that the suite runs
+// the code that the engine's compositions run. The rules of a case are rules of the engine whose bodies
+// run the scripts of ref.RuleSpec with the engine's own operations (scriptRules), so that an evaluation
+// does to the parser what the model's does to the model.
+
+// ruleMachine binds the operations of the rules of the engine, and the doc operations through
+// docMachine.
+type ruleMachine struct {
+	*docMachine
+	specs []ref.RuleSpec
+	regs  map[string]any
+	evals map[int64]int64
+	log   []string
+}
+
+// ruleOps is the module of the operations that the scripts of bodies call.
+var ruleOps = conform.RuleModule()
+
+func newRuleMachine(cfg ref.Config, controlled bool) conform.Impl {
+	em := newEngineMachine(cfg, controlled, false)
+	var base *engineMachine
+	switch e := em.(type) {
+	case *engineMachine:
+		base = e
+	case meteredEngine:
+		base = e.engineMachine
+	}
+	base.p.MemoAll = cfg.Document
+	// Making a rule's value reads the program, which these rules have no other use for.
+	base.p.Prog = &SharedProgram{staticProgram: &staticProgram{}}
+	m := &ruleMachine{docMachine: &docMachine{base}, specs: cfg.RuleSpecs, evals: map[int64]int64{}}
+	scriptRules(base.envRules, cfg, m.evaluate)
+	if controlled {
+		return meteredRule{m}
+	}
+	return m
+}
+
+type meteredRule struct{ *ruleMachine }
+
+func (m meteredRule) Used() uint64 { return m.p.Control.Used }
+
+// scriptRules gives the rules of cfg.RuleVars the properties of cfg.RuleSpecs, and bodies that run eval.
+func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser, min int) (*value.Node, bool)) {
+	for i, r := range rules {
+		var s ref.RuleSpec
+		if i < len(cfg.RuleSpecs) {
+			s = cfg.RuleSpecs[i]
+		}
+		r.ID, r.Name = i, ref.RuleName(int64(i))
+		// The engine marks a rule that some parse memoizes; one that a parse from scratch does not is
+		// transient.
+		r.Memo, r.Transient = s.Memo || s.DocMemo, !s.Memo
+		r.Leader, r.Plain, r.Positional, r.Rec = s.Leader, s.DocPlain, s.Positional, s.Rec
+		r.Scope = &compile.Scope{}
+		for k := range s.Captures {
+			r.Scope.Names = append(r.Scope.Names, fmt.Sprint("c", k))
+		}
+		r.Value = func(p *Parser, v *value.Node, start int) *value.Node { return v }
+		index := int64(i)
+		r.Body = func(p *Parser, min int) (*value.Node, bool) { return eval(index, p, min) }
+	}
+}
+
+// evaluate runs the next evaluation of the script of the rule with the index on the engine.
+func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*value.Node, bool) {
+	var e ref.Eval
+	if s := m.spec(index); len(s.Body) > 0 {
+		e = s.Body[min(m.evals[index], int64(len(s.Body)-1))]
+	}
+	m.evals[index]++
+	start := p.Pos
+	m.log = append(m.log, fmt.Sprintf("body %s level=%d pos=%d", ref.RuleName(index), level, start))
+	if e.Charge > 0 {
+		m.engineMachine.Call(ruleOps.Op("budget.charge"), []any{e.Charge})
+	}
+	for _, id := range e.Errs {
+		m.engineMachine.Call(ruleOps.Op("rec.push"), []any{m.Err(id)})
+	}
+	if e.Touch > 0 {
+		p.confDocTouch(start + int(e.Touch))
+	}
+	p.Pos = start + int(e.Len)
+	if !e.OK {
+		return nil, false
+	}
+	return value.Ptr(value.Data{Fresh: true}), true
+}
+
+func (m *ruleMachine) spec(index int64) ref.RuleSpec {
+	if int(index) < len(m.specs) {
+		return m.specs[index]
+	}
+	return ref.RuleSpec{}
+}
+
+// UseRegisters hands the machine the registers of the run: the operations of the rules read and move
+// the position.
+func (m *ruleMachine) UseRegisters(regs map[string]any) { m.regs = regs }
+
+func (m *ruleMachine) Observe(component string) []string {
+	if component != ops.Rules {
+		return nil
+	}
+	return append([]string{}, m.log...)
+}
+
+func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
+	defer interrupt()
+	p := m.p
+	rule := func() *Rule { return args[0].(*Rule) }
+	invoke := func(f func(r *Rule, min int) (*value.Node, bool)) []any {
+		p.Pos = int(m.regs[ops.Pos].(int64))
+		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
+		v, ok := f(rule(), int(args[1].(int64)))
+		return []any{v, ok}
+	}
+	switch o.Name {
+	case "rule.memo":
+		return []any{p.confRuleMemo(rule())}
+	case "rule.leader":
+		return []any{p.confRuleLeader(rule())}
+	case "rule.plain":
+		return []any{p.confRulePlain(rule())}
+	case "rule.docOnlyMemo":
+		return []any{p.confRuleDocOnlyMemo(rule())}
+	case "rule.docPlain":
+		return []any{p.confRuleDocPlain(rule())}
+	case "rule.positional":
+		return []any{p.confRulePositional(rule())}
+	case "rule.id":
+		return []any{int64(p.confRuleId(rule()))}
+	case "rule.invoke":
+		return invoke(p.confRuleInvoke)
+	case "rule.invokePlain":
+		return invoke(p.confRuleInvokePlain)
+	case "depth.enter":
+		p.Enter()
+		return nil
+	case "depth.exit":
+		p.Depth--
+		return nil
+	case "depth.current":
+		return []any{int64(p.Depth)}
+	}
+	return m.docMachine.Call(o, args)
+}
+
+// ruleEngineOps are the operations of the rules that the engine provides, with the doc operations.
+var ruleEngineOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "rule.docOnlyMemo", "rule.docPlain",
+	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain", "depth.enter", "depth.exit", "depth.current",
+	"rec.mark", "rec.truncate"}, conform.DocCoreOps...)
+
+// ruleSuites are the suites of the engine's operations of the rules: its Document parse takes the call
+// protocol, and its doc.enter starts the range of a call as the empty range at its position. The
+// controlled suite checks the charges against the cost bounds.
+func ruleSuites() []conform.Suite {
+	s := conform.Suite{Name: "engine rules", Ops: ruleEngineOps, DocCallMemo: true, DocEmptyEnter: true,
+		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
+	controlled := s
+	controlled.Name = "engine rules, controlled"
+	controlled.New = func(c ref.Config) conform.Impl { return newRuleMachine(c, true) }
+	return []conform.Suite{s, controlled}
+}
+
+// ruleConformanceFailures runs the handwritten cases of the rules and seeds randomized cases of n calls
+// on s, and returns the failures and the number of cases that ran.
+func ruleConformanceFailures(s conform.Suite, seeds, n int) (fails []error, ran int) {
+	run := func(c conform.Case) {
+		skipped, err := conform.Run(s, c)
+		if !skipped {
+			ran++
+		}
+		if err != nil {
+			fails = append(fails, err)
+		}
+	}
+	for _, c := range conform.RuleCases() {
+		run(c)
+	}
+	for seed := range seeds {
+		rng := rand.New(rand.NewPCG(uint64(seed), 67))
+		run(conform.RandomRule(fmt.Sprint("random_", seed), rng, s.Ops, n, seed%3 == 2))
+	}
+	return fails, ran
+}
+
+func TestEngineRuleConformance(t *testing.T) {
+	seeds := 300
+	if testing.Short() {
+		seeds = 30
+	}
+	for _, s := range ruleSuites() {
+		fails, ran := ruleConformanceFailures(s, seeds, 60)
+		if ran < seeds {
+			t.Fatalf("%s: only %d cases ran", s.Name, ran)
+		}
+		for _, err := range fails {
+			t.Error(err)
+		}
+	}
+}
+
+// TestEngineRuleConformanceDetectsBrokenEngine is the negative control: the engine with one operation of
+// the rules broken, as a wrong line of its printed code would break it, fails the suite.
+func TestEngineRuleConformanceDetectsBrokenEngine(t *testing.T) {
+	variants := map[string]func(m *ruleMachine, args []any) []any{
+		"rule.memo ignores the Document": func(m *ruleMachine, args []any) []any {
+			r := args[0].(*Rule)
+			return []any{r.Memo && !r.Transient}
+		},
+		"rule.plain is true": func(m *ruleMachine, args []any) []any { return []any{true} },
+		"rule.docOnlyMemo counts leaders": func(m *ruleMachine, args []any) []any {
+			r := args[0].(*Rule)
+			return []any{m.p.MemoAll && r.Memo && r.Transient}
+		},
+		"rule.id is the position of the rule after it": func(m *ruleMachine, args []any) []any {
+			return []any{int64(args[0].(*Rule).ID + 1)}
+		},
+		"rule.invoke runs the body without its own frame": func(m *ruleMachine, args []any) []any {
+			p := m.p
+			p.Pos = int(m.regs[ops.Pos].(int64))
+			v, ok := p.InvokePlain(args[0].(*Rule), int(args[1].(int64)))
+			m.regs[ops.Pos] = int64(p.Pos)
+			return []any{v, ok}
+		},
+		"rule.invokePlain keeps the errors of a failure": func(m *ruleMachine, args []any) []any {
+			p := m.p
+			start := int(m.regs[ops.Pos].(int64))
+			p.Pos = start
+			v, ok := p.invoke(args[0].(*Rule), int(args[1].(int64)))
+			if !ok {
+				p.Pos = start
+			}
+			m.regs[ops.Pos] = int64(p.Pos)
+			return []any{v, ok}
+		},
+	}
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			op := strings.Fields(name)[0]
+			s := ruleSuites()[0]
+			s.Name = name
+			s.New = func(c ref.Config) conform.Impl { return brokenRule{newRuleMachine(c, false).(*ruleMachine), op, v} }
+			if fails, _ := ruleConformanceFailures(s, 100, 60); len(fails) == 0 {
+				t.Fatal("no case detected the broken engine")
+			}
+		})
+	}
+}
+
+// brokenRule is the engine with one operation of the rules replaced.
+type brokenRule struct {
+	*ruleMachine
+	op   string
+	call func(m *ruleMachine, args []any) []any
+}
+
+func (b brokenRule) Call(o *exec.Op, args []any) (res []any) {
+	if o.Name == b.op {
+		defer interrupt()
+		return b.call(b.ruleMachine, args)
+	}
+	return b.ruleMachine.Call(o, args)
+}

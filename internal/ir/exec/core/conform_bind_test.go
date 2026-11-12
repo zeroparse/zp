@@ -36,3 +36,19 @@ func TestEngineDocBindingsCurrent(t *testing.T) {
 		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineDocBindingsFile)
 	}
 }
+
+// TestEngineRuleBindingsCurrent checks that the engine's conformance bindings of the operations of the
+// rules are those the engine's printer prints now.
+func TestEngineRuleBindingsCurrent(t *testing.T) {
+	want, err := EngineRuleBindings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(EngineRuleBindingsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineRuleBindingsFile)
+	}
+}
