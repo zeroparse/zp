@@ -1454,8 +1454,8 @@ The conditions below use these terms.
   next symbol of the other side are disjoint; a dead symbol on one side; or, in
   the continuation, the end of the parse, which costs a constant. A symbol at
   which neither side can go on is not decisive: the two do not part where each,
-  before it consumes more input, reaches a dead symbol, a symbol that matches
-  no character, a negative lookahead `!K` that the rest of its own path must
+  before it consumes more input, reaches a dead symbol, a symbol that no
+  input matches, a negative lookahead `!K` that the rest of its own path must
   match, or a positive lookahead `&K` whose expression and its own next symbol
   are disjoint. So a path of the unit never parts from its own copy, which the
   continuation reaches through a left call of the rule of the unit: in a

@@ -66,7 +66,7 @@ func TestDeadUnitVariants(t *testing.T) {
 func TestDeadNotDecisive(t *testing.T) {
 	defer restoreExclusionDefaults()
 	restoreExclusionDefaults()
-	const rules = "rule z1 = !\"b\" \"b\"\nrule z2 = !\"b\" \"b\"\n"
+	const rules = "rule z1 = !\"b\" \"b\"\nrule z2 = !\"b\" \"b\"\nrule w = \"w\"\n"
 	for _, c := range []struct {
 		name, p, q string
 		on, off    bool
@@ -74,6 +74,10 @@ func TestDeadNotDecisive(t *testing.T) {
 	}{
 		{"both dead", `"a" z1`, `"a" z2 "z"`, false, true, "dead"},
 		{"one dead", `"a" z1`, `"a" "z"`, true, true, ""},
+		{"both dead, direct", `"a" !"b" "b"`, `"a" !"b" "b" "z"`, false, true, "dead"},
+		{"own copy", `"a" w !"b" "b"`, `"a" w !"b" "b"`, false, true, "dead"},
+		{"one dead, direct", `"a" !"b" "b"`, `"a" "z"`, true, true, ""},
+		{"one dead, direct, continuation side", `"a" "z"`, `"a" !"b" "b"`, true, true, ""},
 	} {
 		src := rules + "rule p = " + c.p + "\nrule q = " + c.q + "\n"
 		deadPathsOn = true
