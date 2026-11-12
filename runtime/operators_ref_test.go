@@ -84,6 +84,13 @@ func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 }
 func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 	pr := r.OperatorsRule
+	// The right operand of an infix part that consumed no input does not apply an empty infix part
+	// at its start, which would begin the same expression again without end.
+	guard := -1
+	if p.afterEmpty {
+		guard = p.Pos
+	}
+	p.afterEmpty = false
 	lhs, bound, ok := p.refOperatorsRuleNud(r)
 	if !ok {
 		return nil, false
@@ -107,6 +114,10 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 			p.refReset(m0)
 			break
 		}
+		if m0.Pos == guard && a.end == m0.Pos {
+			p.refReset(m0)
+			break
+		}
 		p.refApply(&a)
 		if a.op.Kind == "postfix" {
 			lhs = p.operatorsRuleBuild(r, &a, lhs, nil)
@@ -121,6 +132,7 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if a.op.Assoc == "right" {
 			rmin--
 		}
+		p.afterEmpty = p.Pos == m0.Pos
 		rhs, ok := p.refOperatorsRuleParse(r, rmin)
 		if !ok {
 			if a.cut {

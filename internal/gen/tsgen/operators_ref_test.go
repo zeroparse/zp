@@ -221,6 +221,10 @@ function refOperatorsRuleParse(p: Parser, r: Rule, min: number): R {
 let refNudBound = Infinity;
 function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
   const pr = r.operatorsRule as OperatorsRule;
+  // The right operand of an infix part that consumed no input does not apply an empty infix part
+  // at its start, which would begin the same expression again without end.
+  const guard = p.afterEmpty ? p.pos : -1;
+  p.afterEmpty = false;
   let lhs = refOperatorsRuleNud(p, r);
   if (lhs === undefined) {
     return undefined;
@@ -249,6 +253,10 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
       refReset(p, m0pos, m0env, m0trail, m0rec);
       break;
     }
+    if (m0pos === guard && a.end === m0pos) {
+      refReset(p, m0pos, m0env, m0trail, m0rec);
+      break;
+    }
     refApply(p, a);
     if (a.op.kind === "postfix") {
       lhs = p.operatorsRuleBuild(r, a, lhs, null);
@@ -263,6 +271,7 @@ function refOperatorsRuleExpr(p: Parser, r: Rule, min: number): R {
     if (a.op.assoc === "right") {
       rmin--;
     }
+    p.afterEmpty = p.pos === m0pos;
     const rhs = refOperatorsRuleParse(p, r, rmin);
     if (rhs === undefined) {
       if (a.cut) {
