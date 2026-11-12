@@ -524,36 +524,54 @@ rules instead of 252 (it has 261 now, without three rules that no start rule rea
 and the added lookaheads make; which of the two causes it is was not
 measured.
 
-### Preliminary Frontend Baseline
+### Frontend Baseline
 
-An initial baseline used five alternating 200 ms samples on Go 1.27.1,
-darwin/arm64 on an Apple M3 Max with `GOMAXPROCS=16`. The hand-written parser
-returns the public grammar AST; the generated parser returns its concrete
-source AST without the public adapter.
-Diagnostic equivalence was not checked, so these timings and byte counts are
-not a fair frontend comparison and do not establish a winner or default. The
-medians below were measured at source revision `bddfbcc`. Each operation parses
-the complete source string: `zp.ParseGrammar` for the manual frontend and
-generated Go `ParseAST` in CodePoints for the typed frontend. Compilation and
-code generation are outside the timed region. Small uses
-`rule main = [a-z]+ #atomic`; the other inputs are `zp.zp`,
-`testdata/grammars/golang/golang.zp` and `testdata/grammars/python/python.zp`.
+`BenchmarkFrontend` of `internal/syntax` parses each source with each frontend,
+and [`bench/sourceparser.sh`](../../../bench/sourceparser.sh) runs it in 20
+rounds of 500 ms per source and frontend, rotating the order of the frontends
+from round to round. `manual` is the hand-written lexer and parser returning the
+public grammar AST, `manual-aa` the same function again, whose difference from
+`manual` is the noise of the run, and `generated-typed` is `ParseAST` of the
+checked-in parser generated from the source grammar, without the adapter to the
+grammar AST. The generated column therefore does less than the full frontend
+does and is a lower bound of its cost. Compilation and code generation are
+outside the timed region. The sources are a one-line grammar
+(`rule main = [a-z]+ #atomic`), 64 commented rules, the source grammar, the
+grammars of `testdata/grammars` (those of the ready-made parsers) and a copy of
+the Go grammar in which every tenth rule line ends with a stray parenthesis, so
+that both parsers recover.
 
-| Grammar | Input bytes | Manual ns/op | Manual B/op | Manual allocs/op | Generated ns/op | Generated B/op | Generated allocs/op |
+The medians below were measured on Go 1.27.1, darwin/arm64, Apple M3 Max,
+`GOMAXPROCS=16`, at source revision `f3d46fc`; every interval is within ±2% and the
+difference between `manual` and `manual-aa` is −0.04% in the geometric mean of
+time. The generated parser converts the node tree it builds into the typed
+values, because actions of the source grammar read fields of struct values that
+have no plain form; see [Typed Values](../../guide/generated-typed-values.md).
+
+| Source | Bytes | Manual time | Manual B/op | Manual allocs | Generated time | Generated B/op | Generated allocs |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Small | 26 | 1,451 | 2,488 | 19 | 11,086 | 50,000 | 30 |
-| Self grammar | 22,964 | 1,228,660 | 2,920,062 | 8,338 | 3,776,813 | 3,530,988 | 9,322 |
-| Go | 56,593 | 2,592,098 | 6,838,759 | 18,407 | 8,424,863 | 8,015,079 | 21,815 |
-| Python | 71,708 | 3,573,514 | 8,854,649 | 22,515 | 10,774,236 | 11,293,620 | 28,409 |
+| small | 26 | 1.56 µs | 3.3 KiB | 19 | 17.6 µs | 48.2 KiB | 35 |
+| comments | 5,198 | 99.0 µs | 180 KiB | 2,004 | 1.24 ms | 1,981 KiB | 3,090 |
+| source grammar | 54,731 | 2.26 ms | 6.05 MiB | 17,420 | 21.8 ms | 15.3 MiB | 26,200 |
+| cel | 11,556 | 416 µs | 953 KiB | 3,685 | 3.51 ms | 3,484 KiB | 5,700 |
+| csv | 1,720 | 39.9 µs | 97 KiB | 334 | 304 µs | 463 KiB | 685 |
+| cue | 35,513 | 1.35 ms | 3.51 MiB | 11,320 | 11.8 ms | 9.57 MiB | 19,610 |
+| duckdb | 192,980 | 8.16 ms | 27.4 MiB | 77,710 | 81.1 ms | 94.0 MiB | 130,080 |
+| golang | 56,479 | 2.52 ms | 7.72 MiB | 20,060 | 20.6 ms | 16.4 MiB | 32,980 |
+| json | 1,564 | 76.2 µs | 188 KiB | 704 | 695 µs | 546 KiB | 1,085 |
+| python | 72,104 | 3.28 ms | 9.99 MiB | 25,350 | 27.5 ms | 33.1 MiB | 49,960 |
+| typescript | 127,682 | 4.69 ms | 13.4 MiB | 36,140 | 46.7 ms | 49.0 MiB | 67,420 |
+| xml | 14,928 | 494 µs | 1.28 MiB | 4,282 | 4.38 ms | 3.88 MiB | 6,644 |
+| yaml | 34,840 | 913 µs | 2.04 MiB | 7,593 | 8.02 ms | 7.24 MiB | 11,265 |
+| malformed Go | 56,541 | 2.57 ms | 7.70 MiB | 19,940 | 20.9 ms | 16.2 MiB | 31,670 |
+| geometric mean | | 548 µs | 1.40 MiB | 4,996 | 5.03 ms | 5.26 MiB | 8,354 |
 
-These values are an initial reference only. Reproduce them with
-[`bench/sourceparser.sh`](../../../bench/sourceparser.sh); do not use them to
-select a parser until the adapter and diagnostic-equivalence gates are met.
-The driver generates a typed parser in a temporary module, compares declaration
-counts, and alternates measurement order; it does not assert full AST or error
-equality. Raw samples remain outside Git. Source-frontend tuning and default
-selection are deferred behind feature development, bug fixes and general
-parser optimizations; adapter and diagnostic parity can proceed independently.
+The generated parser takes 9.2 times the time, 3.8 times the bytes and 1.7
+times the allocations of the hand-written one in the geometric mean, before the
+adapter adds its own work. The bytes of a parse that reuses the memory of
+earlier parses depend on the number of iterations, so its bytes vary more
+between rounds (up to ±9%) than its time. A selection of the default needs the
+same measure with the adapter in the generated column.
 
 ## Limitations and Open Questions
 

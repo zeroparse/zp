@@ -1,111 +1,43 @@
 #!/bin/sh
-# Preliminary source-parser benchmark. The result ASTs are not equivalent:
-# manual parsing returns grammar.Grammar; generated parsing has no adapter.
+# Grammar-source frontend benchmark: runs BenchmarkFrontend of internal/syntax in interleaved rounds
+# and prints the raw results, which benchstat summarizes:
+#
+#	bench/sourceparser.sh > frontend.txt && benchstat -col /fe frontend.txt
+#
+# Every round runs each source with each frontend once, in an order that rotates from round to
+# round, so that drift of the machine falls on all frontends alike. manual-aa is the hand-written
+# frontend again: its difference from manual is the noise of the run. ROUNDS (default 20) and
+# BENCHTIME (default 500ms) set the size of the run, SOURCES (a regular expression, default all)
+# the sources. The bytes of a parse that reuses the memory of earlier parses depend on the number of
+# iterations, so compare B/op only between runs of the same BENCHTIME.
 set -eu
 sourcebench_repo=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
 sourcebench_dir=$(mktemp -d "${TMPDIR:-/tmp}/zp-sourcebench.XXXXXX")
 trap 'rm -rf "$sourcebench_dir"' 0
-sourcebench_count=${COUNT:-5}
-sourcebench_time=${BENCHTIME:-200ms}
-case "$sourcebench_count" in ''|*[!0-9]*|0) echo 'COUNT must be a positive integer.' >&2; exit 1;; esac
-[ "$sourcebench_count" -gt 0 ] || { echo 'COUNT must be a positive integer.' >&2; exit 1; }
-GOMAXPROCS=${GOMAXPROCS:-16}
-export GOMAXPROCS
-export ZP_SOURCE_ROOT="$sourcebench_repo"
-mkdir "$sourcebench_dir/generated"
+sourcebench_rounds=${ROUNDS:-20}
+sourcebench_time=${BENCHTIME:-500ms}
+sourcebench_sources=${SOURCES:-.*}
+case "$sourcebench_rounds" in ''|*[!0-9]*|0) echo 'ROUNDS must be a positive integer.' >&2; exit 1;; esac
 cd "$sourcebench_repo"
-go run ./cmd/zp gen -g zp.zp -module sourcebaseline/generated -types -o "$sourcebench_dir/generated"
-cat > "$sourcebench_dir/go.mod" <<'MOD'
-module sourcebaseline
-
-go 1.27.1
-MOD
-cat > "$sourcebench_dir/source_test.go" <<'GO'
-package sourcebaseline
-
-import (
-	"zeroparse.dev/zp"
-	"os"
-	"path/filepath"
-	"sourcebaseline/generated"
-	"testing"
-)
-
-var sink any
-var samples = []struct{ Name, Src string }{
-	{"Small", `rule main = [a-z]+ #atomic`},
-	{"Self", read("zp.zp")},
-	{"Go", read("testdata/grammars/golang/golang.zp")},
-	{"Python", read("testdata/grammars/python/python.zp")},
-}
-
-func read(p string) string {
-	b, e := os.ReadFile(filepath.Join(os.Getenv("ZP_SOURCE_ROOT"), p))
-	if e != nil {
-		panic(e)
-	}
-	return string(b)
-}
-func TestParityCounts(t *testing.T) {
-	for _, s := range samples {
-		a, e := zp.ParseGrammar(s.Src)
-		if e != nil {
-			t.Fatal(e)
-		}
-		b, e := generated.ParseAST(s.Src)
-		if e != nil {
-			t.Fatal(e)
-		}
-		if len(a.Statements) != len(b.Defs) {
-			t.Fatalf("%s: manual %d vs generated %d", s.Name, len(a.Statements), len(b.Defs))
-		}
-	}
-}
-func BenchmarkSource(b *testing.B) {
-	for _, s := range samples {
-		b.Run(s.Name, func(b *testing.B) {
-			b.Run("Manual", func(b *testing.B) {
-				b.ReportAllocs()
-				for b.Loop() {
-					n, e := zp.ParseGrammar(s.Src)
-					if e != nil {
-						b.Fatal(e)
-					}
-					sink = n
-				}
-			})
-			b.Run("GeneratedTyped", func(b *testing.B) {
-				b.ReportAllocs()
-				for b.Loop() {
-					n, e := generated.ParseAST(s.Src)
-					if e != nil {
-						b.Fatal(e)
-					}
-					sink = n
-				}
-			})
-		})
-	}
-}
-GO
-cd "$sourcebench_dir"
-GOWORK=off go mod edit -require zeroparse.dev/zp@v0.0.0 -replace "zeroparse.dev/zp=$sourcebench_repo" \
-	-require zeroparse.dev/zp/runtime@v0.0.0 -replace "zeroparse.dev/zp/runtime=$sourcebench_repo/runtime"
-GOWORK=off go test -c -o sourcebaseline.test .
-./sourcebaseline.test -test.run '^TestParityCounts$'
+go test -c -o "$sourcebench_dir/syntax.test" ./internal/syntax
+cd internal/syntax
+"$sourcebench_dir/syntax.test" -test.run '^TestFrontendSamples$' >&2
+sourcebench_frontends='manual manual-aa generated-typed'
 sourcebench_round=0
-while [ "$sourcebench_round" -lt "$sourcebench_count" ]; do
-  for sourcebench_sample in Small Self Go Python; do
-    if [ "$((sourcebench_round % 2))" -eq 0 ]; then
-      sourcebench_modes='Manual GeneratedTyped'
-    else
-      sourcebench_modes='GeneratedTyped Manual'
-    fi
-    for sourcebench_mode in $sourcebench_modes; do
-      ./sourcebaseline.test -test.run '^$' \
-        -test.bench "^BenchmarkSource$/^$sourcebench_sample$/^$sourcebench_mode$" \
-        -test.benchtime "$sourcebench_time" -test.count 1
-    done
-  done
-  sourcebench_round=$((sourcebench_round + 1))
+while [ "$sourcebench_round" -lt "$sourcebench_rounds" ]; do
+	# Rotate the order of the frontends by the round number.
+	set -- $sourcebench_frontends
+	sourcebench_shift=$((sourcebench_round % $#))
+	while [ "$sourcebench_shift" -gt 0 ]; do
+		sourcebench_first=$1
+		shift
+		set -- "$@" "$sourcebench_first"
+		sourcebench_shift=$((sourcebench_shift - 1))
+	done
+	for sourcebench_fe in "$@"; do
+		"$sourcebench_dir/syntax.test" -test.run '^$' \
+			-test.bench "^BenchmarkFrontend$/^src=($sourcebench_sources)\$/^fe=$sourcebench_fe\$" \
+			-test.benchtime "$sourcebench_time" -test.count 1
+	done
+	sourcebench_round=$((sourcebench_round + 1))
 done
