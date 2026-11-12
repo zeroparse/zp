@@ -1,11 +1,14 @@
 package compile
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/factstest"
 )
@@ -105,47 +108,101 @@ func (b *recorder) OperatorsRule(r *Rule, skip string, hasSkip bool, operands, o
 	b.rules = append(b.rules, fmt.Sprintf("operators %d %s %t %v: %s %t [%s] [%s]", r.ID, r.Name, r.Novalue, names(r.Scope), skip, hasSkip, line(operands), line(operators)))
 }
 
+// loweringSources are grammars with the constructs that the corpus lacks: #missing (also after
+// @error and through a left-recursion cycle that exists only with insertion, so that the program
+// has insertion flags), #recover, #stream and an Operators Rule.
+var loweringSources = []string{
+	`@start
+rule main = stmt+ $$
+rule stmt = "x" ";" @error("semicolon") #missing / "y" ")" #missing #recover(skip=[^;]* ";")`,
+	`@start
+rule main = e $$
+rule e = ";" #missing e "+" "n" / "n"`,
+	`@start
+rule main = x:item* #stream $$
+rule item = "a" ("b" / "c") #recover(skip=[^a]*)`,
+	`@start
+rule main = expr $$
+rule expr = #operators {
+  operand "n"
+  level { infix left "+" @error("plus") #missing }
+  level { infix left "*" }
+}`,
+}
+
 // TestLoweringWalksAsChecking requires CompileProgram to call its builder exactly as the walk of
-// Check calls it, for every corpus grammar and every option variant that changes the walk: same
-// constructs, expectation IDs, slots, sites, twins and rules, in the same order. It also requires
-// lowering to leave the program's expectation table and twins as Check left them.
+// Check calls it, for every corpus grammar, every grammar of loweringSources and every option
+// variant that changes the walk, also with the rule flags that the engine checks its recognizer,
+// budget and insertion programs with: same constructs, expectation IDs, slots, sites, twins and
+// rules, in the same order. It also requires lowering to leave the program's expectation table and
+// twins as Check left them.
 func TestLoweringWalksAsChecking(t *testing.T) {
 	t.Parallel()
 	variants := []Options{{}, {Recognize: true}, {Recognize: true, Recognizer: true}, {NoProjections: true}, {DefaultValue: true}}
-	checked := 0
+	srcs := map[string]string{}
 	for _, path := range factstest.Corpus {
-		g, err := parseTest(factstest.Read(t, path))
+		srcs[path] = factstest.Read(t, path)
+	}
+	for i, src := range loweringSources {
+		srcs[fmt.Sprintf("source %d", i)] = src
+	}
+	checked, flagged, missing, insertion := 0, 0, 0, 0
+	lower := func(name string, g *grammar.Grammar, opts Options, flags []RuleFlags) {
+		var first *recorder
+		prog, err := checkWith(g, opts, flags, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[string] {
+			first = &recorder{}
+			return first
+		})
 		if err != nil {
-			t.Fatal(err)
+			return // the grammar does not check with this variant
 		}
-		for _, opts := range variants {
-			var first *recorder
-			prog, err := checkWith(g, opts, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[string] {
-				first = &recorder{}
-				return first
-			})
-			if err != nil {
-				continue // the grammar does not check with this variant
-			}
-			descs, twins := len(prog.DescTable), len(prog.Twins)
-			var again *recorder
-			if err := CompileProgram(prog, nil, func(*Compiler) ExprBuilder[string] {
-				again = &recorder{}
-				return again
-			}); err != nil {
-				t.Fatalf("%s %+v: %v", path, opts, err)
-			}
-			if len(prog.DescTable) != descs || len(prog.Twins) != twins {
-				t.Errorf("%s %+v: lowering changed the program", path, opts)
-			}
-			if got, want := strings.Join(again.rules, "\n"), strings.Join(first.rules, "\n"); got != want {
-				t.Errorf("%s %+v: lowering walks differently:\n%s\nwant\n%s", path, opts, firstDiff(got, want), firstDiff(want, got))
-			}
-			checked++
+		descs, twins := len(prog.DescTable), len(prog.Twins)
+		var again *recorder
+		if err := CompileProgram(prog, nil, func(*Compiler) ExprBuilder[string] {
+			again = &recorder{}
+			return again
+		}); err != nil {
+			t.Fatalf("%s %+v: %v", name, opts, err)
+		}
+		if len(prog.DescTable) != descs || len(prog.Twins) != twins {
+			t.Errorf("%s %+v: lowering changed the program", name, opts)
+		}
+		if got, want := strings.Join(again.rules, "\n"), strings.Join(first.rules, "\n"); got != want {
+			t.Errorf("%s %+v flags %t: lowering walks differently:\n%s\nwant\n%s", name, opts, flags != nil, firstDiff(got, want), firstDiff(want, got))
+		}
+		checked++
+		if flags != nil {
+			flagged++
+		}
+		if prog.HasMissing {
+			missing++
 		}
 	}
-	if checked == 0 {
-		t.Fatal("no grammar checked")
+	for name, src := range srcs {
+		g, err := parseTest(src)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		for _, opts := range variants {
+			lower(name, g, opts, nil)
+		}
+		prog, err := checkWith(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
+		if err != nil {
+			if strings.HasPrefix(name, "source ") {
+				t.Fatalf("%s: %v", name, err)
+			}
+			continue
+		}
+		// The engine's recognizer, budget-controlled and insertion programs.
+		lower(name, g, Options{Recognize: true, Recognizer: true}, prog.Flags())
+		lower(name, g, Options{ControlledDispatch: true}, prog.Flags())
+		if prog.InsertionFlags != nil {
+			insertion++
+			lower(name, g, Options{}, prog.InsertionFlags)
+		}
+	}
+	if checked == 0 || flagged == 0 || missing == 0 || insertion == 0 {
+		t.Fatalf("lowered %d programs, %d with flags, %d with #missing, %d grammars with insertion flags", checked, flagged, missing, insertion)
 	}
 }
 
@@ -174,5 +231,55 @@ func TestCompileProgramNeedsCheck(t *testing.T) {
 	err := CompileProgram(&Program{}, nil, func(*Compiler) ExprBuilder[string] { return &recorder{} })
 	if err == nil {
 		t.Fatal("CompileProgram lowered a program that Check did not make")
+	}
+}
+
+// TestCompileProgramConcurrently requires lowering to only read the checked program: several
+// lowerings of one program run at once, under the race detector, and each walks as Check did.
+// Lowering a checked program while another one reads it (a Result shared by tools) must be safe.
+func TestCompileProgramConcurrently(t *testing.T) {
+	t.Parallel()
+	for _, path := range []string{"examples/minilang/minilang.zp", "examples/calculator/calc_lr.zp", "internal/gentest/testdata/typed/proj1.zp"} {
+		g, err := parseTest(factstest.Read(t, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var first *recorder
+		prog, err := checkWith(g, Options{}, nil, desugar.InlineNames{}, nil, func(*Compiler) ExprBuilder[string] {
+			first = &recorder{}
+			return first
+		})
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		want := strings.Join(first.rules, "\n")
+		const n = 4
+		got := make([]string, n)
+		errs := make([]error, n)
+		var wg sync.WaitGroup
+		for i := range n {
+			wg.Go(func() {
+				var r *recorder
+				// Half of them poll a control, as the engine's lowering does.
+				var control *cancel.Control
+				if i%2 == 1 {
+					control = &cancel.Control{Ctx: context.Background()}
+				}
+				errs[i] = CompileProgram(prog, control, func(*Compiler) ExprBuilder[string] {
+					r = &recorder{}
+					return r
+				})
+				got[i] = strings.Join(r.rules, "\n")
+			})
+		}
+		wg.Wait()
+		for i := range n {
+			if errs[i] != nil {
+				t.Fatalf("%s: lowering %d: %v", path, i, errs[i])
+			}
+			if got[i] != want {
+				t.Errorf("%s: lowering %d walks differently:\n%s\nwant\n%s", path, i, firstDiff(got[i], want), firstDiff(want, got[i]))
+			}
+		}
 	}
 }
