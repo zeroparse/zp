@@ -62,6 +62,7 @@ const (
 	CtxNoReplayObs                // a reuse passes on only the seeds its observations read where they were made
 	CtxCapDeps                    // a result with more than maxCtxDeps dependencies is not stored
 	CtxNarrowPresent              // a context whose present set needs more than a word records nothing
+	CtxNarrowOutcome              // a lookahead whose examined range needs more than a word is not stored
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -344,8 +345,9 @@ func (p *Parser) presentWide(gp int) uint64 {
 	return p.intern(key, presentWide)
 }
 
-// intern returns the identity of key: tag with a number that no other key has while a growth is in
-// progress. The identities are those of present sets and outcomes too large for a word; they appear
+// intern returns the identity of key: tag with a number below 2^60 that no other key has while a
+// growth is in progress. The identities are those of present sets and outcomes too large for a word
+// (presentWide, obsWide); they appear
 // only in the context tables and dependencies of growths in progress, and the parser forgets them
 // when the last growth ends (GrowEnd).
 func (p *Parser) intern(key []byte, tag uint64) uint64 {
@@ -562,16 +564,29 @@ type lookRec struct {
 const (
 	obsNone    uint64 = 1 << 63       // no outcome is memoized
 	obsIgnored uint64 = 1<<63 | 1<<62 // every outcome under CtxIgnoreObs
-	obsUnique  uint64 = 1<<63 | 1<<61 // an outcome that obsOutcome cannot encode, which nothing matches
+	// obsWide tags the identity that intern gives an outcome whose examined range does not fit in
+	// the bits of a word.
+	obsWide uint64 = 1<<63 | 1<<60
 )
 
 // obsOutcome encodes the outcome of a lookahead at pos, whose expression matched if ok and examined
-// [from, examined): equal values are equal outcomes with equal examined ranges. ok2 is false for an
-// outcome it cannot encode, whose value is obsUnique.
-func obsOutcome(ok bool, pos, examined, from int) (v uint64, ok2 bool) {
+// [from, examined): equal values are equal outcomes with equal examined ranges. An outcome whose
+// range reaches 2^30 units or more from pos gets an interned identity (obsWide). ok2 is false only
+// under CtxNarrowOutcome, for such an outcome.
+func (p *Parser) obsOutcome(ok bool, pos, examined, from int) (v uint64, ok2 bool) {
 	hi, lo := examined-pos, pos-from
 	if hi < 0 || lo < 0 || hi >= 1<<30 || lo >= 1<<30 {
-		return obsUnique, false
+		if ContextMemoMutation == CtxNarrowOutcome {
+			return obsWide, false
+		}
+		key := make([]byte, 2, 18)
+		key[0] = internOutcome
+		if ok {
+			key[1] = 1
+		}
+		key = binary.LittleEndian.AppendUint64(key, uint64(hi))
+		key = binary.LittleEndian.AppendUint64(key, uint64(lo))
+		return p.intern(key, obsWide), true
 	}
 	v = uint64(hi)<<1 | uint64(lo)<<31
 	if ok {
@@ -842,7 +857,7 @@ func (p *Parser) LookEnd(ok bool) {
 	if p.ContextMemoUnexamined {
 		examined, from = f.pos, f.pos
 	}
-	val, ok2 := obsOutcome(ok, f.pos, examined, from)
+	val, ok2 := p.obsOutcome(ok, f.pos, examined, from)
 	gp := f.gp
 	present := p.present(gp)
 	ok2 = ok2 && p.recordsIn(present)

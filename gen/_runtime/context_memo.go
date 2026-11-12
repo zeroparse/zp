@@ -262,8 +262,10 @@ type lookRec struct {
 
 // The values of an observation other than outcomes (obsOutcome).
 const (
-	obsNone   uint64 = 1 << 63       // no outcome is memoized
-	obsUnique uint64 = 1<<63 | 1<<61 // an outcome that obsOutcome cannot encode, which nothing matches
+	obsNone uint64 = 1 << 63 // no outcome is memoized
+	// obsWide tags the number that intern gives an outcome whose frontier does not fit in the bits of
+	// a word.
+	obsWide uint64 = 1<<63 | 1<<60
 )
 
 // ctxCallState is the context of a memoized call of a rule of a cycle (ctxEnter).
@@ -364,7 +366,8 @@ func (p *Parser) presentWide(gp int) uint32 {
 	return presentWide | uint32(p.intern(key))
 }
 
-// intern returns a number for key that no other key has while a growth is in progress. The numbers
+// intern returns a number below 2^31 for key that no other key has while a growth is in progress
+// (more keys than that would not fit in memory). The numbers
 // identify present sets and outcomes too large for a word; they appear only in the context tables
 // and dependencies of growths in progress, and the parser forgets them when the last growth ends
 // (growEnd).
@@ -637,17 +640,24 @@ func (p *Parser) dropTable(i int) {
 
 // obsOutcome encodes the outcome of a lookahead at pos whose expression matched if ok and whose
 // Document frontier is examined (pos outside a Document parse): equal values are equal outcomes
-// with equal frontiers. ok2 is false for an outcome it cannot encode, whose value is obsUnique.
-func obsOutcome(ok bool, pos, examined int) (v uint64, ok2 bool) {
+// with equal frontiers. An outcome whose frontier is 2^62 units or more from pos, or before it,
+// gets an interned number (obsWide).
+func (p *Parser) obsOutcome(ok bool, pos, examined int) uint64 {
 	hi := examined - pos
-	if hi < 0 || hi >= 1<<30 {
-		return obsUnique, false
+	if hi < 0 || hi >= 1<<62 {
+		key := make([]byte, 2, 10)
+		key[0] = internOutcome
+		if ok {
+			key[1] = 1
+		}
+		key = binary.LittleEndian.AppendUint64(key, uint64(hi))
+		return obsWide | p.intern(key)
 	}
-	v = uint64(hi) << 1
+	v := uint64(hi) << 1
 	if ok {
 		v |= 1
 	}
-	return v, true
+	return v
 }
 
 // obsValue returns the outcome memoized for the lookahead site at pos in the current context, or
@@ -934,12 +944,10 @@ func (p *Parser) lookEnd(ok bool) {
 		p.mergeDeps(ds)
 		return
 	}
-	val, ok2 := obsOutcome(ok, f.pos, examined)
+	val := p.obsOutcome(ok, f.pos, examined)
 	present := p.present(f.gp)
 	sd, _ := p.stored(ds)
-	if ok2 {
-		p.ctxStore(f.pos, f.gp, ctxHeadKey{kind: ctxLook, id: site, present: present}, sd, &ctxSlot{id: val})
-	}
+	p.ctxStore(f.pos, f.gp, ctxHeadKey{kind: ctxLook, id: site, present: present}, sd, &ctxSlot{id: val})
 	out := make([]dep, 0, len(ds)+1)
 	out = append(out, dep{kind: depObs, idx: site, d: int32(f.depth), val: val})
 	for _, d := range ds {
