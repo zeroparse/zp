@@ -95,7 +95,7 @@ func (l *liveRules) missingBodies(table string, printed map[ruleKey]bool) []rule
 
 // pruned reports whether the second pass leaves out everything of rule r of the current table.
 func (g *Generator) pruned(r *compile.Rule) bool {
-	if g.live == nil || g.keepTableRules && g.Table != "trules" {
+	if g.live == nil || g.keepTableRules && g.Table == "rules" {
 		return false
 	}
 	return !g.live.Reach[ruleKey{g.Table, r.ID, false}] && !g.live.Reach[ruleKey{g.Table, r.ID, true}]
@@ -128,7 +128,7 @@ func (g *Generator) callWrapper(table string, r *compile.Rule) bool {
 // slot, was not left out.
 func (g *Generator) checkCall(r *compile.Rule, wrapper bool) {
 	to := ruleKey{g.Table, r.ID, wrapper}
-	if g.live != nil && !g.live.Reach[to] && g.reachErr == nil && (g.Table == "trules" || !g.keepTableRules) {
+	if g.live != nil && !g.live.Reach[to] && g.reachErr == nil && (g.Table != "rules" || !g.keepTableRules) {
 		g.reachErr = fmt.Errorf("internal error: a generated call reaches the rule %s of %s, whose body is left out", r.Name, g.Table)
 	}
 }
@@ -186,8 +186,8 @@ func (g *Generator) finishReach(prog, rec *compile.Program) error {
 		return g.reachErr
 	}
 	for _, table := range []string{"rules", "recRules"} {
-		if g.keepTableRules {
-			break // the Node and recognizer rules are all kept
+		if g.keepTableRules && table == "rules" {
+			continue // the Node rules are all kept
 		}
 		if miss := g.live.missingBodies(table, g.bodySet); len(miss) > 0 {
 			return fmt.Errorf("internal error: the reachable rule slot %s[%d] has no Body", table, miss[0].ID)

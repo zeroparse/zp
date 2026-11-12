@@ -6,7 +6,7 @@
 //	zp test -f suite.json [-format text|json] [-backend closure,bytecode] [-equivalence] [-update] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
 //	zp fmt [-w] [-l] [-check] [-syntax] [grammar.zp ...]
 //	zp convert [-to zp|json] [-o output] grammar.zp|grammar.json
-//	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-nodoc] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
+//	zp gen -g grammar.zp -module path -o dir [-pkg name] [-runtime embed|import|only] [-s main] [-types] [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-recognize-only] [-nodoc] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
 //	zp gen -lang ts -g grammar.zp -o dir [-runtime embed|import|only] [-runtime-module specifier] [-s main] [-types] [-recognize] [-observability] [-limits] [-max-depth n] [-source-info] [-default-value] [-expectations] [-optimize profile] [-opt names] [-no-opt names] [-print-after passes]
 //	zp compile -g grammar.zp [-s main] [-mode parse|recognize|document] [-source-info] [-default-value] -o grammar.zpc
 //	zp trace -g grammar.zp [-s main] [-i input] [-show-depth n] [-rule name] [-failures] [-f text|json] [-max-compute n] [-max-memory n] [-max-input n] [-max-depth n]
@@ -83,7 +83,7 @@ Commands:
       other format of the input.
 
   gen -g <grammar> -module <import path> -o <dir> [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-types]
-        [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-max-depth <n>] [-nodoc] [-source-info] [-default-value]
+        [-document] [-stream] [-recognize] [-observability] [-limits] [-typed-only] [-recognize-only] [-max-depth <n>] [-nodoc] [-source-info] [-default-value]
         [-expectations] [-optimize <profile>] [-opt <names>] [-no-opt <names>] [-print-after <passes>]
   gen -runtime only -o <dir>
   gen -lang ts -g <grammar> -o <dir> [-runtime embed|import|only] [-runtime-module <specifier>] [-s <rule>] [-types]
@@ -128,10 +128,12 @@ Commands:
       runs the same code. Generate a second parser without the option to
       have the plain form too.
       -typed-only generates only the typed entry points (ParseAST and its
-      siblings), without Parse, ParseRule and Recognize. It needs -types and
-      cannot be combined with -recognize, -document, -stream or -lang ts.
-      With -recognize, Recognize (recognize in TypeScript) checks input without
-      building a tree.
+      siblings), without Parse and ParseRule. It needs -types and cannot be
+      combined with -document, -stream or -lang ts. -recognize-only generates
+      only Recognize, without Parse, ParseRule or typed entry points; it
+      cannot be combined with -types, -typed-only, -document, -stream or
+      -lang ts. With -recognize, Recognize (recognize in TypeScript) checks
+      input without building a tree.
       -nodoc leaves out the package comment
       of the Go code, for a package documented in another file. -max-depth
       sets the generated default nested recursive rule-call limit (0 selects 100000).
@@ -853,6 +855,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	expectations := fs.Bool("expectations", false, "generate a parser that records what a syntax error expects (the expected list and @error messages); without it the error reports only the farthest failure position")
 	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and finite Compute and Memory limits (signal and the compute limit in TypeScript)")
 	typedOnly := fs.Bool("typed-only", false, "generate only the typed entry points (ParseAST and siblings), without Parse, ParseRule and Recognize (needs -types)")
+	recognizeOnly := fs.Bool("recognize-only", false, "generate only Recognize, without Parse, ParseRule or typed entry points (Go only; not with -types, -typed-only, -document or -stream)")
 	recognize := fs.Bool("recognize", false, "also generate Recognize, which checks input without building a tree")
 	maxDepth := fs.Int("max-depth", 0, "generated default nested recursive rule-call limit (0 selects 100000)")
 	nodoc := fs.Bool("nodoc", false, "leave out the package comment (Go)")
@@ -879,7 +882,7 @@ func genCmd(args []string, stdout io.Writer) error {
 		}
 		switch mode {
 		case runtimeOnly:
-			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize", "max-depth", "nodoc", "source-info", "default-value", "optimize", "opt", "no-opt", "print-after"} {
+			for _, name := range []string{"g", "s", "pkg", "module", "types", "document", "stream", "observability", "limits", "typed-only", "recognize-only", "recognize", "max-depth", "nodoc", "source-info", "default-value", "optimize", "opt", "no-opt", "print-after"} {
 				if isFlagSet(fs, name) {
 					return fmt.Errorf("-%s cannot be combined with -runtime only, which writes just the runtime", name)
 				}
@@ -900,8 +903,8 @@ func genCmd(args []string, stdout io.Writer) error {
 			}
 		}
 	case "ts":
-		if *pkg != "" || *module != "" || *nodoc || *document || *stream || *typedOnly {
-			return fmt.Errorf("-pkg, -module, -nodoc, -document, -stream and -typed-only are not supported with -lang ts")
+		if *pkg != "" || *module != "" || *nodoc || *document || *stream || *typedOnly || *recognizeOnly {
+			return fmt.Errorf("-pkg, -module, -nodoc, -document, -stream, -typed-only and -recognize-only are not supported with -lang ts")
 		}
 		if *output == "" {
 			return fmt.Errorf("-o (an output directory) is required")
@@ -993,6 +996,7 @@ func genCmd(args []string, stdout io.Writer) error {
 			Document:       *document,
 			Stream:         *stream,
 			TypedOnly:      *typedOnly,
+			RecognizeOnly:  *recognizeOnly,
 			OmitPackageDoc: *nodoc,
 			Optimize:       *optimize,
 			Opt:            optValues,

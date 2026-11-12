@@ -368,6 +368,16 @@ func TestGen(t *testing.T) {
 	if err != nil || !strings.Contains(rec, "func Recognize(") {
 		t.Errorf("-recognize: no Recognize: %v", err)
 	}
+	only, err := runGenGo(t, "-g", g, "-pkg", "kv", "-recognize-only")
+	if err != nil || !strings.Contains(only, "func Recognize(") || strings.Contains(only, "func Parse(") || strings.Contains(only, "func ParseRule(") {
+		t.Errorf("-recognize-only: want Recognize alone: %v", err)
+	}
+	if _, err := runGenGo(t, "-g", g, "-pkg", "kv", "-recognize-only", "-types"); err == nil || !strings.Contains(err.Error(), "recognize-only") {
+		t.Errorf("-recognize-only with -types: error %v", err)
+	}
+	if _, err := runCLI(t, "", "gen", "-lang", "ts", "-g", g, "-recognize-only"); err == nil || !strings.Contains(err.Error(), "-recognize-only") {
+		t.Errorf("-recognize-only with -lang ts: error %v", err)
+	}
 	if !strings.Contains(out, "// Package kv is a parser generated from a ZeroParse grammar.") {
 		t.Error("no package comment")
 	}

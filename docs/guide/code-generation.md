@@ -171,7 +171,7 @@ The output is exactly what the engine prints for the same grammar and input.
 ## The `zp gen` Command
 
 ```bash
-zp gen -g <grammar> -module <import path> -o <directory> [-lang go] [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-types] [-document] [-stream] [-recognize] [-typed-only] [-expectations] [-observability] [-limits] [-source-info] [-default-value] [-nodoc] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
+zp gen -g <grammar> -module <import path> -o <directory> [-lang go] [-pkg <package>] [-runtime embed|import|only] [-s <rule>] [-types] [-document] [-stream] [-recognize] [-typed-only] [-recognize-only] [-expectations] [-observability] [-limits] [-source-info] [-default-value] [-nodoc] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
 zp gen -lang ts -g <grammar> -o <directory> [-runtime embed|import|only] [-runtime-module <specifier>] [-s <rule>] [-types] [-recognize] [-expectations] [-observability] [-limits] [-source-info] [-default-value] [-max-depth <n>] [-optimize speed|memory|size] [-opt <name[=count],...>] [-no-opt <name,...>] [-print-after <pass,...>]
 zp gen -runtime only -o <directory> [-lang go|ts]
 ```
@@ -189,7 +189,8 @@ zp gen -runtime only -o <directory> [-lang go|ts]
 | `-types` | off | Also generate the Go types for the grammar's types, in the package `<module>/types`, and `ParseAST` (see [typed values](generated-typed-values.md)) |
 | `-document` | off | Also generate the Go incremental Node `Document` API; with `-types`, it also exposes `Document.ParseAST` (see [incremental documents](generated-documents.md)); cannot be combined with `-lang ts` |
 | `-stream` | off | Also generate the Go Node `ParseStream` (see [streams](generated-streams.md)); the start rule must have a `#stream` repetition; with `-types` it also generates `ParseStreamAST`, and it cannot be combined with `-lang ts` |
-| `-typed-only` | off | Go only; needs `-types`. Generate only the typed entry points: `ParseAST` and `ParseRuleAST`, without `Parse`, `ParseRule` and `Recognize` and without the code that builds untyped `*Node` values, which about halves the source of a large grammar. It cannot be combined with `-recognize`, `-document`, `-stream` or `-lang ts`. Entry points that convert the Node of their rule keep the unexported Node rule functions they run |
+| `-typed-only` | off | Go only; needs `-types`. Generate only the typed entry points: `ParseAST` and `ParseRuleAST`, without `Parse` and `ParseRule` and without the code that builds untyped `*Node` values, which about halves the source of a large grammar. It can be combined with `-recognize` but not with `-document`, `-stream` or `-lang ts`. Entry points that convert the Node of their rule keep the unexported Node rule functions they run |
+| `-recognize-only` | off | Go only. Generate only `Recognize`: no `Parse`, `ParseRule` or typed entry points. It cannot be combined with `-types`, `-typed-only`, `-document`, `-stream` or `-lang ts` |
 | `-recognize` | off | Also generate `Recognize`, which checks input without building a tree (see [recognition](generated-go-api.md#recognition--recognize)) |
 | `-limits` | off | Generate the limit-controlled form of the parser, which supports `WithContext` and finite `Compute` and `Memory` limits and exports `WithContext` from the package; in TypeScript it supports the `signal` option and the `compute` limit (see [TypeScript](typescript.md#cancellation-and-compute-limits)). Without it the Go parser holds the ordinary form of its functions and nothing that spends budget, which makes `parser.go` 15% to 50% smaller (the plain `parser.go` is 0.50 to 0.85 of the controlled one for the grammars of `testdata/grammars/`; larger grammars save more), and a parse that passes a context or a finite `Compute` or `Memory` returns an error; `Input` and `Depth` work in both forms (see [cancellation and compute limits](generated-go-api.md#cancellation-and-compute-limits)). A parser has one form: with the option it is the controlled one, and a parse that sets no limit runs the same code (a few inline tests of the control take the unmetered path), so generate two parsers if you need the faster plain form as well. A TypeScript parser generated without the option emits no code that spends budget and sets no control, and its options type and exports have no cancellation and no compute limit. With `-document` and without the option, the Document form has no charges |
 | `-expectations` | off | Let a parse record what a syntax error expects: the expected list and the messages of `@error` (see [recording expectations](error-messages.md#recording-expectations)). The parser gets the table of expectation descriptions and the parse option `WithExpectations()`; a parse records only when it passes the option, and otherwise a syntax error has the farthest position, an empty `Expected` list, no `Messages` and the message `syntax error`. Without the flag the parser has no table and no option. A `Document` fixes the choice when it is created. It covers every entry point, including typed values, `Document` and streaming, and TypeScript (`{ expectations: true }`) |
@@ -267,6 +268,25 @@ Details:
   generated for (`const _ = rt.Protocol7`), so a runtime that does not implement that protocol fails the build with
   `undefined: rt.Protocol7` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
   runtime version that implements the protocol.
+
+### Choosing Entry Points
+
+A Go parser has only the entry points you select. `Parse` and `ParseRule` build `*Node` trees and are there unless
+`-typed-only` or `-recognize-only` leaves them out; `-types` adds the typed entry points; `-recognize` adds `Recognize`;
+`-document` and `-stream` add the incremental and streaming ones. The typed-only and recognize-only forms leave out the
+code that builds untyped trees, which is most of the source of a large grammar. Combinations that cannot work are
+errors: `-typed-only` needs `-types` and has no `-document` or `-stream`, which build untyped trees, and `-recognize-only`
+has nothing else. The sizes below are the kilobytes of the generated `parser.go` (with `-nodoc -runtime import`) of
+six language grammars.
+
+| Grammar | `-types` | `-types -recognize` | `-types -typed-only` | `-types -typed-only -recognize` | `-recognize-only` |
+|:--|--:|--:|--:|--:|--:|
+| cel | 213 | 293 | 115 | 195 | 89 |
+| cue | 782 | 1,091 | 419 | 729 | 331 |
+| duckdb | 3,749 | 5,370 | 1,747 | 3,369 | 1,719 |
+| golang | 1,109 | 1,620 | 597 | 1,107 | 548 |
+| python | 1,207 | 1,763 | 657 | 1,212 | 604 |
+| typescript | 1,893 | 2,767 | 1,038 | 1,916 | 959 |
 
 ### Optimizations
 
@@ -347,7 +367,7 @@ for _, f := range files { // parser.go, api.go, types/types.go with Types, and i
 }
 ```
 
-The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`; `Optimize` is `-optimize`; `Opt: map[string]int{"class-tables": 3}` is `-opt class-tables=3`; `NoOpt: []string{"guards"}` is `-no-opt guards`; and `PrintAfter` with `PrintTo` is `-print-after` (it needs a writer, such as `os.Stderr`). `gen.TypeScript` has the same five fields. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
+The fields of `gen.Go` are the flags of `zp gen`: `Module` is `-module`; `Types: true` is `-types`; `Document` is `-document`; `Stream` is `-stream`; `Recognize` is `-recognize`; `TypedOnly` is `-typed-only`; `RecognizeOnly` is `-recognize-only`; `LimitControls` is `-limits`; `Observability` is `-observability`; `SourceInfo` is `-source-info`; `DefaultValue` is `-default-value`; `OmitPackageDoc` is `-nodoc`; `Runtime: gen.RuntimeImport` is `-runtime import`; `PackageName: "p"` is `-pkg p`; and `MaxDepth: 600_000` is `-max-depth 600000`; `Optimize` is `-optimize`; `Opt: map[string]int{"class-tables": 3}` is `-opt class-tables=3`; `NoOpt: []string{"guards"}` is `-no-opt guards`; and `PrintAfter` with `PrintTo` is `-print-after` (it needs a writer, such as `os.Stderr`). `gen.TypeScript` has the same five fields. Omitted, zero and explicit 100,000 defaults generate identical source. Observability supports standalone Go Node and typed batch parsers, including `ParseAST` and `ParseRuleAST`, Go Documents and streams, and TypeScript batch parsers with or without `-types`. Generated Go Node, typed and Document packages expose `WithProfile`; TypeScript batch packages expose `Profile` through per-call options. Typed direct execution and Node-conversion fallback report their actual rule calls; conversion itself has no separate event. Invalid defaults return an error before generated output is written.
 
 `zp gen` is a thin wrapper around `gen.Go` (and `gen.TypeScript` with `-lang ts`, whose `Generate` returns the files too); both implement `gen.Generator`. Because a grammar built with the `grammar` package (see the
 [Running Parsers](running-parsers.md#from-go-values-programmatic-grammars)) is just an AST, it can be generated from, too.
