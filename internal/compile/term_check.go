@@ -39,7 +39,7 @@ func (c *Compiler) CheckTerm(t grammar.Term, s *Scope, locals []string) {
 	case *grammar.IndexRef:
 		c.errorf(t.Diagnostic(), "positional capture $%d is removed; name the element with a capture", t.Index)
 	case *grammar.VarRef:
-		if c.Prog.Vars.lookup(t.Name) == nil {
+		if c.Prog.Vars.Lookup(t.Name) == nil {
 			c.errorf(t.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", t.Name, t.Name)
 		}
 	case *grammar.Member:

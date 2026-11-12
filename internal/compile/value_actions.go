@@ -531,7 +531,7 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 		v.errorf(t.Diagnostic(), "$%s has no value in its scope", t.Name)
 		return TyAny
 	case *grammar.VarRef:
-		if d := v.Prog.Vars.lookup(t.Name); d != nil {
+		if d := v.Prog.Vars.Lookup(t.Name); d != nil {
 			return d.Typ
 		}
 		return TyAny // an undeclared variable was reported when names were resolved
