@@ -163,6 +163,12 @@ rule S = S "w" / R "z" / "c" Bs
 rule Bs = "b" Bs / ""
 rule R = (R #cut "b" / S "y" / "c") / S "x"
 `, ClassUnknown, -1, -1}, // s4d
+	{"shared calls", "a shared call of a cycle rule lies in the growths of the unit, not of the continuation", `@start
+rule top = item* $$
+rule item = x "!" / r "?" / "."
+rule x = r "a"
+rule r = r "c" / x "d" / "e"
+`, ClassPoly, 2, -1}, // w2
 	{"thrown", "nested reads", `@start
 rule main = S $$
 rule S = S "q" / R "s" / "y"
