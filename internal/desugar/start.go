@@ -13,8 +13,9 @@ import (
 // ResolveStarts reads the declaration attributes of rules and returns the
 // start rules, the rules marked @start where parsing may begin, in declaration
 // order, and the default one, which Parse uses when no start rule is named.
-// Every declaration attribute other than @start and @start(default) is an
-// error, and so is @start on a hidden rule. A grammar needs a start rule;
+// Every declaration attribute other than @start, @start(default) and @linear
+// (which LinearDeclarations checks) is an error, and so is @start on a hidden
+// rule. A grammar needs a start rule;
 // with several, one of them must be the default.
 func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []string, def string, errs diag.ErrorList) {
 	errorf := func(pos grammar.Pos, format string, args ...any) {
@@ -27,6 +28,9 @@ func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []
 		isDefault := false
 		for _, a := range rd.Attrs {
 			control.Poll()
+			if IsLinear(a) {
+				continue // checked by LinearDeclarations
+			}
 			if a.Pragma || a.Name != "start" {
 				errorf(a.Diagnostic(), "unknown declaration attribute %s%s", AnnotationMarker(a), a.Name)
 				continue

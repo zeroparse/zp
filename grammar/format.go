@@ -20,8 +20,10 @@ func formatGrammar(g *Grammar, control *metadataControl) string {
 		}
 	}
 	if g.File.Pkg.Name != "" {
-		p.lineBreak(ownedLead(&g.File.Pkg.SourceInfo, g.File.Pkg.Break, false), "", false)
-		p.header("package", g.File.Pkg.Pos, g.File.Pkg.HeaderComments)
+		pkg := &g.File.Pkg
+		p.lineBreak(ownedLead(&pkg.SourceInfo, pkg.Break, false), "", false)
+		p.declarationAttributes(pkg.Attrs, pkg.AttrBreaks, pkg.KeywordBreak, pkg.KeywordComments, pkg.KeywordDetachedComments)
+		p.header("package", pkg.Diagnostic(), pkg.HeaderComments)
 		p.write(" " + g.File.Pkg.Name)
 		p.inline(ownedTrailing(&g.File.Pkg.SourceInfo, g.File.Pkg.Break))
 	}
@@ -402,16 +404,17 @@ func (p *printer) varDef(v *VarDef) {
 	}
 }
 
-func (p *printer) ruleDef(r *RuleDef) {
-	pollFormat(p.control)
-	// Parsed source always has a KeywordBreak; without one, the attributes
-	// write the comments they own, as a grammar decoded from JSON has them.
-	owned := r.KeywordBreak == nil
+// declarationAttributes writes the declaration attributes before the keyword
+// of a declaration, and the line break before the keyword. Parsed source
+// always has a keywordBreak; without one, the attributes write the comments
+// they own, as a grammar decoded from JSON has them.
+func (p *printer) declarationAttributes(attrs []*Attribute, attrBreaks []*LineBreak, keywordBreak *LineBreak, keywordComments string, keywordDetached []string) {
+	owned := keywordBreak == nil
 	trailed := false
-	for i, a := range r.Attrs {
+	for i, a := range attrs {
 		pollFormat(p.control)
 		if i > 0 {
-			b := breakAt(r.AttrBreaks, i)
+			b := breakAt(attrBreaks, i)
 			if inline := inlineOwnedComment(&a.SourceInfo); b == nil && owned && !trailed && inline != nil {
 				// A lone block comment between two attributes of a line is
 				// detached from both, and stays between them.
@@ -436,13 +439,18 @@ func (p *printer) ruleDef(r *RuleDef) {
 			trailed = t != nil
 		}
 	}
-	if len(r.Attrs) > 0 {
-		b := r.KeywordBreak
-		if owned && (r.KeywordComments != "" || len(r.KeywordDetachedComments) > 0) {
-			b = ownedLeadFrom(&SourceInfo{LeadingComments: r.KeywordComments, LeadingDetachedComments: r.KeywordDetachedComments}, false)
+	if len(attrs) > 0 {
+		b := keywordBreak
+		if owned && (keywordComments != "" || len(keywordDetached) > 0) {
+			b = ownedLeadFrom(&SourceInfo{LeadingComments: keywordComments, LeadingDetachedComments: keywordDetached}, false)
 		}
 		p.lineBreak(b, "", false)
 	}
+}
+
+func (p *printer) ruleDef(r *RuleDef) {
+	pollFormat(p.control)
+	p.declarationAttributes(r.Attrs, r.AttrBreaks, r.KeywordBreak, r.KeywordComments, r.KeywordDetachedComments)
 	p.header("rule", r.Diagnostic(), r.HeaderComments)
 	p.write(" " + r.Name)
 	if r.Type != nil {

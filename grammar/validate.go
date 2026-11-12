@@ -232,6 +232,10 @@ func validate(g *Grammar, control *validationControl) error {
 			if len(n.Args) != 0 && len(n.Fields) != 0 {
 				return fail("args", "a constructor takes named fields or one value, not both")
 			}
+		case *Grammar:
+			if len(n.File.Pkg.Attrs) > 0 && n.File.Pkg.Name == "" {
+				return fail("file.pkg.attrs", "declaration attributes of the package clause need a package name")
+			}
 		case *RuleDef:
 			if n.DefaultAction && n.Action != nil {
 				return fail("action", "default action cannot also contain an action expression")
@@ -263,6 +267,9 @@ func validate(g *Grammar, control *validationControl) error {
 		case *Grammar:
 			for i := len(n.File.Decls) - 1; i >= 0; i-- {
 				push(n.File.Decls[i], "file.decls", i, false)
+			}
+			for i := len(n.File.Pkg.Attrs) - 1; i >= 0; i-- {
+				push(n.File.Pkg.Attrs[i], "file.pkg.attrs", i, false)
 			}
 		case *TypeDef:
 			push(n.Type, "type", -1, false)

@@ -299,6 +299,10 @@ func (a *analysis) markAttributeName(at *grammar.Attribute) {
 // collect records the definitions and the occurrences of names in the grammar.
 func (a *analysis) collectControlled(control *renderControl) {
 	control.poll()
+	for _, at := range a.g.File.Pkg.Attrs {
+		control.poll()
+		a.markAttributeName(at)
+	}
 	a.mark(a.g.File.Pkg.SourceInfo.Diagnostic(), semKeyword, 0)
 	for _, s := range a.g.File.Decls {
 		control.poll()

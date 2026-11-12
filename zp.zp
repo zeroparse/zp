@@ -16,8 +16,8 @@ type VarRef = node[string]
 
 type File = { Pkg *PkgDecl; Decls []Decl; Comments []Comment; TrailingComments []Comment; Text string; Head SourceLead; Gaps []CommentGap }
 type PkgDecl ~ Pkg | error
-type Pkg = { Name Ident; Comments []Comment; Source SourceMetadata }
-type PkgBody = { Name Ident }
+type Pkg = { Attrs []Attr; Name Ident; Comments []Comment; Source SourceMetadata }
+type PkgBody = { Attrs []Attr; AttrComments []Comment; Name Ident }
 // Ownership is constructed at syntax boundaries; the adapter only converts spans.
 // A statement in a list cannot see the boundary before it, so it records the
 // boundary after it: its own trailing group, and the leading and detached groups
@@ -166,13 +166,16 @@ rule file_contents File = (
     decls:(d:decl)*
     tc:comments $$
 ) => File{Pkg: $pkg, Decls: map($decls, (x) => x.$d), TrailingComments: $tc, Head: $head}
-rule package_entry PkgDecl = &(comments "package" !ident_char) p:(package_stmt #recover(skip=stmt_sync)) => $p
+rule package_entry PkgDecl = &(comments (package_attrs / "package" !ident_char)) p:(package_stmt #recover(skip=stmt_sync)) => $p
+// The attributes of the package clause reach a line that starts with "package".
+rule package_attrs = "@" (!("package" !ident_char) attr_unit / nl comments &"@")* nl comments "package" !ident_char
 rule package_stmt Pkg = (
     &lead:source_remaining cs:comments
     body:package_body &tail:source_item_tail tc:stmt_end
 ) => Pkg{
+    Attrs: $body.Attrs,
     Name: $body.Name,
-    Comments: concat($cs, $tc),
+    Comments: concat($cs, $body.AttrComments, $tc),
     Source: SourceMetadata{
         Span: $body,
         Leading: $lead.Leading,
@@ -182,8 +185,13 @@ rule package_stmt Pkg = (
     },
 }
 rule package_body PkgBody = (
+    attrs:(a:attr gap:decl_attr_gap)*
     "package" -word_end #cut name:(ident @error(message="expected package name"))
-) => PkgBody{Name: $name}
+) => PkgBody{
+    Attrs: map($attrs, (x) => x.$a),
+    AttrComments: foldl(list(), $attrs, (all, x) => concat(all, x.$gap)),
+    Name: $name,
+}
 rule decl Decl = (
     !(comments $$)
     d:((type_decl / var_decl / rule_decl / _|_ @error(message="expected type, var or rule declaration")) #recover(skip=stmt_sync))

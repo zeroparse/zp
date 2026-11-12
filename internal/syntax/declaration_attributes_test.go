@@ -81,8 +81,8 @@ func TestDeclarationAttributesErrors(t *testing.T) {
 		{"@start rule a = \"x\"\n", "1:8: expected a newline between the declaration attributes and 'rule'"},
 		{"@start /* c */ rule a = \"x\"\n", "1:16: expected a newline between the declaration attributes and 'rule'"},
 		{"@start @foo rule a = \"x\"\n", "1:13: expected a newline between the declaration attributes and 'rule'"},
-		{"@start\ntype T = node[string]\n", "2:1: only rule declarations take attributes, found 'type'"},
-		{"@start\nvar v = 1\nrule a = \"x\"\n", "2:1: only rule declarations take attributes, found 'var'"},
+		{"@start\ntype T = node[string]\n", "2:1: only rule declarations and the package clause take attributes, found 'type'"},
+		{"@start\nvar v = 1\nrule a = \"x\"\n", "2:1: only rule declarations and the package clause take attributes, found 'var'"},
 		{"@start\n", "2:1: expected 'rule' after the declaration attributes, found end of file"},
 		{"@start\nfoo\n", "2:1: expected 'rule' after the declaration attributes, found 'foo'"},
 		{"@ start\nrule a = \"x\"\n", "1:3: attribute name must immediately follow '@'"},
@@ -192,5 +192,110 @@ func TestDeclarationAttributesFormatWithoutLayout(t *testing.T) {
 	g.Rules()[0].Attrs[1].Name = "1x"
 	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "attrs[1]") {
 		t.Errorf("an invalid attribute name: %v", err)
+	}
+}
+
+// The package clause takes declaration attributes on the lines before
+// "package", as a rule does before "rule".
+func TestPackageAttributesParse(t *testing.T) {
+	const src = "// lead\n@linear @foo\n@bar\npackage p\n\n@linear\nrule a = \"x\"\n"
+	g, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg := g.File.Pkg
+	var names []string
+	for _, a := range pkg.Attrs {
+		names = append(names, a.Name)
+	}
+	if got := strings.Join(names, " "); got != "linear foo bar" || pkg.Name != "p" {
+		t.Fatalf("package %q attributes %q", pkg.Name, got)
+	}
+	// The clause starts at its first attribute; its diagnostics point at "package".
+	if pkg.Pos != (grammar.Pos{Line: 2, Col: 1}) || pkg.Diagnostic() != (grammar.Pos{Line: 4, Col: 1}) {
+		t.Errorf("pos %v diagnostic %v", pkg.Pos, pkg.Diagnostic())
+	}
+	if len(pkg.AttrBreaks) != 3 || pkg.AttrBreaks[1] != nil || pkg.AttrBreaks[2] == nil || pkg.KeywordBreak == nil {
+		t.Errorf("breaks %v keyword %v", pkg.AttrBreaks, pkg.KeywordBreak)
+	}
+	if rules := g.Rules(); len(rules) != 1 || len(rules[0].Attrs) != 1 || rules[0].Attrs[0].Name != "linear" {
+		t.Errorf("rules %v", rules)
+	}
+	// Attributes before the first rule of a file without a package clause
+	// stay the rule's.
+	g, err = Parse("@linear\nrule a = \"x\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.File.Pkg.Attrs) != 0 || len(g.Rules()[0].Attrs) != 1 {
+		t.Errorf("package %v rule %v", g.File.Pkg.Attrs, g.Rules()[0].Attrs)
+	}
+}
+
+func TestPackageAttributesErrors(t *testing.T) {
+	for _, tc := range []struct{ src, want string }{
+		{"@linear package p\nrule a = \"x\"\n", "1:9: expected 'rule' after the declaration attributes, found 'package'"},
+		{"rule a = \"x\"\n@linear\npackage p\n", "3:1: expected 'rule' after the declaration attributes, found 'package'"},
+		// Unclosed arguments do not reach "package", so they are a rule's.
+		{"@linear(\npackage p\nrule a = \"x\"\n", "3:8: expected ',', found '='"},
+	} {
+		_, err := Parse(tc.src)
+		if err == nil || err.Error() != tc.want {
+			t.Errorf("%q\n got %v\nwant %s", tc.src, err, tc.want)
+		}
+	}
+}
+
+func TestPackageAttributesFormat(t *testing.T) {
+	for _, tc := range []struct{ name, src, want string }{
+		{"one", "@linear\npackage p\nrule a = \"x\"\n", "@linear\npackage p\nrule a = \"x\"\n"},
+		{"several on a line", "@linear   @foo\npackage p\n", "@linear @foo\npackage p\n"},
+		{
+			"comments around and between",
+			"// lead\n@linear @foo // trail\n// between\n@bar /* in */ @baz\n\n// before package\npackage p // after\n\nrule a = \"x\"\n",
+			"// lead\n@linear @foo // trail\n// between\n@bar /* in */ @baz\n\n// before package\npackage p // after\n\nrule a = \"x\"\n",
+		},
+		{"comment in the header", "@linear\npackage /* c */ p\n", "@linear\npackage /* c */ p\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, err := Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := grammar.Format(g); got != tc.want {
+				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
+			}
+			if problem := checkRandomFormat(tc.src, g); problem != "" {
+				t.Error(problem)
+			}
+			data, err := grammar.MarshalJSON(g)
+			if err != nil {
+				t.Fatal(err)
+			}
+			decoded, err := grammar.UnmarshalJSON(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// JSON keeps the attributes and their comments, though not every
+			// blank line of the layout.
+			if a, b := g.File.Pkg, decoded.File.Pkg; len(a.Attrs) != len(b.Attrs) || a.Name != b.Name || a.KeywordComments != b.KeywordComments {
+				t.Errorf("from JSON got %+v\nwant %+v", b, a)
+			}
+		})
+	}
+	// Without source layout, the attributes share a line before "package".
+	g := &grammar.Grammar{File: grammar.File{
+		Pkg:   grammar.Pkg{Attrs: []*grammar.Attribute{{Name: "linear"}, {Name: "foo"}}, Name: "p"},
+		Decls: []grammar.Decl{&grammar.RuleDef{Name: "a", Expr: &grammar.Literal{Value: "x"}}},
+	}}
+	if got, want := grammar.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	if err := grammar.Validate(g); err != nil {
+		t.Error(err)
+	}
+	g.File.Pkg.Name = ""
+	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "file.pkg.attrs") {
+		t.Errorf("attributes without a package name: %v", err)
 	}
 }

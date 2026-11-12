@@ -11,6 +11,7 @@ input. The linter finds them, and other likely mistakes, by reading the grammar 
 | Machine-readable output | `-f json` | `[]lint.Finding` |
 | Turn checks off | `-disable check,...` | `lint.Config{Disable: []string{...}}` |
 | Classify the parse cost | `-classify` | `lint.Config{Classify: true}` |
+| Require linear cost | `@linear` in the grammar | `@linear` in the grammar |
 | Fail on warnings too | `-strict` | check `Finding.Severity` |
 | List the checks | `-list` | `lint.Checks()` |
 
@@ -20,6 +21,7 @@ design, and how the checks are kept free of false positives, is in
 
 - [On the command line](#on-the-command-line)
 - [Classifying the parse cost](#classifying-the-parse-cost)
+- [Declaring linear cost](#declaring-linear-cost)
 - [From Go](#from-go)
 - [Severities](#severities)
 - [The checks](#the-checks)
@@ -134,6 +136,43 @@ witnessed degree of an unknown one, and every witness and reason.
 
 Without `-classify` the linter does not classify the cost and reports no `super-linear` hint, so the default output
 stays free of estimates. The [`growing-variable`](#growing-variable) warning needs no request.
+
+## Declaring Linear Cost
+
+`-classify` reports the cost; `@linear` requires it. On the package clause it declares that parsing from every start
+rule costs linear time, and compiling the grammar fails with an error at each cause or reason that the classifier
+cannot rule out, so the grammar stays linear as it changes. The same grammar as above, declared linear:
+
+<!-- example: error -->
+```zp
+// linear.zp
+@linear
+package scan
+
+@start
+rule main = (A / "a")* $$
+
+rule A = "a"* "c"
+```
+
+```bash
+zp lint -g linear.zp
+```
+
+```text
+zp: linear.zp:8:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 6:14 in rule main fails, the later alternative "a" at 6:18 in rule main can start again inside the input that the repetition "a"* at 8:10 in rule A examined; this repeats in the repetition (A / "a")* at 6:13 in rule main; rewrite it so that the cost stays linear (see https://zeroparse.dev/docs/cookbook/linear-rewrites/)
+```
+
+Every command that compiles the grammar, `zp parse` and `zp gen` among them, fails the same way, and so do `zp.Compile`
+and the editor. The cookbook recipe that the error links to, Rewrite a Grammar to Linear Cost, has a rewrite for each
+cause; here `A = "a" "c"` makes the grammar valid.
+
+`@linear` on the line before a rule declares the cost of parsing that begins at that rule, as if it were the start
+rule, together with every rule it calls and the skip expressions of its `#recover`. Declare the rules whose cost you
+want to keep, such as a statement rule that an editor reparses, when the grammar as a whole is not linear yet. In the
+grammar above, `@linear` on `A` is valid, since `A` alone scans once: the restart is caused by `main`, which the
+declaration on `A` does not cover. The class linear given an environment bound does not satisfy `@linear`; its reasons
+are the errors. The exact rules are in [Declared Linear Cost](../../spec/language/grammar-files.md#declared-linear-cost).
 
 ## From Go
 

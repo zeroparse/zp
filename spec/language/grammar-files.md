@@ -47,7 +47,8 @@ grammar (see [Start Rules](#start-rules)).
 ### Package Clause
 
 `package <name>` names the package of the grammar, with an identifier. If
-present, it MUST be the first item of the file. The package name does not
+present, it MUST be the first item of the file, after its
+[declaration attributes](#declaration-attributes), if any. The package name does not
 affect parsing. The reference implementation records it, writes it back when
 it formats the grammar; the package name of generated Go code is given when the
 code is generated.
@@ -94,7 +95,9 @@ trailing comment, and a lone block comment detached between two attributes of a
 line stays between them. The rule declaration owns the comments on the lines
 between its last attribute and `rule`, as `keywordComments` and
 `keywordDetachedComments` (`RuleDef.KeywordComments` and
-`RuleDef.KeywordDetachedComments`), and they are written there. The comments inside a declaration header, between the keyword and the end of
+`RuleDef.KeywordDetachedComments`), and they are written there. The declaration
+attributes of the package clause and the comments before `package` are owned
+in the same way, by `Pkg`. The comments inside a declaration header, between the keyword and the end of
 the header (`rule /* c */ main /* d */ = ...`, the name, type and `~` or `=` of a
 type or variable declaration, and the package name), belong to the declaration as
 `headerComments`, one normalized string per comment in source order, and a
@@ -393,12 +396,12 @@ position (see [Rule Calls](parser-expressions.md#rule-calls)).
 
 ### Declaration Attributes
 
-A Rule Declaration Statement may begin with declaration attributes, written
-`@name` or `@name(arguments)` on the lines before `rule`. Several attributes may
-share a line, and further lines of attributes may follow; a newline MUST
-separate the last attribute from `rule`. Comments may occur between the
-attributes and before `rule`. The arguments follow the attribute argument
-syntax of [Attributes](attributes.md).
+A Rule Declaration Statement or the package clause may begin with declaration
+attributes, written `@name` or `@name(arguments)` on the lines before `rule` or
+`package`. Several attributes may share a line, and further lines of attributes
+may follow; a newline MUST separate the last attribute from `rule` or `package`.
+Comments may occur between the attributes and before the keyword. The arguments
+follow the attribute argument syntax of [Attributes](attributes.md).
 
 ```zp
 // The rule where parsing begins.
@@ -407,9 +410,13 @@ rule main = item*
 rule item = "a"
 ```
 
-Only Rule Declaration Statements take declaration attributes: attributes
-before `type` or `var` are a syntax error. The only declaration attribute is
-`@start`, defined in [Start Rules](#start-rules); any other is a grammar error.
+Only Rule Declaration Statements and the package clause take declaration
+attributes: attributes before `type` or `var` are a syntax error. Attributes
+before the first rule of a file without a package clause belong to that rule.
+The declaration attributes of a rule are `@start`, defined in
+[Start Rules](#start-rules), and `@linear`, defined in
+[Declared Linear Cost](#declared-linear-cost); the only declaration attribute of
+the package clause is `@linear`. Any other is a grammar error.
 
 ## Names
 
@@ -457,6 +464,54 @@ grammar has no other error, so the errors of a grammar under construction come
 first. How a parse selects its start rule is described in
 [Start Rule](../runtime/parsing.md#start-rule).
 
+## Declared Linear Cost
+
+`@linear` declares that parsing costs at most proportional to the length of the
+input: the [class Linear](../runtime/parsing.md#classification). It takes no
+arguments and MUST appear at most once on a declaration.
+
+- On the package clause, it declares the cost of parsing from every start rule.
+- On a rule, it declares the cost of parsing that begins at the rule, as if the
+  rule were the start rule, whether or not it is one.
+
+A declaration covers every rule that parsing from its rule reaches, through rule
+calls, the expressions of [attributes and pragmas](pragmas.md), including the
+skip expressions of [`#recover`](pragmas.md#recover), and Operators Rules. The
+declaration is a check of the grammar and changes neither matching nor values
+nor cost.
+
+The grammar is valid only if the [classification](../runtime/parsing.md#classification)
+from each declared rule is Linear. Otherwise each cause of the classification,
+each reason for the class unknown, and, for the class linear given an
+environment bound, each reason for the bound, is an error at its position in the
+grammar, or at its rule when it has none. A cause that two declarations share is
+reported once. The error names the declaration, gives the witness or reason of
+the classification and suggests rewriting the construct, with a link to the
+recipe of linear rewrites in the documentation. The check rests on
+the classification, which can be pessimistic: a grammar whose parses do cost
+linear time is rejected when the classifier cannot prove it.
+
+```zp
+@linear
+package scan
+
+@start
+rule main = (A / "a")* $$
+rule A = "a" "c"
+```
+
+This grammar is valid. With `rule A = "a"* "c"`, a failed `A` gives back the
+input that `"a"*` scanned, the cost from `main` grows as n², and the grammar is
+invalid:
+
+```text
+scan.zp:6:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 5:14 in rule main fails, the later alternative "a" at 5:18 in rule main can start again inside the input that the repetition "a"* at 6:10 in rule A examined; this repeats in the repetition (A / "a")* at 5:13 in rule main; rewrite it so that the cost stays linear (see https://zeroparse.dev/docs/cookbook/linear-rewrites/)
+```
+
+`@linear` on `A` alone is valid in that grammar: parsing that begins at `A`
+scans once. The restart is the doing of `main`, which the declaration on `A`
+does not cover.
+
 ## Errors in a Grammar
 
 A grammar with an error cannot be used to parse. Each error is reported with
@@ -469,11 +524,14 @@ the line and column of the construct it concerns in the grammar source (see
 | Definition and reference errors | A name defined twice, a variable that is read or bound but not declared, a variable declared with an unsupported type or an initial value of another type, a reserved or non-uppercase-ASCII type name, an undefined rule, a call with an unknown level, a capture of an expression without a value, an unknown attribute or pragma, a header comment, a `#stream` outside its permitted position, a binding before a left-recursive call of a variable the [left recursion](parser-expressions.md#left-recursion) reads | The chapter of the construct |
 | Start rule errors | No start rule, several start rules without a default, two defaults, `@start` on a hidden rule | [Start Rules](#start-rules) |
 | Type errors | A field that the struct does not declare, a value that is not assignable to the declared type | [Type Checking](type-checking.md#checked-errors) |
+| Declaration attribute errors | An unknown declaration attribute, `@linear` with arguments or twice on a declaration | [Declaration Attributes](#declaration-attributes) |
+| Declared cost errors | A construct whose cost the classifier cannot prove linear inside the scope of `@linear` | [Declared Linear Cost](#declared-linear-cost) |
 
 The reference implementation reports all lexical and syntax errors of a file
 (at most 100), then, if there are none, all definition and reference errors,
-then, if there are none, the type errors, and then, if there are none, the
-start rule errors. This file has three definition
+then, if there are none, the type errors, then, if there are none, the
+start rule and declaration attribute errors, and then, if there are none, the
+declared cost errors. This file has three definition
 and reference errors:
 
 ```zp

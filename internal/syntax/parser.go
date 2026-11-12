@@ -450,23 +450,8 @@ var keywords = map[string]bool{
 func (p *parser) file() *grammar.Grammar {
 	g := &grammar.Grammar{}
 
-	if p.is("package") {
-		packageStart := p.i
-		g.File.Pkg.Break = p.statementBreak()
-		restore := p.statement()
-		g.File.Pkg.SourceInfo.Pos = p.next().pos
-		p.header = true
-		p.headerPos = g.File.Pkg.SourceInfo.Pos
-		headerFrom := len(p.headerComments)
-		func() {
-			defer func() { p.header = false; g.File.Pkg.HeaderComments = p.headerContents(headerFrom) }()
-			defer p.recover() // a missing name skips to the first definition
-			g.File.Pkg.Name = p.ident().text
-		}()
-		restore()
-		p.source(&g.File.Pkg.SourceInfo, packageStart)
-		p.declarationEnd()
-		p.sourceTrailing(&g.File.Pkg.SourceInfo)
+	if p.is("package") || p.is("@") && p.attributesReach(p.i, "package") {
+		p.packageClause(&g.File.Pkg)
 	}
 	for p.tok().kind != tEOF {
 		start := p.i
@@ -510,6 +495,41 @@ func (p *parser) file() *grammar.Grammar {
 		g.File.End = p.toks[p.i-1].end
 	}
 	return g
+}
+
+// packageClause parses the package clause, with its declaration attributes.
+func (p *parser) packageClause(pkg *grammar.Pkg) {
+	packageStart := p.i
+	pkg.Break = p.statementBreak()
+	parsed := false
+	func() {
+		defer p.recover() // malformed attributes skip the clause to the first definition
+		pkg.Attrs, pkg.AttrBreaks, pkg.KeywordBreak = p.declarationAttributes("package")
+		parsed = true
+	}()
+	if !parsed {
+		return
+	}
+	if b := p.toks[p.i].source; len(pkg.Attrs) > 0 && b != nil && b.hasNext {
+		// No source-bearing node starts at "package" after attributes, so the
+		// clause owns the comments before it.
+		pkg.KeywordComments = b.leading
+		pkg.KeywordDetachedComments = append([]string(nil), b.detached...)
+	}
+	restore := p.statement()
+	pkg.SourceInfo.Pos = p.next().pos
+	p.header = true
+	p.headerPos = pkg.SourceInfo.Pos
+	headerFrom := len(p.headerComments)
+	func() {
+		defer func() { p.header = false; pkg.HeaderComments = p.headerContents(headerFrom) }()
+		defer p.recover() // a missing name skips to the first definition
+		pkg.Name = p.ident().text
+	}()
+	restore()
+	p.source(&pkg.SourceInfo, packageStart)
+	p.declarationEnd()
+	p.sourceTrailing(&pkg.SourceInfo)
 }
 
 // declarationEnd consumes explicit separators, otherwise requiring a new
@@ -567,6 +587,13 @@ func (p *parser) attributesStart(i int) bool {
 	if t := p.toks[i]; t.kind != tPunct || t.text != "@" || !t.lineBefore {
 		return false
 	}
+	return p.attributesReach(i, "rule")
+}
+
+// attributesReach reports whether the "@" at token i reaches a line that starts
+// with keyword through attributes alone, without an "=" outside their
+// parentheses.
+func (p *parser) attributesReach(i int, keyword string) bool {
 	depth := 0
 	for j := i + 1; j < len(p.toks); j++ {
 		p.poll()
@@ -575,7 +602,7 @@ func (p *parser) attributesStart(i int) bool {
 		case t.kind == tEOF:
 			return false
 		case depth == 0 && t.lineBefore:
-			if t.kind == tIdent && t.text == "rule" {
+			if t.kind == tIdent && t.text == keyword {
 				return true
 			}
 			if t.kind != tPunct || t.text != "@" {
@@ -920,7 +947,7 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 	}()
 
 	br := p.statementBreak()
-	attrs, attrBreaks, keywordBreak := p.declarationAttributes()
+	attrs, attrBreaks, keywordBreak := p.declarationAttributes("rule")
 	keyword := p.i
 	pos := p.expect("rule").pos
 	p.header, p.layout, p.layoutDepth, p.layoutStart = true, true, 0, p.i-1
@@ -981,10 +1008,11 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 	return rd
 }
 
-// declarationAttributes parses the attributes before "rule". Several may share
-// a line, and the last one ends its line. Each attribute that starts a line
-// after the first has a line break, and so does "rule" after them.
-func (p *parser) declarationAttributes() (attrs []*grammar.Attribute, breaks []*grammar.LineBreak, keyword *grammar.LineBreak) {
+// declarationAttributes parses the attributes before keyword, "rule" or
+// "package". Several may share a line, and the last one ends its line. Each
+// attribute that starts a line after the first has a line break, and so does
+// the keyword after them.
+func (p *parser) declarationAttributes(keyword string) (attrs []*grammar.Attribute, breaks []*grammar.LineBreak, keywordBreak *grammar.LineBreak) {
 	for p.is("@") {
 		var b *grammar.LineBreak
 		var gap []*grammar.Comment
@@ -1011,16 +1039,16 @@ func (p *parser) declarationAttributes() (attrs []*grammar.Attribute, breaks []*
 	if len(attrs) == 0 {
 		return nil, nil, nil
 	}
-	if !p.is("rule") {
+	if !p.is(keyword) {
 		if p.is("type") || p.is("var") {
-			p.errorf("only rule declarations take attributes, found %s", p.tok())
+			p.errorf("only rule declarations and the package clause take attributes, found %s", p.tok())
 		} else {
-			p.errorf("expected 'rule' after the declaration attributes, found %s", p.tok())
+			p.errorf("expected '%s' after the declaration attributes, found %s", keyword, p.tok())
 		}
 		panic(bail{})
 	}
 	if !p.tok().lineBefore {
-		p.errorf("expected a newline between the declaration attributes and 'rule'")
+		p.errorf("expected a newline between the declaration attributes and '%s'", keyword)
 		panic(bail{})
 	}
 	return attrs, breaks, p.lineBreak()

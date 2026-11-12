@@ -40,10 +40,19 @@ type File struct {
 	HeaderComments []*Comment `json:"-"`
 }
 
-// Pkg is the package clause (package Name). A file without one has the zero Pkg.
+// Pkg is the package clause (package Name), with the declaration attributes
+// written on the lines before it (@linear). A file without one has the zero Pkg.
 type Pkg struct {
 	SourceInfo `json:"source,omitempty"`
-	Name       string `json:"name,omitempty"`
+	// Attrs are the declaration attributes, in source order. Pos is the
+	// position of the first attribute when there are any; Diagnostic is
+	// then the position of "package".
+	Attrs []*Attribute `json:"attrs,omitempty"`
+	Name  string       `json:"name,omitempty"`
+	// KeywordComments and KeywordDetachedComments are the comments between
+	// the last attribute and "package", as for RuleDef.
+	KeywordComments         string   `json:"keywordComments,omitempty"`
+	KeywordDetachedComments []string `json:"keywordDetachedComments,omitempty"`
 
 	// HeaderComments are the normalized contents of the comments inside the
 	// declaration header, between the keyword and the end of the header, in
@@ -51,8 +60,13 @@ type Pkg struct {
 	// break. Format writes them after the keyword.
 	HeaderComments []string `json:"headerComments,omitempty"`
 
-	// Break holds the comments before the package clause (see LineBreak).
+	// Break holds the comments before the package clause (see LineBreak):
+	// before its first attribute, if it has any.
 	Break *LineBreak `json:"-"`
+	// AttrBreaks and KeywordBreak place the attributes and "package" on
+	// lines, as for RuleDef.
+	AttrBreaks   []*LineBreak `json:"-"`
+	KeywordBreak *LineBreak   `json:"-"`
 }
 
 // Rules returns the rule declarations of the grammar in declaration order.

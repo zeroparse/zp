@@ -303,10 +303,31 @@ func (c *canonical) tokensEnd(root *value.Node) int {
 func (c *canonical) pkg(p *grammar.Pkg, n *value.Node) {
 	body := nodeField(nodeField(n, "Source"), "Span")
 	p.Name = textField(n, "Name")
+	attrs := listField(n, "Attrs")
+	keyword := body.Start()
+	for _, attr := range attrs {
+		p.Attrs = append(p.Attrs, c.attr(attr))
+	}
+	if len(attrs) > 0 {
+		keyword = c.nextToken(attrs[len(attrs)-1].End())
+		// No source-bearing node starts at "package" after attributes, so the
+		// clause owns the comments before it.
+		for _, g := range c.gapList {
+			if g.End == keyword && g.HasNext {
+				p.KeywordComments = g.Leading
+				p.KeywordDetachedComments = append([]string(nil), g.Detached...)
+			}
+		}
+	}
 	i := c.span(&p.SourceInfo, body)
 	c.joined(i, c.separators(body.End(), ';', 1<<30))
+	if len(attrs) > 0 {
+		// The hand-written parser gives a clause with attributes the position
+		// of "package" for diagnostics.
+		c.created(i, keyword)
+	}
 	name := nodeField(n, "Name")
-	p.HeaderComments = c.commentsIn(body.Start()+len("package"), name.Start())
+	p.HeaderComments = c.commentsIn(keyword+len("package"), name.Start())
 }
 
 func (c *canonical) decl(d *value.Node) grammar.Decl {
