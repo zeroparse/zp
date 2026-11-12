@@ -227,7 +227,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: negation becomes not", `c.P.TermUnary(rt.OpNeg,`, `c.P.TermUnary(rt.OpNot,`},
 		{"lowered: not becomes negation", `c.P.TermUnary(rt.OpNot,`, `c.P.TermUnary(rt.OpNeg,`},
 		{"lowered: end is read as start", `rt.MemberEnd,`, `rt.MemberStart,`},
-		{"lowered: a failure is not raised", `panic(tf`, `_ = (tf`},
+		{"lowered: a failure is not returned", `return nil, tf`, `_ = tf`},
 		{"lowered: a logical operator always evaluates its right operand", `if !tb`, `if true || !tb`},
 		{"lowered: a logical operator always evaluates its right operand (||)", `if tb`, `if true || tb`},
 		{"lowered: a text equality is negated", `any(c.P.TextEqual(`, `any(!c.P.TextEqual(`},
@@ -262,7 +262,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: negation becomes not", `c.p.termUnary(0,`, `c.p.termUnary(1,`},
 		{"lowered: not becomes negation", `c.p.termUnary(1,`, `c.p.termUnary(0,`},
 		{"lowered: length becomes zero", `c.p.termLength(`, `((x: Value): [Value, Value] => (c.p.termLength(x), [0, null]))(`},
-		{"lowered: a failure is not raised", `evalError(tf`, `void (tf`},
+		{"lowered: a failure is not returned", `return [null, tf`, `[null, tf`},
 		{"lowered: a logical operator always evaluates its right operand", `if (!tb`, `if (true || !tb`},
 		{"lowered: a logical operator always evaluates its right operand (||)", `if (tb`, `if (true || tb`},
 	} {

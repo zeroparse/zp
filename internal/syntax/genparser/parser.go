@@ -2606,36 +2606,36 @@ func init() {
 		Skip: e429,
 		Operands: []*rt.TOperatorsRuleLine{
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e430, Action: nil, Value: sh24},
-			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e431, Action: func(c *rt.TActCtx) any {
+			&rt.TOperatorsRuleLine{Scope: []string{"name", "args"}, M: e431, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeApp(c, true, c.Cap(0), c.Cap(1))
-				return tv1
+				return tv1, nil
 			}, Value: sh26},
-			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e432, Action: func(c *rt.TActCtx) any {
+			&rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e432, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_TypeRef(c, true, c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh25},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e433, Action: func(c *rt.TActCtx) any {
-				return c.Cap(0)
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e433, Action: func(c *rt.TActCtx) (any, any) {
+				return c.Cap(0), nil
 			}, Value: sh4},
-			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e434, Action: func(c *rt.TActCtx) any {
-				return c.Cap(0)
+			&rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e434, Action: func(c *rt.TActCtx) (any, any) {
+				return c.Cap(0), nil
 			}, Value: sh4},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e439, Action: func(c *rt.TActCtx) any {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e439, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_ListType(c, true, (c.Rhs))
-			return tv1
+			return tv1, nil
 		}, Value: sh24}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e440, Action: func(c *rt.TActCtx) any {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e440, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OptionalType(c, true, (c.Rhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh24}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e436, Action: func(c *rt.TActCtx) any {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e436, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_JoinType(c, true, (c.Lhs), (c.Rhs))
-			return tv1
+			return tv1, nil
 		}, Value: sh24}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e438, Action: func(c *rt.TActCtx) any {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e438, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MeetType(c, true, (c.Lhs), (c.Rhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh24}}},
 	}
 	trules[60].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[60], min) }
@@ -2644,84 +2644,84 @@ func init() {
 		Operands: []*rt.TOperatorsRuleLine{
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e441, Action: nil, Value: sh24},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e444, Action: func(c *rt.TActCtx) any {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e444, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Capture(c, true, c.Cap(0), (c.Rhs))
-			return tv1
+			return tv1, nil
 		}, Value: sh26}},
-			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e446, Action: func(c *rt.TActCtx) any {
+			{Id: 3, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e446, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2 := tmk_Lookahead(c, true, any(ts1), (c.Rhs))
-				return tv2
+				return tv2, nil
 			}, Value: sh24}},
-			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e447, Action: func(c *rt.TActCtx) any {
+			{Id: 4, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e447, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Discard(c, true, (c.Rhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh25}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e442, Action: func(c *rt.TActCtx) any {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e442, Action: func(c *rt.TActCtx) (any, any) {
 			tv1 := tmk_Choice(c, true, (c.Lhs), (c.Rhs))
-			return tv1
+			return tv1, nil
 		}, Value: sh24}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e443, Action: func(c *rt.TActCtx) any {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e443, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Sequence(c, true, (c.Lhs), (c.Rhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh10}},
-			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e449, Action: func(c *rt.TActCtx) any {
+			{Id: 5, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e449, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Optional(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh24}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e440, Action: func(c *rt.TActCtx) any {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e440, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_ZeroOrMore(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh24}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) any {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e451, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_OneOrMore(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh24}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) any {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e453, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Atomic(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e455, Action: func(c *rt.TActCtx) any {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e455, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Stream(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e457, Action: func(c *rt.TActCtx) any {
+			{Id: 10, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e457, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_MissingPragma(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh25}},
-			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e458, Action: func(c *rt.TActCtx) any {
+			{Id: 11, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e458, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_IgnoreCase(c, true, (c.Lhs))
-				return tv1
+				return tv1, nil
 			}, Value: sh25}},
-			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e460, Action: func(c *rt.TActCtx) any {
+			{Id: 12, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"bounds"}, M: e460, Action: func(c *rt.TActCtx) (any, any) {
 				tv1, tf1 := c.P.TermMember(c, rt.MemberField, c.Cap(0), "Min", "Min")
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2, tf2 := c.P.TermMember(c, rt.MemberField, c.Cap(0), "Max", "Max")
 				if tf2 != nil {
-					panic(tf2)
+					return nil, tf2
 				}
 				tv3, tf3 := c.P.TermMember(c, rt.MemberField, c.Cap(0), "Range", "Range")
 				if tf3 != nil {
-					panic(tf3)
+					return nil, tf3
 				}
 				tv4 := tmk_Repeat(c, true, (c.Lhs), tv1, tv2, tv3)
-				return tv4
+				return tv4, nil
 			}, Value: sh26}},
-			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e462, Action: func(c *rt.TActCtx) any {
+			{Id: 13, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"sync"}, M: e462, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Recover(c, true, (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e463, Action: func(c *rt.TActCtx) any {
+			{Id: 14, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{"a"}, M: e463, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Attributed(c, true, (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh4}},
-			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e464, Action: func(c *rt.TActCtx) any {
-				return (c.Lhs)
+			{Id: 15, Kind: "postfix", Assoc: "", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e464, Action: func(c *rt.TActCtx) (any, any) {
+				return (c.Lhs), nil
 			}, Value: sh24}}},
 	}
 	trules[79].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[79], min) }
@@ -2738,69 +2738,69 @@ func init() {
 		Operands: []*rt.TOperatorsRuleLine{
 			&rt.TOperatorsRuleLine{Scope: []string{}, M: e466, Action: nil, Value: sh24},
 		},
-		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e481, Action: func(c *rt.TActCtx) any {
+		Prefix: []*rt.TOperatorsRuleOp{{Id: 5, Kind: "prefix", Assoc: "", Level: 6, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e481, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
-				panic(tf1)
+				return nil, tf1
 			}
 			tv2 := tmk_UnaryOp(c, true, any(ts1), (c.Rhs))
-			return tv2
+			return tv2, nil
 		}, Value: sh24}}},
-		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e468, Action: func(c *rt.TActCtx) any {
+		Led: []*rt.TOperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e468, Action: func(c *rt.TActCtx) (any, any) {
 			ts1, tf1 := c.P.TermText((c.Op))
 			if tf1 != nil {
-				panic(tf1)
+				return nil, tf1
 			}
 			tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
-			return tv2
+			return tv2, nil
 		}, Value: sh24}},
-			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e470, Action: func(c *rt.TActCtx) any {
+			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e470, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
-				return tv2
+				return tv2, nil
 			}, Value: sh24}},
-			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e477, Action: func(c *rt.TActCtx) any {
+			{Id: 2, Kind: "infix", Assoc: "none", Level: 3, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e477, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
-				return tv2
+				return tv2, nil
 			}, Value: sh24}},
-			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e478, Action: func(c *rt.TActCtx) any {
+			{Id: 3, Kind: "infix", Assoc: "left", Level: 4, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e478, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
-				return tv2
+				return tv2, nil
 			}, Value: sh24}},
-			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e480, Action: func(c *rt.TActCtx) any {
+			{Id: 4, Kind: "infix", Assoc: "left", Level: 5, Line: &rt.TOperatorsRuleLine{Scope: []string{}, M: e480, Action: func(c *rt.TActCtx) (any, any) {
 				ts1, tf1 := c.P.TermText((c.Op))
 				if tf1 != nil {
-					panic(tf1)
+					return nil, tf1
 				}
 				tv2 := tmk_BinaryOp(c, true, any(ts1), (c.Lhs), (c.Rhs))
-				return tv2
+				return tv2, nil
 			}, Value: sh24}},
-			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e482, Action: func(c *rt.TActCtx) any {
+			{Id: 6, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"c"}, M: e482, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_CaptureAccess(c, true, (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e483, Action: func(c *rt.TActCtx) any {
+			{Id: 7, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"t"}, M: e483, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_Cast(c, true, (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e484, Action: func(c *rt.TActCtx) any {
+			{Id: 8, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"name"}, M: e484, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_FieldAccess(c, true, (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh26}},
-			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e485, Action: func(c *rt.TActCtx) any {
+			{Id: 9, Kind: "postfix", Assoc: "", Level: 7, Line: &rt.TOperatorsRuleLine{Scope: []string{"i"}, M: e485, Action: func(c *rt.TActCtx) (any, any) {
 				tv1 := tmk_BinaryOp(c, true, any("[]"), (c.Lhs), c.Cap(0))
-				return tv1
+				return tv1, nil
 			}, Value: sh4}}},
 	}
 	trules[143].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[143], min) }
@@ -3498,23 +3498,23 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k20, "Pkg", "Pkg")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k20, "Decls", "Decls")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k20, "TrailingComments", "TrailingComments")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			ts4, tf4 := c.P.TermText(k16)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k20, "Head", "Head")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6 := tmk_File(c, true, tv1, tv2, k4, tv3, any(ts4), tv5, k10)
 			tr25 = tv6
@@ -3544,8 +3544,8 @@ func i2(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	prevEnv = p.Env
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(false)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(false), nil
 	}) {
 		goto fail
 	}
@@ -3611,19 +3611,19 @@ L13:
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k15)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tj3 := 0
 			for ; tj3 < len(ti2); tj3++ {
 				tp5 := c.P.TermItemAt(ti2, tj3, false)
 				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$d", "$d"[1:])
 				if tf7 != nil {
-					panic(tf7)
+					c.TermRaise(tf7)
 				}
 				tv6 := tv7
 				tf8 := c.P.TermPush(c, "map", tv6)
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 			}
 			tk9 := c.P.Kids(tm1)
@@ -3640,8 +3640,8 @@ fail:
 	return nil, false
 }
 
-func ta3(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta3(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule package_entry
@@ -3735,38 +3735,38 @@ L15:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k10, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPushItems(c, "concat", k7)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tf4 := c.P.TermPushItems(c, "concat", k19)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tk5 := c.P.Kids(tm2)
 			tn6 := c.P.TermHull(c, false, tk5)
 			tf7 := k10
 			tv8, tf8 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tf9 := tv8
 			tv10, tf10 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf10 != nil {
-				panic(tf10)
+				c.TermRaise(tf10)
 			}
 			tf11 := tv10
 			tv12, tf12 := c.P.TermMember(c, rt.MemberField, k16, "Trailing", "Trailing")
 			if tf12 != nil {
-				panic(tf12)
+				c.TermRaise(tf12)
 			}
 			tf13 := tv12
 			tv14, tf14 := c.P.TermMember(c, rt.MemberField, k16, "Next", "Next")
 			if tf14 != nil {
-				panic(tf14)
+				c.TermRaise(tf14)
 			}
 			tf15 := tv14
 			tv16 := tmk_SourceMetadata(c, false, tf7, tf9, tf13, tf11, tf15)
@@ -3833,8 +3833,8 @@ fail:
 	return nil, false
 }
 
-func ta6(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta6(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule decl
@@ -3911,11 +3911,11 @@ L10:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -3975,11 +3975,11 @@ L10:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -4036,11 +4036,11 @@ L10:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -4202,7 +4202,7 @@ func i13(p *rt.TParser) (any, bool) {
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -4562,20 +4562,20 @@ L12:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k7, "Type", "Type")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k4)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k16)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -4638,20 +4638,20 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Type", "Type")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k1)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k13)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -4959,8 +4959,8 @@ L3:
 	} else if _, ok = p.Parser.MatchLiteral(lit31, "[", 14, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -5009,7 +5009,7 @@ L18:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k7)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -5025,8 +5025,8 @@ fail:
 	return nil, false
 }
 
-func ta57(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta57(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule field_spec
@@ -5109,20 +5109,20 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Type", "Type")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k1)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k13)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -5399,8 +5399,8 @@ func i61(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit30, "{", 16, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(false)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(false), nil
 	}) {
 		goto fail
 	}
@@ -5462,7 +5462,7 @@ L25:
 		{
 			ti1, tf1 := c.P.TermItems("map", k7)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tv3 := tmk_StructType(c, true, tv2, k18, k4)
@@ -5503,8 +5503,8 @@ func i63(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit31, "[", 14, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -5574,11 +5574,11 @@ L18:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -5667,8 +5667,8 @@ func i65(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -5730,8 +5730,8 @@ func i66(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -5794,32 +5794,32 @@ L18:
 		{
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := (c.NewList(ti2))
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPush(c, "list", k12)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm4)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tm8 := len(c.P.KidStack)
 			ti9, tf9 := c.P.TermItems("filter", any(tn7))
 			if tf9 != nil {
-				panic(tf9)
+				c.TermRaise(tf9)
 			}
 			tj10 := 0
 			for ; tj10 < len(ti9); tj10++ {
 				tp12 := c.P.TermItemAt(ti9, tj10, false)
 				tv14, tf14 := c.P.TermBinary(rt.OpNe, (tp12), any(nil))
 				if tf14 != nil {
-					panic(tf14)
+					c.TermRaise(tf14)
 				}
 				tv13 := tv14
 				tb15, tf15 := c.P.TermFilterKeep(tv13)
 				if tf15 != nil {
-					panic(tf15)
+					c.TermRaise(tf15)
 				}
 				if tb15 {
 					c.P.KidStack = append(c.P.KidStack, ti9[tj10])
@@ -5830,17 +5830,17 @@ L18:
 			tm18 := len(c.P.KidStack)
 			tf19 := c.P.TermPushItems(c, "concat", tv3)
 			if tf19 != nil {
-				panic(tf19)
+				c.TermRaise(tf19)
 			}
 			tf20 := c.P.TermPushItems(c, "concat", any(tn17))
 			if tf20 != nil {
-				panic(tf20)
+				c.TermRaise(tf20)
 			}
 			tk21 := c.P.Kids(tm18)
 			tn22 := c.P.TermHull(c, false, tk21)
 			tc1 := any(tn22)
 			if !c.P.TermConforms(fieldType1, tc1) {
-				c.TermCastFailed(tc1, fieldType1, 0, 0)
+				c.TermRaise(c.TermCastFailed(tc1, fieldType1, 0, 0))
 			}
 			tv23 := tmk_TupleType(c, true, tc1)
 			tr52 = tv23
@@ -5905,24 +5905,24 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Type", "Type")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberValue, k4, "Value", "Value")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPushItems(c, "concat", k1)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tf6 := c.P.TermPushItems(c, "concat", k13)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
@@ -6164,40 +6164,40 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Attrs", "Attrs")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Type", "Type")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k4, "Action", "Action")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k4, "AttrComments", "AttrComments")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tm7 := len(c.P.KidStack)
 			tf8 := c.P.TermPushItems(c, "concat", k1)
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tf9 := c.P.TermPushItems(c, "concat", tv6)
 			if tf9 != nil {
-				panic(tf9)
+				c.TermRaise(tf9)
 			}
 			tf10 := c.P.TermPushItems(c, "concat", k13)
 			if tf10 != nil {
-				panic(tf10)
+				c.TermRaise(tf10)
 			}
 			tk11 := c.P.Kids(tm7)
 			tn12 := c.P.TermHull(c, false, tk11)
@@ -6383,19 +6383,19 @@ L67:
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tj3 := 0
 			for ; tj3 < len(ti2); tj3++ {
 				tp5 := c.P.TermItemAt(ti2, tj3, false)
 				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$a", "$a"[1:])
 				if tf7 != nil {
-					panic(tf7)
+					c.TermRaise(tf7)
 				}
 				tv6 := tv7
 				tf8 := c.P.TermPush(c, "map", tv6)
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 			}
 			tk9 := c.P.Kids(tm1)
@@ -6405,7 +6405,7 @@ L67:
 			tn13 := c.P.TermHull(c, false, tk12)
 			ti14, tf14 := c.P.TermItems("foldl", k1)
 			if tf14 != nil {
-				panic(tf14)
+				c.TermRaise(tf14)
 			}
 			ta15 := any(tn13)
 			tj16 := 0
@@ -6414,16 +6414,16 @@ L67:
 				tp19 := c.P.TermItemAt(ti14, tj16, false)
 				tv21, tf21 := c.P.TermMember(c, rt.MemberCapture, (tp19), "$gap", "$gap"[1:])
 				if tf21 != nil {
-					panic(tf21)
+					c.TermRaise(tf21)
 				}
 				tm22 := len(c.P.KidStack)
 				tf23 := c.P.TermPushItems(c, "concat", (tp18))
 				if tf23 != nil {
-					panic(tf23)
+					c.TermRaise(tf23)
 				}
 				tf24 := c.P.TermPushItems(c, "concat", tv21)
 				if tf24 != nil {
-					panic(tf24)
+					c.TermRaise(tf24)
 				}
 				tk25 := c.P.Kids(tm22)
 				tn26 := c.P.TermHull(c, false, tk25)
@@ -6560,11 +6560,11 @@ func i75(p *rt.TParser) (any, bool) {
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -6675,7 +6675,7 @@ func i76(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr61 = tv2
@@ -7640,8 +7640,8 @@ func i84(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -7845,8 +7845,8 @@ func i87(p *rt.TParser) (any, bool) {
 	if _, ok = p.Parser.MatchLiteral(lit142, "level(", 72, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -8250,11 +8250,11 @@ func i96(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Actions", "Actions")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Comments", "Comments")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := tmk_Predicate(c, true, tv1, tv2)
 			tr71 = tv3
@@ -8291,8 +8291,8 @@ func i97(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -8654,8 +8654,8 @@ func i103(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -8762,8 +8762,8 @@ func v104(p *rt.TParser) (any, bool) {
 	}
 	v4 = p.NewMatchOrdinary(x3, p.Pos, "(", true)
 	x2 = append(x2, v4)
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -8863,11 +8863,11 @@ L14:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k9, "Args", "Args")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k9, "KwArgs", "KwArgs")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := tmk_Attr(c, true, k1, tv1, tv2)
 			tr80 = tv3
@@ -8907,8 +8907,8 @@ func i106(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -9057,11 +9057,11 @@ L18:
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPush(c, "list", k1)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tf6 := c.P.TermPushItems(c, "concat", k4)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
@@ -9164,38 +9164,38 @@ L28:
 			tm1 := len(c.P.KidStack)
 			tv2, tf2 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPush(c, "list", tv2)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			ti4, tf4 := c.P.TermItems("map", k4)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tj5 := 0
 			for ; tj5 < len(ti4); tj5++ {
 				tp7 := c.P.TermItemAt(ti4, tj5, false)
 				tv9, tf9 := c.P.TermMember(c, rt.MemberCapture, (tp7), "$a", "$a"[1:])
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				tv10, tf10 := c.P.TermMember(c, rt.MemberValue, tv9, "Value", "Value")
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 				tv8 := tv10
 				tf11 := c.P.TermPush(c, "map", tv8)
 				if tf11 != nil {
-					panic(tf11)
+					c.TermRaise(tf11)
 				}
 			}
 			tk12 := c.P.Kids(tm1)
 			tn13 := c.P.TermHull(c, false, tk12)
 			tv14, tf14 := c.P.TermMember(c, rt.MemberField, k23, "KwArgs", "KwArgs")
 			if tf14 != nil {
-				panic(tf14)
+				c.TermRaise(tf14)
 			}
 			tv15 := tmk_AttrArgs(c, true, any(tn13), tv14)
 			tr84 = tv15
@@ -9706,9 +9706,9 @@ fail:
 	return nil, false
 }
 
-func ta118(c *rt.TActCtx) any {
+func ta118(c *rt.TActCtx) (any, any) {
 	tv1 := tmk_IgnoreCase(c, true, c.Cap(0))
-	return tv1
+	return tv1, nil
 }
 
 // rule ops_rule_plain
@@ -9877,8 +9877,8 @@ L3:
 	} else if _, ok = p.Parser.MatchLiteral(lit30, "{", 16, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(false)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(false), nil
 	}) {
 		goto fail
 	}
@@ -9948,19 +9948,19 @@ L35:
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k13)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tj3 := 0
 			for ; tj3 < len(ti2); tj3++ {
 				tp5 := c.P.TermItemAt(ti2, tj3, false)
 				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$i", "$i"[1:])
 				if tf7 != nil {
-					panic(tf7)
+					c.TermRaise(tf7)
 				}
 				tv6 := tv7
 				tf8 := c.P.TermPush(c, "map", tv6)
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 			}
 			tk9 := c.P.Kids(tm1)
@@ -9977,8 +9977,8 @@ fail:
 	return nil, false
 }
 
-func ta121(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta121(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule ops_stmt
@@ -10058,16 +10058,16 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPushItems(c, "concat", k1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tf4 := c.P.TermPushItems(c, "concat", k13)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tk5 := c.P.Kids(tm2)
 			tn6 := c.P.TermHull(c, false, tk5)
@@ -10184,20 +10184,20 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Action", "Action")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k1)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k13)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -10327,34 +10327,34 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Operators", "Operators")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Comments", "Comments")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPushItems(c, "concat", k1)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tf6 := c.P.TermPushItems(c, "concat", tv3)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tf7 := c.P.TermPushItems(c, "concat", k13)
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tk8 := c.P.Kids(tm4)
 			tn9 := c.P.TermHull(c, false, tk8)
 			tv10, tf10 := c.P.TermMember(c, rt.MemberField, k4, "Head", "Head")
 			if tf10 != nil {
-				panic(tf10)
+				c.TermRaise(tf10)
 			}
 			tv11 := tmk_OperatorsLevel(c, true, tv1, tv2, any(tn9), tv10, k4, k10)
 			tr98 = tv11
@@ -10488,19 +10488,19 @@ L43:
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k21)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tj3 := 0
 			for ; tj3 < len(ti2); tj3++ {
 				tp5 := c.P.TermItemAt(ti2, tj3, false)
 				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$o", "$o"[1:])
 				if tf7 != nil {
-					panic(tf7)
+					c.TermRaise(tf7)
 				}
 				tv6 := tv7
 				tf8 := c.P.TermPush(c, "map", tv6)
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 			}
 			tk9 := c.P.Kids(tm1)
@@ -10515,8 +10515,8 @@ fail:
 	return nil, false
 }
 
-func ta128(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta128(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule ops_operator
@@ -10596,20 +10596,20 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Action", "Action")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k1)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k13)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -10739,20 +10739,20 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Action", "Action")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tm3 := len(c.P.KidStack)
 			tf4 := c.P.TermPushItems(c, "concat", k1)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tf5 := c.P.TermPushItems(c, "concat", k13)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm3)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -10882,24 +10882,24 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Assoc", "Assoc")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Expr", "Expr")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Action", "Action")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPushItems(c, "concat", k1)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tf6 := c.P.TermPushItems(c, "concat", k13)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
@@ -11048,7 +11048,7 @@ L43:
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := tmk_OperatorsOperatorBody(c, true, any(ts1), k29, k37)
 			tr105 = tv2
@@ -11171,8 +11171,8 @@ func i137(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit30, "{", 16, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(false)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(false), nil
 	}) {
 		goto fail
 	}
@@ -11220,7 +11220,7 @@ L19:
 		{
 			ti1, tf1 := c.P.TermItems("map", k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tv3 := tmk_ActionBlock(c, true, tv2, k12)
@@ -11235,8 +11235,8 @@ fail:
 	return nil, false
 }
 
-func ta138(c *rt.TActCtx) any {
-	return c.Cap(0)
+func ta138(c *rt.TActCtx) (any, any) {
+	return c.Cap(0), nil
 }
 
 // rule action_block_stmt
@@ -12135,8 +12135,8 @@ func i145(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit31, "[", 14, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12197,8 +12197,8 @@ func i146(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12310,8 +12310,8 @@ func i148(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12345,7 +12345,7 @@ L7:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -12432,11 +12432,11 @@ L18:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -12644,8 +12644,8 @@ func s152(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12704,8 +12704,8 @@ func i153(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12782,32 +12782,32 @@ L24:
 		{
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := (c.NewList(ti2))
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPush(c, "list", k12)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm4)
 			tn7 := c.P.TermHull(c, false, tk6)
 			tm8 := len(c.P.KidStack)
 			ti9, tf9 := c.P.TermItems("filter", any(tn7))
 			if tf9 != nil {
-				panic(tf9)
+				c.TermRaise(tf9)
 			}
 			tj10 := 0
 			for ; tj10 < len(ti9); tj10++ {
 				tp12 := c.P.TermItemAt(ti9, tj10, false)
 				tv14, tf14 := c.P.TermBinary(rt.OpNe, (tp12), any(nil))
 				if tf14 != nil {
-					panic(tf14)
+					c.TermRaise(tf14)
 				}
 				tv13 := tv14
 				tb15, tf15 := c.P.TermFilterKeep(tv13)
 				if tf15 != nil {
-					panic(tf15)
+					c.TermRaise(tf15)
 				}
 				if tb15 {
 					c.P.KidStack = append(c.P.KidStack, ti9[tj10])
@@ -12818,17 +12818,17 @@ L24:
 			tm18 := len(c.P.KidStack)
 			tf19 := c.P.TermPushItems(c, "concat", tv3)
 			if tf19 != nil {
-				panic(tf19)
+				c.TermRaise(tf19)
 			}
 			tf20 := c.P.TermPushItems(c, "concat", any(tn17))
 			if tf20 != nil {
-				panic(tf20)
+				c.TermRaise(tf20)
 			}
 			tk21 := c.P.Kids(tm18)
 			tn22 := c.P.TermHull(c, false, tk21)
 			tc1 := any(tn22)
 			if !c.P.TermConforms(fieldType2, tc1) {
-				c.TermCastFailed(tc1, fieldType2, 0, 0)
+				c.TermRaise(c.TermCastFailed(tc1, fieldType2, 0, 0))
 			}
 			tv23 := tmk_ActionTuple(c, true, tc1)
 			tr122 = tv23
@@ -12870,8 +12870,8 @@ func i154(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12948,8 +12948,8 @@ func i155(p *rt.TParser) (any, bool) {
 	} else if _, ok = p.Parser.MatchLiteral(lit29, "(", 15, false); !ok {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -12996,7 +12996,7 @@ L17:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k4)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -13092,11 +13092,11 @@ L18:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -13162,8 +13162,8 @@ L7:
 	p.ExpectOrdinary(x5, rt.MsgBit|130)
 	goto fail
 L8:
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -13211,7 +13211,7 @@ L25:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k9)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -13276,8 +13276,8 @@ L5:
 	p.Pos = x4
 	goto fail
 L6:
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(true)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(true), nil
 	}) {
 		goto fail
 	}
@@ -13354,14 +13354,14 @@ L39:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPushItems(c, "concat", k12)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
 			tm5 := len(c.P.KidStack)
 			tf6 := c.P.TermPushItems(c, "concat", k14)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tk7 := c.P.Kids(tm5)
 			tn8 := c.P.TermHull(c, false, tk7)
@@ -13454,11 +13454,11 @@ L18:
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -13523,11 +13523,11 @@ L9:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k4, "Name", "Name")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Val", "Val")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := tmk_InitField(c, true, tv1, tv2, k1, k4, k10)
 			tr133 = tv3
@@ -14022,9 +14022,9 @@ func i169(p *rt.TParser) (any, bool) {
 	start = p.Pos
 	x1, x2 = p.Pos, len(p.Recovered)
 	x4 = k3
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1 := c.Var(0)
-		return tv1
+		return tv1, nil
 	}) {
 		goto L6
 	}
@@ -14132,7 +14132,7 @@ func i170(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr137 = tv2
@@ -14240,7 +14240,7 @@ func i171(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr138 = tv2
@@ -14323,7 +14323,7 @@ func i176(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k5)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr139 = tv2
@@ -14451,11 +14451,11 @@ func i182(p *rt.TParser) (any, bool) {
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -14500,7 +14500,7 @@ func i183(p *rt.TParser) (any, bool) {
 			tm1 := len(c.P.KidStack)
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -15383,11 +15383,11 @@ L32:
 		{
 			tv1, tf1 := c.P.TermBinary(rt.OpNe, k1, any(nil))
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberValue, k10, "Value", "Value")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3 := tmk_CharClass(c, true, tv1, tv2)
 			tr145 = tv3
@@ -15555,15 +15555,15 @@ L6:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Detached", "Detached")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k1, "HasNext", "HasNext")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceLead(c, true, tv1, tv2, tv3)
 			tr147 = tv4
@@ -15619,15 +15619,15 @@ L6:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Detached", "Detached")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k1, "HasNext", "HasNext")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceLead(c, true, tv1, tv2, tv3)
 			tr148 = tv4
@@ -15751,38 +15751,38 @@ func i202(p *rt.TParser) (any, bool) {
 		{
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Trailing", "Trailing")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPushItems(c, "concat", tv2)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tf6 := c.P.TermPushItems(c, "concat", tv3)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tk7 := c.P.Kids(tm4)
 			tn8 := c.P.TermHull(c, false, tk7)
 			tc1 := any(tn8)
 			if !c.P.TermConforms(fieldType3, tc1) {
-				c.TermCastFailed(tc1, fieldType3, 0, 0)
+				c.TermRaise(c.TermCastFailed(tc1, fieldType3, 0, 0))
 			}
 			tv9, tf9 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf9 != nil {
-				panic(tf9)
+				c.TermRaise(tf9)
 			}
 			tv10, tf10 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf10 != nil {
-				panic(tf10)
+				c.TermRaise(tf10)
 			}
 			tv11, tf11 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf11 != nil {
-				panic(tf11)
+				c.TermRaise(tf11)
 			}
 			tv12 := tmk_SourceLead(c, false, tv9, tv10, tv11)
 			tv13 := tmk_SourceItem(c, true, tc1, tv12)
@@ -15830,19 +15830,19 @@ func i203(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
@@ -15886,19 +15886,19 @@ func i204(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k1, "Detached", "Detached")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k1, "HasNext", "HasNext")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
@@ -16019,19 +16019,19 @@ func i209(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k1, "Leading", "Leading")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k1, "Detached", "Detached")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k1, "HasNext", "HasNext")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
@@ -16081,19 +16081,19 @@ func i210(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5 := tmk_SourceLead(c, false, tv2, tv3, tv4)
 			tv6 := tmk_SourceItem(c, true, tv1, tv5)
@@ -16212,26 +16212,26 @@ func i212(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", tv1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tv7, tf7 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tv8, tf8 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
 			tr156 = tv9
@@ -16313,23 +16313,23 @@ func i213(p *rt.TParser) (any, bool) {
 			tm2 := len(c.P.KidStack)
 			ti3, tf3 := c.P.TermItems("map", k1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tj4 := 0
 			for ; tj4 < len(ti3); tj4++ {
 				tp6 := c.P.TermItemAt(ti3, tj4, false)
 				tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, (tp6), "$c", "$c"[1:])
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 				tv9, tf9 := c.P.TermMember(c, rt.MemberField, tv8, "Text", "Text")
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				tv7 := tv9
 				tf10 := c.P.TermPush(c, "map", tv7)
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 			}
 			tk11 := c.P.Kids(tm2)
@@ -16337,29 +16337,29 @@ func i213(p *rt.TParser) (any, bool) {
 			tm13 := len(c.P.KidStack)
 			tf14 := c.P.TermPushItems(c, "concat", any(tn12))
 			if tf14 != nil {
-				panic(tf14)
+				c.TermRaise(tf14)
 			}
 			tf15 := c.P.TermPushItems(c, "concat", k18)
 			if tf15 != nil {
-				panic(tf15)
+				c.TermRaise(tf15)
 			}
 			tk16 := c.P.Kids(tm13)
 			tn17 := c.P.TermHull(c, false, tk16)
 			tc1 := any(tn17)
 			if !c.P.TermConforms(fieldType4, tc1) {
-				c.TermCastFailed(tc1, fieldType4, 0, 0)
+				c.TermRaise(c.TermCastFailed(tc1, fieldType4, 0, 0))
 			}
 			tv18, tf18 := c.P.TermMember(c, rt.MemberField, k21, "Leading", "Leading")
 			if tf18 != nil {
-				panic(tf18)
+				c.TermRaise(tf18)
 			}
 			tv19, tf19 := c.P.TermMember(c, rt.MemberField, k21, "Detached", "Detached")
 			if tf19 != nil {
-				panic(tf19)
+				c.TermRaise(tf19)
 			}
 			tv20, tf20 := c.P.TermMember(c, rt.MemberField, k21, "HasNext", "HasNext")
 			if tf20 != nil {
-				panic(tf20)
+				c.TermRaise(tf20)
 			}
 			tv21 := tmk_SourceBoundary(c, true, tc1, tv18, tv19, tv20)
 			tr157 = tv21
@@ -16433,12 +16433,12 @@ func i215(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", tv1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -16582,26 +16582,26 @@ L6:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", tv1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k13, "Leading", "Leading")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tv7, tf7 := c.P.TermMember(c, rt.MemberField, k13, "Detached", "Detached")
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tv8, tf8 := c.P.TermMember(c, rt.MemberField, k13, "HasNext", "HasNext")
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
 			tr160 = tv9
@@ -16733,7 +16733,7 @@ L6:
 			tn3 := c.P.TermHull(c, false, tk2)
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tm5 := len(c.P.KidStack)
 			tk6 := c.P.Kids(tm5)
@@ -16892,7 +16892,7 @@ L6:
 			tm4 := len(c.P.KidStack)
 			tf5 := c.P.TermPush(c, "list", k1)
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tk6 := c.P.Kids(tm4)
 			tn7 := c.P.TermHull(c, false, tk6)
@@ -16949,26 +16949,26 @@ func i224(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", tv1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tv7, tf7 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tv8, tf8 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
 			tr164 = tv9
@@ -17074,26 +17074,26 @@ func i226(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", tv1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k4, "Leading", "Leading")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tv7, tf7 := c.P.TermMember(c, rt.MemberField, k4, "Detached", "Detached")
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tv8, tf8 := c.P.TermMember(c, rt.MemberField, k4, "HasNext", "HasNext")
 			if tf8 != nil {
-				panic(tf8)
+				c.TermRaise(tf8)
 			}
 			tv9 := tmk_SourceBoundary(c, true, any(tn5), tv6, tv7, tv8)
 			tr165 = tv9
@@ -17330,7 +17330,7 @@ L22:
 			tn3 := c.P.TermHull(c, false, tk2)
 			ti4, tf4 := c.P.TermItems("map", k5)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5 := (c.NewList(ti4))
 			tv6 := tmk_SourceBoundary(c, true, any(tn3), any(""), tv5, any(false))
@@ -17468,24 +17468,24 @@ L42:
 			tn3 := c.P.TermHull(c, false, tk2)
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k26, "Text", "Text")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tm5 := len(c.P.KidStack)
 			ti6, tf6 := c.P.TermItems("map", k5)
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tj7 := 0
 			for ; tj7 < len(ti6); tj7++ {
 				tp9 := c.P.TermItemAt(ti6, tj7, false)
 				tv11, tf11 := c.P.TermMember(c, rt.MemberCapture, (tp9), "$c", "$c"[1:])
 				if tf11 != nil {
-					panic(tf11)
+					c.TermRaise(tf11)
 				}
 				tv10 := tv11
 				tf12 := c.P.TermPush(c, "map", tv10)
 				if tf12 != nil {
-					panic(tf12)
+					c.TermRaise(tf12)
 				}
 			}
 			tk13 := c.P.Kids(tm5)
@@ -17788,11 +17788,11 @@ func i240(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			ti2, tf2 := c.P.TermItems("foldl", k4)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			ta3 := tv1
 			tj4 := 0
@@ -17801,15 +17801,15 @@ func i240(p *rt.TParser) (any, bool) {
 				tp7 := c.P.TermItemAt(ti2, tj4, false)
 				tv9, tf9 := c.P.TermMember(c, rt.MemberCapture, (tp7), "$c", "$c"[1:])
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				tv10, tf10 := c.P.TermMember(c, rt.MemberField, tv9, "Text", "Text")
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 				tv11, tf11 := c.P.TermBinary(rt.OpAdd, (tp6), tv10)
 				if tf11 != nil {
-					panic(tf11)
+					c.TermRaise(tf11)
 				}
 				tv8 := tv11
 				ta3 = tv8
@@ -17890,15 +17890,15 @@ L19:
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			ts2, tf2 := c.P.TermText(k13)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermBinary(rt.OpAdd, any(ts1), any(ts2))
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceComment(c, true, tv3)
 			tr173 = tv4
@@ -17994,11 +17994,11 @@ func i242(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			ti2, tf2 := c.P.TermItems("foldl", k4)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			ta3 := tv1
 			tj4 := 0
@@ -18007,27 +18007,27 @@ func i242(p *rt.TParser) (any, bool) {
 				tp7 := c.P.TermItemAt(ti2, tj4, false)
 				tv9, tf9 := c.P.TermMember(c, rt.MemberCapture, (tp7), "$line", "$line"[1:])
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				ts10, tf10 := c.P.TermText(tv9)
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 				tv11, tf11 := c.P.TermBinary(rt.OpAdd, (tp6), any(ts10))
 				if tf11 != nil {
-					panic(tf11)
+					c.TermRaise(tf11)
 				}
 				tv12, tf12 := c.P.TermMember(c, rt.MemberCapture, (tp7), "$body", "$body"[1:])
 				if tf12 != nil {
-					panic(tf12)
+					c.TermRaise(tf12)
 				}
 				tv13, tf13 := c.P.TermMember(c, rt.MemberField, tv12, "Text", "Text")
 				if tf13 != nil {
-					panic(tf13)
+					c.TermRaise(tf13)
 				}
 				tv14, tf14 := c.P.TermBinary(rt.OpAdd, tv11, tv13)
 				if tf14 != nil {
-					panic(tf14)
+					c.TermRaise(tf14)
 				}
 				tv8 := tv14
 				ta3 = tv8
@@ -18092,7 +18092,7 @@ func i244(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("foldl", k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			ta2 := any("")
 			tj3 := 0
@@ -18101,15 +18101,15 @@ func i244(p *rt.TParser) (any, bool) {
 				tp6 := c.P.TermItemAt(ti1, tj3, false)
 				tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, (tp6), "$c", "$c"[1:])
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 				tv9, tf9 := c.P.TermMember(c, rt.MemberField, tv8, "Text", "Text")
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				tv10, tf10 := c.P.TermBinary(rt.OpAdd, (tp5), tv9)
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 				tv7 := tv10
 				ta2 = tv7
@@ -18193,15 +18193,15 @@ func i246(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k1, "Text", "Text")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermBinary(rt.OpAdd, any("/*"), tv1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermBinary(rt.OpAdd, tv2, any("*/"))
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4 := tmk_SourceComment(c, true, tv3)
 			tr176 = tv4
@@ -18295,7 +18295,7 @@ L6:
 		{
 			ts1, tf1 := c.P.TermText(k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := tmk_SourceComment(c, true, any(ts1))
 			tr177 = tv2
@@ -18496,26 +18496,26 @@ L7:
 			tm2 := len(c.P.KidStack)
 			tf3 := c.P.TermPush(c, "list", k1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm2)
 			tn5 := c.P.TermHull(c, false, tk4)
 			tm6 := len(c.P.KidStack)
 			ti7, tf7 := c.P.TermItems("filter", any(tn5))
 			if tf7 != nil {
-				panic(tf7)
+				c.TermRaise(tf7)
 			}
 			tj8 := 0
 			for ; tj8 < len(ti7); tj8++ {
 				tp10 := c.P.TermItemAt(ti7, tj8, false)
 				tv12, tf12 := c.P.TermBinary(rt.OpNe, (tp10), any(nil))
 				if tf12 != nil {
-					panic(tf12)
+					c.TermRaise(tf12)
 				}
 				tv11 := tv12
 				tb13, tf13 := c.P.TermFilterKeep(tv11)
 				if tf13 != nil {
-					panic(tf13)
+					c.TermRaise(tf13)
 				}
 				if tb13 {
 					c.P.KidStack = append(c.P.KidStack, ti7[tj8])
@@ -18526,19 +18526,19 @@ L7:
 			tm16 := len(c.P.KidStack)
 			ti17, tf17 := c.P.TermItems("map", k13)
 			if tf17 != nil {
-				panic(tf17)
+				c.TermRaise(tf17)
 			}
 			tj18 := 0
 			for ; tj18 < len(ti17); tj18++ {
 				tp20 := c.P.TermItemAt(ti17, tj18, false)
 				tv22, tf22 := c.P.TermMember(c, rt.MemberCapture, (tp20), "$g", "$g"[1:])
 				if tf22 != nil {
-					panic(tf22)
+					c.TermRaise(tf22)
 				}
 				tv21 := tv22
 				tf23 := c.P.TermPush(c, "map", tv21)
 				if tf23 != nil {
-					panic(tf23)
+					c.TermRaise(tf23)
 				}
 			}
 			tk24 := c.P.Kids(tm16)
@@ -18546,17 +18546,17 @@ L7:
 			tm26 := len(c.P.KidStack)
 			tf27 := c.P.TermPushItems(c, "concat", any(tn15))
 			if tf27 != nil {
-				panic(tf27)
+				c.TermRaise(tf27)
 			}
 			tf28 := c.P.TermPushItems(c, "concat", any(tn25))
 			if tf28 != nil {
-				panic(tf28)
+				c.TermRaise(tf28)
 			}
 			tk29 := c.P.Kids(tm26)
 			tn30 := c.P.TermHull(c, false, tk29)
 			tc1 := any(tn30)
 			if !c.P.TermConforms(fieldType5, tc1) {
-				c.TermCastFailed(tc1, fieldType5, 0, 0)
+				c.TermRaise(c.TermCastFailed(tc1, fieldType5, 0, 0))
 			}
 			tr178 = tc1
 		}
@@ -18645,15 +18645,15 @@ L6:
 			tn3 := c.P.TermHull(c, false, tk2)
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k7, "Leading", "Leading")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k7, "Detached", "Detached")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6, tf6 := c.P.TermMember(c, rt.MemberField, k7, "HasNext", "HasNext")
 			if tf6 != nil {
-				panic(tf6)
+				c.TermRaise(tf6)
 			}
 			tv7 := tmk_CommentGap(c, true, any(tn3), any(false), tv4, tv5, tv6)
 			tr179 = tv7
@@ -18746,23 +18746,23 @@ L23:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermBinary(rt.OpNe, k17, any(nil))
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k7, "Leading", "Leading")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k7, "Detached", "Detached")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k7, "HasNext", "HasNext")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
 			tr180 = tv6
@@ -18855,23 +18855,23 @@ L23:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermBinary(rt.OpNe, k17, any(nil))
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k7, "Leading", "Leading")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k7, "Detached", "Detached")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k7, "HasNext", "HasNext")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
 			tr181 = tv6
@@ -18964,23 +18964,23 @@ L23:
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberField, k7, "Trailing", "Trailing")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2, tf2 := c.P.TermBinary(rt.OpNe, k17, any(nil))
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tv3, tf3 := c.P.TermMember(c, rt.MemberField, k7, "Leading", "Leading")
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tv4, tf4 := c.P.TermMember(c, rt.MemberField, k7, "Detached", "Detached")
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tv5, tf5 := c.P.TermMember(c, rt.MemberField, k7, "HasNext", "HasNext")
 			if tf5 != nil {
-				panic(tf5)
+				c.TermRaise(tf5)
 			}
 			tv6 := tmk_CommentGap(c, true, tv1, tv2, tv3, tv4, tv5)
 			tr182 = tv6
@@ -24930,4 +24930,4 @@ fail:
 
 const _ = types.ZPSchema_e1ef0ad7a39338f5
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

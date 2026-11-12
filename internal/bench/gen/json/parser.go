@@ -337,17 +337,17 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 3)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[1].Body = e2
 	rules[2].Body = e5
-	rules[2].Action = func(c *rt.ActCtx) any {
+	rules[2].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
@@ -357,26 +357,26 @@ func init() {
 		c.TermSetField(tn5, "Members", any(tn4))
 		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
 		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[3].Body = e8
-	rules[3].Action = func(c *rt.ActCtx) any {
+	rules[3].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[4].Body = e10
-	rules[4].Action = func(c *rt.ActCtx) any {
+	rules[4].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Member", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -386,15 +386,15 @@ func init() {
 		c.TermSetField(tn1, "Value", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[5].Body = e13
-	rules[5].Action = func(c *rt.ActCtx) any {
+	rules[5].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
@@ -404,27 +404,27 @@ func init() {
 		c.TermSetField(tn5, "Elements", any(tn4))
 		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
 		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[6].Body = e15
-	rules[6].Action = func(c *rt.ActCtx) any {
+	rules[6].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[7].Body = e17
-	rules[7].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[7].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	zpGrammar.DeclareStruct("Array", "Elements", "l")
 	zpGrammar.TypeKinds["Array"] = rt.KindOf("Array", "")
@@ -2336,7 +2336,7 @@ L6:
 			c.P.Spend()
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -2414,11 +2414,11 @@ func i3(p *rt.TParser) (any, bool) {
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -2545,7 +2545,7 @@ L6:
 			c.P.Spend()
 			tf2 := c.P.TermPushItems(c, "concat", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -2623,11 +2623,11 @@ func i6(p *rt.TParser) (any, bool) {
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -3208,4 +3208,4 @@ fail:
 
 const _ = types.ZPSchema_a9bcd9d1b71f161a
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

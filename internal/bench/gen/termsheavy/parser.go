@@ -199,10 +199,10 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any {
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tn2 := c.TermStruct("Doc", 1)
 		tfirst3 := true
@@ -210,18 +210,18 @@ func init() {
 		c.TermSetField(tn2, "Lines", tv1)
 		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
 		c.P.TermMade(c, tn2, tfirst3)
-		return any(tn2)
+		return any(tn2), nil
 	}
 	rules[1].Body = e5
-	rules[1].Action = func(c *rt.ActCtx) any {
+	rules[1].Action = func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tm2 := len(c.P.KidStack)
 		ti3, tf3 := c.P.TermItems("map", c.Cap(0))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tj4 := 0
 		for ; tj4 < len(ti3); tj4++ {
@@ -229,27 +229,27 @@ func init() {
 			tp6 := c.P.TermItemAt(ti3, tj4, false)
 			tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp6), "$s", "$s"[1:])
 			if tf8 != nil {
-				panic(tf8)
+				return nil, tf8
 			}
 			ts9, tf9 := c.P.TermText(tv8)
 			if tf9 != nil {
-				panic(tf9)
+				return nil, tf9
 			}
 			tv10, tf10 := c.P.TermLength(any(ts9))
 			if tf10 != nil {
-				panic(tf10)
+				return nil, tf10
 			}
 			tv7 := tv10
 			tf11 := c.P.TermPush(c, "map", tv7)
 			if tf11 != nil {
-				panic(tf11)
+				return nil, tf11
 			}
 		}
 		tk12 := c.P.Kids(tm2)
 		tn13 := c.P.TermHull(c, false, tk12)
 		ti14, tf14 := c.P.TermItems("foldl", any(tn13))
 		if tf14 != nil {
-			panic(tf14)
+			return nil, tf14
 		}
 		ta15 := any(0)
 		tj16 := 0
@@ -259,7 +259,7 @@ func init() {
 			tp19 := c.P.TermItemAt(ti14, tj16, false)
 			tv21, tf21 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp18), rt.UnboxValue(tp19))
 			if tf21 != nil {
-				panic(tf21)
+				return nil, tf21
 			}
 			tv20 := tv21
 			ta15 = tv20
@@ -267,7 +267,7 @@ func init() {
 		tm22 := len(c.P.KidStack)
 		ti23, tf23 := c.P.TermItems("map", c.Cap(0))
 		if tf23 != nil {
-			panic(tf23)
+			return nil, tf23
 		}
 		tj24 := 0
 		for ; tj24 < len(ti23); tj24++ {
@@ -275,20 +275,20 @@ func init() {
 			tp26 := c.P.TermItemAt(ti23, tj24, false)
 			tv28, tf28 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp26), "$s", "$s"[1:])
 			if tf28 != nil {
-				panic(tf28)
+				return nil, tf28
 			}
 			ts29, tf29 := c.P.TermText(tv28)
 			if tf29 != nil {
-				panic(tf29)
+				return nil, tf29
 			}
 			tv30, tf30 := c.P.TermLength(any(ts29))
 			if tf30 != nil {
-				panic(tf30)
+				return nil, tf30
 			}
 			tv27 := tv30
 			tf31 := c.P.TermPush(c, "map", tv27)
 			if tf31 != nil {
-				panic(tf31)
+				return nil, tf31
 			}
 		}
 		tk32 := c.P.Kids(tm22)
@@ -296,7 +296,7 @@ func init() {
 		tm34 := len(c.P.KidStack)
 		ti35, tf35 := c.P.TermItems("filter", any(tn33))
 		if tf35 != nil {
-			panic(tf35)
+			return nil, tf35
 		}
 		tj36 := 0
 		for ; tj36 < len(ti35); tj36++ {
@@ -304,12 +304,12 @@ func init() {
 			tp38 := c.P.TermItemAt(ti35, tj36, false)
 			tv40, tf40 := c.P.TermBinary(rt.OpGt, rt.UnboxValue(tp38), any(3))
 			if tf40 != nil {
-				panic(tf40)
+				return nil, tf40
 			}
 			tv39 := tv40
 			tb41, tf41 := c.P.TermFilterKeep(tv39)
 			if tf41 != nil {
-				panic(tf41)
+				return nil, tf41
 			}
 			if tb41 {
 				c.P.KidStack = append(c.P.KidStack, ti35[tj36])
@@ -319,12 +319,12 @@ func init() {
 		tn43 := c.P.TermHull(c, false, tk42)
 		tv44, tf44 := c.P.TermLength(any(tn43))
 		if tf44 != nil {
-			panic(tf44)
+			return nil, tf44
 		}
 		tm45 := len(c.P.KidStack)
 		ti46, tf46 := c.P.TermItems("map", c.Cap(0))
 		if tf46 != nil {
-			panic(tf46)
+			return nil, tf46
 		}
 		tj47 := 0
 		for ; tj47 < len(ti46); tj47++ {
@@ -332,23 +332,23 @@ func init() {
 			tp49 := c.P.TermItemAt(ti46, tj47, false)
 			tv51, tf51 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp49), "$s", "$s"[1:])
 			if tf51 != nil {
-				panic(tf51)
+				return nil, tf51
 			}
 			ts52, tf52 := c.P.TermText(tv51)
 			if tf52 != nil {
-				panic(tf52)
+				return nil, tf52
 			}
 			tv50 := any(ts52)
 			tf53 := c.P.TermPush(c, "map", tv50)
 			if tf53 != nil {
-				panic(tf53)
+				return nil, tf53
 			}
 		}
 		tk54 := c.P.Kids(tm45)
 		tn55 := c.P.TermHull(c, false, tk54)
 		ti56, tf56 := c.P.TermItems("foldl", any(tn55))
 		if tf56 != nil {
-			panic(tf56)
+			return nil, tf56
 		}
 		ta57 := any("")
 		tj58 := 0
@@ -358,7 +358,7 @@ func init() {
 			tp61 := c.P.TermItemAt(ti56, tj58, false)
 			tv63, tf63 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp60), rt.UnboxValue(tp61))
 			if tf63 != nil {
-				panic(tf63)
+				return nil, tf63
 			}
 			tv62 := tv63
 			ta57 = tv62
@@ -366,7 +366,7 @@ func init() {
 		tm64 := len(c.P.KidStack)
 		ti65, tf65 := c.P.TermItems("map", c.Cap(0))
 		if tf65 != nil {
-			panic(tf65)
+			return nil, tf65
 		}
 		tj66 := 0
 		for ; tj66 < len(ti65); tj66++ {
@@ -374,27 +374,27 @@ func init() {
 			tp68 := c.P.TermItemAt(ti65, tj66, false)
 			tv70, tf70 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp68), "$s", "$s"[1:])
 			if tf70 != nil {
-				panic(tf70)
+				return nil, tf70
 			}
 			ts71, tf71 := c.P.TermText(tv70)
 			if tf71 != nil {
-				panic(tf71)
+				return nil, tf71
 			}
 			tv72, tf72 := c.P.TermLength(any(ts71))
 			if tf72 != nil {
-				panic(tf72)
+				return nil, tf72
 			}
 			tv69 := tv72
 			tf73 := c.P.TermPush(c, "map", tv69)
 			if tf73 != nil {
-				panic(tf73)
+				return nil, tf73
 			}
 		}
 		tk74 := c.P.Kids(tm64)
 		tn75 := c.P.TermHull(c, false, tk74)
 		ti76, tf76 := c.P.TermItems("foldl", any(tn75))
 		if tf76 != nil {
-			panic(tf76)
+			return nil, tf76
 		}
 		ta77 := any(0)
 		tj78 := 0
@@ -404,14 +404,14 @@ func init() {
 			tp81 := c.P.TermItemAt(ti76, tj78, false)
 			tv83, tf83 := c.P.TermBinary(rt.OpAdd, rt.UnboxValue(tp80), rt.UnboxValue(tp81))
 			if tf83 != nil {
-				panic(tf83)
+				return nil, tf83
 			}
 			tv82 := tv83
 			ta77 = tv82
 		}
 		tv84, tf84 := c.P.TermBinary(rt.OpGt, ta77, any(20))
 		if tf84 != nil {
-			panic(tf84)
+			return nil, tf84
 		}
 		tn85 := c.TermStruct("Line", 5)
 		tfirst86 := true
@@ -431,7 +431,7 @@ func init() {
 		c.TermSetField(tn85, "Wide", tv84)
 		tfirst86 = c.P.TermCover(tn85, tv84, tfirst86)
 		c.P.TermMade(c, tn85, tfirst86)
-		return any(tn85)
+		return any(tn85), nil
 	}
 	rules[2].Body = e7
 	zpGrammar.DeclareStruct("Doc", "Lines", "l")
@@ -752,7 +752,7 @@ func i0(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermMember(c, rt.MemberValue, k1, "Value", "Value")
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := tmk_Doc(c, true, tv1)
 			tr2 = tv2
@@ -823,12 +823,12 @@ func i1(p *rt.TParser) (any, bool) {
 		{
 			tv1, tf1 := c.P.TermLength(k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tm2 := len(c.P.KidStack)
 			ti3, tf3 := c.P.TermItems("map", k1)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tj4 := 0
 			for ; tj4 < len(ti3); tj4++ {
@@ -836,27 +836,27 @@ func i1(p *rt.TParser) (any, bool) {
 				tp6 := c.P.TermItemAt(ti3, tj4, false)
 				tv8, tf8 := c.P.TermMember(c, rt.MemberCapture, (tp6), "$s", "$s"[1:])
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 				ts9, tf9 := c.P.TermText(tv8)
 				if tf9 != nil {
-					panic(tf9)
+					c.TermRaise(tf9)
 				}
 				tv10, tf10 := c.P.TermLength(any(ts9))
 				if tf10 != nil {
-					panic(tf10)
+					c.TermRaise(tf10)
 				}
 				tv7 := tv10
 				tf11 := c.P.TermPush(c, "map", tv7)
 				if tf11 != nil {
-					panic(tf11)
+					c.TermRaise(tf11)
 				}
 			}
 			tk12 := c.P.Kids(tm2)
 			tn13 := c.P.TermHull(c, false, tk12)
 			ti14, tf14 := c.P.TermItems("foldl", any(tn13))
 			if tf14 != nil {
-				panic(tf14)
+				c.TermRaise(tf14)
 			}
 			ta15 := any(0)
 			tj16 := 0
@@ -866,7 +866,7 @@ func i1(p *rt.TParser) (any, bool) {
 				tp19 := c.P.TermItemAt(ti14, tj16, false)
 				tv21, tf21 := c.P.TermBinary(rt.OpAdd, (tp18), (tp19))
 				if tf21 != nil {
-					panic(tf21)
+					c.TermRaise(tf21)
 				}
 				tv20 := tv21
 				ta15 = tv20
@@ -874,7 +874,7 @@ func i1(p *rt.TParser) (any, bool) {
 			tm22 := len(c.P.KidStack)
 			ti23, tf23 := c.P.TermItems("map", k1)
 			if tf23 != nil {
-				panic(tf23)
+				c.TermRaise(tf23)
 			}
 			tj24 := 0
 			for ; tj24 < len(ti23); tj24++ {
@@ -882,20 +882,20 @@ func i1(p *rt.TParser) (any, bool) {
 				tp26 := c.P.TermItemAt(ti23, tj24, false)
 				tv28, tf28 := c.P.TermMember(c, rt.MemberCapture, (tp26), "$s", "$s"[1:])
 				if tf28 != nil {
-					panic(tf28)
+					c.TermRaise(tf28)
 				}
 				ts29, tf29 := c.P.TermText(tv28)
 				if tf29 != nil {
-					panic(tf29)
+					c.TermRaise(tf29)
 				}
 				tv30, tf30 := c.P.TermLength(any(ts29))
 				if tf30 != nil {
-					panic(tf30)
+					c.TermRaise(tf30)
 				}
 				tv27 := tv30
 				tf31 := c.P.TermPush(c, "map", tv27)
 				if tf31 != nil {
-					panic(tf31)
+					c.TermRaise(tf31)
 				}
 			}
 			tk32 := c.P.Kids(tm22)
@@ -903,7 +903,7 @@ func i1(p *rt.TParser) (any, bool) {
 			tm34 := len(c.P.KidStack)
 			ti35, tf35 := c.P.TermItems("filter", any(tn33))
 			if tf35 != nil {
-				panic(tf35)
+				c.TermRaise(tf35)
 			}
 			tj36 := 0
 			for ; tj36 < len(ti35); tj36++ {
@@ -911,12 +911,12 @@ func i1(p *rt.TParser) (any, bool) {
 				tp38 := c.P.TermItemAt(ti35, tj36, false)
 				tv40, tf40 := c.P.TermBinary(rt.OpGt, (tp38), any(3))
 				if tf40 != nil {
-					panic(tf40)
+					c.TermRaise(tf40)
 				}
 				tv39 := tv40
 				tb41, tf41 := c.P.TermFilterKeep(tv39)
 				if tf41 != nil {
-					panic(tf41)
+					c.TermRaise(tf41)
 				}
 				if tb41 {
 					c.P.KidStack = append(c.P.KidStack, ti35[tj36])
@@ -926,12 +926,12 @@ func i1(p *rt.TParser) (any, bool) {
 			tn43 := c.P.TermHull(c, false, tk42)
 			tv44, tf44 := c.P.TermLength(any(tn43))
 			if tf44 != nil {
-				panic(tf44)
+				c.TermRaise(tf44)
 			}
 			tm45 := len(c.P.KidStack)
 			ti46, tf46 := c.P.TermItems("map", k1)
 			if tf46 != nil {
-				panic(tf46)
+				c.TermRaise(tf46)
 			}
 			tj47 := 0
 			for ; tj47 < len(ti46); tj47++ {
@@ -939,23 +939,23 @@ func i1(p *rt.TParser) (any, bool) {
 				tp49 := c.P.TermItemAt(ti46, tj47, false)
 				tv51, tf51 := c.P.TermMember(c, rt.MemberCapture, (tp49), "$s", "$s"[1:])
 				if tf51 != nil {
-					panic(tf51)
+					c.TermRaise(tf51)
 				}
 				ts52, tf52 := c.P.TermText(tv51)
 				if tf52 != nil {
-					panic(tf52)
+					c.TermRaise(tf52)
 				}
 				tv50 := any(ts52)
 				tf53 := c.P.TermPush(c, "map", tv50)
 				if tf53 != nil {
-					panic(tf53)
+					c.TermRaise(tf53)
 				}
 			}
 			tk54 := c.P.Kids(tm45)
 			tn55 := c.P.TermHull(c, false, tk54)
 			ti56, tf56 := c.P.TermItems("foldl", any(tn55))
 			if tf56 != nil {
-				panic(tf56)
+				c.TermRaise(tf56)
 			}
 			ta57 := any("")
 			tj58 := 0
@@ -965,7 +965,7 @@ func i1(p *rt.TParser) (any, bool) {
 				tp61 := c.P.TermItemAt(ti56, tj58, false)
 				tv63, tf63 := c.P.TermBinary(rt.OpAdd, (tp60), (tp61))
 				if tf63 != nil {
-					panic(tf63)
+					c.TermRaise(tf63)
 				}
 				tv62 := tv63
 				ta57 = tv62
@@ -973,7 +973,7 @@ func i1(p *rt.TParser) (any, bool) {
 			tm64 := len(c.P.KidStack)
 			ti65, tf65 := c.P.TermItems("map", k1)
 			if tf65 != nil {
-				panic(tf65)
+				c.TermRaise(tf65)
 			}
 			tj66 := 0
 			for ; tj66 < len(ti65); tj66++ {
@@ -981,27 +981,27 @@ func i1(p *rt.TParser) (any, bool) {
 				tp68 := c.P.TermItemAt(ti65, tj66, false)
 				tv70, tf70 := c.P.TermMember(c, rt.MemberCapture, (tp68), "$s", "$s"[1:])
 				if tf70 != nil {
-					panic(tf70)
+					c.TermRaise(tf70)
 				}
 				ts71, tf71 := c.P.TermText(tv70)
 				if tf71 != nil {
-					panic(tf71)
+					c.TermRaise(tf71)
 				}
 				tv72, tf72 := c.P.TermLength(any(ts71))
 				if tf72 != nil {
-					panic(tf72)
+					c.TermRaise(tf72)
 				}
 				tv69 := tv72
 				tf73 := c.P.TermPush(c, "map", tv69)
 				if tf73 != nil {
-					panic(tf73)
+					c.TermRaise(tf73)
 				}
 			}
 			tk74 := c.P.Kids(tm64)
 			tn75 := c.P.TermHull(c, false, tk74)
 			ti76, tf76 := c.P.TermItems("foldl", any(tn75))
 			if tf76 != nil {
-				panic(tf76)
+				c.TermRaise(tf76)
 			}
 			ta77 := any(0)
 			tj78 := 0
@@ -1011,14 +1011,14 @@ func i1(p *rt.TParser) (any, bool) {
 				tp81 := c.P.TermItemAt(ti76, tj78, false)
 				tv83, tf83 := c.P.TermBinary(rt.OpAdd, (tp80), (tp81))
 				if tf83 != nil {
-					panic(tf83)
+					c.TermRaise(tf83)
 				}
 				tv82 := tv83
 				ta77 = tv82
 			}
 			tv84, tf84 := c.P.TermBinary(rt.OpGt, ta77, any(20))
 			if tf84 != nil {
-				panic(tf84)
+				c.TermRaise(tf84)
 			}
 			tv85 := tmk_Line(c, true, tv1, ta15, tv44, ta57, tv84)
 			tr3 = tv85
@@ -1106,4 +1106,4 @@ fail:
 
 const _ = types.ZPSchema_e363e9a5033ad260
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

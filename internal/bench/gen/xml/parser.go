@@ -1068,17 +1068,17 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 18)
 	rules[0].Body = e2
-	rules[0].Action = func(c *rt.ActCtx) any {
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		c.P.Spend()
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(3))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -1100,19 +1100,19 @@ func init() {
 		c.TermSetField(tn6, "Epilog", c.Cap(5))
 		tfirst7 = c.P.TermCover(tn6, c.Cap(5), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	rules[1].Body = e4
-	rules[1].Action = func(c *rt.ActCtx) any {
+	rules[1].Action = func(c *rt.ActCtx) (any, any) {
 		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := any(c.NewList(ti1))
-		return tv2
+		return tv2, nil
 	}
 	rules[3].Body = e8
-	rules[3].Action = func(c *rt.ActCtx) any {
+	rules[3].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("XMLDecl", 3)
 		tfirst2 := true
 		c.P.Spend()
@@ -1125,26 +1125,26 @@ func init() {
 		c.TermSetField(tn1, "Standalone", c.Cap(2))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[4].Body = e12
-	rules[4].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[4].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[6].Body = e16
-	rules[6].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[6].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[8].Body = e20
-	rules[8].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[8].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[11].Body = e26
-	rules[11].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[11].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[13].Body = e31
-	rules[13].Action = func(c *rt.ActCtx) any {
+	rules[13].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("PI", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1154,15 +1154,15 @@ func init() {
 		c.TermSetField(tn1, "Data", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[15].Body = e39
-	rules[15].Action = func(c *rt.ActCtx) any {
+	rules[15].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPushItems(c, "concat", c.Cap(2))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
@@ -1178,30 +1178,30 @@ func init() {
 		c.TermSetField(tn5, "Subset", any(tn4))
 		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
 		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[16].Body = e41
-	rules[16].Action = func(c *rt.ActCtx) any {
+	rules[16].Action = func(c *rt.ActCtx) (any, any) {
 		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := any(c.NewList(ti1))
-		return tv2
+		return tv2, nil
 	}
 	rules[19].Body = e46
 	rules[20].Body = e48
-	rules[20].Action = func(c *rt.ActCtx) any {
+	rules[20].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("ExternalID", 1)
 		tfirst2 := true
 		c.P.Spend()
 		c.TermSetField(tn1, "System", c.Cap(0))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[21].Body = e50
-	rules[21].Action = func(c *rt.ActCtx) any {
+	rules[21].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("ExternalID", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1211,18 +1211,18 @@ func init() {
 		c.TermSetField(tn1, "System", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[22].Body = e51
-	rules[22].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[22].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[25].Body = e56
-	rules[25].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[25].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[28].Body = e62
-	rules[28].Action = func(c *rt.ActCtx) any {
+	rules[28].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("ElementDecl", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1232,14 +1232,14 @@ func init() {
 		c.TermSetField(tn1, "Content", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[32].Body = e75
-	rules[32].Action = func(c *rt.ActCtx) any {
+	rules[32].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		ti2, tf2 := c.P.TermItems("map", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tj3 := 0
 		for ; tj3 < len(ti2); tj3++ {
@@ -1247,12 +1247,12 @@ func init() {
 			tp5 := c.P.TermItemAt(ti2, tj3, false)
 			tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, rt.UnboxValue(tp5), "$n", "$n"[1:])
 			if tf7 != nil {
-				panic(tf7)
+				return nil, tf7
 			}
 			tv6 := tv7
 			tf8 := c.P.TermPush(c, "map", tv6)
 			if tf8 != nil {
-				panic(tf8)
+				return nil, tf8
 			}
 		}
 		tk9 := c.P.Kids(tm1)
@@ -1263,19 +1263,19 @@ func init() {
 		c.TermSetField(tn11, "Names", any(tn10))
 		tfirst12 = c.P.TermCover(tn11, any(tn10), tfirst12)
 		c.P.TermMade(c, tn11, tfirst12)
-		return any(tn11)
+		return any(tn11), nil
 	}
 	rules[33].Body = e77
-	rules[33].Action = func(c *rt.ActCtx) any {
+	rules[33].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -1288,19 +1288,19 @@ func init() {
 		c.TermSetField(tn6, "Occur", c.Cap(2))
 		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	rules[34].Body = e80
-	rules[34].Action = func(c *rt.ActCtx) any {
+	rules[34].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -1313,11 +1313,11 @@ func init() {
 		c.TermSetField(tn6, "Occur", c.Cap(2))
 		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	rules[35].Body = e82
 	rules[36].Body = e83
-	rules[36].Action = func(c *rt.ActCtx) any {
+	rules[36].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("NameParticle", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1327,13 +1327,13 @@ func init() {
 		c.TermSetField(tn1, "Occur", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[38].Body = e87
-	rules[38].Action = func(c *rt.ActCtx) any {
+	rules[38].Action = func(c *rt.ActCtx) (any, any) {
 		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := any(c.NewList(ti1))
 		tn3 := c.TermStruct("AttlistDecl", 2)
@@ -1345,10 +1345,10 @@ func init() {
 		c.TermSetField(tn3, "Defs", tv2)
 		tfirst4 = c.P.TermCover(tn3, tv2, tfirst4)
 		c.P.TermMade(c, tn3, tfirst4)
-		return any(tn3)
+		return any(tn3), nil
 	}
 	rules[39].Body = e88
-	rules[39].Action = func(c *rt.ActCtx) any {
+	rules[39].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("AttDef", 4)
 		tfirst2 := true
 		c.P.Spend()
@@ -1364,19 +1364,19 @@ func init() {
 		c.TermSetField(tn1, "Value", c.Cap(3))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(3), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[44].Body = e106
-	rules[44].Action = func(c *rt.ActCtx) any {
+	rules[44].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -1386,19 +1386,19 @@ func init() {
 		c.TermSetField(tn6, "Names", any(tn5))
 		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	rules[45].Body = e108
-	rules[45].Action = func(c *rt.ActCtx) any {
+	rules[45].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -1408,10 +1408,10 @@ func init() {
 		c.TermSetField(tn6, "Values", any(tn5))
 		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	rules[47].Body = e112
-	rules[47].Action = func(c *rt.ActCtx) any {
+	rules[47].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("EntityDecl", 5)
 		tfirst2 := true
 		c.P.Spend()
@@ -1430,10 +1430,10 @@ func init() {
 		c.TermSetField(tn1, "NData", c.Cap(3))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(3), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[48].Body = e113
-	rules[48].Action = func(c *rt.ActCtx) any {
+	rules[48].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("EntityDecl", 4)
 		tfirst2 := true
 		c.P.Spend()
@@ -1449,14 +1449,14 @@ func init() {
 		c.TermSetField(tn1, "ExternalID", c.Cap(2))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[49].Body = e114
-	rules[49].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[49].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[52].Body = e120
-	rules[52].Action = func(c *rt.ActCtx) any {
+	rules[52].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("NotationDecl", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1466,10 +1466,10 @@ func init() {
 		c.TermSetField(tn1, "ExternalID", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[54].Body = e122
-	rules[54].Action = func(c *rt.ActCtx) any {
+	rules[54].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("ExternalID", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1479,20 +1479,20 @@ func init() {
 		c.TermSetField(tn1, "System", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[55].Body = e127
-	rules[55].Action = func(c *rt.ActCtx) any {
+	rules[55].Action = func(c *rt.ActCtx) (any, any) {
 		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := any(c.NewList(ti1))
 		tm3 := len(c.P.KidStack)
 		c.P.Spend()
 		tf4 := c.P.TermPushItems(c, "concat", c.Cap(2))
 		if tf4 != nil {
-			panic(tf4)
+			return nil, tf4
 		}
 		tk5 := c.P.Kids(tm3)
 		tn6 := c.P.TermHull(c, false, tk5)
@@ -1508,10 +1508,10 @@ func init() {
 		c.TermSetField(tn7, "Content", any(tn6))
 		tfirst8 = c.P.TermCover(tn7, any(tn6), tfirst8)
 		c.P.TermMade(c, tn7, tfirst8)
-		return any(tn7)
+		return any(tn7), nil
 	}
 	rules[56].Body = e128
-	rules[56].Action = func(c *rt.ActCtx) any {
+	rules[56].Action = func(c *rt.ActCtx) (any, any) {
 		tn1 := c.TermStruct("Attribute", 2)
 		tfirst2 := true
 		c.P.Spend()
@@ -1521,19 +1521,19 @@ func init() {
 		c.TermSetField(tn1, "Value", c.Cap(1))
 		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
 		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1)
+		return any(tn1), nil
 	}
 	rules[57].Body = e129
-	rules[57].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[57].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[62].Body = e137
-	rules[62].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[62].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[64].Body = e143
-	rules[64].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[64].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[66].Body = e146
 	rules[71].Body = e154
@@ -2299,156 +2299,156 @@ func e31(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tv4 := any(false)
 		if tb3 {
 			ts5, tf5 := c.P.TermText(c.Cap(0))
 			if tf5 != nil {
-				panic(tf5)
+				return nil, tf5
 			}
 			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
 			if tf6 != nil {
-				panic(tf6)
+				return nil, tf6
 			}
 			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
 			if tf7 != nil {
-				panic(tf7)
+				return nil, tf7
 			}
 			tv4 = any(tb7)
 		}
 		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
 		if tf8 != nil {
-			panic(tf8)
+			return nil, tf8
 		}
 		tv9 := any(false)
 		if tb8 {
 			ts10, tf10 := c.P.TermText(c.Cap(0))
 			if tf10 != nil {
-				panic(tf10)
+				return nil, tf10
 			}
 			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
 			if tf11 != nil {
-				panic(tf11)
+				return nil, tf11
 			}
 			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
 			if tf12 != nil {
-				panic(tf12)
+				return nil, tf12
 			}
 			tv9 = any(tb12)
 		}
 		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
 		if tf13 != nil {
-			panic(tf13)
+			return nil, tf13
 		}
 		tv14 := any(false)
 		if tb13 {
 			ts15, tf15 := c.P.TermText(c.Cap(0))
 			if tf15 != nil {
-				panic(tf15)
+				return nil, tf15
 			}
 			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
 			if tf16 != nil {
-				panic(tf16)
+				return nil, tf16
 			}
 			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
 			if tf17 != nil {
-				panic(tf17)
+				return nil, tf17
 			}
 			tv14 = any(tb17)
 		}
 		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
 		if tf18 != nil {
-			panic(tf18)
+			return nil, tf18
 		}
 		tv19 := any(false)
 		if tb18 {
 			ts20, tf20 := c.P.TermText(c.Cap(0))
 			if tf20 != nil {
-				panic(tf20)
+				return nil, tf20
 			}
 			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
 			if tf21 != nil {
-				panic(tf21)
+				return nil, tf21
 			}
 			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
 			if tf22 != nil {
-				panic(tf22)
+				return nil, tf22
 			}
 			tv19 = any(tb22)
 		}
 		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
 		if tf23 != nil {
-			panic(tf23)
+			return nil, tf23
 		}
 		tv24 := any(false)
 		if tb23 {
 			ts25, tf25 := c.P.TermText(c.Cap(0))
 			if tf25 != nil {
-				panic(tf25)
+				return nil, tf25
 			}
 			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
 			if tf26 != nil {
-				panic(tf26)
+				return nil, tf26
 			}
 			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
 			if tf27 != nil {
-				panic(tf27)
+				return nil, tf27
 			}
 			tv24 = any(tb27)
 		}
 		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
 		if tf28 != nil {
-			panic(tf28)
+			return nil, tf28
 		}
 		tv29 := any(false)
 		if tb28 {
 			ts30, tf30 := c.P.TermText(c.Cap(0))
 			if tf30 != nil {
-				panic(tf30)
+				return nil, tf30
 			}
 			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
 			if tf31 != nil {
-				panic(tf31)
+				return nil, tf31
 			}
 			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
 			if tf32 != nil {
-				panic(tf32)
+				return nil, tf32
 			}
 			tv29 = any(tb32)
 		}
 		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
 		if tf33 != nil {
-			panic(tf33)
+			return nil, tf33
 		}
 		tv34 := any(false)
 		if tb33 {
 			ts35, tf35 := c.P.TermText(c.Cap(0))
 			if tf35 != nil {
-				panic(tf35)
+				return nil, tf35
 			}
 			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
 			if tf36 != nil {
-				panic(tf36)
+				return nil, tf36
 			}
 			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
 			if tf37 != nil {
-				panic(tf37)
+				return nil, tf37
 			}
 			tv34 = any(tb37)
 		}
-		return tv34
+		return tv34, nil
 	}) {
 		goto L6
 	}
@@ -3388,16 +3388,16 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto L24
 	}
@@ -4697,16 +4697,16 @@ L17:
 	}
 	p.SetCapture(3, v24)
 	x25 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(3))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		ts2, tf2 := c.P.TermText(c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return any(c.P.TextEqual(ts1, ts2))
+		return any(c.P.TextEqual(ts1, ts2)), nil
 	}) {
 		goto L28
 	}
@@ -6574,156 +6574,156 @@ func e172(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	p.SetCapture(0, v2)
 	x3 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tv4 := any(false)
 		if tb3 {
 			ts5, tf5 := c.P.TermText(c.Cap(0))
 			if tf5 != nil {
-				panic(tf5)
+				return nil, tf5
 			}
 			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
 			if tf6 != nil {
-				panic(tf6)
+				return nil, tf6
 			}
 			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
 			if tf7 != nil {
-				panic(tf7)
+				return nil, tf7
 			}
 			tv4 = any(tb7)
 		}
 		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
 		if tf8 != nil {
-			panic(tf8)
+			return nil, tf8
 		}
 		tv9 := any(false)
 		if tb8 {
 			ts10, tf10 := c.P.TermText(c.Cap(0))
 			if tf10 != nil {
-				panic(tf10)
+				return nil, tf10
 			}
 			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
 			if tf11 != nil {
-				panic(tf11)
+				return nil, tf11
 			}
 			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
 			if tf12 != nil {
-				panic(tf12)
+				return nil, tf12
 			}
 			tv9 = any(tb12)
 		}
 		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
 		if tf13 != nil {
-			panic(tf13)
+			return nil, tf13
 		}
 		tv14 := any(false)
 		if tb13 {
 			ts15, tf15 := c.P.TermText(c.Cap(0))
 			if tf15 != nil {
-				panic(tf15)
+				return nil, tf15
 			}
 			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
 			if tf16 != nil {
-				panic(tf16)
+				return nil, tf16
 			}
 			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
 			if tf17 != nil {
-				panic(tf17)
+				return nil, tf17
 			}
 			tv14 = any(tb17)
 		}
 		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
 		if tf18 != nil {
-			panic(tf18)
+			return nil, tf18
 		}
 		tv19 := any(false)
 		if tb18 {
 			ts20, tf20 := c.P.TermText(c.Cap(0))
 			if tf20 != nil {
-				panic(tf20)
+				return nil, tf20
 			}
 			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
 			if tf21 != nil {
-				panic(tf21)
+				return nil, tf21
 			}
 			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
 			if tf22 != nil {
-				panic(tf22)
+				return nil, tf22
 			}
 			tv19 = any(tb22)
 		}
 		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
 		if tf23 != nil {
-			panic(tf23)
+			return nil, tf23
 		}
 		tv24 := any(false)
 		if tb23 {
 			ts25, tf25 := c.P.TermText(c.Cap(0))
 			if tf25 != nil {
-				panic(tf25)
+				return nil, tf25
 			}
 			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
 			if tf26 != nil {
-				panic(tf26)
+				return nil, tf26
 			}
 			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
 			if tf27 != nil {
-				panic(tf27)
+				return nil, tf27
 			}
 			tv24 = any(tb27)
 		}
 		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
 		if tf28 != nil {
-			panic(tf28)
+			return nil, tf28
 		}
 		tv29 := any(false)
 		if tb28 {
 			ts30, tf30 := c.P.TermText(c.Cap(0))
 			if tf30 != nil {
-				panic(tf30)
+				return nil, tf30
 			}
 			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
 			if tf31 != nil {
-				panic(tf31)
+				return nil, tf31
 			}
 			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
 			if tf32 != nil {
-				panic(tf32)
+				return nil, tf32
 			}
 			tv29 = any(tb32)
 		}
 		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
 		if tf33 != nil {
-			panic(tf33)
+			return nil, tf33
 		}
 		tv34 := any(false)
 		if tb33 {
 			ts35, tf35 := c.P.TermText(c.Cap(0))
 			if tf35 != nil {
-				panic(tf35)
+				return nil, tf35
 			}
 			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
 			if tf36 != nil {
-				panic(tf36)
+				return nil, tf36
 			}
 			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
 			if tf37 != nil {
-				panic(tf37)
+				return nil, tf37
 			}
 			tv34 = any(tb37)
 		}
-		return tv34
+		return tv34, nil
 	}) {
 		goto L6
 	}
@@ -7029,16 +7029,16 @@ L21:
 	} else if _, ok = p.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto L24
 	}
@@ -7392,16 +7392,16 @@ L12:
 	}
 	p.SetCapture(1, v17)
 	x18 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(c.Cap(1))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		ts2, tf2 := c.P.TermText(c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return any(c.P.TextEqual(ts1, ts2))
+		return any(c.P.TextEqual(ts1, ts2)), nil
 	}) {
 		goto L21
 	}
@@ -10425,12 +10425,12 @@ L19:
 			c.P.Spend()
 			tf2 := c.P.TermPushItems(c, "concat", k11)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			c.P.Spend()
 			tf3 := c.P.TermPushItems(c, "concat", k21)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -10497,7 +10497,7 @@ func i1(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr40 = tv2
@@ -11255,156 +11255,156 @@ func i13(p *rt.TParser) (any, bool) {
 	}
 	k1 = v3
 	x4 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpNe, any(ts1), any("xml"))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tb3, tf3 := c.P.TermLogic(rt.OpAnd, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tv4 := any(false)
 		if tb3 {
 			ts5, tf5 := c.P.TermText(k1)
 			if tf5 != nil {
-				panic(tf5)
+				return nil, tf5
 			}
 			tv6, tf6 := c.P.TermBinary(rt.OpNe, any(ts5), any("xmL"))
 			if tf6 != nil {
-				panic(tf6)
+				return nil, tf6
 			}
 			tb7, tf7 := c.P.TermLogic(rt.OpAnd, tv6)
 			if tf7 != nil {
-				panic(tf7)
+				return nil, tf7
 			}
 			tv4 = any(tb7)
 		}
 		tb8, tf8 := c.P.TermLogic(rt.OpAnd, tv4)
 		if tf8 != nil {
-			panic(tf8)
+			return nil, tf8
 		}
 		tv9 := any(false)
 		if tb8 {
 			ts10, tf10 := c.P.TermText(k1)
 			if tf10 != nil {
-				panic(tf10)
+				return nil, tf10
 			}
 			tv11, tf11 := c.P.TermBinary(rt.OpNe, any(ts10), any("xMl"))
 			if tf11 != nil {
-				panic(tf11)
+				return nil, tf11
 			}
 			tb12, tf12 := c.P.TermLogic(rt.OpAnd, tv11)
 			if tf12 != nil {
-				panic(tf12)
+				return nil, tf12
 			}
 			tv9 = any(tb12)
 		}
 		tb13, tf13 := c.P.TermLogic(rt.OpAnd, tv9)
 		if tf13 != nil {
-			panic(tf13)
+			return nil, tf13
 		}
 		tv14 := any(false)
 		if tb13 {
 			ts15, tf15 := c.P.TermText(k1)
 			if tf15 != nil {
-				panic(tf15)
+				return nil, tf15
 			}
 			tv16, tf16 := c.P.TermBinary(rt.OpNe, any(ts15), any("xML"))
 			if tf16 != nil {
-				panic(tf16)
+				return nil, tf16
 			}
 			tb17, tf17 := c.P.TermLogic(rt.OpAnd, tv16)
 			if tf17 != nil {
-				panic(tf17)
+				return nil, tf17
 			}
 			tv14 = any(tb17)
 		}
 		tb18, tf18 := c.P.TermLogic(rt.OpAnd, tv14)
 		if tf18 != nil {
-			panic(tf18)
+			return nil, tf18
 		}
 		tv19 := any(false)
 		if tb18 {
 			ts20, tf20 := c.P.TermText(k1)
 			if tf20 != nil {
-				panic(tf20)
+				return nil, tf20
 			}
 			tv21, tf21 := c.P.TermBinary(rt.OpNe, any(ts20), any("Xml"))
 			if tf21 != nil {
-				panic(tf21)
+				return nil, tf21
 			}
 			tb22, tf22 := c.P.TermLogic(rt.OpAnd, tv21)
 			if tf22 != nil {
-				panic(tf22)
+				return nil, tf22
 			}
 			tv19 = any(tb22)
 		}
 		tb23, tf23 := c.P.TermLogic(rt.OpAnd, tv19)
 		if tf23 != nil {
-			panic(tf23)
+			return nil, tf23
 		}
 		tv24 := any(false)
 		if tb23 {
 			ts25, tf25 := c.P.TermText(k1)
 			if tf25 != nil {
-				panic(tf25)
+				return nil, tf25
 			}
 			tv26, tf26 := c.P.TermBinary(rt.OpNe, any(ts25), any("XmL"))
 			if tf26 != nil {
-				panic(tf26)
+				return nil, tf26
 			}
 			tb27, tf27 := c.P.TermLogic(rt.OpAnd, tv26)
 			if tf27 != nil {
-				panic(tf27)
+				return nil, tf27
 			}
 			tv24 = any(tb27)
 		}
 		tb28, tf28 := c.P.TermLogic(rt.OpAnd, tv24)
 		if tf28 != nil {
-			panic(tf28)
+			return nil, tf28
 		}
 		tv29 := any(false)
 		if tb28 {
 			ts30, tf30 := c.P.TermText(k1)
 			if tf30 != nil {
-				panic(tf30)
+				return nil, tf30
 			}
 			tv31, tf31 := c.P.TermBinary(rt.OpNe, any(ts30), any("XMl"))
 			if tf31 != nil {
-				panic(tf31)
+				return nil, tf31
 			}
 			tb32, tf32 := c.P.TermLogic(rt.OpAnd, tv31)
 			if tf32 != nil {
-				panic(tf32)
+				return nil, tf32
 			}
 			tv29 = any(tb32)
 		}
 		tb33, tf33 := c.P.TermLogic(rt.OpAnd, tv29)
 		if tf33 != nil {
-			panic(tf33)
+			return nil, tf33
 		}
 		tv34 := any(false)
 		if tb33 {
 			ts35, tf35 := c.P.TermText(k1)
 			if tf35 != nil {
-				panic(tf35)
+				return nil, tf35
 			}
 			tv36, tf36 := c.P.TermBinary(rt.OpNe, any(ts35), any("XML"))
 			if tf36 != nil {
-				panic(tf36)
+				return nil, tf36
 			}
 			tb37, tf37 := c.P.TermLogic(rt.OpAnd, tv36)
 			if tf37 != nil {
-				panic(tf37)
+				return nil, tf37
 			}
 			tv34 = any(tb37)
 		}
-		return tv34
+		return tv34, nil
 	}) {
 		goto L7
 	}
@@ -11627,7 +11627,7 @@ L15:
 			c.P.Spend()
 			tf2 := c.P.TermPushItems(c, "concat", k12)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -11691,7 +11691,7 @@ func i16(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr49 = tv2
@@ -12628,16 +12628,16 @@ L21:
 	} else if _, ok = p.Parser.MatchLiteral(lit74, ")", 49, false); !ok {
 		goto L24
 	}
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2, tf2 := c.P.TermBinary(rt.OpEq, tv1, any(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return tv2
+		return tv2, nil
 	}) {
 		goto L24
 	}
@@ -12655,7 +12655,7 @@ L18:
 			tm1 := len(c.P.KidStack)
 			ti2, tf2 := c.P.TermItems("map", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tj3 := 0
 			for ; tj3 < len(ti2); tj3++ {
@@ -12663,12 +12663,12 @@ L18:
 				tp5 := c.P.TermItemAt(ti2, tj3, false)
 				tv7, tf7 := c.P.TermMember(c, rt.MemberCapture, (tp5), "$n", "$n"[1:])
 				if tf7 != nil {
-					panic(tf7)
+					c.TermRaise(tf7)
 				}
 				tv6 := tv7
 				tf8 := c.P.TermPush(c, "map", tv6)
 				if tf8 != nil {
-					panic(tf8)
+					c.TermRaise(tf8)
 				}
 			}
 			tk9 := c.P.Kids(tm1)
@@ -12780,11 +12780,11 @@ L19:
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -12892,11 +12892,11 @@ L19:
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -13129,7 +13129,7 @@ func i38(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k4)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tv3 := tmk_AttlistDecl(c, true, k1, tv2)
@@ -13560,11 +13560,11 @@ func i44(p *rt.TParser) (any, bool) {
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -13655,11 +13655,11 @@ func i45(p *rt.TParser) (any, bool) {
 			c.P.Spend()
 			tf2 := c.P.TermPush(c, "list", k1)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tf3 := c.P.TermPushItems(c, "concat", k4)
 			if tf3 != nil {
-				panic(tf3)
+				c.TermRaise(tf3)
 			}
 			tk4 := c.P.Kids(tm1)
 			tn5 := c.P.TermHull(c, false, tk4)
@@ -14385,16 +14385,16 @@ L22:
 	}
 	k17 = v29
 	x30 = p.Isolate(p.Pos)
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		ts1, tf1 := c.P.TermText(k17)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		ts2, tf2 := c.P.TermText(k1)
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
-		return any(c.P.TextEqual(ts1, ts2))
+		return any(c.P.TextEqual(ts1, ts2)), nil
 	}) {
 		goto L33
 	}
@@ -14429,14 +14429,14 @@ L19:
 		{
 			ti1, tf1 := c.P.TermItems("map", k4)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tm3 := len(c.P.KidStack)
 			c.P.Spend()
 			tf4 := c.P.TermPushItems(c, "concat", k15)
 			if tf4 != nil {
-				panic(tf4)
+				c.TermRaise(tf4)
 			}
 			tk5 := c.P.Kids(tm3)
 			tn6 := c.P.TermHull(c, false, tk5)
@@ -15796,4 +15796,4 @@ fail:
 
 const _ = types.ZPSchema_b044f4d2cb8d65a3
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

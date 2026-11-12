@@ -20,8 +20,9 @@ import (
 // A term (an action, a predicate or the value of a binding) becomes a function of Exec IR that calls
 // the compositions of the operators of terms (binary, unary, logic, member, length, text, convert,
 // conforms) of the parser VM, in the order the term evaluates its operands. Each call returns its value
-// and a failure; the failure is checked right after the call and raised by term.raise, which ends the
-// evaluation of the term as the target's evaluation error does. The logical operators && and || are
+// and a failure; the failure is checked right after the call. The function returns the term's value and
+// a failure, as a composition does: a failure ends the evaluation and the function returns it, for its
+// caller to handle (a predicate fails, an action ends the parse). The logical operators && and || are
 // branches: the right operand is evaluated only if the left one does not decide the result.
 //
 // The leaves of a term (constants, captures, locals and variables), the context of the evaluation and
@@ -124,8 +125,9 @@ type TermLowered struct {
 // TermOptions configures Term.
 type TermOptions struct {
 	// Result, if not empty, names a local of the lowered function (Func.Locals) that its body assigns
-	// the term's value to last; otherwise the body returns the value. A printer that prints the body
-	// without the function declares the local around it.
+	// the term's value to last, and a failure ends the parse by term.raise; otherwise the body returns
+	// the value and the failure. A printer that prints the body without the function, in place of an
+	// action, declares the local around it.
 	Result string
 	// Steps charges one step of the budget for each subterm, before its operands, as the target's
 	// evaluation of terms does under budget controls (term.spend).
@@ -153,13 +155,13 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if err != nil {
 		return nil, err
 	}
-	datum := exec.THandle(ops.Datum)
+	datum, failT := exec.THandle(ops.Datum), exec.THandle(ops.Fail)
 	var results []exec.Type
 	if o.Result == "" {
-		results = []exec.Type{datum}
+		results = []exec.Type{datum, failT}
 	}
 	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded, proj: o.Proj,
-		params: map[*ir.Lambda][]exec.Expr{}}
+		params: map[*ir.Lambda][]exec.Expr{}, inPlace: o.Result != ""}
 	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
 		var res exec.Expr
 		if o.Result != "" {
@@ -169,7 +171,7 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 		if res != nil {
 			b.Set(o.Result, v)
 		} else {
-			b.Return(v)
+			b.Return(v, exec.Null(failT))
 		}
 	})
 	if err := exec.Verify(m); err != nil {
@@ -297,9 +299,9 @@ func addTermOps(m *exec.Module) {
 	op(&exec.Op{Name: OpTermCastType, Results: []exec.Type{exec.THandle(ops.FType)}, Imm: "the cast (TermCast)",
 		Contract: "Returns the checked type of the cast in Imm."})
 	op(&exec.Op{Name: OpTermRaise, Params: []exec.Param{exec.P("f", failT)}, Reads: reads, Writes: reads, NoReturn: true,
-		Contract: "Ends the evaluation of the term with the failure f."})
-	op(&exec.Op{Name: OpTermCastError, Params: []exec.Param{exec.P("v", datum)}, Reads: reads, Writes: reads, NoReturn: true,
-		Imm: "the cast (TermCast)", Contract: "Ends the evaluation of the term with the failure of the cast in Imm of the value v."})
+		Contract: "Ends the parse with the failure f of a term evaluated in place of an action (TermOptions.Result), as the failure of an action does."})
+	op(&exec.Op{Name: OpTermCastError, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{failT}, Reads: reads, Writes: reads,
+		Imm: "the cast (TermCast)", Contract: "Returns the failure of the cast in Imm of the value v."})
 	op(&exec.Op{Name: OpTermTextEqual, Params: []exec.Param{exec.P("l", str), exec.P("r", str)}, Results: []exec.Type{exec.TBool},
 		Reads: reads, Writes: reads, Contract: "Returns whether the strings l and r are equal, comparing them as == compares two strings."})
 	op(&exec.Op{Name: OpTermSpend, Reads: reads, Writes: reads, NoReturn: true, Cost: exec.Cost{Const: 1},
@@ -331,6 +333,18 @@ type termLowerer struct {
 	proj       map[string]string
 	// params holds the values of the parameters of each lambda whose body is being lowered.
 	params map[*ir.Lambda][]exec.Expr
+	// inPlace is set when the term is evaluated in place of an action (TermOptions.Result).
+	inPlace bool
+}
+
+// raise ends the evaluation of the term with the failure f: the function returns it, or, in place of
+// an action, term.raise ends the parse.
+func (l *termLowerer) raise(b *exec.Builder, f exec.Expr) {
+	if l.inPlace {
+		b.Do(OpTermRaise, f)
+		return
+	}
+	b.Return(exec.Null(exec.THandle(ops.Datum)), f)
 }
 
 // step charges the step of an element (seq.step).
@@ -347,11 +361,11 @@ func (l *termLowerer) local(p string) string {
 }
 
 // fallible lets the results of the call c of a composition that returns a value and a failure,
-// raises the failure, and returns the value.
+// raises the failure (raise), and returns the value.
 func (l *termLowerer) fallible(b *exec.Builder, prefix string, c *exec.Call) exec.Expr {
 	n := l.local("")
 	r := b.LetN([]string{prefix + n, "tf" + n}, c)
-	b.If(exec.Bin("!=", r[1], exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { b.Do(OpTermRaise, r[1]) })
+	b.If(exec.Bin("!=", r[1], exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { l.raise(b, r[1]) })
 	return r[0]
 }
 
@@ -485,7 +499,7 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 	case *ir.Cast:
 		x := b.Let(l.local("tc"), l.value(b, t.X))
 		b.If(exec.Not(exec.C("conforms", imm(OpTermCastType, TermCast{t}), x)), func(b *exec.Builder) {
-			b.Append(&exec.Do{Call: &exec.Call{Callee: OpTermCastError, Args: []exec.Expr{x}, Imm: TermCast{t}}})
+			l.raise(b, &exec.Call{Callee: OpTermCastError, Args: []exec.Expr{x}, Imm: TermCast{t}})
 		})
 		return x
 	}
@@ -504,7 +518,7 @@ func (l *termLowerer) values(b *exec.Builder, ts []ir.Term) []exec.Expr {
 // check lets the failure that the call c of a composition returns and raises it.
 func (l *termLowerer) check(b *exec.Builder, c *exec.Call) {
 	f := b.Let(l.local("tf"), c)
-	b.If(exec.Bin("!=", f, exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { b.Do(OpTermRaise, f) })
+	b.If(exec.Bin("!=", f, exec.Null(exec.THandle(ops.Fail))), func(b *exec.Builder) { l.raise(b, f) })
 }
 
 // sequence makes the tuple value, if tuple, or the list value of vals, the values of the elements that

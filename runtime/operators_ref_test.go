@@ -273,14 +273,16 @@ func oprRule(rng *rand.Rand, tr *oprTrace) *Rule {
 	for i := range 1 + rng.Intn(3) {
 		name := fmt.Sprintf("o%d", i)
 		l := line(name, lit("ab"))
-		l.Action = func(c *ActCtx) any { return fmt.Sprintf("%s%s[%d,%d]", name, oprCaps(tr, c), c.start, c.end) }
+		l.Action = func(c *ActCtx) (any, any) {
+			return fmt.Sprintf("%s%s[%d,%d]", name, oprCaps(tr, c), c.start, c.end), nil
+		}
 		pr.Operands = append(pr.Operands, l)
 	}
 	op := func(id int, kind, set string) *OperatorsRuleOp {
 		name := fmt.Sprintf("%s%d", kind[:2], id)
 		l := line(name, lit(set))
-		l.Action = func(c *ActCtx) any {
-			return fmt.Sprintf("(%s%s %s %s)[%d,%d]", name, oprCaps(tr, c), oprShow(c.Lhs), oprShow(c.Rhs), c.start, c.end)
+		l.Action = func(c *ActCtx) (any, any) {
+			return fmt.Sprintf("(%s%s %s %s)[%d,%d]", name, oprCaps(tr, c), oprShow(c.Lhs), oprShow(c.Rhs), c.start, c.end), nil
 		}
 		return &OperatorsRuleOp{Id: id, Kind: kind, Assoc: []string{"left", "right", "none"}[rng.Intn(3)], Level: 1 + rng.Intn(3), Line: l}
 	}

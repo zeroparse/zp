@@ -1,4 +1,4 @@
-protocol 9
+protocol 10
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -151,7 +151,7 @@ method (*ActCtx) Or(any, func() any) any
 method (*ActCtx) PushItems(any)
 method (*ActCtx) PushList(...any)
 method (*ActCtx) PushMap(any, func(any) any)
-method (*ActCtx) TermCastFailed(any, *FieldType, int, int)
+method (*ActCtx) TermCastFailed(any, *FieldType, int, int) any
 method (*ActCtx) TermSetField(*Node, string, any)
 method (*ActCtx) TermStruct(string, int) *Node
 method (*ActCtx) Text(any) any
@@ -208,7 +208,7 @@ method (*Parser) AtLineStartBatch() bool
 method (*Parser) AtLineStartBatchOrdinary() bool
 method (*Parser) AtLineStartOrdinary() bool
 method (*Parser) AttachCaptures(*Node, []string, *CaptureFrame, int, int) *Node
-method (*Parser) Bind(int, func(*ActCtx) any) bool
+method (*Parser) Bind(int, func(*ActCtx) (any, any)) bool
 method (*Parser) Call(*Rule, int) (*Node, bool)
 method (*Parser) DiagnosticAttr(matcher, ExpID) (*Node, bool)
 method (*Parser) DropKids(int)
@@ -251,7 +251,7 @@ method (*Parser) Nodes(int) []*Node
 method (*Parser) OperatorsRuleParse(*Rule, int) (*Node, bool)
 method (*Parser) Peek() (rune, int, bool)
 method (*Parser) PeekOrdinary() (rune, int, bool)
-method (*Parser) Predicate(func(*ActCtx) any) bool
+method (*Parser) Predicate(func(*ActCtx) (any, any)) bool
 method (*Parser) PushRecovered(*SyntaxError)
 method (*Parser) RecoverAttr(matcher, matcher, bool) (*Node, bool)
 method (*Parser) RecoveryErrorText(*SyntaxError) string
@@ -327,8 +327,9 @@ method (*TActCtx) Or(any, func() any) any
 method (*TActCtx) PushItems(any)
 method (*TActCtx) PushList(...any)
 method (*TActCtx) PushMap(any, func(any) any)
-method (*TActCtx) Result(func(*TActCtx) any, string) any
-method (*TActCtx) TermCastFailed(any, *FieldType, int, int)
+method (*TActCtx) Result(func(*TActCtx) (any, any), string) any
+method (*TActCtx) TermCastFailed(any, *FieldType, int, int) any
+method (*TActCtx) TermRaise(any)
 method (*TActCtx) Text(any) any
 method (*TActCtx) TextStr(any) string
 method (*TActCtx) Tuple(...any) any
@@ -350,7 +351,7 @@ method (*TMatch) TStruct() bool
 method (*TMatch) TText() (string, bool)
 method (*TParser) Anchor(bool, ExpID) (any, bool)
 method (*TParser) AttachCaptures(any, []string, []any, int, int) any
-method (*TParser) Bind(int, func(*TActCtx) any) bool
+method (*TParser) Bind(int, func(*TActCtx) (any, any)) bool
 method (*TParser) Call(*TRule, int) (any, bool)
 method (*TParser) CallMemo(*TRule, func(*TParser) (any, bool)) (any, bool)
 method (*TParser) ClassFast(*Class) bool
@@ -380,7 +381,7 @@ method (*TParser) NewNode(string, int, int, []any) *TSeq
 method (*TParser) NewNodeOrdinary(string, int, int, []any) *TSeq
 method (*TParser) NewVals(int) []any
 method (*TParser) OperatorsRuleParse(*TRule, int) (any, bool)
-method (*TParser) Predicate(func(*TActCtx) any) bool
+method (*TParser) Predicate(func(*TActCtx) (any, any)) bool
 method (*TParser) PushKid(any)
 method (*TParser) RecoverAttr(tmatcher, tmatcher, bool) (any, bool)
 method (*TParser) Reset(Mark)
@@ -468,7 +469,7 @@ type Node struct{RawKind *nodeKind; RawStart int32; RawEnd int32; RawText string
 type NodeField struct{Name string; Value any}
 type NodeKind uint8
 type OperatorsRule struct{Skip matcher; Operands []*OperatorsRuleLine; Prefix []*OperatorsRuleOp; Led []*OperatorsRuleOp}
-type OperatorsRuleLine struct{Scope []string; M matcher; Action func(*ActCtx) any; Value Shaper}
+type OperatorsRuleLine struct{Scope []string; M matcher; Action func(*ActCtx) (any, any); Value Shaper}
 type OperatorsRuleOp struct{Id int; Kind string; Assoc string; Level int; Line *OperatorsRuleLine}
 type ParseOption func(*parseOptions)
 type ParseStats struct{Evaluated int; Reused int}
@@ -477,7 +478,7 @@ type PositionUnit int
 type Profile struct{}
 type ProfileLocation struct{Pos int; Level int}
 type ProfileSnapshot struct{Parses int; Entered int; Calls int; Evals int; MemoHits int; Skipped int; Time time.Duration; Rules []RuleProfile}
-type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*Node, bool); Action func(*ActCtx) any; Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
+type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*Node, bool); Action func(*ActCtx) (any, any); Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
 type RuleExtra struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}
 type RuleProfile struct{Rule string; Entered int; Calls int; Evals int; MemoHits int; Matched int; Failed int; Consumed int; Skipped int; SkipReasons []SkipReasonCount; Repeats int; MaxEvals int; MaxEvalsAt ProfileLocation; Examined int; ExaminedKnown bool; Wasted int; WastedKnown bool; Time time.Duration; SelfTime time.Duration}
 type RuleSpec struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}
@@ -495,11 +496,11 @@ type TMatch struct{TNode[string]; Nt uint16}
 type TNode[T any] struct{Span; Value T}
 type TOperand struct{V any; Str string; IsStr bool}
 type TOperatorsRule struct{Skip tmatcher; Operands []*TOperatorsRuleLine; Prefix []*TOperatorsRuleOp; Led []*TOperatorsRuleOp}
-type TOperatorsRuleLine struct{Scope []string; M tmatcher; Action func(*TActCtx) any; Value Shaper}
+type TOperatorsRuleLine struct{Scope []string; M tmatcher; Action func(*TActCtx) (any, any); Value Shaper}
 type TOperatorsRuleOp struct{Id int; Kind string; Assoc string; Level int; Line *TOperatorsRuleLine}
 type TParser struct{*Parser; Ext any; Where string; Frame *TCaptureFrame; Trail []tundo; Created []TVal; KidStack []any; TypedDocument *typedDocumentState}
 type TPubHooks struct{Match func(*TNode[string]) any; Error func(*Error) any; Node func(*TNode[any]) any; Back func(any) any}
-type TRule struct{*Rule; Body func(*TParser, int) (any, bool); Action func(*TActCtx) any; OperatorsRule *TOperatorsRule; Entry func(*TParser) (any, bool); Nt uint16; OpNt uint16}
+type TRule struct{*Rule; Body func(*TParser, int) (any, bool); Action func(*TActCtx) (any, any); OperatorsRule *TOperatorsRule; Entry func(*TParser) (any, bool); Nt uint16; OpNt uint16}
 type TSeq struct{Span; Typ string; Kids []any}
 type TVal interface{TField(string) (any, bool); TFresh() bool; TKids() []any; TName() string; TSetFresh(bool); TSetSpan(int, int); TSpan() (int, int); TStruct() bool; TText() (string, bool)}
 type TerminalProgram struct{Code []uint16; Classes []*Class; Literals []TerminalText}

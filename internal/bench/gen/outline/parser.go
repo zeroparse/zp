@@ -203,25 +203,25 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 1)
 	rules[0].Body = e1
-	rules[0].Action = func(c *rt.ActCtx) any {
-		return c.Cap(0)
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(0), nil
 	}
 	rules[1].Body = e3
-	rules[1].Action = func(c *rt.ActCtx) any {
+	rules[1].Action = func(c *rt.ActCtx) (any, any) {
 		ti1, tf1 := c.P.TermItems("map", c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := any(c.NewList(ti1))
-		return tv2
+		return tv2, nil
 	}
 	rules[2].Body = e4
-	rules[2].Action = func(c *rt.ActCtx) any {
+	rules[2].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPushItems(c, "concat", c.Cap(2))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
@@ -234,11 +234,11 @@ func init() {
 		c.TermSetField(tn5, "Children", any(tn4))
 		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
 		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5)
+		return any(tn5), nil
 	}
 	rules[3].Body = e5
-	rules[3].Action = func(c *rt.ActCtx) any {
-		return c.Cap(1)
+	rules[3].Action = func(c *rt.ActCtx) (any, any) {
+		return c.Cap(1), nil
 	}
 	zpGrammar.DeclareStruct("Item", "Text", "-", "Children", "l")
 	zpGrammar.TypeKinds["Item"] = rt.KindOf("Item", "")
@@ -262,8 +262,8 @@ func e1(p *rt.Parser, _ int) (*rt.Node, bool) {
 	var ok bool
 	var v2 *rt.Node
 	var x4 rt.Mark
-	if !p.Bind(0, func(c *rt.ActCtx) any {
-		return any(0)
+	if !p.Bind(0, func(c *rt.ActCtx) (any, any) {
+		return any(0), nil
 	}) {
 		goto fail
 	}
@@ -360,17 +360,17 @@ func e4(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -431,26 +431,26 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.ActCtx) any {
+	if !p.Bind(0, func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
-		return tv1
+		return tv1, nil
 	}) {
 		goto fail
 	}
@@ -650,8 +650,8 @@ func e15(p *rt.Parser, _ int) (*rt.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
-	if !p.Bind(0, func(c *rt.ActCtx) any {
-		return any(0)
+	if !p.Bind(0, func(c *rt.ActCtx) (any, any) {
+		return any(0), nil
 	}) {
 		goto fail
 	}
@@ -739,17 +739,17 @@ func e18(p *rt.Parser, _ int) (*rt.Node, bool) {
 		goto fail
 	}
 	p.SetCapture(0, v2)
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -806,26 +806,26 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.ActCtx) any {
+	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.ActCtx) any {
+	if !p.Bind(0, func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
-		return tv1
+		return tv1, nil
 	}) {
 		goto fail
 	}
@@ -998,8 +998,8 @@ func i0(p *rt.TParser) (any, bool) {
 	var ok bool
 	start = p.Pos
 	prevEnv = p.Env
-	if !p.Bind(0, func(c *rt.TActCtx) any {
-		return any(0)
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
+		return any(0), nil
 	}) {
 		goto fail
 	}
@@ -1109,7 +1109,7 @@ func i1(p *rt.TParser) (any, bool) {
 		{
 			ti1, tf1 := c.P.TermItems("map", k1)
 			if tf1 != nil {
-				panic(tf1)
+				c.TermRaise(tf1)
 			}
 			tv2 := (c.NewList(ti1))
 			tr14 = tv2
@@ -1146,17 +1146,17 @@ func i2(p *rt.TParser) (any, bool) {
 		goto fail
 	}
 	k1 = v3
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k1)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpEq, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
@@ -1187,7 +1187,7 @@ L12:
 			c.P.Spend()
 			tf2 := c.P.TermPushItems(c, "concat", k7)
 			if tf2 != nil {
-				panic(tf2)
+				c.TermRaise(tf2)
 			}
 			tk3 := c.P.Kids(tm1)
 			tn4 := c.P.TermHull(c, false, tk3)
@@ -1251,26 +1251,26 @@ L2:
 	p.Pos = x1
 	goto fail
 L3:
-	if !p.Predicate(func(c *rt.TActCtx) any {
+	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k7)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tv2 := c.Var(0)
 		tv3, tf3 := c.P.TermBinary(rt.OpGt, tv1, tv2)
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
-		return tv3
+		return tv3, nil
 	}) {
 		goto fail
 	}
-	if !p.Bind(0, func(c *rt.TActCtx) any {
+	if !p.Bind(0, func(c *rt.TActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(k7)
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
-		return tv1
+		return tv1, nil
 	}) {
 		goto fail
 	}
@@ -1458,4 +1458,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10

@@ -484,7 +484,7 @@ func NewTRules(rules []*Rule) []*TRule {
 type TRule struct {
 	*Rule
 	Body          func(p *TParser, min int) (any, bool)
-	Action        func(c *TActCtx) any
+	Action        func(c *TActCtx) (any, any) // as Rule.Action
 	OperatorsRule *TOperatorsRule
 	// Entry is the generated method that calls the rule as call(r, 0) does (u<id> or s<id>). The
 	// generated parser sets it only for the start rules, which TParse runs through it; every other
@@ -1751,10 +1751,14 @@ func (p *TParser) UseCtx(c TActCtx) *TActCtx {
 
 // Result evaluates an action. Its errors fail the parse: tparse reports them with the rule
 // name, which result records in p.Where instead of deferring a recovery for each action.
-func (c *TActCtx) Result(action func(*TActCtx) any, where string) (n any) {
+func (c *TActCtx) Result(action func(*TActCtx) (any, any), where string) (n any) {
 	prev := c.P.Where
 	c.P.Where = where
-	n = c.Finish(action(c))
+	v, f := action(c)
+	if f != nil {
+		c.P.actionFailed(where, f)
+	}
+	n = c.Finish(v)
 	c.P.Where = prev
 	return n
 }
@@ -1793,7 +1797,7 @@ func (p *TParser) DropCreated(base int) {
 }
 
 // evalTerm is Parser.evalTerm for the typed runtime.
-func (p *TParser) evalTerm(t func(*TActCtx) any) (v any, ok bool) {
+func (p *TParser) evalTerm(t func(*TActCtx) (any, any)) (v any, ok bool) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, isEval := x.(evalError); !isEval {
@@ -1802,7 +1806,16 @@ func (p *TParser) evalTerm(t func(*TActCtx) any) (v any, ok bool) {
 			ok = false
 		}
 	}()
-	return t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})), true
+	v, f := t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)}))
+	return v, f == nil
+}
+
+// TermRaise ends the parse with the failure f of the action that the generated rule evaluates in
+// place, as Result does for an action that fails.
+//
+// TermRaise is for generated parsers; not a stable API.
+func (c *TActCtx) TermRaise(f any) {
+	c.P.actionFailed(c.P.Where, f)
 }
 
 // tvalOrNil is the typed runtime's nodeOrNil: values are already any, with the untyped nil.
@@ -2046,7 +2059,7 @@ type TOperatorsRule struct {
 type TOperatorsRuleLine struct {
 	Scope  []string
 	M      tmatcher
-	Action func(*TActCtx) any
+	Action func(*TActCtx) (any, any)
 	// Value makes the value of an operand line without an action, and of an operator line's
 	// operator, from the value of the line's expression.
 	Value Shaper

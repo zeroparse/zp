@@ -692,17 +692,17 @@ func (p *flowPrinter) not(x flow.Expr) string {
 	case *flow.Pred:
 		if x.Caps.Vars == nil {
 			// The term reads the current frame.
-			return fmt.Sprintf("!p.Predicate(func(c *%s) any { %s })", g.ctxType(), g.predicate(x.Node.Term, p.term(x.Node), gen.FrameScope(x.Caps)))
+			return fmt.Sprintf("!p.Predicate(func(c *%s) (any, any) { %s })", g.ctxType(), g.predicate(x.Node.Term, p.term(x.Node), gen.FrameScope(x.Caps)))
 		}
 		defer p.caps(x.Caps)()
-		return fmt.Sprintf("!p.Predicate(func(c *TActCtx) any { %s })", g.predicate(x.Node.Term, p.term(x.Node), compile.NewScope()))
+		return fmt.Sprintf("!p.Predicate(func(c *TActCtx) (any, any) { %s })", g.predicate(x.Node.Term, p.term(x.Node), compile.NewScope()))
 	case *flow.Bind:
 		b := p.term(x.Node).(*grammar.Bind)
 		if x.Caps.Vars == nil {
-			return fmt.Sprintf("!p.Bind(%d, func(c *%s) any { %s })", g.Prog.Vars.Index(b.Name), g.ctxType(), g.actionBody(x.Node.Term, b.Value, gen.FrameScope(x.Caps), nil))
+			return fmt.Sprintf("!p.Bind(%d, func(c *%s) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.ctxType(), g.actionBody(x.Node.Term, b.Value, gen.FrameScope(x.Caps), nil))
 		}
 		defer p.caps(x.Caps)()
-		return fmt.Sprintf("!p.Bind(%d, func(c *TActCtx) any { %s })", g.Prog.Vars.Index(b.Name), g.actionBody(x.Node.Term, b.Value, compile.NewScope(), nil))
+		return fmt.Sprintf("!p.Bind(%d, func(c *TActCtx) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.actionBody(x.Node.Term, b.Value, compile.NewScope(), nil))
 	}
 	return "!" + p.expr(x)
 }

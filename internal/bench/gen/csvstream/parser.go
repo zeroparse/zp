@@ -102,10 +102,10 @@ func init() {
 	rules = rt.NewRules(rulesSpec[:], rulesStrs[:], rulesExtras[:])
 	zpGrammar.SetRules(rules, 0)
 	rules[0].Body = e3
-	rules[0].Action = func(c *rt.ActCtx) any {
+	rules[0].Action = func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermMember(c, rt.MemberValue, c.Cap(0), "Value", "Value")
 		if tf1 != nil {
-			panic(tf1)
+			return nil, tf1
 		}
 		tn2 := c.TermStruct("File", 1)
 		tfirst3 := true
@@ -113,19 +113,19 @@ func init() {
 		c.TermSetField(tn2, "Records", tv1)
 		tfirst3 = c.P.TermCover(tn2, tv1, tfirst3)
 		c.P.TermMade(c, tn2, tfirst3)
-		return any(tn2)
+		return any(tn2), nil
 	}
 	rules[1].Body = e6
-	rules[1].Action = func(c *rt.ActCtx) any {
+	rules[1].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
 		c.P.Spend()
 		tf2 := c.P.TermPush(c, "list", c.Cap(0))
 		if tf2 != nil {
-			panic(tf2)
+			return nil, tf2
 		}
 		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
-			panic(tf3)
+			return nil, tf3
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
@@ -135,7 +135,7 @@ func init() {
 		c.TermSetField(tn6, "Fields", any(tn5))
 		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
 		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6)
+		return any(tn6), nil
 	}
 	streamRule = new(rt.Rule)
 	*streamRule = *rules[0]
@@ -590,4 +590,4 @@ fail:
 
 var streamRule *rt.Rule
 
-const _ = rt.Protocol9
+const _ = rt.Protocol10
