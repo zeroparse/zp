@@ -144,6 +144,9 @@ type Model struct {
 
 	// growth: the dependency memo of left recursion
 	ctx ctxModel
+
+	// frames: the capture frames and their trail
+	frm frameState
 }
 
 // Err is an Err handle of the model.
@@ -336,12 +339,16 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
-	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args)) && m.allowsCtx(o, args)
+	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args)) && m.allowsCtx(o, args) &&
+		(!isFrameOp(o.Name) || m.allowsFrame(o, args))
 }
 
 // Quantity returns the cost quantity name for a call of o with args, in the state before the call.
 func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
 	if q, ok := m.ctxQuantity(name, o, args); ok {
+		return q
+	}
+	if q, ok := m.frameQuantity(name, o, args); ok {
 		return q
 	}
 	switch name {
@@ -552,6 +559,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 	if res, ok := m.callOpr(o, args); ok {
 		return res
 	}
+	if res, ok := m.callFrame(o, args); ok {
+		return res
+	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
 }
 
@@ -571,10 +581,16 @@ func (m *Model) envKey(r RuleRef) int64 {
 }
 
 // Dead reports whether the handle h is no longer valid: an entry that memo.prune or memo.splice
-// removed, or that memo.store replaced. An implementation may reuse what a dead handle stood for.
+// removed, or that memo.store replaced, or a frame that frame.close ended. An implementation may
+// reuse what a dead handle stood for.
 func (m *Model) Dead(h any) bool {
-	e, ok := h.(*Entry)
-	return ok && e.pruned
+	switch x := h.(type) {
+	case *Entry:
+		return x.pruned
+	case *Frame:
+		return x.closed
+	}
+	return false
 }
 
 // Exceeds reports whether charging n units would exceed the compute limit.

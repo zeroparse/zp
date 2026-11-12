@@ -346,7 +346,11 @@ not yet written on them.
 
 **Capture frames.** Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark
 is the position, the environment, the recovered errors and the length of the trail; what a reset restores from it
-is the composition `reset`. The operations are transitional, and a static test follows their charges. *Target*:
+is the composition `reset`. The operations have a reference model, with conformance cases that run on the engine
+and on generated Go (node and typed): marks taken and reset to with captures in nested frames, a reset between saving
+and restoring a frame's slots as a longest match does it, and frames ended and opened again, which the typed runtime
+reuses. Cases read slots and set the mark of the missing-token record with conformance operations, and the metered
+targets stay within the bounds. *Target*:
 the representation of a mark (a struct in Go, four numbers in TypeScript), pooling and scratch reuse, and, until the
 charges below settle it, whether opening a frame charges for its slots (see [Cost Contracts](#cost-contracts)).
 
@@ -929,8 +933,7 @@ implements. That definition does not make each operation's implementation shared
 These stay transitional, each declared with its contract and cost bound and implemented by hand on each target:
 
 - the operations in `ops/transitional.go`, `ops/operators.go`, `ops/document.go`, `ops/window.go` and `ops/split.go`
-  that have no reference model, whose charges a static test follows instead (capture frames,
-  left-recursion growth, calls, missing tokens, Operators Rule lines, Documents and the stream window); printed
+  that have no reference model, whose charges a static test follows instead (left-recursion growth, calls, missing tokens, Operators Rule lines, Documents and the stream window); printed
   tests bind what they do;
 - the primitives of grammar code, which reach each runtime's helpers through the lowering of Flow IR, among them the
   sites that make a recovered error;
