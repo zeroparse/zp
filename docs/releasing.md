@@ -19,7 +19,7 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 | The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
 | The package `zeroparse.dev/zp/runtime/parse` of the runtime module: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
 | The other packages of the runtime module, `zeroparse.dev/zp/runtime` and `zeroparse.dev/zp/runtime/noderep`, as generated code uses them with `zp gen -runtime import` | Not a stable API. Judged by the protocol version (see [the runtime protocol](#the-runtime-protocol)), not by the release version |
-| Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 31 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
+| Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 35 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |
 | Ready-made parsers (`zeroparse.dev/alpha-parsers`) | Not part of a release: a separate repository, used from a checkout next to this one with a `go.work` |
 
