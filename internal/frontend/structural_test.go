@@ -17,6 +17,7 @@ var rejected = []struct{ name, src string }{
 	{"binding through a rule", "var k int\n@start\nrule main = A $$\nrule A = {k := k + 1} B \"x\" / \"x\"\nrule B = A \"y\""},
 	{"binding in a repetition", "var k int\n@start\nrule main = R $$\nrule R = ({k := k + 1} \"b\"?)* R \"x\" / \"x\""},
 	{"stream on a cycle", "@start\nrule main = (main / \"y\")+ #stream"},
+	{"stream on a cycle in a rule that is not a start rule", "@start\nrule main = r $$\nrule r = (r / \"y\")+ #stream"},
 	{"splice cycle", "@start\nrule main = _s\nrule _s = \"x\" _s"},
 }
 
@@ -99,9 +100,8 @@ func grammarPos(line int) grammar.Pos { return grammar.Pos{Line: line, Col: 1} }
 
 // TestRunRejectsStreamOnCycleInAnyRule requires Run to reject a #stream on a left-recursion cycle
 // in a rule that is not a start rule, with the message and position given here rather than the
-// compiler's: the module makes a Stream only in a start rule, so the facts alone do not see this
-// #stream, and the error must not be lost when the compiler stops reporting the errors that
-// depend on the facts.
+// compiler's, so that the error is not lost when the compiler stops reporting the errors that
+// depend on the facts. TestStructuralErrorsMatchCompile requires the facts alone to report it.
 func TestRunRejectsStreamOnCycleInAnyRule(t *testing.T) {
 	t.Parallel()
 	g, err := compiletest.Parse("@start\nrule main = r $$\nrule r = (r / \"y\")+ #stream")

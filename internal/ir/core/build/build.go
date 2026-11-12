@@ -17,10 +17,11 @@
 // values, of the capture slots, of every term and of the named types and variables. The
 // expectations of the module begin with the fixed ones of the runtime (core.FixedDescs), so that Any
 // and the anchors, which name none, record those of the same index. A #stream repetition at the
-// top of a start rule is a Stream if it is the first #stream of the rule body; elsewhere it
-// streams nothing and is built as its repetition. A body the compiler accepts has at most one
-// #stream; for one it rejects, the module has a Stream exactly where the compiler checks a #stream
-// against left recursion, so that the facts report that error where the compiler does.
+// top of a rule body is a Stream if it is the first #stream of the body, in every rule, whether
+// or not it starts a parse; elsewhere it is built as its repetition. A body the compiler accepts
+// has at most one #stream; for one it rejects, the module has a Stream exactly where the compiler
+// checks a #stream against left recursion, so that the facts report that error where the
+// compiler does.
 package build
 
 import (
@@ -56,7 +57,7 @@ func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool) (
 	in := prog.CoreInput()
 	all := in.Rules
 	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
-		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*Rule]bool{}}
+		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}}
 	b.noProject = !project
 	if b.chk != nil {
 		b.rec = b.chk.ValueRecord()
@@ -65,7 +66,6 @@ func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool) (
 		b.exp(d)
 	}
 	for _, r := range in.Starts {
-		b.starts[r] = true
 		b.m.Starts = append(b.m.Starts, r.ID)
 	}
 	for i, r := range all {
@@ -119,8 +119,6 @@ type coreBuilder struct {
 	// exps and classes intern the expectations and classes of the module.
 	exps    map[string]core.ExpID
 	classes map[string]*core.Class
-	// starts holds the start rules.
-	starts map[*Rule]bool
 	// stream is the #stream of the rule being built that makes a Stream: its first #stream in
 	// walk order, if that one is at the top of the body (check.StreamTops), else nil.
 	stream grammar.Expr
@@ -600,7 +598,7 @@ func firstStream(body grammar.Expr) grammar.Expr {
 // attributed builds e under its attributes Attrs[:i+1], the last one outermost.
 func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && e == b.stream && b.starts[b.cur] {
+		if rep, ok := e.Expr.(*grammar.Repeat); ok && e == b.stream {
 			x, err := b.expr(rep, s, build)
 			if err != nil {
 				return nil, err
