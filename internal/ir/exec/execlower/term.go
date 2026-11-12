@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	ir "zeroparse.dev/zp/internal/ir/core"
+	ir "zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/execcore"
 	"zeroparse.dev/zp/internal/ir/exec/ops"

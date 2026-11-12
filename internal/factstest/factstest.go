@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 var update = flag.Bool("update-facts", false, "rewrite the grammar facts golden files")
@@ -310,17 +310,17 @@ func lineDiff(want, got string) string {
 	return b.String()
 }
 
-// CoreRules returns the facts that internal/ir/core/facts computed for the rules of a module that
+// CoreRules returns the facts that internal/ir/coreir/facts computed for the rules of a module that
 // are not value-free twins, in the form Render writes. origin maps the module's nodes to the
 // expressions they were built from, which name the choices of the alternatives.
-func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr) []Rule {
+func CoreRules(m *coreir.Module, f *facts.Facts, origin map[coreir.Node]grammar.Expr) []Rule {
 	twin := map[int]bool{}
 	for _, r := range m.Rules {
 		if r.Twin != nil {
 			twin[r.Twin.ID] = true
 		}
 	}
-	terminal := func(n core.Node) Terminal {
+	terminal := func(n coreir.Node) Terminal {
 		if f := n.Attrs().First; f != nil {
 			return Terminal{Exp: m.Exps[f.Exp], Depth: f.Depth}
 		}
@@ -338,8 +338,8 @@ func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr
 		if x.Recovering >= 0 {
 			rule.Recovering = m.Rules[x.Recovering].Name
 		}
-		core.Walk(r.Body, func(n core.Node) {
-			c, ok := n.(*core.Choice)
+		coreir.Walk(r.Body, func(n coreir.Node) {
+			c, ok := n.(*coreir.Choice)
 			if !ok {
 				return
 			}

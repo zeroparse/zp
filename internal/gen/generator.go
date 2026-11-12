@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen/opt"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 	"zeroparse.dev/zp/internal/limits"
@@ -42,17 +42,17 @@ type Generator struct {
 	// Opt holds the optimizations that are on (GenOptions.Optimize, Opt and NoOpt).
 	Opt opt.Settings
 	// CoreHook, if set, is called with the module after it is built and after each pass that runs on
-	// it (core.RunOptions.Dump).
-	CoreHook func(pass string, m *core.Module)
+	// it (coreir.RunOptions.Dump).
+	CoreHook func(pass string, m *coreir.Module)
 	// PrintAfter lists the passes after which the Core IR of each module is written to PrintTo
 	// (GenOptions.PrintAfter); "all" selects every pass.
 	PrintAfter []string
 	PrintTo    io.Writer
 	// VerifyEach verifies the Core IR after every pass (GenOptions.VerifyEachPass).
 	VerifyEach bool
-	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that generate with a
+	// CoreRun, if set, runs the Core passes in place of coreir.Run, for tests that generate with a
 	// pipeline of their own.
-	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	CoreRun func(m *coreir.Module, env *coreir.Env, o coreir.RunOptions) ([]string, error)
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
@@ -240,8 +240,8 @@ func LiteralTextMembership(t grammar.Term) (string, []string, bool) {
 
 // FlowState holds the Core IR of the typed rules while they are printed from Flow IR.
 type FlowState struct {
-	M      *core.Module
-	Origin map[core.Node]grammar.Expr
+	M      *coreir.Module
+	Origin map[coreir.Node]grammar.Expr
 	Opts   flowlower.Options
 	// Rules holds the rules of the program by ID, value-free twins included.
 	Rules []*compile.Rule
@@ -249,12 +249,12 @@ type FlowState struct {
 
 // CoreAction returns the action of Core IR of the rule r, the term that its value is made of, or nil
 // if it has none or the table has no Core IR.
-func (g *Generator) CoreAction(r *compile.Rule) core.Term {
+func (g *Generator) CoreAction(r *compile.Rule) coreir.Term {
 	if g.Flow == nil || r.ID >= len(g.Flow.M.Rules) {
 		return nil
 	}
 	cr := g.Flow.M.Rules[r.ID]
-	if cr == nil || cr.Finish.Kind != core.FinishAction {
+	if cr == nil || cr.Finish.Kind != coreir.FinishAction {
 		return nil
 	}
 	return cr.Finish.Action
@@ -294,7 +294,7 @@ func flowFrameExprOK(r *compile.Rule) bool {
 // which are the ones Core IR makes, so a Core-lowered body agrees with them. The recognizer's table writes
 // its actions without projections, so its Core IR is built without them (irbuild.CoreProjecting) and agrees with
 // them as well; either table's body is eligible when its action reads only captures of the frame.
-func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
+func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*coreir.Rule, bool) {
 	if g.Flow == nil || g.Table == "trules" || !flowFrameExprOK(r) {
 		return nil, false
 	}
@@ -342,27 +342,27 @@ func RecFlowEligible(r *compile.Rule) bool {
 
 // RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the generator. local
 // selects the rules that terminal regions are made in, and prepareScans is called around the scans
-// (core.Env). The module is the one of the table named table, which the printed Core IR is
+// (coreir.Env). The module is the one of the table named table, which the printed Core IR is
 // labeled with. A failure is an internal error that names the pass.
-func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
-	env := &core.Env{Mode: mode, Flag: g.Opt.On, Local: local, PrepareScans: prepareScans}
-	run := core.Run
+func (g *Generator) RunCore(table string, m *coreir.Module, mode coreir.Mode, local func(*coreir.Rule) bool, prepareScans func(*coreir.Module) func()) error {
+	env := &coreir.Env{Mode: mode, Flag: g.Opt.On, Local: local, PrepareScans: prepareScans}
+	run := coreir.Run
 	if g.CoreRun != nil {
 		run = g.CoreRun
 	}
 	dump := g.CoreHook
 	if len(g.PrintAfter) > 0 && g.PrintTo != nil {
 		hook := dump
-		dump = func(pass string, m *core.Module) {
+		dump = func(pass string, m *coreir.Module) {
 			if hook != nil {
 				hook(pass, m)
 			}
 			if slices.Contains(g.PrintAfter, pass) || slices.Contains(g.PrintAfter, "all") {
-				fmt.Fprintf(g.PrintTo, "-- Core IR of the %s table after %s --\n%s\n", table, pass, core.Print(m, true))
+				fmt.Fprintf(g.PrintTo, "-- Core IR of the %s table after %s --\n%s\n", table, pass, coreir.Print(m, true))
 			}
 		}
 	}
-	if _, err := run(m, env, core.RunOptions{Dump: dump, VerifyEach: g.VerifyEach}); err != nil {
+	if _, err := run(m, env, coreir.RunOptions{Dump: dump, VerifyEach: g.VerifyEach}); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil
@@ -375,13 +375,13 @@ func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local 
 // step with them. Terminals and class runs apply only to lean typed rules (gogen.Generator.TypedCore):
 // the Node recognizer writes its terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *compile.Program) error {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[coreir.Node]grammar.Expr{}
 	m, err := irbuild.CoreProjecting(rec, origin, g.Table != "recRules")
 	if err != nil {
 		return err
 	}
 	// The scans of the Flow route keep the origin of each repetition they replace (FollowRepeats).
-	prepare := func(m *core.Module) func() {
+	prepare := func(m *coreir.Module) func() {
 		repeats := irbuild.FollowRepeats(m, origin)
 		return func() {
 			for _, f := range repeats {
@@ -389,7 +389,7 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 			}
 		}
 	}
-	if err := g.RunCore(g.Table, m, core.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
+	if err := g.RunCore(g.Table, m, coreir.Mode{Ordinary: g.Ordinary, Observe: g.Observability}, nil, prepare); err != nil {
 		return err
 	}
 	// Classes are inline tests, as the Node runtime's generated code writes them.
@@ -461,7 +461,7 @@ func leanRuleOK(r *compile.Rule) bool {
 // the guard read: the parser prints bodies in their ordinary form, and the guards and their guarded
 // classes are on.
 func (g *Generator) GuardedClasses() bool {
-	return g.Ordinary && g.Opt.On(core.PassGuards) && g.Opt.On(core.FlagGuardedClasses)
+	return g.Ordinary && g.Opt.On(coreir.PassGuards) && g.Opt.On(coreir.FlagGuardedClasses)
 }
 
 // capRefs calls f with the name of each capture the term t refers to outside lambdas that bind

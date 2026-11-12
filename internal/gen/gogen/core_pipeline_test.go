@@ -9,26 +9,26 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
-func typedEnv(g *gogen.Generator) *core.Env {
-	return &core.Env{
-		Mode:  core.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability},
+func typedEnv(g *gogen.Generator) *coreir.Env {
+	return &coreir.Env{
+		Mode:  coreir.Mode{Lean: g.Ordinary, Ordinary: g.Ordinary, Observe: g.Observability},
 		Flag:  g.Opt.On,
 		Local: gogen.CoreLocalRule,
 	}
 }
 
 // pipelinedTypedCore runs the pipeline on the typed rules of g.
-func pipelinedTypedCore(g *gogen.Generator, verifyEach bool) (*core.Module, error) {
-	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]grammar.Expr{})
+func pipelinedTypedCore(g *gogen.Generator, verifyEach bool) (*coreir.Module, error) {
+	m, err := irbuild.CoreFrom(g.Prog, map[coreir.Node]grammar.Expr{})
 	if err != nil {
 		return nil, err
 	}
-	_, err = core.Run(m, typedEnv(g), core.RunOptions{VerifyEach: verifyEach})
+	_, err = coreir.Run(m, typedEnv(g), coreir.RunOptions{VerifyEach: verifyEach})
 	return m, err
 }
 
@@ -81,7 +81,7 @@ func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 					t.Errorf("%s: %s: %v", mode.name, c.Name, err)
 					return
 				}
-				if a, b := core.Print(want, true), core.Print(got, true); a != b {
+				if a, b := coreir.Print(want, true), coreir.Print(got, true); a != b {
 					t.Errorf("%s: %s: verifying between the passes changes the module", mode.name, c.Name)
 					return
 				}

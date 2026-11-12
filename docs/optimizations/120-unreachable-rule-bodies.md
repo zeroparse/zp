@@ -16,7 +16,7 @@ same way. On the 14 grammars of the output manifest, between 34% and 44% of the 
 source belonged to such bodies.
 
 The generator runs twice. The first pass computes, for each rule table (`rules`, `recRules`, and `trules` of typed
-output), the rule slots and wrapper functions that a parse can enter, with `core.Module.Reach` on the call graph of the
+output), the rule slots and wrapper functions that a parse can enter, with `coreir.Module.Reach` on the call graph of the
 Core IR: it follows the calls of the rule bodies, and `callWrapper` says whether a call of a rule is printed through its
 wrapper or its slot. The roots are the start rules of the Node and recognizer tables, which the generated entry points and
 `Starts` reach, and the typed rules whose `Entry` a typed entry point runs; the stream body copies the start rule's

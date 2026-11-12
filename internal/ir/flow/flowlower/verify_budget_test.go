@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -33,12 +33,12 @@ func stripSteps(ss []flow.Stmt) []flow.Stmt {
 func TestVerifyBudgetCharges(t *testing.T) {
 	for _, c := range []struct {
 		name string
-		body core.Node
+		body coreir.Node
 	}{
-		{"literal", &core.Lit{Text: "a"}},
-		{"star of literals", &core.Repeat{Min: 0, Max: -1, Body: &core.Lit{Text: "ab"}}},
-		{"plus of a sequence", &core.Repeat{Min: 1, Max: -1, Body: &core.Seq{Items: []core.Node{&core.Lit{Text: "a"}, &core.Lit{Text: "b"}}}}},
-		{"choice", alts(&core.Lit{Text: "a"}, &core.Lit{Text: "b"})},
+		{"literal", &coreir.Lit{Text: "a"}},
+		{"star of literals", &coreir.Repeat{Min: 0, Max: -1, Body: &coreir.Lit{Text: "ab"}}},
+		{"plus of a sequence", &coreir.Repeat{Min: 1, Max: -1, Body: &coreir.Seq{Items: []coreir.Node{&coreir.Lit{Text: "a"}, &coreir.Lit{Text: "b"}}}}},
+		{"choice", alts(&coreir.Lit{Text: "a"}, &coreir.Lit{Text: "b"})},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			m, r := valueFree(c.body)
@@ -62,9 +62,9 @@ func TestVerifyBudgetCharges(t *testing.T) {
 	}
 	// The caller charges the entry of a framed function, and a repetition charges once per iteration: without
 	// the iteration step, the entry charge does not cover the loop.
-	for _, body := range []core.Node{
-		&core.Repeat{Min: 0, Max: -1, Body: &core.Lit{Text: "ab"}},
-		&core.Repeat{Min: 1, Max: 3, Body: &core.Lit{Text: "ab"}},
+	for _, body := range []coreir.Node{
+		&coreir.Repeat{Min: 0, Max: -1, Body: &coreir.Lit{Text: "ab"}},
+		&coreir.Repeat{Min: 1, Max: 3, Body: &coreir.Lit{Text: "ab"}},
 	} {
 		m, r := valueFree(body)
 		f, err := LowerFrame(m, r, body, nil, false, "r", Options{Budget: true})
@@ -132,12 +132,12 @@ func TestVerifyBudgetCharges(t *testing.T) {
 // cannot be combined with Options.Budget.
 func TestLowerRejectsBudgetWithLeanClasses(t *testing.T) {
 	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
-		m, r := valueFree(&core.Lit{Text: "a"})
+		m, r := valueFree(&coreir.Lit{Text: "a"})
 		if _, err := Lower(m, r, "r", opts); err == nil {
 			t.Errorf("Lower accepted %+v", opts)
 		}
 	}
-	m, r := valueFree(&core.Lit{Text: "a"})
+	m, r := valueFree(&coreir.Lit{Text: "a"})
 	if _, err := Lower(m, r, "r", Options{ClassTableRanges: 5, GuardedClasses: true}); err != nil {
 		t.Error(err)
 	}
@@ -146,7 +146,7 @@ func TestLowerRejectsBudgetWithLeanClasses(t *testing.T) {
 // TestLowerFrameRejectsBudgetWithLeanClasses is the same check for the framed lowering.
 func TestLowerFrameRejectsBudgetWithLeanClasses(t *testing.T) {
 	for _, opts := range []Options{{Budget: true, ClassTableRanges: 5}, {Budget: true, GuardedClasses: true}} {
-		m, r := valueFree(&core.Lit{Text: "a"})
+		m, r := valueFree(&coreir.Lit{Text: "a"})
 		for name, lower := range map[string]func() (*flow.Func, error){
 			"LowerFrame": func() (*flow.Func, error) { return LowerFrame(m, r, r.Body, nil, false, "r", opts) },
 		} {

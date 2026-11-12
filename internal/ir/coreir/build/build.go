@@ -1,4 +1,4 @@
-// Package build builds Core IR (internal/ir/core) from a compiled program.
+// Package build builds Core IR (internal/ir/coreir) from a compiled program.
 //
 // Core makes the module of the program variant whose rule bodies build values where the
 // compiled rules do: a rule body builds its value unless the rule is lean (its action reads only
@@ -26,7 +26,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -34,17 +34,17 @@ import (
 // the position of its ID. Shapes are those of the value model (internal/compile/value_shape.go);
 // Analyze has not run. If origin is not nil, it records the expression each node is built from
 // (the innermost one, for nodes built from a chain of expressions).
-func CoreFrom(prog *compile.Program, origin map[core.Node]grammar.Expr) (*core.Module, error) {
+func CoreFrom(prog *compile.Program, origin map[coreir.Node]grammar.Expr) (*coreir.Module, error) {
 	return CoreProjecting(prog, origin, true)
 }
 
 // CoreProjecting is CoreFrom; if project is false, no repetition gathers the values of a
 // capture (compile.RuleProjections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
-func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+func CoreProjecting(prog *compile.Program, origin map[coreir.Node]grammar.Expr, project bool) (*coreir.Module, error) {
 	all := append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
-	b := &coreBuilder{prog: prog, m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
-		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*compile.Rule]bool{}}
+	b := &coreBuilder{prog: prog, m: &coreir.Module{Rules: make([]*coreir.Rule, len(all))}, origin: origin,
+		exps: map[string]coreir.ExpID{}, classes: map[string]*coreir.Class{}, starts: map[*compile.Rule]bool{}}
 	b.noProject = !project
 	b.rec = prog.ValueRecord()
 	for _, d := range compile.FixedDescs {
@@ -72,7 +72,7 @@ func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, pr
 	}
 	if b.rec != nil {
 		b.m.Typed = true
-		b.m.Types = map[string]core.Type{}
+		b.m.Types = map[string]coreir.Type{}
 		k := &compile.TypeResolver{Prog: prog}
 		for name := range prog.Types {
 			b.m.Types[name] = k.ResolveNamed(name, grammar.Pos{})
@@ -80,16 +80,16 @@ func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, pr
 	}
 	if prog.Vars != nil {
 		for _, d := range prog.Vars.List {
-			b.m.Vars = append(b.m.Vars, &core.VarDecl{Name: d.Name, Type: d.Typ, Init: d.Init})
+			b.m.Vars = append(b.m.Vars, &coreir.VarDecl{Name: d.Name, Type: d.Typ, Init: d.Init})
 		}
 	}
-	core.CallGraph(b.m)
+	coreir.CallGraph(b.m)
 	return b.m, nil
 }
 
 type coreBuilder struct {
 	prog *compile.Program
-	m    *core.Module
+	m    *coreir.Module
 	cur  *compile.Rule
 	// noProject builds no projected repetition: proj stays empty.
 	noProject bool
@@ -98,22 +98,22 @@ type coreBuilder struct {
 	// final is the action whose value is the result of the rule or line being built.
 	final grammar.Term
 	// origin, if not nil, records the expression each node is built from.
-	origin map[core.Node]grammar.Expr
+	origin map[coreir.Node]grammar.Expr
 	// rec holds the checked types of the program, nil if it has none.
 	rec *compile.ValueRecord
 	// exps and classes intern the expectations and classes of the module.
-	exps    map[string]core.ExpID
-	classes map[string]*core.Class
+	exps    map[string]coreir.ExpID
+	classes map[string]*coreir.Class
 	// starts holds the start rules.
 	starts map[*compile.Rule]bool
 	// streamTop holds the expressions of the rule being built where #stream makes a Stream: its
 	// body, the items of its body sequence and the operands of captures that are one of these.
 	streamTop map[grammar.Expr]bool
-	// looks is the number of lookaheads built (core.Look.Site).
+	// looks is the number of lookaheads built (coreir.Look.Site).
 	looks int
 }
 
-// callLevel returns the minimum binding level of a call of the rule r (core.Call.Level).
+// callLevel returns the minimum binding level of a call of the rule r (coreir.Call.Level).
 func callLevel(e *grammar.Ref, r *compile.Rule) (int, error) {
 	if e.Level == "" {
 		return 0, nil
@@ -131,10 +131,10 @@ func callLevel(e *grammar.Ref, r *compile.Rule) (int, error) {
 }
 
 // exp returns the ID of the expectation d, interning it.
-func (b *coreBuilder) exp(d string) core.ExpID {
+func (b *coreBuilder) exp(d string) coreir.ExpID {
 	id, ok := b.exps[d]
 	if !ok {
-		id = core.ExpID(len(b.m.Exps))
+		id = coreir.ExpID(len(b.m.Exps))
 		b.exps[d] = id
 		b.m.Exps = append(b.m.Exps, d)
 	}
@@ -142,15 +142,15 @@ func (b *coreBuilder) exp(d string) core.ExpID {
 }
 
 // class returns the class of a character class expression, interning it.
-func (b *coreBuilder) class(e *grammar.CharClass) *core.Class {
+func (b *coreBuilder) class(e *grammar.CharClass) *coreir.Class {
 	d := compile.CharClassString(e)
 	key := fmt.Sprint(e.Negated, e.Ranges, d)
 	if c, ok := b.classes[key]; ok {
 		return c
 	}
-	c := &core.Class{Negated: e.Negated, Exp: b.exp(d)}
+	c := &coreir.Class{Negated: e.Negated, Exp: b.exp(d)}
 	for _, r := range e.Ranges {
-		c.Ranges = append(c.Ranges, core.Range{Lo: r.Lo, Hi: r.Hi})
+		c.Ranges = append(c.Ranges, coreir.Range{Lo: r.Lo, Hi: r.Hi})
 	}
 	b.classes[key] = c
 	b.m.Classes = append(b.m.Classes, c)
@@ -174,13 +174,13 @@ func (b *coreBuilder) scope(names []string, e grammar.Expr) *coreScope {
 }
 
 // slots returns the slots of the scope s, each with the checked type of its capture.
-func (s *coreScope) slots() []core.Slot {
+func (s *coreScope) slots() []coreir.Slot {
 	if s.names == nil {
 		return nil
 	}
-	out := make([]core.Slot, len(s.names))
+	out := make([]coreir.Slot, len(s.names))
 	for i, n := range s.names {
-		out[i] = core.Slot{Name: n}
+		out[i] = coreir.Slot{Name: n}
 		if t, ok := s.types[n]; ok {
 			out[i].Type = t
 		}
@@ -207,15 +207,15 @@ func (s *coreScope) lookup(name string) (int, bool) {
 	return 0, false
 }
 
-func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
+func (b *coreBuilder) rule(r *compile.Rule) (*coreir.Rule, error) {
 	b.cur = r
-	cr := &core.Rule{ID: r.ID, Name: r.Name, Where: r.WhereName(), Want: !r.Lean}
+	cr := &coreir.Rule{ID: r.ID, Name: r.Name, Where: r.WhereName(), Want: !r.Lean}
 	if b.rec != nil && !r.Novalue {
 		if t, ok := b.rec.Rules[r.Def.Name]; ok {
 			cr.Type = t
 		}
 	}
-	cr.Policy = core.Policy{Memo: r.Memo, Transient: r.Transient, Plain: r.Plain, Rec: r.Rec, Leader: r.Leader, Splice: r.Splice,
+	cr.Policy = coreir.Policy{Memo: r.Memo, Transient: r.Transient, Plain: r.Plain, Rec: r.Rec, Leader: r.Leader, Splice: r.Splice,
 		NoValue: r.Novalue, Seen: r.Seen, Vars: r.Vars}
 	if o, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
 		b.proj = nil
@@ -224,17 +224,17 @@ func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
 			return nil, err
 		}
 		cr.Body = body
-		cr.Finish = core.Finish{Kind: core.FinishSplice}
+		cr.Finish = coreir.Finish{Kind: coreir.FinishSplice}
 		if r.Action != nil && !r.Novalue {
 			// The whole-rule action runs once per call on the folded value, $value.
-			env := map[string]*core.Local{compile.OperatorsRuleValue: {Kind: core.LocalValue, Name: compile.OperatorsRuleValue}}
+			env := map[string]*coreir.Local{compile.OperatorsRuleValue: {Kind: coreir.LocalValue, Name: compile.OperatorsRuleValue}}
 			b.final = r.Action
 			cr.Finish.Action, err = b.term(r.Action, b.scope(nil, o), env)
 			b.final = nil
 			if err != nil {
 				return nil, err
 			}
-			cr.Finish.Kind, cr.Finish.NodeType = core.FinishAction, r.NodeType
+			cr.Finish.Kind, cr.Finish.NodeType = coreir.FinishAction, r.NodeType
 		}
 		return cr, nil
 	}
@@ -254,10 +254,10 @@ func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
 	cr.Finish.Shape = coreShape(b.prog, body)
 	switch {
 	case r.Novalue:
-		cr.Finish.Kind = core.FinishNone
+		cr.Finish.Kind = coreir.FinishNone
 		cr.Finish.NodeType = ""
 	case r.Action != nil:
-		cr.Finish.Kind = core.FinishAction
+		cr.Finish.Kind = coreir.FinishAction
 		b.final = r.Action
 		cr.Finish.Action, err = b.term(r.Action, s, nil)
 		b.final = nil
@@ -265,16 +265,16 @@ func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
 			return nil, err
 		}
 	case r.Splice:
-		cr.Finish.Kind = core.FinishSplice
+		cr.Finish.Kind = coreir.FinishSplice
 	default:
-		cr.Finish.Kind = core.FinishScope
+		cr.Finish.Kind = coreir.FinishScope
 	}
 	cr.Scope = s.slots()
 	return cr, nil
 }
 
-func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*core.OperatorsRule, error) {
-	o := &core.OperatorsRule{}
+func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*coreir.OperatorsRule, error) {
+	o := &coreir.OperatorsRule{}
 	var err error
 	if e.Skip != nil {
 		if o.Skip, err = b.opLine(e.Skip, nil, false, true); err != nil {
@@ -295,7 +295,7 @@ func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*core.OperatorsRu
 			if err != nil {
 				return nil, err
 			}
-			o.Ops = append(o.Ops, &core.Operator{ID: id, Kind: x.Kind, Assoc: x.Assoc, Level: i + 1, Line: l})
+			o.Ops = append(o.Ops, &coreir.Operator{ID: id, Kind: x.Kind, Assoc: x.Assoc, Level: i + 1, Line: l})
 			id++
 		}
 	}
@@ -304,7 +304,7 @@ func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*core.OperatorsRu
 
 // opLine builds an Operators Rule line, the skip line if skip. Lines whose value is unused are
 // matched without values, as are the skip line and all lines of a value-free rule.
-func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip bool) (*core.OpLine, error) {
+func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip bool) (*coreir.OpLine, error) {
 	var locals []string
 	if operator {
 		locals = []string{"lhs", "rhs", "op"}
@@ -315,13 +315,13 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 	if err != nil {
 		return nil, err
 	}
-	l := &core.OpLine{Body: body, Shape: coreShape(b.prog, e)}
+	l := &coreir.OpLine{Body: body, Shape: coreShape(b.prog, e)}
 	if action != nil && !b.cur.Novalue {
-		env := map[string]*core.Local{}
+		env := map[string]*coreir.Local{}
 		if operator {
-			env["lhs"] = &core.Local{Kind: core.LocalLhs, Name: "lhs"}
-			env["rhs"] = &core.Local{Kind: core.LocalRhs, Name: "rhs"}
-			env["op"] = &core.Local{Kind: core.LocalOp, Name: "op"}
+			env["lhs"] = &coreir.Local{Kind: coreir.LocalLhs, Name: "lhs"}
+			env["rhs"] = &coreir.Local{Kind: coreir.LocalRhs, Name: "rhs"}
+			env["op"] = &coreir.Local{Kind: coreir.LocalOp, Name: "op"}
 		}
 		b.final = action
 		l.Action, err = b.term(action, s, env)
@@ -335,9 +335,9 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 }
 
 // coreShape returns the static shape of the value of e.
-func coreShape(prog *compile.Program, e grammar.Expr) core.Shape {
+func coreShape(prog *compile.Program, e grammar.Expr) coreir.Shape {
 	elems := compile.IsElems(prog, e)
-	return core.Shape{Elems: elems, K: compile.ValuedCount(prog, e), Mode: core.SingleMode(compile.SingleModeOf(prog, e)), Tuple: compile.ScopeTuple(prog, e),
+	return coreir.Shape{Elems: elems, K: compile.ValuedCount(prog, e), Mode: coreir.SingleMode(compile.SingleModeOf(prog, e)), Tuple: compile.ScopeTuple(prog, e),
 		Shared: elems && compile.SharesTuple(prog, e)}
 }
 
@@ -399,14 +399,14 @@ func coreLayout(prog *compile.Program, r *compile.Rule, proj map[string]string, 
 
 // set sets the attributes of the node n built from the expression e that the builder sets: whether
 // its value is wanted, and its shape.
-func (b *coreBuilder) set(n core.Node, e grammar.Expr, want bool) core.Node {
+func (b *coreBuilder) set(n coreir.Node, e grammar.Expr, want bool) coreir.Node {
 	a := n.Attrs()
 	a.Want, a.Shape = want, coreShape(b.prog, e)
 	return n
 }
 
 // expr builds the expression e in the scope s; build reports whether its value is wanted.
-func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (coreir.Node, error) {
 	n, err := b.node(e, s, build)
 	if err == nil && b.origin != nil {
 		if _, ok := b.origin[n]; !ok {
@@ -416,18 +416,18 @@ func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node,
 	return n, err
 }
 
-func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (coreir.Node, error) {
 	switch e := e.(type) {
 	case *grammar.Literal:
-		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}
+		n := &coreir.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}
 		if n.Text != "" {
 			n.Exp = b.exp(compile.LiteralDesc(e))
 		}
 		return b.set(n, e, build), nil
 	case *grammar.CharClass:
-		return b.set(&core.ClassNode{Class: b.class(e)}, e, build), nil
+		return b.set(&coreir.ClassNode{Class: b.class(e)}, e, build), nil
 	case *grammar.Any:
-		return b.set(&core.Any{}, e, build), nil
+		return b.set(&coreir.Any{}, e, build), nil
 	case *grammar.Ref:
 		r := b.prog.ByName[e.Name]
 		if r == nil {
@@ -440,9 +440,9 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		if !build && r.Twin != nil {
 			r = r.Twin
 		}
-		return b.set(&core.Call{Rule: r.ID, Level: level}, e, build), nil
+		return b.set(&coreir.Call{Rule: r.ID, Level: level}, e, build), nil
 	case *grammar.Seq:
-		n := &core.Seq{}
+		n := &coreir.Seq{}
 		for _, it := range e.Items {
 			x, err := b.expr(it, s, build)
 			if err != nil {
@@ -452,13 +452,13 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		return b.set(n, e, build), nil
 	case *grammar.Choice:
-		n := &core.Choice{}
+		n := &coreir.Choice{}
 		for _, alt := range e.Alts {
 			x, err := b.expr(alt, s, build)
 			if err != nil {
 				return nil, err
 			}
-			n.Alts = append(n.Alts, &core.Alt{Body: x})
+			n.Alts = append(n.Alts, &coreir.Alt{Body: x})
 		}
 		return b.set(n, e, build), nil
 	case *grammar.Repeat:
@@ -468,7 +468,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		if err != nil {
 			return nil, err
 		}
-		return b.set(&core.Opt{Body: x}, e, build), nil
+		return b.set(&coreir.Opt{Body: x}, e, build), nil
 	case *grammar.And:
 		x, err := b.expr(e.Expr, s, build && compile.HasCaptures(e.Expr))
 		if err != nil {
@@ -476,29 +476,29 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		if compile.LookKeepsState(e.Expr) {
 			// Its captures and bindings outlast it: no observation (compile.LookKeepsState).
-			return b.set(&core.Look{Body: x}, e, false), nil
+			return b.set(&coreir.Look{Body: x}, e, false), nil
 		}
 		b.looks++
-		return b.set(&core.Look{Body: x, Site: b.looks}, e, false), nil
+		return b.set(&coreir.Look{Body: x, Site: b.looks}, e, false), nil
 	case *grammar.Not:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
 		b.looks++
-		return b.set(&core.Look{Body: x, Neg: true, Site: b.looks}, e, false), nil
+		return b.set(&coreir.Look{Body: x, Neg: true, Site: b.looks}, e, false), nil
 	case *grammar.Atomic:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
-		return b.set(&core.Text{Body: x}, e, build), nil
+		return b.set(&coreir.Text{Body: x}, e, build), nil
 	case *grammar.Discard:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
-		return b.set(&core.Drop{Body: x}, e, false), nil
+		return b.set(&coreir.Drop{Body: x}, e, false), nil
 	case *grammar.Capture:
 		if pc := b.cur.PredCaps; !build && pc != nil && !pc.Records(e) {
 			// Captures that no predicate can read build nothing where no value is wanted; one of a
@@ -509,7 +509,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			return b.expr(e.Expr, s, false)
 		}
 		slot := s.slot(e.Name)
-		n := &core.Capture{Slot: slot, Name: e.Name}
+		n := &coreir.Capture{Slot: slot, Name: e.Name}
 		if field := b.proj[e.Name]; field != "" {
 			rep, ok := e.Expr.(*grammar.Repeat)
 			if !ok {
@@ -532,32 +532,32 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		return b.set(n, e, build), nil
 	case *grammar.Cut:
-		return b.set(&core.Cut{}, e, build), nil
+		return b.set(&coreir.Cut{}, e, build), nil
 	case *grammar.Top:
-		return b.set(&core.Succeed{}, e, build), nil
+		return b.set(&coreir.Succeed{}, e, build), nil
 	case *grammar.Bottom:
-		return b.set(&core.FailNode{}, e, build), nil
+		return b.set(&coreir.FailNode{}, e, build), nil
 	case *grammar.BeginInput:
-		return b.set(&core.Anchor{Kind: core.BeginInput}, e, build), nil
+		return b.set(&coreir.Anchor{Kind: coreir.BeginInput}, e, build), nil
 	case *grammar.EndInput:
-		return b.set(&core.Anchor{Kind: core.EndInput}, e, build), nil
+		return b.set(&coreir.Anchor{Kind: coreir.EndInput}, e, build), nil
 	case *grammar.BeginLine:
-		return b.set(&core.Anchor{Kind: core.BeginLine}, e, build), nil
+		return b.set(&coreir.Anchor{Kind: coreir.BeginLine}, e, build), nil
 	case *grammar.EndLine:
-		return b.set(&core.Anchor{Kind: core.EndLine}, e, build), nil
+		return b.set(&coreir.Anchor{Kind: coreir.EndLine}, e, build), nil
 	case *grammar.Predicate:
 		if a, ok := e.Term.(*grammar.Bind); ok {
 			t, err := b.term(a.Value, s, nil)
 			if err != nil {
 				return nil, err
 			}
-			return b.set(&core.BindNode{Var: a.Name, Term: t}, e, build), nil
+			return b.set(&coreir.BindNode{Var: a.Name, Term: t}, e, build), nil
 		}
 		t, err := b.term(e.Term, s, nil)
 		if err != nil {
 			return nil, err
 		}
-		return b.set(&core.Pred{Term: t}, e, build), nil
+		return b.set(&coreir.Pred{Term: t}, e, build), nil
 	case *grammar.Attributed:
 		return b.attributed(e, len(e.Attrs)-1, s, build)
 	}
@@ -565,14 +565,14 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 }
 
 // attributed builds e under its attributes Attrs[:i+1], the last one outermost.
-func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (coreir.Node, error) {
 	if i < 0 {
 		if rep, ok := e.Expr.(*grammar.Repeat); ok && compile.IsStream(e) && b.starts[b.cur] && b.streamTop[e] {
 			x, err := b.expr(rep, s, build)
 			if err != nil {
 				return nil, err
 			}
-			n := &core.Stream{Repeat: x.(*core.Repeat)}
+			n := &coreir.Stream{Repeat: x.(*coreir.Repeat)}
 			n.Attrs().Want, n.Attrs().Shape = x.Attrs().Want, x.Attrs().Shape
 			return n, nil
 		}
@@ -585,7 +585,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if err != nil {
 			return nil, err
 		}
-		n := &core.Label{Body: x, Diagnostic: a.Name == "diagnostic"}
+		n := &coreir.Label{Body: x, Diagnostic: a.Name == "diagnostic"}
 		if n.Diagnostic {
 			n.Exp = b.exp(desugar.AttributeDiagnosticName(a))
 		} else {
@@ -612,7 +612,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if err != nil {
 			return nil, err
 		}
-		n := &core.Recover{Body: x, Skip: skip}
+		n := &coreir.Recover{Body: x, Skip: skip}
 		if build {
 			// What recovers is one element: the value of the expression, or the error. Its shape
 			// gives an expression without a value no element, which its users then leave out.
@@ -627,11 +627,11 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if err != nil {
 			return nil, err
 		}
-		l, ok := x.(*core.Lit)
+		l, ok := x.(*coreir.Lit)
 		if !ok || l.Text == "" {
 			return nil, fmt.Errorf("#missing on %T, not a nonempty literal", x)
 		}
-		n := &core.Missing{Lit: l}
+		n := &coreir.Missing{Lit: l}
 		n.Attrs().Want, n.Attrs().Shape = l.Attrs().Want, l.Attrs().Shape
 		return n, nil
 	}
@@ -640,8 +640,8 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 
 // repeat builds a repetition; with field, a projected repetition gathering the values of the
 // capture field of its elements.
-func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field string) (core.Node, error) {
-	n := &core.Repeat{Min: e.Min, Max: e.Max, Project: field, Site: b.prog.SkipSite(e), ScanSite: b.prog.ScanSite(e)}
+func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field string) (coreir.Node, error) {
+	n := &coreir.Repeat{Min: e.Min, Max: e.Max, Project: field, Site: b.prog.SkipSite(e), ScanSite: b.prog.ScanSite(e)}
 	es := s
 	if field != "" || compile.ElementScoped(e.Expr) {
 		es = b.scope(coreLayout(b.prog, b.cur, b.proj, e.Expr, build && field == "").names, e.Expr)
@@ -654,7 +654,7 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 	if es != s {
 		n.Scope = es.slots()
 		if n.Scope == nil {
-			n.Scope = []core.Slot{}
+			n.Scope = []coreir.Slot{}
 		}
 		if field != "" {
 			if _, ok := es.lookup(field); !ok {
@@ -667,7 +667,7 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 
 // term builds the term t in the scope s, with its checked type; env maps the names of lambda
 // parameters and Operators Rule locals in scope to their locals.
-func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*coreir.Local) (coreir.Term, error) {
 	if g, ok := t.(*grammar.TermGroup); ok {
 		return b.term(g.Term, s, env)
 	}
@@ -677,23 +677,23 @@ func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Lo
 	}
 	if b.rec != nil {
 		if typ, ok := b.rec.Terms[t]; ok {
-			core.SetType(x, typ)
+			coreir.SetType(x, typ)
 		}
 	}
 	return x, nil
 }
 
-func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	sub := func(x grammar.Term) (core.Term, error) { return b.term(x, s, env) }
+func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*coreir.Local) (coreir.Term, error) {
+	sub := func(x grammar.Term) (coreir.Term, error) { return b.term(x, s, env) }
 	switch t := t.(type) {
 	case *grammar.IntLit:
-		return &core.Const{Value: t.Value}, nil
+		return &coreir.Const{Value: t.Value}, nil
 	case *grammar.StringLit:
-		return &core.Const{Value: t.Value}, nil
+		return &coreir.Const{Value: t.Value}, nil
 	case *grammar.BoolLit:
-		return &core.Const{Value: t.Value}, nil
+		return &coreir.Const{Value: t.Value}, nil
 	case *grammar.NilLit:
-		return &core.Const{Value: nil}, nil
+		return &coreir.Const{Value: nil}, nil
 	case *grammar.CaptureRef:
 		if l, ok := env[t.Name]; ok {
 			ref := *l
@@ -703,15 +703,15 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		if !ok {
 			return nil, fmt.Errorf("capture %s is not in scope %v", t.Name, s.names)
 		}
-		return &core.SlotRef{Slot: slot, Name: t.Name}, nil
+		return &coreir.SlotRef{Slot: slot, Name: t.Name}, nil
 	case *grammar.VarRef:
-		return &core.VarRef{Name: t.Name}, nil
+		return &coreir.VarRef{Name: t.Name}, nil
 	case *grammar.Member:
 		x, err := sub(t.X)
 		if err != nil {
 			return nil, err
 		}
-		return &core.Member{X: x, Name: t.Name}, nil
+		return &coreir.Member{X: x, Name: t.Name}, nil
 	case *grammar.New:
 		if len(t.Args) != 0 {
 			x, err := sub(t.Args[0])
@@ -723,10 +723,10 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 				return nil, fmt.Errorf("%s is not a named node type", t.Type)
 			}
 			proven := b.rec != nil && b.rec.Proven[t]
-			return &core.Convert{NodeType: n.Name, X: x, Proven: proven}, nil
+			return &coreir.Convert{NodeType: n.Name, X: x, Proven: proven}, nil
 		}
 		name, spec := b.prog.StructType(t.Type)
-		n := &core.New{Type: name, Final: grammar.Term(t) == b.final}
+		n := &coreir.New{Type: name, Final: grammar.Term(t) == b.final}
 		for _, f := range compile.DefFields(spec) {
 			n.Declared = append(n.Declared, f.Name)
 		}
@@ -735,11 +735,11 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			if err != nil {
 				return nil, err
 			}
-			n.Fields = append(n.Fields, core.FieldInit{Name: f.Name, Value: v})
+			n.Fields = append(n.Fields, coreir.FieldInit{Name: f.Name, Value: v})
 		}
 		return n, nil
 	case *grammar.ListConstructor:
-		n := &core.Builtin{Func: "list"}
+		n := &coreir.Builtin{Func: "list"}
 		for _, x := range t.Items {
 			v, err := sub(x)
 			if err != nil {
@@ -749,7 +749,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		}
 		return n, nil
 	case *grammar.TupleLit:
-		n := &core.Tuple{}
+		n := &coreir.Tuple{}
 		for _, x := range t.Elems {
 			v, err := sub(x)
 			if err != nil {
@@ -759,7 +759,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		}
 		return n, nil
 	case *grammar.Call:
-		n := &core.Builtin{Func: t.Func}
+		n := &coreir.Builtin{Func: t.Func}
 		for _, a := range t.Args {
 			v, err := sub(a)
 			if err != nil {
@@ -769,13 +769,13 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		}
 		return n, nil
 	case *grammar.Lambda:
-		l := &core.Lambda{Params: t.Params}
-		inner := make(map[string]*core.Local, len(env)+len(t.Params))
+		l := &coreir.Lambda{Params: t.Params}
+		inner := make(map[string]*coreir.Local, len(env)+len(t.Params))
 		for k, v := range env {
 			inner[k] = v
 		}
 		for _, p := range t.Params {
-			inner[p] = &core.Local{Kind: core.LocalParam, Name: p, Lambda: l}
+			inner[p] = &coreir.Local{Kind: coreir.LocalParam, Name: p, Lambda: l}
 		}
 		body, err := b.term(t.Body, s, inner)
 		if err != nil {
@@ -792,13 +792,13 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		if err != nil {
 			return nil, err
 		}
-		return &core.Binary{Op: t.Op, L: l, R: r}, nil
+		return &coreir.Binary{Op: t.Op, L: l, R: r}, nil
 	case *grammar.Unary:
 		x, err := sub(t.X)
 		if err != nil {
 			return nil, err
 		}
-		return &core.Unary{Op: t.Op, X: x}, nil
+		return &coreir.Unary{Op: t.Op, X: x}, nil
 	case *grammar.Cast:
 		x, err := sub(t.X)
 		if err != nil {
@@ -809,20 +809,20 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			return x, nil // every value fits the type
 		}
 		line, col := b.prog.CastPos(t)
-		return &core.Cast{X: x, Check: check, Key: t, Line: line, Col: col}, nil
+		return &coreir.Cast{X: x, Check: check, Key: t, Line: line, Col: col}, nil
 	}
 	return nil, fmt.Errorf("unsupported term %T", t)
 }
 
 // FollowRepeats returns functions that, once the scan pass has run, give the scan that took the
 // place of each repetition with an origin the origin of the repetition.
-func FollowRepeats(m *core.Module, origin map[core.Node]grammar.Expr) []func() {
+func FollowRepeats(m *coreir.Module, origin map[coreir.Node]grammar.Expr) []func() {
 	var out []func()
-	visit := func(at func() core.Node) {
-		if rep, ok := at().(*core.Repeat); ok {
+	visit := func(at func() coreir.Node) {
+		if rep, ok := at().(*coreir.Repeat); ok {
 			if e, ok := origin[rep]; ok {
 				out = append(out, func() {
-					if s, ok := at().(*core.Scan); ok {
+					if s, ok := at().(*coreir.Scan); ok {
 						origin[s] = e
 					}
 				})
@@ -837,20 +837,20 @@ func FollowRepeats(m *core.Module, origin map[core.Node]grammar.Expr) []func() {
 
 // EachSlot calls f with an accessor of every place of the rule's body where a node is: the body,
 // the bodies of Operators Rule lines and the children of nodes.
-func EachSlot(r *core.Rule, f func(at func() core.Node)) {
-	var walk func(at func() core.Node)
-	walk = func(at func() core.Node) {
+func EachSlot(r *coreir.Rule, f func(at func() coreir.Node)) {
+	var walk func(at func() coreir.Node)
+	walk = func(at func() coreir.Node) {
 		f(at)
 		n := at()
-		if o, ok := n.(*core.OperatorsRule); ok {
+		if o, ok := n.(*coreir.OperatorsRule); ok {
 			for _, l := range o.Lines() {
-				walk(func() core.Node { return l.Body })
+				walk(func() coreir.Node { return l.Body })
 			}
 			return
 		}
-		for i := range core.Children(n) {
-			walk(func() core.Node { return core.Children(n)[i] })
+		for i := range coreir.Children(n) {
+			walk(func() coreir.Node { return coreir.Children(n)[i] })
 		}
 	}
-	walk(func() core.Node { return r.Body })
+	walk(func() coreir.Node { return r.Body })
 }

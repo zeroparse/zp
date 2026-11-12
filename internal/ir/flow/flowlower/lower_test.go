@@ -4,36 +4,36 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
 // valueFree makes a module of one value-free rule with the body, as the builder does: the
 // expectations of its literals and classes are interned after the five fixed ones.
-func valueFree(body core.Node) (*core.Module, *core.Rule) {
-	m := &core.Module{Exps: []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line"}}
-	core.Walk(body, func(n core.Node) {
+func valueFree(body coreir.Node) (*coreir.Module, *coreir.Rule) {
+	m := &coreir.Module{Exps: []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line"}}
+	coreir.Walk(body, func(n coreir.Node) {
 		switch n := n.(type) {
-		case *core.Lit:
-			n.Exp = core.ExpID(len(m.Exps))
+		case *coreir.Lit:
+			n.Exp = coreir.ExpID(len(m.Exps))
 			m.Exps = append(m.Exps, `"`+n.Text+`"`)
-		case *core.ClassNode:
-			n.Class.Exp = core.ExpID(len(m.Exps))
+		case *coreir.ClassNode:
+			n.Class.Exp = coreir.ExpID(len(m.Exps))
 			m.Exps = append(m.Exps, "class")
 			m.Classes = append(m.Classes, n.Class)
 		}
 	})
-	r := &core.Rule{ID: 0, Name: "r", Body: body, Policy: core.Policy{Seen: -1}}
-	m.Rules = []*core.Rule{r}
-	core.CallGraph(m)
-	core.Analyze(m)
+	r := &coreir.Rule{ID: 0, Name: "r", Body: body, Policy: coreir.Policy{Seen: -1}}
+	m.Rules = []*coreir.Rule{r}
+	coreir.CallGraph(m)
+	coreir.Analyze(m)
 	return m, r
 }
 
-func alts(bodies ...core.Node) *core.Choice {
-	c := &core.Choice{}
+func alts(bodies ...coreir.Node) *coreir.Choice {
+	c := &coreir.Choice{}
 	for _, b := range bodies {
-		c.Alts = append(c.Alts, &core.Alt{Body: b})
+		c.Alts = append(c.Alts, &coreir.Alt{Body: b})
 	}
 	return c
 }
@@ -43,11 +43,11 @@ func alts(bodies ...core.Node) *core.Choice {
 func TestLower(t *testing.T) {
 	for _, c := range []struct {
 		name string
-		body core.Node
+		body coreir.Node
 		opts Options
 		want string
 	}{
-		{"choice of literals", alts(&core.Lit{Text: "ab"}, &core.Lit{Text: "c"}), Options{InlineLiterals: 1}, `
+		{"choice of literals", alts(&coreir.Lit{Text: "ab"}, &coreir.Lit{Text: "c"}), Options{InlineLiterals: 1}, `
 func r
   var x1 int
   var ok bool
@@ -75,7 +75,7 @@ func r
   }
   v = nil
 `},
-		{"repetition with work and recovery", &core.Repeat{Min: 1, Max: -1, Body: &core.Lit{Text: "a"}}, Options{Budget: true, Recovers: true}, `
+		{"repetition with work and recovery", &coreir.Repeat{Min: 1, Max: -1, Body: &coreir.Lit{Text: "a"}}, Options{Budget: true, Recovers: true}, `
 func r
   var x1 int
   var x2 int
@@ -103,7 +103,7 @@ func r
   }
   v = nil
 `},
-		{"alternatives after one that cannot fail", alts(&core.Lit{Text: "a"}, &core.Succeed{}, &core.Lit{Text: "b"}), Options{}, `
+		{"alternatives after one that cannot fail", alts(&coreir.Lit{Text: "a"}, &coreir.Succeed{}, &coreir.Lit{Text: "b"}), Options{}, `
 func r
   var x1 int
   var ok bool
@@ -145,14 +145,14 @@ func r
 func TestLowerFrame(t *testing.T) {
 	for _, c := range []struct {
 		name  string
-		body  core.Node
-		slots []core.Slot
+		body  coreir.Node
+		slots []coreir.Slot
 		want  string
 	}{
-		{"recovery of a repetition with captures", &core.Recover{
-			Body: &core.Repeat{Min: 1, Max: -1, Scope: []core.Slot{{Name: "x"}},
-				Body: &core.Capture{Slot: 0, Name: "x", Body: &core.Lit{Text: "a"}}},
-			Skip: &core.Any{}}, nil, `
+		{"recovery of a repetition with captures", &coreir.Recover{
+			Body: &coreir.Repeat{Min: 1, Max: -1, Scope: []coreir.Slot{{Name: "x"}},
+				Body: &coreir.Capture{Slot: 0, Name: "x", Body: &coreir.Lit{Text: "a"}}},
+			Skip: &coreir.Any{}}, nil, `
 func r framed
   var x1 mark
   var x2 expmark
@@ -233,8 +233,8 @@ func r framed
   }
   return nil
 `},
-		{"cut at the top", &core.Seq{Items: []core.Node{&core.Capture{Slot: 0, Name: "y", Body: &core.Lit{Text: "a"}}, &core.Cut{}}},
-			[]core.Slot{{Name: "y"}}, `
+		{"cut at the top", &coreir.Seq{Items: []coreir.Node{&coreir.Capture{Slot: 0, Name: "y", Body: &coreir.Lit{Text: "a"}}, &coreir.Cut{}}},
+			[]coreir.Slot{{Name: "y"}}, `
 func r framed
   var cut1 bool
   var x2 int
@@ -276,7 +276,7 @@ func r framed
 // Verify accepts, and a typed lowering builds the typed ones.
 func TestLowerNodeValues(t *testing.T) {
 	for _, node := range []bool{false, true} {
-		m, r := valueFree(&core.Repeat{Min: 1, Max: -1, Body: &core.Lit{Text: "a"}})
+		m, r := valueFree(&coreir.Repeat{Min: 1, Max: -1, Body: &coreir.Lit{Text: "a"}})
 		f, err := LowerFrame(m, r, r.Body, nil, true, "r", Options{Node: node})
 		if err != nil {
 			t.Fatal(err)
@@ -316,10 +316,10 @@ func TestLowerVerifies(t *testing.T) {
 // it starts the stream and delivers each element instead of gathering it, guarded by StreamOn; without the
 // option it is the batch repetition, which has none of these operations.
 func TestLowerStream(t *testing.T) {
-	m := &core.Module{Rules: []*core.Rule{nil}}
-	rep := &core.Repeat{Min: 0, Max: -1, Body: &core.Lit{Text: "a"}}
-	body := &core.Stream{Repeat: rep}
-	r := &core.Rule{Name: "main", Body: body}
+	m := &coreir.Module{Rules: []*coreir.Rule{nil}}
+	rep := &coreir.Repeat{Min: 0, Max: -1, Body: &coreir.Lit{Text: "a"}}
+	body := &coreir.Stream{Repeat: rep}
+	r := &coreir.Rule{Name: "main", Body: body}
 	m.Rules[0] = r
 	lower := func(stream bool) string {
 		f, err := LowerFrame(m, r, body, nil, true, "main", Options{Node: true, Stream: stream})
@@ -349,7 +349,7 @@ func TestLowerStream(t *testing.T) {
 // reads a literal in place only where the primitive follows as the alternative, and Verify rejects the other
 // forms: an in-place read that is part of a larger condition or has no primitive to fall back to.
 func TestVerifyDocumentReads(t *testing.T) {
-	lit := &core.Lit{Text: "ab"}
+	lit := &coreir.Lit{Text: "ab"}
 	m, r := valueFree(lit)
 	build := func(document bool) *flow.Func {
 		f, err := Lower(m, r, "r", Options{InlineLiterals: 4, Document: document})

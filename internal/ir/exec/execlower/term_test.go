@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/execlower"
 )
@@ -70,9 +70,9 @@ func TestTermDumpGolden(t *testing.T) {
 
 // dumpTerms lists the terms of the rules of m in the order of the rules: their actions, the actions of
 // the lines of Operators Rules, and the terms of predicates and bindings.
-func dumpTerms(t *testing.T, m *core.Module) string {
+func dumpTerms(t *testing.T, m *coreir.Module) string {
 	var b strings.Builder
-	dump := func(rule, what string, x core.Term) {
+	dump := func(rule, what string, x coreir.Term) {
 		if x == nil {
 			return
 		}
@@ -92,16 +92,16 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 		if r == nil {
 			continue
 		}
-		if r.Finish.Kind == core.FinishAction {
+		if r.Finish.Kind == coreir.FinishAction {
 			dump(r.Name, "action", r.Finish.Action)
 		}
-		core.Walk(r.Body, func(n core.Node) {
+		coreir.Walk(r.Body, func(n coreir.Node) {
 			switch n := n.(type) {
-			case *core.Pred:
+			case *coreir.Pred:
 				dump(r.Name, "predicate", n.Term)
-			case *core.BindNode:
+			case *coreir.BindNode:
 				dump(r.Name, "binding "+n.Var, n.Term)
-			case *core.OperatorsRule:
+			case *coreir.OperatorsRule:
 				for i, l := range n.Lines() {
 					dump(r.Name, fmt.Sprintf("line %d", i), l.Action)
 				}
@@ -113,23 +113,23 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 
 // unsupported returns the kinds of the subterms of x that Term does not lower, in preorder, each
 // once.
-func unsupported(x core.Term) string {
+func unsupported(x coreir.Term) string {
 	seen := map[string]bool{}
 	var kinds []string
-	core.WalkTerm(x, func(s core.Term) {
+	coreir.WalkTerm(x, func(s coreir.Term) {
 		var k string
 		switch s := s.(type) {
-		case *core.New:
+		case *coreir.New:
 			k = "New"
-		case *core.Tuple:
+		case *coreir.Tuple:
 			k = "Tuple"
-		case *core.Lambda:
+		case *coreir.Lambda:
 			k = "Lambda"
-		case *core.Local:
-			if s.Kind == core.LocalParam {
+		case *coreir.Local:
+			if s.Kind == coreir.LocalParam {
 				k = "param"
 			}
-		case *core.Builtin:
+		case *coreir.Builtin:
 			if s.Func != "len" && s.Func != "text" {
 				k = s.Func
 			}

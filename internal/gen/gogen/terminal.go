@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -31,8 +31,8 @@ import (
 const minTerminalTable = 4
 
 // minTerminalLeaves is the smallest number of literals and classes for which a terminal
-// expression with a choice is lowered to a program (core.MinTerminalLeaves).
-const minTerminalLeaves = core.MinTerminalLeaves
+// expression with a choice is lowered to a program (coreir.MinTerminalLeaves).
+const minTerminalLeaves = coreir.MinTerminalLeaves
 
 // terminalLeaves returns the number of literals and classes of e, and whether e is a terminal
 // expression containing a choice. It returns ok false for any other expression.

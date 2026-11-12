@@ -10,7 +10,7 @@ does, so the original body of a rule that only such contexts reference is never 
 that only it calls. It printed every rule of the Node and recognizer tables anyway.
 
 The reachability of [record 120](120-unreachable-rule-bodies.md) now comes from one pass on the Core IR that both
-generators use (`core.Module.Reach`, `internal/ir/core/reach.go`). The call graph of the IR (`Module.Calls`) holds the
+generators use (`coreir.Module.Reach`, `internal/ir/coreir/reach.go`). The call graph of the IR (`Module.Calls`) holds the
 calls of every rule body, and the pass takes the two things that differ by target: the roots and how a call of a rule
 is entered, through the rule constant (`p.call`, `p.invokePlain`) or through the plain function of a rule without
 captures (`r<N>(p)`).

@@ -1,4 +1,4 @@
-package core
+package coreir
 
 // Passes rewrite Core IR. Each states its precondition; each leaves Analyze to be run again, after
 // which Verify holds if it held before.

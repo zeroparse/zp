@@ -1,4 +1,4 @@
-package core
+package coreir
 
 import (
 	"fmt"
@@ -473,7 +473,7 @@ func terminalBody(n Node) error {
 		}
 	case *Seq, *Opt, *Text, *Drop:
 	default:
-		return fmt.Errorf("terminal: %s", strings.TrimPrefix(fmt.Sprintf("%T", n), "*core."))
+		return fmt.Errorf("terminal: %s", strings.TrimPrefix(fmt.Sprintf("%T", n), "*coreir."))
 	}
 	for _, c := range Children(n) {
 		if err := terminalBody(c); err != nil {

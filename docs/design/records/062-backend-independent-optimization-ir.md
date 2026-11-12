@@ -102,7 +102,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
   as framed bodies, including a line with `#recover`; Operators Rules have no projected repetitions, so Core IR and
   the tables agree on the shape of every capture.
 - The body of the start rule that `ParseStream` runs prints as a framed Node function lowered with
-  `Options.Stream`. `core.Stream` is lowered as the repetition of a stream parse: `StreamStart` before the loop,
+  `Options.Stream`. `coreir.Stream` is lowered as the repetition of a stream parse: `StreamStart` before the loop,
   and, in place of gathering the element, `EmitStream` of the committed element (nil for a value-free repetition)
   followed by the zero-width check, each guarded by `StreamOn` (a stream parse with a callback, at the top call of
   the start rule), so that a parse without a callback or at depth above one gathers as the batch body does. The

@@ -1,7 +1,7 @@
 package tsgen
 
 import (
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 )
 
@@ -33,27 +33,27 @@ const (
 // outlineNodes returns the nodes of the module m that run as functions of their own: a node that is
 // Outlinable is chosen if it has at least outlineLarge Core nodes, or if build is set and
 // its structure occurs at least twice where its function would not already be a shared body.
-func outlineNodes(m *core.Module, build bool) map[core.Node]bool {
+func outlineNodes(m *coreir.Module, build bool) map[coreir.Node]bool {
 	type info struct {
-		n    core.Node
+		n    coreir.Node
 		size int
 		key  string
 		kids []*info
 	}
 	var all []*info
-	byNode := map[core.Node]*info{}
-	var visit func(n core.Node) *info
-	visit = func(n core.Node) *info {
+	byNode := map[coreir.Node]*info{}
+	var visit func(n coreir.Node) *info
+	visit = func(n coreir.Node) *info {
 		in := &info{n: n, size: 1}
 		byNode[n] = in
 		all = append(all, in)
-		var kids []core.Node
-		if o, ok := n.(*core.OperatorsRule); ok {
+		var kids []coreir.Node
+		if o, ok := n.(*coreir.OperatorsRule); ok {
 			for _, l := range o.Lines() {
 				kids = append(kids, l.Body)
 			}
 		} else {
-			kids = core.Children(n)
+			kids = coreir.Children(n)
 		}
 		for _, c := range kids {
 			if c != nil {
@@ -69,14 +69,14 @@ func outlineNodes(m *core.Module, build bool) map[core.Node]bool {
 			visit(r.Body)
 		}
 	}
-	chosen := map[core.Node]bool{}
+	chosen := map[coreir.Node]bool{}
 	candidate := func(in *info) bool { return flowlower.Outlinable(in.n) }
 	var dup map[string]bool
 	if build {
 		count := map[string]int{}
 		for _, in := range all {
 			if in.size >= outlineDuplicate && in.size < outlineLarge && candidate(in) {
-				in.key = core.PrintNode(m, in.n, true)
+				in.key = coreir.PrintNode(m, in.n, true)
 				count[in.key]++
 			}
 		}
@@ -91,8 +91,8 @@ func outlineNodes(m *core.Module, build bool) map[core.Node]bool {
 		for {
 			eff := map[string]int{}
 			seen := map[string]bool{}
-			var walk func(n core.Node)
-			walk = func(n core.Node) {
+			var walk func(n coreir.Node)
+			walk = func(n coreir.Node) {
 				in := byNode[n]
 				if in.key != "" {
 					eff[in.key]++
@@ -103,13 +103,13 @@ func outlineNodes(m *core.Module, build bool) map[core.Node]bool {
 					}
 					seen[in.key] = true
 				}
-				var kids []core.Node
-				if o, ok := n.(*core.OperatorsRule); ok {
+				var kids []coreir.Node
+				if o, ok := n.(*coreir.OperatorsRule); ok {
 					for _, l := range o.Lines() {
 						kids = append(kids, l.Body)
 					}
 				} else {
-					kids = core.Children(n)
+					kids = coreir.Children(n)
 				}
 				for _, c := range kids {
 					if c != nil {

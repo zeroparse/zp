@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // coreCorpusProgram compiles a corpus grammar for the Core IR tests, or reports false for a
@@ -74,8 +74,8 @@ func checkCoreBuild(t *testing.T, c gentest.Case) bool {
 		t.Errorf("%s: %v", c.Name, err)
 		return false
 	}
-	core.Analyze(m)
-	if err := core.Verify(m); err != nil {
+	coreir.Analyze(m)
+	if err := coreir.Verify(m); err != nil {
 		t.Errorf("%s: %v", c.Name, err)
 		return false
 	}
@@ -84,10 +84,10 @@ func checkCoreBuild(t *testing.T, c gentest.Case) bool {
 		return false
 	}
 	for _, r := range typedRules(g) {
-		if _, ok := m.Rules[r.ID].Body.(*core.OperatorsRule); ok {
+		if _, ok := m.Rules[r.ID].Body.(*coreir.OperatorsRule); ok {
 			continue
 		}
-		if got, want := core.SlotNames(m.Rules[r.ID].Scope), g.NodeScopes[r]; !slices.Equal(got, want) {
+		if got, want := coreir.SlotNames(m.Rules[r.ID].Scope), g.NodeScopes[r]; !slices.Equal(got, want) {
 			t.Errorf("%s: rule %s (%d): scope %v, generated Node rule %v", c.Name, r.Name, r.ID, got, want)
 		}
 	}

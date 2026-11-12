@@ -1,4 +1,4 @@
-package core
+package coreir
 
 // Term is a term of the action language: an action, a predicate or the value of a binding, with
 // its names resolved and its checked type (TypeOf).

@@ -16,8 +16,8 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // The tests here check the Core IR of the typed Go rules, after the passes of
@@ -46,8 +46,8 @@ type coreGenCase struct {
 	table  string
 	golden *decisionsGolden
 	gen    *gogen.Generator
-	m      *core.Module
-	origin map[core.Node]grammar.Expr
+	m      *coreir.Module
+	origin map[coreir.Node]grammar.Expr
 	// rules holds the rules of the program by ID, value-free twins included.
 	rules []*compile.Rule
 	// passErrs holds the violations Verify found after a pass.
@@ -64,12 +64,12 @@ func (c *coreGenCase) g() *gogen.Generator { return c.gen }
 // keyed by: the alternative of the grammar choice x is built from. (The origin of an alternative's
 // body is the innermost expression it is built from: inside a capture that builds nothing, for
 // one.)
-func (c *coreGenCase) altOrigin(x *core.Choice, i int) (grammar.Expr, bool) {
+func (c *coreGenCase) altOrigin(x *coreir.Choice, i int) (grammar.Expr, bool) {
 	if ce, ok := c.origin[x].(*grammar.Choice); ok && len(ce.Alts) == len(x.Alts) {
 		return ce.Alts[i], true
 	}
 	body := x.Alts[i].Body
-	if t, ok := body.(*core.Terminal); ok {
+	if t, ok := body.(*coreir.Terminal); ok {
 		body = t.Body
 	}
 	e, ok := c.origin[body]
@@ -107,16 +107,16 @@ func recognizerOf(g *gogen.Generator) (*compile.Program, error) {
 // gogen.Generator.TypedCore, verifying the module after each pass and following the repetitions
 // the scan pass replaces, so that every scan has the origin of its repetition. If breaks is not nil, it is called
 // after each pass, before the module is verified: a negative control breaks a pass there.
-func coreTypedCase(name, mode string, gen *gogen.Generator, breaks func(c *coreGenCase, pass string, m *core.Module)) (*coreGenCase, error) {
-	c := &coreGenCase{name: name, mode: mode, table: "trules", golden: typedGolden, gen: gen, origin: map[core.Node]grammar.Expr{}}
+func coreTypedCase(name, mode string, gen *gogen.Generator, breaks func(c *coreGenCase, pass string, m *coreir.Module)) (*coreGenCase, error) {
+	c := &coreGenCase{name: name, mode: mode, table: "trules", golden: typedGolden, gen: gen, origin: map[coreir.Node]grammar.Expr{}}
 	c.rules = typedRules(gen)
 	var repeats []func()
-	gen.CoreHook = func(pass string, m *core.Module) {
+	gen.CoreHook = func(pass string, m *coreir.Module) {
 		if breaks != nil {
 			breaks(c, pass, m)
 		}
-		core.Analyze(m)
-		if err := core.Verify(m); err != nil {
+		coreir.Analyze(m)
+		if err := coreir.Verify(m); err != nil {
 			c.passErrs = append(c.passErrs, fmt.Sprintf("after %s: %v", pass, err))
 		}
 		switch pass {
@@ -166,7 +166,7 @@ func coreGenerations(t *testing.T, mode coreGenMode) []coreGenerated1 {
 			if !ok {
 				return
 			}
-			if m, err := gen.TypedCore(map[core.Node]grammar.Expr{}); err != nil || len(m.Rules) == 0 {
+			if m, err := gen.TypedCore(map[coreir.Node]grammar.Expr{}); err != nil || len(m.Rules) == 0 {
 				return
 			}
 			gens[i] = gen
@@ -188,7 +188,7 @@ func coreGenerations(t *testing.T, mode coreGenMode) []coreGenerated1 {
 
 // coreGenCases builds the Core IR of every corpus grammar generated in the mode, breaking the
 // passes with breaks if it is not nil (coreTypedCase).
-func coreGenCases(t *testing.T, mode coreGenMode, breaks func(c *coreGenCase, pass string, m *core.Module)) []*coreGenCase {
+func coreGenCases(t *testing.T, mode coreGenMode, breaks func(c *coreGenCase, pass string, m *coreir.Module)) []*coreGenCase {
 	t.Helper()
 	var out []*coreGenCase
 	for _, gen := range coreGenerations(t, mode) {
@@ -202,11 +202,11 @@ func coreGenCases(t *testing.T, mode coreGenMode, breaks func(c *coreGenCase, pa
 }
 
 // coreNodes calls f for every node of the rule with the alternative and the line it is in.
-func coreNodes(r *core.Rule, f func(n core.Node)) { core.Walk(r.Body, f) }
+func coreNodes(r *coreir.Rule, f func(n coreir.Node)) { coreir.Walk(r.Body, f) }
 
 // opLines returns the lines of an Operators Rule with their grammar lines, in order: the skip
 // line, the operands and the operators.
-func opLines(o *core.OperatorsRule, e *grammar.OperatorsRule) ([]*core.OpLine, []grammar.Expr, []grammar.Term) {
+func opLines(o *coreir.OperatorsRule, e *grammar.OperatorsRule) ([]*coreir.OpLine, []grammar.Expr, []grammar.Term) {
 	var exprs []grammar.Expr
 	var actions []grammar.Term
 	if e.Skip != nil {
@@ -229,7 +229,7 @@ var budgetClassName = regexp.MustCompile(`budgetClass[0-9]+`)
 // guardString is the guard of a Core alternative as a Go condition: the condition on the
 // next character and the expectation. The numbers of budget class tables are left out: they depend on
 // the order in which the generator met the classes, and the ranges of the condition name the class.
-func guardString(g *gogen.Generator, m *core.Module, f *core.First) (string, string) {
+func guardString(g *gogen.Generator, m *coreir.Module, f *coreir.First) (string, string) {
 	if f.Lit {
 		if f.Fold {
 			return fmt.Sprintf("ch == %d || ch == %d", f.Rune, f.Rune-('a'-'A')), m.Exps[f.Exp]
@@ -278,10 +278,10 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 		add := func(kind string, at int, format string, args ...any) {
 			lines = append(lines, fmt.Sprintf("%s\t%d\t%d", kind, cr.ID, at)+fmt.Sprintf(format, args...))
 		}
-		names := func(s []core.Slot) string { return strings.Join(core.SlotNames(s), ",") }
-		coreNodes(cr, func(x core.Node) {
+		names := func(s []coreir.Slot) string { return strings.Join(coreir.SlotNames(s), ",") }
+		coreNodes(cr, func(x coreir.Node) {
 			switch x := x.(type) {
-			case *core.Terminal:
+			case *coreir.Terminal:
 				e, ok := c.origin[x.Body]
 				if !ok {
 					problem("terminal", "terminal without origin")
@@ -291,7 +291,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					add("terminal", i, "")
 					n.terminals++
 				}
-			case *core.Choice:
+			case *coreir.Choice:
 				for i, a := range x.Alts {
 					e, ok := c.altOrigin(x, i)
 					if !ok {
@@ -313,7 +313,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 						n.guardedClasses++
 					}
 				}
-			case *core.Seq:
+			case *coreir.Seq:
 				e, ok := c.origin[x].(*grammar.Seq)
 				if !ok || x.Attrs().Want {
 					return
@@ -321,7 +321,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 				var runs []string
 				pos := 0
 				for _, it := range x.Items {
-					if run, ok := it.(*core.ClassRun); ok {
+					if run, ok := it.(*coreir.ClassRun); ok {
 						runs = append(runs, fmt.Sprintf("%d:%d", pos, len(run.Classes)))
 						pos += len(run.Classes)
 						n.classRuns++
@@ -338,7 +338,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 				if i, ok := at("class runs", e); ok {
 					add("runs", i, "\t%s", strings.Join(runs, " "))
 				}
-			case *core.Scan:
+			case *coreir.Scan:
 				e, ok := c.origin[x]
 				if !ok {
 					problem("scan", "scan without origin")
@@ -348,7 +348,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					add("scan", i, "")
 					n.scans++
 				}
-			case *core.Repeat:
+			case *coreir.Repeat:
 				e, ok := c.origin[x].(*grammar.Repeat)
 				if !ok || x.Scope == nil {
 					return
@@ -357,7 +357,7 @@ func coreDecisionLines(c *coreGenCase, n *coreDecisionCounts) (lines, problems [
 					add("scope", i, "\t%s", names(x.Scope))
 					n.scopes++
 				}
-			case *core.OperatorsRule:
+			case *coreir.OperatorsRule:
 				lineList, exprs, _ := opLines(x, r.Def.Expr.(*grammar.OperatorsRule))
 				for i, l := range lineList {
 					if ei, ok := at("scope", exprs[i]); ok {

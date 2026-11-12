@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	irbuild "zeroparse.dev/zp/internal/ir/coreir/build"
 )
 
 // coreBreak is a negative control: a pass broken on purpose, which the comparison with the frozen
@@ -18,7 +18,7 @@ type coreBreak struct {
 	// aspects are the aspects of the differences it causes (compareCoreDecisions).
 	aspects []string
 	// apply breaks the module and reports whether it changed something.
-	apply func(c *coreGenCase, m *core.Module) bool
+	apply func(c *coreGenCase, m *coreir.Module) bool
 }
 
 // checkCoreAspect compares the aspect of the Core IR with the frozen decisions over the corpus in
@@ -35,7 +35,7 @@ func checkCoreAspect(t *testing.T, aspect string, breaks []coreBreak) {
 	}
 	for _, b := range breaks {
 		broken, caught := 0, 0
-		cases := coreGenCases(t, coreGenModes[0], func(c *coreGenCase, pass string, m *core.Module) {
+		cases := coreGenCases(t, coreGenModes[0], func(c *coreGenCase, pass string, m *coreir.Module) {
 			if pass == b.pass && b.apply(c, m) {
 				c.broken = true
 			}
@@ -65,11 +65,11 @@ func checkCoreAspect(t *testing.T, aspect string, breaks []coreBreak) {
 
 // firstNode returns the first node of the module for which f reports true, with an accessor of
 // its place (eachSlot).
-func firstNode(m *core.Module, f func(core.Node) bool) (core.Node, func(core.Node)) {
+func firstNode(m *coreir.Module, f func(coreir.Node) bool) (coreir.Node, func(coreir.Node)) {
 	for _, r := range m.Rules {
-		var found core.Node
-		var set func(core.Node)
-		irbuild.EachSlot(r, func(at func() core.Node) {
+		var found coreir.Node
+		var set func(coreir.Node)
+		irbuild.EachSlot(r, func(at func() coreir.Node) {
 			if found == nil && f(at()) {
 				found = at()
 				set = placeSetter(r, at)
@@ -83,10 +83,10 @@ func firstNode(m *core.Module, f func(core.Node) bool) (core.Node, func(core.Nod
 }
 
 // placeSetter returns a function that replaces the node at the place at of the rule r.
-func placeSetter(r *core.Rule, at func() core.Node) func(core.Node) {
+func placeSetter(r *coreir.Rule, at func() coreir.Node) func(coreir.Node) {
 	old := at()
-	return func(n core.Node) {
-		replace := func(x core.Node) core.Node {
+	return func(n coreir.Node) {
+		replace := func(x coreir.Node) coreir.Node {
 			if x == old {
 				return n
 			}
@@ -96,37 +96,37 @@ func placeSetter(r *core.Rule, at func() core.Node) func(core.Node) {
 			r.Body = n
 			return
 		}
-		irbuild.EachSlot(r, func(p func() core.Node) {
+		irbuild.EachSlot(r, func(p func() coreir.Node) {
 			switch x := p().(type) {
-			case *core.Seq:
+			case *coreir.Seq:
 				for i := range x.Items {
 					x.Items[i] = replace(x.Items[i])
 				}
-			case *core.Choice:
+			case *coreir.Choice:
 				for _, a := range x.Alts {
 					a.Body = replace(a.Body)
 				}
-			case *core.Opt:
+			case *coreir.Opt:
 				x.Body = replace(x.Body)
-			case *core.Repeat:
+			case *coreir.Repeat:
 				x.Body = replace(x.Body)
-			case *core.Look:
+			case *coreir.Look:
 				x.Body = replace(x.Body)
-			case *core.Nest:
+			case *coreir.Nest:
 				x.Body = replace(x.Body)
-			case *core.Text:
+			case *coreir.Text:
 				x.Body = replace(x.Body)
-			case *core.Drop:
+			case *coreir.Drop:
 				x.Body = replace(x.Body)
-			case *core.Capture:
+			case *coreir.Capture:
 				x.Body = replace(x.Body)
-			case *core.Label:
+			case *coreir.Label:
 				x.Body = replace(x.Body)
-			case *core.Recover:
+			case *coreir.Recover:
 				x.Body, x.Skip = replace(x.Body), replace(x.Skip)
-			case *core.Terminal:
+			case *coreir.Terminal:
 				x.Body = replace(x.Body)
-			case *core.OperatorsRule:
+			case *coreir.OperatorsRule:
 				for _, l := range x.Lines() {
 					l.Body = replace(l.Body)
 				}
@@ -137,11 +137,11 @@ func placeSetter(r *core.Rule, at func() core.Node) func(core.Node) {
 
 // firstAlt returns the first alternative of a choice of the module that has an origin and for which f
 // reports true.
-func firstAlt(c *coreGenCase, m *core.Module, f func(*core.Alt) bool) *core.Alt {
-	var found *core.Alt
+func firstAlt(c *coreGenCase, m *coreir.Module, f func(*coreir.Alt) bool) *coreir.Alt {
+	var found *coreir.Alt
 	for _, r := range m.Rules {
-		core.Walk(r.Body, func(n core.Node) {
-			if ch, ok := n.(*core.Choice); ok && found == nil {
+		coreir.Walk(r.Body, func(n coreir.Node) {
+			if ch, ok := n.(*coreir.Choice); ok && found == nil {
 				for i, a := range ch.Alts {
 					_, ok := c.altOrigin(ch, i)
 					if found == nil && ok && f(a) {
@@ -158,19 +158,19 @@ func firstAlt(c *coreGenCase, m *core.Module, f func(*core.Alt) bool) *core.Alt 
 // frozen ones, and checks that a guard pass that drops a guard or a guarded class is caught.
 func TestCoreGuardsFrozen(t *testing.T) {
 	checkCoreAspect(t, "guard", []coreBreak{
-		{"guard dropped", "guards", []string{"guard"}, func(c *coreGenCase, m *core.Module) bool {
-			a := firstAlt(c, m, func(a *core.Alt) bool { return a.Guard != nil && !a.GuardedClass })
+		{"guard dropped", "guards", []string{"guard"}, func(c *coreGenCase, m *coreir.Module) bool {
+			a := firstAlt(c, m, func(a *coreir.Alt) bool { return a.Guard != nil && !a.GuardedClass })
 			if a == nil {
 				return false
 			}
 			a.Guard = nil
 			return true
 		}},
-		{"wrong guard expectation", "guards", []string{"guard"}, func(c *coreGenCase, m *core.Module) bool {
+		{"wrong guard expectation", "guards", []string{"guard"}, func(c *coreGenCase, m *coreir.Module) bool {
 			// The literal that begins the alternative, and so its guard, record another
 			// expectation: the module stays valid, with a guard of the wrong expectation.
-			var lit *core.Lit
-			a := firstAlt(c, m, func(a *core.Alt) bool {
+			var lit *coreir.Lit
+			a := firstAlt(c, m, func(a *coreir.Alt) bool {
 				lit = nil
 				if a.Guard != nil && a.Guard.Lit && a.Guard.Depth == 0 {
 					lit = leadingLit(a.Body)
@@ -185,8 +185,8 @@ func TestCoreGuardsFrozen(t *testing.T) {
 			a.Guard = &g
 			return true
 		}},
-		{"guarded class dropped", "guards", []string{"guard"}, func(c *coreGenCase, m *core.Module) bool {
-			a := firstAlt(c, m, func(a *core.Alt) bool { return a.GuardedClass })
+		{"guarded class dropped", "guards", []string{"guard"}, func(c *coreGenCase, m *coreir.Module) bool {
+			a := firstAlt(c, m, func(a *coreir.Alt) bool { return a.GuardedClass })
 			if a == nil {
 				return false
 			}
@@ -201,24 +201,24 @@ func TestCoreGuardsFrozen(t *testing.T) {
 // caught.
 func TestCoreTerminalsFrozen(t *testing.T) {
 	checkCoreAspect(t, "terminal", []coreBreak{
-		{"terminal left out", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
-			n, set := firstNode(m, func(n core.Node) bool { _, ok := n.(*core.Terminal); return ok })
+		{"terminal left out", "terminals", []string{"terminal"}, func(c *coreGenCase, m *coreir.Module) bool {
+			n, set := firstNode(m, func(n coreir.Node) bool { _, ok := n.(*coreir.Terminal); return ok })
 			if n == nil {
 				return false
 			}
-			set(n.(*core.Terminal).Body)
+			set(n.(*coreir.Terminal).Body)
 			return true
 		}},
-		{"spurious terminal", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
+		{"spurious terminal", "terminals", []string{"terminal"}, func(c *coreGenCase, m *coreir.Module) bool {
 			for _, r := range m.Rules {
 				if !gogen.CoreLocalRule(r) {
 					continue
 				}
-				if seq := valueFreeSeq(r.Body, func(n core.Node) bool {
+				if seq := valueFreeSeq(r.Body, func(n coreir.Node) bool {
 					_, ok := c.origin[n]
 					return ok
 				}); seq != nil {
-					seq.Items[0] = &core.Terminal{Body: seq.Items[0]}
+					seq.Items[0] = &coreir.Terminal{Body: seq.Items[0]}
 					return true
 				}
 			}
@@ -228,26 +228,26 @@ func TestCoreTerminalsFrozen(t *testing.T) {
 }
 
 // leadingLit returns the literal that n is or that begins the sequence n.
-func leadingLit(n core.Node) *core.Lit {
-	if s, ok := n.(*core.Seq); ok && len(s.Items) > 0 {
+func leadingLit(n coreir.Node) *coreir.Lit {
+	if s, ok := n.(*coreir.Seq); ok && len(s.Items) > 0 {
 		n = s.Items[0]
 	}
-	l, _ := n.(*core.Lit)
+	l, _ := n.(*coreir.Lit)
 	return l
 }
 
 // valueFreeSeq returns the first value-free sequence of n outside Terminals that begins with a
 // literal for which written reports true.
-func valueFreeSeq(n core.Node, written func(core.Node) bool) *core.Seq {
-	if _, ok := n.(*core.Terminal); ok {
+func valueFreeSeq(n coreir.Node, written func(coreir.Node) bool) *coreir.Seq {
+	if _, ok := n.(*coreir.Terminal); ok {
 		return nil
 	}
-	if s, ok := n.(*core.Seq); ok && !s.Attrs().Want && len(s.Items) > 0 {
-		if _, ok := s.Items[0].(*core.Lit); ok && written(s.Items[0]) {
+	if s, ok := n.(*coreir.Seq); ok && !s.Attrs().Want && len(s.Items) > 0 {
+		if _, ok := s.Items[0].(*coreir.Lit); ok && written(s.Items[0]) {
 			return s
 		}
 	}
-	for _, c := range core.Children(n) {
+	for _, c := range coreir.Children(n) {
 		if s := valueFreeSeq(c, written); s != nil {
 			return s
 		}
@@ -259,14 +259,14 @@ func valueFreeSeq(n core.Node, written func(core.Node) bool) *core.Seq {
 // and checks that a class-run pass that leaves one out is caught.
 func TestCoreClassRunsFrozen(t *testing.T) {
 	checkCoreAspect(t, "class runs", []coreBreak{
-		{"class run left out", "class-runs", []string{"class runs"}, func(c *coreGenCase, m *core.Module) bool {
-			var seq *core.Seq
+		{"class run left out", "class-runs", []string{"class runs"}, func(c *coreGenCase, m *coreir.Module) bool {
+			var seq *coreir.Seq
 			at := -1
 			for _, r := range m.Rules {
-				core.Walk(r.Body, func(n core.Node) {
-					if s, ok := n.(*core.Seq); ok && seq == nil {
+				coreir.Walk(r.Body, func(n coreir.Node) {
+					if s, ok := n.(*coreir.Seq); ok && seq == nil {
 						for i, it := range s.Items {
-							if _, ok := it.(*core.ClassRun); ok && at < 0 {
+							if _, ok := it.(*coreir.ClassRun); ok && at < 0 {
 								seq, at = s, i
 							}
 						}
@@ -276,9 +276,9 @@ func TestCoreClassRunsFrozen(t *testing.T) {
 			if seq == nil {
 				return false
 			}
-			var items []core.Node
-			for _, cl := range seq.Items[at].(*core.ClassRun).Classes {
-				items = append(items, &core.ClassNode{Class: cl})
+			var items []coreir.Node
+			for _, cl := range seq.Items[at].(*coreir.ClassRun).Classes {
+				items = append(items, &coreir.ClassNode{Class: cl})
 			}
 			seq.Items = append(seq.Items[:at:at], append(items, seq.Items[at+1:]...)...)
 			return true
@@ -290,17 +290,17 @@ func TestCoreClassRunsFrozen(t *testing.T) {
 // checks that a scan pass that leaves one out is caught.
 func TestCoreScansFrozen(t *testing.T) {
 	checkCoreAspect(t, "scan", []coreBreak{
-		{"scan left out", "scans", []string{"scan"}, func(c *coreGenCase, m *core.Module) bool {
-			n, set := firstNode(m, func(n core.Node) bool { _, ok := n.(*core.Scan); return ok })
+		{"scan left out", "scans", []string{"scan"}, func(c *coreGenCase, m *coreir.Module) bool {
+			n, set := firstNode(m, func(n coreir.Node) bool { _, ok := n.(*coreir.Scan); return ok })
 			if n == nil {
 				return false
 			}
-			s := n.(*core.Scan)
-			var body core.Node = &core.Any{}
+			s := n.(*coreir.Scan)
+			var body coreir.Node = &coreir.Any{}
 			if s.Class != nil {
-				body = &core.ClassNode{Class: s.Class}
+				body = &coreir.ClassNode{Class: s.Class}
 			}
-			rep := &core.Repeat{Min: s.Min, Max: s.Max, Body: body}
+			rep := &coreir.Repeat{Min: s.Min, Max: s.Max, Body: body}
 			c.origin[rep] = c.origin[s]
 			set(rep)
 			return true
@@ -312,22 +312,22 @@ func TestCoreScansFrozen(t *testing.T) {
 // with the frozen ones, and checks that a scope with a slot too many is caught.
 func TestCoreScopesFrozen(t *testing.T) {
 	checkCoreAspect(t, "scope", []coreBreak{
-		{"element slot added", "build", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
-			n, _ := firstNode(m, func(n core.Node) bool { r, ok := n.(*core.Repeat); return ok && r.Scope != nil })
+		{"element slot added", "build", []string{"scope"}, func(c *coreGenCase, m *coreir.Module) bool {
+			n, _ := firstNode(m, func(n coreir.Node) bool { r, ok := n.(*coreir.Repeat); return ok && r.Scope != nil })
 			if n == nil {
 				return false
 			}
-			r := n.(*core.Repeat)
-			r.Scope = append(r.Scope, core.Slot{Name: "extra", Type: "extra"})
+			r := n.(*coreir.Repeat)
+			r.Scope = append(r.Scope, coreir.Slot{Name: "extra", Type: "extra"})
 			return true
 		}},
-		{"line slot added", "build", []string{"scope"}, func(c *coreGenCase, m *core.Module) bool {
-			n, _ := firstNode(m, func(n core.Node) bool { _, ok := n.(*core.OperatorsRule); return ok })
+		{"line slot added", "build", []string{"scope"}, func(c *coreGenCase, m *coreir.Module) bool {
+			n, _ := firstNode(m, func(n coreir.Node) bool { _, ok := n.(*coreir.OperatorsRule); return ok })
 			if n == nil {
 				return false
 			}
-			l := n.(*core.OperatorsRule).Lines()[0]
-			l.Scope = append(l.Scope, core.Slot{Name: "extra", Type: "extra"})
+			l := n.(*coreir.OperatorsRule).Lines()[0]
+			l.Scope = append(l.Scope, coreir.Slot{Name: "extra", Type: "extra"})
 			return true
 		}},
 	})
@@ -346,7 +346,7 @@ func TestCoreScans(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := core.PrintNode(m, m.Rules[0].Body, false)
+	got := coreir.PrintNode(m, m.Rules[0].Body, false)
 	want := `seq
   scan [a-z] 0 -1 scan-site=1
   repeat 2 2
